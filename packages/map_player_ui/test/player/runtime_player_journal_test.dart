@@ -53,6 +53,7 @@ void main() {
         } else {
           expect(detail.top, greaterThan(list.bottom));
         }
+        expect(detail.height, lessThan(body.height));
         expect(detail.bottom, lessThanOrEqualTo(body.bottom + .1));
         expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
         expect(find.byType(Scrollable), findsNothing);
@@ -60,6 +61,59 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'portrait journal natural detail height settles without resizing its pager width',
+    (tester) async {
+      await _pump(
+        tester,
+        RuntimePlayerPauseDetailSnapshot(
+          section: RuntimePlayerPauseSection.quests,
+          title: 'Journal',
+          entries: [
+            RuntimePlayerDetailEntrySnapshot(
+              id: 'forest',
+              title: 'Un passage dans la forêt',
+              subtitle: 'En cours · Parler au garde',
+              trailingLabel: 'En cours',
+            ),
+            RuntimePlayerDetailEntrySnapshot(
+              id: 'first',
+              title: 'Le premier compagnon',
+              subtitle: 'Terminé · Rencontrer le professeur',
+              trailingLabel: 'Terminé',
+            ),
+            RuntimePlayerDetailEntrySnapshot(
+              id: 'river',
+              title: 'Au bord du ruisseau',
+              subtitle: 'En cours · Explorer les environs',
+              trailingLabel: 'En cours',
+            ),
+          ],
+        ),
+        size: const Size(390, 844),
+        settle: false,
+      );
+      for (var frame = 0; frame < 30; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      final detail = find.byKey(const ValueKey('journal-detail'));
+      final bounds = tester.getRect(detail);
+      final body = tester.getRect(
+        find.byKey(const ValueKey('runtime-player-detail-quests')),
+      );
+      expect(bounds.height, lessThan(body.height));
+      for (var frame = 0; frame < 8; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(tester.getRect(detail), bounds);
+        expect(tester.binding.hasScheduledFrame, isFalse);
+      }
+      expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      expect(find.text('En cours · Parler au garde'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('journal selection displays every exact published field', (
     tester,
@@ -253,6 +307,7 @@ Future<void> _pump(
   PlayerControlProfile? controlProfile,
   bool hardwareGamepadEnabled = true,
   VoidCallback? onBack,
+  bool settle = true,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -303,5 +358,5 @@ Future<void> _pump(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }

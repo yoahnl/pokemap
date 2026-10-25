@@ -6,6 +6,125 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final dark in [false, true]) {
+    testWidgets(
+      'Thor primary title keeps a compact lower caption without menu actions dark=$dark',
+      (tester) async {
+        tester.view.physicalSize = const Size(768, 432);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          _app(
+            PlayerTitleScreen(
+              sceneOnly: true,
+              data: PlayerTitleViewData(
+                gameTitle: 'Les Clairières',
+                author: 'Avelune',
+                description: 'Une aventure à votre rythme',
+                actions: const {
+                  PlayerTitleMenuAction.continueGame:
+                      PlayerActionAvailability.enabled,
+                },
+              ),
+              onSelected: (_) =>
+                  fail('the scene cannot activate a menu command'),
+            ),
+            theme: dark
+                ? PokeMapPlayerTheme.dark()
+                : PokeMapPlayerTheme.light(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final caption = tester.getRect(
+          find.byKey(const ValueKey('player-title-scene-caption')),
+        );
+        expect(caption.left, 24);
+        expect(caption.bottom, 408);
+        expect(caption.height, lessThan(100));
+        expect(
+          caption.overlaps(const Rect.fromLTWH(300, 140, 160, 150)),
+          isFalse,
+        );
+        expect(
+          tester
+              .widget<Text>(
+                find.byKey(const ValueKey('player-title-scene-title')),
+              )
+              .style!
+              .fontSize,
+          24,
+        );
+        expect(find.byType(PlayerActionButton), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+    testWidgets(
+      'Thor title renders the typed Continue save with all actions dark=$dark',
+      (tester) async {
+        tester.view.physicalSize = const Size(496, 432);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final selected = <PlayerTitleMenuAction>[];
+        await tester.pumpWidget(
+          _app(
+            PlayerCompanionScope(
+              child: PlayerTitleScreen(
+                data: PlayerTitleViewData(
+                  gameTitle: 'Les Clairières',
+                  author: 'Avelune',
+                  continueSave: PlayerSaveSummary(
+                    address: SaveSlotAddress(
+                      gameId: 'com.avelune.clairieres',
+                      profileId: 'yoahn',
+                      slotId: '1',
+                    ),
+                    updatedAt: DateTime.utc(2026, 10, 25),
+                    playTimeSeconds: 9240,
+                    status: SaveStatus.active,
+                    canContinue: true,
+                    locationLabel: 'Clairière des Sources',
+                  ),
+                  actions: {
+                    for (final action in [
+                      PlayerTitleMenuAction.continueGame,
+                      PlayerTitleMenuAction.newGame,
+                      PlayerTitleMenuAction.options,
+                      PlayerTitleMenuAction.creditsAbout,
+                      PlayerTitleMenuAction.returnToHub,
+                    ])
+                      action: PlayerActionAvailability.enabled,
+                  },
+                ),
+                onSelected: selected.add,
+              ),
+            ),
+            theme: dark
+                ? PokeMapPlayerTheme.dark()
+                : PokeMapPlayerTheme.light(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('02:34 · Clairière des Sources'), findsOneWidget);
+        for (final action in [
+          PlayerTitleMenuAction.continueGame,
+          PlayerTitleMenuAction.newGame,
+          PlayerTitleMenuAction.options,
+          PlayerTitleMenuAction.creditsAbout,
+          PlayerTitleMenuAction.returnToHub,
+        ]) {
+          final button = find.byKey(ValueKey(_titleId(action)));
+          expect(button.hitTestable(), findsOneWidget);
+          final bounds = tester.getRect(button);
+          expect(bounds.height, greaterThanOrEqualTo(48));
+          expect(bounds.bottom, lessThanOrEqualTo(432));
+        }
+        await tester.tap(find.byKey(const ValueKey('title.continueGame')));
+        expect(selected, [PlayerTitleMenuAction.continueGame]);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final mode in const [
     (size: Size(390, 844), controller: false, companion: false),
     (size: Size(844, 390), controller: false, companion: false),
@@ -75,8 +194,41 @@ void main() {
           await tester.pump();
           expect(
             find.byKey(const ValueKey('player-title-branding-backplate')),
-            findsOneWidget,
+            findsNothing,
           );
+          final gradient = tester.widget<DecoratedBox>(
+            find.byKey(const ValueKey('player-title-ligue-gradient')),
+          );
+          final decoration = gradient.decoration as BoxDecoration;
+          expect(decoration.gradient, isA<LinearGradient>());
+          expect((decoration.gradient! as LinearGradient).stops, [
+            0,
+            .4,
+            .85,
+            1,
+          ]);
+          final captionContext = tester.element(
+            find.byKey(const ValueKey('player-title-ligue-branding')),
+          );
+          expect(
+            tester.widget<Text>(find.text('Les Clairières')).style!.color,
+            captionContext.playerMenuTheme.selectionText,
+          );
+          for (final caption in [
+            'Une aventure à votre rythme',
+            'Studio Brume',
+          ]) {
+            final style = tester.widget<Text>(find.text(caption)).style!;
+            expect(
+              style.color,
+              captionContext.playerMenuTheme.selectionText.withValues(
+                alpha: mode.companion ? 1 : .8,
+              ),
+            );
+            if (mode.companion) {
+              expect(style.shadows, hasLength(2));
+            }
+          }
           expect(find.byType(PlayerActionButton), findsNWidgets(5));
           expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
           expect(find.byType(SingleChildScrollView), findsNothing);

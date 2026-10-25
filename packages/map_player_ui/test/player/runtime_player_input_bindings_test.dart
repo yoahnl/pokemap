@@ -6,6 +6,127 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets(
+    'portrait options tab keys leave a focused slider without editing preferences',
+    (tester) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      final sources = <PlayerInputSource>[];
+      await _pumpOptions(
+        tester,
+        onChanged: changes.add,
+        size: const Size(390, 844),
+        onInputSourceChanged: sources.add,
+      );
+      await tester.tap(find.byKey(const ValueKey('options-category-picker')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('options-category-audio')));
+      await tester.pumpAndSettle();
+      tester
+          .widget<Slider>(find.byKey(const ValueKey('options-master-slider')))
+          .focusNode!
+          .requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<PlayerActionButton>(
+              find.byKey(const ValueKey('options-category-picker')),
+            )
+            .label,
+        'Commandes',
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<PlayerActionButton>(
+              find.byKey(const ValueKey('options-category-picker')),
+            )
+            .label,
+        'Son',
+      );
+      expect(sources.last, PlayerInputSource.keyboard);
+      await tester.drag(
+        find.byKey(const ValueKey('options-category-picker')),
+        const Offset(-100, 0),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<PlayerActionButton>(
+              find.byKey(const ValueKey('options-category-picker')),
+            )
+            .label,
+        'Commandes',
+      );
+      expect(sources.last, PlayerInputSource.touch);
+      expect(sources, isNot(contains(PlayerInputSource.controller)));
+      expect(changes, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'tab swipe outside a nested pager changes one tab and reports touch',
+    (tester) async {
+      var tabs = 0;
+      final sources = <PlayerInputSource>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RuntimePlayerActions(
+              onBack: () {},
+              onMenu: () {},
+              onInputSourceChanged: sources.add,
+              child: RuntimePlayerTabActions(
+                onPreviousTab: () => tabs--,
+                onNextTab: () => tabs++,
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      key: ValueKey('tab-swipe-header'),
+                      height: 100,
+                      width: double.infinity,
+                    ),
+                    Expanded(
+                      child: PlayerPagedList(
+                        children: [
+                          for (var i = 0; i < 10; i++)
+                            SizedBox(height: 120, child: Text('Page atom $i')),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final body = find.byKey(const ValueKey('player-paged-body'));
+      await tester.drag(body, const Offset(-100, 0));
+      await tester.pumpAndSettle();
+      expect(tabs, 0);
+      expect(find.textContaining('Page 2 /'), findsOneWidget);
+      await tester.drag(
+        find.byKey(const ValueKey('tab-swipe-header')),
+        const Offset(-100, 0),
+      );
+      await tester.pumpAndSettle();
+      expect(tabs, 1);
+      expect(sources, contains(PlayerInputSource.touch));
+      await tester.drag(
+        find.byKey(const ValueKey('tab-swipe-header')),
+        const Offset(0, 100),
+      );
+      await tester.pumpAndSettle();
+      expect(tabs, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Space remapped to Back closes a choice without saving', (
     tester,
   ) async {
@@ -117,9 +238,11 @@ Future<void> _pumpOptions(
   PlayerControlProfile? profile,
   required ValueChanged<PlayerPreferencesSnapshot> onChanged,
   VoidCallback? onBack,
+  Size size = const Size(1440, 900),
+  ValueChanged<PlayerInputSource>? onInputSourceChanged,
 }) async {
   tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = const Size(1440, 900);
+  tester.view.physicalSize = size;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
@@ -131,7 +254,7 @@ Future<void> _pumpOptions(
         body: RuntimePlayerActions(
           onBack: onBack ?? () {},
           onMenu: () {},
-          onInputSourceChanged: (_) {},
+          onInputSourceChanged: onInputSourceChanged ?? (_) {},
           child: PlayerMenuThemeScope(
             child: RuntimePlayerInputBindings(
               controlProfile: profile,

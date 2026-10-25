@@ -107,7 +107,9 @@ class _PlayerShopOverlayState extends State<PlayerShopOverlay> {
                 ? '${selling ? l10n.shopSell : l10n.shopBuy} · ${selected.label}'
                 : content.title,
             onBack: quantity ? _returnToList : close,
-            secondary: Text('${content.money} ₽'),
+            secondary: Text(
+              '${MaterialLocalizations.of(context).formatDecimal(content.money)} ₽',
+            ),
             alignSecondaryEnd: true,
           ),
           footer: PlayerMenuFooter(
@@ -442,6 +444,14 @@ class _ShopEntry extends StatelessWidget {
     final stock = entry.remainingStock;
     final selling = mode == RuntimeShopMode.sell;
     final l10n = context.playerL10n;
+    final meta = context.playerMenuTheme.meta;
+    final secondaryStyle = TextStyle(
+      fontFamily: meta.fontFamily,
+      fontSize: meta.fontSize,
+      fontWeight: meta.fontWeight,
+      letterSpacing: meta.letterSpacing,
+      height: meta.height,
+    );
     return PlayerMenuSelectableRow(
       key: ValueKey<String>('shop-item-${entry.itemId}'),
       id: entry.itemId,
@@ -477,13 +487,10 @@ class _ShopEntry extends StatelessWidget {
                 if (selling)
                   Text(
                     l10n.shopOwned(entry.ownedQuantity),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: secondaryStyle,
                   )
                 else if (stock != null)
-                  Text(
-                    l10n.shopStock(stock),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                  Text(l10n.shopStock(stock), style: secondaryStyle),
               ],
             ),
     );

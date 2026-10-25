@@ -280,6 +280,14 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   late (bool, bool, bool) _lastPresentationOwners;
   Timer? _controllerInventoryTimer;
   RuntimePlayerGamepadBridge? _gamepadBridge;
+  late final _controllerInputMux = RuntimePlayerControllerInputMux(
+    onDeviceAdopted: (previousId, nextId) {
+      _inputPolicy.adoptControllerId(previousId, nextId);
+      if (mounted) setState(() {});
+    },
+  );
+  final _surfaceInputPresses = <RuntimeInputControl>{};
+  final _hardwareControllerControls = <PhysicalKeyboardKey, RuntimeInputControl>{};
   final Map<String, PlayerControllerFamily> _controllerFamilies = {};
   int _controllerBindingGeneration = 0;
   bool _readingControllerInventory = false;
@@ -303,6 +311,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       widget.controlProfile ?? PlayerControlProfile.standard;
 
   final _dialoguePagination = PlayerDialoguePaginationController();
+  final _battlePresentationController = PlayerBattlePresentationController();
   bool _dialoguePagePressConsumed = false;
 
   @override
@@ -324,6 +333,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     _lastPresentationOwners = _presentationOwners;
     _snapshotSubscription = widget.controller.snapshots.listen(_handleSnapshot);
     HardwareKeyboard.instance.addHandler(_observeHardwareInput);
+    FocusManager.instance.addEarlyKeyEventHandler(_routeScopedHardwareInput);
     GestureBinding.instance.pointerRouter.addGlobalRoute(_observePointerInput);
     widget.presentationFrame?.addListener(_handlePresentationFrameChanged);
     widget.dialoguePresentation?.addListener(_handlePresentationFrameChanged);
@@ -360,7 +370,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     if (oldWidget.controller != widget.controller ||
         oldWidget.gameplayInputAuthority != widget.gameplayInputAuthority) {
       for (final event in _inputPolicy.releaseAll()) {
-        oldWidget.gameplayInputRoute?.call(event);
+        if (!_battlePresentationController.handle(event)) {
+          oldWidget.gameplayInputRoute?.call(event);
+        }
       }
     }
     if (oldWidget.gameplayInputAuthority != widget.gameplayInputAuthority) {
@@ -417,7 +429,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       oldWidget.connectedControllerIds
           ?.removeListener(_handleControllerInventoryChanged);
       for (final event in _inputPolicy.releaseAll()) {
-        widget.gameplayInputRoute?.call(event);
+        _releaseRuntimeInput(event);
       }
       _bindControllerInputs();
     }
@@ -623,7 +635,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       _touchCancellation.value++;
     }
     final previous = _activeInputSource;
-    _inputPolicy.recognizeSource(PlayerInputOwner(source));
+    if (previous != source) {
+      _inputPolicy.recognizeSource(PlayerInputOwner(source,
+        deviceId: source == PlayerInputSource.controller
+            ? _inputPolicy.connectedControllers.firstOrNull ?? '' : ''));
+    }
     if (mounted && previous != _activeInputSource) {
       setState(() {});
     }
@@ -649,6 +665,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
 
   void _bindControllerInputs() {
     final generation = ++_controllerBindingGeneration;
+    _controllerInputMux.clear();
     unawaited(_controllerSubscription?.cancel());
     _controllerSubscription = null;
     _controllerInventoryTimer?.cancel();
@@ -659,10 +676,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       _applyControllerInventory({});
       return;
     }
-    final bridge = _gamepadBridge?.rebind(_controlProfile) ??
+    final bridge =
+        _gamepadBridge?.rebind(_controlProfile) ??
         RuntimePlayerGamepadBridge(
           controlProfile: _controlProfile,
           useSecondaryForSprint: () =>
+              widget.battlePresentation?.value == null &&
               _inputSurface() == PlayerInputSurface.gameplay &&
               (widget.gameplayInputAuthority?.value.acceptsOverworldInput ??
                   true),
@@ -673,43 +692,54 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     } else if (widget.controllerInputEvents == null &&
         widget.normalizedControllerInputEvents == null) {
       unawaited(_refreshControllerInventory(generation));
-      _controllerInventoryTimer = Timer.periodic(const Duration(seconds: 2),
-          (_) => unawaited(_refreshControllerInventory(generation)));
+      _controllerInventoryTimer = Timer.periodic(
+        const Duration(seconds: 2),
+        (_) => unawaited(_refreshControllerInventory(generation)),
+      );
     }
     final injected = widget.controllerInputEvents;
     if (injected != null) {
-      _controllerSubscription = injected.listen((event) {
-        if (generation != _controllerBindingGeneration) return;
-        final id =
-            widget.connectedControllerIds?.value.firstOrNull ?? 'injected';
-        unawaited(_routeRuntimeInput(event,
-            source: PlayerInputSource.controller, deviceId: id));
-      }, onError: (_, __) {
-        if (mounted && generation == _controllerBindingGeneration) {
-          _applyControllerInventory({});
-        }
-      });
+      _controllerSubscription = injected.listen(
+        (event) {
+          if (generation != _controllerBindingGeneration) return;
+          final id =
+              widget.connectedControllerIds?.value.firstOrNull ?? 'injected';
+          _routeControllerInput(event, path: 'normalized', deviceId: id);
+        },
+        onError: (_, __) {
+          if (mounted && generation == _controllerBindingGeneration) {
+            _applyControllerInventory({});
+          }
+        },
+      );
       return;
     }
     _controllerSubscription =
         (widget.normalizedControllerInputEvents ?? Gamepads.normalizedEvents)
-            .listen((event) {
-      if (generation != _controllerBindingGeneration) return;
-      final previousFamily = _controllerFamily;
-      final family = RuntimePlayerGamepadBridge.familyFor(event);
-      if (family != PlayerControllerFamily.unknown) {
-        _controllerFamilies[event.gamepadId] = family;
-      }
-      if (mounted && previousFamily != _controllerFamily) setState(() {});
-      for (final input in bridge.handle(event)) {
-        unawaited(_routeRuntimeInput(input,
-            source: PlayerInputSource.controller, deviceId: event.gamepadId));
-      }
-    }, onError: (_, __) {
-      if (mounted && generation == _controllerBindingGeneration) {
-        _applyControllerInventory({});
-      }
-    });
+            .listen(
+              (event) {
+                if (generation != _controllerBindingGeneration) return;
+                final previousFamily = _controllerFamily;
+                final family = RuntimePlayerGamepadBridge.familyFor(event);
+                if (family != PlayerControllerFamily.unknown) {
+                  _controllerFamilies[event.gamepadId] = family;
+                }
+                if (mounted && previousFamily != _controllerFamily)
+                  setState(() {});
+                for (final input in bridge.handle(event)) {
+                  _routeControllerInput(
+                    input,
+                    path: 'normalized',
+                    deviceId: event.gamepadId,
+                  );
+                }
+              },
+              onError: (_, __) {
+                if (mounted && generation == _controllerBindingGeneration) {
+                  _applyControllerInventory({});
+                }
+              },
+            );
   }
 
   Future<void> _refreshControllerInventory(int generation) async {
@@ -733,16 +763,18 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       _applyControllerInventory(widget.connectedControllerIds?.value ?? {});
 
   void _applyControllerInventory(Set<String> ids) {
+    if (ids.length == 1) _controllerInputMux.adoptDevice('hardware-gamepad', ids.single);
     final previous = _activeInputSource;
     for (final id in _inputPolicy.connectedControllers.difference(ids)) {
       _gamepadBridge?.disconnect(id);
+      _controllerInputMux.disconnect(id);
       _controllerFamilies.remove(id);
       if (widget.controllerInputEvents == null) {
         Gamepads.normalizer?.removeDevice(id);
       }
     }
     for (final event in _inputPolicy.updateControllers(ids)) {
-      widget.gameplayInputRoute?.call(event);
+      _releaseRuntimeInput(event);
     }
     if (mounted && previous != _activeInputSource) setState(() {});
   }
@@ -757,6 +789,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       return PlayerInputSurface.blocked;
     }
     final snapshot = _latestSnapshot;
+    if (ModalRoute.of(context)?.isCurrent == false) {
+      final target = FocusManager.instance.primaryFocus?.context;
+      return target != null && PlayerHardwareInputScope.maybeOf(target)?.route == _routeHardwareInput
+          ? PlayerInputSurface.title
+          : PlayerInputSurface.blocked;
+    }
     if (snapshot.worldService != null ||
         (widget.relayedControllerInput &&
             widget.dialoguePresentation?.value != null &&
@@ -804,8 +842,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
             previousControllerId != _inputPolicy.activeControllerId)) {
       setState(() {});
     }
-    await Future.wait(events
-        .map((input) => _routeAcceptedRuntimeInput(input, source: source)));
+    await Future.wait(
+      events.map((input) => _routeAcceptedRuntimeInput(input, source: source)),
+    );
   }
 
   Future<void> _routeAcceptedRuntimeInput(
@@ -814,6 +853,19 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   }) async {
     final relayed = widget.relayedControllerInput && source == PlayerInputSource.controller;
     if (!relayed && (!_lifecycleActive || !_viewFocused) && event.isPress) {
+      return;
+    }
+    if (event.isRepeat && _surfaceInputPresses.contains(event.control) &&
+        _inputSurface() == PlayerInputSurface.gameplay) return;
+    if (widget.companionMenusAttached &&
+        (widget.battlePresentation?.value != null ||
+            _latestSnapshot.phase == RuntimePlayerPhase.paused ||
+            _latestSnapshot.worldService != null) &&
+        (widget.onCompanionInput?.call(event) ?? false)) {
+      return;
+    }
+    if (widget.battlePresentation?.value != null &&
+        _battlePresentationController.handle(event)) {
       return;
     }
     if (widget.companionNarrativeAttached &&
@@ -855,6 +907,10 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       widget.gameplayInputRoute?.call(event);
       return;
     }
+    if (!event.isPress && _surfaceInputPresses.remove(event.control)) return;
+    if (event.isPress && !event.isRepeat && _inputSurface() != PlayerInputSurface.gameplay) {
+      _surfaceInputPresses.add(event.control);
+    }
     final command = playerInputCommandFromRuntimeEvent(event, source: source);
     if (_latestSnapshot.phase == RuntimePlayerPhase.preSession &&
         _latestSnapshot.preSessionRequest != null) {
@@ -895,17 +951,76 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     }
   }
 
-  KeyEventResult _routeHardwareKeyEvent(FocusNode node, KeyEvent event) {
-    final runtimeEvent = _controlProfile.runtimeEventFromKeyEvent(event);
-    if (runtimeEvent == null) return KeyEventResult.ignored;
+  void _routeControllerInput(
+    RuntimeInputEvent event, {
+    required String path,
+    required String deviceId,
+  }) {
+    final accepted = _controllerInputMux.route(event, path: path, deviceId: deviceId);
+    if (accepted == null) return;
+    unawaited(_routeRuntimeInput(
+      accepted.event,
+      source: PlayerInputSource.controller,
+      deviceId: accepted.deviceId,
+      inputId: accepted.event.control.name,
+    ));
+  }
+
+  KeyEventResult _routeScopedHardwareInput(KeyEvent event) {
+    final target = FocusManager.instance.primaryFocus?.context;
+    if (target != null && RuntimePlayerInputBindings.hasOwner(target))
+      return KeyEventResult.ignored;
+    if (event.deviceType != ui.KeyEventDeviceType.gamepad) {
+      final input = _controlProfile.runtimeEventFromKeyEvent(event);
+      if (input == null ||
+          (input.control != RuntimeInputControl.previousTab &&
+              input.control != RuntimeInputControl.nextTab) ||
+          target?.findAncestorWidgetOfExactType<RuntimePlayerTabActions>() ==
+              null) {
+        return KeyEventResult.ignored;
+      }
+    }
+    if (target == null ||
+        PlayerHardwareInputScope.maybeOf(target)?.route !=
+            _routeHardwareInput) {
+      return KeyEventResult.ignored;
+    }
+    return _routeHardwareInput(event);
+  }
+
+  KeyEventResult _routeHardwareKeyEvent(FocusNode node, KeyEvent event) =>
+      _routeHardwareInput(event);
+
+  KeyEventResult _routeHardwareInput(KeyEvent event) {
+    if (!mounted) return KeyEventResult.ignored;
+    var runtimeEvent = _controlProfile.runtimeEventFromKeyEvent(event);
     final isHardwareGamepad = event.deviceType == ui.KeyEventDeviceType.gamepad;
+    if (isHardwareGamepad) {
+      if (event is KeyUpEvent) {
+        final held = _hardwareControllerControls.remove(event.physicalKey);
+        if (held != null) runtimeEvent = RuntimeInputEvent.release(held);
+      } else if (runtimeEvent?.isPress == true) {
+        final mapped = runtimeEvent!.control;
+        final control = _hardwareControllerControls.putIfAbsent(event.physicalKey, () =>
+          mapped == RuntimeInputControl.secondary &&
+              widget.battlePresentation?.value == null &&
+              _inputSurface() == PlayerInputSurface.gameplay &&
+              (widget.gameplayInputAuthority?.value.acceptsOverworldInput ?? true)
+          ? RuntimeInputControl.sprint : mapped);
+        runtimeEvent = RuntimeInputEvent.press(control, isRepeat: runtimeEvent.isRepeat);
+      }
+    }
+    if (runtimeEvent == null) return KeyEventResult.ignored;
     if (!isHardwareGamepad && runtimeEvent.isPress && _editableTextHasFocus()) {
       return KeyEventResult.ignored;
     }
     if (isHardwareGamepad && widget.controllerInputEnabled) {
-      // The normalized gamepad stream is authoritative while enabled. Some
-      // platforms also expose controller buttons as hardware keys; consuming
-      // that duplicate path prevents one press from being routed twice.
+      _routeControllerInput(
+        runtimeEvent,
+        path: 'hardware',
+        deviceId: _inputPolicy.activeControllerId ??
+            _inputPolicy.connectedControllers.firstOrNull ?? 'hardware-gamepad',
+      );
       return KeyEventResult.handled;
     }
     unawaited(
@@ -928,9 +1043,25 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   }
 
   void _releaseGameplayDirections() {
-    final route = widget.gameplayInputRoute;
     for (final event in _inputPolicy.releaseHeld()) {
-      if (event.control != RuntimeInputControl.menu) route?.call(event);
+      if (event.control != RuntimeInputControl.menu) {
+        _releaseRuntimeInput(event);
+      }
+    }
+  }
+
+  void _releaseRuntimeInput(RuntimeInputEvent event) {
+    if (widget.companionMenusAttached &&
+        (widget.battlePresentation?.value != null ||
+            _latestSnapshot.phase == RuntimePlayerPhase.paused ||
+            _latestSnapshot.worldService != null) &&
+        (widget.onCompanionInput?.call(event) ?? false)) {
+      return;
+    }
+    if (_surfaceInputPresses.remove(event.control)) return;
+    if (event.control == RuntimeInputControl.previousTab || event.control == RuntimeInputControl.nextTab) return;
+    if (!_battlePresentationController.handle(event)) {
+      widget.gameplayInputRoute?.call(event);
     }
   }
 
@@ -1006,6 +1137,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
         } else {
           await _dispatchBack();
         }
+      case PlayerInputAction.previousTab:
+      case PlayerInputAction.nextTab:
       case PlayerInputAction.bicycle:
       case PlayerInputAction.sprint:
       case PlayerInputAction.menu:
@@ -1103,38 +1236,47 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<RuntimePlayerLocalActionNotification>(
-      onNotification: (_) {
-        if (_pendingPointerKind == ui.PointerDeviceKind.touch) {
-          _pendingPointerKind = null;
-          _setActiveInputSource(PlayerInputSource.touch);
-        }
+    return NotificationListener<RuntimePlayerInputSourceNotification>(
+      onNotification: (notification) {
+        _setActiveInputSource(notification.source);
         return true;
       },
-      child: Focus(
-        key: const ValueKey<String>('runtime-player-keyboard-input-authority'),
-        autofocus: true,
-        onKeyEvent: _routeHardwareKeyEvent,
-        child: Builder(
-          builder: (context) {
-            final snapshot = _latestSnapshot;
-            final authority = widget.gameplayInputAuthority;
-            if (authority == null) {
-              return _buildSessionStack(
-                snapshot,
-                const RuntimeInputAuthoritySnapshot(
-                  context: RuntimeInputContext.overworld,
-                ),
-              );
-            }
-            return ValueListenableBuilder<RuntimeInputAuthoritySnapshot>(
-              valueListenable: authority,
-              builder: (context, inputAuthority, _) => _buildSessionStack(
-                snapshot,
-                inputAuthority,
-              ),
-            );
-          },
+      child: NotificationListener<RuntimePlayerLocalActionNotification>(
+        onNotification: (_) {
+          if (_pendingPointerKind == ui.PointerDeviceKind.touch) {
+            _pendingPointerKind = null;
+            _setActiveInputSource(PlayerInputSource.touch);
+          }
+          return true;
+        },
+        child: PlayerHardwareInputScope(
+          route: _routeHardwareInput,
+          child: Focus(
+            key: const ValueKey<String>(
+              'runtime-player-keyboard-input-authority',
+            ),
+            autofocus: true,
+            onKeyEvent: _routeHardwareKeyEvent,
+            child: Builder(
+              builder: (context) {
+                final snapshot = _latestSnapshot;
+                final authority = widget.gameplayInputAuthority;
+                if (authority == null) {
+                  return _buildSessionStack(
+                    snapshot,
+                    const RuntimeInputAuthoritySnapshot(
+                      context: RuntimeInputContext.overworld,
+                    ),
+                  );
+                }
+                return ValueListenableBuilder<RuntimeInputAuthoritySnapshot>(
+                  valueListenable: authority,
+                  builder: (context, inputAuthority, _) =>
+                      _buildSessionStack(snapshot, inputAuthority),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -1420,6 +1562,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
                 return const SizedBox.shrink();
               }
               return PlayerBattleOverlay(
+                presentationController: _battlePresentationController,
+                controlProfile: _controlProfile,
+                controllerFamily: _controllerFamily,
                 display: widget.companionMenusAttached
                     ? PlayerBattleDisplay.hudOnly
                     : PlayerBattleDisplay.full,
@@ -1491,6 +1636,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     widget.connectedControllerIds
         ?.removeListener(_handleControllerInventoryChanged);
     HardwareKeyboard.instance.removeHandler(_observeHardwareInput);
+    FocusManager.instance.removeEarlyKeyEventHandler(_routeScopedHardwareInput);
     GestureBinding.instance.pointerRouter
         .removeGlobalRoute(_observePointerInput);
     _pauseFocusController.dispose();
@@ -1508,6 +1654,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     widget.overworldInteractions
         ?.removeListener(_handleOverworldInteractionsChanged);
     _releaseGameplayDirections();
+    _battlePresentationController.dispose();
     _touchCancellation.dispose();
     super.dispose();
   }

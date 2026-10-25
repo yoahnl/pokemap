@@ -174,51 +174,71 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'root navigation reveals the selected page after a pause remount',
-    (tester) async {
-      _setSurface(tester, const Size(844, 240));
-      final focus = RuntimePlayerFocusController(
-        logicalSelectionId: 'pause.bag',
-        activeInputSource: PlayerInputSource.touch,
-      );
-      addTearDown(focus.dispose);
-      Widget root() => _app(_shell(focus: focus));
-      await tester.pumpWidget(root());
-      await tester.pumpAndSettle();
-      final options = find.byKey(const ValueKey('pause.options'));
-      for (
-        var page = 0;
-        page < 20 && options.hitTestable().evaluate().isEmpty;
-        page++
-      ) {
-        final next = find.descendant(
-          of: find.byType(PlayerPauseNavigation),
-          matching: find.byKey(const ValueKey('player-page-next')),
-        ).hitTestable();
-        expect(next, findsOneWidget);
-        expect(tester.widget<IconButton>(next).onPressed, isNotNull);
-        await tester.tap(next);
+  for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      'root navigation restores its selected page and keyboard focus after remount at scale=$scale',
+      (tester) async {
+        _setSurface(tester, const Size(844, 240));
+        final focus = RuntimePlayerFocusController(
+          logicalSelectionId: 'pause.bag',
+          activeInputSource: PlayerInputSource.touch,
+        );
+        addTearDown(focus.dispose);
+        Widget root() => _app(_shell(focus: focus), scale: scale);
+        await tester.pumpWidget(root());
         await tester.pumpAndSettle();
-      }
-      expect(options.hitTestable(), findsOneWidget);
-      await tester.tap(options);
-      await tester.pumpAndSettle();
-      final before = tester.getRect(options);
-      expect(focus.logicalSelectionId, 'pause.options');
-      expect(find.byType(Scrollable), findsNothing);
+        final options = find.byKey(const ValueKey('pause.options'));
+        for (
+          var page = 0;
+          page < 20 && options.hitTestable().evaluate().isEmpty;
+          page++
+        ) {
+          final next = find.descendant(
+            of: find.byType(PlayerPauseNavigation),
+            matching: find.byKey(const ValueKey('player-page-next')),
+          ).hitTestable();
+          expect(next, findsOneWidget);
+          expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+          await tester.tap(next);
+          await tester.pumpAndSettle();
+        }
+        expect(options.hitTestable(), findsOneWidget);
+        await tester.tap(options);
+        await tester.pumpAndSettle();
+        final before = tester.getRect(options);
+        expect(focus.logicalSelectionId, 'pause.options');
+        expect(find.byType(Scrollable), findsNothing);
 
-      await tester.pumpWidget(_app(const SizedBox.shrink()));
-      await tester.pumpAndSettle();
-      await tester.pumpWidget(root());
-      await tester.pumpAndSettle();
-      expect(options.hitTestable(), findsOneWidget);
-      expect(tester.getRect(options), before);
-      expect(focus.logicalSelectionId, 'pause.options');
-      expect(find.byType(Scrollable), findsNothing);
-      expect(tester.takeException(), isNull);
-    },
-  );
+        focus.noteInputSource(PlayerInputSource.keyboard);
+        focus.select('pause.options', requestFocus: true);
+        await tester.pumpAndSettle();
+        expect(
+          FocusManager.instance.primaryFocus,
+          focus.nodeFor('pause.options', debugLabel: 'Options'),
+        );
+        await tester.pumpWidget(_app(const SizedBox.shrink()));
+        await tester.pumpAndSettle();
+        await tester.pumpWidget(root());
+        await tester.pumpAndSettle();
+        expect(options.hitTestable(), findsOneWidget);
+        expect(tester.getRect(options), before);
+        expect(focus.logicalSelectionId, 'pause.options');
+        expect(
+          FocusManager.instance.primaryFocus,
+          focus.nodeFor('pause.options', debugLabel: 'Options'),
+        );
+        final body = tester.getRect(
+          find.byKey(const ValueKey('player-paged-body')),
+        );
+        expect(body.height, greaterThanOrEqualTo(48));
+        expect(before.height, greaterThanOrEqualTo(48));
+        expect(before.top, greaterThanOrEqualTo(body.top));
+        expect(before.bottom, lessThanOrEqualTo(body.bottom));
+        expect(find.byType(Scrollable), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 }
 
 RuntimePlayerPauseShell _shell({
@@ -257,10 +277,14 @@ void _setSurface(WidgetTester tester, Size size) {
   addTearDown(tester.view.reset);
 }
 
-Widget _app(Widget child) => MaterialApp(
+Widget _app(Widget child, {double scale = 1}) => MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(reducedMotion: true),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
+      ),
       home: child,
     );

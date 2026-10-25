@@ -38,5 +38,7 @@ final class PlayerControlStrings {
           _isFrench ? 'Action secondaire' : 'Secondary action',
         RuntimeInputControl.bicycle => _isFrench ? 'Vélo' : 'Bicycle',
         RuntimeInputControl.menu => 'Menu',
+        RuntimeInputControl.previousTab => _isFrench ? 'Onglet précédent' : 'Previous tab',
+        RuntimeInputControl.nextTab => _isFrench ? 'Onglet suivant' : 'Next tab',
       };
 }

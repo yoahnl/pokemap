@@ -63,8 +63,14 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
-      await tester.pump();
+      if (snapshot.stage == RuntimeWorldServiceStage.applying &&
+          mode != 'display') {
+        for (var frame = 0; frame < 8; frame++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+      } else {
+        await tester.pumpAndSettle();
+      }
       expect(find.text('Native world'), findsOneWidget);
       expect(
         find.text('Native heal'),

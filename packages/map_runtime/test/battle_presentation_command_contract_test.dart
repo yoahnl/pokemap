@@ -44,6 +44,72 @@ void main() {
         }
       },
     );
+    test('root presentation order accepts distinct subsets and rejects malformed positions', () {
+      final snapshot = _snapshot();
+      for (final order in <List<int>>[
+        [0, 2, 1, 3],
+        [3, 0, 2, 1],
+        [2],
+        [1, 3],
+      ]) {
+        expect(
+          validateBattlePresentationCommand(
+            snapshot,
+            BattleSetCommandPanelPlacementCommand(
+              snapshotRevision: snapshot.revision,
+              expectedMode: snapshot.mode,
+              placement: BattleCommandPanelPlacement.bottom,
+              rootCommandOrder: order,
+            ),
+          ).accepted,
+          isTrue,
+        );
+      }
+      for (final order in <List<int>>[
+        [],
+        [0, 0],
+        [-1],
+        [4],
+        [0, 1, 2, 3, 0],
+      ]) {
+        expect(
+          validateBattlePresentationCommand(
+            snapshot,
+            BattleSetCommandPanelPlacementCommand(
+              snapshotRevision: snapshot.revision,
+              expectedMode: snapshot.mode,
+              placement: BattleCommandPanelPlacement.bottom,
+              rootCommandOrder: order,
+            ),
+          ).rejection,
+          BattlePresentationCommandRejection.invalidLayout,
+        );
+      }
+    });
+    test('collection column publication accepts only null one or two', () {
+      final snapshot = _snapshot();
+      for (final columns in <int?>[null, 0, 1, 2, 3]) {
+        final accepted = validateBattlePresentationCommand(
+          snapshot,
+          BattleSetCommandPanelPlacementCommand(
+            snapshotRevision: snapshot.revision,
+            expectedMode: snapshot.mode,
+            placement: BattleCommandPanelPlacement.bottom,
+            collectionColumns: columns,
+          ),
+        );
+        expect(
+          accepted.accepted,
+          columns == null || columns == 1 || columns == 2,
+        );
+        if (!accepted.accepted) {
+          expect(
+            accepted.rejection,
+            BattlePresentationCommandRejection.invalidLayout,
+          );
+        }
+      }
+    });
     test('accepts an enabled entry from the current snapshot', () {
       final snapshot = _snapshot();
 

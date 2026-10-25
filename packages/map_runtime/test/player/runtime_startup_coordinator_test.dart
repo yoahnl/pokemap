@@ -1199,6 +1199,102 @@ void main() {
     );
   });
 
+  test(
+    'fresh title revisions cannot replace a launch awaiting music shutdown',
+    () async {
+      final stopGate = Completer<void>();
+      final harness = _RuntimeStartupTestHarness(
+        profile: _presentationWithIntroAndMusic(includeIntro: false),
+        audioStopGate: stopGate,
+        preSessionRunner: _NamePreSessionRunner(),
+      );
+      addTearDown(() async {
+        if (!stopGate.isCompleted) stopGate.complete();
+        await harness.dispose();
+      });
+      harness.startup.start();
+      harness.clock.elapseMinimum();
+      await _flushEvents();
+      await harness.startup.dispatch(
+        RuntimeStartupCommand(
+          action: RuntimeStartupAction.pressStart,
+          snapshotRevision: harness.startup.snapshot.revision,
+        ),
+      );
+      final initialRevision = harness.startup.snapshot.revision;
+      final firstLaunch = harness.startup.dispatchPlayerCommand(
+        startupSnapshotRevision: initialRevision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.newGame,
+          snapshotRevision: harness.player.coordinator.snapshot.revision,
+          payload: const RuntimePlayerLoadSlot(
+            profileId: 'player',
+            slotId: 'first',
+          ),
+        ),
+      );
+      await _flushEvents();
+      final pendingRevision = harness.startup.snapshot.revision;
+      expect(pendingRevision, greaterThan(initialRevision));
+      expect(harness.startup.snapshot.isTransitioning, isTrue);
+      expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titleMenu);
+      expect(harness.audio.stopCount, 1);
+      expect(harness.player.source.requests, isEmpty);
+
+      for (final action in [
+        RuntimePlayerAction.newGame,
+        RuntimePlayerAction.continueGame,
+        RuntimePlayerAction.load,
+      ]) {
+        final secondLaunch = await harness.startup
+            .dispatchPlayerCommand(
+              startupSnapshotRevision: pendingRevision,
+              command: RuntimePlayerCommand(
+                action: action,
+                snapshotRevision: harness.player.coordinator.snapshot.revision,
+                payload: const RuntimePlayerLoadSlot(
+                  profileId: 'player',
+                  slotId: 'second',
+                ),
+              ),
+            )
+            .timeout(const Duration(seconds: 1));
+        expect(secondLaunch.status, RuntimePlayerCommandStatus.stale);
+        expect(harness.startup.snapshot.revision, pendingRevision);
+        expect(harness.audio.stopCount, 1);
+      }
+
+      stopGate.complete();
+      await _waitForPreSessionRequest(harness.player.coordinator);
+      expect(
+        harness.startup.snapshot.phase,
+        RuntimeStartupPhase.launchingSession,
+      );
+      final player = harness.player.coordinator.snapshot;
+      final request = player.preSessionRequest!;
+      final resolution = await harness.startup.dispatchPlayerCommand(
+        startupSnapshotRevision: harness.startup.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.resolvePreSessionInteraction,
+          snapshotRevision: player.revision,
+          payload: SceneInteractionResult.textSubmitted(
+            requestId: request.requestId,
+            revision: request.revision,
+            value: 'Yoahn',
+          ),
+        ),
+      );
+      expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+      expect((await firstLaunch).status, RuntimePlayerCommandStatus.accepted);
+      expect(harness.player.source.requests, hasLength(1));
+      expect(harness.player.source.requests.single.slotId, 'first');
+      expect(
+        harness.startup.snapshot.phase,
+        RuntimeStartupPhase.launchingSession,
+      );
+    },
+  );
+
   test('rotation during title music shutdown does not cancel session launch',
       () async {
     final stopGate = Completer<void>();

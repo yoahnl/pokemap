@@ -22,10 +22,7 @@ final class PlayerControlConflict {
 }
 
 final class PlayerControlRebindResult {
-  const PlayerControlRebindResult({
-    required this.profile,
-    this.conflict,
-  });
+  const PlayerControlRebindResult({required this.profile, this.conflict});
 
   final PlayerControlProfile profile;
   final PlayerControlConflict? conflict;
@@ -39,12 +36,14 @@ final class PlayerControlProfile {
     required Map<RuntimeInputControl, String> keyboard,
     required Map<RuntimeInputControl, String> gamepad,
     required Map<RuntimeInputControl, String> touch,
-  })  : keyboard = UnmodifiableMapView(Map.of(keyboard)),
-        gamepad = UnmodifiableMapView(Map.of(gamepad)),
-        touch = UnmodifiableMapView(Map.of(touch)) {
+  }) : keyboard = UnmodifiableMapView(Map.of(keyboard)),
+       gamepad = UnmodifiableMapView(Map.of(gamepad)),
+       touch = UnmodifiableMapView(Map.of(touch)) {
     for (final device in PlayerControlDevice.values) {
       final bindings = _bindings(device);
-      if (!bindings.keys.toSet().containsAll(RuntimeInputControl.values)) {
+      if (!bindings.keys.toSet().containsAll(
+        RuntimeInputControl.values.where((control) => !_isTabControl(control)),
+      )) {
         throw FormatException('Incomplete ${device.name} control profile.');
       }
       if (bindings.values.toSet().length != bindings.length) {
@@ -64,6 +63,8 @@ final class PlayerControlProfile {
       RuntimeInputControl.primary: 'keyE',
       RuntimeInputControl.secondary: 'escape',
       RuntimeInputControl.menu: 'keyM',
+      RuntimeInputControl.previousTab: 'pageUp',
+      RuntimeInputControl.nextTab: 'pageDown',
     },
     gamepad: const <RuntimeInputControl, String>{
       RuntimeInputControl.up: 'dpadUp',
@@ -75,6 +76,8 @@ final class PlayerControlProfile {
       RuntimeInputControl.primary: 'a',
       RuntimeInputControl.secondary: 'b',
       RuntimeInputControl.menu: 'start',
+      RuntimeInputControl.previousTab: 'leftBumper',
+      RuntimeInputControl.nextTab: 'rightBumper',
     },
     touch: const <RuntimeInputControl, String>{
       RuntimeInputControl.up: 'joystickUp',
@@ -86,6 +89,8 @@ final class PlayerControlProfile {
       RuntimeInputControl.primary: 'primaryButton',
       RuntimeInputControl.secondary: 'secondaryButton',
       RuntimeInputControl.menu: 'menuButton',
+      RuntimeInputControl.previousTab: 'previousTabButton',
+      RuntimeInputControl.nextTab: 'nextTabButton',
     },
   );
 
@@ -105,17 +110,32 @@ final class PlayerControlProfile {
   }
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'schemaVersion': 1,
-        'keyboard': _encodeBindings(keyboard),
-        'gamepad': _encodeBindings(gamepad),
-        'touch': _encodeBindings(touch),
-      };
+    'schemaVersion': 1,
+    'keyboard': _encodeBindings(keyboard),
+    'gamepad': _encodeBindings(gamepad),
+    'touch': _encodeBindings(touch),
+  };
 
-  String bindingFor(
-    PlayerControlDevice device,
-    RuntimeInputControl control,
-  ) =>
-      _bindings(device)[control]!;
+  String bindingFor(PlayerControlDevice device, RuntimeInputControl control) {
+    final bindings = _bindings(device);
+    final explicit = bindings[control];
+    if (explicit != null) return explicit;
+    final fallback = switch ((device, control)) {
+      (PlayerControlDevice.keyboard, RuntimeInputControl.previousTab) =>
+        'pageUp',
+      (PlayerControlDevice.keyboard, RuntimeInputControl.nextTab) => 'pageDown',
+      (PlayerControlDevice.gamepad, RuntimeInputControl.previousTab) =>
+        'leftBumper',
+      (PlayerControlDevice.gamepad, RuntimeInputControl.nextTab) =>
+        'rightBumper',
+      (PlayerControlDevice.touch, RuntimeInputControl.previousTab) =>
+        'previousTabButton',
+      (PlayerControlDevice.touch, RuntimeInputControl.nextTab) =>
+        'nextTabButton',
+      _ => throw StateError('Missing binding for ${control.name}.'),
+    };
+    return bindings.containsValue(fallback) ? '' : fallback;
+  }
 
   PlayerControlRebindResult rebind({
     required PlayerControlDevice device,
@@ -138,9 +158,7 @@ final class PlayerControlProfile {
     }
     final next = Map<RuntimeInputControl, String>.of(current)
       ..[control] = normalized;
-    return PlayerControlRebindResult(
-      profile: _copyDevice(device, next),
-    );
+    return PlayerControlRebindResult(profile: _copyDevice(device, next));
   }
 
   PlayerControlProfile resetDevice(PlayerControlDevice device) =>
@@ -178,8 +196,17 @@ final class PlayerControlProfile {
                 : PlayerControlDevice.keyboard,
             inputId,
           );
-    final resolved = control ??
-        (!isGamepad && _mapsEqual(keyboard, standard.keyboard)
+    final resolved =
+        control ??
+        (!isGamepad &&
+                RuntimeInputControl.values.every(
+                  (control) =>
+                      bindingFor(PlayerControlDevice.keyboard, control) ==
+                      standard.bindingFor(
+                        PlayerControlDevice.keyboard,
+                        control,
+                      ),
+                )
             ? runtimeInputControlFromLogicalKey(event.logicalKey)
             : null);
     if (resolved == null) return null;
@@ -191,13 +218,11 @@ final class PlayerControlProfile {
     return null;
   }
 
-  String glyphFor(
-    PlayerControlDevice device,
-    RuntimeInputControl control,
-  ) =>
+  String glyphFor(PlayerControlDevice device, RuntimeInputControl control) =>
       glyphForInput(bindingFor(device, control));
 
-  static String glyphForInput(String inputId) => _glyphs[inputId] ?? inputId;
+  static String glyphForInput(String inputId) =>
+      inputId.isEmpty ? '—' : _glyphs[inputId] ?? inputId;
 
   String promptFor(
     PlayerControlDevice device,
@@ -228,6 +253,12 @@ final class PlayerControlProfile {
       (_, 'y') => 'Bouton nord',
       (_, 'back') => 'Sélection',
       (_, 'start') => 'Menu',
+      (PlayerControllerFamily.xbox, 'leftBumper') => 'LB',
+      (PlayerControllerFamily.xbox, 'rightBumper') => 'RB',
+      (PlayerControllerFamily.playStation, 'leftBumper') => 'L1',
+      (PlayerControllerFamily.playStation, 'rightBumper') => 'R1',
+      (_, 'leftBumper') => 'L',
+      (_, 'rightBumper') => 'R',
       _ => glyphForInput(input),
     };
   }
@@ -246,18 +277,24 @@ final class PlayerControlProfile {
     for (final entry in _bindings(device).entries) {
       if (entry.value == inputId) return entry.key;
     }
+    for (final control in [
+      RuntimeInputControl.previousTab,
+      RuntimeInputControl.nextTab,
+    ]) {
+      if (inputId.isNotEmpty && bindingFor(device, control) == inputId)
+        return control;
+    }
     return null;
   }
 
   PlayerControlProfile _copyDevice(
     PlayerControlDevice device,
     Map<RuntimeInputControl, String> bindings,
-  ) =>
-      PlayerControlProfile(
-        keyboard: device == PlayerControlDevice.keyboard ? bindings : keyboard,
-        gamepad: device == PlayerControlDevice.gamepad ? bindings : gamepad,
-        touch: device == PlayerControlDevice.touch ? bindings : touch,
-      );
+  ) => PlayerControlProfile(
+    keyboard: device == PlayerControlDevice.keyboard ? bindings : keyboard,
+    gamepad: device == PlayerControlDevice.gamepad ? bindings : gamepad,
+    touch: device == PlayerControlDevice.touch ? bindings : touch,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -268,40 +305,42 @@ final class PlayerControlProfile {
 
   @override
   int get hashCode => Object.hash(
-        Object.hashAll(
-          keyboard.entries.map((entry) => Object.hash(entry.key, entry.value)),
-        ),
-        Object.hashAll(
-          gamepad.entries.map((entry) => Object.hash(entry.key, entry.value)),
-        ),
-        Object.hashAll(
-          touch.entries.map((entry) => Object.hash(entry.key, entry.value)),
-        ),
-      );
+    Object.hashAll(
+      keyboard.entries.map((entry) => Object.hash(entry.key, entry.value)),
+    ),
+    Object.hashAll(
+      gamepad.entries.map((entry) => Object.hash(entry.key, entry.value)),
+    ),
+    Object.hashAll(
+      touch.entries.map((entry) => Object.hash(entry.key, entry.value)),
+    ),
+  );
 }
 
 const Map<String, LogicalKeyboardKey> playerKeyboardInputs =
     <String, LogicalKeyboardKey>{
-  'arrowUp': LogicalKeyboardKey.arrowUp,
-  'arrowDown': LogicalKeyboardKey.arrowDown,
-  'arrowLeft': LogicalKeyboardKey.arrowLeft,
-  'arrowRight': LogicalKeyboardKey.arrowRight,
-  'keyW': LogicalKeyboardKey.keyW,
-  'keyA': LogicalKeyboardKey.keyA,
-  'keyS': LogicalKeyboardKey.keyS,
-  'keyD': LogicalKeyboardKey.keyD,
-  'keyE': LogicalKeyboardKey.keyE,
-  'keyQ': LogicalKeyboardKey.keyQ,
-  'keyZ': LogicalKeyboardKey.keyZ,
-  'keyX': LogicalKeyboardKey.keyX,
-  'keyB': LogicalKeyboardKey.keyB,
-  'space': LogicalKeyboardKey.space,
-  'enter': LogicalKeyboardKey.enter,
-  'escape': LogicalKeyboardKey.escape,
-  'tab': LogicalKeyboardKey.tab,
-  'keyM': LogicalKeyboardKey.keyM,
-  'shiftLeft': LogicalKeyboardKey.shiftLeft,
-};
+      'arrowUp': LogicalKeyboardKey.arrowUp,
+      'arrowDown': LogicalKeyboardKey.arrowDown,
+      'arrowLeft': LogicalKeyboardKey.arrowLeft,
+      'arrowRight': LogicalKeyboardKey.arrowRight,
+      'keyW': LogicalKeyboardKey.keyW,
+      'keyA': LogicalKeyboardKey.keyA,
+      'keyS': LogicalKeyboardKey.keyS,
+      'keyD': LogicalKeyboardKey.keyD,
+      'keyE': LogicalKeyboardKey.keyE,
+      'keyQ': LogicalKeyboardKey.keyQ,
+      'keyZ': LogicalKeyboardKey.keyZ,
+      'keyX': LogicalKeyboardKey.keyX,
+      'keyB': LogicalKeyboardKey.keyB,
+      'space': LogicalKeyboardKey.space,
+      'enter': LogicalKeyboardKey.enter,
+      'escape': LogicalKeyboardKey.escape,
+      'tab': LogicalKeyboardKey.tab,
+      'pageUp': LogicalKeyboardKey.pageUp,
+      'pageDown': LogicalKeyboardKey.pageDown,
+      'keyM': LogicalKeyboardKey.keyM,
+      'shiftLeft': LogicalKeyboardKey.shiftLeft,
+    };
 
 const List<String> playerGamepadInputs = <String>[
   'dpadUp',
@@ -314,6 +353,8 @@ const List<String> playerGamepadInputs = <String>[
   'y',
   'back',
   'start',
+  'leftBumper',
+  'rightBumper',
 ];
 
 const List<String> playerTouchInputs = <String>[
@@ -326,6 +367,8 @@ const List<String> playerTouchInputs = <String>[
   'menuButton',
   'sprintButton',
   'bicycleButton',
+  'previousTabButton',
+  'nextTabButton',
 ];
 
 const Map<String, String> _glyphs = <String, String>{
@@ -358,6 +401,12 @@ const Map<String, String> _glyphs = <String, String>{
   'y': 'Y',
   'back': 'Back',
   'start': 'Start',
+  'leftBumper': 'L',
+  'rightBumper': 'R',
+  'pageUp': 'Page ↑',
+  'pageDown': 'Page ↓',
+  'previousTabButton': 'L',
+  'nextTabButton': 'R',
   'joystickUp': 'Stick ↑',
   'joystickDown': 'Stick ↓',
   'joystickLeft': 'Stick ←',
@@ -377,25 +426,25 @@ String? _keyboardInputId(LogicalKeyboardKey key) {
 }
 
 String? _gamepadInputId(LogicalKeyboardKey key) => switch (key) {
-      LogicalKeyboardKey.gameButtonA || LogicalKeyboardKey.gameButton1 => 'a',
-      LogicalKeyboardKey.gameButtonB || LogicalKeyboardKey.gameButton2 => 'b',
-      LogicalKeyboardKey.gameButtonX || LogicalKeyboardKey.gameButton3 => 'x',
-      LogicalKeyboardKey.gameButtonY || LogicalKeyboardKey.gameButton4 => 'y',
-      LogicalKeyboardKey.gameButtonSelect => 'back',
-      LogicalKeyboardKey.gameButtonStart => 'start',
-      LogicalKeyboardKey.gameButtonLeft1 => 'leftBumper',
-      LogicalKeyboardKey.gameButtonRight1 => 'rightBumper',
-      LogicalKeyboardKey.gameButtonLeft2 => 'leftTrigger',
-      LogicalKeyboardKey.gameButtonRight2 => 'rightTrigger',
-      LogicalKeyboardKey.gameButtonThumbLeft => 'leftStick',
-      LogicalKeyboardKey.gameButtonThumbRight => 'rightStick',
-      LogicalKeyboardKey.gameButtonMode => 'home',
-      LogicalKeyboardKey.arrowUp => 'dpadUp',
-      LogicalKeyboardKey.arrowDown => 'dpadDown',
-      LogicalKeyboardKey.arrowLeft => 'dpadLeft',
-      LogicalKeyboardKey.arrowRight => 'dpadRight',
-      _ => null,
-    };
+  LogicalKeyboardKey.gameButtonA || LogicalKeyboardKey.gameButton1 => 'a',
+  LogicalKeyboardKey.gameButtonB || LogicalKeyboardKey.gameButton2 => 'b',
+  LogicalKeyboardKey.gameButtonX || LogicalKeyboardKey.gameButton3 => 'x',
+  LogicalKeyboardKey.gameButtonY || LogicalKeyboardKey.gameButton4 => 'y',
+  LogicalKeyboardKey.gameButtonSelect => 'back',
+  LogicalKeyboardKey.gameButtonStart => 'start',
+  LogicalKeyboardKey.gameButtonLeft1 => 'leftBumper',
+  LogicalKeyboardKey.gameButtonRight1 => 'rightBumper',
+  LogicalKeyboardKey.gameButtonLeft2 => 'leftTrigger',
+  LogicalKeyboardKey.gameButtonRight2 => 'rightTrigger',
+  LogicalKeyboardKey.gameButtonThumbLeft => 'leftStick',
+  LogicalKeyboardKey.gameButtonThumbRight => 'rightStick',
+  LogicalKeyboardKey.gameButtonMode => 'home',
+  LogicalKeyboardKey.arrowUp => 'dpadUp',
+  LogicalKeyboardKey.arrowDown => 'dpadDown',
+  LogicalKeyboardKey.arrowLeft => 'dpadLeft',
+  LogicalKeyboardKey.arrowRight => 'dpadRight',
+  _ => null,
+};
 
 Map<RuntimeInputControl, String> _decodeBindings(Object? source) {
   if (source is! Map<String, dynamic>) {
@@ -403,16 +452,15 @@ Map<RuntimeInputControl, String> _decodeBindings(Object? source) {
   }
   return <RuntimeInputControl, String>{
     for (final control in RuntimeInputControl.values)
-      control: switch (source[control.name]) {
-        final String value when value.trim().isNotEmpty => value.trim(),
-        _ => throw FormatException('Missing binding for ${control.name}.'),
-      },
+      if (source.containsKey(control.name) || !_isTabControl(control))
+        control: switch (source[control.name]) {
+          final String value when value.trim().isNotEmpty => value.trim(),
+          _ => throw FormatException('Missing binding for ${control.name}.'),
+        },
   };
 }
 
-Map<String, String> _encodeBindings(
-  Map<RuntimeInputControl, String> source,
-) =>
+Map<String, String> _encodeBindings(Map<RuntimeInputControl, String> source) =>
     <String, String>{
       for (final entry in source.entries) entry.key.name: entry.value,
     };
@@ -427,3 +475,7 @@ bool _mapsEqual(
   }
   return true;
 }
+
+bool _isTabControl(RuntimeInputControl control) =>
+    control == RuntimeInputControl.previousTab ||
+    control == RuntimeInputControl.nextTab;

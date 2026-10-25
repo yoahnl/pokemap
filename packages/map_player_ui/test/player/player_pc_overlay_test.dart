@@ -1,9 +1,94 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets(
+    'portrait PC tab keys select opaque boxes only after canonical acknowledgement',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
+      final commands = <RuntimeWorldServiceCommand>[];
+      Widget pc(String selected) => _app(
+        RuntimePlayerInputBindings(
+          child: PlayerPcOverlay(
+            snapshot: _snapshot(twoBoxes: true, selectedBoxId: selected),
+            onCommand: commands.add,
+          ),
+        ),
+      );
+      await tester.pumpWidget(pc('box-a'));
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+      await tester.pumpAndSettle();
+      expect(commands, hasLength(1));
+      expect(commands.single.action, RuntimeWorldServiceAction.select);
+      expect(commands.single.targetId, 'box-b');
+      expect(commands.single.snapshotRevision, 7);
+      expect(find.textContaining('Box A'), findsWidgets);
+      expect(find.textContaining('Box B'), findsNothing);
+      await tester.pumpWidget(pc('box-b'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Box B'), findsWidgets);
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+      await tester.pumpAndSettle();
+      expect(commands, hasLength(2));
+      expect(commands.last.targetId, 'box-a');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
+    for (final dark in [false, true]) {
+      testWidgets(
+        'populated PC exposes its selected identity and opaque transfer at $size dark=$dark',
+        (tester) async {
+          tester.view.physicalSize = size;
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          final commands = <RuntimeWorldServiceCommand>[];
+          Widget pc = PlayerPcOverlay(
+            snapshot: _snapshot(),
+            onCommand: commands.add,
+          );
+          if (size.width == 496) pc = PlayerCompanionScope(child: pc);
+          await tester.pumpWidget(_app(pc, dark: dark));
+          await tester.pumpAndSettle();
+          final selectedSlot = tester.widget<Semantics>(
+            find.byKey(const ValueKey('pc-slot-0')),
+          );
+          expect(selectedSlot.properties.label, 'Stored');
+          expect(selectedSlot.properties.selected, isTrue);
+          for (var index = 0; index < 30; index++) {
+            final slot = find.byKey(ValueKey('pc-slot-$index'));
+            expect(slot.hitTestable(), findsOneWidget);
+            expect(tester.getSize(slot).height, greaterThanOrEqualTo(48));
+          }
+          await tester.tap(find.byKey(const ValueKey('pc-summary-box-slot-0')));
+          await tester.pumpAndSettle();
+          expect(find.text('Stored'), findsWidgets);
+          expect(commands, isEmpty);
+          await tester.tap(find.byKey(const ValueKey('pc-summary-close')));
+          await tester.pumpAndSettle();
+          final withdraw = find.byKey(const ValueKey('pc-withdraw-box-slot-0'));
+          expect(withdraw.hitTestable(), findsOneWidget);
+          await tester.tap(withdraw);
+          expect(commands, hasLength(1));
+          expect(commands.single.targetId, 'box-slot-0');
+          expect(commands.single.snapshotRevision, 7);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets(
     'PC empty slots have no summary or transfer and never invent targets',
     (tester) async {
@@ -99,39 +184,78 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     tester.view.devicePixelRatio = 1;
     for (final size in [const Size(496, 432), const Size(768, 432)]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        _app(
-          PlayerCompanionScope(
-            child: PlayerPcOverlay(
-              key: ValueKey(size),
-              snapshot: _snapshot(),
-              onCommand: (_) {},
+      for (final emptyStored in [false, true]) {
+        tester.view.physicalSize = size;
+        await tester.pumpWidget(
+          _app(
+            PlayerCompanionScope(
+              child: PlayerPcOverlay(
+                key: ValueKey((size, emptyStored)),
+                snapshot: _snapshot(emptyStored: emptyStored),
+                onCommand: (_) {},
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      for (var i = 0; i < 30; i++) {
-        final cell = find.byKey(ValueKey('pc-slot-$i'));
-        final bounds = tester.getRect(cell);
-        expect(bounds.width, greaterThanOrEqualTo(48), reason: '$size slot $i');
-        expect(
-          bounds.height,
-          greaterThanOrEqualTo(48),
-          reason: '$size slot $i',
         );
-        expect(cell.hitTestable(), findsOneWidget, reason: '$size slot $i');
+        await tester.pumpAndSettle();
+        for (var i = 0; i < 30; i++) {
+          final cell = find.byKey(ValueKey('pc-slot-$i'));
+          final bounds = tester.getRect(cell);
+          expect(
+            bounds.width,
+            greaterThanOrEqualTo(48),
+            reason: '$size slot $i',
+          );
+          expect(
+            bounds.height,
+            greaterThanOrEqualTo(48),
+            reason: '$size slot $i',
+          );
+          expect(cell.hitTestable(), findsOneWidget, reason: '$size slot $i');
+        }
+        final first = tester.getRect(find.byKey(const ValueKey('pc-slot-0')));
+        final second = tester.getRect(find.byKey(const ValueKey('pc-slot-1')));
+        final nextRow = tester.getRect(find.byKey(const ValueKey('pc-slot-6')));
+        final header = tester.getRect(find.byKey(const ValueKey('pc-close')));
+        expect(second.left - first.right, greaterThanOrEqualTo(8));
+        expect(nextRow.top - first.bottom, greaterThanOrEqualTo(8));
+        expect(first.top - header.bottom, greaterThanOrEqualTo(12));
+        final last = tester.getRect(find.byKey(const ValueKey('pc-slot-29')));
+        final summary = tester.getRect(
+          find.byKey(
+            ValueKey(
+              emptyStored ? 'pc-summary-empty' : 'pc-summary-box-slot-0',
+            ),
+          ),
+        );
+        final close = tester.getRect(
+          find.byKey(const ValueKey('pc-footer-close')),
+        );
+        expect(last.bottom, lessThanOrEqualTo(summary.top - 12));
+        expect(close.bottom, lessThanOrEqualTo(size.height - 12));
+        final footerActions = find.descendant(
+          of: find.byType(PlayerMenuFooter),
+          matching: find.byWidgetPredicate(
+            (widget) => widget is TextButton || widget is IconButton,
+          ),
+        );
+        expect(footerActions, findsNWidgets(emptyStored ? 4 : 5));
+        for (final action in footerActions.evaluate()) {
+          final rect = tester.getRect(
+            find.byElementPredicate((element) => element == action),
+          );
+          expect(rect.width, greaterThanOrEqualTo(48));
+          expect(rect.height, greaterThanOrEqualTo(48));
+          expect(rect.bottom, lessThanOrEqualTo(size.height - 12));
+        }
+        expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+        expect(find.byType(Scrollable), findsNothing);
+        expect(
+          tester.takeException(),
+          isNull,
+          reason: '$size empty=$emptyStored',
+        );
       }
-      final first = tester.getRect(find.byKey(const ValueKey('pc-slot-0')));
-      final second = tester.getRect(find.byKey(const ValueKey('pc-slot-1')));
-      final nextRow = tester.getRect(find.byKey(const ValueKey('pc-slot-6')));
-      final header = tester.getRect(find.byKey(const ValueKey('pc-close')));
-      expect(second.left - first.right, greaterThanOrEqualTo(8));
-      expect(nextRow.top - first.bottom, greaterThanOrEqualTo(8));
-      expect(first.top - header.bottom, greaterThanOrEqualTo(12));
-      expect(find.byType(Scrollable), findsNothing);
-      expect(tester.takeException(), isNull, reason: '$size');
     }
   });
 
@@ -292,7 +416,11 @@ void main() {
   });
 }
 
-RuntimeWorldServiceSnapshot _snapshot() => RuntimeWorldServiceSnapshot(
+RuntimeWorldServiceSnapshot _snapshot({
+  bool twoBoxes = false,
+  bool emptyStored = false,
+  String selectedBoxId = 'box-a',
+}) => RuntimeWorldServiceSnapshot(
   revision: 7,
   request: const OpenPcService(
     interactionId: 'terminal.harbor',
@@ -302,14 +430,21 @@ RuntimeWorldServiceSnapshot _snapshot() => RuntimeWorldServiceSnapshot(
   content: RuntimePcServiceContent(
     title: 'PC Pokémon',
     message: 'Organisez votre équipe.',
-    selectedBoxId: 'box-a',
-    boxes: const <RuntimePcBoxSnapshot>[
+    selectedBoxId: selectedBoxId,
+    boxes: <RuntimePcBoxSnapshot>[
       RuntimePcBoxSnapshot(
         boxId: 'box-a',
         label: 'Box A',
-        count: 1,
+        count: emptyStored ? 0 : 1,
         capacity: 30,
       ),
+      if (twoBoxes)
+        const RuntimePcBoxSnapshot(
+          boxId: 'box-b',
+          label: 'Box B',
+          count: 1,
+          capacity: 30,
+        ),
     ],
     party: <RuntimePcPokemonSnapshot>[
       RuntimePcPokemonSnapshot(
@@ -330,16 +465,17 @@ RuntimeWorldServiceSnapshot _snapshot() => RuntimeWorldServiceSnapshot(
       ),
     ],
     stored: <RuntimePcPokemonSnapshot>[
-      RuntimePcPokemonSnapshot(
-        targetId: 'box-slot-0',
-        label: 'Stored',
-        speciesId: 'stored',
-        level: 5,
-        natureId: 'bold',
-        abilityId: 'torrent',
-        currentHp: 10,
-        canTransfer: true,
-      ),
+      if (!emptyStored)
+        RuntimePcPokemonSnapshot(
+          targetId: 'box-slot-0',
+          label: 'Stored',
+          speciesId: 'stored',
+          level: 5,
+          natureId: 'bold',
+          abilityId: 'torrent',
+          currentHp: 10,
+          canTransfer: true,
+        ),
     ],
   ),
   actions: const <RuntimeWorldServiceActionAvailability>[
@@ -361,10 +497,10 @@ RuntimeWorldServiceSnapshot _snapshot() => RuntimeWorldServiceSnapshot(
   ],
 );
 
-Widget _app(Widget child) => MaterialApp(
+Widget _app(Widget child, {bool dark = true}) => MaterialApp(
   locale: const Locale('fr'),
   supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
   localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-  theme: PokeMapPlayerTheme.dark(),
+  theme: dark ? PokeMapPlayerTheme.dark() : PokeMapPlayerTheme.light(),
   home: child,
 );

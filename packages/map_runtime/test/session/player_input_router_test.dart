@@ -2,6 +2,52 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test(
+    'tab commands remain UI-only and retain canonical press release identity',
+    () async {
+      var surface = PlayerInputSurface.gameplay;
+      final gameplay = <RuntimeInputEvent>[];
+      final ui = <PlayerInputCommand>[];
+      final router = PlayerInputRouter(
+        surface: () => surface,
+        routeGameplay: (event) {
+          gameplay.add(event);
+          return true;
+        },
+        routeSurface: ui.add,
+        toggleMenu: () {},
+        releaseGameplayDirections: () {},
+      );
+      for (final control in [
+        RuntimeInputControl.previousTab,
+        RuntimeInputControl.nextTab,
+      ]) {
+        for (final event in [
+          RuntimeInputEvent.press(control),
+          RuntimeInputEvent.release(control),
+        ]) {
+          final command = playerInputCommandFromRuntimeEvent(
+            event,
+            source: PlayerInputSource.controller,
+          );
+          expect(command.action.name, control.name);
+          await router.route(command);
+        }
+      }
+      expect(gameplay, isEmpty);
+      expect(ui, isEmpty);
+      surface = PlayerInputSurface.pause;
+      final next = playerInputCommandFromRuntimeEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.nextTab),
+        source: PlayerInputSource.controller,
+      );
+      await router.route(next);
+      expect(ui.single.action, PlayerInputAction.nextTab);
+      expect(ui.single.source, PlayerInputSource.controller);
+      expect(gameplay, isEmpty);
+    },
+  );
+
   test('converts the runtime Menu control into a shared player command', () {
     final command = playerInputCommandFromRuntimeEvent(
       const RuntimeInputEvent.press(RuntimeInputControl.menu),

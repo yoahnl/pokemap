@@ -2,7 +2,7 @@ import 'dart:async';
 
 import '../presentation/flame/runtime_input_event.dart';
 
-enum PlayerInputAction { up, down, left, right, sprint, bicycle, confirm, back, menu }
+enum PlayerInputAction { up, down, left, right, sprint, bicycle, confirm, back, menu, previousTab, nextTab }
 
 enum PlayerInputSource { keyboard, mouse, touch, controller }
 
@@ -66,6 +66,8 @@ PlayerInputCommand playerInputCommandFromRuntimeEvent(
     RuntimeInputControl.primary => PlayerInputAction.confirm,
     RuntimeInputControl.secondary => PlayerInputAction.back,
     RuntimeInputControl.menu => PlayerInputAction.menu,
+    RuntimeInputControl.previousTab => PlayerInputAction.previousTab,
+    RuntimeInputControl.nextTab => PlayerInputAction.nextTab,
   };
   return event.isPress
       ? PlayerInputCommand.press(
@@ -127,6 +129,8 @@ final class PlayerInputRouter {
     }
 
     if (surface == PlayerInputSurface.gameplay) {
+      if (command.action == PlayerInputAction.previousTab ||
+          command.action == PlayerInputAction.nextTab) return true;
       return _routeGameplay(_runtimeEvent(command));
     }
 
@@ -145,6 +149,8 @@ final class PlayerInputRouter {
       PlayerInputAction.confirm => RuntimeInputControl.primary,
       PlayerInputAction.back => RuntimeInputControl.secondary,
       PlayerInputAction.menu => RuntimeInputControl.menu,
+      PlayerInputAction.previousTab => RuntimeInputControl.previousTab,
+      PlayerInputAction.nextTab => RuntimeInputControl.nextTab,
     };
     return command.isPress
         ? RuntimeInputEvent.press(control, isRepeat: command.isRepeat)

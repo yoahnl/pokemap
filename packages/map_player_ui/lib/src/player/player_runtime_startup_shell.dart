@@ -166,6 +166,10 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
           ? widget.snapshot.suspendedPhase ?? RuntimeStartupPhase.splash
           : widget.snapshot.phase;
 
+  bool get _titleTransitionPending =>
+      _visiblePhase == RuntimeStartupPhase.titleMenu &&
+      widget.snapshot.isTransitioning;
+
   bool get _active =>
       widget.snapshot.isLifecycleActive &&
       widget.snapshot.phase != RuntimeStartupPhase.lifecyclePaused;
@@ -285,11 +289,14 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
                   (widget.controlProfile ?? PlayerControlProfile.standard)
                       .runtimeEventFromKeyEvent(event);
               if (input == null) return KeyEventResult.ignored;
+              if (_titleTransitionPending && input.isPress) {
+                return KeyEventResult.handled;
+              }
               widget.onCompanionInput?.call(input);
               return KeyEventResult.handled;
             },
             child: IgnorePointer(
-              ignoring: !_active || _delegatesTitle,
+              ignoring: !_active || _delegatesTitle || _titleTransitionPending,
               child: child,
             ),
           ),
@@ -619,7 +626,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     RuntimePlayerSnapshot player, {
     Object? payload,
   }) async {
-    if (!_active || !player.isActionEnabled(action)) {
+    if (!_active || _titleTransitionPending || !player.isActionEnabled(action)) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.unavailable,
       );
@@ -635,6 +642,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
 
   bool _handleInput(PlayerInputCommand command) {
     if (!_active) return false;
+    if (_titleTransitionPending && command.isPress) return true;
     if (_delegatesTitle) {
       final control = switch (command.action) {
         PlayerInputAction.up => RuntimeInputControl.up,
@@ -646,6 +654,8 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         PlayerInputAction.menu => RuntimeInputControl.menu,
         PlayerInputAction.sprint => RuntimeInputControl.sprint,
         PlayerInputAction.bicycle => RuntimeInputControl.bicycle,
+        PlayerInputAction.previousTab => RuntimeInputControl.previousTab,
+        PlayerInputAction.nextTab => RuntimeInputControl.nextTab,
       };
       widget.onCompanionInput?.call(
         command.isPress
@@ -747,7 +757,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   }
 
   void _handleBack() {
-    if (!_active) return;
+    if (!_active || _titleTransitionPending) return;
     if (_delegatesTitle) {
       widget.onCompanionInput?.call(
         const RuntimeInputEvent.press(RuntimeInputControl.secondary),

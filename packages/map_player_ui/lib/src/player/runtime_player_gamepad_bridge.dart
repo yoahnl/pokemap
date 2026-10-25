@@ -26,11 +26,12 @@ final class RuntimePlayerGamepadBridge {
     double stickReleaseDeadZone = .25,
     PlayerControlProfile? controlProfile,
     this.useSecondaryForSprint,
-  })  : assert(
-            stickReleaseDeadZone >= 0 && stickReleaseDeadZone < stickDeadZone),
-        _stickDeadZone = stickDeadZone,
-        _stickReleaseDeadZone = stickReleaseDeadZone,
-        _controlProfile = controlProfile ?? PlayerControlProfile.standard;
+  }) : assert(
+         stickReleaseDeadZone >= 0 && stickReleaseDeadZone < stickDeadZone,
+       ),
+       _stickDeadZone = stickDeadZone,
+       _stickReleaseDeadZone = stickReleaseDeadZone,
+       _controlProfile = controlProfile ?? PlayerControlProfile.standard;
 
   final double _stickDeadZone;
   final double _stickReleaseDeadZone;
@@ -53,7 +54,9 @@ final class RuntimePlayerGamepadBridge {
     next._blockedSticks.addAll(_blockedSticks);
     for (final entry in _devices.entries) {
       if (entry.value.physicalButtons.isNotEmpty) {
-        next._blockedButtons.putIfAbsent(entry.key, () => {}).addAll(entry.value.physicalButtons);
+        next._blockedButtons
+            .putIfAbsent(entry.key, () => {})
+            .addAll(entry.value.physicalButtons);
       }
       if (entry.value.vector.distance > _stickReleaseDeadZone) {
         next._blockedSticks[entry.key] = entry.value.vector;
@@ -92,8 +95,10 @@ final class RuntimePlayerGamepadBridge {
       }
       return const [];
     }
-    final state =
-        _devices.putIfAbsent(gamepadId, _RuntimePlayerGamepadState.new);
+    final state = _devices.putIfAbsent(
+      gamepadId,
+      _RuntimePlayerGamepadState.new,
+    );
     if (pressed) {
       state.physicalButtons.add(button);
     } else {
@@ -105,7 +110,8 @@ final class RuntimePlayerGamepadBridge {
     if (pressed) {
       state.buttons.putIfAbsent(
         button,
-        () => control == RuntimeInputControl.secondary &&
+        () =>
+            control == RuntimeInputControl.secondary &&
                 (useSecondaryForSprint?.call() ?? false)
             ? RuntimeInputControl.sprint
             : control,
@@ -137,16 +143,19 @@ final class RuntimePlayerGamepadBridge {
       }
       return const [];
     }
-    final state =
-        _devices.putIfAbsent(gamepadId, _RuntimePlayerGamepadState.new);
+    final state = _devices.putIfAbsent(
+      gamepadId,
+      _RuntimePlayerGamepadState.new,
+    );
     final previous = state.controls;
     state.vector = axis == GamepadAxis.leftStickX
         ? Offset(value, state.vector.dy)
         : Offset(state.vector.dx, -value);
     state.stickControl = runtimeInputControlFromTouchVector(
       state.vector,
-      deadZone:
-          state.stickControl == null ? _stickDeadZone : _stickReleaseDeadZone,
+      deadZone: state.stickControl == null
+          ? _stickDeadZone
+          : _stickReleaseDeadZone,
     );
     return _transitions(previous, state.controls);
   }
@@ -185,7 +194,74 @@ final class _RuntimePlayerGamepadState {
   RuntimeInputControl? stickControl;
 
   Set<RuntimeInputControl> get controls => {
-        ...buttons.values,
-        if (stickControl case final control?) control,
-      };
+    ...buttons.values,
+    if (stickControl case final control?) control,
+  };
+}
+
+final class RuntimePlayerControllerInputMux {
+  RuntimePlayerControllerInputMux({this.onDeviceAdopted});
+  final void Function(String previousId, String nextId)? onDeviceAdopted;
+  final _gestures =
+      <(RuntimeInputControl, String), _RuntimeControllerGesture>{};
+
+  ({RuntimeInputEvent event, String deviceId})? route(
+    RuntimeInputEvent event, {
+    required String path,
+    required String deviceId,
+  }) {
+    var key = (event.control, deviceId);
+    if (!_gestures.containsKey(key) && path == 'normalized') {
+      final fallback = (event.control, 'hardware-gamepad');
+      if (_gestures.containsKey(fallback)) {
+        adoptDevice('hardware-gamepad', deviceId);
+        key = (event.control, deviceId);
+      }
+    }
+    final gesture = _gestures[key];
+    if (event.isPress) {
+      if (event.isRepeat) {
+        return gesture?.paths.contains(path) == true &&
+                gesture!.repeatPath == path
+            ? (event: event, deviceId: gesture.deviceId)
+            : null;
+      }
+      if (gesture != null) {
+        gesture.paths.add(path);
+        return null;
+      }
+      _gestures[key] = _RuntimeControllerGesture(deviceId, {path}, path);
+      return (event: event, deviceId: deviceId);
+    }
+    if (gesture == null || !gesture.paths.remove(path)) return null;
+    if (gesture.paths.isNotEmpty) return null;
+    _gestures.remove(key);
+    return (event: event, deviceId: gesture.deviceId);
+  }
+
+  void adoptDevice(String previousId, String nextId) {
+    if (previousId == nextId) return;
+    var adopted = false;
+    for (final key in _gestures.keys.toList()) {
+      final gesture = _gestures[key]!;
+      if (gesture.deviceId != previousId) continue;
+      _gestures.remove(key);
+      gesture.deviceId = nextId;
+      _gestures[(key.$1, nextId)] = gesture;
+      adopted = true;
+    }
+    if (adopted) onDeviceAdopted?.call(previousId, nextId);
+  }
+
+  void clear() => _gestures.clear();
+
+  void disconnect(String deviceId) =>
+      _gestures.removeWhere((key, gesture) => gesture.deviceId == deviceId);
+}
+
+final class _RuntimeControllerGesture {
+  _RuntimeControllerGesture(this.deviceId, this.paths, this.repeatPath);
+  String deviceId;
+  final Set<String> paths;
+  final String repeatPath;
 }

@@ -52,7 +52,7 @@ class RuntimePlayerBag extends StatefulWidget {
 class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   static const _favorites = '@favorites';
   final _selections = <String, String>{};
-  final _nodes = <String, FocusNode>{};
+  final _nodes = <({String pocketId, String? itemId}), FocusNode>{};
   final _detailFocus = FocusNode();
   final _descriptionFocus = FocusNode(debugLabel: 'Bag description');
   int _pocketPage = 0;
@@ -62,7 +62,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   bool _busy = false;
   bool _targetDialogOpen = false;
   bool _initialFocusPending = true;
-  String? _pendingItemFocus;
+  ({String pocketId, String itemId})? _pendingItemFocus;
 
   String _text(String fr, String en) =>
       Localizations.localeOf(context).languageCode == 'fr' ? fr : en;
@@ -103,8 +103,10 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   RuntimePlayerDetailEntrySnapshot? get _selected =>
       _visible.where((e) => _id(e) == _selections[_pocket]).firstOrNull ??
       _visible.firstOrNull;
-  FocusNode _node(String id) =>
-      _nodes.putIfAbsent(id, () => FocusNode(debugLabel: 'Bag $id'));
+  FocusNode _node(String pocketId, {String? itemId}) => _nodes.putIfAbsent((
+    pocketId: pocketId,
+    itemId: itemId,
+  ), () => FocusNode(debugLabel: 'Bag $pocketId ${itemId ?? 'tab'}'));
 
   @override
   void initState() {
@@ -160,15 +162,22 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   }
 
   void _focusSelected() {
-    _pendingItemFocus = _selected == null ? null : _id(_selected!);
+    final selected = _selected;
+    _pendingItemFocus = selected == null || _pocket == null
+        ? null
+        : (pocketId: _pocket!, itemId: _id(selected));
     WidgetsBinding.instance.addPostFrameCallback((_) => _restoreItemFocus());
   }
 
   void _restoreItemFocus() {
     if (!mounted || ModalRoute.of(context)?.isCurrent == false) return;
-    final id = _pendingItemFocus;
-    if (id == null) return;
-    final node = _node(id);
+    final pending = _pendingItemFocus;
+    if (pending == null) return;
+    if (pending.pocketId != _pocket) {
+      _pendingItemFocus = null;
+      return;
+    }
+    final node = _node(pending.pocketId, itemId: pending.itemId);
     if (node.context != null && node.canRequestFocus) {
       _pendingItemFocus = null;
       node.requestFocus();
@@ -189,8 +198,29 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
     return true;
   }
 
+  var _pocketDirection = 1;
+
+  void _stepPocket(int delta) {
+    final pockets = _pockets;
+    if (pockets.isEmpty) return;
+    final index = pockets.indexWhere((pocket) => pocket.id == _pocket);
+    final next = (index + delta) % pockets.length;
+    _changePocket(pockets[next].id);
+    if (_selected != null) {
+      _focusSelected();
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _node(pockets[next].id).requestFocus();
+      });
+    }
+  }
+
   void _changePocket(String pocket) {
+    final pockets = _pockets;
+    final previous = pockets.indexWhere((entry) => entry.id == _pocket);
+    final next = pockets.indexWhere((entry) => entry.id == pocket);
     setState(() {
+      _pocketDirection = next >= previous ? 1 : -1;
       _pocket = pocket;
       _showDetail = false;
     });
@@ -210,39 +240,48 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
         }
       }
     });
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final short = constraints.maxHeight < 300;
-        return Column(
-          key: const ValueKey('runtime-player-detail-bag'),
-          children: [
-            if (!_showDetail) ...[
-              SizedBox(height: 48, child: _pocketBar(pockets, short: short)),
-              const SizedBox(height: 8),
-            ],
-            Expanded(
-              child: _showDetail && _selected != null
-                  ? _detail(_selected!)
-                  : _list(),
-            ),
-            if (_failure ?? widget.detail.message case final message?)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Semantics(
-                  liveRegion: true,
-                  label: message,
-                  excludeSemantics: true,
-                  child: Text(
-                    message,
-                    key: const ValueKey('runtime-player-bag-message'),
-                    style: context.playerMenuTheme.meta,
+    return RuntimePlayerTabActions(
+      resetToken: _pocket,
+      onPreviousTab: () => _stepPocket(-1),
+      onNextTab: () => _stepPocket(1),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final short = constraints.maxHeight < 300;
+          return Column(
+            key: const ValueKey('runtime-player-detail-bag'),
+            children: [
+              if (!_showDetail) ...[
+                SizedBox(height: 48, child: _pocketBar(pockets, short: short)),
+                const SizedBox(height: 8),
+              ],
+              Expanded(
+                child: _showDetail && _selected != null
+                    ? _detail(_selected!)
+                    : PlayerMenuDetailTransition(
+                        contentKey: ValueKey(_pocket),
+                        direction: _pocketDirection,
+                        child: _list(),
+                      ),
+              ),
+              if (_failure ?? widget.detail.message case final message?)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Semantics(
+                    liveRegion: true,
+                    label: message,
+                    excludeSemantics: true,
+                    child: Text(
+                      message,
+                      key: const ValueKey('runtime-player-bag-message'),
+                      style: context.playerMenuTheme.meta,
+                    ),
                   ),
                 ),
-              ),
-            if (widget.navigation == null) _actions(context),
-          ],
-        );
-      },
+              if (widget.navigation == null) _actions(context),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -262,16 +301,19 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       final showText =
           (tabWidth >= 96 || pockets.length <= 5 && tabWidth >= 56) &&
           MediaQuery.textScalerOf(context).scale(1) <= 1.3;
-      _pocketPage = _pocketPage.clamp(0, pages - 1);
+      _pocketPage =
+          pockets
+              .indexWhere((entry) => entry.id == _pocket)
+              .clamp(0, pockets.length - 1) ~/
+          count;
       void focusPocket(int index) {
         final chosen = index.clamp(0, pockets.length - 1);
         setState(() {
           _pocketPage = chosen ~/ count;
-          _pocket = pockets[chosen].id;
-          _showDetail = false;
         });
+        _changePocket(pockets[chosen].id);
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _node('pocket-${pockets[chosen].id}').requestFocus();
+          if (mounted) _node(pockets[chosen].id).requestFocus();
         });
       }
 
@@ -370,7 +412,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                                     size: 28,
                                   ),
                             selected: pockets[index].id == _pocket,
-                            focusNode: _node('pocket-${pockets[index].id}'),
+                            focusNode: _node(pockets[index].id),
 
                             onPressed: () => _changePocket(pockets[index].id),
                             onFocusChanged: (focused) {
@@ -411,7 +453,11 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
   };
 
   Widget _list() {
-    if (_visible.isEmpty) {
+    final visible = _visible;
+    final selected = _selected;
+    final selectedId = selected == null ? null : _id(selected);
+    final pocket = _pocket;
+    if (visible.isEmpty) {
       return PlayerEmptyState(
         key: const ValueKey('bag-pocket-empty'),
         icon: Icons.backpack_outlined,
@@ -434,19 +480,23 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
             ? (companion || constraints.maxWidth < 600 ? 2 : 3)
             : 1;
         return PlayerPagedList(
-          key: ValueKey('bag-list-$_pocket'),
-          sideNavigation: constraints.maxHeight < 240 && _visible.length > 6,
-          onPageReady: _restoreItemFocus,
+          key: ValueKey('bag-list-$pocket'),
+          sideNavigation: constraints.maxHeight < 240 && visible.length > 6,
+          onPageReady: () {
+            if (_pocket == pocket) _restoreItemFocus();
+          },
           revealChildKey: ValueKey(
-            'bag-list-row-$_pocket-${(_visible.indexOf(_selected!) ~/ columns) * columns}',
+            'bag-list-row-$pocket-${(visible.indexOf(selected!) ~/ columns) * columns}',
           ),
           children: [
-            for (var i = 0; i < _visible.length; i += columns)
+            for (var i = 0; i < visible.length; i += columns)
               KeyedSubtree(
-                key: ValueKey('bag-list-row-$_pocket-$i'),
+                key: ValueKey('bag-list-row-$pocket-$i'),
                 child: columns == 1
                     ? _itemRow(
-                        _visible[i],
+                        visible[i],
+                        pocket: pocket!,
+                        selectedId: selectedId,
                         compact: constraints.maxHeight < 496,
                       )
                     : Row(
@@ -455,9 +505,11 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                           for (var column = 0; column < columns; column++) ...[
                             if (column > 0) const SizedBox(width: 8),
                             Expanded(
-                              child: i + column < _visible.length
+                              child: i + column < visible.length
                                   ? _itemRow(
-                                      _visible[i + column],
+                                      visible[i + column],
+                                      pocket: pocket!,
+                                      selectedId: selectedId,
                                       compact: true,
                                     )
                                   : const SizedBox.shrink(),
@@ -474,6 +526,8 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
 
   Widget _itemRow(
     RuntimePlayerDetailEntrySnapshot entry, {
+    required String pocket,
+    required String? selectedId,
     bool compact = false,
   }) {
     final id = _id(entry);
@@ -489,21 +543,21 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           ? null
           : Text(
               entry.bagItem?.description ?? entry.subtitle ?? '',
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
                 height: 1.35,
-                color: id == _id(_selected!)
+                color: id == selectedId
                     ? context.playerMenuTheme.selectionText.withValues(
                         alpha: .75,
                       )
                     : context.playerMenuTheme.secondary,
               ),
             ),
-      selected: id == _id(_selected!),
-      focusNode: _node(id),
+      selected: id == selectedId,
+      focusNode: _node(pocket, itemId: id),
       minimumHeight: compact ? 56 : 76,
       contentPadding: EdgeInsets.symmetric(
         horizontal: compact ? 6 : 12,
@@ -546,15 +600,15 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       ),
       trailingWidth: quantityWidth,
       onFocusChanged: (focused) {
-        if (focused && _selections[_pocket!] != id) {
-          _pendingItemFocus = id;
-          setState(() => _selections[_pocket!] = id);
+        if (focused && _pocket == pocket && _selections[pocket] != id) {
+          _pendingItemFocus = (pocketId: pocket, itemId: id);
+          setState(() => _selections[pocket] = id);
         }
       },
       onPressed: _busy
           ? null
           : () {
-              setState(() => _selections[_pocket!] = id);
+              setState(() => _selections[pocket] = id);
               final action = entry.bagAction;
               if (action?.isEnabled == true && widget.onCommand != null) {
                 unawaited(_use(entry, action!));
@@ -586,7 +640,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                 ? null
                 : () {
                     setState(() {
-                      _selections[_pocket!] = id;
+                      _selections[pocket] = id;
                       _showDetail = true;
                     });
                     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -768,9 +822,9 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           ? Align(
               alignment: Alignment.centerLeft,
               child: SizedBox(
-              width: 88 * MediaQuery.textScalerOf(context).scale(1),
-              child: returnAction,
-            ),
+                width: 88 * MediaQuery.textScalerOf(context).scale(1),
+                child: returnAction,
+              ),
             )
           : PlayerMenuActionGroup(children: [...children, returnAction]),
     );

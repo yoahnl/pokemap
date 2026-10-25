@@ -54,10 +54,11 @@ void main() {
       final session = game.debugBattleSessionSnapshot;
       final state = game.gameStateSnapshot;
       final oldRevision = snapshot.revision;
-      expect(game.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, placement: BattleCommandPanelPlacement.end)), isTrue);
+      expect(game.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, placement: BattleCommandPanelPlacement.end, rootCommandOrder: const [0, 2, 1, 3])), isTrue);
       snapshot = await _ppBattleSnapshot(game, 'root');
       expect(snapshot.revision, greaterThan(oldRevision));
       expect(snapshot.commandPanelPlacement, BattleCommandPanelPlacement.end);
+      expect(snapshot.rootCommandOrder, [0, 2, 1, 3]);
       final layout = game.debugBattleOverlayComponent!.currentSceneLayout;
       expect(layout.commandPanelPlacement, BattleCommandPanelPlacement.end);
       expect(layout.enemySpriteRect.overlaps(layout.commandPanelRect), isFalse);
@@ -88,8 +89,9 @@ void main() {
       final portrait = game.debugBattleOverlayComponent!.currentSceneLayout;
       final backdrop = game.debugBattleOverlayComponent!.children.whereType<BattleSceneBackdropComponent>().single;
       expect(backdrop.size.x, 390);
-      expect(backdrop.size.y, closeTo(portrait.commandPanelRect.top, .001));
-      expect(portrait.playerSpriteRect.height, greaterThan(170));
+      expect(backdrop.size.y, closeTo(portrait.viewportSize.height, .001));
+      expect(portrait.playerSpriteRect.height, closeTo(137, .001));
+      expect(portrait.playerSpriteRect.width, closeTo(147, .001));
       expect(portrait.playerHudRect.overlaps(portrait.playerSpriteRect), isFalse);
     });
 

@@ -582,6 +582,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+    if (_spriteRect.isEmpty) return;
 
     if (_spriteImage != null) {
       final rendered = _currentRenderedSpriteRectLocal();

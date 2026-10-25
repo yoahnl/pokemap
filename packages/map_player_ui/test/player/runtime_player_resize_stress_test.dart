@@ -137,6 +137,51 @@ void main() {
           const ValueKey('player-menu-opening-transform')));
       expect(opening.transform.getTranslation().y, 0);
       expect(find.byType(Scrollable), findsNothing);
+      final body = tester.getRect(
+        find.byKey(const ValueKey('player-paged-body')),
+      );
+      expect(body.height, greaterThanOrEqualTo(48));
+      expect(body.bottom, lessThanOrEqualTo(340));
+      for (final key in ['player-page-previous', 'player-page-next']) {
+        final control = find.byKey(ValueKey(key));
+        expect(control.hitTestable(), findsOneWidget);
+        final rect = tester.getRect(control);
+        expect(rect.width, greaterThanOrEqualTo(48));
+        expect(rect.height, greaterThanOrEqualTo(48));
+        expect(rect.bottom, lessThanOrEqualTo(340));
+      }
+      final save = find.byKey(const ValueKey('pause.save'));
+      expect(save.hitTestable(), findsOneWidget);
+      expect(tester.getSize(save).height, greaterThanOrEqualTo(48));
+      expect(
+        tester.widget<PlayerMenuSelectableRow>(save).label,
+        'Sauvegarder',
+      );
+      final seen = <String>{};
+      for (var page = 0; page < 20; page++) {
+        final entries = find.descendant(
+          of: find.byType(PlayerPauseNavigation),
+          matching: find.byType(PlayerMenuSelectableRow),
+        );
+        for (final entry in entries.evaluate()) {
+          final row = entry.widget as PlayerMenuSelectableRow;
+          seen.add(row.id);
+          final bounds = tester.getRect(find.byElementPredicate(
+            (candidate) => identical(candidate, entry),
+          ));
+          expect(bounds.top, greaterThanOrEqualTo(body.top));
+          expect(bounds.bottom, lessThanOrEqualTo(body.bottom));
+          expect(bounds.height, greaterThanOrEqualTo(48));
+        }
+        final next = find.byKey(const ValueKey('player-page-next'));
+        if (tester.widget<IconButton>(next).onPressed == null) break;
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+      }
+      expect(seen, containsAll([
+        'pause.party', 'pause.bag', 'pause.pokedex', 'pause.map',
+        'pause.quests', 'pause.contacts', 'pause.profile', 'pause.options',
+      ]));
       final targets = find.byType(PlayerMenuSelectableRow);
       expect(targets, findsWidgets);
       for (final element in targets.evaluate()) {

@@ -129,6 +129,102 @@ void main() {
     },
   );
 
+  for (final attached in [false, true]) {
+    testWidgets(
+      'title transition blocks new commands until acknowledged, delegated=$attached',
+      (tester) async {
+        final controller = PlayerRuntimeStartupShellController();
+        final commands = <RuntimePlayerCommand>[];
+        final startupCommands = <RuntimeStartupCommand>[];
+        final inputs = <RuntimeInputEvent>[];
+        Widget shell(bool transitioning) => _app(
+          PlayerRuntimeStartupShell(
+            controller: controller,
+            branding: branding,
+            snapshot: _startup(
+              RuntimeStartupPhase.titleMenu,
+              player: _titlePlayer(),
+            ).next(isTransitioning: transitioning),
+            titlePresentation: presentation,
+            companionTitleAttached: attached,
+            onCompanionInput: (input) {
+              inputs.add(input);
+              return true;
+            },
+            onStartupCommand: startupCommands.add,
+            onPlayerCommand: (command) {
+              commands.add(command);
+              return _acceptPlayerCommand(command);
+            },
+            onIntroPlaybackCompleted: (_) {},
+            onIntroPlaybackFailed: (_, _) {},
+          ),
+        );
+        await _pumpMeasuredStartupWidget(tester, shell(true));
+        if (!attached) {
+          await tester.tap(
+            find.byKey(const ValueKey('title.newGame')),
+            warnIfMissed: false,
+          );
+          tester
+              .widget<PlayerTitleScreen>(find.byType(PlayerTitleScreen))
+              .onSelected(PlayerTitleMenuAction.newGame);
+        }
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        expect(
+          controller.handle(
+            const PlayerInputCommand.press(
+              PlayerInputAction.confirm,
+              source: PlayerInputSource.controller,
+            ),
+          ),
+          isTrue,
+        );
+        controller.handle(
+          const PlayerInputCommand.release(
+            PlayerInputAction.confirm,
+            source: PlayerInputSource.controller,
+          ),
+        );
+        await tester.binding.handlePopRoute();
+        await tester.pump();
+        expect(commands, isEmpty);
+        expect(startupCommands, isEmpty);
+        expect(inputs.where((event) => event.isPress), isEmpty);
+        if (attached) {
+          expect(inputs, isNotEmpty);
+          expect(inputs.every((event) => !event.isPress), isTrue);
+        }
+
+        await _pumpMeasuredStartupWidget(tester, shell(false));
+        inputs.clear();
+        if (attached) {
+          controller.handle(
+            const PlayerInputCommand.press(
+              PlayerInputAction.confirm,
+              source: PlayerInputSource.controller,
+            ),
+          );
+          controller.handle(
+            const PlayerInputCommand.release(
+              PlayerInputAction.confirm,
+              source: PlayerInputSource.controller,
+            ),
+          );
+          expect(inputs.map((event) => event.isPress), [true, false]);
+          expect(commands, isEmpty);
+        } else {
+          await tester.tap(find.byKey(const ValueKey('title.newGame')));
+          await tester.pump();
+          expect(commands, hasLength(1));
+          expect(commands.single.action, RuntimePlayerAction.newGame);
+          expect(commands.single.snapshotRevision, 9);
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('splash motion waits for its audio start signal', (tester) async {
     Widget shell(bool ready) => _app(PlayerRuntimeStartupShell(
           branding: branding,

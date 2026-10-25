@@ -181,6 +181,9 @@ class PlayerCreditsSurface extends StatelessWidget {
     icon: Icons.auto_stories_rounded,
     title: title,
     surfaceRole: ProjectPresentationSurfaceRole.credits,
+    headerTitle: Localizations.localeOf(context).languageCode == 'fr'
+        ? 'Crédits'
+        : 'Credits',
     body: [
       Text(author, style: Theme.of(context).textTheme.titleLarge),
       if (endingLabel != null) Text(endingLabel!, textAlign: TextAlign.center),
@@ -321,6 +324,7 @@ class PlayerSessionPanel extends StatefulWidget {
     this.surfaceRole = ProjectPresentationSurfaceRole.notification,
     this.framed = true,
     this.titleAlign = TextAlign.start,
+    this.headerTitle,
   });
 
   final IconData? icon;
@@ -331,6 +335,7 @@ class PlayerSessionPanel extends StatefulWidget {
   final ProjectPresentationSurfaceRole surfaceRole;
   final bool framed;
   final TextAlign titleAlign;
+  final String? headerTitle;
 
   @override
   State<PlayerSessionPanel> createState() => _PlayerSessionPanelState();
@@ -380,7 +385,9 @@ class _PlayerSessionPanelState extends State<PlayerSessionPanel> {
             graphemes.sublist(start, end).join(),
             key: ValueKey('session-paragraph-$index-${part++}'),
             style: style,
-            textAlign: child.textAlign,
+            textAlign:
+                child.textAlign ??
+                (widget.headerTitle == null ? null : TextAlign.center),
             textDirection: child.textDirection,
           ),
         );
@@ -398,6 +405,62 @@ class _PlayerSessionPanelState extends State<PlayerSessionPanel> {
     child: Builder(
       builder: (context) {
         final theme = context.playerMenuTheme;
+        if (widget.headerTitle case final headerTitle?) {
+          return PlayerMenuFrame(
+            role: widget.surfaceRole,
+            scrollable: false,
+            header: PlayerMenuHeader(
+              key: const ValueKey('player-session-page-header'),
+              icon: Icons.auto_stories_rounded,
+              title: headerTitle,
+            ),
+            footer: PlayerMenuFooter(
+              hints: const [],
+              returnAction: widget.actions.firstOrNull,
+              actionsBuilder: widget.actions.isEmpty
+                  ? null
+                  : (context, _) => PlayerMenuActionGroup(
+                      fillWidth: true,
+                      children: widget.actions,
+                    ),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = math.min(640.0, constraints.maxWidth);
+                return Center(
+                  child: SizedBox(
+                    key: const ValueKey('player-session-page-content'),
+                    width: width,
+                    height: math.min(
+                      constraints.maxHeight,
+                      _contentHeight ?? constraints.maxHeight,
+                    ),
+                    child: PlayerPagedList(
+                      onContentHeightChanged: (height) {
+                        if (mounted && _contentHeight != height) {
+                          setState(() => _contentHeight = height);
+                        }
+                      },
+                      children: [
+                        Text(
+                          widget.title,
+                          key: const ValueKey('player-session-title'),
+                          textAlign: TextAlign.center,
+                          style: theme.title,
+                        ),
+                        ..._bodyAtoms(
+                          context,
+                          width,
+                          math.max(48, constraints.maxHeight - 56),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        }
         return ColoredBox(
           color: theme.backdrop,
           child: SafeArea(
@@ -406,9 +469,17 @@ class _PlayerSessionPanelState extends State<PlayerSessionPanel> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final width = math.min(640.0, constraints.maxWidth);
+                  final availableHeight = constraints.hasBoundedHeight
+                      ? constraints.maxHeight
+                      : math.max(
+                          48.0,
+                          MediaQuery.sizeOf(context).height -
+                              MediaQuery.paddingOf(context).vertical -
+                              64,
+                        );
                   final height = math.min(
-                    constraints.maxHeight,
-                    (_contentHeight ?? constraints.maxHeight) + 32,
+                    availableHeight,
+                    (_contentHeight ?? availableHeight) + 32,
                   );
                   final scale = MediaQuery.textScalerOf(context).scale(1);
                   final columns = width >= 440 && scale < 1.5 ? 2 : 1;
@@ -447,7 +518,7 @@ class _PlayerSessionPanelState extends State<PlayerSessionPanel> {
                           ..._bodyAtoms(
                             context,
                             math.max(1, width - 32),
-                            math.max(48, constraints.maxHeight - 88),
+                            math.max(48, availableHeight - 88),
                           ),
                           for (
                             var i = 0;

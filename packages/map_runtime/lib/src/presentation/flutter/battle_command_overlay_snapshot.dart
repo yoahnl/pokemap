@@ -286,6 +286,8 @@ class BattleCommandOverlaySnapshot {
     this.revision = 0,
     this.commandPanelPlacement = BattleCommandPanelPlacement.bottom,
     this.controllerLayout = false,
+    this.rootCommandOrder = const [0, 1, 2, 3],
+    this.collectionColumns,
     this.phase = BattlePresentationPhase.choosingCommand,
     this.forcedReplacement = false,
     required this.mode,
@@ -312,6 +314,8 @@ class BattleCommandOverlaySnapshot {
   final int revision;
   final BattleCommandPanelPlacement commandPanelPlacement;
   final bool controllerLayout;
+  final List<int> rootCommandOrder;
+  final int? collectionColumns;
   final BattlePresentationPhase phase;
   final bool forcedReplacement;
   final BattleCommandOverlayMode mode;
@@ -344,6 +348,8 @@ class BattleCommandOverlaySnapshot {
         other.revision == revision &&
         other.commandPanelPlacement == commandPanelPlacement &&
         other.controllerLayout == controllerLayout &&
+        listEquals(other.rootCommandOrder, rootCommandOrder) &&
+        other.collectionColumns == collectionColumns &&
         other.phase == phase &&
         other.forcedReplacement == forcedReplacement &&
         other.mode == mode &&
@@ -368,6 +374,8 @@ class BattleCommandOverlaySnapshot {
     revision,
     commandPanelPlacement,
     controllerLayout,
+    Object.hashAll(rootCommandOrder),
+    collectionColumns,
     phase,
     forcedReplacement,
     mode,
@@ -426,10 +434,20 @@ final class BattleSetCommandPanelPlacementCommand
     required super.expectedMode,
     required this.placement,
     this.controllerLayout = false,
+    this.rootCommandOrder = const [0, 1, 2, 3],
+    this.collectionColumns,
   });
 
   final BattleCommandPanelPlacement placement;
   final bool controllerLayout;
+  final List<int> rootCommandOrder;
+  final int? collectionColumns;
+
+  static bool isValidRootCommandOrder(List<int> order) =>
+      order.isNotEmpty &&
+      order.length <= 4 &&
+      order.toSet().length == order.length &&
+      order.every((index) => index >= 0 && index < 4);
 }
 
 enum BattlePresentationCommandRejection {
@@ -439,6 +457,7 @@ enum BattlePresentationCommandRejection {
   entryMissing,
   entryDisabled,
   backUnavailable,
+  invalidLayout,
 }
 
 class BattlePresentationCommandValidation {
@@ -473,7 +492,16 @@ BattlePresentationCommandValidation validateBattlePresentationCommand(
     );
   }
   if (command is BattleSetCommandPanelPlacementCommand) {
-    return const BattlePresentationCommandValidation.accepted();
+    return BattleSetCommandPanelPlacementCommand.isValidRootCommandOrder(
+              command.rootCommandOrder,
+            ) &&
+            (command.collectionColumns == null ||
+                command.collectionColumns == 1 ||
+                command.collectionColumns == 2)
+        ? const BattlePresentationCommandValidation.accepted()
+        : const BattlePresentationCommandValidation.rejected(
+            BattlePresentationCommandRejection.invalidLayout,
+          );
   }
   if (!snapshot.interactionsEnabled) {
     return const BattlePresentationCommandValidation.rejected(

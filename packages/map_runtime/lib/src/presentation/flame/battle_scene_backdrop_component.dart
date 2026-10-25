@@ -20,6 +20,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
   BattleSceneBackdropComponent({
     required Vector2 size,
     this.visualAssetCache,
+    this.artworkRect,
     BattleBackgroundSpec backgroundSpec =
         const BattleBackgroundSpec.fallbackField(),
   }) : _backgroundSpec = backgroundSpec,
@@ -27,6 +28,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
 
   BattleBackgroundSpec _backgroundSpec;
   final BattleVisualAssetCache? visualAssetCache;
+  Rect? artworkRect;
   ui.Image? _explicitImage;
   String? _explicitImageSourcePath;
   bool _didExplicitImageLoadFail = false;
@@ -38,6 +40,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
   Size? _cachedBackdropSize;
   BattleBackgroundKey? _cachedBackdropKey;
   ui.Image? _cachedBackdropImage;
+  Rect? _cachedArtworkRect;
 
   @visibleForTesting
   BattleBackgroundKey get currentBackgroundKey => _backgroundSpec.key;
@@ -72,6 +75,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
     if (_cachedBackdrop == null ||
         _cachedBackdropSize != currentSize ||
         _cachedBackdropKey != _backgroundSpec.key ||
+        _cachedArtworkRect != artworkRect ||
         !identical(_cachedBackdropImage, _explicitImage)) {
       _cachedBackdrop?.dispose();
       final recorder = ui.PictureRecorder();
@@ -80,6 +84,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
       _cachedBackdropSize = currentSize;
       _cachedBackdropKey = _backgroundSpec.key;
       _cachedBackdropImage = _explicitImage;
+      _cachedArtworkRect = artworkRect;
     }
     canvas.drawPicture(_cachedBackdrop!);
   }
@@ -96,7 +101,9 @@ class BattleSceneBackdropComponent extends PositionComponent {
     final palette = _paletteFor(_backgroundSpec.key);
 
     if (_explicitImage != null) {
-      _renderExplicitImage(canvas, rect);
+      canvas.drawRect(rect, Paint()..color = palette.skyColors.first);
+      final framed = artworkRect?.intersect(rect) ?? rect;
+      if (!framed.isEmpty) _renderExplicitImage(canvas, framed);
       return;
     }
 

@@ -21,6 +21,37 @@ void main() {
     ),
   );
 
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets(
+      'header keeps secondary content at the trailing edge in $size',
+      (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(
+          host(
+            PlayerMenuHeader(
+              icon: Icons.storefront_outlined,
+              title: 'Boutique',
+              alignSecondaryEnd: true,
+              onBack: () {},
+              secondary: const Text('3 250 ₽'),
+            ),
+          ),
+        );
+        final header = tester.getRect(find.byType(PlayerMenuHeader));
+        final amount = tester.getRect(find.text('3 250 ₽'));
+        expect(header.right - amount.right, size.width < size.height ? 16 : 0);
+        expect(
+          amount.left,
+          greaterThan(tester.getRect(find.text('Boutique')).right),
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets(
     'focus is independent from selection and does not change geometry',
     (tester) async {
@@ -615,6 +646,7 @@ void main() {
         expect(focus.hasFocus, isTrue);
         await tester.pumpWidget(detail(true));
         expect(find.text('Ancienne action'), findsOneWidget);
+        expect(focus.canRequestFocus, isFalse);
         expect(focus.hasFocus, isFalse);
         await tester.tapAt(tester.getCenter(find.text('Ancienne action')));
         await tester.sendKeyEvent(LogicalKeyboardKey.enter);

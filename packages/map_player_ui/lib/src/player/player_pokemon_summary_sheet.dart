@@ -9,6 +9,7 @@ import '../foundation/player_input_scope.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import 'player_pokemon_image.dart';
+import 'runtime_player_actions.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_pokemon_type_theme.dart';
@@ -162,6 +163,22 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
   var _tab = 0;
   var _selectedMove = 0;
   final _tabFocus = FocusNode(debugLabel: 'Pokemon summary tabs');
+  late final _tabNodes = [
+    _tabFocus,
+    for (var i = 1; i < 4; i++) FocusNode(debugLabel: 'Pokemon summary tab $i'),
+  ];
+  var _tabDirection = 1;
+
+  void _selectTab(int index) {
+    setState(() {
+      _tabDirection = index >= _tab ? 1 : -1;
+      _tab = index;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _tabNodes[_tab].canRequestFocus)
+        _tabNodes[_tab].requestFocus();
+    });
+  }
 
   @override
   void initState() {
@@ -173,7 +190,9 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
 
   @override
   void dispose() {
-    _tabFocus.dispose();
+    for (final node in _tabNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
 
@@ -475,165 +494,175 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
         ? ['Résumé', 'Capacités', 'Stats', 'Actions']
         : ['Summary', 'Moves', 'Stats', 'Actions'];
     final ids = ['summary', 'moves', 'stats', 'actions'];
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final rows = switch (_tab) {
-            1 => _moveRows(
-              context,
-              strings,
-              wide:
-                  constraints.maxWidth >= 450 ||
-                  PlayerCompanionScope.of(context),
-            ),
-            2 =>
-              summary.stats == null
-                  ? <Widget>[Text(strings.none)]
-                  : _rows(sheet._statsGrid(context, strings, summary.stats!)),
-            3 =>
-              sheet.actions == null
-                  ? <Widget>[
-                      Text(
-                        '${strings.heldItem} : ${summary.heldItemLabel ?? strings.none}',
-                      ),
-                    ]
-                  : _rows(sheet.actions!),
-            _ => _summaryRows(
-              context,
-              strings,
-              wide:
-                  MediaQuery.sizeOf(context).aspectRatio > 1 ||
-                  PlayerCompanionScope.of(context),
-            ),
-          };
-          final bounded = constraints.hasBoundedHeight;
-          final body = PlayerMenuDetailTransition(
-            contentKey: ValueKey('pokemon-summary-content-$_tab'),
-            child: PlayerPagedList(
-              key: ValueKey('pokemon-summary-content-$_tab'),
-              sideNavigation: bounded && constraints.maxHeight < 300,
-              children: rows,
-            ),
-          );
-          final theme = context.playerMenuTheme;
-          final tabStyle = theme.actionLabel.copyWith(
-            fontSize: 14,
-            height: 1.2,
-          );
-          final textScaler = MediaQuery.textScalerOf(context);
-          final widestTab = tabs
-              .map((label) {
-                final painter = TextPainter(
-                  text: TextSpan(text: label, style: tabStyle),
-                  textDirection: Directionality.of(context),
-                  textScaler: textScaler,
-                )..layout();
-                return painter.width;
-              })
-              .reduce(math.max);
-          final tabColumns = (constraints.maxWidth - 24) / 4 >= widestTab + 8
-              ? 4
-              : 2;
-          Widget tab(int i) => PlayerMenuSelectableRow(
-            key: ValueKey('pokemon-summary-tab-${ids[i]}'),
-            id: 'pokemon-summary-tab-${ids[i]}',
-            label: tabs[i],
-            selected: _tab == i,
-            focusNode: i == 0 ? _tabFocus : null,
-            tab: true,
-            reserveFocusMarker: false,
-            showLabel: false,
-            labelStyle: tabStyle,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 4,
-              vertical: 8,
-            ),
-            supportingContent: Center(
-              child: Text(
-                tabs[i],
-                maxLines: 1,
-                softWrap: false,
-                textAlign: TextAlign.center,
+    return RuntimePlayerTabActions(
+      resetToken: _tab,
+      onPreviousTab: () => _selectTab((_tab - 1) % tabs.length),
+      onNextTab: () => _selectTab((_tab + 1) % tabs.length),
+      child: Padding(
+        padding: EdgeInsets.zero,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final rows = switch (_tab) {
+              1 => _moveRows(
+                context,
+                strings,
+                wide:
+                    constraints.maxWidth >= 450 ||
+                    PlayerCompanionScope.of(context),
               ),
-            ),
-            onPressed: () => setState(() => _tab = i),
-          );
-          final tabsBar = Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var start = 0; start < tabs.length; start += tabColumns) ...[
-                if (start > 0) const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (
-                      var i = start;
-                      i < math.min(start + tabColumns, tabs.length);
-                      i++
-                    ) ...[
-                      if (i > start) const SizedBox(width: 8),
-                      Expanded(child: tab(i)),
-                    ],
-                  ],
+              2 =>
+                summary.stats == null
+                    ? <Widget>[Text(strings.none)]
+                    : _rows(sheet._statsGrid(context, strings, summary.stats!)),
+              3 =>
+                sheet.actions == null
+                    ? <Widget>[
+                        Text(
+                          '${strings.heldItem} : ${summary.heldItemLabel ?? strings.none}',
+                        ),
+                      ]
+                    : _rows(sheet.actions!),
+              _ => _summaryRows(
+                context,
+                strings,
+                wide:
+                    MediaQuery.sizeOf(context).aspectRatio > 1 ||
+                    PlayerCompanionScope.of(context),
+              ),
+            };
+            final bounded = constraints.hasBoundedHeight;
+            final body = PlayerMenuDetailTransition(
+              contentKey: ValueKey('pokemon-summary-content-$_tab'),
+              direction: _tabDirection,
+              child: PlayerPagedList(
+                key: ValueKey('pokemon-summary-content-$_tab'),
+                sideNavigation: bounded && constraints.maxHeight < 300,
+                children: rows,
+              ),
+            );
+            final theme = context.playerMenuTheme;
+            final tabStyle = theme.actionLabel.copyWith(
+              fontSize: 14,
+              height: 1.2,
+            );
+            final textScaler = MediaQuery.textScalerOf(context);
+            final widestTab = tabs
+                .map((label) {
+                  final painter = TextPainter(
+                    text: TextSpan(text: label, style: tabStyle),
+                    textDirection: Directionality.of(context),
+                    textScaler: textScaler,
+                  )..layout();
+                  return painter.width;
+                })
+                .reduce(math.max);
+            final tabColumns = (constraints.maxWidth - 24) / 4 >= widestTab + 8
+                ? 4
+                : 2;
+            Widget tab(int i) => PlayerMenuSelectableRow(
+              key: ValueKey('pokemon-summary-tab-${ids[i]}'),
+              id: 'pokemon-summary-tab-${ids[i]}',
+              label: tabs[i],
+              selected: _tab == i,
+              focusNode: _tabNodes[i],
+              tab: true,
+              reserveFocusMarker: false,
+              showLabel: false,
+              labelStyle: tabStyle,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 8,
+              ),
+              supportingContent: Center(
+                child: Text(
+                  tabs[i],
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.center,
                 ),
+              ),
+              onPressed: () => _selectTab(i),
+            );
+            final tabsBar = Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (
+                  var start = 0;
+                  start < tabs.length;
+                  start += tabColumns
+                ) ...[
+                  if (start > 0) const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      for (
+                        var i = start;
+                        i < math.min(start + tabColumns, tabs.length);
+                        i++
+                      ) ...[
+                        if (i > start) const SizedBox(width: 8),
+                        Expanded(child: tab(i)),
+                      ],
+                    ],
+                  ),
+                ],
               ],
-            ],
-          );
-          final header = Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      summary.displayLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            summary.speciesLabel,
+            );
+            final header = Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        summary.displayLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              summary.speciesLabel,
+                              style: context.playerMenuTheme.actionLabel,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            strings.levelValue(summary.level),
                             style: context.playerMenuTheme.actionLabel,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          strings.levelValue(summary.level),
-                          style: context.playerMenuTheme.actionLabel,
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-          final content = Column(
-            mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              tabsBar,
-              const SizedBox(height: 8),
-              if (bounded) Expanded(child: body) else body,
-            ],
-          );
-          return Column(
-            mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (sheet.showHeader &&
-                  (!bounded || constraints.maxHeight >= 360)) ...[
-                header,
-                const SizedBox(height: 12),
               ],
-              if (bounded) Expanded(child: content) else content,
-            ],
-          );
-        },
+            );
+            final content = Column(
+              mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                tabsBar,
+                const SizedBox(height: 8),
+                if (bounded) Expanded(child: body) else body,
+              ],
+            );
+            return Column(
+              mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (sheet.showHeader &&
+                    (!bounded || constraints.maxHeight >= 360)) ...[
+                  header,
+                  const SizedBox(height: 12),
+                ],
+                if (bounded) Expanded(child: content) else content,
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -41,6 +41,9 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
   bool? _presentationReducedMotion;
   String? _presentationLocale;
   bool _titleLaunchPending = false;
+  final _battlePressed = <RuntimeInputControl>{};
+  Object? _battleInputOwner;
+  bool Function(RuntimeInputEvent)? _battleInputRoute;
 
   bool get _current =>
       owner.mounted &&
@@ -73,13 +76,20 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       );
     final snapshot = coordinator.snapshot;
     final game = owner._mountedGame;
-    final presentation = _presentation();
+    final presentation = {
+      ..._presentation(),
+      'controlProfile': owner._controlProfile.toJson(),
+    };
     if (snapshot.worldService case final service?) {
-      final supported = RuntimeCompanionPresentationCodec.supportsWorldService(service) &&
-          (snapshot.phase == RuntimePlayerPhase.playing || snapshot.phase == RuntimePlayerPhase.paused) &&
+      final supported =
+          RuntimeCompanionPresentationCodec.supportsWorldService(service) &&
+          (snapshot.phase == RuntimePlayerPhase.playing ||
+              snapshot.phase == RuntimePlayerPhase.paused) &&
           game?.battleExitTransitionVisible.value != true;
       return AveluneGameplayCompanionData(
-        mode: supported ? AveluneGameplayCompanionMode.menu : AveluneGameplayCompanionMode.blocked,
+        mode: supported
+            ? AveluneGameplayCompanionMode.menu
+            : AveluneGameplayCompanionMode.blocked,
         player: supported ? snapshot : null,
         presentation: presentation,
       );
@@ -239,17 +249,16 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
     final adapter = owner._startupAdapter;
     final profile = resolved.profile;
     final typography = profile?.typography;
-    final fontProfiles =
-        typography == null
-            ? <ProjectTypographyRole, ProjectTypographyRoleProfile>{}
-            : {
-              ProjectTypographyRole.display: typography.display,
-              ProjectTypographyRole.body: typography.body,
-              ProjectTypographyRole.dialogue: typography.dialogue,
-              if (typography.combat != null)
-                ProjectTypographyRole.combat: typography.combat!,
-              ProjectTypographyRole.numbers: typography.numbers,
-            };
+    final fontProfiles = typography == null
+        ? <ProjectTypographyRole, ProjectTypographyRoleProfile>{}
+        : {
+            ProjectTypographyRole.display: typography.display,
+            ProjectTypographyRole.body: typography.body,
+            ProjectTypographyRole.dialogue: typography.dialogue,
+            if (typography.combat != null)
+              ProjectTypographyRole.combat: typography.combat!,
+            ProjectTypographyRole.numbers: typography.numbers,
+          };
     final images = <String, String>{};
     for (final asset in [
       resolved.titleHero,
@@ -261,8 +270,9 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       if (uri?.scheme == 'file') images[asset.assetId] = uri!.toString();
     }
     return _presentationCache = {
-      'profile':
-          profile == null ? null : jsonDecode(jsonEncode(profile.toJson())),
+      'profile': profile == null
+          ? null
+          : jsonDecode(jsonEncode(profile.toJson())),
       'author': resolved.metadata.author,
       'description': resolved.metadata.description,
       'orientation': resolved.orientation.name,
@@ -280,16 +290,64 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
           entry.key.name: {
             'family': entry.value.registeredFamily,
             'fallback': entry.value.fallbackFamilies,
-            'uri':
-                fontProfiles[entry.key]?.fontPath == null
-                    ? null
-                    : adapter
-                        ?.resolvedAsset(fontProfiles[entry.key]!.fontPath!)
-                        ?.resolvedUri
-                        .toString(),
+            'uri': fontProfiles[entry.key]?.fontPath == null
+                ? null
+                : adapter
+                      ?.resolvedAsset(fontProfiles[entry.key]!.fontPath!)
+                      ?.resolvedUri
+                      .toString(),
           },
       },
     };
+  }
+
+  @override
+  void releaseBattleInputs() {
+    final route = _battleInputRoute;
+    final held = _battlePressed.toList(growable: false);
+    _battlePressed.clear();
+    _battleInputOwner = null;
+    _battleInputRoute = null;
+    for (final control in held) {
+      route?.call(RuntimeInputEvent.release(control));
+    }
+  }
+
+  void _executeBattleInput(
+    Map<String, Object?> payload,
+    AveluneGameplayCompanionSnapshot expected,
+  ) {
+    final game = owner._mountedGame;
+    final spatial = owner._mountedSpatial;
+    final battle =
+        game?.battleCommandOverlayListenable.value ??
+        spatial?.battle?.battlePresentationListenable.value;
+    final authority = _authority;
+    if (!_current ||
+        expected.mode != AveluneGameplayCompanionMode.battle ||
+        expected.battle == null ||
+        battle == null ||
+        battle.revision != expected.battle!.revision ||
+        payload['snapshotRevision'] != battle.revision ||
+        payload['expectedMode'] != battle.mode.name ||
+        authority?.acceptsRuntimeInput != true ||
+        authority?.context != RuntimeInputContext.battle ||
+        owner._mountedGame?.battleExitTransitionVisible.value == true) {
+      throw PlatformException(code: 'staleMode');
+    }
+    final event = decodeAveluneGameplayCompanionInput(payload);
+    final inputOwner = game ?? spatial;
+    if (!identical(inputOwner, _battleInputOwner)) releaseBattleInputs();
+    final route = game?.handleRuntimeInputEvent ?? spatial?.handleInput;
+    if (route == null) throw PlatformException(code: 'unavailable');
+    _battleInputOwner = inputOwner;
+    _battleInputRoute = route;
+    if (event.isRelease) {
+      _battlePressed.remove(event.control);
+    } else {
+      _battlePressed.add(event.control);
+    }
+    route(event);
   }
 
   @override
@@ -304,6 +362,10 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       await _executeTitle(kind, payload, expected);
       return;
     }
+    if (kind == 'battleInput') {
+      _executeBattleInput(payload, expected);
+      return;
+    }
     if (kind == 'battle') {
       _executeBattle(payload, expected);
       return;
@@ -312,7 +374,8 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       _executeDialogue(payload, expected);
       return;
     }
-    if (kind == 'worldService' || kind == 'back' && expected.player?.worldService != null) {
+    if (kind == 'worldService' ||
+        kind == 'back' && expected.player?.worldService != null) {
       await _executeWorldService(kind, payload, expected);
       return;
     }
@@ -542,18 +605,27 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
     }
   }
 
-  Future<void> _executeWorldService(String kind, Map<String, Object?> payload,
-      AveluneGameplayCompanionSnapshot expected,
+  Future<void> _executeWorldService(
+    String kind,
+    Map<String, Object?> payload,
+    AveluneGameplayCompanionSnapshot expected,
   ) async {
     final projected = expected.player;
     final expectedService = projected?.worldService;
     final current = coordinator.snapshot;
     final service = current.worldService;
-    if (!_current || expected.mode != AveluneGameplayCompanionMode.menu || projected == null ||
-        expectedService == null || service == null || projected.revision != current.revision ||
-        expectedService.revision != service.revision || expectedService.request.interactionId != service.request.interactionId ||
+    if (!_current ||
+        expected.mode != AveluneGameplayCompanionMode.menu ||
+        projected == null ||
+        expectedService == null ||
+        service == null ||
+        projected.revision != current.revision ||
+        expectedService.revision != service.revision ||
+        expectedService.request.interactionId !=
+            service.request.interactionId ||
         !RuntimeCompanionPresentationCodec.supportsWorldService(service) ||
-        (current.phase != RuntimePlayerPhase.playing && current.phase != RuntimePlayerPhase.paused) ||
+        (current.phase != RuntimePlayerPhase.playing &&
+            current.phase != RuntimePlayerPhase.paused) ||
         owner._mountedGame?.battleExitTransitionVisible.value == true) {
       throw PlatformException(code: 'staleRevision');
     }
@@ -561,26 +633,35 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       if (payload['snapshotRevision'] != projected.revision) {
         throw PlatformException(code: 'staleRevision');
       }
-      _requireAccepted(await coordinator.requestBack(snapshotRevision: projected.revision),
+      _requireAccepted(
+        await coordinator.requestBack(snapshotRevision: projected.revision),
       );
       return;
     }
-    final command = RuntimeCompanionPresentationCodec.decodeWorldServiceCommand(Map<String, dynamic>.from(payload),
+    final command = RuntimeCompanionPresentationCodec.decodeWorldServiceCommand(
+      Map<String, dynamic>.from(payload),
     );
     final interactionId = payload['interactionId'];
     if (interactionId is! String) {
       throw PlatformException(code: 'invalidIntent');
     }
-    final validation = RuntimeCompanionPresentationCodec.validateWorldServiceCommand(
-      snapshot: service, command: command, interactionId: interactionId,
+    final validation =
+        RuntimeCompanionPresentationCodec.validateWorldServiceCommand(
+          snapshot: service,
+          command: command,
+          interactionId: interactionId,
         );
     if (validation.status != RuntimeWorldServiceCommandStatus.accepted) {
-      throw PlatformException(code: validation.status.name, message: validation.safeMessage,
+      throw PlatformException(
+        code: validation.status.name,
+        message: validation.safeMessage,
       );
     }
     final result = await coordinator.dispatchWorldService(command);
     if (result.status != RuntimeWorldServiceCommandStatus.accepted) {
-      throw PlatformException(code: result.status.name, message: result.safeMessage,
+      throw PlatformException(
+        code: result.status.name,
+        message: result.safeMessage,
       );
     }
   }
@@ -637,13 +718,25 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
         payload['expectedMode'] != snapshot.mode.name) {
       throw PlatformException(code: 'staleMode');
     }
+    final orderPayload = payload['rootCommandOrder'] ?? const [0, 1, 2, 3];
+    if (orderPayload is! List || orderPayload.any((index) => index is! int)) {
+      throw PlatformException(code: 'invalidIntent');
+    }
+    final rootCommandOrder = List<int>.from(orderPayload);
+    final collectionColumns = payload['collectionColumns'];
+    if (collectionColumns != null && collectionColumns is! int) {
+      throw PlatformException(code: 'invalidIntent');
+    }
     final command = switch (payload['action']) {
       'layout' => BattleSetCommandPanelPlacementCommand(
         snapshotRevision: snapshot.revision,
         expectedMode: snapshot.mode,
-        placement: BattleCommandPanelPlacement.values.byName(payload['placement'] as String,
+        placement: BattleCommandPanelPlacement.values.byName(
+          payload['placement'] as String,
         ),
         controllerLayout: payload['controllerLayout'] as bool,
+        rootCommandOrder: rootCommandOrder,
+        collectionColumns: collectionColumns as int?,
       ),
       'back' => BattleBackCommand(
         snapshotRevision: snapshot.revision,
@@ -900,12 +993,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             saveRepositoryFactory: widget.saveRepositoryFactory,
             preferencesRepository: widget.preferencesRepository,
             preferencesRead: _preferencesRead,
-            startupWorkGate:
-                _useSplashMovie
-                    ? _splashSequenceStarted.then(
-                      (_) => Future<void>.delayed(_splashMovieRevealDuration),
-                    )
-                    : null,
+            startupWorkGate: _useSplashMovie
+                ? _splashSequenceStarted.then(
+                    (_) => Future<void>.delayed(_splashMovieRevealDuration),
+                  )
+                : null,
             audioMixer: _audioMixer,
             splashJingle: _splashJingle,
             controlProfileRepository: widget.controlProfileRepository,
@@ -917,9 +1009,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             mountSpatialSession: _mountSpatialSession,
             unmountSpatialSession: _unmountSpatialSession,
             stopIntroPlayback: _startupShellController.stopIntroPlayback,
-            defaultProfileDisplayNameForLocale:
-                (locale) =>
-                    HubInstalledPlayerStrings.forLocale(locale).defaultProfile,
+            defaultProfileDisplayNameForLocale: (locale) =>
+                HubInstalledPlayerStrings.forLocale(locale).defaultProfile,
             diagnosticLogFile: widget.diagnosticLogFile,
           ),
           hostBranding: widget.hostBranding,
@@ -1069,10 +1160,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (resolved == null) return null;
     return player_ui.PlayerIntroVideoSource(
       videoUri: resolved.resolvedUri,
-      captionsLoader:
-          variant.captionsPath == null
-              ? null
-              : () => adapter.loadText(variant.captionsPath!),
+      captionsLoader: variant.captionsPath == null
+          ? null
+          : () => adapter.loadText(variant.captionsPath!),
       volume: volume,
       looping: looping,
       aspectRatio: variant.width / variant.height,
@@ -1131,18 +1221,17 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final effectiveSnapshot = _startupSnapshot ?? startup.snapshot;
     final visiblePhase =
         effectiveSnapshot.phase == RuntimeStartupPhase.lifecyclePaused
-            ? effectiveSnapshot.suspendedPhase ?? RuntimeStartupPhase.splash
-            : effectiveSnapshot.phase;
+        ? effectiveSnapshot.suspendedPhase ?? RuntimeStartupPhase.splash
+        : effectiveSnapshot.phase;
     final resolvedPresentation = effectiveSnapshot.presentation;
-    final playerPresentation =
-        resolvedPresentation == null
-            ? const player_ui.RuntimePlayerPresentation(
-              title: player_ui.RuntimePlayerTitlePresentation(author: ''),
-            )
-            : player_ui.RuntimePlayerPresentation.fromRuntime(
-              resolvedPresentation,
-              imageForAsset: _startupImage,
-            );
+    final playerPresentation = resolvedPresentation == null
+        ? const player_ui.RuntimePlayerPresentation(
+            title: player_ui.RuntimePlayerTitlePresentation(author: ''),
+          )
+        : player_ui.RuntimePlayerPresentation.fromRuntime(
+            resolvedPresentation,
+            imageForAsset: _startupImage,
+          );
     // La personnalisation part d'un thème joueur VIERGE, jamais de
     // `Theme.of(context)` : à ce niveau, c'est le thème Avelune, et
     // `applyAveluneTheme` y écrase `colorScheme.primary` avec l'accent du
@@ -1151,16 +1240,15 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     // couleur héritait de la marque du lanceur au lieu de la sienne — visible
     // sur tout widget qui laisse `style: null`. La luminosité résolue par
     // l'app est conservée, elle vient bien d'une préférence du joueur.
-    final playerBaseTheme =
-        Theme.of(context).brightness == Brightness.dark
-            ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
-            : player_ui.PokeMapPlayerTheme.light(reducedMotion: _reducedMotion);
+    final playerBaseTheme = Theme.of(context).brightness == Brightness.dark
+        ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
+        : player_ui.PokeMapPlayerTheme.light(reducedMotion: _reducedMotion);
     final personalizedTheme = playerPresentation.applyTo(playerBaseTheme);
     final startupTheme =
         visiblePhase == RuntimeStartupPhase.preparing ||
-                visiblePhase == RuntimeStartupPhase.splash
-            ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
-            : personalizedTheme;
+            visiblePhase == RuntimeStartupPhase.splash
+        ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
+        : personalizedTheme;
     final presentationProfile = resolvedPresentation?.profile;
     final orientation =
         resolvedPresentation?.orientation ??
@@ -1168,21 +1256,18 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final introProfile = presentationProfile?.intro;
     final promptMedia = presentationProfile?.titleMotion?.promptLoop;
     final menuMedia = presentationProfile?.titleMotion?.menuLoop;
-    final introVariant =
-        introProfile == null
-            ? null
-            : selectRuntimePresentationVideo(
-              introProfile.media,
-              orientation,
-            ).variant;
-    final promptVariant =
-        promptMedia == null
-            ? null
-            : selectRuntimePresentationVideo(promptMedia, orientation).variant;
-    final menuVariant =
-        menuMedia == null
-            ? null
-            : selectRuntimePresentationVideo(menuMedia, orientation).variant;
+    final introVariant = introProfile == null
+        ? null
+        : selectRuntimePresentationVideo(
+            introProfile.media,
+            orientation,
+          ).variant;
+    final promptVariant = promptMedia == null
+        ? null
+        : selectRuntimePresentationVideo(promptMedia, orientation).variant;
+    final menuVariant = menuMedia == null
+        ? null
+        : selectRuntimePresentationVideo(menuMedia, orientation).variant;
     final introSource = _startupVideo(
       resolvedPresentation?.introVideo,
       introVariant,
@@ -1221,17 +1306,16 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         titleMenuPoster: _startupImage(resolvedPresentation?.titleMenuPoster),
         splashLogo: widget.splashLogo,
         splashWordmark: widget.splashWordmark,
-        splashCinematic:
-            _splashMovie == null
-                ? null
-                : FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: _splashMovie!.value.size.width,
-                    height: _splashMovie!.value.size.height,
-                    child: VideoPlayer(_splashMovie!),
-                  ),
+        splashCinematic: _splashMovie == null
+            ? null
+            : FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _splashMovie!.value.size.width,
+                  height: _splashMovie!.value.size.height,
+                  child: VideoPlayer(_splashMovie!),
                 ),
+              ),
         reducedMotion: _reducedMotion,
         splashAnimationReady: _splashAnimationReady,
         onPresentationOrientationChanged: (nextOrientation) {
@@ -1240,11 +1324,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         onStartupCommand: (command) {
           unawaited(startup.dispatch(command));
         },
-        onPlayerCommand:
-            (command) => startup.dispatchPlayerCommand(
-              startupSnapshotRevision: effectiveSnapshot.revision,
-              command: command,
-            ),
+        onPlayerCommand: (command) => startup.dispatchPlayerCommand(
+          startupSnapshotRevision: effectiveSnapshot.revision,
+          command: command,
+        ),
         onIntroPlaybackCompleted: (revision) {
           unawaited(startup.introPlaybackCompleted(snapshotRevision: revision));
         },
@@ -1256,35 +1339,36 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             ),
           );
         },
-        sessionBuilder:
-            viewController == null
-                ? (_, _) => const SizedBox.expand()
-                : (_, _) =>
-                    _buildSessionView(viewController, playerPresentation),
+        sessionBuilder: viewController == null
+            ? (_, _) => const SizedBox.expand()
+            : (_, _) => _buildSessionView(viewController, playerPresentation),
       ),
     );
     final locale = effectiveSnapshot.playerSnapshot?.preferences?.locale;
-    final playerLocale =
-        locale == null
-            ? _playerLocale ??
-                Locale(
-                  widget.game.defaultLocale
-                      .split(RegExp('[-_]'))
-                      .first
-                      .toLowerCase(),
-                )
-            : Locale(locale.split(RegExp('[-_]')).first);
+    final playerLocale = locale == null
+        ? _playerLocale ??
+              Locale(
+                widget.game.defaultLocale
+                    .split(RegExp('[-_]'))
+                    .first
+                    .toLowerCase(),
+              )
+        : Locale(locale.split(RegExp('[-_]')).first);
     return Localizations.override(
       context: context,
       locale: playerLocale,
       child: player_ui.PlayerImageScope(
-        identity: _mountedGame?.resourceBudget ??
-            _mountedSpatial?.session?.bundle.resourceBudget ?? _startupImageBudget,
+        identity:
+            _mountedGame?.resourceBudget ??
+            _mountedSpatial?.session?.bundle.resourceBudget ??
+            _startupImageBudget,
         loader: (path, {required isCurrent}) async {
           final lease = await loadRuntimeUiImageFromFilePath(
             path,
-            resourceBudget: _mountedGame?.resourceBudget ??
-                _mountedSpatial?.session?.bundle.resourceBudget ?? _startupImageBudget,
+            resourceBudget:
+                _mountedGame?.resourceBudget ??
+                _mountedSpatial?.session?.bundle.resourceBudget ??
+                _startupImageBudget,
             isCurrent: isCurrent,
           );
           return player_ui.PlayerImageLease(
@@ -1351,8 +1435,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 companion.player != null &&
                 companion.player!.revision == snapshot.revision &&
                 (snapshot.worldService == null ||
-                    companion.player!.worldService?.revision == snapshot.worldService!.revision &&
-                    companion.player!.worldService?.request.interactionId == snapshot.worldService!.request.interactionId) ||
+                    companion.player!.worldService?.revision ==
+                            snapshot.worldService!.revision &&
+                        companion.player!.worldService?.request.interactionId ==
+                            snapshot.worldService!.request.interactionId) ||
             companion.mode == AveluneGameplayCompanionMode.battle &&
                 companion.battle != null &&
                 battle != null &&
@@ -1360,10 +1446,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final presentationRuntime = _presentationRuntime;
     if (presentationRuntime != null) {
       final size = MediaQuery.sizeOf(context);
-      final orientation =
-          size.height > size.width
-              ? player_ui.PresentationFrameOrientation.portrait
-              : player_ui.PresentationFrameOrientation.landscape;
+      final orientation = size.height > size.width
+          ? player_ui.PresentationFrameOrientation.portrait
+          : player_ui.PresentationFrameOrientation.landscape;
       if (presentationRuntime.controller.orientation != orientation) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -1373,12 +1458,15 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       }
     }
     return player_ui.PokeMapPlayerSessionView(
-      imageScopeIdentity: _mountedGame?.resourceBudget ??
-          _mountedSpatial?.session?.bundle.resourceBudget ?? viewController,
+      imageScopeIdentity:
+          _mountedGame?.resourceBudget ??
+          _mountedSpatial?.session?.bundle.resourceBudget ??
+          viewController,
       imageLoader: (path, {required isCurrent}) async {
         final lease = await loadRuntimeUiImageFromFilePath(
           path,
-          resourceBudget: _mountedGame?.resourceBudget ??
+          resourceBudget:
+              _mountedGame?.resourceBudget ??
               _mountedSpatial?.session?.bundle.resourceBudget,
           isCurrent: isCurrent,
         );
@@ -1425,12 +1513,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       onControlProfileChanged: _updateControlProfile,
       presentationFrame: presentationRuntime?.controller,
       presentationContentPort: presentationRuntime?.controller,
-      onPresentationSkip:
-          presentationRuntime == null
-              ? null
-              : () async {
-                await presentationRuntime.controller.skipActive();
-              },
+      onPresentationSkip: presentationRuntime == null
+          ? null
+          : () async {
+              await presentationRuntime.controller.skipActive();
+            },
       gameSceneBuilder: (context) {
         final spatial = _mountedSpatial;
         if (spatial != null && spatial.session != null) {
@@ -1462,14 +1549,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 if (spatial.battle case final battle?)
                   ListenableBuilder(
                     listenable: battle,
-                    builder:
-                        (context, _) =>
-                            battle.isActive
-                                ? SpatialBattleView(
-                                  runtime: battle,
-                                  keyboardInputEnabled: false,
-                                )
-                                : const SizedBox.shrink(),
+                    builder: (context, _) => battle.isActive
+                        ? SpatialBattleView(
+                            runtime: battle,
+                            keyboardInputEnabled: false,
+                          )
+                        : const SizedBox.shrink(),
                   ),
               ],
             ),

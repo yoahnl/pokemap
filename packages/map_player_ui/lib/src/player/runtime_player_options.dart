@@ -24,8 +24,13 @@ final class RuntimePlayerOptionsNavigation extends ChangeNotifier {
   Widget Function(BuildContext, Widget?)? _actions;
   String Function()? _title;
   Widget Function(BuildContext)? _header;
+  ValueChanged<int>? _stepTab;
+  Object Function()? _tabIdentity;
 
   String? get activeTitle => _title?.call();
+  Object? get tabIdentity => _tabIdentity?.call();
+  void previousTab() => _stepTab?.call(-1);
+  void nextTab() => _stepTab?.call(1);
   Widget buildHeaderAction(BuildContext context) =>
       _header?.call(context) ?? const SizedBox.shrink();
 
@@ -108,6 +113,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         ? _strings.text('Options', 'Options')
         : _strings.category(_category);
     widget.navigation?._header = (_) => _headerAction();
+    widget.navigation?._stepTab = _stepCategory;
+    widget.navigation?._tabIdentity = () => (_category, _showCategories);
   }
 
   @override
@@ -118,6 +125,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       oldWidget.navigation?._actions = null;
       oldWidget.navigation?._title = null;
       oldWidget.navigation?._header = null;
+      oldWidget.navigation?._stepTab = null;
+      oldWidget.navigation?._tabIdentity = null;
       _bind();
     }
     if (!_pending && !identical(oldWidget.preferences, widget.preferences)) {
@@ -135,6 +144,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     widget.navigation?._actions = null;
     widget.navigation?._title = null;
     widget.navigation?._header = null;
+    widget.navigation?._stepTab = null;
+    widget.navigation?._tabIdentity = null;
     final route = _dialogRoute;
     if (route != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -149,11 +160,14 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     super.dispose();
   }
 
-  Future<void> _save(PlayerPreferencesSnapshot next) async {
+  Future<void> _save(
+    PlayerPreferencesSnapshot next, {
+    FocusNode? focusAfterSave,
+  }) async {
     if (!mounted || !_enabled) return;
     RuntimePlayerLocalActionNotification().dispatch(context);
     final previousWidget = widget.preferences;
-    final previousFocus = FocusManager.instance.primaryFocus;
+    final previousFocus = focusAfterSave ?? FocusManager.instance.primaryFocus;
     setState(() {
       _pending = true;
       _failed = false;
@@ -227,8 +241,26 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     });
   }
 
+  void _stepCategory(int delta) {
+    if (_pending) return;
+    _select(
+      PlayerOptionsCategory.values[(_category.index + delta) %
+          PlayerOptionsCategory.values.length],
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _settingsFocus.requestFocus();
+    });
+  }
+
   Object? _input(RuntimePlayerLogicalIntent intent) {
     if (_pending && intent.action != PlayerInputAction.back) return null;
+    if (intent.action == PlayerInputAction.previousTab ||
+        intent.action == PlayerInputAction.nextTab) {
+      RuntimePlayerInputSourceNotification(intent.source).dispatch(context);
+      final delta = intent.action == PlayerInputAction.nextTab ? 1 : -1;
+      _stepCategory(delta);
+      return null;
+    }
     if (intent.action == PlayerInputAction.left && _settingsFocus.hasFocus) {
       _categoryFocus.requestFocus();
       return null;
@@ -256,7 +288,12 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     return RuntimePlayerInputBindings(
       controlProfile: _profile,
       hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
-      child: _buildOptions(context),
+      child: RuntimePlayerTabActions(
+        resetToken: _category,
+        onPreviousTab: () => _stepCategory(-1),
+        onNextTab: () => _stepCategory(1),
+        child: _buildOptions(context),
+      ),
     );
   }
 
@@ -426,7 +463,15 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   );
 
   Widget _actions(BuildContext context, [Widget? returnAction]) =>
-      returnAction ?? const SizedBox.shrink();
+      returnAction == null
+      ? const SizedBox.shrink()
+      : Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: 88 * MediaQuery.textScalerOf(context).scale(1),
+            child: returnAction,
+          ),
+        );
 
   Widget _defaults({bool integrated = true}) => PlayerMenuSelectableRow(
     key: const ValueKey('options-defaults'),
@@ -691,7 +736,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           'options-master-slider',
           preferences.audioMix.masterVolume,
           compact,
-          (value) => _save(
+          (value, focusNode) => _save(
             _confirmed.copyWith(
               audioMix: RuntimeAudioMix(
                 masterVolume: value,
@@ -699,6 +744,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                 effectsVolume: _confirmed.audioMix.effectsVolume,
               ),
             ),
+            focusAfterSave: focusNode,
           ),
         ),
         _slider(
@@ -706,7 +752,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           'options-music-slider',
           preferences.audioMix.musicVolume,
           compact,
-          (value) => _save(
+          (value, focusNode) => _save(
             _confirmed.copyWith(
               audioMix: RuntimeAudioMix(
                 masterVolume: _confirmed.audioMix.masterVolume,
@@ -714,6 +760,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                 effectsVolume: _confirmed.audioMix.effectsVolume,
               ),
             ),
+            focusAfterSave: focusNode,
           ),
         ),
         _slider(
@@ -721,7 +768,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           'options-effects-slider',
           preferences.audioMix.effectsVolume,
           compact,
-          (value) => _save(
+          (value, focusNode) => _save(
             _confirmed.copyWith(
               audioMix: RuntimeAudioMix(
                 masterVolume: _confirmed.audioMix.masterVolume,
@@ -729,6 +776,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                 effectsVolume: value,
               ),
             ),
+            focusAfterSave: focusNode,
           ),
         ),
       ],
@@ -777,8 +825,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   'touch-controls-opacity-slider',
                   preferences.touchControlsOpacity,
                   compact,
-                  (value) =>
-                      _save(_confirmed.copyWith(touchControlsOpacity: value)),
+                  (value, focusNode) => _save(
+                    _confirmed.copyWith(touchControlsOpacity: value),
+                    focusAfterSave: focusNode,
+                  ),
                   min: .3,
                   divisions: 14,
                 ),
@@ -808,12 +858,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           'runtime-player-text-scale-slider',
           preferences.accessibility.textScale,
           compact,
-          (value) => _save(
+          (value, focusNode) => _save(
             _confirmed.copyWith(
               accessibility: _confirmed.accessibility.copyWith(
                 textScale: value,
               ),
             ),
+            focusAfterSave: focusNode,
           ),
           min: .8,
           max: 1.6,
@@ -930,12 +981,16 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     String key,
     double value,
     bool compact,
-    ValueChanged<double> onChanged, {
+    void Function(double value, FocusNode focusNode) onChanged, {
     double min = 0,
     double max = 1,
     int divisions = 20,
   }) {
     final draft = _drafts[key] ?? value;
+    final focusNode = _sliderFocus.putIfAbsent(
+      key,
+      () => FocusNode(debugLabel: label),
+    );
     final compactCompanion =
         PlayerCompanionScope.of(context) &&
         MediaQuery.textScalerOf(context).scale(1) <= 1.3;
@@ -946,7 +1001,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         max,
       );
       if (next == draft) return;
-      onChanged(double.parse(next.toStringAsFixed(2)));
+      onChanged(double.parse(next.toStringAsFixed(2)), focusNode);
     }
 
     return _row(
@@ -1011,16 +1066,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   ),
                   child: Slider(
                     key: ValueKey(key),
-                    focusNode: _sliderFocus.putIfAbsent(
-                      key,
-                      () => FocusNode(debugLabel: label),
-                    ),
+                    focusNode: focusNode,
                     onChangeStart: _enabled
                         ? (_) {
                             RuntimePlayerLocalActionNotification().dispatch(
                               context,
                             );
-                            _sliderFocus[key]!.requestFocus();
+                            focusNode.requestFocus();
                           }
                         : null,
                     value: draft.clamp(min, max),
@@ -1032,7 +1084,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                     onChanged: _enabled
                         ? (value) => setState(() => _drafts[key] = value)
                         : null,
-                    onChangeEnd: _enabled ? onChanged : null,
+                    onChangeEnd: _enabled
+                        ? (value) => onChanged(value, focusNode)
+                        : null,
                   ),
                 ),
               ),
@@ -1161,6 +1215,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         actions: [
           PlayerActionButton(
             key: const ValueKey('options-choice-back'),
+            autofocus: true,
             label: _strings.text('Retour', 'Back'),
             icon: Icons.arrow_back,
             secondary: true,

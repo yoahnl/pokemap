@@ -62,6 +62,52 @@ void main() {
     });
   }
 
+  testWidgets('portrait bag keeps routine descriptions on two visible lines', (
+    tester,
+  ) async {
+    final descriptions = [
+      'Soigne l’empoisonnement d’un Pokémon.',
+      'Ranime un Pokémon K.O. avec la moitié de ses PV.',
+      'Une baie à donner ou à utiliser pour récupérer des PV.',
+    ];
+    await _pump(
+      tester,
+      _detail([
+        _item('antidote', name: 'Antidote', description: descriptions[0]),
+        _item('rappel', name: 'Rappel', description: descriptions[1]),
+        _item('baie', name: 'Baie Oran', description: descriptions[2]),
+        _item('potion'),
+        _item('huile'),
+        _item('super-potion'),
+      ]),
+      size: const Size(390, 844),
+    );
+    for (final description in descriptions) {
+      final text = find.text(description);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: text, matching: find.byType(RichText)),
+      );
+      expect(tester.widget<Text>(text).maxLines, 2);
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(text.hitTestable(), findsOneWidget);
+    }
+    for (final id in [
+      'antidote',
+      'rappel',
+      'baie',
+      'potion',
+      'huile',
+      'super-potion',
+    ]) {
+      expect(
+        find.byKey(ValueKey('bag-item-$id')).hitTestable(),
+        findsOneWidget,
+      );
+    }
+    expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('touch information inspects any item without using it', (
     tester,
   ) async {
@@ -1001,6 +1047,68 @@ void main() {
       expect(marker, findsNothing);
       expect(tester.takeException(), isNull);
       semantics.dispose();
+    },
+  );
+
+  testWidgets(
+    'favorites transition retains body focus for the same item and one use',
+    (tester) async {
+      final commands = <RuntimePlayerPauseCommand>[];
+      await _pump(
+        tester,
+        _detail(
+          [_item('potion', name: 'Potion')],
+          pockets: const [
+            RuntimePlayerBagPocketSnapshot(id: 'medicine', label: 'Soins'),
+          ],
+        ),
+        size: const Size(390, 844),
+        favorites: {'potion'},
+        onFavorite: (_, _) async {},
+        onCommand: commands.add,
+      );
+      FocusNode itemFocus() => tester.widget<PlayerMenuSelectableRow>(
+        find.byKey(const ValueKey('bag-item-potion')),
+      ).focusNode!;
+      itemFocus().requestFocus();
+      await tester.pumpAndSettle();
+      expect(itemFocus().hasPrimaryFocus, isTrue);
+      await _tap(tester, 'bag-pocket-@favorites');
+      expect(itemFocus().context, isNotNull);
+      expect(itemFocus().canRequestFocus, isTrue);
+      itemFocus().requestFocus();
+      await tester.pumpAndSettle();
+      expect(itemFocus().hasPrimaryFocus, isTrue);
+      for (final (action, pocket) in const [
+        (PlayerInputAction.previousTab, 'medicine'),
+        (PlayerInputAction.nextTab, '@favorites'),
+        (PlayerInputAction.previousTab, 'medicine'),
+      ]) {
+        Actions.invoke(
+          FocusManager.instance.primaryFocus!.context!,
+          RuntimePlayerLogicalIntent(action, source: PlayerInputSource.controller),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.widget<PlayerMenuSelectableRow>(
+          find.byKey(ValueKey('bag-pocket-$pocket')),
+        ).selected, isTrue);
+        expect(itemFocus().context, isNotNull);
+        expect(itemFocus().canRequestFocus, isTrue);
+        expect(itemFocus().hasPrimaryFocus, isTrue);
+      }
+      Actions.invoke(
+        FocusManager.instance.primaryFocus!.context!,
+        const RuntimePlayerLogicalIntent(
+          PlayerInputAction.confirm,
+          source: PlayerInputSource.controller,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(commands, hasLength(1));
+      expect(commands.single.itemTargetId, 'potion');
+      expect(commands.single.partyTargetId, 'pokemon.a');
+      expect(find.byType(Dialog), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 

@@ -196,6 +196,28 @@ class _RuntimePlayerSurfaceRouterState
     );
   }
 
+  bool get _usesOptionsTabs =>
+      widget.snapshot.pauseSection == RuntimePlayerPauseSection.options &&
+      _pausePresentation.style == ProjectPauseMenuStyle.nightIllustrated;
+
+  Widget _withOptionsTabs(Widget child) {
+    if (!_usesOptionsTabs) return child;
+    return ListenableBuilder(
+      listenable: _optionsNavigation,
+      child: child,
+      builder: (context, child) => RuntimePlayerInputBindings(
+        controlProfile: widget.controlProfile,
+        hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+        child: RuntimePlayerTabActions(
+          resetToken: _optionsNavigation.tabIdentity,
+          onPreviousTab: _optionsNavigation.previousTab,
+          onNextTab: _optionsNavigation.nextTab,
+          child: child!,
+        ),
+      ),
+    );
+  }
+
   void _backFromPause() {
     if (widget.snapshot.pauseSection == RuntimePlayerPauseSection.options &&
         _optionsNavigation.back()) {
@@ -398,212 +420,230 @@ class _RuntimePlayerSurfaceRouterState
             widget.activeInputSource ?? widget.snapshot.activeInputSource,
         opacity: widget.touchControlsOpacity,
       ),
-      RuntimePlayerPhase.paused => RuntimePlayerPauseShell(
-        rootActionsOnly: widget.pauseRootActionsOnly,
-        controlProfile: widget.controlProfile,
-        controllerFamily: widget.controllerFamily,
-        focusController: widget.pauseFocusController,
-        playerProfile: widget.snapshot.playerProfile,
-        gameTitle: widget.snapshot.gameTitle,
-        pauseSection:
-            widget.snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
-        actions: <PlayerPauseAction, PlayerActionAvailability>{
-          for (final action in PlayerPauseAction.values)
-            action: _pauseAvailability(context, action),
-        },
-        onSelected: (action) => _dispatchPauseAction(context, action),
-        onBackToRoot: _backFromPause,
-        onTouchMenu:
-            widget.snapshot.pauseSection == null ||
-                widget.snapshot.pauseSection == RuntimePlayerPauseSection.root
-            ? _callbackFor(RuntimePlayerAction.resume)
-            : _callbackFor(RuntimePlayerAction.returnToPauseRoot),
-        activeInputSource:
-            widget.activeInputSource ?? widget.snapshot.activeInputSource,
-        logicalSelectionId: widget.snapshot.logicalSelectionId,
-        labels: widget.pauseMenuLabels,
-        presentation: _pausePresentation.resolveVisibility(
-          widget.snapshot.pauseMenuState,
-          contactsAvailable:
-              widget.snapshot.pauseDetailFor(
-                    RuntimePlayerPauseSection.contacts,
-                  ) !=
-                  null ||
-              widget.snapshot.isActionEnabled(RuntimePlayerAction.openContacts),
-        ),
-        saveMessage: _manualSaveFailure ?? _manualSaveMessage,
-        detail: RuntimePlayerDetailRouter(
-          optionsNavigation:
-              _pausePresentation.style == ProjectPauseMenuStyle.nightIllustrated
-              ? _optionsNavigation
-              : null,
-          pokedexNavigation: _pokedexNavigation,
-          regionMapNavigation: _regionMapNavigation,
-          bagNavigation: widget.bagNavigation,
-          onFavoriteChanged: widget.onFavoriteChanged,
-          partyNavigation: widget.partyNavigation,
-          snapshot: widget.snapshot,
+      RuntimePlayerPhase.paused => _withOptionsTabs(
+        RuntimePlayerPauseShell(
+          rootActionsOnly: widget.pauseRootActionsOnly,
           controlProfile: widget.controlProfile,
-          hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+          controllerFamily: widget.controllerFamily,
+          focusController: widget.pauseFocusController,
+          playerProfile: widget.snapshot.playerProfile,
+          gameTitle: widget.snapshot.gameTitle,
+          pauseSection:
+              widget.snapshot.pauseSection ?? RuntimePlayerPauseSection.root,
+          actions: <PlayerPauseAction, PlayerActionAvailability>{
+            for (final action in PlayerPauseAction.values)
+              action: _pauseAvailability(context, action),
+          },
+          onSelected: (action) => _dispatchPauseAction(context, action),
+          onBackToRoot: _backFromPause,
+          onPreviousTab: _usesOptionsTabs
+              ? _optionsNavigation.previousTab
+              : null,
+          onNextTab: _usesOptionsTabs ? _optionsNavigation.nextTab : null,
+          onTouchMenu:
+              widget.snapshot.pauseSection == null ||
+                  widget.snapshot.pauseSection == RuntimePlayerPauseSection.root
+              ? _callbackFor(RuntimePlayerAction.resume)
+              : _callbackFor(RuntimePlayerAction.returnToPauseRoot),
           activeInputSource:
               widget.activeInputSource ?? widget.snapshot.activeInputSource,
-          onControlProfileChanged: widget.onControlProfileChanged,
-          onPreferencesChanged: widget.onPreferencesChanged,
-          onPauseCommand: widget.onPauseCommand,
-          onReturnToTitle:
-              widget.snapshot.isActionEnabled(RuntimePlayerAction.returnToTitle)
-              ? () => unawaited(_showSaveDialog(returnToTitle: true))
-              : null,
-        ),
-        detailOwnsScroll:
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.party ||
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag ||
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.pokedex ||
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.profile ||
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.options ||
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.map,
-        detailHeaderBuilder:
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.party &&
-                widget.partyNavigation != null
-            ? (context) => ListenableBuilder(
-                listenable: widget.partyNavigation!,
-                builder: (context, _) {
-                  final summary = widget.partyNavigation!.activeSummary;
-                  return PlayerMenuHeader(
-                    onBack: _backFromPause,
-                    icon: Icons.catching_pokemon,
-                    iconColor: context.playerMenuTheme.danger,
-                    title: summary?.displayLabel ?? context.playerL10n.party,
-                    secondary: summary == null
-                        ? null
-                        : Text('${summary.speciesLabel} · N.${summary.level}'),
-                  );
-                },
-              )
-            : widget.snapshot.pauseSection == RuntimePlayerPauseSection.options
-            ? (context) => ListenableBuilder(
-                listenable: _optionsNavigation,
-                builder: (context, _) => PlayerMenuHeader(
-                  icon: Icons.settings_outlined,
-                  onBack: _backFromPause,
-                  alignSecondaryEnd: true,
-                  title:
-                      _optionsNavigation.activeTitle ??
-                      context.playerL10n.options,
-                  secondary: _optionsNavigation.buildHeaderAction(context),
-                ),
-              )
-            : null,
-        detailHeaderSecondary:
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag
-            ? _bagMoney(context)
-            : widget.snapshot.pauseSection == RuntimePlayerPauseSection.pokedex
-            ? _pokedexProgress(context)
-            : null,
-        detailActions:
-            widget.snapshot.pauseSection == RuntimePlayerPauseSection.party &&
-                widget.snapshot.isActionEnabled(
-                  RuntimePlayerAction.openParty,
-                ) &&
+          logicalSelectionId: widget.snapshot.logicalSelectionId,
+          labels: widget.pauseMenuLabels,
+          presentation: _pausePresentation.resolveVisibility(
+            widget.snapshot.pauseMenuState,
+            contactsAvailable:
                 widget.snapshot.pauseDetailFor(
-                      RuntimePlayerPauseSection.party,
+                      RuntimePlayerPauseSection.contacts,
                     ) !=
-                    null &&
-                widget.partyNavigation != null
-            ? ListenableBuilder(
-                listenable: widget.partyNavigation!,
-                builder: (context, _) =>
-                    widget.partyNavigation!.buildActions(context),
-              )
-            : widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
+                    null ||
+                widget.snapshot.isActionEnabled(
+                  RuntimePlayerAction.openContacts,
+                ),
+          ),
+          saveMessage: _manualSaveFailure ?? _manualSaveMessage,
+          detail: RuntimePlayerDetailRouter(
+            optionsNavigation:
+                _pausePresentation.style ==
+                    ProjectPauseMenuStyle.nightIllustrated
+                ? _optionsNavigation
+                : null,
+            pokedexNavigation: _pokedexNavigation,
+            regionMapNavigation: _regionMapNavigation,
+            bagNavigation: widget.bagNavigation,
+            onFavoriteChanged: widget.onFavoriteChanged,
+            partyNavigation: widget.partyNavigation,
+            snapshot: widget.snapshot,
+            controlProfile: widget.controlProfile,
+            hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
+            activeInputSource:
+                widget.activeInputSource ?? widget.snapshot.activeInputSource,
+            onControlProfileChanged: widget.onControlProfileChanged,
+            onPreferencesChanged: widget.onPreferencesChanged,
+            onPauseCommand: widget.onPauseCommand,
+            onReturnToTitle:
+                widget.snapshot.isActionEnabled(
+                  RuntimePlayerAction.returnToTitle,
+                )
+                ? () => unawaited(_showSaveDialog(returnToTitle: true))
+                : null,
+          ),
+          detailOwnsScroll:
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.party ||
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag ||
+              widget.snapshot.pauseSection ==
+                  RuntimePlayerPauseSection.pokedex ||
+              widget.snapshot.pauseSection ==
+                  RuntimePlayerPauseSection.profile ||
+              widget.snapshot.pauseSection ==
+                  RuntimePlayerPauseSection.options ||
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.map,
+          detailHeaderBuilder:
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.party &&
+                  widget.partyNavigation != null
+              ? (context) => ListenableBuilder(
+                  listenable: widget.partyNavigation!,
+                  builder: (context, _) {
+                    final summary = widget.partyNavigation!.activeSummary;
+                    return PlayerMenuHeader(
+                      onBack: _backFromPause,
+                      icon: Icons.catching_pokemon,
+                      iconColor: context.playerMenuTheme.danger,
+                      title: summary?.displayLabel ?? context.playerL10n.party,
+                      secondary: summary == null
+                          ? null
+                          : Text(
+                              '${summary.speciesLabel} · N.${summary.level}',
+                            ),
+                    );
+                  },
+                )
+              : widget.snapshot.pauseSection ==
+                    RuntimePlayerPauseSection.options
+              ? (context) => ListenableBuilder(
+                  listenable: _optionsNavigation,
+                  builder: (context, _) => PlayerMenuHeader(
+                    icon: Icons.settings_outlined,
+                    onBack: _backFromPause,
+                    alignSecondaryEnd: true,
+                    title:
+                        _optionsNavigation.activeTitle ??
+                        context.playerL10n.options,
+                    secondary: _optionsNavigation.buildHeaderAction(context),
+                  ),
+                )
+              : null,
+          detailHeaderSecondary:
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag
+              ? _bagMoney(context)
+              : widget.snapshot.pauseSection ==
+                    RuntimePlayerPauseSection.pokedex
+              ? _pokedexProgress(context)
+              : null,
+          detailActions:
+              widget.snapshot.pauseSection == RuntimePlayerPauseSection.party &&
                   widget.snapshot.isActionEnabled(
-                    RuntimePlayerAction.openBag,
-                  ) &&
-                  widget.snapshot.pauseDetailFor(
-                        RuntimePlayerPauseSection.bag,
-                      ) !=
-                      null &&
-                  widget.bagNavigation != null
-            ? ListenableBuilder(
-                listenable: widget.bagNavigation!,
-                builder: (context, _) =>
-                    widget.bagNavigation!.buildActions(context),
-              )
-            : widget.snapshot.pauseSection ==
-                      RuntimePlayerPauseSection.options &&
-                  widget.snapshot.isActionEnabled(
-                    RuntimePlayerAction.openOptions,
-                  ) &&
-                  widget.snapshot.preferences != null &&
-                  _pausePresentation.style ==
-                      ProjectPauseMenuStyle.nightIllustrated
-            ? ListenableBuilder(
-                listenable: _optionsNavigation,
-                builder: (context, _) =>
-                    _optionsNavigation.buildActions(context),
-              )
-            : (widget.snapshot.pauseSection ==
-                          RuntimePlayerPauseSection.pokedex ||
-                      widget.snapshot.pauseSection ==
-                          RuntimePlayerPauseSection.profile ||
-                      widget.snapshot.pauseSection ==
-                          RuntimePlayerPauseSection.options) &&
-                  _pausePresentation.style !=
-                      ProjectPauseMenuStyle.nightIllustrated
-            ? PlayerActionButton(
-                key: const ValueKey('runtime-pause-detail-return'),
-                label: context.playerL10n.back,
-                icon: Icons.arrow_back_rounded,
-                onPressed: _backFromPause,
-              )
-            : null,
-        detailFooterBuilder: switch (widget.snapshot.pauseSection) {
-          RuntimePlayerPauseSection.party
-              when widget.snapshot.isActionEnabled(
                     RuntimePlayerAction.openParty,
                   ) &&
                   widget.snapshot.pauseDetailFor(
                         RuntimePlayerPauseSection.party,
                       ) !=
                       null &&
-                  widget.partyNavigation != null =>
-            (context, returnAction) => ListenableBuilder(
-              listenable: widget.partyNavigation!,
-              builder: (context, _) => widget.partyNavigation!.buildActions(
-                context,
-                returnAction: returnAction,
+                  widget.partyNavigation != null
+              ? ListenableBuilder(
+                  listenable: widget.partyNavigation!,
+                  builder: (context, _) =>
+                      widget.partyNavigation!.buildActions(context),
+                )
+              : widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag &&
+                    widget.snapshot.isActionEnabled(
+                      RuntimePlayerAction.openBag,
+                    ) &&
+                    widget.snapshot.pauseDetailFor(
+                          RuntimePlayerPauseSection.bag,
+                        ) !=
+                        null &&
+                    widget.bagNavigation != null
+              ? ListenableBuilder(
+                  listenable: widget.bagNavigation!,
+                  builder: (context, _) =>
+                      widget.bagNavigation!.buildActions(context),
+                )
+              : widget.snapshot.pauseSection ==
+                        RuntimePlayerPauseSection.options &&
+                    widget.snapshot.isActionEnabled(
+                      RuntimePlayerAction.openOptions,
+                    ) &&
+                    widget.snapshot.preferences != null &&
+                    _pausePresentation.style ==
+                        ProjectPauseMenuStyle.nightIllustrated
+              ? ListenableBuilder(
+                  listenable: _optionsNavigation,
+                  builder: (context, _) =>
+                      _optionsNavigation.buildActions(context),
+                )
+              : (widget.snapshot.pauseSection ==
+                            RuntimePlayerPauseSection.pokedex ||
+                        widget.snapshot.pauseSection ==
+                            RuntimePlayerPauseSection.profile ||
+                        widget.snapshot.pauseSection ==
+                            RuntimePlayerPauseSection.options) &&
+                    _pausePresentation.style !=
+                        ProjectPauseMenuStyle.nightIllustrated
+              ? PlayerActionButton(
+                  key: const ValueKey('runtime-pause-detail-return'),
+                  label: context.playerL10n.back,
+                  icon: Icons.arrow_back_rounded,
+                  onPressed: _backFromPause,
+                )
+              : null,
+          detailFooterBuilder: switch (widget.snapshot.pauseSection) {
+            RuntimePlayerPauseSection.party
+                when widget.snapshot.isActionEnabled(
+                      RuntimePlayerAction.openParty,
+                    ) &&
+                    widget.snapshot.pauseDetailFor(
+                          RuntimePlayerPauseSection.party,
+                        ) !=
+                        null &&
+                    widget.partyNavigation != null =>
+              (context, returnAction) => ListenableBuilder(
+                listenable: widget.partyNavigation!,
+                builder: (context, _) => widget.partyNavigation!.buildActions(
+                  context,
+                  returnAction: returnAction,
+                ),
               ),
-            ),
-          RuntimePlayerPauseSection.bag
-              when widget.snapshot.isActionEnabled(
-                    RuntimePlayerAction.openBag,
-                  ) &&
-                  widget.snapshot.pauseDetailFor(
-                        RuntimePlayerPauseSection.bag,
-                      ) !=
-                      null &&
-                  widget.bagNavigation != null =>
-            (context, returnAction) => ListenableBuilder(
-              listenable: widget.bagNavigation!,
-              builder: (context, _) => widget.bagNavigation!.buildActions(
-                context,
-                returnAction: returnAction,
+            RuntimePlayerPauseSection.bag
+                when widget.snapshot.isActionEnabled(
+                      RuntimePlayerAction.openBag,
+                    ) &&
+                    widget.snapshot.pauseDetailFor(
+                          RuntimePlayerPauseSection.bag,
+                        ) !=
+                        null &&
+                    widget.bagNavigation != null =>
+              (context, returnAction) => ListenableBuilder(
+                listenable: widget.bagNavigation!,
+                builder: (context, _) => widget.bagNavigation!.buildActions(
+                  context,
+                  returnAction: returnAction,
+                ),
               ),
-            ),
-          RuntimePlayerPauseSection.options
-              when widget.snapshot.isActionEnabled(
-                    RuntimePlayerAction.openOptions,
-                  ) &&
-                  widget.snapshot.preferences != null =>
-            (context, returnAction) => ListenableBuilder(
-              listenable: _optionsNavigation,
-              builder: (context, _) => _optionsNavigation.buildActions(
-                context,
-                returnAction: returnAction,
+            RuntimePlayerPauseSection.options
+                when widget.snapshot.isActionEnabled(
+                      RuntimePlayerAction.openOptions,
+                    ) &&
+                    widget.snapshot.preferences != null =>
+              (context, returnAction) => ListenableBuilder(
+                listenable: _optionsNavigation,
+                builder: (context, _) => _optionsNavigation.buildActions(
+                  context,
+                  returnAction: returnAction,
+                ),
               ),
-            ),
-          _ => null,
-        },
+            _ => null,
+          },
+        ),
       ),
       RuntimePlayerPhase.saving => PlayerLoadingSurface(stage: l10n.save),
       RuntimePlayerPhase.lifecyclePaused => PlayerLoadingSurface(

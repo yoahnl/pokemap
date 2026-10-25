@@ -76,9 +76,9 @@ void main() {
         PlayerPauseAction.party,
         PlayerPauseAction.bag,
         PlayerPauseAction.pokedex,
+        PlayerPauseAction.map,
         PlayerPauseAction.quests,
         PlayerPauseAction.contacts,
-        PlayerPauseAction.map,
         PlayerPauseAction.profile,
         PlayerPauseAction.options,
       ];

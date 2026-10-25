@@ -17,6 +17,351 @@ const _certifiedViewports = <Size>[
 ];
 
 void main() {
+  test(
+    'compact portrait sprite bounds stay finite at enlarged text limits',
+    () {
+      final layout = BattleSceneLayout.forViewport(
+        viewportSize: const Size(320, 568),
+        controllerLayout: true,
+        textScale: 2,
+      );
+      expect(layout.playerSpriteRect.isFinite, isTrue);
+      expect(layout.playerSpriteRect.overlaps(layout.playerHudRect), isFalse);
+      expect(
+        layout.playerSpriteRect.bottom,
+        lessThanOrEqualTo(layout.playerHudRect.top - 8 + .1),
+      );
+    },
+  );
+
+  test('compact portrait root and fight share every scene anchor with distinct natural docks', () {
+    for (final viewport in [const Size(390, 844), const Size(320, 568), const Size(430, 932)]) {
+      for (final textScale in [1.0, 2.0]) {
+        final root = BattleSceneLayout.forViewport(viewportSize: viewport,
+          safePadding: const EdgeInsets.only(top: 32, bottom: 24), controllerLayout: true,
+          textScale: textScale, commandPanelMode: BattleCommandOverlayMode.root);
+        final fight = BattleSceneLayout.forViewport(viewportSize: viewport,
+          safePadding: const EdgeInsets.only(top: 32, bottom: 24), controllerLayout: true,
+          textScale: textScale, commandPanelMode: BattleCommandOverlayMode.fight);
+        expect(root.commandPanelRect.height, lessThan(fight.commandPanelRect.height));
+        expect(root.commandPanelRect.height, lessThanOrEqualTo(128 * textScale.clamp(1.0, 1.6)));
+        expect(root.enemyHudRect, fight.enemyHudRect, reason: '$viewport text$textScale enemy HUD');
+        expect(root.playerHudRect, fight.playerHudRect, reason: '$viewport text$textScale player HUD');
+        expect(root.enemySpriteRect, fight.enemySpriteRect, reason: '$viewport text$textScale enemy sprite');
+        expect(root.playerSpriteRect, fight.playerSpriteRect, reason: '$viewport text$textScale player sprite');
+        expect(root.enemyFootAnchor, fight.enemyFootAnchor);
+        expect(root.playerFootAnchor, fight.playerFootAnchor);
+        expect(root.enemyPlatformRect, fight.enemyPlatformRect);
+        expect(root.playerPlatformRect, fight.playerPlatformRect);
+        expect(root.stageRect, fight.stageRect);
+        expect(root.arenaRect, fight.arenaRect);
+      }
+    }
+  });
+
+  test('single screen controller leaves the arena free with a bounded proportional dock', () {
+    for (final viewport in [const Size(844, 390), const Size(1280, 590)]) {
+      for (final safe in [
+        EdgeInsets.zero,
+        const EdgeInsets.fromLTRB(44, 32, 44, 20),
+      ]) {
+        final layouts = [
+          for (final mode in [
+            BattleCommandOverlayMode.root,
+            BattleCommandOverlayMode.fight,
+          ])
+            BattleSceneLayout.forViewport(
+              viewportSize: viewport,
+              safePadding: safe,
+              controllerLayout: true,
+              commandPanelPlacement: BattleCommandPanelPlacement.end,
+              commandPanelMode: mode,
+            ),
+        ];
+        for (final layout in layouts) {
+          expect(
+            layout.commandPanelRect.width,
+            lessThanOrEqualTo(viewport.width * .33),
+          );
+          expect(layout.commandPanelRect.width, lessThanOrEqualTo(340));
+          expect(
+            layout.commandPanelRect.top,
+            greaterThanOrEqualTo(layout.enemyHudRect.bottom + 7),
+          );
+          expect(
+            layout.commandPanelRect.bottom,
+            lessThanOrEqualTo(viewport.height - safe.bottom),
+          );
+          expect(
+            layout.commandPanelRect.left,
+            greaterThanOrEqualTo(viewport.width * .60),
+          );
+        }
+        expect(layouts[0].playerSpriteRect, layouts[1].playerSpriteRect);
+        expect(layouts[0].enemySpriteRect, layouts[1].enemySpriteRect);
+        expect(layouts[0].playerHudRect, layouts[1].playerHudRect);
+        expect(layouts[0].enemyHudRect, layouts[1].enemyHudRect);
+      }
+    }
+  });
+
+  test('portrait controller budget uses the available height while touch and Thor keep their recipe', () {
+    for (final viewport in [
+      const Size(390, 844),
+      const Size(320, 568),
+      const Size(430, 932),
+    ]) {
+      for (final mode in [
+        BattleCommandOverlayMode.root,
+        BattleCommandOverlayMode.fight,
+      ]) {
+        final layout = BattleSceneLayout.forViewport(
+          viewportSize: viewport,
+          safePadding: const EdgeInsets.only(top: 32, bottom: 24),
+          controllerLayout: true,
+          commandPanelMode: mode,
+        );
+        expect(
+          layout.commandPanelRect.height,
+          lessThanOrEqualTo(mode == BattleCommandOverlayMode.root ? 128 : 236),
+        );
+        expect(
+          layout.commandPanelRect.bottom,
+          lessThanOrEqualTo(viewport.height - 24),
+        );
+        expect(
+          layout.commandPanelRect.height,
+          lessThanOrEqualTo((viewport.height - 56) * .46),
+        );
+      }
+    }
+    final touch = BattleSceneLayout.forViewport(
+      viewportSize: const Size(390, 844),
+    );
+    expect(touch.commandPanelRect.height, 300);
+    final thor = BattleSceneLayout.forViewport(
+      viewportSize: const Size(768, 432),
+      controllerLayout: true,
+      commandPanelPlacement: BattleCommandPanelPlacement.detached,
+    );
+    expect(thor.commandPanelRect, Rect.zero);
+    expect(thor.playerSpriteRect.width, 185);
+  });
+
+  test(
+    'opaque collections reserve their measured panel and arena in every layout',
+    () {
+      for (final mode in [
+        BattleCommandOverlayMode.bag,
+        BattleCommandOverlayMode.pokemon,
+        BattleCommandOverlayMode.bagMedicineTarget,
+        BattleCommandOverlayMode.moveTarget,
+      ]) {
+        for (final viewport in [const Size(844, 390), const Size(390, 844)]) {
+          for (final controller in [false, true]) {
+            final layout = BattleSceneLayout.forViewport(
+              viewportSize: viewport,
+              commandPanelMode: mode,
+              controllerLayout: controller,
+              commandPanelPlacement: controller
+                  ? BattleCommandPanelPlacement.end
+                  : BattleCommandPanelPlacement.bottom,
+            );
+            expect(layout.sceneRect, Offset.zero & viewport);
+            if (layout.isPortrait) {
+              expect(layout.commandPanelRect.height, 560);
+              expect(layout.commandPanelRect.width, viewport.width);
+              expect(layout.arenaRect.bottom, layout.commandPanelRect.top);
+              expect(
+                layout.playerSpriteRect.bottom,
+                lessThan(layout.commandPanelRect.top),
+              );
+            } else {
+              expect(
+                layout.commandPanelRect.width,
+                mode == BattleCommandOverlayMode.moveTarget ? 310 : 460,
+              );
+              expect(layout.arenaRect.right, layout.commandPanelRect.left);
+              expect(
+                layout.playerHudRect.right,
+                lessThan(layout.commandPanelRect.left),
+              );
+            }
+            expect(layout.enemyHudRect.height, closeTo(40.5, .01));
+            expect(layout.playerHudRect.height, closeTo(68.25, .01));
+          }
+        }
+        final detached = BattleSceneLayout.forViewport(
+          viewportSize: const Size(768, 432),
+          commandPanelMode: mode,
+          commandPanelPlacement: BattleCommandPanelPlacement.detached,
+        );
+        expect(detached.commandPanelRect, Rect.zero);
+        expect(detached.sceneRect, const Rect.fromLTWH(0, 0, 768, 432));
+      }
+    },
+  );
+
+  test(
+    'decision uses the journey panel geometry and portrait artwork frame',
+    () {
+      final landscape = BattleSceneLayout.forViewport(
+        viewportSize: const Size(844, 390),
+        safePadding: const EdgeInsets.fromLTRB(44, 12, 44, 20),
+        commandPanelMode: BattleCommandOverlayMode.decision,
+      );
+      expect(
+        landscape.commandPanelRect,
+        const Rect.fromLTWH(400, 20, 400, 350),
+      );
+      expect(landscape.commandPanelPlacement, BattleCommandPanelPlacement.end);
+      final portrait = BattleSceneLayout.forViewport(
+        viewportSize: const Size(390, 844),
+        commandPanelMode: BattleCommandOverlayMode.decision,
+      );
+      expect(portrait.commandPanelRect, const Rect.fromLTWH(0, 464, 390, 380));
+      expect(portrait.backdropArtworkRect, const Rect.fromLTWH(0, 0, 390, 464));
+      expect(
+        portrait.playerHudRect.bottom,
+        lessThan(portrait.commandPanelRect.top),
+      );
+    },
+  );
+
+  test('double battler budgets use renderer foot ratios and stay inside their field', () {
+    for (final viewport in [
+      const Size(390, 844),
+      const Size(844, 390),
+      const Size(768, 432),
+    ]) {
+      for (final placement in BattleCommandPanelPlacement.values) {
+        for (final mode in [
+          BattleCommandOverlayMode.fight,
+          BattleCommandOverlayMode.moveTarget,
+        ]) {
+          final layout = BattleSceneLayout.forViewport(
+            viewportSize: viewport,
+            commandPanelMode: mode,
+            commandPanelPlacement: placement,
+          );
+          final field = Rect.fromLTRB(
+            layout.arenaRect.left + 8,
+            layout.arenaRect.top + 8,
+            layout.arenaRect.right - 8,
+            (layout.commandPanelPlacement == BattleCommandPanelPlacement.bottom
+                    ? layout.commandPanelRect.top
+                    : layout.arenaRect.bottom) -
+                8,
+          );
+          for (final side in BattleSideId.values) {
+            for (var index = 0; index < 2; index++) {
+              final geometry = layout.combatantGeometry(
+                BattleSlotRef(side: side, slotIndex: index),
+                doubles: true,
+              );
+              final ratio = side == BattleSideId.player ? .68 : .5;
+              expect(
+                geometry.footAnchor.dx,
+                closeTo(
+                  geometry.spriteRect.left + geometry.spriteRect.width * ratio,
+                  .0001,
+                ),
+              );
+              expect(
+                geometry.footAnchor.dy,
+                closeTo(geometry.spriteRect.bottom, .0001),
+              );
+              for (final bounds in [
+                geometry.spriteRect,
+                geometry.platformRect,
+              ]) {
+                expect(bounds.left, greaterThanOrEqualTo(field.left - .0001));
+                expect(bounds.top, greaterThanOrEqualTo(field.top - .0001));
+                expect(bounds.right, lessThanOrEqualTo(field.right + .0001));
+                expect(bounds.bottom, lessThanOrEqualTo(field.bottom + .0001));
+              }
+              for (final aspect in [.5, 1.0, 2.0]) {
+                final width = (geometry.spriteRect.height * aspect).clamp(
+                  0.0,
+                  geometry.spriteRect.width,
+                );
+                final height = width / aspect;
+                final painted = Rect.fromLTWH(
+                  geometry.footAnchor.dx - width * ratio,
+                  geometry.footAnchor.dy - height,
+                  width,
+                  height,
+                );
+                expect(painted.left, greaterThanOrEqualTo(field.left - .0001));
+                expect(painted.right, lessThanOrEqualTo(field.right + .0001));
+                expect(painted.top, greaterThanOrEqualTo(field.top - .0001));
+                expect(painted.bottom, lessThanOrEqualTo(field.bottom + .0001));
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  for (final scenario in [
+    (const Size(390, 844), const EdgeInsets.fromLTRB(0, 32, 0, 24)),
+    (const Size(844, 390), const EdgeInsets.fromLTRB(44, 12, 44, 20)),
+    (const Size(768, 432), const EdgeInsets.fromLTRB(0, 20, 0, 0)),
+  ]) {
+    test(
+      'double HUDs and sprites respect actual safe insets at ${scenario.$1}',
+      () {
+        for (final placement in BattleCommandPanelPlacement.values) {
+          for (final mode in [
+            BattleCommandOverlayMode.fight,
+            BattleCommandOverlayMode.moveTarget,
+          ]) {
+            final layout = BattleSceneLayout.forViewport(
+              viewportSize: scenario.$1,
+              safePadding: scenario.$2,
+              commandPanelPlacement: placement,
+              commandPanelMode: mode,
+            );
+            final safe = Rect.fromLTRB(
+              scenario.$2.left,
+              scenario.$2.top,
+              scenario.$1.width - scenario.$2.right,
+              scenario.$1.height - scenario.$2.bottom,
+            );
+            for (final side in BattleSideId.values) {
+              for (var index = 0; index < 2; index++) {
+                final actor = layout.combatantGeometry(
+                  BattleSlotRef(side: side, slotIndex: index),
+                  doubles: true,
+                );
+                for (final rect in [
+                  actor.hudRect,
+                  actor.spriteRect,
+                  actor.platformRect,
+                ]) {
+                  expect(rect.left, greaterThanOrEqualTo(safe.left - .0001));
+                  expect(rect.top, greaterThanOrEqualTo(safe.top - .0001));
+                  expect(rect.right, lessThanOrEqualTo(safe.right + .0001));
+                  expect(rect.bottom, lessThanOrEqualTo(safe.bottom + .0001));
+                  expect(
+                    rect.left,
+                    greaterThanOrEqualTo(layout.arenaRect.left),
+                  );
+                  expect(rect.right, lessThanOrEqualTo(layout.arenaRect.right));
+                  expect(
+                    rect.bottom,
+                    lessThanOrEqualTo(layout.arenaRect.bottom),
+                  );
+                }
+              }
+            }
+          }
+        }
+      },
+    );
+  }
+
   test('root and fight keep the same HUD and sprite geometry for every presentation', () {
     for (final viewport in const [
       Size(390, 844),

@@ -289,13 +289,69 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
                 backgroundContent: data.backgroundContent,
                 backgroundColor: theme.base,
                 scrimColor: theme.shadow,
-                child: SafeArea(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 640),
-                        child: _ligueBranding(context, landscape: true),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0, .4, .85, 1],
+                      colors: [
+                        theme.selectionTop.withValues(alpha: .05),
+                        theme.selectionTop.withValues(alpha: .18),
+                        theme.selectionTop.withValues(alpha: .95),
+                        theme.selectionTop,
+                      ],
+                    ),
+                  ),
+                  child: SafeArea(
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 640),
+                          child: Column(
+                            key: const ValueKey('player-title-scene-caption'),
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (data.logo != null)
+                                SizedBox(
+                                  height: 56,
+                                  child: PlayerProvidedImage(
+                                    image: data.logo!,
+                                    fit: BoxFit.contain,
+                                    semanticLabel: data.gameTitle,
+                                  ),
+                                )
+                              else
+                                Text(
+                                  data.gameTitle,
+                                  key: const ValueKey(
+                                    'player-title-scene-title',
+                                  ),
+                                  style: context.playerTypography.displayStyle(
+                                    theme.title.copyWith(
+                                      fontSize: 24,
+                                      height: 1.2,
+                                      color: theme.selectionText,
+                                    ),
+                                  ),
+                                ),
+                              if (data.description case final description?) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  description,
+                                  style: theme.body.copyWith(
+                                    fontSize: 14,
+                                    color: theme.selectionText,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -560,228 +616,273 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
         backgroundContent: data.backgroundContent,
         backgroundColor: theme.base,
         scrimColor: theme.shadow,
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final landscape = constraints.maxWidth > constraints.maxHeight;
-              final companion = PlayerCompanionScope.of(context);
-              final horizontal = landscape && !companion ? 52.0 : 24.0;
-              final vertical = landscape ? 24.0 : 28.0;
-              final showHints = PlayerInputScope.usesController(context);
-              final hintHeight = companion ? 32.0 : 48.0;
-              final hintGap = companion ? 8.0 : 32.0;
-              final availableHeight =
-                  constraints.maxHeight -
-                  vertical * 2 -
-                  (showHints ? hintHeight + hintGap : 0);
-              final actions = data.actions.keys.toList(growable: false);
-              final paired =
-                  actions.length >= 2 &&
-                  actions[actions.length - 2] ==
-                      PlayerTitleMenuAction.creditsAbout &&
-                  actions.last == PlayerTitleMenuAction.returnToHub;
-              Widget action(
-                PlayerTitleMenuAction action, {
-                bool pairedAction = false,
-              }) {
-                final selected = _isStartupHighlighted(action, firstSelection);
-                final availability = _availability(context, action);
-                final selection = theme.rowPresentation([
-                  data.accentColor ?? theme.selectionTop,
-                ], preferredForeground: theme.selectionText);
-                return PlayerActionButton(
-                  key: ValueKey(_logicalId(action)),
-                  label: _label(context, action),
-                  icon: _icon(action),
-                  expandContent: true,
-                  labelMaxLines: pairedAction ? 2 : 1,
-                  autofocus: focusController.logicalSelectionId == null
-                      ? action == firstSelection
-                      : _isSelected(action),
-                  focusNode: _focusNode(action),
-                  showFocusHighlight: focusController.showFocusHighlight,
-                  selected: selected,
-                  secondary: !selected,
-                  backgroundColor: selected
-                      ? selection.backgrounds.first
-                      : theme.panel,
-                  foregroundColor: selected ? selection.foreground : theme.text,
-                  disabledReason: availability.disabledReason,
-                  onPressed: availability.isEnabled
-                      ? () => _select(action)
-                      : null,
-                );
-              }
+        child: DecoratedBox(
+          key: const ValueKey('player-title-ligue-gradient'),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              stops: const [0, .4, .85, 1],
+              colors: [
+                theme.selectionTop.withValues(alpha: .05),
+                theme.selectionTop.withValues(alpha: .18),
+                theme.selectionTop.withValues(alpha: .95),
+                theme.selectionTop,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final landscape = constraints.maxWidth > constraints.maxHeight;
+                final companion = PlayerCompanionScope.of(context);
+                final horizontal = companion ? 16.0 : (landscape ? 52.0 : 24.0);
+                final vertical = companion ? 16.0 : (landscape ? 24.0 : 28.0);
+                final showHints = PlayerInputScope.usesController(context);
+                final hintHeight = companion ? 32.0 : 48.0;
+                final hintGap = companion ? 8.0 : 32.0;
+                final availableHeight =
+                    constraints.maxHeight -
+                    vertical * 2 -
+                    (showHints ? hintHeight + hintGap : 0);
+                final actions = data.actions.keys.toList(growable: false);
+                final paired =
+                    actions.length >= 2 &&
+                    actions[actions.length - 2] ==
+                        PlayerTitleMenuAction.creditsAbout &&
+                    actions.last == PlayerTitleMenuAction.returnToHub;
+                Widget action(
+                  PlayerTitleMenuAction action, {
+                  bool pairedAction = false,
+                }) {
+                  final selected = _isStartupHighlighted(
+                    action,
+                    firstSelection,
+                  );
+                  final availability = _availability(context, action);
+                  final selection = theme.rowPresentation([
+                    data.accentColor ?? theme.selectionTop,
+                  ], preferredForeground: theme.selectionText);
+                  return PlayerActionButton(
+                    key: ValueKey(_logicalId(action)),
+                    label: _label(context, action),
+                    icon: _icon(action),
+                    expandContent: true,
+                    labelMaxLines: pairedAction ? 2 : 1,
+                    autofocus: focusController.logicalSelectionId == null
+                        ? action == firstSelection
+                        : _isSelected(action),
+                    focusNode: _focusNode(action),
+                    showFocusHighlight: focusController.showFocusHighlight,
+                    selected: selected,
+                    secondary: !selected,
+                    backgroundColor: selected
+                        ? selection.backgrounds.first
+                        : theme.panel,
+                    foregroundColor: selected
+                        ? selection.foreground
+                        : theme.text,
+                    disabledReason: availability.disabledReason,
+                    onPressed: availability.isEnabled
+                        ? () => _select(action)
+                        : null,
+                  );
+                }
 
-              final rows = <Widget>[
-                for (final entry in actions.take(
-                  paired ? actions.length - 2 : actions.length,
-                ))
-                  action(entry),
-                if (paired)
-                  Row(
-                    key: const ValueKey('title.finalActions'),
-                    children: [
-                      Expanded(
-                        child: action(
-                          actions[actions.length - 2],
-                          pairedAction: true,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(child: action(actions.last, pairedAction: true)),
-                    ],
-                  ),
-              ];
-              final selectedId = _pageSelectionId(firstSelection);
-              final revealId =
-                  paired &&
-                      (selectedId ==
-                              _logicalId(PlayerTitleMenuAction.creditsAbout) ||
-                          selectedId ==
-                              _logicalId(PlayerTitleMenuAction.returnToHub))
-                  ? 'title.finalActions'
-                  : selectedId;
-              final menu = FocusTraversalGroup(
-                policy: OrderedTraversalPolicy(),
-                child: PlayerPagedList(
-                  onPageReady: () => _pageReady(firstSelection),
-                  revealChildKey: ValueKey<String>(revealId ?? ''),
-                  spacing: 8,
-                  children: rows,
-                ),
-              );
-              final branding = _ligueBranding(context, landscape: landscape);
-              final scaledLine = MediaQuery.textScalerOf(context).scale(16);
-              final rowHeight = math.max(48.0, scaledLine * 1.5 + 20);
-              final menuHeight =
-                  rows.length * rowHeight +
-                  (paired
-                      ? math.max(0, scaledLine * 2.5 + 20 - rowHeight)
-                      : 0) +
-                  math.max(0, rows.length - 1) * 8;
-              final composition = landscape && !companion
-                  ? Row(
-                      key: const ValueKey('player-title-startup-expanded'),
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Expanded(child: branding),
-                        const SizedBox(width: 32),
-                        SizedBox(
-                          key: const ValueKey('player-title-startup-menu'),
-                          width: math.min(310, constraints.maxWidth * .44),
-                          height: math.min(menuHeight, availableHeight),
-                          child: menu,
-                        ),
-                      ],
-                    )
-                  : Column(
-                      key: const ValueKey('player-title-startup-compact'),
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                final rows = <Widget>[
+                  for (final entry in actions.take(
+                    paired ? actions.length - 2 : actions.length,
+                  ))
+                    action(entry),
+                  if (paired)
+                    Row(
+                      key: const ValueKey('title.finalActions'),
                       children: [
                         Expanded(
-                          child: Align(
-                            alignment: Alignment.bottomLeft,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.bottomLeft,
-                              child: SizedBox(
-                                width: math.max(
-                                  0,
-                                  constraints.maxWidth - horizontal * 2,
-                                ),
-                                child: branding,
-                              ),
-                            ),
+                          child: action(
+                            actions[actions.length - 2],
+                            pairedAction: true,
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          key: const ValueKey('player-title-startup-menu'),
-                          height: math.min(
-                            menuHeight,
-                            math.max(
-                              48,
-                              availableHeight - (companion ? 0 : 120),
-                            ),
-                          ),
-                          child: menu,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: action(actions.last, pairedAction: true),
                         ),
                       ],
-                    );
-              return Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontal,
-                  vertical: vertical,
-                ),
-                child: showHints
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                    ),
+                ];
+                final selectedId = _pageSelectionId(firstSelection);
+                final revealId =
+                    paired &&
+                        (selectedId ==
+                                _logicalId(
+                                  PlayerTitleMenuAction.creditsAbout,
+                                ) ||
+                            selectedId ==
+                                _logicalId(PlayerTitleMenuAction.returnToHub))
+                    ? 'title.finalActions'
+                    : selectedId;
+                final menu = FocusTraversalGroup(
+                  policy: OrderedTraversalPolicy(),
+                  child: PlayerPagedList(
+                    onPageReady: () => _pageReady(firstSelection),
+                    revealChildKey: ValueKey<String>(revealId ?? ''),
+                    spacing: 8,
+                    children: rows,
+                  ),
+                );
+                final branding = _ligueBranding(
+                  context,
+                  landscape: landscape,
+                  companion: companion,
+                );
+                final scaledLine = MediaQuery.textScalerOf(context).scale(16);
+                final rowHeight = math.max(48.0, scaledLine * 1.5 + 20);
+                final menuHeight =
+                    rows.length * rowHeight +
+                    (paired
+                        ? math.max(0, scaledLine * 2.5 + 20 - rowHeight)
+                        : 0) +
+                    math.max(0, rows.length - 1) * 8;
+                final composition = landscape && !companion
+                    ? Row(
+                        key: const ValueKey('player-title-startup-expanded'),
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Expanded(child: composition),
-                          SizedBox(height: hintGap),
+                          Expanded(child: branding),
+                          const SizedBox(width: 32),
                           SizedBox(
-                            height: hintHeight,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: PlayerInputScope.usesKeyboard(context)
-                                  ? _startupPremiumControls(context)
-                                  : Row(
-                                      children: [
-                                        _startupPremiumKey(
-                                          context,
-                                          width: 24,
-                                          child: Text(
-                                            'A',
-                                            style: theme.meta.copyWith(
-                                              color: theme.text,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          context.playerL10n.choose,
-                                          style: theme.meta.copyWith(
-                                            color: theme.secondary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                            ),
+                            key: const ValueKey('player-title-startup-menu'),
+                            width: math.min(310, constraints.maxWidth * .44),
+                            height: math.min(menuHeight, availableHeight),
+                            child: menu,
                           ),
                         ],
                       )
-                    : composition,
-              );
-            },
+                    : Column(
+                        key: const ValueKey('player-title-startup-compact'),
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomLeft,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.bottomLeft,
+                                child: SizedBox(
+                                  width: math.max(
+                                    0,
+                                    constraints.maxWidth - horizontal * 2,
+                                  ),
+                                  child: branding,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            key: const ValueKey('player-title-startup-menu'),
+                            height: math.min(
+                              menuHeight,
+                              math.max(
+                                48,
+                                availableHeight - (companion ? 0 : 120),
+                              ),
+                            ),
+                            child: menu,
+                          ),
+                        ],
+                      );
+                return Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontal,
+                    vertical: vertical,
+                  ),
+                  child: showHints
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(child: composition),
+                            SizedBox(height: hintGap),
+                            SizedBox(
+                              height: hintHeight,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: PlayerInputScope.usesKeyboard(context)
+                                    ? _startupPremiumControls(
+                                        context,
+                                        foreground: theme.selectionText,
+                                      )
+                                    : Row(
+                                        children: [
+                                          _startupPremiumKey(
+                                            context,
+                                            width: 24,
+                                            background: theme.selectionText
+                                                .withValues(alpha: .15),
+                                            child: Text(
+                                              'A',
+                                              style: theme.meta.copyWith(
+                                                color: theme.selectionText,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            context.playerL10n.choose,
+                                            style: theme.meta.copyWith(
+                                              color: theme.selectionText
+                                                  .withValues(alpha: .8),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : composition,
+                );
+              },
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _ligueBranding(BuildContext context, {required bool landscape}) {
+  Widget _ligueBranding(
+    BuildContext context, {
+    required bool landscape,
+    required bool companion,
+  }) {
     final theme = context.playerMenuTheme;
-    final content = Column(
+    final captionShadows = companion
+        ? [
+            Shadow(color: theme.selectionTop, blurRadius: 4),
+            Shadow(color: theme.selectionTop, blurRadius: 12),
+          ]
+        : null;
+    return Column(
       key: const ValueKey('player-title-ligue-branding'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (data.author.isNotEmpty) ...[
+        if (data.description case final description?) ...[
           Text(
-            data.author,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            description,
             style: theme.meta.copyWith(
-              color: theme.secondary,
-              letterSpacing: 2,
+              color: theme.selectionText.withValues(alpha: companion ? 1 : .8),
+              shadows: captionShadows,
+              letterSpacing: 1.5,
+              height: 1.35,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
         ],
         if (data.logo != null)
           ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 100),
+            constraints: BoxConstraints(maxHeight: companion ? 56 : 100),
             child: PlayerProvidedImage(
               image: data.logo!,
               fit: BoxFit.contain,
@@ -791,7 +892,7 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
         else
           SizedBox(
             key: const ValueKey('player-title-premium-title'),
-            height: landscape ? 104 : 94,
+            height: companion ? 40 : 56,
             width: double.infinity,
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -801,8 +902,8 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
                 softWrap: false,
                 style: context.playerTypography.displayStyle(
                   TextStyle(
-                    color: theme.text,
-                    fontSize: landscape ? 46 : 40,
+                    color: theme.selectionText,
+                    fontSize: companion ? 32 : (landscape ? 46 : 40),
                     fontWeight: FontWeight.w600,
                     letterSpacing: -2,
                     height: 1.05,
@@ -811,53 +912,38 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
               ),
             ),
           ),
-        if (data.description case final description?) ...[
+        if (data.author.isNotEmpty) ...[
+          const SizedBox(height: 8),
           Text(
-            description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.meta.copyWith(color: theme.secondary),
+            data.author,
+            style: theme.meta.copyWith(
+              color: theme.selectionText.withValues(alpha: companion ? 1 : .8),
+              shadows: captionShadows,
+              height: 1.35,
+            ),
           ),
-          const SizedBox(height: 12),
         ],
-        if (data.continueSave != null && !widget.sceneOnly)
+        if (data.continueSave != null && !widget.sceneOnly) ...[
+          const SizedBox(height: 12),
           Container(
             key: const ValueKey('player-title-continue-save'),
             width: double.infinity,
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(companion ? 10 : 14),
             decoration: BoxDecoration(
-              color: theme.panel,
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(color: theme.border),
+              color: theme.selectionTop.withValues(alpha: .8),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: theme.selectionText.withValues(alpha: .2),
+              ),
             ),
             child: _continueSaveMetadata(
               context,
-              color: theme.text,
-              fontSize: 14,
+              color: theme.selectionText,
+              fontSize: companion ? 12 : 14,
             ),
           ),
+        ],
       ],
-    );
-    if (data.background == null && data.backgroundContent == null) {
-      return content;
-    }
-    return Container(
-      key: const ValueKey('player-title-branding-backplate'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: const [0, .08, .92, 1],
-          colors: [
-            theme.base.withValues(alpha: theme.highContrast ? 1 : 0),
-            theme.base.withValues(alpha: theme.highContrast ? 1 : .96),
-            theme.base.withValues(alpha: theme.highContrast ? 1 : .96),
-            theme.base.withValues(alpha: theme.highContrast ? 1 : 0),
-          ],
-        ),
-      ),
-      child: content,
     );
   }
 
@@ -1221,11 +1307,14 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
     );
   }
 
-  Widget _startupPremiumControls(BuildContext context) {
+  Widget _startupPremiumControls(BuildContext context, {Color? foreground}) {
     final colors = context.playerColors;
+    final labelColor = foreground ?? colors.textPrimary;
     final labelStyle = context.playerTypography.bodyStyle(
       (Theme.of(context).textTheme.labelSmall ?? const TextStyle()).copyWith(
-        color: colors.textSecondary.withValues(alpha: .82),
+        color:
+            foreground?.withValues(alpha: .82) ??
+            colors.textSecondary.withValues(alpha: .82),
         fontSize: 11,
         fontWeight: FontWeight.w500,
       ),
@@ -1238,11 +1327,8 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
           _startupPremiumKey(
             context,
             width: 31,
-            child: Icon(
-              Icons.swap_vert_rounded,
-              size: 15,
-              color: colors.textPrimary,
-            ),
+            background: foreground?.withValues(alpha: .15),
+            child: Icon(Icons.swap_vert_rounded, size: 15, color: labelColor),
           ),
           const SizedBox(width: 8),
           Text(context.playerL10n.choose, style: labelStyle),
@@ -1250,11 +1336,12 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
           _startupPremiumKey(
             context,
             width: 47,
+            background: foreground?.withValues(alpha: .15),
             child: Text(
               'ENTER',
               style: context.playerTypography.numbersStyle(
                 TextStyle(
-                  color: colors.textPrimary,
+                  color: labelColor,
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
                   letterSpacing: .45,
@@ -1273,12 +1360,15 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
     BuildContext context, {
     required double width,
     required Widget child,
+    Color? background,
   }) => Container(
     width: width,
     height: 24,
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: context.playerColors.surfaceElevated.withValues(alpha: .72),
+      color:
+          background ??
+          context.playerColors.surfaceElevated.withValues(alpha: .72),
       borderRadius: BorderRadius.circular(6),
     ),
     child: child,

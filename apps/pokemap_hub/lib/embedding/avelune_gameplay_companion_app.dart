@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -30,20 +31,144 @@ class _AveluneGameplayCompanionAppState
   Future<player_ui.RuntimePlayerPresentation>? _presentation;
   String? _readySurface;
   String? _narrativeAckRequested;
+  final _battlePresentation = player_ui.PlayerBattlePresentationController();
+  StreamSubscription<RuntimeInputEvent>? _battleInputs;
+  Object? _battleInputOwner;
+  final _battleInputQueue = Queue<(int, RuntimeInputEvent)>();
+  final _battleForwardedControls = <RuntimeInputControl>{};
+  int _battleInputGeneration = 0;
+  bool _battleInputRunning = false;
+  bool _battleInputSuspended = false;
 
   @override
   void initState() {
     super.initState();
+    _remote.addListener(_syncBattleInputs);
     unawaited(_remote.attach());
   }
 
   @override
   void dispose() {
+    _remote.removeListener(_syncBattleInputs);
+    _battleInputGeneration++;
+    _battleInputQueue.clear();
+    unawaited(_battleInputs?.cancel());
+    _battlePresentation.dispose();
     _imageBudget.dispose();
     _controller.dispose();
     _remote.dispose();
     _controllerIds.dispose();
     super.dispose();
+  }
+
+  void _syncBattleInputs() {
+    final current = _remote.value;
+    final active =
+        current?.companionAttached == true &&
+        current?.mode == AveluneGameplayCompanionMode.battle &&
+        current?.battle != null;
+    final owner = active
+        ? (
+            current!.sessionId,
+            current.battle!.mode,
+            current.battle!.actorCombatantId,
+          )
+        : null;
+    if (_battleInputOwner != owner) {
+      _battleInputGeneration++;
+      _battleInputQueue.clear();
+      _battleForwardedControls.clear();
+      _battleInputSuspended = false;
+      _battlePresentation.handle(
+        const RuntimeInputEvent.press(RuntimeInputControl.menu),
+      );
+      for (final control in RuntimeInputControl.values) {
+        _battlePresentation.handle(RuntimeInputEvent.release(control));
+      }
+      _battleInputOwner = owner;
+    }
+    if (active) {
+      _battleInputs ??= _remote.inputs.listen(_handleBattleInput);
+    } else {
+      unawaited(_battleInputs?.cancel());
+      _battleInputs = null;
+    }
+  }
+
+  void _handleBattleInput(RuntimeInputEvent event) {
+    final current = _remote.value;
+    if (_battleInputSuspended ||
+        current?.companionAttached != true ||
+        current?.mode != AveluneGameplayCompanionMode.battle) {
+      return;
+    }
+    if (_battleInputQueue.length >= 64) {
+      final repeat = _battleInputQueue
+          .where((pending) => pending.$2.isRepeat)
+          .firstOrNull;
+      if (repeat != null) {
+        _battleInputQueue.remove(repeat);
+      } else if (event.isRepeat) {
+        return;
+      } else {
+        _battleInputSuspended = true;
+        _battleInputGeneration++;
+        _battleInputQueue.clear();
+        _battleForwardedControls.clear();
+        _battlePresentation.handle(
+          const RuntimeInputEvent.press(RuntimeInputControl.menu),
+        );
+        for (final control in RuntimeInputControl.values) {
+          _battlePresentation.handle(RuntimeInputEvent.release(control));
+        }
+        unawaited(_remote.surfaceReady(ready: false));
+        debugPrint('Avelune companion battle input queue exhausted.');
+        return;
+      }
+    }
+    _battleInputQueue.add((_battleInputGeneration, event));
+    unawaited(_drainBattleInputs());
+  }
+
+  Future<void> _drainBattleInputs() async {
+    if (_battleInputRunning) return;
+    _battleInputRunning = true;
+    try {
+      while (mounted && _battleInputQueue.isNotEmpty) {
+        final (generation, event) = _battleInputQueue.removeFirst();
+        if (generation != _battleInputGeneration || _battleInputSuspended) {
+          continue;
+        }
+        try {
+          if (_battlePresentation.handle(event)) {
+            final held = _battleForwardedControls.toList(growable: false);
+            _battleForwardedControls.clear();
+            for (final control in held) {
+              if (generation != _battleInputGeneration) break;
+              await _remote.sendBattleInput(RuntimeInputEvent.release(control));
+            }
+            continue;
+          }
+          await _remote.sendBattleInput(event);
+          if (mounted && generation == _battleInputGeneration) {
+            if (event.isRelease) {
+              _battleForwardedControls.remove(event.control);
+            } else if (!event.isRepeat) {
+              _battleForwardedControls.add(event.control);
+            }
+            await WidgetsBinding.instance.endOfFrame;
+          }
+        } catch (error) {
+          if (error is PlatformException) {
+            debugPrint('Avelune companion battle input: ${error.code}');
+          } else {
+            debugPrint('Avelune companion battle input: $error');
+          }
+        }
+      }
+    } finally {
+      _battleInputRunning = false;
+    }
   }
 
   @override
@@ -229,10 +354,30 @@ class _AveluneGameplayCompanionAppState
         if (battle == null) return const SizedBox.expand();
         return AbsorbPointer(
           absorbing: _remote.busy || !snapshot.companionAttached,
-          child: player_ui.PlayerBattleOverlay(
-            snapshot: battle,
-            display: player_ui.PlayerBattleDisplay.commandsOnly,
-            onCommand: (command) => unawaited(_sendBattle(command)),
+          child: player_ui.PlayerInputScope(
+            activeInputSource: player_ui.PlayerInputSource.controller,
+            child: player_ui.PlayerBattleOverlay(
+              snapshot: battle,
+              display: player_ui.PlayerBattleDisplay.commandsOnly,
+              presentationController: _battlePresentation,
+              controlProfile: snapshot.presentation['controlProfile'] is Map
+                  ? player_ui.PlayerControlProfile.fromJson(
+                      Map<String, dynamic>.from(
+                        snapshot.presentation['controlProfile'] as Map,
+                      ),
+                    )
+                  : player_ui.PlayerControlProfile.standard,
+              controllerFamily:
+                  player_ui.PlayerControllerFamily.values
+                      .where(
+                        (family) =>
+                            family.name ==
+                            snapshot.presentation['controllerFamily'],
+                      )
+                      .firstOrNull ??
+                  player_ui.PlayerControllerFamily.unknown,
+              onCommand: (command) => unawaited(_sendBattle(command)),
+            ),
           ),
         );
       case AveluneGameplayCompanionMode.waiting:
@@ -292,6 +437,10 @@ class _AveluneGameplayCompanionAppState
           'placement': command.placement.name,
         if (command is BattleSetCommandPanelPlacementCommand)
           'controllerLayout': command.controllerLayout,
+        if (command is BattleSetCommandPanelPlacementCommand)
+          'rootCommandOrder': command.rootCommandOrder,
+        if (command is BattleSetCommandPanelPlacementCommand)
+          'collectionColumns': command.collectionColumns,
         if (command is BattleSelectEntryCommand)
           'entryIndex': command.entryIndex,
       });
@@ -367,6 +516,7 @@ class _RemotePlayerController
         player_ui.RuntimePlayerViewController,
         player_ui.RuntimePlayerBagFavoritesController {
   _RemotePlayerController(this.remote) {
+    dialogue.value = remote.value?.dialogue;
     remote.addListener(_changed);
   }
 

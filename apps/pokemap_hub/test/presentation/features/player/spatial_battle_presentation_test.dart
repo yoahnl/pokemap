@@ -158,6 +158,23 @@ void main() {
       },
     );
     addTearDown(runtime.dispose);
+    final previousFlutterErrorHandler = FlutterError.onError;
+    var reportedFlexOverflow = false;
+    FlutterError.onError = (details) {
+      if (!reportedFlexOverflow &&
+          details.exceptionAsString().contains('A RenderFlex overflowed')) {
+        reportedFlexOverflow = true;
+        final snapshot = runtime.battlePresentationListenable.value;
+        debugPrint(
+          '[spatial-victory-layout] phase=${runtime.phase.name} '
+          'mode=${snapshot?.mode.name} panelRect=${snapshot?.panelRect} '
+          'entries=${snapshot?.entries.map((entry) => '${entry.index}:${entry.primaryLabel}').toList()}',
+        );
+        FlutterError.dumpErrorToConsole(details, forceReport: true);
+      }
+      previousFlutterErrorHandler?.call(details);
+    };
+    addTearDown(() => FlutterError.onError = previousFlutterErrorHandler);
     late Future<bool> completion;
     await tester.runAsync(() async {
       completion = runtime.start(

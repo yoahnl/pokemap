@@ -5,22 +5,34 @@ import 'package:flutter/services.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../localization/player_localizations.dart';
+import '../foundation/player_input_scope.dart';
+import '../foundation/player_paged_layout.dart';
 import '../foundation/player_overworld_components.dart';
 import '../theme/pokemap_player_overworld_theme.dart';
 import 'player_control_profile.dart';
 
 final class RuntimePlayerLocalActionNotification extends Notification {}
 
+final class RuntimePlayerInputSourceNotification extends Notification {
+  RuntimePlayerInputSourceNotification(this.source);
+  final PlayerInputSource source;
+}
+
 class RuntimePlayerInputBindings extends StatefulWidget {
-  const RuntimePlayerInputBindings(
-      {super.key,
-      required this.child,
-      this.controlProfile,
-      this.hardwareGamepadEnabled = true});
+  const RuntimePlayerInputBindings({
+    super.key,
+    required this.child,
+    this.controlProfile,
+    this.hardwareGamepadEnabled = true,
+  });
 
   final Widget child;
   final PlayerControlProfile? controlProfile;
   final bool hardwareGamepadEnabled;
+
+  static bool hasOwner(BuildContext context) =>
+      context.findAncestorStateOfType<_RuntimePlayerInputBindingsState>() !=
+      null;
 
   @override
   State<RuntimePlayerInputBindings> createState() =>
@@ -49,16 +61,26 @@ class _RuntimePlayerInputBindingsState
             this) {
       return KeyEventResult.ignored;
     }
-    if (!widget.hardwareGamepadEnabled &&
-        event.deviceType == ui.KeyEventDeviceType.gamepad) {
-      return KeyEventResult.handled;
-    }
-    if (target.widget is EditableText ||
-        target.findAncestorWidgetOfExactType<EditableText>() != null) {
+    if (event.deviceType != ui.KeyEventDeviceType.gamepad &&
+        (target.widget is EditableText ||
+            target.findAncestorWidgetOfExactType<EditableText>() != null)) {
       return KeyEventResult.ignored;
     }
     final input = (widget.controlProfile ?? PlayerControlProfile.standard)
         .runtimeEventFromKeyEvent(event);
+    if (input != null &&
+        (input.control == RuntimeInputControl.previousTab ||
+            input.control == RuntimeInputControl.nextTab) &&
+        target.findAncestorWidgetOfExactType<RuntimePlayerTabActions>() ==
+            null) {
+      return KeyEventResult.ignored;
+    }
+    final authority = PlayerHardwareInputScope.maybeOf(context);
+    if (authority != null) return authority.route(event);
+    if (!widget.hardwareGamepadEnabled &&
+        event.deviceType == ui.KeyEventDeviceType.gamepad) {
+      return KeyEventResult.handled;
+    }
     if (input == null ||
         Actions.maybeFind<RuntimePlayerLogicalIntent>(target) == null) {
       return KeyEventResult.ignored;
@@ -71,13 +93,14 @@ class _RuntimePlayerInputBindingsState
       PlayerInputAction.up ||
       PlayerInputAction.down ||
       PlayerInputAction.left ||
-      PlayerInputAction.right =>
-        true,
+      PlayerInputAction.right => true,
       _ => false,
     };
     if (command.isPress && (!command.isRepeat || directional)) {
       Actions.invoke(
-          target, RuntimePlayerLogicalIntent(command.action, source: source));
+        target,
+        RuntimePlayerLogicalIntent(command.action, source: source),
+      );
     }
     return KeyEventResult.handled;
   }
@@ -88,10 +111,7 @@ class _RuntimePlayerInputBindingsState
 }
 
 final class RuntimePlayerLogicalIntent extends Intent {
-  const RuntimePlayerLogicalIntent(
-    this.action, {
-    required this.source,
-  });
+  const RuntimePlayerLogicalIntent(this.action, {required this.source});
 
   final PlayerInputAction action;
   final PlayerInputSource source;
@@ -106,6 +126,8 @@ class RuntimePlayerActions extends StatelessWidget {
     required this.onInputSourceChanged,
     required this.child,
     this.includeDefaultKeyboardShortcuts = true,
+    this.onPreviousTab,
+    this.onNextTab,
   });
 
   final VoidCallback onBack;
@@ -113,65 +135,84 @@ class RuntimePlayerActions extends StatelessWidget {
   final ValueChanged<PlayerInputSource> onInputSourceChanged;
   final Widget child;
   final bool includeDefaultKeyboardShortcuts;
+  final VoidCallback? onPreviousTab;
+  final VoidCallback? onNextTab;
 
   @override
   Widget build(BuildContext context) {
-    return Shortcuts(
-      shortcuts: includeDefaultKeyboardShortcuts
-          ? const <ShortcutActivator, Intent>{
-        SingleActivator(LogicalKeyboardKey.arrowUp): RuntimePlayerLogicalIntent(
-          PlayerInputAction.up,
-          source: PlayerInputSource.keyboard,
-        ),
-        SingleActivator(LogicalKeyboardKey.arrowDown):
-            RuntimePlayerLogicalIntent(
-          PlayerInputAction.down,
-          source: PlayerInputSource.keyboard,
-        ),
-        SingleActivator(LogicalKeyboardKey.arrowLeft):
-            RuntimePlayerLogicalIntent(
-          PlayerInputAction.left,
-          source: PlayerInputSource.keyboard,
-        ),
-        SingleActivator(LogicalKeyboardKey.arrowRight):
-            RuntimePlayerLogicalIntent(
-          PlayerInputAction.right,
-          source: PlayerInputSource.keyboard,
-        ),
-        SingleActivator(LogicalKeyboardKey.enter, includeRepeats: false):
-            RuntimePlayerLogicalIntent(
-          PlayerInputAction.confirm,
-          source: PlayerInputSource.keyboard,
-        ),
-        SingleActivator(LogicalKeyboardKey.enter):
-            DoNothingAndStopPropagationIntent(),
-        SingleActivator(LogicalKeyboardKey.space, includeRepeats: false):
-            RuntimePlayerLogicalIntent(
-          PlayerInputAction.confirm,
-          source: PlayerInputSource.keyboard,
-        ),
-        SingleActivator(LogicalKeyboardKey.space):
-            DoNothingAndStopPropagationIntent(),
-        SingleActivator(LogicalKeyboardKey.escape): RuntimePlayerLogicalIntent(
-          PlayerInputAction.back,
-          source: PlayerInputSource.keyboard,
-        ),
-        SingleActivator(LogicalKeyboardKey.keyM): RuntimePlayerLogicalIntent(
-          PlayerInputAction.menu,
-          source: PlayerInputSource.keyboard,
-        ),
-            }
-          : const <ShortcutActivator, Intent>{},
-      child: Actions(
-        actions: <Type, Action<Intent>>{
-          RuntimePlayerLogicalIntent:
-              CallbackAction<RuntimePlayerLogicalIntent>(
-            onInvoke: _invoke,
+    return NotificationListener<RuntimePlayerInputSourceNotification>(
+      onNotification: (notification) {
+        onInputSourceChanged(notification.source);
+        return false;
+      },
+      child: Shortcuts(
+        shortcuts: includeDefaultKeyboardShortcuts
+            ? const <ShortcutActivator, Intent>{
+                SingleActivator(
+                  LogicalKeyboardKey.arrowUp,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.up,
+                  source: PlayerInputSource.keyboard,
+                ),
+                SingleActivator(
+                  LogicalKeyboardKey.arrowDown,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.down,
+                  source: PlayerInputSource.keyboard,
+                ),
+                SingleActivator(
+                  LogicalKeyboardKey.arrowLeft,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.left,
+                  source: PlayerInputSource.keyboard,
+                ),
+                SingleActivator(
+                  LogicalKeyboardKey.arrowRight,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.right,
+                  source: PlayerInputSource.keyboard,
+                ),
+                SingleActivator(
+                  LogicalKeyboardKey.enter,
+                  includeRepeats: false,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.confirm,
+                  source: PlayerInputSource.keyboard,
+                ),
+                SingleActivator(LogicalKeyboardKey.enter):
+                    DoNothingAndStopPropagationIntent(),
+                SingleActivator(
+                  LogicalKeyboardKey.space,
+                  includeRepeats: false,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.confirm,
+                  source: PlayerInputSource.keyboard,
+                ),
+                SingleActivator(LogicalKeyboardKey.space):
+                    DoNothingAndStopPropagationIntent(),
+                SingleActivator(
+                  LogicalKeyboardKey.escape,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.back,
+                  source: PlayerInputSource.keyboard,
+                ),
+                SingleActivator(
+                  LogicalKeyboardKey.keyM,
+                ): RuntimePlayerLogicalIntent(
+                  PlayerInputAction.menu,
+                  source: PlayerInputSource.keyboard,
+                ),
+              }
+            : const <ShortcutActivator, Intent>{},
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            RuntimePlayerLogicalIntent:
+                CallbackAction<RuntimePlayerLogicalIntent>(onInvoke: _invoke),
+          },
+          child: Builder(
+            key: const ValueKey<String>('runtime-player-actions-context'),
+            builder: (_) => child,
           ),
-        },
-        child: Builder(
-          key: const ValueKey<String>('runtime-player-actions-context'),
-          builder: (_) => child,
         ),
       ),
     );
@@ -181,22 +222,30 @@ class RuntimePlayerActions extends StatelessWidget {
     onInputSourceChanged(intent.source);
     switch (intent.action) {
       case PlayerInputAction.up:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.up);
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.up,
+        );
       case PlayerInputAction.down:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.down);
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.down,
+        );
       case PlayerInputAction.left:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.left);
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.left,
+        );
       case PlayerInputAction.right:
-        FocusManager.instance.primaryFocus
-            ?.focusInDirection(TraversalDirection.right);
+        FocusManager.instance.primaryFocus?.focusInDirection(
+          TraversalDirection.right,
+        );
       case PlayerInputAction.confirm:
         final context = FocusManager.instance.primaryFocus?.context;
         if (context != null) Actions.invoke(context, const ActivateIntent());
       case PlayerInputAction.back:
         onBack();
+      case PlayerInputAction.previousTab:
+        onPreviousTab?.call();
+      case PlayerInputAction.nextTab:
+        onNextTab?.call();
       case PlayerInputAction.bicycle:
       case PlayerInputAction.sprint:
         break;
@@ -226,17 +275,73 @@ class RuntimePlayerTouchMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (onPressed == null && actionCapsule == null) return const SizedBox.shrink();
+    if (onPressed == null && actionCapsule == null)
+      return const SizedBox.shrink();
     return Opacity(
       opacity: context.playerOverworldTheme.opaque ? 1 : opacity,
       child: PlayerOverworldControlsLayout(
         actionCapsule: actionCapsule,
-        menuButton: SizedBox(key: hitRegionKey, child: PlayerOverworldMenuButton(
-          key: const ValueKey('runtime-player-touch-menu-open'),
-          label: context.playerL10n.menu,
-          onPressed: onPressed,
-        )),
+        menuButton: SizedBox(
+          key: hitRegionKey,
+          child: PlayerOverworldMenuButton(
+            key: const ValueKey('runtime-player-touch-menu-open'),
+            label: context.playerL10n.menu,
+            onPressed: onPressed,
+          ),
+        ),
       ),
     );
   }
+}
+
+class RuntimePlayerTabActions extends StatelessWidget {
+  const RuntimePlayerTabActions({
+    super.key,
+    required this.onPreviousTab,
+    required this.onNextTab,
+    required this.child,
+    this.resetToken,
+  });
+
+  final Object? resetToken;
+  final VoidCallback onPreviousTab;
+  final VoidCallback onNextTab;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Actions(
+    actions: {
+      RuntimePlayerLogicalIntent: CallbackAction<RuntimePlayerLogicalIntent>(
+        onInvoke: (intent) {
+          if (intent.action == PlayerInputAction.previousTab) {
+            RuntimePlayerInputSourceNotification(intent.source)
+                .dispatch(context);
+            onPreviousTab();
+            return null;
+          }
+          if (intent.action == PlayerInputAction.nextTab) {
+            RuntimePlayerInputSourceNotification(intent.source)
+                .dispatch(context);
+            onNextTab();
+            return null;
+          }
+          return Actions.maybeInvoke(context, intent);
+        },
+      ),
+    },
+    child: PlayerHorizontalSwipeRegion(
+      resetToken: resetToken,
+      onPrevious: () {
+        RuntimePlayerInputSourceNotification(PlayerInputSource.touch)
+            .dispatch(context);
+        onPreviousTab();
+      },
+      onNext: () {
+        RuntimePlayerInputSourceNotification(PlayerInputSource.touch)
+            .dispatch(context);
+        onNextTab();
+      },
+      child: child,
+    ),
+  );
 }

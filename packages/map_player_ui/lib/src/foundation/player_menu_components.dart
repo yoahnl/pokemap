@@ -252,6 +252,7 @@ class PlayerMenuHeader extends StatelessWidget {
         )..layout(maxWidth: math.max(0, constraints.maxWidth / 2 - 56));
         final stackSecondary =
             !shortLandscape || titleMeasure.didExceedMaxLines;
+        titleMeasure.dispose();
         final heading = Row(
           children: [
             if (onBack != null)
@@ -313,7 +314,15 @@ class PlayerMenuHeader extends StatelessWidget {
                     Expanded(child: heading),
                     if (alignSecondaryEnd && secondary != null) ...[
                       const SizedBox(width: 12),
-                      Flexible(child: secondary!),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: DefaultTextStyle(
+                            style: theme.meta.copyWith(color: theme.secondary),
+                            child: secondary!,
+                          ),
+                        ),
+                      ),
                     ],
                   ],
                 )
@@ -508,9 +517,14 @@ class PlayerMenuFooter extends StatelessWidget {
 }
 
 class PlayerMenuActionGroup extends StatelessWidget {
-  const PlayerMenuActionGroup({super.key, required this.children});
+  const PlayerMenuActionGroup({
+    super.key,
+    required this.children,
+    this.fillWidth = false,
+  });
 
   final List<Widget> children;
+  final bool fillWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -528,7 +542,9 @@ class PlayerMenuActionGroup extends StatelessWidget {
         if (children.length == 4 && columns == 3) columns = 2;
         final availableWidth =
             (constraints.maxWidth - (columns - 1) * 8) / columns;
-        final width = math.min(availableWidth, (compact ? 112 : 168) * scale);
+        final width = fillWidth
+            ? availableWidth
+            : math.min(availableWidth, (compact ? 112 : 168) * scale);
         return _PlayerMenuActionScope(
           compact: compact,
           child: Column(
@@ -1364,9 +1380,11 @@ class PlayerMenuDetailTransition extends StatelessWidget {
     super.key,
     required this.contentKey,
     required this.child,
-  });
+    this.direction = 1,
+  }) : assert(direction == -1 || direction == 1);
   final Key contentKey;
   final Widget child;
+  final int direction;
 
   @override
   Widget build(BuildContext context) => AnimatedSwitcher(
@@ -1379,8 +1397,12 @@ class PlayerMenuDetailTransition extends StatelessWidget {
         animation: animation,
         builder: (context, child) => Transform.translate(
           key: const ValueKey('player-menu-detail-transform'),
+          transformHitTests: false,
           offset: Offset(
-            (1 - animation.value) * context.playerMenuTheme.openTranslation,
+            (1 - animation.value) *
+                context.playerMenuTheme.openTranslation *
+                direction *
+                (Directionality.of(context) == TextDirection.rtl ? -1 : 1),
             0,
           ),
           child: child,
@@ -1392,8 +1414,15 @@ class PlayerMenuDetailTransition extends StatelessWidget {
       alignment: Alignment.center,
       children: [
         for (final previous in previousChildren)
-          _entry(previous, active: false),
-        if (currentChild != null) _entry(currentChild, active: true),
+          Positioned.fill(
+            key: previous.key,
+            child: _entry(previous, active: false),
+          ),
+        if (currentChild != null)
+          Positioned(
+            key: currentChild.key,
+            child: _entry(currentChild, active: true),
+          ),
       ],
     ),
     child: KeyedSubtree(key: contentKey, child: child),

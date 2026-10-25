@@ -29,7 +29,7 @@ void main() {
         role: ProjectPresentationSurfaceRole.bag,
         effectsOpaque: effectsOpaque,
       );
-      await _tap(tester, 'runtime-player-bag-use-potion');
+      await _tap(tester, 'bag-item-potion');
 
       _expectModalContext(tester, effectsOpaque: effectsOpaque);
       expect(find.text('Utiliser Potion'), findsOneWidget);

@@ -1219,6 +1219,8 @@ abstract final class RuntimeCompanionPresentationCodec {
         'phase': value.phase.name,
         'commandPanelPlacement': value.commandPanelPlacement.name,
         'controllerLayout': value.controllerLayout,
+        'rootCommandOrder': value.rootCommandOrder,
+        'collectionColumns': value.collectionColumns,
         'forcedReplacement': value.forcedReplacement,
         'mode': value.mode.name,
         'viewportSize': [value.viewportSize.width, value.viewportSize.height],
@@ -1243,6 +1245,25 @@ abstract final class RuntimeCompanionPresentationCodec {
         'interactionsEnabled': value.interactionsEnabled,
         'canGoBack': value.canGoBack,
       };
+  static int? _decodeBattleCollectionColumns(Object? value) {
+    if (value == null || value == 1 || value == 2) {
+      if (value is int?) return value;
+    }
+    throw const FormatException('Invalid battle collection columns');
+  }
+
+  static List<int> _decodeBattleRootCommandOrder(Object? value) {
+    if (value == null) return const [0, 1, 2, 3];
+    if (value is! List || value.any((index) => index is! int)) {
+      throw const FormatException('Invalid battle root command order');
+    }
+    final order = List<int>.unmodifiable(value.cast<int>());
+    if (!BattleSetCommandPanelPlacementCommand.isValidRootCommandOrder(order)) {
+      throw const FormatException('Invalid battle root command order');
+    }
+    return order;
+  }
+
   static BattleCommandOverlaySnapshot decodeBattleCommandOverlaySnapshot(
           Map<String, dynamic> data) =>
       BattleCommandOverlaySnapshot(
@@ -1250,6 +1271,8 @@ abstract final class RuntimeCompanionPresentationCodec {
         phase: BattlePresentationPhase.values.byName(data['phase'] as String),
         commandPanelPlacement: BattleCommandPanelPlacement.values.byName(data['commandPanelPlacement'] as String),
         controllerLayout: data['controllerLayout'] as bool,
+        rootCommandOrder: _decodeBattleRootCommandOrder(data['rootCommandOrder']),
+        collectionColumns: _decodeBattleCollectionColumns(data['collectionColumns']),
         forcedReplacement: data['forcedReplacement'] as bool,
         mode: BattleCommandOverlayMode.values.byName(data['mode'] as String),
         viewportSize: Size((data['viewportSize'] as List)[0].toDouble(),

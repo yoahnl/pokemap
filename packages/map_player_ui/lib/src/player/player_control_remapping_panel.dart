@@ -105,7 +105,10 @@ class _DeviceBindings extends StatelessWidget {
                 key: ValueKey<String>(
                   'controls-${device.name}-${control.name}',
                 ),
-                initialValue: profile.bindingFor(device, control),
+                initialValue: profile.bindingFor(device, control).isEmpty
+                    ? null
+                    : profile.bindingFor(device, control),
+                hint: const Text('—'),
                 decoration: InputDecoration(
                   labelText: strings.control(control),
                 ),
@@ -127,9 +130,9 @@ class _DeviceBindings extends StatelessWidget {
                     inputId: inputId,
                   );
                   if (result.hasConflict) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(strings.conflict)),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(strings.conflict)));
                     return;
                   }
                   onChanged(result.profile);
@@ -142,11 +145,11 @@ class _DeviceBindings extends StatelessWidget {
   }
 
   Iterable<String> _inputs(PlayerControlDevice device) => switch (device) {
-        PlayerControlDevice.keyboard => playerKeyboardInputs.keys,
-        PlayerControlDevice.gamepad => playerGamepadInputs,
-        PlayerControlDevice.touch => const <String>[
-            'primaryButton',
-            'secondaryButton',
-          ],
-      };
+    PlayerControlDevice.keyboard => playerKeyboardInputs.keys,
+    PlayerControlDevice.gamepad => playerGamepadInputs,
+    PlayerControlDevice.touch => const <String>[
+      'primaryButton',
+      'secondaryButton',
+    ],
+  };
 }

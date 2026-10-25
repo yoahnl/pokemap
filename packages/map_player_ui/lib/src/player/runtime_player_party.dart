@@ -582,7 +582,15 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
   }
 
   Widget _footerActions(BuildContext context, [Widget? returnAction]) =>
-      returnAction ?? const SizedBox.shrink();
+      returnAction == null
+      ? const SizedBox.shrink()
+      : Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: 88 * MediaQuery.textScalerOf(context).scale(1),
+            child: returnAction,
+          ),
+        );
 
   Widget _partyCardContent(
     BuildContext context,

@@ -7,6 +7,82 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('tab controls are current optional bindings without overwriting explicit authors', () {
+    final source = PlayerControlProfile.standard.toJson();
+    for (final device in ['keyboard', 'gamepad', 'touch']) {
+      final bindings = source[device] as Map<String, String>;
+      bindings.remove('previousTab');
+      bindings.remove('nextTab');
+    }
+    final profile = PlayerControlProfile.fromJson(source);
+    expect(
+      profile.controlForGamepadButton(GamepadButton.leftBumper),
+      RuntimeInputControl.previousTab,
+    );
+    expect(
+      profile.controlForGamepadButton(GamepadButton.rightBumper),
+      RuntimeInputControl.nextTab,
+    );
+    expect(
+      profile.runtimeEventFromKeyEvent(
+        const KeyDownEvent(
+          physicalKey: PhysicalKeyboardKey.pageDown,
+          logicalKey: LogicalKeyboardKey.pageDown,
+          timeStamp: Duration.zero,
+        ),
+      ),
+      const RuntimeInputEvent.press(RuntimeInputControl.nextTab),
+    );
+    expect(
+      (profile.toJson()['gamepad'] as Map).containsKey('previousTab'),
+      isFalse,
+    );
+    final authored = profile
+        .rebind(
+          device: PlayerControlDevice.gamepad,
+          control: RuntimeInputControl.primary,
+          inputId: 'leftBumper',
+        )
+        .profile;
+    expect(
+      authored.controlForGamepadButton(GamepadButton.leftBumper),
+      RuntimeInputControl.primary,
+    );
+    expect(
+      authored.bindingFor(
+        PlayerControlDevice.gamepad,
+        RuntimeInputControl.previousTab,
+      ),
+      isEmpty,
+    );
+    expect(
+      authored.promptFor(
+        PlayerControlDevice.gamepad,
+        RuntimeInputControl.previousTab,
+      ),
+      '—',
+    );
+    expect(PlayerControlProfile.fromJson(authored.toJson()), authored);
+    final rebound = profile
+        .rebind(
+          device: PlayerControlDevice.gamepad,
+          control: RuntimeInputControl.nextTab,
+          inputId: 'x',
+        )
+        .profile;
+    expect(
+      rebound.controlForGamepadButton(GamepadButton.x),
+      RuntimeInputControl.nextTab,
+    );
+    expect(
+      rebound.promptFor(
+        PlayerControlDevice.gamepad,
+        RuntimeInputControl.nextTab,
+      ),
+      'Bouton ouest',
+    );
+  });
+
   test('bicycle binding rebinds, rejects conflicts and persists in profile JSON', () {
     final standard = PlayerControlProfile.standard;
     expect(standard.bindingFor(PlayerControlDevice.keyboard, RuntimeInputControl.bicycle), 'keyB');

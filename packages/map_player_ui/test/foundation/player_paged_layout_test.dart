@@ -3,6 +3,74 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  for (final (height, scale, sideNavigation) in [
+    for (final height in [48.0, 84.0])
+      for (final scale in [1.0, 2.0])
+        for (final sideNavigation in [false, true])
+          (height, scale, sideNavigation),
+  ]) {
+    testWidgets(
+      'compact pagination preserves 48 pixel targets at $height scale=$scale side=$sideNavigation',
+      (tester) async {
+        final selected = <int>[];
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: 320,
+                  height: height,
+                  child: PlayerPagedList(
+                    sideNavigation: sideNavigation,
+                    children: [
+                      for (var index = 0; index < 4; index++)
+                        SizedBox(
+                          height: 48,
+                          child: TextButton(
+                            onPressed: () => selected.add(index),
+                            child: Text('Action $index'),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        for (var index = 0; index < 4; index++) {
+          final action = find.widgetWithText(TextButton, 'Action $index');
+          expect(action.hitTestable(), findsOneWidget);
+          final actionBounds = tester.getRect(action);
+          expect(actionBounds.height, 48);
+          expect(actionBounds.bottom, lessThanOrEqualTo(height));
+          await tester.tap(action);
+          for (final key in ['player-page-previous', 'player-page-next']) {
+            final bounds = tester.getRect(find.byKey(ValueKey(key)));
+            expect(bounds.size, const Size(48, 48));
+            expect(bounds.top, greaterThanOrEqualTo(0));
+            expect(bounds.bottom, lessThanOrEqualTo(height));
+            expect(bounds.overlaps(actionBounds), isFalse);
+          }
+          if (index < 3) {
+            await tester.tap(find.byKey(const ValueKey('player-page-next')));
+            await tester.pumpAndSettle();
+          }
+        }
+        expect(selected, [0, 1, 2, 3]);
+        expect(find.byType(Scrollable), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets(
     'reports measured content including gaps without repeated frames',
     (tester) async {

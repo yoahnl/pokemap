@@ -3,9 +3,8 @@ import 'package:flutter/widgets.dart';
 final class PlayerHealStrings {
   const PlayerHealStrings._(this._languageCode);
 
-  factory PlayerHealStrings.of(BuildContext context) => PlayerHealStrings._(
-        Localizations.localeOf(context).languageCode,
-      );
+  factory PlayerHealStrings.of(BuildContext context) =>
+      PlayerHealStrings._(Localizations.localeOf(context).languageCode);
 
   final String _languageCode;
 
@@ -16,7 +15,7 @@ final class PlayerHealStrings {
       _isFrench ? 'Votre équipe est vide.' : 'Your party is empty.';
   String get returnToGame => _isFrench ? 'Retour au jeu' : 'Return to game';
   String get retry => _isFrench ? 'Réessayer' : 'Try again';
-  String get healParty => _isFrench ? 'Soigner l’équipe' : 'Heal party';
+  String get healParty => _isFrench ? 'Soigner' : 'Heal';
   String get cancel => _isFrench ? 'Annuler' : 'Cancel';
   String get close => _isFrench ? 'Fermer' : 'Close';
   String get unavailable => _isFrench
@@ -25,11 +24,11 @@ final class PlayerHealStrings {
   String hp(int current, int maximum) =>
       _isFrench ? 'PV $current / $maximum' : 'HP $current / $maximum';
   String status(bool needsHealing) => switch ((_isFrench, needsHealing)) {
-        (true, true) => 'Statut à soigner',
-        (true, false) => 'Statut normal',
-        (false, true) => 'Status needs healing',
-        (false, false) => 'Status healthy',
-      };
+    (true, true) => 'Statut à soigner',
+    (true, false) => 'Statut normal',
+    (false, true) => 'Status needs healing',
+    (false, false) => 'Status healthy',
+  };
   String pp(int depletedMoveCount) {
     if (depletedMoveCount > 0) {
       return _isFrench

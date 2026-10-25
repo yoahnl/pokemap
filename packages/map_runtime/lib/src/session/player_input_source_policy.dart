@@ -47,6 +47,23 @@ final class PlayerInputSourcePolicy {
 
   void recognizeSource(PlayerInputOwner owner) => _select(owner);
 
+  void adoptControllerId(String previousId, String nextId) {
+    if (previousId == nextId) return;
+    final previous = PlayerInputOwner(PlayerInputSource.controller, deviceId: previousId);
+    final next = PlayerInputOwner(PlayerInputSource.controller, deviceId: nextId);
+    if (_presentationOwner == previous) _presentationOwner = next;
+    if (_connectedControllers.remove(previousId)) _connectedControllers.add(nextId);
+    for (final control in _held.keys.toList()) {
+      if (_held[control] == previous) _held[control] = next;
+    }
+    final presses = _physicalPresses.toList();
+    _physicalPresses.clear();
+    for (final press in presses) {
+      _physicalPresses.add((press.$1 == previous ? next : press.$1, press.$2, press.$3));
+    }
+  }
+
+
   List<RuntimeInputEvent> releaseAll() {
     final events = releaseHeld();
     _physicalPresses.clear();

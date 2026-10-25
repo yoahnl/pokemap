@@ -1234,6 +1234,7 @@ class _DialogueChoiceContentState extends State<_DialogueChoiceContent> {
   @override
   Widget build(BuildContext context) {
     final dialogue = context.playerDialogueProfile;
+    final ligue = dialogue == null && context.playerWindowTheme == null;
     final spacing = math.max(8.0, dialogue?.choiceSpacing ?? PlayerSpacing.xs);
     final authoredSelectedColor =
         PokeMapPlayerProjectColorResolver.tryOpaqueHex(
@@ -1378,33 +1379,45 @@ class _DialogueChoiceContentState extends State<_DialogueChoiceContent> {
                 portrait: widget.portrait,
               )
             : Text(context.playerL10n.yourChoice, style: speakerStyle);
-        Widget choiceButton(PlayerDialogueChoiceViewData choice) =>
-            PlayerActionButton(
-              key: ValueKey<String>('dialogue-choice-${choice.index}'),
-              label: choice.label,
-              labelMaxLines: 8,
-              icon: choice.selected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              autofocus: false,
-              focusNode: _choiceFocus.putIfAbsent(choice.index, FocusNode.new),
-              selected: choice.selected,
-              secondary: !choice.selected,
-              shape: shape,
-              backgroundColor: choice.selected ? selectedColor : null,
-              foregroundColor: choice.selected
-                  ? selectedForeground
-                  : menuTheme.text,
-              disabledOpacity: dialogue?.choiceDisabledOpacity ?? 1,
-              onPressed: choice.enabled
-                  ? () => onAction(
-                      PlayerDialogueSelectChoiceAction(
-                        snapshotRevision: data.revision,
-                        choiceIndex: choice.index,
-                      ),
-                    )
-                  : null,
-            );
+        Widget choiceButton(PlayerDialogueChoiceViewData choice) {
+          final button = PlayerActionButton(
+            key: ValueKey<String>('dialogue-choice-${choice.index}'),
+            label: choice.label,
+            labelMaxLines: 8,
+            expandContent: ligue,
+            icon: ligue
+                ? null
+                : choice.selected
+                ? Icons.radio_button_checked_rounded
+                : Icons.radio_button_unchecked_rounded,
+            autofocus: false,
+            focusNode: _choiceFocus.putIfAbsent(choice.index, FocusNode.new),
+            selected: choice.selected,
+            secondary: !choice.selected,
+            shape: shape,
+            backgroundColor: choice.selected ? selectedColor : null,
+            foregroundColor: choice.selected
+                ? selectedForeground
+                : menuTheme.text,
+            disabledOpacity: dialogue?.choiceDisabledOpacity ?? 1,
+            onPressed: choice.enabled
+                ? () => onAction(
+                    PlayerDialogueSelectChoiceAction(
+                      snapshotRevision: data.revision,
+                      choiceIndex: choice.index,
+                    ),
+                  )
+                : null,
+          );
+          return ligue
+              ? PlayerMenuThemeScope(
+                  role: ProjectPresentationSurfaceRole.dialogue,
+                  opaque: true,
+                  child: button,
+                )
+              : button;
+        }
+
         final choices = PlayerPagedList(
           spacing: spacing,
           onContentHeightChanged: (height) {

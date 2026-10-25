@@ -92,6 +92,20 @@ final class BattleSceneLayout {
   final BattleCommandPanelLayoutMode commandPanelLayoutMode;
   final double scale;
 
+  Rect? get backdropArtworkRect =>
+      commandPanelPlacement != BattleCommandPanelPlacement.detached &&
+          isPortrait &&
+          switch (commandPanelMode) {
+            BattleCommandOverlayMode.bag ||
+            BattleCommandOverlayMode.pokemon ||
+            BattleCommandOverlayMode.bagMedicineTarget ||
+            BattleCommandOverlayMode.moveTarget ||
+            BattleCommandOverlayMode.decision => true,
+            _ => false,
+          }
+      ? arenaRect
+      : null;
+
   Rect get enemyCombatantBoundsRect =>
       enemySpriteRect.expandToInclude(enemyPlatformRect);
 
@@ -115,13 +129,16 @@ final class BattleSceneLayout {
       throw ArgumentError.value(slot, 'slot');
     }
     final field = Rect.fromLTRB(
-      arenaRect.left + 8,
-      arenaRect.top + 8,
-      arenaRect.right - 8,
-      (commandPanelPlacement != BattleCommandPanelPlacement.bottom
-              ? arenaRect.bottom
-              : commandPanelRect.top) -
-          8,
+      math.max(arenaRect.left + 8, safePadding.left),
+      math.max(arenaRect.top + 8, safePadding.top),
+      math.min(arenaRect.right - 8, viewportSize.width - safePadding.right),
+      math.min(
+        (commandPanelPlacement != BattleCommandPanelPlacement.bottom
+                ? arenaRect.bottom
+                : commandPanelRect.top) -
+            8,
+        viewportSize.height - safePadding.bottom,
+      ),
     );
     const hudHeight = 64.0;
     final hudWidth = math.min(field.width * 0.46, 198.0);
@@ -130,12 +147,22 @@ final class BattleSceneLayout {
         : field.top + slot.slotIndex * (hudHeight + 4);
     final spriteWidth = math.min(field.width * 0.22, player ? 144.0 : 112.0);
     final spriteHeight = math.min(field.height * 0.28, player ? 148.0 : 116.0);
-    final footX =
+    final footXRatio = player ? .68 : .5;
+    final platformWidth = spriteWidth * 1.1;
+    final platformHeight = spriteHeight * .16;
+    final requestedFootX =
         field.left +
         field.width *
             (player
                 ? (slot.slotIndex == 0 ? 0.14 : 0.34)
                 : (slot.slotIndex == 0 ? 0.68 : 0.84));
+    final footX = requestedFootX
+        .clamp(
+          field.left + math.max(spriteWidth * footXRatio, platformWidth / 2),
+          field.right -
+              math.max(spriteWidth * (1 - footXRatio), platformWidth / 2),
+        )
+        .toDouble();
     final requestedFootY =
         field.top +
         field.height *
@@ -143,25 +170,28 @@ final class BattleSceneLayout {
                 ? (slot.slotIndex == 0 ? 0.68 : 0.94)
                 : (slot.slotIndex == 0 ? 0.34 : 0.52));
     final crossesOppositeHuds = player
-        ? footX - spriteWidth / 2 < field.left + hudWidth
-        : footX + spriteWidth / 2 > field.right - hudWidth;
-    final footY = !crossesOppositeHuds
+        ? footX - spriteWidth * footXRatio < field.left + hudWidth
+        : footX + spriteWidth * (1 - footXRatio) > field.right - hudWidth;
+    final unobstructedFootY = !crossesOppositeHuds
         ? requestedFootY
         : player
         ? math.max(requestedFootY, field.top + 2 * hudHeight + 8 + spriteHeight)
         : math.min(requestedFootY, field.bottom - 2 * (hudHeight + 4) - 4);
+    final footY = unobstructedFootY
+        .clamp(field.top + spriteHeight, field.bottom - platformHeight / 2)
+        .toDouble();
     final foot = Offset(footX, footY);
     return BattleCombatantSceneGeometry(
       spriteRect: Rect.fromLTWH(
-        foot.dx - spriteWidth / 2,
+        foot.dx - spriteWidth * footXRatio,
         foot.dy - spriteHeight,
         spriteWidth,
         spriteHeight,
       ),
       platformRect: Rect.fromCenter(
         center: foot,
-        width: spriteWidth * 1.1,
-        height: spriteHeight * 0.16,
+        width: platformWidth,
+        height: platformHeight,
       ),
       footAnchor: foot,
       hudRect: Rect.fromLTWH(
@@ -205,7 +235,255 @@ final class BattleSceneLayout {
         : sidePanel
         ? BattleCommandPanelPlacement.end
         : BattleCommandPanelPlacement.bottom;
-    const sidePanelWidth = 310.0;
+    if (commandPanelMode == BattleCommandOverlayMode.decision && !detached) {
+      final base = BattleSceneLayout.forViewport(
+        viewportSize: viewportSize,
+        safePadding: safePadding,
+        textScale: textScale,
+        commandPanelMode: BattleCommandOverlayMode.fight,
+        controllerLayout: controllerLayout,
+        commandPanelPlacement: isPortrait
+            ? BattleCommandPanelPlacement.bottom
+            : BattleCommandPanelPlacement.end,
+      );
+      final panelWidth = math.min(400.0, viewportRect.width * .6);
+      final panel = isPortrait
+          ? Rect.fromLTRB(
+              0,
+              viewportSize.height - math.min(380, viewportSize.height * .6),
+              viewportSize.width,
+              viewportSize.height,
+            )
+          : Rect.fromLTRB(
+              viewportSize.width - math.max(44, safePadding.right) - panelWidth,
+              math.max(20, safePadding.top),
+              viewportSize.width - math.max(44, safePadding.right),
+              viewportSize.height - math.max(20, safePadding.bottom),
+            );
+      final arena = isPortrait
+          ? Rect.fromLTRB(0, 0, viewportSize.width, panel.top)
+          : Rect.fromLTRB(0, 0, panel.left, viewportSize.height);
+      final scale = math.min(
+        base.scale,
+        isPortrait ? arena.height / 464 : arena.width / 400,
+      );
+      final playerSize = Size(
+        (isPortrait ? 147 : 148) * scale,
+        (isPortrait ? 137 : 134) * scale,
+      );
+      final playerBottom = isPortrait
+          ? arena.bottom - 102 * scale
+          : viewportSize.height - 77 * scale;
+      final playerSprite = Rect.fromLTWH(
+        (isPortrait ? 28 : 169) * scale,
+        playerBottom - playerSize.height,
+        playerSize.width,
+        playerSize.height,
+      );
+      final enemySize = Size(
+        (isPortrait ? 98.7 : 86.3) * scale,
+        (isPortrait ? 109.3 : 95.7) * scale,
+      );
+      final enemyBottom = isPortrait
+          ? arena.bottom - 168 * scale
+          : viewportSize.height - 160 * scale;
+      final enemySprite = Rect.fromLTWH(
+        viewportSize.width - (isPortrait ? 136 : 498) * scale,
+        math.max(safePadding.top, enemyBottom - enemySize.height),
+        enemySize.width,
+        enemySize.height,
+      );
+      final playerFoot = Offset(
+        playerSprite.left + playerSprite.width * .68,
+        playerSprite.bottom,
+      );
+      final enemyFoot = Offset(enemySprite.center.dx, enemySprite.bottom);
+      final enemyHud = Rect.fromLTWH(
+        math.max(20 * scale, safePadding.left),
+        math.max((isPortrait ? 48 : 30) * scale, safePadding.top),
+        (isPortrait ? 216 : 264) * scale,
+        40.5 * scale,
+      );
+      final playerHud = Rect.fromLTWH(
+        isPortrait
+            ? viewportSize.width - math.max(14, safePadding.right) - 218 * scale
+            : math.max(20 * scale, safePadding.left),
+        (isPortrait
+                ? arena.bottom - 18
+                : viewportSize.height - math.max(16, safePadding.bottom)) -
+            68.25 * scale,
+        (isPortrait ? 218 : 236) * scale,
+        68.25 * scale,
+      );
+      return BattleSceneLayout._(
+        viewportSize: viewportSize,
+        safePadding: safePadding,
+        viewportClass: viewportClass,
+        isPortrait: isPortrait,
+        portraitSafeMargin: isPortrait ? 14 : 0,
+        sceneRect: Offset.zero & viewportSize,
+        arenaRect: arena,
+        commandPanelPlacement: isPortrait
+            ? BattleCommandPanelPlacement.bottom
+            : BattleCommandPanelPlacement.end,
+        commandPanelMode: commandPanelMode,
+        controllerLayout: controllerLayout,
+        stageRect: arena,
+        commandPanelRect: panel,
+        enemyHudRect: _growHudRect(
+          base: enemyHud,
+          textScale: textScale,
+          bounds: arena,
+          obstacles: [playerHud, playerSprite, enemySprite],
+        ),
+        playerHudRect: _growHudRect(
+          base: playerHud,
+          textScale: textScale,
+          bounds: arena,
+          obstacles: [enemyHud, playerSprite, enemySprite],
+        ),
+        enemySpriteRect: enemySprite,
+        playerSpriteRect: playerSprite,
+        enemyPlatformRect: Rect.fromCenter(
+          center: enemyFoot,
+          width: enemySprite.width * .7,
+          height: 4,
+        ),
+        playerPlatformRect: Rect.fromCenter(
+          center: playerFoot,
+          width: playerSprite.width * .7,
+          height: 4,
+        ),
+        enemyFootAnchor: enemyFoot,
+        playerFootAnchor: playerFoot,
+        commandPanelLayoutMode: isPortrait
+            ? BattleCommandPanelLayoutMode.stacked
+            : BattleCommandPanelLayoutMode.split,
+        scale: scale,
+      );
+    }
+    final collection = switch (commandPanelMode) {
+      BattleCommandOverlayMode.bag ||
+      BattleCommandOverlayMode.pokemon ||
+      BattleCommandOverlayMode.bagMedicineTarget ||
+      BattleCommandOverlayMode.moveTarget => true,
+      _ => false,
+    };
+    if (collection && !detached) {
+      final bounds = Offset.zero & viewportSize;
+      final target = commandPanelMode == BattleCommandOverlayMode.moveTarget;
+      final panelWidth = math.min(
+        target ? 310.0 : 460.0,
+        viewportRect.width * .6,
+      );
+      final panel = isPortrait
+          ? Rect.fromLTRB(
+              0,
+              viewportSize.height - math.min(560, viewportSize.height * .72),
+              viewportSize.width,
+              viewportSize.height,
+            )
+          : Rect.fromLTRB(
+              math.max(
+                safePadding.left,
+                viewportSize.width -
+                    math.max(20, safePadding.right) -
+                    panelWidth,
+              ),
+              math.max(16, safePadding.top),
+              viewportSize.width - math.max(20, safePadding.right),
+              viewportSize.height - math.max(16, safePadding.bottom),
+            );
+      final arena = isPortrait
+          ? Rect.fromLTRB(0, 0, viewportSize.width, panel.top)
+          : Rect.fromLTRB(0, 0, panel.left, viewportSize.height);
+      final scale = math.min(
+        1.0,
+        isPortrait
+            ? math.min(viewportSize.width / 390, arena.height / 284)
+            : math.min(viewportSize.width / 844, viewportSize.height / 390),
+      );
+      final enemyHud = Rect.fromLTWH(
+        math.max((isPortrait ? 14 : 18) * scale, safePadding.left),
+        math.max((isPortrait ? 38 : 18) * scale, safePadding.top),
+        math.min((isPortrait ? 198 : 230) * scale, arena.width - 20),
+        40.5 * scale,
+      );
+      final playerHud = Rect.fromLTWH(
+        isPortrait
+            ? viewportSize.width - math.max(14, safePadding.right) - 200 * scale
+            : math.max(18 * scale, safePadding.left),
+        arena.bottom -
+            (isPortrait ? 12 : math.max(16, safePadding.bottom)) -
+            68.25 * scale,
+        math.min((isPortrait ? 200 : 230) * scale, arena.width - 20),
+        68.25 * scale,
+      );
+      final playerSprite = Rect.fromLTWH(
+        math.max((isPortrait ? 23.2 : 75.8) * scale, safePadding.left),
+        arena.bottom - (isPortrait ? 75.05 + 91.6 : 111.95 + 118.4) * scale,
+        (isPortrait ? 97.7 : 126.3) * scale,
+        (isPortrait ? 91.6 : 118.4) * scale,
+      );
+      final enemySprite = isPortrait || target
+          ? Rect.fromLTWH(
+              arena.right - (isPortrait ? 117 : 110) * scale,
+              arena.bottom - (isPortrait ? 106.83 + 75.2 : 180) * scale,
+              67.8 * scale,
+              75.2 * scale,
+            )
+          : Rect.zero;
+      final playerFoot = Offset(
+        playerSprite.left + playerSprite.width * .68,
+        playerSprite.bottom,
+      );
+      final enemyFoot = Offset(enemySprite.center.dx, enemySprite.bottom);
+      return BattleSceneLayout._(
+        viewportSize: viewportSize,
+        safePadding: safePadding,
+        viewportClass: viewportClass,
+        isPortrait: isPortrait,
+        portraitSafeMargin: isPortrait ? 14 : 0,
+        sceneRect: bounds,
+        arenaRect: arena,
+        commandPanelPlacement: isPortrait
+            ? BattleCommandPanelPlacement.bottom
+            : BattleCommandPanelPlacement.end,
+        commandPanelMode: commandPanelMode,
+        controllerLayout: controllerLayout,
+        stageRect: arena,
+        commandPanelRect: panel,
+        enemyHudRect: _growHudRect(
+          base: enemyHud,
+          textScale: textScale,
+          bounds: arena,
+          obstacles: [playerHud, playerSprite, enemySprite],
+        ),
+        playerHudRect: _growHudRect(
+          base: playerHud,
+          textScale: textScale,
+          bounds: arena,
+          obstacles: [enemyHud, playerSprite, enemySprite],
+        ),
+        enemySpriteRect: enemySprite,
+        playerSpriteRect: playerSprite,
+        enemyPlatformRect: Rect.zero,
+        playerPlatformRect: Rect.fromCenter(
+          center: playerFoot,
+          width: playerSprite.width * .7,
+          height: 5 * scale,
+        ),
+        enemyFootAnchor: enemyFoot,
+        playerFootAnchor: playerFoot,
+        commandPanelLayoutMode: isPortrait
+            ? BattleCommandPanelLayoutMode.stacked
+            : BattleCommandPanelLayoutMode.split,
+        scale: scale,
+      );
+    }
+    final compactController = controllerLayout && !detached;
+    final compactSideWidth = math.min(viewportSize.width * .32, 340.0);
+    final sidePanelWidth = compactController ? compactSideWidth : 310.0;
     final sceneRect = sidePanel
         ? Rect.fromLTRB(
             viewportRect.left,
@@ -232,18 +510,50 @@ final class BattleSceneLayout {
       BattleViewportClass.mediumLandscape => 12.0,
       BattleViewportClass.wideDesktop => 18.0,
     };
-    final commandPanelHeight = switch (viewportClass) {
-      BattleViewportClass.compactPortrait => math.min(
-        300.0,
-        viewportSize.height * .5,
-      ),
-      BattleViewportClass.mediumLandscape => 108.0,
-      BattleViewportClass.wideDesktop =>
-        (sceneRect.height * 0.22).clamp(146.0, 176.0).toDouble(),
-    };
+    final controllerRoot = commandPanelMode == BattleCommandOverlayMode.root;
+    final controllerTextScale = textScale.clamp(1.0, 1.6);
+    final controllerBottomHeight =
+        (controllerRoot
+            ? 128.0
+            : viewportSize.width < 360
+            ? 268.0
+            : 236.0) *
+        controllerTextScale;
+    final commandPanelHeight = compactController && isPortrait
+        ? math.min(
+            controllerBottomHeight,
+            viewportRect.height * (textScale > 1.3 ? .62 : .46),
+          )
+        : switch (viewportClass) {
+            BattleViewportClass.compactPortrait => math.min(
+              300.0,
+              viewportSize.height * .5,
+            ),
+            BattleViewportClass.mediumLandscape => 108.0,
+            BattleViewportClass.wideDesktop =>
+              (sceneRect.height * 0.22).clamp(146.0, 176.0).toDouble(),
+          };
     final rootDock = commandPanelMode == BattleCommandOverlayMode.root;
-    final sideDockWidth = rootDock ? 310.0 : 293.0;
-    final sideDockHeight = rootDock ? 284.0 : 267.0;
+    final sideDockWidth = compactController
+        ? compactSideWidth
+        : rootDock
+        ? 310.0
+        : 293.0;
+    final sideDockHeight = compactController
+        ? (rootDock ? 232.0 : 288.0) * controllerTextScale
+        : rootDock
+        ? 284.0
+        : 267.0;
+    final controllerPanelTop = math.max(35.0, safePadding.top + 8) + 39 + 8;
+    final controllerAvailableHeight = math.max(
+      48.0,
+      viewportSize.height -
+          math.max(18, safePadding.bottom) -
+          controllerPanelTop,
+    );
+    final actualSideHeight = compactController
+        ? math.min(sideDockHeight, controllerAvailableHeight)
+        : math.min(sideDockHeight, viewportRect.height - 24);
     final commandPanelRect = detached
         ? Rect.zero
         : sidePanel
@@ -255,10 +565,10 @@ final class BattleSceneLayout {
               viewportRect.top + 12,
               viewportSize.height -
                   math.max(rootDock ? 16 : 18, safePadding.bottom) -
-                  sideDockHeight,
+                  actualSideHeight,
             ),
             sideDockWidth,
-            math.min(sideDockHeight, viewportRect.height - 24),
+            actualSideHeight,
           )
         : viewportClass != BattleViewportClass.wideDesktop
         ? Rect.fromLTWH(
@@ -281,13 +591,27 @@ final class BattleSceneLayout {
     if (sidePanel || detached) {
       final growthObstacle = sidePanel
           ? Rect.fromLTWH(
-              viewportSize.width - math.max(20, safePadding.right) - 310,
+              viewportSize.width -
+                  math.max(20, safePadding.right) -
+                  sidePanelWidth,
               math.max(
                 viewportRect.top + 12,
-                viewportSize.height - math.max(16, safePadding.bottom) - 284,
+                viewportSize.height -
+                    math.max(16, safePadding.bottom) -
+                    (compactController
+                        ? math.min(
+                            288 * controllerTextScale,
+                            controllerAvailableHeight,
+                          )
+                        : 284),
               ),
-              310,
-              math.min(284, viewportRect.height - 24),
+              sidePanelWidth,
+              compactController
+                  ? math.min(
+                      288 * controllerTextScale,
+                      controllerAvailableHeight,
+                    )
+                  : math.min(284, viewportRect.height - 24),
             )
           : commandPanelRect;
       final detachedMessage =
@@ -437,12 +761,16 @@ final class BattleSceneLayout {
 
     if (effectivePlacement == BattleCommandPanelPlacement.bottom) {
       final bounds = Offset.zero & viewportSize;
-      final arena = Rect.fromLTRB(
-        0,
-        0,
-        viewportSize.width,
-        commandPanelRect.top,
-      );
+      final scenePanelTop = compactController && isPortrait
+          ? viewportSize.height -
+                math.max(24, safePadding.bottom) -
+                math.min(
+                  (viewportSize.width < 360 ? 268.0 : 236.0) *
+                      controllerTextScale,
+                  viewportRect.height * (textScale > 1.3 ? .62 : .46),
+                )
+          : commandPanelRect.top;
+      final arena = Rect.fromLTRB(0, 0, viewportSize.width, scenePanelTop);
       final visualScale = math.min(
         1.0,
         isPortrait
@@ -462,10 +790,10 @@ final class BattleSceneLayout {
         viewportSize.width -
             ((isPortrait ? 14 : 24) + (isPortrait ? 218 : 210)) * visualScale,
         isPortrait
-            ? commandPanelRect.top - (30 + 68.25) * visualScale
+            ? scenePanelTop - (30 + 68.25) * visualScale
             : math.min(
                     viewportSize.height - 142 * visualScale,
-                    commandPanelRect.top - 12 * visualScale,
+                    scenePanelTop - 12 * visualScale,
                   ) -
                   68.25 * visualScale,
         (isPortrait ? 218 : 210) * visualScale,
@@ -482,13 +810,13 @@ final class BattleSceneLayout {
       final playerWidth =
           playerHeight * (isPortrait ? 147 / 137 : 134.7 / 126.3);
       final playerBottom = isPortrait
-          ? (commandPanelRect.top - 112.5 * visualScale).clamp(
-              enemyHud.bottom + 8 + playerHeight,
+          ? (scenePanelTop - 112.5 * visualScale).clamp(
+              math.min(enemyHud.bottom + 8 + playerHeight, playerHud.top - 8),
               playerHud.top - 8,
             )
           : math.min(
               viewportSize.height - 132.2 * visualScale,
-              commandPanelRect.top - 8 * visualScale,
+              scenePanelTop - 8 * visualScale,
             );
       final playerSprite = Rect.fromLTWH(
         (isPortrait ? 28 : 140.6) * visualScale,
@@ -503,7 +831,7 @@ final class BattleSceneLayout {
       final enemyWidth = enemyHeight * (isPortrait ? 98.7 / 109.3 : 84.8 / 94);
       final enemyBottom = math.min(
         isPortrait
-            ? commandPanelRect.top - 150.7 * visualScale
+            ? scenePanelTop - 150.7 * visualScale
             : viewportSize.height - 208.3 * visualScale,
         playerHud.top - 8,
       );

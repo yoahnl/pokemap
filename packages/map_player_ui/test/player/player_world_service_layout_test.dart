@@ -26,34 +26,43 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
         final commands = <RuntimeWorldServiceCommand>[];
         final snapshot = _snapshot(kind);
-        await tester.pumpWidget(
-          MaterialApp(
-            locale: const Locale('fr'),
-            supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-            localizationsDelegates:
-                PokeMapPlayerLocalizations.localizationsDelegates,
-            theme: PokeMapPlayerTheme.dark(),
-            home: PlayerInputScope(
-              activeInputSource: input,
-              child: switch (kind) {
-                'shop' => PlayerShopOverlay(
-                  snapshot: snapshot,
-                  onCommand: commands.add,
-                ),
-                'heal' => PlayerHealConfirmation(
-                  snapshot: snapshot,
-                  onCommand: commands.add,
-                ),
-                _ => PlayerPartyTradeOverlay(
-                  snapshot: snapshot,
-                  onCommand: commands.add,
-                  hardwareGamepadEnabled: false,
-                ),
-              },
-            ),
-          ),
-        );
+        Widget surface(RuntimeWorldServiceSnapshot activeSnapshot) =>
+            MaterialApp(
+              locale: const Locale('fr'),
+              supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+              localizationsDelegates:
+                  PokeMapPlayerLocalizations.localizationsDelegates,
+              theme: PokeMapPlayerTheme.dark(),
+              home: PlayerInputScope(
+                activeInputSource: input,
+                child: switch (kind) {
+                  'shop' => PlayerShopOverlay(
+                    snapshot: activeSnapshot,
+                    onCommand: commands.add,
+                  ),
+                  'heal' => PlayerHealConfirmation(
+                    snapshot: activeSnapshot,
+                    onCommand: commands.add,
+                  ),
+                  _ => PlayerPartyTradeOverlay(
+                    snapshot: activeSnapshot,
+                    onCommand: commands.add,
+                    hardwareGamepadEnabled: false,
+                  ),
+                },
+              ),
+            );
+        await tester.pumpWidget(surface(snapshot));
         await tester.pumpAndSettle();
+        if (kind == 'shop') {
+          expect(find.byKey(const ValueKey('shop-buy')), findsNothing);
+          await tester.tap(find.byKey(const ValueKey('shop-item-item-0')));
+          expect(commands.single.action, RuntimeWorldServiceAction.select);
+          expect(commands.single.snapshotRevision, 11);
+          commands.clear();
+          await tester.pumpWidget(surface(snapshot.next()));
+          await tester.pumpAndSettle();
+        }
         expect(tester.takeException(), isNull, reason: '$kind $name');
         expect(find.byType(Scrollable), findsNothing);
         final action = find.byKey(
@@ -73,7 +82,7 @@ void main() {
         );
         expect(commands, isEmpty);
         await tester.tap(action);
-        expect(commands.single.snapshotRevision, 11);
+        expect(commands.single.snapshotRevision, kind == 'shop' ? 12 : 11);
         expect(
           commands.single.action,
           kind == 'trade'

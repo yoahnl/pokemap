@@ -7,6 +7,83 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets(
+    'portrait summary changes tabs from body focus without repeating held Page keys',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.reset);
+      final bodyFocus = FocusNode(debugLabel: 'Summary action body');
+      addTearDown(bodyFocus.dispose);
+      final sources = <PlayerInputSource>[];
+      await tester.pumpWidget(
+        _host(
+          RuntimePlayerActions(
+            onBack: () {},
+            onMenu: () {},
+            onInputSourceChanged: sources.add,
+            child: RuntimePlayerInputBindings(
+              child: PlayerPokemonSummarySheet(
+                summary: _summary(),
+                actions: TextButton(
+                  focusNode: bodyFocus,
+                  onPressed: () {},
+                  child: const Text('Action publiée'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('pokemon-summary-tab-actions')),
+      );
+      await tester.pumpAndSettle();
+      bodyFocus.requestFocus();
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.pageUp);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('pokemon-summary-tab-stats')),
+            )
+            .selected,
+        isTrue,
+      );
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.pageUp);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('pokemon-summary-tab-stats')),
+            )
+            .selected,
+        isTrue,
+      );
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.pageUp);
+      await tester.tap(
+        find.byKey(const ValueKey('pokemon-summary-tab-actions')),
+      );
+      await tester.pumpAndSettle();
+      bodyFocus.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('pokemon-summary-tab-summary')),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(sources, contains(PlayerInputSource.keyboard));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   setUpAll(() async {
     await (FontLoader(
       'packages/map_player_ui/PokeMapSplashDMSans',

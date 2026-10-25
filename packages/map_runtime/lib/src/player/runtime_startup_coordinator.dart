@@ -302,6 +302,7 @@ final class RuntimeStartupCoordinator {
                 _snapshot.phase == RuntimeStartupPhase.launchingSession);
     if (startupSnapshotRevision != _snapshot.revision ||
         !phaseAcceptsCommand ||
+        (launchesSession && _snapshot.isTransitioning) ||
         !_snapshot.isLifecycleActive) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.stale,

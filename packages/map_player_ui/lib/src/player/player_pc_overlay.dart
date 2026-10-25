@@ -32,6 +32,7 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
   var _swap = false;
   var _slot = 0;
   var _storedSlot = 0;
+  var _boxDirection = 1;
   String? _swapTarget;
   final _surfaceFocus = FocusNode(debugLabel: 'PC service');
 
@@ -65,6 +66,13 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
     if (old is RuntimePcServiceContent &&
         value is RuntimePcServiceContent &&
         old.selectedBoxId != value.selectedBoxId) {
+      final previous = old.boxes.indexWhere(
+        (box) => box.boxId == old.selectedBoxId,
+      );
+      final next = value.boxes.indexWhere(
+        (box) => box.boxId == value.selectedBoxId,
+      );
+      _boxDirection = next >= previous ? 1 : -1;
       _slot = 0;
       _storedSlot = 0;
       _party = false;
@@ -139,358 +147,387 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
       });
     }
 
-    return RuntimePlayerActions(
-      includeDefaultKeyboardShortcuts: false,
-      onBack: _back,
-      onMenu: _back,
-      onInputSourceChanged: (_) {},
-      child: Focus(
-        focusNode: _surfaceFocus,
-        autofocus: true,
-        child: PlayerMenuThemeScope(
-          role: ProjectPresentationSurfaceRole.pauseMenu,
-          child: Builder(
-            builder: (context) {
-              final theme = context.playerMenuTheme;
-              final footerStyle = TextButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 8,
-                ),
-                textStyle: theme.actionLabel.copyWith(fontSize: 14),
-                foregroundColor: theme.text,
-                backgroundColor: theme.panel,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero,
-                  side: BorderSide(color: theme.border),
-                ),
-              );
-              final footer = PlayerMenuFooter(
-                hints: const [],
-                returnAction: const SizedBox.shrink(),
-                padding: EdgeInsets.symmetric(
-                  horizontal: PlayerCompanionScope.of(context) ? 0 : 16,
-                  vertical: PlayerCompanionScope.of(context) ? 4 : 8,
-                ),
-                actionsBuilder: (context, _) => PlayerMenuActionGroup(
-                  children: [
-                    TextButton(
-                      key: ValueKey('pc-summary-${entry?.targetId ?? 'empty'}'),
-                      onPressed: entry == null
-                          ? null
-                          : () => _showSummary(context, entry),
-                      style: footerStyle,
-                      child: Text(french ? 'Résumé' : 'Summary'),
-                    ),
-                    if (!_party && entry != null)
-                      IconButton(
-                        key: ValueKey('pc-swap-${entry.targetId}'),
-                        tooltip: strings.swapTooltip,
+    void stepBox(int delta) {
+      final next = boxIndex + delta;
+      if (_party || boxIndex < 0 || next < 0 || next >= content.boxes.length)
+        return;
+      _emit(
+        RuntimeWorldServiceAction.select,
+        targetId: content.boxes[next].boxId,
+      );
+    }
+
+    return RuntimePlayerTabActions(
+      resetToken: content.selectedBoxId,
+      onPreviousTab: () => stepBox(-1),
+      onNextTab: () => stepBox(1),
+      child: RuntimePlayerActions(
+        includeDefaultKeyboardShortcuts: false,
+        onBack: _back,
+        onMenu: _back,
+        onInputSourceChanged: (source) =>
+            RuntimePlayerInputSourceNotification(source).dispatch(context),
+        onPreviousTab: () => stepBox(-1),
+        onNextTab: () => stepBox(1),
+        child: Focus(
+          focusNode: _surfaceFocus,
+          autofocus: true,
+          child: PlayerMenuThemeScope(
+            role: ProjectPresentationSurfaceRole.pauseMenu,
+            child: Builder(
+              builder: (context) {
+                final theme = context.playerMenuTheme;
+                final footerStyle = TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  textStyle: theme.actionLabel.copyWith(fontSize: 14),
+                  foregroundColor: theme.text,
+                  backgroundColor: theme.panel,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                    side: BorderSide(color: theme.border),
+                  ),
+                );
+                final footer = PlayerMenuFooter(
+                  hints: const [],
+                  returnAction: const SizedBox.shrink(),
+                  padding: EdgeInsets.fromLTRB(
+                    PlayerCompanionScope.of(context) ? 0 : 16,
+                    PlayerCompanionScope.of(context) ? 4 : 8,
+                    PlayerCompanionScope.of(context) ? 0 : 16,
+                    PlayerCompanionScope.of(context) ? 12 : 8,
+                  ),
+                  actionsBuilder: (context, _) => PlayerMenuActionGroup(
+                    children: [
+                      TextButton(
+                        key: ValueKey(
+                          'pc-summary-${entry?.targetId ?? 'empty'}',
+                        ),
+                        onPressed: entry == null
+                            ? null
+                            : () => _showSummary(context, entry),
+                        style: footerStyle,
+                        child: Text(french ? 'Résumé' : 'Summary'),
+                      ),
+                      if (!_party && entry != null)
+                        IconButton(
+                          key: ValueKey('pc-swap-${entry.targetId}'),
+                          tooltip: strings.swapTooltip,
+                          onPressed:
+                              snapshot.isActionEnabled(
+                                    RuntimeWorldServiceAction.swap,
+                                  ) &&
+                                  content.party.isNotEmpty
+                              ? () => setState(() {
+                                  _swapTarget = entry.targetId;
+                                  _storedSlot = _slot;
+                                  _party = true;
+                                  _swap = true;
+                                  _slot = 0;
+                                })
+                              : null,
+                          icon: const Icon(Icons.swap_horiz),
+                        ),
+                      TextButton(
+                        key: ValueKey(
+                          _swap
+                              ? 'pc-swap-with-${entry?.targetId ?? 'empty'}'
+                              : 'pc-${action.name}-${entry?.targetId ?? 'empty'}',
+                        ),
+                        onPressed: _swap
+                            ? entry != null &&
+                                      snapshot.isActionEnabled(
+                                        RuntimeWorldServiceAction.swap,
+                                      )
+                                  ? () {
+                                      _emit(
+                                        RuntimeWorldServiceAction.swap,
+                                        targetId: _swapTarget,
+                                        secondaryTargetId: entry.targetId,
+                                      );
+                                      setState(() {
+                                        _swap = false;
+                                        _party = false;
+                                        _slot = 0;
+                                      });
+                                    }
+                                  : null
+                            : enabled
+                            ? () => _emit(action, targetId: entry!.targetId)
+                            : null,
+                        style: footerStyle,
+                        child: Text(
+                          _swap
+                              ? strings.swapTooltip
+                              : _party
+                              ? strings.deposit
+                              : strings.withdraw,
+                        ),
+                      ),
+                      TextButton(
+                        key: const ValueKey('pc-party-toggle'),
+                        onPressed: toggleParty,
+                        style: footerStyle,
+                        child: Text(
+                          _party ? (box?.label ?? 'Box') : strings.deposit,
+                        ),
+                      ),
+                      TextButton(
+                        key: const ValueKey('pc-footer-close'),
                         onPressed:
                             snapshot.isActionEnabled(
-                                  RuntimeWorldServiceAction.swap,
-                                ) &&
-                                content.party.isNotEmpty
-                            ? () => setState(() {
-                                _swapTarget = entry.targetId;
-                                _storedSlot = _slot;
-                                _party = true;
-                                _swap = true;
-                                _slot = 0;
-                              })
+                              RuntimeWorldServiceAction.close,
+                            )
+                            ? () => _emit(RuntimeWorldServiceAction.close)
                             : null,
-                        icon: const Icon(Icons.swap_horiz),
+                        style: footerStyle,
+                        child: Text(strings.close),
                       ),
-                    TextButton(
-                      key: ValueKey(
-                        _swap
-                            ? 'pc-swap-with-${entry?.targetId ?? 'empty'}'
-                            : 'pc-${action.name}-${entry?.targetId ?? 'empty'}',
-                      ),
-                      onPressed: _swap
-                          ? entry != null &&
-                                    snapshot.isActionEnabled(
-                                      RuntimeWorldServiceAction.swap,
-                                    )
-                                ? () {
-                                    _emit(
-                                      RuntimeWorldServiceAction.swap,
-                                      targetId: _swapTarget,
-                                      secondaryTargetId: entry.targetId,
-                                    );
-                                    setState(() {
-                                      _swap = false;
-                                      _party = false;
-                                      _slot = 0;
-                                    });
-                                  }
-                                : null
-                          : enabled
-                          ? () => _emit(action, targetId: entry!.targetId)
-                          : null,
-                      style: footerStyle,
-                      child: Text(
-                        _swap
-                            ? strings.swapTooltip
-                            : _party
-                            ? strings.deposit
-                            : strings.withdraw,
-                      ),
+                    ],
+                  ),
+                );
+                return PlayerMenuFrame(
+                  scrollable: false,
+                  header: Padding(
+                    padding: PlayerCompanionScope.of(context)
+                        ? EdgeInsets.zero
+                        : const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Row(
+                      children: [
+                        PlayerMenuBackButton(
+                          key: const ValueKey('pc-close'),
+                          onPressed: _back,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _swap ? strings.swapTooltip : content.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.title.copyWith(fontSize: 22),
+                              ),
+                              Text(
+                                _party
+                                    ? strings.party
+                                    : '${box?.label ?? 'Box'} · ${box?.count ?? 0}/${box?.capacity ?? 30}',
+                                style: theme.meta.copyWith(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          key: const ValueKey('pc-box-previous'),
+                          tooltip: french ? 'Boîte précédente' : 'Previous box',
+                          onPressed:
+                              !_party &&
+                                  boxIndex > 0 &&
+                                  snapshot.isActionEnabled(
+                                    RuntimeWorldServiceAction.select,
+                                  )
+                              ? () => _emit(
+                                  RuntimeWorldServiceAction.select,
+                                  targetId: content.boxes[boxIndex - 1].boxId,
+                                )
+                              : null,
+                          icon: const Icon(Icons.chevron_left),
+                        ),
+                        IconButton(
+                          key: const ValueKey('pc-box-next'),
+                          tooltip: french ? 'Boîte suivante' : 'Next box',
+                          onPressed:
+                              !_party &&
+                                  boxIndex >= 0 &&
+                                  boxIndex + 1 < content.boxes.length &&
+                                  snapshot.isActionEnabled(
+                                    RuntimeWorldServiceAction.select,
+                                  )
+                              ? () => _emit(
+                                  RuntimeWorldServiceAction.select,
+                                  targetId: content.boxes[boxIndex + 1].boxId,
+                                )
+                              : null,
+                          icon: const Icon(Icons.chevron_right),
+                        ),
+                      ],
                     ),
-                    TextButton(
-                      key: const ValueKey('pc-party-toggle'),
-                      onPressed: toggleParty,
-                      style: footerStyle,
-                      child: Text(
-                        _party ? (box?.label ?? 'Box') : strings.deposit,
-                      ),
-                    ),
-                    TextButton(
-                      key: const ValueKey('pc-footer-close'),
-                      onPressed:
-                          snapshot.isActionEnabled(
-                            RuntimeWorldServiceAction.close,
-                          )
-                          ? () => _emit(RuntimeWorldServiceAction.close)
-                          : null,
-                      style: footerStyle,
-                      child: Text(strings.close),
-                    ),
-                  ],
-                ),
-              );
-              return PlayerMenuFrame(
-                scrollable: false,
-                header: Padding(
-                  padding: PlayerCompanionScope.of(context)
-                      ? EdgeInsets.zero
-                      : const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Row(
-                    children: [
-                      PlayerMenuBackButton(
-                        key: const ValueKey('pc-close'),
-                        onPressed: _back,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
+                  ),
+                  footer: footer,
+                  child: LayoutBuilder(
+                    builder: (context, area) {
+                      final companion = PlayerCompanionScope.of(context);
+                      final wide =
+                          !companion &&
+                          area.maxWidth >= 600 &&
+                          MediaQuery.sizeOf(context).width >
+                              MediaQuery.sizeOf(context).height;
+                      final detailWidth = wide ? 164.0 : 0.0;
+                      final availableGridWidth =
+                          area.maxWidth - (wide ? detailWidth + 12 : 0);
+                      final preferredColumns = _party
+                          ? (wide ? 3 : 2)
+                          : (wide ? 10 : 6);
+                      final fittingColumns = ((availableGridWidth - 4) / 56)
+                          .floor();
+                      final columns = preferredColumns.clamp(
+                        1,
+                        fittingColumns < 1 ? 1 : fittingColumns,
+                      );
+                      final count = _party ? 6 : (box?.capacity ?? 30);
+                      final rows = (count / columns).ceil();
+                      final gridHeight = rows * 48.0 + (rows - 1) * 8;
+                      final showDetailBelow =
+                          !wide &&
+                          !companion &&
+                          area.maxHeight - gridHeight >= 160;
+                      final detail = Container(
+                        padding: EdgeInsets.only(
+                          left: wide ? 16 : 0,
+                          top: wide ? 0 : 16,
+                        ),
+                        decoration: BoxDecoration(
+                          border: wide
+                              ? Border(left: BorderSide(color: theme.border))
+                              : Border(top: BorderSide(color: theme.border)),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              _swap ? strings.swapTooltip : content.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.title.copyWith(fontSize: 22),
-                            ),
-                            Text(
-                              _party
-                                  ? strings.party
-                                  : '${box?.label ?? 'Box'} · ${box?.count ?? 0}/${box?.capacity ?? 30}',
-                              style: theme.meta.copyWith(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        key: const ValueKey('pc-box-previous'),
-                        tooltip: french ? 'Boîte précédente' : 'Previous box',
-                        onPressed:
-                            !_party &&
-                                boxIndex > 0 &&
-                                snapshot.isActionEnabled(
-                                  RuntimeWorldServiceAction.select,
-                                )
-                            ? () => _emit(
-                                RuntimeWorldServiceAction.select,
-                                targetId: content.boxes[boxIndex - 1].boxId,
-                              )
-                            : null,
-                        icon: const Icon(Icons.chevron_left),
-                      ),
-                      IconButton(
-                        key: const ValueKey('pc-box-next'),
-                        tooltip: french ? 'Boîte suivante' : 'Next box',
-                        onPressed:
-                            !_party &&
-                                boxIndex >= 0 &&
-                                boxIndex + 1 < content.boxes.length &&
-                                snapshot.isActionEnabled(
-                                  RuntimeWorldServiceAction.select,
-                                )
-                            ? () => _emit(
-                                RuntimeWorldServiceAction.select,
-                                targetId: content.boxes[boxIndex + 1].boxId,
-                              )
-                            : null,
-                        icon: const Icon(Icons.chevron_right),
-                      ),
-                    ],
-                  ),
-                ),
-                footer: footer,
-                child: LayoutBuilder(
-                  builder: (context, area) {
-                    final companion = PlayerCompanionScope.of(context);
-                    final wide =
-                        !companion &&
-                        area.maxWidth >= 600 &&
-                        MediaQuery.sizeOf(context).width >
-                            MediaQuery.sizeOf(context).height;
-                    final detailWidth = wide ? 164.0 : 0.0;
-                    final availableGridWidth =
-                        area.maxWidth - (wide ? detailWidth + 12 : 0);
-                    final preferredColumns = _party
-                        ? (wide ? 3 : 2)
-                        : (wide ? 10 : 6);
-                    final fittingColumns = ((availableGridWidth - 4) / 56)
-                        .floor();
-                    final columns = preferredColumns.clamp(
-                      1,
-                      fittingColumns < 1 ? 1 : fittingColumns,
-                    );
-                    final count = _party ? 6 : (box?.capacity ?? 30);
-                    final rows = (count / columns).ceil();
-                    final gridHeight = rows * 48.0 + (rows - 1) * 8;
-                    final showDetailBelow =
-                        !wide &&
-                        !companion &&
-                        area.maxHeight - gridHeight >= 160;
-                    final detail = Container(
-                      padding: EdgeInsets.only(
-                        left: wide ? 16 : 0,
-                        top: wide ? 0 : 16,
-                      ),
-                      decoration: BoxDecoration(
-                        border: wide
-                            ? Border(left: BorderSide(color: theme.border))
-                            : Border(top: BorderSide(color: theme.border)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              if (entry?.summary case final summary?) ...[
-                                PlayerPokemonImage(
-                                  summary: summary,
-                                  width: wide ? 40 : 56,
-                                  height: wide ? 40 : 56,
-                                ),
-                                const SizedBox(width: 8),
-                              ],
-                              Expanded(
-                                child: Text(
-                                  snapshot.safeMessage ??
-                                      entry?.unavailableReason ??
-                                      (entry == null
-                                          ? (entries.isEmpty
-                                                ? (_party
-                                                      ? strings.emptyParty
-                                                      : strings.emptyBox)
-                                                : strings.emptyPokemon)
-                                          : '${entry.label} · ${strings.levelValue(entry.level)}'),
-                                  style: theme.body.copyWith(
-                                    fontSize: wide ? 12 : 14,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                if (entry?.summary case final summary?) ...[
+                                  PlayerPokemonImage(
+                                    summary: summary,
+                                    width: wide ? 40 : 56,
+                                    height: wide ? 40 : 56,
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    snapshot.safeMessage ??
+                                        entry?.unavailableReason ??
+                                        (entry == null
+                                            ? (entries.isEmpty
+                                                  ? (_party
+                                                        ? strings.emptyParty
+                                                        : strings.emptyBox)
+                                                  : strings.emptyPokemon)
+                                            : '${entry.label} · ${strings.levelValue(entry.level)}'),
+                                    style: theme.body.copyWith(
+                                      fontSize: wide ? 12 : 14,
+                                    ),
                                   ),
                                 ),
+                              ],
+                            ),
+                            if (entry?.summary case final summary?
+                                when area.maxHeight >= 180) ...[
+                              const SizedBox(height: 12),
+                              PlayerMenuGauge(
+                                value: summary.currentHp.toDouble(),
+                                maximum: summary.maxHp.toDouble(),
+                                label:
+                                    '${summary.currentHp} / ${summary.maxHp} ${french ? 'PV' : 'HP'}',
                               ),
                             ],
+                          ],
+                        ),
+                      );
+                      final grid = SizedBox(
+                        height: gridHeight.clamp(
+                          48.0,
+                          area.maxHeight < 48 ? 48.0 : area.maxHeight,
+                        ),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: theme.recessed,
+                            border: Border.all(color: theme.border),
                           ),
-                          if (entry?.summary case final summary?
-                              when area.maxHeight >= 180) ...[
-                            const SizedBox(height: 12),
-                            PlayerMenuGauge(
-                              value: summary.currentHp.toDouble(),
-                              maximum: summary.maxHp.toDouble(),
-                              label:
-                                  '${summary.currentHp} / ${summary.maxHp} ${french ? 'PV' : 'HP'}',
+                          child: PlayerMenuDetailTransition(
+                            contentKey: ValueKey((
+                              'pc',
+                              _party,
+                              content.selectedBoxId,
+                            )),
+                            direction: _boxDirection,
+                            child: PlayerPagedList(
+                              spacing: 8,
+                              revealChildKey: ValueKey(
+                                'pc-grid-row-${_slot ~/ columns}',
+                              ),
+                              key: ValueKey('pc-grid-${columns}x$rows'),
+                              children: [
+                                for (var row = 0; row < rows; row++) ...[
+                                  SizedBox(
+                                    key: ValueKey('pc-grid-row-$row'),
+                                    height: 48,
+                                    child: Row(
+                                      children: [
+                                        for (
+                                          var column = 0;
+                                          column < columns;
+                                          column++
+                                        ) ...[
+                                          if (column > 0)
+                                            const SizedBox(width: 8),
+                                          Expanded(
+                                            child:
+                                                row * columns + column >= count
+                                                ? const SizedBox.shrink()
+                                                : _cell(
+                                                    context,
+                                                    entries,
+                                                    row * columns + column,
+                                                    _party,
+                                                  ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
+                          ),
+                        ),
+                      );
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (snapshot.stage ==
+                              RuntimeWorldServiceStage.applying)
+                            const LinearProgressIndicator(),
+                          if (wide)
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: grid),
+                                const SizedBox(width: 12),
+                                SizedBox(width: detailWidth, child: detail),
+                              ],
+                            )
+                          else
+                            grid,
+                          if (showDetailBelow) ...[
+                            const SizedBox(height: 12),
+                            detail,
                           ],
                         ],
-                      ),
-                    );
-                    final grid = SizedBox(
-                      height: gridHeight.clamp(
-                        48.0,
-                        area.maxHeight < 48 ? 48.0 : area.maxHeight,
-                      ),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: theme.recessed,
-                          border: Border.all(color: theme.border),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.zero,
-                          child: PlayerPagedList(
-                            spacing: 8,
-                            revealChildKey: ValueKey(
-                              'pc-grid-row-${_slot ~/ columns}',
-                            ),
-                            key: ValueKey('pc-grid-${columns}x$rows'),
-                            children: [
-                              for (var row = 0; row < rows; row++) ...[
-                                SizedBox(
-                                  key: ValueKey('pc-grid-row-$row'),
-                                  height: 48,
-                                  child: Row(
-                                    children: [
-                                      for (
-                                        var column = 0;
-                                        column < columns;
-                                        column++
-                                      ) ...[
-                                        if (column > 0)
-                                          const SizedBox(width: 8),
-                                        Expanded(
-                                          child: row * columns + column >= count
-                                              ? const SizedBox.shrink()
-                                              : _cell(
-                                                  context,
-                                                  entries,
-                                                  row * columns + column,
-                                                  _party,
-                                                ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (snapshot.stage == RuntimeWorldServiceStage.applying)
-                          const LinearProgressIndicator(),
-                        if (wide)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(child: grid),
-                              const SizedBox(width: 12),
-                              SizedBox(width: detailWidth, child: detail),
-                            ],
-                          )
-                        else
-                          grid,
-                        if (showDetailBelow) ...[
-                          const SizedBox(height: 12),
-                          detail,
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              );
-            },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

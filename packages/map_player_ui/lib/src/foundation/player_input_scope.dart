@@ -41,8 +41,30 @@ class PlayerCompanionScope extends InheritedWidget {
   const PlayerCompanionScope({super.key, required super.child});
 
   static bool of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<PlayerCompanionScope>() != null;
+      context.dependOnInheritedWidgetOfExactType<PlayerCompanionScope>() !=
+      null;
 
   @override
   bool updateShouldNotify(PlayerCompanionScope oldWidget) => false;
+}
+
+class PlayerHardwareInputScope extends InheritedTheme {
+  const PlayerHardwareInputScope({
+    super.key,
+    required this.route,
+    required super.child,
+  });
+
+  final KeyEventResult Function(KeyEvent event) route;
+
+  static PlayerHardwareInputScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PlayerHardwareInputScope>();
+
+  @override
+  Widget wrap(BuildContext context, Widget child) =>
+      PlayerHardwareInputScope(route: route, child: child);
+
+  @override
+  bool updateShouldNotify(PlayerHardwareInputScope oldWidget) =>
+      route != oldWidget.route;
 }

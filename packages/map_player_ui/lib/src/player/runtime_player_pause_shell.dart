@@ -51,6 +51,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.detailHeaderSecondary,
     this.detailHeaderBuilder,
     this.rootActionsOnly = false,
+    this.onPreviousTab,
+    this.onNextTab,
   });
 
   const RuntimePlayerPauseShell.root({
@@ -78,6 +80,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.detailHeaderSecondary,
     this.detailHeaderBuilder,
     this.rootActionsOnly = false,
+    this.onPreviousTab,
+    this.onNextTab,
   }) : pauseSection = RuntimePlayerPauseSection.root,
        onBackToRoot = _noop;
 
@@ -107,6 +111,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final Widget? detailHeaderSecondary;
   final WidgetBuilder? detailHeaderBuilder;
   final bool rootActionsOnly;
+  final VoidCallback? onPreviousTab;
+  final VoidCallback? onNextTab;
 
   static void _noop() {}
 
@@ -169,7 +175,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         widget.pauseSection != RuntimePlayerPauseSection.root) {
       if (focusDetail) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _focusController.showFocusHighlight) {
+          if (mounted &&
+              (_focusController.showFocusHighlight ||
+                  widget.onPreviousTab != null ||
+                  widget.onNextTab != null)) {
             _detailReturnFocus.requestFocus();
           }
         });
@@ -376,12 +385,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                 },
               ),
             );
-      final compactFooterIcons =
-          isRoot &&
-          (constraints.maxHeight < 300 ||
-              constraints.maxHeight < 500 &&
-                  MediaQuery.textScalerOf(context).scale(1) >= 1.5);
-      Widget buildReturnAction({bool iconOnly = false}) =>
+      Widget buildReturnAction({bool wrapLabel = false}) =>
           PlayerMenuSelectableRow(
             id: 'pause-frame-return',
             button: true,
@@ -396,8 +400,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                         : null,
                   )
                 : null,
-            labelMaxLines: 1,
-            iconOnly: iconOnly,
+            labelMaxLines: wrapLabel ? null : 1,
             reserveFocusMarker: false,
             leading: PlayerMenuIcon(
               isRoot ? PlayerMenuGlyph.play : PlayerMenuGlyph.back,
@@ -446,34 +449,106 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             padding: isRoot ? const EdgeInsets.symmetric(vertical: 8) : null,
             actionsBuilder: isRoot
                 ? (context, action) => LayoutBuilder(
-                    builder: (context, footerConstraints) => Row(
-                      children: [
-                        Expanded(
-                          child: Tooltip(
-                            message: _focusController.showFocusHighlight
-                                ? '$confirmGlyph · ${context.playerL10n.validate}'
-                                : returnLabel,
-                            child: action,
-                          ),
-                        ),
-                        if (_saveInRootFooter) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _rootSaveAction(
-                              context,
-                              iconOnly: compactFooterIcons,
+                    builder: (context, footerConstraints) {
+                      final compactRootChrome =
+                          constraints.maxHeight < 300 ||
+                          MediaQuery.viewInsetsOf(context).bottom > 0 &&
+                              constraints.maxHeight < 420;
+                      if (compactRootChrome) {
+                        return Row(
+                          children: [
+                            Expanded(child: action),
+                            if (_saveInRootFooter) ...[
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 48,
+                                child: Tooltip(
+                                  message: _presentation.label(
+                                    PlayerPauseAction.save,
+                                    context.playerL10n,
+                                  ),
+                                  child: _rootSaveAction(
+                                    context,
+                                    iconOnly: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (_returnToTitleInRootFooter) ...[
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 48,
+                                child: _rootReturnToTitleAction(context),
+                              ),
+                            ],
+                          ],
+                        );
+                      }
+                      final style = tokens.actionLabel.copyWith(
+                        fontSize:
+                            constraints.maxWidth > constraints.maxHeight &&
+                                !PlayerCompanionScope.of(context)
+                            ? 13
+                            : null,
+                      );
+                      double actionWidth(String label) {
+                        final painter = TextPainter(
+                          text: TextSpan(text: label, style: style),
+                          textDirection: Directionality.of(context),
+                          textScaler: MediaQuery.textScalerOf(context),
+                        )..layout();
+                        final width = painter.width + 31;
+                        painter.dispose();
+                        return width;
+                      }
+
+                      final exitWidth = _returnToTitleInRootFooter ? 56.0 : 0.0;
+                      final actionSlotWidth =
+                          (footerConstraints.maxWidth - exitWidth - 8) / 2;
+                      final stacked =
+                          _saveInRootFooter &&
+                          (actionWidth(returnLabel) > actionSlotWidth ||
+                              actionWidth(
+                                    _presentation.label(
+                                      PlayerPauseAction.save,
+                                      context.playerL10n,
+                                    ),
+                                  ) >
+                                  actionSlotWidth);
+                      final returnAction = Tooltip(
+                        message: _focusController.showFocusHighlight
+                            ? '$confirmGlyph · ${context.playerL10n.validate}'
+                            : returnLabel,
+                        child: action,
+                      );
+                      final returnRow = Row(
+                        children: [
+                          Expanded(child: returnAction),
+                          if (!stacked && _saveInRootFooter) ...[
+                            const SizedBox(width: 8),
+                            Expanded(child: _rootSaveAction(context)),
+                          ],
+                          if (_returnToTitleInRootFooter) ...[
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 48,
+                              child: _rootReturnToTitleAction(context),
                             ),
-                          ),
+                          ],
                         ],
-                        if (_returnToTitleInRootFooter) ...[
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 48,
-                            child: _rootReturnToTitleAction(context),
-                          ),
-                        ],
-                      ],
-                    ),
+                      );
+                      return stacked
+                          ? Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                returnRow,
+                                const SizedBox(height: 8),
+                                _rootSaveAction(context, wrapLabel: true),
+                              ],
+                            )
+                          : returnRow;
+                    },
                   )
                 : widget.detailFooterBuilder,
             alignReturnEnd: true,
@@ -492,19 +567,14 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                   widget.detailFooterBuilder == null)
                 widget.detailActions!,
             ],
-            returnAction: isRoot
-                ? LayoutBuilder(
-                    builder: (context, returnConstraints) => buildReturnAction(
-                      iconOnly:
-                          compactFooterIcons || returnConstraints.maxWidth < 96,
-                    ),
-                  )
-                : buildReturnAction(),
+            returnAction: buildReturnAction(wrapLabel: isRoot),
           ),
         ],
       );
       return RuntimePlayerActions(
         onBack: widget.onBackToRoot,
+        onPreviousTab: widget.onPreviousTab,
+        onNextTab: widget.onNextTab,
         onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
         onInputSourceChanged: _focusController.noteInputSource,
         child: isRoot
@@ -582,15 +652,19 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     },
   );
 
-  Widget _rootSaveAction(BuildContext context, {bool iconOnly = false}) {
+  Widget _rootSaveAction(
+    BuildContext context, {
+    bool wrapLabel = false,
+    bool iconOnly = false,
+  }) {
     final availability = widget.actions[PlayerPauseAction.save];
     return PlayerMenuSelectableRow(
       key: const ValueKey('pause.save'),
       id: 'pause.save',
       button: true,
+      iconOnly: iconOnly,
       contentGap: 5,
       reserveFocusMarker: false,
-      iconOnly: iconOnly,
       label: _presentation.label(PlayerPauseAction.save, context.playerL10n),
       labelStyle: context.playerMenuTheme.actionLabel.copyWith(
         fontSize:
@@ -599,7 +673,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             ? 13
             : null,
       ),
-      labelMaxLines: 1,
+      labelMaxLines: wrapLabel ? null : 1,
       leading: const PlayerMenuIcon(PlayerMenuGlyph.save, size: 18),
       integrated: false,
       minimumHeight: 48,
@@ -728,6 +802,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                   }
                 }
                 final composition = _composition(layout);
+                final compactRootChrome =
+                    constraints.maxHeight < 300 ||
+                    MediaQuery.viewInsetsOf(context).bottom > 0 &&
+                        constraints.maxHeight < 420;
                 return Stack(
                   key: ValueKey<String>(
                     _isIllustrated
@@ -746,15 +824,20 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                           menuTitle: _presentation.resolvedTitle(
                             context.playerL10n,
                           ),
-                          showTitle: composition?.showTitle ?? true,
+                          showTitle:
+                              !compactRootChrome &&
+                              (composition?.showTitle ?? true),
                           showGameTitle:
-                              resolved?.variant.visibleSecondaryElements
-                                  .contains(
-                                    ProjectPresentationSecondaryElement
-                                        .pauseGameTitle,
-                                  ) ??
-                              false,
-                          hint: composition?.showHint == false
+                              !compactRootChrome &&
+                              (resolved?.variant.visibleSecondaryElements
+                                      .contains(
+                                        ProjectPresentationSecondaryElement
+                                            .pauseGameTitle,
+                                      ) ??
+                                  false),
+                          hint:
+                              compactRootChrome ||
+                                  composition?.showHint == false
                               ? null
                               : _presentation.hint,
                           profile: widget.playerProfile,
@@ -912,6 +995,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       ? child
       : RuntimePlayerActions(
           onBack: widget.onBackToRoot,
+          onPreviousTab: widget.onPreviousTab,
+          onNextTab: widget.onNextTab,
           onMenu: widget.onTouchMenu ?? widget.onBackToRoot,
           onInputSourceChanged: _focusController.noteInputSource,
           child: child,

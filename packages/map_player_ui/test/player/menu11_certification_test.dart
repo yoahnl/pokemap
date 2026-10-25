@@ -536,6 +536,12 @@ void main() {
     ) async {
       final harness = _Harness(RuntimePlayerPauseSection.options);
       await _pump(tester, harness);
+      if (find
+          .byKey(const ValueKey('options-category-accessibility'))
+          .evaluate()
+          .isEmpty) {
+        await _tap(tester, 'options-category-picker');
+      }
       await _tap(tester, 'options-category-accessibility');
       final control = find.byKey(ValueKey(id));
       await tester.ensureVisible(control);
@@ -970,7 +976,7 @@ String _title(RuntimePlayerPauseSection section) => switch (section) {
   RuntimePlayerPauseSection.pokedex => 'Pokédex',
   RuntimePlayerPauseSection.map => 'Carte',
   RuntimePlayerPauseSection.profile => 'Profil',
-  RuntimePlayerPauseSection.options => 'Options',
+  RuntimePlayerPauseSection.options => 'Général',
   _ => throw ArgumentError.value(section),
 };
 

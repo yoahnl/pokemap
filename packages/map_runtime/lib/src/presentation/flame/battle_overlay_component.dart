@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui show Image;
 
 import 'package:flutter/services.dart' show ByteData, rootBundle;
+import 'package:flutter/foundation.dart' show listEquals;
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
@@ -1599,13 +1600,30 @@ class BattleOverlayComponent extends PositionComponent {
 
   bool _controllerLayout = false;
 
-  bool setCommandPanelPlacement(BattleCommandPanelPlacement placement, {bool controllerLayout = false}) {
-    if (_commandPanelPlacement == placement && _controllerLayout == controllerLayout) return true;
+  List<int> _rootCommandOrder = const [0, 1, 2, 3];
+  int? _collectionColumns;
+
+  bool setCommandPanelPlacement(BattleCommandPanelPlacement placement, {
+    bool controllerLayout = false,
+    List<int> rootCommandOrder = const [0, 1, 2, 3],
+    int? collectionColumns,
+  }) {
+    if (!BattleSetCommandPanelPlacementCommand.isValidRootCommandOrder(rootCommandOrder) || collectionColumns != null && collectionColumns != 1 && collectionColumns != 2) return false;
+    if (_commandPanelPlacement == placement && _controllerLayout == controllerLayout && listEquals(_rootCommandOrder, rootCommandOrder) && _rootCommandOrder.contains(_selectedRootIndex) && _collectionColumns == collectionColumns) return true;
     _commandPanelPlacement = placement;
     _controllerLayout = controllerLayout;
+    _rootCommandOrder = List<int>.unmodifiable(rootCommandOrder);
+    _collectionColumns = collectionColumns;
+    if (!_rootCommandOrder.contains(_selectedRootIndex)) _selectedRootIndex = _rootCommandOrder.first;
     _applyViewportLayout(size);
     return true;
   }
+
+  BattleCommandOverlayMode get _sceneLayoutMode => _postBattleDecision != null
+      ? BattleCommandOverlayMode.decision
+      : _pendingTargetChoice != null
+      ? BattleCommandOverlayMode.moveTarget
+      : _overlayModeForMenuMode(_effectiveMenuMode());
 
   @visibleForTesting
   BattleSceneLayout get currentSceneLayout =>
@@ -1615,7 +1633,7 @@ class BattleOverlayComponent extends PositionComponent {
         safePadding: _safeAreaPadding,
         textScale: textScale,
         commandPanelPlacement: _commandPanelPlacement,
-        commandPanelMode: _overlayModeForMenuMode(_effectiveMenuMode()),
+        commandPanelMode: _sceneLayoutMode,
         controllerLayout: _controllerLayout,
       );
 
@@ -1642,7 +1660,7 @@ class BattleOverlayComponent extends PositionComponent {
       safePadding: _safeAreaPadding,
       textScale: textScale,
       commandPanelPlacement: _commandPanelPlacement,
-      commandPanelMode: _overlayModeForMenuMode(_effectiveMenuMode()),
+      commandPanelMode: _sceneLayoutMode,
       controllerLayout: _controllerLayout,
     );
     _sceneLayout = layout;
@@ -1652,6 +1670,7 @@ class BattleOverlayComponent extends PositionComponent {
       size: Vector2(size.x, size.y),
       backgroundSpec: backgroundSpec,
       visualAssetCache: visualAssetCache,
+      artworkRect: layout.backdropArtworkRect,
     );
     add(_backdrop!);
     await _backdrop!.loaded;
@@ -2006,12 +2025,13 @@ class BattleOverlayComponent extends PositionComponent {
       safePadding: _safeAreaPadding,
       textScale: textScale,
       commandPanelPlacement: _commandPanelPlacement,
-      commandPanelMode: _overlayModeForMenuMode(_effectiveMenuMode()),
+      commandPanelMode: _sceneLayoutMode,
       controllerLayout: _controllerLayout,
     );
     _sceneLayout = layout;
 
     _backdrop?.size = Vector2(size.x, size.y);
+    _backdrop?.artworkRect = layout.backdropArtworkRect;
     _fxLayer?.size = viewportSize.clone();
     _applyBattleCameraTransform();
     _syncFieldAmbientState();
@@ -2559,11 +2579,14 @@ class BattleOverlayComponent extends PositionComponent {
   void _syncPanelsOnly() {
     final decision = _postBattleDecision;
     if (decision != null) {
+      if (_sceneLayout?.commandPanelMode != BattleCommandOverlayMode.decision) {
+        _applyViewportLayout(size, syncPanels: false);
+      }
       _publishPostBattleDecisionPresentation(decision);
       return;
     }
     _syncMenuStateFromModel();
-    if (_sceneLayout?.commandPanelMode != _overlayModeForMenuMode(_effectiveMenuMode())) {
+    if (_sceneLayout?.commandPanelMode != _sceneLayoutMode) {
       _applyViewportLayout(size, syncPanels: false);
     }
     final menuModel = _currentMenuModel();
@@ -2686,6 +2709,8 @@ class BattleOverlayComponent extends PositionComponent {
       panelRect: layout.commandPanelRect,
       commandPanelPlacement: layout.commandPanelPlacement,
       controllerLayout: _controllerLayout,
+      rootCommandOrder: _rootCommandOrder,
+      collectionColumns: _collectionColumns,
       additionalHuds: _additionalHudSnapshots(),
       actorSlot: _isDoubles ? runtimeBattleSlot(_battlePresentation!.request.actor) : null,
       actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
@@ -2763,6 +2788,8 @@ class BattleOverlayComponent extends PositionComponent {
       panelRect: layout.commandPanelRect,
       commandPanelPlacement: layout.commandPanelPlacement,
       controllerLayout: _controllerLayout,
+      rootCommandOrder: _rootCommandOrder,
+      collectionColumns: _collectionColumns,
       additionalHuds: _additionalHudSnapshots(),
       actorSlot: _isDoubles ? runtimeBattleSlot(_battlePresentation!.request.actor) : null,
       actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
@@ -3078,6 +3105,9 @@ class BattleOverlayComponent extends PositionComponent {
     if (isTurnPresentationActive) {
       return false;
     }
+    final controllerColumns = _controllerLayout &&
+        _commandPanelPlacement != BattleCommandPanelPlacement.detached &&
+        !currentSceneLayout.isPortrait ? 1 : 2;
     final menuModel = _currentMenuModel();
     if (menuModel.mode == BattleCommandMenuMode.bagMedicineMoveTarget) {
       final entries = _medicineMoveEntries();
@@ -3085,7 +3115,7 @@ class BattleOverlayComponent extends PositionComponent {
       final next = moveBattleCommandGridSelection(
         currentIndex: _selectedMedicineMoveIndex,
         itemCount: entries.length,
-        columnCount: 2,
+        columnCount: controllerColumns,
         horizontalDelta: horizontalDelta,
         verticalDelta: verticalDelta,
       );
@@ -3101,13 +3131,16 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     if (menuModel.isRootMode) {
-      final nextIndex = moveBattleCommandGridSelection(
-        currentIndex: menuModel.selectedRootIndex,
-        itemCount: menuModel.rootEntries.length,
-        columnCount: 2,
+      final visualOrder = _rootCommandOrder.where((index) => index < menuModel.rootEntries.length).toList();
+      final currentPosition = visualOrder.indexOf(menuModel.selectedRootIndex);
+      final nextPosition = moveBattleCommandGridSelection(
+        currentIndex: currentPosition < 0 ? 0 : currentPosition,
+        itemCount: visualOrder.length,
+        columnCount: controllerColumns,
         horizontalDelta: horizontalDelta,
         verticalDelta: verticalDelta,
       );
+      final nextIndex = visualOrder[nextPosition];
       if (nextIndex == _selectedRootIndex) {
         return false;
       }
@@ -3121,8 +3154,8 @@ class BattleOverlayComponent extends PositionComponent {
       final nextIndex = moveBattleCommandGridSelection(
         currentIndex: _selectedPartyIndex,
         itemCount: partyMenuModel.allEntries.length,
-        columnCount: 1,
-        horizontalDelta: 0,
+        columnCount: _collectionColumns ?? 1,
+        horizontalDelta: horizontalDelta,
         verticalDelta: verticalDelta,
       );
       if (nextIndex == _selectedPartyIndex) {
@@ -3138,8 +3171,8 @@ class BattleOverlayComponent extends PositionComponent {
       final nextIndex = moveBattleCommandGridSelection(
         currentIndex: _selectedBagIndex,
         itemCount: bagMenuModel.entries.length,
-        columnCount: 1,
-        horizontalDelta: 0,
+        columnCount: _collectionColumns ?? 1,
+        horizontalDelta: horizontalDelta,
         verticalDelta: verticalDelta,
       );
       if (nextIndex == _selectedBagIndex) {
@@ -3157,8 +3190,8 @@ class BattleOverlayComponent extends PositionComponent {
       final nextIndex = moveBattleCommandGridSelection(
         currentIndex: _selectedMedicineTargetIndex,
         itemCount: medicineTargetMenuModel.entries.length,
-        columnCount: 1,
-        horizontalDelta: 0,
+        columnCount: _collectionColumns ?? 1,
+        horizontalDelta: horizontalDelta,
         verticalDelta: verticalDelta,
       );
       if (nextIndex == _selectedMedicineTargetIndex) {
@@ -3173,7 +3206,7 @@ class BattleOverlayComponent extends PositionComponent {
     final nextIndex = moveBattleCommandGridSelection(
       currentIndex: menuModel.selectedChoiceIndex,
       itemCount: menuModel.choiceEntries.length,
-      columnCount: menuModel.choiceColumns,
+      columnCount: _controllerLayout ? controllerColumns : menuModel.choiceColumns,
       horizontalDelta: horizontalDelta,
       verticalDelta: verticalDelta,
     );

@@ -1,76 +1,112 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  testWidgets('gift renders only the matching public species sprite', (
-    tester,
-  ) async {
-    final recorder = ui.PictureRecorder();
-    ui.Canvas(recorder).drawColor(const Color(0xFF334455), BlendMode.src);
-    final picture = recorder.endRecording();
-    final image = await tester.runAsync(() => picture.toImage(16, 16));
-    picture.dispose();
-    addTearDown(image!.dispose);
-    final interaction = SceneInteractionRequest.message(
-      requestId: 'receipt-image',
-      revision: 7,
-      prompt: SceneInteractionPrompt(localizationKey: 'pokemonGift.received'),
-    );
-    final detail = RuntimePlayerPauseDetailSnapshot(
-      section: RuntimePlayerPauseSection.pokedex,
-      title: 'Pokédex',
-      entries: [
-        RuntimePlayerDetailEntrySnapshot(
-          id: 'clockbird',
-          title: 'Clockbird',
-          pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
-            knowledge: RuntimePlayerPokedexKnowledge.caught,
-            identity: const RuntimePokemonMediaIdentity(speciesId: 'clockbird'),
-            media: const RuntimePokemonSummaryMediaSnapshot(
-              illustration: RuntimePokemonLocalImageSnapshot(
-                absoluteFilePath: 'fixture/gift.png',
-                sampling: ProjectMenuImageSampling.pixelArt,
+  setUpAll(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+  });
+  for (final size in [
+    const Size(844, 390),
+    const Size(390, 844),
+    const Size(768, 432),
+    const Size(496, 432),
+  ]) {
+    testWidgets(
+      'gift renders its receipt and public sprite together at $size',
+      (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        final recorder = ui.PictureRecorder();
+        ui.Canvas(recorder).drawColor(const Color(0xFF334455), BlendMode.src);
+        final picture = recorder.endRecording();
+        final image = await tester.runAsync(() => picture.toImage(16, 16));
+        picture.dispose();
+        addTearDown(image!.dispose);
+        final interaction = SceneInteractionRequest.message(
+          requestId: 'receipt-image',
+          revision: 7,
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'pokemonGift.received',
+          ),
+        );
+        final detail = RuntimePlayerPauseDetailSnapshot(
+          section: RuntimePlayerPauseSection.pokedex,
+          title: 'Pokédex',
+          entries: [
+            RuntimePlayerDetailEntrySnapshot(
+              id: 'clockbird',
+              title: 'Clockbird',
+              pokedexEntry: RuntimePlayerPokedexEntrySnapshot(
+                knowledge: RuntimePlayerPokedexKnowledge.caught,
+                identity: const RuntimePokemonMediaIdentity(
+                  speciesId: 'clockbird',
+                ),
+                media: const RuntimePokemonSummaryMediaSnapshot(
+                  illustration: RuntimePokemonLocalImageSnapshot(
+                    absoluteFilePath: 'fixture/gift.png',
+                    sampling: ProjectMenuImageSampling.pixelArt,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: PokeMapPlayerTheme.light(reducedMotion: true),
+            home: PlayerImageScope(
+              identity: 'gift-image-test',
+              loader: (path, {required isCurrent}) async =>
+                  PlayerImageLease(image: image, onDispose: () {}),
+              child: PlayerPokemonGiftOverlay(
+                snapshot: giftSnapshot(
+                  interaction,
+                  PokemonGiftInteractionStage.received,
+                  detail: detail,
+                  isNew: true,
+                ),
+                onCommand: (_) {},
               ),
             ),
           ),
-        ),
-      ],
+        );
+        await tester.runAsync(() async {});
+        await tester.pumpAndSettle();
+        final visual = find.byKey(const ValueKey('gift-pokemon-image'));
+        expect(visual, findsOneWidget);
+        final raw = tester.widget<RawImage>(
+          find.descendant(of: visual, matching: find.byType(RawImage)),
+        );
+        expect(identical(raw.image, image), isTrue);
+        expect(raw.filterQuality, FilterQuality.none);
+        expect(tester.getSize(visual).height, 72);
+        expect(
+          find.byKey(const ValueKey('gift-pokemon-identity')).hitTestable(),
+          findsOneWidget,
+        );
+        expect(find.textContaining('PC').hitTestable(), findsOneWidget);
+        expect(find.textContaining('Pokédex').hitTestable(), findsOneWidget);
+        expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+        expect(
+          tester
+              .getSize(find.byKey(const ValueKey('gift-service-panel')))
+              .width,
+          lessThanOrEqualTo(500),
+        );
+        expect(find.byType(Scrollable), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: PokeMapPlayerTheme.light(reducedMotion: true),
-        home: PlayerImageScope(
-          identity: 'gift-image-test',
-          loader: (path, {required isCurrent}) async =>
-              PlayerImageLease(image: image, onDispose: () {}),
-          child: PlayerPokemonGiftOverlay(
-            snapshot: giftSnapshot(
-              interaction,
-              PokemonGiftInteractionStage.received,
-              detail: detail,
-            ),
-            onCommand: (_) {},
-          ),
-        ),
-      ),
-    );
-    await tester.runAsync(() async {});
-    await tester.pumpAndSettle();
-    final visual = find.byKey(const ValueKey('gift-pokemon-image'));
-    expect(visual, findsOneWidget);
-    final raw = tester.widget<RawImage>(
-      find.descendant(of: visual, matching: find.byType(RawImage)),
-    );
-    expect(identical(raw.image, image), isTrue);
-    expect(raw.filterQuality, FilterQuality.none);
-    expect(find.byType(Scrollable), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+  }
 
   testWidgets('gift does not borrow media from another species', (
     tester,
@@ -148,8 +184,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('gift-continue')), findsOneWidget);
     expect(find.byKey(const ValueKey('gift-nickname')), findsOneWidget);
     expect(find.textContaining('Pokédex'), findsOneWidget);
@@ -234,8 +269,7 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('gift-nickname')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('gift-continue')));
       expect(

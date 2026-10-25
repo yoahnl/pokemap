@@ -10,6 +10,50 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets('long published choice stays complete at $size text$scale', (
+        tester,
+      ) async {
+        await _pumpIntegrated(
+          tester,
+          size,
+          scale: scale,
+          preferences: _preferences.copyWith(
+            dialogueTextSpeed: RuntimeDialogueTextSpeed.instant,
+          ),
+        );
+        final choice = find.byKey(const ValueKey('options-text-speed-choice'));
+        expect(choice.hitTestable(), findsOneWidget);
+        final bounds = tester.getRect(choice);
+        expect(bounds.height, greaterThanOrEqualTo(48));
+        final text = find.descendant(
+          of: choice,
+          matching: find.text('Instantanée'),
+        );
+        expect(text, findsOneWidget);
+        final textBounds = tester.getRect(text);
+        expect(textBounds.left, greaterThanOrEqualTo(bounds.left));
+        expect(textBounds.right, lessThanOrEqualTo(bounds.right));
+        expect(textBounds.bottom, lessThanOrEqualTo(bounds.bottom));
+        for (final paragraph
+            in find
+                .descendant(of: choice, matching: find.byType(RichText))
+                .evaluate()) {
+          expect(
+            (paragraph.renderObject! as RenderParagraph).didExceedMaxLines,
+            isFalse,
+          );
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   for (final size in [const Size(844, 390), const Size(496, 432)]) {
     testWidgets('general choice text fits its 48px target at $size', (
       tester,
@@ -666,6 +710,8 @@ void main() {
       final slider = find.byKey(const ValueKey('options-master-slider'));
       await tester.tap(slider);
       await tester.pumpAndSettle();
+      expect(tester.widget<Slider>(slider).focusNode!.hasFocus, isTrue,
+        reason: 'A quick tap retains the slider as the owner after saving.');
       changes.clear();
       final before = tester.widget<Slider>(slider).value;
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
@@ -921,6 +967,8 @@ Future<void> _pumpIntegrated(
   WidgetTester tester,
   Size size, {
   PlayerInputSource input = PlayerInputSource.controller,
+  double scale = 1,
+  PlayerPreferencesSnapshot preferences = _preferences,
 }) async {
   await _loadFonts(tester);
   tester.view.devicePixelRatio = 1;
@@ -936,8 +984,11 @@ Future<void> _pumpIntegrated(
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(padding: insets, viewPadding: insets),
+        data: MediaQuery.of(context).copyWith(
+          padding: insets,
+          viewPadding: insets,
+          textScaler: TextScaler.linear(scale),
+        ),
         child: child!,
       ),
       home: Scaffold(
@@ -949,7 +1000,7 @@ Future<void> _pumpIntegrated(
                 phase: RuntimePlayerPhase.paused,
                 gameTitle: 'Aube',
                 pauseSection: RuntimePlayerPauseSection.options,
-                preferences: _preferences,
+                preferences: preferences,
                 actions: [
                   RuntimePlayerActionAvailability.enabled(
                     RuntimePlayerAction.openOptions,

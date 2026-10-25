@@ -722,6 +722,37 @@ void main() {
     }
   });
 
+  test('battle root order survives value equality JSON and platform codecs with guarded legacy fallback', () {
+    final encoded = RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(_battle(BattlePresentationPhase.choosingCommand));
+    for (final order in [[0, 2, 1, 3], [3, 2, 1, 0], [2]]) {
+      final payload = {...encoded, 'rootCommandOrder': order};
+      final decoded = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(payload));
+      final duplicate = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(payload));
+      expect(decoded.rootCommandOrder, order);
+      expect(decoded, isNot(_battle(BattlePresentationPhase.choosingCommand)));
+      expect(decoded, duplicate);
+      expect(decoded.hashCode, duplicate.hashCode);
+      expect(RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(decoded)['rootCommandOrder'], order);
+    }
+    final legacy = {...encoded}..remove('rootCommandOrder');
+    expect(RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(legacy)).rootCommandOrder, [0, 1, 2, 3]);
+    for (final order in [[], [0, 0], [-1], [4], [0, 1, 2, 3, 0], ['0'], '0,2,1,3']) {
+      expect(() => RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport({...encoded, 'rootCommandOrder': order})), throwsFormatException);
+    }
+  });
+  test('collection columns cross companion codecs and missing legacy values remain null', () {
+    final encoded = RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(_battle(BattlePresentationPhase.choosingCommand));
+    for (final columns in <int?>[null, 1, 2]) {
+      final decoded = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport({...encoded, 'collectionColumns': columns}));
+      expect(decoded.collectionColumns, columns);
+      expect(RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(decoded)['collectionColumns'], columns);
+    }
+    final legacy = {...encoded}..remove('collectionColumns');
+    expect(RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(legacy)).collectionColumns, isNull);
+    for (final invalid in [0, 3, 1.0, '2', []]) {
+      expect(() => RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport({...encoded, 'collectionColumns': invalid})), throwsFormatException);
+    }
+  });
   test('battle placements cross companion transport without losing ownership geometry', () {
     for (final placement in BattleCommandPanelPlacement.values) {
       final source = _battle(BattlePresentationPhase.choosingCommand, placement: placement);

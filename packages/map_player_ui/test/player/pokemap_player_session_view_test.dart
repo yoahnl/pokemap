@@ -1,6 +1,14 @@
 import 'dart:async';
-import 'dart:ui' as ui
-    show KeyData, KeyEventType, KeyEventDeviceType, PointerDeviceKind, ViewFocusEvent, ViewFocusState, ViewFocusDirection;
+import 'dart:ui'
+    as ui
+    show
+        KeyData,
+        KeyEventType,
+        KeyEventDeviceType,
+        PointerDeviceKind,
+        ViewFocusEvent,
+        ViewFocusState,
+        ViewFocusDirection;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +21,645 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('touch pause entry routes the first Options PageDown without manual focus', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1920, 1080);
+    addTearDown(tester.view.reset);
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(
+      revision: 86,
+      phase: RuntimePlayerPhase.paused,
+      actions: [for (final action in RuntimePlayerAction.values)
+        RuntimePlayerActionAvailability.enabled(action)],
+      preferences: const PlayerPreferencesSnapshot(
+        locale: 'fr', accessibility: GameSessionAccessibilityOptions()),
+    ));
+    addTearDown(controller.dispose);
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
+      controller,
+      touchControlsAvailable: true,
+      controllerInputEnabled: false,
+      pausePresentation: const PlayerPausePresentation(
+        style: ProjectPauseMenuStyle.nightIllustrated,
+      ),
+    )));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byWidgetPredicate(
+      (widget) => widget is PlayerMenuSelectableRow && widget.id == 'pause.options',
+    ));
+    await tester.pumpAndSettle();
+    expect(controller.commands.single.action, RuntimePlayerAction.openOptions);
+    controller.publish(_pausedOptionsSnapshot());
+    await tester.pumpAndSettle();
+    final returnRow = find.byWidgetPredicate(
+      (widget) => widget is PlayerMenuSelectableRow && widget.id == 'pause-frame-return',
+    );
+    expect(tester.widget<PlayerMenuSelectableRow>(returnRow).showFocusHighlight, isFalse);
+    expect(find.byKey(const ValueKey('options-text-speed-choice')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-menu-effects-choice')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-text-speed-choice')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final size in [const Size(1920, 1080), const Size(390, 844)]) {
+    for (final normalized in [false, true]) {
+      testWidgets(
+        'composed illustrated options route tabs from frame focus at $size normalized=$normalized',
+        (tester) async {
+          tester.view.devicePixelRatio = 1;
+          tester.view.physicalSize = size;
+          addTearDown(tester.view.reset);
+          final controller = _FakeRuntimePlayerCoordinator(_pausedOptionsSnapshot());
+          final events = StreamController<RuntimeInputEvent>.broadcast();
+          final gameplay = <RuntimeInputEvent>[];
+          addTearDown(controller.dispose);
+          addTearDown(events.close);
+          await _pumpMeasuredSessionWidget(tester, _app(_view(
+            controller,
+            controllerInputEvents: events.stream,
+            controllerInputEnabled: normalized,
+            pausePresentation: const PlayerPausePresentation(
+              style: ProjectPauseMenuStyle.nightIllustrated,
+            ),
+            gameplayInputRoute: (event) { gameplay.add(event); return true; },
+          )));
+          await tester.pumpAndSettle();
+          final returnRow = find.byWidgetPredicate(
+            (widget) => widget is PlayerMenuSelectableRow &&
+              widget.id == 'pause-frame-return',
+          );
+          void focusReturn() => tester.widget<PlayerMenuSelectableRow>(returnRow)
+            .focusNode!.requestFocus();
+          void focusHeader() {
+            final node = FocusManager.instance.rootScope.descendants.firstWhere(
+              (node) => node.context?.findAncestorWidgetOfExactType<IconButton>()
+                ?.key == const ValueKey('options-category-picker'),
+            );
+            node.requestFocus();
+          }
+          expect(tester.widget<PlayerMenuSelectableRow>(returnRow)
+            .focusNode!.hasPrimaryFocus, isTrue);
+          await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+          await tester.pumpAndSettle();
+          expect(find.byKey(const ValueKey('options-menu-effects-choice')), findsOneWidget);
+          focusReturn();
+          await tester.pump();
+          await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+          await tester.pumpAndSettle();
+          expect(find.byKey(const ValueKey('options-text-speed-choice')), findsOneWidget);
+          focusReturn();
+          await tester.pump();
+          await _hardwareGamepadPress(tester,
+            LogicalKeyboardKey.gameButtonRight1, PhysicalKeyboardKey.gameButtonRight1,
+            whileHeld: normalized ? () async {
+              events.add(const RuntimeInputEvent.press(RuntimeInputControl.nextTab));
+              await tester.pump();
+            } : null,
+          );
+          if (normalized) events.add(const RuntimeInputEvent.release(RuntimeInputControl.nextTab));
+          await tester.pumpAndSettle();
+          expect(find.byKey(const ValueKey('options-menu-effects-choice')), findsOneWidget);
+          focusHeader();
+          await tester.pump();
+          if (normalized) {
+            events.add(const RuntimeInputEvent.press(RuntimeInputControl.previousTab));
+            await tester.pump();
+            events.add(const RuntimeInputEvent.release(RuntimeInputControl.previousTab));
+          } else {
+            await _hardwareGamepadPress(tester,
+              LogicalKeyboardKey.gameButtonLeft1, PhysicalKeyboardKey.gameButtonLeft1);
+          }
+          await tester.pumpAndSettle();
+          expect(find.byKey(const ValueKey('options-text-speed-choice')), findsOneWidget);
+          await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')));
+          await tester.pumpAndSettle();
+          expect(controller.commands.single.action, RuntimePlayerAction.updatePreferences);
+          await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+          await tester.pumpAndSettle();
+          expect(find.byKey(const ValueKey('options-menu-effects-choice')), findsOneWidget);
+          focusHeader();
+          await tester.pump();
+          await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+          await tester.pumpAndSettle();
+          final slider = find.byKey(const ValueKey('options-master-slider'));
+          expect(slider, findsOneWidget);
+          tester.widget<Slider>(slider).focusNode!.requestFocus();
+          await tester.pump();
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+          await tester.pumpAndSettle();
+          expect(tester.widget<Slider>(slider).focusNode!.hasPrimaryFocus, isTrue);
+          expect(controller.commands.last.action, RuntimePlayerAction.updatePreferences);
+          focusReturn();
+          await tester.pump();
+          if (normalized) {
+            events.add(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+            await tester.pump();
+            events.add(const RuntimeInputEvent.release(RuntimeInputControl.secondary));
+          } else {
+            await _hardwareGamepadPress(tester,
+              LogicalKeyboardKey.gameButtonB, PhysicalKeyboardKey.gameButtonB);
+          }
+          await tester.pumpAndSettle();
+          expect(controller.commands.where((command) =>
+            command.action == RuntimePlayerAction.returnToPauseRoot), hasLength(1));
+          expect(controller.commands.where((command) =>
+            command.action == RuntimePlayerAction.resume), isEmpty);
+          expect(gameplay, isEmpty);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
+  testWidgets('composed illustrated options preserve authored frame binding collisions', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.reset);
+    final data = PlayerControlProfile.standard.toJson();
+    for (final device in ['keyboard', 'gamepad', 'touch']) {
+      final bindings = data[device] as Map<String, String>;
+      bindings.remove('previousTab');
+      bindings.remove('nextTab');
+    }
+    (data['keyboard'] as Map<String, String>)['bicycle'] = 'pageDown';
+    (data['gamepad'] as Map<String, String>)['sprint'] = 'rightBumper';
+    final controller = _FakeRuntimePlayerCoordinator(_pausedOptionsSnapshot());
+    addTearDown(controller.dispose);
+    final gameplay = <RuntimeInputEvent>[];
+    await _pumpMeasuredSessionWidget(tester, _app(_view(
+      controller,
+      controlProfile: PlayerControlProfile.fromJson(data),
+      pausePresentation: const PlayerPausePresentation(
+        style: ProjectPauseMenuStyle.nightIllustrated,
+      ),
+      gameplayInputRoute: (event) { gameplay.add(event); return true; },
+    )));
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-text-speed-choice')), findsOneWidget);
+    await _hardwareGamepadPress(tester,
+      LogicalKeyboardKey.gameButtonRight1, PhysicalKeyboardKey.gameButtonRight1);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('options-text-speed-choice')), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('runtime-player-text-scale-slider')), findsOneWidget);
+    expect(controller.commands, isEmpty);
+    expect(gameplay, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final platform in [TargetPlatform.iOS, TargetPlatform.android]) {
+    testWidgets(
+      'portrait $platform routes key-only bumpers and normalized bumpers from bag body',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(390, 844);
+        addTearDown(tester.view.reset);
+        final detail = RuntimePlayerPauseDetailSnapshot(
+          section: RuntimePlayerPauseSection.bag,
+          title: 'Sac',
+          bagPockets: const [
+            RuntimePlayerBagPocketSnapshot(id: 'medicine', label: 'Soins'),
+            RuntimePlayerBagPocketSnapshot(id: 'balls', label: 'Balls'),
+            RuntimePlayerBagPocketSnapshot(id: 'key', label: 'Objets clés'),
+          ],
+          entries: [
+            for (final pocket in ['medicine', 'balls', 'key'])
+              RuntimePlayerDetailEntrySnapshot(
+                id: pocket,
+                title: pocket,
+                bagItem: RuntimePlayerBagItemSnapshot(
+                  itemId: pocket,
+                  quantity: 1,
+                  sortOrder: 0,
+                  pocketId: pocket,
+                  description: 'Objet publié',
+                ),
+              ),
+          ],
+        );
+        final controller = _FakeRuntimePlayerCoordinator(
+          RuntimePlayerSnapshot(
+            revision: 12,
+            phase: RuntimePlayerPhase.paused,
+            gameTitle: 'Aube',
+            pauseSection: RuntimePlayerPauseSection.bag,
+            actions: [
+              for (final action in RuntimePlayerAction.values)
+                RuntimePlayerActionAvailability.enabled(action),
+            ],
+            pauseDetails: {RuntimePlayerPauseSection.bag: detail},
+          ),
+        );
+        final events = StreamController<NormalizedGamepadEvent>.broadcast();
+        final connected = ValueNotifier<Set<String>>({'pad'});
+        final gameplay = <RuntimeInputEvent>[];
+        addTearDown(connected.dispose);
+        addTearDown(controller.dispose);
+        addTearDown(events.close);
+        await _pumpMeasuredSessionWidget(
+          tester,
+          _app(
+            _view(
+              controller,
+              normalizedControllerInputEvents: events.stream,
+              connectedControllerIds: connected,
+              gameplayInputRoute: (event) {
+                gameplay.add(event);
+                return true;
+              },
+            ),
+            platform: platform,
+          ),
+        );
+        await tester.pumpAndSettle();
+        void focusItem(String id) => tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(ValueKey('bag-item-$id')),
+            )
+            .focusNode!
+            .requestFocus();
+        focusItem('medicine');
+        await tester.pump();
+        await _hardwareGamepadPress(
+          tester,
+          LogicalKeyboardKey.gameButtonRight1,
+          PhysicalKeyboardKey.gameButtonX,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PlayerMenuSelectableRow>(
+                find.byKey(const ValueKey('bag-pocket-balls')),
+              )
+              .selected,
+          isTrue,
+        );
+        focusItem('balls');
+        await tester.pump();
+        final focusedItem = tester.widget<PlayerMenuSelectableRow>(
+          find.byKey(const ValueKey('bag-item-balls')),
+        ).focusNode!;
+        expect(focusedItem.context, isNotNull);
+        expect(focusedItem.hasPrimaryFocus, isTrue,
+          reason: 'The current pocket owns body focus after its transition.');
+        events.add(_padInput(button: GamepadButton.leftBumper));
+        await tester.pump();
+        events.add(_padInput(button: GamepadButton.leftBumper, value: 0));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PlayerMenuSelectableRow>(
+                find.byKey(const ValueKey('bag-pocket-medicine')),
+              )
+              .selected,
+          isTrue,
+        );
+        focusItem('medicine');
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PlayerMenuSelectableRow>(
+                find.byKey(const ValueKey('bag-pocket-balls')),
+              )
+              .selected,
+          isTrue,
+        );
+        focusItem('balls');
+        await tester.pump();
+        events.add(_padInput(button: GamepadButton.rightBumper));
+        await tester.pump();
+        await _hardwareGamepadPress(
+          tester,
+          LogicalKeyboardKey.gameButtonRight1,
+          PhysicalKeyboardKey.gameButtonX,
+        );
+        events.add(_padInput(button: GamepadButton.dpadDown));
+        await tester.pump();
+        connected.value = {};
+        await tester.pump();
+        events.add(_padInput(button: GamepadButton.rightBumper, value: 0));
+        events.add(_padInput(button: GamepadButton.dpadDown, value: 0));
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PlayerMenuSelectableRow>(
+                find.byKey(const ValueKey('bag-pocket-key')),
+              )
+              .selected,
+          isTrue,
+        );
+        expect(gameplay, isEmpty);
+        controller.publish(_snapshot(revision: 13, phase: RuntimePlayerPhase.playing));
+        await tester.pumpAndSettle();
+        connected.value = {'pad'};
+        events.add(_padInput(button: GamepadButton.dpadDown));
+        await tester.pump();
+        events.add(_padInput(button: GamepadButton.dpadDown, value: 0));
+        await tester.pump();
+        expect(gameplay, const [RuntimeInputEvent.press(RuntimeInputControl.down), RuntimeInputEvent.release(RuntimeInputControl.down)]);
+        expect(controller.commands, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final enabled in [false, true]) {
+    testWidgets(
+      'portrait options has one early input owner with normalized enabled=$enabled',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(390, 844);
+        addTearDown(tester.view.reset);
+        final controller = _FakeRuntimePlayerCoordinator(
+          _titleOptionsSnapshot(),
+        );
+        final events = StreamController<NormalizedGamepadEvent>.broadcast();
+        addTearDown(controller.dispose);
+        addTearDown(events.close);
+        await _pumpMeasuredSessionWidget(
+          tester,
+          _app(
+            _view(
+              controller,
+              controllerInputEnabled: enabled,
+              normalizedControllerInputEvents: events.stream,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await _selectOptionsCategory(tester, 'audio');
+        tester
+            .widget<Slider>(find.byKey(const ValueKey('options-master-slider')))
+            .focusNode!
+            .requestFocus();
+        await tester.pump();
+        await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+        await tester.pumpAndSettle();
+        expect(find.text('Commandes'), findsWidgets);
+        expect(
+          find.byKey(const ValueKey('options-language-choice')),
+          findsNothing,
+        );
+        await _hardwareGamepadPress(
+          tester,
+          LogicalKeyboardKey.gameButtonLeft1,
+          PhysicalKeyboardKey.gameButtonX,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('options-master-slider')),
+          findsOneWidget,
+        );
+        expect(controller.commands, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'key-only controller B keeps gameplay sprint press and held release semantics',
+    (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+        _snapshot(revision: 1, phase: RuntimePlayerPhase.playing),
+      );
+      final events = StreamController<NormalizedGamepadEvent>.broadcast();
+      final routed = <RuntimeInputEvent>[];
+      addTearDown(controller.dispose);
+      addTearDown(events.close);
+      await _pumpMeasuredSessionWidget(
+        tester,
+        _app(
+          _view(
+            controller,
+            normalizedControllerInputEvents: events.stream,
+            gameplayInputRoute: (event) {
+              routed.add(event);
+              return true;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _hardwareGamepadPress(
+        tester,
+        LogicalKeyboardKey.gameButtonB,
+        PhysicalKeyboardKey.gameButtonB,
+      );
+      await tester.pump();
+      expect(routed, const [
+        RuntimeInputEvent.press(RuntimeInputControl.sprint),
+        RuntimeInputEvent.release(RuntimeInputControl.sprint),
+      ]);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final first in ['hardware', 'normalized']) {
+    testWidgets(
+      'portrait modal consumes $first plus duplicate controller A once without gameplay leakage',
+      (tester) async {
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(390, 844);
+        addTearDown(tester.view.reset);
+        final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(revision: 1, phase: RuntimePlayerPhase.playing),
+        );
+        final events = StreamController<NormalizedGamepadEvent>.broadcast();
+        final gameplay = <RuntimeInputEvent>[];
+        var confirmations = 0;
+        addTearDown(controller.dispose);
+        addTearDown(events.close);
+        await _pumpMeasuredSessionWidget(
+          tester,
+          _app(
+            _view(
+              controller,
+              normalizedControllerInputEvents: events.stream,
+              gameplayInputRoute: (event) {
+                gameplay.add(event);
+                return true;
+              },
+              gameSceneBuilder: (_) => Builder(
+                builder: (sceneContext) => Center(
+                  child: TextButton(
+                    key: const ValueKey('input-open-modal'),
+                    onPressed: () => showDialog<void>(
+                      context: sceneContext,
+                      builder: (modalContext) => RuntimePlayerActions(
+                        onBack: () => Navigator.of(modalContext).pop(),
+                        onMenu: () {},
+                        onInputSourceChanged: (_) {},
+                        child: AlertDialog(
+                          title: const Text('Confirmation'),
+                          actions: [
+                            TextButton(
+                              key: const ValueKey('input-confirm-modal'),
+                              autofocus: true,
+                              onPressed: () {
+                                confirmations++;
+                                Navigator.of(modalContext).pop();
+                              },
+                              child: const Text('Confirmer'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    child: const Text('Ouvrir'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('input-open-modal')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('input-confirm-modal')).hitTestable(),
+          findsOneWidget,
+        );
+        await _hardwareGamepadPress(
+          tester,
+          LogicalKeyboardKey.arrowDown,
+          PhysicalKeyboardKey.arrowDown,
+          whileHeld: () async {
+            if (first == 'normalized') {
+              events.add(_padInput(button: GamepadButton.a));
+              await tester.pump();
+            }
+            await _hardwareGamepadPress(
+              tester,
+              LogicalKeyboardKey.gameButtonA,
+              PhysicalKeyboardKey.gameButtonA,
+              whileHeld: () async {
+                if (first == 'hardware')
+                  events.add(_padInput(button: GamepadButton.a));
+                await tester.pump();
+              },
+            );
+            events.add(_padInput(button: GamepadButton.a, value: 0));
+            await tester.pumpAndSettle();
+            final authority = tester.widget<Focus>(
+              find.byKey(
+                const ValueKey('runtime-player-keyboard-input-authority'),
+              ),
+            );
+            authority.onKeyEvent!(
+              FocusManager.instance.primaryFocus!,
+              const KeyRepeatEvent(
+                physicalKey: PhysicalKeyboardKey.arrowDown,
+                logicalKey: LogicalKeyboardKey.arrowDown,
+                timeStamp: Duration(milliseconds: 500),
+                deviceType: ui.KeyEventDeviceType.gamepad,
+              ),
+            );
+            await tester.pump();
+            expect(gameplay, isEmpty);
+          },
+        );
+        await tester.pump();
+        expect(confirmations, 1);
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(gameplay, isEmpty);
+        expect(controller.commands, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final source in ['keyboard', 'controller', 'physical-controller']) {
+    testWidgets('battle info owns $source without selecting a move', (
+      tester,
+    ) async {
+      final inputs = StreamController<RuntimeInputEvent>.broadcast();
+      final physicalInputs = StreamController<NormalizedGamepadEvent>.broadcast();
+      addTearDown(inputs.close);
+      addTearDown(physicalInputs.close);
+      final battle = ValueNotifier<BattleCommandOverlaySnapshot?>(
+        _moveBattleSnapshot(),
+      );
+      addTearDown(battle.dispose);
+      final controller = _FakeRuntimePlayerCoordinator(
+        _snapshot(revision: 90, phase: RuntimePlayerPhase.playing),
+      );
+      addTearDown(controller.dispose);
+      final gameplay = <RuntimeInputEvent>[];
+      final selections = <BattlePresentationCommand>[];
+      await _pumpMeasuredSessionWidget(
+        tester,
+        _app(
+          _view(
+            controller,
+            battlePresentation: battle,
+            onBattleCommand: selections.add,
+            controllerInputEvents: source == 'physical-controller' ? null : inputs.stream,
+            normalizedControllerInputEvents: source == 'physical-controller'
+                ? physicalInputs.stream
+                : null,
+            gameplayInputRoute: (event) {
+              gameplay.add(event);
+              return true;
+            },
+          ),
+        ),
+      );
+      if (source == 'keyboard') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.shiftLeft);
+      } else if (source == 'physical-controller') {
+        physicalInputs.add(_padInput(button: GamepadButton.y));
+        physicalInputs.add(_padInput(button: GamepadButton.y, value: 0));
+      } else {
+        inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.sprint));
+        inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.sprint));
+      }
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('battle-move-info-dialog')), findsOneWidget);
+      if (source == 'keyboard') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      } else if (source == 'physical-controller') {
+        for (final button in [GamepadButton.dpadDown, GamepadButton.b]) {
+          physicalInputs.add(_padInput(button: button));
+          physicalInputs.add(_padInput(button: button, value: 0));
+          await tester.pumpAndSettle();
+        }
+      } else {
+        for (final control in [RuntimeInputControl.down, RuntimeInputControl.secondary]) {
+          inputs.add(RuntimeInputEvent.press(control));
+          inputs.add(RuntimeInputEvent.release(control));
+          await tester.pumpAndSettle();
+        }
+      }
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('battle-move-info-dialog')), findsNothing);
+      expect(gameplay.where((event) => event.isPress), isEmpty);
+      expect(selections.whereType<BattleSelectEntryCommand>(), isEmpty);
+      if (source == 'keyboard') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyE);
+      } else if (source == 'physical-controller') {
+        physicalInputs.add(_padInput(button: GamepadButton.a));
+        physicalInputs.add(_padInput(button: GamepadButton.a, value: 0));
+      } else {
+        inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+        inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+      }
+      await tester.pumpAndSettle();
+      expect(
+        gameplay.where((event) => event.isPress).map((event) => event.control),
+        [RuntimeInputControl.primary],
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
   for (final (source, style) in [
     for (final source in ['keyboard', 'controller'])
       for (final style in ProjectPauseMenuStyle.values) (source, style),
@@ -467,6 +1114,72 @@ void main() {
     expect(lifecycle.mounts, 1);
     expect(lifecycle.disposals, 0);
   });
+
+  for (final serviceActive in [false, true]) {
+    testWidgets(
+      'companion owner receives held tab release on disconnect with service $serviceActive',
+      (tester) async {
+        final controller = _FakeRuntimePlayerCoordinator(
+          _snapshot(
+            revision: 1,
+            phase: serviceActive
+                ? RuntimePlayerPhase.playing
+                : RuntimePlayerPhase.paused,
+            worldService: serviceActive
+                ? RuntimeWorldServiceSnapshot(
+                    revision: 1,
+                    request: const OpenPcService(
+                      interactionId: 'pc',
+                      storageId: 'box',
+                    ),
+                    stage: RuntimeWorldServiceStage.active,
+                  )
+                : null,
+          ),
+        );
+        final inputs = StreamController<RuntimeInputEvent>.broadcast();
+        final connected = ValueNotifier<Set<String>>({'pad'});
+        final forwarded = <RuntimeInputEvent>[];
+        final gameplay = <RuntimeInputEvent>[];
+        addTearDown(controller.dispose);
+        addTearDown(inputs.close);
+        addTearDown(connected.dispose);
+        await _pumpMeasuredSessionWidget(
+          tester,
+          _app(
+            _view(
+              controller,
+              controllerInputEvents: inputs.stream,
+              connectedControllerIds: connected,
+              companionMenusAttached: true,
+              onCompanionInput: (event) {
+                forwarded.add(event);
+                return true;
+              },
+              gameplayInputRoute: (event) {
+                gameplay.add(event);
+                return true;
+              },
+            ),
+          ),
+        );
+        inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.nextTab));
+        await tester.pump();
+        connected.value = {};
+        await tester.pump();
+        expect(forwarded, const [
+          RuntimeInputEvent.press(RuntimeInputControl.nextTab),
+          RuntimeInputEvent.release(RuntimeInputControl.nextTab),
+        ]);
+        expect(gameplay, isEmpty);
+        inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.nextTab));
+        await tester.pump();
+        expect(forwarded, hasLength(2));
+        expect(gameplay, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('companion owner forwards paused controller input and retains overworld input', (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.paused));
@@ -1216,6 +1929,9 @@ void main() {
                   timeStamp: Duration.zero,
                   deviceType: ui.KeyEventDeviceType.gamepad)),
           KeyEventResult.handled);
+      events.add(_padInput(button: GamepadButton.x));
+      await tester.pump();
+      await tester.pump();
       expect(
           authority.onKeyEvent!(
               node,
@@ -1225,9 +1941,6 @@ void main() {
                   timeStamp: Duration.zero,
                   deviceType: ui.KeyEventDeviceType.gamepad)),
           KeyEventResult.handled);
-      events.add(_padInput(button: GamepadButton.x));
-      await tester.pump();
-      await tester.pump();
       expect(
           routed, const [RuntimeInputEvent.press(RuntimeInputControl.primary)]);
       expect(tester.widget<PlayerOverworldActionCapsule>(find.byType(PlayerOverworldActionCapsule)).glyph, 'Bouton ouest');
@@ -1668,8 +2381,8 @@ void main() {
     expect(controller.commands.single.action, RuntimePlayerAction.continueGame);
     expect(controller.commands.single.snapshotRevision, 7);
 
-    final newGameButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Nouveau jeu'),
+    final newGameButton = tester.widget<PlayerActionButton>(
+      find.byKey(const ValueKey('title.newGame')),
     );
     expect(newGameButton.onPressed, isNull);
     expect(controller.commands, hasLength(1));
@@ -1877,38 +2590,36 @@ void main() {
     await _revealPagedTarget(tester, choice, scope: find.byType(Dialog), mouse: true);
     Focus.of(tester.element(find.descendant(of: choice, matching: find.byType(GestureDetector)).first)).requestFocus();
     await tester.pump();
-    await _hardwareGamepadPress(tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('options-choice-back')), findsOneWidget);
-    expect(profiles, isEmpty);
-    expect(controller.commands, isEmpty);
-    events.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
-    await tester.pumpAndSettle();
+    await _hardwareGamepadPress(
+      tester,
+      LogicalKeyboardKey.gameButtonA,
+      PhysicalKeyboardKey.gameButtonA,
+      whileHeld: () async {
+        events.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+        await tester.pump();
+      },
+    );
     events.add(const RuntimeInputEvent.release(RuntimeInputControl.primary));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
     expect(profiles, hasLength(1));
     expect(profiles.single.bindingFor(PlayerControlDevice.keyboard, RuntimeInputControl.primary), 'keyW');
     expect(controller.commands, isEmpty);
-    await _revealPagedTarget(tester, binding, scope: find.byKey(const ValueKey('options-settings')), mouse: true);
-    Focus.of(tester.element(find.descendant(of: binding, matching: find.byType(GestureDetector)).first)).requestFocus();
-    await tester.pump();
-    await _hardwareGamepadPress(tester, LogicalKeyboardKey.keyE, PhysicalKeyboardKey.gameButtonA);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
-    expect(profiles, hasLength(1));
+    await _revealPagedTarget(tester, binding,
+      scope: find.byKey(const ValueKey('options-settings')), mouse: true);
     await tester.tap(binding, kind: ui.PointerDeviceKind.mouse);
     await tester.pumpAndSettle();
+    expect(
+      FocusManager.instance.primaryFocus!.context!
+        .findAncestorWidgetOfExactType<RuntimePlayerInputBindings>(),
+      isNotNull,
+      reason: 'The binding dialog owns input immediately after opening.',
+    );
     events.add(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
     await tester.pumpAndSettle();
     events.add(const RuntimeInputEvent.release(RuntimeInputControl.secondary));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('options-choice-back')), findsNothing);
-    expect(profiles, hasLength(1));
-    Focus.of(tester.element(find.descendant(of: binding, matching: find.byType(GestureDetector)).first)).requestFocus();
-    await tester.pump();
-    await _hardwareGamepadPress(tester, LogicalKeyboardKey.escape, PhysicalKeyboardKey.gameButtonB);
-    await tester.pumpAndSettle();
     expect(profiles, hasLength(1));
     expect(controller.commands, isEmpty);
     expect(controller.backRequests, isEmpty);
@@ -2266,7 +2977,7 @@ void main() {
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
         findsOneWidget);
     expect(find.text('50%'), findsOneWidget);
-    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.byKey(const ValueKey('runtime-player-loading-progress')), findsOneWidget);
 
     await tester.tap(find.text('Annuler'));
     expect(controller.commands.single.action, RuntimePlayerAction.cancel);
@@ -2321,8 +3032,9 @@ void main() {
         RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
       ],
     ));
-    await tester.pump();
+    await _settleMeasuredSession(tester);
 
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('runtime-player-loading-logo')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('runtime-player-loading-wordmark')),
@@ -2331,7 +3043,7 @@ void main() {
     authority.value = const RuntimeInputAuthoritySnapshot(
       context: RuntimeInputContext.overworld,
     );
-    await tester.pump();
+    await _settleMeasuredSession(tester);
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
         findsNothing);
   });
@@ -2381,7 +3093,7 @@ void main() {
         RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.openMenu),
       ],
     ));
-    await tester.pump();
+    await _settleMeasuredSession(tester);
 
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
         findsOneWidget);
@@ -2393,7 +3105,7 @@ void main() {
     authority.value = const RuntimeInputAuthoritySnapshot(
       context: RuntimeInputContext.overworld,
     );
-    await tester.pump();
+    await _settleMeasuredSession(tester);
 
     expect(find.byKey(const ValueKey('runtime-player-loading-art')),
         findsNothing);
@@ -3637,7 +4349,7 @@ void main() {
     );
   });
 
-  testWidgets('consumes repeated Menu and plugin-owned hardware gamepad keys',
+  testWidgets('consumes repeated Menu while raw controller A works with either normalized setting',
       (tester) async {
     final gameplayEvents = <RuntimeInputEvent>[];
     final controller = _FakeRuntimePlayerCoordinator(
@@ -3699,7 +4411,22 @@ void main() {
     );
     await tester.pump();
 
-    expect(gameplayEvents, isEmpty);
+    expect(gameplayEvents, const [RuntimeInputEvent.press(RuntimeInputControl.primary)]);
+    inputAuthority.onKeyEvent!(
+      focusNode,
+      const KeyUpEvent(
+        physicalKey: PhysicalKeyboardKey.gameButtonA,
+        logicalKey: LogicalKeyboardKey.gameButtonA,
+        timeStamp: Duration.zero,
+        deviceType: ui.KeyEventDeviceType.gamepad,
+      ),
+    );
+    await tester.pump();
+    expect(gameplayEvents, const [
+      RuntimeInputEvent.press(RuntimeInputControl.primary),
+      RuntimeInputEvent.release(RuntimeInputControl.primary),
+    ]);
+    gameplayEvents.clear();
     expect(controller.commands, isEmpty);
 
     await _pumpMeasuredSessionWidget(tester,
@@ -3737,9 +4464,22 @@ void main() {
       const <RuntimeInputEvent>[
         RuntimeInputEvent.press(RuntimeInputControl.primary),
       ],
-      reason:
-          'Standalone embedders can opt into Flutter hardware gamepad keys.',
+      reason: 'Raw controller input remains available without normalized events.',
     );
+    hardwareFallback.onKeyEvent!(
+      focusNode,
+      const KeyUpEvent(
+        physicalKey: PhysicalKeyboardKey.gameButtonA,
+        logicalKey: LogicalKeyboardKey.gameButtonA,
+        timeStamp: Duration.zero,
+        deviceType: ui.KeyEventDeviceType.gamepad,
+      ),
+    );
+    await tester.pump();
+    expect(gameplayEvents, const [
+      RuntimeInputEvent.press(RuntimeInputControl.primary),
+      RuntimeInputEvent.release(RuntimeInputControl.primary),
+    ]);
   });
 
   testWidgets('blocks gameplay while an asynchronous Menu transition settles',
@@ -3950,6 +4690,51 @@ PokeMapPlayerSessionView _view(
   );
 }
 
+BattleCommandOverlaySnapshot _moveBattleSnapshot() =>
+    const BattleCommandOverlaySnapshot(
+      revision: 14,
+      mode: BattleCommandOverlayMode.fight,
+      viewportSize: Size(800, 600),
+      panelRect: Rect.fromLTWH(0, 300, 800, 300),
+      enemyHud: BattleCommandOverlayHudSnapshot(
+        rect: Rect.fromLTWH(20, 20, 240, 80),
+        ownerLabel: 'Adversaire',
+        speciesLabel: 'Roucool',
+        level: 7,
+        currentHp: 20,
+        maxHp: 20,
+        isPlayerSide: false,
+      ),
+      playerHud: BattleCommandOverlayHudSnapshot(
+        rect: Rect.fromLTWH(540, 200, 240, 80),
+        ownerLabel: 'Joueur',
+        speciesLabel: 'Brindibou',
+        level: 8,
+        currentHp: 24,
+        maxHp: 24,
+        isPlayerSide: true,
+      ),
+      battleLabel: 'Combat sauvage',
+      title: 'Capacités',
+      prompt: 'Choisir une capacité',
+      narrationLines: [],
+      entries: [
+        BattleCommandOverlayEntry(
+          index: 0,
+          kind: BattleCommandOverlayEntryKind.move,
+          primaryLabel: 'Charge',
+          secondaryLabel: 'normal',
+          tertiaryLabel: 'Puissance 40 · Précision 100 %',
+          trailingLabel: 'PP 30 / 35',
+          enabled: true,
+          selected: true,
+          tone: BattleCommandOverlayEntryTone.attack,
+        ),
+      ],
+      interactionsEnabled: true,
+      canGoBack: true,
+    );
+
 RuntimeOverworldInteractionSnapshot _overworldSnapshot({String target = 'npc', bool hasAction = true, bool tapOnly = false}) {
   final action = !hasAction ? null : RuntimeOverworldInteractionAction(
         request: RuntimeOverworldInteractionRequest(sessionId: 'session', mapActivationId: 'activation', mapId: 'map',
@@ -4011,7 +4796,9 @@ Finder _allCanonicalSurfaces() => find.byWidgetPredicate(
     );
 
 Future<void> _hardwareGamepadPress(WidgetTester tester,
-    LogicalKeyboardKey logical, PhysicalKeyboardKey physical) async {
+    LogicalKeyboardKey logical, PhysicalKeyboardKey physical, {
+    Future<void> Function()? whileHeld,
+  }) async {
   Future<bool> send(bool down) async {
     tester.binding.platformDispatcher.onKeyData!(ui.KeyData(
       timeStamp: Duration.zero, type: down ? ui.KeyEventType.down : ui.KeyEventType.up,
@@ -4029,10 +4816,22 @@ Future<void> _hardwareGamepadPress(WidgetTester tester,
   }
   try {
     expect(await send(true), isTrue);
+    await whileHeld?.call();
   } finally {
     await send(false);
   }
 }
+
+RuntimePlayerSnapshot _pausedOptionsSnapshot() => RuntimePlayerSnapshot(
+  revision: 87,
+  phase: RuntimePlayerPhase.paused,
+  gameTitle: 'Aube',
+  pauseSection: RuntimePlayerPauseSection.options,
+  preferences: const PlayerPreferencesSnapshot(
+    locale: 'fr', accessibility: GameSessionAccessibilityOptions()),
+  actions: [for (final action in RuntimePlayerAction.values)
+    RuntimePlayerActionAvailability.enabled(action)],
+);
 
 RuntimePlayerSnapshot _titleOptionsSnapshot() => RuntimePlayerSnapshot(
       revision: 86,
@@ -4210,8 +5009,13 @@ PresentationFrame _presentationFrame() => PresentationFrame(
 
 Future<void> _pumpMeasuredSessionWidget(WidgetTester tester, Widget widget) async {
   await tester.pumpWidget(widget);
-  await tester.pump();
-  await tester.pump();
+  await _settleMeasuredSession(tester);
+}
+
+Future<void> _settleMeasuredSession(WidgetTester tester) async {
+  for (var frame = 0; frame < 4; frame++) {
+    await tester.pump();
+  }
 }
 
 Future<void> _revealPagedTarget(WidgetTester tester, Finder target, {Finder? scope, bool mouse = false}) async {

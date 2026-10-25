@@ -48,6 +48,8 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
   var _lastOperationSaves = true;
   String? _failure;
   RuntimePlayerSaveReceipt? _receipt;
+  double? _contentHeight;
+  Object? _contentSignature;
 
   @override
   void dispose() {
@@ -168,46 +170,88 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
                   vertical: landscape ? 18 : 22,
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: PlayerPagedList(
-                        sideNavigation: MediaQuery.sizeOf(context).height < 480,
-                        children: [
-                          if (hasResult) ...[
-                            Semantics(
-                              key: const ValueKey('runtime-save-result'),
-                              liveRegion: true,
-                              child: Text(
-                                _receipt != null
-                                    ? strings.success
-                                    : _lastOperationSaves
-                                    ? strings.failure
-                                    : strings.exitFailure,
-                                style: tokens.title,
-                              ),
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final signature = (
+                            constraints.maxWidth,
+                            MediaQuery.textScalerOf(context),
+                            tokens.title,
+                            tokens.body,
+                            widget.returnToTitle,
+                            _receipt,
+                            _failure,
+                          );
+                          if (_contentSignature != signature) {
+                            _contentSignature = signature;
+                            _contentHeight = null;
+                          }
+                          return SizedBox(
+                            height:
+                                _contentHeight == null ||
+                                    _contentHeight! > constraints.maxHeight
+                                ? constraints.maxHeight
+                                : _contentHeight,
+                            child: PlayerPagedList(
+                              key: ValueKey(signature),
+                              onContentHeightChanged: (height) {
+                                if (mounted &&
+                                    _contentSignature == signature &&
+                                    (_contentHeight == null ||
+                                        (_contentHeight! - height).abs() >
+                                            .5)) {
+                                  setState(() => _contentHeight = height);
+                                }
+                              },
+                              sideNavigation:
+                                  MediaQuery.sizeOf(context).height < 480 &&
+                                  (_contentHeight == null ||
+                                      _contentHeight! > constraints.maxHeight),
+                              children: [
+                                if (hasResult) ...[
+                                  Semantics(
+                                    key: const ValueKey('runtime-save-result'),
+                                    liveRegion: true,
+                                    child: Text(
+                                      _receipt != null
+                                          ? strings.success
+                                          : _lastOperationSaves
+                                          ? strings.failure
+                                          : strings.exitFailure,
+                                      style: tokens.title,
+                                    ),
+                                  ),
+                                  if (_failure case final failure?)
+                                    Text(failure, style: tokens.body),
+                                  if (_receipt case final receipt?)
+                                    Text(
+                                      strings.target(receipt.address),
+                                      style: tokens.body,
+                                    ),
+                                ] else ...[
+                                  Text(
+                                    widget.returnToTitle
+                                        ? strings.exitTitle
+                                        : strings.title,
+                                    style: tokens.title,
+                                  ),
+                                  if (widget.returnToTitle)
+                                    Text(
+                                      strings.exitWarning,
+                                      style: tokens.body,
+                                    ),
+                                  ...summary.children.where(
+                                    (child) => child is! SizedBox,
+                                  ),
+                                ],
+                              ],
                             ),
-                            if (_failure case final failure?)
-                              Text(failure, style: tokens.body),
-                            if (_receipt case final receipt?)
-                              Text(
-                                strings.target(receipt.address),
-                                style: tokens.body,
-                              ),
-                          ] else ...[
-                            Text(
-                              widget.returnToTitle
-                                  ? strings.exitTitle
-                                  : strings.title,
-                              style: tokens.title,
-                            ),
-                            if (widget.returnToTitle)
-                              Text(strings.exitWarning, style: tokens.body),
-                            ...summary.children.where(
-                              (child) => child is! SizedBox,
-                            ),
-                          ],
-                        ],
+                          );
+                        },
                       ),
                     ),
                     if (_pending)
@@ -381,13 +425,16 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
             ],
           );
         }
-        return Row(
-          children: [
-            for (var index = 0; index < buttons.length; index++) ...[
-              if (index > 0) const SizedBox(width: PlayerSpacing.sm),
-              Expanded(child: buttons[index]),
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < buttons.length; index++) ...[
+                if (index > 0) const SizedBox(width: PlayerSpacing.sm),
+                Expanded(child: buttons[index]),
+              ],
             ],
-          ],
+          ),
         );
       },
     );

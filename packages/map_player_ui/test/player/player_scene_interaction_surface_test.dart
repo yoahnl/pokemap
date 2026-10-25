@@ -5,6 +5,33 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('disabled request cannot cancel and remains usable after enabling', (
+    tester,
+  ) async {
+    final request = SceneInteractionRequest.confirmation(
+      requestId: 'temporarily-disabled',
+      revision: 7,
+      prompt: _prompt('Continuer ?'),
+    );
+    final results = <SceneInteractionResult>[];
+    await tester.pumpWidget(_app(
+      request: request,
+      results: results,
+      interactionEnabled: false,
+    ));
+    await tester.pumpAndSettle();
+    final cancel = find.byKey(const ValueKey('scene-interaction-cancel'));
+    expect(tester.widget<IconButton>(cancel).onPressed, isNull);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(results, isEmpty);
+    await tester.pumpWidget(_app(request: request, results: results));
+    await tester.pumpAndSettle();
+    await tester.tap(cancel);
+    await tester.pumpAndSettle();
+    expect(results.single, isA<SceneCancelledInteractionResult>());
+    expect(tester.takeException(), isNull);
+  });
   for (final scale in [1.0, 2.0]) {
     for (final size in [
       const Size(390, 844),
@@ -565,12 +592,20 @@ void main() {
       );
       await tester.pump();
       await tester.pump();
+      final submit = find.byKey(
+        const ValueKey<String>('scene-interaction-selection-submit'),
+      );
+      expect(tester.widget<PlayerActionButton>(submit).onPressed, isNull);
       await tester.tap(
         find.byKey(const ValueKey<String>('scene-interaction-option-a')),
       );
+      await tester.pumpAndSettle();
+      expect(tester.widget<PlayerActionButton>(submit).onPressed, isNull);
       await tester.tap(
         find.byKey(const ValueKey<String>('scene-interaction-option-c')),
       );
+      await tester.pumpAndSettle();
+      expect(tester.widget<PlayerActionButton>(submit).onPressed, isNotNull);
       await tester.tap(
         find.byKey(
           const ValueKey<String>('scene-interaction-selection-submit'),
@@ -1165,12 +1200,17 @@ void main() {
 Widget _app({
   required SceneInteractionRequest request,
   required List<SceneInteractionResult> results,
+  bool interactionEnabled = true,
 }) => MaterialApp(
   locale: const Locale('fr'),
   supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
   localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
   theme: PokeMapPlayerTheme.dark(),
-  home: PlayerSceneInteractionSurface(request: request, onResult: results.add),
+  home: PlayerSceneInteractionSurface(
+    request: request,
+    onResult: results.add,
+    interactionEnabled: interactionEnabled,
+  ),
 );
 
 SceneInteractionPrompt _prompt(String text) =>

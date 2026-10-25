@@ -20,6 +20,8 @@ enum RuntimeInputControl {
   primary,
   secondary,
   menu,
+  previousTab,
+  nextTab,
 }
 
 enum RuntimeInputEventPhase {

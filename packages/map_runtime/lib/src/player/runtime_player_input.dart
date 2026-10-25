@@ -36,6 +36,7 @@ final class RuntimePlayerInputIntent {
       PlayerInputAction.left ||
       PlayerInputAction.right =>
         RuntimePlayerInputIntentType.moveFocus,
+      PlayerInputAction.previousTab || PlayerInputAction.nextTab ||
       PlayerInputAction.bicycle || PlayerInputAction.sprint => RuntimePlayerInputIntentType.ignored,
       PlayerInputAction.confirm => RuntimePlayerInputIntentType.confirm,
       PlayerInputAction.back => RuntimePlayerInputIntentType.back,

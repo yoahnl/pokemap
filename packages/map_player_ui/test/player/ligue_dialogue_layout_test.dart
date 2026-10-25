@@ -1,8 +1,94 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+  });
+  for (final size in [
+    const Size(844, 390),
+    const Size(390, 844),
+    const Size(768, 432),
+    const Size(496, 432),
+  ]) {
+    for (final dark in [false, true]) {
+      testWidgets('Ligue choices use flat readable rows $size dark=$dark', (
+        tester,
+      ) async {
+        await tester.binding.setSurfaceSize(size);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final actions = <PlayerDialogueAction>[];
+        Widget surface = PlayerDialogueSurface(
+          data: const PlayerDialogueViewData(
+            revision: 3,
+            mode: PlayerDialogueMode.choices,
+            speaker: 'Léa',
+            text: 'Quel chemin veux-tu emprunter ?',
+            fullText: 'Quel chemin veux-tu emprunter ?',
+            isCurrentLineFullyRevealed: true,
+            isLastContent: false,
+            choices: [
+              PlayerDialogueChoiceViewData(
+                index: 0,
+                label: 'Traverser la forêt',
+                selected: true,
+              ),
+              PlayerDialogueChoiceViewData(
+                index: 1,
+                label: 'Suivre la rivière',
+                selected: false,
+              ),
+            ],
+          ),
+          onAction: actions.add,
+        );
+        if (size == const Size(496, 432)) {
+          surface = PlayerCompanionScope(child: surface);
+        }
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: dark
+                ? PokeMapPlayerTheme.dark(reducedMotion: true)
+                : PokeMapPlayerTheme.light(reducedMotion: true),
+            home: surface,
+          ),
+        );
+        await tester.pumpAndSettle();
+        for (var i = 0; i < 2; i++) {
+          final choice = find.byKey(ValueKey('dialogue-choice-$i'));
+          final widget = tester.widget<PlayerActionButton>(choice);
+          expect(choice.hitTestable(), findsOneWidget);
+          expect(widget.icon, isNull);
+          expect(widget.expandContent, isTrue);
+          expect(tester.getSize(choice).height, greaterThanOrEqualTo(48));
+        }
+        final selected = find.byKey(const ValueKey('dialogue-choice-0'));
+        final focusFrame = tester.widget<AnimatedContainer>(
+          find.descendant(
+            of: selected,
+            matching: find.byKey(const ValueKey('player-action-focus-frame')),
+          ),
+        );
+        final border =
+            (focusFrame.foregroundDecoration! as BoxDecoration).border!
+                as Border;
+        expect(border.left.width, 4);
+        expect(border.right.width, 0);
+        expect(find.byType(Scrollable), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('dialogue-choice-1')));
+        expect(
+          (actions.single as PlayerDialogueSelectChoiceAction).choiceIndex,
+          1,
+        );
+        expect(actions.single.snapshotRevision, 3);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
   for (final dark in [false, true]) {
     for (final mode in [
       (

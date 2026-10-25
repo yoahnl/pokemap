@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -27,6 +28,9 @@ const _referenceRoot = String.fromEnvironment('LIGUE_REFERENCE_ROOT');
 const _captureRoot = String.fromEnvironment('LIGUE_CAPTURE_ROOT');
 const _screenFilter = String.fromEnvironment('LIGUE_CAPTURE_SCREENS');
 const _modeFilter = String.fromEnvironment('LIGUE_CAPTURE_MODES');
+const _captureVariants = bool.fromEnvironment('LIGUE_CAPTURE_VARIANTS');
+const _widePhone = bool.fromEnvironment('LIGUE_CAPTURE_WIDE_PHONE');
+const _threeMoves = bool.fromEnvironment('LIGUE_CAPTURE_THREE_MOVES');
 const _enabled = _referenceRoot != '' && _captureRoot != '';
 const _species = [
   'bulbasaur',
@@ -67,8 +71,8 @@ const _accepted = RuntimePlayerCommandResult(
   status: RuntimePlayerCommandStatus.accepted,
 );
 const _modes = <String, Size>{
-  'landscape-touch': Size(844, 390),
-  'landscape-controller': Size(844, 390),
+  'landscape-touch': _widePhone ? Size(1280, 590) : Size(844, 390),
+  'landscape-controller': _widePhone ? Size(1280, 590) : Size(844, 390),
   'portrait-touch': Size(390, 844),
   'portrait-controller': Size(390, 844),
   'thor-primary': Size(768, 432),
@@ -203,7 +207,11 @@ void main() {
             RuntimePlayerPauseSection.pokedex => 'dex.list',
             RuntimePlayerPauseSection.map => 'map.view',
             RuntimePlayerPauseSection.profile => 'profile.card',
-            RuntimePlayerPauseSection.options => 'options.categories',
+            RuntimePlayerPauseSection.options =>
+              _captureVariants &&
+                      _includes(_screenFilter, 'options.general-long')
+                  ? 'options.general-long'
+                  : 'options.categories',
             RuntimePlayerPauseSection.quests => 'quests.list',
             RuntimePlayerPauseSection.contacts => 'contacts.list',
           };
@@ -212,11 +220,15 @@ void main() {
                   _includes(_screenFilter, 'pokemon.summary'))) {
             continue;
           }
-          final harness = _Harness(section);
+          final harness = _Harness(
+            section,
+            instantDialogue: screen == 'options.general-long',
+          );
           try {
             await _mount(tester, mode.key, dark, _router(harness, mode.key));
             if (_includes(_screenFilter, screen)) {
               if (section == RuntimePlayerPauseSection.options &&
+                  screen == 'options.categories' &&
                   mode.key != 'thor-primary') {
                 await _tap(tester, 'options-category-picker');
               }
@@ -248,7 +260,11 @@ void main() {
             harness.dispose();
           }
         }
-        for (final service in ['pc.box', 'shop.buy']) {
+        for (final service in [
+          'pc.box',
+          'shop.buy',
+          if (_captureVariants) 'pc.box-filled',
+        ]) {
           if (!_includes(_screenFilter, service)) continue;
           await _mount(
             tester,
@@ -256,8 +272,11 @@ void main() {
             dark,
             mode.key == 'thor-primary'
                 ? _image('world')
-                : service == 'pc.box'
-                ? PlayerPcOverlay(snapshot: _pcSnapshot(), onCommand: (_) {})
+                : service.startsWith('pc.box')
+                ? PlayerPcOverlay(
+                    snapshot: _pcSnapshot(filled: service == 'pc.box-filled'),
+                    onCommand: (_) {},
+                  )
                 : PlayerShopOverlay(
                     snapshot: _shopSnapshot(),
                     onCommand: (_) {},
@@ -268,7 +287,7 @@ void main() {
             mode.key,
             theme,
             service,
-            source: service == 'pc.box'
+            source: service.startsWith('pc.box')
                 ? 'PlayerPcOverlay'
                 : 'PlayerShopOverlay',
           );
@@ -422,7 +441,11 @@ void main() {
                 : [],
           );
         }
-        if (_includes(_screenFilter, 'title.menu')) {
+        final titleScreen =
+            _captureVariants && _includes(_screenFilter, 'title.continue-save')
+            ? 'title.continue-save'
+            : 'title.menu';
+        if (_includes(_screenFilter, titleScreen)) {
           await _mount(
             tester,
             mode.key,
@@ -434,6 +457,20 @@ void main() {
                 author: 'Avelune',
                 description: 'Une aventure à votre rythme',
                 backgroundContent: _image('world'),
+                continueSave: titleScreen == 'title.continue-save'
+                    ? PlayerSaveSummary(
+                        address: SaveSlotAddress(
+                          gameId: 'com.avelune.clairieres',
+                          profileId: 'yoahn',
+                          slotId: '1',
+                        ),
+                        updatedAt: DateTime.utc(2026, 10, 25),
+                        playTimeSeconds: 9240,
+                        status: SaveStatus.active,
+                        canContinue: true,
+                        locationLabel: 'Clairière des Sources',
+                      )
+                    : null,
                 actions: {
                   for (final action in const [
                     PlayerTitleMenuAction.continueGame,
@@ -452,7 +489,7 @@ void main() {
             tester,
             mode.key,
             theme,
-            'title.menu',
+            titleScreen,
             source: 'PlayerTitleScreen',
             limitations: [
               if (mode.key.startsWith('thor')) 'Direct widget composition; remote title ownership is tested separately.',
@@ -479,7 +516,7 @@ void main() {
               phase: RuntimePlayerPhase.paused,
               gameTitle: 'Les Clairières',
               activeSaveAddress: const RuntimePlayerSaveAddress(
-                gameId: 'clairieres',
+                gameId: 'com.avelune.clairieres',
                 profileId: 'yoahn',
                 slotId: '1',
               ),
@@ -502,11 +539,25 @@ void main() {
                 fit: StackFit.expand,
                 children: [
                   _image('world'),
-                  if (mode.key != 'thor-primary')
+                  if (mode.key != 'thor-primary' && screen != 'save.exit')
                     _supplementalSurface(screen, saveState),
                 ],
               ),
             );
+            if (screen == 'save.exit' && mode.key != 'thor-primary') {
+              unawaited(
+                showDialog<void>(
+                  context: tester.element(find.byType(Scaffold)),
+                  builder: (context) => PlayerInputScope(
+                    activeInputSource: _controller(mode.key)
+                        ? PlayerInputSource.controller
+                        : PlayerInputSource.touch,
+                    child: _supplementalSurface(screen, saveState),
+                  ),
+                ),
+              );
+              await tester.pumpAndSettle();
+            }
             if (screen == 'session.loading' && mode.key != 'thor-primary') {
               await tester.runAsync(
                 () => precacheImage(
@@ -567,7 +618,10 @@ void main() {
           final decision = screen == 'postbattle.moveLearningPrompt';
           final placement = mode.key.startsWith('thor')
               ? BattleCommandPanelPlacement.detached
-              : mode.key == 'landscape-controller'
+              : mode.key == 'landscape-controller' ||
+                    (mode.key == 'landscape-touch' &&
+                        collection != null &&
+                        !moves)
               ? BattleCommandPanelPlacement.end
               : BattleCommandPanelPlacement.bottom;
           final size = mode.key == 'thor-companion'
@@ -579,7 +633,9 @@ void main() {
             commandPanelPlacement: placement,
             commandPanelMode:
                 collection ??
-                (busy || afterBattle
+                (decision
+                    ? BattleCommandOverlayMode.decision
+                    : busy || afterBattle
                     ? BattleCommandOverlayMode.continueOnly
                     : moves
                     ? BattleCommandOverlayMode.fight
@@ -602,6 +658,7 @@ void main() {
                     hidePlayer: forced,
                   ),
                 PlayerBattleOverlay(
+                  controllerFamily: PlayerControllerFamily.xbox,
                   snapshot: _battleSnapshot(
                     size,
                     layout,
@@ -633,6 +690,8 @@ void main() {
             source:
                 'PlayerBattleOverlay > PlayerBattleSurface; BattleSceneLayout',
             limitations: [
+              if (_threeMoves && moves) 'Three-move fixture matching the entry count in the reported phone photos.',
+              if (_widePhone && mode.key.startsWith('landscape')) 'Wide viewport of 1280 × 590 matching the supplied image proportions; this does not establish the phone logical viewport or device pixel ratio.',
               if (afterBattle) 'Uses the production in-scene narration and decision overlay path; the isolated PlayerPostBattleOverlay component is not used.',
               'Real Flame backdrop and combatant paint methods are composed with runtime layout, using reference assets; game loop, turn choreography and physical device execution are not exercised.',
             ],
@@ -755,22 +814,17 @@ Widget _supplementalSurface(
         onDiscard: () async => _accepted,
       ),
     ),
-    'save.recovery' => Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: PlayerSaveRecoverySurface(
-          diagnostic: const SaveLoadDiagnostic(
-            code: SaveLoadFailureCode.unreadable,
-            expectedSchemaVersion: 1,
-            recommendedActions: [
-              SaveRecoveryAction.retry,
-              SaveRecoveryAction.returnToTitle,
-              SaveRecoveryAction.deleteSave,
-            ],
-          ),
-          onAction: (_) {},
-        ),
+    'save.recovery' => PlayerSaveRecoverySurface(
+      diagnostic: const SaveLoadDiagnostic(
+        code: SaveLoadFailureCode.unreadable,
+        expectedSchemaVersion: 1,
+        recommendedActions: [
+          SaveRecoveryAction.retry,
+          SaveRecoveryAction.returnToTitle,
+          SaveRecoveryAction.deleteSave,
+        ],
       ),
+      onAction: (_) {},
     ),
     'heal.confirm' || 'heal.result' => PlayerHealConfirmation(
       snapshot: snapshot,
@@ -906,6 +960,7 @@ Future<Widget> _runtimeStage(
   final backdrop = BattleSceneBackdropComponent(
     size: player.size.clone()
       ..setValues(layout.viewportSize.width, layout.viewportSize.height),
+    artworkRect: layout.backdropArtworkRect,
     visualAssetCache: cache,
     backgroundSpec: BattleBackgroundSpec.explicitImage(
       fallbackKey: BattleBackgroundKey.wildOutdoor,
@@ -1100,22 +1155,23 @@ Future<void> _capture(
       },
       'source': source,
       'snapshotRevision':
-          (screen == 'title.menu' ||
+          (screen.startsWith('title.') ||
               screen.startsWith('session.') ||
               screen == 'save.recovery'
           ? null
-          : (const [
-                  'pause.root',
-                  'party.list',
-                  'pokemon.summary',
-                  'bag.list',
-                  'map.view',
-                  'dex.list',
-                  'profile.card',
-                  'options.categories',
-                  'quests.list',
-                  'contacts.list',
-                ].contains(screen)
+          : (screen == 'options.general-long' ||
+                    const [
+                      'pause.root',
+                      'party.list',
+                      'pokemon.summary',
+                      'bag.list',
+                      'map.view',
+                      'dex.list',
+                      'profile.card',
+                      'options.categories',
+                      'quests.list',
+                      'contacts.list',
+                    ].contains(screen)
                 ? 1
                 : 7)),
       'referenceRoot': _referenceRoot,
@@ -1198,6 +1254,12 @@ RuntimeWorldServiceSnapshot _shopSnapshot() => RuntimeWorldServiceSnapshot(
   ),
   actions: const [
     RuntimeWorldServiceActionAvailability.enabled(
+      RuntimeWorldServiceAction.showPurchases,
+    ),
+    RuntimeWorldServiceActionAvailability.enabled(
+      RuntimeWorldServiceAction.showSales,
+    ),
+    RuntimeWorldServiceActionAvailability.enabled(
       RuntimeWorldServiceAction.select,
     ),
     RuntimeWorldServiceActionAvailability.enabled(
@@ -1216,34 +1278,40 @@ RuntimeWorldServiceSnapshot _shopSnapshot() => RuntimeWorldServiceSnapshot(
 );
 
 final class _Harness {
-  _Harness(RuntimePlayerPauseSection section, {bool empty = false})
-    : snapshot = RuntimePlayerSnapshot(
-        revision: 1,
-        phase: RuntimePlayerPhase.paused,
-        gameTitle: 'Les Clairières',
-        pauseSection: section,
-        activeSaveAddress: const RuntimePlayerSaveAddress(
-          gameId: 'ligue26.reference',
-          profileId: 'player',
-          slotId: 'slot-1',
-        ),
-        preferences: const PlayerPreferencesSnapshot(
-          locale: 'fr',
-          accessibility: GameSessionAccessibilityOptions(),
-        ),
-        favoriteItemIds: const {'item0'},
-        bagFavoritesAvailable: true,
-        actions: [
-          for (final action in RuntimePlayerAction.values)
-            RuntimePlayerActionAvailability.enabled(action),
-        ],
-        pauseDetails: {
-          for (final detailSection in _sections)
-            if (detailSection != RuntimePlayerPauseSection.root &&
-                detailSection != RuntimePlayerPauseSection.options)
-              detailSection: _detail(detailSection, empty: empty),
-        },
-      );
+  _Harness(
+    RuntimePlayerPauseSection section, {
+    bool empty = false,
+    bool instantDialogue = false,
+  }) : snapshot = RuntimePlayerSnapshot(
+         revision: 1,
+         phase: RuntimePlayerPhase.paused,
+         gameTitle: 'Les Clairières',
+         pauseSection: section,
+         activeSaveAddress: const RuntimePlayerSaveAddress(
+           gameId: 'com.avelune.clairieres',
+           profileId: 'player',
+           slotId: 'slot-1',
+         ),
+         preferences: PlayerPreferencesSnapshot(
+           locale: 'fr',
+           accessibility: const GameSessionAccessibilityOptions(),
+           dialogueTextSpeed: instantDialogue
+               ? RuntimeDialogueTextSpeed.instant
+               : RuntimeDialogueTextSpeed.normal,
+         ),
+         favoriteItemIds: const {'item0'},
+         bagFavoritesAvailable: true,
+         actions: [
+           for (final action in RuntimePlayerAction.values)
+             RuntimePlayerActionAvailability.enabled(action),
+         ],
+         pauseDetails: {
+           for (final detailSection in _sections)
+             if (detailSection != RuntimePlayerPauseSection.root &&
+                 detailSection != RuntimePlayerPauseSection.options)
+               detailSection: _detail(detailSection, empty: empty),
+         },
+       );
 
   final RuntimePlayerSnapshot snapshot;
   final actions = <RuntimePlayerAction>[];
@@ -1526,67 +1594,76 @@ RuntimePlayerPauseDetailSnapshot _detail(
       : null,
 );
 
-RuntimeWorldServiceSnapshot _pcSnapshot() => RuntimeWorldServiceSnapshot(
-  revision: 7,
-  request: const OpenPcService(
-    interactionId: 'terminal.harbor',
-    storageId: 'box-a',
-  ),
-  stage: RuntimeWorldServiceStage.active,
-  content: RuntimePcServiceContent(
-    title: 'PC Pokémon',
-    message: 'Organisez votre équipe.',
-    selectedBoxId: 'box-a',
-    boxes: const <RuntimePcBoxSnapshot>[
-      RuntimePcBoxSnapshot(
-        boxId: 'box-a',
-        label: 'Boîte 1',
-        count: 0,
-        capacity: 30,
+RuntimePcPokemonSnapshot _pcPokemon(RuntimePlayerDetailEntrySnapshot entry) =>
+    RuntimePcPokemonSnapshot(
+      targetId: entry.id,
+      label: entry.pokemonSummary!.displayLabel,
+      summary: entry.pokemonSummary,
+      speciesId:
+          _species[int.parse(entry.pokemonSummary!.individualId.substring(6))],
+      level: entry.pokemonSummary!.level,
+      natureId: 'modest',
+      abilityId: 'reference',
+      currentHp: entry.pokemonSummary!.currentHp,
+      nickname: entry.pokemonSummary!.nickname,
+      friendship: entry.pokemonSummary!.friendship,
+      canTransfer: true,
+    );
+
+RuntimeWorldServiceSnapshot _pcSnapshot({bool filled = false}) =>
+    RuntimeWorldServiceSnapshot(
+      revision: 7,
+      request: const OpenPcService(
+        interactionId: 'terminal.harbor',
+        storageId: 'box-a',
       ),
-    ],
-    party: [
-      for (final entry in _detail(
-        RuntimePlayerPauseSection.party,
-        empty: false,
-      ).entries)
-        RuntimePcPokemonSnapshot(
-          targetId: entry.id,
-          label: entry.pokemonSummary!.displayLabel,
-          summary: entry.pokemonSummary,
-          speciesId:
-              _species[int.parse(
-                entry.pokemonSummary!.individualId.substring(6),
-              )],
-          level: entry.pokemonSummary!.level,
-          natureId: 'modest',
-          abilityId: 'reference',
-          currentHp: entry.pokemonSummary!.currentHp,
-          nickname: entry.pokemonSummary!.nickname,
-          friendship: entry.pokemonSummary!.friendship,
-          canTransfer: true,
+      stage: RuntimeWorldServiceStage.active,
+      content: RuntimePcServiceContent(
+        title: 'PC Pokémon',
+        message: 'Organisez votre équipe.',
+        selectedBoxId: 'box-a',
+        boxes: <RuntimePcBoxSnapshot>[
+          RuntimePcBoxSnapshot(
+            boxId: 'box-a',
+            label: 'Boîte 1',
+            count: filled ? 3 : 0,
+            capacity: 30,
+          ),
+        ],
+        party: [
+          for (final entry in _detail(
+            RuntimePlayerPauseSection.party,
+            empty: false,
+          ).entries.take(filled ? 3 : 6))
+            _pcPokemon(entry),
+        ],
+        stored: [
+          if (filled)
+            for (final entry in _detail(
+              RuntimePlayerPauseSection.party,
+              empty: false,
+            ).entries.skip(3))
+              _pcPokemon(entry),
+        ],
+      ),
+      actions: const <RuntimeWorldServiceActionAvailability>[
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.select,
         ),
-    ],
-    stored: const <RuntimePcPokemonSnapshot>[],
-  ),
-  actions: const <RuntimeWorldServiceActionAvailability>[
-    RuntimeWorldServiceActionAvailability.enabled(
-      RuntimeWorldServiceAction.select,
-    ),
-    RuntimeWorldServiceActionAvailability.enabled(
-      RuntimeWorldServiceAction.deposit,
-    ),
-    RuntimeWorldServiceActionAvailability.enabled(
-      RuntimeWorldServiceAction.withdraw,
-    ),
-    RuntimeWorldServiceActionAvailability.enabled(
-      RuntimeWorldServiceAction.swap,
-    ),
-    RuntimeWorldServiceActionAvailability.enabled(
-      RuntimeWorldServiceAction.close,
-    ),
-  ],
-);
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.deposit,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.withdraw,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.swap,
+        ),
+        RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.close,
+        ),
+      ],
+    );
 
 BattleCommandOverlaySnapshot _battleSnapshot(
   Size size,
@@ -1601,6 +1678,7 @@ BattleCommandOverlaySnapshot _battleSnapshot(
 }) => BattleCommandOverlaySnapshot(
   commandPanelPlacement: placement,
   controllerLayout: controllerLayout,
+  rootCommandOrder: const [0, 2, 1, 3],
   forcedReplacement: forced,
   phase: forced
       ? BattlePresentationPhase.forcedReplacement
@@ -1726,7 +1804,7 @@ BattleCommandOverlaySnapshot _battleSnapshot(
       ? const []
       : moves
       ? List.generate(
-          4,
+          _threeMoves ? 3 : 4,
           (i) => BattleCommandOverlayEntry(
             index: i,
             kind: BattleCommandOverlayEntryKind.move,
@@ -1747,7 +1825,9 @@ BattleCommandOverlaySnapshot _battleSnapshot(
               'Peu efficace',
               'Efficacité normale',
               'Statut',
-              'Statut',
+              extraMode == BattleCommandOverlayMode.bagMedicineMoveTarget
+                  ? 'Statut'
+                  : 'Épuisée',
             ][i],
             trailingLabel: [
               'PP 22 / 25',
@@ -1755,9 +1835,14 @@ BattleCommandOverlaySnapshot _battleSnapshot(
               'PP 10 / 10',
               'PP 0 / 15',
             ][i],
-            enabled: i != 3,
+            enabled: extraMode == BattleCommandOverlayMode.bagMedicineMoveTarget
+                ? i != 2
+                : i != 3,
             selected: i == 0,
-            tone: i == 3
+            tone:
+                (extraMode == BattleCommandOverlayMode.bagMedicineMoveTarget
+                    ? i == 2
+                    : i == 3)
                 ? BattleCommandOverlayEntryTone.disabled
                 : BattleCommandOverlayEntryTone.attack,
           ),

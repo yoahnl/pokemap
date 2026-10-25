@@ -31,6 +31,7 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
   final _focusNodes = <String, FocusNode>{};
   String? _selectedId;
   String? _pendingFocusId;
+  double? _detailHeight;
 
   RuntimePlayerDetailEntrySnapshot? get _selected =>
       widget.detail.entries
@@ -70,7 +71,12 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
   }
 
   void _select(String id, {bool requestFocus = false}) {
-    if (_selectedId != id) setState(() => _selectedId = id);
+    if (_selectedId != id) {
+      setState(() {
+        _selectedId = id;
+        _detailHeight = null;
+      });
+    }
     if (requestFocus) {
       _pendingFocusId = id;
       if (_focusNode(id).canRequestFocus) {
@@ -204,12 +210,24 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
                 if (widget.detail.message case final message?)
                   Text(message, style: theme.body),
               ];
-              final detail = PlayerMenuPanel(
-                key: const ValueKey('journal-detail'),
-                padding: EdgeInsets.all(companion ? 12 : 16),
-                child: PlayerPagedList(
-                  key: ValueKey('journal-detail-${selected?.id}'),
-                  children: detailItems,
+              final detailPadding = companion ? 12.0 : 16.0;
+              final detail = SizedBox(
+                height: math.min(
+                  constraints.maxHeight,
+                  (_detailHeight ?? constraints.maxHeight) + detailPadding * 2,
+                ),
+                child: PlayerMenuPanel(
+                  key: const ValueKey('journal-detail'),
+                  padding: EdgeInsets.all(detailPadding),
+                  child: PlayerPagedList(
+                    key: ValueKey('journal-detail-${selected?.id}'),
+                    onContentHeightChanged: (height) {
+                      if (mounted && _detailHeight != height) {
+                        setState(() => _detailHeight = height);
+                      }
+                    },
+                    children: detailItems,
+                  ),
                 ),
               );
               return SizedBox.expand(
@@ -245,13 +263,7 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
                             ),
                             child: list,
                           ),
-                          SizedBox(
-                            height: math.min(
-                              244 * scale,
-                              constraints.maxHeight,
-                            ),
-                            child: detail,
-                          ),
+                          detail,
                         ],
                       ),
               );

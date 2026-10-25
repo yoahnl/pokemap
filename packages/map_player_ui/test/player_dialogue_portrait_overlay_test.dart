@@ -2,12 +2,32 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+    var cache = File(Platform.resolvedExecutable).parent;
+    while (!cache.path.endsWith('${Platform.pathSeparator}cache')) {
+      if (cache.parent.path == cache.path) {
+        throw StateError('Flutter cache absent');
+      }
+      cache = cache.parent;
+    }
+    final icons = await File(
+      '${cache.path}/artifacts/material_fonts/MaterialIcons-Regular.otf',
+    ).readAsBytes();
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(Future.value(ByteData.sublistView(icons)))).load();
+  });
+
   testWidgets('renders the resolved portrait with authored fit and semantics', (
     tester,
   ) async {

@@ -8,6 +8,55 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final dark in [false, true]) {
+    for (final selling in [false, true]) {
+      testWidgets(
+        'portrait selected shop quantity remains readable dark=$dark selling=$selling',
+        (tester) async {
+          tester.view.physicalSize = const Size(390, 844);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.reset);
+          await _pump(tester, _snapshot(selling: selling), (_) {}, dark: dark);
+          final row = find.byKey(const ValueKey('shop-item-potion'));
+          expect(tester.widget<PlayerMenuSelectableRow>(row).selected, isTrue);
+          final quantity = find.descendant(
+            of: row,
+            matching: find.text(selling ? 'Possédé : 3' : 'Stock : 3'),
+          );
+          expect(quantity, findsOneWidget);
+          final paragraph = tester.renderObject<RenderParagraph>(quantity);
+          final foreground =
+              paragraph.text.style?.foreground?.color ??
+              paragraph.text.style?.color;
+          expect(foreground, isNotNull);
+          final decoration = tester
+              .widgetList<DecoratedBox>(
+                find.descendant(of: row, matching: find.byType(DecoratedBox)),
+              )
+              .map((box) => box.decoration)
+              .whereType<BoxDecoration>()
+              .firstWhere((box) => box.gradient != null);
+          for (final background in decoration.gradient!.colors) {
+            final textLuminance = Color.alphaBlend(
+              foreground!,
+              background,
+            ).computeLuminance();
+            final backgroundLuminance = background.computeLuminance();
+            final contrast = textLuminance >= backgroundLuminance
+                ? (textLuminance + .05) / (backgroundLuminance + .05)
+                : (backgroundLuminance + .05) / (textLuminance + .05);
+            expect(
+              contrast,
+              greaterThanOrEqualTo(4.5),
+              reason: 'Selected stock and owned quantity must remain readable.',
+            );
+          }
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   testWidgets(
     'landscape shop keeps four articles and the detail action visible with real font and safe insets',
     (tester) async {
@@ -18,7 +67,9 @@ void main() {
         final font = ByteData.sublistView(
           await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
         );
-        await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')..addFont(Future.value(font))).load();
+        await (FontLoader(
+          'packages/map_player_ui/PokeMapSplashDMSans',
+        )..addFont(Future.value(font))).load();
       });
       final commands = <RuntimeWorldServiceCommand>[];
       await _pump(
@@ -73,7 +124,9 @@ void main() {
         final font = ByteData.sublistView(
           await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
         );
-        await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')..addFont(Future.value(font))).load();
+        await (FontLoader(
+          'packages/map_player_ui/PokeMapSplashDMSans',
+        )..addFont(Future.value(font))).load();
       });
       await _pump(
         tester,
@@ -348,13 +401,14 @@ Future<void> _pump(
   Locale locale = const Locale('fr'),
   EdgeInsets safePadding = EdgeInsets.zero,
   bool companion = false,
+  bool dark = true,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: locale,
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
+      theme: dark ? PokeMapPlayerTheme.dark() : PokeMapPlayerTheme.light(),
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context)
             .copyWith(padding: safePadding, viewPadding: safePadding),

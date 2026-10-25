@@ -12,6 +12,7 @@ import 'player_dialogue_surface.dart';
 import 'player_scene_keyboard.dart';
 import '../foundation/player_input_scope.dart';
 import '../theme/pokemap_player_window_theme.dart';
+import '../theme/pokemap_player_layout_theme.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../foundation/player_menu_components.dart';
@@ -383,7 +384,10 @@ class _PlayerSceneInteractionSurfaceState
                                                       .playerMenuTheme
                                                       .recessed,
                                                 ),
-                                                onPressed: _terminal
+                                                onPressed:
+                                                    _terminal ||
+                                                        !widget
+                                                            .interactionEnabled
                                                     ? null
                                                     : _cancel,
                                               ),
@@ -792,7 +796,13 @@ class _PlayerSceneInteractionSurfaceState
                 ),
                 label: strings.submit,
                 icon: Icons.check,
-                onPressed: !widget.interactionEnabled || _terminal
+                onPressed:
+                    !widget.interactionEnabled ||
+                        _terminal ||
+                        _selectedOptionIds.length <
+                            request.constraints.minSelections ||
+                        _selectedOptionIds.length >
+                            request.constraints.maxSelections
                     ? null
                     : () => _submitSelection(request),
               ),
@@ -1135,6 +1145,8 @@ class _PlayerSceneInteractionSurfaceState
         }
       case PlayerInputAction.back:
         _cancel();
+      case PlayerInputAction.previousTab:
+      case PlayerInputAction.nextTab:
       case PlayerInputAction.bicycle:
       case PlayerInputAction.sprint:
       case PlayerInputAction.menu:
@@ -1189,6 +1201,7 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   void _cancel() {
+    if (!widget.interactionEnabled) return;
     if (widget.request is SceneIntegerInteractionRequest &&
         !(widget.request as SceneIntegerInteractionRequest).allowCancel) {
       return;
@@ -1209,7 +1222,11 @@ class _PlayerSceneInteractionSurfaceState
     SceneInteractionRequest expectedRequest,
     SceneInteractionResult result,
   ) {
-    if (_terminal || !_sameRequest(expectedRequest, widget.request)) return;
+    if (!widget.interactionEnabled ||
+        _terminal ||
+        !_sameRequest(expectedRequest, widget.request)) {
+      return;
+    }
     final issues = expectedRequest.validateResult(result);
     if (issues.isNotEmpty) {
       setState(() => _validationIssue = issues.first);
@@ -1329,6 +1346,36 @@ class _SceneInteractionInputForm extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       if (fullScreen && constraints.maxHeight >= 160) {
+        final sideKeyboard =
+            controllerKeyboard &&
+            PlayerCompanionScope.of(context) &&
+            context.playerWindowTheme == null &&
+            context.playerLayoutTheme == null &&
+            MediaQuery.textScalerOf(context).scale(1) < 1.5 &&
+            constraints.maxWidth >= 400 &&
+            constraints.maxHeight >= 276;
+        if (sideKeyboard) {
+          return PlayerSceneKeyboard(
+            controller: controller!,
+            submit: submit,
+            maximum: maximum,
+            numeric: numeric,
+            signed: signed,
+            onChanged: onKeyboardChanged!,
+            enabled: keyboardEnabled,
+            leading: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _field(),
+                if (counter case final content?) ...[
+                  const SizedBox(height: 8),
+                  content,
+                ],
+              ],
+            ),
+          );
+        }
         final compactField =
             controllerKeyboard &&
             constraints.maxWidth >= 400 &&

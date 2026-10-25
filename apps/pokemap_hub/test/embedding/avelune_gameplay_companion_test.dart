@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,467 @@ import 'package:pokemap_hub/embedding/avelune_gameplay_companion_app.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'battle input relay uses the attached battle envelope and resets its owner',
+    () async {
+      final owner = AveluneGameplayCompanionOwner();
+      addTearDown(owner.dispose);
+      final port = _Port()..battle = _battleFixture();
+      owner.start('battle-session');
+      owner.bind(port);
+      await owner.refresh();
+      const press = RuntimeInputEvent.press(RuntimeInputControl.down);
+      expect(owner.inputPayload(press), isNull);
+      owner.setCompanionAttached('battle-session', true);
+      final current = owner.value!;
+      final input = owner.inputPayload(press)!;
+      expect(input['mode'], 'battle');
+      expect(input['battleRevision'], 20);
+      expect(input['battleMode'], 'fight');
+      final intent = {
+        ..._intent(current),
+        'kind': 'battleInput',
+        'payload': {
+          'snapshotRevision': 20,
+          'expectedMode': 'fight',
+          'control': 'down',
+          'phase': 'press',
+          'isRepeat': false,
+        },
+      };
+      await owner.applyIntent(intent);
+      await owner.applyIntent(intent);
+      expect(port.executed, hasLength(1));
+      owner.setCompanionAttached('battle-session', false);
+      expect(port.battleReleases, 1);
+      await expectLater(
+        owner.applyIntent({...intent, 'sequence': 2}),
+        _error('companionDetached'),
+      );
+      owner.unbind(port);
+      expect(port.battleReleases, 2);
+    },
+  );
+
+  test('battle inputs wait for a busy command and retain press repeat release order', () async {
+    const channel = MethodChannel('avelune.gameplay.test.battle-queue');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    var state = _battleEnvelope();
+    final gate = Completer<void>();
+    final calls = <Map<String, dynamic>>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'intent') {
+        final intent = Map<String, dynamic>.from(call.arguments as Map);
+        calls.add(intent);
+        if (intent['kind'] == 'battle') {
+          await gate.future;
+        } else {
+          state = _battleEnvelope(
+            revision: state.revision + 1,
+            battleRevision: state.battle!.revision + 1,
+          );
+        }
+      }
+      return state.toPayload();
+    });
+    final remote = AveluneGameplayCompanionRemote(channel: channel);
+    addTearDown(() {
+      remote.dispose();
+      messenger.setMockMethodCallHandler(channel, null);
+    });
+    await remote.attach();
+    final busy = remote.send('battle', {'action': 'layout'});
+    final inputs = [
+      remote.sendBattleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.down),
+      ),
+      remote.sendBattleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.down, isRepeat: true),
+      ),
+      remote.sendBattleInput(
+        const RuntimeInputEvent.release(RuntimeInputControl.down),
+      ),
+    ];
+    await Future<void>.delayed(Duration.zero);
+    expect(calls, hasLength(1));
+    gate.complete();
+    await busy;
+    await Future.wait(inputs);
+    final forwarded = calls
+        .where((call) => call['kind'] == 'battleInput')
+        .toList();
+    expect(forwarded, hasLength(3));
+    expect(forwarded.map((call) => (call['payload'] as Map)['phase']), [
+      'press',
+      'press',
+      'release',
+    ]);
+    expect(forwarded.map((call) => (call['payload'] as Map)['isRepeat']), [
+      false,
+      true,
+      false,
+    ]);
+    expect(
+      forwarded.map((call) => (call['payload'] as Map)['snapshotRevision']),
+      [20, 21, 22],
+    );
+    expect(calls.map((call) => call['sequence']), [1, 2, 3, 4]);
+  });
+
+  test(
+    'battle input queued for an obsolete mode cannot activate the next panel',
+    () async {
+      const channel = MethodChannel('avelune.gameplay.test.battle-stale-queue');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      var state = _battleEnvelope();
+      final gate = Completer<void>();
+      final kinds = <String>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'intent') {
+          kinds.add((call.arguments as Map)['kind'] as String);
+          await gate.future;
+        }
+        return state.toPayload();
+      });
+      final remote = AveluneGameplayCompanionRemote(channel: channel);
+      addTearDown(() {
+        remote.dispose();
+        messenger.setMockMethodCallHandler(channel, null);
+      });
+      await remote.attach();
+      final busy = remote.send('battle', {'action': 'layout'});
+      final queued = remote.sendBattleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      );
+      final rejected = expectLater(queued, _error('staleMode'));
+      state = _battleEnvelope(revision: 9, mode: BattleCommandOverlayMode.root);
+      await _nativeCall(channel, 'stateChanged', state.toPayload());
+      gate.complete();
+      await busy;
+      await rejected;
+      expect(kinds, ['battle']);
+    },
+  );
+
+  test('battle selection revisions preserve held inputs while detach releases them', () async {
+    const channel = MethodChannel('avelune.gameplay.test.battle-held');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    var state = _battleEnvelope();
+    messenger.setMockMethodCallHandler(channel, (_) async => state.toPayload());
+    final remote = AveluneGameplayCompanionRemote(channel: channel);
+    final inputs = <RuntimeInputEvent>[];
+    final subscription = remote.inputs.listen(inputs.add);
+    addTearDown(() async {
+      await subscription.cancel();
+      remote.dispose();
+      messenger.setMockMethodCallHandler(channel, null);
+    });
+    await remote.attach();
+    await _nativeCall(channel, 'input', {
+      ..._battleInput(state, RuntimeInputControl.down),
+      'battleRevision': 19,
+    });
+    expect(inputs, isEmpty);
+    await _nativeCall(
+      channel,
+      'input',
+      _battleInput(state, RuntimeInputControl.down),
+    );
+    state = _battleEnvelope(revision: 9, battleRevision: 21);
+    await _nativeCall(channel, 'stateChanged', state.toPayload());
+    expect(inputs, [const RuntimeInputEvent.press(RuntimeInputControl.down)]);
+    await _nativeCall(channel, 'input', {
+      ..._battleInput(state, RuntimeInputControl.down),
+      'isRepeat': true,
+    });
+    await _nativeCall(channel, 'stateChanged', {
+      ...state.toPayload(),
+      'revision': 10,
+      'companionAttached': false,
+    });
+    expect(inputs, [
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+      const RuntimeInputEvent.press(RuntimeInputControl.down, isRepeat: true),
+      const RuntimeInputEvent.release(RuntimeInputControl.down),
+    ]);
+    await expectLater(
+      remote.sendBattleInput(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      _error('companionDetached'),
+    );
+  });
+
+  testWidgets('companion root order crosses layout ACK and retains canonical taps and input releases', (tester) async {
+    await _loadPlayerFonts(tester);
+    tester.view.physicalSize = const Size(496, 432);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const channel = MethodChannel('com.avelune.runtime/companion');
+    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    var battle = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot({
+      ...RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(_battleFixture()),
+      'mode': 'root',
+      'entries': [for (var index = 0; index < 4; index++)
+        RuntimeCompanionPresentationCodec.encodeBattleCommandOverlayEntry(BattleCommandOverlayEntry(
+          index: index, kind: BattleCommandOverlayEntryKind.root,
+          primaryLabel: ['Attaquer', 'Sac', 'Équipe', 'Fuite'][index], secondaryLabel: '',
+          enabled: true, selected: index == 0, tone: BattleCommandOverlayEntryTone.neutral))],
+    });
+    var state = AveluneGameplayCompanionSnapshot(sessionId: 'battle-session', revision: 8,
+      companionAttached: true, mode: AveluneGameplayCompanionMode.battle, battle: battle);
+    final calls = <Map<String, dynamic>>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'intent') {
+        final intent = Map<String, dynamic>.from(call.arguments as Map);
+        calls.add(intent);
+        final payload = Map<String, dynamic>.from(intent['payload'] as Map);
+        if (intent['kind'] == 'battle' && payload['action'] == 'layout') {
+          battle = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot({
+            ...RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(battle),
+            'revision': battle.revision + 1, 'rootCommandOrder': payload['rootCommandOrder'],
+            'collectionColumns': payload['collectionColumns'],
+            'commandPanelPlacement': payload['placement'], 'controllerLayout': payload['controllerLayout'],
+          });
+          state = AveluneGameplayCompanionSnapshot(sessionId: state.sessionId, revision: state.revision + 1,
+            companionAttached: true, mode: AveluneGameplayCompanionMode.battle, battle: battle);
+        }
+      }
+      return state.toPayload();
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    await tester.pumpWidget(const AveluneGameplayCompanionApp());
+    await tester.pumpAndSettle();
+    final layouts = calls.where((call) => call['kind'] == 'battle' && (call['payload'] as Map)['action'] == 'layout');
+    expect(layouts, hasLength(1));
+    expect((layouts.single['payload'] as Map)['rootCommandOrder'], [0, 2, 1, 3]);
+    expect(battle.rootCommandOrder, [0, 2, 1, 3]);
+    await tester.tap(find.byKey(const ValueKey('battle-entry-1')));
+    await tester.pumpAndSettle();
+    final selection = calls.where((call) => call['kind'] == 'battle' && (call['payload'] as Map)['action'] == 'select').single;
+    expect((selection['payload'] as Map)['entryIndex'], 1);
+    for (final release in [false, true]) {
+      await _nativeCall(channel, 'input', _battleInput(state, RuntimeInputControl.down, release: release));
+      await tester.pumpAndSettle();
+    }
+    final inputs = calls.where((call) => call['kind'] == 'battleInput').toList();
+    expect(inputs.map((call) => (call['payload'] as Map)['phase']), ['press', 'release']);
+    expect(inputs.map((call) => (call['payload'] as Map)['control']), ['down', 'down']);
+    expect(layouts, hasLength(1));
+    battle = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot({
+      ...RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(battle),
+      'revision': battle.revision + 1,
+      'mode': 'pokemon',
+      'collectionColumns': null,
+      'entries': [for (var index = 0; index < 6; index++)
+        RuntimeCompanionPresentationCodec.encodeBattleCommandOverlayEntry(BattleCommandOverlayEntry(
+          index: index, kind: BattleCommandOverlayEntryKind.party,
+          primaryLabel: 'Membre $index', secondaryLabel: '12/40 PV',
+          enabled: true, selected: index == 0, tone: BattleCommandOverlayEntryTone.neutral))],
+    });
+    state = AveluneGameplayCompanionSnapshot(sessionId: state.sessionId, revision: state.revision + 1,
+      companionAttached: true, mode: AveluneGameplayCompanionMode.battle, battle: battle);
+    await _nativeCall(channel, 'stateChanged', state.toPayload());
+    await tester.pumpAndSettle();
+    expect(layouts, hasLength(2));
+    expect((layouts.last['payload'] as Map)['collectionColumns'], 2);
+    expect(battle.collectionColumns, 2);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets(
+    'battle companion owns move info and never forwards its modal inputs',
+    (tester) async {
+      await _loadPlayerFonts(tester);
+      tester.view.physicalSize = const Size(496, 432);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      const channel = MethodChannel('com.avelune.runtime/companion');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      var state = _battleEnvelope();
+      final calls = <Map<String, dynamic>>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'intent') {
+          calls.add(Map<String, dynamic>.from(call.arguments as Map));
+        }
+        return state.toPayload();
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      await tester.pumpWidget(const AveluneGameplayCompanionApp());
+      await tester.pumpAndSettle();
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.sprint),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.sprint, release: true),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('battle-move-info-dialog')),
+        findsOneWidget,
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.down),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.down, release: true),
+      );
+      expect(calls.where((call) => call['kind'] == 'battleInput'), isEmpty);
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.secondary),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.secondary, release: true),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('battle-move-info-dialog')),
+        findsNothing,
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.down),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.down, release: true),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        calls.where((call) => call['kind'] == 'battleInput'),
+        hasLength(2),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.sprint),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('battle-move-info-dialog')),
+        findsOneWidget,
+      );
+      state = AveluneGameplayCompanionSnapshot.fromPayload({
+        ...state.toPayload(),
+        'revision': 9,
+        'companionAttached': false,
+      });
+      await _nativeCall(channel, 'stateChanged', state.toPayload());
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('battle-move-info-dialog')),
+        findsNothing,
+      );
+      expect(
+        calls.where((call) => call['kind'] == 'battleInput'),
+        hasLength(2),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'battle companion waits for selection ACK before local info and releases its prior hold',
+    (tester) async {
+      await _loadPlayerFonts(tester);
+      tester.view.physicalSize = const Size(496, 432);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      const channel = MethodChannel('com.avelune.runtime/companion');
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      var state = _battleEnvelope();
+      final gate = Completer<void>();
+      final inputs = <Map<String, Object?>>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'intent') {
+          final intent = Map<String, Object?>.from(call.arguments as Map);
+          if (intent['kind'] == 'battleInput') {
+            final input = Map<String, Object?>.from(intent['payload'] as Map);
+            inputs.add(input);
+            if (input['phase'] == 'press') {
+              await gate.future;
+              state = _battleEnvelope(
+                revision: 9,
+                battleRevision: 21,
+                selectedIndex: 1,
+              );
+            }
+          }
+        }
+        return state.toPayload();
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      await tester.pumpWidget(const AveluneGameplayCompanionApp());
+      await tester.pumpAndSettle();
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.down),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.sprint),
+      );
+      await tester.pump();
+      final modal = find.byKey(const ValueKey('battle-move-info-dialog'));
+      expect(modal, findsNothing);
+      expect(inputs, hasLength(1));
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(modal, findsOneWidget);
+      expect(
+        find.descendant(of: modal, matching: find.text('B')),
+        findsOneWidget,
+      );
+      expect(inputs.map((input) => (input['control'], input['phase'])), [
+        ('down', 'press'),
+        ('down', 'release'),
+      ]);
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.down, release: true),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.primary),
+      );
+      await _nativeCall(
+        channel,
+        'input',
+        _battleInput(state, RuntimeInputControl.primary, release: true),
+      );
+      await tester.pumpAndSettle();
+      expect(modal, findsNothing);
+      expect(inputs, hasLength(2));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   test('title handoff versions startup changes and requires a fresh painted owner after reconnect', () async {
     final owner = AveluneGameplayCompanionOwner();
@@ -137,13 +599,8 @@ void main() {
       );
       expect(calls, hasLength(1));
       expect(calls.single['kind'], 'narrativeReady');
-      expect(
-        find.byKey(const ValueKey('title.newGame')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('title.newGame')),
-      );
+      expect(find.byKey(const ValueKey('title.newGame')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('title.newGame')));
       await tester.pumpAndSettle();
       expect(calls, hasLength(2));
       expect(calls.last['kind'], 'player');
@@ -152,6 +609,7 @@ void main() {
       expect((calls.last['payload'] as Map)['action'], 'newGame');
       expect(tester.takeException(), isNull);
     },
+    variant: const TargetPlatformVariant({TargetPlatform.iOS}),
   );
 
   test('narrative ownership requires painted generation and rejects stale replay and reconnect', () async {
@@ -279,9 +737,10 @@ void main() {
   });
 
   testWidgets(
-    'companion dialogue emits one typed advance for one relayed A press',
+    'already ready companion dialogue paints before any RPC and advances once',
     (tester) async {
       final calls = await _mountMenu(tester, dialogue: _narrative());
+      expect(calls, isEmpty);
       expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsOneWidget);
       const channel = MethodChannel('com.avelune.runtime/companion');
       for (final phase in ['press', 'release']) {
@@ -456,10 +915,22 @@ void main() {
         ],
       ),
     );
-    await tester.enterText(
+    final field = tester.widget<TextField>(
       find.byKey(const ValueKey('scene-interaction-text-field')),
-      'Pendule',
     );
+    expect(field.readOnly, isTrue);
+    expect(
+      find.byKey(const ValueKey('scene-controller-keyboard')),
+      findsOneWidget,
+    );
+    for (final _ in interaction.initialValue.characters) {
+      await tester.tap(find.byKey(const ValueKey('scene-keyboard-erase')));
+      await tester.pumpAndSettle();
+    }
+    for (final letter in 'PENDULE'.characters) {
+      await _tapKeyboardCharacter(tester, letter);
+    }
+    expect(field.controller!.text, 'Pendule');
     await tester.tap(
       find.byKey(const ValueKey('scene-interaction-text-submit')),
     );
@@ -1128,6 +1599,7 @@ Future<List<Map<String, dynamic>>> _mountMenu(
   bool narrativeReady = true,
   bool title = false,
 }) async {
+  await _loadPlayerFonts(tester);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
@@ -1278,6 +1750,12 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
   RuntimePlayerSnapshot? playerOverride;
   Map<String, Object?> presentation = {};
 
+  int battleReleases = 0;
+  BattleCommandOverlaySnapshot? battle;
+
+  @override
+  void releaseBattleInputs() => battleReleases++;
+
   @override
   bool get isPaused => paused;
 
@@ -1291,7 +1769,10 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
     await readGate?.future;
     concurrentReads--;
     return AveluneGameplayCompanionData(
-      mode: AveluneGameplayCompanionMode.menu,
+      mode: battle == null
+          ? AveluneGameplayCompanionMode.menu
+          : AveluneGameplayCompanionMode.battle,
+      battle: battle,
       dialogue: dialogue,
       presentation: presentation,
       player:
@@ -1371,4 +1852,123 @@ DialoguePresentationSnapshot _narrative({
   isCurrentLineFullyRevealed: text == fullText,
   isLastContent: false,
   choices: const [],
+);
+
+Future<void>? _playerFonts;
+
+Future<void> _loadPlayerFonts(WidgetTester tester) async {
+  await tester.runAsync(() => _playerFonts ??= _loadPlayerFontFiles());
+}
+
+Future<void> _loadPlayerFontFiles() async {
+  for (final (family, filename) in [
+    ('PokeMapSplashDMSans', 'DMSans-Variable.ttf'),
+    ('PokeMapSplashMarcellus', 'Marcellus-Regular.ttf'),
+  ]) {
+    final bytes = await File(
+      '../../packages/map_player_ui/assets/fonts/$filename',
+    ).readAsBytes();
+    final loader = FontLoader('packages/map_player_ui/$family');
+    loader.addFont(Future.value(ByteData.sublistView(bytes)));
+    await loader.load();
+  }
+}
+
+Future<void> _tapKeyboardCharacter(
+  WidgetTester tester,
+  String character,
+) async {
+  final key = find.byKey(ValueKey('scene-keyboard-char-$character'));
+  for (var attempt = 0; attempt < 64; attempt++) {
+    if (key.evaluate().isNotEmpty) {
+      await tester.tap(key);
+      await tester.pumpAndSettle();
+      return;
+    }
+    final next = find.byKey(const ValueKey('scene-keyboard-page'));
+    expect(next, findsOneWidget, reason: 'Keyboard character $character');
+    await tester.tap(next);
+    await tester.pumpAndSettle();
+  }
+  fail('Keyboard character $character was never reachable.');
+}
+
+AveluneGameplayCompanionSnapshot _battleEnvelope({
+  int revision = 8,
+  int battleRevision = 20,
+  int selectedIndex = 0,
+  BattleCommandOverlayMode mode = BattleCommandOverlayMode.fight,
+}) => AveluneGameplayCompanionSnapshot(
+  sessionId: 'battle-session',
+  revision: revision,
+  companionAttached: true,
+  mode: AveluneGameplayCompanionMode.battle,
+  battle: _battleFixture(
+    revision: battleRevision,
+    mode: mode,
+    selectedIndex: selectedIndex,
+  ),
+);
+
+Map<String, Object?> _battleInput(
+  AveluneGameplayCompanionSnapshot state,
+  RuntimeInputControl control, {
+  bool release = false,
+}) => {
+  'sessionId': state.sessionId,
+  'revision': state.revision,
+  'mode': 'battle',
+  'battleRevision': state.battle!.revision,
+  'battleMode': state.battle!.mode.name,
+  'control': control.name,
+  'phase': release ? 'release' : 'press',
+  'isRepeat': false,
+};
+
+BattleCommandOverlaySnapshot _battleFixture({
+  int revision = 20,
+  int selectedIndex = 0,
+  BattleCommandOverlayMode mode = BattleCommandOverlayMode.fight,
+}) => BattleCommandOverlaySnapshot(
+  revision: revision,
+  mode: mode,
+  viewportSize: const Size(496, 432),
+  panelRect: const Rect.fromLTWH(0, 0, 496, 432),
+  enemyHud: const BattleCommandOverlayHudSnapshot(
+    rect: Rect.fromLTWH(0, 0, 100, 48),
+    ownerLabel: 'Enemy',
+    speciesLabel: 'Bird',
+    level: 5,
+    currentHp: 20,
+    maxHp: 20,
+    isPlayerSide: false,
+  ),
+  playerHud: const BattleCommandOverlayHudSnapshot(
+    rect: Rect.fromLTWH(0, 300, 100, 48),
+    ownerLabel: 'Player',
+    speciesLabel: 'Sprout',
+    level: 5,
+    currentHp: 20,
+    maxHp: 20,
+    isPlayerSide: true,
+  ),
+  battleLabel: 'Battle',
+  title: 'Moves',
+  prompt: 'Choose a move',
+  narrationLines: const [],
+  entries: [
+    for (final (index, name) in [(0, 'A'), (1, 'B')])
+      BattleCommandOverlayEntry(
+        index: index,
+        kind: BattleCommandOverlayEntryKind.move,
+        primaryLabel: name,
+        secondaryLabel: 'normal',
+        trailingLabel: 'PP 1/5',
+        enabled: true,
+        selected: index == selectedIndex,
+        tone: BattleCommandOverlayEntryTone.neutral,
+      ),
+  ],
+  interactionsEnabled: true,
+  canGoBack: true,
 );

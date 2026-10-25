@@ -6,9 +6,179 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
-import 'package:map_runtime/map_runtime.dart' show BattleCommandPanelPlacement;
+import 'package:map_runtime/map_runtime.dart'
+    show BattleCommandPanelPlacement, BattleCommandOverlayMode;
 
 void main() {
+  testWidgets(
+    'single screen controller uses compact natural rows with complete move metadata',
+    (tester) async {
+      await tester.runAsync(() async {
+        final bytes = ByteData.sublistView(
+          await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
+        );
+        await (FontLoader(
+          'packages/map_player_ui/PokeMapSplashDMSans',
+        )..addFont(Future.value(bytes))).load();
+      });
+      for (final viewport in [
+        const Size(844, 390),
+        const Size(1280, 590),
+        const Size(390, 844),
+      ]) {
+        for (final moves in [false, true]) {
+          await _pump(
+            tester,
+            viewport: viewport,
+            moves: moves,
+            referenceMoves: moves,
+            source: PlayerInputSource.controller,
+          );
+          await tester.pump(const Duration(milliseconds: 140));
+          final panel = tester.getRect(
+            find.byKey(const ValueKey('battle-command-panel')),
+          );
+          if (viewport.width > viewport.height) {
+            expect(panel.width, lessThanOrEqualTo(viewport.width * .33));
+            expect(panel.width, lessThanOrEqualTo(340));
+          } else {
+            expect(panel.height, lessThanOrEqualTo(moves ? 236 : 128));
+          }
+          expect(find.byKey(const ValueKey('battle-page-next')), findsNothing);
+          for (var index = 0; index < 4; index++) {
+            final entry = find.byKey(ValueKey('battle-entry-$index'));
+            final bounds = tester.getRect(entry);
+            expect(bounds.height, greaterThanOrEqualTo(48));
+            expect(
+              bounds.height,
+              lessThanOrEqualTo(
+                viewport.width > viewport.height
+                    ? 56
+                    : moves
+                    ? 80
+                    : 52,
+              ),
+            );
+            expect(bounds.left, greaterThanOrEqualTo(panel.left - .1));
+            expect(bounds.right, lessThanOrEqualTo(panel.right + .1));
+            expect(bounds.bottom, lessThanOrEqualTo(panel.bottom + .1));
+            if (moves) {
+              for (final part in ['name', 'detail']) {
+                final label = find.byKey(ValueKey('battle-move-$part-$index'));
+                final text = tester.widget<Text>(label);
+                final painter = TextPainter(
+                  text: TextSpan(
+                    text: text.data,
+                    style: DefaultTextStyle.of(tester.element(label)).style
+                        .merge(text.style),
+                  ),
+                  textDirection: TextDirection.ltr,
+                  maxLines: text.maxLines,
+                  textScaler: MediaQuery.textScalerOf(tester.element(label)),
+                )..layout(maxWidth: tester.getSize(label).width);
+                expect(
+                  painter.didExceedMaxLines,
+                  isFalse,
+                  reason: '${text.data} at $viewport',
+                );
+                painter.dispose();
+              }
+              for (final part in ['number', 'caption']) {
+                final pp = tester.getRect(
+                  find.byKey(ValueKey('battle-pp-$part-$index')),
+                );
+                expect(pp.right, lessThanOrEqualTo(bounds.right - 16));
+                expect(pp.left, greaterThanOrEqualTo(bounds.left));
+              }
+            }
+          }
+          expect(tester.takeException(), isNull);
+        }
+      }
+    },
+  );
+
+  testWidgets(
+    'small portrait and enlarged text keep every move reachable without changing runtime indices',
+    (tester) async {
+      for (final scenario in [
+        (const Size(320, 568), 1.0),
+        (const Size(320, 568), 2.0),
+        (const Size(844, 390), 2.0),
+      ]) {
+        await _pump(
+          tester,
+          viewport: scenario.$1,
+          moves: true,
+          referenceMoves: true,
+          source: PlayerInputSource.controller,
+          textScaler: TextScaler.linear(scenario.$2),
+        );
+        await tester.pump(const Duration(milliseconds: 140));
+        final previous = find.byKey(const ValueKey('battle-page-previous'));
+        if (previous.evaluate().isNotEmpty) {
+          for (var step = 0; step < 3; step++) {
+            await tester.tap(previous);
+            await tester.pump();
+          }
+        }
+        final seen = <int>{};
+        for (var page = 0; page < 4; page++) {
+          for (var index = 0; index < 4; index++) {
+            final entry = find.byKey(ValueKey('battle-entry-$index'));
+            if (entry.evaluate().isNotEmpty) {
+              seen.add(index);
+              expect(tester.getSize(entry).height, greaterThanOrEqualTo(48));
+            }
+          }
+          if (seen.length == 4) break;
+          await tester.tap(find.byKey(const ValueKey('battle-page-next')));
+          await tester.pump();
+        }
+        expect(seen, {0, 1, 2, 3});
+        expect(
+          tester.getSize(find.byKey(const ValueKey('battle-back'))).height,
+          greaterThanOrEqualTo(48),
+        );
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
+  testWidgets(
+    'battle panel motion settles in 140ms and reduced motion has no displacement',
+    (tester) async {
+      for (final reduced in [false, true]) {
+        await _pump(
+          tester,
+          viewport: const Size(844, 390),
+          reducedMotion: reduced,
+        );
+        await tester.pump(const Duration(milliseconds: 140));
+        await _pump(
+          tester,
+          viewport: const Size(844, 390),
+          busy: true,
+          reducedMotion: reduced,
+        );
+        Transform transform() => tester.widget<Transform>(
+          find.byKey(const ValueKey('battle-panel-transition')),
+        );
+        final initial = transform().transform.getTranslation().y;
+        expect(initial, inInclusiveRange(0, reduced ? 0 : 4));
+        if (!reduced) expect(initial, greaterThan(0));
+        await tester.pump(const Duration(milliseconds: 70));
+        expect(
+          transform().transform.getTranslation().y,
+          inInclusiveRange(0, initial),
+        );
+        await tester.pump(const Duration(milliseconds: 70));
+        expect(transform().transform.getTranslation().y, 0);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
   for (final viewport in const [Size(390, 844), Size(844, 390)]) {
     testWidgets(
       'root provides two tactile rows without hiding secondary commands at $viewport',
@@ -170,12 +340,23 @@ void main() {
       );
       expect(find.byType(Scrollable), findsNothing);
       expect(find.byKey(const ValueKey('battle-entry-9')), findsNothing);
-      for (var index = 0; index < 4; index++) {
-        await tester.tap(find.byKey(const ValueKey('battle-page-next')));
+      final seen = <int>{};
+      for (var page = 0; page < 10; page++) {
+        for (var index = 0; index < 10; index++) {
+          final entry = find.byKey(ValueKey('battle-entry-$index'));
+          if (entry.evaluate().isNotEmpty) {
+            seen.add(index);
+            expect(tester.getSize(entry).height, greaterThanOrEqualTo(48));
+          }
+        }
+        if (seen.length == 10) break;
+        final next = find.byKey(const ValueKey('battle-page-next'));
+        expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+        await tester.tap(next);
         await tester.pump();
       }
       expect(actions, isEmpty);
-      expect(find.text('5 / 5'), findsOneWidget);
+      expect(seen, {for (var index = 0; index < 10; index++) index});
       await tester.tap(find.byKey(const ValueKey('battle-entry-9')));
       expect(
         actions.single,
@@ -269,16 +450,108 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'authored move labels contrast with the selected and normal fills',
+    (tester) async {
+      await _pump(
+        tester,
+        viewport: const Size(960, 540),
+        moves: true,
+        reservedViewport: false,
+        profile: const ProjectBattlePresentationProfile(
+          commandLayout: ProjectBattleCommandLayout.radial,
+          moves: ProjectBattlePanelPresentationProfile(
+            padding: 14,
+            surfaceColor: '#F4EEDC',
+            textColor: '#102B33',
+            borderColor: '#102B33',
+            selectionColor: '#E2B54A',
+          ),
+        ),
+      );
+      for (final index in [1, 2]) {
+        final entry = find.byKey(ValueKey('battle-entry-$index'));
+        final card = tester.widget<Material>(
+          find.descendant(of: entry, matching: find.byType(Material)).first,
+        );
+        final label = tester.widget<Text>(
+          find.descendant(
+            of: entry,
+            matching: find.text('Capacité ${index + 1}'),
+          ),
+        );
+        final background = card.color!.computeLuminance();
+        final foreground = label.style!.color!.computeLuminance();
+        final ratio = foreground > background
+            ? (foreground + .05) / (background + .05)
+            : (background + .05) / (foreground + .05);
+        expect(ratio, greaterThanOrEqualTo(4.5));
+        if (index == 2) expect(label.style!.color, const Color(0xFF102B33));
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'authored compact busy panel renders narration with its own chrome',
+    (tester) async {
+      await _pump(
+        tester,
+        viewport: const Size(960, 540),
+        busy: true,
+        emptyCommands: true,
+        reservedViewport: false,
+        profile: const ProjectBattlePresentationProfile(
+          commandLayout: ProjectBattleCommandLayout.radial,
+          message: ProjectBattlePanelPresentationProfile(
+            shape: ProjectWindowShape.cutCorner,
+            padding: 18,
+            surfaceColor: '#102B33',
+            textColor: '#F8F3E7',
+            borderColor: '#E2B54A',
+          ),
+        ),
+      );
+      final prompt = find.byKey(const ValueKey('battle-dialogue-prompt'));
+      expect(prompt, findsOneWidget);
+      expect(tester.widget<Text>(prompt).data, 'Le tour se déroule.');
+      expect(tester.widget<Text>(prompt).style!.color, const Color(0xFFF8F3E7));
+      final panel = tester.widget<PlayerPanel>(
+        find.byKey(const ValueKey('battle-dialogue-panel')),
+      );
+      expect(panel.windowStyleOverride!.shape, ProjectWindowShape.cutCorner);
+      expect(panel.windowStyleOverride!.contentPadding, 18);
+      expect(panel.surfaceColorOverride, const Color(0xFF102B33));
+      expect(find.byKey(const ValueKey('battle-page-next')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('move footer exposes button semantics and full touch targets', (
     tester,
   ) async {
-    await _pump(tester, viewport: const Size(390, 844), moves: true);
-    for (final key in ['battle-move-info', 'battle-back']) {
-      final button = find.byKey(ValueKey(key));
-      expect(tester.getSemantics(button).flagsCollection.isButton, isTrue);
-      expect(tester.getSize(button).shortestSide, greaterThanOrEqualTo(48));
+    final semantics = tester.ensureSemantics();
+    try {
+      for (final source in [
+        PlayerInputSource.touch,
+        PlayerInputSource.controller,
+      ]) {
+        await _pump(
+          tester,
+          viewport: const Size(390, 844),
+          moves: true,
+          source: source,
+        );
+        for (final key in ['battle-move-info', 'battle-back']) {
+          final button = find.byKey(ValueKey(key));
+          expect(tester.getSemantics(button).flagsCollection.isButton, isTrue);
+          expect(tester.getSize(button).shortestSide, greaterThanOrEqualTo(48));
+        }
+        expect(tester.takeException(), isNull);
+      }
+    } finally {
+      semantics.dispose();
     }
-    expect(tester.takeException(), isNull);
   });
 
   for (final viewport in const [
@@ -340,7 +613,9 @@ void main() {
         final font = ByteData.sublistView(
           await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
         );
-        await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')..addFont(Future.value(font))).load();
+        await (FontLoader(
+          'packages/map_player_ui/PokeMapSplashDMSans',
+        )..addFont(Future.value(font))).load();
       });
       for (final source in [
         PlayerInputSource.controller,
@@ -436,6 +711,9 @@ Future<void> _pump(
   bool referenceMoves = false,
   ProjectBattlePresentationProfile? profile,
   bool busy = false,
+  bool emptyCommands = false,
+  bool reservedViewport = true,
+  TextScaler textScaler = TextScaler.noScaling,
   bool reducedMotion = false,
   int bagCount = 0,
   PlayerBattleDisplay display = PlayerBattleDisplay.full,
@@ -453,12 +731,25 @@ Future<void> _pump(
   );
   final sceneLayout = BattleSceneLayout.forViewport(
     viewportSize: viewport,
+    controllerLayout: source == PlayerInputSource.controller,
+    textScale: textScaler.scale(1),
+    commandPanelMode: busy
+        ? BattleCommandOverlayMode.continueOnly
+        : bagCount > 0
+        ? BattleCommandOverlayMode.bag
+        : moves
+        ? BattleCommandOverlayMode.fight
+        : BattleCommandOverlayMode.root,
     commandPanelPlacement: source == PlayerInputSource.controller
         ? BattleCommandPanelPlacement.end
         : BattleCommandPanelPlacement.bottom,
   );
   await tester.pumpWidget(
     MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: child!,
+      ),
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
@@ -498,16 +789,23 @@ Future<void> _pump(
                   : moves
                   ? PlayerBattlePanelKind.moves
                   : PlayerBattlePanelKind.commands,
-              viewportLayout: PlayerBattleViewportLayout(
-                viewportSize: viewport,
-                panelRect: sceneLayout.commandPanelRect,
-                enemyHudRect: sceneLayout.enemyHudRect,
-                playerHudRect: sceneLayout.playerHudRect,
-              ),
+              viewportLayout: reservedViewport
+                  ? PlayerBattleViewportLayout(
+                      viewportSize: viewport,
+                      panelRect: sceneLayout.commandPanelRect,
+                      enemyHudRect: sceneLayout.enemyHudRect,
+                      playerHudRect: sceneLayout.playerHudRect,
+                    )
+                  : null,
               commands: [
                 for (
                   var index = 0;
-                  index < (bagCount > 0 ? bagCount : 4);
+                  index <
+                      (emptyCommands
+                          ? 0
+                          : bagCount > 0
+                          ? bagCount
+                          : 4);
                   index++
                 )
                   PlayerBattleCommandViewData(

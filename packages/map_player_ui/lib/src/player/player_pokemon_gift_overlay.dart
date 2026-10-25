@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -7,10 +5,10 @@ import 'package:map_runtime/map_runtime.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
-import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_text_input_overlay.dart';
+import 'player_service_layout.dart';
 
 class PlayerPokemonGiftOverlay extends StatelessWidget {
   const PlayerPokemonGiftOverlay({
@@ -94,121 +92,91 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
-                    maxWidth: 760,
+                    maxWidth: 500,
                     maxHeight: 680,
                   ),
                   child: PlayerMenuPanel(
+                    key: const ValueKey('gift-service-panel'),
                     primary: true,
                     padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: PlayerServiceContent(
+                      contentIdentity: (snapshot.revision, snapshot.stage),
+                      title: Text(
+                        french ? 'Un nouveau compagnon' : 'A new companion',
+                        style: context.playerMenuTheme.title,
+                      ),
+                      actions: PlayerServiceActions(
+                        children: [
+                          if (choices.any((choice) => choice.id == 'nickname'))
+                            PlayerActionButton(
+                              key: const ValueKey('gift-nickname'),
+                              label: french ? 'Surnom' : 'Nickname',
+                              labelMaxLines: 8,
+                              icon: Icons.edit_outlined,
+                              secondary: true,
+                              onPressed: canChoose('nickname')
+                                  ? () => choose('nickname')
+                                  : null,
+                            ),
+                          PlayerActionButton(
+                            key: const ValueKey('gift-continue'),
+                            label: french ? 'Continuer' : 'Continue',
+                            labelMaxLines: 8,
+                            icon: Icons.check,
+                            autofocus: true,
+                            onPressed: canChoose('continue')
+                                ? () => choose('continue')
+                                : null,
+                          ),
+                        ],
+                      ),
                       children: [
+                        if (request.isNewPokedexEntry)
+                          Text(
+                            french
+                                ? 'Nouvelle entrée Pokédex à ajouter'
+                                : 'New Pokédex entry to add',
+                          ),
                         Text(
-                          french ? 'Un nouveau compagnon' : 'A new companion',
-                          style: context.playerMenuTheme.title,
+                          party
+                              ? (french
+                                    ? '$nickname rejoindra votre équipe.'
+                                    : '$nickname will join your party.')
+                              : (french
+                                    ? '$nickname sera envoyé au PC.'
+                                    : '$nickname will be sent to the PC.'),
                         ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, constraints) => PlayerPagedList(
-                              children: [
-                                if (media != null)
-                                  Semantics(
-                                    image: true,
-                                    label: nickname,
-                                    child: SizedBox(
-                                      height: math.max(
-                                        1,
-                                        math.min(
-                                          144,
-                                          constraints.maxHeight - 64,
-                                        ),
-                                      ),
-                                      child: PlayerFileImage(
-                                        key: const ValueKey(
-                                          'gift-pokemon-image',
-                                        ),
-                                        path: media.absoluteFilePath,
-                                        fit: BoxFit.contain,
-                                        filterQuality:
-                                            media.sampling ==
-                                                ProjectMenuImageSampling
-                                                    .pixelArt
-                                            ? FilterQuality.none
-                                            : FilterQuality.medium,
-                                        excludeFromSemantics: true,
-                                        fallback: const SizedBox.shrink(),
-                                      ),
-                                    ),
-                                  ),
-                                Text(
-                                  french
-                                      ? 'Vous recevez $name !'
-                                      : 'You receive $name!',
-                                  style: context.playerMenuTheme.subtitle,
-                                ),
-                                Text(
-                                  '$nickname · ${french ? 'Niv.' : 'Lv.'} ${request.pokemon.level}',
-                                ),
-                                if (request.isNewPokedexEntry)
-                                  Text(
-                                    french
-                                        ? 'Nouvelle entrée Pokédex à ajouter'
-                                        : 'New Pokédex entry to add',
-                                  ),
-                                Text(
-                                  party
-                                      ? (french
-                                            ? '$nickname rejoindra votre équipe.'
-                                            : '$nickname will join your party.')
-                                      : (french
-                                            ? '$nickname sera envoyé au PC.'
-                                            : '$nickname will be sent to the PC.'),
-                                ),
-                                if (snapshot.safeMessage case final message?
-                                    when message.isNotEmpty)
-                                  Semantics(
-                                    liveRegion: true,
-                                    child: Text(message),
-                                  ),
-                              ],
+                        if (media != null)
+                          Semantics(
+                            image: true,
+                            label: nickname,
+                            child: SizedBox(
+                              height: 72,
+                              child: PlayerFileImage(
+                                key: const ValueKey('gift-pokemon-image'),
+                                path: media.absoluteFilePath,
+                                fit: BoxFit.contain,
+                                filterQuality:
+                                    media.sampling ==
+                                        ProjectMenuImageSampling.pixelArt
+                                    ? FilterQuality.none
+                                    : FilterQuality.medium,
+                                excludeFromSemantics: true,
+                                fallback: const SizedBox.shrink(),
+                              ),
                             ),
                           ),
+                        Text(
+                          '${nickname == name ? name : '$nickname · $name'} · ${french ? 'Niv.' : 'Lv.'} ${request.pokemon.level}',
+                          key: const ValueKey('gift-pokemon-identity'),
+                          textAlign: TextAlign.center,
+                          style: context.playerMenuTheme.label,
                         ),
+                        if (snapshot.safeMessage case final message?
+                            when message.isNotEmpty)
+                          Semantics(liveRegion: true, child: Text(message)),
                         if (snapshot.stage == RuntimeWorldServiceStage.applying)
                           const LinearProgressIndicator(),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            if (choices.any(
-                              (choice) => choice.id == 'nickname',
-                            )) ...[
-                              Expanded(
-                                child: PlayerActionButton(
-                                  key: const ValueKey('gift-nickname'),
-                                  label: french ? 'Surnom' : 'Nickname',
-                                  icon: Icons.edit_outlined,
-                                  secondary: true,
-                                  onPressed: canChoose('nickname')
-                                      ? () => choose('nickname')
-                                      : null,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                            Expanded(
-                              child: PlayerActionButton(
-                                key: const ValueKey('gift-continue'),
-                                label: french ? 'Continuer' : 'Continue',
-                                icon: Icons.check,
-                                autofocus: true,
-                                onPressed: canChoose('continue')
-                                    ? () => choose('continue')
-                                    : null,
-                              ),
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),

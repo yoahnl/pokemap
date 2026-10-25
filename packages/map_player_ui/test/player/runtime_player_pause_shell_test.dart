@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -115,6 +116,102 @@ void main() {
       },
     );
   }
+
+  for (final scale in [1.0, 1.5, 2.0]) {
+    for (final safe in [false, true]) {
+      testWidgets('pause footer keeps complete labels at $scale safe=$safe', (
+        tester,
+      ) async {
+        await _setSurface(tester, const Size(390, 844));
+        await tester.pumpWidget(
+          _app(
+            Builder(
+              builder: (context) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  padding: safe
+                      ? const EdgeInsets.only(top: 59, bottom: 34)
+                      : EdgeInsets.zero,
+                ),
+                child: RuntimePlayerPauseShell.root(
+                  gameTitle: 'Voyage',
+                  actions: _actions(),
+                  onSelected: (_) {},
+                  detail: const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            textScaler: TextScaler.linear(scale),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final resume = find.byKey(const ValueKey('pause-frame-return-surface'));
+        final save = find.byKey(const ValueKey('pause.save-surface'));
+        for (final entry in [(resume, 'Reprendre'), (save, 'Sauvegarder')]) {
+          expect(entry.$1.hitTestable(), findsOneWidget);
+          final rect = tester.getRect(entry.$1);
+          expect(rect.height, greaterThanOrEqualTo(48));
+          expect(rect.width, greaterThanOrEqualTo(48));
+          final label = find.descendant(
+            of: entry.$1,
+            matching: find.text(entry.$2),
+          );
+          expect(label, findsOneWidget);
+          expect(
+            tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
+            isFalse,
+          );
+        }
+        if (scale == 1) {
+          expect(
+            tester.getRect(save).top,
+            closeTo(tester.getRect(resume).top, 1),
+          );
+        } else if (scale == 2) {
+          expect(
+            tester.getRect(save).top - tester.getRect(resume).bottom,
+            greaterThanOrEqualTo(8),
+          );
+        }
+        expect(find.byType(Scrollable), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
+  testWidgets('pause footer preserves a long authored resume label', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(390, 844));
+    const label = 'Reprendre le voyage à travers les clairières';
+    final selected = <PlayerPauseAction>[];
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Voyage',
+          actions: _actions(),
+          onSelected: selected.add,
+          detail: const SizedBox.shrink(),
+          presentation: const PlayerPausePresentation(
+            actionLabels: {PlayerPauseAction.resume: label},
+          ),
+        ),
+        textScaler: const TextScaler.linear(2),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final resume = find.byKey(const ValueKey('pause-frame-return-surface'));
+    final text = find.descendant(of: resume, matching: find.text(label));
+    expect(resume.hitTestable(), findsOneWidget);
+    expect(text, findsOneWidget);
+    expect(
+      tester.renderObject<RenderParagraph>(text).didExceedMaxLines,
+      isFalse,
+    );
+    await tester.tap(resume);
+    expect(selected, [PlayerPauseAction.resume]);
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   for (final source in [
     PlayerInputSource.keyboard,

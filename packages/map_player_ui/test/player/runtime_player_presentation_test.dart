@@ -555,7 +555,19 @@ void main() {
     expect(presentation.pauseMenuLabels.pauseTitle, isNull);
     expect(
       presentation.pausePresentation.visibleActions,
-      PlayerPauseAction.values,
+      const [
+        PlayerPauseAction.resume,
+        PlayerPauseAction.party,
+        PlayerPauseAction.bag,
+        PlayerPauseAction.pokedex,
+        PlayerPauseAction.map,
+        PlayerPauseAction.quests,
+        PlayerPauseAction.contacts,
+        PlayerPauseAction.profile,
+        PlayerPauseAction.save,
+        PlayerPauseAction.options,
+        PlayerPauseAction.returnToTitle,
+      ],
     );
   });
 }

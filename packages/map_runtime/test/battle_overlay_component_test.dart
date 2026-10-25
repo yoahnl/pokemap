@@ -916,6 +916,263 @@ void main() {
       );
     });
 
+    test('collection framing follows mounted native layout through resize and return to fight', () async {
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(
+          player: _combatant(speciesId: 'sproutle', lineupIndex: 0, moves: [_tackle()]),
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_tackle()]),
+        ),
+        gameState: _gameState(bag: Bag(entries: [_bagEntry(itemId: 'potion', quantity: 1)])),
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      final backdrop = overlay.children.whereType<BattleSceneBackdropComponent>().single;
+      expect(overlay.selectRootEntry(1), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(backdrop.size, Vector2(390, 844));
+      expect(backdrop.artworkRect, overlay.currentSceneLayout.arenaRect);
+      expect(backdrop.artworkRect!.height, 284);
+      overlay.onGameResize(Vector2(430, 932));
+      expect(backdrop.size, Vector2(430, 932));
+      expect(backdrop.artworkRect, overlay.currentSceneLayout.arenaRect);
+      expect(overlay.handleEscape(), isTrue);
+      expect(overlay.selectRootEntry(0), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.fight);
+      expect(backdrop.artworkRect, isNull);
+      expect(backdrop.size, Vector2(430, 932));
+    });
+
+    for (final mode in [BattleCommandMenuMode.bag, BattleCommandMenuMode.pokemon, BattleCommandMenuMode.bagMedicineTarget]) {
+      for (final format in [
+        (const ui.Size(844, 390), BattleCommandPanelPlacement.end, false, 1.0),
+        (const ui.Size(844, 390), BattleCommandPanelPlacement.end, true, 1.0),
+        (const ui.Size(390, 844), BattleCommandPanelPlacement.bottom, false, 1.0),
+        (const ui.Size(390, 844), BattleCommandPanelPlacement.bottom, true, 1.0),
+        (const ui.Size(768, 432), BattleCommandPanelPlacement.detached, false, 1.0),
+        (const ui.Size(320, 568), BattleCommandPanelPlacement.bottom, true, 2.0),
+        (const ui.Size(560, 360), BattleCommandPanelPlacement.end, true, 1.0),
+        (const ui.Size(600, 360), BattleCommandPanelPlacement.end, true, 1.0),
+      ]) {
+        test('collection directions match visible columns for $mode at $format', () async {
+          final members = [for (var index = 0; index < 6; index++)
+            _combatant(speciesId: 'member-$index', lineupIndex: index, currentHp: 12, maxHp: 40, moves: [_tackle()])];
+          final choices = <PlayerBattleChoice>[];
+          final overlay = BattleOverlayComponent(
+            itemCapabilityResolver: _itemResolver,
+            session: _session(player: members.first, playerReserve: members.skip(1).toList(),
+              enemy: _combatant(speciesId: 'enemy', lineupIndex: 0, moves: [_waitingMove()])),
+            gameState: _gameState(partyMembers: [for (var index = 0; index < 6; index++)
+                _partyMember(speciesId: 'member-$index', currentHp: 12)],
+              bag: Bag(entries: [
+                _bagEntry(itemId: 'potion', quantity: 1),
+                for (final item in _itemCatalog.definitions.where((item) => item.id != 'potion').take(5))
+                  _bagEntry(itemId: item.id, quantity: 1),
+              ])),
+            viewportSize: Vector2(format.$1.width, format.$1.height), textScale: format.$4,
+            safeAreaPadding: format.$1.width == 600 ? const EdgeInsets.fromLTRB(44, 12, 44, 20) : EdgeInsets.zero,
+            onPlayerChoice: choices.add,
+          );
+          await loadFlameComponent(overlay);
+          expect(overlay.selectRootEntry(mode == BattleCommandMenuMode.pokemon ? 2 : 1), isTrue);
+          if (mode == BattleCommandMenuMode.bagMedicineTarget) {
+            final potion = overlay.currentCommandOverlaySnapshot!.entries.singleWhere((entry) => entry.primaryLabel == 'Potion');
+            expect(overlay.selectBagEntry(potion.index), isTrue);
+          }
+          expect(overlay.currentMenuMode, mode);
+          expect(overlay.currentCommandOverlaySnapshot!.entries, hasLength(6));
+          overlay.setCommandPanelPlacement(format.$2, controllerLayout: format.$3);
+          int selected() => overlay.currentCommandOverlaySnapshot!.entries.singleWhere((entry) => entry.selected).index;
+          while (overlay.moveSelectionUp()) {}
+          overlay.moveSelectionLeft();
+          expect(selected(), 0);
+          final portrait = format.$1.height > format.$1.width;
+          final companion = format.$2 == BattleCommandPanelPlacement.detached;
+          final innerWidth = companion ? 496 - 36 : overlay.currentCommandOverlaySnapshot!.panelRect.width - (portrait ? 36 : 39);
+          final columns = portrait && !companion && mode != BattleCommandMenuMode.bag ? 1 : innerWidth >= 300 ? 2 : 1;
+          expect(overlay.setCommandPanelPlacement(format.$2, controllerLayout: format.$3,
+            collectionColumns: columns), isTrue);
+          expect(overlay.currentCommandOverlaySnapshot!.collectionColumns, columns);
+          expect(overlay.moveSelectionRight(), columns == 2, reason: 'right follows the actual $columns columns');
+          expect(selected(), columns == 2 ? 1 : 0);
+          if (columns == 2) expect(overlay.moveSelectionLeft(), isTrue);
+          expect(overlay.moveSelectionDown(), isTrue);
+          expect(selected(), columns);
+          final preserved = selected();
+          overlay.onGameResize(Vector2(390, 844));
+          final portraitColumns = mode == BattleCommandMenuMode.bag ? 2 : 1;
+          overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.bottom, controllerLayout: format.$3,
+            collectionColumns: portraitColumns);
+          expect(selected(), preserved);
+          expect(overlay.moveSelectionDown(), isTrue);
+          expect(selected(), preserved + portraitColumns);
+          expect(choices, isEmpty);
+          expect(overlay.debugSession.state.currentTurn, isNull);
+        });
+      }
+    }
+
+    test('collection null preserves legacy one-column navigation and invalid columns are rejected', () async {
+      final overlay = BattleOverlayComponent(itemCapabilityResolver: _itemResolver,
+        session: _session(player: _combatant(speciesId: 'player', lineupIndex: 0, moves: [_tackle()]),
+          playerReserve: [for (var i = 1; i < 6; i++) _combatant(speciesId: 'reserve-$i', lineupIndex: i, moves: [_tackle()])],
+          enemy: _combatant(speciesId: 'enemy', lineupIndex: 0, moves: [_waitingMove()])),
+        viewportSize: Vector2(844, 390), onPlayerChoice: (_) {});
+      await loadFlameComponent(overlay);
+      expect(overlay.selectRootEntry(2), isTrue);
+      int selected() => overlay.currentCommandOverlaySnapshot!.entries.singleWhere((entry) => entry.selected).index;
+      expect(selected(), 1);
+      expect(overlay.currentCommandOverlaySnapshot!.collectionColumns, isNull);
+      expect(overlay.moveSelectionRight(), isFalse);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 2);
+      expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end, collectionColumns: 2), isTrue);
+      expect(overlay.moveSelectionRight(), isTrue);
+      expect(selected(), 3);
+      expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end), isTrue);
+      expect(overlay.currentCommandOverlaySnapshot!.collectionColumns, isNull);
+      expect(selected(), 3);
+      expect(overlay.moveSelectionRight(), isFalse);
+      for (final invalid in [0, 3]) {
+        final previous = overlay.currentCommandOverlaySnapshot;
+        expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end, collectionColumns: invalid), isFalse);
+        expect(overlay.currentCommandOverlaySnapshot, same(previous));
+      }
+    });
+
+    test('published root order drives visual directions without changing canonical entry identities', () async {
+      final choices = <PlayerBattleChoice>[];
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(player: _combatant(speciesId: 'sproutle', lineupIndex: 0, moves: [_tackle()]),
+          playerReserve: [_combatant(speciesId: 'benchmate', lineupIndex: 1, moves: [_tackle()])],
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_tackle()])),
+        viewportSize: Vector2(844, 390), onPlayerChoice: choices.add,
+      );
+      await loadFlameComponent(overlay);
+      int selected() => overlay.currentCommandOverlaySnapshot!.entries.singleWhere((entry) => entry.selected).index;
+      expect(overlay.currentCommandOverlaySnapshot!.rootCommandOrder, [0, 1, 2, 3]);
+      expect(overlay.moveSelectionRight(), isTrue);
+      expect(selected(), 1);
+      final sourceOrder = [0, 2, 1, 3];
+      expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end,
+        controllerLayout: true, rootCommandOrder: sourceOrder), isTrue);
+      sourceOrder[0] = 3;
+      expect(overlay.currentCommandOverlaySnapshot!.rootCommandOrder, [0, 2, 1, 3]);
+      expect(selected(), 1);
+      expect(overlay.moveSelectionUp(), isTrue);
+      expect(selected(), 2);
+      expect(overlay.moveSelectionUp(), isTrue);
+      expect(selected(), 0);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 2);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 1);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 3);
+      final revision = overlay.currentCommandOverlaySnapshot!.revision;
+      expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end,
+        controllerLayout: true, rootCommandOrder: [0, 2, 1, 3]), isTrue);
+      expect(overlay.currentCommandOverlaySnapshot!.revision, revision);
+      expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end,
+        controllerLayout: true, rootCommandOrder: [2, 0, 1]), isTrue);
+      expect(selected(), 2);
+      overlay.onGameResize(Vector2(390, 844));
+      expect(selected(), 2);
+      expect(overlay.moveSelectionRight(), isTrue);
+      expect(selected(), 0);
+      expect(overlay.moveSelectionLeft(), isTrue);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 1);
+      expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.detached,
+        controllerLayout: true, rootCommandOrder: [0, 2, 1, 3]), isTrue);
+      overlay.onGameResize(Vector2(768, 432));
+      expect(selected(), 1);
+      expect(overlay.moveSelectionUp(), isTrue);
+      expect(selected(), 0);
+      expect(overlay.moveSelectionRight(), isTrue);
+      expect(selected(), 2);
+      final stable = overlay.currentCommandOverlaySnapshot;
+      expect(overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.detached,
+        controllerLayout: true, rootCommandOrder: [0, 0]), isFalse);
+      expect(overlay.currentCommandOverlaySnapshot, same(stable));
+      expect(choices, isEmpty);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(choices, isEmpty);
+    });
+
+    test('controller directional selection follows one landscape column and two portrait or Thor columns', () async {
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(
+          player: _combatant(speciesId: 'sproutle', lineupIndex: 0,
+            moves: [_tackle(), _quickAttack(), _thunderbolt(), _megaPunch()]),
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_tackle()]),
+        ),
+        viewportSize: Vector2(844, 390), onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end, controllerLayout: true);
+      int selected() => overlay.currentCommandOverlaySnapshot!.entries.singleWhere((entry) => entry.selected).index;
+      expect(selected(), 0);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 1);
+      expect(overlay.moveSelectionUp(), isTrue);
+      expect(selected(), 0);
+      expect(overlay.selectRootEntry(0), isTrue);
+      expect(overlay.currentCommandOverlaySnapshot!.mode, BattleCommandOverlayMode.fight);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 1);
+      overlay.onGameResize(Vector2(390, 844));
+      expect(selected(), 1);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 3);
+      expect(overlay.moveSelectionLeft(), isTrue);
+      expect(selected(), 2);
+      overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.detached, controllerLayout: true);
+      overlay.onGameResize(Vector2(768, 432));
+      expect(selected(), 2);
+      expect(overlay.moveSelectionUp(), isTrue);
+      expect(selected(), 0);
+      expect(overlay.moveSelectionRight(), isTrue);
+      expect(selected(), 1);
+      expect(overlay.handleEscape(), isTrue);
+      expect(overlay.currentCommandOverlaySnapshot!.mode, BattleCommandOverlayMode.root);
+      expect(overlay.moveSelectionDown(), isTrue);
+      expect(selected(), 2);
+      overlay.onGameResize(Vector2(1280, 590));
+      overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end, controllerLayout: true);
+      expect(selected(), 2);
+      expect(overlay.moveSelectionUp(), isTrue);
+      expect(selected(), 1);
+    });
+
+    test('pending post-battle decision publishes the real decision geometry without changing choices', () async {
+      final choices = <int>[];
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(
+          player: _combatant(speciesId: 'sproutle', lineupIndex: 0, moves: [_tackle()]),
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_tackle()]),
+        ),
+        viewportSize: Vector2(844, 390), onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      overlay.presentPostBattleDecision(prompt: 'Décision publiée',
+          choices: ['Accepter', 'Refuser'], onChoice: choices.add);
+      expect(overlay.currentSceneLayout.commandPanelMode, BattleCommandOverlayMode.decision);
+      expect(overlay.currentCommandOverlaySnapshot!.panelRect.width, 400);
+      expect(overlay.currentCommandOverlaySnapshot!.prompt, 'Décision publiée');
+      expect(overlay.currentCommandOverlaySnapshot!.entries.map((entry) => entry.primaryLabel),
+          ['Accepter', 'Refuser']);
+      expect(overlay.selectRootEntry(1), isTrue);
+      expect(choices, [1]);
+      overlay.clearPostBattleDecision();
+      expect(overlay.currentSceneLayout.commandPanelMode, isNot(BattleCommandOverlayMode.decision));
+    });
+
     test('mounted backdrop covers the whole viewport behind floating command docks and after resize', () async {
       final overlay = BattleOverlayComponent(
         itemCapabilityResolver: _itemResolver,

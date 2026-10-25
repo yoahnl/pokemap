@@ -634,10 +634,17 @@ void main() {
       false,
     );
     expect(current.revision, greaterThan(old.revision));
+    expect(runtime.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(
+      snapshotRevision: current.revision, expectedMode: current.mode,
+      placement: current.commandPanelPlacement, rootCommandOrder: const [0, 2, 1, 3], collectionColumns: 2)), true);
+    final reordered = runtime.battlePresentationListenable.value!;
+    expect(reordered.rootCommandOrder, [0, 2, 1, 3]);
+    expect(reordered.collectionColumns, 2);
+    expect(reordered.entries.map((entry) => entry.index), current.entries.map((entry) => entry.index));
     expect(
       runtime.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
-        snapshotRevision: current.revision,
-        expectedMode: current.mode,
+        snapshotRevision: reordered.revision,
+        expectedMode: reordered.mode,
         entryIndex: 0,
       )),
       true,
