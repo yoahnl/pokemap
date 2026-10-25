@@ -729,7 +729,7 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
 
   Widget _ligueBranding(BuildContext context, {required bool landscape}) {
     final theme = context.playerMenuTheme;
-    return Column(
+    final content = Column(
       key: const ValueKey('player-title-ligue-branding'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -804,6 +804,17 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
             ),
           ),
       ],
+    );
+    if (data.background == null && data.backgroundContent == null)
+      return content;
+    return Container(
+      key: const ValueKey('player-title-branding-backplate'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.base.withValues(alpha: theme.highContrast ? 1 : .96),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: content,
     );
   }
 

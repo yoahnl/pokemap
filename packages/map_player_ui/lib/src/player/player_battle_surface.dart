@@ -2753,12 +2753,7 @@ class _LigueBattleEntry extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 48),
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    6,
-                    entry.moveTypeId == null ? 20 : 12,
-                    6,
-                  ),
+                  padding: EdgeInsets.fromLTRB(20, 6, 20, 6),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final move = entry.moveTypeId;
@@ -2840,6 +2835,7 @@ class _LigueBattleEntry extends StatelessWidget {
                         background: typeColor,
                         foreground: chrome.moveSurface,
                         border: typeColor,
+                        horizontalPadding: 5,
                       );
                       final name = Text(
                         entry.primaryLabel,
@@ -2899,7 +2895,7 @@ class _LigueBattleEntry extends StatelessWidget {
                             context.playerL10n.battleMoveType(move),
                             badgeStyle,
                           ) +
-                          16;
+                          12;
                       final ppWidth = measure(ppNumber, ppStyle) + 2;
                       final pp = SizedBox(
                         width: ppWidth,
@@ -2916,6 +2912,7 @@ class _LigueBattleEntry extends StatelessWidget {
                             ),
                             Text(
                               'PP',
+                              key: ValueKey('battle-pp-caption-${entry.index}'),
                               style: ppStyle.copyWith(
                                 fontSize: 9.5,
                                 fontWeight: FontWeight.w500,
@@ -3056,9 +3053,9 @@ class _LigueBattleEntry extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const SizedBox(width: 7),
+                          const SizedBox(width: 5),
                           sizedType,
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           pp,
                         ],
                       );
@@ -3479,12 +3476,14 @@ class _BattleMoveInfoBadge extends StatelessWidget {
     required this.background,
     required this.foreground,
     required this.border,
+    this.horizontalPadding = 7,
   });
 
   final String label;
   final Color background;
   final Color foreground;
   final Color border;
+  final double horizontalPadding;
 
   @override
   Widget build(BuildContext context) => DecoratedBox(
@@ -3493,7 +3492,7 @@ class _BattleMoveInfoBadge extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(2)),
     ),
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 2),
       child: Text(
         label,
         maxLines: 1,
