@@ -11,8 +11,9 @@ extension _MapCanvasCollisionPaint on MapCanvasOverlay {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     for (final layer in map.layers.whereType<CollisionLayer>()) {
-      if (!layer.isVisible || (isHidden?.call('layer', layer.id) ?? false))
+      if (!layer.isVisible || (isHidden?.call('layer', layer.id) ?? false)) {
         continue;
+      }
       for (var index = 0; index < layer.collisions.length; index++) {
         if (!layer.collisions[index]) continue;
         final rect = Rect.fromLTWH(

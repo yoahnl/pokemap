@@ -9,10 +9,36 @@ from verify_release_bundle import PACKAGE as RELEASE_PACKAGE
 
 REPOSITORY = Path(__file__).resolve().parents[3]
 STORE_IDENTITY = "com.yoahnl.avelune.player"
+SHARED_HUB_LIBRARY_TEST_STEP = """      - name: Avelune save compatibility baseline
+        working-directory: apps/pokemap_hub
+        timeout-minutes: 2
+        run: |
+          flutter pub get
+          flutter test --no-pub --no-test-assets --timeout 2m \\
+            test/platform/avelune_host_compatibility_test.dart \\
+            test/features/saves/avelune_compatibility_baseline_continue_test.dart \\
+            test/features/session/hub_player_save_gateway_test.dart
+"""
 
 
 def source(path):
     return (REPOSITORY / path).read_text()
+
+
+def retired_hub_application_violation(workflow_name, content):
+    if workflow_name == "pokemap_quick_checks.yml":
+        content = re.sub(
+            r"(?m)^" + re.escape(SHARED_HUB_LIBRARY_TEST_STEP) + r"(?=      - name:|\Z)",
+            "",
+            content,
+            count=1,
+        )
+    forbidden = (
+        r"(?m)^\s*working-directory:\s*['\"]?apps/pokemap_hub(?:/|['\"]|\s|$)",
+        r"(?m)^\s*cd\s+['\"]?apps/pokemap_hub(?:/|['\"]|\s|$)",
+        r"flutter\s+build\s+(?:ios|appbundle)\b",
+    )
+    return next((pattern for pattern in forbidden if re.search(pattern, content)), None)
 
 
 class NativeHostContractsTest(unittest.TestCase):
@@ -161,21 +187,58 @@ class NativeHostContractsTest(unittest.TestCase):
                 )
 
     def test_workflows_do_not_run_the_retired_hub_application(self):
-        forbidden = (
-            r"(?m)^\s*working-directory:\s*['\"]?apps/pokemap_hub(?:/|['\"]|\s|$)",
-            r"(?m)^\s*cd\s+['\"]?apps/pokemap_hub(?:/|['\"]|\s|$)",
-            r"flutter\s+build\s+(?:ios|appbundle)\b",
-        )
         workflows = sorted((REPOSITORY / ".github/workflows").glob("*.yml"))
         self.assertTrue(workflows)
         for workflow in workflows:
             with self.subTest(workflow=workflow.name):
-                content = workflow.read_text()
-                for pattern in forbidden:
-                    self.assertIsNone(
-                        re.search(pattern, content),
-                        f"{workflow.name} contains a retired application command: {pattern}",
+                violation = retired_hub_application_violation(workflow.name, workflow.read_text())
+                self.assertIsNone(
+                    violation,
+                    f"{workflow.name} contains a retired application command: {violation}",
+                )
+
+    def test_quick_checks_allow_only_the_bounded_shared_hub_library_test_step(self):
+        self.assertIsNone(
+            retired_hub_application_violation("pokemap_quick_checks.yml", SHARED_HUB_LIBRARY_TEST_STEP)
+        )
+
+    def test_shared_hub_library_test_step_rejects_application_commands_and_unbounded_tests(self):
+        invalid_steps = {
+            "run": SHARED_HUB_LIBRARY_TEST_STEP.replace("flutter pub get", "flutter run"),
+            "build": SHARED_HUB_LIBRARY_TEST_STEP.replace("flutter pub get", "flutter build apk"),
+            "additional command": SHARED_HUB_LIBRARY_TEST_STEP + "          flutter run\n",
+            "broad selection": SHARED_HUB_LIBRARY_TEST_STEP.replace(
+                "test/platform/avelune_host_compatibility_test.dart", "test"
+            ),
+            "missing test timeout": SHARED_HUB_LIBRARY_TEST_STEP.replace(" --timeout 2m", ""),
+            "missing step timeout": SHARED_HUB_LIBRARY_TEST_STEP.replace("        timeout-minutes: 2\n", ""),
+            "missing no-pub": SHARED_HUB_LIBRARY_TEST_STEP.replace(" --no-pub", ""),
+            "missing no-test-assets": SHARED_HUB_LIBRARY_TEST_STEP.replace(" --no-test-assets", ""),
+        }
+        for scenario, step in invalid_steps.items():
+            with self.subTest(scenario=scenario):
+                self.assertIsNotNone(retired_hub_application_violation("pokemap_quick_checks.yml", step))
+
+    def test_shared_hub_library_test_allowance_does_not_cover_other_workflows_or_steps(self):
+        self.assertIsNotNone(
+            retired_hub_application_violation("other.yml", SHARED_HUB_LIBRARY_TEST_STEP)
+        )
+        self.assertIsNotNone(
+            retired_hub_application_violation("pokemap_quick_checks.yml", SHARED_HUB_LIBRARY_TEST_STEP * 2)
+        )
+        for command in ("flutter pub get", "flutter test", "flutter run", "flutter build ios"):
+            with self.subTest(command=command):
+                step = f"      - name: Hub\n        working-directory: apps/pokemap_hub\n        run: {command}\n"
+                self.assertIsNotNone(
+                    retired_hub_application_violation(
+                        "pokemap_quick_checks.yml", SHARED_HUB_LIBRARY_TEST_STEP + step
                     )
+                )
+
+    def test_native_host_contracts_still_reject_retired_hub_cd_and_mobile_builds(self):
+        for command in ("cd apps/pokemap_hub", "flutter build ios", "flutter build appbundle"):
+            with self.subTest(command=command):
+                self.assertIsNotNone(retired_hub_application_violation("other.yml", command))
 
 
 if __name__ == "__main__":
