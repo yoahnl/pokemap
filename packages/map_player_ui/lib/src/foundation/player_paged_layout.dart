@@ -107,9 +107,11 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
       final sideNavigation =
           widget.sideNavigation &&
           constraints.maxWidth >= 200 &&
-          constraints.maxHeight >= 104;
+          constraints.maxHeight >= 48;
+      final horizontalNavigation = sideNavigation && constraints.maxHeight < 104;
+      final navigationWidth = horizontalNavigation ? 104.0 : 48.0;
       final signature = (
-        constraints.maxWidth - (sideNavigation ? 56 : 0),
+        constraints.maxWidth - (sideNavigation ? navigationWidth + 8 : 0),
         constraints.maxHeight,
         MediaQuery.textScalerOf(context).scale(1),
       );
@@ -226,9 +228,11 @@ class _PlayerPagedListState extends State<PlayerPagedList> {
                 Expanded(child: content),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 48,
+                  width: navigationWidth,
                   child: allMeasured && hasPages
-                      ? Column(
+                      ? horizontalNavigation
+                          ? Center(child: Row(children: [previous(), const SizedBox(width: 8), next()]))
+                          : Column(
                           children: [
                             previous(),
                             if (constraints.maxHeight >= 144) ...[

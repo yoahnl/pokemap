@@ -110,6 +110,40 @@ void main() {
     controller.dispose();
   });
 
+  test('authored density reuses all resident firefly meshes', () {
+    final controller = SpatialSceneController();
+    final settings = SpatialAtmosphereSettings(
+      fireflies: true,
+      fireflyZones: [
+        SpatialAtmosphereFireflyZone(bounds: zone.bounds, count: 13),
+      ],
+    );
+    controller.applyAtmosphereSettings(settings);
+    final effects = SpatialAtmosphereEffects(World3D());
+    void sync() => effects.sync(
+      profile: controller.atmosphereProfile,
+      enabled: controller.fireflies,
+      elapsedSeconds: 2,
+      night: 1,
+      cameraPitch: .8,
+      cameraYaw: 0,
+    );
+    sync();
+    final resident = effects.components.toList();
+    expect(resident, hasLength(26));
+    expect(effects.visibleCount, 13);
+    controller.applyAtmosphereSettings(settings.copyWith(fireflyDensity: 2));
+    sync();
+    expect(effects.components.toList(), orderedEquals(resident));
+    expect(effects.visibleCount, 26);
+    controller.applyAtmosphereSettings(settings.copyWith(fireflyDensity: 0));
+    sync();
+    expect(effects.components.toList(), orderedEquals(resident));
+    expect(effects.visibleCount, 0);
+    effects.clear();
+    controller.dispose();
+  });
+
   test('targets are exact and window masks are immutable and restricted', () {
     final rects = [Rect.fromLTWH(.1, .2, .3, .4)];
     final window = SpatialWindowGlow(target: target, uvRects: rects);

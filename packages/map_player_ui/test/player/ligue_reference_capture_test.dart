@@ -146,7 +146,9 @@ void main() {
     _assets = File(p.join(root, 'world.png')).existsSync()
         ? root
         : p.join(root, 'assets');
-    _brandLogo = MemoryImage(await File(p.join(_assets, 'eclipse.png')).readAsBytes());
+    _brandLogo = MemoryImage(
+      await File(p.join(_assets, 'eclipse.png')).readAsBytes(),
+    );
     await Directory(_captureRoot).create(recursive: true);
     final font = ByteData.sublistView(
       await File(p.join(_assets, 'dm-sans.ttf')).readAsBytes(),
@@ -506,7 +508,12 @@ void main() {
               ),
             );
             if (screen == 'session.loading' && mode.key != 'thor-primary') {
-              await tester.runAsync(() => precacheImage(ResizeImage(_brandLogo, width: 256), tester.element(find.byType(PlayerWorldLoadingSurface))));
+              await tester.runAsync(
+                () => precacheImage(
+                  ResizeImage(_brandLogo, width: 256),
+                  tester.element(find.byType(PlayerWorldLoadingSurface)),
+                ),
+              );
               await tester.pumpAndSettle();
             }
             await _capture(
@@ -887,6 +894,7 @@ Future<Widget> _runtimeStage(
         scenePlatformRect: secondGeometry.platformRect,
         sceneFootAnchor: secondGeometry.footAnchor,
         isPlayerSide: false,
+        spriteFootXRatio: .5,
         speciesLabel: 'Pikachu',
         visualAssetCache: cache,
         initialSpriteSpec: BattleCombatantSpriteSpec(

@@ -5,8 +5,14 @@ import '../../project_session/domain/project_session.dart';
 import '../domain/map_atmosphere_port.dart';
 
 final class MapAtmosphereController extends ChangeNotifier {
-  MapAtmosphereController._(this.session, this.mapId, this.port, MapAtmosphereState state)
-      : current = state.settings, _saved = state.settings, _revision = state.revision;
+  MapAtmosphereController._(
+    this.session,
+    this.mapId,
+    this.port,
+    MapAtmosphereState state,
+  ) : current = state.settings,
+      _saved = state.settings,
+      _revision = state.revision;
   final ProjectSession session;
   final String mapId;
   final MapAtmospherePort port;
@@ -18,12 +24,22 @@ final class MapAtmosphereController extends ChangeNotifier {
   bool saving = false;
   bool _disposed = false;
   String? error;
+  SpatialAtmosphereSettings get saved => _saved;
+  String get revision => _revision;
   bool get dirty => current != _saved;
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
-  static Future<MapAtmosphereController> open(ProjectSession session, String mapId, MapAtmospherePort port) async =>
-      MapAtmosphereController._(session, mapId, port, await port.loadAtmosphere(session, mapId));
+  static Future<MapAtmosphereController> open(
+    ProjectSession session,
+    String mapId,
+    MapAtmospherePort port,
+  ) async => MapAtmosphereController._(
+    session,
+    mapId,
+    port,
+    await port.loadAtmosphere(session, mapId),
+  );
 
   void edit(SpatialAtmosphereSettings next) {
     if (_disposed || next == current) return;
@@ -64,7 +80,12 @@ final class MapAtmosphereController extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final result = await port.saveAtmosphere(session, mapId, snapshot, _revision);
+      final result = await port.saveAtmosphere(
+        session,
+        mapId,
+        snapshot,
+        _revision,
+      );
       if (_disposed) return false;
       _saved = result.settings;
       _revision = result.revision;

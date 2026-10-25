@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
+
 import '../domain/map_atmosphere_port.dart';
 
 import 'package:map_core/map_core.dart';
@@ -38,26 +39,63 @@ final class LocalMapWorkspaceAdapter
   var _atmosphereOperations = 0;
 
   @override
-  Future<MapAtmosphereState> loadAtmosphere(ProjectSession session, String mapId) async {
+  Future<MapAtmosphereState> loadAtmosphere(
+    ProjectSession session,
+    String mapId,
+  ) async {
     final service = await _atmosphereAuthoring(session);
-    final state = await service.inspect(projectRoot: session.directoryPath, mapId: mapId);
-    return MapAtmosphereState(settings: state.settings, revision: state.revision);
+    final state = await service.inspect(
+      projectRoot: session.directoryPath,
+      mapId: mapId,
+      mapRelativePath: p.relative(
+        _loadedPaths[(session.sessionId, mapId)] ??
+            (throw const MapWorkspaceFailure(
+              MapWorkspaceProblem.unavailable,
+              'Ouvrez la carte avant de régler son ambiance.',
+            )),
+        from: session.directoryPath,
+      ),
+    );
+    return MapAtmosphereState(
+      settings: state.settings,
+      revision: state.revision,
+    );
   }
 
   @override
-  Future<MapAtmosphereState> saveAtmosphere(ProjectSession session, String mapId, SpatialAtmosphereSettings settings, String expectedRevision) async {
+  Future<MapAtmosphereState> saveAtmosphere(
+    ProjectSession session,
+    String mapId,
+    SpatialAtmosphereSettings settings,
+    String expectedRevision,
+  ) async {
     if (session.storage == ProjectSessionStorage.portableCatalog) {
-      throw const MapWorkspaceFailure(MapWorkspaceProblem.unavailable, 'Ce projet est en lecture seule. Créez une copie de travail pour régler son ambiance.');
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.unavailable,
+        'Ce projet est en lecture seule. Créez une copie de travail pour régler son ambiance.',
+      );
     }
     final service = await _atmosphereAuthoring(session);
     final result = await service.set(
       projectRoot: session.directoryPath,
       mapId: mapId,
+      mapRelativePath: p.relative(
+        _loadedPaths[(session.sessionId, mapId)] ??
+            (throw const MapWorkspaceFailure(
+              MapWorkspaceProblem.unavailable,
+              'Ouvrez la carte avant de régler son ambiance.',
+            )),
+        from: session.directoryPath,
+      ),
       settings: settings,
       expectedRevision: expectedRevision,
-      operationId: 'studio_atmosphere_${DateTime.now().microsecondsSinceEpoch}_${_atmosphereOperations++}',
+      operationId:
+          'studio_atmosphere_${DateTime.now().microsecondsSinceEpoch}_${_atmosphereOperations++}',
     );
-    return MapAtmosphereState(settings: result.afterSettings, revision: result.afterRevision);
+    return MapAtmosphereState(
+      settings: result.afterSettings,
+      revision: result.afterRevision,
+    );
   }
 
   Future<T> withResourceMutation<T>(Future<T> Function() operation) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
@@ -113,9 +114,8 @@ class MapWorkspaceToolbar extends StatelessWidget {
           ValueListenableBuilder<Matrix4>(
             valueListenable: view!.transform,
             builder: (context, value, _) => SizedBox(
-              width: MediaQuery.textScalerOf(
-                context,
-              ).scale(largeText ? 70 : 52),
+              width: MediaQuery.textScalerOf(context)
+                  .scale(largeText ? 70 : 52),
               child: Text(
                 '${(value.entry(0, 0).abs() * 100).round()} %',
                 textAlign: TextAlign.center,
@@ -136,9 +136,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
         ),
         if (document?.current.spatialScene != null && view != null)
           Tooltip(
-            message: view!.spatialFreeView
-                ? 'Revenir à la caméra du jeu'
-                : 'En Sélection, glisser un élément pour le déplacer. Flèches pour ajuster. Alt + glisser pour tourner.',
+            message: view!.spatialFreeView ? 'Revenir à la caméra du jeu' : 'En Sélection, glisser un élément pour le déplacer. Flèches pour ajuster. Alt + glisser pour tourner.',
             child: StudioButton(
               key: const ValueKey('spatial-camera-view'),
               label: view!.spatialFreeView ? 'Vue du jeu' : 'Vue libre',
@@ -215,20 +213,32 @@ class MapWorkspaceToolbar extends StatelessWidget {
                 ),
               ),
             );
-            final statusLabel = document?.saving == true
-                ? 'Enregistrement…'
-                : document?.dirty == true
-                ? 'Non enregistré'
-                : 'Enregistré';
-            final status = Tooltip(
-              message: statusLabel,
-              child: Text(
-                statusLabel,
-                style: Theme.of(context).textTheme.bodySmall,
-                maxLines: largeText ? 1 : null,
-                overflow: largeText ? TextOverflow.ellipsis : null,
-              ),
-            );
+            Widget buildStatus() {
+              final atmosphere = document?.atmosphere;
+              final label =
+                  document?.saving == true || atmosphere?.saving == true
+                  ? 'Enregistrement…'
+                  : document?.dirty == true || atmosphere?.dirty == true
+                  ? 'Non enregistré'
+                  : 'Enregistré';
+              return Tooltip(
+                message: label,
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  maxLines: largeText ? 1 : null,
+                  overflow: largeText ? TextOverflow.ellipsis : null,
+                ),
+              );
+            }
+
+            final atmosphere = document?.atmosphere;
+            final status = atmosphere == null
+                ? buildStatus()
+                : ListenableBuilder(
+                    listenable: atmosphere,
+                    builder: (context, _) => buildStatus(),
+                  );
             if (largeText) {
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

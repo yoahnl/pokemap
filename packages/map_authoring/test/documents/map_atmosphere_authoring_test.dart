@@ -1,4 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:async';
+import 'package:map_authoring/src/transactions/journaled_transaction.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -21,6 +25,7 @@ void main() {
   tearDown(() => root.delete(recursive: true));
   test('each cold first save persists only the small selected atmosphere',
       () async {
+    var operation = 0;
     for (final settings in [
       SpatialAtmosphereSettings(waterAnimated: true),
       SpatialAtmosphereSettings(windowsLit: true),
@@ -34,7 +39,7 @@ void main() {
           mapId: 'shore',
           expectedRevision: before.revision,
           settings: settings,
-          operationId: 'save_${settings.hashCode.abs()}');
+          operationId: 'save_${operation++}');
       expect(changed.afterSettings, settings);
       final reopened = await LocalMapAtmosphereAuthoring(policy: policy)
           .inspect(projectRoot: root.path, mapId: 'shore');
@@ -48,4 +53,245 @@ void main() {
     expect(await File('${root.path}/maps/shore.json').readAsString(),
         'map content must not be decoded');
   });
+  test('cold saves ignore unrelated content and accumulated global history',
+      () async {
+    final blocked = <String>[];
+    for (final relative in [
+      'project.json',
+      'maps/shore.json',
+      'maps/unrelated.json',
+      '.pokemap/authoring/history.jsonl',
+      '.pokemap/authoring/audit.jsonl',
+      '.pokemap/authoring/idempotency.jsonl',
+      '.pokemap/authoring/transactions/foreign/journal.json'
+    ]) {
+      final file = File('${root.path}/$relative');
+      await file.parent.create(recursive: true);
+      if (!await file.exists()) await file.writeAsString('x' * 2000000);
+      blocked.add(file.path);
+    }
+    final outside = Zone.current;
+    final attempts = <String>[];
+    await IOOverrides.runZoned(() async {
+      for (var i = 0; i < 3; i++) {
+        final service = LocalMapAtmosphereAuthoring(policy: policy);
+        final before =
+            await service.inspect(projectRoot: root.path, mapId: 'shore');
+        await service.set(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedRevision: before.revision,
+            settings: SpatialAtmosphereSettings(
+                waterAnimated: i == 0, windowsLit: i == 1, fireflies: i == 2),
+            operationId: 'bounded_$i');
+      }
+    }, createFile: (path) {
+      final file = outside.run(() => File(path));
+      return blocked.contains(file.path)
+          ? _UnreadableFile(file, attempts)
+          : file;
+    });
+    expect(attempts, isEmpty);
+  });
+  test('receipt undo reads one history entry without legacy or unrelated entry reads', () async {
+    final service=LocalMapAtmosphereAuthoring(policy:policy);
+    final before=await service.inspect(projectRoot:root.path,mapId:'shore');
+    final mutation=await service.set(projectRoot:root.path,mapId:'shore',expectedRevision:before.revision,settings:SpatialAtmosphereSettings(fireflies:true),operationId:'seed_undo');
+    final metadata=Directory('${root.path}/.pokemap/authoring');
+    for(final name in ['history.jsonl','history-entries/receipt_document_${'a'*32}.json']) {final file=File('${metadata.path}/$name');await file.parent.create(recursive:true);await file.writeAsString('unrelated invalid history');}
+    final outside=Zone.current;final attempts=<String>[];
+    await IOOverrides.runZoned(() async {
+      final undone=await LocalMapAtmosphereAuthoring(policy:policy).undoReceipt(projectRoot:root.path,mapId:'shore',receiptId:mutation.receipt.receiptId,expectedRevision:mutation.afterRevision,operationId:'targeted_undo');
+      expect(undone.afterSettings,SpatialAtmosphereSettings());
+      expect(await File('${root.path}/maps/shore.atmosphere.json').exists(),isFalse);
+      expect((undone.receipt.extensions['history'] as Map)['kind'],'undo');
+    },createFile:(path) {final file=outside.run(()=>File(path));return path.endsWith('/history.jsonl')||path.endsWith('receipt_document_${'a'*32}.json')?_UnreadableFile(file,attempts):file;});
+    expect(attempts,isEmpty);
+  });
+  test('replay is exact and an operation identity cannot change its payload',
+      () async {
+    final service = LocalMapAtmosphereAuthoring(policy: policy);
+    final initial =
+        await service.inspect(projectRoot: root.path, mapId: 'shore');
+    final first = await service.set(
+        projectRoot: root.path,
+        mapId: 'shore',
+        expectedRevision: initial.revision,
+        settings: SpatialAtmosphereSettings(fireflies: true),
+        operationId: 'replay');
+    final bytes =
+        await File('${root.path}/maps/shore.atmosphere.json').readAsBytes();
+    final replay = await LocalMapAtmosphereAuthoring(policy: policy).set(
+        projectRoot: root.path,
+        mapId: 'shore',
+        expectedRevision: initial.revision,
+        settings: SpatialAtmosphereSettings(fireflies: true),
+        operationId: 'replay');
+    expect(replay.receipt.receiptId, first.receipt.receiptId);
+    expect(await File('${root.path}/maps/shore.atmosphere.json').readAsBytes(),
+        bytes);
+    await expectLater(
+        service.set(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedRevision: initial.revision,
+            settings: SpatialAtmosphereSettings(),
+            operationId: 'replay'),
+        throwsA(anything));
+  });
+  test(
+      'stale writes and a race under the writer lock preserve the competing file',
+      () async {
+    final service = LocalMapAtmosphereAuthoring(policy: policy);
+    final before =
+        await service.inspect(projectRoot: root.path, mapId: 'shore');
+    final external = utf8.encode(jsonEncode(SpatialAtmosphereDocument(
+            mapId: 'shore',
+            settings: SpatialAtmosphereSettings(windowsLit: true))
+        .toJson()));
+    await expectLater(
+        service.set(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedRevision: before.revision,
+            settings: SpatialAtmosphereSettings(fireflies: true),
+            operationId: 'race',
+            precondition: () => File('${root.path}/maps/shore.atmosphere.json')
+                .writeAsBytes(external, flush: true)),
+        throwsA(anything));
+    expect(await File('${root.path}/maps/shore.atmosphere.json').readAsBytes(),
+        external);
+    await expectLater(
+        service.set(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedRevision: before.revision,
+            settings: SpatialAtmosphereSettings(fireflies: true),
+            operationId: 'stale'),
+        throwsA(anything));
+  });
+  test('recovery resumes only the reserved map operation and undo is targeted',
+      () async {
+    final service = LocalMapAtmosphereAuthoring(policy: policy);
+    final before =
+        await service.inspect(projectRoot: root.path, mapId: 'shore');
+    final crash = LocalMapAtmosphereAuthoring(
+        policy: policy,
+        faultInjector: (context) {
+          if (context.checkpoint ==
+              AuthoringTransactionCheckpoint.afterResourcePromoted) {
+            throw const AuthoringTransactionSimulatedCrash();
+          }
+        });
+    await expectLater(
+        crash.set(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedRevision: before.revision,
+            settings: SpatialAtmosphereSettings(fireflies: true),
+            operationId: 'resume'),
+        throwsA(anything));
+    await expectLater(
+        service.set(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedRevision:
+                (await service.inspect(projectRoot: root.path, mapId: 'shore'))
+                    .revision,
+            settings: SpatialAtmosphereSettings(windowsLit: true),
+            operationId: 'blocked_pending'),
+        throwsA(anything));
+    final recovered = await service.set(
+        projectRoot: root.path,
+        mapId: 'shore',
+        expectedRevision: before.revision,
+        settings: SpatialAtmosphereSettings(fireflies: true),
+        operationId: 'resume');
+    expect(recovered.afterSettings.fireflies, isTrue);
+    final undo = await service.undo(
+        projectRoot: root.path,
+        mapId: 'shore',
+        mutation: recovered,
+        operationId: 'undo');
+    expect(undo.afterSettings, SpatialAtmosphereSettings());
+  });
+  test(
+      'corrupted future mismatched and symlink documents cannot be overwritten',
+      () async {
+    final file = File('${root.path}/maps/shore.atmosphere.json');
+    final service = LocalMapAtmosphereAuthoring(policy: policy);
+    final revision =
+        (await service.inspect(projectRoot: root.path, mapId: 'shore'))
+            .revision;
+    for (final raw in [
+      'invalid',
+      '{"schemaVersion":2,"mapId":"shore","settings":{}}',
+      jsonEncode(SpatialAtmosphereDocument(
+              mapId: 'another', settings: SpatialAtmosphereSettings())
+          .toJson()),
+      'x' * 65537
+    ]) {
+      await file.writeAsString(raw);
+      await expectLater(
+          service.set(
+              projectRoot: root.path,
+              mapId: 'shore',
+              expectedRevision: revision,
+              settings: SpatialAtmosphereSettings(fireflies: true),
+              operationId: 'invalid_${raw.length}'),
+          throwsA(anything));
+      expect(await file.readAsString(), raw);
+    }
+    await file.delete();
+    final outside =
+        await Directory.systemTemp.createTemp('atmosphere_outside_');
+    try {
+      final target = File('${outside.path}/target.json');
+      await target.writeAsString('preserve');
+      await Link(file.path).create(target.path);
+      await expectLater(service.inspect(projectRoot: root.path, mapId: 'shore'),
+          throwsA(anything));
+      expect(await target.readAsString(), 'preserve');
+    } finally {
+      await outside.delete(recursive: true);
+    }
+  });
+}
+
+final class _UnreadableFile implements File {
+  _UnreadableFile(this.delegate, this.attempts);
+  final File delegate;
+  final List<String> attempts;
+  Never deny() {
+    attempts.add(path);
+    throw StateError('Unrelated file read: $path');
+  }
+
+  @override
+  String get path => delegate.path;
+  @override
+  Uri get uri => delegate.uri;
+  @override
+  bool get isAbsolute => delegate.isAbsolute;
+  @override
+  File get absolute => delegate.absolute;
+  @override
+  Directory get parent => delegate.parent;
+  @override
+  Future<Uint8List> readAsBytes() async => deny();
+  @override
+  Future<String> readAsString({Encoding encoding = utf8}) async => deny();
+  @override
+  Stream<List<int>> openRead([int? start, int? end]) => deny();
+  @override
+  Future<RandomAccessFile> open({FileMode mode = FileMode.read}) async =>
+      deny();
+  @override
+  Future<bool> exists() => delegate.exists();
+  @override
+  Future<FileStat> stat() => delegate.stat();
+  @override
+  Future<String> resolveSymbolicLinks() => delegate.resolveSymbolicLinks();
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

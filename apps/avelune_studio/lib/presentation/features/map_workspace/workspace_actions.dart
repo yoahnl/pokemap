@@ -1,12 +1,16 @@
 import '../../../features/regional_map/application/regional_map_controller.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
+
 import 'package:flutter/material.dart';
+
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../features/world/application/world_workspace_controller.dart';
+
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../shared/widgets/dialogs/confirm_studio_close.dart';
@@ -14,12 +18,11 @@ import '../resources/resource_navigation.dart';
 
 part 'workspace_close_actions.dart';
 
-typedef StudioRuntimeBuilder =
-    Widget Function(
-      ProjectMapEntry entry,
-      String revision,
-      VoidCallback onClose,
-    );
+typedef StudioRuntimeBuilder = Widget Function(
+  ProjectMapEntry entry,
+  String revision,
+  VoidCallback onClose,
+);
 
 class WorkspaceActions {
   WorkspaceActions({
@@ -184,16 +187,14 @@ class WorkspaceActions {
       final owner = cinematics?.call();
       final mapId = owner?.active?.asset.mapId;
       if (mapId == null || controller.active?.current.id != mapId) {
-        owner?.error =
-            'Rejoignez la carte de la cinématique avec Voir sur la carte avant de lancer sa version publiée.';
+        owner?.error = 'Rejoignez la carte de la cinématique avec Voir sur la carte avant de lancer sa version publiée.';
         changed();
         return;
       }
       if (controller.dirty ||
           scenes?.call()?.dirty == true ||
           narrative()?.dirty == true) {
-        owner?.error =
-            'Des cartes, scènes ou interactions ont un brouillon. Enregistrez-les dans leur éditeur avant ce test ; aucun brouillon n’a été publié.';
+        owner?.error = 'Des cartes, scènes ou interactions ont un brouillon. Enregistrez-les dans leur éditeur avant ce test ; aucun brouillon n’a été publié.';
         changed();
         return;
       }
@@ -231,21 +232,18 @@ class WorkspaceActions {
       }
       final narrativeController = narrative();
       if (events?.call()?.dirty == true) {
-        events!.call()!.error =
-            'Les événements ont changé pendant la préparation. Enregistrez-les avant de tester.';
+        events!.call()!.error = 'Les événements ont changé pendant la préparation. Enregistrez-les avant de tester.';
         return;
       }
       if (narrativeController != null &&
           (narrativeController.pendingStories.isNotEmpty ||
               narrativeController.pendingStoryDeletions.isNotEmpty ||
               narrativeController.pendingFacts.isNotEmpty)) {
-        narrativeController.publicationError =
-            'Les histoires ou états ont encore changé. Enregistrez-les avant de tester.';
+        narrativeController.publicationError = 'Les histoires ou états ont encore changé. Enregistrez-les avant de tester.';
         return;
       }
       if (cinematics?.call()?.dirty == true) {
-        cinematics!.call()!.error =
-            'La cinématique a changé pendant la préparation. Enregistrez-la avant de tester.';
+        cinematics!.call()!.error = 'La cinématique a changé pendant la préparation. Enregistrez-la avant de tester.';
         return;
       }
       if (presentations?.call()?.dirty == true) {

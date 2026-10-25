@@ -49,8 +49,12 @@ class MapWorkspaceController {
   var _disposed = false;
   bool get isDisposed => _disposed;
 
-  bool get dirty => documents.values.any((document) => document.dirty || document.atmosphere?.dirty == true);
-  bool get saving => documents.values.any((document) => document.saving || document.atmosphere?.saving == true);
+  bool get dirty => documents.values.any(
+    (document) => document.dirty || document.atmosphere?.dirty == true,
+  );
+  bool get saving => documents.values.any(
+    (document) => document.saving || document.atmosphere?.saving == true,
+  );
   void addListener(void Function() listener) => _listeners.add(listener);
   void removeListener(void Function() listener) => _listeners.remove(listener);
 
@@ -126,24 +130,18 @@ class MapWorkspaceController {
               currentEntry,
             );
             _selections[entry.id] = selection;
-            return EditableMapDocument(selection.document);
+            return _prepareAtmosphere(
+              EditableMapDocument(selection.document),
+              currentEntry,
+            );
           }
-          return EditableMapDocument(await port.loadMap(session, currentEntry));
+          return _prepareAtmosphere(
+            EditableMapDocument(await port.loadMap(session, currentEntry)),
+            currentEntry,
+          );
         });
       }
       final document = cached ?? await pending!;
-      final atmospherePort = port;
-      if (document.current.spatialScene != null &&
-          document.atmosphere == null &&
-          atmospherePort is MapAtmospherePort) {
-        final atmosphere = await MapAtmosphereController.open(session, entry.id, atmospherePort);
-        if (_disposed || mapEpoch != _mapEpochs[entry.id]) {
-          atmosphere.dispose();
-          return;
-        }
-        atmosphere.addListener(notify);
-        document.atmosphere = atmosphere;
-      }
       if (_disposed ||
           mapEpoch != _mapEpochs[entry.id] ||
           isCurrent?.call() == false ||
@@ -173,6 +171,27 @@ class MapWorkspaceController {
         notify();
       }
     }
+  }
+
+  Future<EditableMapDocument> _prepareAtmosphere(
+    EditableMapDocument document,
+    ProjectMapEntry entry,
+  ) async {
+    final atmospherePort = port;
+    if (document.current.spatialScene != null &&
+        atmospherePort is MapAtmospherePort) {
+      final atmosphere = await MapAtmosphereController.open(
+        session,
+        entry.id,
+        atmospherePort as MapAtmospherePort,
+      );
+      if (_disposed) {
+        atmosphere.dispose();
+        return document;
+      }
+      document.atmosphere = atmosphere;
+    }
+    return document;
   }
 
   Future<MapData?> previewMap(String id) {
@@ -237,7 +256,9 @@ class MapWorkspaceController {
       notify();
       return false;
     }
-    if (!await (document.atmosphere?.save() ?? Future.value(true))) return false;
+    if (!await (document.atmosphere?.save() ?? Future.value(true))) {
+      return false;
+    }
     if (!document.dirty) return true;
     document.saving = true;
     document.error = null;

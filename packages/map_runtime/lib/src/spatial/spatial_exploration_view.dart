@@ -70,6 +70,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     activeBundle = widget.session.bundle;
+    camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
     widget.session.prepareNativeDoorDestination = prepareNativeDestination;
     widget.session.setVisibleMaps({});
@@ -79,6 +80,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   void mapChanged() {
     final previous = activeBundle;
     activeBundle = widget.session.bundle;
+    camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     final entry = widget.session.connectionEntry;
     if (entry == null) {
       release();
@@ -222,6 +224,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
     widget.session.prepareNativeDoorDestination = prepareNativeDestination;
     activeBundle = widget.session.bundle;
+    camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     sceneOffset = Offset.zero;
     neighbors = const [];
     neighborError = null;
@@ -362,7 +365,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                 models: widget.session.bundle.manifest.models3d,
                 loadModel: loadModel,
                 controller: camera,
-                onCell: (_, __) {
+                onCell: (_, _) {
                   if (widget.keyboardInputEnabled) focus.requestFocus();
                 },
                 onReady: widget.onReady,

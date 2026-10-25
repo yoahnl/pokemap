@@ -9,7 +9,10 @@ final class MapAtmosphereState {
 }
 
 abstract interface class MapAtmospherePort {
-  Future<MapAtmosphereState> loadAtmosphere(ProjectSession session, String mapId);
+  Future<MapAtmosphereState> loadAtmosphere(
+    ProjectSession session,
+    String mapId,
+  );
   Future<MapAtmosphereState> saveAtmosphere(
     ProjectSession session,
     String mapId,

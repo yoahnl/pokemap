@@ -199,6 +199,28 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     });
   }
 
+  Future<AuthoringHistoryEntry?> getDocumentEntry(
+      {required String projectId, required String entryId}) {
+    final safeProject = safeAuthoringSecurityIdentifier(projectId, 'projectId');
+    final safeEntry = safeAuthoringSecurityIdentifier(entryId, 'entryId');
+    if (!RegExp(r'^receipt_document_[a-f0-9]{32}$').hasMatch(safeEntry)) {
+      throw const AuthoringHistoryException(
+          'history.document_identity_required',
+          'A targeted document receipt is required.');
+    }
+    return _guard(() => _withLock(() async {
+          final head = await _readIncrementalHead();
+          _requirePublishedHead(head);
+          final stored = await _readIncremental(safeEntry);
+          if (stored == null ||
+              stored.entry.projectId != safeProject ||
+              stored.generation > head.publishedGeneration) {
+            return null;
+          }
+          return _applyIncrementalMark(stored.entry);
+        }));
+  }
+
   @override
   Future<AuthoringHistoryPage> list({
     required String projectId,

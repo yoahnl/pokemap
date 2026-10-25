@@ -154,7 +154,12 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
           ),
           const Text('Cette instance · décor placé sur la carte'),
           const SizedBox(height: 12),
-          SpatialModelEntityControls(document: document, project: project, instance: instance, onChanged: onChanged),
+          SpatialModelEntityControls(
+            document: document,
+            project: project,
+            instance: instance,
+            onChanged: onChanged,
+          ),
           const SizedBox(height: 12),
           field(
             'x',

@@ -26,6 +26,7 @@ import { registerNativeProjectCreationTools } from "./tools/native_project_creat
 import { registerResourcePackTool } from "./tools/resource_packs.js";
 import { registerProjectionTool } from "./tools/projections.js";
 import { registerRuntimeTools } from "./tools/runtime.js";
+import { registerMapAtmosphereTools } from "./tools/map_atmosphere.js";
 import { registerCharacterContactShadowTools } from "./tools/character_contact_shadows.js";
 
 export interface PokeMapMcpServerDependencies {
@@ -56,6 +57,7 @@ export function createPokeMapMcpServer(
   registerReadOnlyTools(server, authoring, artifacts);
   registerMutationTools(server, authoring);
   registerCharacterContactShadowTools(server, authoring);
+  registerMapAtmosphereTools(server, authoring);
   registerGameExportTool(server, authoring, dependencies.projectRoots);
   registerProjectCreationTools(server, authoring);
   registerNativeProjectCreationTools(server, authoring);

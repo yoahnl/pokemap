@@ -88,8 +88,27 @@ final class SpatialAtmosphereProfile {
        fireflyZones = List.unmodifiable(fireflyZones),
        _water = {for (final target in waterTargets) target.key},
        _windows = {for (final window in windows) window.target.key: window} {
-    if (fireflyZones.fold<int>(0, (sum, zone) => sum + zone.count) > 128)
-      throw ArgumentError('Too many preview fireflies.');
+    if (fireflyCapacityScale < 1 ||
+        fireflyCapacityScale > 2 ||
+        fireflyZones.fold<int>(0, (sum, zone) => sum + zone.count) *
+                fireflyCapacityScale >
+            128 ||
+        ![
+          waterStrength,
+          waterSpeed,
+          windowStrength,
+          fireflyDensity,
+        ].every((v) => v.isFinite) ||
+        waterStrength < 0 ||
+        waterStrength > 2 ||
+        waterSpeed < 0 ||
+        waterSpeed > 3 ||
+        windowStrength < 0 ||
+        windowStrength > 2 ||
+        fireflyDensity < 0 ||
+        fireflyDensity > 2) {
+      throw ArgumentError('Invalid atmosphere presentation limits.');
+    }
   }
   factory SpatialAtmosphereProfile.fromSettings(
     SpatialAtmosphereSettings settings,

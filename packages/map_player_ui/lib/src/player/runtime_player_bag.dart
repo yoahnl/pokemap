@@ -767,7 +767,10 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           : children.isEmpty
           ? Align(
               alignment: Alignment.centerLeft,
-              child: SizedBox(width: 88, child: returnAction),
+              child: SizedBox(
+              width: 88 * MediaQuery.textScalerOf(context).scale(1),
+              child: returnAction,
+            ),
             )
           : PlayerMenuActionGroup(children: [...children, returnAction]),
     );

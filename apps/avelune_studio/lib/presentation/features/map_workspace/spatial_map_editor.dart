@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../features/map_workspace/application/map_atmosphere_controller.dart';
+
 import 'dart:math' as math;
 
 import 'package:map_core/map_core.dart';
@@ -50,6 +52,21 @@ class SpatialMapEditor extends StatefulWidget {
 class _SpatialMapEditorState extends State<SpatialMapEditor> {
   final camera = SpatialSceneController()..setView(SpatialEditorView.game);
   final focus = FocusNode();
+  MapAtmosphereController? _atmosphere;
+  void _syncAtmosphere() {
+    final settings = _atmosphere?.current;
+    if (settings != null) camera.applyAtmosphereSettings(settings);
+  }
+
+  void _bindAtmosphere() {
+    final next = widget.document.atmosphere;
+    if (identical(next, _atmosphere)) return;
+    _atmosphere?.removeListener(_syncAtmosphere);
+    _atmosphere = next;
+    _atmosphere?.addListener(_syncAtmosphere);
+    _syncAtmosphere();
+  }
+
   SpatialNpcPreview? preview;
   MapData? previewMap;
   MapCharacterGesture? gesture;
@@ -203,6 +220,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   void initState() {
     super.initState();
     widget.view.spatialSceneController = camera;
+    _bindAtmosphere();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(widget.view.spatialSceneController, camera)) {
         widget.onChanged();
@@ -273,6 +291,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   @override
   void didUpdateWidget(SpatialMapEditor old) {
     super.didUpdateWidget(old);
+    _bindAtmosphere();
     if (!identical(old.view, widget.view)) {
       if (identical(old.view.spatialSceneController, camera)) {
         old.view.spatialSceneController = null;
@@ -948,6 +967,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   @override
   void dispose() {
+    _atmosphere?.removeListener(_syncAtmosphere);
     previewGeneration++;
     preview?.dispose();
     widget.view.transform.removeListener(syncZoom);

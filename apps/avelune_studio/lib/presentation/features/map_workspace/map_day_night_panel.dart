@@ -174,7 +174,12 @@ class MapDayNightPanel extends StatelessWidget {
         ],
         if (document.atmosphere case final atmosphere?) ...[
           const SizedBox(height: 16),
-          MapAtmosphereSettingsPanel(controller: atmosphere, preview: controller, map: document.current, project: project),
+          MapAtmosphereSettingsPanel(
+            controller: atmosphere,
+            preview: controller,
+            map: document.current,
+            project: project,
+          ),
         ] else if (controller case final preview?) ...[
           const SizedBox(height: 16),
           MapAtmospherePreviewControls(controller: preview),

@@ -7,7 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
-import 'package:map_authoring/map_authoring_local.dart' show LocalCharacterContactShadowAuthoring;
+import 'package:map_authoring/map_authoring_local.dart' show LocalCharacterContactShadowAuthoring, LocalMapAtmosphereAuthoring;
 
 import '../api/authoring_mutation_api.dart';
 import '../api/authoring_read_api.dart';
@@ -74,6 +74,7 @@ final class JsonlWorker {
     ProjectCreationBootstrapApiPort? projectCreation,
     NativeProjectCreationTransportPort? nativeProjectCreation,
     LocalCharacterContactShadowAuthoring? characterContactShadows,
+    LocalMapAtmosphereAuthoring? mapAtmosphere,
     GamePackageExportApiPort? gameExport,
     GamePackageExportProfileApiPort? exportProfiles,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
@@ -86,6 +87,7 @@ final class JsonlWorker {
        _projectCreation = projectCreation,
        _nativeProjectCreation = nativeProjectCreation,
        _characterContactShadows = characterContactShadows,
+       _mapAtmosphere = mapAtmosphere,
        _gameExport = gameExport,
        _exportProfiles = exportProfiles {
     if (maxInputBytes <= 0) {
@@ -120,6 +122,7 @@ final class JsonlWorker {
   final ProjectCreationBootstrapApiPort? _projectCreation;
   final NativeProjectCreationTransportPort? _nativeProjectCreation;
   final LocalCharacterContactShadowAuthoring? _characterContactShadows;
+  final LocalMapAtmosphereAuthoring? _mapAtmosphere;
   final GamePackageExportApiPort? _gameExport;
   final GamePackageExportProfileApiPort? _exportProfiles;
   final int maxInputBytes;
@@ -762,6 +765,49 @@ final class JsonlWorker {
         await _resourcePacks?.closeTransferWorkspace(workspaceHandle);
         await _mutations?.detachWorkspace(workspaceHandle);
         return _api.close(workspaceHandle);
+      case 'map_atmosphere_undo':
+        final service = _mapAtmosphere ?? (throw const _UnsupportedWorkerCommand());
+        rejectUnknownContractKeys(args, const {'projectRoot','mapId','mapRelativePath','receiptId','expectedRevision','operationId'});
+        return (await service.undoReceipt(projectRoot:requireContractString(args['projectRoot'],'args.projectRoot'),mapId:requireContractString(args['mapId'],'args.mapId'),mapRelativePath:args['mapRelativePath']==null?null:requireContractString(args['mapRelativePath'],'args.mapRelativePath'),receiptId:requireContractString(args['receiptId'],'args.receiptId'),expectedRevision:requireContractString(args['expectedRevision'],'args.expectedRevision'),operationId:requireContractString(args['operationId'],'args.operationId'))).toJson();
+      case 'map_atmosphere_inspect':
+      case 'map_atmosphere_set':
+        final service =
+            _mapAtmosphere ?? (throw const _UnsupportedWorkerCommand());
+        final setting = command == 'map_atmosphere_set';
+        rejectUnknownContractKeys(args, {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          if (setting) 'expectedRevision',
+          if (setting) 'settings',
+          if (setting) 'operationId'
+        });
+        final root =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
+        final mapId = requireContractString(args['mapId'], 'args.mapId');
+        final mapPath = args['mapRelativePath'] == null
+            ? null
+            : requireContractString(
+                args['mapRelativePath'], 'args.mapRelativePath');
+        if (!setting) {
+          return (await service.inspect(
+                  projectRoot: root, mapId: mapId, mapRelativePath: mapPath))
+              .toJson();
+        }
+        final settings = args['settings'];
+        if (settings is! Map<String, dynamic>) {
+          throw const FormatException('settings must be an atmosphere object.');
+        }
+        return (await service.set(
+                projectRoot: root,
+                mapId: mapId,
+                mapRelativePath: mapPath,
+                expectedRevision: requireContractString(
+                    args['expectedRevision'], 'args.expectedRevision'),
+                settings: SpatialAtmosphereSettings.fromJson(settings),
+                operationId: requireContractString(
+                    args['operationId'], 'args.operationId')))
+            .toJson();
       case 'character_contact_shadow_inspect':
       case 'character_contact_shadow_set':
         final service = _characterContactShadows ??
@@ -994,6 +1040,7 @@ final class JsonlWorker {
         creation == null &&
         _nativeProjectCreation == null &&
         _characterContactShadows == null &&
+        _mapAtmosphere == null &&
         _resourcePacks == null) {
       return read;
     }
@@ -1088,6 +1135,19 @@ final class JsonlWorker {
                 'writesDestination': operation == 'publish',
                 'undoable': false, 'replacesExisting': false,
               },
+          if (_mapAtmosphere != null)
+            for (final operation in ['inspect', 'set', 'undo'])
+              {
+                'id': 'map_atmosphere_$operation',
+                'actionId': 'map.atmosphere.set',
+                'readOnly': operation == 'inspect',
+                'summary':
+                    'Read or save one bounded map atmosphere sidecar without loading the project.',
+                'storagePattern': 'maps/<mapId>.atmosphere.json',
+                'maximumDocumentBytes': SpatialAtmosphereDocument.maxBytes,
+                'expectedRevision':
+                    operation != 'inspect' ? 'opaque revision from inspect' : null
+              },
           if (_characterContactShadows != null)
             for (final operation in ['inspect', 'set'])
               {
@@ -1139,6 +1199,8 @@ final class JsonlWorker {
       if (_resourcePacks != null)
         'resourcePackTransfer': resourcePackTransferContract,
       if (mutation != null) 'mutationActions': mutation['actions'],
+      if (_mapAtmosphere != null)
+        'mapAtmosphereAuthoring': LocalMapAtmosphereAuthoring.descriptor.toJson(),
       if (_characterContactShadows != null)
         'characterContactShadowAuthoring': LocalCharacterContactShadowAuthoring.descriptor.toJson(),
       if (mutation != null)

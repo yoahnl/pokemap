@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../foundation/player_components.dart';
-import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_session_surfaces.dart';
 import 'player_save_recovery_strings.dart';
@@ -31,59 +30,21 @@ class PlayerSaveRecoverySurface extends StatelessWidget {
       detected: diagnostic.detectedSchemaVersion,
       expected: diagnostic.expectedSchemaVersion,
     );
-    return PlayerMenuThemeScope(
-      role: ProjectPresentationSurfaceRole.notification,
-      child: Builder(
-        builder: (context) => LayoutBuilder(
-          builder: (context, constraints) {
-            final width = constraints.maxWidth.isFinite
-                ? constraints.maxWidth
-                : 640.0;
-            final columns =
-                width >= 600 && MediaQuery.textScalerOf(context).scale(1) < 1.5
-                ? 2
-                : 1;
-            return PlayerMenuPanel(
-              key: surfaceKey,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    strings.cause(diagnostic.code),
-                    style: context.playerMenuTheme.subtitle,
-                  ),
-                  if (versions != null) ...[
-                    const SizedBox(height: 8),
-                    Text(versions, style: context.playerMenuTheme.body),
-                  ],
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final action in diagnostic.recommendedActions)
-                        SizedBox(
-                          width: (width - 32 - (columns - 1) * 8) / columns,
-                          child: PlayerActionButton(
-                            key: actionKey(action),
-                            label: strings.action(action),
-                            labelMaxLines: 3,
-                            icon: _iconFor(action),
-                            secondary:
-                                action != diagnostic.recommendedActions.first,
-                            onPressed: () => _activate(context, action),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
+    return PlayerSessionPanel(
+      key: surfaceKey,
+      title: strings.cause(diagnostic.code),
+      body: [if (versions != null) Text(versions)],
+      actions: [
+        for (final action in diagnostic.recommendedActions)
+          PlayerActionButton(
+            key: actionKey(action),
+            label: strings.action(action),
+            labelMaxLines: 3,
+            icon: _iconFor(action),
+            secondary: action != diagnostic.recommendedActions.first,
+            onPressed: () => _activate(context, action),
+          ),
+      ],
     );
   }
 

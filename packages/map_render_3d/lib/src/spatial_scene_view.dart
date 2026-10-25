@@ -100,20 +100,28 @@ class SpatialSceneController extends ModelPreviewController {
     if (_authoredAtmosphere == settings) return;
     final previous = _authoredAtmosphere;
     final geometryChanged = previous == null ||
-      previous.copyWith(waterAnimated:settings.waterAnimated,windowsLit:settings.windowsLit,fireflies:settings.fireflies,waterStrength:settings.waterStrength,waterSpeed:settings.waterSpeed,windowStrength:settings.windowStrength,fireflyDensity:settings.fireflyDensity) != settings;
+        previous.copyWith(
+          waterAnimated: settings.waterAnimated,
+          windowsLit: settings.windowsLit,
+          fireflies: settings.fireflies,
+          waterStrength: settings.waterStrength,
+          waterSpeed: settings.waterSpeed,
+          windowStrength: settings.windowStrength,
+          fireflyDensity: settings.fireflyDensity,
+        ) != settings;
     if (geometryChanged) {
       _atmosphereProfile = SpatialAtmosphereProfile.fromSettings(settings);
     } else {
       _atmosphereProfile
-        ..waterStrength=settings.waterStrength
-        ..waterSpeed=settings.waterSpeed
-        ..windowStrength=settings.windowStrength
-        ..fireflyDensity=settings.fireflyDensity;
+        ..waterStrength = settings.waterStrength
+        ..waterSpeed = settings.waterSpeed
+        ..windowStrength = settings.windowStrength
+        ..fireflyDensity = settings.fireflyDensity;
     }
-    _authoredAtmosphere=settings;
-    _waterAnimated=settings.waterAnimated;
-    _windowsLit=settings.windowsLit;
-    _fireflies=settings.fireflies;
+    _authoredAtmosphere = settings;
+    _waterAnimated = settings.waterAnimated;
+    _windowsLit = settings.windowsLit;
+    _fireflies = settings.fireflies;
     super.notifyListeners();
   }
 

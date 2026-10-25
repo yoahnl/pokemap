@@ -595,7 +595,9 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
                   icon: _icon(action),
                   expandContent: true,
                   labelMaxLines: pairedAction ? 2 : 1,
-                  autofocus: action == firstSelection,
+                  autofocus: focusController.logicalSelectionId == null
+                      ? action == firstSelection
+                      : _isSelected(action),
                   focusNode: _focusNode(action),
                   showFocusHighlight: focusController.showFocusHighlight,
                   selected: selected,

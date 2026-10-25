@@ -8,13 +8,16 @@ final class SpatialAtmosphereDocument {
   final String mapId;
   final SpatialAtmosphereSettings settings;
   static const schemaVersion = 1;
+  static const presentationOnly = true;
+  static const absentDefaultsDisabled = true;
   static const maxBytes = 65536;
   static String relativePathForMap(String mapId) =>
       'maps/${_mapId(mapId)}.atmosphere.json';
   factory SpatialAtmosphereDocument.fromJson(Map<String, dynamic> json) {
     _keys(json, {'schemaVersion', 'mapId', 'settings'});
-    if (json['schemaVersion'] != schemaVersion)
+    if (json['schemaVersion'] is! int || json['schemaVersion'] != schemaVersion) {
       throw const FormatException('Unsupported atmosphere schema version.');
+    }
     return SpatialAtmosphereDocument(
       mapId: _string(json['mapId']),
       settings: SpatialAtmosphereSettings.fromJson(_object(json['settings'])),
@@ -64,10 +67,11 @@ final class SpatialAtmosphereUvRect {
        top = _range(top, 0, 1),
        right = _range(right, 0, 1),
        bottom = _range(bottom, 0, 1) {
-    if (this.left >= this.right || this.top >= this.bottom)
+    if (this.left >= this.right || this.top >= this.bottom) {
       throw const FormatException(
         'Atmosphere UV mask must have positive area.',
       );
+    }
   }
   final double left, top, right, bottom;
   factory SpatialAtmosphereUvRect.fromJson(Map<String, dynamic> json) {
@@ -98,8 +102,9 @@ final class SpatialAtmosphereWindow {
     if (uvRects.isEmpty ||
         uvRects.length > 8 ||
         colorRgb < 0 ||
-        colorRgb > 0xffffff)
+        colorRgb > 0xffffff) {
       throw const FormatException('Invalid atmosphere window.');
+    }
   }
   final SpatialAtmosphereMaterialTarget target;
   final List<SpatialAtmosphereUvRect> uvRects;
@@ -138,8 +143,9 @@ final class SpatialAtmosphereFireflyZone {
         seed > 0x7fffffff ||
         size.x <= 0 ||
         size.y <= 0 ||
-        size.z <= 0)
+        size.z <= 0) {
       throw const FormatException('Invalid atmosphere firefly zone.');
+    }
   }
   final Model3dBounds bounds;
   final int count, seed;
@@ -180,10 +186,11 @@ final class SpatialAtmosphereSettings {
     if (waterTargets.length > 128 ||
         windows.length > 128 ||
         fireflyZones.length > 16 ||
-        fireflyZones.fold<int>(0, (n, z) => n + z.count) > 64)
+        fireflyZones.fold<int>(0, (n, z) => n + z.count) > 64) {
       throw const FormatException(
         'Atmosphere settings exceed presentation limits.',
       );
+    }
   }
   final bool waterAnimated, windowsLit, fireflies;
   final double waterStrength, waterSpeed, windowStrength, fireflyDensity;
@@ -269,19 +276,22 @@ final class SpatialAtmosphereSettings {
 }
 
 void _keys(Map<String, dynamic> json, Set<String> allowed) {
-  if (json.keys.any((k) => !allowed.contains(k)))
+  if (json.keys.any((k) => !allowed.contains(k))) {
     throw const FormatException('Unknown atmosphere property.');
+  }
 }
 
 Map<String, dynamic> _object(Object? v) {
-  if (v is! Map<String, dynamic>)
+  if (v is! Map<String, dynamic>) {
     throw const FormatException('Expected atmosphere object.');
+  }
   return v;
 }
 
 List<dynamic> _list(Object? v, int max) {
-  if (v is! List || v.length > max)
+  if (v is! List || v.length > max) {
     throw const FormatException('Invalid atmosphere list.');
+  }
   return v;
 }
 
@@ -291,15 +301,17 @@ String _string(Object? v) {
 }
 
 String _name(String v) {
-  if (v.trim().isEmpty || v.length > 256 || v.contains('\u0000'))
+  if (v.trim().isEmpty || v.length > 256 || v.contains('\u0000')) {
     throw const FormatException('Invalid atmosphere name.');
+  }
   return v;
 }
 
 String _mapId(String v) {
   if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$').hasMatch(v) ||
-      v.contains('..'))
+      v.contains('..')) {
     throw const FormatException('Invalid atmosphere map id.');
+  }
   return v;
 }
 
@@ -320,7 +332,8 @@ bool _boolean(Object? v, bool fallback) {
 }
 
 double _range(num v, double min, double max) {
-  if (!v.isFinite || v < min || v > max)
+  if (!v.isFinite || v < min || v > max) {
     throw const FormatException('Atmosphere number outside supported range.');
+  }
   return v.toDouble();
 }

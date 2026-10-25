@@ -67,7 +67,7 @@ void main() {
           await tester.binding.setSurfaceSize(mode.$2);
           addTearDown(() => tester.binding.setSurfaceSize(null));
           final semantics = tester.ensureSemantics();
-          addTearDown(semantics.dispose);
+          try {
           final commands = <BattlePresentationCommand>[];
           final bag = collection.$1 == BattleCommandOverlayMode.bag;
           await _pumpOverlay(
@@ -150,6 +150,9 @@ void main() {
           );
           expect(find.byType(Scrollable), findsNothing);
           expect(tester.takeException(), isNull);
+          } finally {
+            semantics.dispose();
+          }
         },
       );
     }
@@ -1973,9 +1976,9 @@ void main() {
 
       expect(find.text('CAPACITÉS'), findsNothing);
       expect(find.text('MOVES'), findsNothing);
-      expect(entryMaterial(0).color, const Color(0xFF1E2A25));
-      expect(entryMaterial(1).color, const Color(0xFF1E2A25));
-      expect(entryMaterial(2).color, const Color(0xFF1E2A25));
+      expect(entryMaterial(0).color, PokeMapPlayerBattleChrome.darkFieldManual.moveSurface);
+      expect(entryMaterial(1).color, PokeMapPlayerBattleChrome.darkFieldManual.moveSurface);
+      expect(entryMaterial(2).color, PokeMapPlayerBattleChrome.darkFieldManual.moveSurface);
     },
   );
 

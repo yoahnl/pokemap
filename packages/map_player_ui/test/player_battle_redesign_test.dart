@@ -340,7 +340,7 @@ void main() {
         final font = ByteData.sublistView(
           await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
         );
-        await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+        await (FontLoader('packages/map_player_ui/PokeMapSplashDMSans')..addFont(Future.value(font))).load();
       });
       for (final source in [
         PlayerInputSource.controller,

@@ -356,7 +356,8 @@ Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
     extraCharacterIds: {
       ...additionalCharacterIds,
       if (catalog.projectMetadata.partyCompanion.enabled)
-        for (final visual in catalog.projectMetadata.partyCompanion.mappings) visual.characterId,
+        for (final visual in catalog.projectMetadata.partyCompanion.mappings)
+          visual.characterId,
     },
   );
   MapValidator.validate(map, projectDialogueContext: project);
@@ -365,6 +366,48 @@ Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
     throw MapLoadException('Map ${map.id} cannot be composed by this runtime.');
   }
   return (project: project, map: map);
+}
+
+Future<SpatialAtmosphereSettings> loadSpatialAtmosphereSettings({
+  required String projectRoot,
+  required String mapId,
+}) async {
+  final relativePath = SpatialAtmosphereDocument.relativePathForMap(mapId);
+  const reader = LocalProjectFileReader();
+  final root = await reader.canonicalizeDirectory(projectRoot);
+  final probe = await reader.probeResource(
+    projectRoot: root,
+    relativePath: relativePath,
+  );
+  if (probe.status == ProjectResourceProbeStatus.missing) {
+    return SpatialAtmosphereSettings();
+  }
+  try {
+    if (probe.status != ProjectResourceProbeStatus.exists ||
+        probe.identity!.byteLength > SpatialAtmosphereDocument.maxBytes) {
+      throw const FormatException(
+        'Atmosphere document is unsafe or exceeds its byte limit.',
+      );
+    }
+    final bytes = await reader.readBytes(
+      projectRoot: root,
+      relativePath: relativePath,
+    );
+    if (bytes.length > SpatialAtmosphereDocument.maxBytes) {
+      throw const FormatException(
+        'Atmosphere document exceeds its byte limit.',
+      );
+    }
+    final document = SpatialAtmosphereDocument.fromJson(
+      Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
+    );
+    if (document.mapId != mapId) {
+      throw const FormatException('Atmosphere map identity mismatch.');
+    }
+    return document.settings;
+  } on Object catch (error) {
+    throw MapLoadException('Failed to load map atmosphere: $error');
+  }
 }
 
 Future<RuntimeMapBundle> loadRuntimeMapBundle({
@@ -448,6 +491,10 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     map = loaded.map;
     manifest = loaded.project;
   }
+  final atmosphere = await loadSpatialAtmosphereSettings(
+    projectRoot: projectRoot,
+    mapId: map.id,
+  );
   mapWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.mapData);
   final assetCatalogWatch = Stopwatch()..start();
@@ -457,8 +504,11 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   assetCatalogWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.assetCatalog);
   final tilesetWatch = Stopwatch()..start();
-  final tilesetIds = collectAllRuntimeTilesetIds(map, manifest,
-      additionalCharacterIds: additionalCharacterIds);
+  final tilesetIds = collectAllRuntimeTilesetIds(
+    map,
+    manifest,
+    additionalCharacterIds: additionalCharacterIds,
+  );
   _runtimeLoaderLog('bundle tilesets collected ids=${tilesetIds.join(',')}');
   final paths = resolveTilesetAbsolutePaths(
     manifest: manifest,
@@ -495,6 +545,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     RuntimeMapBundle(
       manifest: manifest,
       map: map,
+      spatialAtmosphereSettings: atmosphere,
       projectRootDirectory: projectRoot,
       tilesetAbsolutePathsById: paths,
       characterAnimationAbsolutePathsByAssetId:

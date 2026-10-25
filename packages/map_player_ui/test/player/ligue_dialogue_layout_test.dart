@@ -136,7 +136,19 @@ void main() {
         if (mode.companion) {
           expect(rect.top, 16);
           expect(rect.height, 400);
-          expect(advance.width, greaterThan(rect.width * .8));
+          final counter = find.byKey(const ValueKey('dialogue-page-count'));
+          if (counter.evaluate().isEmpty) {
+            expect(advance.width, greaterThan(rect.width * .8));
+          } else {
+            final counterRect = tester.getRect(counter);
+            expect(counterRect.right + 8, closeTo(advance.left, .5));
+            expect(counterRect.width, lessThan(advance.width));
+            expect(advance.width, greaterThanOrEqualTo(48));
+            expect(
+              advance.right - counterRect.left,
+              greaterThan(rect.width * .8),
+            );
+          }
           final speaker = tester.getRect(find.text('Léa'));
           expect(
             (speaker.top + advance.bottom) / 2,

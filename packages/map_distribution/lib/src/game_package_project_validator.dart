@@ -104,6 +104,15 @@ final class GamePackageProjectValidator {
           );
         }
       }
+      final atmosphereMaps = {for (final entry in project.maps) 'project/${SpatialAtmosphereDocument.relativePathForMap(entry.id)}':entry.id};
+      for (final path in payloadPaths.where((path) => path.endsWith('.atmosphere.json'))) {
+        final mapId = atmosphereMaps[path];
+        if (mapId == null) _fail('Atmosphere sidecar must belong to an existing map.');
+        final bytes = readPayload(path);
+        if (bytes == null || bytes.length > SpatialAtmosphereDocument.maxBytes) _fail('Atmosphere sidecar is missing or exceeds its byte limit.');
+        final document = SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
+        if (document.mapId != mapId) _fail('Atmosphere map identity mismatch.');
+      }
       final spatial = project.settings.dimension == ProjectDimension.threeD;
       final gameplay = packageManifest.compatibility.requiredCapabilities
           .contains(SpatialGameplayCapabilities.capabilityId);

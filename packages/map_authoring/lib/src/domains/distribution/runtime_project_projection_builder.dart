@@ -601,7 +601,40 @@ final class RuntimeProjectProjectionBuilder {
       }
     }
 
+    final atmospherePaths = <String>{};
+    for (final entry in projectedProject.maps) {
+      final relative = SpatialAtmosphereDocument.relativePathForMap(entry.id);
+      final file = File(p.join(projectRoot.path, relative));
+      if (!await file.exists()) continue;
+      try {
+        if (await file.length() > SpatialAtmosphereDocument.maxBytes) {
+          throw const FormatException(
+              'Atmosphere document exceeds its byte limit.');
+        }
+        final bytes = await authorFiles.read(relative, budget, jsonLike: true);
+        if (bytes.length > SpatialAtmosphereDocument.maxBytes) {
+          throw const FormatException(
+              'Atmosphere document exceeds its byte limit.');
+        }
+        final document = SpatialAtmosphereDocument.fromJson(
+            _decodeJsonObject(bytes, relative));
+        if (document.mapId != entry.id) {
+          throw const FormatException('Atmosphere map identity mismatch.');
+        }
+        atmospherePaths.add(relative);
+        budget.addPayload(
+            payload, _normalizePackagePath('project/$relative'), bytes);
+      } on Object catch (error) {
+        throw GamePackageExportException(
+            code: 'atmosphere.invalid',
+            path: relative,
+            message: 'The map atmosphere is malformed or unsupported.',
+            cause: error);
+      }
+    }
+
     final jsonRoots = <String>{
+      ...atmospherePaths,
       'project.json',
       ...projectedProject.maps.map((entry) => entry.relativePath),
       ...compiledEntries.map((entry) => entry.relativePath),
@@ -869,9 +902,9 @@ final class RuntimeProjectProjectionBuilder {
           const RuntimeDialogueDocumentCodec()
               .decodeUtf8(payload['project/${entry.relativePath}']!)
       ]);
-      GamePackageSpatialProjectValidator(gameplay: gameplay)
-          .validate(projectedProject, (path) => payload[path],
-              payloadPaths: payload.keys);
+      GamePackageSpatialProjectValidator(gameplay: gameplay).validate(
+          projectedProject, (path) => payload[path],
+          payloadPaths: payload.keys);
     }
     await catalogReader?.read((_) async {});
     return RuntimeProjectProjection(

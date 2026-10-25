@@ -12,8 +12,11 @@ class RuntimeMapBundle {
     this.characterAnimationAbsolutePathsByAssetId = const <String, String>{},
     this.borderRuntimePreparation,
     this.projectCatalog,
+    SpatialAtmosphereSettings? spatialAtmosphereSettings,
     RuntimeResourceBudget? resourceBudget,
-  }) : resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
+  }) : spatialAtmosphereSettings =
+           spatialAtmosphereSettings ?? SpatialAtmosphereSettings(),
+       resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
        map = projectSpatialSmartTileModels(
          map: map,
          catalog: manifest.smartTileCatalog,
@@ -21,6 +24,7 @@ class RuntimeMapBundle {
          sourceCellHeight: manifest.settings.tileHeight,
        );
 
+  final SpatialAtmosphereSettings spatialAtmosphereSettings;
   final ProjectManifest manifest;
   final MapData map;
   final String projectRootDirectory;
@@ -38,6 +42,7 @@ class RuntimeMapBundle {
 
   RuntimeMapBundle copyWith({
     ProjectManifest? manifest,
+    SpatialAtmosphereSettings? spatialAtmosphereSettings,
     MapData? map,
     String? projectRootDirectory,
     Map<String, String>? tilesetAbsolutePathsById,
@@ -54,6 +59,11 @@ class RuntimeMapBundle {
         nextProjectRoot != this.projectRootDirectory;
     return RuntimeMapBundle(
       manifest: nextManifest,
+      spatialAtmosphereSettings:
+          spatialAtmosphereSettings ??
+          (nextMap.id == this.map.id
+              ? this.spatialAtmosphereSettings
+              : SpatialAtmosphereSettings()),
       map: nextMap,
       projectRootDirectory: nextProjectRoot,
       tilesetAbsolutePathsById:

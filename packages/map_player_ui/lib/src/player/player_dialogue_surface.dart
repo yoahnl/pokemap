@@ -800,6 +800,19 @@ class _DialogueTextPagesState extends State<_DialogueTextPages> {
       _count = ranges.length;
       _page = _page.clamp(0, _count - 1);
       final range = ranges[_page];
+      final companionFooter =
+          PlayerCompanionScope.of(context) &&
+          context.playerDialogueProfile == null &&
+          context.playerWindowTheme == null;
+      final pageCount = FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          '${_page + 1} / $_count',
+          key: const ValueKey('dialogue-page-count'),
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      );
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -853,17 +866,21 @@ class _DialogueTextPagesState extends State<_DialogueTextPages> {
                   : Row(
                       children: [
                         if (_count > 1)
-                          Flexible(
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                '${_page + 1} / $_count',
-                                key: const ValueKey('dialogue-page-count'),
-                                style: Theme.of(context).textTheme.labelSmall,
+                          if (companionFooter)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: math.max(
+                                    0,
+                                    constraints.maxWidth - 56,
+                                  ),
+                                ),
+                                child: pageCount,
                               ),
-                            ),
-                          ),
+                            )
+                          else
+                            Flexible(child: pageCount),
                         Expanded(
                           child: _DialogueAdvanceLabel(
                             data: data,

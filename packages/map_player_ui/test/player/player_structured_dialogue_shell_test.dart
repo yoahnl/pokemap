@@ -24,46 +24,38 @@ void main() {
     required SceneInteractionRequest request,
     required List<SceneInteractionResult> results,
     EdgeInsets viewInsets = EdgeInsets.zero,
-  }) =>
-      MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: PokeMapPlayerTheme.dark(reducedMotion: true),
-        home: MediaQuery(
-          data: MediaQueryData(
-            disableAnimations: true,
-            viewInsets: viewInsets,
+  }) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: PokeMapPlayerTheme.dark(reducedMotion: true),
+    home: MediaQuery(
+      data: MediaQueryData(disableAnimations: true, viewInsets: viewInsets),
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          const ColoredBox(color: Color(0xFF223344)),
+          PlayerSceneInteractionSurface(
+            request: request,
+            onResult: results.add,
           ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              const ColoredBox(color: Color(0xFF223344)),
-              PlayerSceneInteractionSurface(
-                request: request,
-                onResult: results.add,
-              ),
-            ],
-          ),
-        ),
-      );
+        ],
+      ),
+    ),
+  );
 
   SceneInteractionPrompt prompt(String text) => SceneInteractionPrompt(
-        localizationKey: 'test.prompt',
-        fallbackText: text,
-      );
+    localizationKey: 'test.prompt',
+    fallbackText: text,
+  );
 
-  testWidgets('every structured kind renders inside the dialogue shell',
-      (tester) async {
+  testWidgets('every structured kind renders inside the dialogue shell', (
+    tester,
+  ) async {
     final requests = <SceneInteractionRequest>[
       SceneInteractionRequest.choice(
         requestId: 'choice',
         revision: 1,
         prompt: prompt('Choisissez'),
-        options: [
-          SceneInteractionOption(
-            id: 'north',
-            label: prompt('Nord'),
-          ),
-        ],
+        options: [SceneInteractionOption(id: 'north', label: prompt('Nord'))],
       ),
       SceneInteractionRequest.text(
         requestId: 'text',
@@ -79,9 +71,7 @@ void main() {
         requestId: 'select',
         revision: 4,
         prompt: prompt('Composez'),
-        options: [
-          SceneInteractionOption(id: 'only', label: prompt('Seul')),
-        ],
+        options: [SceneInteractionOption(id: 'only', label: prompt('Seul'))],
         constraints: SceneSelectionConstraints(
           minSelections: 1,
           maxSelections: 1,
@@ -98,32 +88,43 @@ void main() {
       );
       expect(panel, findsOneWidget, reason: '${request.kind.name} panel');
       final surfaceSize = tester.getSize(find.byType(MaterialApp));
-      final panelBottom = tester.getBottomLeft(panel).dy;
-      expect(
-        tester.getSize(panel).height,
-        lessThan(surfaceSize.height * .6),
-        reason: 'a short interaction keeps the scene visible above its content',
-      );
-      expect(
-        panelBottom,
-        greaterThanOrEqualTo(surfaceSize.height - 80),
-        reason: '${request.kind.name} hugs the bottom edge, over the '
-            'maintained composition — never a centered modal',
-      );
+      final panelRect = tester.getRect(panel);
+      if (request is SceneTextInteractionRequest ||
+          request is SceneIntegerInteractionRequest ||
+          request is SceneSelectionInteractionRequest) {
+        expect(panelRect.size, surfaceSize);
+        expect(panelRect.topLeft, Offset.zero);
+      } else {
+        expect(
+          panelRect.height,
+          lessThan(surfaceSize.height * .6),
+          reason: 'a short modal keeps the scene visible around its content',
+        );
+        if (request is SceneConfirmationInteractionRequest) {
+          expect(panelRect.center.dy, closeTo(surfaceSize.height / 2, .5));
+        } else {
+          expect(
+            panelRect.bottom,
+            greaterThanOrEqualTo(surfaceSize.height - 80),
+          );
+        }
+      }
       expect(
         find.descendant(
           of: panel,
           matching: find.byType(PlayerSurfacePaletteScope),
         ),
         findsWidgets,
-        reason: '${request.kind.name} is themed through the dialogue surface '
+        reason:
+            '${request.kind.name} is themed through the dialogue surface '
             'role, like the message box',
       );
     }
   });
 
-  testWidgets('the virtual keyboard never hides the text field in 9:16',
-      (tester) async {
+  testWidgets('the virtual keyboard never hides the text field in 9:16', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(360, 780));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final results = <SceneInteractionResult>[];
@@ -146,13 +147,15 @@ void main() {
     expect(
       tester.getBottomLeft(field).dy,
       lessThanOrEqualTo(780 - 300),
-      reason: 'the shell lifts above the keyboard inset: the field stays '
+      reason:
+          'the shell lifts above the keyboard inset: the field stays '
           'visible while typing one-handed',
     );
   });
 
-  testWidgets('text input counts whole graphemes through the IME',
-      (tester) async {
+  testWidgets('text input counts whole graphemes through the IME', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
     await tester.pumpWidget(
       app(
@@ -188,8 +191,9 @@ void main() {
     );
   });
 
-  testWidgets('a double tap on a choice writes exactly one result',
-      (tester) async {
+  testWidgets('a double tap on a choice writes exactly one result', (
+    tester,
+  ) async {
     final results = <SceneInteractionResult>[];
     await tester.pumpWidget(
       app(
@@ -197,9 +201,7 @@ void main() {
           requestId: 'choice',
           revision: 1,
           prompt: prompt('Choisissez'),
-          options: [
-            SceneInteractionOption(id: 'north', label: prompt('Nord')),
-          ],
+          options: [SceneInteractionOption(id: 'north', label: prompt('Nord'))],
         ),
         results: results,
       ),
@@ -213,115 +215,116 @@ void main() {
     expect(
       results,
       hasLength(1),
-      reason: 'a stale or duplicated tap can never write twice — the draft '
+      reason:
+          'a stale or duplicated tap can never write twice — the draft '
           'is applied once by the coordinator, never by the widget',
     );
   });
 
   testWidgets(
-      'message, choice, message, text, confirmation flow deterministically',
-      (tester) async {
-    final results = <SceneInteractionResult>[];
-    final flow = <SceneInteractionRequest>[
-      SceneInteractionRequest.message(
-        requestId: 'intro',
-        revision: 1,
-        prompt: prompt('Bienvenue !'),
-      ),
-      SceneInteractionRequest.choice(
-        requestId: 'avatar',
-        revision: 2,
-        prompt: prompt('Votre avatar ?'),
-        options: [
-          SceneInteractionOption(id: 'hero', label: prompt('Héros')),
-        ],
-      ),
-      SceneInteractionRequest.message(
-        requestId: 'nice',
-        revision: 3,
-        prompt: prompt('Excellent choix !'),
-      ),
-      SceneInteractionRequest.text(
-        requestId: 'name',
-        revision: 4,
-        prompt: prompt('Votre nom ?'),
-      ),
-      SceneInteractionRequest.confirmation(
-        requestId: 'confirm',
-        revision: 5,
-        prompt: prompt('On garde ce nom ?'),
-      ),
-    ];
+    'message, choice, message, text, confirmation flow deterministically',
+    (tester) async {
+      final results = <SceneInteractionResult>[];
+      final flow = <SceneInteractionRequest>[
+        SceneInteractionRequest.message(
+          requestId: 'intro',
+          revision: 1,
+          prompt: prompt('Bienvenue !'),
+        ),
+        SceneInteractionRequest.choice(
+          requestId: 'avatar',
+          revision: 2,
+          prompt: prompt('Votre avatar ?'),
+          options: [SceneInteractionOption(id: 'hero', label: prompt('Héros'))],
+        ),
+        SceneInteractionRequest.message(
+          requestId: 'nice',
+          revision: 3,
+          prompt: prompt('Excellent choix !'),
+        ),
+        SceneInteractionRequest.text(
+          requestId: 'name',
+          revision: 4,
+          prompt: prompt('Votre nom ?'),
+        ),
+        SceneInteractionRequest.confirmation(
+          requestId: 'confirm',
+          revision: 5,
+          prompt: prompt('On garde ce nom ?'),
+        ),
+      ];
 
-    Future<void> pumpStep(int index) async {
-      await tester.pumpWidget(app(request: flow[index], results: results));
-      await tester.pumpAndSettle();
-    }
+      Future<void> pumpStep(int index) async {
+        await tester.pumpWidget(app(request: flow[index], results: results));
+        await tester.pumpAndSettle();
+      }
 
-    await pumpStep(0);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('dialogue-tap-zone')).first,
-    );
-    await tester.pump();
-    expect(results, hasLength(1));
+      await pumpStep(0);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('dialogue-tap-zone')).first,
+      );
+      await tester.pump();
+      expect(results, hasLength(1));
 
-    await pumpStep(1);
-    expect(
-      find.byKey(const ValueKey<String>('dialogue-tap-zone')),
-      findsNothing,
-      reason: 'the previous page left no residue',
-    );
-    await tester.tap(find.text('Héros'));
-    await tester.pump();
-    expect(results, hasLength(2));
+      await pumpStep(1);
+      expect(
+        find.byKey(const ValueKey<String>('dialogue-tap-zone')),
+        findsNothing,
+        reason: 'the previous page left no residue',
+      );
+      await tester.tap(find.text('Héros'));
+      await tester.pump();
+      expect(results, hasLength(2));
 
-    await pumpStep(2);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('dialogue-tap-zone')).first,
-    );
-    await tester.pump();
-    expect(results, hasLength(3));
+      await pumpStep(2);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('dialogue-tap-zone')).first,
+      );
+      await tester.pump();
+      expect(results, hasLength(3));
 
-    await pumpStep(3);
-    expect(
-      tester
-          .widget<TextField>(
-            find.byKey(
-              const ValueKey<String>('scene-interaction-text-field'),
-            ),
-          )
-          .controller!
-          .text,
-      isEmpty,
-      reason: 'the text field starts clean at its step',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('scene-interaction-text-field')),
-      'Zoé',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
-    expect(results, hasLength(4));
+      await pumpStep(3);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(
+                const ValueKey<String>('scene-interaction-text-field'),
+              ),
+            )
+            .controller!
+            .text,
+        isEmpty,
+        reason: 'the text field starts clean at its step',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('scene-interaction-text-field')),
+        'Zoé',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(results, hasLength(4));
 
-    await pumpStep(4);
-    await tester.tap(
-      find.byKey(const ValueKey<String>('scene-interaction-confirm-yes')),
-    );
-    await tester.pump();
-    expect(
-      results.map((result) => result.requestId),
-      <String>['intro', 'avatar', 'nice', 'name', 'confirm'],
-      reason: 'the canonical pre-session chain resolves in exact order',
-    );
-  });
+      await pumpStep(4);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('scene-interaction-confirm-yes')),
+      );
+      await tester.pump();
+      expect(results.map((result) => result.requestId), <String>[
+        'intro',
+        'avatar',
+        'nice',
+        'name',
+        'confirm',
+      ], reason: 'the canonical pre-session chain resolves in exact order');
+    },
+  );
 
   for (final (orientation, size) in <(String, Size)>[
     ('landscape', Size(960, 540)),
     ('portrait', Size(540, 960)),
   ]) {
     for (final kind in <String>['choice', 'text']) {
-      testWidgets('golden: $kind in the shell in $orientation',
-          (tester) async {
+      testWidgets('golden: $kind in the shell in $orientation', (tester) async {
         await tester.binding.setSurfaceSize(size);
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final request = kind == 'choice'
@@ -355,10 +358,7 @@ void main() {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: <Color>[
-                            Color(0xFF1B2A4A),
-                            Color(0xFF3A1B4A),
-                          ],
+                          colors: <Color>[Color(0xFF1B2A4A), Color(0xFF3A1B4A)],
                         ),
                       ),
                     ),
@@ -395,7 +395,7 @@ Future<void> _loadFixtureFont() async {
 }
 
 Future<void> _loadFont(String family, Uint8List bytes) async {
-  await (FontLoader(family)
-        ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes))))
-      .load();
+  await (FontLoader(
+    family,
+  )..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)))).load();
 }
