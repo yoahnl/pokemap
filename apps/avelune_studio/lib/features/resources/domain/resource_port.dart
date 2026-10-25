@@ -22,12 +22,14 @@ final class BorderModelSettings {
     this.animationLoop = true,
     this.animationSpeed = 1,
     this.blocksMovement = true,
+    this.cornerJoinCells = 0,
   });
 
   final int? animationIndex;
   final bool animationLoop;
   final double animationSpeed;
   final bool blocksMovement;
+  final int cornerJoinCells;
 
   @override
   bool operator ==(Object other) =>
@@ -35,7 +37,8 @@ final class BorderModelSettings {
       other.animationIndex == animationIndex &&
       other.animationLoop == animationLoop &&
       other.animationSpeed == animationSpeed &&
-      other.blocksMovement == blocksMovement;
+      other.blocksMovement == blocksMovement &&
+      other.cornerJoinCells == cornerJoinCells;
 
   @override
   int get hashCode => Object.hash(
@@ -43,6 +46,7 @@ final class BorderModelSettings {
     animationLoop,
     animationSpeed,
     blocksMovement,
+    cornerJoinCells,
   );
 }
 

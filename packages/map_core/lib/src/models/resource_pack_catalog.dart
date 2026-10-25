@@ -39,11 +39,7 @@ final class ResourcePackCatalog {
        models3d = List.unmodifiable(models3d),
        characters = List.unmodifiable(characters),
        environmentPresets = List.unmodifiable(environmentPresets),
-       borderCatalog =
-           borderCatalog ??
-           ProjectBorderCatalog(
-             formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
-           ),
+       borderCatalog = borderCatalog ?? const ProjectBorderCatalog.empty(),
        elementCategories = List.unmodifiable(elementCategories),
        tilesetFolders = List.unmodifiable(tilesetFolders),
        files = List.unmodifiable(files),
@@ -128,10 +124,6 @@ final class ResourcePackCatalog {
       }
     }
     final border = _object(json['borderCatalog'], 'borderCatalog');
-    if (border['formatVersion'] !=
-        ProjectBorderCatalog.latestSupportedFormatVersion) {
-      throw const FormatException('pack.catalog: unsupported Border catalog');
-    }
     final extras = _object(json['extras'], 'extras');
     if (extras.keys.any((key) => key != 'smartTilePatternIds')) {
       throw const FormatException('pack.extras: unknown field');
@@ -299,9 +291,7 @@ final class ResourcePackCatalog {
     )) {
       throw const FormatException('pack.catalog: unpublished Smart Tile');
     }
-    if (borderCatalog.formatVersion !=
-            ProjectBorderCatalog.latestSupportedFormatVersion ||
-        borderCatalog.records.any((r) => r.latestPublished == null)) {
+    if (borderCatalog.records.any((r) => r.latestPublished == null)) {
       throw const FormatException('pack.catalog: unpublished Border');
     }
     for (final entry in resourceLibraryCatalog.entries) {

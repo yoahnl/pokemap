@@ -3,16 +3,32 @@ import 'package:map_core/map_core_domain.dart';
 List<BorderPrimitiveDraft> borderSequenceModelPrimitives({
   String? straightModelId,
   String? capModelId,
+  String? cornerModelId,
+  String? innerCornerModelId,
+  bool directed = false,
 }) => [
-  for (final (role, modelId) in [
-    (BorderPrimitiveRole.lineStraight, straightModelId),
-    (BorderPrimitiveRole.lineCap, capModelId),
+  for (final (role, modelId, turn, id) in [
+    (BorderPrimitiveRole.lineStraight, straightModelId, null, 'lineStraight'),
+    (BorderPrimitiveRole.lineCap, capModelId, null, 'lineCap'),
+    (
+      BorderPrimitiveRole.lineCorner,
+      cornerModelId,
+      directed ? BorderCornerTurn.right : null,
+      'lineCorner',
+    ),
+    (
+      BorderPrimitiveRole.lineCorner,
+      innerCornerModelId,
+      BorderCornerTurn.left,
+      'lineCornerLeft',
+    ),
   ])
     if (modelId != null)
       BorderPrimitiveDraft(
-        id: role.name,
+        id: id,
         sourceModelId: modelId,
         role: role,
+        cornerTurn: turn,
         authoredOrientation: BorderPrimitiveOrientation.east,
         weight: 1000,
         transforms: BorderTransformPolicy(
@@ -41,6 +57,7 @@ List<BorderPrimitiveDraft> borderSequencePrimitives(
           authoredOrientation: p.authoredOrientation,
           sequenceIndex: step,
           cornerTurn: p.cornerTurn,
+          cornerJoinCells: p.cornerJoinCells,
           weight: p.weight,
           anchorWorld: p.anchorWorld,
           transforms: p.transforms,

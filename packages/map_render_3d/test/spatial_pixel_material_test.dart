@@ -12,6 +12,7 @@ import 'package:map_render_3d/src/spatial_actor_contact_shadow.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_shadow_profile.dart';
+import 'package:map_render_3d/src/spatial_shadow_coverage.dart';
 import 'package:map_render_3d/src/spatial_point_light.dart';
 import 'package:map_render_3d/src/spatial_point_shadow.dart';
 import 'package:map_core/map_core.dart';
@@ -32,6 +33,31 @@ void main() {
     material.fragmentShader.resource;
   });
 
+  test('solar coverage uploads all 64 cells without changing the filter', () {
+    final ground = SpatialPixelMaterial(
+      material.albedoTexture,
+      lightingRole: SpatialPixelLightingRole.ground,
+    );
+    ground.vertexShader.resource;
+    ground.fragmentShader.resource;
+    final profile = SpatialShadowProfile(
+      casterInstanceIds: {'block'},
+      filterRadius: 2.5,
+    );
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(shadow: profile)
+      ..shadowFrame = SpatialShadowFrame(
+        material.albedoTexture,
+        Matrix4.identity(),
+        profile,
+        coverage: (a: 1, b: 2, c: 32768, d: 65535),
+      );
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']!.sublist(32), [1, 2, 32768, 65535]);
+    expect(device.uniforms['Shadow']![22], 2.5);
+  });
+
   test('an offscreen solar caster keeps casting into visible ground', () {
     final wall = _OffscreenPointCaster(material);
     final spatial = SpatialRenderContext(device)
@@ -42,6 +68,7 @@ void main() {
     spatial.flush();
     expect(spatial.shadowStats.casterDrawCount, 1);
     expect(spatial.shadowStats.targetAllocations, 1);
+    expect(spatial.shadowFrame!.coverage, isNot(spatialFullShadowCoverage));
     spatial.flush();
     expect(spatial.shadowStats.casterDrawCount, 1);
     expect(spatial.shadowStats.targetAllocations, 1);
@@ -289,7 +316,37 @@ void main() {
     },
   );
 
-  test('an offscreen opted-in masked caster produces six point depth draws and OFF ON reuses its atlas', () {
+  test('a point caster only draws into the cube faces it intersects', () {
+    final spatial = SpatialRenderContext(device)
+      ..shadowCasters = [_OffscreenPointCaster(material)]
+      ..lighting = SpatialLightingProfile.stylized(
+        pointLights: [
+          SpatialPointLight(position: (x: -10, y: 1, z: -1), radius: 20),
+        ],
+        pointShadowCasterInstanceIds: {'town:wall'},
+      );
+    spatial.flush();
+    expect(spatial.shadowStats.pointCasterDrawCount, 1);
+    expect(backend.pointPasses, 1);
+    expect(spatial.pointShadowFrame!.lightCount, 1);
+    expect(backend.pointMaterialSnapshots, hasLength(1));
+  });
+
+  test('joint deformation keeps conservative point shadow coverage', () {
+    final spatial = SpatialRenderContext(device)
+      ..shadowCasters = [_OffscreenPointCaster(material)]
+      ..lighting = SpatialLightingProfile.stylized(
+        pointLights: [
+          SpatialPointLight(position: (x: -10, y: 1, z: -1), radius: 20),
+        ],
+        pointShadowCasterInstanceIds: {'town:wall'},
+      );
+    spatial.jointsInfo.jointTransforms = [Matrix4.translationValues(-12, 0, 0)];
+    spatial.flush();
+    expect(spatial.shadowStats.pointCasterDrawCount, 6);
+  });
+
+  test('an offscreen opted-in masked caster produces point depth draws and OFF ON reuses its atlas', () {
     final mask = SpatialPixelMaterial(
       material.albedoTexture,
       alphaMode: Model3dAlphaMode.mask,
@@ -310,12 +367,12 @@ void main() {
       pointShadowCasterInstanceIds: {'town:wall'},
     );
     spatial.flush();
-    expect(spatial.shadowStats.pointCasterDrawCount, 6);
+    expect(spatial.shadowStats.pointCasterDrawCount, 5);
     expect(spatial.shadowStats.pointTargetAllocations, 1);
     expect(spatial.shadowStats.pointShadowLightCount, 1);
     expect(backend.pointPasses, 1);
     expect(backend.pointFrameEnds, 0);
-    expect(backend.pointMaterialSnapshots, hasLength(6));
+    expect(backend.pointMaterialSnapshots, hasLength(5));
     for (final snapshot in backend.pointMaterialSnapshots) {
       expect(snapshot[20], 2);
       expect(snapshot[21], .5);
@@ -329,7 +386,7 @@ void main() {
     expect(backend.pointPasses, 1);
     spatial.pointLightShadowsEnabled = true;
     spatial.flush();
-    expect(spatial.shadowStats.pointCasterDrawCount, 6);
+    expect(spatial.shadowStats.pointCasterDrawCount, 5);
     expect(spatial.shadowStats.pointTargetAllocations, 1);
     expect(backend.pointPasses, 2);
     expect(spatial.sourceShadowId, isNull);
@@ -500,16 +557,16 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 15);
+    expect(shader.pixelWrites, 16);
 
     for (var frame = 0; frame < 120; frame++) {
       material.apply(context);
     }
 
-    expect(shader.pixelWrites, 15);
+    expect(shader.pixelWrites, 16);
     material.uvRect.x = .25;
     material.apply(context);
-    expect(shader.pixelWrites, 22);
+    expect(shader.pixelWrites, 23);
     material.fragmentShader.bind(device);
     expect(device.uniforms['Material']!.sublist(4, 8), [.25, 0, 1, 1]);
   });
@@ -583,9 +640,9 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 15);
+    expect(shader.pixelWrites, 16);
     material.apply(context);
-    expect(shader.pixelWrites, 15);
+    expect(shader.pixelWrites, 16);
   });
 
   test('skeletal surfaces retain their actual joint transforms', () {
@@ -721,12 +778,12 @@ void main() {
       final litContext = SpatialRenderContext(device)
         ..lighting = SpatialLightingProfile.stylized(sunStrength: .2);
       material.apply(litContext);
-      expect(shader.pixelWrites, 15);
+      expect(shader.pixelWrites, 16);
       material.apply(litContext);
-      expect(shader.pixelWrites, 15);
+      expect(shader.pixelWrites, 16);
       litContext.lighting = SpatialLightingProfile.stylized(sunStrength: .5);
       material.apply(litContext);
-      expect(shader.pixelWrites, 19);
+      expect(shader.pixelWrites, 20);
       material.fragmentShader.bind(device);
       expect(device.uniforms['Material']![28], closeTo(.5, 1e-6));
     },
@@ -986,12 +1043,13 @@ final class _Shader implements GpuShader {
       'lightingDirection': 128,
       'lightingOptions': 144,
     }),
-    'Shadow' => _UniformSlot(slot, 128, {
+    'Shadow' => _UniformSlot(slot, 144, {
       'worldToLight': 0,
       'options': 64,
       'receiverHeight': 80,
       'samplePosition': 96,
       'origin': 112,
+      'coverage': 128,
     }),
     'Environment' => _UniformSlot(slot, 176, {
       'tint': 0,

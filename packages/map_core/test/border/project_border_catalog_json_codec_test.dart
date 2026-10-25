@@ -119,7 +119,7 @@ void main() {
       }
     });
 
-    test('accepts V1 through V12 and rejects unsupported strict versions', () {
+    test('accepts V1 through V13 and rejects unsupported strict versions', () {
       for (final formatVersion in <int>[
         1,
         2,
@@ -133,6 +133,7 @@ void main() {
         10,
         11,
         12,
+        13,
       ]) {
         final encoded = _emptyJson()..['formatVersion'] = formatVersion;
         final decoded = decodeProjectBorderCatalogJson(encoded);
@@ -141,7 +142,7 @@ void main() {
         expect(encodeProjectBorderCatalogJson(decoded), encoded);
       }
 
-      for (final invalidVersion in <Object?>[null, true, 1.0, '1', 0, 13]) {
+      for (final invalidVersion in <Object?>[null, true, 1.0, '1', 0, 14]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(
           () => decodeProjectBorderCatalogJson(invalid),

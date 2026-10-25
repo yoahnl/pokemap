@@ -71,17 +71,19 @@ final class SpatialDepthOfField {
     final dimensions = (size.width.toInt(), size.height.toInt());
     if (dimensions.$1 <= 0 || dimensions.$2 <= 0) return;
     if (_size != dimensions) {
-      _size = dimensions;
-      _depthTarget = backend.createRenderTarget(
+      final depthTarget = backend.createRenderTarget(
         width: dimensions.$1,
         height: dimensions.$2,
         clearValue: const Color(0xffffffff),
       );
-      _outputTarget = backend.createRenderTarget(
+      final outputTarget = backend.createRenderTarget(
         width: dimensions.$1,
         height: dimensions.$2,
         clearValue: const Color(0x00000000),
       );
+      _depthTarget = depthTarget;
+      _outputTarget = outputTarget;
+      _size = dimensions;
       targetAllocations += 2;
     }
     _depthScale = math.max(100, focusDepth + profile.focusRange * 8);
@@ -90,9 +92,9 @@ final class SpatialDepthOfField {
     try {
       draw(
         context,
-        (source) =>
-            (_materials[source] ??= _DepthMaterial(source))
-              ..depthScale = _depthScale,
+        (source) => (_materials[source] ??= _DepthMaterial(source))
+          ..depthScale = _depthScale
+          ..cullMode = source.cullMode,
       );
     } finally {
       _depthDevice.endDepth();
@@ -104,16 +106,19 @@ final class SpatialDepthOfField {
     if (!profile.active || _depthTarget == null) return color.colorTexture;
     if (_pipeline == null) {
       final library = backend.loadShaderLibrary(_bundle);
-      _fragment = library['DepthOfFieldFragment'];
-      _pipeline = backend.createPipeline(
+      final fragment = library['DepthOfFieldFragment'];
+      final pipeline = backend.createPipeline(
         vertexShader: library['DepthOfFieldVertex'],
-        fragmentShader: _fragment!,
+        fragmentShader: fragment,
       );
       final vertices = Float32List.fromList([-1, -1, 3, -1, -1, 3]);
-      _vertices = backend.createBuffer(
+      final buffer = backend.createBuffer(
         storageMode: GpuStorageMode.hostVisible,
         sizeInBytes: vertices.lengthInBytes,
       )..write(vertices.buffer.asByteData());
+      _fragment = fragment;
+      _pipeline = pipeline;
+      _vertices = buffer;
     }
     _uniforms
       ..[0] = focusDepth

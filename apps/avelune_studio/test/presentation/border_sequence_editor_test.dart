@@ -9,6 +9,7 @@ import 'package:avelune_studio/presentation/features/resources/border_pattern_pa
 import 'package:avelune_studio/presentation/features/resources/border_source_panel.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -19,102 +20,155 @@ import '../support/map_workspace_fixture.dart';
 import '../support/spatial_border_fixture.dart';
 
 void main() {
-  testWidgets(
-    'a new straight border sends all six configured steps from the guided editor',
-    (tester) async {
-      tester.view.physicalSize = const Size(1600, 1200);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final project = spatialBorderVariantProject();
-      final workspace = MapWorkspaceController(
-        workspaceSession,
-        WorkspaceMemoryPort(),
-      )..project = project;
-      final port = _SequencePort();
-      final navigation = ResourceNavigation(
-        workspace: workspace,
-        port: port,
-        visuals: WorkspaceTestVisuals(),
-        onUse: (_) {},
-      );
-      addTearDown(navigation.dispose);
-      addTearDown(workspace.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: BorderCreationDialog(
-            navigation: navigation,
-            project: project,
-            visuals: WorkspaceTestVisuals(),
+  for (final straightOnly in [true, false]) {
+    testWidgets(
+      'a new border sends all six configured steps from the guided editor (straight: $straightOnly)',
+      (tester) async {
+        tester.view.physicalSize = const Size(1600, 1200);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final project = spatialBorderVariantProject();
+        final workspace = MapWorkspaceController(
+          workspaceSession,
+          WorkspaceMemoryPort(),
+        )..project = project;
+        final port = _SequencePort();
+        final navigation = ResourceNavigation(
+          workspace: workspace,
+          port: port,
+          visuals: WorkspaceTestVisuals(),
+          onUse: (_) {},
+        );
+        addTearDown(navigation.dispose);
+        addTearDown(workspace.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: studioTheme(),
+            home: BorderCreationDialog(
+              navigation: navigation,
+              project: project,
+              visuals: WorkspaceTestVisuals(),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('border-name')),
-        'Motif créé',
-      );
-      tester
-          .widget<StudioToggleRow>(
-            find.byKey(const ValueKey('border-straight-only')),
-          )
-          .onChanged!(true);
-      await tester.pumpAndSettle();
-      final model = resourceCatalog(project)
-          .firstWhere((item) => item.id == 'oak' && item.model3d != null);
-      tester
-          .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
-          .onAssign('lineStraight', model);
-      tester
-          .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
-          .onAssign('lineCap', model);
-      await tester.pumpAndSettle();
-      expect(
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('border-name')),
+          'Motif créé',
+        );
         tester
-            .widget<StudioCommitField>(
-              find.byKey(const ValueKey('border-sequence-length')),
+            .widget<StudioToggleRow>(
+              find.byKey(const ValueKey('border-straight-only')),
             )
-            .tryCommit!('6'),
-        isTrue,
-      );
-      await tester.pumpAndSettle();
-      tester
-          .widget<BorderSourcePanel>(find.byType(BorderSourcePanel))
-          .onActive(
-            resourceCatalog(project).firstWhere(
-              (item) => item.id == 'replacement' && item.model3d != null,
-            ),
+            .onChanged!(straightOnly);
+        if (!straightOnly) {
+          tester
+              .widget<StudioToggleRow>(
+                find.byKey(const ValueKey('border-contour-direction')),
+              )
+              .onChanged!(true);
+        }
+        await tester.pumpAndSettle();
+        final model = resourceCatalog(project)
+            .firstWhere((item) => item.id == 'oak' && item.model3d != null);
+        tester
+            .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
+            .onAssign('lineStraight', model);
+        tester
+            .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
+            .onAssign('lineCap', model);
+        if (!straightOnly) {
+          tester
+              .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
+              .onAssign('lineCorner', model);
+          tester
+              .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
+              .onAssign('lineCornerLeft', model);
+        }
+        await tester.pumpAndSettle();
+        if (!straightOnly) {
+          tester
+              .widget<StudioSelect>(
+                find.byKey(const ValueKey('border-settings-piece')),
+              )
+              .onChanged!('lineCornerLeft');
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<StudioCommitField>(
+                  find.byKey(const ValueKey('border-settings-corner-join')),
+                )
+                .tryCommit!('1'),
+            isTrue,
           );
-      await tester.pumpAndSettle();
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('border-sequence-model-lineStraight')),
-          )
-          .onPressed!();
-      await tester.pumpAndSettle();
-      tester
-          .widget<StudioButton>(
-            find.byKey(
-              const ValueKey('border-sequence-model-lineStraight_step_5'),
-            ),
-          )
-          .onPressed!();
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('border-publish')));
-      await tester.pumpAndSettle();
-      expect(port.request!.sequenceLength, 6);
-      expect(port.request!.straightModelId, 'oak');
-      expect(port.request!.capModelId, 'oak');
-      expect(port.request!.primitiveModelIds['lineStraight'], 'replacement');
-      expect(
-        port.request!.primitiveModelIds['lineStraight_step_5'],
-        'replacement',
-      );
-      expect(port.request!.publish, isTrue);
-      expect(tester.takeException(), isNull);
-    },
-  );
+          await tester.pumpAndSettle();
+        }
+        expect(
+          tester
+              .widget<StudioCommitField>(
+                find.byKey(const ValueKey('border-sequence-length')),
+              )
+              .tryCommit!('6'),
+          isTrue,
+        );
+        await tester.pumpAndSettle();
+        tester
+            .widget<BorderSourcePanel>(find.byType(BorderSourcePanel))
+            .onActive(
+              resourceCatalog(project).firstWhere(
+                (item) => item.id == 'replacement' && item.model3d != null,
+              ),
+            );
+        await tester.pumpAndSettle();
+        tester
+            .widget<StudioButton>(
+              find.byKey(const ValueKey('border-sequence-model-lineStraight')),
+            )
+            .onPressed!();
+        await tester.pumpAndSettle();
+        tester
+            .widget<StudioButton>(
+              find.byKey(
+                const ValueKey('border-sequence-model-lineStraight_step_5'),
+              ),
+            )
+            .onPressed!();
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('border-publish')));
+        await tester.pumpAndSettle();
+        expect(port.request!.sequenceLength, 6);
+        expect(port.request!.straightModelId, 'oak');
+        expect(port.request!.capModelId, 'oak');
+        expect(port.request!.straightOnly, straightOnly);
+        if (!straightOnly) {
+          expect(port.request!.cornerModelId, 'oak');
+          expect(port.request!.innerCornerModelId, 'oak');
+          expect(
+            port
+                .request!
+                .primitiveModelSettings['lineCornerLeft']!
+                .cornerJoinCells,
+            1,
+          );
+          expect(
+            port
+                .request!
+                .primitiveModelSettings['lineCornerLeft_step_5']!
+                .cornerJoinCells,
+            1,
+          );
+        }
+        expect(port.request!.primitiveModelIds['lineStraight'], 'replacement');
+        expect(
+          port.request!.primitiveModelIds['lineStraight_step_5'],
+          'replacement',
+        );
+        expect(port.request!.publish, isTrue);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   for (final incomplete in [false, true]) {
     testWidgets(

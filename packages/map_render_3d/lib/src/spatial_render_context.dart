@@ -10,6 +10,7 @@ import 'spatial_pixel_material.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_shadow_map.dart';
+import 'spatial_shadow_coverage.dart';
 import 'spatial_point_shadow.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
@@ -43,6 +44,7 @@ class SpatialRenderContext extends RenderContext3D
   bool pointLightShadowsEnabled = true;
   bool shadowAntialiasingEnabled = true;
   bool preferMultisampledShadows = true;
+  bool shadowCoverageEnabled = true;
   @override
   SpatialPresentationProfile presentationProfile =
       SpatialPresentationProfile.disabled;
@@ -63,6 +65,8 @@ class SpatialRenderContext extends RenderContext3D
   bool _capturingShadowCasters = false;
 
   final _transparent = <_TransparentSurface>[];
+  final _unlitDepth = <_TransparentSurface>[];
+  final _depthProxies = Expando<SpatialPixelMaterial>();
 
   @override
   void applyMaterial(Material material) {
@@ -73,6 +77,20 @@ class SpatialRenderContext extends RenderContext3D
   @override
   void drawSurface(Surface surface) {
     final material = surface.material;
+    if (_collecting &&
+        material is UnlitMaterial &&
+        material is! SpatialPixelMaterial &&
+        depthOfField?.profile.active == true) {
+      final proxy = _depthProxies[material] ??= SpatialPixelMaterial(
+        material.albedoTexture,
+        preserveUnlitColor: true,
+      );
+      proxy
+        ..albedoTexture = material.albedoTexture
+        ..albedoColor = material.albedoColor
+        ..cullMode = material.cullMode;
+      _unlitDepth.add(_snapshot(surface, proxy, _unlitDepth.length));
+    }
     if (material is SpatialPixelMaterial) {
       if (lighting.hiddenMaterialsByInstance[sourceInstanceId]?.contains(
             material.sourceMaterialName,
@@ -136,22 +154,26 @@ class SpatialRenderContext extends RenderContext3D
     try {
       final focus = depthOfField;
       final focusDevice = device;
-      final focusActive = focus?.profile.active == true &&
+      final focusActive =
+          focus?.profile.active == true &&
           focusDevice is FlutterFrameGraphicsDevice;
       _collecting = shadow != null || hasPointShadows || focusActive;
       super.flush();
       _collecting = false;
       if (focusActive) {
         focus!.renderDepth(
-          size: (focusDevice as FlutterFrameGraphicsDevice).renderSize,
-          view: view, projection: projection,
+          size: focusDevice.renderSize,
+          view: view,
+          projection: projection,
           draw: (depthContext, materialFor) {
-            for (final entry in _captured) {
+            for (final entry in [..._captured, ..._unlitDepth]) {
               _withPose(entry, () {
                 depthContext.model.setFrom(entry.model);
                 depthContext.jointsInfo.jointTransforms = entry.joints;
                 depthContext.device.clearBindings();
-                depthContext.applyMaterial(materialFor(entry.material));
+                depthContext.applyMaterial(
+                  materialFor(entry.material)..cullMode = entry.pose.cullMode,
+                );
                 depthContext.device.bindGeometry(entry.surface);
               });
             }
@@ -178,6 +200,12 @@ class SpatialRenderContext extends RenderContext3D
       var casterDrawCount = 0;
       var pointCasterDrawCount = 0;
       if (shadow != null) {
+        final coverage = shadowCoverageEnabled
+            ? SpatialShadowCoverage(
+                resolution: shadow.resolution,
+                filterRadius: shadow.filterRadius,
+              )
+            : null;
         final worldToLight = spatialShadowProjection(
           shadow,
           lighting.sunDirection,
@@ -201,6 +229,11 @@ class SpatialRenderContext extends RenderContext3D
                     entry.worldBounds,
                   ))
                 continue;
+              if (entry.joints.isEmpty) {
+                coverage?.add(worldToLight, entry.worldBounds);
+              } else {
+                coverage?.fill();
+              }
               _withPose(entry, () {
                 context.model.setFrom(entry.model);
                 context.jointsInfo.jointTransforms = entry.joints;
@@ -215,6 +248,7 @@ class SpatialRenderContext extends RenderContext3D
           },
           antialiasing: shadowAntialiasingEnabled,
           preferMultisampling: preferMultisampledShadows,
+          coverage: coverage,
         );
       }
       if (hasPointShadows) {
@@ -244,8 +278,14 @@ class SpatialRenderContext extends RenderContext3D
           pointShadowFrame = map.renderPointLights(
             lighting.pointLights,
             (context, depthMaterial, light) {
+              final worldToClip = context.projection * context.view;
               for (final entry in candidates) {
-                if (!spatialPointShadowIntersects(light, entry.worldBounds))
+                if (!spatialPointShadowIntersects(light, entry.worldBounds) ||
+                    entry.joints.isEmpty &&
+                        !spatialPointShadowIntersectsFace(
+                          worldToClip,
+                          entry.worldBounds,
+                        ))
                   continue;
                 _withPose(entry, () {
                   context.model.setFrom(entry.model);
@@ -327,6 +367,7 @@ class SpatialRenderContext extends RenderContext3D
       _captured.clear();
       _casterSurfaces.clear();
       _transparent.clear();
+      _unlitDepth.clear();
     }
   }
 

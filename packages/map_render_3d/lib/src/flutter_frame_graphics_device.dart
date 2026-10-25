@@ -12,6 +12,28 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
   GpuRenderTarget? currentRenderTarget;
   Size renderSize = Size.zero;
   Image Function(GpuRenderTarget, Size)? postProcess;
+  bool _frameOpen = false;
+
+  @override
+  void begin() {
+    super.begin();
+    _frameOpen = true;
+  }
+
+  @override
+  void end() {
+    if (!_frameOpen) return;
+    _frameOpen = false;
+    super.end();
+  }
+
+  void guardFrame(VoidCallback render) {
+    try {
+      render();
+    } finally {
+      end();
+    }
+  }
 
   @override
   void beginPass(Size size) {
@@ -49,9 +71,11 @@ final class _FlutterFrameBackend extends GpuBackend {
   GpuRenderTarget? currentRenderTarget;
 
   @override
-  GpuFrame beginFrame() =>
-      _frame ??= _FlutterFrame(delegate.beginFrame(), () => _frame = null,
-          (target) => currentRenderTarget = target);
+  GpuFrame beginFrame() => _frame ??= _FlutterFrame(
+    delegate.beginFrame(),
+    () => _frame = null,
+    (target) => currentRenderTarget = target,
+  );
 
   @override
   GpuTexture createTexture({
@@ -113,8 +137,11 @@ class _FlutterFrame implements GpuFrame {
     required DepthStencilState depthStencil,
   }) {
     onTarget(target);
-    return delegate.beginRenderPass(target,
-      blend: blend, depthStencil: depthStencil);
+    return delegate.beginRenderPass(
+      target,
+      blend: blend,
+      depthStencil: depthStencil,
+    );
   }
 
   @override

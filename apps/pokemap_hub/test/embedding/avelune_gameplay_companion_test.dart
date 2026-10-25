@@ -647,8 +647,10 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
 
-  testWidgets('companion transition is an empty black surface and recovers', (tester) async {
-    await _mountMenu(tester);
+  testWidgets('companion retains disabled menus during transitions and restores input', (tester) async {
+    final calls = await _mountMenu(tester);
+    final view = find.byType(PokeMapPlayerSessionView);
+    final original = tester.state(view);
     const channel = MethodChannel('com.avelune.runtime/companion');
     final state = AveluneGameplayCompanionSnapshot(
       sessionId: 'session-grid', revision: 20, companionAttached: true,
@@ -658,6 +660,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.byType(PlayerEmptyState), findsNothing);
+    expect(view, findsOneWidget);
+    expect(tester.state(view), same(original));
+    expect(tester.widget<PokeMapPlayerSessionView>(view).controllerInputEnabled, isFalse);
+    expect(tester.widget<AbsorbPointer>(find.ancestor(of: view, matching: find.byType(AbsorbPointer)).first).absorbing, isTrue);
+    await tester.tap(find.byKey(const ValueKey('pause.bag')), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(calls, isEmpty);
     expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, Colors.black);
     await _nativeCall(channel, 'stateChanged', {
       ...state.toPayload(), 'revision': 21, 'mode': 'waiting',
@@ -672,7 +681,32 @@ void main() {
     });
     await tester.pumpAndSettle();
     expect(find.byType(PokeMapPlayerSessionView), findsOneWidget);
+    expect(tester.state(view), same(original));
+    expect(tester.widget<PokeMapPlayerSessionView>(view).controllerInputEnabled, isTrue);
     expect(find.byType(ErrorWidget), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
+
+  testWidgets('primary dialogue keeps the existing menu visible and disabled', (tester) async {
+    final calls = await _mountMenu(tester);
+    final view = find.byType(PokeMapPlayerSessionView);
+    final original = tester.state(view);
+    const channel = MethodChannel('com.avelune.runtime/companion');
+    for (final revision in [20, 21]) {
+      await _nativeCall(channel, 'stateChanged', AveluneGameplayCompanionSnapshot(
+        sessionId: 'session-grid', revision: revision, companionAttached: true,
+        mode: AveluneGameplayCompanionMode.menu,
+        player: RuntimePlayerSnapshot(revision: revision, phase: RuntimePlayerPhase.playing, gameTitle: 'Avelune test'),
+        dialogue: _narrative(revision: revision),
+      ).toPayload());
+      await tester.pumpAndSettle();
+      expect(tester.state(view), same(original));
+      expect(find.byKey(const ValueKey('pause.bag')), findsOneWidget);
+      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsNothing);
+      expect(tester.widget<PokeMapPlayerSessionView>(view).controllerInputEnabled, isFalse);
+    }
+    expect(calls, isEmpty);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));

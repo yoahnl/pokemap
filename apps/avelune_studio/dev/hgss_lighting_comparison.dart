@@ -18,6 +18,7 @@ import 'atmosphere_comparison_support.dart';
 import 'presentation_comparison_controls.dart';
 import 'save_disk_trace.dart';
 import 'marionette_main.dart' show applyStudioCaptureLifecycle;
+import '../test/support/studio_depth_of_field_probe.dart';
 
 String comparisonPlanRelativePath(String filename) => switch (filename) {
   'comparison-plan.json' ||
@@ -27,6 +28,7 @@ String comparisonPlanRelativePath(String filename) => switch (filename) {
   'comparison-day-night-plan.json' => 'evidence/day-night/$filename',
   'comparison-atmosphere-plan.json' => 'evidence/atmosphere/$filename',
   'comparison-presentation-plan.json' => 'evidence/presentation/$filename',
+  'comparison-depth-of-field-plan.json' => 'evidence/depth-of-field/$filename',
   'comparison-lamp-shadows-plan.json' => 'evidence/lamp-shadows/$filename',
   _ => throw StateError('Unsupported comparison plan.'),
 };
@@ -62,11 +64,13 @@ Future<Map<String, dynamic>> loadComparisonPlan(
     'comparison-day-night-plan.json' => 'dayNightTest',
     'comparison-atmosphere-plan.json' => 'atmosphereTest',
     'comparison-presentation-plan.json' => 'presentationTest',
+    'comparison-depth-of-field-plan.json' => 'depthOfFieldTest',
     'comparison-lamp-shadows-plan.json' => 'pointLightShadowTest',
     'comparison-contact-shadows-plan.json' => 'actorContactShadowTest',
     _ => null,
   };
   final modes = [
+    'depthOfFieldTest',
     'presentationTest',
     'atmosphereTest',
     'dayNightTest',
@@ -78,7 +82,8 @@ Future<Map<String, dynamic>> loadComparisonPlan(
       (mode != null && plan.containsKey('shadowCasterInstanceIds'))) {
     throw StateError('Comparison plan mixes rendering modes.');
   }
-  if ((plan['presentationTest'] == true ||
+  if ((plan['depthOfFieldTest'] == true ||
+          plan['presentationTest'] == true ||
           plan['atmosphereTest'] == true ||
           plan['pointLightShadowTest'] == true ||
           plan['dayNightTest'] == true ||
@@ -111,6 +116,7 @@ double comparisonMinuteOfDay({
 
 void setComparisonLightingPhase({
   required bool dayNightTest,
+  bool depthOfFieldTest = false,
   bool atmosphereTest = false,
   bool pointLightShadowTest = false,
   bool actorContactShadowTest = false,
@@ -123,7 +129,9 @@ void setComparisonLightingPhase({
   required SpatialLightingProfile beforeProfile,
   required SpatialLightingProfile afterProfile,
 }) {
-  if (atmosphereTest) {
+  if (depthOfFieldTest) {
+    camera.depthOfFieldEnabled = after;
+  } else if (atmosphereTest) {
     camera.previewMinuteOfDay = probeOnly
         ? 1320
         : 720 + frameIndex / (frameCount - 1) * 600;
@@ -153,6 +161,7 @@ void setComparisonLightingPhase({
 
 Widget comparisonLightingSurface({
   required bool dayNightTest,
+  bool depthOfFieldTest = false,
   bool presentationTest = false,
   bool atmosphereTest = false,
   bool pointLightShadowTest = false,
@@ -160,7 +169,8 @@ Widget comparisonLightingSurface({
   required ValueNotifier<SpatialLightingProfile> lighting,
   required Widget child,
 }) =>
-    presentationTest ||
+    depthOfFieldTest ||
+        presentationTest ||
         atmosphereTest ||
         dayNightTest ||
         pointLightShadowTest ||
@@ -237,6 +247,15 @@ Future<void> main() async {
     characterId: bundle.manifest.settings.defaultPlayerCharacterId,
   );
   final comparison = LightingComparison(root, plan, session);
+  if (comparison.depthOfFieldTest) {
+    comparison.camera.applyAtmosphereSettings(bundle.spatialAtmosphereSettings);
+    comparison.camera.previewMinuteOfDay = (plan['previewMinuteOfDay'] as num)
+        .toDouble();
+    comparison.camera.depthOfFieldProfile = SpatialDepthOfFieldProfile(
+      strength: (plan['depthOfFieldStrength'] as num).toDouble(),
+      focusRange: (plan['depthOfFieldFocusRange'] as num).toDouble(),
+    );
+  }
   if (comparison.presentationTest) {
     comparison.camera.applyAtmosphereSettings(bundle.spatialAtmosphereSettings);
     final raw = plan['presentationProfile'] as Map<String, dynamic>;
@@ -345,6 +364,9 @@ final class LightingComparison {
   final captureKey = GlobalKey();
   final idleClock = Stopwatch()..start();
   int modelLoads = 0, groundImageLoads = 0, readyCalls = 0;
+  ({int generation, Map<String, Object?> state})? get renderFrame =>
+      readDepthOfFieldFrame(captureKey);
+
   Map<String, int> get loadCounters => {
     'modelLoads': modelLoads,
     'groundImageLoads': groundImageLoads,
@@ -354,6 +376,7 @@ final class LightingComparison {
       ? session.presentationSeconds
       : idleClock.elapsedMicroseconds / 1000000;
   late final bool atmosphereTest = plan['atmosphereTest'] == true;
+  late final bool depthOfFieldTest = plan['depthOfFieldTest'] == true;
   late final bool presentationTest = plan['presentationTest'] == true;
   late final bool dayNightTest = plan['dayNightTest'] == true;
   late final bool pointLightShadowTest = plan['pointLightShadowTest'] == true;
@@ -361,6 +384,7 @@ final class LightingComparison {
       plan['actorContactShadowTest'] == true;
   bool contactShadowsAfter = false;
   bool get usesAuthoredLighting =>
+      depthOfFieldTest ||
       presentationTest ||
       atmosphereTest ||
       dayNightTest ||
@@ -412,6 +436,7 @@ final class LightingComparison {
     }
     contactShadowsAfter = after;
     setComparisonLightingPhase(
+      depthOfFieldTest: depthOfFieldTest,
       atmosphereTest: atmosphereTest,
       actorContactShadowTest: actorContactShadowTest,
       dayNightTest: dayNightTest,
@@ -513,6 +538,10 @@ final class LightingComparison {
     'shadowCasterInstanceIds': plan['shadowCasterInstanceIds'] ?? [],
     'shadowStats': shadowStats,
     'atmosphereTest': atmosphereTest,
+    'depthOfFieldTest': depthOfFieldTest,
+    'depthOfFieldEnabled': camera.depthOfFieldEnabled,
+    'depthOfFieldFrame': renderFrame?.state,
+    'loads': loadCounters,
     'presentationTest': presentationTest,
     'halosEnabled': camera.halosEnabled,
     'depthFogEnabled': camera.depthFogEnabled,
@@ -598,14 +627,32 @@ final class LightingComparison {
   }
 
   Future<void> settle() async {
+    final before = renderFrame?.generation;
+    void invalidate(RenderObject object) {
+      object.markNeedsPaint();
+      object.visitChildren(invalidate);
+    }
+
     for (var count = 0; count < 3; count++) {
       applyStudioCaptureLifecycle(AppLifecycleState.resumed);
+      if (depthOfFieldTest) updateSpatialCapture(captureKey);
+      if (captureKey.currentContext?.findRenderObject() case final object?) {
+        invalidate(object);
+      }
       WidgetsBinding.instance.scheduleFrame();
       await WidgetsBinding.instance.endOfFrame.timeout(
         const Duration(seconds: 15),
       );
     }
     if (failure != null) throw StateError(failure!);
+    if (depthOfFieldTest &&
+        (before == null ||
+            renderFrame!.generation <= before ||
+            renderFrame!.state['enabled'] != camera.depthOfFieldEnabled)) {
+      throw StateError(
+        'Capture did not paint the requested depth of field state.',
+      );
+    }
   }
 
   Future<Uint8List> pixels() async {
@@ -668,6 +715,9 @@ final class LightingComparison {
     running = true;
     captured = 0;
     final previousLifecycle = WidgetsBinding.instance.lifecycleState;
+    final resumeRendering = depthOfFieldTest
+        ? freezeSpatialCapture(captureKey)
+        : null;
     final frames = <Map<String, Object?>>[];
     Map<String, int>? roundTripBeforeShadowStats;
     Map<String, int>? roundTripAfterShadowStats;
@@ -677,7 +727,9 @@ final class LightingComparison {
       if (!ready) throw StateError('Native scene is not ready.');
       verifySession();
       final take = Directory(
-        '$root/evidence/${presentationTest
+        '$root/evidence/${depthOfFieldTest
+            ? 'depth-of-field/native'
+            : presentationTest
             ? 'presentation/native'
             : atmosphereTest
             ? 'atmosphere/native'
@@ -699,6 +751,7 @@ final class LightingComparison {
         after: false,
         probeOnly: usesAuthoredLighting || probeOnly,
       );
+      if (depthOfFieldTest) await pixels();
       final baseline = await pixels();
       roundTripBeforeShadowStats = shadowStats;
       roundTripBeforeContactShadowCount = camera.actorContactShadowCount;
@@ -710,7 +763,13 @@ final class LightingComparison {
         after: false,
         probeOnly: usesAuthoredLighting || probeOnly,
       );
-      baselineRoundTripIdentical = listEquals(baseline, await pixels());
+      final reverted = await pixels();
+      if (depthOfFieldTest) {
+        await File('${take.path}/baseline.png').writeAsBytes(baseline);
+        await File('${take.path}/enabled.png').writeAsBytes(changed);
+        await File('${take.path}/reverted.png').writeAsBytes(reverted);
+      }
+      baselineRoundTripIdentical = listEquals(baseline, reverted);
       if (!baselineRoundTripIdentical!) {
         throw StateError('Lighting toggle changed the frozen baseline.');
       }
@@ -758,6 +817,7 @@ final class LightingComparison {
           await File('${take.path}/before/$filename.png')
               .writeAsBytes(await pixels());
           final beforeShadowStats = shadowStats;
+          final beforeDepthOfFieldFrame = renderFrame?.state;
           final beforeContactShadowCount = camera.actorContactShadowCount;
           final beforeCapturedMinute = camera.previewMinuteOfDay;
           setBeforeAfter(after: true, frameIndex: captured);
@@ -771,6 +831,9 @@ final class LightingComparison {
             'z': session.movement.z,
             'facing': session.movement.facing.name,
             'shadowStats': shadowStats,
+            if (depthOfFieldTest)
+              'beforeDepthOfFieldFrame': beforeDepthOfFieldFrame,
+            if (depthOfFieldTest) 'afterDepthOfFieldFrame': renderFrame?.state,
             if (actorContactShadowTest)
               'beforeContactShadowCount': beforeContactShadowCount,
             if (actorContactShadowTest)
@@ -849,6 +912,7 @@ final class LightingComparison {
           );
         }
       } finally {
+        resumeRendering?.call();
         if (previousLifecycle != null) {
           applyStudioCaptureLifecycle(previousLifecycle);
         }
@@ -886,6 +950,7 @@ class ComparisonSurface extends StatelessWidget {
                   child: RepaintBoundary(
                     key: capture.captureKey,
                     child: comparisonLightingSurface(
+                      depthOfFieldTest: capture.depthOfFieldTest,
                       atmosphereTest: capture.atmosphereTest,
                       dayNightTest: capture.dayNightTest,
                       pointLightShadowTest: capture.pointLightShadowTest,
@@ -926,9 +991,13 @@ class ComparisonSurface extends StatelessWidget {
                                   capture.tick * 1000 ~/ 60,
                                 ),
                         cameraPose: () => (
-                          x: (anchor['x'] as num).toDouble(),
+                          x: capture.depthOfFieldTest
+                              ? capture.session.movement.x
+                              : (anchor['x'] as num).toDouble(),
                           y: (anchor['y'] as num).toDouble(),
-                          z: (anchor['z'] as num).toDouble(),
+                          z: capture.depthOfFieldTest
+                              ? capture.session.movement.z
+                              : (anchor['z'] as num).toDouble(),
                           zoom: (anchor['zoom'] as num).toDouble(),
                         ),
                         cameraMagnification: () =>

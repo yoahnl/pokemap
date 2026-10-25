@@ -374,6 +374,26 @@ Future<void> main() async {
     if (current == null || scene == null) {
       return developer.ServiceExtensionResponse.result('{"available":false}');
     }
+    if (params['depthOfField'] case final enabled?) {
+      if (session.state.project?.directoryPath != root) {
+        throw StateError('The active Studio project changed.');
+      }
+      scene.controller.depthOfFieldProfile = SpatialDepthOfFieldProfile(
+        enabled: enabled == 'true',
+        strength: double.parse(params['strength'] ?? '.35'),
+        focusRange: double.parse(params['focusRange'] ?? '12'),
+      );
+    }
+    if (params['cameraPanX'] case final x?) {
+      final panX = double.parse(x);
+      final panZ = double.parse(params['cameraPanZ'] ?? '0');
+      if (!panX.isFinite || !panZ.isFinite ||
+          panX.abs() > 10 || panZ.abs() > 10) {
+        throw ArgumentError('Camera comparison pan is outside its bounds.');
+      }
+      scene.controller.panBy(panX - scene.controller.pan.dx,
+          panZ - scene.controller.pan.dy);
+    }
     if (params['clearSelection'] == 'true') {
       if (session.state.project?.directoryPath != root) {
         throw StateError('The active Studio project changed.');
@@ -411,6 +431,11 @@ Future<void> main() async {
         'dayNightCycle': current.document.current.spatialScene!.dayNightCycle
             ?.toJson(),
         'lightingMinuteOfDay': scene.controller.dayNightMinuteOfDay,
+        'depthOfField': {
+          'enabled': scene.controller.depthOfFieldEnabled,
+          'strength': scene.controller.depthOfFieldProfile.strength,
+          'focusRange': scene.controller.depthOfFieldProfile.focusRange,
+        },
         'lightingPreviewRunning': scene.controller.previewDayNightRunning,
         'shadowStats': {
           'casterDrawCount': scene.controller.shadowStats.casterDrawCount,

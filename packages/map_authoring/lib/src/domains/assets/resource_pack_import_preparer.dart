@@ -532,8 +532,9 @@ final class ResourcePackImportPreparer {
       final installation = _installation(selection, projection, previous,
           mappings, _clock().toUtc().toIso8601String());
       final skippedDraftPresetIds = <String>{};
-      final manifest = _merge(snapshot.manifest, projection, previous,
-          installation, skippedDraftPresetIds: skippedDraftPresetIds);
+      final manifest = _merge(
+          snapshot.manifest, projection, previous, installation,
+          skippedDraftPresetIds: skippedDraftPresetIds);
       ProjectValidator.validate(manifest);
       final catalog = AssetCatalog(records: records);
       final projectBytes =
@@ -1062,8 +1063,8 @@ ProjectManifest _projectedLibrary(
     final initialized = draft.copyWith(
       guideId: recognizeSmartTileAuthoringGuide(manifest, draft),
     );
-    if (_fitsDerivedDraftUnit(initialized,
-        target.smartTileCatalog.drafts.length + drafts.length)) {
+    if (_fitsDerivedDraftUnit(
+        initialized, target.smartTileCatalog.drafts.length + drafts.length)) {
       drafts.add(initialized);
     } else {
       skippedDraftPresetIds?.add(preset.id);
@@ -1082,8 +1083,7 @@ ProjectManifest _projectedLibrary(
   );
 }
 
-bool _fitsDerivedDraftUnit(
-    ProjectSmartTileAuthoringDraft draft, int position) {
+bool _fitsDerivedDraftUnit(ProjectSmartTileAuthoringDraft draft, int position) {
   final id = jsonEncode(['smartTileDraft', draft.id]);
   try {
     CatalogStorageBuilder().build([
@@ -1433,7 +1433,13 @@ ProjectManifest _merge(
             .where((e) => include('smartTilePreset', e.targetPresetId))
       ]),
       borderCatalog: ProjectBorderCatalog(
-          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+          formatVersion: max(
+              target.borderCatalog.formatVersion,
+              minimumBorderCatalogFormatVersionForRecords([
+                ...target.borderCatalog.records,
+                ...c.borderCatalog.records
+                    .where((e) => include('borderBlueprint', e.id))
+              ])),
           records: [
             ...target.borderCatalog.records,
             ...c.borderCatalog.records

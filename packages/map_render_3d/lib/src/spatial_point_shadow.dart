@@ -132,6 +132,26 @@ bool spatialPointShadowIntersects(SpatialPointLight light, Aabb3 bounds) {
   return dx * dx + dy * dy + dz * dz <= light.radius * light.radius;
 }
 
+bool spatialPointShadowIntersectsFace(Matrix4 worldToClip, Aabb3 bounds) {
+  final m = worldToClip.storage;
+  for (var plane = 0; plane < 6; plane++) {
+    final axis = plane ~/ 2;
+    final sign = plane.isEven ? 1.0 : -1.0;
+    final w = plane == 4 ? 0.0 : 1.0;
+    final x = w * m[3] + sign * m[axis];
+    final y = w * m[7] + sign * m[4 + axis];
+    final z = w * m[11] + sign * m[8 + axis];
+    final d = w * m[15] + sign * m[12 + axis];
+    final distance =
+        x * (x >= 0 ? bounds.max.x : bounds.min.x) +
+        y * (y >= 0 ? bounds.max.y : bounds.min.y) +
+        z * (z >= 0 ? bounds.max.z : bounds.min.z) +
+        d;
+    if (distance < -.00001) return false;
+  }
+  return true;
+}
+
 final class SpatialPointShadowFrame {
   const SpatialPointShadowFrame(
     this.texture,

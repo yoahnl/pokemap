@@ -662,43 +662,67 @@ BorderDiagnosticsReport validateSpatialBorderBlueprint({
       error('border.spatial.sequence_phase_missing');
     }
     for (final phase in phases) {
+      if (!definition.straightOnly &&
+          !definition.primitives.any(
+            (primitive) =>
+                primitive.sequenceIndex == phase &&
+                primitive.role == BorderPrimitiveRole.lineCorner,
+          )) {
+        error('border.spatial.sequence_corner_missing');
+      }
       for (final role in [
         BorderPrimitiveRole.lineStraight,
         BorderPrimitiveRole.lineCap,
+        if (!definition.straightOnly) BorderPrimitiveRole.lineCorner,
       ]) {
         final requiredTurns =
             role == BorderPrimitiveRole.lineStraight &&
                 !definition.followContourDirection
             ? [0, 1]
             : [0, 1, 2, 3];
-        for (final target in requiredTurns) {
-          final covered = definition.primitives.any((primitive) {
-            if (primitive.sequenceIndex != phase || primitive.role != role) {
-              return false;
-            }
-            final authored = switch (primitive.authoredOrientation) {
-              BorderPrimitiveOrientation.legacyAxis ||
-              BorderPrimitiveOrientation.east => 0,
-              BorderPrimitiveOrientation.south => 1,
-              BorderPrimitiveOrientation.west => 2,
-              BorderPrimitiveOrientation.north => 3,
-            };
-            final turns = (target - authored + 4) % 4;
-            return (definition.defaults.allowAutoRotation || turns == 0) &&
-                primitive.transforms.allowedQuarterTurns.contains(turns);
-          });
-          if (!covered) error('border.spatial.sequence_orientation_missing');
+        final cornerTurns =
+            role == BorderPrimitiveRole.lineCorner &&
+                definition.followContourDirection
+            ? BorderCornerTurn.values.cast<BorderCornerTurn?>()
+            : <BorderCornerTurn?>[null];
+        for (final cornerTurn in cornerTurns) {
+          for (final target in requiredTurns) {
+            final covered = definition.primitives.any((primitive) {
+              if (primitive.sequenceIndex != phase ||
+                  primitive.role != role ||
+                  cornerTurn != null && primitive.cornerTurn != cornerTurn) {
+                return false;
+              }
+              final authored = switch (primitive.authoredOrientation) {
+                BorderPrimitiveOrientation.legacyAxis ||
+                BorderPrimitiveOrientation.east => 0,
+                BorderPrimitiveOrientation.south => 1,
+                BorderPrimitiveOrientation.west => 2,
+                BorderPrimitiveOrientation.north => 3,
+              };
+              final turns = (target - authored + 4) % 4;
+              return (definition.defaults.allowAutoRotation || turns == 0) &&
+                  primitive.transforms.allowedQuarterTurns.contains(turns);
+            });
+            if (!covered) error('border.spatial.sequence_orientation_missing');
+          }
         }
       }
     }
   }
   if (definition.followContourDirection && !definition.straightOnly) {
-    final turns = definition.primitives
-        .where((primitive) => primitive.role == BorderPrimitiveRole.lineCorner)
-        .map((primitive) => primitive.cornerTurn)
-        .toSet();
-    if (turns.contains(null) || !turns.containsAll(BorderCornerTurn.values)) {
-      error('border.spatial.corner_turn_missing');
+    for (var phase = 0; phase < definition.sequenceLength; phase++) {
+      final turns = definition.primitives
+          .where(
+            (primitive) =>
+                primitive.role == BorderPrimitiveRole.lineCorner &&
+                primitive.sequenceIndex == phase,
+          )
+          .map((primitive) => primitive.cornerTurn)
+          .toSet();
+      if (turns.contains(null) || !turns.containsAll(BorderCornerTurn.values)) {
+        error('border.spatial.corner_turn_missing');
+      }
     }
   }
   return BorderDiagnosticsReport(diagnostics: diagnostics);
@@ -846,6 +870,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
         ({
           String lineageNamespace,
           int sourceEdgeOffset,
+          bool closed,
           List<_SpatialBorderNode> nodes,
         })
       >[];
@@ -862,6 +887,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       chains.add((
         lineageNamespace: lattice.lineageNamespace,
         sourceEdgeOffset: lattice.sourceEdgeOffset,
+        closed: stroke.closed,
         nodes: [
           for (final node in lattice.nodes)
             (
@@ -889,6 +915,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       chains.add((
         lineageNamespace: 'region',
         sourceEdgeOffset: 0,
+        closed: true,
         nodes: [
           for (var index = 0; index < contour.edges.length; index++)
             (
@@ -938,7 +965,13 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
     }
   }
   final slots = <String>{};
+  final reservedSlots = <String>{};
+  final overridesBySlot = {
+    for (final override in feature.overrides) override.slotKey: override,
+  };
   for (final chain in chains) {
+    final chainSlots = <int, String>{};
+    final wideCorners = <int, int>{};
     for (final node in chain.nodes) {
       final sequenceIndex =
           ((BigInt.from(chain.sourceEdgeOffset) + BigInt.from(node.index)) %
@@ -957,13 +990,12 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
             ]
           : [chain.lineageNamespace];
       final slotKey = _spatialSlotKey(layerId, featureId, lineage, node.cell);
+      chainSlots[node.index] = slotKey;
       if (!slots.add(slotKey)) {
         error('border.spatial.slot_identity_conflict', slotKey: slotKey);
         continue;
       }
-      final override = feature.overrides
-          .where((override) => override.slotKey == slotKey)
-          .firstOrNull;
+      final override = overridesBySlot[slotKey];
       if (override?.suppressed == true) continue;
       if (override?.lockedPlacement != null ||
           override?.offsetDeltaPx != null ||
@@ -1153,8 +1185,48 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
         ),
       );
       instances.add(instance);
+      if (primitive.cornerJoinCells > 0) {
+        wideCorners[node.index] = primitive.cornerJoinCells;
+      }
+    }
+    final reservations = <int, int>{};
+    for (final entry in wideCorners.entries) {
+      for (var distance = 1; distance <= entry.value; distance++) {
+        for (final direction in [-1, 1]) {
+          var index = entry.key + direction * distance;
+          if (chain.closed) index %= chain.nodes.length;
+          if (index < 0 ||
+              index >= chain.nodes.length ||
+              chain.nodes[index].kind != BorderLinearNodeKind.straight ||
+              reservations.containsKey(index)) {
+            error(
+              'border.spatial.corner_join_conflict',
+              slotKey: chainSlots[entry.key],
+            );
+            continue;
+          }
+          reservations[index] = entry.key;
+          final slotKey = chainSlots[index]!;
+          if (overridesBySlot[slotKey] case final override?
+              when !override.suppressed) {
+            error(
+              'border.spatial.corner_join_override_conflict',
+              slotKey: slotKey,
+            );
+          }
+          reservedSlots.add(slotKey);
+        }
+      }
     }
   }
+  final reservedInstances = {
+    for (final placement in placements)
+      if (reservedSlots.contains(placement.slotKey)) placement.instanceId,
+  };
+  placements.removeWhere(
+    (placement) => reservedSlots.contains(placement.slotKey),
+  );
+  instances.removeWhere((instance) => reservedInstances.contains(instance.id));
   for (final override in feature.overrides) {
     if (!slots.contains(override.slotKey)) {
       error('border.spatial.override_slot_missing', slotKey: override.slotKey);

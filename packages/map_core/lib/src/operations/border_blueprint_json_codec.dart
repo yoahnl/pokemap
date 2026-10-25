@@ -427,6 +427,12 @@ Map<String, Object?> _encodeDraftDefinition(
   String path,
   int formatVersion,
 ) {
+  _requireSequenceFormat(
+    value.sequenceLength,
+    value.straightOnly,
+    formatVersion,
+    path,
+  );
   if (value.sequenceLength != 1 && formatVersion < 12) {
     throw FormatException(
       '$path.sequenceLength: requires catalog format version 12',
@@ -492,6 +498,12 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
   int formatVersion,
 ) {
   final value = _decodeDefinitionObject(json, path);
+  _requireSequenceFormat(
+    _decodeSequenceInteger(value, 'sequenceLength', 1, path, formatVersion),
+    _decodeStraightOnly(value, path),
+    formatVersion,
+    path,
+  );
   final name = _decodeDefinitionName(value, path);
   final previewSeed = _decodePreviewSeed(value, path);
   final template = _decodeDefinitionTemplate(value, path, formatVersion);
@@ -547,6 +559,12 @@ Map<String, Object?> _encodePublishedDefinition(
   String path,
   int formatVersion,
 ) {
+  _requireSequenceFormat(
+    value.sequenceLength,
+    value.straightOnly,
+    formatVersion,
+    path,
+  );
   if (value.sequenceLength != 1 && formatVersion < 12) {
     throw FormatException(
       '$path.sequenceLength: requires catalog format version 12',
@@ -612,6 +630,12 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
   int formatVersion,
 ) {
   final value = _decodeDefinitionObject(json, path);
+  _requireSequenceFormat(
+    _decodeSequenceInteger(value, 'sequenceLength', 1, path, formatVersion),
+    _decodeStraightOnly(value, path),
+    formatVersion,
+    path,
+  );
   final name = _decodeDefinitionName(value, path);
   final previewSeed = _decodePreviewSeed(value, path);
   final template = _decodeDefinitionTemplate(value, path, formatVersion);
@@ -660,6 +684,19 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
       jumpBehavior: _decodeJumpBehavior(value, path, formatVersion),
     ),
   );
+}
+
+void _requireSequenceFormat(
+  int length,
+  bool straightOnly,
+  int version,
+  String path,
+) {
+  if (length > 1 && !straightOnly && version < 13) {
+    throw FormatException(
+      '$path.sequenceLength: corner sequences require catalog format version 13',
+    );
+  }
 }
 
 BorderJsonObject _decodeDefinitionObject(Object? json, String path) {
@@ -813,6 +850,7 @@ Map<String, Object?> _encodeDraftPrimitive(
       authoredOrientation: value.authoredOrientation,
       sequenceIndex: value.sequenceIndex,
       cornerTurn: value.cornerTurn,
+      cornerJoinCells: value.cornerJoinCells,
       weight: value.weight,
       transforms: value.transforms,
       anchorWorld: value.anchorWorld,
@@ -884,6 +922,7 @@ BorderPrimitiveDraft _decodeDraftPrimitive(
           formatVersion,
         ),
         cornerTurn: _decodeCornerTurn(value, path),
+        cornerJoinCells: _decodeCornerJoinCells(value, path, formatVersion),
         weight: borderJsonRequireInt(value['weight'], '$path.weight'),
         animationIndex: value['animationIndex'] == null
             ? null
@@ -975,6 +1014,7 @@ Map<String, Object?> _encodePublishedPrimitive(
       authoredOrientation: value.authoredOrientation,
       sequenceIndex: value.sequenceIndex,
       cornerTurn: value.cornerTurn,
+      cornerJoinCells: value.cornerJoinCells,
       weight: value.weight,
       transforms: value.transforms,
       anchorWorld: value.anchorWorld,
@@ -1051,6 +1091,7 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
           formatVersion,
         ),
         cornerTurn: _decodeCornerTurn(value, path),
+        cornerJoinCells: _decodeCornerJoinCells(value, path, formatVersion),
         weight: borderJsonRequireInt(value['weight'], '$path.weight'),
         animationIndex: value['animationIndex'] == null
             ? null
@@ -1143,6 +1184,7 @@ Map<String, Object?> _encodeSpatialPrimitive({
   required BorderPrimitiveOrientation authoredOrientation,
   required int sequenceIndex,
   required BorderCornerTurn? cornerTurn,
+  required int cornerJoinCells,
   required int weight,
   required BorderTransformPolicy transforms,
   Model3dVector3? anchorWorld,
@@ -1153,6 +1195,11 @@ Map<String, Object?> _encodeSpatialPrimitive({
   required List<BorderGroundFootprint> groundFootprints,
   required List<BorderGroundSurface> groundSurfaces,
 }) {
+  if (cornerJoinCells != 0 && formatVersion < 13) {
+    throw FormatException(
+      '$path.cornerJoinCells: requires catalog format version 13',
+    );
+  }
   if (sequenceIndex != 0 && formatVersion < 12) {
     throw FormatException(
       '$path.sequenceIndex: requires catalog format version 12',
@@ -1188,6 +1235,7 @@ Map<String, Object?> _encodeSpatialPrimitive({
     'authoredOrientation': authoredOrientation.name,
     if (sequenceIndex != 0) 'sequenceIndex': sequenceIndex,
     if (cornerTurn != null) 'cornerTurn': cornerTurn.name,
+    if (cornerJoinCells != 0) 'cornerJoinCells': cornerJoinCells,
     'weight': weight,
     'transforms': _encodeTransformPolicy(transforms, '$path.transforms'),
     if (anchorWorld != null) 'anchorWorld': anchorWorld.toJson(),
@@ -1243,6 +1291,7 @@ void _validateSpatialPrimitiveJson(
       'authoredOrientation',
       'sequenceIndex',
       'cornerTurn',
+      'cornerJoinCells',
       'anchorWorld',
       'animationIndex',
       'animationLoop',
@@ -1374,6 +1423,23 @@ List<BorderGroundSurface> _decodeGroundSurfaces(
         );
       }),
   ];
+}
+
+int _decodeCornerJoinCells(
+  BorderJsonObject value,
+  String path,
+  int formatVersion,
+) {
+  if (!value.containsKey('cornerJoinCells')) return 0;
+  if (formatVersion < 13) {
+    throw FormatException(
+      '$path.cornerJoinCells: requires catalog format version 13',
+    );
+  }
+  return borderJsonRequireInt(
+    value['cornerJoinCells'],
+    '$path.cornerJoinCells',
+  );
 }
 
 BorderCornerTurn? _decodeCornerTurn(BorderJsonObject value, String path) {

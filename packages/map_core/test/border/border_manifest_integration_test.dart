@@ -64,7 +64,7 @@ void main() {
         (<Object?>[], r'$.borderCatalog'),
         (
           <String, Object?>{
-            'formatVersion': 11,
+            'formatVersion': 14,
             'records': <Object?>[],
             'visualSnapshots': <Object?>[],
           },

@@ -82,6 +82,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
   final _shadowOptions = Vector4.zero(), _shadowHeight = Vector4.zero();
   final _shadowSample = Vector4.zero();
   final _shadowOrigin = Vector4.zero();
+  final _shadowCoverage = Vector4.zero();
   final _boundShadowSample = Vector3.zero();
   bool _boundUsesShadowSample = false;
   bool _environmentUniformsBound = false;
@@ -547,6 +548,15 @@ class SpatialPixelMaterial extends UnlitMaterial {
       ..setVector4('Shadow.options', _shadowOptions)
       ..setVector4('Shadow.receiverHeight', _shadowHeight)
       ..setVector4('Shadow.samplePosition', _shadowSample)
+      ..setVector4(
+        'Shadow.coverage',
+        _shadowCoverage..setValues(
+          frame?.coverage.a.toDouble() ?? 65535,
+          frame?.coverage.b.toDouble() ?? 65535,
+          frame?.coverage.c.toDouble() ?? 65535,
+          frame?.coverage.d.toDouble() ?? 65535,
+        ),
+      )
       ..setVector4(
         'Shadow.origin',
         _shadowOrigin..setValues(

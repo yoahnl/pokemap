@@ -1,6 +1,8 @@
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/resources.dart';
 
+import 'spatial_shadow_coverage.dart';
+
 final class SpatialShadowProfile {
   SpatialShadowProfile({
     required Set<String> casterInstanceIds,
@@ -129,6 +131,7 @@ final class SpatialShadowFrame {
     this.supersampled = false,
     this.origin = (x: 0, y: 0, z: 0),
     this.relativeWorldToLight,
+    this.coverage = spatialFullShadowCoverage,
   });
   final Texture texture;
   final Matrix4 worldToLight;
@@ -137,6 +140,7 @@ final class SpatialShadowFrame {
   final bool supersampled;
   final ({double x, double y, double z}) origin;
   final Matrix4? relativeWorldToLight;
+  final SpatialShadowCoverageMask coverage;
 }
 
 bool spatialShadowIntersectsBounds(Matrix4 worldToLight, Aabb3 bounds) {

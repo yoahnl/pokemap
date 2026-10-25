@@ -40,6 +40,7 @@ BorderPrimitiveDraft _withModelSettings(
     animationLoop: primitive.animationLoop,
     animationSpeed: primitive.animationSpeed,
     blocksMovement: primitive.blocksMovement,
+    cornerJoinCells: primitive.cornerJoinCells,
   );
   final settings = request.primitiveModelSettings[primitive.id] ?? original;
   final model = manifest.models3d.firstWhere(
@@ -66,6 +67,7 @@ BorderPrimitiveDraft _withModelSettings(
     sourceModelId: primitive.sourceModelId,
     role: primitive.role,
     cornerTurn: primitive.cornerTurn,
+    cornerJoinCells: settings.cornerJoinCells,
     authoredOrientation: primitive.authoredOrientation,
     sequenceIndex: primitive.sequenceIndex,
     weight: primitive.weight,
@@ -123,10 +125,9 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
               (request.template ??
                       existing?.template ??
                       BorderBlueprintTemplate.connectedLine) !=
-                  BorderBlueprintTemplate.connectedLine ||
-              !(request.straightOnly ?? existing?.straightOnly ?? false)))) {
+                  BorderBlueprintTemplate.connectedLine))) {
     throw const ResourceFailure(
-      'Un motif de 1 à 64 étapes nécessite une bordure 3D sur tracés droits.',
+      'Un motif de 1 à 64 étapes nécessite une bordure 3D sur tracés connectés.',
     );
   }
   final isFacade =
@@ -198,6 +199,13 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
         ? borderSequenceModelPrimitives(
             straightModelId: request.straightModelId,
             capModelId: request.capModelId,
+            cornerModelId: request.straightOnly == true
+                ? null
+                : request.cornerModelId,
+            innerCornerModelId: request.straightOnly == true
+                ? null
+                : request.innerCornerModelId,
+            directed: directed,
           )
         : [],
     sequenceLength,
@@ -289,6 +297,7 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
                             : null),
                     authoredOrientation: primitive.authoredOrientation,
                     sequenceIndex: primitive.sequenceIndex,
+                    cornerJoinCells: primitive.cornerJoinCells,
                     weight: primitive.weight,
                     anchorWorld: primitive.anchorWorld,
                     transforms: primitive.transforms,

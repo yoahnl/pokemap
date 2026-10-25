@@ -8,9 +8,11 @@ class SpatialGameSurface<T extends Game> extends StatefulWidget {
     required this.loadingBuilder,
     required this.errorBuilder,
     this.autofocus = false,
+    this.continuous = true,
   });
   final T game;
   final bool autofocus;
+  final bool continuous;
   final Widget Function(BuildContext) loadingBuilder;
   final Widget Function(BuildContext, Object) errorBuilder;
   @override
@@ -21,6 +23,8 @@ class _SpatialGameSurfaceState<T extends Game>
     extends State<SpatialGameSurface<T>>
     with WidgetsBindingObserver {
   bool _pausedByVisibility = false;
+  bool _pausedByDemand = false;
+  bool _demandCheckScheduled = false;
 
   @override
   void initState() {
@@ -53,6 +57,7 @@ class _SpatialGameSurfaceState<T extends Game>
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.game, widget.game)) {
       _pausedByVisibility = false;
+      _pausedByDemand = false;
     }
     _syncActivity();
   }
@@ -63,9 +68,28 @@ class _SpatialGameSurfaceState<T extends Game>
         widget.game.pauseEngine();
         _pausedByVisibility = true;
       }
-    } else if (_pausedByVisibility) {
+      return;
+    }
+    if (_pausedByVisibility) {
       _pausedByVisibility = false;
       widget.game.resumeEngine();
+    }
+    if (widget.continuous) {
+      if (_pausedByDemand) {
+        _pausedByDemand = false;
+        widget.game.resumeEngine();
+      }
+    } else if (!widget.game.isAttached) {
+      if (_demandCheckScheduled) return;
+      _demandCheckScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _demandCheckScheduled = false;
+        if (mounted) _syncActivity();
+      });
+    } else if (!widget.game.isPaused || _pausedByDemand) {
+      _pausedByDemand = true;
+      widget.game.pauseEngine();
+      widget.game.stepEngine(stepTime: 0);
     }
   }
 

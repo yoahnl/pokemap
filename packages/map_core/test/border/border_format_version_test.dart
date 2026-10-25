@@ -23,19 +23,19 @@ void main() {
     expect(ProjectBorderCatalog.formatVersionV4, 4);
     expect(
       ProjectBorderCatalog.latestSupportedFormatVersion,
-      ProjectBorderCatalog.formatVersionV10,
+      ProjectBorderCatalog.formatVersionV13,
     );
     expect(BorderLayerContent.latestSupportedFormatVersion, 4);
   });
 
-  test('catalog accepts 1 through 10 and rejects 0 and 11', () {
-    for (final version in <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+  test('catalog accepts 1 through 13 and rejects 0 and 14', () {
+    for (var version = 1; version <= 13; version++) {
       expect(
         () => ProjectBorderCatalog(formatVersion: version),
         returnsNormally,
       );
     }
-    for (final version in <int>[0, 11]) {
+    for (final version in <int>[0, 14]) {
       expect(
         () => ProjectBorderCatalog(formatVersion: version),
         throwsA(isA<ValidationException>()),

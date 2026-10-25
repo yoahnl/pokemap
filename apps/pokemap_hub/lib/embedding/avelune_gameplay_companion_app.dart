@@ -31,6 +31,7 @@ class _AveluneGameplayCompanionAppState
   Future<player_ui.RuntimePlayerPresentation>? _presentation;
   String? _readySurface;
   String? _narrativeAckRequested;
+  AveluneGameplayCompanionSnapshot? _retainedMenu;
   final _battlePresentation = player_ui.PlayerBattlePresentationController();
   StreamSubscription<RuntimeInputEvent>? _battleInputs;
   Object? _battleInputOwner;
@@ -176,6 +177,15 @@ class _AveluneGameplayCompanionAppState
     listenable: _remote,
     builder: (context, _) {
       final snapshot = _remote.value;
+      if (snapshot == null || _retainedMenu?.sessionId != snapshot.sessionId ||
+          snapshot.mode == AveluneGameplayCompanionMode.battle) {
+        _retainedMenu = null;
+      }
+      if (snapshot?.mode == AveluneGameplayCompanionMode.menu &&
+          snapshot?.player?.phase == RuntimePlayerPhase.paused &&
+          !snapshot!.hasPrimaryDialogue) {
+        _retainedMenu = snapshot;
+      }
       final configuration = snapshot?.presentation ?? const <String, Object?>{};
       final key = jsonEncode(configuration);
       if (_presentationKey != key) {
@@ -292,16 +302,25 @@ class _AveluneGameplayCompanionAppState
     AveluneGameplayCompanionSnapshot snapshot,
     player_ui.RuntimePlayerPresentation presentation,
   ) {
+    final retained = snapshot.hasPrimaryDialogue ||
+        snapshot.mode == AveluneGameplayCompanionMode.blocked ||
+        snapshot.mode == AveluneGameplayCompanionMode.waiting
+        ? _retainedMenu : null;
+    final frozen = retained != null;
+    if (retained != null) snapshot = retained;
     if (snapshot.hasPrimaryDialogue) return const SizedBox.expand();
     switch (snapshot.mode) {
       case AveluneGameplayCompanionMode.menu:
         if (snapshot.player == null) return const SizedBox.expand();
         return AbsorbPointer(
           absorbing:
+              frozen ||
               _remote.busy ||
               !snapshot.companionAttached ||
               (snapshot.narrativeIdentity != null && !snapshot.narrativeReady),
-          child: player_ui.PokeMapPlayerSessionView(
+          child: ExcludeFocus(
+            excluding: frozen,
+            child: player_ui.PokeMapPlayerSessionView(
             imageScopeIdentity: (_imageBudget, snapshot.sessionId),
             imageLoader: (path, {required isCurrent}) async {
               final lease = await loadRuntimeUiImageFromFilePath(
@@ -331,7 +350,7 @@ class _AveluneGameplayCompanionAppState
             pauseRootActionsOnly: true,
             gameSceneBuilder: (_) => const SizedBox.expand(),
             touchControlsAvailable: false,
-            controllerInputEnabled: true,
+            controllerInputEnabled: !frozen,
             controllerInputEvents: _remote.inputs,
             relayedControllerInput: true,
             connectedControllerIds: _controllerIds,
@@ -349,6 +368,7 @@ class _AveluneGameplayCompanionAppState
             },
             onControlProfileChanged: (profile) =>
                 _remote.send('controlProfile', profile.toJson()),
+            ),
           ),
         );
       case AveluneGameplayCompanionMode.battle:
@@ -511,11 +531,13 @@ class _RemotePlayerController
     sync: true,
   );
   RuntimePlayerSnapshot? _last;
+  String? _lastSessionId;
   final dialogue = ValueNotifier<DialoguePresentationSnapshot?>(null);
 
   @override
   RuntimePlayerSnapshot get snapshot =>
-      remote.value?.player ??
+      (remote.value?.hasPrimaryDialogue == true ? null : remote.value?.player) ??
+      (_lastSessionId == remote.value?.sessionId ? _last : null) ??
       RuntimePlayerSnapshot(
         revision: 0,
         phase: RuntimePlayerPhase.boot,
@@ -526,8 +548,14 @@ class _RemotePlayerController
   Stream<RuntimePlayerSnapshot> get snapshots => _snapshots.stream;
 
   void _changed() {
-    dialogue.value = remote.value?.dialogue;
-    final next = remote.value?.player;
+    if (_lastSessionId != remote.value?.sessionId) {
+      _lastSessionId = remote.value?.sessionId;
+      _last = null;
+    }
+    dialogue.value = remote.value?.hasPrimaryDialogue == true
+        ? null : remote.value?.dialogue;
+    final next = remote.value?.hasPrimaryDialogue == true
+        ? null : remote.value?.player;
     if (next != null && !identical(next, _last)) {
       _last = next;
       _snapshots.add(next);

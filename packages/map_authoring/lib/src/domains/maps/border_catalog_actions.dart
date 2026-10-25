@@ -36,7 +36,7 @@ final class BorderCatalogActions {
       ),
       _descriptor(
         'border.blueprint.draft.upsert',
-        'Create or replace one Border blueprint draft, including horizontalFacade 2D profiles, straight-only 3D cyclic sequences with explicit sequenceLength and primitive sequenceIndex, and explicit animationIndex, animationLoop, animationSpeed and blocksMovement settings',
+        'Create or replace one Border blueprint draft, including horizontalFacade 2D profiles, 3D cyclic sequences with directed corners, explicit sequenceLength and primitive sequenceIndex, and explicit animationIndex, animationLoop, animationSpeed and blocksMovement settings',
         resourceKinds: const [
           'project',
           'borderBlueprint',
@@ -671,6 +671,7 @@ AuthoringMutationDraft _publishSpatial(
               sourceModelId: primitive.sourceModelId,
               role: primitive.role,
               cornerTurn: primitive.cornerTurn,
+              cornerJoinCells: primitive.cornerJoinCells,
               authoredOrientation: primitive.authoredOrientation,
               sequenceIndex: primitive.sequenceIndex,
               weight: primitive.weight,
@@ -970,14 +971,9 @@ AuthoringMutationDraft _publicationMutation(
           if (primitive.isSpatial) primitive.id: primitive.sourceModelId,
       },
       'groundSnapshotIdsByRole': <String, Object?>{
-        for (final entry
-            in after
-                    .latestPublished!
-                    .definition
-                    .ground
-                    ?.visualSnapshotIdsByRole
-                    .entries ??
-                const <MapEntry<BorderGroundVariantRole, String>>[])
+        for (final entry in after.latestPublished!.definition.ground
+                ?.visualSnapshotIdsByRole.entries ??
+            const <MapEntry<BorderGroundVariantRole, String>>[])
           entry.key.name: entry.value,
       },
       'diagnosticCount': diagnostics.length,
@@ -1073,23 +1069,53 @@ AuthoringActionDescriptor _descriptor(
         'artifactSnapshots': true,
         if (id == 'border.blueprint.draft.upsert' ||
             id == 'border.blueprint.publish')
+          'spatialCornerJoins': {
+            'minimumCatalogFormatVersion': 13,
+            'field': 'primitives[].cornerJoinCells',
+            'range': [0, 8],
+            'default': 0,
+            'sourceDimension': '3d',
+            'role': 'lineCorner',
+            'reservation': 'equalIncomingAndOutgoingStraightSlots',
+            'phaseBeforeReservation': true,
+            'conflictBehavior': 'rejectWithoutMutation',
+          },
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
           'nativeConnectedLine2d': {
             'template': 'connectedLine',
             'sourceDimension': '2d',
             'orientationField': 'authoredOrientation',
             'minimumCatalogFormatVersion': 4,
-            'orientationReference': {'east': 0, 'south': 1, 'west': 2, 'north': 3},
+            'orientationReference': {
+              'east': 0,
+              'south': 1,
+              'west': 2,
+              'north': 3
+            },
             'nativeConnections': {
-              'lineCap': {'east': ['east'], 'south': ['south'],
-                'west': ['west'], 'north': ['north']},
-              'lineStraight': {'east': ['east', 'west'], 'south': ['north', 'south']},
-              'lineCorner': {'east': ['west', 'south'], 'south': ['west', 'north'],
-                'west': ['east', 'north'], 'north': ['east', 'south']},
+              'lineCap': {
+                'east': ['east'],
+                'south': ['south'],
+                'west': ['west'],
+                'north': ['north']
+              },
+              'lineStraight': {
+                'east': ['east', 'west'],
+                'south': ['north', 'south']
+              },
+              'lineCorner': {
+                'east': ['west', 'south'],
+                'south': ['west', 'north'],
+                'west': ['east', 'north'],
+                'north': ['east', 'south']
+              },
             },
             'rotation': 'targetMinusAuthored',
             'mirroredRotation': 'targetPlusAuthored',
             'automaticRotation': 'transformPolicy',
-            'mirrorFreeProfile': 'allPositivePrimitivesCardinalAndDisallowFlipX',
+            'mirrorFreeProfile':
+                'allPositivePrimitivesCardinalAndDisallowFlipX',
             'mirrorFreeLineSide': 'primary',
             'mirrorFreeCanonicalGallery': 'primary',
           },
@@ -1102,6 +1128,21 @@ AuthoringActionDescriptor _descriptor(
             'sourceDimension': '3d',
             'template': 'connectedLine',
             'straightOnly': true,
+            'phaseReference': 'sourceEdgeOffsetPlusNodeIndex',
+            'phaseBeforeSuppression': true,
+            'lineSide': 'primary',
+          },
+        if (id == 'border.blueprint.draft.upsert' ||
+            id == 'border.blueprint.publish')
+          'spatialCornerSequence': {
+            'minimumCatalogFormatVersion': 13,
+            'lengthField': 'definition.sequenceLength',
+            'indexField': 'primitives[].sequenceIndex',
+            'sourceDimension': '3d',
+            'template': 'connectedLine',
+            'straightOnly': false,
+            'requiredRolesPerPhase': ['lineCap', 'lineStraight', 'lineCorner'],
+            'directedCornerTurnsPerPhase': ['left', 'right'],
             'phaseReference': 'sourceEdgeOffsetPlusNodeIndex',
             'phaseBeforeSuppression': true,
             'lineSide': 'primary',

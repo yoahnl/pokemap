@@ -62,6 +62,21 @@ bool borderBlueprintRecordRequiresFormatV2(BorderBlueprintRecord record) {
 }
 
 int minimumBorderCatalogFormatVersionForRecord(BorderBlueprintRecord record) {
+  if (record.draft.definition.primitives.any(
+        (primitive) => primitive.cornerJoinCells > 0,
+      ) ||
+      (record.latestPublished?.definition.primitives.any(
+            (primitive) => primitive.cornerJoinCells > 0,
+          ) ??
+          false)) {
+    return ProjectBorderCatalog.formatVersionV13;
+  }
+  if (record.draft.definition.sequenceLength > 1 &&
+          !record.draft.definition.straightOnly ||
+      (record.latestPublished?.definition.sequenceLength ?? 1) > 1 &&
+          record.latestPublished?.definition.straightOnly == false) {
+    return ProjectBorderCatalog.formatVersionV13;
+  }
   if (record.draft.definition.sequenceLength > 1 ||
       (record.latestPublished?.definition.sequenceLength ?? 1) > 1) {
     return ProjectBorderCatalog.formatVersionV12;

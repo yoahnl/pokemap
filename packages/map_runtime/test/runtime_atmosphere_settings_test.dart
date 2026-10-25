@@ -22,11 +22,13 @@ void main() {
       mapId: fixture.map.id,
     );
     expect(legacy.spatialAtmosphereSettings.waterAnimated, isFalse);
+    expect(legacy.spatialAtmosphereSettings.depthOfFieldEnabled, isFalse);
     final settings = SpatialAtmosphereSettings(
       waterAnimated: true,
       windowsLit: true,
       fireflies: true,
       waterStrength: .4,
+      depthOfFieldEnabled: true, depthOfFieldStrength: .65, depthOfFieldFocusRange: 18,
       halosEnabled: true, depthFogEnabled: true, haloStrength: 1.4, haloSpread: 1.3,
       fogOpacity: .32, fogStart: 39, fogEnd: 49,
       halos: [SpatialAtmosphereHalo(instanceId: 'lamp', localPosition: Model3dVector3(x: 0, y: 2, z: 0))],
@@ -54,6 +56,7 @@ void main() {
     expect(protected.spatialAtmosphereSettings.windowsLit, isTrue);
     expect(protected.spatialAtmosphereSettings.halosEnabled, isFalse);
     expect(protected.spatialAtmosphereSettings.depthFogEnabled, isFalse);
+    expect(protected.spatialAtmosphereSettings.depthOfFieldEnabled, isFalse);
     expect(await file.readAsBytes(), protectedBytes);
     final before = await file.readAsBytes();
     await file.writeAsString(

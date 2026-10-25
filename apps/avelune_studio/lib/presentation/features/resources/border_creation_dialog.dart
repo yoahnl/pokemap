@@ -222,9 +222,27 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
           (roles) => !roles.containsAll({
             BorderPrimitiveRole.lineCap,
             BorderPrimitiveRole.lineStraight,
+            if (!_straightOnly) BorderPrimitiveRole.lineCorner,
           }),
         )) {
-      return 'Chaque étape doit contenir un corps et des extrémités avant publication.';
+      return _straightOnly
+          ? 'Chaque étape doit contenir un corps et des extrémités avant publication.'
+          : 'Chaque étape doit contenir un corps, des extrémités et des angles avant publication.';
+    }
+    if (!_straightOnly && _followContourDirection) {
+      for (var phase = 0; phase < _sequenceLength; phase++) {
+        final turns = _sequencePrimitives
+            .where(
+              (p) =>
+                  p.sequenceIndex == phase &&
+                  p.role == BorderPrimitiveRole.lineCorner,
+            )
+            .map((p) => p.cornerTurn)
+            .toSet();
+        if (!turns.containsAll(BorderCornerTurn.values)) {
+          return 'Ajoutez les angles rentrants et sortants à chaque étape du motif.';
+        }
+      }
     }
     return null;
   }
@@ -255,6 +273,15 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
               capModelId:
                   _sequenceSourceModels['lineCap'] ??
                   _chosen['lineCap']?.model3d?.id,
+              cornerModelId: _straightOnly
+                  ? null
+                  : _sequenceSourceModels['lineCorner'] ??
+                        _chosen['lineCorner']?.model3d?.id,
+              innerCornerModelId: _straightOnly || !_followContourDirection
+                  ? null
+                  : _sequenceSourceModels['lineCornerLeft'] ??
+                        _chosen['lineCornerLeft']?.model3d?.id,
+              directed: _followContourDirection,
             ),
         _sequenceLength,
         previousLength:
@@ -281,14 +308,31 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
           if (value == 1) {
             _sequenceSourceModels.clear();
           } else {
-            for (final role in ['lineStraight', 'lineCap']) {
+            for (final role in _roles) {
               if (_chosen[role]?.model3d?.id case final id?) {
                 _sequenceSourceModels.putIfAbsent(role, () => id);
               }
             }
           }
         }
+        final previousLength = _sequenceLength;
         _sequenceLength = value;
+        for (final primitive in _sequencePrimitives.where(
+          (p) => p.sequenceIndex >= previousLength,
+        )) {
+          final prototype = _sequencePrimitives
+              .where(
+                (p) =>
+                    p.sequenceIndex == 0 && _roleKey(p) == _roleKey(primitive),
+              )
+              .firstOrNull;
+          final settings = prototype == null
+              ? null
+              : _primitiveModelSettings[prototype.id];
+          if (settings != null) {
+            _primitiveModelSettings.putIfAbsent(primitive.id, () => settings);
+          }
+        }
         final ids = _sequencePrimitives.map((p) => p.id).toSet();
         _primitiveModelIds.removeWhere((id, _) => !ids.contains(id));
         _primitiveModelSettings.removeWhere((id, _) => !ids.contains(id));
@@ -337,6 +381,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
       animationLoop: primitive?.animationLoop ?? true,
       animationSpeed: primitive?.animationSpeed ?? 1,
       blocksMovement: primitive?.blocksMovement ?? true,
+      cornerJoinCells: primitive?.cornerJoinCells ?? 0,
     );
   }
 
@@ -436,6 +481,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                 animationLoop: settings.animationLoop,
                 animationSpeed: settings.animationSpeed,
                 blocksMovement: settings.blocksMovement,
+                cornerJoinCells: settings.cornerJoinCells,
               ),
             ),
           ),
@@ -451,6 +497,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                   animationLoop: value,
                   animationSpeed: settings.animationSpeed,
                   blocksMovement: settings.blocksMovement,
+                  cornerJoinCells: settings.cornerJoinCells,
                 ),
               ),
             ),
@@ -479,12 +526,40 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                     animationLoop: settings.animationLoop,
                     animationSpeed: speed,
                     blocksMovement: settings.blocksMovement,
+                    cornerJoinCells: settings.cornerJoinCells,
                   ),
                 );
                 return true;
               },
             ),
           ],
+          if (role == 'lineCorner' || role == 'lineCornerLeft')
+            StudioCommitField(
+              key: const ValueKey('border-settings-corner-join'),
+              label: 'Raccord de l’angle · cases réservées de chaque côté',
+              value: settings.cornerJoinCells.toString(),
+              tryCommit: (text) {
+                final cells = int.tryParse(text.trim());
+                if (cells == null || cells < 0 || cells > 8) {
+                  setState(
+                    () => _error = 'Le raccord doit réserver de 0 à 8 cases de chaque côté.',
+                  );
+                  return false;
+                }
+                _error = null;
+                _setSettings(
+                  role,
+                  BorderModelSettings(
+                    animationIndex: settings.animationIndex,
+                    animationLoop: settings.animationLoop,
+                    animationSpeed: settings.animationSpeed,
+                    blocksMovement: settings.blocksMovement,
+                    cornerJoinCells: cells,
+                  ),
+                );
+                return true;
+              },
+            ),
           StudioToggleRow(
             key: const ValueKey('border-settings-blocks-movement'),
             label: 'Bloque le passage',
@@ -496,6 +571,7 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                 animationLoop: settings.animationLoop,
                 animationSpeed: settings.animationSpeed,
                 blocksMovement: value,
+                cornerJoinCells: settings.cornerJoinCells,
               ),
             ),
           ),
@@ -796,11 +872,8 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                     label: 'Tracés droits uniquement',
                     value: _straightOnly,
                     onChanged: (value) => setState(() {
-                      if (!value && _sequenceLength > 1) {
-                        _error = 'Ramenez le motif à une étape avant d’autoriser les angles.';
-                      } else {
-                        _straightOnly = value;
-                      }
+                      _straightOnly = value;
+                      _error = null;
                     }),
                   ),
                 ),
@@ -926,7 +999,6 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
                         sequenceSettings:
                             widget.project.settings.dimension ==
                                     ProjectDimension.threeD &&
-                                _straightOnly &&
                                 (widget
                                             .initialRecord
                                             ?.draft

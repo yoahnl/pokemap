@@ -12,118 +12,135 @@ import 'resource_fixture.dart';
 import '../../../../packages/map_authoring/test/support/glb_fixture.dart';
 
 void main() {
-  test(
-    'Studio creates publishes and reopens every step of a new model border',
-    () async {
-      final fixture = await ResourceFixture.create();
-      addTearDown(fixture.dispose);
-      await fixture.manifestFile.writeAsString(
-        jsonEncode(
-          ProjectManifest(
-            name: 'Motif',
-            version: ProjectVersion.v9,
-            maps: [],
-            tilesets: [],
-            settings: ProjectSettings(
-              dimension: ProjectDimension.threeD,
-              spatialCamera: SpatialCameraProfile(),
-            ),
-          ).toJson(),
-        ),
-      );
-      await fixture.maps.loadProject(fixture.session);
-      final file = File('${fixture.root.path}/piece.glb');
-      await file.writeAsBytes(triangleGlb());
-      final imported = await fixture.resources.importModel(
-        sourcePath: file.path,
-        name: 'Pièce',
-      );
-      final modelId = imported.manifest.models3d.single.id;
-      final drafted = await fixture.resources.createBorder(
-        BorderCreationRequest(
-          name: 'Trois étapes',
-          blueprintId: 'sequence',
-          straightOnly: true,
-          sequenceLength: 3,
-          capModelId: modelId,
-          straightModelId: modelId,
-          publish: false,
-        ),
-      );
-      expect(
-        drafted
-            .manifest
-            .borderCatalog
-            .records
-            .single
-            .draft
-            .definition
-            .sequenceLength,
-        3,
-      );
-      final published = await fixture.resources.createBorder(
-        const BorderCreationRequest(
-          name: 'Trois étapes',
-          blueprintId: 'sequence',
-          publish: true,
-        ),
-      );
-      final reopened = await LocalMapWorkspaceAdapter().loadProject(
-        fixture.session,
-      );
-      final record = reopened.borderCatalog.records.single;
-      expect(record, published.manifest.borderCatalog.records.single);
-      expect(record.latestPublished!.definition.sequenceLength, 3);
-      expect(
-        record.latestPublished!.definition.primitives
-            .map((p) => p.sequenceIndex)
-            .toSet(),
-        {0, 1, 2},
-      );
-      expect(record.latestPublished!.definition.primitives, hasLength(6));
-      for (var step = 0; step < 3; step++) {
-        final cap = record.latestPublished!.definition.primitives
-            .where(
-              (p) =>
-                  p.sequenceIndex == step &&
-                  p.role == BorderPrimitiveRole.lineCap,
-            )
-            .single;
-        expect(cap.authoredOrientation, BorderPrimitiveOrientation.east);
-        expect(cap.transforms.allowedQuarterTurns, [0, 1, 2, 3]);
-      }
-    },
-  );
-
-  test(
-    'sequence editing rejects non-spatial and non-straight requests',
-    () async {
-      final root = await Directory.systemTemp.createTemp(
-        'studio_sequence_invalid_',
-      );
-      addTearDown(() => root.delete(recursive: true));
-      final project = spatialBorderProject();
-      for (final candidate in [
-        project,
-        project.copyWith(
-          settings: const ProjectSettings(dimension: ProjectDimension.twoD),
-        ),
-      ]) {
-        await expectLater(
-          prepareBorderResources(
-            manifest: candidate,
-            projectRoot: root.path,
-            request: const BorderCreationRequest(
-              name: 'Invalide',
-              blueprintId: 'fence',
-              sequenceLength: 2,
-            ),
+  for (final straightOnly in [true, false]) {
+    test(
+      'Studio creates publishes and reopens every step of a new model border (straight: $straightOnly)',
+      () async {
+        final fixture = await ResourceFixture.create();
+        addTearDown(fixture.dispose);
+        await fixture.manifestFile.writeAsString(
+          jsonEncode(
+            ProjectManifest(
+              name: 'Motif',
+              version: ProjectVersion.v9,
+              maps: [],
+              tilesets: [],
+              settings: ProjectSettings(
+                dimension: ProjectDimension.threeD,
+                spatialCamera: SpatialCameraProfile(),
+              ),
+            ).toJson(),
           ),
-          throwsA(isA<ResourceFailure>()),
         );
-      }
-    },
-  );
+        await fixture.maps.loadProject(fixture.session);
+        final file = File('${fixture.root.path}/piece.glb');
+        await file.writeAsBytes(triangleGlb());
+        final imported = await fixture.resources.importModel(
+          sourcePath: file.path,
+          name: 'Pièce',
+        );
+        final modelId = imported.manifest.models3d.single.id;
+        final drafted = await fixture.resources.createBorder(
+          BorderCreationRequest(
+            name: 'Trois étapes',
+            blueprintId: 'sequence',
+            straightOnly: straightOnly,
+            followContourDirection: !straightOnly,
+            sequenceLength: 3,
+            capModelId: modelId,
+            straightModelId: modelId,
+            cornerModelId: straightOnly ? null : modelId,
+            innerCornerModelId: straightOnly ? null : modelId,
+            primitiveModelSettings: {
+              if (!straightOnly)
+                'lineCornerLeft': const BorderModelSettings(cornerJoinCells: 1),
+            },
+            publish: false,
+          ),
+        );
+        expect(
+          drafted
+              .manifest
+              .borderCatalog
+              .records
+              .single
+              .draft
+              .definition
+              .sequenceLength,
+          3,
+        );
+        final published = await fixture.resources.createBorder(
+          const BorderCreationRequest(
+            name: 'Trois étapes',
+            blueprintId: 'sequence',
+            publish: true,
+          ),
+        );
+        final reopened = await LocalMapWorkspaceAdapter().loadProject(
+          fixture.session,
+        );
+        final record = reopened.borderCatalog.records.single;
+        expect(record, published.manifest.borderCatalog.records.single);
+        expect(record.latestPublished!.definition.sequenceLength, 3);
+        expect(
+          record.latestPublished!.definition.primitives
+              .map((p) => p.sequenceIndex)
+              .toSet(),
+          {0, 1, 2},
+        );
+        expect(
+          record.latestPublished!.definition.primitives,
+          hasLength(straightOnly ? 6 : 12),
+        );
+        expect(reopened.borderCatalog.formatVersion, straightOnly ? 12 : 13);
+        if (!straightOnly) {
+          expect(
+            record.latestPublished!.definition.primitives
+                .singleWhere((p) => p.id == 'lineCornerLeft')
+                .cornerJoinCells,
+            1,
+          );
+        }
+        for (var step = 0; step < 3; step++) {
+          final cap = record.latestPublished!.definition.primitives
+              .where(
+                (p) =>
+                    p.sequenceIndex == step &&
+                    p.role == BorderPrimitiveRole.lineCap,
+              )
+              .single;
+          expect(cap.authoredOrientation, BorderPrimitiveOrientation.east);
+          expect(cap.transforms.allowedQuarterTurns, [0, 1, 2, 3]);
+        }
+      },
+    );
+  }
+
+  test('sequence editing rejects non-spatial requests', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'studio_sequence_invalid_',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final project = spatialBorderProject();
+    for (final candidate in [
+      project.copyWith(
+        settings: const ProjectSettings(dimension: ProjectDimension.twoD),
+      ),
+    ]) {
+      await expectLater(
+        prepareBorderResources(
+          manifest: candidate,
+          projectRoot: root.path,
+          request: const BorderCreationRequest(
+            name: 'Invalide',
+            blueprintId: 'fence',
+            sequenceLength: 2,
+          ),
+        ),
+        throwsA(isA<ResourceFailure>()),
+      );
+    }
+  });
 
   test('changing one sequence source and settings retains every step and cap orientation', () async {
     final root = await Directory.systemTemp.createTemp(

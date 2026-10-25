@@ -119,16 +119,21 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
-  SpatialDepthOfFieldProfile _depthOfFieldProfile = SpatialDepthOfFieldProfile();
+  SpatialDepthOfFieldProfile _depthOfFieldProfile =
+      SpatialDepthOfFieldProfile();
   SpatialDepthOfFieldProfile get depthOfFieldProfile => _depthOfFieldProfile;
   set depthOfFieldProfile(SpatialDepthOfFieldProfile value) {
     _depthOfFieldProfile = value;
     super.notifyListeners();
   }
+
   bool get depthOfFieldEnabled => _depthOfFieldProfile.enabled;
-  set depthOfFieldEnabled(bool value) => depthOfFieldProfile =
-      SpatialDepthOfFieldProfile(enabled: value,
-        strength: _depthOfFieldProfile.strength, focusRange: _depthOfFieldProfile.focusRange);
+  set depthOfFieldEnabled(bool value) =>
+      depthOfFieldProfile = SpatialDepthOfFieldProfile(
+        enabled: value,
+        strength: _depthOfFieldProfile.strength,
+        focusRange: _depthOfFieldProfile.focusRange,
+      );
   SpatialPresentationProfile _presentationProfile =
       SpatialPresentationProfile.disabled;
   SpatialPresentationProfile get presentationProfile => _presentationProfile;
@@ -981,6 +986,41 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   late final FlutterFrameGraphicsDevice device = FlutterFrameGraphicsDevice();
 
   SpatialDepthOfField? _depthOfField;
+  int renderedFrameCount = 0;
+
+  Map<String, Object?> get depthOfFieldFrame => {
+    'render': renderedFrameCount,
+    'enabled': (context as SpatialRenderContext).depthOfField != null,
+    'strength': _depthOfField?.profile.strength,
+    'focusRange': _depthOfField?.profile.focusRange,
+    'focusDepth': _depthOfField?.focusDepth,
+    'depthPasses': _depthOfField?.depthPasses ?? 0,
+    'compositePasses': _depthOfField?.compositePasses ?? 0,
+    'targetAllocations': _depthOfField?.targetAllocations ?? 0,
+  };
+
+  @override
+  void render(Canvas canvas) => device.guardFrame(() {
+    syncDepthOfField();
+    super.render(canvas);
+    renderedFrameCount++;
+  });
+
+  void syncDepthOfField() {
+    final renderContext = context as SpatialRenderContext;
+    final profile = visibleConfiguration.controller.depthOfFieldProfile;
+    if (profile.active) {
+      final focus = _depthOfField ??= SpatialDepthOfField(device.backend);
+      focus
+        ..profile = profile
+        ..focusDepth = (camera.position - camera.target).length;
+      renderContext.depthOfField = focus;
+      device.postProcess = focus.composite;
+    } else {
+      renderContext.depthOfField = null;
+      device.postProcess = null;
+    }
+  }
 
   @override
   late final RenderContext3D context = SpatialRenderContext(device);
@@ -2639,18 +2679,6 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         ? 0.0
         : 1 - spatialDayNightFrame(minute).daylight;
     final renderContext = context as SpatialRenderContext;
-    final focusProfile = control.depthOfFieldProfile;
-    if (focusProfile.active) {
-      final focus = _depthOfField ??= SpatialDepthOfField(device.backend);
-      focus
-        ..profile = focusProfile
-        ..focusDepth = (camera.position - camera.target).length;
-      renderContext.depthOfField = focus;
-      device.postProcess = focus.composite;
-    } else {
-      renderContext.depthOfField = null;
-      device.postProcess = null;
-    }
     renderContext
       ..presentationProfile = control.presentationProfile
       ..depthFogEnabled = control.depthFogEnabled

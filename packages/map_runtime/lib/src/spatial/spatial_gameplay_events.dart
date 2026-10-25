@@ -20,6 +20,7 @@ import '../application/scene_runtime/scene_consequence_runtime_writer.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/step_studio_world_presence_runtime.dart';
 import '../application/world_rules/runtime_world_rule_projection_hook.dart';
+import '../application/world_rules/runtime_world_rule_projection_cache.dart';
 
 typedef SpatialSceneCallbackFactory = SceneRuntimeHostCallbacks Function(
   GameState Function() readSceneState,
@@ -233,6 +234,7 @@ final class SpatialGameplayEvents {
   final GlobalStoryChapterStepIndex _chapterIndex;
   final List<BattlePublicContract> _battleContracts;
   final List<StepStudioWorldPresenceRule> _presenceRules;
+  final _presenceProjection = RuntimeWorldRuleProjectionCache();
   late final MapEnterProductionDispatchBridge _mapEnter;
   late final NarrativeSpatialProductionDispatchBridge _spatial;
   late final NarrativeOutcomeOutboxProcessor _outbox;
@@ -421,7 +423,7 @@ final class SpatialGameplayEvents {
       entity: entity,
       chapterIndex: _chapterIndex,
     );
-    return const RuntimeWorldRuleProjectionHook()
+    return _presenceProjection
         .resolve(project: project, gameState: state, map: map)
         .isMapEntityVisible(entity, defaultVisible: present);
   }

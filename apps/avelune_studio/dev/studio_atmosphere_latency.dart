@@ -6,6 +6,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_atmospher
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -83,6 +84,10 @@ readState() {
               'fireflies': renderer!.fireflies,
               'halos': renderer!.halosEnabled,
               'fog': renderer!.depthFogEnabled,
+              'depthOfField': renderer!.depthOfFieldEnabled,
+              'depthOfFieldStrength': renderer!.depthOfFieldProfile.strength,
+              'depthOfFieldFocusRange':
+                  renderer!.depthOfFieldProfile.focusRange,
               'haloStrength': renderer!.presentationProfile.haloStrength,
               'haloSpread': renderer!.presentationProfile.haloSpread,
               'fogOpacity': renderer!.presentationProfile.fogOpacity,
@@ -180,11 +185,27 @@ Future<void> main() async {
       final controller = readState().settings!;
       final before = controller.current;
       final pointerWatch = Stopwatch();
+      final keyboardWatch = Stopwatch();
+      bool keyboardRoute(KeyEvent event) {
+        if (event is KeyDownEvent &&
+            {
+              LogicalKeyboardKey.tab,
+              LogicalKeyboardKey.enter,
+              LogicalKeyboardKey.numpadEnter,
+            }.contains(event.logicalKey)) {
+          keyboardWatch
+            ..reset()
+            ..start();
+        }
+        return false;
+      }
+
       void pointerRoute(PointerEvent event) {
         if (event is PointerDownEvent) pointerWatch.start();
       }
 
       GestureBinding.instance.pointerRouter.addGlobalRoute(pointerRoute);
+      HardwareKeyboard.instance.addHandler(keyboardRoute);
       trace.arm();
       feedback = {'status': 'armed'};
       late VoidCallback onChange;
@@ -195,11 +216,15 @@ Future<void> main() async {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           trace.armed = false;
           GestureBinding.instance.pointerRouter.removeGlobalRoute(pointerRoute);
+          HardwareKeyboard.instance.removeHandler(keyboardRoute);
           feedback = {
             'status': 'complete',
             'stateChangeToFrameUs': timer.elapsedMicroseconds,
             'pointerDownToFrameUs': pointerWatch.isRunning
                 ? pointerWatch.elapsedMicroseconds
+                : null,
+            'keyDownToFrameUs': keyboardWatch.isRunning
+                ? keyboardWatch.elapsedMicroseconds
                 : null,
             'disk': trace.snapshot(),
           };

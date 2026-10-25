@@ -6,6 +6,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/src/flutter_frame_graphics_device.dart';
 
 void main() {
+  test('a failed render closes its frame and the next frame starts clean', () {
+    final backend = _SharedUniformBackend();
+    final device = FlutterFrameGraphicsDevice(backend: backend);
+    expect(
+      () => device.guardFrame(() {
+        device.begin();
+        backend.bind(12);
+        throw StateError('Depth shader failed');
+      }),
+      throwsStateError,
+    );
+    expect(backend.ends, 1);
+    expect(backend.cursor, 0);
+    device.guardFrame(() {
+      device.begin();
+      expect(backend.bind(96).single, 96);
+      device.end();
+    });
+    expect(backend.ends, 2);
+    expect(backend.cursor, 0);
+  });
   testWidgets('scenes retain their uniforms until every preview is painted', (
     tester,
   ) async {

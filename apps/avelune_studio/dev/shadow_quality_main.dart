@@ -20,6 +20,7 @@ import 'package:map_render_3d/src/spatial_environment_lighting.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_shadow_profile.dart';
+import 'package:map_render_3d/src/spatial_depth_of_field.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 import 'marionette_main.dart' show applyStudioCaptureLifecycle;
@@ -42,6 +43,13 @@ void main() {
           (_) => WidgetsBinding.instance.scheduleFrame(),
         );
       }
+    }
+    if (parameters['depthOfField'] case final value?) {
+      game.depthOfFieldProfile = SpatialDepthOfFieldProfile(
+        enabled: value == 'true',
+        strength: double.parse(parameters['strength'] ?? '.35'),
+        focusRange: double.parse(parameters['focusRange'] ?? '12'),
+      );
     }
     if (parameters['running'] case final value?) game.running = value == 'true';
     for (final entry in parameters.entries) {
@@ -103,12 +111,17 @@ class _ShadowQualityGame extends FlameGame3D<World3D, CameraComponent3D> {
   _ShadowQualityGame()
     : super(world: World3D(), camera: AdaptiveCamera3D(fovY: 40));
 
-  late final GraphicsDevice _device = FlutterFrameGraphicsDevice();
+  late final FlutterFrameGraphicsDevice _device = FlutterFrameGraphicsDevice();
   @override
   GraphicsDevice get device => _device;
   late final SpatialRenderContext _context = SpatialRenderContext(device);
   @override
   SpatialRenderContext get context => _context;
+  SpatialDepthOfFieldProfile depthOfFieldProfile = SpatialDepthOfFieldProfile();
+  SpatialDepthOfField? _depthOfField;
+
+  @override
+  void render(Canvas canvas) => _device.guardFrame(() => super.render(canvas));
 
   final objects = <_ProbeMesh>[];
   late _ProbeMesh ground;
@@ -180,6 +193,17 @@ class _ShadowQualityGame extends FlameGame3D<World3D, CameraComponent3D> {
         distance: 27,
       );
     final frame = spatialDayNightFrame(minute);
+    if (depthOfFieldProfile.active) {
+      final focus = _depthOfField ??= SpatialDepthOfField(_device.backend);
+      focus
+        ..profile = depthOfFieldProfile
+        ..focusDepth = (camera.position - camera.target).length;
+      context.depthOfField = focus;
+      _device.postProcess = focus.composite;
+    } else {
+      context.depthOfField = null;
+      _device.postProcess = null;
+    }
     final direction = spatialDayNightSunDirection((
       x: -.45,
       y: 1,

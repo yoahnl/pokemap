@@ -10,6 +10,48 @@ import '../../dev/hgss_lighting_comparison.dart';
 
 void main() {
   test(
+    'depth of field pairs preserve lighting and restore the source image',
+    () {
+      final camera = SpatialSceneController();
+      final lighting = ValueNotifier(SpatialLightingProfile.disabled);
+      addTearDown(camera.dispose);
+      addTearDown(lighting.dispose);
+      camera.previewMinuteOfDay = 840;
+      camera.halosEnabled = true;
+      camera.depthFogEnabled = true;
+      for (final enabled in [false, true, false]) {
+        setComparisonLightingPhase(
+          dayNightTest: false,
+          depthOfFieldTest: true,
+          after: enabled,
+          probeOnly: false,
+          frameIndex: 0,
+          frameCount: 60,
+          camera: camera,
+          lighting: lighting,
+          beforeProfile: SpatialLightingProfile.disabled,
+          afterProfile: SpatialLightingProfile.stylized(),
+        );
+        expect(camera.depthOfFieldEnabled, enabled);
+        expect(camera.previewMinuteOfDay, 840);
+        expect(camera.halosEnabled, isTrue);
+        expect(camera.depthFogEnabled, isTrue);
+        expect(lighting.value, same(SpatialLightingProfile.disabled));
+      }
+      const child = SizedBox();
+      expect(
+        comparisonLightingSurface(
+          dayNightTest: false,
+          depthOfFieldTest: true,
+          lighting: lighting,
+          child: child,
+        ),
+        same(child),
+      );
+    },
+  );
+
+  test(
     'atmosphere pairs share the clock and independently restore all flags',
     () {
       final camera = SpatialSceneController();
@@ -165,6 +207,47 @@ void main() {
       );
     }
   });
+
+  test(
+    'depth of field plans preserve unmasked assets and exclude other modes',
+    () async {
+      final root = await Directory.systemTemp.createTemp('avelune-dof-plan-');
+      addTearDown(() => root.delete(recursive: true));
+      final path = await root.resolveSymbolicLinks();
+      await Directory('$path/evidence/depth-of-field').create(recursive: true);
+      final file = File(
+        '$path/evidence/depth-of-field/comparison-depth-of-field-plan.json',
+      );
+      final plan = {
+        'testProject': '$path/jeu',
+        'mapId': 'first-map',
+        'depthOfFieldTest': true,
+      };
+      await file.writeAsString(jsonEncode(plan));
+      expect(
+        await loadComparisonPlan(path, 'comparison-depth-of-field-plan.json'),
+        plan,
+      );
+      for (final extra in [
+        {'presentationTest': true},
+        {'dayNightTest': true},
+        {'depthOfFieldTest': false},
+        {
+          'shadowCasterInstanceIds': ['house'],
+        },
+        {
+          'hiddenInstanceIds': ['tree'],
+        },
+        {'testProject': '/other/jeu'},
+      ]) {
+        await file.writeAsString(jsonEncode({...plan, ...extra}));
+        await expectLater(
+          loadComparisonPlan(path, 'comparison-depth-of-field-plan.json'),
+          throwsStateError,
+        );
+      }
+    },
+  );
 
   test('comparison plans retain both modes and bound the day/night folder', () {
     expect(

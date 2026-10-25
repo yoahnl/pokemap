@@ -24,6 +24,7 @@ uniform Shadow {
     vec4 receiverHeight;
     vec4 samplePosition;
     vec4 origin;
+    vec4 coverage;
 } shadow;
 
 uniform Environment {
@@ -130,6 +131,10 @@ float shadowVisibility(vec3 samplePosition, vec3 receiverNormal) {
     vec3 coord = projected.xyz / projected.w;
     vec2 uv = vec2(coord.x * 0.5 + 0.5, 0.5 - coord.y * 0.5);
     if (coord.z < 0.0 || coord.z > 1.0 || any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 1.0;
+    ivec2 cell = clamp(ivec2(floor(uv * 8.0)), ivec2(0), ivec2(7));
+    int cellIndex = cell.y * 8 + cell.x;
+    uint covered = uint(shadow.coverage[cellIndex / 16]);
+    if ((covered & (1u << uint(cellIndex % 16))) == 0u) return 1.0;
     float resolution = shadow.options.z;
     float reference = coord.z - shadow.options.y;
     vec2 pixel = uv * resolution - 0.5;

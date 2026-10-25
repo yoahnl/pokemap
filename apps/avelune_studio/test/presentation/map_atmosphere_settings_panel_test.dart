@@ -139,6 +139,8 @@ void main() {
         port,
       );
       addTearDown(controller.dispose);
+      final preview = SpatialSceneController();
+      addTearDown(preview.dispose);
       await tester.binding.setSurfaceSize(const Size(900, 2400));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final unrelated = _GuardList<ProjectTilesetEntry>(
@@ -151,6 +153,7 @@ void main() {
             body: SingleChildScrollView(
               child: MapAtmosphereSettingsPanel(
                 controller: controller,
+                preview: preview,
                 map: spatialEnvironmentMap(),
                 project: spatialEnvironmentProject().copyWith(
                   tilesets: unrelated,
@@ -185,6 +188,9 @@ void main() {
         createFile: (path) => throw StateError('Unexpected disk: $path'),
         createDirectory: (path) => throw StateError('Unexpected disk: $path'),
       );
+      expect(preview.depthOfFieldEnabled, isTrue);
+      expect(preview.depthOfFieldProfile.strength, .65);
+      expect(preview.depthOfFieldProfile.focusRange, 18);
       expect(controller.current.toJson()['depthOfFieldStrength'], .65);
       expect(controller.current.toJson()['depthOfFieldFocusRange'], 18);
       final focusField = find.descendant(

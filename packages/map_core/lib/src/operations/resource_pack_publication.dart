@@ -35,6 +35,7 @@ BorderBlueprintDraft reconstructResourcePackBorderDraft(
             authoredOrientation: primitive.authoredOrientation,
             sequenceIndex: primitive.sequenceIndex,
             cornerTurn: primitive.cornerTurn,
+            cornerJoinCells: primitive.cornerJoinCells,
             weight: primitive.weight,
             anchorPx: primitive.isSpatial ? null : primitive.anchorPx,
             anchorWorld: primitive.anchorWorld,

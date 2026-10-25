@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/world_rules/runtime_world_rule_projection_cache.dart';
 
 const _saveId = 'save_world_rules_runtime_projection';
 const _mapId = 'map_runtime_world_rules';
@@ -17,6 +18,95 @@ const _narrativeEventId = 'evt_019abcde-5200-7000-8000-000000000001';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'presence projection reuses a state and invalidates every input identity',
+    () {
+      final fixture = _fixture(
+        worldRules: [
+          _entityRule(
+            id: 'world_rule_hide_npc',
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityHidden,
+            ),
+          ),
+        ],
+      );
+      final cache = RuntimeWorldRuleProjectionCache();
+      const visible = GameState(saveId: _saveId);
+      final first = cache.resolve(
+        project: fixture.project,
+        gameState: visible,
+        map: fixture.map,
+      );
+      for (var i = 0; i < 100; i++) {
+        expect(
+          cache.resolve(
+            project: fixture.project,
+            gameState: visible,
+            map: fixture.map,
+          ),
+          same(first),
+        );
+      }
+      final hidden = visible.copyWith(
+        storyFlags: const StoryFlags(activeFlags: {_factId}),
+      );
+      final changed = cache.resolve(
+        project: fixture.project,
+        gameState: hidden,
+        map: fixture.map,
+      );
+      expect(changed, isNot(same(first)));
+      expect(changed.isMapEntityVisible(fixture.npcEntity), isFalse);
+      expect(
+        cache
+            .resolve(
+              project: fixture.project,
+              gameState: visible,
+              map: fixture.map,
+            )
+            .isMapEntityVisible(fixture.npcEntity),
+        isTrue,
+      );
+      final otherMap = fixture.map.copyWith(name: 'Changed');
+      final remapped = cache.resolve(
+        project: fixture.project,
+        gameState: visible,
+        map: otherMap,
+      );
+      expect(remapped, isNot(same(first)));
+      final resolvedAgain = cache.resolve(
+        project: fixture.project,
+        gameState: visible,
+        map: otherMap,
+      );
+      expect(resolvedAgain, same(remapped));
+      final otherProject = fixture.project.copyWith(worldRules: const []);
+      expect(
+        cache
+            .resolve(project: otherProject, gameState: hidden, map: otherMap)
+            .isMapEntityVisible(fixture.npcEntity),
+        isTrue,
+      );
+      final retained = cache.resolve(
+        project: otherProject,
+        gameState: hidden,
+        map: otherMap,
+      );
+      for (var i = 0; i < 9; i++) {
+        cache.resolve(
+          project: otherProject,
+          gameState: hidden,
+          map: otherMap.copyWith(id: 'other-$i'),
+        );
+      }
+      expect(
+        cache.resolve(project: otherProject, gameState: hidden, map: otherMap),
+        isNot(same(retained)),
+      );
+    },
+  );
 
   group('RuntimeWorldRuleProjectionHook', () {
     test('reads Fact-backed entityHidden without mutating inputs', () {

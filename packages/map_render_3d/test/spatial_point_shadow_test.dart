@@ -5,6 +5,40 @@ import 'package:map_render_3d/src/spatial_point_shadow.dart';
 import 'package:map_render_3d/src/spatial_environment_lighting.dart';
 
 void main() {
+  test('cube face culling retains near crossings and seam boundaries', () {
+    final light = SpatialPointLight(position: (x: 3, y: 4, z: 5), radius: 10);
+    for (var face = 0; face < 6; face++) {
+      final projection = spatialPointShadowProjection(light, face);
+      final direction = spatialPointShadowRay(Vector2(.5, .5), face);
+      final center = Vector3(3, 4, 5) + direction * 4;
+      final half = Vector3.all(.1);
+      final bounds = Aabb3.minMax(center - half, center + half);
+      for (var candidate = 0; candidate < 6; candidate++) {
+        expect(
+          spatialPointShadowIntersectsFace(
+            spatialPointShadowProjection(light, candidate).viewProjection,
+            bounds,
+          ),
+          candidate == face,
+        );
+      }
+      expect(
+        spatialPointShadowIntersectsFace(
+          projection.viewProjection,
+          Aabb3.minMax(Vector3(2, 3, 4), Vector3(4, 5, 6)),
+        ),
+        isTrue,
+      );
+      expect(
+        spatialPointShadowIntersectsFace(
+          projection.viewProjection,
+          Aabb3.minMax(Vector3(7, 8, 9), Vector3(7.1, 8.1, 9.1)),
+        ),
+        face == 0 || face == 2 || face == 4,
+      );
+    }
+  });
+
   test('receiver plane comparison removes grazing self shadow without erasing a nearer blocker', () {
     final receiver = Vector3(6, .6, .3), normal = Vector3(0, 0, 1);
     final face = spatialPointShadowFace(receiver);

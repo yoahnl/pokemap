@@ -10,6 +10,7 @@ import 'spatial_shadow_profile.dart';
 import 'spatial_point_light.dart';
 import 'spatial_point_shadow.dart';
 import 'spatial_shadow_target.dart';
+import 'spatial_shadow_coverage.dart';
 
 final class SpatialShadowMap {
   SpatialShadowMap(GpuBackend backend, {bool ownsFrame = true})
@@ -118,6 +119,7 @@ final class SpatialShadowMap {
     draw, {
     bool antialiasing = true,
     bool preferMultisampling = true,
+    SpatialShadowCoverage? coverage,
   }) {
     if (_target == null ||
         _resolution != profile.resolution ||
@@ -175,6 +177,7 @@ final class SpatialShadowMap {
       supersampled: _target!.supersampled,
       origin: profile.center,
       relativeWorldToLight: relativeProjection.viewProjection,
+      coverage: coverage?.mask ?? spatialFullShadowCoverage,
     );
   }
 }

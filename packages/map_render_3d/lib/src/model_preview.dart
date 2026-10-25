@@ -132,12 +132,18 @@ class _ModelPreviewState extends State<ModelPreview> {
     child: GestureDetector(
       onPanUpdate: (details) =>
           widget.controller.orbit(details.delta.dx, details.delta.dy),
-      child: SpatialGameSurface<_ModelPreviewGame>(
-        key: ObjectKey(game),
-        game: game,
-        autofocus: true,
-        loadingBuilder: widget.loadingBuilder,
-        errorBuilder: (context, error) => widget.errorBuilder(context, error),
+      child: ListenableBuilder(
+        listenable: widget.controller,
+        builder: (context, _) => SpatialGameSurface<_ModelPreviewGame>(
+          key: ObjectKey(game),
+          game: game,
+          continuous:
+              widget.controller.animation != null &&
+              !widget.controller.animationPaused,
+          autofocus: true,
+          loadingBuilder: widget.loadingBuilder,
+          errorBuilder: (context, error) => widget.errorBuilder(context, error),
+        ),
       ),
     ),
   );

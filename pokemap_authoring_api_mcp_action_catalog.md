@@ -1579,6 +1579,21 @@ la création, avec `primary` par défaut et la même validation que l'édition d
 Les actions de création et d'édition contrôlent la restriction `straightOnly`
 avant toute persistence de géométrie ; leurs plans refusent les virages atomiquement.
 
+Le sous-format de catalogue 13 permet les séquences 3D à angles :
+`definition.sequenceLength` et `primitives[].sequenceIndex` restent explicites,
+avec un angle pour chaque phase et les deux virages lorsque le contour est dirigé.
+Les anciens motifs droits restent représentables en 12 ; la lecture seule ne
+promeut pas leur catalogue. Les contrats sont exposés dans `spatialCornerSequence`.
+
+Une primitive 3D `lineCorner` peut définir `cornerJoinCells`, entier de 0 à 8
+valant zéro par défaut. L'angle réserve ce nombre de slots droits avant et après
+son ancre, sans déplacer les autres instances ni modifier la progression du motif.
+Les réservations suivent les contours fermés. Une extrémité, un autre angle,
+une réservation concurrente ou une personnalisation de slot dans cette zone
+fait refuser la matérialisation atomiquement ; supprimer l'angle libère ses voisins.
+Ce champ exige le catalogue 13, conserve les données historiques sans réservation
+et est décrit par l'extension `spatialCornerJoins` des actions de brouillon/publication.
+
 Une feature 3D peut définir `spatialOffsetWorld: {x, y, z}` pour décaler un profil
 réutilisable dans les coordonnées de la carte, après rotation de ses primitives.
 Le décalage absent vaut zéro ; `border_layer.feature_update` conserve une valeur

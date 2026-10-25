@@ -19,7 +19,17 @@ void _validateSpatialBehavior({
   required double animationSpeed,
   required bool blocksMovement,
   required int sequenceIndex,
+  required BorderPrimitiveRole role,
+  required int cornerJoinCells,
 }) {
+  if (cornerJoinCells < 0 ||
+      cornerJoinCells > 8 ||
+      cornerJoinCells != 0 &&
+          (modelId == null || role != BorderPrimitiveRole.lineCorner)) {
+    throw const ValidationException(
+      'Corner joins require a spatial corner and zero to eight cells',
+    );
+  }
   if (sequenceIndex < 0 || sequenceIndex > 9007199254740991) {
     throw const ValidationException('Invalid Border sequence index');
   }
@@ -83,6 +93,7 @@ final class BorderPrimitiveDraft {
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
     this.sequenceIndex = 0,
     this.cornerTurn,
+    this.cornerJoinCells = 0,
     required this.weight,
     BorderPixelPos? anchorPx,
     this.anchorWorld,
@@ -116,6 +127,8 @@ final class BorderPrimitiveDraft {
       animationSpeed: animationSpeed,
       blocksMovement: blocksMovement,
       sequenceIndex: sequenceIndex,
+      role: role,
+      cornerJoinCells: cornerJoinCells,
     );
     _validateVisualSource(
       sourceElementId,
@@ -140,6 +153,7 @@ final class BorderPrimitiveDraft {
   final BorderPrimitiveOrientation authoredOrientation;
   final int sequenceIndex;
   final BorderCornerTurn? cornerTurn;
+  final int cornerJoinCells;
   final int weight;
   final BorderPixelPos? _anchorPx;
   final Model3dVector3? anchorWorld;
@@ -176,6 +190,7 @@ final class BorderPrimitiveDraft {
           authoredOrientation == other.authoredOrientation &&
           sequenceIndex == other.sequenceIndex &&
           cornerTurn == other.cornerTurn &&
+          cornerJoinCells == other.cornerJoinCells &&
           weight == other.weight &&
           _anchorPx == other._anchorPx &&
           anchorWorld == other.anchorWorld &&
@@ -197,6 +212,7 @@ final class BorderPrimitiveDraft {
     authoredOrientation,
     sequenceIndex,
     cornerTurn,
+    cornerJoinCells,
     weight,
     _anchorPx,
     anchorWorld,
@@ -223,6 +239,7 @@ final class BorderPublishedPrimitive {
     this.authoredOrientation = BorderPrimitiveOrientation.legacyAxis,
     this.sequenceIndex = 0,
     this.cornerTurn,
+    this.cornerJoinCells = 0,
     required this.weight,
     BorderPixelPos? anchorPx,
     this.anchorWorld,
@@ -257,6 +274,8 @@ final class BorderPublishedPrimitive {
       animationSpeed: animationSpeed,
       blocksMovement: blocksMovement,
       sequenceIndex: sequenceIndex,
+      role: role,
+      cornerJoinCells: cornerJoinCells,
     );
     _validateVisualSource(
       sourceElementId,
@@ -282,6 +301,7 @@ final class BorderPublishedPrimitive {
   final BorderPrimitiveOrientation authoredOrientation;
   final int sequenceIndex;
   final BorderCornerTurn? cornerTurn;
+  final int cornerJoinCells;
   final int weight;
   final BorderPixelPos? _anchorPx;
   final Model3dVector3? anchorWorld;
@@ -324,6 +344,7 @@ final class BorderPublishedPrimitive {
           authoredOrientation == other.authoredOrientation &&
           sequenceIndex == other.sequenceIndex &&
           cornerTurn == other.cornerTurn &&
+          cornerJoinCells == other.cornerJoinCells &&
           weight == other.weight &&
           _anchorPx == other._anchorPx &&
           anchorWorld == other.anchorWorld &&
@@ -346,6 +367,7 @@ final class BorderPublishedPrimitive {
     authoredOrientation,
     sequenceIndex,
     cornerTurn,
+    cornerJoinCells,
     weight,
     _anchorPx,
     anchorWorld,
@@ -498,9 +520,10 @@ final class BorderBlueprintDefinition<TPrimitive, TGround> {
     if (sequenceLength < 1 ||
         sequenceLength > 9007199254740991 ||
         (sequenceLength > 1 &&
-            (!straightOnly || !kinds.contains(BorderVisualKind.model3d)))) {
+            (template != BorderBlueprintTemplate.connectedLine ||
+                !kinds.contains(BorderVisualKind.model3d)))) {
       throw const ValidationException(
-        'Border sequences require a positive portable length and a spatial straight-only blueprint',
+        'Border sequences require a positive portable length and a spatial connected-line blueprint',
       );
     }
     for (final primitive in _primitives) {

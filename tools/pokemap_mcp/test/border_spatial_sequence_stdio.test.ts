@@ -44,6 +44,8 @@ test("live MCP publishes cyclic native Borders and preserves phases after erase 
     const catalog = await call("pokemap_describe");
     const publish = (catalog.mutationActions as JsonRecord[]).find(action => action.id === "border.blueprint.publish");
     assert.equal(record(record(publish!.extensions).spatialSequence).minimumCatalogFormatVersion, 12);
+    assert.equal(record(record(publish!.extensions).spatialCornerSequence).minimumCatalogFormatVersion, 13);
+    assert.equal(record(record(publish!.extensions).spatialCornerJoins).phaseBeforeReservation, true);
     const request = { name: "Native cyclic border", folderName: "game", parentPath: root,
       template: "empty", dimension: "threeD", mapWidth: 24, mapHeight: 12 };
     const preview = await call("pokemap_project_create_preview", { request });
@@ -70,6 +72,7 @@ test("live MCP publishes cyclic native Borders and preserves phases after erase 
     }
     const sourcePath = join(root, "unit.glb"); await writeFile(sourcePath, unitGlb());
     const staged = await call("pokemap_artifact_stage", { sourcePath, declaredMediaType: "model/gltf-binary" });
+    await call("pokemap_workshop", { operation: "prepare", projectHandle });
     await mutate("model3d.import", { modelId: "unit", name: "Unit", artifactHandle: staged.artifactHandle });
     const definition = { name: "Six-step fence", previewSeed: "1", template: "connectedLine",
       straightOnly: true, sequenceLength: 6, sortOrder: 0,
@@ -129,6 +132,44 @@ test("live MCP publishes cyclic native Borders and preserves phases after erase 
     projectHandle = String(opened.projectHandle); workspaceHandle = String(opened.workspaceHandle);
     assert.equal((await call("pokemap_validate", { projectHandle })).valid, true);
     assert.deepEqual(await readFile(mapPath), savedBytes);
+    const cornerDefinition = { ...definition, straightOnly: false,
+      primitives: Array.from({ length: 6 }, (_, sequenceIndex) => ["body", "start", "end", "corner"].map(kind => ({
+        id: kind + "-" + sequenceIndex, sourceModelId: "unit", sequenceIndex,
+        role: kind === "body" ? "lineStraight" : kind === "corner" ? "lineCorner" : "lineCap", weight: 1,
+        ...(kind === "corner" ? { cornerJoinCells: 1 } : {}),
+        authoredOrientation: kind === "end" ? "west" : "east",
+        transforms: { allowFlipX: false, allowedQuarterTurns: [0, 1, 2, 3] } }))).flat() };
+    await mutate("border.blueprint.draft.upsert", { record: { id: "fence", draft: { baseRevision: 1, definition: cornerDefinition } } });
+    await mutate("border.blueprint.publish", { blueprintId: "fence" });
+    const cornerTarget = { ...target, featureId: "corner-fence" };
+    await mutate("border_layer.feature_create", { ...cornerTarget, blueprintId: "fence", name: "Corner fence", seed: "31",
+      geometry: { kind: "stroke", strokes: [{ id: "turn", closed: false,
+        points: [{ x: 2, y: 2 }, { x: 3, y: 2 }, { x: 4, y: 2 }, { x: 4, y: 3 }, { x: 4, y: 4 }] }] } });
+    await mutate("border_layer.materialize_apply", cornerTarget);
+    const cornerMap = record(JSON.parse(await readFile(mapPath, "utf8")));
+    const cornerFeature = (record((cornerMap.layers as JsonRecord[]).find(layer => layer.id === "border")!.content).features as JsonRecord[])
+      .find(feature => feature.id === "corner-fence")!;
+    const cornerPlacements = record(cornerFeature.materialization).spatialPlacements as JsonRecord[];
+    assert.deepEqual(cornerPlacements.map(p => Number(String(p.primitiveId).split("-").at(-1))), [0, 2, 4]);
+    assert.equal(cornerPlacements[1]!.primitiveId, "corner-2");
+    const cornerProject = record(JSON.parse(await readFile(projectPath, "utf8")));
+    assert.equal(record(cornerProject.borderCatalog).formatVersion, 13);
+    await mutate("border_layer.feature_move", { ...cornerTarget, dx: 1, dy: 1 });
+    await mutate("border_layer.materialize_apply", cornerTarget);
+    await mutate("border_layer.stroke_erase", { ...cornerTarget, points: [{ x: 4, y: 3 }] });
+    const erasedCornerMap = record(JSON.parse(await readFile(mapPath, "utf8")));
+    const erasedCornerFeature = (record((erasedCornerMap.layers as JsonRecord[]).find(layer => layer.id === "border")!.content).features as JsonRecord[])
+      .find(feature => feature.id === "corner-fence")!;
+    assert.equal((record(erasedCornerFeature.materialization).spatialPlacements as JsonRecord[])
+      .some(placement => String(placement.primitiveId).startsWith("corner-")), false);
+    assert.deepEqual(record(erasedCornerMap.spatialScene).navigation, record(cornerMap.spatialScene).navigation);
+    assert.equal((await call("pokemap_validate", { projectHandle })).valid, true);
+    const cornerBytes = await readFile(mapPath);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle });
+    opened = await call("pokemap_workspace", { operation: "open", projectRoot });
+    projectHandle = String(opened.projectHandle); workspaceHandle = String(opened.workspaceHandle);
+    assert.equal((await call("pokemap_validate", { projectHandle })).valid, true);
+    assert.deepEqual(await readFile(mapPath), cornerBytes);
     await call("pokemap_workspace", { operation: "close", workspaceHandle });
   } finally {
     await client.close(); await transport.close(); await rm(root, { recursive: true, force: true });
