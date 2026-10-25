@@ -189,6 +189,13 @@ class _AveluneGameplayCompanionAppState
             },
             key: ValueKey('companion-player-${snapshot.sessionId}'),
             controller: _controller,
+            controlProfile: snapshot.presentation['controlProfile'] is Map
+                ? player_ui.PlayerControlProfile.fromJson(
+                    Map<String, dynamic>.from(
+                      snapshot.presentation['controlProfile'] as Map,
+                    ),
+                  )
+                : player_ui.PlayerControlProfile.standard,
             dialoguePresentation: _controller.dialogue,
             onDialogueCommand: (command) => unawaited(_sendDialogue(command)),
             titlePresentation: presentation.title,

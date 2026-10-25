@@ -210,6 +210,7 @@ class WorkspaceActions {
       if (sceneController?.dirty == true && !await sceneController!.saveAll()) {
         return;
       }
+      if (!await (document.atmosphere?.save() ?? Future.value(true))) return;
       if (!await (narrative()?.save(document: document) ??
               controller.save(document)) ||
           !mounted()) {

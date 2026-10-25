@@ -132,15 +132,15 @@ void main() {
         vec3 baseColor = color.rgb * material.albedoColor.rgb * (material.alphaMode == 4.0 ? vec3(1.0) : fragColor.rgb);
         outColor.rgb = outColor.rgb * environment.tint.rgb + baseColor * localLight;
     }
-    if (atmosphere.options.x > 0.5) {
+    if (atmosphere.options.x > 0.0) {
         vec2 pixelWorld = floor(fragPosition.xz * 32.0) / 32.0;
         float t = atmosphere.options.y;
         float wave = sin(pixelWorld.x * 7.0 + pixelWorld.y * 3.5 + t * 1.4);
         float crossWave = sin(pixelWorld.x * 2.3 - pixelWorld.y * 8.0 - t * 0.85);
         float glint = pow(max(0.0, wave * crossWave), 12.0);
         float ripple = (wave + crossWave) * 0.025;
-        outColor.rgb = max(vec3(0.0), outColor.rgb + vec3(ripple * 0.6, ripple, ripple * 1.15));
-        outColor.rgb += vec3(0.13, 0.20, 0.22) * glint;
+        outColor.rgb = max(vec3(0.0), outColor.rgb + vec3(ripple * 0.6, ripple, ripple * 1.15) * atmosphere.options.x);
+        outColor.rgb += vec3(0.13, 0.20, 0.22) * glint * atmosphere.options.x;
     }
     if (atmosphere.windowColor.w > 0.0) {
         float mask = 0.0;

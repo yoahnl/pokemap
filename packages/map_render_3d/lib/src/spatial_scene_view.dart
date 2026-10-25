@@ -95,6 +95,28 @@ class SpatialSceneController extends ModelPreviewController {
     super.notifyListeners();
   }
 
+  SpatialAtmosphereSettings? _authoredAtmosphere;
+  void applyAtmosphereSettings(SpatialAtmosphereSettings settings) {
+    if (_authoredAtmosphere == settings) return;
+    final previous = _authoredAtmosphere;
+    final geometryChanged = previous == null ||
+      previous.copyWith(waterAnimated:settings.waterAnimated,windowsLit:settings.windowsLit,fireflies:settings.fireflies,waterStrength:settings.waterStrength,waterSpeed:settings.waterSpeed,windowStrength:settings.windowStrength,fireflyDensity:settings.fireflyDensity) != settings;
+    if (geometryChanged) {
+      _atmosphereProfile = SpatialAtmosphereProfile.fromSettings(settings);
+    } else {
+      _atmosphereProfile
+        ..waterStrength=settings.waterStrength
+        ..waterSpeed=settings.waterSpeed
+        ..windowStrength=settings.windowStrength
+        ..fireflyDensity=settings.fireflyDensity;
+    }
+    _authoredAtmosphere=settings;
+    _waterAnimated=settings.waterAnimated;
+    _windowsLit=settings.windowsLit;
+    _fireflies=settings.fireflies;
+    super.notifyListeners();
+  }
+
   bool _waterAnimated = false, _windowsLit = false, _fireflies = false;
   bool get waterAnimated => _waterAnimated;
   set waterAnimated(bool value) {
@@ -335,7 +357,7 @@ class SpatialSceneView extends StatefulWidget {
 }
 
 class _SpatialSceneViewState extends State<SpatialSceneView> {
-  _SpatialGame? game;
+  SpatialSceneGame? game;
   Object? failure;
   Object? previewFailure;
   bool draggingContent = false;
@@ -516,7 +538,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     try {
       await initializeSpatialRenderer();
       if (!mounted) return;
-      final initialized = _SpatialGame(
+      final initialized = SpatialSceneGame(
         widget,
         onPreviewStatus: handlePreviewStatus,
         onSurfaceChanged: scheduleHoverRefresh,
@@ -775,7 +797,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: SpatialGameSurface<_SpatialGame>(
+                      child: SpatialGameSurface<SpatialSceneGame>(
                         game: game,
                         loadingBuilder: (_) => const Center(
                           child: Text('Chargement de la scène…'),
@@ -798,14 +820,15 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   }
 }
 
-class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
+@visibleForTesting
+class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
   late final GraphicsDevice device = FlutterFrameGraphicsDevice();
 
   @override
   late final RenderContext3D context = SpatialRenderContext(device);
 
-  _SpatialGame(
+  SpatialSceneGame(
     this.configuration, {
     required this.onPreviewStatus,
     required this.onSurfaceChanged,
@@ -1079,6 +1102,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       _destinationPreparation = null;
     }
     final ticket = ++generation;
+    cache.removeWhere((key, _) => !modelReservations.containsKey(key));
+    groundTextureCache.removeWhere(
+      (key, _) => !groundReservations.containsKey(key),
+    );
     refreshing = true;
     placementRenderer.clear();
     sceneComponents.cancelPending();

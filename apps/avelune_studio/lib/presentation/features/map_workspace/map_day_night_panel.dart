@@ -8,6 +8,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import 'map_atmosphere_preview_controls.dart';
+import 'map_atmosphere_settings_panel.dart';
 
 class MapDayNightPanel extends StatelessWidget {
   const MapDayNightPanel({
@@ -15,7 +16,9 @@ class MapDayNightPanel extends StatelessWidget {
     required this.document,
     required this.onChanged,
     this.controller,
+    this.project,
   });
+  final ProjectManifest? project;
   final EditableMapDocument document;
   final VoidCallback onChanged;
   final SpatialSceneController? controller;
@@ -169,7 +172,10 @@ class MapDayNightPanel extends StatelessWidget {
             ),
           ],
         ],
-        if (controller case final preview?) ...[
+        if (document.atmosphere case final atmosphere?) ...[
+          const SizedBox(height: 16),
+          MapAtmosphereSettingsPanel(controller: atmosphere, preview: controller, map: document.current, project: project),
+        ] else if (controller case final preview?) ...[
           const SizedBox(height: 16),
           MapAtmospherePreviewControls(controller: preview),
         ],

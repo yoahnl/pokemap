@@ -25,7 +25,7 @@ enum PlayerBattleEntryTone {
   disabled,
 }
 
-enum PlayerBattlePanelKind { commands, moves, target, message, decision }
+enum PlayerBattlePanelKind { commands, moves, target, message }
 
 enum PlayerBattleDisplay { full, hudOnly, commandsOnly }
 
@@ -160,6 +160,7 @@ final class PlayerBattleViewData {
     required this.canGoBack,
     this.viewportLayout,
     this.forcedReplacement = false,
+    this.isDecision = false,
     this.panelKind = PlayerBattlePanelKind.commands,
     this.additionalHuds = const [],
   });
@@ -176,6 +177,7 @@ final class PlayerBattleViewData {
   final bool canGoBack;
   final PlayerBattleViewportLayout? viewportLayout;
   final bool forcedReplacement;
+  final bool isDecision;
   final PlayerBattlePanelKind panelKind;
   final List<PlayerBattleAdditionalHud> additionalHuds;
 }
@@ -1030,6 +1032,7 @@ class _BattleCommandPanel extends StatelessWidget {
               onAction(PlayerBattleBackAction(snapshotRevision: data.revision))
         : null;
     Widget entry(PlayerBattleCommandViewData value) => _BattleEntryButton(
+      panelKind: data.panelKind,
       entry: value,
       interactionsEnabled: data.interactionsEnabled,
       autofocus: value.selected,
@@ -1225,7 +1228,7 @@ class _BattleSeparatedCommandDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chrome = context.playerBattleChrome;
-    if (data.panelKind == PlayerBattlePanelKind.decision &&
+    if (data.isDecision &&
         _usesCanonicalBattleStructure(profile) &&
         panelProfile.surfaceColor == null &&
         panelProfile.textColor == null &&
@@ -1506,14 +1509,22 @@ class _BattleDecisionDock extends StatelessWidget {
                         if (compact)
                           Align(
                             alignment: Alignment.centerLeft,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                data.prompt,
-                                key: const ValueKey('battle-decision-prompt'),
-                                style: promptStyle,
-                                maxLines: 1,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxHeight: math.max(
+                                  0,
+                                  constraints.maxHeight - 56,
+                                ),
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  data.prompt,
+                                  key: const ValueKey('battle-decision-prompt'),
+                                  style: promptStyle,
+                                  maxLines: 1,
+                                ),
                               ),
                             ),
                           )
@@ -1635,6 +1646,7 @@ class _BattleDockEntries extends StatelessWidget {
 
   Widget _entry(PlayerBattleCommandViewData entry, {bool singleLine = false}) =>
       _BattleEntryButton(
+        panelKind: data.panelKind,
         singleLine: singleLine,
         commandFontSize: entry.commandId == ProjectBattleCommandId.fight
             ? (companion
@@ -1823,34 +1835,52 @@ Future<void> _showBattleMoveInfo(
   PlayerBattleCommandViewData selected,
 ) => showDialog<void>(
   context: context,
-  builder: (context) => Dialog(
-    child: PlayerPanel(
-      padding: const EdgeInsets.all(PlayerSpacing.md),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            selected.primaryLabel,
-            style: Theme.of(context).textTheme.titleLarge,
+  builder: (context) => PlayerMenuThemeScope(
+    role: ProjectPresentationSurfaceRole.battleHud,
+    child: Builder(
+      builder: (context) => Dialog(
+        key: const ValueKey('battle-move-info-dialog'),
+        insetPadding: const EdgeInsets.all(16),
+        backgroundColor: context.playerMenuTheme.panel,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(
+            PokeMapPlayerMenuTheme.panelRadius,
           ),
-          const SizedBox(height: 12),
-          Text(
-            [
-              if (selected.moveTypeId case final type?)
-                context.playerL10n.battleMoveType(type),
-              ?selected.tertiaryLabel,
-              ?selected.trailingLabel,
-              ?selected.statusLabel,
-            ].join(' · '),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: PlayerMenuPanel(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  selected.primaryLabel,
+                  style: context.playerMenuTheme.title,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  [
+                    if (selected.moveTypeId case final type?)
+                      context.playerL10n.battleMoveType(type),
+                    ?selected.tertiaryLabel,
+                    ?selected.trailingLabel,
+                    ?selected.statusLabel,
+                  ].join(' · '),
+                ),
+                const SizedBox(height: 16),
+                PlayerActionButton(
+                  key: const ValueKey('battle-move-info-close'),
+                  label: context.playerL10n.close,
+                  icon: Icons.close_rounded,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          PlayerActionButton(
-            label: context.playerL10n.close,
-            icon: Icons.close_rounded,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
+        ),
       ),
     ),
   ),
@@ -2043,13 +2073,14 @@ class _BattleSeparatedEntries extends StatelessWidget {
 
   Widget _entry(PlayerBattleCommandViewData entry, {bool singleLine = false}) =>
       _BattleEntryButton(
+        panelKind: data.panelKind,
         singleLine: singleLine,
         entry: entry,
         interactionsEnabled: data.interactionsEnabled,
         autofocus: entry.selected,
         iconBuilder: itemIconBuilder,
         dense: true,
-        showSecondaryLabel: entry.moveTypeId != null || entry.isBagItem,
+        showSecondaryLabel: entry.commandId == null,
         showProjectIcon: showProjectIcons,
         selectionColor: selectionColor,
         onPressed: () => onAction(
@@ -2115,12 +2146,13 @@ class _BattleSeparatedGrid extends StatelessWidget {
   }
 
   Widget _entry(PlayerBattleCommandViewData entry) => _BattleEntryButton(
+    panelKind: data.panelKind,
     entry: entry,
     interactionsEnabled: data.interactionsEnabled,
     autofocus: entry.selected,
     iconBuilder: itemIconBuilder,
     dense: true,
-    showSecondaryLabel: entry.moveTypeId != null || entry.isBagItem,
+    showSecondaryLabel: entry.commandId == null,
     showProjectIcon: showProjectIcons,
     selectionColor: selectionColor,
     onPressed: () => onAction(
@@ -2384,6 +2416,7 @@ class _BattleEntryButton extends StatefulWidget {
     this.showSecondaryLabel = true,
     this.singleLine = false,
     this.commandFontSize,
+    this.panelKind,
     required this.onPressed,
     required this.showProjectIcon,
     required this.selectionColor,
@@ -2397,6 +2430,7 @@ class _BattleEntryButton extends StatefulWidget {
   final bool showSecondaryLabel;
   final bool singleLine;
   final double? commandFontSize;
+  final PlayerBattlePanelKind? panelKind;
   final VoidCallback onPressed;
   final bool showProjectIcon;
   final Color? selectionColor;
@@ -2435,9 +2469,10 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
     final profile = context.playerBattleProfile;
     final panel = _panelProfile(
       profile,
-      entry.moveTypeId == null
-          ? PlayerBattlePanelKind.commands
-          : PlayerBattlePanelKind.moves,
+      widget.panelKind ??
+          (entry.moveTypeId == null
+              ? PlayerBattlePanelKind.commands
+              : PlayerBattlePanelKind.moves),
     );
     final authoredChrome =
         panel.surfaceColor != null ||
@@ -2457,6 +2492,17 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
         onPressed: widget.onPressed,
         commandFontSize: widget.commandFontSize,
         showProjectIcon: widget.showProjectIcon,
+      );
+    }
+    if (!authoredChrome) {
+      return _LigueBattleCollectionEntry(
+        entry: entry,
+        enabled: enabled,
+        focused: _focused,
+        focusNode: _focusNode,
+        autofocus: widget.autofocus,
+        onPressed: widget.onPressed,
+        iconBuilder: widget.iconBuilder,
       );
     }
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.4;
@@ -2810,6 +2856,170 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
                         ],
                       );
                     },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LigueBattleCollectionEntry extends StatelessWidget {
+  const _LigueBattleCollectionEntry({
+    required this.entry,
+    required this.enabled,
+    required this.focused,
+    required this.focusNode,
+    required this.autofocus,
+    required this.onPressed,
+    required this.iconBuilder,
+  });
+
+  final PlayerBattleCommandViewData entry;
+  final bool enabled;
+  final bool focused;
+  final FocusNode focusNode;
+  final bool autofocus;
+  final VoidCallback onPressed;
+  final Widget Function(String assetPath)? iconBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final chrome = context.playerBattleChrome;
+    final selected = enabled && (entry.selected || focused);
+    final surface = !enabled
+        ? chrome.moveDisabled
+        : selected
+        ? chrome.moveSelected
+        : chrome.moveSurface;
+    final ink = !enabled
+        ? chrome.moveDisabledText
+        : selected
+        ? chrome.moveSurface
+        : chrome.moveText;
+    final category = entry.isBagItem
+        ? _battleBagCategoryLabel(context.playerL10n, entry.tone)
+        : null;
+    final details = [
+      if (entry.secondaryLabel.isNotEmpty) entry.secondaryLabel,
+      ?entry.tertiaryLabel,
+      ?entry.trailingLabel,
+      ?entry.statusLabel,
+    ].join(', ');
+    final secondary = [
+      if (category != null)
+        category
+      else if (entry.secondaryLabel.isNotEmpty)
+        entry.secondaryLabel,
+      ?entry.tertiaryLabel,
+      if (!entry.isBagItem || !enabled) ?entry.statusLabel,
+    ].join(' · ');
+    final labelStyle = context.playerTypography.combatStyle(
+      TextStyle(
+        color: ink,
+        fontSize: 14,
+        height: 1.15,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+    return Semantics(
+      key: ValueKey('battle-entry-${entry.index}'),
+      button: true,
+      enabled: enabled,
+      selected: selected,
+      label: entry.primaryLabel,
+      hint: details.isEmpty && !enabled
+          ? context.playerL10n.actionUnavailable
+          : details,
+      child: Material(
+        key: ValueKey('battle-collection-surface-${entry.index}'),
+        color: surface,
+        animationDuration: context.playerMotion.fast,
+        shape: _BattleBevelShape(accent: selected ? chrome.focus : null),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          focusNode: focusNode,
+          autofocus: autofocus,
+          onTap: enabled ? onPressed : null,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 6),
+              child: LayoutBuilder(
+                builder: (context, constraints) => FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: constraints.maxWidth,
+                    child: Row(
+                      children: [
+                        if (entry.iconAssetPath != null || entry.isBagItem) ...[
+                          SizedBox.square(
+                            dimension: 28,
+                            child: entry.iconAssetPath == null
+                                ? Icon(Icons.inventory_2_outlined, color: ink)
+                                : iconBuilder?.call(entry.iconAssetPath!) ??
+                                      Icon(
+                                        Icons.inventory_2_outlined,
+                                        color: ink,
+                                      ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          entry.primaryLabel,
+                                          style: labelStyle,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (entry.trailingLabel
+                                      case final trailing?) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      trailing,
+                                      style: context.playerTypography
+                                          .numbersStyle(labelStyle),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (secondary.isNotEmpty) ...[
+                                const SizedBox(height: 3),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      secondary,
+                                      style: labelStyle.copyWith(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -3807,8 +4017,7 @@ ProjectBattlePanelPresentationProfile _panelProfile(
     return const ProjectBattlePanelPresentationProfile();
   }
   return switch (kind) {
-    PlayerBattlePanelKind.commands ||
-    PlayerBattlePanelKind.decision => ProjectBattlePanelPresentationProfile(
+    PlayerBattlePanelKind.commands => ProjectBattlePanelPresentationProfile(
       layout: profile.commandLayout,
       columns: profile.commandColumns,
       shape: profile.commandShape,

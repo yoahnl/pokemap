@@ -49,6 +49,111 @@ void main() {
       BattleCommandPanelPlacement.detached,
     ),
   ]) {
+    for (final collection in const [
+      (BattleCommandOverlayMode.bag, BattleCommandOverlayEntryKind.bag),
+      (BattleCommandOverlayMode.pokemon, BattleCommandOverlayEntryKind.party),
+      (
+        BattleCommandOverlayMode.moveTarget,
+        BattleCommandOverlayEntryKind.target,
+      ),
+      (
+        BattleCommandOverlayMode.bagMedicineTarget,
+        BattleCommandOverlayEntryKind.medicineTarget,
+      ),
+    ]) {
+      testWidgets(
+        'Ligue ${collection.$1.name} keeps published details and indices in ${mode.$1}',
+        (tester) async {
+          await tester.binding.setSurfaceSize(mode.$2);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          final semantics = tester.ensureSemantics();
+          addTearDown(semantics.dispose);
+          final commands = <BattlePresentationCommand>[];
+          final bag = collection.$1 == BattleCommandOverlayMode.bag;
+          await _pumpOverlay(
+            tester,
+            snapshot: _snapshot(
+              viewportSize: mode.$2,
+              placement: mode.$5,
+              controllerLayout:
+                  mode.$3 == PlayerInputSource.controller &&
+                  mode.$4 == PlayerBattleDisplay.full,
+              mode: collection.$1,
+              entries: [
+                BattleCommandOverlayEntry(
+                  index: 7,
+                  kind: collection.$2,
+                  primaryLabel: bag ? 'Potion' : 'Compagnon publié',
+                  secondaryLabel: bag ? 'Healing' : '32/48 PV',
+                  trailingLabel: bag ? 'x4' : 'Nv. 24',
+                  statusLabel: bag ? 'OK' : 'Prêt',
+                  iconAssetPath: bag ? '/items/potion.png' : null,
+                  enabled: true,
+                  selected: true,
+                  tone: bag
+                      ? BattleCommandOverlayEntryTone.medicine
+                      : BattleCommandOverlayEntryTone.switching,
+                ),
+                BattleCommandOverlayEntry(
+                  index: 23,
+                  kind: collection.$2,
+                  primaryLabel: bag ? 'Objet indisponible' : 'Compagnon K.O.',
+                  secondaryLabel: bag ? 'Healing' : '0/30 PV',
+                  trailingLabel: bag ? 'x0' : 'Nv. 20',
+                  statusLabel: 'Indisponible',
+                  enabled: false,
+                  selected: false,
+                  tone: BattleCommandOverlayEntryTone.disabled,
+                ),
+              ],
+            ),
+            display: mode.$4,
+            source: mode.$3,
+            onCommand: commands.add,
+            itemIconBuilder: (path) =>
+                SizedBox(key: ValueKey('provided-art-$path')),
+          );
+          final entry = find.byKey(const ValueKey('battle-entry-7'));
+          final material = tester.widget<Material>(
+            find.byKey(const ValueKey('battle-collection-surface-7')),
+          );
+          expect(material.shape, isNot(isA<RoundedRectangleBorder>()));
+          expect(material.elevation, 0);
+          expect(tester.getSize(entry).height, greaterThanOrEqualTo(48));
+          if (bag) {
+            expect(
+              find.byKey(const ValueKey('provided-art-/items/potion.png')),
+              findsOneWidget,
+            );
+            expect(find.text('x4'), findsOneWidget);
+            expect(find.text('SOIN'), findsWidgets);
+          } else {
+            expect(find.text('Nv. 24'), findsOneWidget);
+            expect(find.textContaining('32/48 PV'), findsOneWidget);
+            expect(find.textContaining('Prêt'), findsOneWidget);
+            expect(find.textContaining('Indisponible'), findsOneWidget);
+            expect(tester.getSemantics(entry).hint, contains('32/48 PV'));
+            expect(
+              find.descendant(of: entry, matching: find.byType(Icon)),
+              findsNothing,
+            );
+          }
+          await tester.tap(find.byKey(const ValueKey('battle-entry-23')));
+          expect(commands, isEmpty);
+          await tester.tap(entry);
+          expect(
+            commands.single,
+            isA<BattleSelectEntryCommand>()
+                .having((value) => value.snapshotRevision, 'revision', 9)
+                .having((value) => value.expectedMode, 'mode', collection.$1)
+                .having((value) => value.entryIndex, 'index', 7),
+          );
+          expect(find.byType(Scrollable), findsNothing);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+
     for (final evolution in [false, true]) {
       testWidgets(
         'Ligue in-scene ${evolution ? 'evolution' : 'learning'} decision preserves prompt and versioned choices in ${mode.$1}',
@@ -76,6 +181,12 @@ void main() {
             snapshot: snapshot,
             display: mode.$4,
             source: mode.$3,
+            theme: evolution
+                ? PokeMapPlayerTheme.dark()
+                : PokeMapPlayerTheme.light(),
+            textScaler: evolution
+                ? const TextScaler.linear(2)
+                : TextScaler.noScaling,
             onCommand: commands.add,
           );
           expect(commands, isEmpty);
@@ -127,6 +238,52 @@ void main() {
       );
     }
   }
+
+  testWidgets(
+    'authored target shape and padding retain their existing branch',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          mode: BattleCommandOverlayMode.moveTarget,
+          entries: const [
+            BattleCommandOverlayEntry(
+              index: 11,
+              kind: BattleCommandOverlayEntryKind.target,
+              primaryLabel: 'Cible publiée',
+              secondaryLabel: '12/30 PV',
+              enabled: true,
+              selected: true,
+              tone: BattleCommandOverlayEntryTone.neutral,
+            ),
+          ],
+        ),
+        onCommand: (_) {},
+        theme: PokeMapPlayerTheme.withBattleProfile(
+          PokeMapPlayerTheme.dark(),
+          const ProjectBattlePresentationProfile(
+            target: ProjectBattlePanelPresentationProfile(
+              shape: ProjectWindowShape.capsule,
+              padding: 16,
+            ),
+          ),
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('battle-collection-surface-11')),
+        findsNothing,
+      );
+      final panel = tester.widget<PlayerPanel>(
+        find.byKey(const ValueKey('battle-command-panel')),
+      );
+      expect(panel.windowStyleOverride?.shape, ProjectWindowShape.capsule);
+      expect(panel.windowStyleOverride?.contentPadding, 16);
+      expect(find.text('12/30 PV'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('compact decision keeps every replacement index reachable', (
     tester,
@@ -1274,6 +1431,19 @@ void main() {
       await tester.tap(info);
       await tester.pumpAndSettle();
       expect(find.byType(Dialog), findsOneWidget);
+      final dialog = tester.widget<Dialog>(find.byType(Dialog));
+      expect(
+        (dialog.shape! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.circular(PokeMapPlayerMenuTheme.panelRadius),
+      );
+      expect(dialog.clipBehavior, Clip.antiAlias);
+      expect(
+        find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(PlayerMenuPanel),
+        ),
+        findsOneWidget,
+      );
       expect(
         find.descendant(
           of: find.byType(Dialog),
@@ -1282,6 +1452,9 @@ void main() {
         findsOneWidget,
       );
       expect(commands, isEmpty);
+      await tester.tap(find.byKey(const ValueKey('battle-move-info-close')));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -1360,7 +1533,7 @@ void main() {
         matching: find.byType(Material),
       ),
     );
-    expect(firstItemMaterial.shape, isA<RoundedRectangleBorder>());
+    expect(firstItemMaterial.shape, isNot(isA<RoundedRectangleBorder>()));
     expect(tester.takeException(), isNull);
   });
 
@@ -2604,6 +2777,7 @@ const _richBagEntries = <BattleCommandOverlayEntry>[
 
 BattleCommandOverlaySnapshot _snapshot({
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
+  bool controllerLayout = false,
   Size viewportSize = const Size(800, 600),
   BattlePresentationPhase phase = BattlePresentationPhase.choosingCommand,
   BattleCommandOverlayMode mode = BattleCommandOverlayMode.fight,
@@ -2630,10 +2804,12 @@ BattleCommandOverlaySnapshot _snapshot({
     viewportSize: viewportSize,
     commandPanelPlacement: placement,
     commandPanelMode: mode,
+    controllerLayout: controllerLayout,
   );
   return BattleCommandOverlaySnapshot(
     revision: 9,
     commandPanelPlacement: layout.commandPanelPlacement,
+    controllerLayout: controllerLayout,
     phase: phase,
     forcedReplacement: phase == BattlePresentationPhase.forcedReplacement,
     mode: mode,

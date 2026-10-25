@@ -31,6 +31,16 @@ class AveluneGameplayCompanionData {
     if (player?.phase == RuntimePlayerPhase.preSession && request != null) {
       return jsonEncode({'interaction': request.toJson()});
     }
+    if (player?.phase == RuntimePlayerPhase.title &&
+        presentation['startupRevision'] is int) {
+      return jsonEncode({
+        'title': [
+          player!.revision,
+          player!.pauseSection?.name,
+          presentation['startupRevision'],
+        ],
+      });
+    }
     final line = dialogue;
     if (player?.phase != RuntimePlayerPhase.playing || line == null)
       return null;
@@ -479,17 +489,29 @@ class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompan
 
   Future<void> send(String kind, Map<String, Object?> payload) async {
     final current = value;
-    if (!_attached || current == null || !current.companionAttached) throw PlatformException(code: 'companionDetached');
+    if (!_attached || current == null || !current.companionAttached)
+      throw PlatformException(code: 'companionDetached');
     if (_busy) throw PlatformException(code: 'runtimeBusy');
     final generation = _generation;
     _busy = true;
     notifyListeners();
     try {
       final response = await _channel.invokeMethod<Object?>('intent', {
-        'sessionId': current.sessionId, 'revision': current.revision, 'mode': current.mode.name,
-        'sourceId': 'companion', 'sequence': ++_sequence, 'kind': kind, 'payload': payload,
+        'sessionId': current.sessionId,
+        'revision': current.revision,
+        'mode': current.mode.name,
+        'sourceId': 'companion',
+        'sequence': ++_sequence,
+        'kind': kind,
+        'payload': {
+          ...payload,
+          if (current.player?.phase == RuntimePlayerPhase.title &&
+              current.presentation['startupRevision'] is int)
+            'startupRevision': current.presentation['startupRevision'],
+        },
       });
-      if (response != null && value?.sessionId == current.sessionId) _accept(response, generation);
+      if (response != null && value?.sessionId == current.sessionId)
+        _accept(response, generation);
     } finally {
       if (generation == _generation) {
         _busy = false;

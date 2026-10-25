@@ -21,13 +21,20 @@ final class LocalTransactionFileGateway
     this._projectRoot,
     this._performanceObserver,
     this._expectedProjectRoot,
+    this._transactionNamespace,
   );
 
   static Future<LocalTransactionFileGateway> open({
     required String projectRoot,
     AuthoringPerformanceObserver? performanceObserver,
     String? expectedProjectRoot,
+    String? transactionNamespace,
   }) async {
+    if (transactionNamespace != null &&
+        !RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,119}$')
+            .hasMatch(transactionNamespace)) {
+      throw ArgumentError.value(transactionNamespace, 'transactionNamespace');
+    }
     try {
       final directory = Directory(projectRoot);
       if ((await directory.stat()).type != FileSystemEntityType.directory) {
@@ -49,6 +56,7 @@ final class LocalTransactionFileGateway
         canonicalRoot,
         performanceObserver,
         expectedProjectRoot,
+        transactionNamespace,
       );
     } on TransactionFileGatewayException {
       rethrow;
@@ -62,6 +70,7 @@ final class LocalTransactionFileGateway
 
   final String _projectRoot;
   final String? _expectedProjectRoot;
+  final String? _transactionNamespace;
   final AuthoringPerformanceObserver? _performanceObserver;
 
   static final Map<String, Future<void>> _projectWriters = {};
@@ -476,7 +485,12 @@ final class LocalTransactionFileGateway
 
   Future<Directory> _ensureInternalRoot() async {
     var current = Directory(_projectRoot);
-    for (final segment in const ['.pokemap', 'authoring', 'transactions']) {
+    for (final segment in [
+      '.pokemap',
+      'authoring',
+      'transactions',
+      if (_transactionNamespace != null) _transactionNamespace
+    ]) {
       final next = Directory(_join(current.path, segment));
       final type = await FileSystemEntity.type(next.path, followLinks: false);
       if (type == FileSystemEntityType.notFound) {

@@ -22,6 +22,7 @@ import 'pokemap_player_session_view.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_focus_controller.dart';
 import 'runtime_player_options.dart';
+import 'player_control_profile.dart';
 
 typedef PlayerStartupIntroFailure = void Function(
   int snapshotRevision,
@@ -88,15 +89,21 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.splashAnimationProgress,
     this.splashLoadingProgress,
     this.sessionBuilder,
-  })  : assert(
-          splashAnimationProgress == null ||
-              (splashAnimationProgress >= 0 && splashAnimationProgress <= 1),
-        ),
-        assert(
-          splashLoadingProgress == null ||
-              (splashLoadingProgress >= 0 && splashLoadingProgress <= 1),
-        );
+    this.companionTitleAttached = false,
+    this.onCompanionInput,
+    this.controlProfile,
+  }) : assert(
+         splashAnimationProgress == null ||
+             (splashAnimationProgress >= 0 && splashAnimationProgress <= 1),
+       ),
+       assert(
+         splashLoadingProgress == null ||
+             (splashLoadingProgress >= 0 && splashLoadingProgress <= 1),
+       );
 
+  final bool companionTitleAttached;
+  final bool Function(RuntimeInputEvent)? onCompanionInput;
+  final PlayerControlProfile? controlProfile;
   final RuntimeHostSplashBranding branding;
   final RuntimeStartupSnapshot snapshot;
   final RuntimePlayerTitlePresentation titlePresentation;
@@ -145,6 +152,12 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     traversalEdgeBehavior: TraversalEdgeBehavior.parentScope,
   );
   late final PlayerIntroVideoPlayerController _introPlaybackController;
+  final _delegatedTitleFocus = FocusNode(debugLabel: 'Delegated title input');
+  bool get _delegatesTitle =>
+      widget.companionTitleAttached &&
+      _active &&
+      _visiblePhase == RuntimeStartupPhase.titleMenu &&
+      widget.snapshot.playerSnapshot?.phase == RuntimePlayerPhase.title;
   int? _consumedStartupRevision;
   RuntimePresentationOrientation? _reportedOrientation;
 
@@ -204,6 +217,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       _splashAmbientAnimation.value = 0;
     }
     _syncSplashAnimations();
+    if (widget.companionTitleAttached != oldWidget.companionTitleAttached) {
+      if (_delegatesTitle) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _delegatesTitle) _delegatedTitleFocus.requestFocus();
+        });
+      } else {
+        _delegatedTitleFocus.unfocus();
+      }
+    }
   }
 
   @override
@@ -253,7 +275,24 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
             ),
           ),
           onInputSourceChanged: _focusController.noteInputSource,
-          child: IgnorePointer(ignoring: !_active, child: child),
+          child: Focus(
+            focusNode: _delegatedTitleFocus,
+            canRequestFocus: _delegatesTitle,
+            autofocus: _delegatesTitle,
+            onKeyEvent: (_, event) {
+              if (!_delegatesTitle) return KeyEventResult.ignored;
+              final input =
+                  (widget.controlProfile ?? PlayerControlProfile.standard)
+                      .runtimeEventFromKeyEvent(event);
+              if (input == null) return KeyEventResult.ignored;
+              widget.onCompanionInput?.call(input);
+              return KeyEventResult.handled;
+            },
+            child: IgnorePointer(
+              ignoring: !_active || _delegatesTitle,
+              child: child,
+            ),
+          ),
         ),
       ),
     );
@@ -420,7 +459,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   Widget _buildTitleState(BuildContext context) {
     final player = widget.snapshot.playerSnapshot;
     if (player == null) return _buildPreparing();
-    if (_isTitleOptions(player)) {
+    if (_isTitleOptions(player) && !_delegatesTitle) {
       return PlayerTitleOptionsSurface(
         snapshot: player,
         onReturnToTitle: () {
@@ -436,13 +475,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
           );
           if (result.status != RuntimePlayerCommandStatus.accepted) {
             throw RuntimePlayerOptionsFailure(
-                result.safeMessage ?? unavailableMessage);
+              result.safeMessage ?? unavailableMessage,
+            );
           }
         },
       );
     }
-    final projection =
-        const RuntimeTitleMenuPolicy.singleSave().project(player);
+    final projection = const RuntimeTitleMenuPolicy.singleSave().project(
+      player,
+    );
     final actions = <PlayerTitleMenuAction, PlayerActionAvailability>{
       for (final availability in projection.actions)
         _titleAction(availability.action): availability.isEnabled
@@ -457,6 +498,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         : _titleAction(projection.initialSelection!);
     final titleActions = widget.titlePresentation.projectActions(actions);
     return PlayerTitleScreen(
+      sceneOnly: _delegatesTitle,
       data: PlayerTitleViewData(
         gameTitle: widget.titlePresentation.resolveTitle(player.gameTitle),
         author: widget.titlePresentation.author,
@@ -592,7 +634,27 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   }
 
   bool _handleInput(PlayerInputCommand command) {
-    if (!_active || !command.isPress) return false;
+    if (!_active) return false;
+    if (_delegatesTitle) {
+      final control = switch (command.action) {
+        PlayerInputAction.up => RuntimeInputControl.up,
+        PlayerInputAction.down => RuntimeInputControl.down,
+        PlayerInputAction.left => RuntimeInputControl.left,
+        PlayerInputAction.right => RuntimeInputControl.right,
+        PlayerInputAction.confirm => RuntimeInputControl.primary,
+        PlayerInputAction.back => RuntimeInputControl.secondary,
+        PlayerInputAction.menu => RuntimeInputControl.menu,
+        PlayerInputAction.sprint => RuntimeInputControl.sprint,
+        PlayerInputAction.bicycle => RuntimeInputControl.bicycle,
+      };
+      widget.onCompanionInput?.call(
+        command.isPress
+            ? RuntimeInputEvent.press(control, isRepeat: command.isRepeat)
+            : RuntimeInputEvent.release(control),
+      );
+      return true;
+    }
+    if (!command.isPress) return false;
     if (command.isRepeat &&
         command.action != PlayerInputAction.up &&
         command.action != PlayerInputAction.down) {
@@ -636,8 +698,9 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   bool _handleTitleMenuInput(PlayerInputCommand command) {
     final player = widget.snapshot.playerSnapshot;
     if (player == null || _isTitleOptions(player)) return false;
-    final projection =
-        const RuntimeTitleMenuPolicy.singleSave().project(player);
+    final projection = const RuntimeTitleMenuPolicy.singleSave().project(
+      player,
+    );
     final availabilityByAction =
         <RuntimePlayerAction, RuntimePlayerActionAvailability>{
       for (final availability in projection.actions)
@@ -646,8 +709,11 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     final authored = widget.titlePresentation.actions;
     final orderedActions = authored == null
         ? projection.actions.map((availability) => availability.action)
-        : authored.where((action) => action.visible).map(
-            (action) => _runtimeAction(_titleActionFromProject(action.id)));
+        : authored
+              .where((action) => action.visible)
+              .map(
+                (action) => _runtimeAction(_titleActionFromProject(action.id)),
+              );
     final enabled = <RuntimePlayerActionAvailability>[
       for (final action in orderedActions)
         if (availabilityByAction[action] case final availability?)
@@ -682,6 +748,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
 
   void _handleBack() {
     if (!_active) return;
+    if (_delegatesTitle) {
+      widget.onCompanionInput?.call(
+        const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+      );
+      widget.onCompanionInput?.call(
+        const RuntimeInputEvent.release(RuntimeInputControl.secondary),
+      );
+      return;
+    }
     widget.onStartupCommand(
       RuntimeStartupCommand(
         action: RuntimeStartupAction.requestBack,
@@ -729,6 +804,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     _splashFinishAnimation.dispose();
     _focusController.dispose();
     _startupFocus.dispose();
+    _delegatedTitleFocus.dispose();
     super.dispose();
   }
 }

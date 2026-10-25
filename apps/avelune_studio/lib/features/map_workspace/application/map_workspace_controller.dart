@@ -1,3 +1,6 @@
+import 'map_atmosphere_controller.dart';
+import '../domain/map_atmosphere_port.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -46,8 +49,8 @@ class MapWorkspaceController {
   var _disposed = false;
   bool get isDisposed => _disposed;
 
-  bool get dirty => documents.values.any((document) => document.dirty);
-  bool get saving => documents.values.any((document) => document.saving);
+  bool get dirty => documents.values.any((document) => document.dirty || document.atmosphere?.dirty == true);
+  bool get saving => documents.values.any((document) => document.saving || document.atmosphere?.saving == true);
   void addListener(void Function() listener) => _listeners.add(listener);
   void removeListener(void Function() listener) => _listeners.remove(listener);
 
@@ -129,6 +132,18 @@ class MapWorkspaceController {
         });
       }
       final document = cached ?? await pending!;
+      final atmospherePort = port;
+      if (document.current.spatialScene != null &&
+          document.atmosphere == null &&
+          atmospherePort is MapAtmospherePort) {
+        final atmosphere = await MapAtmosphereController.open(session, entry.id, atmospherePort);
+        if (_disposed || mapEpoch != _mapEpochs[entry.id]) {
+          atmosphere.dispose();
+          return;
+        }
+        atmosphere.addListener(notify);
+        document.atmosphere = atmosphere;
+      }
       if (_disposed ||
           mapEpoch != _mapEpochs[entry.id] ||
           isCurrent?.call() == false ||
@@ -222,6 +237,7 @@ class MapWorkspaceController {
       notify();
       return false;
     }
+    if (!await (document.atmosphere?.save() ?? Future.value(true))) return false;
     if (!document.dirty) return true;
     document.saving = true;
     document.error = null;
@@ -350,6 +366,9 @@ class MapWorkspaceController {
     _disposed = true;
     _generation++;
     _previews.clear();
+    for (final document in {...documents.values, ...retiredDocuments.values}) {
+      document.atmosphere?.dispose();
+    }
     _listeners.clear();
   }
 }

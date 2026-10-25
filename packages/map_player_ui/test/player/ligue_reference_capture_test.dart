@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_battle/map_battle.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_player_ui/src/player/runtime_player_bag.dart';
@@ -115,6 +116,7 @@ final _images = <String, RuntimeUiImageLease>{};
 final _manifest = <Map<String, Object?>>[];
 final _runtimeStages = <_RuntimeStagePainter>[];
 late String _assets;
+late MemoryImage _brandLogo;
 
 bool _includes(String filter, String value) =>
     filter.isEmpty ||
@@ -144,6 +146,7 @@ void main() {
     _assets = File(p.join(root, 'world.png')).existsSync()
         ? root
         : p.join(root, 'assets');
+    _brandLogo = MemoryImage(await File(p.join(_assets, 'eclipse.png')).readAsBytes());
     await Directory(_captureRoot).create(recursive: true);
     final font = ByteData.sublistView(
       await File(p.join(_assets, 'dm-sans.ttf')).readAsBytes(),
@@ -380,8 +383,16 @@ void main() {
                         isCurrentLineFullyRevealed: true,
                         isLastContent: true,
                         choices: const [
-                          PlayerDialogueChoiceViewData(index: 0, label: 'Oui, allons-y !', selected: true),
-                          PlayerDialogueChoiceViewData(index: 1, label: 'Pas maintenant', selected: false),
+                          PlayerDialogueChoiceViewData(
+                            index: 0,
+                            label: 'Oui, allons-y !',
+                            selected: true,
+                          ),
+                          PlayerDialogueChoiceViewData(
+                            index: 1,
+                            label: 'Pas maintenant',
+                            selected: false,
+                          ),
                         ],
                       ),
                       onAction: (_) {},
@@ -409,102 +420,41 @@ void main() {
                 : [],
           );
         }
-        for (final screen in [
-          'title.menu',
-          'postbattle.victory',
-          'postbattle.moveLearningPrompt',
-        ]) {
-          if (!_includes(_screenFilter, screen)) continue;
-          final title = screen == 'title.menu';
-          final decision = screen == 'postbattle.moveLearningPrompt';
+        if (_includes(_screenFilter, 'title.menu')) {
           await _mount(
             tester,
             mode.key,
             dark,
-            title
-                ? PlayerTitleScreen(
-                    data: PlayerTitleViewData(
-                      gameTitle: 'Les Clairières',
-                      author: 'Avelune',
-                      description: 'Une aventure à votre rythme',
-                      backgroundContent: _image('world'),
-                      actions: {
-                        for (final action in const [
-                          PlayerTitleMenuAction.continueGame,
-                          PlayerTitleMenuAction.newGame,
-                          PlayerTitleMenuAction.options,
-                          PlayerTitleMenuAction.creditsAbout,
-                          PlayerTitleMenuAction.returnToHub,
-                        ])
-                          action: PlayerActionAvailability.enabled,
-                      },
-                    ),
-                    onSelected: (_) {},
-                  )
-                : Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (mode.key != 'thor-companion')
-                        await _battleStage(tester, mode.key),
-                      if (mode.key != 'thor-primary')
-                        PlayerPostBattleOverlay(
-                          snapshot: PostBattlePresentationSnapshot(
-                            revision: 7,
-                            messageIndex: 0,
-                            messageCount: 1,
-                            messageKind: decision
-                                ? RuntimePostBattleMessageKind
-                                      .moveLearningPrompt
-                                : RuntimePostBattleMessageKind.victory,
-                            message: decision
-                                ? 'Bulbi souhaite apprendre Tranch’Herbe.'
-                                : 'Vous avez remporté le combat !',
-                            summaryMessages: decision
-                                ? const []
-                                : const [
-                                    RuntimePostBattleMessage(
-                                      kind: RuntimePostBattleMessageKind
-                                          .experience,
-                                      text: 'Bulbi gagne 84 EXP.',
-                                    ),
-                                    RuntimePostBattleMessage(
-                                      kind: RuntimePostBattleMessageKind.money,
-                                      text: 'Vous obtenez 120 ₽.',
-                                    ),
-                                  ],
-                            choices: decision
-                                ? const [
-                                    PostBattlePresentationChoice(
-                                      index: 0,
-                                      label: 'Apprendre',
-                                      selected: true,
-                                    ),
-                                    PostBattlePresentationChoice(
-                                      index: 1,
-                                      label: 'Ne pas apprendre',
-                                      selected: false,
-                                    ),
-                                  ]
-                                : const [],
-                            completed: false,
-                            hasFailure: false,
-                          ),
-                          onCommand: (_) {},
-                        ),
-                    ],
-                  ),
+            PlayerTitleScreen(
+              sceneOnly: mode.key == 'thor-primary',
+              data: PlayerTitleViewData(
+                gameTitle: 'Les Clairières',
+                author: 'Avelune',
+                description: 'Une aventure à votre rythme',
+                backgroundContent: _image('world'),
+                actions: {
+                  for (final action in const [
+                    PlayerTitleMenuAction.continueGame,
+                    PlayerTitleMenuAction.newGame,
+                    PlayerTitleMenuAction.options,
+                    PlayerTitleMenuAction.creditsAbout,
+                    PlayerTitleMenuAction.returnToHub,
+                  ])
+                    action: PlayerActionAvailability.enabled,
+                },
+              ),
+              onSelected: (_) {},
+            ),
           );
           await _capture(
             tester,
             mode.key,
             theme,
-            screen,
-            source: title ? 'PlayerTitleScreen' : 'PlayerPostBattleOverlay',
-            limitations: mode.key.startsWith('thor')
-                ? [
-                    'Direct widget composition; remote title and post-battle ownership are not certified.',
-                  ]
-                : [],
+            'title.menu',
+            source: 'PlayerTitleScreen',
+            limitations: [
+              if (mode.key.startsWith('thor')) 'Direct widget composition; remote title ownership is tested separately.',
+            ],
           );
         }
         for (final screen in const [
@@ -555,6 +505,10 @@ void main() {
                 ],
               ),
             );
+            if (screen == 'session.loading' && mode.key != 'thor-primary') {
+              await tester.runAsync(() => precacheImage(ResizeImage(_brandLogo, width: 256), tester.element(find.byType(PlayerWorldLoadingSurface))));
+              await tester.pumpAndSettle();
+            }
             await _capture(
               tester,
               mode.key,
@@ -573,10 +527,37 @@ void main() {
             saveState.dispose();
           }
         }
-        for (final screen in ['battle.root', 'battle.fight', 'battle.turn']) {
+        for (final screen in [
+          'battle.root',
+          'battle.fight',
+          'battle.turn',
+          'postbattle.victory',
+          'postbattle.moveLearningPrompt',
+          'battle.bag',
+          'battle.party',
+          'battle.target',
+          'battle.medicine-target',
+          'battle.medicine-move',
+          'battle.forced-replacement',
+        ]) {
           if (!_includes(_screenFilter, screen)) continue;
-          final moves = screen == 'battle.fight';
+          final collection = switch (screen) {
+            'battle.bag' => BattleCommandOverlayMode.bag,
+            'battle.party' ||
+            'battle.forced-replacement' => BattleCommandOverlayMode.pokemon,
+            'battle.target' => BattleCommandOverlayMode.moveTarget,
+            'battle.medicine-target' =>
+              BattleCommandOverlayMode.bagMedicineTarget,
+            'battle.medicine-move' =>
+              BattleCommandOverlayMode.bagMedicineMoveTarget,
+            _ => null,
+          };
+          final forced = screen == 'battle.forced-replacement';
+          final moves =
+              screen == 'battle.fight' || screen == 'battle.medicine-move';
           final busy = screen == 'battle.turn';
+          final afterBattle = screen.startsWith('postbattle.');
+          final decision = screen == 'postbattle.moveLearningPrompt';
           final placement = mode.key.startsWith('thor')
               ? BattleCommandPanelPlacement.detached
               : mode.key == 'landscape-controller'
@@ -589,11 +570,13 @@ void main() {
             viewportSize: size,
             safePadding: _safePadding(mode.key),
             commandPanelPlacement: placement,
-            commandPanelMode: busy
-                ? BattleCommandOverlayMode.continueOnly
-                : moves
-                ? BattleCommandOverlayMode.fight
-                : BattleCommandOverlayMode.root,
+            commandPanelMode:
+                collection ??
+                (busy || afterBattle
+                    ? BattleCommandOverlayMode.continueOnly
+                    : moves
+                    ? BattleCommandOverlayMode.fight
+                    : BattleCommandOverlayMode.root),
             controllerLayout: _controller(mode.key),
           );
           await _mount(
@@ -604,13 +587,24 @@ void main() {
               fit: StackFit.expand,
               children: [
                 if (mode.key != 'thor-companion')
-                  await _runtimeStage(tester, layout),
+                  await _runtimeStage(
+                    tester,
+                    layout,
+                    doubles: screen == 'battle.target',
+                    hideEnemy: afterBattle,
+                    hidePlayer: forced,
+                  ),
                 PlayerBattleOverlay(
                   snapshot: _battleSnapshot(
                     size,
                     layout,
                     moves,
                     busy: busy,
+                    forced: forced,
+                    extraMode: collection,
+                    postBattleKind: afterBattle
+                        ? (decision ? 'decision' : 'victory')
+                        : null,
                     placement: placement,
                     controllerLayout: _controller(mode.key),
                   ),
@@ -632,6 +626,7 @@ void main() {
             source:
                 'PlayerBattleOverlay > PlayerBattleSurface; BattleSceneLayout',
             limitations: [
+              if (afterBattle) 'Uses the production in-scene narration and decision overlay path; the isolated PlayerPostBattleOverlay component is not used.',
               'Real Flame backdrop and combatant paint methods are composed with runtime layout, using reference assets; game loop, turn choreography and physical device execution are not exercised.',
             ],
           );
@@ -716,6 +711,7 @@ Widget _supplementalSurface(
   return switch (screen) {
     'session.loading' => PlayerWorldLoadingSurface(
       gameTitle: 'Les Clairières',
+      logo: _brandLogo,
       stage: 'Préparation de votre aventure…',
       progress: .65,
       onCancel: () {},
@@ -743,13 +739,15 @@ Widget _supplementalSurface(
       onRetry: () {},
       onReturnToHub: () {},
     ),
-    'save.exit' => PlayerMenuThemeScope(child: PlayerSaveDialog(
-      snapshot: saveState,
-      onSave: () async => _accepted,
-      onReceiptShown: (_) {},
-      returnToTitle: screen == 'save.exit',
-      onDiscard: () async => _accepted,
-    )),
+    'save.exit' => PlayerMenuThemeScope(
+      child: PlayerSaveDialog(
+        snapshot: saveState,
+        onSave: () async => _accepted,
+        onReceiptShown: (_) {},
+        returnToTitle: screen == 'save.exit',
+        onDiscard: () async => _accepted,
+      ),
+    ),
     'save.recovery' => Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 500),
@@ -834,49 +832,32 @@ Widget _image(String name, {BoxFit fit = BoxFit.cover}) => RawImage(
   filterQuality: FilterQuality.none,
 );
 
-Future<Widget> _battleStage(WidgetTester tester, String mode) async {
-  final size = _modes[mode]!;
-  final placement = mode.startsWith('thor')
-      ? BattleCommandPanelPlacement.detached
-      : mode == 'landscape-controller'
-      ? BattleCommandPanelPlacement.end
-      : BattleCommandPanelPlacement.bottom;
-  final layout = BattleSceneLayout.forViewport(
-    viewportSize: size,
-    safePadding: _safePadding(mode),
-    commandPanelPlacement: placement,
-    controllerLayout: _controller(mode),
-  );
-  return Stack(
-    fit: StackFit.expand,
-    children: [
-      await _runtimeStage(tester, layout),
-      PlayerBattleOverlay(
-        snapshot: _battleSnapshot(
-          size,
-          layout,
-          false,
-          placement: placement,
-          controllerLayout: _controller(mode),
-        ),
-        display: PlayerBattleDisplay.hudOnly,
-        onCommand: (_) {},
-      ),
-    ],
-  );
-}
-
 Future<Widget> _runtimeStage(
   WidgetTester tester,
-  BattleSceneLayout layout,
-) async {
+  BattleSceneLayout layout, {
+  bool doubles = false,
+  bool hideEnemy = false,
+  bool hidePlayer = false,
+}) async {
+  final playerGeometry = layout.combatantGeometry(
+    const BattleSlotRef.active(BattleSideId.player),
+    doubles: doubles,
+  );
+  final enemyGeometry = layout.combatantGeometry(
+    const BattleSlotRef.active(BattleSideId.enemy),
+    doubles: doubles,
+  );
+  final secondGeometry = layout.combatantGeometry(
+    const BattleSlotRef(side: BattleSideId.enemy, slotIndex: 1),
+    doubles: true,
+  );
   final cache = BattleVisualAssetCache(
     imageLoader: (path) async => _images[path]!.image.clone(),
   );
   final player = BattleSceneCombatantComponent(
-    sceneSpriteRect: layout.playerSpriteRect,
-    scenePlatformRect: layout.playerPlatformRect,
-    sceneFootAnchor: layout.playerFootAnchor,
+    sceneSpriteRect: playerGeometry.spriteRect,
+    scenePlatformRect: playerGeometry.platformRect,
+    sceneFootAnchor: playerGeometry.footAnchor,
     spriteFootXRatio: .68,
     isPlayerSide: true,
     speciesLabel: 'Bulbi',
@@ -887,9 +868,9 @@ Future<Widget> _runtimeStage(
     ),
   );
   final enemy = BattleSceneCombatantComponent(
-    sceneSpriteRect: layout.enemySpriteRect,
-    scenePlatformRect: layout.enemyPlatformRect,
-    sceneFootAnchor: layout.enemyFootAnchor,
+    sceneSpriteRect: enemyGeometry.spriteRect,
+    scenePlatformRect: enemyGeometry.platformRect,
+    sceneFootAnchor: enemyGeometry.footAnchor,
     spriteFootXRatio: .5,
     isPlayerSide: false,
     speciesLabel: 'Roucool',
@@ -899,6 +880,21 @@ Future<Widget> _runtimeStage(
       explicitImageAbsolutePath: p.join(_assets, 'pidgey-front.png'),
     ),
   );
+  final additional = <BattleSceneCombatantComponent>[
+    if (doubles)
+      BattleSceneCombatantComponent(
+        sceneSpriteRect: secondGeometry.spriteRect,
+        scenePlatformRect: secondGeometry.platformRect,
+        sceneFootAnchor: secondGeometry.footAnchor,
+        isPlayerSide: false,
+        speciesLabel: 'Pikachu',
+        visualAssetCache: cache,
+        initialSpriteSpec: BattleCombatantSpriteSpec(
+          facing: BattleCombatantSpriteFacing.front,
+          explicitImageAbsolutePath: p.join(_assets, 'pikachu-front.png'),
+        ),
+      ),
+  ];
   final backdrop = BattleSceneBackdropComponent(
     size: player.size.clone()
       ..setValues(layout.viewportSize.width, layout.viewportSize.height),
@@ -909,12 +905,25 @@ Future<Widget> _runtimeStage(
     ),
   );
   await tester.runAsync(
-    () => Future.wait([player.onLoad(), enemy.onLoad(), backdrop.onLoad()]),
+    () => Future.wait([
+      player.onLoad(),
+      enemy.onLoad(),
+      backdrop.onLoad(),
+      for (final component in additional) component.onLoad(),
+    ]),
   );
   expect(player.hasResolvedExplicitSprite, isTrue);
   expect(enemy.hasResolvedExplicitSprite, isTrue);
   expect(backdrop.hasResolvedExplicitImage, isTrue);
-  final painter = _RuntimeStagePainter(cache, backdrop, player, enemy);
+  if (hideEnemy) enemy.holdMaterializeHidden();
+  if (hidePlayer) player.holdMaterializeHidden();
+  final painter = _RuntimeStagePainter(
+    cache,
+    backdrop,
+    player,
+    enemy,
+    additional,
+  );
   _runtimeStages.add(painter);
   return CustomPaint(painter: painter);
 }
@@ -925,23 +934,31 @@ class _RuntimeStagePainter extends CustomPainter {
     this.backdrop,
     this.player,
     this.enemy,
+    this.additional,
   );
   final BattleVisualAssetCache cache;
   final BattleSceneBackdropComponent backdrop;
   final BattleSceneCombatantComponent player;
   final BattleSceneCombatantComponent enemy;
+  final List<BattleSceneCombatantComponent> additional;
 
   @override
   void paint(Canvas canvas, Size size) {
     backdrop.renderTree(canvas);
     player.renderTree(canvas);
     enemy.renderTree(canvas);
+    for (final component in additional) {
+      component.renderTree(canvas);
+    }
   }
 
   void dispose() {
     backdrop.onRemove();
     player.onRemove();
     enemy.onRemove();
+    for (final component in additional) {
+      component.onRemove();
+    }
     cache.dispose();
   }
 
@@ -1568,50 +1585,136 @@ BattleCommandOverlaySnapshot _battleSnapshot(
   BattleSceneLayout layout,
   bool moves, {
   bool busy = false,
+  String? postBattleKind,
+  BattleCommandOverlayMode? extraMode,
+  bool forced = false,
   bool controllerLayout = false,
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
 }) => BattleCommandOverlaySnapshot(
   commandPanelPlacement: placement,
   controllerLayout: controllerLayout,
-  phase: busy
+  forcedReplacement: forced,
+  phase: forced
+      ? BattlePresentationPhase.forcedReplacement
+      : busy
       ? BattlePresentationPhase.presentingTurn
       : BattlePresentationPhase.choosingCommand,
   revision: 7,
-  mode: busy
-      ? BattleCommandOverlayMode.continueOnly
-      : moves
-      ? BattleCommandOverlayMode.fight
-      : BattleCommandOverlayMode.root,
+  mode:
+      extraMode ??
+      (postBattleKind == 'decision'
+          ? BattleCommandOverlayMode.decision
+          : postBattleKind == 'victory'
+          ? BattleCommandOverlayMode.continueOnly
+          : busy
+          ? BattleCommandOverlayMode.continueOnly
+          : moves
+          ? BattleCommandOverlayMode.fight
+          : BattleCommandOverlayMode.root),
   viewportSize: size,
   panelRect: layout.commandPanelRect,
   enemyHud: BattleCommandOverlayHudSnapshot(
-    rect: layout.enemyHudRect,
+    rect: layout
+        .combatantGeometry(
+          const BattleSlotRef.active(BattleSideId.enemy),
+          doubles: extraMode == BattleCommandOverlayMode.moveTarget,
+        )
+        .hudRect,
     ownerLabel: 'ENNEMI',
     speciesLabel: 'Roucool',
     level: 12,
-    currentHp: 27,
+    currentHp: postBattleKind == null ? 27 : 0,
     maxHp: 36,
     genderSymbol: '♂',
     isPlayerSide: false,
   ),
   playerHud: BattleCommandOverlayHudSnapshot(
-    rect: layout.playerHudRect,
+    rect: layout
+        .combatantGeometry(
+          const BattleSlotRef.active(BattleSideId.player),
+          doubles: extraMode == BattleCommandOverlayMode.moveTarget,
+        )
+        .hudRect,
     ownerLabel: 'JOUEUR',
     speciesLabel: 'Bulbi',
     level: 16,
-    currentHp: 32,
+    currentHp: forced ? 0 : 32,
     maxHp: 48,
     genderSymbol: '♂',
     isPlayerSide: true,
     experienceProgress: 0.62,
   ),
-  battleLabel: 'COMBAT SAUVAGE',
-  title: 'COMMANDES',
-  prompt: 'Que doit faire Bulbi ?',
-  narrationLines: <String>[
-    busy ? 'Bulbi utilise Fouet Lianes !' : 'Un Roucool sauvage apparaît !',
+  additionalHuds: [
+    if (extraMode == BattleCommandOverlayMode.moveTarget)
+      BattleCommandOverlayHudSnapshot(
+        rect: layout
+            .combatantGeometry(
+              const BattleSlotRef(side: BattleSideId.enemy, slotIndex: 1),
+              doubles: true,
+            )
+            .hudRect,
+        ownerLabel: 'ENNEMI',
+        speciesLabel: 'Pikachu',
+        level: 14,
+        currentHp: 30,
+        maxHp: 42,
+        isPlayerSide: false,
+        slot: const BattleSlotRef(side: BattleSideId.enemy, slotIndex: 1),
+        combatantId: 'enemy.pikachu',
+      ),
   ],
-  entries: busy
+  battleLabel: 'COMBAT SAUVAGE',
+  title: postBattleKind == 'decision' ? 'CHOIX' : 'COMMANDES',
+  prompt: postBattleKind == 'decision'
+      ? 'Bulbi souhaite apprendre Tranch’Herbe.'
+      : postBattleKind == 'victory'
+      ? 'Vous avez remporté le combat !'
+      : 'Que doit faire Bulbi ?',
+  narrationLines: <String>[
+    postBattleKind == 'victory'
+        ? 'Vous avez remporté le combat !'
+        : busy
+        ? 'Bulbi utilise Fouet Lianes !'
+        : 'Un Roucool sauvage apparaît !',
+  ],
+  entries:
+      extraMode != null &&
+          extraMode != BattleCommandOverlayMode.bagMedicineMoveTarget
+      ? _battleCollectionEntries(extraMode, forced)
+      : postBattleKind == 'decision'
+      ? const [
+          BattleCommandOverlayEntry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.decision,
+            primaryLabel: 'Apprendre',
+            secondaryLabel: '',
+            enabled: true,
+            selected: true,
+            tone: BattleCommandOverlayEntryTone.neutral,
+          ),
+          BattleCommandOverlayEntry(
+            index: 1,
+            kind: BattleCommandOverlayEntryKind.decision,
+            primaryLabel: 'Ne pas apprendre',
+            secondaryLabel: '',
+            enabled: true,
+            selected: false,
+            tone: BattleCommandOverlayEntryTone.neutral,
+          ),
+        ]
+      : postBattleKind == 'victory'
+      ? const [
+          BattleCommandOverlayEntry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.continueAction,
+            primaryLabel: 'Suite',
+            secondaryLabel: '',
+            enabled: true,
+            selected: true,
+            tone: BattleCommandOverlayEntryTone.neutral,
+          ),
+        ]
+      : busy
       ? const []
       : moves
       ? List.generate(
@@ -1690,5 +1793,71 @@ BattleCommandOverlaySnapshot _battleSnapshot(
           ),
         ],
   interactionsEnabled: !busy,
-  canGoBack: moves && !busy,
+  canGoBack:
+      !forced &&
+      (moves || extraMode != null) &&
+      !busy &&
+      postBattleKind == null,
 );
+
+List<BattleCommandOverlayEntry> _battleCollectionEntries(
+  BattleCommandOverlayMode mode,
+  bool forced,
+) {
+  if (mode == BattleCommandOverlayMode.bag) {
+    return [
+      for (var i = 0; i < 6; i++)
+        BattleCommandOverlayEntry(
+          index: i,
+          kind: BattleCommandOverlayEntryKind.bag,
+          primaryLabel: _items[i].label,
+          secondaryLabel: 'Soin',
+          trailingLabel: '×${_items[i].quantity}',
+          enabled: true,
+          selected: i == 0,
+          tone: BattleCommandOverlayEntryTone.medicine,
+        ),
+    ];
+  }
+  if (mode == BattleCommandOverlayMode.moveTarget) {
+    return [
+      for (var i = 0; i < 2; i++)
+        BattleCommandOverlayEntry(
+          index: i,
+          kind: BattleCommandOverlayEntryKind.target,
+          primaryLabel: i == 0 ? 'Roucool' : 'Pikachu',
+          secondaryLabel: i == 0 ? '27/36 PV' : '30/42 PV',
+          enabled: true,
+          selected: i == 0,
+          tone: BattleCommandOverlayEntryTone.neutral,
+        ),
+    ];
+  }
+  final medicine = mode == BattleCommandOverlayMode.bagMedicineTarget;
+  return [
+    for (var i = 0; i < 6; i++)
+      BattleCommandOverlayEntry(
+        index: i,
+        kind: medicine
+            ? BattleCommandOverlayEntryKind.medicineTarget
+            : BattleCommandOverlayEntryKind.party,
+        primaryLabel: _speciesLabels[i],
+        secondaryLabel: forced && i == 0 ? '0/48 PV' : '32/48 PV',
+        trailingLabel: 'Nv. 16',
+        statusLabel: i == 0
+            ? (forced
+                  ? 'K.O.'
+                  : medicine
+                  ? null
+                  : 'Déjà au combat')
+            : null,
+        enabled: medicine || i != 0,
+        selected: i == (medicine ? 0 : 1),
+        tone: medicine
+            ? BattleCommandOverlayEntryTone.medicine
+            : i == 0
+            ? BattleCommandOverlayEntryTone.disabled
+            : BattleCommandOverlayEntryTone.switching,
+      ),
+  ];
+}

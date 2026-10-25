@@ -40,6 +40,7 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
   bool? _presentationDark;
   bool? _presentationReducedMotion;
   String? _presentationLocale;
+  bool _titleLaunchPending = false;
 
   bool get _current =>
       owner.mounted &&
@@ -57,7 +58,8 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
   @override
   bool get isPaused =>
       _current &&
-      (coordinator.snapshot.phase == RuntimePlayerPhase.paused ||
+      (coordinator.snapshot.phase == RuntimePlayerPhase.title ||
+          coordinator.snapshot.phase == RuntimePlayerPhase.paused ||
           coordinator.snapshot.worldService != null ||
           coordinator.snapshot.preSessionRequest != null ||
           _dialogue != null) &&
@@ -86,6 +88,25 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       return AveluneGameplayCompanionData(
         mode: AveluneGameplayCompanionMode.blocked,
         presentation: presentation,
+      );
+    }
+    if (snapshot.phase == RuntimePlayerPhase.title) {
+      final startup = owner._startupSnapshot;
+      final supported =
+          startup?.phase == RuntimeStartupPhase.titleMenu &&
+          startup?.isLifecycleActive == true &&
+          startup?.isTransitioning == false &&
+          startup?.playerSnapshot?.revision == snapshot.revision;
+      return AveluneGameplayCompanionData(
+        mode: supported
+            ? AveluneGameplayCompanionMode.menu
+            : AveluneGameplayCompanionMode.waiting,
+        player: supported ? snapshot : null,
+        presentation: {
+          ...presentation,
+          if (supported) 'startupRevision': startup!.revision,
+          'controlProfile': owner._controlProfile.toJson(),
+        },
       );
     }
     if (snapshot.phase == RuntimePlayerPhase.preSession &&
@@ -278,6 +299,11 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
     AveluneGameplayCompanionSnapshot expected,
   ) async {
     if (!_current) throw PlatformException(code: 'staleSession');
+    if (expected.player?.phase == RuntimePlayerPhase.title &&
+        expected.presentation['startupRevision'] is int) {
+      await _executeTitle(kind, payload, expected);
+      return;
+    }
     if (kind == 'battle') {
       _executeBattle(payload, expected);
       return;
@@ -376,6 +402,101 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       default:
         throw PlatformException(code: 'invalidIntent');
     }
+  }
+
+  Future<void> _executeTitle(
+    String kind,
+    Map<String, Object?> payload,
+    AveluneGameplayCompanionSnapshot expected,
+  ) async {
+    final startup = owner._startupSnapshot;
+    final current = coordinator.snapshot;
+    if (!_current ||
+        expected.mode != AveluneGameplayCompanionMode.menu ||
+        current.phase != RuntimePlayerPhase.title ||
+        expected.player?.revision != current.revision ||
+        startup?.phase != RuntimeStartupPhase.titleMenu ||
+        startup?.isLifecycleActive != true ||
+        startup?.isTransitioning != false ||
+        startup?.revision != expected.presentation['startupRevision'] ||
+        payload['startupRevision'] != startup?.revision) {
+      throw PlatformException(code: 'staleRevision');
+    }
+    if (kind == 'controlProfile' &&
+        current.pauseSection == RuntimePlayerPauseSection.options &&
+        current.isActionEnabled(RuntimePlayerAction.updatePreferences)) {
+      await owner._updateControlProfile(
+        player_ui.PlayerControlProfile.fromJson(payload),
+      );
+      return;
+    }
+    final command = kind == 'player'
+        ? RuntimeCompanionPresentationCodec.decodePlayerCommand(
+            Map<String, dynamic>.from(payload),
+          )
+        : kind == 'back'
+        ? RuntimePlayerCommand(
+            action: current.pauseSection == RuntimePlayerPauseSection.options
+                ? RuntimePlayerAction.returnToTitle
+                : RuntimePlayerAction.returnToHost,
+            snapshotRevision: payload['snapshotRevision'] as int,
+          )
+        : null;
+    if (command == null ||
+        !const {
+          RuntimePlayerAction.newGame,
+          RuntimePlayerAction.continueGame,
+          RuntimePlayerAction.load,
+          RuntimePlayerAction.openOptions,
+          RuntimePlayerAction.showCredits,
+          RuntimePlayerAction.returnToHost,
+          RuntimePlayerAction.returnToTitle,
+          RuntimePlayerAction.updatePreferences,
+        }.contains(command.action)) {
+      throw PlatformException(code: 'unavailable');
+    }
+    if (command.snapshotRevision != current.revision) {
+      throw PlatformException(code: 'staleRevision');
+    }
+    if (!current.isActionEnabled(command.action)) {
+      throw PlatformException(code: 'unavailable');
+    }
+    final launchesSession =
+        command.action == RuntimePlayerAction.newGame ||
+        command.action == RuntimePlayerAction.continueGame ||
+        command.action == RuntimePlayerAction.load;
+    if (launchesSession && _titleLaunchPending) {
+      throw PlatformException(code: 'busy');
+    }
+    if (launchesSession) _titleLaunchPending = true;
+    final operation = owner._startupCoordinator!.dispatchPlayerCommand(
+      startupSnapshotRevision: startup!.revision,
+      command: command,
+    );
+    if (!launchesSession) {
+      _requireAccepted(await operation);
+      return;
+    }
+    unawaited(
+      operation.then<void>(
+        (_) {
+          _titleLaunchPending = false;
+          if (_current) owner._invalidateCompanion();
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          _titleLaunchPending = false;
+          if (_current) owner._invalidateCompanion();
+          FlutterError.reportError(
+            FlutterErrorDetails(
+              exception: error,
+              stack: stackTrace,
+              library: 'Avelune gameplay companion',
+              context: ErrorDescription('while completing a title launch'),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _executeDialogue(
@@ -1075,6 +1196,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         controller: _startupShellController,
         branding: widget.hostBranding,
         snapshot: effectiveSnapshot,
+        companionTitleAttached: _delegatesCompanionTitle(effectiveSnapshot),
+        onCompanionInput: widget.onCompanionInput,
+        controlProfile: _controlProfile,
         titlePresentation: playerPresentation.title,
         introSource: introSource,
         introPoster: _startupImage(resolvedPresentation?.introPoster),
@@ -1171,6 +1295,28 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         child: player,
       ),
     );
+  }
+
+  bool _delegatesCompanionTitle(RuntimeStartupSnapshot startup) {
+    final companion = widget.companionOwner?.value;
+    final player = startup.playerSnapshot;
+    if (startup.phase != RuntimeStartupPhase.titleMenu ||
+        !startup.isLifecycleActive ||
+        startup.isTransitioning ||
+        player?.phase != RuntimePlayerPhase.title ||
+        companion == null ||
+        !companion.companionAttached ||
+        !companion.narrativeReady ||
+        companion.player?.revision != player?.revision ||
+        companion.presentation['startupRevision'] != startup.revision) {
+      return false;
+    }
+    return companion.narrativeIdentity ==
+        AveluneGameplayCompanionData(
+          mode: AveluneGameplayCompanionMode.menu,
+          player: player,
+          presentation: {'startupRevision': startup.revision},
+        ).narrativeIdentity;
   }
 
   Widget _buildSessionView(

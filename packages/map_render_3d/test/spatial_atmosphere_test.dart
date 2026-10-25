@@ -22,6 +22,38 @@ void main() {
     count: 12,
     seed: 7,
   );
+  test(
+    'authored flags and scalar adjustments retain profile and scene identity',
+    () {
+      final controller = SpatialSceneController();
+      final settings = SpatialAtmosphereSettings(
+        waterTargets: [SpatialAtmosphereMaterialTarget.groundTileset('water')],
+        fireflyZones: [
+          SpatialAtmosphereFireflyZone(bounds: zone.bounds, count: 13),
+        ],
+      );
+      var sceneChanges = 0;
+      controller.sceneChanges.addListener(() => sceneChanges++);
+      controller.applyAtmosphereSettings(settings);
+      final profile = controller.atmosphereProfile;
+      controller.applyAtmosphereSettings(
+        settings.copyWith(
+          waterAnimated: true,
+          waterStrength: .4,
+          windowStrength: 1.4,
+          fireflyDensity: 1.5,
+        ),
+      );
+      expect(controller.atmosphereProfile, same(profile));
+      expect(profile.waterStrength, .4);
+      expect(profile.windowStrength, 1.4);
+      expect(profile.fireflyDensity, 1.5);
+      expect(controller.waterAnimated, isTrue);
+      expect(controller.windowsLit, isFalse);
+      expect(sceneChanges, 0);
+      controller.dispose();
+    },
+  );
   test('preview effects are off and independently toggled without replacing profile', () {
     final controller = SpatialSceneController();
     final profile = SpatialAtmosphereProfile(

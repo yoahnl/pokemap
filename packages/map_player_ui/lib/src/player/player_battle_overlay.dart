@@ -123,6 +123,7 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
         interactionsEnabled: snapshot.interactionsEnabled,
         canGoBack: snapshot.canGoBack,
         forcedReplacement: snapshot.forcedReplacement,
+        isDecision: snapshot.mode == BattleCommandOverlayMode.decision,
         panelKind: _panelKind(snapshot),
       ),
       onAction: (action) => onCommand(switch (action) {
@@ -232,8 +233,8 @@ PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
     // son propre mode : le remapping de personnalisation ne s'applique qu'au
     // mode root et laisse les libellés « Apprendre » / « Ne pas apprendre »
     // intacts.
-    BattleCommandOverlayMode.root => PlayerBattlePanelKind.commands,
-    BattleCommandOverlayMode.decision => PlayerBattlePanelKind.decision,
+    BattleCommandOverlayMode.root ||
+    BattleCommandOverlayMode.decision => PlayerBattlePanelKind.commands,
     BattleCommandOverlayMode.fight ||
     BattleCommandOverlayMode.bagMedicineMoveTarget =>
       PlayerBattlePanelKind.moves,

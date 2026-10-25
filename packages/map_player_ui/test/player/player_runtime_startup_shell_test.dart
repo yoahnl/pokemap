@@ -19,6 +19,116 @@ void main() {
     description: 'Une aventure ferroviaire.',
   );
 
+  testWidgets(
+    'delegated title keeps one input owner and restores local actions after detach',
+    (tester) async {
+      final controller = PlayerRuntimeStartupShellController();
+      final commands = <RuntimePlayerCommand>[];
+      final startupCommands = <RuntimeStartupCommand>[];
+      final inputs = <RuntimeInputEvent>[];
+      Widget shell(bool attached) => _app(
+        PlayerRuntimeStartupShell(
+          controller: controller,
+          branding: branding,
+          snapshot: _startup(
+            RuntimeStartupPhase.titleMenu,
+            player: _titlePlayer(),
+          ),
+          titlePresentation: presentation,
+          companionTitleAttached: attached,
+          onCompanionInput: (input) {
+            inputs.add(input);
+            return true;
+          },
+          onStartupCommand: startupCommands.add,
+          onPlayerCommand: (command) {
+            commands.add(command);
+            return _acceptPlayerCommand(command);
+          },
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      );
+      await _pumpMeasuredStartupWidget(tester, shell(true));
+      expect(
+        tester
+            .widget<PlayerTitleScreen>(find.byType(PlayerTitleScreen))
+            .sceneOnly,
+        isTrue,
+      );
+      expect(
+        find.byKey(const ValueKey('title.newGame')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('player-title-continue-save')),
+        findsNothing,
+      );
+      expect(find.text('Le Train de 17h42'), findsOneWidget);
+      expect(find.text('Une aventure ferroviaire.'), findsOneWidget);
+      expect(
+        controller.handle(
+          const PlayerInputCommand.press(
+            PlayerInputAction.confirm,
+            source: PlayerInputSource.controller,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        controller.handle(
+          const PlayerInputCommand.release(
+            PlayerInputAction.confirm,
+            source: PlayerInputSource.controller,
+          ),
+        ),
+        isTrue,
+      );
+      expect(inputs.map((event) => event.control), [
+        RuntimeInputControl.primary,
+        RuntimeInputControl.primary,
+      ]);
+      expect(inputs.map((event) => event.isPress), [true, false]);
+      inputs.clear();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(
+        inputs.where(
+          (event) =>
+              event.isPress && event.control == RuntimeInputControl.primary,
+        ),
+        hasLength(1),
+      );
+      expect(commands, isEmpty);
+      expect(startupCommands, isEmpty);
+      await _pumpMeasuredStartupWidget(tester, shell(false));
+      expect(
+        tester
+            .widget<PlayerTitleScreen>(find.byType(PlayerTitleScreen))
+            .sceneOnly,
+        isFalse,
+      );
+      expect(
+        find.byKey(const ValueKey('title.newGame')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('player-title-continue-save')),
+        findsOneWidget,
+      );
+      inputs.clear();
+      await tester.tap(
+        find.byKey(const ValueKey('title.newGame')),
+      );
+      await tester.pump();
+      expect(commands, hasLength(1));
+      expect(commands.single.action, RuntimePlayerAction.newGame);
+      expect(commands.single.snapshotRevision, 9);
+      expect(inputs, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('splash motion waits for its audio start signal', (tester) async {
     Widget shell(bool ready) => _app(PlayerRuntimeStartupShell(
           branding: branding,

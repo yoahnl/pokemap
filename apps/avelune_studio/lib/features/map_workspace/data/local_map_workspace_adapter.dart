@@ -4,6 +4,8 @@ import 'dart:async';
 
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
+import '../domain/map_atmosphere_port.dart';
+
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -14,12 +16,13 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 import '../../project_session/data/studio_project_document_revision.dart';
 
+part 'local_map_atmosphere_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
 part 'local_map_workspace_scoped_catalog.dart';
 
 final class LocalMapWorkspaceAdapter
-    implements MapWorkspacePort, MapWorkspaceScopedPort {
+    implements MapWorkspacePort, MapWorkspaceScopedPort, MapAtmospherePort {
   LocalMapWorkspaceAdapter({
     ProjectFileReader? reader,
     AtomicMapDocumentPersistence? persistence,
@@ -31,6 +34,31 @@ final class LocalMapWorkspaceAdapter
   final _projects = <String, _ProjectDocument>{};
   final _loadedPaths = <(String, String), String>{};
   Future<void> _writes = Future.value();
+  final _atmosphereServices = <String, Future<LocalMapAtmosphereAuthoring>>{};
+  var _atmosphereOperations = 0;
+
+  @override
+  Future<MapAtmosphereState> loadAtmosphere(ProjectSession session, String mapId) async {
+    final service = await _atmosphereAuthoring(session);
+    final state = await service.inspect(projectRoot: session.directoryPath, mapId: mapId);
+    return MapAtmosphereState(settings: state.settings, revision: state.revision);
+  }
+
+  @override
+  Future<MapAtmosphereState> saveAtmosphere(ProjectSession session, String mapId, SpatialAtmosphereSettings settings, String expectedRevision) async {
+    if (session.storage == ProjectSessionStorage.portableCatalog) {
+      throw const MapWorkspaceFailure(MapWorkspaceProblem.unavailable, 'Ce projet est en lecture seule. Créez une copie de travail pour régler son ambiance.');
+    }
+    final service = await _atmosphereAuthoring(session);
+    final result = await service.set(
+      projectRoot: session.directoryPath,
+      mapId: mapId,
+      settings: settings,
+      expectedRevision: expectedRevision,
+      operationId: 'studio_atmosphere_${DateTime.now().microsecondsSinceEpoch}_${_atmosphereOperations++}',
+    );
+    return MapAtmosphereState(settings: result.afterSettings, revision: result.afterRevision);
+  }
 
   Future<T> withResourceMutation<T>(Future<T> Function() operation) {
     final result = _writes.then((_) => operation());

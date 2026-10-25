@@ -404,6 +404,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     MapCameraPanel(document: document, onChanged: onChanged),
                   if (document.current.spatialScene != null)
                     MapDayNightPanel(
+                      project: project,
                       document: document,
                       controller: view.spatialSceneController,
                       onChanged: onChanged,

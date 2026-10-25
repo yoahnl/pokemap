@@ -1,3 +1,5 @@
+import 'map_atmosphere_controller.dart';
+
 import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -6,6 +8,7 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 class EditableMapDocument {
   EditableMapDocument(this.base) : current = base.map, saved = base.map;
 
+  MapAtmosphereController? atmosphere;
   MapWorkspaceDocument base;
   MapData current;
   MapData saved;

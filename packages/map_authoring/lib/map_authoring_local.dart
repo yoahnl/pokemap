@@ -82,3 +82,5 @@ export 'src/workspace/catalog_project_materialization.dart';
 export 'src/workspace/catalog/catalog_targeted_map_edit.dart' show CatalogTargetedMapSelection;
 
 export 'src/documents/character_contact_shadow_authoring.dart';
+
+export 'src/documents/map_atmosphere_authoring.dart';

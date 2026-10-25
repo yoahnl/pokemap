@@ -202,8 +202,10 @@ class PlayerTitleSurface extends StatefulWidget {
     required this.data,
     required this.onSelected,
     this.focusController,
+    this.sceneOnly = false,
   });
 
+  final bool sceneOnly;
   final PlayerTitleSurfaceData data;
   final ValueChanged<PlayerTitleMenuAction> onSelected;
   final RuntimePlayerFocusController? focusController;
@@ -275,6 +277,35 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
   );
 
   Widget _build(BuildContext context) {
+    if (widget.sceneOnly) {
+      return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.title,
+        child: Builder(
+          builder: (context) {
+            final theme = context.playerMenuTheme;
+            return Scaffold(
+              body: _PlayerTitleBackground(
+                background: data.background,
+                backgroundContent: data.backgroundContent,
+                backgroundColor: theme.base,
+                scrimColor: theme.shadow,
+                child: SafeArea(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 640),
+                        child: _ligueBranding(context, landscape: true),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
     final usesDefaultComposition =
         context.playerLayoutTheme == null &&
         context.playerWindowTheme == null &&
@@ -787,7 +818,7 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
           ),
           const SizedBox(height: 12),
         ],
-        if (data.continueSave != null)
+        if (data.continueSave != null && !widget.sceneOnly)
           Container(
             key: const ValueKey('player-title-continue-save'),
             width: double.infinity,

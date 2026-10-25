@@ -249,8 +249,8 @@ class SpatialPixelMaterial extends UnlitMaterial {
         ? profile?.window(instance, sourceMaterialName)
         : null;
     _atmosphereOptions.setValues(
-      water ? 1 : 0,
-      water ? atmosphere!.atmosphereElapsedSeconds : 0,
+      water ? profile!.waterStrength : 0,
+      water ? atmosphere!.atmosphereElapsedSeconds * profile!.waterSpeed : 0,
       emissive ? 1 : 0,
       window?.uvRects.length.toDouble() ?? 0,
     );
@@ -259,7 +259,9 @@ class SpatialPixelMaterial extends UnlitMaterial {
       color?.r ?? 0,
       color?.g ?? 0,
       color?.b ?? 0,
-      (window?.strength ?? 0) * (atmosphere?.atmosphereNight ?? 0),
+      (window?.strength ?? 0) *
+          (profile?.windowStrength ?? 1) *
+          (atmosphere?.atmosphereNight ?? 0),
     );
     final shader = fragmentShader, resource = shader.resource;
     if (_atmosphereUniformsBound &&

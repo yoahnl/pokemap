@@ -24,9 +24,9 @@ final class PlayerTitleViewData {
     Map<PlayerTitleMenuAction, ProjectTitleActionIcon> actionIcons = const {},
     this.initialSelection,
     this.continueSave,
-  })  : actions = Map.unmodifiable(actions),
-        actionLabels = Map.unmodifiable(actionLabels),
-        actionIcons = Map.unmodifiable(actionIcons);
+  }) : actions = Map.unmodifiable(actions),
+       actionLabels = Map.unmodifiable(actionLabels),
+       actionIcons = Map.unmodifiable(actionIcons);
 
   final String gameTitle;
   final String author;
@@ -49,8 +49,10 @@ class PlayerTitleScreen extends StatelessWidget {
     required this.data,
     required this.onSelected,
     this.focusController,
+    this.sceneOnly = false,
   });
 
+  final bool sceneOnly;
   final PlayerTitleViewData data;
   final ValueChanged<PlayerTitleMenuAction> onSelected;
   final RuntimePlayerFocusController? focusController;
@@ -59,6 +61,7 @@ class PlayerTitleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final save = data.continueSave;
     return PlayerTitleSurface(
+      sceneOnly: sceneOnly,
       data: PlayerTitleSurfaceData(
         gameTitle: data.gameTitle,
         author: data.author,

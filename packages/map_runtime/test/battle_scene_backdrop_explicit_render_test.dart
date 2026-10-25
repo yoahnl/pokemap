@@ -18,12 +18,19 @@ void main() {
       );
       await component.onLoad();
       addTearDown(component.onRemove);
-      for (final viewport in const [Size(844, 390), Size(390, 844), Size(768, 432)]) {
+      for (final viewport in const [
+        Size(844, 390),
+        Size(390, 844),
+        Size(768, 432),
+      ]) {
         component.size.setValues(viewport.width, viewport.height);
         final recorder = ui.PictureRecorder();
         component.render(Canvas(recorder));
         final picture = recorder.endRecording();
-        final image = await picture.toImage(viewport.width.toInt(), viewport.height.toInt());
+        final image = await picture.toImage(
+          viewport.width.toInt(),
+          viewport.height.toInt(),
+        );
         picture.dispose();
         final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
         image.dispose();
@@ -35,7 +42,12 @@ void main() {
             break;
           }
         }
-        expect(transparentPixel, isNull, reason: '$key must cover $viewport below and between floating command cards');
+        expect(
+          transparentPixel,
+          isNull,
+          reason:
+              '$key must cover $viewport below and between floating command cards',
+        );
       }
     });
   }

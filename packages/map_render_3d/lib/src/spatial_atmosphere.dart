@@ -75,6 +75,11 @@ final class SpatialFireflyZone {
 
 final class SpatialAtmosphereProfile {
   SpatialAtmosphereProfile({
+    this.waterStrength = 1,
+    this.waterSpeed = 1,
+    this.windowStrength = 1,
+    this.fireflyDensity = 1,
+    this.fireflyCapacityScale = 1,
     List<SpatialAtmosphereTarget> waterTargets = const [],
     List<SpatialWindowGlow> windows = const [],
     List<SpatialFireflyZone> fireflyZones = const [],
@@ -86,7 +91,44 @@ final class SpatialAtmosphereProfile {
     if (fireflyZones.fold<int>(0, (sum, zone) => sum + zone.count) > 128)
       throw ArgumentError('Too many preview fireflies.');
   }
+  factory SpatialAtmosphereProfile.fromSettings(
+    SpatialAtmosphereSettings settings,
+  ) => SpatialAtmosphereProfile(
+    waterStrength: settings.waterStrength,
+    waterSpeed: settings.waterSpeed,
+    windowStrength: settings.windowStrength,
+    fireflyDensity: settings.fireflyDensity,
+    fireflyCapacityScale: 2,
+    waterTargets: [
+      for (final t in settings.waterTargets)
+        SpatialAtmosphereTarget(
+          instanceId: t.instanceId,
+          materialName: t.materialName,
+        ),
+    ],
+    windows: [
+      for (final w in settings.windows)
+        SpatialWindowGlow(
+          target: SpatialAtmosphereTarget(
+            instanceId: w.target.instanceId,
+            materialName: w.target.materialName,
+          ),
+          uvRects: [
+            for (final r in w.uvRects)
+              Rect.fromLTRB(r.left, r.top, r.right, r.bottom),
+          ],
+          color: Color(0xff000000 | w.colorRgb),
+          strength: w.strength,
+        ),
+    ],
+    fireflyZones: [
+      for (final z in settings.fireflyZones)
+        SpatialFireflyZone(bounds: z.bounds, count: z.count, seed: z.seed),
+    ],
+  );
   static final disabled = SpatialAtmosphereProfile();
+  double waterStrength, waterSpeed, windowStrength, fireflyDensity;
+  final int fireflyCapacityScale;
   final List<SpatialAtmosphereTarget> waterTargets;
   final List<SpatialWindowGlow> windows;
   final List<SpatialFireflyZone> fireflyZones;
@@ -161,7 +203,11 @@ final class SpatialAtmosphereEffects {
       clear();
       _profile = profile;
       for (final zone in profile.fireflyZones) {
-        for (var index = 0; index < zone.count; index++) {
+        for (
+          var index = 0;
+          index < zone.count * profile.fireflyCapacityScale;
+          index++
+        ) {
           final particle = _Firefly(zone, index);
           _components.add(particle);
           world.add(particle);
@@ -169,7 +215,11 @@ final class SpatialAtmosphereEffects {
       }
     }
     for (final particle in _components) {
-      particle.visible = enabled && night > .001;
+      particle.visible =
+          enabled &&
+          night > .001 &&
+          particle.index <
+              (particle.zone.count * profile.fireflyDensity).round();
       if (!particle.visible) continue;
       final sample = spatialFireflySample(
         particle.zone,

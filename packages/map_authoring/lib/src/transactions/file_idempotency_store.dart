@@ -191,13 +191,13 @@ final class FileIdempotencyStore implements IdempotencyStore {
     required AuthoringIdempotencyScope scope,
   }) async {
     final file = File(filePath);
-    if (scope.actionId != 'characterStudio.contactShadow.set' ||
+    if (!_usesScopedLedger(scope.actionId) ||
         !file.isAbsolute ||
         file.uri.pathSegments.last != 'idempotency.jsonl' ||
         _directoryName(file.parent) != 'authoring' ||
         _directoryName(file.parent.parent) != '.pokemap') {
       throw ArgumentError(
-          'A scoped ledger requires the new contact shadow action and canonical ledger path.');
+          'A scoped ledger requires a scoped local action and canonical ledger path.');
     }
     final digest = computeAuthoringBytesFingerprint(
       utf8.encode(scope.storageKey),
@@ -223,7 +223,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
       }
       return null;
     }
-    if (scope.actionId == 'characterStudio.contactShadow.set') {
+    if (_usesScopedLedger(scope.actionId)) {
       return forScope(filePath: _file.path, scope: scope);
     }
     return null;
@@ -756,3 +756,8 @@ _FileIdempotencyDecodeResult _decodeIdempotencyEvents(Uint8List bytes) {
     eventCount: eventCount,
   );
 }
+
+bool _usesScopedLedger(String actionId) => const {
+      'characterStudio.contactShadow.set',
+      'map.atmosphere.set',
+    }.contains(actionId);
