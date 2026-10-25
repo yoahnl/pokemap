@@ -531,8 +531,7 @@ void main() {
           results: results,
         ),
       );
-      await tester.pump();
-      await tester.pump();
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey<String>('scene-interaction-option-south')),
       );

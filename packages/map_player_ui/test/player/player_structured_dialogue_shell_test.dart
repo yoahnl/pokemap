@@ -47,6 +47,133 @@ void main() {
     fallbackText: text,
   );
 
+  for (final (padding, source) in [
+    for (final padding in [16, 24, 32])
+      for (final source in [
+        PlayerInputSource.touch,
+        PlayerInputSource.controller,
+      ])
+        (padding, source),
+  ]) {
+    testWidgets(
+      'authored choice buttons stay reachable after rotation with padding $padding ${source.name}',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(852, 393));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final results = <SceneInteractionResult>[];
+        final windows = legacyProjectPresentationWindows.copyWith(
+          styles: legacyProjectPresentationWindows.styles
+              .map(
+                (style) => style.id == 'dialogue'
+                    ? style.copyWith(contentPadding: padding)
+                    : style,
+              )
+              .toList(growable: false),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                padding: MediaQuery.sizeOf(context).aspectRatio > 1
+                    ? const EdgeInsets.fromLTRB(44, 0, 44, 21)
+                    : const EdgeInsets.only(top: 44, bottom: 34),
+              ),
+              child: child!,
+            ),
+            theme: PokeMapPlayerTheme.withWindowProfile(
+              PokeMapPlayerTheme.light(reducedMotion: true),
+              windows,
+            ),
+            home: PlayerInputScope(
+              activeInputSource: source,
+              child: PlayerSceneInteractionSurface(
+                request: SceneInteractionRequest.choice(
+                  requestId: 'avatar',
+                  revision: 1,
+                  prompt: prompt('Es-tu un garçon ? Ou bien une fille ?'),
+                  options: [
+                    SceneInteractionOption(id: 'boy', label: prompt('Garçon')),
+                    SceneInteractionOption(id: 'girl', label: prompt('Fille')),
+                  ],
+                ),
+                onResult: results.add,
+              ),
+            ),
+          ),
+        );
+        for (final size in [
+          const Size(852, 393),
+          const Size(393, 852),
+          const Size(320, 693),
+          const Size(852, 393),
+        ]) {
+          await tester.binding.setSurfaceSize(size);
+          await tester.pumpAndSettle();
+          if (find
+              .byKey(const ValueKey('dialogue-tap-zone'))
+              .evaluate()
+              .isNotEmpty) {
+            if (source == PlayerInputSource.controller) {
+              Actions.invoke(
+                FocusManager.instance.primaryFocus!.context!,
+                const RuntimePlayerLogicalIntent(
+                  PlayerInputAction.confirm,
+                  source: PlayerInputSource.controller,
+                ),
+              );
+            } else {
+              await tester.tap(find.byKey(const ValueKey('dialogue-tap-zone')));
+            }
+            await tester.pumpAndSettle();
+          }
+          for (final id in ['boy', 'girl']) {
+            final button = find.byKey(ValueKey('scene-interaction-option-$id'));
+            expect(
+              button.hitTestable(),
+              findsOneWidget,
+              reason: '$id at $size',
+            );
+            expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+          }
+          expect(find.text('Page 1 / 1'), findsNothing);
+          expect(tester.takeException(), isNull);
+        }
+        if (source == PlayerInputSource.controller) {
+          Actions.invoke(
+            FocusManager.instance.primaryFocus!.context!,
+            const RuntimePlayerLogicalIntent(
+              PlayerInputAction.right,
+              source: PlayerInputSource.controller,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            FocusManager.instance.primaryFocus?.debugLabel,
+            contains('Fille'),
+          );
+          Actions.invoke(
+            FocusManager.instance.primaryFocus!.context!,
+            const RuntimePlayerLogicalIntent(
+              PlayerInputAction.confirm,
+              source: PlayerInputSource.controller,
+            ),
+          );
+        } else {
+          await tester.tap(
+            find.byKey(const ValueKey('scene-interaction-option-girl')),
+          );
+        }
+        await tester.pumpAndSettle();
+        expect(results, hasLength(1));
+        expect(
+          (results.single as SceneChoiceSelectedInteractionResult)
+              .selectedOptionId,
+          'girl',
+        );
+      },
+    );
+  }
+
   testWidgets('every structured kind renders inside the dialogue shell', (
     tester,
   ) async {

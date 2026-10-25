@@ -194,9 +194,15 @@ class _PlayerSceneInteractionSurfaceState
         : centered
         ? 500.0
         : 680.0;
+    final contentPadding =
+        context.playerWindowTheme
+            ?.style(ProjectWindowRole.dialogue)
+            .contentPadding
+            .toDouble() ??
+        PlayerSpacing.md;
     _contentWidth = math.max(
       1.0,
-      math.min(constraints.maxWidth - 32, panelWidth) - 32,
+      math.min(constraints.maxWidth - 32, panelWidth) - contentPadding * 2,
     );
     _choiceColumns =
         (request is SceneChoiceInteractionRequest || selection) &&
@@ -249,7 +255,10 @@ class _PlayerSceneInteractionSurfaceState
         context,
         request,
         prompt,
-        () => setState(() => _promptRead = true),
+        () => setState(() {
+          _promptRead = true;
+          _focusedInitialOptions = false;
+        }),
       );
     }
     final validationMessage = _validationIssue == null
@@ -265,7 +274,7 @@ class _PlayerSceneInteractionSurfaceState
     final naturalHeight =
         headerHeight == null || requestHeight == null || errorHeight == null
         ? null
-        : PlayerSpacing.md * 2 +
+        : contentPadding * 2 +
               headerHeight +
               PlayerSpacing.sm +
               requestHeight +
