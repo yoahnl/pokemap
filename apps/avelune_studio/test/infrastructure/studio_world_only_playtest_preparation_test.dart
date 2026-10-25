@@ -12,14 +12,17 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   for (final scenario in [
-    (custom: false, pokemon: false),
-    (custom: true, pokemon: false),
-    (custom: false, pokemon: true),
+    (custom: false, pokemon: false, working: false),
+    (custom: true, pokemon: false, working: false),
+    (custom: false, pokemon: true, working: false),
+    (custom: false, pokemon: true, working: true),
   ]) {
     final custom = scenario.custom;
     testWidgets(
       custom
           ? '3D world-only playtest still awaits explicit asset preparation'
+          : scenario.working
+          ? 'working catalog playtest uses published assets without global provisioning'
           : scenario.pokemon
           ? '3D Pokemon playtest keeps provisioning resource validation'
           : '3D world-only playtest skips default Pokemon provisioning',
@@ -115,7 +118,37 @@ void main() {
             name: project.name,
             directoryPath: await root.resolveSymbolicLinks(),
           );
-          await port.loadProject(session);
+          if (scenario.working) {
+            final store = await CatalogStorageStore.open(
+              projectRoot: root.path,
+            );
+            final working = await WorkingProjectCatalog.create(
+              store: store,
+              projectId: 'working-playtest',
+              project: project,
+              expectedProjectRevision: await store.gateway.readResourceRevision(
+                'project.json',
+              ),
+            );
+            await working.close();
+            await File('${root.path}/catalog/IDENTITY.json').writeAsString(
+              canonicalAuthoringJson({
+                'schemaVersion': 1,
+                'projectId': 'working-playtest',
+              }),
+            );
+            session = ProjectSession(
+              sessionId: session.sessionId,
+              name: session.name,
+              directoryPath: session.directoryPath,
+              storage: ProjectSessionStorage.workingCatalog,
+            );
+          }
+          if (scenario.working) {
+            await port.loadCatalog(session);
+          } else {
+            await port.loadProject(session);
+          }
           entry = project.maps.first;
           revision = (await port.loadMap(session, entry)).revision;
         });
@@ -124,7 +157,7 @@ void main() {
         const newGameMessage = 'Configurez la nouvelle partie';
         final expected = custom
             ? customMessage
-            : scenario.pokemon
+            : scenario.pokemon && !scenario.working
             ? 'workspace.file_unavailable'
             : newGameMessage;
         await tester.pumpWidget(
@@ -146,7 +179,7 @@ void main() {
             ),
           ),
         );
-        for (var attempt = 0; attempt < 100; attempt++) {
+        for (var attempt = 0; attempt < 1500; attempt++) {
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(milliseconds: 10)),
           );

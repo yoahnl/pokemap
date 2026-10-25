@@ -7,21 +7,34 @@ class StudioPanel extends StatelessWidget {
     super.key,
     required this.children,
     this.title,
+    this.icon,
+    this.accent,
     this.actions = const [],
     this.compact = false,
     this.radius = StudioMetrics.panelRadius,
   });
   final List<Widget> children;
   final String? title;
+  final IconData? icon;
+  final StudioAccent? accent;
   final List<Widget> actions;
   final bool compact;
   final double radius;
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surface,
+    color: accent == null
+        ? Theme.of(context).colorScheme.surface
+        : Color.alphaBlend(
+            accent!.color(context).withValues(alpha: 0.055),
+            Theme.of(context).colorScheme.surface,
+          ),
     shape: RoundedRectangleBorder(
-      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      side: BorderSide(
+        color:
+            accent?.color(context).withValues(alpha: 0.4) ??
+            Theme.of(context).colorScheme.outlineVariant,
+      ),
       borderRadius: BorderRadius.circular(radius),
     ),
     child: Padding(
@@ -38,6 +51,8 @@ class StudioPanel extends StatelessWidget {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  if (icon != null)
+                    Icon(icon, size: 21, color: accent?.color(context)),
                   Text(title!, style: Theme.of(context).textTheme.titleMedium),
                   ...actions,
                 ],

@@ -16,11 +16,7 @@ extension _WorkspaceDialogueBinding on _MapWorkspaceScreenState {
   }
 
   void _openMapDialogue(String id) {
-    final owner = _dialogues;
-    if (owner == null) return;
-    _dialogueOrigin = WorkspaceSpace.map;
-    _show(WorkspaceSpace.dialogue);
-    unawaited(owner.open(id));
+    unawaited(_openDialogueRoute(id, WorkspaceSpace.map));
   }
 
   void _openDialogues() {
@@ -29,20 +25,36 @@ extension _WorkspaceDialogueBinding on _MapWorkspaceScreenState {
   }
 
   void _openNarrativeDialogue(String id) {
+    unawaited(_openDialogueRoute(id, WorkspaceSpace.story));
+  }
+
+  Future<void> _openDialogueRoute(
+    String id,
+    WorkspaceSpace origin, {
+    String? startNode,
+  }) async {
+    final request = await _prepareWorkshopRoute(MapWorkspaceWorkshop.dialogue);
+    if (request == null) return;
     final owner = _dialogues;
     if (owner == null) return;
-    _dialogueOrigin = WorkspaceSpace.story;
+    final opened = await owner.open(id, startNode: startNode);
+    if (!mounted || request != _navigationRequest) return;
+    if (!opened) {
+      _resourceError = owner.error;
+      _changed();
+      return;
+    }
+    _dialogueOrigin = origin;
     _show(WorkspaceSpace.dialogue);
-    unawaited(owner.open(id));
   }
 
   Future<void> _openSceneDialogue(SceneYarnDialoguePayload payload) async {
-    final owner = _dialogues;
-    if (owner == null) return;
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
-    _dialogueOrigin = WorkspaceSpace.scene;
-    _show(WorkspaceSpace.dialogue);
-    await owner.open(payload.dialogueId, startNode: payload.yarnNodeName);
+    await _openDialogueRoute(
+      payload.dialogueId,
+      WorkspaceSpace.scene,
+      startNode: payload.yarnNodeName,
+    );
   }
 }

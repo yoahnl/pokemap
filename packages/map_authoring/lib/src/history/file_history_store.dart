@@ -91,7 +91,8 @@ Future<T> _runFileAuthoringHistoryDecodeWorker<T>(T Function() operation) =>
     Isolate.run(operation);
 
 /// Locked, hash-chained JSONL history with snapshot-bound pagination.
-final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
+final class FileAuthoringHistoryStore
+    implements AuthoringHistoryStore, AuthoringLocalHistoryReader {
   FileAuthoringHistoryStore._(
     this._projectRoot,
     this._onFullRead,
@@ -193,6 +194,25 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     final safeEntry = safeAuthoringSecurityIdentifier(entryId, 'entryId');
     return _guard(() async {
       return _withLock(() async {
+        final checkpoint = await _localHistoryFile(
+            'history-local-entries', '$safeProject/$safeEntry');
+        final preparation = await _checkedFile(
+            await _authoringRoot(), 'history-local-preparation.json');
+        if (await checkpoint.exists() ||
+            _incrementalWrites ||
+            await preparation.exists()) {
+          return _getLocalEntry(safeProject, safeEntry);
+        }
+        if (RegExp(r'^receipt_document_[a-f0-9]{32}$').hasMatch(safeEntry)) {
+          final head = await _readIncrementalHead();
+          _requirePublishedHead(head);
+          final stored = await _readIncremental(safeEntry);
+          if (stored != null &&
+              stored.entry.projectId == safeProject &&
+              stored.generation <= head.publishedGeneration) {
+            return _applyIncrementalMark(stored.entry);
+          }
+        }
         final state = await _readMergedState();
         return state.entries[_entryKey(safeProject, safeEntry)]?.entry;
       });
@@ -219,6 +239,212 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
           }
           return _applyIncrementalMark(stored.entry);
         }));
+  }
+
+  @override
+  Future<AuthoringHistoryEntry?> latestLocalEntry(
+      {required String projectId}) async {
+    final safeProject = safeAuthoringSecurityIdentifier(projectId, 'projectId');
+    if (!_incrementalWrites) {
+      final sequence = await _readIncrementalHead();
+      final preparedHead =
+          await _localHistoryFile('history-local-heads', safeProject);
+      if (sequence.publishedGeneration == 0 && !await preparedHead.exists()) {
+        return (await list(projectId: safeProject, limit: 1))
+            .entries
+            .firstOrNull;
+      }
+    }
+    return _guard(() => _withLock(() async {
+          final sequence = await _readIncrementalHead();
+          _requirePublishedHead(sequence);
+          final file =
+              await _localHistoryFile('history-local-heads', safeProject);
+          if (!await file.exists()) {
+            if (sequence.publishedGeneration == 0 &&
+                await _localHistoryPrepared()) {
+              return null;
+            }
+            final legacy = await _historyFile();
+            if (sequence.publishedGeneration == 0 &&
+                (!await legacy.exists() || await legacy.length() == 0)) {
+              return null;
+            }
+            throw const AuthoringHistoryException(
+                'history.preparation_required',
+                'Prepare the retained history explicitly before local undo or redo.');
+          }
+          final record = await _readRecord(
+              file, 'authoring-history-local-head.json', const {
+            'schemaVersion',
+            'projectId',
+            'entryId',
+            'generation',
+            'legacySnapshot'
+          });
+          if (record['projectId'] != safeProject ||
+              record['entryId'] is! String ||
+              record['generation'] != sequence.publishedGeneration ||
+              canonicalAuthoringJson(record['legacySnapshot']) !=
+                  canonicalAuthoringJson(await _legacyHistorySnapshot())) {
+            throw const AuthoringHistoryException(
+                'history.preparation_required',
+                'The retained history changed and requires explicit local preparation.');
+          }
+          return _getLocalEntry(safeProject, record['entryId'] as String);
+        }));
+  }
+
+  @override
+  Future<AuthoringHistoryEntry?> getLocalEntry(
+      {required String projectId, required String entryId}) {
+    final safeProject = safeAuthoringSecurityIdentifier(projectId, 'projectId');
+    final safeEntry = safeAuthoringSecurityIdentifier(entryId, 'entryId');
+    return _guard(
+        () => _withLock(() => _getLocalEntry(safeProject, safeEntry)));
+  }
+
+  Future<AuthoringHistoryEntry?> _getLocalEntry(
+      String projectId, String entryId) async {
+    final sequence = await _readIncrementalHead();
+    _requirePublishedHead(sequence);
+    final incremental = await _readIncremental(entryId);
+    if (incremental != null) {
+      if (incremental.entry.projectId != projectId ||
+          incremental.generation > sequence.publishedGeneration) {
+        return null;
+      }
+      return _applyIncrementalMark(incremental.entry);
+    }
+    final file =
+        await _localHistoryFile('history-local-entries', '$projectId/$entryId');
+    if (!await file.exists()) {
+      if (await _localHistoryPrepared()) return null;
+      final legacy = await _historyFile();
+      if (await legacy.exists() && await legacy.length() != 0) {
+        throw const AuthoringHistoryException('history.preparation_required',
+            'Prepare this retained history entry explicitly before local undo or redo.');
+      }
+      return null;
+    }
+    final record = await _readRecord(file, 'authoring-history-local-entry.json',
+        const {'schemaVersion', 'entry', 'legacySnapshot'});
+    if (record['entry'] is! Map ||
+        canonicalAuthoringJson(record['legacySnapshot']) !=
+            canonicalAuthoringJson(await _legacyHistorySnapshot())) {
+      throw const AuthoringHistoryException('history.preparation_required',
+          'The retained history changed and requires explicit local preparation.');
+    }
+    final entry = AuthoringHistoryEntry.fromJson(
+        Map<String, dynamic>.from(record['entry'] as Map));
+    if (entry.projectId != projectId || entry.entryId != entryId) {
+      throw const FormatException();
+    }
+    return entry;
+  }
+
+  Future<bool> _localHistoryPrepared() async {
+    final marker = await _checkedFile(
+        await _authoringRoot(), 'history-local-preparation.json');
+    if (!await marker.exists()) return false;
+    final record = await _readRecord(
+        marker,
+        'authoring-history-local-preparation.json',
+        const {'schemaVersion', 'generation', 'legacySnapshot'});
+    return canonicalAuthoringJson(record['legacySnapshot']) ==
+        canonicalAuthoringJson(await _legacyHistorySnapshot());
+  }
+
+  Future<void> prepareLocalHistory({
+    bool force = false,
+    Future<void> Function(AuthoringHistoryEntry entry)? prepareEntry,
+  }) =>
+      _guard(() => _withLock(() async {
+            final marker = await _checkedFile(
+                await _authoringRoot(), 'history-local-preparation.json');
+            final sequence = await _readIncrementalHead();
+            _requirePublishedHead(sequence);
+            final legacySnapshot = await _legacyHistorySnapshot();
+            if (await marker.exists()) {
+              final record = await _readRecord(
+                  marker,
+                  'authoring-history-local-preparation.json',
+                  const {'schemaVersion', 'generation', 'legacySnapshot'});
+              if (!force &&
+                  canonicalAuthoringJson(record['legacySnapshot']) ==
+                      canonicalAuthoringJson(legacySnapshot)) {
+                return;
+              }
+            }
+            final state = await _readMergedState();
+            final heads = <String, AuthoringHistoryEntry>{};
+            for (final stored in state.entries.values) {
+              final entry = stored.entry;
+              await prepareEntry?.call(entry);
+              final file = await _localHistoryFile('history-local-entries',
+                  '${entry.projectId}/${entry.entryId}');
+              await _writeRecord(
+                  file,
+                  {
+                    'schemaVersion': 1,
+                    'entry': entry.toJson(),
+                    'legacySnapshot': legacySnapshot
+                  },
+                  'authoring-history-local-entry.json');
+              final previous = heads[entry.projectId];
+              if (previous == null ||
+                  _compareHistoryKey(entry.committedAt, entry.entryId,
+                          previous.committedAt, previous.entryId) >
+                      0) {
+                heads[entry.projectId] = entry;
+              }
+            }
+            for (final entry in heads.values) {
+              await _publishLocalHead(entry, sequence.publishedGeneration);
+            }
+            await _writeRecord(
+                marker,
+                {
+                  'schemaVersion': 1,
+                  'generation': sequence.publishedGeneration,
+                  'legacySnapshot': legacySnapshot
+                },
+                'authoring-history-local-preparation.json');
+          }));
+
+  Future<File> _localHistoryFile(String directoryName, String identity) async {
+    final root = await _incrementalDirectory(directoryName, create: true);
+    final digest = computeAuthoringJsonFingerprint(identity,
+            logicalName: 'authoring-history-local-identity.json')
+        .substring(7);
+    return _checkedFile(root!, '$digest.json');
+  }
+
+  Future<Object?> _legacyHistorySnapshot() async {
+    final snapshot = await AuthoringFileSnapshot.capture(await _historyFile());
+    return snapshot == null
+        ? null
+        : [
+            snapshot.size,
+            snapshot.modified.microsecondsSinceEpoch,
+            snapshot.changed.microsecondsSinceEpoch
+          ];
+  }
+
+  Future<void> _publishLocalHead(
+      AuthoringHistoryEntry entry, int generation) async {
+    final file =
+        await _localHistoryFile('history-local-heads', entry.projectId);
+    await _writeRecord(
+        file,
+        {
+          'schemaVersion': 1,
+          'projectId': entry.projectId,
+          'entryId': entry.entryId,
+          'generation': generation,
+          'legacySnapshot': await _legacyHistorySnapshot()
+        },
+        'authoring-history-local-head.json');
   }
 
   @override
@@ -364,7 +590,12 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
       if (pending == null && existing.generation > head.publishedGeneration) {
         throw const FormatException();
       }
-      if (pending == null) return;
+      if (pending == null) {
+        if (existing.generation == head.publishedGeneration) {
+          await _publishLocalHead(entry, head.publishedGeneration);
+        }
+        return;
+      }
       if (existing.generation != pending.generation) {
         throw const FormatException();
       }
@@ -389,6 +620,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
           'authoring-history-immutable-entry.json');
     }
     await _writeIncrementalHead(_IncrementalHistoryHead(generation, null));
+    await _publishLocalHead(entry, generation);
   }
 
   Future<_IncrementalHistoryHead> _readIncrementalHead() async {

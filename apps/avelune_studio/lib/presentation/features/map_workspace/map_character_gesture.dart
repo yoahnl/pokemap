@@ -42,6 +42,7 @@ class MapCharacterGesture {
     required MapWorkspaceViewState view,
     required GridPos origin,
   }) {
+    view.reconcileLocks(document);
     final commands = CharacterEditingCommands(document, project);
     final size = document.current.size;
     if (origin.x < 0 ||
@@ -135,9 +136,21 @@ class MapCharacterGesture {
       return holding(null);
     }
     if (view.tool != StudioMapTool.select) return null;
-    final hits = commands.at(origin);
+    final hits = commands
+        .at(origin)
+        .where(
+          (entry) =>
+              !view.isLocked(document, MapSelectionFamily.character, entry.id),
+        )
+        .toList();
     if (hits.isEmpty) {
-      final placements = MapEntityEditingCommands(document, project).at(origin);
+      final placements = MapEntityEditingCommands(document, project)
+          .at(origin)
+          .where(
+            (entry) =>
+                !view.isLocked(document, MapSelectionFamily.marker, entry.id),
+          )
+          .toList();
       final marker =
           placements
               .where(
@@ -154,7 +167,13 @@ class MapCharacterGesture {
         view.select(document, MapSelectionFamily.marker, marker.id);
         return holding(marker);
       }
-      final warps = WarpEditingCommands(document, project).at(origin);
+      final warps = WarpEditingCommands(document, project)
+          .at(origin)
+          .where(
+            (entry) =>
+                !view.isLocked(document, MapSelectionFamily.warp, entry.id),
+          )
+          .toList();
       final chosen =
           warps
               .where(
@@ -258,8 +277,19 @@ class MapCharacterGesture {
 
   bool get movesArea => _areaMove?.area != null;
 
+  bool get isLocked {
+    final target = armed;
+    if (target != null && view.isLocked(document, target.family, target.id)) {
+      return true;
+    }
+    if (entity != null && document.isElementLocked('entity', entity!.id)) {
+      return true;
+    }
+    return warp != null && document.isElementLocked('warp', warp!.id);
+  }
+
   MapRect? commit() {
-    if (document.current != source) return null;
+    if (document.current != source || isLocked) return null;
     final move = _areaMove;
     if (move != null) {
       view.pendingMove = null;

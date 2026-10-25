@@ -3,8 +3,12 @@ import 'package:map_authoring/map_authoring.dart'
         AuthoringTransactionFaultInjector,
         StandardEventTemplateSpec,
         decodeProjectMediaCatalogBytes,
-        projectMediaCatalogResourceIdentity,
-        compileStandardEventTemplate;
+        projectMediaCatalogResourceIdentity;
+import 'package:map_authoring/map_authoring_local.dart'
+    show
+        ProjectFileReader,
+        LocalProjectFileReader,
+        AuthoringPerformanceObserver;
 import 'package:map_core/map_core_domain.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
@@ -29,10 +33,14 @@ class LocalEventAdapter
     required this.session,
     required this.mapAdapter,
     this.faultInjector,
+    this.reader = const LocalProjectFileReader(),
+    this.performanceObserver,
   });
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+  final ProjectFileReader reader;
+  final AuthoringPerformanceObserver? performanceObserver;
 
   @override
   Future<ProjectMediaCatalog> loadPresentationMediaCatalog(
@@ -53,38 +61,17 @@ class LocalEventAdapter
     required StandardEventTemplateSpec spec,
     required ProjectManifest project,
     required List<MapData> maps,
-  }) {
-    final projection = compileStandardEventTemplate(
-      project: project,
-      maps: maps,
-      spec: spec,
-    );
-    return LocalNarrativeAdapter(
-      session: session,
-      mapAdapter: mapAdapter,
-      faultInjector: faultInjector,
-    ).publishStandardEvent(
-      NarrativePublication(
-        base: base,
-        current: projection.map,
-        scenes: projection.scenes,
-        events: projection.events,
-        expectedScenes: {
-          for (final scene in projection.scenes)
-            scene.id: project.scenes
-                .where((value) => value.id == scene.id)
-                .firstOrNull,
-        },
-        expectedEvents: {
-          for (final event in projection.events)
-            event.id: project.eventRegistry?.records
-                .where((value) => value.id == event.id)
-                .firstOrNull,
-        },
-      ),
-      spec,
-    );
-  }
+  }) =>
+      LocalNarrativeAdapter(
+        session: session,
+        mapAdapter: mapAdapter,
+        faultInjector: faultInjector,
+        reader: reader,
+        performanceObserver: performanceObserver,
+      ).publishStandardEvent(
+        NarrativePublication(base: base, current: base.map),
+        spec,
+      );
 
   @override
   Future<ResourceMutationReceipt> changeMode({

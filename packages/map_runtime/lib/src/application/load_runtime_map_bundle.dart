@@ -172,12 +172,22 @@ Future<ProjectManifest> _decodeProjectManifestOffThread(
   String text,
   String projectRoot,
 ) {
-  return Isolate.run(() {
+  return Isolate.run(() async {
     final raw = decodeNarrativeEventJsonStrict(text) as Map<String, dynamic>;
     if (!raw.containsKey('format') &&
         !raw.containsKey('kind') &&
         !raw.containsKey('root')) {
       return decodeRuntimeProjectManifest(text);
+    }
+    if (raw['format'] == 'avelune.working-catalog') {
+      final project = await loadWorkingRuntimeProjectManifest(
+        p.join(projectRoot, 'project.json'),
+        expectedSourceSha256:
+            narrativeEventBytesFingerprint(utf8.encode(text)).substring(7),
+      );
+      final manifest = normalizeRuntimeProjectManifest(project);
+      ProjectValidator.validate(manifest);
+      return manifest;
     }
     final root = Directory(projectRoot).resolveSymbolicLinksSync();
     var storedBytes = utf8.encode(text).length;
@@ -399,7 +409,9 @@ Future<SpatialAtmosphereSettings> loadSpatialAtmosphereSettings({
       );
     }
     final document = SpatialAtmosphereDocument.fromJson(
-      Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
+      Map<String, dynamic>.from(
+        decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map,
+      ),
     );
     if (document.mapId != mapId) {
       throw const FormatException('Atmosphere map identity mismatch.');

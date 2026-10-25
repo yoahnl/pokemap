@@ -17,6 +17,12 @@ extension NarrativeWorkspacePublication on NarrativeWorkspaceController {
       return false;
     }
     if (target.saving) return false;
+    final atmosphere = target.atmosphere;
+    if (atmosphere != null && (atmosphere.dirty || atmosphere.saving)) {
+      if (!await atmosphere.save() || _disposed || workspace.isDisposed) {
+        return false;
+      }
+    }
     final edits = sessions.values
         .where((s) => s.document == target && s.dirty)
         .toList();

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/application/working_catalog_controller.dart';
 import 'package:avelune_studio/features/resources/domain/working_catalog_port.dart';
 import 'package:avelune_studio/presentation/features/resources/working_catalog_workspace.dart';
+import 'package:avelune_studio/presentation/shared/widgets/dialogs/studio_review_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -71,51 +74,56 @@ void main() {
     },
   );
 
-  testWidgets(
-    'map workspace is opened explicitly and its exit guard protects the library',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1400, 1000));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final controller = WorkingCatalogController(_Port());
-      addTearDown(controller.dispose);
-      var builds = 0;
-      var allowMapExit = false;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: WorkingCatalogWorkspace(
+  testWidgets('library keeps edits made while synchronizing a saved resource', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1400, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final port = _Port();
+    final controller = WorkingCatalogController(port);
+    addTearDown(controller.dispose);
+    final synchronization = Completer<void>();
+    Future<bool> Function()? exit;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkingCatalogWorkspace(
             session: const ProjectSession(
-              sessionId: 'maps',
+              sessionId: 'sync',
               name: 'Projet',
               directoryPath: '/project',
             ),
             controller: controller,
             onClose: () async {},
-            registerExitGuard: (_) {},
-            mapWorkspaceBuilder: (context, guard) {
-              builds++;
-              guard(() async => allowMapExit);
-              return const Text('Atelier existant');
-            },
+            embedded: true,
+            onSaved: () => synchronization.future,
+            registerExitGuard: (guard) => exit = guard,
           ),
         ),
-      );
-      await tester.pumpAndSettle();
-      expect(builds, 0);
-      await tester.tap(find.text('Cartes et ateliers'));
-      await tester.pumpAndSettle();
-      expect(find.text('Atelier existant'), findsOneWidget);
-      await tester.tap(find.text('Retour à la bibliothèque'));
-      await tester.pumpAndSettle();
-      expect(find.text('Atelier existant'), findsOneWidget);
-      allowMapExit = true;
-      await tester.tap(find.text('Retour à la bibliothèque'));
-      await tester.pumpAndSettle();
-      expect(find.text('Bibliothèque du projet'), findsOneWidget);
-      expect(find.text('Atelier existant'), findsNothing);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+      ),
+    );
+    await tester.pumpAndSettle();
+    await controller.select(port.entry);
+    controller.edit(name: 'Première modification');
+    final leaving = exit!();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(StudioReviewDialog),
+        matching: find.text('Enregistrer'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    controller.edit(name: 'Nouvelle saisie conservée');
+    synchronization.complete();
+    await tester.pumpAndSettle();
+    expect(await leaving, isFalse);
+    expect(controller.dirty, isTrue);
+    expect(controller.draft!.name, 'Nouvelle saisie conservée');
+    expect(port.saved!.name, 'Première modification');
+    expect(find.text('Ressource enregistrée.'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets(
     'interrupted project offers recovery before searching or opening maps',
@@ -127,7 +135,6 @@ void main() {
         recoveryOperationIds: ['interrupted'],
       );
       addTearDown(controller.dispose);
-      var builds = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: WorkingCatalogWorkspace(
@@ -139,10 +146,6 @@ void main() {
             controller: controller,
             onClose: () async {},
             registerExitGuard: (_) {},
-            mapWorkspaceBuilder: (context, guard) {
-              builds++;
-              return const SizedBox();
-            },
           ),
         ),
       );
@@ -151,9 +154,7 @@ void main() {
         find.byKey(const ValueKey('working-catalog-search')),
         findsNothing,
       );
-      await tester.tap(find.text('Cartes et ateliers'));
-      await tester.pumpAndSettle();
-      expect(builds, 0);
+      expect(find.text('Cartes et ateliers'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('working-catalog-recover')));
       await tester.pumpAndSettle();
       expect(controller.recoveryOperationIds, isEmpty);

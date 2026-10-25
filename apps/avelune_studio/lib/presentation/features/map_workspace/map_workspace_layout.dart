@@ -17,6 +17,8 @@ import 'map_workspace_compact_navigator.dart';
 import 'map_workspace_editor_pane.dart';
 import 'workspace_map_footer.dart';
 import 'map_selection_inspector.dart';
+import 'map_ambiance_panel.dart';
+import 'map_elements_panel.dart';
 import 'workspace_compact_panel.dart';
 import 'map_catalogue_empty_view.dart';
 import 'map_catalogue_workspace_actions.dart';
@@ -112,9 +114,7 @@ class MapWorkspaceLayout extends StatelessWidget {
           ? view!.borderDraftErrorFor(doc.current, project)
           : null;
       final errorInBorderFooter =
-          error != null &&
-          error == doc?.error &&
-          error == borderDraftError;
+          error != null && error == doc?.error && error == borderDraftError;
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final availableWidth = c.maxWidth - (c.maxWidth < 1200 ? 72 : 184);
       final compactInspector = availableWidth < 1200 || largeText;
@@ -193,6 +193,17 @@ class MapWorkspaceLayout extends StatelessWidget {
         );
       }
 
+      void openInspector() {
+        final replacingElements = view?.elementsVisible == true;
+        if (view != null) view!.elementsVisible = false;
+        if (compactInspector && ready) {
+          showWorkspaceCompactPanel(context, title: 'Inspecteur', builder: (context, refresh, close) => inspectorContent(refresh, close));
+        } else if (!replacingElements || !showInspector) {
+          onInspector();
+        }
+        onToolChanged();
+      }
+
       if (ready && activeSpace == 'map' && view!.revealInspector) {
         view!.revealInspector = false;
         if (compactInspector) {
@@ -224,19 +235,32 @@ class MapWorkspaceLayout extends StatelessWidget {
               view: view,
               onChanged: onToolChanged,
               paletteVisible: showPaletteDock,
-              inspectorVisible: showInspector && !compactInspector,
+              inspectorVisible: showInspector && !compactInspector && view?.elementsVisible != true,
               navigatorVisible: showNavigator,
               showUndoRedo: activeSpace != 'map',
               onNavigator: openNavigator,
+              onElements: !ready ? null : () {
+                view!.elementsVisible = !view!.elementsVisible;
+                onToolChanged();
+              },
               onPalette: compactPalette && ready ? openPalette : onPalette,
-              onInspector: compactInspector && ready
-                  ? () => showWorkspaceCompactPanel(
+              onInspector: openInspector,
+              onAmbiance: !ready || doc.current.spatialScene == null
+                  ? null
+                  : () => showWorkspaceCompactPanel(
                       context,
-                      title: 'Inspecteur',
-                      builder: (context, refresh, close) =>
-                          inspectorContent(refresh, close),
-                    )
-                  : onInspector,
+                      title: 'Ambiance de la carte',
+                      width: 420,
+                      dimBackground: false,
+                      builder: (context, refresh, close) => MapAmbiancePanel(
+                        workspace: controller,
+                        document: doc,
+                        project: project,
+                        preview: view!.spatialSceneController,
+                        onSave: onSave,
+                        onChanged: onToolChanged,
+                      ),
+                    ),
               onActivate: onActivate,
               onSave: onSave,
               onTest: onTest,
@@ -304,7 +328,19 @@ class MapWorkspaceLayout extends StatelessWidget {
                           showNavigator: showNavigator,
                           showToolStrip: true,
                           showPaletteDock: showPaletteDock,
-                          inspector: showInspector && !compactInspector
+                          inspector: view!.elementsVisible
+                              ? SizedBox(
+                                  width: c.maxWidth < 700 ? 280 : 360,
+                                  child: MapElementsPanel(
+                                    document: doc,
+                                    project: project,
+                                    view: view!,
+                                    onChanged: onToolChanged,
+                                    onReorder: controller.canReorderElements ? controller.reorderElements : null,
+                                    onInspect: openInspector,
+                                  ),
+                                )
+                              : showInspector && !compactInspector
                               ? inspectorContent(() {})
                               : null,
                           onActivate: onActivate,

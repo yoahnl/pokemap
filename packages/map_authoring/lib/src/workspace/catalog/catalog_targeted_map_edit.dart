@@ -14,6 +14,7 @@ import '../../support/authoring_fingerprint.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/plan_store.dart';
 import 'catalog_project_reader.dart';
+import 'catalog_metadata_documents.dart';
 
 final class CatalogTargetedMapSelection {
   const CatalogTargetedMapSelection._({
@@ -61,8 +62,27 @@ final class CatalogTargetedMapSelection {
               (projectedMap != null && projectedMap.id != mapId)) {
             throw const FormatException('catalog.map: identity mismatch');
           }
-          final definitions = await ProjectCatalogSelection(catalog)
+          var definitions = await ProjectCatalogSelection(catalog)
               .forMap(projectedMap ?? map);
+          final factIds = <String>{};
+          void collectFacts(Object? value) {
+            if (value is Map) {
+              if (value['factId'] case final String id) factIds.add(id);
+              for (final nested in value.values) { collectFacts(nested); }
+            } else if (value is List) {
+              for (final nested in value) { collectFacts(nested); }
+            }
+          }
+          collectFacts((projectedMap ?? map).toJson());
+          if (factIds.isNotEmpty) {
+            if (!reader.readOnly) await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
+            final facts = reader.readOnly
+                ? (await reader.readMetadata({'facts'})).facts.where((fact) => factIds.contains(fact.id)).toList()
+                : (await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot,
+                    project: const ProjectManifest(name: 'Map dependencies', maps: [], tilesets: []),
+                    ids: {'facts': factIds})).project.facts;
+            definitions = definitions.copyWith(facts: facts);
+          }
           MapValidator.validate(projectedMap ?? map,
               projectDialogueContext: definitions);
           if (await reader.store.gateway

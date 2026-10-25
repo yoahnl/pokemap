@@ -8,6 +8,7 @@ class StudioChoice extends StatefulWidget {
     required this.onTap,
     this.selected = false,
     this.leading,
+    this.trailing,
     this.subtitle,
     this.tone,
     this.dense = false,
@@ -16,6 +17,7 @@ class StudioChoice extends StatefulWidget {
   final VoidCallback? onTap;
   final bool selected;
   final Widget? leading;
+  final Widget? trailing;
   final String? subtitle;
   final StudioTone? tone;
   final bool dense;
@@ -102,6 +104,10 @@ class _StudioChoiceState extends State<StudioChoice> {
                     ),
                     if (widget.dense && widget.subtitle != null)
                       Text(widget.subtitle!, style: theme.textTheme.bodySmall),
+                    if (widget.trailing != null) ...[
+                      const SizedBox(width: 6),
+                      widget.trailing!,
+                    ],
                     if (widget.selected && !widget.dense) ...[
                       const SizedBox(width: 6),
                       Icon(

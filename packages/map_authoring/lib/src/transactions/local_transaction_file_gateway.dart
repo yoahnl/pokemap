@@ -16,7 +16,10 @@ import 'authoring_payload.dart';
 /// staged payloads make the ordered sequence recoverable after any completed
 /// filesystem call.
 final class LocalTransactionFileGateway
-    implements TransactionFileGateway, StreamingTransactionFileGateway {
+    implements
+        TransactionFileGateway,
+        StreamingTransactionFileGateway,
+        TransactionStagedArtifactProbe {
   LocalTransactionFileGateway._(
     this._projectRoot,
     this._performanceObserver,
@@ -73,29 +76,16 @@ final class LocalTransactionFileGateway
   final String? _transactionNamespace;
   final AuthoringPerformanceObserver? _performanceObserver;
 
-  static final Map<String, Future<void>> _projectWriters = {};
-
   @override
-  Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) async {
-    final previous = _projectWriters[_projectRoot] ?? Future<void>.value();
-    final release = Completer<void>();
-    _projectWriters[_projectRoot] = release.future;
-    await previous;
-    try {
-      return await _withFilesystemWriteLock(operation);
-    } finally {
-      release.complete();
-      if (identical(_projectWriters[_projectRoot], release.future)) {
-        _projectWriters.remove(_projectRoot);
-      }
-    }
-  }
+  Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) =>
+      withLocalProjectWriteQueue(
+          _projectRoot, () => _withFilesystemWriteLock(operation));
 
   Future<T> _withFilesystemWriteLock<T>(Future<T> Function() operation) async {
     late final RandomAccessFile lock;
     try {
       await _requireExpectedProjectRoot();
-      final internalRoot = await _ensureInternalRoot();
+      final internalRoot = await _ensureInternalRoot(scoped: false);
       lock = await File(_join(internalRoot.path, 'write.lock')).open(
         mode: FileMode.append,
       );
@@ -239,6 +229,54 @@ final class LocalTransactionFileGateway
             suffix: '${kind.name}.descriptor',
             counterName: AuthoringPerformanceCounterName
                 .gatewayDescriptorCompletedWriteInputBytes);
+      });
+
+  @override
+  Future<bool> hasStagedArtifacts({
+    required String operationId,
+    required TransactionPayloadKind kind,
+    required Iterable<String> storageKeys,
+  }) =>
+      _guardIo(() async {
+        final directory = await _operationDirectory(operationId, create: false);
+        final allowed = <String>{_join(directory.path, 'journal.json')};
+        final selected = <String>{};
+        for (final storageKey in storageKeys) {
+          for (final payloadKind in TransactionPayloadKind.values) {
+            final paths = await _payloadPaths(
+              operationId,
+              storageKey,
+              payloadKind,
+              createOperation: false,
+            );
+            final artifacts = {
+              paths.descriptor.path,
+              paths.payload.path,
+              '${paths.descriptor.path}.${payloadKind.name}.descriptor.tmp',
+              '${paths.payload.path}.${payloadKind.name}.payload.tmp',
+            };
+            allowed.addAll(artifacts);
+            if (payloadKind == kind) selected.addAll(artifacts);
+          }
+        }
+        var observed = 0;
+        await for (final entity in directory.list(followLinks: false)) {
+          observed++;
+          final name = entity.uri.pathSegments.last;
+          if (selected.contains(entity.path) ||
+              name.contains('.${kind.name}.')) {
+            return true;
+          }
+          if (observed > allowed.length ||
+              !allowed.contains(entity.path) ||
+              entity is! File) {
+            throw const TransactionFileGatewayException(
+              'transaction.artifact_invalid',
+              'The transaction contains unexpected preparation artifacts.',
+            );
+          }
+        }
+        return false;
       });
 
   @override
@@ -444,8 +482,9 @@ final class LocalTransactionFileGateway
       AuthoringPerformanceCounterName.filesystemMetadata,
     );
     return _guardIo(() async {
-      final root = await _ensureInternalRoot();
+      final root = await _ensureInternalRoot(create: false);
       final journals = <AuthoringTransactionJournal>[];
+      if (!await root.exists()) return journals;
       await for (final entity in root.list(followLinks: false)) {
         if (entity is! Directory) continue;
         final operationId =
@@ -483,18 +522,19 @@ final class LocalTransactionFileGateway
     });
   }
 
-  Future<Directory> _ensureInternalRoot() async {
+  Future<Directory> _ensureInternalRoot(
+      {bool scoped = true, bool create = true}) async {
     var current = Directory(_projectRoot);
     for (final segment in [
       '.pokemap',
       'authoring',
       'transactions',
-      if (_transactionNamespace != null) _transactionNamespace
+      if (scoped && _transactionNamespace != null) _transactionNamespace
     ]) {
       final next = Directory(_join(current.path, segment));
       final type = await FileSystemEntity.type(next.path, followLinks: false);
       if (type == FileSystemEntityType.notFound) {
-        await next.create();
+        if (create) await next.create();
       } else if (type != FileSystemEntityType.directory) {
         throw const TransactionFileGatewayException(
           'transaction.internal_path_invalid',
@@ -511,7 +551,7 @@ final class LocalTransactionFileGateway
     required bool create,
   }) async {
     final safeId = _safeOperationId(operationId);
-    final root = await _ensureInternalRoot();
+    final root = await _ensureInternalRoot(create: create);
     final directory = Directory(_join(root.path, safeId));
     final type = await FileSystemEntity.type(
       directory.path,
@@ -759,4 +799,23 @@ final class _PayloadPaths {
   const _PayloadPaths({required this.descriptor, required this.payload});
   final File descriptor;
   final File payload;
+}
+
+final _projectWriters = <String, Future<void>>{};
+
+Future<T> withLocalProjectWriteQueue<T>(
+    String canonicalProjectRoot, Future<T> Function() operation) async {
+  final previous =
+      _projectWriters[canonicalProjectRoot] ?? Future<void>.value();
+  final release = Completer<void>();
+  _projectWriters[canonicalProjectRoot] = release.future;
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release.complete();
+    if (identical(_projectWriters[canonicalProjectRoot], release.future)) {
+      _projectWriters.remove(canonicalProjectRoot);
+    }
+  }
 }

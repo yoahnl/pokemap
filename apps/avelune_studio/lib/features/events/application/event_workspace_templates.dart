@@ -19,15 +19,58 @@ extension EventWorkspaceTemplates on EventWorkspaceController {
       busy = true;
       ownsBusy = true;
       changed();
-      if (!await prepare() || _closed) return false;
+      final mapIds = {
+        spec.mapId,
+        if (spec.parameters['destinationMapId'] case final String id) id,
+      };
+      if (!await prepare(mapIds: mapIds) || _closed) {
+        return false;
+      }
+      final existingSceneIds = <String>{};
+      final original =
+          workspace.documents[spec.mapId]?.current ?? _maps[spec.mapId];
+      if (original != null) {
+        final previous = readStandardEventTemplate(
+          project: narrative.project,
+          map: original,
+          entityId: spec.entityId,
+        );
+        if (previous != null) {
+          final entity = original.entities.singleWhere(
+            (value) => value.id == spec.entityId,
+          );
+          existingSceneIds.addAll(
+            standardEventTemplateSceneIds(
+              previous,
+              generation:
+                  entity.properties['standardEventTemplate.sceneGeneration.v1'],
+            ),
+          );
+        }
+        final destination = previous?.parameters['destinationMapId'];
+        if (destination is String) {
+          mapIds.add(destination);
+          await loadMap(destination);
+        }
+      }
+      if (_closed) return false;
       final snapshot = narrative.project;
+      final templateMaps = [
+        for (final id in mapIds)
+          if (workspace.documents[id]?.current ?? _maps[id]
+              case final MapData map)
+            map,
+      ];
       final projection = compileStandardEventTemplate(
         project: snapshot,
-        maps: maps,
+        maps: templateMaps,
         spec: spec,
       );
-      for (final scene in projection.scenes) {
-        final problem = narrative.sceneAccessProblem?.call(scene.id);
+      for (final sceneId in {
+        ...existingSceneIds,
+        ...projection.scenes.map((scene) => scene.id),
+      }) {
+        final problem = narrative.sceneAccessProblem?.call(sceneId);
         if (problem != null) return _fail(problem);
       }
       final document = workspace.documents[spec.mapId];
@@ -45,7 +88,9 @@ extension EventWorkspaceTemplates on EventWorkspaceController {
       if (_closed || narrative.project != snapshot) {
         return _fail('Le projet a changé pendant la préparation. Réessayez.');
       }
-      final workingMap = maps.singleWhere((map) => map.id == spec.mapId);
+      final workingMap = templateMaps.singleWhere(
+        (map) => map.id == spec.mapId,
+      );
       if (base.map != workingMap ||
           document?.dirty == true ||
           document?.saving == true) {
@@ -60,7 +105,7 @@ extension EventWorkspaceTemplates on EventWorkspaceController {
           base: base,
           spec: spec,
           project: snapshot,
-          maps: maps,
+          maps: templateMaps,
         );
         if (_closed) return false;
         workspace.acceptResources(receipt.beforeManifest, receipt.manifest);

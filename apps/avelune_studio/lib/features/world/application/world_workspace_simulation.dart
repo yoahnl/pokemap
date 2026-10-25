@@ -70,6 +70,15 @@ extension WorldWorkspaceSimulation on WorldWorkspaceController {
   );
 
   void simulate() {
+    if (!mapsComplete) {
+      report = null;
+      _fail(
+        const WorldFailure(
+          'Chargez les cartes avant de lancer la simulation complète.',
+        ),
+      );
+      return;
+    }
     reconcileSimulation();
     report = simulateNarrativeWorldState(
       project: project.copyWith(facts: facts, worldRules: rules),
@@ -79,6 +88,11 @@ extension WorldWorkspaceSimulation on WorldWorkspaceController {
       ),
     );
     changed();
+  }
+
+  Future<void> simulateComplete() async {
+    if (!mapsComplete && !await loadAllMaps()) return;
+    if (!_closed) simulate();
   }
 
   /// What the projection retained for a rule in the last run.

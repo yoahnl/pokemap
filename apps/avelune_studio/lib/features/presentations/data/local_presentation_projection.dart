@@ -1,7 +1,10 @@
 import 'dart:convert';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+
 import '../domain/presentation_port.dart';
+import '../../map_workspace/domain/map_workspace_workshop.dart';
 
 class LocalPresentationProjection implements PresentationDraftProjection {
   LocalPresentationProjection(this.snapshot, ProjectManifest project) {
@@ -56,7 +59,11 @@ class LocalPresentationProjection implements PresentationDraftProjection {
   );
   @override
   void adopt(ProjectManifest manifest) {
-    _draft.adopt(manifest);
+    _draft.adopt(
+      snapshot.availableProjectSections == null
+          ? manifest
+          : MapWorkspaceWorkshop.presentation.merge(this.manifest, manifest),
+    );
   }
 
   @override

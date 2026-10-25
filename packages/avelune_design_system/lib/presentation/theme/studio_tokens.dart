@@ -11,6 +11,27 @@ abstract final class StudioMetrics {
   static const double compactNavigationWidth = 104;
 }
 
+enum StudioAccent {
+  daylight,
+  halo,
+  fog,
+  window,
+  firefly,
+  water;
+
+  Color color(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return switch (this) {
+      daylight => dark ? const Color(0xfff4b85c) : const Color(0xff986000),
+      halo => dark ? const Color(0xfff3d475) : const Color(0xff866200),
+      fog => dark ? const Color(0xffc2a6ed) : const Color(0xff7951a8),
+      window => dark ? const Color(0xffffaf81) : const Color(0xffa65321),
+      firefly => dark ? const Color(0xffa9dc7b) : const Color(0xff477623),
+      water => dark ? const Color(0xff79c9ef) : const Color(0xff226f99),
+    };
+  }
+}
+
 abstract final class StudioPokemonTypeColors {
   static const normal = Color(0xff8192a7);
   static const fire = Color(0xffe7754b);

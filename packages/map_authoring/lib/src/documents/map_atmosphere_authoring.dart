@@ -108,6 +108,10 @@ final class LocalMapAtmosphereAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
+        'documentSchemaVersions': [1, 2],
+        'effects': ['waterAnimated', 'windowsLit', 'fireflies', 'halosEnabled', 'depthFogEnabled'],
+        'haloBindings': 'instanceLocalPosition',
+        'settingsFields': ['haloStrength', 'haloSpread', 'halos', 'fogOpacity', 'fogStart', 'fogEnd'],
         'revisionScope': 'mapAtmosphereDocument',
         'storagePattern': 'maps/<mapId>.atmosphere.json',
         'maximumDocumentBytes': SpatialAtmosphereDocument.maxBytes,
@@ -122,6 +126,22 @@ final class LocalMapAtmosphereAuthoring {
           String? mapRelativePath}) async =>
       _read(await _context(projectRoot, mapId, mapRelativePath), mapId);
   Future<MapAtmosphereMutation> set(
+          {required String projectRoot,
+          required String mapId,
+          String? mapRelativePath,
+          required String expectedRevision,
+          required SpatialAtmosphereSettings settings,
+          required String operationId,
+          FutureOr<void> Function()? precondition}) =>
+      _set(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          expectedRevision: expectedRevision,
+          settings: settings,
+          operationId: operationId,
+          precondition: precondition);
+  Future<MapAtmosphereMutation> _set(
       {required String projectRoot,
       required String mapId,
       String? mapRelativePath,
@@ -129,15 +149,19 @@ final class LocalMapAtmosphereAuthoring {
       required SpatialAtmosphereSettings settings,
       required String operationId,
       FutureOr<void> Function()? precondition,
-      AuthoringHistoryContext? historyContext}) async {
+      AuthoringHistoryContext? historyContext,
+      bool removeDocument = false}) async {
     final context = await _context(projectRoot, mapId, mapRelativePath);
     if (!_actor.allows(AuthoringPermissionScope.projectWrite)) {
       throw const FormatException('project.write permission is required.');
     }
     safeAuthoringSecurityIdentifier(operationId, 'operationId');
-    final afterBytes = utf8.encode(jsonEncode(
-        SpatialAtmosphereDocument(mapId: mapId, settings: settings).toJson()));
-    if (afterBytes.length > SpatialAtmosphereDocument.maxBytes) {
+    final afterBytes = removeDocument
+        ? null
+        : utf8.encode(jsonEncode(
+            SpatialAtmosphereDocument(mapId: mapId, settings: settings)
+                .toJson()));
+    if ((afterBytes?.length ?? 0) > SpatialAtmosphereDocument.maxBytes) {
       throw const FormatException(
           'Atmosphere document exceeds its byte limit.');
     }
@@ -149,7 +173,8 @@ final class LocalMapAtmosphereAuthoring {
         parameters: {
           'mapId': mapId,
           'mapRelativePath': context.mapPath,
-          'settings': settings.toJson()
+          'settings': settings.toJson(),
+          'documentPresent': !removeDocument
         },
         expectedRevision: expectedRevision,
         idempotencyKey: operationId,
@@ -225,8 +250,10 @@ final class LocalMapAtmosphereAuthoring {
       throw const FormatException(
           'map.atmosphere_revision_conflict: Atmosphere changed during preparation.');
     }
-    final afterRevision = computeAuthoringBytesFingerprint(afterBytes,
-        logicalName: context.storageKey);
+    final afterRevision = afterBytes == null
+        ? _absentRevision(mapId)
+        : computeAuthoringBytesFingerprint(afterBytes,
+            logicalName: context.storageKey);
     if (afterRevision == beforeRevision) {
       throw const FormatException(
           'map.atmosphere_no_changes: Atmosphere already has these settings.');
@@ -241,7 +268,9 @@ final class LocalMapAtmosphereAuthoring {
           after: settings.toJson(),
           extensions: {
             'documentBeforeRevision': beforeRevision,
-            'documentAfterRevision': afterRevision
+            'documentAfterRevision': afterRevision,
+            'documentBeforePresent': beforeBytes != null,
+            'documentAfterPresent': afterBytes != null
           })
     ]);
     final plans = AuthoringPlanStore();
@@ -343,12 +372,15 @@ final class LocalMapAtmosphereAuthoring {
       throw const FormatException(
           'map.atmosphere_revision_conflict: Undo must target the current atmosphere revision.');
     }
-    return set(
+    return _set(
         projectRoot: projectRoot,
         mapId: mapId,
         mapRelativePath: mapRelativePath,
         expectedRevision: expectedRevision,
         settings: mutation.beforeSettings,
+        removeDocument: entry.receipt.diff.entries.single
+                .extensions['documentBeforePresent'] ==
+            false,
         operationId: operationId,
         historyContext: AuthoringHistoryContext(
             kind: AuthoringHistoryKind.undo, targetEntryId: receiptId));

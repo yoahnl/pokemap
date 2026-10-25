@@ -62,6 +62,7 @@ final class PortableProjectCatalog {
     Map<String, Object?> descriptor, {
     required CatalogObjectReader readObject,
     CatalogStorageLimits? limits,
+    Set<String>? metadataFields,
   }) async {
     if (descriptor.length != 4 ||
         descriptor['format'] != 'avelune.portable-catalog' ||
@@ -83,41 +84,74 @@ final class PortableProjectCatalog {
         'catalog.publication: internal workspace state',
       );
     }
-    return fromSnapshot(snapshot);
+    return fromSnapshot(snapshot, metadataFields: metadataFields);
   }
 
   static Future<PortableProjectCatalog> fromSnapshot(
-    CatalogSnapshot snapshot,
-  ) async {
-    final shell = await snapshot.lookup(_shellKey);
+    CatalogSnapshot snapshot, {
+    Set<String>? metadataFields,
+  }) async {
+    if (metadataFields != null &&
+        metadataFields.any(
+          (field) => !_selectableProjectMetadataFields.contains(field),
+        )) {
+      throw ArgumentError.value(
+        metadataFields,
+        'metadataFields',
+        'Unknown project metadata field',
+      );
+    }
+    var shell = await snapshot.lookup(_shellKey);
     if (shell == null || shell.payload['section'] != r'$shell') {
       throw const FormatException('catalog.publication: missing project shell');
     }
+    final originalShell = _map(shell.payload['value']);
+    final fields = metadataFields == null
+        ? null
+        : {'name', 'version', 'settings', ...metadataFields};
+    if (fields != null) {
+      final projected = <String, Object?>{
+        ...ProjectManifest(
+          name: originalShell['name']! as String,
+          maps: const [],
+          tilesets: const [],
+        ).toJson(),
+        for (final field in fields)
+          if (originalShell.containsKey(field)) field: originalShell[field],
+      };
+      shell = _unit(_shellKey, r'$shell', 0, projected);
+    }
     final metadata = <CatalogDefinitionUnit>[shell];
-    String? cursor;
-    do {
-      final page = await snapshot.page(
-        kind: CatalogDefinitionKind.catalogMetadata,
-        limit: snapshot.limits.indexPageSize,
-        cursor: cursor,
+    if (fields != null) {
+      metadata.addAll(
+        await _readSelectedProjectMetadata(snapshot, fields, shell),
       );
-      for (final entry in page.items) {
-        if (entry.key == _shellKey) continue;
-        final identity = entry.key.id;
-        if (!identity.startsWith('["projectDefinition",') &&
-            !identity.startsWith('["projectAggregateHeader",') &&
-            !identity.startsWith('["projectAggregateChunk",') &&
-            !identity.startsWith('["dynamic",')) {
-          continue;
+    } else {
+      String? cursor;
+      do {
+        final page = await snapshot.page(
+          kind: CatalogDefinitionKind.catalogMetadata,
+          limit: snapshot.limits.indexPageSize,
+          cursor: cursor,
+        );
+        for (final entry in page.items) {
+          if (entry.key == _shellKey) continue;
+          final identity = entry.key.id;
+          if (!identity.startsWith('["projectDefinition",') &&
+              !identity.startsWith('["projectAggregateHeader",') &&
+              !identity.startsWith('["projectAggregateChunk",') &&
+              !identity.startsWith('["dynamic",')) {
+            continue;
+          }
+          final unit = await snapshot.lookup(entry.key);
+          if (unit == null) {
+            throw const FormatException('catalog.project: missing metadata');
+          }
+          metadata.add(unit);
         }
-        final unit = await snapshot.lookup(entry.key);
-        if (unit == null) {
-          throw const FormatException('catalog.project: missing metadata');
-        }
-        metadata.add(unit);
-      }
-      cursor = page.nextCursor;
-    } while (cursor != null);
+        cursor = page.nextCursor;
+      } while (cursor != null);
+    }
     final decoded = ProjectManifest.fromJson(_reconstruct(metadata));
     final project = decoded.copyWith(
       globalProperties:
@@ -131,7 +165,6 @@ final class PortableProjectCatalog {
       maps: const [],
       tilesets: const [],
     ).toJson();
-    final originalShell = _map(shell.payload['value']);
     for (final section in [
       'smartTileCatalog',
       'borderCatalog',
@@ -1000,6 +1033,196 @@ const _projectAggregateFields = {
   'globalProperties',
 };
 
+const _selectableProjectMetadataFields = {
+  ..._projectDefinitionFields,
+  ..._projectAggregateFields,
+  'name',
+  'version',
+  'partyCompanion',
+  'contactDevice',
+  'defeatRecovery',
+  'bagCapacity',
+  'smartTileCatalog',
+  'borderCatalog',
+  'resourceLibraryCatalog',
+  'characterStudioCatalog',
+};
+
+Future<List<CatalogDefinitionUnit>> _readSelectedProjectMetadata(
+  CatalogSnapshot snapshot,
+  Set<String> fields,
+  CatalogDefinitionUnit shell,
+) async {
+  final result = <CatalogDefinitionUnit>[];
+  Future<CatalogDefinitionUnit?> read(
+    String type,
+    String field, [
+    int? position,
+  ]) async {
+    final unit = await snapshot.lookup(
+      _projectMetadataKey(type, field, position),
+    );
+    if (unit != null &&
+        (unit.payload['section'] != '\$$type' ||
+            unit.payload['id'] != unit.key.id ||
+            unit.payload['position'] != (position ?? 0) ||
+            _map(unit.payload['value'])['field'] != field)) {
+      throw const FormatException(
+        'catalog.project: metadata identity mismatch',
+      );
+    }
+    return unit;
+  }
+
+  for (final field in fields) {
+    if (_projectDefinitionFields.contains(field)) {
+      var count = 0;
+      for (
+        var position = 0;
+        position < snapshot.limits.maxDefinitions;
+        position++
+      ) {
+        final unit = await read('projectDefinition', field, position);
+        if (unit == null) break;
+        result.add(unit);
+        count++;
+      }
+      await _requireProjectMetadataPositions(
+        snapshot,
+        'projectDefinition',
+        field,
+        count,
+      );
+    }
+    if (_projectAggregateFields.contains(field)) {
+      final header = await read('projectAggregateHeader', field);
+      if (header == null) {
+        await _requireProjectMetadataPositions(
+          snapshot,
+          'projectAggregateChunk',
+          field,
+          0,
+        );
+        continue;
+      }
+      final value = _map(header.payload['value']);
+      final length = value['byteLength'];
+      final count = value['chunkCount'];
+      if (length is! int ||
+          length < 1 ||
+          length > _projectMetadataBytes ||
+          count is! int ||
+          count !=
+              (length + _aggregateChunkBytes - 1) ~/ _aggregateChunkBytes ||
+          value['sha256'] is! String) {
+        throw const FormatException(
+          'catalog.project: invalid aggregate bounds',
+        );
+      }
+      result.add(header);
+      for (var position = 0; position < count; position++) {
+        final chunk = await read('projectAggregateChunk', field, position);
+        if (chunk == null) {
+          throw const FormatException(
+            'catalog.project: aggregate chunk count mismatch',
+          );
+        }
+        result.add(chunk);
+      }
+      await _requireProjectMetadataPositions(
+        snapshot,
+        'projectAggregateChunk',
+        field,
+        count,
+      );
+    }
+  }
+  if (fields.contains('globalProperties') &&
+      _map(
+        _reconstruct([shell, ...result])['globalProperties'],
+      ).containsKey(PortableCatalogPublication.projectDynamicDependenciesKey)) {
+    const kind = CatalogDefinitionKind.catalogMetadata;
+    var cursor = base64Url.encode(
+      utf8.encode(
+        jsonEncode({
+          'after': {'id': '["dynamic",', 'kind': kind.name},
+          'kind': kind.name,
+          'root': snapshot.root.sha256,
+          'version': 2,
+        }),
+      ),
+    );
+    while (true) {
+      final page = await snapshot.page(kind: kind, limit: 1, cursor: cursor);
+      for (final entry in page.items) {
+        if (!entry.key.id.startsWith('["dynamic",')) return result;
+        final unit = await snapshot.lookup(entry.key);
+        if (unit == null ||
+            unit.payload['section'] !=
+                'globalProperties.${PortableCatalogPublication.projectDynamicDependenciesKey}' ||
+            _id(unit.payload['section']! as String, unit.payload['value']) !=
+                entry.key.id) {
+          throw const FormatException(
+            'catalog.project: invalid dynamic metadata',
+          );
+        }
+        result.add(unit);
+      }
+      if (page.nextCursor == null) break;
+      cursor = page.nextCursor!;
+    }
+  }
+  return result;
+}
+
+Future<void> _requireProjectMetadataPositions(
+  CatalogSnapshot snapshot,
+  String type,
+  String field,
+  int count,
+) async {
+  const kind = CatalogDefinitionKind.catalogMetadata;
+  final identity = jsonEncode([type, field]);
+  final prefix = '${identity.substring(0, identity.length - 1)},';
+  var cursor = base64Url.encode(
+    utf8.encode(
+      jsonEncode({
+        'after': {'id': prefix, 'kind': kind.name},
+        'kind': kind.name,
+        'root': snapshot.root.sha256,
+        'version': 2,
+      }),
+    ),
+  );
+  var found = 0;
+  while (true) {
+    final page = await snapshot.page(kind: kind, limit: 1, cursor: cursor);
+    if (page.items.isEmpty || !page.items.first.key.id.startsWith(prefix)) {
+      break;
+    }
+    final key = page.items.first.key;
+    final value = jsonDecode(key.id);
+    if (value is! List ||
+        value.length != 3 ||
+        value[2] is! int ||
+        (value[2] as int) < 0 ||
+        (value[2] as int) >= count ||
+        _projectMetadataKey(type, field, value[2] as int) != key) {
+      throw const FormatException(
+        'catalog.project: non contiguous metadata positions',
+      );
+    }
+    found++;
+    if (page.nextCursor == null) break;
+    cursor = page.nextCursor!;
+  }
+  if (found != count) {
+    throw const FormatException(
+      'catalog.project: metadata position count mismatch',
+    );
+  }
+}
+
 CatalogDefinitionKey _projectMetadataKey(
   String type,
   String field, [
@@ -1553,6 +1776,35 @@ void _verifyUnits(
     final canonical = byKey[unit.key];
     Map<String, Object?> comparable(CatalogDefinitionUnit value) {
       final json = value.toJson();
+      if (identical(value, canonical) &&
+          unit.key.kind == CatalogDefinitionKind.catalogMetadata &&
+          unit.payload['value'] is Map<String, Object?> &&
+          value.payload['value'] is Map<String, Object?>) {
+        final original = _map(unit.payload['value']);
+        final current = _map(value.payload['value']);
+        final parent = unit.key == _shellKey
+            ? 'settings'
+            : unit.payload['section'] == r'$projectDefinition' &&
+                  original['field'] == 'cinematics'
+            ? 'definition'
+            : null;
+        final field = parent == 'settings'
+            ? 'actorContactShadowsByDefault'
+            : 'allowMobileActorCrossing';
+        if (parent != null &&
+            original[parent] is Map &&
+            current[parent] is Map &&
+            !_map(original[parent]).containsKey(field) &&
+            _map(current[parent])[field] == false) {
+          json['payload'] = {
+            ...value.payload,
+            'value': {
+              ...current,
+              parent: {..._map(current[parent])}..remove(field),
+            },
+          };
+        }
+      }
       if (const [
         'resourceLibraryCatalog.entries',
         'resourceLibraryCatalog.families',

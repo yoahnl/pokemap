@@ -124,8 +124,16 @@ extension LocalPresentationPublication on LocalPresentationAdapter {
       faultInjector,
     );
     try {
-      final snapshot = await connection.read();
-      if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
+      final scoped = session.storage == ProjectSessionStorage.workingCatalog;
+      final snapshot = await connection.read(
+        actionId: actionId,
+        parameters: fields,
+      );
+      if ((scoped
+              ? await mapAdapter.resourceRevision(session)
+              : narrativeEventBytesFingerprint(
+                  snapshot.resourceBytes('project'),
+                )) !=
           baseline.revision) {
         throw const PresentationFailure(
           'Le projet a changé pendant sa préparation.',
@@ -150,17 +158,18 @@ extension LocalPresentationPublication on LocalPresentationAdapter {
           expectedRevision: snapshot.revision,
           idempotencyKey: operation,
           parameters: fields,
+          extensions: {if (scoped) 'workshopScope': true},
         ),
       );
       final changes = planned.plan.changeSet.changes;
       if (changes.any(
         (c) =>
             c.storageKey != 'project.json' &&
+            !(scoped && c.storageKey == CatalogStorageStore.headStorageKey) &&
             c.storageKey != 'assets/.pokemap-assets.json' &&
             c.storageKey != 'assets/.pokemap-media.json' &&
-            !RegExp(
-              r'^assets/\.pokemap-store/[a-f0-9]{64}\.blob$',
-            ).hasMatch(c.storageKey),
+            !RegExp(r'^assets/\.pokemap-store/[a-f0-9]{64}\.blob$')
+                .hasMatch(c.storageKey),
       )) {
         throw const PresentationFailure(
           'La publication possède une portée inattendue.',
@@ -172,9 +181,10 @@ extension LocalPresentationPublication on LocalPresentationAdapter {
               planId: planned.planId,
             )
           : null;
+      AuthoringMutationResult? committed;
       try {
         if (changes.isNotEmpty) {
-          await connection.api.applyMutation(
+          committed = await connection.api.applyMutation(
             connection.opened.projectHandle,
             planId: planned.planId,
             operationId: operation,
@@ -183,7 +193,7 @@ extension LocalPresentationPublication on LocalPresentationAdapter {
         }
       } catch (failure) {
         try {
-          await connection.api.recoverMutation(
+          committed = await connection.api.recoverMutation(
             connection.opened.projectHandle,
             operationId: operation,
           );
@@ -193,7 +203,15 @@ extension LocalPresentationPublication on LocalPresentationAdapter {
           );
         }
       }
-      final after = await connection.read();
+      final after = await connection.read(
+        actionId: actionId,
+        parameters: fields,
+      );
+      if (committed != null && after.revision != committed.snapshotRevision) {
+        throw const PresentationFailure(
+          'La publication a changé pendant sa relecture. Le brouillon est conservé.',
+        );
+      }
       final gateway = await LocalTransactionFileGateway.open(
         projectRoot: session.directoryPath,
       );
@@ -207,11 +225,17 @@ extension LocalPresentationPublication on LocalPresentationAdapter {
       }
       final receipt = ResourceMutationReceipt(
         before: baseline.manifest,
-        manifest: after.manifest,
+        manifest: scoped
+            ? mergeProjectMetadataSections(
+                baseline.manifest,
+                after.manifest,
+                after.availableProjectSections!,
+              )
+            : after.manifest,
         beforeRevision: baseline.revision,
-        revision: narrativeEventBytesFingerprint(
-          after.resourceBytes('project'),
-        ),
+        revision: scoped
+            ? await mapAdapter.resourceRevision(session)
+            : narrativeEventBytesFingerprint(after.resourceBytes('project')),
         changedPaths: changes.map((c) => c.storageKey).toList(),
       );
       await mapAdapter.acceptResourceMutation(session, receipt);

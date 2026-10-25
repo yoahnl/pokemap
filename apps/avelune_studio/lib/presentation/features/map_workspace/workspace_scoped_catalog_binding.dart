@@ -1,6 +1,27 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceScopedCatalog on _MapWorkspaceScreenState {
+  Future<int?> _prepareWorkshopRoute(MapWorkspaceWorkshop workshop) async {
+    final request = ++_navigationRequest;
+    _openingWorkshop = true;
+    _resourceError = null;
+    _changed();
+    try {
+      await _controller.ensureWorkshop(workshop);
+      return mounted && request == _navigationRequest ? request : null;
+    } catch (failure) {
+      if (mounted && request == _navigationRequest) {
+        _resourceError = 'Cet atelier ne peut pas être chargé : $failure';
+      }
+      return null;
+    } finally {
+      if (mounted && request == _navigationRequest) {
+        _openingWorkshop = false;
+        _changed();
+      }
+    }
+  }
+
   Future<void> _refreshScopedVisuals(ProjectManifest definitions) async {
     final visuals = _visuals;
     if (visuals == null || visuals is! ResourceWorkspaceVisuals) return;
@@ -40,42 +61,31 @@ extension _WorkspaceScopedCatalog on _MapWorkspaceScreenState {
     }
   }
 
-  Future<void> _materializeWorkshops({WorkspaceSpace? destination}) async {
-    if (_materializingWorkshops || _controller.hasCompleteProject) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => StudioReviewDialog(
-        title: 'Charger tous les ateliers du projet ?',
-        content: const Text(
-          'Les imports, l’histoire et les autres ateliers nécessitent toutes les définitions du projet. La carte ouverte et ses brouillons seront conservés.',
-        ),
-        confirmLabel: 'Charger les ateliers',
-        onConfirmed: () => Navigator.pop(context, true),
-        onCancelled: () => Navigator.pop(context, false),
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    _materializingWorkshops = true;
+  Future<void> _openWorkshop(
+    WorkspaceSpace destination,
+    MapWorkspaceWorkshop workshop, {
+    VoidCallback? prepare,
+    Future<void> Function()? loadDependencies,
+  }) async {
+    final request = ++_navigationRequest;
+    _openingWorkshop = true;
+    _resourceError = null;
     _changed();
     try {
-      await _controller.materializeProject();
-      if (!mounted) return;
-      _projectionVisualGeneration++;
-      final previous = _visuals;
-      _visuals = null;
-      previous?.removeListener(_changed);
-      await previous?.dispose();
-      _projectionVisualsLoading = false;
-      _initializePokemon();
-      await _initialize();
-      if (mounted && destination != null) _show(destination);
+      await _controller.ensureWorkshop(workshop);
+      if (!mounted || request != _navigationRequest) return;
+      await loadDependencies?.call();
+      if (!mounted || request != _navigationRequest) return;
+      prepare?.call();
+      _openingWorkshop = false;
+      _show(destination, libraryGuarded: true);
     } catch (failure) {
-      if (mounted) {
-        _resourceError = 'Les ateliers ne peuvent pas être chargés : $failure';
+      if (mounted && request == _navigationRequest) {
+        _resourceError = 'Cet atelier ne peut pas être chargé : $failure';
       }
     } finally {
-      if (mounted) {
-        _materializingWorkshops = false;
+      if (mounted && request == _navigationRequest) {
+        _openingWorkshop = false;
         _changed();
       }
     }

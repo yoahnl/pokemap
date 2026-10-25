@@ -10,6 +10,73 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
+  testWidgets('guided map picker loads only the chosen map once', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1500, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final requested = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: StandardEventTemplateForm(
+            project: _project().copyWith(
+              maps: [
+                ..._project().maps,
+                const ProjectMapEntry(
+                  id: 'second',
+                  name: 'Jardin',
+                  relativePath: 'maps/second.json',
+                ),
+                const ProjectMapEntry(
+                  id: 'unrelated',
+                  name: 'Autre',
+                  relativePath: 'maps/unrelated.json',
+                ),
+              ],
+            ),
+            maps: [_map()],
+            itemOptions: const {},
+            loadMap: (id) async {
+              requested.add(id);
+              return _map().copyWith(id: id);
+            },
+            onSave: (_) async => true,
+            onAdvanced: (_) {},
+            onCancel: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(requested, isEmpty);
+    StudioSelect picker() => tester.widget<StudioSelect>(
+      find.byKey(const ValueKey('standard-event-map')),
+    );
+    expect(picker().options.keys, ['room', 'second', 'unrelated']);
+    picker().onChanged!('second');
+    await tester.pumpAndSettle();
+    expect(requested, ['second']);
+    expect(
+      tester
+          .widget<StudioSelect>(
+            find.byKey(const ValueKey('standard-event-entity')),
+          )
+          .options
+          .keys,
+      ['guide', 'other'],
+    );
+    picker().onChanged!('room');
+    await tester.pumpAndSettle();
+    picker().onChanged!('second');
+    await tester.pumpAndSettle();
+    expect(requested, ['second']);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets(
     'history opens guided event authoring without creating a blank draft',
     (tester) async {

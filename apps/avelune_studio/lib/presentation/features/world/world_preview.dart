@@ -17,9 +17,19 @@ extension _WorldPreview on _WorldWorkspacePageState {
         .where((candidate) => candidate.id == target.mapId)
         .firstOrNull;
     if (visuals == null || map == null) {
-      return const Text(
-        'La carte de cette cible n’est pas chargée sur cet hôte : le résultat '
-        'reste lisible dans l’explication ci-dessus.',
+      return Column(
+        children: [
+          const Text('La carte de cette cible n’est pas encore chargée.'),
+          if (map == null)
+            StudioButton(
+              label: 'Charger la carte de cette cible',
+              secondary: true,
+              onPressed: () async {
+                await controller.loadTargetMap(target.mapId);
+                if (mounted) refresh();
+              },
+            ),
+        ],
       );
     }
     final settings = controller.project.settings;

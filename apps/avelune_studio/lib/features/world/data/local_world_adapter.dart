@@ -8,7 +8,7 @@ import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/world_port.dart';
 
-class LocalWorldAdapter implements WorldPort {
+class LocalWorldAdapter implements WorldPort, WorldMapSelectionPort {
   LocalWorldAdapter({
     required this.session,
     required this.mapAdapter,
@@ -134,6 +134,10 @@ class LocalWorldAdapter implements WorldPort {
           return {'ruleId': base.id};
         },
       );
+
+  @override
+  Future<MapData> loadMap(ProjectMapEntry entry) async =>
+      (await mapAdapter.loadMap(session, entry)).map;
 
   @override
   Future<List<MapData>> loadMaps() async {

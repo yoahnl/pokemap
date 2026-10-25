@@ -18,6 +18,27 @@ export function registerMutationTools(
   authoring: AuthoringGateway,
 ): void {
   server.registerTool(
+    "pokemap_workshop",
+    {
+      title: "Read or prepare scoped workshop authoring",
+      description: "Reads only the documents needed by a catalog action. Explicit preparation admits an older or copied catalog and prepares its editing indexes and retained history; preparation may inspect the whole catalog and belongs before local edits. Use returned snapshotRevision and planExtensions with pokemap_plan.",
+      inputSchema: z.discriminatedUnion("operation", [
+        z.object({ operation: z.literal("read"), projectHandle: z.string().min(1),
+          actionId: z.string().min(1), parameters: jsonRecordSchema.default({}),
+          readDependencies: z.record(z.string(), z.string()).optional(), }).strict(),
+        z.object({ operation: z.literal("prepare"), projectHandle: z.string().min(1) }).strict(),
+      ]),
+      outputSchema: toolEnvelopeSchema,
+      annotations: mutationAnnotations,
+    },
+    async (input) => authoringResult(() => input.operation === "prepare"
+      ? authoring.request("workshop_prepare", { projectHandle: input.projectHandle })
+      : authoring.request("workshop_snapshot", { projectHandle: input.projectHandle,
+          actionId: input.actionId, parameters: input.parameters,
+          ...(input.readDependencies ? {readDependencies: input.readDependencies} : {}) })),
+  );
+
+  server.registerTool(
     "pokemap_project_bootstrap",
     {
       title: "Inspect or repair a PokeMap project bootstrap",
@@ -214,6 +235,21 @@ export function registerMutationTools(
               idempotencyKey: input.idempotencyKey,
             }),
           ),
+  );
+
+  server.registerTool(
+    "pokemap_recovery_discard",
+    {
+      title: "Discard an incomplete PokeMap preparation",
+      description: "Discards only an uncommitted incomplete transaction preparation. Never resumes, promotes or reconstructs project data. Requires recovery permission and records an audit event.",
+      inputSchema: z.object({
+        projectHandle: z.string().min(1),
+        operationId: z.string().min(1),
+      }).strict(),
+      outputSchema: toolEnvelopeSchema,
+      annotations: mutationAnnotations,
+    },
+    async (input) => authoringResult(() => authoring.request("discard_preparation", input)),
   );
 
   server.registerTool(

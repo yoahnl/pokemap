@@ -7,7 +7,7 @@ final class SpatialAtmosphereDocument {
     : mapId = _mapId(mapId);
   final String mapId;
   final SpatialAtmosphereSettings settings;
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
   static const presentationOnly = true;
   static const absentDefaultsDisabled = true;
   static const maxBytes = 65536;
@@ -15,12 +15,22 @@ final class SpatialAtmosphereDocument {
       'maps/${_mapId(mapId)}.atmosphere.json';
   factory SpatialAtmosphereDocument.fromJson(Map<String, dynamic> json) {
     _keys(json, {'schemaVersion', 'mapId', 'settings'});
-    if (json['schemaVersion'] is! int || json['schemaVersion'] != schemaVersion) {
+    if (json['schemaVersion'] is! int ||
+        !{1, schemaVersion}.contains(json['schemaVersion'])) {
       throw const FormatException('Unsupported atmosphere schema version.');
+    }
+    final settings = _object(json['settings']);
+    if (json['schemaVersion'] == 1 &&
+        settings.keys.any(
+          SpatialAtmosphereSettings.presentationKeys.contains,
+        )) {
+      throw const FormatException(
+        'Presentation extensions require atmosphere schema 2.',
+      );
     }
     return SpatialAtmosphereDocument(
       mapId: _string(json['mapId']),
-      settings: SpatialAtmosphereSettings.fromJson(_object(json['settings'])),
+      settings: SpatialAtmosphereSettings.fromJson(settings),
     );
   }
   Map<String, dynamic> toJson() => {
@@ -164,11 +174,85 @@ final class SpatialAtmosphereFireflyZone {
   };
 }
 
+final class SpatialAtmosphereHalo {
+  SpatialAtmosphereHalo({
+    required String instanceId,
+    required this.localPosition,
+    num radiusX = .55,
+    num radiusY = .55,
+    num opacity = .22,
+    this.colorRgb = 0xffcf83,
+    this.window = false,
+  }) : instanceId = _name(instanceId),
+       radiusX = _range(radiusX, .01, 3),
+       radiusY = _range(radiusY, .01, 3),
+       opacity = _range(opacity, 0, .5) {
+    for (final v in [localPosition.x, localPosition.y, localPosition.z]) {
+      _range(v, -100000, 100000);
+    }
+    if (colorRgb < 0 || colorRgb > 0xffffff) {
+      throw const FormatException('Invalid halo color.');
+    }
+  }
+  final String instanceId;
+  final Model3dVector3 localPosition;
+  final double radiusX, radiusY, opacity;
+  final int colorRgb;
+  final bool window;
+  factory SpatialAtmosphereHalo.fromJson(Map<String, dynamic> json) {
+    _keys(json, {
+      'instanceId',
+      'localPosition',
+      'radiusX',
+      'radiusY',
+      'opacity',
+      'colorRgb',
+      'window',
+    });
+    return SpatialAtmosphereHalo(
+      instanceId: _string(json['instanceId']),
+      localPosition: Model3dVector3.fromJson(_object(json['localPosition'])),
+      radiusX: _number(json['radiusX'] ?? .55),
+      radiusY: _number(json['radiusY'] ?? .55),
+      opacity: _number(json['opacity'] ?? .22),
+      colorRgb: _integer(json['colorRgb'] ?? 0xffcf83),
+      window: _boolean(json['window'], false),
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    'instanceId': instanceId,
+    'localPosition': localPosition.toJson(),
+    'radiusX': radiusX,
+    'radiusY': radiusY,
+    'opacity': opacity,
+    'colorRgb': colorRgb,
+    'window': window,
+  };
+}
+
 final class SpatialAtmosphereSettings {
+  static const presentationKeys = {
+    'halosEnabled',
+    'haloStrength',
+    'haloSpread',
+    'halos',
+    'depthFogEnabled',
+    'fogOpacity',
+    'fogStart',
+    'fogEnd',
+  };
   SpatialAtmosphereSettings({
     this.waterAnimated = false,
     this.windowsLit = false,
     this.fireflies = false,
+    this.halosEnabled = false,
+    this.depthFogEnabled = false,
+    num haloStrength = 1,
+    num haloSpread = 1,
+    num fogOpacity = .2,
+    num fogStart = 14,
+    num fogEnd = 35,
+    List<SpatialAtmosphereHalo> halos = const [],
     num waterStrength = 1,
     num waterSpeed = 1,
     num windowStrength = 1,
@@ -176,14 +260,22 @@ final class SpatialAtmosphereSettings {
     List<SpatialAtmosphereMaterialTarget> waterTargets = const [],
     List<SpatialAtmosphereWindow> windows = const [],
     List<SpatialAtmosphereFireflyZone> fireflyZones = const [],
-  }) : waterStrength = _range(waterStrength, 0, 2),
+  }) : haloStrength = _range(haloStrength, 0, 2),
+       haloSpread = _range(haloSpread, .1, 3),
+       fogOpacity = _range(fogOpacity, 0, .5),
+       fogStart = _range(fogStart, 0, 100000),
+       fogEnd = _range(fogEnd, 0, 100000),
+       halos = List.unmodifiable(halos),
+       waterStrength = _range(waterStrength, 0, 2),
        waterSpeed = _range(waterSpeed, 0, 3),
        windowStrength = _range(windowStrength, 0, 2),
        fireflyDensity = _range(fireflyDensity, 0, 2),
        waterTargets = List.unmodifiable(waterTargets),
        windows = List.unmodifiable(windows),
        fireflyZones = List.unmodifiable(fireflyZones) {
-    if (waterTargets.length > 128 ||
+    if (this.fogEnd <= this.fogStart ||
+        halos.length > 32 ||
+        waterTargets.length > 128 ||
         windows.length > 128 ||
         fireflyZones.length > 16 ||
         fireflyZones.fold<int>(0, (n, z) => n + z.count) > 64) {
@@ -193,12 +285,16 @@ final class SpatialAtmosphereSettings {
     }
   }
   final bool waterAnimated, windowsLit, fireflies;
+  final bool halosEnabled, depthFogEnabled;
+  final double haloStrength, haloSpread, fogOpacity, fogStart, fogEnd;
+  final List<SpatialAtmosphereHalo> halos;
   final double waterStrength, waterSpeed, windowStrength, fireflyDensity;
   final List<SpatialAtmosphereMaterialTarget> waterTargets;
   final List<SpatialAtmosphereWindow> windows;
   final List<SpatialAtmosphereFireflyZone> fireflyZones;
   factory SpatialAtmosphereSettings.fromJson(Map<String, dynamic> json) {
     _keys(json, {
+      ...presentationKeys,
       'waterAnimated',
       'windowsLit',
       'fireflies',
@@ -211,6 +307,17 @@ final class SpatialAtmosphereSettings {
       'fireflyZones',
     });
     return SpatialAtmosphereSettings(
+      halosEnabled: _boolean(json['halosEnabled'], false),
+      depthFogEnabled: _boolean(json['depthFogEnabled'], false),
+      haloStrength: _number(json['haloStrength'] ?? 1),
+      haloSpread: _number(json['haloSpread'] ?? 1),
+      fogOpacity: _number(json['fogOpacity'] ?? .2),
+      fogStart: _number(json['fogStart'] ?? 14),
+      fogEnd: _number(json['fogEnd'] ?? 35),
+      halos: _list(
+        json['halos'] ?? [],
+        32,
+      ).map((v) => SpatialAtmosphereHalo.fromJson(_object(v))).toList(),
       waterAnimated: _boolean(json['waterAnimated'], false),
       windowsLit: _boolean(json['windowsLit'], false),
       fireflies: _boolean(json['fireflies'], false),
@@ -232,6 +339,14 @@ final class SpatialAtmosphereSettings {
     );
   }
   SpatialAtmosphereSettings copyWith({
+    bool? halosEnabled,
+    bool? depthFogEnabled,
+    num? haloStrength,
+    num? haloSpread,
+    num? fogOpacity,
+    num? fogStart,
+    num? fogEnd,
+    List<SpatialAtmosphereHalo>? halos,
     bool? waterAnimated,
     bool? windowsLit,
     bool? fireflies,
@@ -243,6 +358,14 @@ final class SpatialAtmosphereSettings {
     List<SpatialAtmosphereWindow>? windows,
     List<SpatialAtmosphereFireflyZone>? fireflyZones,
   }) => SpatialAtmosphereSettings(
+    halosEnabled: halosEnabled ?? this.halosEnabled,
+    depthFogEnabled: depthFogEnabled ?? this.depthFogEnabled,
+    haloStrength: haloStrength ?? this.haloStrength,
+    haloSpread: haloSpread ?? this.haloSpread,
+    fogOpacity: fogOpacity ?? this.fogOpacity,
+    fogStart: fogStart ?? this.fogStart,
+    fogEnd: fogEnd ?? this.fogEnd,
+    halos: halos ?? this.halos,
     waterAnimated: waterAnimated ?? this.waterAnimated,
     windowsLit: windowsLit ?? this.windowsLit,
     fireflies: fireflies ?? this.fireflies,
@@ -255,6 +378,14 @@ final class SpatialAtmosphereSettings {
     fireflyZones: fireflyZones ?? this.fireflyZones,
   );
   Map<String, dynamic> toJson() => {
+    'halosEnabled': halosEnabled,
+    'depthFogEnabled': depthFogEnabled,
+    'haloStrength': haloStrength,
+    'haloSpread': haloSpread,
+    'fogOpacity': fogOpacity,
+    'fogStart': fogStart,
+    'fogEnd': fogEnd,
+    'halos': halos.map((v) => v.toJson()).toList(),
     'waterAnimated': waterAnimated,
     'windowsLit': windowsLit,
     'fireflies': fireflies,

@@ -37,3 +37,7 @@ class WorldFailure implements Exception {
   @override
   String toString() => message;
 }
+
+abstract interface class WorldMapSelectionPort {
+  Future<MapData> loadMap(ProjectMapEntry entry);
+}

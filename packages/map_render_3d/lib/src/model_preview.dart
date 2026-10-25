@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:flame/game.dart' show GameWidget;
 import 'package:flame_3d/camera.dart';
 import 'package:flame_3d/components.dart';
 import 'package:flame_3d/game.dart';
@@ -14,6 +13,7 @@ import 'adaptive_camera.dart';
 import 'flutter_frame_graphics_device.dart';
 import 'spatial_render_context.dart';
 import 'model_playback.dart';
+import 'spatial_game_surface.dart';
 
 class ModelPreviewController extends ChangeNotifier {
   double yaw = 0.5;
@@ -132,9 +132,10 @@ class _ModelPreviewState extends State<ModelPreview> {
     child: GestureDetector(
       onPanUpdate: (details) =>
           widget.controller.orbit(details.delta.dx, details.delta.dy),
-      child: GameWidget<_ModelPreviewGame>(
+      child: SpatialGameSurface<_ModelPreviewGame>(
         key: ObjectKey(game),
         game: game,
+        autofocus: true,
         loadingBuilder: widget.loadingBuilder,
         errorBuilder: (context, error) => widget.errorBuilder(context, error),
       ),

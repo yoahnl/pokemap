@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_library_screen.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +8,63 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  testWidgets('only the latest prepared family changes the resource view', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1536, 1024);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = ResourceLibraryState();
+    final requests = <ResourceLibraryFamily>[];
+    final pending = {
+      ResourceLibraryFamily.borders: Completer<bool>(),
+      ResourceLibraryFamily.images: Completer<bool>(),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ResourceLibraryScreen(
+            project: workspaceProject,
+            visuals: WorkspaceTestVisuals(),
+            state: state,
+            onUse: (_) {},
+            onEdit: (_) {},
+            onTerrain: (_) {},
+            onCreateBorder: () {},
+            onResumeBorder: (_) {},
+            onImport: () {},
+            onBack: () {},
+            onLoadFamily: (family) {
+              requests.add(family);
+              return pending[family]!.future;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('resource-family-borders')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('resource-family-images')));
+    await tester.pump();
+    expect(requests, [
+      ResourceLibraryFamily.borders,
+      ResourceLibraryFamily.images,
+    ]);
+    expect(state.family, ResourceLibraryFamily.decors);
+    pending[ResourceLibraryFamily.borders]!.complete(true);
+    await tester.pump();
+    expect(state.family, ResourceLibraryFamily.decors);
+    pending[ResourceLibraryFamily.images]!.complete(true);
+    await tester.pumpAndSettle();
+    expect(state.family, ResourceLibraryFamily.images);
+    expect(find.text('Importer une image'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('export pack is a common action in global and compact library', (
     tester,
   ) async {

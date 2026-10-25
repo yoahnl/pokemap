@@ -5,6 +5,18 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('duplicate atmosphere JSON keys fail without changing their bytes', () {
+    final files = spatialPayload();
+    final bytes = utf8.encode(
+        '{"schemaVersion":1,"mapId":"map","settings":{"fireflies":false,"fireflies":true}}');
+    files['project/maps/map.atmosphere.json'] = bytes;
+    expect(
+        () => const GamePackageBuilder()
+            .build(manifest: spatialManifest(), payloadFiles: files),
+        throwsA(isA<GamePackageFormatException>()));
+    expect(files['project/maps/map.atmosphere.json'], bytes);
+  });
+
   test(
       'optional presentation sidecar round trips without adding gameplay requirements',
       () {
@@ -12,7 +24,7 @@ void main() {
     files['project/maps/map.atmosphere.json'] = utf8.encode(jsonEncode(
         SpatialAtmosphereDocument(
                 mapId: 'map',
-                settings: SpatialAtmosphereSettings(fireflies: true))
+                settings: SpatialAtmosphereSettings(fireflies: true, halosEnabled: true, depthFogEnabled: true, haloStrength: 1.4, fogOpacity: .32))
             .toJson()));
     final result = const GamePackageBuilder()
         .build(manifest: spatialManifest(), payloadFiles: files);
@@ -25,7 +37,7 @@ void main() {
         result.manifest.compatibility.requiredCapabilities);
   });
   for (final bad in [
-    {'schemaVersion': 2, 'mapId': 'map', 'settings': {}},
+    {'schemaVersion': 3, 'mapId': 'map', 'settings': {}},
     {'schemaVersion': 1, 'mapId': 'other', 'settings': {}}
   ]) {
     test(

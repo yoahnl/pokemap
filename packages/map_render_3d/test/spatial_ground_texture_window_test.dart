@@ -1,0 +1,493 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:flame_3d/core.dart';
+import 'package:flame_3d/graphics.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
+import 'package:map_core/map_core.dart';
+import 'package:map_render_3d/src/spatial_scene_preparation.dart';
+import 'package:map_render_3d/src/spatial_scene_view.dart';
+import 'package:map_render_3d/src/spatial_scene_neighbor.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(_UnusedBackend.new);
+
+  test(
+    'ten thousand future pages are inventoried but never eagerly loaded',
+    () async {
+      final f = _Fixture(10000);
+      final reads = <String>[];
+      final game = f.game((id) async {
+        reads.add(id);
+        if (id != 'page-0' && id != 'page-1') {
+          throw StateError('Unused future page was loaded: $id');
+        }
+        return f.png;
+      });
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      expect(reads.toSet(), {'page-0', 'page-1'});
+      expect(game.groundTextureCache.length, lessThanOrEqualTo(2));
+      expect(
+        game.resourceBudget.residentBytes,
+        lessThanOrEqualTo(2 * 32 * 32 * 8),
+      );
+    },
+  );
+
+  for (final durations in [[20], [100], [20, 100], [5, 20, 100]]) {
+    test('texture prefetch follows authored durations $durations', () async {
+      final f = _Fixture(6, durations: durations);
+      final reads = <String>[];
+      final game = f.game((id) async { reads.add(id); return f.png; });
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      expect(reads.toSet(), {'page-0', 'page-1'});
+      game.update(durations.first / 1000);
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      game.update(0);
+      expect(game.grounds.single.visuals.single.visual.tilesetId, 'page-1');
+    });
+  }
+
+  test('replaced live clock selects and renders the new window without refresh', () async {
+    final f = _Fixture(8);
+    final game = f.game((_) async => f.png, clock: (_, _, _, _, _) => 0);
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    final replacement = f.game((_) async => f.png, clock: (_, _, _, _, _) => 99);
+    addTearDown(replacement.onRemove);
+    game.configuration = replacement.configuration;
+    game.renderedConfiguration = replacement.configuration;
+    final generation = game.generation;
+    game.update(0);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    game.update(0);
+    expect(game.grounds.single.visuals.single.visual.tilesetId, 'page-3');
+    expect(game.generation, generation);
+  });
+
+  test('occlusion-only atlas remains resident with the visible background', () async {
+    final f = _Fixture(3, occlusion: true);
+    final reads = <String>[];
+    final game = f.game((id) async { reads.add(id); return f.png; });
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    expect(reads.toSet(), {'page-0', 'page-1', 'page-2'});
+  });
+
+  test(
+    'destination preparation uses the same current and next page window',
+    () async {
+      final f = _Fixture(10000);
+      final reads = <String>[];
+      final budget = RuntimeResourceBudget();
+      final preparation = SpatialSceneResourcePreparation(
+        SpatialScenePreparation(
+          map: f.map,
+          project: f.project,
+          loadModel: (_) async => throw StateError('No models'),
+          loadGroundImage: (id) async {
+            reads.add(id);
+            if (id != 'page-0' && id != 'page-1') {
+              throw StateError('Unused destination page was loaded: $id');
+            }
+            return f.png;
+          },
+          resourceIdentity: 'fixture',
+          resourceBudget: budget,
+          isCurrent: () => true,
+        ),
+        modelCache: {},
+        groundTextureCache: {},
+        isCurrent: () => true,
+      );
+      addTearDown(budget.dispose);
+      addTearDown(preparation.discard);
+      expect(await preparation.prepare(), isTrue);
+      expect(reads.toSet(), {'page-0', 'page-1'});
+      preparation.discard();
+      expect(budget.residentBytes, 0);
+      expect(budget.activeDecodes, 0);
+    },
+  );
+
+  test('destination rejects a corrupt next source and releases its leases', () async {
+    final f = _Fixture(4);
+    final budget = RuntimeResourceBudget();
+    final failure = StateError('Corrupt future destination page');
+    final preparation = SpatialSceneResourcePreparation(
+      SpatialScenePreparation(map: f.map, project: f.project,
+        loadModel: (_) async => throw StateError('No models'),
+        loadGroundImage: (id) async { if (id == 'page-1') throw failure; return f.png; },
+        resourceIdentity: 'corrupt-next', resourceBudget: budget, isCurrent: () => true),
+      modelCache: {}, groundTextureCache: {}, isCurrent: () => true);
+    addTearDown(preparation.discard);
+    addTearDown(budget.dispose);
+    await expectLater(preparation.prepare(), throwsA(same(failure)));
+    expect(budget.residentBytes, 0);
+    expect(budget.transientBytes, 0);
+  });
+
+  test(
+    'warm scene initialization loads its displayed phase instead of the pack',
+    () async {
+      final f = _Fixture(100);
+      final reads = <String>[];
+      final game = f.game((id) async {
+        reads.add(id);
+        if (id != 'page-3' && id != 'page-4') {
+          throw StateError('Wrong warm page: $id');
+        }
+        return f.png;
+      })..groundElapsed = .1;
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      expect(reads.toSet(), {'page-3', 'page-4'});
+    },
+  );
+
+  test(
+    'animation evicts retired pages and retains bounded admission',
+    () async {
+      final f = _Fixture(8);
+      final reads = <String>[];
+      final game = f.game((id) async {
+        reads.add(id);
+        return f.png;
+      });
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      for (var frame = 0; frame < 12; frame++) {
+        game.update(.034);
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+        game.update(0);
+        await Future<void>.delayed(Duration.zero);
+        expect(game.groundTextureCache.length, lessThanOrEqualTo(3));
+        expect(
+          game.resourceBudget.residentBytes,
+          lessThanOrEqualTo(3 * 32 * 32 * 8),
+        );
+      }
+      expect(reads.toSet().length, greaterThan(2));
+      game.onRemove();
+      expect(game.resourceBudget.residentBytes, 0);
+      expect(game.resourceBudget.transientBytes, 0);
+      expect(game.resourceBudget.pendingDecodes, 0);
+    },
+  );
+
+  test('a delayed next page preserves the complete previous mesh', () async {
+    final f = _Fixture(4);
+    final next = Completer<Uint8List>();
+    final started = Completer<void>();
+    final game = f.game((id) async {
+      if (id == 'page-1') {
+        if (!started.isCompleted) started.complete();
+        return next.future;
+      }
+      return f.png;
+    });
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    await started.future;
+    final components = List.of(game.grounds.single.components);
+    final generation = game.generation;
+    game.update(.034);
+    expect(game.grounds.single.visuals.single.visual.tilesetId, 'page-0');
+    expect(game.grounds.single.components, orderedEquals(components));
+    next.complete(f.png);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    game.update(0);
+    expect(game.grounds.single.visuals.single.visual.tilesetId, 'page-1');
+    expect(game.generation, generation);
+  });
+
+  test(
+    'stale animation completion releases its lease after scene disposal',
+    () async {
+      final f = _Fixture(4);
+      final next = Completer<Uint8List>();
+      final started = Completer<void>();
+      final game = f.game((id) async {
+        if (id == 'page-1') {
+          if (!started.isCompleted) started.complete();
+          return next.future;
+        }
+        return f.png;
+      });
+      expect(await game.refresh(), isTrue);
+      await started.future;
+      game.onRemove();
+      next.complete(f.png);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(game.groundTextureCache, isEmpty);
+      expect(game.groundReservations, isEmpty);
+      expect(game.resourceBudget.residentBytes, 0);
+      expect(game.resourceBudget.transientBytes, 0);
+      expect(game.resourceBudget.activeDecodes, 0);
+    },
+  );
+
+  test(
+    'next-page source failures become actionable when the page is required',
+    () async {
+      final f = _Fixture(4);
+      final statuses = <Object?>[];
+      final failure = StateError('Unreadable future page');
+      final game = f.game((id) async {
+        if (id == 'page-1') throw failure;
+        return f.png;
+      }, onStatus: statuses.add);
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(statuses.whereType<Object>(), isEmpty);
+      game.update(.034);
+      game.update(0);
+      expect(statuses.whereType<Object>(), [same(failure)]);
+      expect(game.grounds.single.visuals.single.visual.tilesetId, 'page-0');
+    },
+  );
+
+  test(
+    'independent neighbor clocks retain only both current and next windows',
+    () async {
+      final f = _Fixture(100);
+      final reads = <String>[];
+      Future<Uint8List> load(String id) async {
+        reads.add(id);
+        return f.png;
+      }
+
+      final game = f.game(
+        load,
+        neighbors: [
+          SpatialSceneNeighbor(
+            map: f.map.copyWith(id: 'neighbor'),
+            offset: const Offset(1, 0),
+            project: f.project,
+            loadGroundImage: load,
+          ),
+        ],
+        clock: (map, layer, x, y, time) => time + (map == 'neighbor' ? 99 : 0),
+      );
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(reads.toSet(), {'page-0', 'page-1', 'page-3', 'page-4'});
+      game.update(.034);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      game.update(0);
+      expect(game.groundTextureCache.length, lessThanOrEqualTo(6));
+      expect(
+        game.resourceBudget.residentBytes,
+        lessThanOrEqualTo(6 * 32 * 32 * 8),
+      );
+    },
+  );
+
+  test(
+    'all visible static pages stay loaded without animation churn',
+    () async {
+      final f = _Fixture(100, animated: false);
+      final reads = <String>[];
+      final game = f.game((id) async {
+        reads.add(id);
+        return f.png;
+      });
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      final leases = Map.of(game.groundReservations);
+      final components = List.of(game.grounds.single.components);
+      game.update(10);
+      expect(reads.toSet(), {'page-0', 'page-1'});
+      expect(game.groundReservations, equals(leases));
+      expect(game.grounds.single.components, orderedEquals(components));
+    },
+  );
+
+  test(
+    'a required page error is reported without a successful scene',
+    () async {
+      final f = _Fixture(4);
+      final game = f.game(
+        (_) async => throw StateError('Unreadable current page'),
+      );
+      addTearDown(game.onRemove);
+      await expectLater(game.refresh(), throwsStateError);
+      expect(game.renderedConfiguration, isNull);
+      expect(game.resourceBudget.residentBytes, 0);
+    },
+  );
+}
+
+final class _Fixture {
+  _Fixture(int frames, {bool animated = true, List<int> durations = const [33], bool occlusion = false}) {
+    png = Uint8List.fromList(img.encodePng(img.Image(width: 32, height: 32)));
+    map = MapData(
+      id: 'room',
+      name: 'Room',
+      size: const GridSize(width: 1, height: 1),
+      spatialScene: MapSpatialScene(width: 1, depth: 1),
+      layers: const [
+        SmartTileLayer(
+          id: 'water',
+          name: 'Water',
+          presetId: 'water',
+          usage: SmartTileUsage.terrain,
+          materialPalette: ['', 'water'],
+          field: SmartTileField.cell(semanticCells: [1]),
+        ),
+      ],
+    );
+    project = ProjectManifest(
+      name: 'Fixture',
+      maps: const [],
+      tilesets: const [],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const [
+          ProjectSmartTileMaterial(
+            id: 'water',
+            name: 'Water',
+            connectionGroupId: 'water',
+          ),
+        ],
+        atlases: [
+          for (var i = 0; i < frames; i++)
+            ProjectSmartTileAtlas(
+              id: 'atlas-$i',
+              name: 'Page $i',
+              tilesetId: 'page-$i',
+              columns: 1,
+              rows: 1,
+            ),
+        ],
+        animations: [
+          ProjectSmartTileAnimation(
+            id: 'wave',
+            name: 'Wave',
+            frames: [
+              for (var i = 0; i < frames; i++)
+                ProjectSmartTileAnimationFrame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'atlas-$i',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: durations[i % durations.length],
+                ),
+            ],
+          ),
+        ],
+        presets: [
+          ProjectSmartTilePreset(
+            id: 'water',
+            name: 'Water',
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform,
+            templateHint: SmartTileTemplateHint.simple,
+            coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
+            defaultMaterialId: 'water',
+            allowedMaterialIds: ['water'],
+            rules: [
+              SmartTileRule(
+                id: 'fill',
+                centerMatch: SmartTileSlotMatch.material('water'),
+                candidates: [
+                  SmartTileCandidate(
+                    id: 'wave',
+                    parts: [
+                      if (occlusion)
+                        const SmartTileVisualPart(
+                          channel: SmartTileRenderChannel.actorOcclusion,
+                          source: SmartTileVisualSource.frame(
+                            frame: SmartTileFrameRef(atlasId: 'atlas-2', column: 0, row: 0),
+                          ),
+                        ),
+                      if (animated)
+                        const SmartTileVisualPart(
+                          source: SmartTileVisualSource.animation(
+                            animationId: 'wave',
+                          ),
+                        )
+                      else
+                        for (var index = 0; index < 2; index++)
+                          SmartTileVisualPart(
+                            source: SmartTileVisualSource.frame(
+                              frame: SmartTileFrameRef(
+                                atlasId: 'atlas-$index',
+                                column: 0,
+                                row: 0,
+                              ),
+                            ),
+                          ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  late final MapData map;
+  late final ProjectManifest project;
+  late final Uint8List png;
+
+  SpatialSceneGame game(
+    Future<Uint8List> Function(String) load, {
+    List<SpatialSceneNeighbor> neighbors = const [],
+    int Function(String, String, int, int, int)? clock,
+    void Function(Object?)? onStatus,
+  }) {
+    final controller = SpatialSceneController();
+    final budget = RuntimeResourceBudget();
+    final game =
+        SpatialSceneGame(
+            SpatialSceneView(
+              scene: map.spatialScene!,
+              groundMap: map,
+              groundProject: project,
+              models: const [],
+              loadModel: (_) async => throw StateError('No models'),
+              loadGroundImage: load,
+              controller: controller,
+              resourceBudget: budget,
+              resourceIdentity: 'fixture',
+              neighbors: neighbors,
+              rasterAnimationElapsedMsForCell: clock,
+              onCell: (_, _) {},
+              background: const Color(0xff000000),
+              ground: const Color(0xff224422),
+              edge: const Color(0xff111111),
+              errorBuilder: (_, _) => const SizedBox(),
+            ),
+            onPreviewStatus: onStatus ?? (_) {},
+            onSurfaceChanged: () {},
+          )
+          ..onGameResize(Vector2(200, 200))
+          ..sceneReady = true;
+    addTearDown(controller.dispose);
+    addTearDown(budget.dispose);
+    return game;
+  }
+}
+
+final class _UnusedBackend extends GpuBackend {
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError(invocation.memberName.toString());
+}

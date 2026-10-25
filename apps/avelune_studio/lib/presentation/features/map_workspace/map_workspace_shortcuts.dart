@@ -1,4 +1,7 @@
+import 'package:avelune_studio/presentation/shared/keyboard/editor_shortcuts.dart';
+
 import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -139,5 +142,5 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
     )] = () =>
         guarded(() => commands?.reorder(forward: false));
   }
-  return result;
+  return textAwareEditorShortcuts(result);
 }

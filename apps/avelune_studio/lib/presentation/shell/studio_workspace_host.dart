@@ -37,6 +37,15 @@ class StudioWorkspaceHost extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (session.storage == ProjectSessionStorage.workingCatalog &&
+        session.recoveryOperationIds.isEmpty) {
+      return _StudioMapWorkspaceHost(
+        session: session,
+        onClose: onClose,
+        registerExitGuard: registerExitGuard,
+        publishHome: true,
+      );
+    }
     if (session.storage != ProjectSessionStorage.manifest) {
       return WorkingCatalogWorkspace(
         session: session,
@@ -53,15 +62,6 @@ class StudioWorkspaceHost extends ConsumerWidget {
         },
         previewBuilder: (detail) =>
             WorkingCatalogPreview(session: session, detail: detail),
-        mapWorkspaceBuilder:
-            session.storage == ProjectSessionStorage.workingCatalog
-            ? (context, guard) => _StudioMapWorkspaceHost(
-                session: session,
-                onClose: onClose,
-                registerExitGuard: guard,
-                publishHome: false,
-              )
-            : null,
       );
     }
     final sessions = ref.read(projectSessionControllerProvider);
@@ -102,9 +102,27 @@ class _StudioMapWorkspaceHost extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(mapWorkspaceControllerProvider(session));
+    final catalog = session.storage == ProjectSessionStorage.workingCatalog
+        ? ref.watch(workingCatalogControllerProvider(session))
+        : null;
     return MapWorkspaceScreen(
+      key: ValueKey('map-workspace-${session.sessionId}'),
       home: publishHome ? StudioHomeScope.of(context) : null,
       controller: controller,
+      resourceLibraryBuilder:
+          session.storage == ProjectSessionStorage.workingCatalog
+          ? (context, guard, onSaved, onOpenTools) => WorkingCatalogWorkspace(
+              session: session,
+              controller: catalog!,
+              onClose: onClose,
+              registerExitGuard: guard,
+              embedded: true,
+              onSaved: onSaved,
+              onOpenTools: onOpenTools,
+              previewBuilder: (detail) =>
+                  WorkingCatalogPreview(session: session, detail: detail),
+            )
+          : null,
       mapConnectionPort: ref.watch(mapConnectionPortProvider(session)),
       resourcePort: ref.watch(resourcePortProvider(session)),
       resourcePackPort: ref.watch(resourcePackPortProvider(session)),

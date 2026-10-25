@@ -48,6 +48,34 @@ void main() {
       expect(await projectFile.readAsBytes(), before);
     });
 
+    test('workshop opening decodes only the header and preserves unrelated bytes', () async {
+      final sandbox = await Directory.systemTemp.createTemp('pokemap_workshop_header_');
+      addTearDown(() => sandbox.delete(recursive: true));
+      final json = jsonDecode(await File(_join(_realFixtureDirectory().path, 'project.json')).readAsString()) as Map<String, dynamic>;
+      json['trainers'] = [for (var i = 0; i < 900; i++) {'id': 'foreign_$i', 'team': 'unrelated opaque data'}];
+      final file = File(_join(sandbox.path, 'project.json'));
+      await file.writeAsString(jsonEncode(json));
+      final before = await file.readAsBytes();
+      final handles = WorkspaceHandleStore();
+      final reader = const LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(allowedRootPaths: [sandbox.path], fileReader: reader);
+      final scoped = ProjectOpenService(policy: policy, fileReader: reader, handles: handles, workshopScope: true);
+      final opened = await scoped.openProject(sandbox.path);
+      expect(opened.projectName, json['name']);
+      expect(await file.readAsBytes(), before);
+      scoped.closeWorkspace(opened.workspaceHandle);
+      await expectLater(ProjectOpenService(policy: policy, fileReader: reader, handles: handles).openProject(sandbox.path), throwsA(isA<ProjectOpenException>()));
+      json['version'] = 'v9';
+      json['settings'] = ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile()).toJson();
+      await file.writeAsString(jsonEncode(json));
+      final spatial = await scoped.openProject(sandbox.path);
+      expect(spatial.projectName, opened.projectName);
+      scoped.closeWorkspace(spatial.workspaceHandle);
+      (json['pokemon'] as Map).remove('ruleset');
+      await file.writeAsString(jsonEncode(json));
+      await expectLater(scoped.openProject(sandbox.path), throwsA(isA<ProjectOpenException>().having((error) => error.code, 'code', 'project.pokemon_ruleset_required')));
+    });
+
     test('computes the same initial fingerprint for identical bytes', () async {
       final fixture = _realFixtureDirectory();
       final harness = await _Harness.create(fixture.parent);

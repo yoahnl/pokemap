@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_local.dart'
-    show LocalCharacterContactShadowAuthoring, LocalMapAtmosphereAuthoring;
+    show LocalCharacterContactShadowAuthoring, LocalMapAtmosphereAuthoring, LocalMapEditorAuthoring, LocalMapElementOrderAuthoring;
 
 import 'src/tiled_image_collection_cli_png_codec.dart';
 import 'src/project_template_catalog_loader.dart';
@@ -103,6 +103,8 @@ Future<void> main(List<String> arguments) async {
   final worker = JsonlWorker(
     api: api,
     mutations: mutations,
+    mapElementOrder: LocalMapElementOrderAuthoring(policy: policy, reader: fileReader),
+    mapEditor: LocalMapEditorAuthoring(policy: policy, reader: fileReader),
     mapAtmosphere:
         LocalMapAtmosphereAuthoring(policy: policy, reader: fileReader),
     characterContactShadows: LocalCharacterContactShadowAuthoring(

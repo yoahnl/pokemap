@@ -94,6 +94,11 @@ final class SmartTileLayerVisualBatch {
     required this.work,
   }) : visuals = List<SmartTileLayerVisual>.unmodifiable(visuals);
 
+  const SmartTileLayerVisualBatch._shared({
+    required this.visuals,
+    required this.work,
+  });
+
   const SmartTileLayerVisualBatch.empty()
     : visuals = const <SmartTileLayerVisual>[],
       work = const SmartTileLayerVisualWorkCounts.empty();
@@ -1162,11 +1167,21 @@ final class SmartTileLayerVisualPlan {
   final Map<int, List<_PlannedSmartTileVisual>> _plannedByCellIndex =
       <int, List<_PlannedSmartTileVisual>>{};
 
+  Object? _selectionKey;
+  final _selectionBase = <SmartTileLayerVisual?>[];
+  final _animatedSelection =
+      <
+        ({int x, int y, List<({int slot, _PlannedSmartTileVisual item})> items})
+      >[];
+  final _resolvedFrames =
+      <
+        ({
+          List<SmartTileLayerVisual?> dynamicVisuals,
+          List<SmartTileLayerVisual> visuals,
+        })
+      >[];
+
   /// Emits the visuals intersecting [viewportBounds] at [elapsedMs].
-  ///
-  /// Work counters mirror [resolveSmartTileLayerVisualBatch]: owner cell
-  /// visits count the scanned envelope range. Pattern stroke visits are
-  /// always zero because ownership is resolved at plan build time.
   SmartTileLayerVisualBatch resolveBatch({
     int elapsedMs = 0,
     SmartTileGeometryRect? viewportBounds,
@@ -1188,33 +1203,101 @@ final class SmartTileLayerVisualPlan {
             destinationCellWidth: _destinationCellWidth,
             destinationCellHeight: _destinationCellHeight,
           );
-    final visuals = <SmartTileLayerVisual>[];
-    var ownerCellVisits = 0;
-    for (var y = startY; y < endY; y++) {
-      final rowBase = y * mapWidth;
-      for (var x = startX; x < endX; x++) {
-        ownerCellVisits += 1;
-        final items = _plannedByCellIndex[rowBase + x] ??= _planCell(x, y);
-        final cellElapsedMs =
-            animationElapsedMsForCell?.call(
-              cellX: x,
-              cellY: y,
-              elapsedMs: elapsedMs,
-            ) ??
-            elapsedMs;
-        for (final item in items) {
-          final visual = item.visualAt(cellElapsedMs);
-          if (visual == null) continue;
-          if (viewportBounds != null &&
-              !visual.geometry.visualBounds.intersects(viewportBounds)) {
-            continue;
+    final key = (
+      startX,
+      startY,
+      endX,
+      endY,
+      viewportBounds?.left,
+      viewportBounds?.top,
+      viewportBounds?.right,
+      viewportBounds?.bottom,
+    );
+    var ownerCellVisits = _animatedSelection.length;
+    if (_selectionKey != key) {
+      _selectionKey = key;
+      _selectionBase.clear();
+      _animatedSelection.clear();
+      _resolvedFrames.clear();
+      ownerCellVisits = 0;
+      for (var y = startY; y < endY; y++) {
+        for (var x = startX; x < endX; x++) {
+          ownerCellVisits++;
+          final items = _plannedByCellIndex[y * mapWidth + x] ??= _planCell(
+            x,
+            y,
+          );
+          final animated = <({int slot, _PlannedSmartTileVisual item})>[];
+          for (final item in items) {
+            final slot = _selectionBase.length;
+            if (item._variants != null) {
+              animated.add((slot: slot, item: item));
+              _selectionBase.add(null);
+            } else {
+              final visual = item._fixed;
+              _selectionBase.add(
+                visual != null &&
+                        (viewportBounds == null ||
+                            visual.geometry.visualBounds.intersects(
+                              viewportBounds,
+                            ))
+                    ? visual
+                    : null,
+              );
+            }
           }
-          visuals.add(visual);
+          if (animated.isNotEmpty) {
+            _animatedSelection.add((x: x, y: y, items: animated));
+          }
         }
       }
     }
-    _sortSmartTileVisuals(visuals);
-    return SmartTileLayerVisualBatch(
+    final dynamicVisuals = <SmartTileLayerVisual?>[];
+    for (final cell in _animatedSelection) {
+      final time =
+          animationElapsedMsForCell?.call(
+            cellX: cell.x,
+            cellY: cell.y,
+            elapsedMs: elapsedMs,
+          ) ??
+          elapsedMs;
+      for (final entry in cell.items) {
+        final visual = entry.item.visualAt(time);
+        dynamicVisuals.add(
+          visual != null &&
+                  (viewportBounds == null ||
+                      visual.geometry.visualBounds.intersects(viewportBounds))
+              ? visual
+              : null,
+        );
+      }
+    }
+    List<SmartTileLayerVisual>? visuals;
+    for (final frame in _resolvedFrames) {
+      var matches = frame.dynamicVisuals.length == dynamicVisuals.length;
+      for (var i = 0; matches && i < dynamicVisuals.length; i++) {
+        matches = identical(frame.dynamicVisuals[i], dynamicVisuals[i]);
+      }
+      if (matches) {
+        visuals = frame.visuals;
+        break;
+      }
+    }
+    if (visuals == null) {
+      final selected = List<SmartTileLayerVisual?>.of(_selectionBase);
+      var index = 0;
+      for (final cell in _animatedSelection) {
+        for (final entry in cell.items) {
+          selected[entry.slot] = dynamicVisuals[index++];
+        }
+      }
+      final next = selected.whereType<SmartTileLayerVisual>().toList();
+      _sortSmartTileVisuals(next);
+      visuals = List.unmodifiable(next);
+      if (_resolvedFrames.length == 2) _resolvedFrames.removeAt(0);
+      _resolvedFrames.add((dynamicVisuals: dynamicVisuals, visuals: visuals));
+    }
+    return SmartTileLayerVisualBatch._shared(
       visuals: visuals,
       work: SmartTileLayerVisualWorkCounts(
         requestedCellCount: (endX - startX) * (endY - startY),
@@ -1407,9 +1490,16 @@ final class _PlannedSmartTileVisual {
     } else {
       time %= totalDurationMs;
     }
-    for (var index = 0; index < _cumulativeMs.length; index += 1) {
-      if (time < _cumulativeMs[index]) return variants[index];
+    var lower = 0;
+    var upper = _cumulativeMs.length;
+    while (lower < upper) {
+      final middle = (lower + upper) ~/ 2;
+      if (time < _cumulativeMs[middle]) {
+        upper = middle;
+      } else {
+        lower = middle + 1;
+      }
     }
-    return variants.last;
+    return variants[lower < variants.length ? lower : variants.length - 1];
   }
 }

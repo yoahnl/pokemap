@@ -10,6 +10,369 @@ import 'map_catalog_fixture.dart';
 
 void main() {
   group('LocalMapAuthoringMutationApi lifecycle', () {
+    test('delete then recreate the same identity does not inherit editor locks',
+        () async {
+      final setup = await _Setup.create(
+          maps: [catalogMap('source')], enableSnapshotCache: true);
+      addTearDown(setup.dispose);
+      final source = File('${setup.root.path}/maps/source.editor.json');
+      await source.writeAsString(jsonEncode(MapEditorDocument(
+          mapId: 'source',
+          state: MapEditorState(lockedElements: {'layer:base'})).toJson()));
+      final deletion = await setup.mutations.plan(
+          setup.projectHandle,
+          await setup.requestAsync(
+              actionId: 'map.delete_apply', parameters: {'mapId': 'source'}));
+      final confirmation = await setup.mutations
+          .confirm(setup.projectHandle, planId: deletion['planId']! as String);
+      await setup.mutations.apply(setup.projectHandle,
+          planId: deletion['planId']! as String,
+          operationId: 'delete_editor',
+          confirmationToken: confirmation['confirmationToken']! as String);
+      expect(await source.exists(), isFalse);
+      final creation = await setup.mutations.plan(
+          setup.projectHandle,
+          await setup.requestAsync(
+              actionId: 'map.create',
+              parameters: {'mapId': 'source', 'width': 3, 'height': 3}));
+      await setup.mutations.apply(setup.projectHandle,
+          planId: creation['planId']! as String,
+          operationId: 'recreate_editor');
+      final reopened = await setup.mutations
+          .inspectMapEditor(projectRoot: setup.root.path, mapId: 'source');
+      expect(reopened.state, MapEditorState());
+      expect(await source.exists(), isFalse);
+    });
+    test(
+        'create preserves an orphan future editor document and refuses its identity',
+        () async {
+      final setup = await _Setup.create();
+      addTearDown(setup.dispose);
+      final orphan = File('${setup.root.path}/maps/orphan.editor.json');
+      await orphan.parent.create(recursive: true);
+      await orphan
+          .writeAsString('{"schemaVersion":2,"mapId":"orphan","future":true}');
+      final before = await orphan.readAsBytes();
+      await expectLater(
+          setup.mutations.plan(
+              setup.projectHandle,
+              await setup.requestAsync(
+                  actionId: 'map.create',
+                  parameters: {'mapId': 'orphan', 'width': 3, 'height': 3})),
+          throwsA(isA<MapAuthoringException>()));
+      expect(await orphan.readAsBytes(), before);
+      expect(
+          await File('${setup.root.path}/maps/orphan.json').exists(), isFalse);
+    });
+    for (final initiallyPresent in [false, true]) {
+      test(
+          'duplicate guards editor source when initially present=$initiallyPresent',
+          () async {
+        final setup = await _Setup.create(
+            maps: [catalogMap('source')], enableSnapshotCache: true);
+        addTearDown(setup.dispose);
+        final source = File('${setup.root.path}/maps/source.editor.json');
+        if (initiallyPresent) {
+          await source.writeAsString(jsonEncode(
+              MapEditorDocument(mapId: 'source', state: MapEditorState())
+                  .toJson()));
+        }
+        final plan = await setup.mutations.plan(
+            setup.projectHandle,
+            await setup.requestAsync(actionId: 'map.duplicate', parameters: {
+              'sourceMapId': 'source',
+              'targetMapId': 'target'
+            }));
+        await source.writeAsString(jsonEncode(MapEditorDocument(
+            mapId: 'source',
+            state: MapEditorState(lockedFamilies: {'model'})).toJson()));
+        final changed = await source.readAsBytes();
+        await expectLater(
+            setup.mutations.apply(setup.projectHandle,
+                planId: plan['planId']! as String,
+                operationId: 'editor_source_race'),
+            throwsA(isA<MapAuthoringException>()));
+        expect(await source.readAsBytes(), changed);
+        expect(await File('${setup.root.path}/maps/target.json').exists(),
+            isFalse);
+        expect(
+            await File('${setup.root.path}/maps/target.editor.json').exists(),
+            isFalse);
+      });
+    }
+    for (final action in ['map.duplicate', 'map.rename', 'map.delete_apply']) {
+      test('$action carries editor in the same transaction and undo', () async {
+        final setup = await _Setup.create(
+            maps: [catalogMap('source')], enableSnapshotCache: true);
+        addTearDown(setup.dispose);
+        final source = File('${setup.root.path}/maps/source.editor.json');
+        final settings = MapEditorState(
+            lockedElements: {'layer:base'}, lockedFamilies: {'model'});
+        await source.writeAsString(jsonEncode(
+            MapEditorDocument(mapId: 'source', state: settings).toJson()));
+        final before = await source.readAsBytes();
+        final parameters = <String, Object?>{
+          if (action == 'map.duplicate') ...{
+            'sourceMapId': 'source',
+            'targetMapId': 'target'
+          } else ...{
+            'mapId': 'source'
+          },
+          if (action == 'map.rename') 'newMapId': 'target',
+        };
+        final plan = await setup.mutations.plan(setup.projectHandle,
+            await setup.requestAsync(actionId: action, parameters: parameters));
+        final confirmation = action == 'map.delete_apply'
+            ? await setup.mutations
+                .confirm(setup.projectHandle, planId: plan['planId']! as String)
+            : null;
+        final applied = await setup.mutations.apply(setup.projectHandle,
+            planId: plan['planId']! as String,
+            operationId: 'editor_lifecycle',
+            confirmationToken: confirmation?['confirmationToken'] as String?);
+        if (action != 'map.delete_apply') {
+          final target = File('${setup.root.path}/maps/target.editor.json');
+          expect(await target.exists(), isTrue);
+          final document = MapEditorDocument.fromJson(
+              jsonDecode(await target.readAsString()));
+          expect(document.mapId, 'target');
+          expect(document.state, settings);
+        }
+        expect(await source.exists(), action == 'map.duplicate');
+        final receipt = applied['receipt']! as Map<String, Object?>;
+        await setup.mutations.undo(setup.projectHandle,
+            entryId: receipt['receiptId']! as String,
+            idempotencyKey: 'undo_editor_lifecycle');
+        expect(await source.readAsBytes(), before);
+        expect(
+            await File('${setup.root.path}/maps/target.editor.json').exists(),
+            isFalse);
+      });
+    }
+    for (final action in ['map.duplicate', 'map.rename', 'map.delete_apply']) {
+      test('$action carries atmosphere in the same transaction and undo',
+          () async {
+        final setup = await _Setup.create(
+            maps: [catalogMap('source')], enableSnapshotCache: true);
+        addTearDown(setup.dispose);
+        final source = File('${setup.root.path}/maps/source.atmosphere.json');
+        final settings = SpatialAtmosphereSettings(
+            waterAnimated: true,
+            windowsLit: true,
+            fireflies: true,
+            windowStrength: .7);
+        await source.writeAsString(jsonEncode(
+            SpatialAtmosphereDocument(mapId: 'source', settings: settings)
+                .toJson()));
+        final before = await source.readAsBytes();
+        final parameters = <String, Object?>{
+          if (action == 'map.duplicate') ...{
+            'sourceMapId': 'source',
+            'targetMapId': 'target'
+          } else ...{
+            'mapId': 'source'
+          },
+          if (action == 'map.rename') 'newMapId': 'target',
+        };
+        final plan = await setup.mutations.plan(setup.projectHandle,
+            await setup.requestAsync(actionId: action, parameters: parameters));
+        final confirmation = action == 'map.delete_apply'
+            ? await setup.mutations
+                .confirm(setup.projectHandle, planId: plan['planId']! as String)
+            : null;
+        final applied = await setup.mutations.apply(setup.projectHandle,
+            planId: plan['planId']! as String,
+            operationId: 'atmosphere_lifecycle',
+            confirmationToken: confirmation?['confirmationToken'] as String?);
+        if (action != 'map.delete_apply') {
+          final target = File('${setup.root.path}/maps/target.atmosphere.json');
+          expect(await target.exists(), isTrue);
+          final document = SpatialAtmosphereDocument.fromJson(
+              jsonDecode(await target.readAsString()));
+          expect(document.mapId, 'target');
+          expect(document.settings, settings);
+        }
+        expect(await source.exists(), action == 'map.duplicate');
+        final receipt = applied['receipt']! as Map<String, Object?>;
+        await setup.mutations.undo(setup.projectHandle,
+            entryId: receipt['receiptId']! as String,
+            idempotencyKey: 'undo_atmosphere_lifecycle');
+        expect(await source.readAsBytes(), before);
+        expect(
+            await File('${setup.root.path}/maps/target.atmosphere.json')
+                .exists(),
+            isFalse);
+      });
+    }
+    for (final action in ['map.duplicate', 'map.rename', 'map.delete_apply']) {
+      test(
+          '$action refuses a concurrent atmosphere edit without changing either map',
+          () async {
+        final setup = await _Setup.create(
+            maps: [catalogMap('source')], enableSnapshotCache: true);
+        addTearDown(setup.dispose);
+        final source = File('${setup.root.path}/maps/source.atmosphere.json');
+        await source.writeAsString(jsonEncode(SpatialAtmosphereDocument(
+                mapId: 'source',
+                settings: SpatialAtmosphereSettings(fireflies: true))
+            .toJson()));
+        final parameters = <String, Object?>{
+          if (action == 'map.duplicate') ...{
+            'sourceMapId': 'source',
+            'targetMapId': 'target'
+          } else ...{
+            'mapId': 'source'
+          },
+          if (action == 'map.rename') 'newMapId': 'target',
+        };
+        final plan = await setup.mutations.plan(setup.projectHandle,
+            await setup.requestAsync(actionId: action, parameters: parameters));
+        final confirmation = action == 'map.delete_apply'
+            ? await setup.mutations
+                .confirm(setup.projectHandle, planId: plan['planId']! as String)
+            : null;
+        await source.writeAsString(jsonEncode(SpatialAtmosphereDocument(
+                mapId: 'source',
+                settings: SpatialAtmosphereSettings(waterAnimated: true))
+            .toJson()));
+        final changed = await source.readAsBytes();
+        await expectLater(
+            setup.mutations.apply(setup.projectHandle,
+                planId: plan['planId']! as String,
+                operationId: 'atmosphere_present_race',
+                confirmationToken:
+                    confirmation?['confirmationToken'] as String?),
+            throwsA(action == 'map.duplicate'
+                ? isA<MapAuthoringException>()
+                : isA<AuthoringRevisionConflict>()));
+        expect(await source.readAsBytes(), changed);
+        expect(
+            await File('${setup.root.path}/maps/source.json').exists(), isTrue);
+        expect(await File('${setup.root.path}/maps/target.json').exists(),
+            isFalse);
+      });
+    }
+    test('create refuses an orphan atmosphere without touching it', () async {
+      final setup = await _Setup.create();
+      addTearDown(setup.dispose);
+      final orphan = File('${setup.root.path}/maps/orphan.atmosphere.json');
+      await orphan.parent.create(recursive: true);
+      await orphan.writeAsString('retained orphan');
+      await expectLater(
+          setup.mutations.plan(
+              setup.projectHandle,
+              await setup.requestAsync(
+                  actionId: 'map.create',
+                  parameters: {'mapId': 'orphan', 'width': 3, 'height': 3})),
+          throwsA(isA<MapAuthoringException>()));
+      expect(await orphan.readAsString(), 'retained orphan');
+      expect(
+          await File('${setup.root.path}/maps/orphan.json').exists(), isFalse);
+    });
+    test('duplicate refuses a newly created source atmosphere before promotion',
+        () async {
+      final setup = await _Setup.create(
+          maps: [catalogMap('source')], enableSnapshotCache: true);
+      addTearDown(setup.dispose);
+      final plan = await setup.mutations.plan(
+          setup.projectHandle,
+          await setup.requestAsync(
+              actionId: 'map.duplicate',
+              parameters: {'sourceMapId': 'source', 'targetMapId': 'target'}));
+      final source = File('${setup.root.path}/maps/source.atmosphere.json');
+      await source.writeAsString(jsonEncode(SpatialAtmosphereDocument(
+              mapId: 'source',
+              settings: SpatialAtmosphereSettings(fireflies: true))
+          .toJson()));
+      await expectLater(
+          setup.mutations.apply(setup.projectHandle,
+              planId: plan['planId']! as String,
+              operationId: 'atmosphere_source_race'),
+          throwsA(isA<MapAuthoringException>()));
+      expect(
+          await File('${setup.root.path}/maps/target.json').exists(), isFalse);
+    });
+    test(
+        'duplicate recovers its map and atmosphere after interrupted promotion',
+        () async {
+      var crash = true;
+      final setup = await _Setup.create(
+          maps: [catalogMap('source')],
+          faultInjector: (context) {
+            if (crash &&
+                context.checkpoint ==
+                    AuthoringTransactionCheckpoint.afterResourcePromoted &&
+                context.promotionIndex == 0) {
+              throw const AuthoringTransactionSimulatedCrash();
+            }
+          });
+      addTearDown(setup.dispose);
+      final settings = SpatialAtmosphereSettings(fireflies: true);
+      await File('${setup.root.path}/maps/source.atmosphere.json')
+          .writeAsString(jsonEncode(
+              SpatialAtmosphereDocument(mapId: 'source', settings: settings)
+                  .toJson()));
+      final plan = await setup.mutations.plan(
+          setup.projectHandle,
+          await setup.requestAsync(
+              actionId: 'map.duplicate',
+              parameters: {'sourceMapId': 'source', 'targetMapId': 'target'}));
+      await expectLater(
+          setup.mutations.apply(setup.projectHandle,
+              planId: plan['planId']! as String,
+              operationId: 'atmosphere_crash'),
+          throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+      crash = false;
+      await setup.mutations
+          .recover(setup.projectHandle, operationId: 'atmosphere_crash');
+      expect(
+          SpatialAtmosphereDocument.fromJson(jsonDecode(
+                  await File('${setup.root.path}/maps/target.atmosphere.json')
+                      .readAsString()))
+              .settings,
+          settings);
+    });
+    test('recovery protects an absent source atmosphere under the writer lock',
+        () async {
+      var crash = true;
+      final setup = await _Setup.create(
+          maps: [catalogMap('source')],
+          faultInjector: (context) {
+            if (crash &&
+                context.checkpoint ==
+                    AuthoringTransactionCheckpoint.afterResourcePromoted &&
+                context.promotionIndex == 0) {
+              throw const AuthoringTransactionSimulatedCrash();
+            }
+          });
+      addTearDown(setup.dispose);
+      final plan = await setup.mutations.plan(
+          setup.projectHandle,
+          await setup.requestAsync(
+              actionId: 'map.duplicate',
+              parameters: {'sourceMapId': 'source', 'targetMapId': 'target'}));
+      await expectLater(
+          setup.mutations.apply(setup.projectHandle,
+              planId: plan['planId']! as String,
+              operationId: 'atmosphere_crash_race'),
+          throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+      crash = false;
+      final source = File('${setup.root.path}/maps/source.atmosphere.json');
+      await source.writeAsString(jsonEncode(SpatialAtmosphereDocument(
+              mapId: 'source',
+              settings: SpatialAtmosphereSettings(fireflies: true))
+          .toJson()));
+      final before = await source.readAsBytes();
+      await expectLater(
+          setup.mutations.recover(setup.projectHandle,
+              operationId: 'atmosphere_crash_race'),
+          throwsA(isA<MapAuthoringException>()));
+      expect(await source.readAsBytes(), before);
+      expect(
+          await File('${setup.root.path}/maps/target.atmosphere.json').exists(),
+          isFalse);
+    });
+
     test('resize plan refuses a new closed-map reference before application',
         () async {
       final target = catalogMap('target', width: 5, height: 4);

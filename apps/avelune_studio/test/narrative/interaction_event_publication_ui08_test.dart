@@ -1,9 +1,12 @@
 import 'dart:io';
 
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
 
 import '../support/m3_story_fixture.dart';
 
@@ -30,57 +33,108 @@ void main() {
     });
   }
 
-  test(
-    'stale record-only write rejected inside mutation queue with unchanged scene',
-    () async {
-      final original = fixture.receipt.manifest.eventRegistry!.records.first;
-      final scene = fixture.receipt.manifest.scenes.firstWhere(
-        (scene) => scene.id == original.definitionOrNull!.sceneId,
-      );
-      final base = await fixture.maps.loadMap(
-        fixture.session,
-        fixture.receipt.manifest.maps.first,
-      );
-      final fresh = updated(original);
-      final receipt = await port.publish(
-        NarrativePublication(
-          base: base,
-          current: base.map,
-          events: [fresh],
-          expectedEvents: {original.id: original},
-        ),
-      );
-      expect(receipt.manifest.scenes, fixture.receipt.manifest.scenes);
-      final projectFile = File('${fixture.directory.path}/project.json');
-      final before = await projectFile.readAsBytes();
-      await expectLater(
-        port.publish(
+  test('working scene edit resolves its story step owner', () async {
+    final project = fixture.receipt.manifest;
+    final store = await CatalogStorageStore.open(
+      projectRoot: fixture.directory.path,
+    );
+    await WorkingProjectCatalog.create(
+      store: store,
+      expectedProjectRevision: await store.gateway.readResourceRevision(
+        'project.json',
+      ),
+      projectId: 'story-scope',
+      project: project,
+    );
+    await FileIdempotencyStore(
+      filePath:
+          '${fixture.directory.path}/.pokemap/authoring/idempotency.jsonl',
+    ).prepareIncrementalStorage();
+    final session = ProjectSession(
+      sessionId: 'story-scope',
+      name: project.name,
+      directoryPath: fixture.directory.path,
+      storage: ProjectSessionStorage.workingCatalog,
+    );
+    final maps = LocalMapWorkspaceAdapter();
+    await maps.loadCatalog(session);
+    final base = await maps.loadMap(session, project.maps.first);
+    final original = project.eventRegistry!.records.first;
+    final scene = project.scenes.singleWhere(
+      (scene) => scene.id == original.definitionOrNull!.sceneId,
+    );
+    final updatedScene = SceneAsset.fromJson({
+      ...scene.toJson(),
+      'name': 'Updated story scene',
+    });
+    final receipt =
+        await LocalNarrativeAdapter(session: session, mapAdapter: maps).publish(
           NarrativePublication(
             base: base,
             current: base.map,
-            events: [original],
-            scenes: [scene],
-            expectedEvents: {original.id: original},
+            scenes: [updatedScene],
             expectedScenes: {scene.id: scene},
           ),
+        );
+    expect(receipt.manifest.scenes, contains(updatedScene));
+    expect(receipt.manifest.storylines, containsAll(project.storylines));
+    final reopened = LocalMapWorkspaceAdapter();
+    final fresh = await reopened.loadProject(session);
+    expect(
+      fresh.scenes.singleWhere((entry) => entry.id == scene.id),
+      updatedScene,
+    );
+    expect(fresh.storylines, project.storylines);
+  });
+
+  test('stale record-only write rejected inside mutation queue with unchanged scene', () async {
+    final original = fixture.receipt.manifest.eventRegistry!.records.first;
+    final scene = fixture.receipt.manifest.scenes.firstWhere(
+      (scene) => scene.id == original.definitionOrNull!.sceneId,
+    );
+    final base = await fixture.maps.loadMap(
+      fixture.session,
+      fixture.receipt.manifest.maps.first,
+    );
+    final fresh = updated(original);
+    final receipt = await port.publish(
+      NarrativePublication(
+        base: base,
+        current: base.map,
+        events: [fresh],
+        expectedEvents: {original.id: original},
+      ),
+    );
+    expect(receipt.manifest.scenes, fixture.receipt.manifest.scenes);
+    final projectFile = File('${fixture.directory.path}/project.json');
+    final before = await projectFile.readAsBytes();
+    await expectLater(
+      port.publish(
+        NarrativePublication(
+          base: base,
+          current: base.map,
+          events: [original],
+          scenes: [scene],
+          expectedEvents: {original.id: original},
+          expectedScenes: {scene.id: scene},
         ),
-        throwsA(
-          isA<NarrativeFailure>().having(
-            (e) => e.message,
-            'record guard',
-            contains('événement'),
-          ),
+      ),
+      throwsA(
+        isA<NarrativeFailure>().having(
+          (e) => e.message,
+          'record guard',
+          contains('événement'),
         ),
-      );
-      expect(await projectFile.readAsBytes(), before);
-      final reopened = await fixture.maps.loadProject(fixture.session);
-      expect(
-        reopened.eventRegistry!.records.firstWhere((r) => r.id == original.id),
-        fresh,
-      );
-      expect(reopened.scenes.firstWhere((s) => s.id == scene.id), scene);
-    },
-  );
+      ),
+    );
+    expect(await projectFile.readAsBytes(), before);
+    final reopened = await fixture.maps.loadProject(fixture.session);
+    expect(
+      reopened.eventRegistry!.records.firstWhere((r) => r.id == original.id),
+      fresh,
+    );
+    expect(reopened.scenes.firstWhere((s) => s.id == scene.id), scene);
+  });
 
   test(
     'independent event remains publishable after another record changed',
@@ -148,9 +202,8 @@ void main() {
           expectedScenes: {scene.id: scene},
         ),
       );
-      final before = await File(
-        '${fixture.directory.path}/project.json',
-      ).readAsBytes();
+      final before = await File('${fixture.directory.path}/project.json')
+          .readAsBytes();
       await expectLater(
         port.publish(
           NarrativePublication(
@@ -199,9 +252,8 @@ void main() {
           expectedDialogues: {original.id: original},
         ),
       );
-      final before = await File(
-        '${fixture.directory.path}/project.json',
-      ).readAsBytes();
+      final before = await File('${fixture.directory.path}/project.json')
+          .readAsBytes();
       await expectLater(
         port.publish(
           NarrativePublication(

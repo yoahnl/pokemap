@@ -92,7 +92,7 @@ final class CatalogGenerationRetention {
         throw const CatalogStorageException(
             'catalog.missing', 'There is no catalog generation.');
       }
-      await (await store.openRoot(head)).snapshot.validate();
+      await store.restoreIndexAdmission((await store.openRoot(head)).snapshot);
       await _replace(
           'catalog/IDENTITY.json',
           utf8.encode(canonicalAuthoringJson({

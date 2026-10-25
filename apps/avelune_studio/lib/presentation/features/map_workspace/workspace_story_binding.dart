@@ -90,6 +90,9 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   Future<String?> _openScene(String sceneId) async {
+    if (await _prepareWorkshopRoute(MapWorkspaceWorkshop.scene) == null) {
+      return null;
+    }
     final scenes = _scenes;
     if (scenes == null) return 'L’éditeur de scène est indisponible.';
     if (!scenes.open(sceneId)) return scenes.error;
@@ -142,9 +145,8 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
       _interactionOrigin = WorkspaceSpace.map;
       _show(WorkspaceSpace.interaction);
     } else if (narrative.error case final error?) {
-      _interactionNotice = ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error)));
+      _interactionNotice = ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
     }
   }
 

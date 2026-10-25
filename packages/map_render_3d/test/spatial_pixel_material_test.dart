@@ -15,6 +15,7 @@ import 'package:map_render_3d/src/spatial_shadow_profile.dart';
 import 'package:map_render_3d/src/spatial_point_light.dart';
 import 'package:map_render_3d/src/spatial_point_shadow.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_render_3d/src/spatial_presentation_effects.dart';
 
 void main() {
   late _ShaderBackend backend;
@@ -29,6 +30,46 @@ void main() {
     material = SpatialPixelMaterial(Texture(ByteData(4), width: 1, height: 1));
     material.vertexShader.resource;
     material.fragmentShader.resource;
+  });
+
+  test('depth fog binds only presentation uniforms and clears when disabled', () {
+    final spatial = SpatialRenderContext(device);
+    material.apply(spatial);
+    material.fragmentShader.bind(device);
+    final base = device.uniforms['Material']!.toList();
+    final vertex = material.vertexShader, fragment = material.fragmentShader;
+    expect(device.uniforms['Presentation']![3], 0);
+    spatial
+      ..presentationProfile = SpatialPresentationProfile(fogStart: 40, fogEnd: 55, fogOpacity: .2)
+      ..depthFogEnabled = true;
+    material.apply(spatial);
+    material.fragmentShader.bind(device);
+    expect(device.uniforms['Presentation']![3], closeTo(.2, 1e-6));
+    expect(device.uniforms['Presentation']!.sublist(4, 6), [40, 55]);
+    expect(device.uniforms['Material'], base);
+    expect(material.vertexShader, same(vertex));
+    expect(material.fragmentShader, same(fragment));
+    spatial.depthFogEnabled = false;
+    material.apply(spatial);
+    material.fragmentShader.bind(device);
+    expect(device.uniforms['Presentation']![3], 0);
+  });
+  test('unchanged presentation never rewrites uniforms for repeated draws', () {
+    final shader = _CountingFragmentShader();
+    shader.resource;
+    material.fragmentShader = shader;
+    final spatial = SpatialRenderContext(device)..depthFogEnabled = true
+      ..presentationProfile = SpatialPresentationProfile();
+    material.apply(spatial);
+    final writes = shader.presentationWrites;
+    for (var i = 0; i < 120; i++) {
+      material.apply(spatial);
+    }
+    expect(writes, 2);
+    expect(shader.presentationWrites, writes);
+    spatial.depthFogEnabled = false;
+    material.apply(spatial);
+    expect(shader.presentationWrites, writes + 2);
   });
 
   test('atmosphere uniforms target one instance and keep all off pixels and resources intact', () {
@@ -688,17 +729,21 @@ final class _CountingFragmentShader extends FragmentShader {
           'PointShadows',
           'pointShadowTexture',
           'Atmosphere',
+          'Presentation',
         ],
       );
 
   int pixelWrites = 0;
   int atmosphereWrites = 0;
+  int presentationWrites = 0;
 
   @override
   void setVector4(String key, Vector4 value) {
     if (key.startsWith('Atmosphere.')) atmosphereWrites++;
+    if (key.startsWith('Presentation.')) presentationWrites++;
     if (!key.startsWith('Environment.') &&
         !key.startsWith('PointShadows.') &&
+        !key.startsWith('Presentation.') &&
         !key.startsWith('Atmosphere.'))
       pixelWrites++;
     super.setVector4(key, value);
@@ -814,6 +859,7 @@ final class _Shader implements GpuShader {
       'windowColor': 16,
       'windowRects': 32,
     }),
+    'Presentation' => _UniformSlot(slot, 32, {'fogColor': 0, 'depthRange': 16}),
     'PointShadows' => _UniformSlot(slot, 16, {'options': 0}),
     'PointDepth' => _UniformSlot(slot, 32, {'positionRadius': 0, 'tile': 16}),
     'albedoTexture' ||

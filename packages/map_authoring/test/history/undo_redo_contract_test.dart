@@ -7,6 +7,38 @@ import 'package:test/test.dart';
 import '../support/transaction_test_fixture.dart';
 
 void main() {
+  for (final unrelated in [0, 900]) {
+    test(
+        'local undo and redo do not replay $unrelated unrelated history entries',
+        () async {
+      final harness =
+          await _HistoryHarness.create(forbidGlobalHistoryReads: true);
+      addTearDown(harness.dispose);
+      for (var i = 0; i < unrelated; i++) {
+        await harness.history
+            .append(_divergentEntry(harness.projectId, 'unrelated-$i'));
+      }
+      final original = await harness.applyOriginal();
+      final undoPlan = await harness.undo.planUndo(
+          actor: harness.actor,
+          projectId: harness.projectId,
+          entryId: original.receiptId,
+          snapshot: harness.snapshot(original.afterRevision!),
+          workspaceHandle: 'workspace:history',
+          idempotencyKey: 'local-undo');
+      final undone = await harness.undo.apply(undoPlan);
+      await harness.expectBeforeState();
+      final redoPlan = await harness.undo.planRedo(
+          actor: harness.actor,
+          projectId: harness.projectId,
+          entryId: original.receiptId,
+          snapshot: harness.snapshot(undone.afterRevision!),
+          workspaceHandle: 'workspace:history',
+          idempotencyKey: 'local-redo');
+      await harness.undo.apply(redoPlan);
+      await harness.expectAfterState();
+    });
+  }
   group('AuthoringUndoService', () {
     test('undo and redo are new secure CAS-checked idempotent transactions',
         () async {
@@ -383,7 +415,7 @@ AuthoringHistoryEntry _divergentEntry(String projectId, String suffix) {
   final before = _fingerprint(suffix.codeUnitAt(0));
   final after = _fingerprint(suffix.codeUnitAt(0) + 1);
   final receipt = AuthoringReceipt(
-    receiptId: 'receipt-divergent-$suffix',
+    receiptId: 'receipt_document_divergent_$suffix',
     requestId: 'request-divergent-$suffix',
     actionId: 'fixture.branch',
     actionVersion: 1,
@@ -440,10 +472,16 @@ final class _HistoryHarness {
 
   static Future<_HistoryHarness> create({
     AuthoringTransactionFaultInjector? faultInjector,
+    bool forbidGlobalHistoryReads = false,
   }) async {
-    final base = await TransactionTestHarness.create();
+    final base =
+        await TransactionTestHarness.create(documentReceiptIdentity: true);
     final history = await FileAuthoringHistoryStore.open(
       projectRoot: base.projectDirectory.path,
+      incrementalWrites: true,
+      onFullRead: forbidGlobalHistoryReads
+          ? () => throw StateError('global history read during local undo')
+          : null,
     );
     final blobs = await FileAuthoringContentBlobStore.open(
       projectRoot: base.projectDirectory.path,
@@ -474,7 +512,9 @@ final class _HistoryHarness {
       auditIdFactory: () => 'audit-history-${auditId++}',
     );
     var token = 0;
-    String tokenFactory(String prefix) => '$prefix${token++}';
+    String tokenFactory(String prefix) => prefix == 'receipt_'
+        ? 'receipt_document_${token++}'
+        : '$prefix${token++}';
     final planner = AuthoringActionPlanner(
       store: base.planStore,
       tokenFactory: tokenFactory,

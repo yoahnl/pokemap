@@ -37,6 +37,7 @@ extension PokemonCombatCharacterReferences on PokemonCombatController {
       snapshot = PokemonCombatSnapshot(
         project: project,
         maps: [for (final map in before.maps) changedMaps[map.id] ?? map],
+        referencesComplete: before.referencesComplete,
       );
     }
     changed();

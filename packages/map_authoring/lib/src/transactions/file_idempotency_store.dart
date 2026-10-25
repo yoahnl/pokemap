@@ -175,10 +175,12 @@ final class _IndexedIdempotencyRecord {
 final class FileIdempotencyStore implements IdempotencyStore {
   FileIdempotencyStore({
     required String filePath,
+    bool incrementalWrites = false,
     void Function()? onFullRead,
     AuthoringPerformanceObserver? performanceObserver,
     FileIdempotencyDecodeExecutor? decodeExecutor,
-  })  : _file = File(filePath),
+  })  : _incrementalWrites = incrementalWrites,
+        _file = File(filePath),
         _lockFile = File('$filePath.lock'),
         _compactionFile = File('$filePath.compact'),
         _backupFile = File('$filePath.backup'),
@@ -189,9 +191,10 @@ final class FileIdempotencyStore implements IdempotencyStore {
   static Future<FileIdempotencyStore> forScope({
     required String filePath,
     required AuthoringIdempotencyScope scope,
+    bool allowLegacyAction = false,
   }) async {
     final file = File(filePath);
-    if (!_usesScopedLedger(scope.actionId) ||
+    if ((!allowLegacyAction && !_usesScopedLedger(scope.actionId)) ||
         !file.isAbsolute ||
         file.uri.pathSegments.last != 'idempotency.jsonl' ||
         _directoryName(file.parent) != 'authoring' ||
@@ -205,28 +208,259 @@ final class FileIdempotencyStore implements IdempotencyStore {
     ).substring(7);
     final store = FileIdempotencyStore(
       filePath: '${file.parent.path}/idempotency-scopes/$digest.jsonl',
-    ).._scopeKey = scope.storageKey;
+    )
+      .._scopeKey = scope.storageKey
+      .._globalFilePath = filePath;
     await FileIdempotencyStore(filePath: filePath)._requireSafePaths();
     await store._requireSafePaths();
     return store;
   }
 
   String? _scopeKey;
+  String? _globalFilePath;
+  bool _operationPointer = false;
+  final bool _incrementalWrites;
 
-  Future<FileIdempotencyStore>? _scopeStore(AuthoringIdempotencyScope scope) {
+  Future<FileIdempotencyStore?> _scopeStore(
+      AuthoringIdempotencyScope scope) async {
+    if (_operationPointer) return null;
     if (_scopeKey != null) {
       if (_scopeKey != scope.storageKey) {
-        return Future.error(const IdempotencyStoreException(
+        throw const IdempotencyStoreException(
           'idempotency.scope_mismatch',
           'The scoped ledger belongs to a different mutation intent.',
-        ));
+        );
       }
       return null;
     }
-    if (_usesScopedLedger(scope.actionId)) {
-      return forScope(filePath: _file.path, scope: scope);
+    final builtIn = _usesScopedLedger(scope.actionId);
+    if (!builtIn && !_incrementalWrites && !await _hasIncrementalMarker()) {
+      return null;
     }
-    return null;
+    if (!builtIn) await _ensureIncrementalStorage();
+    return forScope(
+        filePath: _file.path, scope: scope, allowLegacyAction: true);
+  }
+
+  Future<bool> _hasIncrementalMarker() async {
+    await _requireSafePaths();
+    final file = File('${_file.path}.incremental');
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type == FileSystemEntityType.notFound) return false;
+    if (type != FileSystemEntityType.file || await file.length() > 4096) {
+      throw const IdempotencyStoreException('idempotency.store_corrupt',
+          'The incremental idempotency storage marker is invalid.');
+    }
+    final source = await file.readAsString();
+    final value = jsonDecode(source);
+    if (value is! Map<String, dynamic> ||
+        value.length != 3 ||
+        value['schemaVersion'] != 1 ||
+        value['mode'] != 'scoped' ||
+        source != canonicalAuthoringJson(value)) {
+      throw const IdempotencyStoreException('idempotency.store_corrupt',
+          'The incremental idempotency storage marker is invalid.');
+    }
+    if (canonicalAuthoringJson(value['legacySnapshot']) !=
+        canonicalAuthoringJson(await _legacySnapshot())) {
+      throw const IdempotencyStoreException('idempotency.preparation_required',
+          'The retained legacy ledger changed and requires explicit preparation.');
+    }
+    return true;
+  }
+
+  Future<Object?> _legacySnapshot() async {
+    final snapshot = await AuthoringFileSnapshot.capture(_file);
+    return snapshot == null
+        ? null
+        : [
+            snapshot.size,
+            snapshot.modified.microsecondsSinceEpoch,
+            snapshot.changed.microsecondsSinceEpoch
+          ];
+  }
+
+  Future<void> _ensureIncrementalStorage() => _withLock(() async {
+        if (await _hasIncrementalMarker()) return;
+        if ((await _file.exists() && await _file.length() != 0) ||
+            await Directory('${_file.parent.path}/idempotency-scopes')
+                .exists()) {
+          throw const IdempotencyStoreException(
+              'idempotency.preparation_required',
+              'Prepare the existing idempotency ledger explicitly before local editing.');
+        }
+        await _writeIncrementalMarker();
+      });
+
+  Future<void> _writeIncrementalMarker() async {
+    final file = File('${_file.path}.incremental');
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type != FileSystemEntityType.notFound &&
+        type != FileSystemEntityType.file) {
+      throw const IdempotencyStoreException('idempotency.path_unsafe',
+          'The incremental idempotency marker path is unsafe.');
+    }
+    final temporary = File('${file.path}.tmp');
+    final temporaryType =
+        await FileSystemEntity.type(temporary.path, followLinks: false);
+    if (temporaryType != FileSystemEntityType.notFound &&
+        temporaryType != FileSystemEntityType.file) {
+      throw const IdempotencyStoreException('idempotency.path_unsafe',
+          'The incremental idempotency preparation path is unsafe.');
+    }
+    try {
+      await temporary.writeAsString(
+          canonicalAuthoringJson({
+            'schemaVersion': 1,
+            'mode': 'scoped',
+            'legacySnapshot': await _legacySnapshot(),
+          }),
+          flush: true);
+      await temporary.rename(file.path);
+    } finally {
+      if (await temporary.exists()) await temporary.delete();
+    }
+  }
+
+  Future<void> prepareIncrementalStorage() {
+    if (_scopeKey != null || _operationPointer) {
+      throw StateError(
+          'Prepare incremental storage through its canonical ledger.');
+    }
+    return _withLock(() async {
+      try {
+        if (await _hasIncrementalMarker()) return;
+      } on IdempotencyStoreException catch (error) {
+        if (error.code != 'idempotency.preparation_required') rethrow;
+      }
+      final indexes = await _readIndexUnlocked();
+      final records = <AuthoringIdempotencyRecord>[];
+      for (final indexed in indexes.values) {
+        records.add(await _materializeRecord(indexed));
+      }
+      for (final record in records) {
+        final scoped = await forScope(
+            filePath: _file.path, scope: record.scope, allowLegacyAction: true);
+        final pending = AuthoringIdempotencyRecord(
+            scope: record.scope,
+            payloadFingerprint: record.payloadFingerprint,
+            operationId: record.operationId,
+            status: AuthoringIdempotencyStatus.pending,
+            createdAt: record.createdAt);
+        final reservation = await scoped.reserve(pending);
+        if (reservation.record.payloadFingerprint !=
+                record.payloadFingerprint ||
+            reservation.record.operationId != record.operationId) {
+          throw const IdempotencyStoreException(
+              'idempotency.completion_conflict',
+              'A scoped reservation conflicts with retained legacy history.');
+        }
+        if (record.status == AuthoringIdempotencyStatus.completed) {
+          await scoped.complete(record);
+        }
+      }
+      final directory = Directory('${_file.parent.path}/idempotency-scopes');
+      final directoryType =
+          await FileSystemEntity.type(directory.path, followLinks: false);
+      if (directoryType != FileSystemEntityType.notFound &&
+          directoryType != FileSystemEntityType.directory) {
+        throw const IdempotencyStoreException('idempotency.path_unsafe',
+            'The retained scoped ledger directory is unsafe.');
+      }
+      if (directoryType == FileSystemEntityType.directory) {
+        await for (final entity in directory.list(followLinks: false)) {
+          final name = entity.uri.pathSegments.last;
+          if (!name.endsWith('.jsonl')) continue;
+          if (entity is! File ||
+              !RegExp(r'^[a-f0-9]{64}\.jsonl$').hasMatch(name)) {
+            throw const IdempotencyStoreException('idempotency.path_unsafe',
+                'The retained scope path is unsafe.');
+          }
+          final source = FileIdempotencyStore(filePath: entity.path);
+          await source._withLock(() async {
+            final retained = await source._readIndexUnlocked();
+            if (retained.length > 1) {
+              throw const IdempotencyStoreException(
+                  'idempotency.scope_mismatch',
+                  'The retained scoped ledger contains more than one intent.');
+            }
+            for (final indexed in retained.values) {
+              final scoped = await forScope(
+                  filePath: _file.path,
+                  scope: indexed.scope,
+                  allowLegacyAction: true);
+              if (scoped._file.path != entity.path) {
+                throw const IdempotencyStoreException(
+                    'idempotency.scope_mismatch',
+                    'The retained scope does not match its storage identity.');
+              }
+              await scoped._publishOperationPointer(
+                  await source._materializeRecord(indexed));
+            }
+          });
+        }
+      }
+      await _writeIncrementalMarker();
+    });
+  }
+
+  FileIdempotencyStore _operationStore(
+      String actorId, String projectId, String operationId) {
+    final global = File(_globalFilePath ?? _file.path);
+    final digest = computeAuthoringJsonFingerprint(
+            [actorId, projectId, operationId],
+            logicalName: 'idempotency-operation.json')
+        .substring(7);
+    return FileIdempotencyStore(
+        filePath: '${global.parent.path}/idempotency-operations/$digest.jsonl')
+      .._operationPointer = true;
+  }
+
+  Future<void> _publishOperationPointer(
+      AuthoringIdempotencyRecord record) async {
+    if (_globalFilePath == null) return;
+    final pointer = _operationStore(
+        record.scope.actorId, record.scope.projectId, record.operationId);
+    await pointer._withLock(() async {
+      final indexes = await pointer._readIndexUnlocked();
+      if (indexes.isNotEmpty) {
+        if (indexes.length != 1 ||
+            indexes.values.single.scope.storageKey != record.scope.storageKey ||
+            indexes.values.single.payloadFingerprint !=
+                record.payloadFingerprint ||
+            indexes.values.single.operationId != record.operationId) {
+          throw const IdempotencyStoreException(
+              'idempotency.operation_ambiguous',
+              'This operation identity already belongs to another durable scope.');
+        }
+        return;
+      }
+      await pointer._appendUnlocked([
+        _putEvent(AuthoringIdempotencyRecord(
+            scope: record.scope,
+            payloadFingerprint: record.payloadFingerprint,
+            operationId: record.operationId,
+            status: AuthoringIdempotencyStatus.pending,
+            createdAt: record.createdAt))
+      ]);
+    });
+  }
+
+  Future<void> _removeOperationPointer(_IndexedIdempotencyRecord record) async {
+    if (_globalFilePath == null) return;
+    final pointer = _operationStore(
+        record.scope.actorId, record.scope.projectId, record.operationId);
+    await pointer._withLock(() async {
+      final indexed = await pointer._readIndexUnlocked();
+      if (indexed.isEmpty) return;
+      if (indexed.length != 1 ||
+          indexed.values.single.scope.storageKey != record.scope.storageKey ||
+          indexed.values.single.operationId != record.operationId) {
+        throw const IdempotencyStoreException('idempotency.operation_ambiguous',
+            'The expired operation pointer does not match its retained scope.');
+      }
+      await pointer._file.delete();
+    });
   }
 
   final File _file;
@@ -262,39 +496,82 @@ final class FileIdempotencyStore implements IdempotencyStore {
       );
 
   Future<AuthoringOperationReplayLookup?> lookupOperation(
-          {required String actorId,
-          required String projectId,
-          required String operationId,
-          required DateTime now}) =>
-      _withLock(() async {
-        await _readIndexUnlocked();
-        final matches =
-            _operationIndexes[(actorId, projectId, operationId)] ?? const [];
-        if (matches.length > 1) {
+      {required String actorId,
+      required String projectId,
+      required String operationId,
+      required DateTime now}) async {
+    if (_scopeKey == null && !_operationPointer) {
+      if (_incrementalWrites) {
+        await _ensureIncrementalStorage();
+      } else {
+        await _hasIncrementalMarker();
+      }
+      final pointer = _operationStore(actorId, projectId, operationId);
+      final indexed = await pointer._withLock(() async {
+        final records = await pointer._readIndexUnlocked();
+        if (records.length > 1) {
           throw const IdempotencyStoreException(
               'idempotency.operation_ambiguous',
-              'This operation identity belongs to more than one durable scope.');
+              'The durable operation pointer is ambiguous.');
         }
-        if (matches.isEmpty) return null;
-        final indexed = matches.single;
-        if (indexed.expiresAt != null &&
-            !now.toUtc().isBefore(indexed.expiresAt!)) {
-          return null;
-        }
-        return AuthoringOperationReplayLookup(
-            scope: indexed.scope,
-            operationId: indexed.operationId,
-            payloadFingerprint: indexed.payloadFingerprint,
-            completed: indexed.status == AuthoringIdempotencyStatus.completed
-                ? await _materializeRecord(indexed)
-                : null);
+        return records.isEmpty ? null : records.values.single;
       });
+      if (indexed != null) {
+        if (indexed.scope.actorId != actorId ||
+            indexed.scope.projectId != projectId ||
+            indexed.operationId != operationId) {
+          throw const IdempotencyStoreException('idempotency.store_corrupt',
+              'The durable operation pointer has another identity.');
+        }
+        final scoped = await forScope(
+            filePath: _file.path,
+            scope: indexed.scope,
+            allowLegacyAction: true);
+        return scoped.lookupOperation(
+            actorId: actorId,
+            projectId: projectId,
+            operationId: operationId,
+            now: now);
+      }
+      if (await _hasIncrementalMarker()) return null;
+    }
+    return _withLock(() async {
+      await _readIndexUnlocked();
+      final matches =
+          _operationIndexes[(actorId, projectId, operationId)] ?? const [];
+      if (matches.length > 1) {
+        throw const IdempotencyStoreException('idempotency.operation_ambiguous',
+            'This operation identity belongs to more than one durable scope.');
+      }
+      if (matches.isEmpty) return null;
+      final indexed = matches.single;
+      if (indexed.expiresAt != null &&
+          !now.toUtc().isBefore(indexed.expiresAt!)) {
+        return null;
+      }
+      return AuthoringOperationReplayLookup(
+          scope: indexed.scope,
+          operationId: indexed.operationId,
+          payloadFingerprint: indexed.payloadFingerprint,
+          completed: indexed.status == AuthoringIdempotencyStatus.completed
+              ? await _materializeRecord(indexed)
+              : null);
+    });
+  }
 
   @override
-  Future<AuthoringIdempotencyRecord?> read(AuthoringIdempotencyScope scope) {
-    final scoped = _scopeStore(scope);
-    if (scoped != null) return scoped.then((store) => store.read(scope));
+  Future<AuthoringIdempotencyRecord?> read(
+      AuthoringIdempotencyScope scope) async {
+    final scoped = await _scopeStore(scope);
+    if (scoped != null) return scoped.read(scope);
     return _withLock(() async {
+      if (_scopeKey == null &&
+          !_operationPointer &&
+          await _hasIncrementalMarker()) {
+        return (await forScope(
+                filePath: _file.path, scope: scope, allowLegacyAction: true))
+            .read(scope);
+      }
       final indexes = await _readIndexUnlocked();
       final indexed = indexes[scope.storageKey];
       return indexed == null ? null : _materializeRecord(indexed);
@@ -304,7 +581,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
   @override
   Future<AuthoringIdempotencyReservation> reserve(
     AuthoringIdempotencyRecord pendingRecord,
-  ) {
+  ) async {
     if (pendingRecord.status != AuthoringIdempotencyStatus.pending) {
       throw ArgumentError.value(
         pendingRecord.status,
@@ -312,19 +589,28 @@ final class FileIdempotencyStore implements IdempotencyStore {
         'reserve requires a pending record',
       );
     }
-    final scoped = _scopeStore(pendingRecord.scope);
-    if (scoped != null) {
-      return scoped.then((store) => store.reserve(pendingRecord));
-    }
+    final scoped = await _scopeStore(pendingRecord.scope);
+    if (scoped != null) return scoped.reserve(pendingRecord);
     return _withLock(() async {
+      if (_scopeKey == null &&
+          !_operationPointer &&
+          await _hasIncrementalMarker()) {
+        return (await forScope(
+                filePath: _file.path,
+                scope: pendingRecord.scope,
+                allowLegacyAction: true))
+            .reserve(pendingRecord);
+      }
       final indexes = await _readIndexUnlocked();
       final existing = indexes[pendingRecord.scope.storageKey];
       if (existing != null) {
+        await _publishOperationPointer(await _materializeRecord(existing));
         return AuthoringIdempotencyReservation(
           acquired: false,
           record: await _materializeRecord(existing),
         );
       }
+      await _publishOperationPointer(pendingRecord);
       await _appendUnlocked([_putEvent(pendingRecord)]);
       return AuthoringIdempotencyReservation(
         acquired: true,
@@ -336,7 +622,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
   @override
   Future<AuthoringIdempotencyRecord> complete(
     AuthoringIdempotencyRecord completedRecord,
-  ) {
+  ) async {
     if (completedRecord.status != AuthoringIdempotencyStatus.completed) {
       throw ArgumentError.value(
         completedRecord.status,
@@ -344,11 +630,18 @@ final class FileIdempotencyStore implements IdempotencyStore {
         'complete requires a completed record',
       );
     }
-    final scoped = _scopeStore(completedRecord.scope);
-    if (scoped != null) {
-      return scoped.then((store) => store.complete(completedRecord));
-    }
+    final scoped = await _scopeStore(completedRecord.scope);
+    if (scoped != null) return scoped.complete(completedRecord);
     return _withLock(() async {
+      if (_scopeKey == null &&
+          !_operationPointer &&
+          await _hasIncrementalMarker()) {
+        return (await forScope(
+                filePath: _file.path,
+                scope: completedRecord.scope,
+                allowLegacyAction: true))
+            .complete(completedRecord);
+      }
       final indexes = await _readIndexUnlocked();
       final existing = indexes[completedRecord.scope.storageKey];
       if (existing == null ||
@@ -370,35 +663,65 @@ final class FileIdempotencyStore implements IdempotencyStore {
         }
         return materialized;
       }
+      await _publishOperationPointer(completedRecord);
       await _appendUnlocked([_putEvent(completedRecord)]);
       return completedRecord;
     });
   }
 
   @override
-  Future<int> pruneExpired(DateTime now) {
-    return _withLock(() async {
-      final utcNow = now.toUtc();
-      final indexes = await _readIndexUnlocked();
-      final expired = indexes.values
-          .where(
-            (record) =>
-                record.status == AuthoringIdempotencyStatus.completed &&
-                !utcNow.isBefore(record.expiresAt!),
-          )
-          .toList(growable: false);
-      if (expired.isNotEmpty) {
-        await _appendUnlocked([
-          for (final record in expired) _removeEvent(record.scope),
-        ]);
-        final records = <String, AuthoringIdempotencyRecord>{};
-        for (final indexed in _cachedIndexes.values) {
-          records[indexed.scope.storageKey] = await _materializeRecord(indexed);
+  Future<int> pruneExpired(DateTime now) async {
+    if (_scopeKey == null &&
+        !_operationPointer &&
+        await _hasIncrementalMarker()) {
+      return _withLock(() async {
+        await _pruneUnlocked(now);
+        await _writeIncrementalMarker();
+        final directory = Directory('${_file.parent.path}/idempotency-scopes');
+        if (!await directory.exists()) return 0;
+        var removed = 0;
+        await for (final entity in directory.list(followLinks: false)) {
+          final name = entity.uri.pathSegments.last;
+          if (!name.endsWith('.jsonl')) continue;
+          if (entity is! File ||
+              !RegExp(r'^[a-f0-9]{64}\.jsonl$').hasMatch(name)) {
+            throw const IdempotencyStoreException('idempotency.path_unsafe',
+                'The incremental ledger directory contains an unsafe scope.');
+          }
+          final scoped = FileIdempotencyStore(filePath: entity.path)
+            .._globalFilePath = _file.path;
+          removed += await scoped._withLock(() => scoped._pruneUnlocked(now));
         }
-        await _compactUnlocked(records);
+        return removed;
+      });
+    }
+    return _withLock(() => _pruneUnlocked(now));
+  }
+
+  Future<int> _pruneUnlocked(DateTime now) async {
+    final utcNow = now.toUtc();
+    final indexes = await _readIndexUnlocked();
+    final expired = indexes.values
+        .where(
+          (record) =>
+              record.status == AuthoringIdempotencyStatus.completed &&
+              !utcNow.isBefore(record.expiresAt!),
+        )
+        .toList(growable: false);
+    if (expired.isNotEmpty) {
+      await _appendUnlocked([
+        for (final record in expired) _removeEvent(record.scope),
+      ]);
+      final records = <String, AuthoringIdempotencyRecord>{};
+      for (final indexed in _cachedIndexes.values) {
+        records[indexed.scope.storageKey] = await _materializeRecord(indexed);
       }
-      return expired.length;
-    });
+      await _compactUnlocked(records);
+      for (final record in expired) {
+        await _removeOperationPointer(record);
+      }
+    }
+    return expired.length;
   }
 
   Future<T> _withLock<T>(Future<T> Function() operation) async {
@@ -467,7 +790,14 @@ final class FileIdempotencyStore implements IdempotencyStore {
         );
       }
     }
-    for (final file in [_file, _lockFile, _compactionFile, _backupFile]) {
+    for (final file in [
+      _file,
+      _lockFile,
+      _compactionFile,
+      _backupFile,
+      File('${_file.path}.incremental'),
+      File('${_file.path}.incremental.tmp')
+    ]) {
       final type = await FileSystemEntity.type(file.path, followLinks: false);
       if (type != FileSystemEntityType.notFound &&
           type != FileSystemEntityType.file) {
@@ -481,6 +811,10 @@ final class FileIdempotencyStore implements IdempotencyStore {
 
   Future<Map<String, _IndexedIdempotencyRecord>> _readIndexUnlocked() async {
     final snapshot = await AuthoringFileSnapshot.capture(_file);
+    if (_operationPointer && snapshot != null && snapshot.size > 8192) {
+      throw const IdempotencyStoreException('idempotency.store_corrupt',
+          'The durable operation pointer exceeds its bounded storage limit.');
+    }
     if (_cacheInitialized && snapshot == _cachedSnapshot) {
       return Map<String, _IndexedIdempotencyRecord>.of(_cachedIndexes);
     }
@@ -760,4 +1094,6 @@ _FileIdempotencyDecodeResult _decodeIdempotencyEvents(Uint8List bytes) {
 bool _usesScopedLedger(String actionId) => const {
       'characterStudio.contactShadow.set',
       'map.atmosphere.set',
+      'map.editor.set',
+      'map.elements.reorder',
     }.contains(actionId);

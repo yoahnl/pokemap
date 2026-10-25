@@ -58,9 +58,12 @@ class WarpEditingCommands {
     return warp;
   }
 
-  void move(String id, GridPos position) => document.commit(
-    updateWarpOnMap(document.current, warpId: id, pos: position),
-  );
+  void move(String id, GridPos position) {
+    if (document.isElementLocked('warp', id)) return;
+    document.commit(
+      updateWarpOnMap(document.current, warpId: id, pos: position),
+    );
+  }
 
   void retarget(
     String id, {
@@ -104,6 +107,8 @@ class WarpEditingCommands {
         updateWarpOnMap(document.current, warpId: id, transition: transition),
       );
 
-  void delete(String id) =>
-      document.commit(removeWarpFromMap(document.current, warpId: id));
+  void delete(String id) {
+    if (document.isElementLocked('warp', id)) return;
+    document.commit(removeWarpFromMap(document.current, warpId: id));
+  }
 }

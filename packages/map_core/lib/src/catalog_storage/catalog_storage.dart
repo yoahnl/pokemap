@@ -722,6 +722,15 @@ final class CatalogSnapshot {
   final int definitionCount;
   final _Node? _index;
   int? _admittedStoredBytes;
+  int? get admittedStoredBytes => _admittedStoredBytes;
+
+  void restoreTrustedIndexAdmission({required int storedBytes}) {
+    if (storedBytes < root.byteLength || storedBytes > limits.maxStoredBytes) {
+      throw const FormatException('catalog.admission: invalid stored bytes');
+    }
+    _admittedStoredBytes = storedBytes;
+  }
+
   final _indexPages = <CatalogObjectReference, Future<_CatalogIndexPage>>{};
   var _indexPageBytes = 0;
 

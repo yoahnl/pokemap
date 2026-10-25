@@ -12,6 +12,10 @@ export 'src/references/resource_usage_report.dart';
 export 'package:map_core/map_core.dart' show ProjectCapabilityTruthRecord;
 
 export 'src/api/authoring_mutation_api.dart';
+export 'src/documents/map_element_order_authoring.dart'
+    show MapElementOrderSnapshot, MapElementOrderMutation;
+export 'src/documents/map_editor_authoring.dart'
+    show MapEditorSnapshot, MapEditorMutation;
 export 'src/api/authoring_mutation_contracts.dart';
 export 'src/api/authoring_read_api.dart';
 export 'src/api/authoring_read_contracts.dart';

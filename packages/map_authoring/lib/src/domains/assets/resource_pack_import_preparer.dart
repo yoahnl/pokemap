@@ -531,8 +531,9 @@ final class ResourcePackImportPreparer {
       }
       final installation = _installation(selection, projection, previous,
           mappings, _clock().toUtc().toIso8601String());
-      final manifest =
-          _merge(snapshot.manifest, projection, previous, installation);
+      final skippedDraftPresetIds = <String>{};
+      final manifest = _merge(snapshot.manifest, projection, previous,
+          installation, skippedDraftPresetIds: skippedDraftPresetIds);
       ProjectValidator.validate(manifest);
       final catalog = AssetCatalog(records: records);
       final projectBytes =
@@ -566,6 +567,7 @@ final class ResourcePackImportPreparer {
           status: ResourcePackPreparedImportStatus.ready,
           outputs: outputs,
           metadataBytes: value.projectBytes.length + value.catalogBytes.length,
+          skippedDraftPresetIds: skippedDraftPresetIds,
           budgetReport: budget.toBoundedJson(maximumBytes: 96 * 1024));
       _prepared[handle] = value;
       leases.clear();
@@ -1033,8 +1035,9 @@ Map<String, Map<String, dynamic>> _nativeDefinitions(
 
 ProjectManifest _projectedLibrary(
   ProjectManifest target,
-  ResourcePackImportProjection projection,
-) {
+  ResourcePackImportProjection projection, {
+  Set<String>? skippedDraftPresetIds,
+}) {
   final c = projection.catalog;
   final smart = c.smartTileCatalog;
   final manifest = target.copyWith(
@@ -1056,11 +1059,15 @@ ProjectManifest _projectedLibrary(
       preset: preset,
       catalog: smart,
     );
-    drafts.add(
-      draft.copyWith(
-        guideId: recognizeSmartTileAuthoringGuide(manifest, draft),
-      ),
+    final initialized = draft.copyWith(
+      guideId: recognizeSmartTileAuthoringGuide(manifest, draft),
     );
+    if (_fitsDerivedDraftUnit(initialized,
+        target.smartTileCatalog.drafts.length + drafts.length)) {
+      drafts.add(initialized);
+    } else {
+      skippedDraftPresetIds?.add(preset.id);
+    }
   }
   return manifest.copyWith(
     smartTileCatalog: ProjectSmartTileCatalog(
@@ -1073,6 +1080,31 @@ ProjectManifest _projectedLibrary(
       drafts: drafts,
     ),
   );
+}
+
+bool _fitsDerivedDraftUnit(
+    ProjectSmartTileAuthoringDraft draft, int position) {
+  final id = jsonEncode(['smartTileDraft', draft.id]);
+  try {
+    CatalogStorageBuilder().build([
+      CatalogDefinitionUnit(
+        key: CatalogDefinitionKey(CatalogDefinitionKind.catalogMetadata, id),
+        payload: {
+          'id': id,
+          'section': 'smartTileCatalog.drafts',
+          'position': position,
+          'value': draft.toJson(),
+        },
+      ),
+    ]);
+    return true;
+  } on FormatException catch (error) {
+    if (error.message == 'catalog.json: value or depth limit' ||
+        error.message == 'catalog.build: object byte limit') {
+      return false;
+    }
+    rethrow;
+  }
 }
 
 Set<String> _definitionConflicts(
@@ -1282,8 +1314,10 @@ ProjectManifest _merge(
     ProjectManifest target,
     ResourcePackImportProjection projection,
     ResourcePackInstallation? previous,
-    ResourcePackInstallation installation) {
-  final c = _projectedLibrary(target, projection);
+    ResourcePackInstallation installation,
+    {Set<String>? skippedDraftPresetIds}) {
+  final c = _projectedLibrary(target, projection,
+      skippedDraftPresetIds: skippedDraftPresetIds);
   final historical = _historicalKeys(previous);
   bool include(String kind, String id) {
     final source = projection.mapping.entries

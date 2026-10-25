@@ -74,7 +74,10 @@ class Ui12WorldHarness {
       },
     );
     harness = Ui12WorldHarness(directory, session, maps, world, adapter, port);
-    if (initialize) await world.initialize();
+    if (initialize) {
+      await world.initialize();
+      await world.loadAllMaps();
+    }
     return harness;
   }
 

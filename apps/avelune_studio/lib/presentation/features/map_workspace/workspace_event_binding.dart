@@ -15,27 +15,36 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
   }
 
   void _openEvents([String? id]) {
+    unawaited(_openEventsRoute(id));
+  }
+
+  Future<void> _openEventsRoute(String? id, {bool filterSource = false}) async {
+    final request = await _prepareWorkshopRoute(MapWorkspaceWorkshop.events);
+    if (request == null) return;
     final events = _events;
     if (events == null) return;
     _eventOrigin = _space == WorkspaceSpace.map
         ? WorkspaceSpace.map
         : WorkspaceSpace.story;
     _eventView.filterMapId ??= _controller.active?.base.mapId;
-    if (id != null) events.open(id);
+    if (id != null) {
+      if (!events.open(id)) return;
+      if (filterSource) {
+        _eventView.filterMapId = eventMapId(eventSource(events.record(id)!));
+      }
+    }
     _show(WorkspaceSpace.events);
   }
 
   void _openNarrativeEvent(String id) {
-    final event = _events?.record(id);
-    if (event == null) return;
-    _eventView.filterMapId = eventMapId(eventSource(event));
-    _openEvents(id);
+    unawaited(_openEventsRoute(id, filterSource: true));
   }
 
   Future<void> _openEventSource(NarrativeEventSourceRef source) async {
+    final request = await _prepareWorkshopRoute(MapWorkspaceWorkshop.events);
+    if (!mounted || request == null) return;
     final events = _events;
     if (events == null) return;
-    final request = ++_navigationRequest;
     final matches = events.records
         .where((r) => eventSource(r) == source)
         .toList();
@@ -126,8 +135,9 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
         ? map.entities.where((e) => e.id == id).toList()
         : const <MapEntity>[];
     final entity = entities.length == 1 ? entities.single : null;
-    final trigger = (source.kind == NarrativeEventSourceKind.triggerEnter ||
-        source.kind == NarrativeEventSourceKind.triggerBump)
+    final trigger =
+        (source.kind == NarrativeEventSourceKind.triggerEnter ||
+            source.kind == NarrativeEventSourceKind.triggerBump)
         ? map.triggers.where((t) => t.id == id).firstOrNull
         : null;
     final instance = source.kind == NarrativeEventSourceKind.modelInteract
@@ -147,7 +157,15 @@ extension _WorkspaceEventBinding on _MapWorkspaceScreenState {
     } else {
       view.clearSelection(document);
     }
-    final position = entity?.pos ?? trigger?.area.pos ?? (instance == null ? null : GridPos(x: instance.position.x.floor(), y: instance.position.z.floor()));
+    final position =
+        entity?.pos ??
+        trigger?.area.pos ??
+        (instance == null
+            ? null
+            : GridPos(
+                x: instance.position.x.floor(),
+                y: instance.position.z.floor(),
+              ));
     _eventMapReturn = true;
     _openMap();
     _toolChanged();

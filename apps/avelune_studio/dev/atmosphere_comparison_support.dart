@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/gestures.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
@@ -51,6 +52,11 @@ class AtmosphereToggleProbe {
   final SaveDiskTrace trace;
   final Map<String, int> Function()? counters;
   Map<String, int>? _beforeCounters;
+  final _pointerWatch = Stopwatch();
+  void _pointer(PointerEvent event) {
+    if (_armed && event is PointerDownEvent) _pointerWatch.start();
+  }
+
   bool _armed = false;
   Map<String, Object?>? result;
 
@@ -58,12 +64,17 @@ class AtmosphereToggleProbe {
     'water': controller.waterAnimated,
     'windows': controller.windowsLit,
     'fireflies': controller.fireflies,
+    'halos': controller.halosEnabled,
+    'fog': controller.depthFogEnabled,
   };
 
   void arm() {
     result = null;
     _armed = true;
     _beforeCounters = counters?.call();
+    _pointerWatch.reset();
+    GestureBinding.instance.pointerRouter.removeGlobalRoute(_pointer);
+    GestureBinding.instance.pointerRouter.addGlobalRoute(_pointer);
     trace.arm();
   }
 
@@ -73,10 +84,14 @@ class AtmosphereToggleProbe {
     final watch = Stopwatch()..start();
     final changed = state;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      GestureBinding.instance.pointerRouter.removeGlobalRoute(_pointer);
       trace.armed = false;
       result = {
         'state': changed,
         'stateChangeToFrameUs': watch.elapsedMicroseconds,
+        'pointerDownToFrameUs': _pointerWatch.isRunning
+            ? _pointerWatch.elapsedMicroseconds
+            : null,
         'disk': trace.snapshot(),
         'beforeCounters': _beforeCounters,
         'afterCounters': counters?.call(),

@@ -101,6 +101,7 @@ final class ProjectWorkspaceAccess {
     ProjectResourceProbeLookup? probeResource,
     ProjectCatalogMaterializer? materializeCatalogProject,
     Future<void> Function()? requireReadableProject,
+    Future<void> Function(String)? requireMutationRoot,
     required this.canReuseSnapshots,
   })  : _readBytes = readBytes,
         _openRead = openRead,
@@ -108,7 +109,8 @@ final class ProjectWorkspaceAccess {
         _listFiles = listFiles,
         _probeResource = probeResource,
         _materializeCatalogProject = materializeCatalogProject,
-        _requireReadableProject = requireReadableProject;
+        _requireReadableProject = requireReadableProject,
+        _requireMutationRoot = requireMutationRoot;
 
   final ProjectHandle projectHandle;
   final String projectName;
@@ -131,6 +133,18 @@ final class ProjectWorkspaceAccess {
   final ProjectResourceProbeLookup? _probeResource;
   final ProjectCatalogMaterializer? _materializeCatalogProject;
   final Future<void> Function()? _requireReadableProject;
+  final Future<void> Function(String)? _requireMutationRoot;
+
+  Future<void> requireMutationRoot(String root) async {
+    final guard = _requireMutationRoot;
+    if (guard == null) {
+      throw const WorkspaceHandleException(
+        'workspace.mutation_binding_unavailable',
+        'This project handle cannot authorize a local mutation root.',
+      );
+    }
+    await guard(root);
+  }
   Future<void> requireReadableProject() async =>
       await _requireReadableProject?.call();
   bool get hasCatalogMaterializer => _materializeCatalogProject != null;
@@ -218,6 +232,7 @@ final class WorkspaceHandleStore {
     ProjectResourceProbeLookup? probeResource,
     ProjectCatalogMaterializer? materializeCatalogProject,
     Future<void> Function()? requireReadableProject,
+    Future<void> Function(String)? requireMutationRoot,
     bool canReuseSnapshots = false,
   }) {
     if (canReuseSnapshots && readIdentity == null) {
@@ -241,6 +256,7 @@ final class WorkspaceHandleStore {
       probeResource: probeResource,
       materializeCatalogProject: materializeCatalogProject,
       requireReadableProject: requireReadableProject,
+      requireMutationRoot: requireMutationRoot,
       canReuseSnapshots: canReuseSnapshots,
     );
     return RegisteredProjectHandles(
@@ -272,6 +288,9 @@ final class WorkspaceHandleStore {
           ? null
           : (relativePath) => _probeResourceForHandle(handle, relativePath),
       canReuseSnapshots: stored.canReuseSnapshots,
+      requireMutationRoot: stored.requireMutationRoot == null
+          ? null
+          : (root) => _requireMutationRootForHandle(handle, root),
       requireReadableProject: stored.requireReadableProject == null
           ? null
           : () => _requireReadableForHandle(handle),
@@ -347,6 +366,12 @@ final class WorkspaceHandleStore {
     // Keeping this transfer owned avoids copying every resource twice inside
     // the handle store while preserving the post-read expiry check above.
     return bytes;
+  }
+
+  Future<void> _requireMutationRootForHandle(ProjectHandle handle, String root) async {
+    final stored = _requireActive(handle);
+    await stored.requireMutationRoot!(root);
+    _requireActive(handle);
   }
 
   Future<void> _requireReadableForHandle(ProjectHandle handle) async {
@@ -433,6 +458,7 @@ final class _StoredProjectAccess {
     this.probeResource,
     this.materializeCatalogProject,
     this.requireReadableProject,
+    this.requireMutationRoot,
     required this.canReuseSnapshots,
   });
 
@@ -447,6 +473,7 @@ final class _StoredProjectAccess {
   final ProjectResourceProbeLookup? probeResource;
   final ProjectCatalogMaterializer? materializeCatalogProject;
   final Future<void> Function()? requireReadableProject;
+  final Future<void> Function(String)? requireMutationRoot;
   final bool canReuseSnapshots;
 }
 

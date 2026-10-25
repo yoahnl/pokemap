@@ -472,7 +472,7 @@ void main() {
       expect(await File(ledgerPath).readAsString(), isEmpty);
     });
 
-    test('opening an authoring session prunes expired reservations', () async {
+    test('opening a local session preserves the ledger until explicit maintenance', () async {
       final root = await Directory.systemTemp.createTemp('idempotency-attach-');
       addTearDown(() => root.delete(recursive: true));
       const manifest = ProjectManifest(
@@ -505,7 +505,8 @@ void main() {
         operationId: 'operation-attach-expired',
         apply: () => _receipt(request, 'receipt-attach-expired'),
       );
-      expect(await File(sessionLedgerPath).readAsString(), isNotEmpty);
+      final retainedLedger = await File(sessionLedgerPath).readAsBytes();
+      expect(retainedLedger, isNotEmpty);
 
       final attachedAt = now.add(const Duration(days: 60));
       final reader = LocalProjectFileReader();
@@ -532,10 +533,16 @@ void main() {
       addTearDown(() => mutations.detachWorkspace(opened.workspaceHandle));
 
       expect(
-        await File(sessionLedgerPath).readAsString(),
-        isEmpty,
-        reason: 'the completed reservation outlived its retention',
+        await File(sessionLedgerPath).readAsBytes(),
+        retainedLedger,
+        reason: 'opening a local session must not compact unrelated history',
       );
+      await mutations.prepareWorkshopDocument(opened.projectHandle);
+      expect(await File(sessionLedgerPath).readAsBytes(), retainedLedger);
+      expect(await FileIdempotencyStore(filePath: sessionLedgerPath, incrementalWrites: true).lookupOperation(
+        actorId: scope.actorId, projectId: scope.projectId,
+        operationId: 'operation-attach-expired', now: attachedAt,
+      ), isNull);
     });
 
     test('scope validation rejects path-like identities', () {

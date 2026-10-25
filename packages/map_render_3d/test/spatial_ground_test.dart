@@ -428,6 +428,12 @@ void main() {
       project.copyWith(smartTileCatalog: animatedCatalog),
     );
     expect(animated.animated, isTrue);
+    final sameFrame = animated.resolve(0);
+    expect(animated.resolve(16), same(sameFrame));
+    final sameImages = animated.imageIdsAt(0);
+    animated.imageIdsAt(100);
+    expect(animated.imageIdsAt(16), same(sameImages));
+
     expect(animated.resolve(0).first.visual.sourceRect.x, 0);
     expect(animated.resolve(100).first.visual.sourceRect.x, 32);
     final calls = <(String, int, int, int)>[];
@@ -439,30 +445,34 @@ void main() {
       },
     );
     expect(
-      local.map((item) =>
-          (item.visual.cellX, item.visual.cellY, item.visual.sourceRect.x)),
+      local.map(
+        (item) =>
+            (item.visual.cellX, item.visual.cellY, item.visual.sourceRect.x),
+      ),
       [(0, 0, 32), (0, 1, 0), (1, 1, 0)],
     );
     expect(calls, [
       ('ground', 0, 0, 150),
-      ('ground', 1, 0, 150),
       ('ground', 0, 1, 150),
       ('ground', 1, 1, 150),
     ]);
     final splitCalls = <String>{};
-    final split = SpatialGroundPlan(
-      map.copyWith(layers: [
-        layer.copyWith(id: 'first'),
-        layer.copyWith(id: 'second'),
-      ]),
-      project.copyWith(smartTileCatalog: animatedCatalog),
-    ).resolve(
-      150,
-      animationElapsedMsForCell: (layerId, cellX, cellY, elapsedMs) {
-        splitCalls.add(layerId);
-        return layerId == 'first' ? 100 : 0;
-      },
-    );
+    final split =
+        SpatialGroundPlan(
+          map.copyWith(
+            layers: [
+              layer.copyWith(id: 'first'),
+              layer.copyWith(id: 'second'),
+            ],
+          ),
+          project.copyWith(smartTileCatalog: animatedCatalog),
+        ).resolve(
+          150,
+          animationElapsedMsForCell: (layerId, cellX, cellY, elapsedMs) {
+            splitCalls.add(layerId);
+            return layerId == 'first' ? 100 : 0;
+          },
+        );
     expect(splitCalls, {'first', 'second'});
     expect(split.where((item) => item.visual.sourceRect.x == 32), hasLength(3));
     expect(split.where((item) => item.visual.sourceRect.x == 0), hasLength(3));

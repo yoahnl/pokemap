@@ -1,3 +1,4 @@
+import 'map_lifecycle_atmosphere.dart';
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
@@ -109,7 +110,14 @@ AuthoringActionDescriptor _descriptor(
     inputSchemaId: 'schema.$id.input.v1',
     outputSchemaId: 'schema.map.mutation.output.v1',
     riskLevel: risk,
-    resourceKinds: const ['map', 'project'],
+    resourceKinds: [
+      'map',
+      'project',
+      if (mapAtmosphereLifecycleActions.contains(id)) ...[
+        'mapAtmosphere',
+        'mapEditor'
+      ]
+    ],
     requiredPermissions: const [AuthoringPermission.projectWrite],
     guarantees: const [
       AuthoringGuarantee.dryRun,
@@ -119,6 +127,8 @@ AuthoringActionDescriptor _descriptor(
     ],
     extensions: {
       'multiFileGuarantee': 'recoverable',
+      if (mapAtmosphereLifecycleActions.contains(id))
+        'associatedDocuments': const ['mapAtmosphere', 'mapEditor'],
       if (id == 'map.duplicate')
         'inputSchema': const {
           'type': 'object',

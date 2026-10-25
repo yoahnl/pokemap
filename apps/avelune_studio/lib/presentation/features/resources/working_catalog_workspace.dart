@@ -18,11 +18,6 @@ import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shell/studio_home_navigation.dart';
 
-typedef WorkingCatalogMapBuilder = Widget Function(
-  BuildContext context,
-  void Function(Future<bool> Function()?) registerExitGuard,
-);
-
 class WorkingCatalogWorkspace extends StatefulWidget {
   const WorkingCatalogWorkspace({
     super.key,
@@ -32,7 +27,9 @@ class WorkingCatalogWorkspace extends StatefulWidget {
     required this.registerExitGuard,
     this.home,
     this.previewBuilder,
-    this.mapWorkspaceBuilder,
+    this.embedded = false,
+    this.onSaved,
+    this.onOpenTools,
     this.onRecovered,
   });
 
@@ -42,7 +39,9 @@ class WorkingCatalogWorkspace extends StatefulWidget {
   final void Function(Future<bool> Function()?) registerExitGuard;
   final StudioHomeNavigation? home;
   final Widget Function(WorkingCatalogDetail detail)? previewBuilder;
-  final WorkingCatalogMapBuilder? mapWorkspaceBuilder;
+  final bool embedded;
+  final Future<void> Function()? onSaved;
+  final VoidCallback? onOpenTools;
   final Future<void> Function()? onRecovered;
 
   @override
@@ -52,8 +51,8 @@ class WorkingCatalogWorkspace extends StatefulWidget {
 
 class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
   WorkingCatalogController get catalog => widget.controller;
-  bool mapsVisible = false;
-  Future<bool> Function()? mapExitGuard;
+  bool synchronizing = false;
+  bool synchronizationPending = false;
   String? saved;
   String? navigationNotice;
   String? tagsIdentity;
@@ -87,19 +86,17 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     widget.registerExitGuard(allowExit);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      widget.home?.publish(
-        availableMaps: const [],
-        testAvailable: false,
-        navigate: (destination, mapId) {
-          if (!mounted) return;
-          if (destination == 'map' && widget.mapWorkspaceBuilder != null) {
-            unawaited(showMaps());
-          } else {
+      if (!widget.embedded) {
+        widget.home?.publish(
+          availableMaps: const [],
+          testAvailable: false,
+          navigate: (destination, mapId) {
+            if (!mounted) return;
             unawaited(showLibrary(destination));
-          }
-        },
-        guard: allowExit,
-      );
+          },
+          guard: allowExit,
+        );
+      }
       unawaited(catalog.search(''));
     });
   }
@@ -112,15 +109,12 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     }
   }
 
-  Future<bool> allowExit() async {
-    if (mapsVisible && mapExitGuard != null && !await mapExitGuard!()) {
-      return false;
-    }
-    return allowCatalogExit();
-  }
+  Future<bool> allowExit() => allowCatalogExit();
 
   Future<bool> allowCatalogExit() async {
-    if (catalog.saving || catalog.recovering) return false;
+    if (catalog.saving || catalog.recovering || synchronizing) return false;
+    if (synchronizationPending && !await synchronize()) return false;
+    if (!mounted) return false;
     if (!catalog.dirty) return true;
     final choice = await showDialog<String>(
       context: context,
@@ -137,7 +131,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
       ),
     );
     if (!mounted) return false;
-    if (choice == 'save') return catalog.save();
+    if (choice == 'save') return save();
     if (choice == 'discard') {
       catalog.discard();
       return true;
@@ -145,19 +139,9 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     return false;
   }
 
-  Future<void> showMaps() async {
-    if (catalog.recoveryOperationIds.isNotEmpty || mapsVisible) return;
-    if (await allowCatalogExit() && mounted) {
-      setState(() => mapsVisible = true);
-    }
-  }
-
   Future<void> showLibrary([String destination = 'resources']) async {
-    if (mapsVisible && mapExitGuard != null && !await mapExitGuard!()) return;
-    if (!mounted) return;
+    if (!await allowCatalogExit() || !mounted) return;
     setState(() {
-      mapsVisible = false;
-      mapExitGuard = null;
       navigationNotice =
           const {
             'resources',
@@ -165,7 +149,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
             'library',
           }.contains(destination)
           ? null
-          : 'Cet atelier est accessible depuis Cartes et ateliers.';
+          : 'Cet atelier est accessible depuis la navigation de Studio.';
     });
     final selected = catalog.selected;
     await catalog.search(catalog.query);
@@ -196,11 +180,33 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     }
   }
 
-  Future<void> save() async {
-    saved = null;
-    if (await catalog.save() && mounted) {
-      setState(() => saved = 'Ressource enregistrée.');
+  Future<bool> synchronize() async {
+    synchronizing = true;
+    try {
+      await widget.onSaved?.call();
+      synchronizationPending = false;
+      return true;
+    } catch (failure) {
+      if (mounted) {
+        setState(
+          () => navigationNotice =
+              'La ressource est enregistrée, mais la carte ne peut pas être actualisée : $failure',
+        );
+      }
+      return false;
+    } finally {
+      synchronizing = false;
     }
+  }
+
+  Future<bool> save() async {
+    if (synchronizing) return false;
+    saved = null;
+    if (!await catalog.save()) return false;
+    synchronizationPending = true;
+    if (!mounted || !await synchronize() || !mounted) return false;
+    setState(() => saved = catalog.dirty ? null : 'Ressource enregistrée.');
+    return !catalog.dirty;
   }
 
   @override
@@ -212,25 +218,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    if (mapsVisible && widget.mapWorkspaceBuilder != null) {
-      return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: StudioButton(
-              label: 'Retour à la bibliothèque',
-              secondary: true,
-              onPressed: () => showLibrary(),
-            ),
-          ),
-          Expanded(
-            child: widget.mapWorkspaceBuilder!(context, (guard) {
-              mapExitGuard = guard;
-            }),
-          ),
-        ],
-      );
-    }
+    if (widget.embedded) return libraryContent();
     return StudioAppShell(
       projectName: widget.session.name,
       actions: [
@@ -248,24 +236,6 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
           },
         ),
       ],
-      destinations: [
-        StudioDestination(
-          label: 'Ressources',
-          icon: Icons.inventory_2_outlined,
-          selected: !mapsVisible,
-          onTap: () => showLibrary(),
-        ),
-        StudioDestination(
-          label: 'Cartes et ateliers',
-          icon: Icons.map_outlined,
-          selected: mapsVisible,
-          onTap:
-              widget.mapWorkspaceBuilder == null ||
-                  catalog.recoveryOperationIds.isNotEmpty
-              ? null
-              : showMaps,
-        ),
-      ],
       child: catalog.recoveryOperationIds.isNotEmpty
           ? StudioPanel(
               title: 'Reprendre l’enregistrement du projet',
@@ -281,138 +251,134 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                 ),
               ],
             )
-          : Column(
-              children: [
-                StudioPageHeader(
-                  title: 'Bibliothèque du projet',
-                  description:
-                      widget.session.storage ==
-                          ProjectSessionStorage.portableCatalog
-                      ? 'Recherchez une ressource dans toute la bibliothèque et consultez son aperçu.'
-                      : 'Recherchez une ressource dans toute la bibliothèque, puis ouvrez son aperçu pour la modifier.',
-                  actions: [
-                    StudioButton(
-                      label: 'Actualiser',
-                      secondary: true,
-                      onPressed: catalog.loading
-                          ? null
-                          : () => catalog.search(catalog.query),
-                    ),
-                  ],
-                ),
-                if (widget.mapWorkspaceBuilder == null ||
-                    navigationNotice != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: StudioNotice(
-                      navigationNotice ??
-                          (widget.session.storage ==
-                                  ProjectSessionStorage.portableCatalog
-                              ? 'L’édition des cartes n’est pas disponible pour ce projet publié. Vous pouvez consulter sa bibliothèque.'
-                              : 'L’édition des cartes n’est pas encore disponible pour ce projet. Vous pouvez consulter et modifier les informations de ses ressources.'),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: LayoutBuilder(
-                    builder: (context, bounds) {
-                      final fields = [
-                        StudioDraftField(
-                          key: const ValueKey('working-catalog-search'),
-                          label: 'Rechercher dans la bibliothèque',
-                          value: catalog.query,
-                          onChanged: (value) => catalog.search(value),
-                        ),
-                        StudioSelect(
-                          label: 'Type de ressource',
-                          value: catalog.kind,
-                          options: const {
-                            'element': 'Décors',
-                            'model3d': 'Modèles 3D',
-                            'tileset': 'Images et tuiles',
-                            'smartTilePreset': 'Terrains',
-                            'borderBlueprint': 'Bordures',
-                            'environmentPreset': 'Environnements',
-                            'character': 'Personnages',
-                          },
-                          onChanged: (value) =>
-                              catalog.search(catalog.query, kind: value),
-                        ),
-                        StudioSelect(
-                          label: 'Contexte recherché',
-                          value: catalog.placementContext,
-                          options: const {
-                            '': 'Tous les contextes',
-                            'interior': 'Intérieur',
-                            'exterior': 'Extérieur',
-                            'both': 'Intérieur et extérieur',
-                          },
-                          onChanged: (value) =>
-                              catalog.search(catalog.query, context: value),
-                        ),
-                      ];
-                      if (bounds.maxWidth < 700) {
-                        return Column(
-                          children: [
-                            for (final field in fields)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: field,
-                              ),
-                          ],
-                        );
-                      }
-                      return Row(
-                        children: [
-                          for (
-                            var index = 0;
-                            index < fields.length;
-                            index++
-                          ) ...[
-                            if (index > 0) const SizedBox(width: 12),
-                            Expanded(
-                              flex: index == 0 ? 2 : 1,
-                              child: fields[index],
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                if (catalog.error != null)
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: StudioNotice(catalog.error!),
-                  ),
-                if (saved != null)
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Text(saved!),
-                  ),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, bounds) => bounds.maxWidth >= 850
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(child: list()),
-                              const SizedBox(width: 12),
-                              SizedBox(width: 380, child: detail()),
-                            ],
-                          )
-                        : ListView(
-                            children: [
-                              SizedBox(height: 300, child: list()),
-                              detail(),
-                            ],
-                          ),
-                  ),
-                ),
-              ],
-            ),
+          : libraryContent(),
     );
   }
+
+  Widget libraryContent() => Column(
+    children: [
+      StudioPageHeader(
+        title: 'Bibliothèque du projet',
+        description:
+            widget.session.storage == ProjectSessionStorage.portableCatalog
+            ? 'Recherchez une ressource dans toute la bibliothèque et consultez son aperçu.'
+            : 'Recherchez une ressource dans toute la bibliothèque, puis ouvrez son aperçu pour la modifier.',
+        actions: [
+          if (widget.onOpenTools != null)
+            StudioButton(
+              label: 'Créer et importer',
+              onPressed: catalog.saving || synchronizing
+                  ? null
+                  : widget.onOpenTools,
+            ),
+          StudioButton(
+            label: 'Actualiser',
+            secondary: true,
+            onPressed: catalog.loading
+                ? null
+                : () => catalog.search(catalog.query),
+          ),
+        ],
+      ),
+      if (!widget.embedded || navigationNotice != null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: StudioNotice(
+            navigationNotice ??
+                (widget.session.storage == ProjectSessionStorage.portableCatalog
+                    ? 'L’édition des cartes n’est pas disponible pour ce projet publié. Vous pouvez consulter sa bibliothèque.'
+                    : 'L’édition des cartes n’est pas encore disponible pour ce projet. Vous pouvez consulter et modifier les informations de ses ressources.'),
+          ),
+        ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: LayoutBuilder(
+          builder: (context, bounds) {
+            final fields = [
+              StudioDraftField(
+                key: const ValueKey('working-catalog-search'),
+                label: 'Rechercher dans la bibliothèque',
+                value: catalog.query,
+                onChanged: (value) => catalog.search(value),
+              ),
+              StudioSelect(
+                label: 'Type de ressource',
+                value: catalog.kind,
+                options: const {
+                  'element': 'Décors',
+                  'model3d': 'Modèles 3D',
+                  'tileset': 'Images et tuiles',
+                  'smartTilePreset': 'Terrains',
+                  'borderBlueprint': 'Bordures',
+                  'environmentPreset': 'Environnements',
+                  'character': 'Personnages',
+                },
+                onChanged: (value) =>
+                    catalog.search(catalog.query, kind: value),
+              ),
+              StudioSelect(
+                label: 'Contexte recherché',
+                value: catalog.placementContext,
+                options: const {
+                  '': 'Tous les contextes',
+                  'interior': 'Intérieur',
+                  'exterior': 'Extérieur',
+                  'both': 'Intérieur et extérieur',
+                },
+                onChanged: (value) =>
+                    catalog.search(catalog.query, context: value),
+              ),
+            ];
+            if (bounds.maxWidth < 700) {
+              return Column(
+                children: [
+                  for (final field in fields)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: field,
+                    ),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                for (var index = 0; index < fields.length; index++) ...[
+                  if (index > 0) const SizedBox(width: 12),
+                  Expanded(flex: index == 0 ? 2 : 1, child: fields[index]),
+                ],
+              ],
+            );
+          },
+        ),
+      ),
+      if (catalog.error != null)
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: StudioNotice(catalog.error!),
+        ),
+      if (saved != null)
+        Padding(padding: const EdgeInsets.all(8), child: Text(saved!)),
+      Expanded(
+        child: LayoutBuilder(
+          builder: (context, bounds) => bounds.maxWidth >= 850
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: list()),
+                    const SizedBox(width: 12),
+                    SizedBox(width: 380, child: detail()),
+                  ],
+                )
+              : ListView(
+                  children: [
+                    SizedBox(height: 300, child: list()),
+                    detail(),
+                  ],
+                ),
+        ),
+      ),
+    ],
+  );
 
   Widget list() => Column(
     children: [

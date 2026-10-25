@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+
 import '../../../features/resources/application/resource_pack_transfer_controller.dart';
 import '../../../features/resources/domain/resource_pack_port.dart';
+
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/decors/application/decor_draft.dart';
@@ -77,10 +79,14 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   late final ResourcePackTransferController? packTransfer;
   void _packChanged() {
     final transfer = packTransfer!;
-    if (transfer.pendingReceipt != null) pendingReceipt = transfer.pendingReceipt;
+    if (transfer.pendingReceipt != null) {
+      pendingReceipt = transfer.pendingReceipt;
+    }
     changed();
   }
+
   bool _disposed = false;
+  int _libraryLoadRequest = 0;
   bool get isDisposed => _disposed;
   int _managementDialogs = 0;
   void changed() {
@@ -131,7 +137,11 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   final environments = <String, EnvironmentDraft>{};
   Future<void> Function(EnvironmentPreset)? drawEnvironment;
   bool _ordinaryBusy = false;
-  bool get busy => _ordinaryBusy || packTransfer?.operationActive == true || packTransfer?.requiresReconciliation == true || packTransfer?.requiresRecovery == true;
+  bool get busy =>
+      _ordinaryBusy ||
+      packTransfer?.operationActive == true ||
+      packTransfer?.requiresReconciliation == true ||
+      packTransfer?.requiresRecovery == true;
   set busy(bool value) => _ordinaryBusy = value;
   String? modelRemovalProblem(String modelId) {
     final owners = workspace.documents.values.where(
@@ -167,10 +177,44 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     notifyListeners();
   }
 
-  void openCharacters([String? characterId]) {
-    if (characterId != null) characters.select(characterId);
-    page = ResourcePage.characters;
-    notifyListeners();
+  Future<bool> loadFamily(ResourceLibraryFamily family) async {
+    if (_disposed || workspace.isDisposed) return false;
+    final request = ++_libraryLoadRequest;
+    try {
+      await workspace.ensureResourceKind(family.canonicalKind);
+      if (_disposed || workspace.isDisposed || request != _libraryLoadRequest) {
+        return false;
+      }
+      error = null;
+      changed();
+      return true;
+    } catch (failure) {
+      if (!_disposed && request == _libraryLoadRequest) {
+        error = 'Cette famille ne peut pas être chargée : $failure';
+        changed();
+      }
+      return false;
+    }
+  }
+
+  Future<void> openCharacters([String? characterId]) async {
+    if (_disposed || workspace.isDisposed) return;
+    final request = ++_libraryLoadRequest;
+    try {
+      await workspace.ensureResourceKind('character');
+      if (_disposed || workspace.isDisposed || request != _libraryLoadRequest) {
+        return;
+      }
+      if (characterId != null) characters.select(characterId);
+      page = ResourcePage.characters;
+      error = null;
+      changed();
+    } catch (failure) {
+      if (!_disposed && request == _libraryLoadRequest) {
+        error = 'Les personnages ne peuvent pas être chargés : $failure';
+        changed();
+      }
+    }
   }
 
   void openBorders() {

@@ -39,7 +39,9 @@ void main() {
         isEmpty);
   });
 
-  test('initialization retries an unpublished matching generation', () async {
+  test(
+      'initialization retries a matching generation and prepares local indexes',
+      () async {
     final directory = await Directory.systemTemp.createTemp('working-retry-');
     addTearDown(() => directory.delete(recursive: true));
     final store = await CatalogStorageStore.open(projectRoot: directory.path);
@@ -49,7 +51,12 @@ void main() {
     await store.publish(build.storage, expectedRootRevision: null);
     final reopened = await WorkingProjectCatalog.create(
         store: store, projectId: 'game', project: project);
-    expect(reopened.root, build.storage.root);
+    expect(reopened.root, isNot(build.storage.root));
+    expect((await reopened.exportProject()).toJson(), project.toJson());
+    final marker = await reopened.lookup(CatalogDefinitionKey(
+        CatalogDefinitionKind.workspaceState,
+        jsonEncode(['metadataField', 'facts'])));
+    expect(marker!.payload['valid'], isTrue);
     expect(await File('${directory.path}/project.json').exists(), isTrue);
   });
   test('working reads write nothing and unit edits keep descriptor static',

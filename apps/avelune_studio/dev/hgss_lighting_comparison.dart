@@ -15,6 +15,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_atmospher
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
 import 'atmosphere_comparison_support.dart';
+import 'presentation_comparison_controls.dart';
 import 'save_disk_trace.dart';
 import 'marionette_main.dart' show applyStudioCaptureLifecycle;
 
@@ -25,6 +26,7 @@ String comparisonPlanRelativePath(String filename) => switch (filename) {
     'evidence/actor-contact-shadows/$filename',
   'comparison-day-night-plan.json' => 'evidence/day-night/$filename',
   'comparison-atmosphere-plan.json' => 'evidence/atmosphere/$filename',
+  'comparison-presentation-plan.json' => 'evidence/presentation/$filename',
   'comparison-lamp-shadows-plan.json' => 'evidence/lamp-shadows/$filename',
   _ => throw StateError('Unsupported comparison plan.'),
 };
@@ -59,11 +61,13 @@ Future<Map<String, dynamic>> loadComparisonPlan(
   final mode = switch (filename) {
     'comparison-day-night-plan.json' => 'dayNightTest',
     'comparison-atmosphere-plan.json' => 'atmosphereTest',
+    'comparison-presentation-plan.json' => 'presentationTest',
     'comparison-lamp-shadows-plan.json' => 'pointLightShadowTest',
     'comparison-contact-shadows-plan.json' => 'actorContactShadowTest',
     _ => null,
   };
   final modes = [
+    'presentationTest',
     'atmosphereTest',
     'dayNightTest',
     'pointLightShadowTest',
@@ -74,7 +78,8 @@ Future<Map<String, dynamic>> loadComparisonPlan(
       (mode != null && plan.containsKey('shadowCasterInstanceIds'))) {
     throw StateError('Comparison plan mixes rendering modes.');
   }
-  if ((plan['atmosphereTest'] == true ||
+  if ((plan['presentationTest'] == true ||
+          plan['atmosphereTest'] == true ||
           plan['pointLightShadowTest'] == true ||
           plan['dayNightTest'] == true ||
           plan['actorContactShadowTest'] == true) &&
@@ -148,13 +153,15 @@ void setComparisonLightingPhase({
 
 Widget comparisonLightingSurface({
   required bool dayNightTest,
+  bool presentationTest = false,
   bool atmosphereTest = false,
   bool pointLightShadowTest = false,
   bool actorContactShadowTest = false,
   required ValueNotifier<SpatialLightingProfile> lighting,
   required Widget child,
 }) =>
-    atmosphereTest ||
+    presentationTest ||
+        atmosphereTest ||
         dayNightTest ||
         pointLightShadowTest ||
         actorContactShadowTest
@@ -230,17 +237,42 @@ Future<void> main() async {
     characterId: bundle.manifest.settings.defaultPlayerCharacterId,
   );
   final comparison = LightingComparison(root, plan, session);
+  if (comparison.presentationTest) {
+    comparison.camera.applyAtmosphereSettings(bundle.spatialAtmosphereSettings);
+    final raw = plan['presentationProfile'] as Map<String, dynamic>;
+    comparison.camera.presentationProfile = SpatialPresentationProfile(
+      fogStart: (raw['fogStart'] as num).toDouble(),
+      fogEnd: (raw['fogEnd'] as num).toDouble(),
+      fogOpacity: (raw['fogOpacity'] as num).toDouble(),
+      halos: [
+        for (final source in raw['halos'] as List<dynamic>)
+          SpatialHaloSource(
+            position: Model3dVector3.fromJson(
+              Map<String, dynamic>.from(source['position'] as Map),
+            ),
+            radiusX: (source['radiusX'] as num).toDouble(),
+            radiusY: (source['radiusY'] as num).toDouble(),
+            opacity: (source['opacity'] as num).toDouble(),
+            window: source['window'] == true,
+          ),
+      ],
+    );
+    comparison.camera.previewMinuteOfDay = (plan['previewMinuteOfDay'] as num)
+        .toDouble();
+  }
   final trace = SaveDiskTrace(project);
   final toggleProbe = AtmosphereToggleProbe(
     comparison.camera,
     trace,
     counters: () => comparison.loadCounters,
   );
-  if (comparison.atmosphereTest) {
-    comparison.camera.atmosphereProfile = comparisonAtmosphereProfile(
-      plan['atmosphereProfile'] as Map<String, dynamic>,
-    );
-    comparison.camera.previewMinuteOfDay = 1320;
+  if (comparison.atmosphereTest || comparison.presentationTest) {
+    if (comparison.atmosphereTest) {
+      comparison.camera.atmosphereProfile = comparisonAtmosphereProfile(
+        plan['atmosphereProfile'] as Map<String, dynamic>,
+      );
+      comparison.camera.previewMinuteOfDay = 1320;
+    }
     registerMarionetteExtension(
       name: 'avelune.atmospherePreview',
       description: 'Inspects the test copy and times real atmosphere controls.',
@@ -251,6 +283,10 @@ Future<void> main() async {
           'state': toggleProbe.state,
           'measurement': toggleProbe.result,
           'loads': comparison.loadCounters,
+          'halos': comparison.camera.halosEnabled,
+          'fog': comparison.camera.depthFogEnabled,
+          'haloCount': comparison.camera.haloCount,
+          'haloAllocations': comparison.camera.haloAllocations,
         });
       },
     );
@@ -318,12 +354,14 @@ final class LightingComparison {
       ? session.presentationSeconds
       : idleClock.elapsedMicroseconds / 1000000;
   late final bool atmosphereTest = plan['atmosphereTest'] == true;
+  late final bool presentationTest = plan['presentationTest'] == true;
   late final bool dayNightTest = plan['dayNightTest'] == true;
   late final bool pointLightShadowTest = plan['pointLightShadowTest'] == true;
   late final bool actorContactShadowTest =
       plan['actorContactShadowTest'] == true;
   bool contactShadowsAfter = false;
   bool get usesAuthoredLighting =>
+      presentationTest ||
       atmosphereTest ||
       dayNightTest ||
       pointLightShadowTest ||
@@ -365,6 +403,13 @@ final class LightingComparison {
     bool probeOnly = false,
     int frameIndex = 0,
   }) {
+    if (presentationTest) {
+      camera.halosEnabled = after;
+      camera.depthFogEnabled = after;
+      camera.previewMinuteOfDay = (plan['previewMinuteOfDay'] as num)
+          .toDouble();
+      return;
+    }
     contactShadowsAfter = after;
     setComparisonLightingPhase(
       atmosphereTest: atmosphereTest,
@@ -468,6 +513,11 @@ final class LightingComparison {
     'shadowCasterInstanceIds': plan['shadowCasterInstanceIds'] ?? [],
     'shadowStats': shadowStats,
     'atmosphereTest': atmosphereTest,
+    'presentationTest': presentationTest,
+    'halosEnabled': camera.halosEnabled,
+    'depthFogEnabled': camera.depthFogEnabled,
+    'haloCount': camera.haloCount,
+    'haloAllocations': camera.haloAllocations,
     'dayNightTest': dayNightTest,
     'pointLightShadowTest': pointLightShadowTest,
     'actorContactShadowTest': actorContactShadowTest,
@@ -627,7 +677,9 @@ final class LightingComparison {
       if (!ready) throw StateError('Native scene is not ready.');
       verifySession();
       final take = Directory(
-        '$root/evidence/${atmosphereTest
+        '$root/evidence/${presentationTest
+            ? 'presentation/native'
+            : atmosphereTest
             ? 'atmosphere/native'
             : actorContactShadowTest
             ? 'actor-contact-shadows/native'
@@ -675,8 +727,12 @@ final class LightingComparison {
           frames.add({
             'frame': 0,
             'tick': tick,
-            'beforeMinuteOfDay': beforeMinuteOfDay,
-            'afterMinuteOfDay': 1320,
+            'beforeMinuteOfDay': presentationTest
+                ? camera.previewMinuteOfDay
+                : beforeMinuteOfDay,
+            'afterMinuteOfDay': presentationTest
+                ? camera.previewMinuteOfDay
+                : 1320,
             'shadowStats': roundTripAfterShadowStats,
             'beforeShadowStats': roundTripBeforeShadowStats,
             if (pointLightShadowTest) 'beforePointLightShadowsEnabled': false,
@@ -770,9 +826,18 @@ final class LightingComparison {
               if (actorContactShadowTest)
                 'roundTripAfterContactShadowCount':
                     roundTripAfterContactShadowCount,
-              if (usesAuthoredLighting) 'beforeMinuteOfDay': beforeMinuteOfDay,
-              if (usesAuthoredLighting && probeOnly) 'afterMinuteOfDay': 1320,
-              if (usesAuthoredLighting) 'roundTripAfterMinuteOfDay': 1320,
+              if (usesAuthoredLighting)
+                'beforeMinuteOfDay': presentationTest
+                    ? camera.previewMinuteOfDay
+                    : beforeMinuteOfDay,
+              if (usesAuthoredLighting && probeOnly)
+                'afterMinuteOfDay': presentationTest
+                    ? camera.previewMinuteOfDay
+                    : 1320,
+              if (usesAuthoredLighting)
+                'roundTripAfterMinuteOfDay': presentationTest
+                    ? camera.previewMinuteOfDay
+                    : 1320,
               if (usesAuthoredLighting)
                 'roundTripBeforeShadowStats': roundTripBeforeShadowStats,
               if (usesAuthoredLighting)
@@ -805,6 +870,8 @@ class ComparisonSurface extends StatelessWidget {
     return Scaffold(
       body: Column(
         children: [
+          if (capture.presentationTest)
+            PresentationComparisonControls(controller: capture.camera),
           if (capture.atmosphereTest)
             SizedBox(
               width: 960,
@@ -823,6 +890,7 @@ class ComparisonSurface extends StatelessWidget {
                       dayNightTest: capture.dayNightTest,
                       pointLightShadowTest: capture.pointLightShadowTest,
                       actorContactShadowTest: capture.actorContactShadowTest,
+                      presentationTest: capture.presentationTest,
                       lighting: capture.lighting,
                       child: SpatialSceneView(
                         scene: capture.scene,

@@ -97,6 +97,10 @@ final class PokemonDocumentTransaction {
       policy: policy,
       fileReader: reader,
       handles: handles,
+      catalogMetadataFields:
+          session.storage == ProjectSessionStorage.workingCatalog
+          ? const {}
+          : null,
     ).openProject(session.directoryPath);
     final snapshots = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(
@@ -111,10 +115,20 @@ final class PokemonDocumentTransaction {
         projectHandle: opened.projectHandle,
       );
       attached = true;
-      final snapshot = await snapshots.load(
-        opened.projectHandle,
-        policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-      );
+      final snapshot = session.storage == ProjectSessionStorage.workingCatalog
+          ? await api.readWorkshopSnapshot(
+              opened.projectHandle,
+              actionId: 'pokemon.documents.write',
+              parameters: {'documents': writes},
+              readDependencies: {
+                for (final dependency in expectedDependencies)
+                  dependency.resourceIdentity: dependency.relativePath,
+              },
+            )
+          : await snapshots.load(
+              opened.projectHandle,
+              policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+            );
       for (final dependency in expectedDependencies) {
         if (snapshot.resourceStorageKeys[dependency.resourceIdentity] !=
                 dependency.relativePath ||
@@ -136,6 +150,15 @@ final class PokemonDocumentTransaction {
           requestId: operation,
           actionId: 'pokemon.documents.write',
           actionVersion: 1,
+          extensions: session.storage == ProjectSessionStorage.workingCatalog
+              ? {
+                  'workshopScope': true,
+                  'workshopReadDependencies': {
+                    for (final dependency in expectedDependencies)
+                      dependency.resourceIdentity: dependency.relativePath,
+                  },
+                }
+              : const {},
           workspaceHandle: opened.workspaceHandle.value,
           expectedRevision: snapshot.revision,
           idempotencyKey: operation,

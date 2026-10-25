@@ -57,13 +57,14 @@ AuthoringMutationDraft narrativeProjectDraft(
       snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
   final mediaCatalog =
       mediaBytes == null ? null : decodeProjectMediaCatalogBytes(mediaBytes);
-  final beforeInspection = inspector.inspect(
+  final scoped = snapshot.availableProjectSections != null;
+  final beforeInspection = scoped ? null : inspector.inspect(
     project: snapshot.manifest,
     presentationMediaCatalog: mediaCatalog,
     maps: snapshot.maps,
     itemCatalog: snapshot.itemCatalog,
   );
-  final afterInspection = inspector.inspect(
+  final afterInspection = scoped ? null : inspector.inspect(
     project: projected,
     presentationMediaCatalog: mediaCatalog,
     maps: snapshot.maps,
@@ -98,12 +99,20 @@ AuthoringMutationDraft narrativeProjectDraft(
     preview: {
       'operation': operation,
       'path': path,
-      if (includeInspectionPreview) ...afterInspection.toJson(),
+      if (includeInspectionPreview && afterInspection != null)
+        ...afterInspection.toJson(),
       ...preview,
-      'diagnosticDelta': modernNarrativeDiagnosticDelta(
-        before: beforeInspection.diagnostics,
-        after: afterInspection.diagnostics,
-      ),
+      if (scoped)
+        'inspectionScope': {
+          'projectWide': false,
+          'sections': snapshot.availableProjectSections!.toList()..sort(),
+          'fullInspection': 'explicit',
+        }
+      else
+        'diagnosticDelta': modernNarrativeDiagnosticDelta(
+          before: beforeInspection!.diagnostics,
+          after: afterInspection!.diagnostics,
+        ),
     },
   );
 }

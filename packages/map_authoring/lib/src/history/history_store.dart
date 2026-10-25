@@ -60,6 +60,21 @@ abstract interface class AuthoringHistoryStore {
   });
 }
 
+abstract interface class AuthoringLocalHistoryReader {
+  Future<AuthoringHistoryEntry?> latestLocalEntry({required String projectId});
+  Future<AuthoringHistoryEntry?> getLocalEntry(
+      {required String projectId, required String entryId});
+}
+
+Future<AuthoringHistoryEntry?> readAuthoringHistoryHead(
+    AuthoringHistoryStore store, String projectId) async {
+  if (store is AuthoringLocalHistoryReader) {
+    return (store as AuthoringLocalHistoryReader)
+        .latestLocalEntry(projectId: projectId);
+  }
+  return (await store.list(projectId: projectId, limit: 1)).entries.firstOrNull;
+}
+
 /// Idempotent transaction commit hook that retains bytes before history entry.
 final class AuthoringHistoryRecorder
     implements
@@ -163,8 +178,13 @@ final class AuthoringHistoryRecorder
     );
     final expectedHead = context.expectedHeadEntryId;
     if (expectedHead == null) return;
-    final page = await _store.list(projectId: scope.projectId, limit: 1);
-    if (page.entries.isEmpty || page.entries.single.entryId != expectedHead) {
+    final head = await readAuthoringHistoryHead(_store, scope.projectId);
+    if (head?.entryId == intendedReceipt.receiptId &&
+        canonicalAuthoringJson(head!.receipt.toJson()) ==
+            canonicalAuthoringJson(intendedReceipt.toJson())) {
+      return;
+    }
+    if (head?.entryId != expectedHead) {
       final isRedo = context.kind == AuthoringHistoryKind.redo;
       throw AuthoringHistoryException(
         isRedo ? 'history.redo_branch_diverged' : 'history.head_stale',

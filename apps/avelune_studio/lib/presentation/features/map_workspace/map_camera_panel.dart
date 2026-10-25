@@ -5,6 +5,7 @@ import 'package:map_core/map_core_domain.dart' hide SpatialMapOperations;
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
+import '../../shared/widgets/layout/studio_section.dart';
 
 class MapCameraPanel extends StatelessWidget {
   const MapCameraPanel({
@@ -45,7 +46,7 @@ class MapCameraPanel extends StatelessWidget {
       padding: const EdgeInsets.only(top: 8),
       child: StudioCommitField(
         label: label,
-        value: '$value',
+        value: value.toStringAsFixed(2),
         tryCommit: (text) {
           final number = double.tryParse(text.trim().replaceAll(',', '.'));
           if (number == null || !number.isFinite) {
@@ -58,11 +59,11 @@ class MapCameraPanel extends StatelessWidget {
       ),
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return StudioSection(
+      title: 'Caméra du jeu',
+      collapsible: true,
+      initiallyExpanded: false,
       children: [
-        Text('Caméra du jeu', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
         for (final projection in SpatialCameraProjection.values)
           StudioChoice(
             label: projection == SpatialCameraProjection.perspective

@@ -144,7 +144,14 @@ List<MapContextTarget> mapContextTargetsAt(
           label: trigger.name.isEmpty ? 'Zone d’histoire' : trigger.name,
           kindLabel: 'Zone d’histoire',
         ),
-  ];
+  ].where((target) => !document.isElementLocked(switch (target.family) {
+    MapContextFamily.decor => map.spatialScene?.instances.any((item) => item.id == target.id) == true ? 'model' : 'decor',
+    MapContextFamily.character || MapContextFamily.marker => 'entity',
+    MapContextFamily.warp => 'warp',
+    MapContextFamily.zone => 'zone',
+    MapContextFamily.trigger => 'trigger',
+    MapContextFamily.cell => 'layer',
+  }, target.id)).toList();
 }
 
 typedef MapContextPlacement = ({MapContextTarget target, GridPos at});

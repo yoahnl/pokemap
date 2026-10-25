@@ -12,9 +12,13 @@ import 'spatial_shadow_profile.dart';
 import 'spatial_shadow_map.dart';
 import 'spatial_point_shadow.dart';
 import 'spatial_atmosphere.dart';
+import 'spatial_presentation_effects.dart';
 
 class SpatialRenderContext extends RenderContext3D
-    implements SpatialLightingContext, SpatialAtmosphereContext {
+    implements
+        SpatialLightingContext,
+        SpatialAtmosphereContext,
+        SpatialPresentationContext {
   SpatialRenderContext(super.device);
 
   @override
@@ -35,6 +39,13 @@ class SpatialRenderContext extends RenderContext3D
   @override
   double atmosphereNight = 0;
   bool pointLightShadowsEnabled = true;
+  @override
+  SpatialPresentationProfile presentationProfile =
+      SpatialPresentationProfile.disabled;
+  @override
+  bool depthFogEnabled = false;
+  @override
+  Color depthFogColor = spatialDepthFogColor(0);
   Iterable<Object3D> pointShadowCasters = const [];
   String? sourceInstanceId;
   String? sourceShadowId;

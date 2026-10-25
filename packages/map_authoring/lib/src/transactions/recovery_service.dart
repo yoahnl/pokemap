@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../contracts/authoring_receipt.dart';
+import '../contracts/resource_ref.dart';
 import '../history/authoring_history.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
@@ -52,6 +53,42 @@ final class AuthoringRecoveryException implements Exception {
 
   @override
   String toString() => 'AuthoringRecoveryException($code): $message';
+}
+
+final class AuthoringIncompletePreparationDiscardResult {
+  const AuthoringIncompletePreparationDiscardResult.alreadyAbsent({
+    required this.operationId,
+  })  : discarded = false,
+        intendedReceiptId = null,
+        scope = null,
+        unchangedRevisions = null;
+
+  const AuthoringIncompletePreparationDiscardResult._({
+    required this.operationId,
+    required this.discarded,
+    this.intendedReceiptId,
+    this.scope,
+    this.unchangedRevisions,
+  });
+
+  final String operationId;
+  final bool discarded;
+  final String? intendedReceiptId;
+  final AuthoringIdempotencyScope? scope;
+  final AuthoringRevisionSet? unchangedRevisions;
+
+  Map<String, Object?> toJson() => {
+        'operationId': operationId,
+        'disposition':
+            discarded ? 'discardedIncompletePreparation' : 'alreadyAbsent',
+        'committed': false,
+        'recoverable': false,
+        'finalized': true,
+        'projectDataChanged': false,
+        if (intendedReceiptId != null) 'intendedReceiptId': intendedReceiptId,
+        if (unchangedRevisions != null)
+          'unchangedRevisions': unchangedRevisions!.toJson(),
+      };
 }
 
 /// Inspects, resumes, or compensates a durable transaction without guessing.
@@ -335,6 +372,115 @@ final class AuthoringRecoveryService {
       return true;
     });
   }
+
+  Future<AuthoringIncompletePreparationDiscardResult>
+      discardIncompletePreparation(
+    String operationId, {
+    required String expectedActorId,
+    required String expectedProjectId,
+    FutureOr<void> Function()? precondition,
+  }) =>
+          _gateway.withExclusiveWriteLock(() async {
+            _requireMutationAllowed();
+            await precondition?.call();
+            final journal = await _gateway.readJournal(operationId);
+            if (journal == null) {
+              return AuthoringIncompletePreparationDiscardResult.alreadyAbsent(
+                operationId: operationId,
+              );
+            }
+            await _requireIncompletePreparation(
+              journal,
+              expectedActorId: expectedActorId,
+              expectedProjectId: expectedProjectId,
+            );
+            final revisions = await _currentRevisionSet(journal);
+            await _mutate(() async {
+              final latest = await _requireJournal(operationId);
+              if (canonicalAuthoringJson(latest.toJson()) !=
+                  canonicalAuthoringJson(journal.toJson())) {
+                throw const AuthoringRecoveryException(
+                  'recovery.revision_conflict',
+                  'The preparation changed during recovery.',
+                );
+              }
+              await _requireIncompletePreparation(
+                latest,
+                expectedActorId: expectedActorId,
+                expectedProjectId: expectedProjectId,
+              );
+              final current = await _currentRevisionSet(journal);
+              if (revisions.fingerprint != current.fingerprint) {
+                throw const AuthoringRecoveryException(
+                  'recovery.revision_conflict',
+                  'A preparation resource changed during recovery.',
+                );
+              }
+              await _gateway.deleteTransaction(operationId);
+            });
+            return AuthoringIncompletePreparationDiscardResult._(
+              operationId: operationId,
+              discarded: true,
+              intendedReceiptId: journal.intendedReceipt.receiptId,
+              scope: journal.scope,
+              unchangedRevisions: revisions,
+            );
+          });
+
+  Future<void> _requireIncompletePreparation(
+    AuthoringTransactionJournal journal, {
+    required String expectedActorId,
+    required String expectedProjectId,
+  }) async {
+    if (journal.scope.actorId != expectedActorId ||
+        journal.scope.projectId != expectedProjectId) {
+      throw const AuthoringRecoveryException(
+        'recovery.scope_mismatch',
+        'The preparation does not belong to the expected actor and project.',
+      );
+    }
+    if (journal.status != AuthoringTransactionStatus.preparing ||
+        journal.finalReceipt != null ||
+        journal.entries.any((entry) => entry.promoted || entry.compensated) ||
+        await _idempotency.recordForRecovery(journal.scope) != null) {
+      throw const AuthoringRecoveryException(
+        'recovery.incomplete_preparation_required',
+        'Only an incomplete unreserved preparation may be discarded.',
+      );
+    }
+    final gateway = _gateway;
+    if (gateway is! TransactionStagedArtifactProbe) {
+      throw const AuthoringRecoveryException(
+        'recovery.artifact_probe_unavailable',
+        'The transaction gateway cannot verify incomplete preparation artifacts.',
+      );
+    }
+    if (await (gateway as TransactionStagedArtifactProbe).hasStagedArtifacts(
+      operationId: journal.operationId,
+      kind: TransactionPayloadKind.after,
+      storageKeys: journal.entries.map((entry) => entry.storageKey),
+    )) {
+      throw const AuthoringRecoveryException(
+        'recovery.incomplete_preparation_required',
+        'A preparation containing an after artifact cannot be discarded.',
+      );
+    }
+  }
+
+  Future<AuthoringRevisionSet> _currentRevisionSet(
+    AuthoringTransactionJournal journal,
+  ) async =>
+      AuthoringRevisionSet([
+        for (final entry in journal.entries)
+          AuthoringResourceRevision(
+            resource: AuthoringResourceRef(
+              kind: entry.resource.kind,
+              id: entry.resource.id,
+              extensions: entry.resource.extensions,
+            ),
+            revision: await _gateway.readResourceRevision(entry.storageKey),
+          ),
+      ]);
 
   void _requireMutationAllowed() {
     _mutationGuard?.call();

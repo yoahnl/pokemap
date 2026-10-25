@@ -79,8 +79,14 @@ export 'src/transactions/local_authoring_payload.dart';
 export 'src/api/local_resource_pack_transfer_api.dart';
 
 export 'src/workspace/catalog_project_materialization.dart';
-export 'src/workspace/catalog/catalog_targeted_map_edit.dart' show CatalogTargetedMapSelection;
+export 'src/workspace/catalog/catalog_targeted_map_edit.dart'
+    show CatalogTargetedMapSelection;
 
 export 'src/documents/character_contact_shadow_authoring.dart';
 
 export 'src/documents/map_atmosphere_authoring.dart';
+export 'src/documents/map_editor_authoring.dart';
+export 'src/documents/map_element_order_authoring.dart';
+
+export 'src/support/map_authoring_worker_trace.dart'
+    show MapAuthoringWorkerDiagnostics;

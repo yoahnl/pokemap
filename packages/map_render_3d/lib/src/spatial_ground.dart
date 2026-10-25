@@ -155,7 +155,44 @@ final class SpatialGroundPlan {
   final _visualExclusions = <SmartTileLayerVisual, Set<(int, int)>>{};
   final imageIds = <String>{};
   bool animated = false;
+  int? _animationLookaheadMs;
+  int get animationLookaheadMs => _animationLookaheadMs ?? 0;
+  Set<String>? _staticImageIds;
   List<SpatialGroundVisual>? _static;
+  List<List<SmartTileLayerVisual>>? _resolvedLayers;
+  List<SpatialGroundVisual>? _resolvedVisuals;
+  final _imageWindows =
+      <({List<List<SmartTileLayerVisual>> layers, Set<String> images})>[];
+
+  bool _sameLayers(
+    List<List<SmartTileLayerVisual>> a,
+    List<List<SmartTileLayerVisual>> b,
+  ) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (!identical(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  List<List<SmartTileLayerVisual>> _layerVisuals(
+    int elapsedMs,
+    int Function(String, int, int, int)? clock,
+  ) => [
+    for (final group in _flatPlans)
+      group.plan.resolveBatch(elapsedMs: elapsedMs).visuals,
+    for (var index = 0; index < _plans.length; index++)
+      _plans[index]
+          .resolveBatch(
+            elapsedMs: elapsedMs,
+            animationElapsedMsForCell: clock == null
+                ? null
+                : ({required cellX, required cellY, required elapsedMs}) =>
+                      clock(_layerIds[index], cellX, cellY, elapsedMs),
+          )
+          .visuals,
+  ];
+
   late final Set<(int, int)>? paintedCells = paintedCellsFor(resolve(0));
 
   Set<(int, int)>? paintedCellsFor(List<SpatialGroundVisual> visuals) =>
@@ -371,6 +408,11 @@ final class SpatialGroundPlan {
             'Animation de terrain absente : ${source.animationId}',
           );
         for (final frame in animation.frames) {
+          if (frame.durationMs > 0 &&
+              (_animationLookaheadMs == null ||
+                  frame.durationMs < _animationLookaheadMs!)) {
+            _animationLookaheadMs = frame.durationMs;
+          }
           _addFrame(frame.frame, catalog);
         }
       },
@@ -386,18 +428,45 @@ final class SpatialGroundPlan {
     imageIds.add(atlas.tilesetId);
   }
 
+  Set<String> imageIdsAt(
+    int elapsedMs, {
+    int Function(String layerId, int cellX, int cellY, int elapsedMs)?
+    animationElapsedMsForCell,
+  }) {
+    if (!animated && _staticImageIds != null) return _staticImageIds!;
+    final layers = _layerVisuals(elapsedMs, animationElapsedMsForCell);
+    for (final window in _imageWindows) {
+      if (_sameLayers(window.layers, layers)) return window.images;
+    }
+    final images = Set<String>.unmodifiable({
+      if (cliff case final frame?) frame.tilesetId,
+      for (final batch in layers)
+        for (final visual in batch) visual.tilesetId,
+    });
+    if (!animated) _staticImageIds = images;
+    if (_imageWindows.length == 2) _imageWindows.removeAt(0);
+    _imageWindows.add((layers: layers, images: images));
+    return images;
+  }
+
   List<SpatialGroundVisual> resolve(
     int elapsedMs, {
     int Function(String layerId, int cellX, int cellY, int elapsedMs)?
     animationElapsedMsForCell,
   }) {
     if (!animated && _static != null) return _static!;
+    final layers = _layerVisuals(elapsedMs, animationElapsedMsForCell);
+    if (_resolvedLayers case final previous?
+        when _sameLayers(previous, layers)) {
+      return _resolvedVisuals!;
+    }
+
     _visualExclusions.clear();
     _flatVisualSurfaces.clear();
     final result = <SpatialGroundVisual>[];
     for (var index = 0; index < _flatPlans.length; index++) {
       final group = _flatPlans[index];
-      final visuals = group.plan.resolveBatch(elapsedMs: elapsedMs).visuals;
+      final visuals = layers[index];
       final ranks = _groundPaintRanks(visuals);
       final maximum = ranks.fold(0, (a, b) => a > b ? a : b);
       for (var part = 0; part < visuals.length; part++) {
@@ -416,15 +485,7 @@ final class SpatialGroundPlan {
       }
     }
     for (var index = 0; index < _plans.length; index++) {
-      final visuals = _plans[index].resolveBatch(
-        elapsedMs: elapsedMs,
-        animationElapsedMsForCell: animationElapsedMsForCell == null
-            ? null
-            : ({required cellX, required cellY, required elapsedMs}) =>
-                animationElapsedMsForCell(
-                  _layerIds[index], cellX, cellY, elapsedMs,
-                ),
-      ).visuals;
+      final visuals = layers[_flatPlans.length + index];
       final ranks = _groundPaintRanks(visuals);
       final maximum = ranks.fold(0, (a, b) => a > b ? a : b);
       for (var part = 0; part < visuals.length; part++) {
@@ -436,6 +497,8 @@ final class SpatialGroundPlan {
         ));
       }
     }
+    _resolvedLayers = layers;
+    _resolvedVisuals = result;
     if (!animated) _static = result;
     return result;
   }
@@ -819,10 +882,12 @@ Future<Texture> loadSpatialGroundTextureFromSource(
   TilesetTransparentColor? transparentColor,
   bool Function()? isCurrent,
   void Function(RuntimeResourceReservation reservation)? onResident,
+  bool prefetch = false,
 }) async {
   final lease = await budget.acquire(
     residentBytes: 8,
     transientBytes: budget.profile.maximumEncodedBytes,
+    prefetch: prefetch,
     isCurrent: isCurrent,
   );
   try {

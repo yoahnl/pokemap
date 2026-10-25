@@ -1,5 +1,7 @@
 library map_core;
 
+export 'src/models/map_editor_state.dart';
+
 export 'src/catalog_storage/project_catalog_selection.dart';
 
 export 'src/models/model3d_ramp_profile.dart';

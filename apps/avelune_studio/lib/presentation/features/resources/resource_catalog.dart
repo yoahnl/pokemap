@@ -19,6 +19,17 @@ enum ResourceLibraryFamily {
   models3d,
 }
 
+extension ResourceLibraryFamilyCanonicalKind on ResourceLibraryFamily {
+  String get canonicalKind => switch (this) {
+    ResourceLibraryFamily.decors => 'element',
+    ResourceLibraryFamily.terrains => 'smartTilePreset',
+    ResourceLibraryFamily.borders => 'borderBlueprint',
+    ResourceLibraryFamily.environments => 'environmentPreset',
+    ResourceLibraryFamily.images => 'tileset',
+    ResourceLibraryFamily.models3d => 'model3d',
+  };
+}
+
 enum ResourceSort { nameAscending, nameDescending }
 
 enum ResourceCatalogScope { all, project, map }

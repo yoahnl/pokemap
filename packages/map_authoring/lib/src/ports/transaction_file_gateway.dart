@@ -38,6 +38,14 @@ abstract interface class StreamingTransactionFileGateway {
   });
 }
 
+abstract interface class TransactionStagedArtifactProbe {
+  Future<bool> hasStagedArtifacts({
+    required String operationId,
+    required TransactionPayloadKind kind,
+    required Iterable<String> storageKeys,
+  });
+}
+
 extension TransactionPayloadGateway on TransactionFileGateway {
   Future<AuthoringPayload?> captureResourcePayload(String storageKey) async {
     final gateway = this;

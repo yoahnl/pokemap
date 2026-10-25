@@ -32,15 +32,24 @@ class TriggerEditingCommands {
     updateTriggerOnMap(document.current, triggerId: id, name: name),
   );
 
-  void move(String id, GridPos pos) => document.commit(
-    moveTriggerOnMap(document.current, triggerId: id, pos: pos),
-  );
+  void move(String id, GridPos pos) {
+    if (document.isElementLocked('trigger', id)) return;
+    document.commit(
+      moveTriggerOnMap(document.current, triggerId: id, pos: pos),
+    );
+  }
 
-  void resize(String id, GridSize size) => document.commit(
-    resizeTriggerOnMap(document.current, triggerId: id, size: size),
-  );
+  void resize(String id, GridSize size) {
+    if (document.isElementLocked('trigger', id)) return;
+    document.commit(
+      resizeTriggerOnMap(document.current, triggerId: id, size: size),
+    );
+  }
 
   String? deletionProblem(String id) {
+    if (document.isElementLocked('trigger', id)) {
+      return 'Cet élément est verrouillé. Déverrouillez-le dans Éléments.';
+    }
     final usages =
         buildNarrativeDependencyIndex(
           project: project,

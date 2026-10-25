@@ -66,7 +66,13 @@ final class PokemonCombatController {
     ];
   }
 
-  Future<void> load({bool refresh = false}) async {
+  Future<void> analyzeReferences() =>
+      load(refresh: true, analyzeReferences: true);
+
+  Future<void> load({
+    bool refresh = false,
+    bool analyzeReferences = false,
+  }) async {
     if ((snapshot != null || loading) && !refresh) return;
     if (dirty || saving) {
       error = 'Actualisation reportée : votre brouillon est conservé.';
@@ -78,7 +84,9 @@ final class PokemonCombatController {
     error = null;
     changed();
     try {
-      final loaded = await port.load();
+      final loaded = analyzeReferences && port is PokemonCombatReferencePort
+          ? await (port as PokemonCombatReferencePort).analyzeReferences()
+          : await port.load();
       if (_disposed || generation != _generation) return;
       snapshot = loaded;
       projectChanged?.call(loaded.project);
@@ -259,8 +267,11 @@ final class PokemonCombatController {
     try {
       await port.setRuleset(before, value);
       if (_disposed) return;
-      saving = false;
-      await load(refresh: true);
+      _acceptSavedProject(
+        snapshot!.project.copyWith(
+          pokemon: snapshot!.project.pokemon.copyWith(ruleset: value),
+        ),
+      );
       notice = 'Règles du projet enregistrées.';
     } on Object catch (failure) {
       if (!_disposed) error = 'Changement de règles refusé : $failure';
@@ -503,8 +514,37 @@ final class PokemonCombatController {
       if (selectedTrainer != null) selectedTrainer.markSaved();
       notice = 'Modifications enregistrées.';
       numericInputs.clear();
-      saving = false;
-      await load(refresh: true);
+      final project = snapshot!.project;
+      _acceptSavedProject(
+        project.copyWith(
+          encounterTables: selectedTable == null
+              ? project.encounterTables
+              : [
+                  for (final value in project.encounterTables)
+                    if (value.id == selectedTable.current.id)
+                      selectedTable.current
+                    else
+                      value,
+                  if (!project.encounterTables.any(
+                    (value) => value.id == selectedTable.current.id,
+                  ))
+                    selectedTable.current,
+                ],
+          trainers: selectedTrainer == null
+              ? project.trainers
+              : [
+                  for (final value in project.trainers)
+                    if (value.id == selectedTrainer.current.id)
+                      selectedTrainer.current
+                    else
+                      value,
+                  if (!project.trainers.any(
+                    (value) => value.id == selectedTrainer.current.id,
+                  ))
+                    selectedTrainer.current,
+                ],
+        ),
+      );
       return !_disposed;
     } on Object catch (failure) {
       if (!_disposed) error = 'Enregistrement refusé : $failure';
@@ -513,6 +553,15 @@ final class PokemonCombatController {
       saving = false;
       if (!_disposed) changed();
     }
+  }
+
+  void _acceptSavedProject(ProjectManifest project) {
+    snapshot = PokemonCombatSnapshot(
+      project: project,
+      maps: snapshot!.maps,
+      referencesComplete: false,
+    );
+    projectChanged?.call(project);
   }
 
   void dispose() {

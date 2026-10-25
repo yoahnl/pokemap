@@ -70,7 +70,13 @@ final class PokemonCommerceController {
     ];
   }
 
-  Future<void> load({bool refresh = false}) async {
+  Future<void> analyzeReferences() =>
+      load(refresh: true, analyzeReferences: true);
+
+  Future<void> load({
+    bool refresh = false,
+    bool analyzeReferences = false,
+  }) async {
     if ((snapshot != null || loading) && !refresh) return;
     if (refresh && (dirty || saving || importing)) {
       error = 'Actualisation reportée : une fiche est encore en cours.';
@@ -82,7 +88,9 @@ final class PokemonCommerceController {
     error = null;
     changed();
     try {
-      final loaded = await port.load();
+      final loaded = analyzeReferences && port is PokemonCommerceReferencePort
+          ? await (port as PokemonCommerceReferencePort).analyzeReferences()
+          : await port.load();
       if (_disposed || generation != _generation) return;
       if (dirty || saving || importing) {
         error = 'Actualisation reportée : le brouillon est conservé.';
@@ -240,18 +248,35 @@ final class PokemonCommerceController {
         await port.saveShop(_baseShop, current);
       }
       if (_disposed) return false;
-      final selectedItemId = item?.id;
-      final selectedShopId = shop?.id;
-      snapshot = await port.load();
-      if (_disposed) return false;
-      _baseItem = snapshot!.catalog?.entries
-          .where((value) => value.id == selectedItemId)
-          .firstOrNull;
-      item = _baseItem;
-      _baseShop = snapshot!.shops
-          .where((value) => value.id == selectedShopId)
-          .firstOrNull;
-      shop = _baseShop;
+      final previous = snapshot!;
+      final savedItem = item?.normalized();
+      final savedShop = shop?.normalized();
+      final catalog = savedItem == null
+          ? previous.catalog
+          : previous.catalog!.copyWith(
+              entries: [
+                for (final entry in previous.catalog!.entries)
+                  if (entry.id == savedItem.id) savedItem else entry,
+                if (!previous.catalog!.entries.any(
+                  (entry) => entry.id == savedItem.id,
+                ))
+                  savedItem,
+              ],
+            );
+      final shops = savedShop == null
+          ? previous.shops
+          : [
+              for (final entry in previous.shops)
+                if (entry.id == savedShop.id) savedShop else entry,
+              if (!previous.shops.any((entry) => entry.id == savedShop.id))
+                savedShop,
+            ];
+      final project = previous.project.copyWith(shops: shops);
+      _acceptSavedSnapshot(project, catalog, shops, changedShop: savedShop);
+      item = savedItem;
+      shop = savedShop;
+      _baseItem = savedItem;
+      _baseShop = savedShop;
       notice = 'Modifications enregistrées.';
       return true;
     } on Object catch (failure) {
@@ -282,36 +307,11 @@ final class PokemonCommerceController {
     try {
       final outcome = await port.saveBagCapacity(before, after);
       if (_disposed) return true;
-      final selectedItemId = item?.id;
-      final selectedShopId = shop?.id;
-      try {
-        snapshot = await port.load();
-      } on Object catch (failure) {
-        if (_disposed) return true;
-        snapshot = PokemonCommerceSnapshot(
-          project: currentSnapshot.project.copyWith(bagCapacity: after),
-          catalog: currentSnapshot.catalog,
-          shops: currentSnapshot.shops,
-          references: currentSnapshot.references,
-          narrativeReferences: currentSnapshot.narrativeReferences,
-          shopDiagnostics: currentSnapshot.shopDiagnostics,
-          catalogPath: currentSnapshot.catalogPath,
-          problem: currentSnapshot.problem,
-        );
-        notice = 'Capacité du sac enregistrée.';
-        error =
-            'L’enregistrement a réussi, mais l’actualisation du catalogue a échoué : $failure';
-        return true;
-      }
-      if (_disposed) return true;
-      _baseItem = snapshot!.catalog?.entries
-          .where((entry) => entry.id == selectedItemId)
-          .firstOrNull;
-      item = _baseItem;
-      _baseShop = snapshot!.shops
-          .where((entry) => entry.id == selectedShopId)
-          .firstOrNull;
-      shop = _baseShop;
+      _acceptSavedSnapshot(
+        currentSnapshot.project.copyWith(bagCapacity: after),
+        currentSnapshot.catalog,
+        currentSnapshot.shops,
+      );
       notice = 'Capacité du sac enregistrée.';
       error = outcome.refreshWarning;
       return true;
@@ -322,6 +322,40 @@ final class PokemonCommerceController {
       saving = false;
       if (!_disposed) changed();
     }
+  }
+
+  void _acceptSavedSnapshot(
+    ProjectManifest project,
+    ProjectItemCatalog? catalog,
+    List<ShopDefinition> shops, {
+    ShopDefinition? changedShop,
+  }) {
+    final previous = snapshot!;
+    final diagnostics = changedShop == null
+        ? previous.shopDiagnostics
+        : [
+            for (final diagnostic in previous.shopDiagnostics)
+              if (diagnostic.shopId != changedShop.id) diagnostic,
+            ...ShopStateValidator(
+              project: project.copyWith(shops: [changedShop]),
+              knownItemIds: {
+                for (final entry
+                    in catalog?.entries ?? const <ProjectItemDefinition>[])
+                  entry.id,
+              },
+            ).validate(),
+          ];
+    snapshot = PokemonCommerceSnapshot(
+      project: project,
+      catalog: catalog,
+      shops: shops,
+      references: ProjectItemReferenceIndex(const []),
+      narrativeReferences: NarrativeDependencyIndex(),
+      shopDiagnostics: diagnostics,
+      catalogPath: previous.catalogPath,
+      problem: previous.problem,
+      referencesComplete: false,
+    );
   }
 
   void dispose() {

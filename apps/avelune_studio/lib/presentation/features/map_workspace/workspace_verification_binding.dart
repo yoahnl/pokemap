@@ -90,6 +90,24 @@ extension _WorkspaceVerificationBinding on _MapWorkspaceScreenState {
   }
 
   Future<String?> _route(NarrativeProjectDiagnostic item) async {
+    final workshop = switch (item.destination) {
+      NarrativeProjectDiagnosticDestination.scene => MapWorkspaceWorkshop.scene,
+      NarrativeProjectDiagnosticDestination.dialogue =>
+        MapWorkspaceWorkshop.dialogue,
+      NarrativeProjectDiagnosticDestination.cinematic =>
+        MapWorkspaceWorkshop.cinematic,
+      NarrativeProjectDiagnosticDestination.event =>
+        MapWorkspaceWorkshop.events,
+      NarrativeProjectDiagnosticDestination.storyline =>
+        MapWorkspaceWorkshop.progression,
+      NarrativeProjectDiagnosticDestination.fact ||
+      NarrativeProjectDiagnosticDestination.worldRule =>
+        MapWorkspaceWorkshop.world,
+      _ => null,
+    };
+    if (workshop != null && await _prepareWorkshopRoute(workshop) == null) {
+      return null;
+    }
     switch (item.destination) {
       case NarrativeProjectDiagnosticDestination.scene:
         return _openScene(item.sceneId!);

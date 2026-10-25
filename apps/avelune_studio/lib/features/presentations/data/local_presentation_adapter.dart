@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as path;
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/presentation_port.dart';
@@ -72,8 +73,13 @@ class LocalPresentationAdapter implements PresentationPort {
   @override
   Future<PresentationSourceSnapshot> load(String id) =>
       mapAdapter.withResourceMutation(() async {
-        await mapAdapter.resourceBaseline(session, refreshCatalog: true);
-        final snapshot = await LocalPresentationConnection.readDraft(session);
+        if (session.storage != ProjectSessionStorage.workingCatalog) {
+          await mapAdapter.resourceBaseline(session, refreshCatalog: true);
+        }
+        final snapshot = await LocalPresentationConnection.readDraft(
+          session,
+          parameters: {'cinematicId': id},
+        );
         return _source(snapshot, id) ??
             (throw const PresentationFailure(
               'Cette présentation est absente du projet.',
@@ -88,7 +94,15 @@ class LocalPresentationAdapter implements PresentationPort {
             'Les présentations nécessitent un projet v8.',
           );
         }
-        return LocalPresentationProjection(snapshot, project);
+        return LocalPresentationProjection(
+          snapshot,
+          session.storage == ProjectSessionStorage.workingCatalog
+              ? MapWorkspaceWorkshop.presentation.merge(
+                  snapshot.manifest,
+                  project,
+                )
+              : project,
+        );
       });
   PresentationSourceSnapshot? _source(ProjectSnapshot snapshot, String id) {
     final asset = snapshot.manifest.presentationCinematics

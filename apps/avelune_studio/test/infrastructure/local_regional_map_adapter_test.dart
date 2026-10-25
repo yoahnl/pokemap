@@ -206,6 +206,7 @@ void main() {
       );
       final projectBefore = await File('${fixture.root.path}/project.json')
           .readAsBytes();
+      expect(await owner.loadMap('town'), isTrue);
       final currentMap = owner.source!.maps['town']!;
       await fixture.map.writeAsString(
         jsonEncode(currentMap.copyWith(entities: []).toJson()),
@@ -251,7 +252,8 @@ Future<void> seedApiRegionalCatalog(LocalRegionalMapAdapter port) async {
   );
 }
 
-final class RecordingRegionalMapPort implements RegionalMapPort {
+final class RecordingRegionalMapPort
+    implements RegionalMapPort, RegionalMapDetailsPort {
   RecordingRegionalMapPort(this.delegate);
   final LocalRegionalMapAdapter delegate;
   final actions = <String>[];
@@ -260,6 +262,11 @@ final class RecordingRegionalMapPort implements RegionalMapPort {
   Future<RegionalMapSource> load() => delegate.load();
   @override
   Future<Uint8List?> readImage(String path) => delegate.readImage(path);
+  @override
+  Future<MapData> readMap({
+    required RegionalMapSource source,
+    required String mapId,
+  }) => delegate.readMap(source: source, mapId: mapId);
   @override
   Future<RegionalMapSource> publish({
     required RegionalMapSource base,

@@ -7,6 +7,7 @@ import '../security/authoring_permission.dart';
 import '../support/authoring_fingerprint.dart';
 import 'catalog_generation_retention.dart';
 import '../transactions/transaction_journal.dart';
+import '../workspace/catalog/catalog_metadata_documents.dart';
 import 'catalog_storage_store.dart';
 
 final class CatalogPartitionPreparation {
@@ -129,18 +130,27 @@ final class WorkingProjectCatalog {
     safeAuthoringSecurityIdentifier(ownerId, 'ownerId');
     final descriptor = WorkingProjectCatalogDescriptor(projectId: projectId);
     final build = PortableCatalogPublication.encodeProject(project);
+    final units = CatalogSnapshot.readAllSync(
+            root: build.storage.root,
+            readObject: (reference) => build.storage.objects[reference.sha256]!,
+            limits: store.limits)
+        .units;
+    final storage = CatalogStorageBuilder(limits: store.limits).build([
+      ...units,
+      ...CatalogMetadataDocuments.initialize(units),
+    ]);
     final retention = CatalogGenerationRetention(store: store);
     return store.gateway.withExclusiveWriteLock(() async {
       final lease = await retention.protectUnderLock(
-          roots: [build.storage.root],
+          roots: [storage.root],
           ownerId: ownerId,
           purpose: CatalogLeasePurpose.preparation);
       final preparation = CatalogPartitionPreparation._(
           store,
-          build.storage.root,
+          storage.root,
           List.unmodifiable(
               utf8.encode(canonicalAuthoringJson(descriptor.toJson()))),
-          List.unmodifiable(CatalogStorageStore.encodeHead(build.storage.root)),
+          List.unmodifiable(CatalogStorageStore.encodeHead(storage.root)),
           List.unmodifiable(utf8.encode(canonicalAuthoringJson({
             'schemaVersion': 1,
             'projectId': projectId,
@@ -150,7 +160,11 @@ final class WorkingProjectCatalog {
           lease);
       try {
         await preparation._requireAdmission(ownerId);
-        await store.publishObjectsUnderLock(build.storage.objects);
+        await store.publishObjectsUnderLock(storage.objects);
+        final admitted = (await store.openRoot(storage.root)).snapshot;
+        await admitted.validate();
+        await store.publishIndexAdmissionUnderLock(admitted);
+        await store.publishMetadataIndexAdmissionUnderLock(admitted);
         return preparation;
       } on Object {
         await retention.releaseUnderLock(lease.id);
@@ -172,18 +186,34 @@ final class WorkingProjectCatalog {
           'The project changed before its working catalog was prepared.');
     }
     final build = PortableCatalogPublication.encodeProject(project);
+    final units = CatalogSnapshot.readAllSync(
+            root: build.storage.root,
+            readObject: (reference) => build.storage.objects[reference.sha256]!,
+            limits: store.limits)
+        .units;
+    final storage = CatalogStorageBuilder(limits: store.limits).build([
+      ...units,
+      ...CatalogMetadataDocuments.initialize(units),
+    ]);
     final previous = await store.readHead();
-    if (previous != null && previous != build.storage.root) {
+    if (previous != null &&
+        previous != storage.root &&
+        previous != build.storage.root) {
       throw const CatalogStorageException('catalog.revision_conflict',
           'A different catalog generation is already published.');
     }
-    await store.publish(build.storage, expectedRootRevision: previous?.sha256);
+    final published =
+        await store.publish(storage, expectedRootRevision: previous?.sha256);
+    await store.gateway.withExclusiveWriteLock(
+        () => store.publishMetadataIndexAdmissionUnderLock(published.snapshot));
     await store.gateway.withExclusiveWriteLock(() async {
       if (await store.gateway.readResourceRevision('project.json') !=
           expectedProjectRevision) {
         throw const CatalogStorageException('catalog.revision_conflict',
             'The project changed before its working catalog was published.');
       }
+      await CatalogGenerationRetention(store: store)
+          .bindProjectUnderLock(projectId);
       const operation = 'working_catalog_initialization';
       try {
         await store.gateway.stagePayload(
@@ -206,6 +236,7 @@ final class WorkingProjectCatalog {
   static Future<WorkingProjectCatalog> open({
     required CatalogStorageStore store,
     required WorkingProjectCatalogDescriptor descriptor,
+    Set<String>? metadataFields,
   }) async {
     await _requireReadableStore(store);
     final projectId = await store.readProjectId();
@@ -220,7 +251,8 @@ final class WorkingProjectCatalog {
     }
     try {
       final snapshot = (await store.openRoot(root)).snapshot;
-      final catalog = await PortableProjectCatalog.fromSnapshot(snapshot);
+      final catalog = await PortableProjectCatalog.fromSnapshot(snapshot,
+          metadataFields: metadataFields);
       final working = WorkingProjectCatalog._(store, descriptor, catalog);
       await working._requireCurrentRoot();
       return working;
@@ -249,6 +281,13 @@ final class WorkingProjectCatalog {
       rethrow;
     }
   }
+
+  Future<WorkingProjectCatalog> withMetadataFields(Set<String> fields) =>
+      readCatalog((catalog) async => WorkingProjectCatalog._(
+          store,
+          descriptor,
+          await PortableProjectCatalog.fromSnapshot(catalog.snapshot,
+              metadataFields: fields)));
 
   Future<CatalogSearchPage> search(
           {CatalogDefinitionKind? kind,

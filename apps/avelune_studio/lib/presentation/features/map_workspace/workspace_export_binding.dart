@@ -31,6 +31,7 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
     if (_connectionBusy || _controller.catalogBusy) return false;
     if (_gameExport?.operationActive == true) return false;
     if (!await _allowLeavePokemon()) return false;
+    if (_libraryExitGuard != null && !await _libraryExitGuard!()) return false;
     return _actions.allowClose();
   }
 

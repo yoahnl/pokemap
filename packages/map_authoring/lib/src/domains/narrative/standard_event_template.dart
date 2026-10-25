@@ -277,6 +277,53 @@ final class StandardEventTemplateProjection {
 
 const _recipeKey = 'standardEventTemplate.v1';
 const _ownerKey = 'standardEventTemplate.owner';
+const _sceneGenerationKey = 'standardEventTemplate.sceneGeneration.v1';
+
+Set<String> standardEventTemplateEventIds(StandardEventTemplateSpec spec) => {
+      for (final page in spec.kind == StandardEventTemplateKind.conditionalNpc
+          ? ['before', 'after']
+          : ['main'])
+        _standardEventTemplateEventId(spec, page),
+    };
+
+String _standardEventTemplateEventId(
+    StandardEventTemplateSpec spec, String page) {
+  final hex = sha256
+      .convert(utf8.encode(jsonEncode(
+          ['standardEventTemplate', 1, spec.mapId, spec.entityId, page])))
+      .toString();
+  return 'evt_${hex.substring(0, 8)}-${hex.substring(8, 12)}-7${hex.substring(13, 16)}-8${hex.substring(17, 20)}-${hex.substring(20, 32)}';
+}
+
+Set<String> standardEventTemplateSceneIds(StandardEventTemplateSpec spec,
+        {String? generation}) =>
+    {
+      for (final id in standardEventTemplateEventIds(spec))
+        _standardEventTemplateSceneId(id, generation),
+    };
+
+String _standardEventTemplateSceneId(String eventId, String? generation) {
+  if (generation != null && !RegExp(r'^[0-9a-f]{64}$').hasMatch(generation)) {
+    _reject('scene_generation', 'La version des scènes générées est invalide.');
+  }
+  return 'scene_$eventId${generation == null ? '' : '_${generation.substring(0, 24)}'}';
+}
+
+String? standardEventTemplateNextSceneGeneration(StandardEventTemplateSpec spec,
+    {StandardEventTemplateSpec? previous, String? previousGeneration}) {
+  if (previous == null) return null;
+  if (canonicalizeNarrativeEventJson(previous.toJson()) ==
+      canonicalizeNarrativeEventJson(spec.toJson())) {
+    return previousGeneration;
+  }
+  return sha256
+      .convert(utf8.encode(canonicalizeNarrativeEventJson({
+        'generation': previousGeneration,
+        'before': previous.toJson(),
+        'after': spec.toJson(),
+      })))
+      .toString();
+}
 
 StandardEventTemplateProjection compileStandardEventTemplate({
   required ProjectManifest project,
@@ -288,6 +335,7 @@ StandardEventTemplateProjection compileStandardEventTemplate({
   final entity = _one(
       map.entities.where((entity) => entity.id == spec.entityId), 'entity');
   final stored = entity.properties[_recipeKey];
+  String? sceneGeneration;
   if (stored != null) {
     final previous = readStandardEventTemplate(
         project: project,
@@ -303,6 +351,9 @@ StandardEventTemplateProjection compileStandardEventTemplate({
       _reject('kind_change',
           'Le type d’un événement existant ne peut pas être remplacé.');
     }
+    sceneGeneration = standardEventTemplateNextSceneGeneration(spec,
+        previous: previous,
+        previousGeneration: entity.properties[_sceneGenerationKey]);
   } else {
     if (entity.presentation != null ||
         entity.item != null ||
@@ -331,6 +382,7 @@ StandardEventTemplateProjection compileStandardEventTemplate({
       maps: maps,
       spec: spec,
       itemCatalog: itemCatalog,
+      sceneGeneration: sceneGeneration,
       allowOwned: stored != null);
 }
 
@@ -353,6 +405,7 @@ StandardEventTemplateSpec? readStandardEventTemplate(
         maps: maps ?? [map],
         spec: spec,
         itemCatalog: itemCatalog,
+        sceneGeneration: entity.properties[_sceneGenerationKey],
         allowOwned: true,
         validateDestination: maps != null);
     final rebuiltEntity =

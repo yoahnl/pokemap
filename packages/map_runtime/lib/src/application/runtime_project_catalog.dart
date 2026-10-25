@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -26,6 +27,7 @@ final class RuntimeProjectCatalog {
     this._portable,
     this._native = const {},
     this._reader,
+    this._working,
     required int maximumCachedMaps,
     required int maximumCachedMapBytes,
   }) : _mapCache = RuntimeCatalogMapCache(
@@ -50,6 +52,7 @@ final class RuntimeProjectCatalog {
   final PortableProjectCatalog? _portable;
   final Map<CatalogDefinitionKey, Object> _native;
   final _RuntimeCatalogObjectReader? _reader;
+  final WorkingProjectCatalog? _working;
   final RuntimeCatalogMapCache _mapCache;
   Future<AssetCatalog?>? _assetCatalog;
   static const _maximumManifestProjections = 8;
@@ -104,6 +107,43 @@ final class RuntimeProjectCatalog {
     final raw = decodeNarrativeEventJsonStrict(source);
     if (raw is! Map<String, Object?>) {
       throw const FormatException('Expected a project JSON object.');
+    }
+    if (raw['format'] == 'avelune.working-catalog') {
+      final descriptor = WorkingProjectCatalogDescriptor.fromJson(raw);
+      final reader = _RuntimeCatalogObjectReader(
+        file.parent.path,
+        limits: effective,
+        maximumJsonValues: maximumCatalogJsonValues,
+      );
+      WorkingProjectCatalog? working;
+      try {
+        working = await WorkingProjectCatalog.open(
+          store: CatalogStorageStore(
+            projectRoot: file.parent.path,
+            reader: reader,
+            gateway: await LocalTransactionFileGateway.open(
+              projectRoot: file.parent.path,
+            ),
+            limits: effective,
+          ),
+          descriptor: descriptor,
+        );
+        return RuntimeProjectCatalog._(
+          sourceFingerprint: sourceFingerprint,
+          maximumCachedMaps: maximumCachedMaps,
+          maximumCachedMapBytes: maximumCachedMapBytes,
+          projectFilePath: canonicalPath,
+          identity: '$canonicalPath:${working.root.sha256}',
+          projectMetadata: working.catalog.projectMetadata,
+          portable: working.catalog,
+          reader: reader,
+          working: working,
+        );
+      } on Object {
+        await working?.close();
+        reader.dispose();
+        rethrow;
+      }
     }
     if (raw.containsKey('format') ||
         raw.containsKey('kind') ||
@@ -240,6 +280,16 @@ final class RuntimeProjectCatalog {
       final maximum = _portable == null ? 128 * 1024 * 1024 : 64 * 1024;
       final bytes = await _readBoundedFile(file, maximum);
       if (_disposed) return false;
+      final working = _working;
+      if (working != null) {
+        final raw = decodeNarrativeEventJsonStrict(utf8.decode(bytes));
+        if (raw is! Map<String, Object?> ||
+            WorkingProjectCatalogDescriptor.fromJson(raw).projectId !=
+                working.descriptor.projectId) {
+          return false;
+        }
+        return await working.readCatalog((_) async => !_disposed);
+      }
       if (_runtimePublicationFingerprint(bytes) == _sourceFingerprint) {
         return true;
       }
@@ -608,6 +658,8 @@ final class RuntimeProjectCatalog {
     _mapCache.dispose();
     if (_native.isNotEmpty) _native.clear();
     _reader?.dispose();
+    final working = _working;
+    if (working != null) unawaited(working.close());
   }
 
   void _ensureOpen() {
@@ -655,7 +707,11 @@ Object? _immutableRuntimeProperty(Object? value, int depth) {
   return value;
 }
 
-final class _RuntimeCatalogObjectReader {
+final class _RuntimeCatalogObjectReader
+    implements
+        ProjectFileReader,
+        ProjectResourceStreamReader,
+        ProjectResourceProbeReader {
   _RuntimeCatalogObjectReader(
     this.root, {
     required this.limits,
@@ -672,6 +728,72 @@ final class _RuntimeCatalogObjectReader {
   var _values = 0;
   var _cachedBytes = 0;
   var _disposed = false;
+
+  @override
+  bool get supportsStreamingResources => true;
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      const LocalProjectFileReader().canonicalizeDirectory(path);
+
+  @override
+  Future<ProjectResourceProbe> probeResource({
+    required String projectRoot,
+    required String relativePath,
+  }) => const LocalProjectFileReader().probeResource(
+    projectRoot: projectRoot,
+    relativePath: relativePath,
+  );
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    if (projectRoot != root) {
+      throw const FormatException('Catalog reader root mismatch.');
+    }
+    final match = RegExp(r'^catalog/objects/([0-9a-f]{64})\.json$')
+        .firstMatch(relativePath);
+    if (match == null) {
+      return const LocalProjectFileReader().readBytes(
+        projectRoot: projectRoot,
+        relativePath: relativePath,
+      );
+    }
+    final file = File(p.join(root, relativePath));
+    final resolved = await file.resolveSymbolicLinks();
+    if (!p.isWithin(root, resolved)) {
+      throw const FormatException('Invalid catalog object path.');
+    }
+    return read(
+      CatalogObjectReference(
+        sha256: match.group(1)!,
+        byteLength: await file.length(),
+      ),
+    );
+  }
+
+  @override
+  Stream<List<int>> openRead({
+    required String projectRoot,
+    required String relativePath,
+  }) async* {
+    if (projectRoot != root) {
+      throw const FormatException('Catalog reader root mismatch.');
+    }
+    if (relativePath.startsWith('catalog/objects/')) {
+      yield await readBytes(
+        projectRoot: projectRoot,
+        relativePath: relativePath,
+      );
+    } else {
+      yield* const LocalProjectFileReader().openRead(
+        projectRoot: projectRoot,
+        relativePath: relativePath,
+      );
+    }
+  }
 
   void dispose() {
     _disposed = true;
@@ -746,6 +868,25 @@ final class _RuntimeCatalogObjectReader {
       },
     );
     return future;
+  }
+}
+
+Future<ProjectManifest> loadWorkingRuntimeProjectManifest(
+  String projectFilePath, {
+  required String expectedSourceSha256,
+}) async {
+  final catalog = await RuntimeProjectCatalog.open(
+    projectFilePath,
+    expectedSourceSha256: expectedSourceSha256,
+  );
+  try {
+    final working = catalog._working;
+    if (working == null) {
+      throw const FormatException('Expected a working project catalog.');
+    }
+    return await working.exportProject();
+  } finally {
+    catalog.dispose();
   }
 }
 

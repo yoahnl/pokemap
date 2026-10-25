@@ -27,6 +27,9 @@ void main() {
       windowsLit: true,
       fireflies: true,
       waterStrength: .4,
+      halosEnabled: true, depthFogEnabled: true, haloStrength: 1.4, haloSpread: 1.3,
+      fogOpacity: .32, fogStart: 39, fogEnd: 49,
+      halos: [SpatialAtmosphereHalo(instanceId: 'lamp', localPosition: Model3dVector3(x: 0, y: 2, z: 0))],
     );
     final file = File(
       '${root.path}/${SpatialAtmosphereDocument.relativePathForMap(fixture.map.id)}',
@@ -45,9 +48,16 @@ void main() {
     );
     expect(loaded.spatialAtmosphereSettings, settings);
     expect(loaded.copyWith().spatialAtmosphereSettings, settings);
+    await file.writeAsString(jsonEncode({'schemaVersion': 1, 'mapId': fixture.map.id, 'settings': {'windowsLit': true, 'windowStrength': .9}}));
+    final protectedBytes = await file.readAsBytes();
+    final protected = await loadRuntimeMapBundle(projectFilePath: '${root.path}/project.json', mapId: fixture.map.id);
+    expect(protected.spatialAtmosphereSettings.windowsLit, isTrue);
+    expect(protected.spatialAtmosphereSettings.halosEnabled, isFalse);
+    expect(protected.spatialAtmosphereSettings.depthFogEnabled, isFalse);
+    expect(await file.readAsBytes(), protectedBytes);
     final before = await file.readAsBytes();
     await file.writeAsString(
-      jsonEncode({'schemaVersion': 2, 'mapId': fixture.map.id, 'settings': {}}),
+      jsonEncode({'schemaVersion': 3, 'mapId': fixture.map.id, 'settings': {}}),
     );
     final unsupported = await file.readAsBytes();
     await expectLater(
@@ -59,5 +69,17 @@ void main() {
     );
     expect(await file.readAsBytes(), unsupported);
     expect(before, isNot(unsupported));
+    await file.writeAsString(
+      '{"schemaVersion":1,"mapId":"${fixture.map.id}","settings":{"fireflies":false,"fireflies":true}}',
+    );
+    final duplicate = await file.readAsBytes();
+    await expectLater(
+      loadRuntimeMapBundle(
+        projectFilePath: '${root.path}/project.json',
+        mapId: fixture.map.id,
+      ),
+      throwsA(isA<MapLoadException>()),
+    );
+    expect(await file.readAsBytes(), duplicate);
   });
 }

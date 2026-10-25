@@ -145,7 +145,7 @@ final class StudioImageStore {
       _deterministicFailures.remove(id);
       failed(id, null);
     }
-    for (final id in _pinned.intersection(ids)) {
+    for (final id in _pinned.intersection(ids).where(paths.containsKey)) {
       unawaited(request(id));
     }
   }

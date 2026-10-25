@@ -113,10 +113,13 @@ final class SpatialSceneComponents {
             .firstOrNull ??
         _active.values.lastOrNull;
     if (batch == null) return;
+    final nextChildren = next.toList();
     batch.removeAll(
       previousChildren.where((component) => identical(component.parent, batch)),
     );
-    batch.addAll(next);
+    batch.addAll(nextChildren);
+    batch.source.removeWhere(previousChildren.contains);
+    batch.source.addAll(nextChildren);
   }
 
   void cancelPending() {
@@ -151,16 +154,24 @@ final class _PendingScene {
 }
 
 final class _SceneBatch extends Component {
-  _SceneBatch(this.source) : super(children: source);
+  _SceneBatch(List<Component> source)
+    : source = List<Component>.of(source),
+      _initial = [for (final child in source) WeakReference(child)],
+      super(children: source);
 
   final List<Component> source;
 
+  final List<WeakReference<Component>> _initial;
+
   bool matches(List<Component> next) {
-    if (source.length != next.length) return false;
-    for (var index = 0; index < source.length; index++) {
-      if (!identical(source[index], next[index])) return false;
+    bool same(List<Component?> previous) {
+      if (previous.length != next.length) return false;
+      for (var index = 0; index < previous.length; index++) {
+        if (!identical(previous[index], next[index])) return false;
+      }
+      return true;
     }
-    return true;
+    return same(source) || same([for (final child in _initial) child.target]);
   }
 
   bool visible = false;

@@ -3,6 +3,8 @@ part of 'local_map_workspace_adapter.dart';
 extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
   Future<MapWorkspaceCatalog> _loadScopedCatalog(ProjectSession session) async {
     await _requireRoot(session);
+    _resourceSelections.remove(session.sessionId);
+    _workshopCharacterDefinitions.remove(session.sessionId);
     final result = await _readScopedCatalog(session, (catalog, revision) async {
       return MapWorkspaceCatalog(
         metadata: catalog.projectMetadata,
@@ -14,6 +16,142 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       result.metadata,
       result.revision,
       complete: false,
+      metadataFields: _mapCatalogMetadataFields,
+    );
+    return result;
+  }
+
+  Future<MapWorkspaceCatalog> _loadWorkshop(
+    ProjectSession session,
+    MapWorkspaceWorkshop workshop,
+  ) async {
+    final current = _project(session);
+    final projection = await _readScopedCatalog(
+      session,
+      (catalog, revision) async {
+        if (revision != current.revision) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.conflict,
+            'Le catalogue a changé avant l’ouverture de cet atelier.',
+          );
+        }
+        var manifest = catalog.projectMetadata;
+        if (workshop == MapWorkspaceWorkshop.dialogue ||
+            workshop == MapWorkspaceWorkshop.cinematic) {
+          final roots = <CatalogDefinitionKey>[];
+          String? cursor;
+          do {
+            final page = await catalog.snapshot.page(
+              kind: CatalogDefinitionKind.character,
+              limit: catalog.snapshot.limits.indexPageSize,
+              cursor: cursor,
+            );
+            roots.addAll(page.items.map((entry) => entry.key));
+            cursor = page.nextCursor;
+          } while (cursor != null);
+          manifest = await ProjectCatalogSelection(catalog).resolve(roots);
+        }
+        return MapWorkspaceCatalog(metadata: manifest, revision: revision);
+      },
+      metadataFields: {
+        ..._mapCatalogMetadataFields,
+        ...workshop.metadataFields,
+      },
+    );
+    if (workshop == MapWorkspaceWorkshop.dialogue ||
+        workshop == MapWorkspaceWorkshop.cinematic) {
+      _workshopCharacterDefinitions[session.sessionId] = projection.metadata;
+    }
+    final latest = _project(session);
+    if (latest.revision != projection.revision) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Le catalogue a changé pendant l’ouverture de cet atelier.',
+      );
+    }
+    _projects[session.sessionId] = _ProjectDocument(
+      latest.root,
+      workshop.merge(latest.manifest, projection.metadata),
+      projection.revision,
+      complete: false,
+      metadataFields: {
+        ...?latest.metadataFields,
+        ..._mapCatalogMetadataFields,
+        ...workshop.metadataFields,
+      },
+    );
+    return projection;
+  }
+
+  Future<MapWorkspaceCatalog> _loadResourceKind(
+    ProjectSession session,
+    String canonicalKind,
+  ) async {
+    final kind = switch (canonicalKind) {
+      'tileset' => CatalogDefinitionKind.tileset,
+      'element' => CatalogDefinitionKind.element,
+      'model3d' => CatalogDefinitionKind.model3d,
+      'character' => CatalogDefinitionKind.character,
+      'environmentPreset' => CatalogDefinitionKind.environmentPreset,
+      'smartTilePreset' => CatalogDefinitionKind.smartTilePreset,
+      'borderBlueprint' => CatalogDefinitionKind.borderRecord,
+      _ => throw const FormatException('Famille de ressources inconnue.'),
+    };
+    final before = _project(session);
+    final result = await _readScopedCatalog(
+      session,
+      (catalog, revision) async {
+        if (revision != before.revision) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.conflict,
+            'Le catalogue a changé avant le chargement de cette famille.',
+          );
+        }
+        final roots = <CatalogDefinitionKey>[];
+        String? cursor;
+        do {
+          final page = await catalog.snapshot.page(
+            kind: kind,
+            limit: catalog.snapshot.limits.indexPageSize,
+            cursor: cursor,
+          );
+          roots.addAll(page.items.map((entry) => entry.key));
+          cursor = page.nextCursor;
+        } while (cursor != null);
+        final manifest = await ProjectCatalogSelection(catalog).resolve(roots);
+        return MapWorkspaceCatalog(metadata: manifest, revision: revision);
+      },
+      metadataFields: {
+        ..._mapCatalogMetadataFields,
+        ...MapWorkspaceWorkshop.resources.metadataFields,
+        if (canonicalKind == 'character') 'characterStudioCatalog',
+      },
+    );
+    final latest = _project(session);
+    if (latest.revision != result.revision) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Le catalogue a changé pendant le chargement de cette famille.',
+      );
+    }
+    _resourceSelections[session.sessionId] = result.metadata;
+    _projects[session.sessionId] = _ProjectDocument(
+      latest.root,
+      mergeResourceSelection(
+        latest.manifest,
+        combineResourceVisuals(
+          _activeMapDefinitions[session.sessionId] ?? latest.manifest,
+          _workshopCharacterDefinitions[session.sessionId] == null
+              ? result.metadata
+              : combineResourceVisuals(
+                  result.metadata,
+                  _workshopCharacterDefinitions[session.sessionId]!,
+                ),
+        ),
+      ),
+      result.revision,
+      complete: false,
+      metadataFields: latest.metadataFields,
     );
     return result;
   }
@@ -58,6 +196,28 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         snapshotRevision: source.snapshotRevision,
       );
     });
+    _activeMapDefinitions[session.sessionId] = selection.definitions;
+    final latest = _project(session);
+    var definitions = selection.definitions;
+    final characters = _workshopCharacterDefinitions[session.sessionId];
+    if (characters != null) {
+      definitions = combineResourceVisuals(definitions, characters);
+    }
+    final resources = _resourceSelections[session.sessionId];
+    if (resources != null) {
+      definitions = combineResourceVisuals(definitions, resources);
+    }
+    _projects[session.sessionId] = _ProjectDocument(
+      latest.root,
+      mergeProjectMetadataSections(
+        definitions,
+        latest.manifest,
+        latest.metadataFields ?? _mapCatalogMetadataFields,
+      ),
+      latest.revision,
+      complete: false,
+      metadataFields: latest.metadataFields,
+    );
     _loadedPaths[(session.sessionId, entry.id)] = path;
     return selection;
   }
@@ -91,6 +251,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       policy: policy,
       fileReader: _reader,
       handles: handles,
+      catalogMetadataFields: _mapCatalogMetadataFields,
     );
     final opened = await service.openProject(session.directoryPath);
     try {
@@ -107,8 +268,10 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
 
   Future<T> _readScopedCatalog<T>(
     ProjectSession session,
-    Future<T> Function(PortableProjectCatalog catalog, String revision) action,
-  ) async {
+    Future<T> Function(PortableProjectCatalog catalog, String revision)
+    action, {
+    Set<String> metadataFields = _mapCatalogMetadataFields,
+  }) async {
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [session.directoryPath],
       fileReader: _reader,
@@ -118,6 +281,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       policy: policy,
       fileReader: _reader,
       handles: handles,
+      catalogMetadataFields: metadataFields,
     );
     final opened = await service.openProject(session.directoryPath);
     try {
@@ -171,3 +335,16 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     }
   }
 }
+
+const _mapCatalogMetadataFields = <String>{
+  'maps',
+  'groups',
+  'settings',
+  'newGame',
+  'scenes',
+  'eventRegistry',
+  'cinematics',
+  'trainers',
+  'scenarios',
+  'pokemon',
+};

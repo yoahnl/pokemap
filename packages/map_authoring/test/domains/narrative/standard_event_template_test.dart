@@ -8,6 +8,13 @@ export '../../support/standard_event_template_fixture.dart'
     show templateMap, templateProject, templateSpec, templateItems;
 
 void main() {
+  test('scene identity selection rejects an invalid persisted generation', () {
+    expect(
+        () => standardEventTemplateSceneIds(
+            templateSpec(StandardEventTemplateKind.conditionalNpc),
+            generation: 'broken'),
+        throwsA(isA<NarrativeAuthoringException>()));
+  });
   test('first attachment preserves an idle NPC facing west', () {
     final source = templateMap();
     final entity = source.entities.single.copyWith(
@@ -86,7 +93,7 @@ void main() {
     expect(result.pages.first.actions, ['Dialogue Accueil du jardin']);
   });
 
-  test('shared generated scene cannot be overwritten by simplified editing',
+  test('editing forks generated scenes and preserves shared historical scenes',
       () {
     final spec = templateSpec(StandardEventTemplateKind.conditionalNpc);
     final initial = compileStandardEventTemplate(
@@ -109,9 +116,49 @@ void main() {
             mode: EventSystemMode.v2Only,
             records: [...initial.events, foreign],
             legacyClaims: []));
+    final changed = StandardEventTemplateSpec(
+        kind: spec.kind,
+        mapId: spec.mapId,
+        entityId: spec.entityId,
+        name: 'Updated',
+        parameters: spec.parameters);
+    final edited = compileStandardEventTemplate(
+        project: project, maps: [initial.map], spec: changed);
+    expect(
+        edited.scenes
+            .map((scene) => scene.id)
+            .toSet()
+            .intersection(initial.scenes.map((scene) => scene.id).toSet()),
+        isEmpty);
+    expect(edited.events.map((event) => event.id),
+        initial.events.map((event) => event.id));
+    expect(
+        edited.events.first.definitionOrNull!.sceneId, edited.scenes.first.id);
+    expect(project.scenes, initial.scenes);
+    expect(foreign.definitionOrNull!.sceneId, initial.scenes.first.id);
+    final reopened = project.copyWith(
+        scenes: [...project.scenes, ...edited.scenes],
+        eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [...edited.events, foreign],
+            legacyClaims: []));
+    expect(
+        readStandardEventTemplate(
+            project: reopened, map: edited.map, entityId: spec.entityId),
+        isNotNull);
+    final same = compileStandardEventTemplate(
+        project: reopened, maps: [edited.map], spec: changed);
+    expect(same.scenes, edited.scenes);
+    final collision = project.copyWith(scenes: [
+      ...initial.scenes,
+      for (final scene in edited.scenes)
+        SceneAsset.fromJson(
+            {...scene.toJson(), 'name': 'Advanced historical edit'}),
+    ]);
     expect(
         () => compileStandardEventTemplate(
-            project: project, maps: [initial.map], spec: spec),
+            project: collision, maps: [initial.map], spec: changed),
         throwsA(isA<NarrativeAuthoringException>()));
   });
 
@@ -199,7 +246,8 @@ void main() {
   });
 
   for (final kind in StandardEventTemplateKind.values) {
-    test('${kind.name} editing keeps owned IDs and protects the chosen kind',
+    test(
+        '${kind.name} editing keeps Event IDs, forks Scene IDs and protects the chosen kind',
         () {
       final spec = templateSpec(kind);
       final initial = compileStandardEventTemplate(
@@ -227,7 +275,7 @@ void main() {
       expect(edited.events.map((event) => event.id),
           initial.events.map((event) => event.id));
       expect(edited.scenes.map((scene) => scene.id),
-          initial.scenes.map((scene) => scene.id));
+          isNot(initial.scenes.map((scene) => scene.id)));
       final changedKind = templateSpec(
           kind == StandardEventTemplateKind.conditionalNpc
               ? StandardEventTemplateKind.pickup

@@ -33,6 +33,7 @@ class WorldWorkspaceController {
   final consumedEvents = <String>{};
 
   List<MapData> _maps = const [];
+  final _mapLoads = <String, Future<bool>>{};
   FactsWorldRulesManagerReadModel? _model;
   String? _modelKey;
   NarrativeWorldStateSimulationReport? report;
@@ -42,7 +43,16 @@ class WorldWorkspaceController {
   int _generation = 0;
 
   ProjectManifest get project => narrative.project;
-  List<MapData> get maps => _maps;
+  List<MapData> get maps => {
+    for (final map in _maps) map.id: map,
+    for (final document in narrative.workspace.documents.values)
+      document.current.id: document.current,
+  }.values.toList(growable: false);
+
+  bool get mapsComplete {
+    final loaded = maps.map((map) => map.id).toSet();
+    return project.maps.every((entry) => loaded.contains(entry.id));
+  }
 
   List<NarrativeFactDefinition> get facts => narrative.facts;
 
@@ -90,10 +100,10 @@ class WorldWorkspaceController {
       final drafted = project.copyWith(facts: facts, worldRules: rules);
       _model = buildFactsWorldRulesManagerReadModel(
         drafted,
-        maps: _maps,
+        maps: maps,
         dependencyIndex: buildNarrativeDependencyIndex(
           project: drafted,
-          maps: _maps,
+          maps: maps,
         ),
       );
       _modelKey = key;
@@ -104,7 +114,7 @@ class WorldWorkspaceController {
   String _projectionKey() => [
     project.facts.length,
     project.worldRules.length,
-    _maps.length,
+    for (final map in maps) (map.id, identityHashCode(map)),
     for (final fact in narrative.pendingFacts.values) fact.toJson().toString(),
     for (final draft in pendingRules.values) draft.signature,
     for (final fact in project.facts) fact.id,
@@ -122,14 +132,70 @@ class WorldWorkspaceController {
     loading = true;
     changed();
     try {
-      final loaded = await port.loadMaps();
-      if (_closed || ticket != _generation) return;
-      _maps = loaded;
+      _maps = const [];
       initialized = true;
       invalidate();
       error = null;
     } on Object catch (failure) {
       if (!_closed && ticket == _generation) error = failure.toString();
+    } finally {
+      if (!_closed && ticket == _generation) {
+        loading = false;
+        changed();
+      }
+    }
+  }
+
+  Future<bool> loadTargetMap(String id) {
+    if (_closed) return Future.value(false);
+    if (maps.any((map) => map.id == id)) return Future.value(true);
+    return _mapLoads.putIfAbsent(id, () async {
+      try {
+        final entries = project.maps.where((entry) => entry.id == id).toList();
+        final gateway = port;
+        if (entries.length != 1 || gateway is! WorldMapSelectionPort) {
+          return _fail(
+            const WorldFailure('Cette carte ne peut pas être chargée.'),
+          );
+        }
+        final loaded = await (gateway as WorldMapSelectionPort).loadMap(
+          entries.single,
+        );
+        if (_closed) return false;
+        if (loaded.id != id) {
+          return _fail(
+            const WorldFailure(
+              'La carte chargée ne correspond pas à la cible.',
+            ),
+          );
+        }
+        _maps = [..._maps.where((map) => map.id != id), loaded];
+        invalidate();
+        error = null;
+        changed();
+        return true;
+      } on Object catch (failure) {
+        return _closed ? false : _fail(failure);
+      } finally {
+        _mapLoads.remove(id);
+      }
+    });
+  }
+
+  Future<bool> loadAllMaps() async {
+    if (_closed || loading) return false;
+    final ticket = ++_generation;
+    loading = true;
+    changed();
+    try {
+      final loaded = await port.loadMaps();
+      if (_closed || ticket != _generation) return false;
+      _maps = loaded;
+      invalidate();
+      error = null;
+      return mapsComplete;
+    } on Object catch (failure) {
+      return _closed ? false : _fail(failure);
     } finally {
       if (!_closed && ticket == _generation) {
         loading = false;

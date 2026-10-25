@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
+import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
+
 import 'package:avelune_studio/features/map_workspace/application/map_atmosphere_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
@@ -12,6 +15,110 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
+  test('refreshing saved map bytes retains the admitted clean atmosphere controller', () async {
+    final port = _WorkspacePort();
+    final workspace = MapWorkspaceController(_session, port);
+    addTearDown(workspace.dispose);
+    await workspace.initialize();
+    final before = workspace.active!;
+    final atmosphere = before.atmosphere!;
+    atmosphere.edit(atmosphere.current.copyWith(waterAnimated: true));
+    expect(await atmosphere.save(), isTrue);
+    await workspace.refreshSavedMaps({'a'});
+    expect(workspace.active, isNot(same(before)));
+    expect(workspace.active!.atmosphere, same(atmosphere));
+    expect(workspace.active!.atmosphere!.current.waterAnimated, isTrue);
+    expect(workspace.active!.atmosphere!.dirty, isFalse);
+    expect(port.loads, 1);
+    expect(port.mapReads, 2);
+  });
+
+  test('refreshing only map bytes preserves atmosphere edits and an in-flight save', () async {
+    final port = _WorkspacePort();
+    final workspace = MapWorkspaceController(_session, port);
+    addTearDown(workspace.dispose);
+    await workspace.initialize();
+    final atmosphere = workspace.active!.atmosphere!;
+    atmosphere.edit(atmosphere.current.copyWith(waterAnimated: true));
+    port.pending = Completer<void>();
+    final save = atmosphere.save();
+    atmosphere.edit(atmosphere.current.copyWith(windowsLit: true));
+    await workspace.refreshSavedMaps({'a'});
+    expect(workspace.active!.atmosphere, same(atmosphere));
+    expect(workspace.active!.atmosphere!.saving, isTrue);
+    expect(workspace.active!.atmosphere!.current.windowsLit, isTrue);
+    port.pending!.complete();
+    expect(await save, isTrue);
+    expect(workspace.active!.atmosphere!.saving, isFalse);
+    expect(workspace.active!.atmosphere!.dirty, isTrue);
+    expect(workspace.active!.atmosphere!.current.windowsLit, isTrue);
+    expect(port.loads, 1);
+    expect(port.mapReads, 2);
+  });
+
+  test('global narrative publication saves atmosphere through the targeted boundary first', () async {
+    final port = _WorkspacePort();
+    final workspace = MapWorkspaceController(_session, port);
+    addTearDown(workspace.dispose);
+    await workspace.initialize();
+    final publication = _NarrativePort(workspace, port);
+    final narrative = NarrativeWorkspaceController(
+      workspace,
+      publication,
+      () {},
+      (_, _) async {},
+    );
+    addTearDown(narrative.dispose);
+    narrative.addFact('Village visité');
+    final atmosphere = workspace.active!.atmosphere!;
+    atmosphere.edit(atmosphere.current.copyWith(fireflies: true));
+    expect(await narrative.save(document: workspace.active), isTrue);
+    expect(port.saves.single.fireflies, isTrue);
+    expect(publication.publications, 1);
+    expect(publication.atmosphereWasSavedFirst, isTrue);
+    expect(narrative.pendingFacts, isEmpty);
+    expect(atmosphere.dirty, isFalse);
+    expect(port.mapReads, 1);
+    expect(port.mapWrites, 0);
+    expect(port.loads, 1);
+  });
+
+  test('atmosphere failure blocks global publication while both drafts remain editable', () async {
+    final port = _WorkspacePort();
+    final workspace = MapWorkspaceController(_session, port);
+    addTearDown(workspace.dispose);
+    await workspace.initialize();
+    final publication = _NarrativePort(workspace, port);
+    final narrative = NarrativeWorkspaceController(
+      workspace,
+      publication,
+      () {},
+      (_, _) async {},
+    );
+    addTearDown(narrative.dispose);
+    narrative.addFact('Village visité');
+    final atmosphere = workspace.active!.atmosphere!;
+    atmosphere.edit(atmosphere.current.copyWith(fireflies: true));
+    port.failure = StateError('Conflit ambiance');
+    expect(await narrative.save(document: workspace.active), isFalse);
+    expect(publication.publications, 0);
+    expect(narrative.pendingFacts, hasLength(1));
+    expect(atmosphere.dirty, isTrue);
+    expect(atmosphere.saving, isFalse);
+    expect(narrative.saving, isFalse);
+    expect(workspace.active!.saving, isFalse);
+    expect(atmosphere.error, contains('Conflit ambiance'));
+    atmosphere.edit(atmosphere.current.copyWith(fireflyDensity: .6));
+    expect(atmosphere.error, isNull);
+    port.failure = null;
+    expect(await narrative.save(document: workspace.active), isTrue);
+    expect(publication.publications, 1);
+    expect(narrative.pendingFacts, isEmpty);
+    expect(atmosphere.dirty, isFalse);
+    expect(port.mapReads, 1);
+    expect(port.mapWrites, 0);
+  });
+
   test('workspace opens the sidecar once and saves it without saving or reloading the map', () async {
     final port = _WorkspacePort();
     final workspace = MapWorkspaceController(_session, port);
@@ -192,5 +299,33 @@ class _WorkspacePort extends _Port implements MapWorkspacePort {
     final state = await super.loadAtmosphere(session, mapId);
     await pendingLoad?.future;
     return state;
+  }
+}
+
+class _NarrativePort implements NarrativePort {
+  _NarrativePort(this.workspace, this.atmosphere);
+  final MapWorkspaceController workspace;
+  final _Port atmosphere;
+  int publications = 0;
+  bool atmosphereWasSavedFirst = false;
+  @override
+  Future<NarrativeDialogueSource> readDialogue(ProjectDialogueEntry entry) =>
+      throw UnimplementedError();
+  @override
+  Future<NarrativePublicationReceipt> publish(
+    NarrativePublication publication,
+  ) async {
+    publications++;
+    atmosphereWasSavedFirst =
+        atmosphere.saves.isNotEmpty &&
+        workspace.active!.atmosphere!.dirty == false;
+    return NarrativePublicationReceipt(
+      beforeManifest: workspace.project!,
+      manifest: workspace.project!,
+      savedMap: publication.current,
+      revision: 'published-$publications',
+      sourceRevisions: {},
+      changedPaths: [],
+    );
   }
 }

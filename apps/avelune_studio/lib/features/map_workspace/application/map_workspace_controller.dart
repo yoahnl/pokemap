@@ -1,4 +1,7 @@
 import 'map_atmosphere_controller.dart';
+import 'map_editor_controller.dart';
+import 'dart:async';
+import '../domain/map_editor_port.dart';
 import '../domain/map_atmosphere_port.dart';
 
 import 'package:map_core/map_core_domain.dart';
@@ -12,6 +15,7 @@ part 'map_workspace_catalog_commands.dart';
 part 'map_workspace_catalog_preparation.dart';
 part 'map_workspace_history_destinations.dart';
 part 'map_workspace_resource_references.dart';
+part 'map_workspace_element_order.dart';
 
 class MapWorkspaceController {
   MapWorkspaceController(this.session, this.port, {this.catalogPort})
@@ -28,6 +32,7 @@ class MapWorkspaceController {
   final Map<String, Future<EditableMapDocument>> _loading = {};
   final Map<String, Future<MapData?>> _previews = {};
   final Map<String, EditableMapDocument> retiredDocuments = {};
+  final _elementOrderReceipts = <String, Map<Object, MapElementOrderWorkspaceReceipt>>{};
   bool catalogBusy = false;
   MapCatalogReceipt? pendingCatalogReceipt;
   String? _catalogTargetId;
@@ -39,6 +44,24 @@ class MapWorkspaceController {
   final Map<String, MapWorkspaceSelection> _selections = {};
   bool get hasCompleteProject =>
       projectScope == MapWorkspaceProjectScope.completeProject;
+  ProjectManifest? _visualMapSource;
+  ProjectManifest? _visualFamilySource;
+  ProjectManifest? _combinedVisuals;
+  ProjectManifest? _resourceVisualDefinitions;
+  ProjectManifest? get visualProject {
+    if (hasCompleteProject) return project;
+    final map = _selections[active?.base.mapId]?.definitions ?? project;
+    final family = _resourceVisualDefinitions;
+    if (map == null || family == null) return map;
+    if (!identical(map, _visualMapSource) ||
+        !identical(family, _visualFamilySource)) {
+      _visualMapSource = map;
+      _visualFamilySource = family;
+      _combinedVisuals = combineResourceVisuals(map, family);
+    }
+    return _combinedVisuals;
+  }
+
   EditableMapDocument? active;
   bool loading = false;
   String? error;
@@ -50,10 +73,16 @@ class MapWorkspaceController {
   bool get isDisposed => _disposed;
 
   bool get dirty => documents.values.any(
-    (document) => document.dirty || document.atmosphere?.dirty == true,
+    (document) =>
+        document.dirty ||
+        document.atmosphere?.dirty == true ||
+        document.editor?.dirty == true,
   );
   bool get saving => documents.values.any(
-    (document) => document.saving || document.atmosphere?.saving == true,
+    (document) =>
+        document.saving ||
+        document.atmosphere?.saving == true ||
+        document.editor?.saving == true,
   );
   void addListener(void Function() listener) => _listeners.add(listener);
   void removeListener(void Function() listener) => _listeners.remove(listener);
@@ -87,6 +116,97 @@ class MapWorkspaceController {
     }
   }
 
+  final _workshops = <MapWorkspaceWorkshop>{};
+  final _workshopLoads = <MapWorkspaceWorkshop, Future<void>>{};
+  ProjectManifest? _workshopDefinitions;
+
+  bool hasWorkshop(MapWorkspaceWorkshop workshop) =>
+      hasCompleteProject || _workshops.contains(workshop);
+
+  Future<void> ensureWorkshop(MapWorkspaceWorkshop workshop) {
+    if (hasWorkshop(workshop) || _disposed) return Future.value();
+    return _workshopLoads.putIfAbsent(workshop, () async {
+      try {
+        if (project == null) await initialize();
+        final source = port;
+        if (source is! MapWorkspaceWorkshopPort || project == null) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.unavailable,
+            'Cet atelier ne dispose pas de lecteur ciblé.',
+          );
+        }
+        final loaded = await source.loadWorkshop(session, workshop);
+        if (_disposed) return;
+        _workshopDefinitions = workshop.merge(
+          _workshopDefinitions ?? project!,
+          loaded.metadata,
+        );
+        project = workshop.merge(project!, loaded.metadata);
+        _workshops.add(workshop);
+        notify();
+      } finally {
+        _workshopLoads.remove(workshop);
+      }
+    });
+  }
+
+  String? _resourceKind;
+  int _resourceKindRequest = 0;
+  int _resourceKindPending = 0;
+  Future<void> _resourceKindQueue = Future.value();
+  bool hasResourceKind(String kind) =>
+      hasCompleteProject || _resourceKind == kind;
+
+  Future<void> ensureResourceKind(String kind) {
+    if (_disposed || hasCompleteProject) return Future.value();
+    if (hasResourceKind(kind) && _resourceKindPending == 0) {
+      return Future.value();
+    }
+    final request = ++_resourceKindRequest;
+    _resourceKindPending++;
+    final operation = _resourceKindQueue.then((_) async {
+      if (_disposed || request != _resourceKindRequest) return;
+      await ensureWorkshop(MapWorkspaceWorkshop.resources);
+      final source = port;
+      if (source is! MapWorkspaceResourceKindPort) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.unavailable,
+          'Cette famille ne dispose pas de lecteur ciblé.',
+        );
+      }
+      final loaded = await (source as MapWorkspaceResourceKindPort)
+          .loadResourceKind(session, kind);
+      if (_disposed || request != _resourceKindRequest) return;
+      final map = _selections[active?.base.mapId]?.definitions ?? project!;
+      _resourceVisualDefinitions = null;
+      project = mergeResourceSelection(
+        project!,
+        combineResourceVisuals(_withWorkshops(map), loaded.metadata),
+      );
+      _resourceKind = kind;
+      _resourceVisualDefinitions = loaded.metadata;
+      notify();
+    });
+    _resourceKindQueue = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return operation.whenComplete(() {
+      _resourceKindPending--;
+    });
+  }
+
+  ProjectManifest _withWorkshops(ProjectManifest selection) {
+    final loaded = _workshopDefinitions;
+    if (loaded == null) return selection;
+    var merged = selection;
+    for (final workshop in _workshops) {
+      merged = workshop.merge(merged, loaded);
+    }
+    final family = _resourceVisualDefinitions;
+    return family == null ? merged : combineResourceVisuals(merged, family);
+  }
+
   Future<void> materializeProject() async {
     if (hasCompleteProject || _disposed) return;
     final source = port;
@@ -96,6 +216,45 @@ class MapWorkspaceController {
     project = complete;
     projectScope = MapWorkspaceProjectScope.completeProject;
     _selections.clear();
+    notify();
+  }
+
+  Future<void> refreshCatalogSelection() async {
+    final source = port;
+    if (hasCompleteProject || _disposed || source is! MapWorkspaceScopedPort) {
+      return;
+    }
+    final catalog = await source.loadCatalog(session);
+    if (_disposed) return;
+    _workshopDefinitions = null;
+    _resourceKind = null;
+    _resourceVisualDefinitions = null;
+    for (final workshop in _workshops.toList()) {
+      if (source is MapWorkspaceWorkshopPort) {
+        final loaded = await source.loadWorkshop(session, workshop);
+        if (_disposed) return;
+        _workshopDefinitions = workshop.merge(
+          _workshopDefinitions ?? catalog.metadata,
+          loaded.metadata,
+        );
+      }
+    }
+    final document = active;
+    final entry = catalog.metadata.maps
+        .where((entry) => entry.id == document?.base.mapId)
+        .firstOrNull;
+    final selection = entry == null
+        ? null
+        : await source.loadMapSelection(session, entry);
+    if (_disposed) return;
+    _selections.clear();
+    if (selection != null) {
+      _selections[entry!.id] = selection;
+    }
+    project = _withWorkshops(selection?.definitions ?? catalog.metadata);
+    projectScope = selection == null
+        ? MapWorkspaceProjectScope.catalogMetadata
+        : MapWorkspaceProjectScope.mapSelection;
     notify();
   }
 
@@ -142,6 +301,16 @@ class MapWorkspaceController {
         });
       }
       final document = cached ?? await pending!;
+      final source = port;
+      if (cached != null &&
+          !hasCompleteProject &&
+          source is MapWorkspaceScopedPort &&
+          !_selections.containsKey(entry.id)) {
+        _selections[entry.id] = await source.loadMapSelection(
+          session,
+          currentEntry,
+        );
+      }
       if (_disposed ||
           mapEpoch != _mapEpochs[entry.id] ||
           isCurrent?.call() == false ||
@@ -153,7 +322,7 @@ class MapWorkspaceController {
         active = document;
         final selection = _selections[entry.id];
         if (!hasCompleteProject && selection != null) {
-          project = selection.definitions;
+          project = _withWorkshops(selection.definitions);
           projectScope = MapWorkspaceProjectScope.mapSelection;
         }
       }
@@ -177,6 +346,19 @@ class MapWorkspaceController {
     EditableMapDocument document,
     ProjectMapEntry entry,
   ) async {
+    final editorPort = port;
+    if (editorPort is MapEditorPort) {
+      final editor = await MapEditorController.open(
+        session,
+        entry.id,
+        editorPort as MapEditorPort,
+      );
+      if (_disposed) {
+        editor.dispose();
+        return document;
+      }
+      document.editor = editor;
+    }
     final atmospherePort = port;
     if (document.current.spatialScene != null &&
         atmospherePort is MapAtmospherePort) {
@@ -236,6 +418,8 @@ class MapWorkspaceController {
       if (entry == null) continue;
       final updated = EditableMapDocument(await port.loadMap(session, entry));
       if (_disposed) return;
+      updated.atmosphere = document?.atmosphere;
+      updated.editor = document?.editor;
       documents[id] = updated;
       if (activeId == id) active = updated;
     }
@@ -259,6 +443,7 @@ class MapWorkspaceController {
     if (!await (document.atmosphere?.save() ?? Future.value(true))) {
       return false;
     }
+    if (!await (document.editor?.save() ?? Future.value(true))) return false;
     if (!document.dirty) return true;
     document.saving = true;
     document.error = null;
@@ -276,7 +461,9 @@ class MapWorkspaceController {
         final selection = await source.loadMapSelection(session, entry);
         if (_disposed) return false;
         _selections[entry.id] = selection;
-        if (identical(active, document)) project = selection.definitions;
+        if (identical(active, document)) {
+          project = _withWorkshops(selection.definitions);
+        }
       }
       return true;
     } catch (failure) {
@@ -303,6 +490,12 @@ class MapWorkspaceController {
         document.saving ||
         catalogLocks(document.base.mapId) ||
         !manifest.maps.any((entry) => entry.id == document.base.mapId)) {
+      return;
+    }
+    final token = redo ? document.redoToken : document.undoToken;
+    final order = _elementOrderReceipts[document.base.mapId]?[token];
+    if (order != null && !document.dirty && document.base.revision == order.document.revision) {
+      unawaited(_restoreElementOrder(document, order, redo: redo));
       return;
     }
     document.restore(
@@ -364,6 +557,7 @@ class MapWorkspaceController {
       );
     }
     project = updated;
+    if (_workshopDefinitions != null) _workshopDefinitions = updated;
     notify();
   }
 
@@ -389,6 +583,7 @@ class MapWorkspaceController {
     _previews.clear();
     for (final document in {...documents.values, ...retiredDocuments.values}) {
       document.atmosphere?.dispose();
+      document.editor?.dispose();
     }
     _listeners.clear();
   }

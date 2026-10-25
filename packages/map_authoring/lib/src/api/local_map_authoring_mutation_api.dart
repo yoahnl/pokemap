@@ -1,8 +1,16 @@
+import '../documents/map_element_order_authoring.dart';
+import '../documents/map_editor_authoring.dart';
+import '../domains/maps/map_lifecycle_atmosphere.dart';
 import '../domains/assets/resource_pack_import_preparer.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'package:map_core/map_core.dart' show ProjectManifest, ProjectPokemonConfig, PokemonRulesetProfile;
+import 'package:map_core/map_core.dart'
+    show
+        ProjectManifest,
+        ProjectPokemonConfig,
+        PokemonRulesetProfile,
+        MapEditorState;
 
 import '../contracts/action_descriptor.dart';
 import '../catalog_storage/catalog_storage_store.dart';
@@ -59,13 +67,23 @@ import '../ports/file_backed_payload_store.dart';
 ///
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
+const _nativeLocalWorkshopActions = {
+  'pokemon.ruleset.set', 'campaign.encounter_table.upsert', 'campaign.trainer.upsert',
+  'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update',
+  'event_v2.template.apply', 'narrative.publish_document',
+};
+
 final class LocalMapAuthoringMutationApi
     implements
         AuthoringMutationApiPort,
+        AuthoringWorkshopPort,
+        AuthoringMapEditorStatePort,
+        AuthoringMapElementOrderPort,
         AuthoringArtifactStagingPort,
         AuthoringMutationServicePort,
         AuthoringArtifactStagingServicePort,
         AuthoringRecoveryStatusPort,
+        AuthoringIncompletePreparationDiscardPort,
         AuthoringResultProjectionPort {
   LocalMapAuthoringMutationApi({
     required WorkspacePolicy policy,
@@ -81,23 +99,25 @@ final class LocalMapAuthoringMutationApi
     AuthoringTransactionFaultInjector? faultInjector,
     AuthoringPerformanceObserver? performanceObserver,
     bool retainUndoHistory = true,
-  }) : _policy = policy,
-       _snapshotLoader = snapshotLoader,
-       _actor = actor ?? _localActor,
-       _authorizationLimits = authorizationLimits,
-       _clock = clock ?? _systemClock,
-       _faultInjector = faultInjector,
-       _retainUndoHistory = retainUndoHistory,
-       _resourcePackSourceRoots = List.unmodifiable(resourcePackSourceRoots) {
-    artifacts =
-        artifactStore ??
+    ProjectFileReader catalogFileReader = const LocalProjectFileReader(),
+  })  : _catalogFileReader = catalogFileReader,
+        _policy = policy,
+        _snapshotLoader = snapshotLoader,
+        _actor = actor ?? _localActor,
+        _authorizationLimits = authorizationLimits,
+        _clock = clock ?? _systemClock,
+        _faultInjector = faultInjector,
+        _retainUndoHistory = retainUndoHistory,
+        _resourcePackSourceRoots = List.unmodifiable(resourcePackSourceRoots) {
+    artifacts = artifactStore ??
         MemoryArtifactStore(
           maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
         );
     _dispatcher = dispatcher ??
         MapMutationDispatcher.canonical(
           artifactStore: artifacts,
-          projectCatalogPartitionBuilder:(context)=>_partitionAction(context.snapshot.projectHandle).build(context),
+          projectCatalogPartitionBuilder: (context) =>
+              _partitionAction(context.snapshot.projectHandle).build(context),
           preparedResourcePackImportResolver: (context, handle) =>
               _session(context.snapshot.projectHandle)
                   ._resourcePacks
@@ -110,8 +130,112 @@ final class LocalMapAuthoringMutationApi
     _performanceObserver = performanceObserver;
   }
 
+  late final LocalMapEditorAuthoring _mapEditor =
+      LocalMapEditorAuthoring(policy: _policy, actor: _actor);
+
+  @override
+  Future<MapEditorSnapshot> inspectMapEditor({
+    required String projectRoot,
+    required String mapId,
+    String? mapRelativePath,
+  }) =>
+      _mapEditor.inspect(
+        projectRoot: projectRoot,
+        mapId: mapId,
+        mapRelativePath: mapRelativePath,
+      );
+
+  @override
+  Future<MapEditorMutation> setMapEditor({
+    required String projectRoot,
+    required String mapId,
+    String? mapRelativePath,
+    required String expectedRevision,
+    required MapEditorState state,
+    required String operationId,
+  }) =>
+      _mapEditor.set(
+        projectRoot: projectRoot,
+        mapId: mapId,
+        mapRelativePath: mapRelativePath,
+        expectedRevision: expectedRevision,
+        state: state,
+        operationId: operationId,
+      );
+
+  @override
+  Future<MapEditorMutation> undoMapEditor({
+    required String projectRoot,
+    required String mapId,
+    String? mapRelativePath,
+    required String receiptId,
+    required String expectedRevision,
+    required String operationId,
+  }) =>
+      _mapEditor.undoReceipt(
+        projectRoot: projectRoot,
+        mapId: mapId,
+        mapRelativePath: mapRelativePath,
+        receiptId: receiptId,
+        expectedRevision: expectedRevision,
+        operationId: operationId,
+      );
+
+  late final LocalMapElementOrderAuthoring _mapElementOrder =
+      LocalMapElementOrderAuthoring(policy: _policy, actor: _actor);
+
+  @override
+  Future<MapElementOrderSnapshot> inspectMapElementOrder({
+    required String projectRoot,
+    required String mapId,
+    String? mapRelativePath,
+  }) =>
+      _mapElementOrder.inspect(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath);
+
+  @override
+  Future<MapElementOrderMutation> reorderMapElements({
+    required String projectRoot,
+    required String mapId,
+    String? mapRelativePath,
+    required String expectedRevision,
+    required String kind,
+    required List<String> frontFirstIds,
+    String? layerId,
+    required String operationId,
+  }) =>
+      _mapElementOrder.reorder(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          expectedRevision: expectedRevision,
+          kind: kind,
+          frontFirstIds: frontFirstIds,
+          layerId: layerId,
+          operationId: operationId);
+
+  @override
+  Future<MapElementOrderMutation> undoMapElementOrder({
+    required String projectRoot,
+    required String mapId,
+    String? mapRelativePath,
+    required String receiptId,
+    required String expectedRevision,
+    required String operationId,
+  }) =>
+      _mapElementOrder.undoReceipt(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          receiptId: receiptId,
+          expectedRevision: expectedRevision,
+          operationId: operationId);
+
   final List<String> _resourcePackSourceRoots;
   final WorkspacePolicy _policy;
+  final ProjectFileReader _catalogFileReader;
   final ProjectSnapshotLoader _snapshotLoader;
   late final MapMutationDispatcher _dispatcher;
   late final ArtifactStore artifacts;
@@ -123,16 +247,91 @@ final class LocalMapAuthoringMutationApi
   late final AuthoringPerformanceObserver? _performanceObserver;
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
   final Map<ProjectHandle, CatalogAuthoringSession> _catalogSessions = {};
-  final Map<ProjectHandle,CatalogPartitionAction> _partitionActions={};
-  CatalogPartitionAction _partitionAction(ProjectHandle handle)=>_partitionActions[handle]??(throw AuthoringPlanException(code:"catalog.already_partitioned",message:"The project already uses a partitioned catalog."));
+  final Map<ProjectHandle, CatalogPartitionAction> _partitionActions = {};
+  CatalogPartitionAction _partitionAction(ProjectHandle handle) =>
+      _partitionActions[handle] ??
+      (throw AuthoringPlanException(
+          code: "catalog.already_partitioned",
+          message: "The project already uses a partitioned catalog."));
   bool isCatalogProject(ProjectHandle handle) =>
       _catalogSessions.containsKey(handle);
+  Future<ProjectSnapshot> readWorkshopSnapshot(ProjectHandle handle,
+      {required String actionId,
+      Map<String, Object?> parameters = const {},
+      Map<String, String> readDependencies = const {}}) {
+    final session = _catalogSession(handle);
+    if (session == null) {
+      _session(handle).requireProjectionRead();
+      return _snapshotLoader.loadWorkshop(handle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);
+    }
+    return session.readWorkshopSnapshot(
+        actionId: actionId,
+        parameters: parameters,
+        readDependencies: readDependencies);
+  }
+
+  Future<void> prepareWorkshopCatalog(ProjectHandle handle) async {
+    final session = _catalogSession(handle);
+    if (session == null) {
+      await _session(handle).prepareLocalWorkshop();
+      return;
+    }
+    session.requirePreparationAuthorization();
+    await _session(handle)._idempotencyStore.prepareIncrementalStorage();
+    await session.prepareWorkshopCatalog();
+  }
+
+  @override
+  Future<Map<String, Object?>> readWorkshopDocument(ProjectHandle projectHandle,
+      {required String actionId,
+      Map<String, Object?> parameters = const {},
+      Map<String, String> readDependencies = const {}}) async {
+    final snapshot = await readWorkshopSnapshot(projectHandle,
+        actionId: actionId,
+        parameters: parameters,
+        readDependencies: readDependencies);
+    return {
+      'snapshotRevision': snapshot.revision,
+      'project': snapshot.manifest.copyWith(settings: snapshot.manifest.settings.copyWith(mistralApiKey: null)).toJson(),
+      'maps': [for (final map in snapshot.maps) map.toJson()],
+      'resourceRevisions': snapshot.resourceFingerprints,
+      'availableProjectSections': snapshot.availableProjectSections?.toList(),
+      'availableProjectDocuments': {
+        for (final entry in snapshot.availableProjectDocuments?.entries ??
+            const <MapEntry<String, Set<String>>>[])
+          entry.key: entry.value.toList()
+      },
+      'planExtensions': {
+        'workshopScope': true,
+        if (readDependencies.isNotEmpty)
+          'workshopReadDependencies': readDependencies
+      },
+    };
+  }
+
+  @override
+  Future<Map<String, Object?>> prepareWorkshopDocument(
+      ProjectHandle projectHandle) async {
+    await prepareWorkshopCatalog(projectHandle);
+    final catalog = _catalogSession(projectHandle);
+    final current = catalog == null ? null : await CatalogProjectReader.open(
+        store: catalog.reader.store, descriptor: catalog.reader.descriptor, metadataFields: {});
+    return {'prepared': true, if (current != null) 'snapshotRevision': current.revision,
+      'scope': catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
+  }
+
   Future<bool> catalogProjectReadOnly(ProjectHandle handle) async {
     final session = _catalogSession(handle);
     if (session == null) return false;
     session.requireRead();
-    return session.reader.readOnly || (await session.reader.store.gateway.listJournals()).any((journal) => journal.status!=AuthoringTransactionStatus.committed && journal.status!=AuthoringTransactionStatus.compensated && journal.entries.any((entry) => entry.storageKey == CatalogStorageStore.headStorageKey));
+    return session.reader.readOnly ||
+        (await session.reader.store.gateway.listJournals()).any((journal) =>
+            journal.status != AuthoringTransactionStatus.committed &&
+            journal.status != AuthoringTransactionStatus.compensated &&
+            journal.entries.any((entry) =>
+                entry.storageKey == CatalogStorageStore.headStorageKey));
   }
+
   CatalogAuthoringSession? _catalogSession(ProjectHandle handle) {
     _snapshotLoader.requireActiveProject(handle);
     return _catalogSessions[handle];
@@ -181,6 +380,14 @@ final class LocalMapAuthoringMutationApi
             summary: 'List committed history entries.',
           ),
           AuthoringMutationCommandDescriptor(
+              id: 'workshop_snapshot',
+              summary:
+                  'Read only the canonical documents and dependencies needed for a local catalog mutation.'),
+          AuthoringMutationCommandDescriptor(
+              id: 'workshop_prepare',
+              summary:
+                  'Explicitly prepare catalog admission, metadata indexes and retained local history before editing an older or copied project.'),
+          AuthoringMutationCommandDescriptor(
             id: 'plan',
             summary: 'Plan and preview a map mutation.',
           ),
@@ -192,6 +399,11 @@ final class LocalMapAuthoringMutationApi
           AuthoringMutationCommandDescriptor(
             id: 'recover',
             summary: 'Resume a recoverable transaction.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'discard_preparation',
+            summary:
+                'Discard an uncommitted incomplete preparation without changing project data.',
           ),
           AuthoringMutationCommandDescriptor(
             id: 'recovery_status',
@@ -263,6 +475,7 @@ final class LocalMapAuthoringMutationApi
       );
     }
     final canonicalRoot = await _policy.authorizeProjectRoot(projectRootPath);
+    await _snapshotLoader.requireMutationRoot(projectHandle, canonicalRoot);
     final manifestFile = File(_joinAll([canonicalRoot, 'project.json']));
     if (await manifestFile.length() <= 4096) {
       final manifestBytes = await manifestFile.readAsBytes();
@@ -281,39 +494,82 @@ final class LocalMapAuthoringMutationApi
         final reader = await CatalogProjectReader.open(
             store: CatalogStorageStore(
                 projectRoot: canonicalRoot,
-                reader: const LocalProjectFileReader(),
+                reader: _catalogFileReader,
                 gateway: await LocalTransactionFileGateway.open(
-                    projectRoot: canonicalRoot)),
-            descriptor: Map<String, Object?>.from(json),allowRecoveryBootstrap:true);
+                    projectRoot: canonicalRoot,
+                    performanceObserver: _performanceObserver)),
+            descriptor: Map<String, Object?>.from(json),
+            allowRecoveryBootstrap: true,
+            metadataFields: {});
         if (!reader!.readOnly) {
           _sessions[projectHandle] = await _LocalMapAuthoringSession.open(
-            canonicalProjectRoot:canonicalRoot,resourcePackSourceRoots:_resourcePackSourceRoots,
-            initialRevision:reader.revision,projectId:reader.projectId,workspaceHandle:workspaceHandle,projectHandle:projectHandle,
-            snapshotLoader:_snapshotLoader,dispatcher:_dispatcher,actor:_actor,authorizationLimits:_authorizationLimits,clock:_clock,
-            retainUndoHistory:_retainUndoHistory,
-            faultInjector:_faultInjector,performanceObserver:_performanceObserver);
+              canonicalProjectRoot: canonicalRoot,
+              resourcePackSourceRoots: _resourcePackSourceRoots,
+              initialRevision: reader.revision,
+              projectId: reader.projectId,
+              workspaceHandle: workspaceHandle,
+              projectHandle: projectHandle,
+              snapshotLoader: _snapshotLoader,
+              dispatcher: _dispatcher,
+              actor: _actor,
+              authorizationLimits: _authorizationLimits,
+              clock: _clock,
+              retainUndoHistory: _retainUndoHistory,
+              maintainIdempotencyOnOpen: false,
+              faultInjector: _faultInjector,
+              performanceObserver: _performanceObserver);
         }
         _catalogSessions[projectHandle] = CatalogAuthoringSession(
             reader: reader,
+            projectHandle: projectHandle,
             workspaceHandle: workspaceHandle,
             actor: _actor,
             requireActive: () =>
                 _snapshotLoader.requireActiveProject(projectHandle),
-            dispatcher:_dispatcher,
-            resolveAction:(id)=>_resolveHistoryOrAction(_dispatcher,id),
-            inspectHistoryReplay:(operationId,actionId,entryId)=>_inspectCatalogHistoryReplay(projectHandle,operationId,actionId,entryId),
-            loadProject:()=>_snapshotLoader.load(projectHandle),
-            buildProjectPlan:(request)=>_session(projectHandle).planMutation(request),
-            discardProjectPlan:(planId)=>_session(projectHandle)._plans.discard(planId),
-            inspectReplay:(planId,operationId)=>_inspectCatalogReplay(projectHandle,planId,operationId),
-            prepareApply:(plan,operationId) async {
-              if(plan.request.actionId=='resource_pack.import') await _session(projectHandle)._resourcePacks.certifyCatalogPlan(plan:plan,actorId:_actor.actorId,projectId:reader.projectId,operationId:operationId,store:reader.store);
+            dispatcher: _dispatcher,
+            resolveAction: (id) => _resolveHistoryOrAction(_dispatcher, id),
+            inspectHistoryReplay: (operationId, actionId, entryId) =>
+                _inspectCatalogHistoryReplay(
+                    projectHandle, operationId, actionId, entryId),
+            loadProject: () => _snapshotLoader.load(projectHandle),
+            buildProjectPlan: (request) =>
+                _session(projectHandle).planMutation(request),
+            buildScopedProjectPlan: (request, snapshot) =>
+                _session(projectHandle)
+                    .planMutation(request, suppliedSnapshot: snapshot),
+            discardProjectPlan: (planId) =>
+                _session(projectHandle)._plans.discard(planId),
+            inspectReplay: (planId, operationId) =>
+                _inspectCatalogReplay(projectHandle, planId, operationId),
+            prepareApply: (plan, operationId) async {
+              if (plan.request.actionId == 'resource_pack.import') {
+                await _session(projectHandle)._resourcePacks.certifyCatalogPlan(
+                    plan: plan,
+                    actorId: _actor.actorId,
+                    projectId: reader.projectId,
+                    operationId: operationId,
+                    store: reader.store);
+              }
             },
-            requirePlanPreconditions:(plan) async {
-              if(plan.request.actionId=='resource_pack.import') await _session(projectHandle)._resourcePacks.requireCatalogPlanPreconditions(plan,store:reader.store);
+            requirePlanPreconditions: (plan) async {
+              if (plan.request.actionId == 'resource_pack.import') {
+                await _session(projectHandle)
+                    ._resourcePacks
+                    .requireCatalogPlanPreconditions(plan, store: reader.store);
+              }
             },
-            projections:reader.readOnly?null:_session(projectHandle)._projections,
-            auditOutcome:(plan,decision,receipt,error,details)=>_session(projectHandle)._executor.auditMutationOutcome(actor:_actor,projectId:reader.projectId,action:_resolveHistoryOrAction(_dispatcher,plan.request.actionId),plan:plan,decision:decision,receipt:receipt,error:error,details:details),
+            projections:
+                reader.readOnly ? null : _session(projectHandle)._projections,
+            auditOutcome: (plan, decision, receipt, error, details) =>
+                _session(projectHandle)._executor.auditMutationOutcome(
+                    actor: _actor,
+                    projectId: reader.projectId,
+                    action: _resolveHistoryOrAction(_dispatcher, plan.request.actionId),
+                    plan: plan,
+                    decision: decision,
+                    receipt: receipt,
+                    error: error,
+                    details: details),
             clock: _clock,
             limits: _authorizationLimits,
             faultInjector: _faultInjector);
@@ -325,52 +581,10 @@ final class LocalMapAuthoringMutationApi
     final initialGateway = await LocalTransactionFileGateway.open(
       projectRoot: canonicalRoot,
     );
-    final initialLedger = AuthoringIdempotencyLedger(
-      store: FileIdempotencyStore(
-        filePath: _joinAll([
-          canonicalRoot,
-          '.pokemap',
-          'authoring',
-          'idempotency.jsonl',
-        ]),
-      ),
-    );
-    final recoveryState = await traceAuthoringPhase(
-      'authoring.attach.recovery',
-      () => AuthoringRecoveryService(
-        gateway: initialGateway,
-        idempotency: initialLedger,
-        clock: _clock,
-      ).inspect(),
-    );
-    final pending = recoveryState.any(
-      (entry) =>
-          entry.disposition == AuthoringRecoveryDisposition.resumable ||
-          entry.disposition == AuthoringRecoveryDisposition.blocked,
-    );
-    final String initialRevision;
-    if (pending) {
-      final observed = await _snapshotLoader.resourcePackManifestRevision(
-        projectHandle,
-      );
-      if (await initialGateway.readResourceRevision('project.json') !=
-          observed) {
-        throw const WorkspaceHandleException(
-          'workspace.mutation_binding_mismatch',
-          'The mutation root differs from the opened project.',
-        );
-      }
-      initialRevision = observed;
-    } else {
-      final snapshot = await traceAuthoringPhase(
-        'authoring.attach.snapshot',
-        () => _snapshotLoader.load(
-          projectHandle,
-          policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-        ),
-      );
-      await _requireRootMatchesSnapshot(canonicalRoot, snapshot);
-      initialRevision = snapshot.revision;
+    final initialRevision = await _snapshotLoader.resourcePackManifestRevision(projectHandle);
+    if (await initialGateway.readResourceRevision('project.json') != initialRevision) {
+      throw const WorkspaceHandleException('workspace.mutation_binding_mismatch',
+          'The mutation root differs from the opened project.');
     }
     final projectId = _projectIdentity(canonicalRoot);
     final session = await traceAuthoringPhase(
@@ -393,26 +607,51 @@ final class LocalMapAuthoringMutationApi
       ),
     );
     _sessions[projectHandle] = session;
-    _partitionActions[projectHandle]=CatalogPartitionAction(store:await CatalogStorageStore.open(projectRoot:canonicalRoot),projectId:projectId);
+    _partitionActions[projectHandle] = CatalogPartitionAction(
+        store: await CatalogStorageStore.open(projectRoot: canonicalRoot),
+        projectId: projectId);
     _projectsByWorkspace[workspaceHandle] = projectHandle;
   }
 
-  Future<AuthoringReceipt?> _inspectCatalogReplay(ProjectHandle handle,String planId,String operationId) async {
-    final session=_session(handle);
-    return session._executor.inspectDurableReplay(actor:_actor,projectId:session.projectId,planId:planId,operationId:operationId,
-      lookup:()=>session._idempotencyStore.lookupOperation(actorId:_actor.actorId,projectId:session.projectId,operationId:operationId,now:session._plans.now),
-      readHistory:(entryId)=>session._history.get(projectId:session.projectId,entryId:entryId),resolveAction:(id)=>_resolveHistoryOrAction(_dispatcher,id));
+  Future<AuthoringReceipt?> _inspectCatalogReplay(
+      ProjectHandle handle, String planId, String operationId) async {
+    final session = _session(handle);
+    return session._executor.inspectDurableReplay(
+        actor: _actor,
+        projectId: session.projectId,
+        planId: planId,
+        operationId: operationId,
+        lookup: () => session._idempotencyStore.lookupOperation(
+            actorId: _actor.actorId,
+            projectId: session.projectId,
+            operationId: operationId,
+            now: session._plans.now),
+        readHistory: (entryId) => session._history
+            .get(projectId: session.projectId, entryId: entryId),
+        resolveAction: (id) => _resolveHistoryOrAction(_dispatcher, id));
   }
 
-  Future<AuthoringReceipt?> _inspectCatalogHistoryReplay(ProjectHandle handle,String operationId,String actionId,String entryId) async {
-    final session=_session(handle);
-    final found=await session._idempotencyStore.lookupOperation(actorId:_actor.actorId,projectId:session.projectId,operationId:operationId,now:session._plans.now);
-    if(found==null) return null;
-    final receipt=found.completed?.receipt;
-    if(receipt==null) throw const AuthoringRecoveryException('idempotency.recovery_required','This historical operation requires canonical recovery.');
-    final context=AuthoringHistoryContext.fromExtensions(receipt.extensions);
-    if(receipt.actionId!=actionId || context.targetEntryId!=entryId) throw const AuthoringHistoryException('history.replay_context_mismatch','The historical operation identity differs.');
-    return _inspectCatalogReplay(handle,receipt.extensions['planId'] as String,operationId);
+  Future<AuthoringReceipt?> _inspectCatalogHistoryReplay(ProjectHandle handle,
+      String operationId, String actionId, String entryId) async {
+    final session = _session(handle);
+    final found = await session._idempotencyStore.lookupOperation(
+        actorId: _actor.actorId,
+        projectId: session.projectId,
+        operationId: operationId,
+        now: session._plans.now);
+    if (found == null) return null;
+    final receipt = found.completed?.receipt;
+    if (receipt == null) {
+      throw const AuthoringRecoveryException('idempotency.recovery_required',
+          'This historical operation requires canonical recovery.');
+    }
+    final context = AuthoringHistoryContext.fromExtensions(receipt.extensions);
+    if (receipt.actionId != actionId || context.targetEntryId != entryId) {
+      throw const AuthoringHistoryException('history.replay_context_mismatch',
+          'The historical operation identity differs.');
+    }
+    return _inspectCatalogReplay(
+        handle, receipt.extensions['planId'] as String, operationId);
   }
 
   @override
@@ -432,7 +671,11 @@ final class LocalMapAuthoringMutationApi
   ) async {
     final catalog = _catalogSession(projectHandle);
     if (catalog != null) return catalog.plan(request);
-    final result = await _session(projectHandle).planMutation(request).whenComplete(()=>_partitionActions[projectHandle]?.flushRetired()??Future<void>.value());
+    final result = await _session(projectHandle)
+        .planMutation(request)
+        .whenComplete(() =>
+            _partitionActions[projectHandle]?.flushRetired() ??
+            Future<void>.value());
     if ({
           'model3d.import_batch',
           'model3d.source.replace_batch',
@@ -482,22 +725,35 @@ final class LocalMapAuthoringMutationApi
   }) async {
     final catalog = _catalogSession(projectHandle);
     if (catalog != null) {
-      return catalog.apply(planId: planId, operationId: operationId,confirmationToken:confirmationToken,precondition:precondition,beforeReservation:beforeReservation,preparationCheck:preparationCheck);
+      return catalog.apply(
+          planId: planId,
+          operationId: operationId,
+          confirmationToken: confirmationToken,
+          precondition: precondition,
+          beforeReservation: beforeReservation,
+          preparationCheck: preparationCheck);
     }
-    final partition=_partitionActions[projectHandle];
+    final partition = _partitionActions[projectHandle];
     final result = await _session(projectHandle).applyMutation(
       planId: planId,
       operationId: operationId,
       confirmationToken: confirmationToken,
-      precondition:() async {
-        if(partition?.containsPlan(planId)??false) await partition!.requireApply(planId,operationId);
+      precondition: () async {
+        if (partition?.containsPlan(planId) ?? false) {
+          await partition!.requireApply(planId, operationId);
+        }
         await precondition?.call();
       },
       beforeReservation: beforeReservation,
       preparationCheck: preparationCheck,
     );
     await partition?.flushRetired();
-    if(result.receipt.actionId=='project.catalog.partition') await partition?.releaseOperation(operationId);
+    if (result.receipt.actionId == 'project.catalog.partition') {
+      await partition?.releaseOperation(operationId);
+      await _session(projectHandle)._idempotencyStore.prepareIncrementalStorage();
+      final history = _session(projectHandle)._history;
+      if (history is FileAuthoringHistoryStore) await history.prepareLocalHistory();
+    }
     await _releasePresentationMediaStaging(projectHandle, result);
     return result;
   }
@@ -547,9 +803,25 @@ final class LocalMapAuthoringMutationApi
     void Function()? beforeReservation,
     void Function()? preparationCheck,
   }) async {
-    final catalog=_catalogSession(projectHandle);
-    if(catalog!=null) return catalog.projectHistory(operation:operation,entryId:entryId,operationId:operationId,expectedRevision:expectedRevision,expectedHeadEntryId:expectedHeadEntryId,beforeReservation:beforeReservation,preparationCheck:preparationCheck);
-    return _session(projectHandle).resourcePackHistory(operation:operation,entryId:entryId,operationId:operationId,expectedRevision:expectedRevision,expectedHeadEntryId:expectedHeadEntryId,beforeReservation:beforeReservation,preparationCheck:preparationCheck);
+    final catalog = _catalogSession(projectHandle);
+    if (catalog != null) {
+      return catalog.projectHistory(
+          operation: operation,
+          entryId: entryId,
+          operationId: operationId,
+          expectedRevision: expectedRevision,
+          expectedHeadEntryId: expectedHeadEntryId,
+          beforeReservation: beforeReservation,
+          preparationCheck: preparationCheck);
+    }
+    return _session(projectHandle).resourcePackHistory(
+        operation: operation,
+        entryId: entryId,
+        operationId: operationId,
+        expectedRevision: expectedRevision,
+        expectedHeadEntryId: expectedHeadEntryId,
+        beforeReservation: beforeReservation,
+        preparationCheck: preparationCheck);
   }
 
   Future<List<AuthoringRecoveryInspection>> resourcePackPending(
@@ -565,7 +837,9 @@ final class LocalMapAuthoringMutationApi
     _snapshotLoader.requireActiveProject(projectHandle);
     final catalog = _catalogSession(projectHandle);
     if (catalog != null) catalog.requireRead();
-    if (catalog?.reader.readOnly??false) return catalog!.recoveryStatus(operationId);
+    if (catalog?.reader.readOnly ?? false) {
+      return catalog!.recoveryStatus(operationId);
+    }
     final session = _session(projectHandle);
     final identity = _safeIdentity(operationId, 'operationId');
     session.requireProjectionRead();
@@ -579,7 +853,8 @@ final class LocalMapAuthoringMutationApi
       return {'operationId': identity, 'disposition': 'notFound'};
     }
     final inspection = await session._recovery.inspectOperation(
-      operationId: identity, scope: found.scope,
+      operationId: identity,
+      scope: found.scope,
     );
     if (inspection != null) return inspection.toJson();
     final receipt = found.completed?.receipt;
@@ -595,6 +870,14 @@ final class LocalMapAuthoringMutationApi
     };
   }
 
+  @override
+  Future<AuthoringIncompletePreparationDiscardResult>
+      discardIncompletePreparation(
+    ProjectHandle projectHandle, {
+    required String operationId,
+  }) =>
+          _session(projectHandle).discardIncompletePreparation(operationId);
+
   Future<bool> resourcePackRequiresJob(
     ProjectHandle projectHandle, {
     required String operation,
@@ -602,17 +885,26 @@ final class LocalMapAuthoringMutationApi
     String? operationId,
     String? entryId,
   }) async {
-    final catalog=_catalogSession(projectHandle);
-    if(catalog?.reader.readOnly??false) return false;
-    if(catalog!=null && operation=='apply') {
-      final session=_session(projectHandle);
-      final found=await session._idempotencyStore.lookupOperation(actorId:_actor.actorId,projectId:session.projectId,operationId:_safeIdentity(operationId!,'operationId'),now:session._plans.now);
-      if(found==null) {
-        final plan=catalog.activePlan(_safeIdentity(planId!,'planId'));
-        return plan.request.actionId=='resource_pack.import'||plan.bulkCapability!=null;
+    final catalog = _catalogSession(projectHandle);
+    if (catalog?.reader.readOnly ?? false) return false;
+    if (catalog != null && operation == 'apply') {
+      final session = _session(projectHandle);
+      final found = await session._idempotencyStore.lookupOperation(
+          actorId: _actor.actorId,
+          projectId: session.projectId,
+          operationId: _safeIdentity(operationId!, 'operationId'),
+          now: session._plans.now);
+      if (found == null) {
+        final plan = catalog.activePlan(_safeIdentity(planId!, 'planId'));
+        return plan.request.actionId == 'resource_pack.import' ||
+            plan.bulkCapability != null;
       }
     }
-    return _session(projectHandle).resourcePackRequiresJob(operation:operation,planId:planId,operationId:operationId,entryId:entryId);
+    return _session(projectHandle).resourcePackRequiresJob(
+        operation: operation,
+        planId: planId,
+        operationId: operationId,
+        entryId: entryId);
   }
 
   Future<AuthoringMutationResult> resourcePackRecover(
@@ -620,12 +912,13 @@ final class LocalMapAuthoringMutationApi
     required String operationId,
     void Function()? beforeRecovery,
   }) async {
-    final catalog=_catalogSession(projectHandle);
-    if(catalog!=null) {
+    final catalog = _catalogSession(projectHandle);
+    if (catalog != null) {
       beforeRecovery?.call();
       return catalog.recover(operationId);
     }
-    return _session(projectHandle).recoverMutation(operationId,beforeRecovery:beforeRecovery);
+    return _session(projectHandle)
+        .recoverMutation(operationId, beforeRecovery: beforeRecovery);
   }
 
   @override
@@ -637,8 +930,8 @@ final class LocalMapAuthoringMutationApi
     final catalog = _catalogSession(projectHandle);
     return catalog != null
         ? catalog.undo(entryId: entryId, idempotencyKey: idempotencyKey)
-        : _session(
-        projectHandle).undoMutation(entryId: entryId, idempotencyKey: idempotencyKey);
+        : _session(projectHandle)
+            .undoMutation(entryId: entryId, idempotencyKey: idempotencyKey);
   }
 
   @override
@@ -663,7 +956,8 @@ final class LocalMapAuthoringMutationApi
     final catalog = _catalogSession(projectHandle);
     return catalog != null
         ? catalog.history(limit: limit, cursor: cursor)
-        : _session(projectHandle).listMutationHistory(limit: limit, cursor: cursor);
+        : _session(projectHandle)
+            .listMutationHistory(limit: limit, cursor: cursor);
   }
 
   @override
@@ -687,10 +981,20 @@ final class LocalMapAuthoringMutationApi
     final catalog = _catalogSession(projectHandle);
     if (catalog != null) return catalog.recover(operationId);
     final result = await _session(projectHandle).recoverMutation(operationId);
-    if(result.receipt.actionId=='project.catalog.partition') {
-      final session=_session(projectHandle);
-      final found=await session._idempotencyStore.lookupOperation(actorId:_actor.actorId,projectId:session.projectId,operationId:operationId,now:session._plans.now);
-      if(found!=null) await session._executor.cleanupRecoveredMutation(scope:found.scope,planId:result.receipt.extensions['planId'] as String,operationId:operationId,receipt:result.receipt);
+    if (result.receipt.actionId == 'project.catalog.partition') {
+      final session = _session(projectHandle);
+      final found = await session._idempotencyStore.lookupOperation(
+          actorId: _actor.actorId,
+          projectId: session.projectId,
+          operationId: operationId,
+          now: session._plans.now);
+      if (found != null) {
+        await session._executor.cleanupRecoveredMutation(
+            scope: found.scope,
+            planId: result.receipt.extensions['planId'] as String,
+            operationId: operationId,
+            receipt: result.receipt);
+      }
       await _partitionActions[projectHandle]?.releaseOperation(operationId);
     }
     await _releasePresentationMediaStaging(projectHandle, result);
@@ -784,30 +1088,7 @@ final class LocalMapAuthoringMutationApi
     }
   }
 
-  Future<void> _requireRootMatchesSnapshot(
-    String canonicalRoot,
-    ProjectSnapshot snapshot,
-  ) => traceAuthoringPhase(
-    'authoring.attach.root_binding',
-    () => _checkRootMatchesSnapshot(canonicalRoot, snapshot),
-    arguments: {'resourceCount': snapshot.resourceStorageKeys.length},
-  );
 
-  Future<void> _checkRootMatchesSnapshot(
-    String canonicalRoot,
-    ProjectSnapshot snapshot,
-  ) async {
-    final gateway =
-        await LocalTransactionFileGateway.open(projectRoot: canonicalRoot);
-    for (final entry in snapshot.resourceStorageKeys.entries) {
-      if (await gateway.readResourceRevision(entry.value) !=
-          snapshot.resourceFingerprints[entry.key]) {
-        throw const WorkspaceHandleException(
-            'workspace.mutation_binding_mismatch',
-            'The mutation root does not match the opened project handle.');
-      }
-    }
-  }
 }
 
 Never _requireFreshBootstrap() => throw const WorkspaceHandleException(
@@ -816,34 +1097,56 @@ Never _requireFreshBootstrap() => throw const WorkspaceHandleException(
 
 Future<void> _requireFreshBootstrapRoot(String root) async {
   try {
-    const directories = {'.pokemap', '.pokemap/authoring', '.pokemap/authoring/transactions'};
-    const files = {'project.json', '.pokemap/authoring/idempotency.jsonl',
-      '.pokemap/authoring/idempotency.jsonl.lock', '.pokemap/authoring/transactions/write.lock'};
-    await for (final entry in Directory(root).list(recursive: true, followLinks: false)) {
-      final relative = entry.path.substring(root.length + 1)
-          .split(Platform.pathSeparator).join('/');
+    const directories = {
+      '.pokemap',
+      '.pokemap/authoring',
+      '.pokemap/authoring/transactions'
+    };
+    const files = {
+      'project.json',
+      '.pokemap/authoring/idempotency.jsonl',
+      '.pokemap/authoring/idempotency.jsonl.lock',
+      '.pokemap/authoring/transactions/write.lock'
+    };
+    await for (final entry
+        in Directory(root).list(recursive: true, followLinks: false)) {
+      final relative = entry.path
+          .substring(root.length + 1)
+          .split(Platform.pathSeparator)
+          .join('/');
       if (!(entry is Directory && directories.contains(relative)) &&
           !(entry is File && files.contains(relative))) {
         _requireFreshBootstrap();
       }
     }
-    final manifestBytes = await File(_joinAll([root, 'project.json'])).readAsBytes();
-    final manifest = ProjectManifest.fromJson(jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>);
-    final empty = ProjectManifest(name: manifest.name, version: manifest.version,
-        maps: const [], tilesets: const [], settings: manifest.settings,
-        pokemon: const ProjectPokemonConfig(enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1));
+    final manifestBytes =
+        await File(_joinAll([root, 'project.json'])).readAsBytes();
+    final manifest = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>);
+    final empty = ProjectManifest(
+        name: manifest.name,
+        version: manifest.version,
+        maps: const [],
+        tilesets: const [],
+        settings: manifest.settings,
+        pokemon: const ProjectPokemonConfig(
+            enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1));
     if (manifest != empty) _requireFreshBootstrap();
-    final ledger = File(_joinAll([root, '.pokemap', 'authoring', 'idempotency.jsonl']));
+    final ledger =
+        File(_joinAll([root, '.pokemap', 'authoring', 'idempotency.jsonl']));
     if (await ledger.length() > 65536) _requireFreshBootstrap();
     final lines = await ledger.readAsLines();
     if (lines.length != 2) _requireFreshBootstrap();
     final records = <AuthoringIdempotencyRecord>[];
     for (final line in lines) {
       final event = jsonDecode(line) as Map<String, dynamic>;
-      if (event.length != 3 || event['schemaVersion'] != 1 || event['event'] != 'put') {
+      if (event.length != 3 ||
+          event['schemaVersion'] != 1 ||
+          event['event'] != 'put') {
         _requireFreshBootstrap();
       }
-      records.add(AuthoringIdempotencyRecord.fromJson(Map<String, dynamic>.from(event['record'] as Map)));
+      records.add(AuthoringIdempotencyRecord.fromJson(
+          Map<String, dynamic>.from(event['record'] as Map)));
     }
     final pending = records.first, completed = records.last;
     final receipt = completed.receipt;
@@ -853,10 +1156,13 @@ Future<void> _requireFreshBootstrapRoot(String root) async {
         pending.operationId != completed.operationId ||
         pending.payloadFingerprint != completed.payloadFingerprint ||
         completed.scope.actorId != 'project-creator' ||
-        completed.scope.actionId != 'project.create' || completed.scope.actionVersion != 1 ||
+        completed.scope.actionId != 'project.create' ||
+        completed.scope.actionVersion != 1 ||
         !completed.scope.matchesKey(completed.operationId) ||
-        receipt == null || receipt.status != AuthoringReceiptStatus.applied ||
-        receipt.actionId != 'project.create' || receipt.actionVersion != 1 ||
+        receipt == null ||
+        receipt.status != AuthoringReceiptStatus.applied ||
+        receipt.actionId != 'project.create' ||
+        receipt.actionVersion != 1 ||
         receipt.requestId != completed.operationId ||
         receipt.extensions['operationId'] != completed.operationId ||
         receipt.diff.entries.length != 1 ||
@@ -864,9 +1170,13 @@ Future<void> _requireFreshBootstrapRoot(String root) async {
         receipt.diff.entries.single.resource.id != completed.scope.projectId) {
       _requireFreshBootstrap();
     }
-    final current = AuthoringRevisionSet([AuthoringResourceRevision(
-      resource: AuthoringResourceRef(kind: 'project', id: completed.scope.projectId),
-      revision: computeAuthoringBytesFingerprint(manifestBytes, logicalName: 'project.json'))]);
+    final current = AuthoringRevisionSet([
+      AuthoringResourceRevision(
+          resource: AuthoringResourceRef(
+              kind: 'project', id: completed.scope.projectId),
+          revision: computeAuthoringBytesFingerprint(manifestBytes,
+              logicalName: 'project.json'))
+    ]);
     if (receipt.afterRevision != current.fingerprint) _requireFreshBootstrap();
   } on WorkspaceHandleException {
     rethrow;
@@ -876,7 +1186,7 @@ Future<void> _requireFreshBootstrapRoot(String root) async {
 }
 
 final class _LocalMapAuthoringSession {
-  const _LocalMapAuthoringSession._({
+  _LocalMapAuthoringSession._({
     required this.projectId,
     required this.initialRevision,
     required this.workspaceHandle,
@@ -897,26 +1207,30 @@ final class _LocalMapAuthoringSession {
     required AuthoringPerformanceObserver? performanceObserver,
     required AuthoringResultProjectionStore projections,
     required LocalResourcePackStore projectionPayloadStore,
+    required LocalTransactionFileGateway mapAtmosphereGateway,
+    required MapAtmosphereResourceProbe mapAtmosphereProbe,
     required ResourcePackImportPreparer resourcePacks,
     required FileIdempotencyStore idempotencyStore,
-  }) : _snapshotLoader = snapshotLoader,
-       _dispatcher = dispatcher,
-       _actor = actor,
-       _plans = plans,
-       _planner = planner,
-       _policy = policy,
-       _confirmations = confirmations,
-       _executor = executor,
-       _undoService = undoService,
-       _revertService = revertService,
-       _recovery = recovery,
-       _history = history,
-       _recoveryExecutor = recoveryExecutor,
-       _performanceObserver = performanceObserver,
-       _projections = projections,
-       _projectionPayloadStore = projectionPayloadStore,
-       _resourcePacks = resourcePacks,
-       _idempotencyStore = idempotencyStore;
+  })  : _snapshotLoader = snapshotLoader,
+        _dispatcher = dispatcher,
+        _actor = actor,
+        _plans = plans,
+        _planner = planner,
+        _policy = policy,
+        _confirmations = confirmations,
+        _executor = executor,
+        _undoService = undoService,
+        _revertService = revertService,
+        _recovery = recovery,
+        _history = history,
+        _recoveryExecutor = recoveryExecutor,
+        _performanceObserver = performanceObserver,
+        _projections = projections,
+        _projectionPayloadStore = projectionPayloadStore,
+        _mapAtmosphereGateway = mapAtmosphereGateway,
+        _mapAtmosphereProbe = mapAtmosphereProbe,
+        _resourcePacks = resourcePacks,
+        _idempotencyStore = idempotencyStore;
 
   static Future<_LocalMapAuthoringSession> open({
     required String canonicalProjectRoot,
@@ -933,13 +1247,20 @@ final class _LocalMapAuthoringSession {
     AuthoringTransactionFaultInjector? faultInjector,
     AuthoringPerformanceObserver? performanceObserver,
     bool retainUndoHistory = true,
+    bool maintainIdempotencyOnOpen = false,
   }) async {
     final gateway = await LocalTransactionFileGateway.open(
       projectRoot: canonicalProjectRoot,
       performanceObserver: performanceObserver,
     );
+    Future<ProjectResourceProbe> mapAtmosphereProbe(String path) =>
+        const LocalProjectFileReader().probeResource(
+          projectRoot: canonicalProjectRoot,
+          relativePath: path,
+        );
     final history = await FileAuthoringHistoryStore.open(
       projectRoot: canonicalProjectRoot,
+      incrementalWrites: !maintainIdempotencyOnOpen,
     );
     final blobs = await FileAuthoringContentBlobStore.open(
       projectRoot: canonicalProjectRoot,
@@ -951,8 +1272,11 @@ final class _LocalMapAuthoringSession {
       projectRoot: canonicalProjectRoot,
     );
     final plans = AuthoringPlanStore(clock: clock);
-    final planner = AuthoringActionPlanner(store: plans);
+    final planner = AuthoringActionPlanner(
+        store: plans,
+        tokenFactory: maintainIdempotencyOnOpen ? null : _catalogPlanIdentity);
     final idempotencyStore = FileIdempotencyStore(
+        incrementalWrites: !maintainIdempotencyOnOpen,
         filePath: _joinAll([
           canonicalProjectRoot,
           '.pokemap',
@@ -965,14 +1289,16 @@ final class _LocalMapAuthoringSession {
     // The ledger is append-only, so nothing reclaims a completed reservation
     // unless maintenance runs. Opening a project is the one moment that is
     // already off the interactive path; a failure here must not deny the open.
-    try {
-      await traceAuthoringPhase(
-        'authoring.session.prune_idempotency',
-        idempotency.pruneExpired,
-      );
-    } on Object {
-      // Maintenance is best effort: a locked or unreadable ledger is reported
-      // by the first real mutation, not by refusing to open the project.
+    if (maintainIdempotencyOnOpen) {
+      try {
+        await traceAuthoringPhase(
+          'authoring.session.prune_idempotency',
+          idempotency.pruneExpired,
+        );
+      } on Object {
+        // Maintenance is best effort: a locked or unreadable ledger is reported
+        // by the first real mutation, not by refusing to open the project.
+      }
     }
     final transaction = JournaledAuthoringTransaction(
       plans: plans,
@@ -1012,6 +1338,13 @@ final class _LocalMapAuthoringSession {
       mutationGuard: () => snapshotLoader.requireActiveProject(projectHandle),
     );
     final recoveryExecutor = SecureAuthoringRecoveryExecutor(
+      discardPreparation: (operationId) =>
+          recovery.discardIncompletePreparation(
+        operationId,
+        expectedActorId: actor.actorId,
+        expectedProjectId: projectId,
+        precondition: () => snapshotLoader.requireActiveProject(projectHandle),
+      ),
       recover: (operationId) async {
         final found = await idempotencyStore.lookupOperation(
           actorId: actor.actorId,
@@ -1033,7 +1366,18 @@ final class _LocalMapAuthoringSession {
           );
           if (replay != null) return replay;
         }
-        return recovery.resume(operationId);
+        return recovery.resume(operationId, precondition: () async {
+          final journal = await gateway.readJournal(operationId);
+          if (journal != null &&
+              mapAtmosphereLifecycleActions
+                  .contains(journal.intendedReceipt.actionId)) {
+            await requireMapLifecycleAtmosphereGuards(
+              journal.intendedReceipt.diff,
+              gateway: gateway,
+              probeResource: mapAtmosphereProbe,
+            );
+          }
+        });
       },
       policy: policy,
       auditLog: audit,
@@ -1066,6 +1410,8 @@ final class _LocalMapAuthoringSession {
       idempotencyStore: idempotencyStore,
       projections: projections,
       projectionPayloadStore: projectionPayloadStore,
+      mapAtmosphereGateway: gateway,
+      mapAtmosphereProbe: mapAtmosphereProbe,
       projectId: projectId,
       workspaceHandle: workspaceHandle,
       projectHandle: projectHandle,
@@ -1096,10 +1442,14 @@ final class _LocalMapAuthoringSession {
 
   final AuthoringResultProjectionStore _projections;
   final LocalResourcePackStore _projectionPayloadStore;
+  final LocalTransactionFileGateway _mapAtmosphereGateway;
+  final MapAtmosphereResourceProbe _mapAtmosphereProbe;
   final ResourcePackImportPreparer _resourcePacks;
   final FileIdempotencyStore _idempotencyStore;
 
   Future<void> dispose() async {
+    _workshopPlans.clear();
+    _workshopPreconditions.clear();
     try {
       await _plans.dispose();
       await _resourcePacks.dispose();
@@ -1140,6 +1490,19 @@ final class _LocalMapAuthoringSession {
   final AuthoringHistoryStore _history;
   final SecureAuthoringRecoveryExecutor _recoveryExecutor;
   final AuthoringPerformanceObserver? _performanceObserver;
+  final Map<String, AuthoringRequest> _workshopPlans = {};
+  final Map<String, Map<String, String?>> _workshopPreconditions = {};
+
+  Future<void> prepareLocalWorkshop() async {
+    requireProjectionRead();
+    _policy.authorize(AuthoringAuthorizationRequest(actor: _actor, projectId: projectId,
+        operation: AuthoringSecurityOperation.plan, actionId: 'workshop_prepare', actionVersion: 1,
+        riskLevel: AuthoringRiskLevel.low, requestBytes: 0, touchedResources: 0,
+        additionalPermissions: const [AuthoringPermissionScope.projectWrite]));
+    await _idempotencyStore.prepareIncrementalStorage();
+    final history = _history;
+    if (history is FileAuthoringHistoryStore) await history.prepareLocalHistory();
+  }
 
   Future<AuthoringMutationHistoryResult> listMutationHistory({
     required int limit,
@@ -1155,9 +1518,8 @@ final class _LocalMapAuthoringSession {
         publicProjection: await _projections.prepareHistory(page));
   }
 
-  Future<AuthoringMutationPlanResult> planMutation(
-    AuthoringRequest request,
-  ) async {
+  Future<AuthoringMutationPlanResult> planMutation(AuthoringRequest request,
+      {ProjectSnapshot? suppliedSnapshot}) async {
     _requireWorkspace(request.workspaceHandle);
     final idempotencyKey = request.idempotencyKey;
     if (idempotencyKey == null) {
@@ -1190,23 +1552,39 @@ final class _LocalMapAuthoringSession {
         ),
       ),
     );
-    final snapshot = await _loadSnapshot(
-      cacheValidation: ProjectSnapshotCacheValidation.session,
-      repairRequest:
-          request.actionId == 'pokemon.catalog.write' ? request : null,
-    );
+    final snapshot = suppliedSnapshot ??
+        await _loadSnapshot(
+          cacheValidation: ProjectSnapshotCacheValidation.session,
+          repairRequest:
+              _nativeLocalWorkshopActions.contains(request.actionId) || request.actionId == 'pokemon.catalog.write' ? request : null,
+        );
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.plan,
     );
     late final AuthoringPlan plan;
+    ProjectManifest? projectedProject;
     try {
-      plan = await _planner.plan(
+      final planner = suppliedSnapshot == null
+          ? _planner
+          : AuthoringActionPlanner(
+              store: _plans, tokenFactory: _catalogPlanIdentity);
+      plan = await planner.plan(
         request: request,
         snapshot: snapshot,
-        build: _dispatcher.build,
+        build: (context) async {
+          final draft = await _dispatcher.build(context);
+          projectedProject = draft.projectedProject;
+          return includeMapLifecycleAtmosphere(context, draft,
+              readResource: _mapAtmosphereGateway.readResource,
+              probeResource: _mapAtmosphereProbe);
+        },
       );
     } finally {
       span?.finish();
+    }
+    if (suppliedSnapshot == null && _nativeLocalWorkshopActions.contains(request.actionId)) {
+      _workshopPlans[plan.planId] = request;
+      _workshopPreconditions[plan.planId] = snapshot.scopedStorageRevisions ?? const {};
     }
     final receipt = plan.toPlannedReceipt();
     try {
@@ -1216,8 +1594,11 @@ final class _LocalMapAuthoringSession {
           plan: plan,
           snapshotRevision: snapshot.revision,
           receipt: receipt,
-          publicProjection: projection);
+          publicProjection: projection,
+          projectedProject: projectedProject);
     } on Object {
+      _workshopPlans.remove(plan.planId);
+      _workshopPreconditions.remove(plan.planId);
       await _plans.discard(plan.planId);
       rethrow;
     }
@@ -1348,8 +1729,10 @@ final class _LocalMapAuthoringSession {
       );
       refreshUnavailable = plan.payloadCleanupFailed;
       try {
-        projected =
-            !refreshUnavailable &&
+        if (_workshopPlans.containsKey(plan.planId)) {
+          projected = await _loadSnapshot(repairRequest: _workshopPlans[plan.planId]);
+        } else {
+        projected = !refreshUnavailable &&
                 receipt.status == AuthoringReceiptStatus.applied &&
                 changes != null &&
                 receipt.extensions['planId'] == plan.planId &&
@@ -1377,6 +1760,7 @@ final class _LocalMapAuthoringSession {
                 ),
               )
             : null;
+        }
       } on Object {
         refreshUnavailable = true;
         _snapshotLoader.invalidate(projectHandle);
@@ -1395,11 +1779,16 @@ final class _LocalMapAuthoringSession {
     } finally {
       span?.finish();
     }
-    return _mutationResult(
-      receipt,
-      snapshot: projected,
-      refreshUnavailable: refreshUnavailable,
-    );
+    try {
+      return await _mutationResult(
+        receipt,
+        snapshot: projected,
+        refreshUnavailable: refreshUnavailable,
+      );
+    } finally {
+      _workshopPlans.remove(safePlanId);
+      _workshopPreconditions.remove(safePlanId);
+    }
   }
 
   Future<void> _requireReconciled() async {
@@ -1446,7 +1835,8 @@ final class _LocalMapAuthoringSession {
         );
         if (entry?.bulkCapability != null) return true;
       }
-      return _recovery.isResourcePackOperation(_safeIdentity(operationId, 'operationId'));
+      return _recovery
+          .isResourcePackOperation(_safeIdentity(operationId, 'operationId'));
     }
     if (operation == 'recover') {
       return _recovery.isResourcePackOperation(
@@ -1583,7 +1973,7 @@ final class _LocalMapAuthoringSession {
     required String idempotencyKey,
   }) async {
     await _requireReconciled();
-    final snapshot = await _loadSnapshot();
+    final snapshot = await _snapshotLoader.loadHistorySnapshot(projectHandle);
     final prepared = await _undoService.planUndo(
       actor: _actor,
       projectId: projectId,
@@ -1593,14 +1983,12 @@ final class _LocalMapAuthoringSession {
       idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
     );
     final receipt = await _undoService.apply(prepared);
-    var refreshUnavailable = prepared.plan.payloadCleanupFailed;
     try {
       await prepared.plan.releaseAppliedPayload();
     } on Object {
-      refreshUnavailable = true;
       _snapshotLoader.invalidate(projectHandle);
     }
-    return _mutationResult(receipt, refreshUnavailable: refreshUnavailable);
+    return _mutationResult(receipt, refreshUnavailable: true);
   }
 
   Future<AuthoringMutationResult> recoverMutation(
@@ -1617,6 +2005,18 @@ final class _LocalMapAuthoringSession {
     return _mutationResult(receipt);
   }
 
+  Future<AuthoringIncompletePreparationDiscardResult>
+      discardIncompletePreparation(
+    String operationId,
+  ) =>
+          _recoveryExecutor.discardPreparation(
+            actor: _actor,
+            projectId: projectId,
+            operationId: _safeIdentity(operationId, 'operationId'),
+            beforeDiscard: () =>
+                _snapshotLoader.requireActiveProject(projectHandle),
+          );
+
   Future<AuthoringMutationResult> _mutationResult(
     AuthoringReceipt receipt, {
     ProjectSnapshot? snapshot,
@@ -1624,12 +2024,16 @@ final class _LocalMapAuthoringSession {
   }) async {
     String? snapshotRevision;
     AuthoringSnapshotRefreshDiagnostic? diagnostic;
+    final scopedRequest = _workshopPlans[receipt.extensions['planId']];
+    if (snapshot == null && scopedRequest == null && _nativeLocalWorkshopActions.contains(receipt.actionId)) {
+      refreshUnavailable = true;
+    }
     if (!refreshUnavailable) {
       try {
         final resolvedSnapshot = snapshot ??
             await traceAuthoringPhase<ProjectSnapshot>(
               'authoring.result.snapshot',
-              _loadSnapshot,
+              () => _loadSnapshot(repairRequest: scopedRequest),
             );
         snapshotRevision = resolvedSnapshot.revision;
       } on Object {
@@ -1667,6 +2071,18 @@ final class _LocalMapAuthoringSession {
     AuthoringPlan plan,
     AuthoringTransactionPrecondition? supplied,
   ) {
+    final scoped = _workshopPreconditions[plan.planId];
+    if (scoped != null) {
+      return () async {
+        await supplied?.call();
+        for (final entry in scoped.entries) {
+          if (await _mapAtmosphereGateway.readResourceRevision(entry.key) != entry.value) {
+            throw AuthoringPlanException(code: 'plan.stale',
+                message: 'A workshop dependency changed before publication.');
+          }
+        }
+      };
+    }
     const guarded = {
       'resource_pack.import',
       'model3d.delete',
@@ -1690,11 +2106,22 @@ final class _LocalMapAuthoringSession {
     };
     final retained =
         (plan.referenceImpact['retainedBlobDigests'] as List?) ?? const [];
-    if (!guarded.contains(plan.request.actionId) && retained.isEmpty) {
+    final atmosphereGuards =
+        mapAtmosphereLifecycleActions.contains(plan.request.actionId);
+    if (!guarded.contains(plan.request.actionId) &&
+        retained.isEmpty &&
+        !atmosphereGuards) {
       return supplied;
     }
     return () async {
       await supplied?.call();
+      if (atmosphereGuards) {
+        await requireMapLifecycleAtmosphereGuards(
+          plan.changeSet.diff,
+          gateway: _mapAtmosphereGateway,
+          probeResource: _mapAtmosphereProbe,
+        );
+      }
       if (plan.request.actionId == 'resource_pack.import') {
         await _resourcePacks.requirePlanPreconditions(plan);
       }
@@ -1740,6 +2167,11 @@ final class _LocalMapAuthoringSession {
       AuthoringPerformanceSpanName.snapshot,
     );
     try {
+      if (repairRequest != null && _nativeLocalWorkshopActions.contains(repairRequest.actionId)) {
+        return await _snapshotLoader.loadWorkshop(projectHandle, actionId: repairRequest.actionId,
+            parameters: repairRequest.parameters, readDependencies: Map<String, String>.from(
+                repairRequest.extensions['workshopReadDependencies'] as Map? ?? const {}));
+      }
       final snapshot = await _snapshotLoader.load(
         projectHandle,
         cacheValidation: cacheValidation,
@@ -1813,6 +2245,10 @@ String _secureIdentity(String prefix) {
   ).join();
   return '$prefix$body';
 }
+
+String _catalogPlanIdentity(String prefix) => prefix == 'receipt_'
+    ? 'receipt_document_${_secureIdentity('').substring(0, 32)}'
+    : _secureIdentity(prefix);
 
 String _joinAll(List<String> segments) => segments.join(Platform.pathSeparator);
 

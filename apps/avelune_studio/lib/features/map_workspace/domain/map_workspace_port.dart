@@ -1,5 +1,8 @@
 import 'package:map_core/map_core_domain.dart';
 
+import 'map_workspace_workshop.dart';
+export 'map_workspace_workshop.dart';
+
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
 class MapWorkspaceDocument {
@@ -44,6 +47,21 @@ abstract interface class MapWorkspaceScopedPort implements MapWorkspacePort {
     ProjectMapEntry entry,
   );
   Future<ProjectManifest> materializeProject(ProjectSession session);
+}
+
+abstract interface class MapWorkspaceWorkshopPort
+    implements MapWorkspaceScopedPort {
+  Future<MapWorkspaceCatalog> loadWorkshop(
+    ProjectSession session,
+    MapWorkspaceWorkshop workshop,
+  );
+}
+
+abstract interface class MapWorkspaceResourceKindPort {
+  Future<MapWorkspaceCatalog> loadResourceKind(
+    ProjectSession session,
+    String canonicalKind,
+  );
 }
 
 abstract interface class MapWorkspacePort {

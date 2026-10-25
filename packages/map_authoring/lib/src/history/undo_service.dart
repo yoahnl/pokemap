@@ -166,9 +166,7 @@ final class AuthoringUndoService {
       expectedHeadEntryId: List.filled(160, 'x').join(),
     );
     _authorizePlanning(actor, projectId, action, authorizationProbe);
-    final latest = (await _history.list(projectId: projectId, limit: 1))
-        .entries
-        .firstOrNull;
+    final latest = await readAuthoringHistoryHead(_history, projectId);
     if (latest == null ||
         latest.kind != AuthoringHistoryKind.undo ||
         latest.targetEntryId != entryId) {
@@ -231,10 +229,7 @@ final class AuthoringUndoService {
     String projectId,
     String entryId,
   ) async {
-    final entry = await _history.get(
-      projectId: projectId,
-      entryId: entryId,
-    );
+    final entry = await _history.get(projectId: projectId, entryId: entryId);
     if (entry == null) {
       throw const AuthoringHistoryException(
         'history.entry_missing',
@@ -415,8 +410,8 @@ final class AuthoringUndoService {
     required String conflictCode,
     required String conflictMessage,
   }) async {
-    final page = await _history.list(projectId: projectId, limit: 1);
-    if (page.entries.isEmpty || page.entries.single.entryId != entryId) {
+    final latest = await readAuthoringHistoryHead(_history, projectId);
+    if (latest?.entryId != entryId) {
       throw AuthoringHistoryException(conflictCode, conflictMessage);
     }
   }

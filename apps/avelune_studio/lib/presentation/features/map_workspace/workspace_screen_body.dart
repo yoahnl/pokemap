@@ -32,6 +32,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                 absorbing:
                     _actions.testing ||
                     _actions.closing ||
+                    _openingWorkshop ||
                     _controller.catalogBusy ||
                     _resources?.busy == true ||
                     _connectionBusy ||
@@ -39,22 +40,6 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                 child: SafeArea(
                   child: Column(
                     children: [
-                      if (!_controller.hasCompleteProject)
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: StudioButton(
-                            key: const ValueKey(
-                              'workspace-materialize-workshops',
-                            ),
-                            label: _materializingWorkshops
-                                ? 'Chargement des ateliers…'
-                                : 'Charger tous les ateliers et imports',
-                            secondary: true,
-                            onPressed: _materializingWorkshops
-                                ? null
-                                : () => _materializeWorkshops(),
-                          ),
-                        ),
                       if (_cinematicMapReturn && _space == WorkspaceSpace.map)
                         Padding(
                           padding: const EdgeInsets.all(8),
@@ -144,8 +129,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               ? null
                               : _saveWorkspaceDocument,
                           onTest:
-                              !_controller.hasCompleteProject ||
-                                  document == null ||
+                              document == null ||
                                   _actions.testing ||
                                   document.saving
                               ? null
@@ -156,16 +140,15 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onEnvironments: _openEnvironments,
                           onBorders: _openBorders,
                           onMap: _openMap,
-                          onRegionalMap: () => _show(WorkspaceSpace.regionalMap),
+                          onRegionalMap: () =>
+                              _show(WorkspaceSpace.regionalMap),
                           onExport: _openGameExport,
                           onPokemon: () {
                             _show(WorkspaceSpace.pokemon);
                             unawaited(_pokemon?.load());
                           },
                           exportActive: _gameExport?.operationActive == true,
-                          onStory: _narrative == null
-                              ? null
-                              : () => _show(WorkspaceSpace.story),
+                          onStory: () => _show(WorkspaceSpace.story),
                           onEditInteraction: _editInteraction,
                           onEventSource: _events == null
                               ? null
@@ -177,7 +160,26 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onOpenElement: (element) => _openResources(element),
                           onEditElement: (element) =>
                               _openResources(element, true),
-                          resourceContent: _space == WorkspaceSpace.regionalMap && _regionalMap != null
+                          resourceContent: _openingWorkshop
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    semanticsLabel: 'Ouverture de l’atelier',
+                                  ),
+                                )
+                              : _space == WorkspaceSpace.resources &&
+                                    !_controller.hasWorkshop(
+                                      MapWorkspaceWorkshop.resources,
+                                    ) &&
+                                    widget.resourceLibraryBuilder != null
+                              ? _resourceLibrary ??=
+                                    widget.resourceLibraryBuilder!(
+                                      context,
+                                      (guard) => _libraryExitGuard = guard,
+                                      _controller.refreshCatalogSelection,
+                                      _openResourceTools,
+                                    )
+                              : _space == WorkspaceSpace.regionalMap &&
+                                    _regionalMap != null
                               ? RegionalMapPage(controller: _regionalMap!)
                               : _space == WorkspaceSpace.gameExport
                               ? _gameExportPage()
@@ -298,25 +300,38 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
     final owner = _pokemon;
     if (owner == null) throw StateError('Catalogue indisponible.');
     final index = await owner.port.loadIndex();
-    if (!mounted || !identical(owner, _pokemon)) throw StateError('Le projet a changé.');
+    if (!mounted || !identical(owner, _pokemon)) {
+      throw StateError('Le projet a changé.');
+    }
     if (!index.enabled) throw StateError('Catalogue Pokémon désactivé.');
     return index.entries;
   }
+
   Future<Map<String, String>> _loadSceneMoves() async {
     final owner = _pokemon;
     if (owner == null) throw StateError('Catalogue indisponible.');
     await owner.load(refresh: true);
-    if (!mounted || !identical(owner, _pokemon)) throw StateError('Le projet a changé.');
+    if (!mounted || !identical(owner, _pokemon)) {
+      throw StateError('Le projet a changé.');
+    }
     final moves = owner.index?.moves;
-    if (owner.error != null || moves == null || !moves.available || moves.diagnostics.isNotEmpty) {
-      throw StateError('Le catalogue des capacités est indisponible ou ambigu.');
+    if (owner.error != null ||
+        moves == null ||
+        !moves.available ||
+        moves.diagnostics.isNotEmpty) {
+      throw StateError(
+        'Le catalogue des capacités est indisponible ou ambigu.',
+      );
     }
     return {for (final move in moves.entries) move.id: move.name};
   }
 
-  Future<Map<String, String>> _loadSceneCaptureItems() => _loadSceneItems(captureOnly: true);
+  Future<Map<String, String>> _loadSceneCaptureItems() =>
+      _loadSceneItems(captureOnly: true);
 
-  Future<Map<String, String>> _loadSceneItems({bool captureOnly = false}) async {
+  Future<Map<String, String>> _loadSceneItems({
+    bool captureOnly = false,
+  }) async {
     final owner = _pokemon;
     if (owner == null) throw StateError('Catalogue indisponible.');
     final index = await owner.port.loadIndex();
@@ -336,6 +351,9 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         )) {
       throw StateError('Le catalogue des objets est indisponible ou ambigu.');
     }
-    return {for (final item in catalog.entries) if (!captureOnly || item.capture != null) item.id: item.displayName};
+    return {
+      for (final item in catalog.entries)
+        if (!captureOnly || item.capture != null) item.id: item.displayName,
+    };
   }
 }

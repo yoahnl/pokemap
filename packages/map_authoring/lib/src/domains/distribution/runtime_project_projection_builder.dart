@@ -617,7 +617,8 @@ final class RuntimeProjectProjectionBuilder {
               'Atmosphere document exceeds its byte limit.');
         }
         final document = SpatialAtmosphereDocument.fromJson(
-            _decodeJsonObject(bytes, relative));
+            Map<String, dynamic>.from(
+                decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         if (document.mapId != entry.id) {
           throw const FormatException('Atmosphere map identity mismatch.');
         }

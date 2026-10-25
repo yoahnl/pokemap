@@ -464,13 +464,7 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
   Widget _destination(ProjectRegionPointOfInterest point) {
     final destination = point.destination;
     final maps = owner.source!.maps;
-    final nativeMaps = owner.source!.project.maps
-        .where(
-          (entry) =>
-              maps[entry.id]?.version == ProjectVersion.v8 &&
-              maps[entry.id]?.spatialScene == null,
-        )
-        .toList();
+    final nativeMaps = owner.source!.project.maps;
     final map = maps[destination?.mapId];
     final spawns =
         map?.entities
@@ -493,13 +487,7 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                     owner.editPoint(clearDestination: true);
                     return;
                   }
-                  final target = owner.source!.project.maps
-                      .where(
-                        (entry) =>
-                            maps[entry.id]?.version == ProjectVersion.v8 &&
-                            maps[entry.id]?.spatialScene == null,
-                      )
-                      .firstOrNull;
+                  final target = owner.source!.project.maps.firstOrNull;
                   if (target != null) {
                     owner.editPoint(
                       destination: ProjectRegionDestination(mapId: target.id),
@@ -517,9 +505,7 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
             value: destination.mapId,
             options: {
               for (final entry in owner.source!.project.maps)
-                if (maps[entry.id]?.version == ProjectVersion.v8 &&
-                    maps[entry.id]?.spatialScene == null)
-                  entry.id: entry.name,
+                entry.id: entry.name,
             },
             onChanged: owner.busy
                 ? null
@@ -535,7 +521,7 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                 spawn.id:
                     '${spawn.name.isEmpty ? 'Arrivée' : spawn.name} · (${spawn.pos.x}, ${spawn.pos.y}) · ${_facing(spawn.spawn!.facing)}',
             },
-            onChanged: owner.busy
+            onChanged: owner.busy || owner.loadingMap
                 ? null
                 : (id) => owner.editPoint(
                     destination: ProjectRegionDestination(
@@ -544,7 +530,9 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                     ),
                   ),
           ),
-          if (spawns.isEmpty)
+          if (owner.loadingMap)
+            const StudioNotice('Chargement des arrivées de cette carte…')
+          else if (spawns.isEmpty)
             const StudioNotice(
               'Ajoutez une arrivée sur cette carte dans l’éditeur de carte.',
             ),

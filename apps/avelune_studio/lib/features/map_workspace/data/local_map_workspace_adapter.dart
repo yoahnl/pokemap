@@ -6,6 +6,7 @@ import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
 import '../domain/map_atmosphere_port.dart';
+import '../domain/map_editor_port.dart';
 
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -18,25 +19,64 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../../project_session/data/studio_project_document_revision.dart';
 
 part 'local_map_atmosphere_adapter.dart';
+part 'local_map_editor_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
 part 'local_map_workspace_scoped_catalog.dart';
 
 final class LocalMapWorkspaceAdapter
-    implements MapWorkspacePort, MapWorkspaceScopedPort, MapAtmospherePort {
+    implements
+        MapWorkspacePort,
+        MapWorkspaceWorkshopPort,
+        MapWorkspaceResourceKindPort,
+        MapAtmospherePort,
+        MapEditorPort,
+        MapElementOrderPort {
   LocalMapWorkspaceAdapter({
     ProjectFileReader? reader,
     AtomicMapDocumentPersistence? persistence,
   }) : _reader = reader ?? const LocalProjectFileReader(),
        _persistence = persistence ?? const AtomicMapDocumentPersistence();
 
+  @override
+  Future<MapWorkspaceCatalog> loadResourceKind(
+    ProjectSession session,
+    String canonicalKind,
+  ) => _loadResourceKind(session, canonicalKind);
+
   final ProjectFileReader _reader;
   final AtomicMapDocumentPersistence _persistence;
   final _projects = <String, _ProjectDocument>{};
+  final _resourceSelections = <String, ProjectManifest>{};
+  final _activeMapDefinitions = <String, ProjectManifest>{};
+  final _workshopCharacterDefinitions = <String, ProjectManifest>{};
   final _loadedPaths = <(String, String), String>{};
   Future<void> _writes = Future.value();
   final _atmosphereServices = <String, Future<LocalMapAtmosphereAuthoring>>{};
+  final _editorServices = <String, Future<LocalMapEditorAuthoring>>{};
+  final _elementOrderServices = <String, Future<LocalMapElementOrderAuthoring>>{};
+  var _editorOperations = 0;
   var _atmosphereOperations = 0;
+
+  @override
+  Future<MapEditorWorkspaceState> loadEditorState(
+    ProjectSession session,
+    String mapId,
+  ) => _loadEditorState(session, mapId);
+
+  @override
+  Future<MapEditorWorkspaceState> saveEditorState(
+    ProjectSession session,
+    String mapId,
+    MapEditorState state,
+    String expectedRevision,
+  ) => _saveEditorState(session, mapId, state, expectedRevision);
+
+  @override
+  Future<MapElementOrderWorkspaceReceipt> reorderMapElements(ProjectSession session, MapWorkspaceDocument base, String kind, List<String> frontFirstIds, String? layerId) => _reorderMapElements(session, base, kind, frontFirstIds, layerId);
+
+  @override
+  Future<MapElementOrderWorkspaceReceipt> undoMapElementOrder(ProjectSession session, MapWorkspaceDocument base, MapElementOrderWorkspaceReceipt receipt) => _undoMapElementOrder(session, base, receipt);
 
   @override
   Future<MapAtmosphereState> loadAtmosphere(
@@ -109,18 +149,29 @@ final class LocalMapWorkspaceAdapter
     bool refreshCatalog = false,
   }) async {
     var project = _project(session);
-    if (!project.complete) {
-      throw const MapWorkspaceFailure(
-        MapWorkspaceProblem.unavailable,
-        'Chargez tous les ateliers avant de modifier les ressources du projet.',
-      );
-    }
     await _requireRoot(session);
     if (refreshCatalog) {
       project = await _refreshCatalog(session, project);
     }
     await _requireProjectRevision(session, project);
     return (manifest: project.manifest, revision: project.revision);
+  }
+
+  Future<String> resourceRevision(ProjectSession session) async {
+    final descriptor = await _reader.readBytes(
+      projectRoot: session.directoryPath,
+      relativePath: 'project.json',
+    );
+    final head = session.storage == ProjectSessionStorage.workingCatalog
+        ? await _reader.readBytes(
+            projectRoot: session.directoryPath,
+            relativePath: CatalogStorageStore.headStorageKey,
+          )
+        : null;
+    return studioProjectDocumentRevision(
+      descriptorBytes: descriptor,
+      headBytes: head,
+    );
   }
 
   @override
@@ -132,6 +183,12 @@ final class LocalMapWorkspaceAdapter
     ProjectSession session,
     ProjectMapEntry entry,
   ) => _loadScopedMapSelection(session, entry);
+
+  @override
+  Future<MapWorkspaceCatalog> loadWorkshop(
+    ProjectSession session,
+    MapWorkspaceWorkshop workshop,
+  ) => _loadWorkshop(session, workshop);
 
   @override
   Future<ProjectManifest> materializeProject(ProjectSession session) =>

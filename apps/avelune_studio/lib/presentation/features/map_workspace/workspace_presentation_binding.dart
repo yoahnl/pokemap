@@ -26,6 +26,10 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
   }
 
   Future<void> _returnToPresentation(String? presentationId) async {
+    final request = await _prepareWorkshopRoute(
+      MapWorkspaceWorkshop.presentation,
+    );
+    if (request == null) return;
     final owner = _presentations;
     if (owner == null) return;
     if (presentationId != null &&
@@ -41,7 +45,9 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
       _show(WorkspaceSpace.story);
       return;
     }
-    if (mounted) _show(WorkspaceSpace.presentation);
+    if (mounted && request == _navigationRequest) {
+      _show(WorkspaceSpace.presentation);
+    }
   }
 
   Future<void> _returnFromPresentation() async {
@@ -63,22 +69,34 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
   Future<void> _openScenePresentation(
     ScenePresentationCinematicPayload payload,
   ) async {
+    final request = await _prepareWorkshopRoute(
+      MapWorkspaceWorkshop.presentation,
+    );
+    if (request == null) return;
     if (_presentations == null) return;
+    if (!await _presentations!.open(payload.presentationCinematicId) ||
+        !mounted ||
+        request != _navigationRequest) {
+      return;
+    }
     _presentationOrigin = WorkspaceReturn(
       WorkspaceSpace.scene,
       documentId: _scenes?.active?.current.id,
     );
     _show(WorkspaceSpace.presentation);
-    await _presentations!.open(payload.presentationCinematicId);
   }
 
   Future<void> _createScenePresentation(
     ScenePresentationCreationRequest request,
   ) async {
+    final navigation = await _prepareWorkshopRoute(
+      MapWorkspaceWorkshop.presentation,
+    );
+    if (!mounted || navigation == null) return;
     final owner = _presentations;
     if (owner == null) return;
     final name = await askNarrativeName(context, 'Créer une présentation liée');
-    if (!mounted || name == null) return;
+    if (!mounted || name == null || navigation != _navigationRequest) return;
     final current = _scenes?.sessions[request.scene.id]?.current;
     if (current != request.scene) return;
     final created = await owner.createLinked(
@@ -90,7 +108,7 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
         targetNodeId: request.targetNodeId,
       ),
     );
-    if (created && mounted) {
+    if (created && mounted && navigation == _navigationRequest) {
       _presentationOrigin = WorkspaceReturn(
         WorkspaceSpace.scene,
         documentId: request.scene.id,

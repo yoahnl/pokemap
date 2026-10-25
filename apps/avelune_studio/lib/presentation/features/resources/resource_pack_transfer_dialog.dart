@@ -602,6 +602,8 @@ class _ResourcePackTransferDialogState
                               child: Text(
                                 c.exporting
                                     ? _exportRowLabel(row)
+                                    : row['kind'] == 'authoringDraftNotice'
+                                    ? '${row['label']} : ${row['message']}'
                                     : row['conflict'] != null
                                     ? '${row['label']} : ${row['message']}'
                                     : '${row['label'] ?? resourcePackKindLabel(row['kind'])}${row['labelComplete'] == false ? '… (nom abrégé)' : ''} · ${resourcePackKindLabel(row['kind'])}\n${row['selected'] == true ? 'Ressource choisie' : 'Nécessaire pour « ${row['requiredByLabel']} » (exemple de ressource choisie)'}',

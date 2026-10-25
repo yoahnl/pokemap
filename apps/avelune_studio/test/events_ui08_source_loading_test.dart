@@ -65,7 +65,7 @@ void main() {
         f.port,
         changed: () {},
       );
-      await events.prepare();
+      await tester.runAsync(events.prepare);
       events.open(record.id);
       final loader = _DelayedPreviewLoader(workspace, port.saved);
       final view = EventViewState();

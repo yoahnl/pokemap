@@ -7,10 +7,12 @@ class StudioSection extends StatelessWidget {
     required this.children,
     this.collapsible = false,
     this.initiallyExpanded = true,
+    this.onExpansionChanged,
   });
   final String title;
   final List<Widget> children;
   final bool collapsible, initiallyExpanded;
+  final ValueChanged<bool>? onExpansionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -18,6 +20,7 @@ class StudioSection extends StatelessWidget {
       return ExpansionTile(
         title: Text(title, style: Theme.of(context).textTheme.titleMedium),
         initiallyExpanded: initiallyExpanded,
+        onExpansionChanged: onExpansionChanged,
         tilePadding: const EdgeInsets.symmetric(horizontal: 12),
         childrenPadding: const EdgeInsets.all(12),
         children: children,

@@ -21,11 +21,13 @@ extension _WorldContextPanel on _WorldWorkspacePageState {
                   child: StudioButton(
                     label: 'Tester la règle',
                     icon: Icons.play_arrow,
-                    onPressed: () {
-                      if (!flush()) return;
-                      controller.simulate();
-                      refresh();
-                    },
+                    onPressed: controller.loading
+                        ? null
+                        : () async {
+                            if (!flush()) return;
+                            await controller.simulateComplete();
+                            if (mounted) refresh();
+                          },
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -85,7 +87,7 @@ extension _WorldContextPanel on _WorldWorkspacePageState {
                 fact.id,
                 NarrativeValue.boolean(next),
               );
-              controller.simulate();
+              if (controller.mapsComplete) controller.simulate();
               refresh();
             },
           ),
@@ -103,7 +105,7 @@ extension _WorldContextPanel on _WorldWorkspacePageState {
                 fact.id,
                 NarrativeValue.integer(parsed),
               );
-              controller.simulate();
+              if (controller.mapsComplete) controller.simulate();
               refresh();
               return true;
             },
@@ -117,7 +119,7 @@ extension _WorldContextPanel on _WorldWorkspacePageState {
                 fact.id,
                 NarrativeValue.string(raw),
               );
-              controller.simulate();
+              if (controller.mapsComplete) controller.simulate();
               refresh();
             },
           ),
@@ -217,6 +219,21 @@ extension _WorldContextPanel on _WorldWorkspacePageState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (!controller.mapsComplete) ...[
+          const StudioNotice(
+            'Les usages affichés couvrent les documents narratifs et les cartes déjà chargées.',
+          ),
+          StudioButton(
+            label: 'Rechercher les usages dans toutes les cartes',
+            secondary: true,
+            onPressed: controller.loading
+                ? null
+                : () async {
+                    await controller.loadAllMaps();
+                    if (mounted) refresh();
+                  },
+          ),
+        ],
         section('Lu par', entry.readerUsages),
         section('Modifié par', entry.writerUsages),
       ],

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -21,6 +23,7 @@ class StandardEventTemplateForm extends StatefulWidget {
     this.initial,
     this.initialMapId,
     this.initialEntityId,
+    this.loadMap,
   });
 
   final ProjectManifest project;
@@ -29,6 +32,7 @@ class StandardEventTemplateForm extends StatefulWidget {
   final StandardEventTemplateSpec? initial;
   final String? initialMapId;
   final String? initialEntityId;
+  final Future<MapData> Function(String)? loadMap;
   final Future<bool> Function(StandardEventTemplateSpec) onSave;
   final ValueChanged<String> onAdvanced;
   final VoidCallback onCancel;
@@ -55,6 +59,13 @@ class _StandardEventTemplateFormState extends State<StandardEventTemplateForm> {
   bool _busy = false;
   bool _simulated = false;
   String? _error;
+  final _loadedMaps = <String, MapData>{};
+  int _readingMaps = 0;
+
+  List<MapData> get _maps => {
+    for (final map in widget.maps) map.id: map,
+    ..._loadedMaps,
+  }.values.toList(growable: false);
 
   @override
   void initState() {
@@ -63,16 +74,46 @@ class _StandardEventTemplateFormState extends State<StandardEventTemplateForm> {
     _mapId =
         widget.initialMapId ??
         widget.initial?.mapId ??
-        widget.maps.firstOrNull?.id;
+        widget.project.maps.firstOrNull?.id;
     _entityId = widget.initialEntityId ?? widget.initial?.entityId;
     if (widget.initial case final initial?) {
       _load(initial);
     } else {
       _readOwner();
     }
+    if (_mapId case final id?) unawaited(_loadMap(id));
+    if (_parameters['destinationMapId'] case final String id) {
+      unawaited(_loadMap(id));
+    }
   }
 
-  MapData? get _map => widget.maps.where((map) => map.id == _mapId).firstOrNull;
+  MapData? get _map => _maps.where((map) => map.id == _mapId).firstOrNull;
+
+  Future<void> _loadMap(String id) async {
+    if (_maps.any((map) => map.id == id)) return;
+    final load = widget.loadMap;
+    if (load == null) return;
+    _readingMaps++;
+    setState(() => _busy = true);
+    try {
+      final loaded = await load(id);
+      if (loaded.id != id) {
+        throw StateError('La carte chargée ne correspond pas au choix.');
+      }
+      if (mounted) {
+        setState(() {
+          _loadedMaps[id] = loaded;
+          _error = null;
+          if (_mapId == id) _readOwner();
+        });
+      }
+    } catch (failure) {
+      if (mounted) setState(() => _error = failure.toString());
+    } finally {
+      _readingMaps--;
+      if (mounted) setState(() => _busy = _readingMaps > 0);
+    }
+  }
 
   void _load(StandardEventTemplateSpec spec) {
     _kind = spec.kind;
@@ -212,14 +253,17 @@ class _StandardEventTemplateFormState extends State<StandardEventTemplateForm> {
       options: {if (optional) '': 'Aucun', ...options},
       onChanged: _busy
           ? null
-          : (value) => setState(() {
-              _error = null;
-              if (optional && value.isEmpty) {
-                _parameters.remove(key);
-              } else {
-                _parameters[key] = value;
-              }
-            }),
+          : (value) async {
+              setState(() {
+                _error = null;
+                if (optional && value.isEmpty) {
+                  _parameters.remove(key);
+                } else {
+                  _parameters[key] = value;
+                }
+              });
+              if (key == 'destinationMapId') await _loadMap(value);
+            },
     ),
   );
 
@@ -232,7 +276,7 @@ class _StandardEventTemplateFormState extends State<StandardEventTemplateForm> {
       spec = _spec;
       projection = compileStandardEventTemplate(
         project: widget.project,
-        maps: widget.maps,
+        maps: _maps,
         spec: spec,
       );
     } catch (error) {
@@ -244,7 +288,7 @@ class _StandardEventTemplateFormState extends State<StandardEventTemplateForm> {
     final dialogues = {
       for (final entry in widget.project.dialogues) entry.id: entry.name,
     };
-    final destination = widget.maps
+    final destination = _maps
         .where((map) => map.id == _parameters['destinationMapId'])
         .firstOrNull;
     final preview = projection?.preview(
@@ -301,15 +345,20 @@ class _StandardEventTemplateFormState extends State<StandardEventTemplateForm> {
                   key: const ValueKey('standard-event-map'),
                   label: 'Carte',
                   value: _mapId,
-                  options: {for (final map in widget.maps) map.id: map.name},
+                  options: {
+                    for (final map in widget.project.maps) map.id: map.name,
+                  },
                   onChanged: _busy
                       ? null
-                      : (value) => setState(() {
-                          _mapId = value;
-                          _entityId = null;
-                          _owned = false;
-                          _error = null;
-                        }),
+                      : (value) async {
+                          setState(() {
+                            _mapId = value;
+                            _entityId = null;
+                            _owned = false;
+                            _error = null;
+                          });
+                          await _loadMap(value);
+                        },
                 ),
                 const SizedBox(height: 12),
                 StudioSelect(
@@ -399,7 +448,7 @@ class _StandardEventTemplateFormState extends State<StandardEventTemplateForm> {
                     dialogues,
                   ),
                   _reference('destinationMapId', 'Carte de destination', {
-                    for (final map in widget.maps) map.id: map.name,
+                    for (final map in widget.project.maps) map.id: map.name,
                   }),
                   _reference('destinationWarpId', 'Point d’arrivée', {
                     for (final warp in destination?.warps ?? <MapWarp>[])

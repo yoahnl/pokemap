@@ -14,7 +14,11 @@ class LocalPresentationConnection {
   final ProjectSnapshotLoader snapshots;
   final LocalMapAuthoringMutationApi api;
 
-  static Future<ProjectSnapshot> readDraft(ProjectSession session) async {
+  static Future<ProjectSnapshot> readDraft(
+    ProjectSession session, {
+    String actionId = 'presentationCinematic.publish',
+    Map<String, Object?> parameters = const {},
+  }) async {
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [session.directoryPath],
@@ -25,11 +29,33 @@ class LocalPresentationConnection {
       policy: policy,
       fileReader: reader,
       handles: handles,
+      catalogMetadataFields:
+          session.storage == ProjectSessionStorage.workingCatalog
+          ? const {}
+          : null,
     ).openProject(session.directoryPath);
+    final snapshots = ProjectSnapshotLoader(handles: handles);
+    LocalMapAuthoringMutationApi? api;
     try {
-      return await ProjectSnapshotLoader(handles: handles)
-          .loadPresentationDraft(opened.projectHandle);
+      if (session.storage != ProjectSessionStorage.workingCatalog) {
+        return await snapshots.loadPresentationDraft(opened.projectHandle);
+      }
+      api = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: snapshots,
+      );
+      await api.attachProject(
+        projectRootPath: session.directoryPath,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      return await api.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: actionId,
+        parameters: parameters,
+      );
     } finally {
+      await api?.detachWorkspace(opened.workspaceHandle);
       handles.closeWorkspace(opened.workspaceHandle);
     }
   }
@@ -49,6 +75,10 @@ class LocalPresentationConnection {
       policy: policy,
       fileReader: reader,
       handles: handles,
+      catalogMetadataFields:
+          session.storage == ProjectSessionStorage.workingCatalog
+          ? const {}
+          : null,
     ).openProject(session.directoryPath);
     final snapshots = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(
@@ -65,7 +95,16 @@ class LocalPresentationConnection {
     return LocalPresentationConnection(handles, opened, snapshots, api);
   }
 
-  Future<ProjectSnapshot> read() => snapshots.load(opened.projectHandle);
+  Future<ProjectSnapshot> read({
+    String actionId = 'presentationCinematic.publish',
+    Map<String, Object?> parameters = const {},
+  }) => api.isCatalogProject(opened.projectHandle)
+      ? api.readWorkshopSnapshot(
+          opened.projectHandle,
+          actionId: actionId,
+          parameters: parameters,
+        )
+      : snapshots.load(opened.projectHandle);
   Future<void> close() async {
     await api.detachWorkspace(opened.workspaceHandle);
     handles.closeWorkspace(opened.workspaceHandle);

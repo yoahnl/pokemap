@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -58,12 +59,19 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
 
   void _load(String? id) {
     _mapId = id;
-    _map = id == null ? null : widget.loader.load(id);
+    _map = id == null
+        ? null
+        : widget.loader.load(id).then((map) {
+            widget.controller.acceptMap(map);
+            return map;
+          });
   }
 
   Future<void> _choose(NarrativeEventSourceKind kind) async {
     final request = ++_request;
-    if (!await widget.controller.prepare() || !mounted || request != _request) {
+    if (!await widget.controller.prepare(mapIds: [?_mapId]) ||
+        !mounted ||
+        request != _request) {
       return;
     }
     if (kind == NarrativeEventSourceKind.outcomeReceived) {
@@ -111,25 +119,29 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
             children: [
               for (final type in eventSourceKinds)
                 if (type != NarrativeEventSourceKind.modelInteract ||
-                    widget.controller.project.settings.dimension == ProjectDimension.threeD)
-                if ((type != NarrativeEventSourceKind.entityBump &&
-                    type != NarrativeEventSourceKind.entityAutorun &&
-                    type != NarrativeEventSourceKind.triggerBump) ||
-                    widget.controller.project.settings.dimension == ProjectDimension.twoD)
-                StudioChoice(
-                  label: eventKindLabel(type),
-                  selected: kind == type,
-                  tone: eventKindTone(type),
-                  leading: StudioIconTile(
-                    icon: eventKindIcon(type),
-                    tone: eventKindTone(type),
-                    size: 30,
-                  ),
-                  onTap: () => _choose(type),
-                ),
+                    widget.controller.project.settings.dimension ==
+                        ProjectDimension.threeD)
+                  if ((type != NarrativeEventSourceKind.entityBump &&
+                          type != NarrativeEventSourceKind.entityAutorun &&
+                          type != NarrativeEventSourceKind.triggerBump) ||
+                      widget.controller.project.settings.dimension ==
+                          ProjectDimension.twoD)
+                    StudioChoice(
+                      label: eventKindLabel(type),
+                      selected: kind == type,
+                      tone: eventKindTone(type),
+                      leading: StudioIconTile(
+                        icon: eventKindIcon(type),
+                        tone: eventKindTone(type),
+                        size: 30,
+                      ),
+                      onTap: () => _choose(type),
+                    ),
               if (kind == NarrativeEventSourceKind.triggerBump) ...[
                 const SizedBox(height: 8),
-                const StudioNotice('L’événement se déclenche quand une tentative de marche est bloquée contre cette zone.'),
+                const StudioNotice(
+                  'L’événement se déclenche quand une tentative de marche est bloquée contre cette zone.',
+                ),
               ],
               if (kind == NarrativeEventSourceKind.entityBump) ...[
                 const SizedBox(height: 8),
@@ -250,9 +262,14 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                       targetId != null &&
                       !map.entities.any((e) => e.id == targetId) &&
                       !map.triggers.any((t) => t.id == targetId);
-                  final missingModel = source?.kind == NarrativeEventSourceKind.modelInteract &&
-                      _choosing == null && eventMapId(source) == map.id &&
-                      !(map.spatialScene?.instances.any((instance) => instance.id == targetId) ?? false);
+                  final missingModel =
+                      source?.kind == NarrativeEventSourceKind.modelInteract &&
+                      _choosing == null &&
+                      eventMapId(source) == map.id &&
+                      !(map.spatialScene?.instances.any(
+                            (instance) => instance.id == targetId,
+                          ) ??
+                          false);
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -263,7 +280,9 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
-                      if (source?.kind == NarrativeEventSourceKind.modelInteract ? missingModel : missing)
+                      if (source?.kind == NarrativeEventSourceKind.modelInteract
+                          ? missingModel
+                          : missing)
                         const StudioNotice(
                           'La cible est absente. Sa référence est conservée pour réparation.',
                         ),

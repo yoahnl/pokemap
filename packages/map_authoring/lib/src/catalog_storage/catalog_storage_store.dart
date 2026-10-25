@@ -10,6 +10,7 @@ import '../ports/project_file_reader.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/local_transaction_file_gateway.dart';
+import 'trusted_catalog_admissions.dart';
 
 final class CatalogStorageException implements Exception {
   const CatalogStorageException(this.code, this.message);
@@ -37,13 +38,17 @@ final class CatalogStorageStore {
     required ProjectFileReader reader,
     required TransactionFileGateway gateway,
     CatalogStorageLimits? limits,
-  })  : _reader = reader,
+    Directory? trustedAdmissionDirectory,
+  })  : _admissions = TrustedCatalogAdmissions(
+            projectRoot: projectRoot, directory: trustedAdmissionDirectory),
+        _reader = reader,
         _gateway = gateway,
         _limits = limits ?? CatalogStorageLimits();
 
   static Future<CatalogStorageStore> open({
     required String projectRoot,
     CatalogStorageLimits? limits,
+    Directory? trustedAdmissionDirectory,
   }) async {
     const reader = LocalProjectFileReader();
     final root = await reader.canonicalizeDirectory(projectRoot);
@@ -52,6 +57,7 @@ final class CatalogStorageStore {
       reader: reader,
       gateway: await LocalTransactionFileGateway.open(projectRoot: root),
       limits: limits,
+      trustedAdmissionDirectory: trustedAdmissionDirectory,
     );
   }
 
@@ -59,6 +65,7 @@ final class CatalogStorageStore {
   static const maximumHeadBytes = 4096;
 
   final String projectRoot;
+  final TrustedCatalogAdmissions _admissions;
   final ProjectFileReader _reader;
   final TransactionFileGateway _gateway;
   final CatalogStorageLimits _limits;
@@ -80,6 +87,45 @@ final class CatalogStorageStore {
   static List<int> encodeHead(CatalogObjectReference root) => _headBytes(root);
 
   Future<CatalogObjectReference?> readHead() => _readHead();
+
+  Future<void> restoreIndexAdmission(CatalogSnapshot snapshot) =>
+      _admissions.restore(snapshot);
+
+  Future<void> publishIndexAdmissionUnderLock(CatalogSnapshot snapshot) =>
+      _admissions.publish(snapshot);
+
+  Future<bool> metadataIndexPrepared(CatalogSnapshot snapshot) =>
+      _admissions.metadataIndexPrepared(snapshot);
+
+  Future<void> requireMetadataIndexAdmission(CatalogSnapshot snapshot) async {
+    if (!await metadataIndexPrepared(snapshot)) {
+      throw const CatalogStorageException('catalog.preparation_required',
+          'Prepare this catalog explicitly before using local workshop document indexes.');
+    }
+  }
+
+  Future<void> publishMetadataIndexAdmissionUnderLock(
+          CatalogSnapshot snapshot) =>
+      _admissions.publishMetadataIndex(snapshot);
+
+  Future<bool> prepareLocalEditing() =>
+      _gateway.withExclusiveWriteLock(() async {
+        final root = await _readHead();
+        if (root == null) {
+          throw const CatalogStorageException(
+              'catalog.missing', 'There is no catalog generation.');
+        }
+        final snapshot = (await _openRoot(root)).snapshot;
+        try {
+          await restoreIndexAdmission(snapshot);
+          return false;
+        } on CatalogStorageException catch (error) {
+          if (error.code != 'catalog.preparation_required') rethrow;
+        }
+        await snapshot.validate();
+        await publishIndexAdmissionUnderLock(snapshot);
+        return true;
+      });
 
   Future<String?> readProjectId() async {
     const path = 'catalog/IDENTITY.json';
@@ -224,6 +270,7 @@ final class CatalogStorageStore {
         }
         final published = await _openRoot(build.root);
         await published.snapshot.validate();
+        await publishIndexAdmissionUnderLock(published.snapshot);
         final head = _headBytes(build.root);
         if (head.length > maximumHeadBytes) {
           throw const CatalogStorageException(

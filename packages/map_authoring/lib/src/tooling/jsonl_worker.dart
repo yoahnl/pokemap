@@ -7,7 +7,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
-import 'package:map_authoring/map_authoring_local.dart' show LocalCharacterContactShadowAuthoring, LocalMapAtmosphereAuthoring;
+import 'package:map_authoring/map_authoring_local.dart'
+    show
+        LocalCharacterContactShadowAuthoring,
+        LocalMapAtmosphereAuthoring,
+        LocalMapEditorAuthoring,
+        LocalMapElementOrderAuthoring;
 
 import '../api/authoring_mutation_api.dart';
 import '../api/authoring_read_api.dart';
@@ -38,6 +43,7 @@ import '../domains/narrative/presentation_cinematic_template_actions.dart';
 import '../domains/narrative/rail_journey_actions.dart';
 import '../history/authoring_history.dart';
 import '../ports/project_file_reader.dart';
+import '../ports/transaction_file_gateway.dart';
 import '../ports/artifact_store.dart';
 import '../security/authorization_policy.dart';
 import '../security/confirmation_token.dart';
@@ -75,21 +81,25 @@ final class JsonlWorker {
     NativeProjectCreationTransportPort? nativeProjectCreation,
     LocalCharacterContactShadowAuthoring? characterContactShadows,
     LocalMapAtmosphereAuthoring? mapAtmosphere,
+    LocalMapEditorAuthoring? mapEditor,
+    LocalMapElementOrderAuthoring? mapElementOrder,
     GamePackageExportApiPort? gameExport,
     GamePackageExportProfileApiPort? exportProfiles,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
     this.gameExportTimeout = const Duration(minutes: 2),
-  }) : _api = api,
-       _mutations = mutations,
-       _resourcePacks = resourcePacks,
-       _projectBootstrap = projectBootstrap,
-       _projectCreation = projectCreation,
-       _nativeProjectCreation = nativeProjectCreation,
-       _characterContactShadows = characterContactShadows,
-       _mapAtmosphere = mapAtmosphere,
-       _gameExport = gameExport,
-       _exportProfiles = exportProfiles {
+  })  : _api = api,
+        _mutations = mutations,
+        _resourcePacks = resourcePacks,
+        _projectBootstrap = projectBootstrap,
+        _projectCreation = projectCreation,
+        _nativeProjectCreation = nativeProjectCreation,
+        _characterContactShadows = characterContactShadows,
+        _mapAtmosphere = mapAtmosphere,
+        _mapEditor = mapEditor,
+        _mapElementOrder = mapElementOrder,
+        _gameExport = gameExport,
+        _exportProfiles = exportProfiles {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
         maxInputBytes,
@@ -123,6 +133,8 @@ final class JsonlWorker {
   final NativeProjectCreationTransportPort? _nativeProjectCreation;
   final LocalCharacterContactShadowAuthoring? _characterContactShadows;
   final LocalMapAtmosphereAuthoring? _mapAtmosphere;
+  final LocalMapEditorAuthoring? _mapEditor;
+  final LocalMapElementOrderAuthoring? _mapElementOrder;
   final GamePackageExportApiPort? _gameExport;
   final GamePackageExportProfileApiPort? _exportProfiles;
   final int maxInputBytes;
@@ -156,7 +168,8 @@ final class JsonlWorker {
       }
       final decoded = _decodeRequestObject(line);
       final rawId = decoded['id'];
-      if (rawId is! String || rawId.trim().isEmpty ||
+      if (rawId is! String ||
+          rawId.trim().isEmpty ||
           utf8.encode(rawId).length > 128) {
         throw const _WorkerRequestException('worker.request_id_invalid',
             'The correlation identity must contain between 1 and 128 UTF-8 bytes.');
@@ -165,14 +178,16 @@ final class JsonlWorker {
       rejectUnknownContractKeys(decoded, const {'id', 'command', 'args'});
       requestId = requireContractString(decoded['id'], 'id');
       final command = requireContractString(decoded['command'], 'command');
-      creationCommand = command == 'project_create' || command == 'project_native_publish';
+      creationCommand =
+          command == 'project_create' || command == 'project_native_publish';
       final args = _jsonObject(decoded['args'], 'args');
       final timeout =
           command == 'game_export' || command.startsWith('project_native_')
-              ? gameExportTimeout : commandTimeout;
+              ? gameExportTimeout
+              : commandTimeout;
       final data = await _dispatch(command, args,
-              requestId: requestId, isCancelled: () => abandoned)
-          .timeout(timeout, onTimeout: () {
+          requestId: requestId,
+          isCancelled: () => abandoned).timeout(timeout, onTimeout: () {
         abandoned = true;
         throw TimeoutException('Worker deadline reached.');
       });
@@ -508,6 +523,14 @@ final class JsonlWorker {
             ? const ['Inspect recovery status before resuming this operation.']
             : const [],
       );
+    } on TransactionFileGatewayException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.internal,
+        domainCode: error.code,
+        message:
+            'Transaction storage could not complete the request. Inspect recovery status before retrying.',
+      );
     } on AuthoringRecoveryException catch (error) {
       result = _failure(
         requestId,
@@ -539,7 +562,8 @@ final class JsonlWorker {
         requestId,
         code: AuthoringErrorCode.validationFailed,
         domainCode: error.code ?? 'validation.failed',
-        message: const AuthoringOutputRedactor().redact(error.message)! as String,
+        message:
+            const AuthoringOutputRedactor().redact(error.message)! as String,
         remediation: error.remediation.map(
           (value) => const AuthoringOutputRedactor().redact(value)! as String,
         ),
@@ -558,12 +582,21 @@ final class JsonlWorker {
   }
 
   bool _isCatalogProject(ProjectHandle project) {
-    final mutations=_mutations;
-    return mutations is LocalMapAuthoringMutationApi && mutations.isCatalogProject(project);
+    final mutations = _mutations;
+    return mutations is LocalMapAuthoringMutationApi &&
+        mutations.isCatalogProject(project);
   }
 
-  Future<void> _requireSynchronousOperationAllowed(ProjectHandle project,{required String operation,String? planId,String? operationId,String? entryId}) async {
-    await _resourcePacks?.requireSynchronousOperationAllowed(project,operation:operation,planId:planId,operationId:operationId,entryId:entryId);
+  Future<void> _requireSynchronousOperationAllowed(ProjectHandle project,
+      {required String operation,
+      String? planId,
+      String? operationId,
+      String? entryId}) async {
+    await _resourcePacks?.requireSynchronousOperationAllowed(project,
+        operation: operation,
+        planId: planId,
+        operationId: operationId,
+        entryId: entryId);
   }
 
   Future<Map<String, Object?>> _dispatch(
@@ -633,12 +666,15 @@ final class JsonlWorker {
         final pending = catalogProject
             ? null
             : await _resourcePacks?.transfer(
-          projectHandle,
-          verb: 'recovery_status',
-        );
+                projectHandle,
+                verb: 'recovery_status',
+              );
         return Map.unmodifiable({
           ...opened,
-          'readOnly': catalogProject ? await (mutations as LocalMapAuthoringMutationApi).catalogProjectReadOnly(projectHandle) : pending?['recoveryRequired'] == true,
+          'readOnly': catalogProject
+              ? await (mutations as LocalMapAuthoringMutationApi)
+                  .catalogProjectReadOnly(projectHandle)
+              : pending?['recoveryRequired'] == true,
           if (pending != null) 'resourcePackRecovery': pending,
         });
       case 'project_bootstrap_inspect':
@@ -655,7 +691,8 @@ final class JsonlWorker {
         rejectUnknownContractKeys(args, const {'source'});
         final native = _nativeProjectCreation;
         if (native == null) throw const _UnsupportedWorkerCommand();
-        return native.prepare(_jsonObject(args['source'], 'args.source'), isCancelled: isCancelled);
+        return native.prepare(_jsonObject(args['source'], 'args.source'),
+            isCancelled: isCancelled);
       case 'project_native_plan':
         final native = _nativeProjectCreation;
         if (native == null) throw const _UnsupportedWorkerCommand();
@@ -668,7 +705,8 @@ final class JsonlWorker {
         rejectUnknownContractKeys(args, const {'preparedHandle'});
         final native = _nativeProjectCreation;
         if (native == null) throw const _UnsupportedWorkerCommand();
-        return native.release(requireContractString(args['preparedHandle'], 'args.preparedHandle'));
+        return native.release(requireContractString(
+            args['preparedHandle'], 'args.preparedHandle'));
       case 'project_create_preview':
         rejectUnknownContractKeys(args, const {'request'});
         final creation = _projectCreation;
@@ -765,10 +803,152 @@ final class JsonlWorker {
         await _resourcePacks?.closeTransferWorkspace(workspaceHandle);
         await _mutations?.detachWorkspace(workspaceHandle);
         return _api.close(workspaceHandle);
+      case 'map_elements_inspect':
+      case 'map_elements_reorder':
+      case 'map_elements_undo':
+        final service =
+            _mapElementOrder ?? (throw const _UnsupportedWorkerCommand());
+        final reordering = command == 'map_elements_reorder';
+        final undoing = command == 'map_elements_undo';
+        rejectUnknownContractKeys(args, {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          if (reordering || undoing) 'expectedRevision',
+          if (reordering || undoing) 'operationId',
+          if (reordering) 'kind',
+          if (reordering) 'frontFirstIds',
+          if (reordering) 'layerId',
+          if (undoing) 'receiptId',
+        });
+        final root =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
+        final mapId = requireContractString(args['mapId'], 'args.mapId');
+        final mapPath = args['mapRelativePath'] == null
+            ? null
+            : requireContractString(
+                args['mapRelativePath'], 'args.mapRelativePath');
+        if (undoing) {
+          return (await service.undoReceipt(
+            projectRoot: root,
+            mapId: mapId,
+            mapRelativePath: mapPath,
+            receiptId:
+                requireContractString(args['receiptId'], 'args.receiptId'),
+            expectedRevision: requireContractString(
+                args['expectedRevision'], 'args.expectedRevision'),
+            operationId:
+                requireContractString(args['operationId'], 'args.operationId'),
+          ))
+              .toJson();
+        }
+        if (!reordering) {
+          return (await service.inspect(
+                  projectRoot: root, mapId: mapId, mapRelativePath: mapPath))
+              .toJson();
+        }
+        final ids = args['frontFirstIds'];
+        if (ids is! List || ids.any((id) => id is! String)) {
+          throw const FormatException(
+              'frontFirstIds must be a list of element identities.');
+        }
+        return (await service.reorder(
+          projectRoot: root,
+          mapId: mapId,
+          mapRelativePath: mapPath,
+          expectedRevision: requireContractString(
+              args['expectedRevision'], 'args.expectedRevision'),
+          kind: requireContractString(args['kind'], 'args.kind'),
+          frontFirstIds: ids.cast<String>(),
+          layerId: args['layerId'] == null
+              ? null
+              : requireContractString(args['layerId'], 'args.layerId'),
+          operationId:
+              requireContractString(args['operationId'], 'args.operationId'),
+        ))
+            .toJson();
+      case 'map_editor_inspect':
+      case 'map_editor_set':
+      case 'map_editor_undo':
+        final service = _mapEditor ?? (throw const _UnsupportedWorkerCommand());
+        final setting = command == 'map_editor_set';
+        final undoing = command == 'map_editor_undo';
+        rejectUnknownContractKeys(args, {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          if (setting || undoing) 'expectedRevision',
+          if (setting || undoing) 'operationId',
+          if (setting) 'state',
+          if (undoing) 'receiptId',
+        });
+        final root =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
+        final mapId = requireContractString(args['mapId'], 'args.mapId');
+        final mapPath = args['mapRelativePath'] == null
+            ? null
+            : requireContractString(
+                args['mapRelativePath'], 'args.mapRelativePath');
+        if (undoing) {
+          return (await service.undoReceipt(
+            projectRoot: root,
+            mapId: mapId,
+            mapRelativePath: mapPath,
+            receiptId:
+                requireContractString(args['receiptId'], 'args.receiptId'),
+            expectedRevision: requireContractString(
+                args['expectedRevision'], 'args.expectedRevision'),
+            operationId:
+                requireContractString(args['operationId'], 'args.operationId'),
+          ))
+              .toJson();
+        }
+        if (!setting) {
+          return (await service.inspect(
+                  projectRoot: root, mapId: mapId, mapRelativePath: mapPath))
+              .toJson();
+        }
+        final state = args['state'];
+        if (state is! Map<String, dynamic>) {
+          throw const FormatException('state must be a map editor object.');
+        }
+        return (await service.set(
+          projectRoot: root,
+          mapId: mapId,
+          mapRelativePath: mapPath,
+          expectedRevision: requireContractString(
+              args['expectedRevision'], 'args.expectedRevision'),
+          state: MapEditorState.fromJson(state),
+          operationId:
+              requireContractString(args['operationId'], 'args.operationId'),
+        ))
+            .toJson();
       case 'map_atmosphere_undo':
-        final service = _mapAtmosphere ?? (throw const _UnsupportedWorkerCommand());
-        rejectUnknownContractKeys(args, const {'projectRoot','mapId','mapRelativePath','receiptId','expectedRevision','operationId'});
-        return (await service.undoReceipt(projectRoot:requireContractString(args['projectRoot'],'args.projectRoot'),mapId:requireContractString(args['mapId'],'args.mapId'),mapRelativePath:args['mapRelativePath']==null?null:requireContractString(args['mapRelativePath'],'args.mapRelativePath'),receiptId:requireContractString(args['receiptId'],'args.receiptId'),expectedRevision:requireContractString(args['expectedRevision'],'args.expectedRevision'),operationId:requireContractString(args['operationId'],'args.operationId'))).toJson();
+        final service =
+            _mapAtmosphere ?? (throw const _UnsupportedWorkerCommand());
+        rejectUnknownContractKeys(args, const {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          'receiptId',
+          'expectedRevision',
+          'operationId'
+        });
+        return (await service.undoReceipt(
+                projectRoot: requireContractString(
+                    args['projectRoot'], 'args.projectRoot'),
+                mapId: requireContractString(args['mapId'], 'args.mapId'),
+                mapRelativePath: args['mapRelativePath'] == null
+                    ? null
+                    : requireContractString(
+                        args['mapRelativePath'], 'args.mapRelativePath'),
+                receiptId:
+                    requireContractString(args['receiptId'], 'args.receiptId'),
+                expectedRevision: requireContractString(
+                    args['expectedRevision'], 'args.expectedRevision'),
+                operationId: requireContractString(
+                    args['operationId'], 'args.operationId')))
+            .toJson();
       case 'map_atmosphere_inspect':
       case 'map_atmosphere_set':
         final service =
@@ -862,21 +1042,62 @@ final class JsonlWorker {
       case 'game_export_profile_read':
       case 'game_export_profile_validate':
       case 'game_export_profile_save':
-        final profiles = _exportProfiles ?? (throw const _UnsupportedWorkerCommand());
+        final profiles =
+            _exportProfiles ?? (throw const _UnsupportedWorkerCommand());
         final readOnly = command == 'game_export_profile_read';
         final save = command == 'game_export_profile_save';
         rejectUnknownContractKeys(args, {
-          'projectRoot', if (!readOnly) 'profile',
-          if (save) 'expectedProfileRevision', if (save) 'expectedContextRevision',
+          'projectRoot',
+          if (!readOnly) 'profile',
+          if (save) 'expectedProfileRevision',
+          if (save) 'expectedContextRevision',
         });
-        final root = requireContractString(args['projectRoot'], 'args.projectRoot');
+        final root =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
         if (readOnly) return (await profiles.read(projectRoot: root)).toJson();
         final profile = GamePackageExportProfile.fromJson(args['profile']);
-        if (!save) return (await profiles.validate(projectRoot: root, profile: profile)).toJson();
-        return (await profiles.save(projectRoot: root, profile: profile,
-          expectedProfileRevision: requireContractString(args['expectedProfileRevision'], 'args.expectedProfileRevision'),
-          expectedContextRevision: requireContractString(args['expectedContextRevision'], 'args.expectedContextRevision'),
-        )).toJson();
+        if (!save) {
+          return (await profiles.validate(projectRoot: root, profile: profile))
+              .toJson();
+        }
+        return (await profiles.save(
+          projectRoot: root,
+          profile: profile,
+          expectedProfileRevision: requireContractString(
+              args['expectedProfileRevision'], 'args.expectedProfileRevision'),
+          expectedContextRevision: requireContractString(
+              args['expectedContextRevision'], 'args.expectedContextRevision'),
+        ))
+            .toJson();
+      case 'workshop_snapshot':
+        rejectUnknownContractKeys(args, const {
+          'projectHandle',
+          'actionId',
+          'parameters',
+          'readDependencies'
+        });
+        final workshops = _mutations;
+        if (workshops is! AuthoringWorkshopPort) {
+          throw const _UnsupportedWorkerCommand();
+        }
+        return (workshops as AuthoringWorkshopPort).readWorkshopDocument(
+            _projectHandle(args),
+            actionId: requireContractString(args['actionId'], 'args.actionId'),
+            parameters: args['parameters'] == null
+                ? const {}
+                : _jsonObject(args['parameters'], 'args.parameters'),
+            readDependencies: args['readDependencies'] == null
+                ? const {}
+                : Map<String, String>.from(_jsonObject(
+                    args['readDependencies'], 'args.readDependencies')));
+      case 'workshop_prepare':
+        rejectUnknownContractKeys(args, const {'projectHandle'});
+        final workshops = _mutations;
+        if (workshops is! AuthoringWorkshopPort) {
+          throw const _UnsupportedWorkerCommand();
+        }
+        return (workshops as AuthoringWorkshopPort)
+            .prepareWorkshopDocument(_projectHandle(args));
       case 'plan':
         rejectUnknownContractKeys(args, const {'projectHandle', 'request'});
         final request = _jsonObject(args['request'], 'args.request');
@@ -969,6 +1190,22 @@ final class JsonlWorker {
             'args.cursor',
           ),
         );
+      case 'discard_preparation':
+        rejectUnknownContractKeys(args, const {'projectHandle', 'operationId'});
+        final mutations = _mutationApi();
+        if (mutations is! AuthoringIncompletePreparationDiscardPort) {
+          throw const _WorkerRequestException(
+            'worker.unsupported',
+            'Incomplete preparation cleanup is unavailable.',
+          );
+        }
+        return (await (mutations as AuthoringIncompletePreparationDiscardPort)
+                .discardIncompletePreparation(
+          _projectHandle(args),
+          operationId:
+              requireContractString(args['operationId'], 'args.operationId'),
+        ))
+            .toJson();
       case 'recovery_status':
         rejectUnknownContractKeys(args, const {'projectHandle', 'operationId'});
         final mutations = _mutationApi();
@@ -1041,156 +1278,208 @@ final class JsonlWorker {
         _nativeProjectCreation == null &&
         _characterContactShadows == null &&
         _mapAtmosphere == null &&
+        _mapEditor == null &&
+        _mapElementOrder == null &&
         _resourcePacks == null) {
       return read;
     }
     final mutation = mutations?.describeMutations();
-    final commands =
-        <Map<String, Object?>>[
-          for (final command in read['commands']! as List)
-            Map<String, Object?>.from(command as Map),
-          if (mutation != null)
-            for (final command in mutation['commands']! as List)
-              Map<String, Object?>.from(command as Map),
-          if (bootstrap != null)
-            const {
-              'id': 'project_bootstrap_inspect',
-              'summary': 'Inspect a project before opening it.',
+    final commands = <Map<String, Object?>>[
+      for (final command in read['commands']! as List)
+        Map<String, Object?>.from(command as Map),
+      if (mutation != null)
+        for (final command in mutation['commands']! as List)
+          Map<String, Object?>.from(command as Map),
+      if (bootstrap != null)
+        const {
+          'id': 'project_bootstrap_inspect',
+          'summary': 'Inspect a project before opening it.',
+        },
+      if (bootstrap != null)
+        const {
+          'id': 'project_bootstrap_repair',
+          'summary': 'Repair a missing explicit Pokemon ruleset.',
+        },
+      if (creation != null)
+        const {
+          'id': 'project_templates',
+          'summary': 'List explicitly configured verified project templates.',
+        },
+      if (creation != null)
+        const {
+          'id': 'project_create_preview',
+          'actionId': 'project.create',
+          'summary':
+              'Preview a new project inside a configured parent root without writing.',
+          'templates': ['empty', 'playable', 'catalogue'],
+          'catalogueSelection': 'explicitTemplateId',
+          'tileSizes': [16, 32, 48],
+          'dimensions': ['twoD', 'threeD'],
+          'defaultDimension': 'twoD',
+          'mapInstanceRetentionPolicy': {
+            'schemaVersion': 1,
+            'dimension': 'twoD',
+            'templates': ['empty'],
+            'fields': [
+              'viewportWidthTiles',
+              'viewportHeightTiles',
+              'marginTiles',
+              'clampViewportToMapIds',
+            ],
+            'integerMaximum': 2147483647,
+            'confirmationBinding': 'exactPolicy',
+          },
+          'threeDTemplates': ['empty'],
+          'spatialCamera': {
+            'mode': 'fixed',
+            'fields': [
+              'pitchDegrees',
+              'yawDegrees',
+              'fieldOfViewDegrees',
+              'projection',
+              'orthographicHeight',
+              'distance',
+            ],
+          },
+        },
+      if (creation != null)
+        const {
+          'id': 'project_create',
+          'actionId': 'project.create',
+          'summary':
+              'Create the exact previewed new project after opaque confirmation.',
+          'undoable': false,
+          'replacesExisting': false,
+        },
+      if (_nativeProjectCreation != null)
+        for (final operation in ['prepare', 'plan', 'publish', 'release'])
+          {
+            'id': 'project_native_$operation',
+            'actionId': 'project.create_prepared_native',
+            'actionVersion': 1,
+            'summary':
+                'Create an exclusively new typed native project through witnessed source preparation and a sealed session plan.',
+            'sourceDescriptor': {
+              'kind': 'nativeProjectCreationSource',
+              'schemaVersion': 1,
+              'maximumDescriptorBytes': 500 * 1024 * 1024,
+              'witnessFields': ['descriptorPath', 'sha256', 'byteLength'],
+              'blobWitnessFields': ['relativePath', 'sha256', 'byteLength'],
+              'rootFields': ['kind', 'schemaVersion', 'input'],
+              'inputFields': [
+                'manifest',
+                'maps',
+                'assetCatalog',
+                'artifacts',
+                'dialogueSources',
+                'itemCatalog',
+                'pokemonCatalogs',
+                'species',
+                'learnsets',
+                'evolutions',
+                'media',
+                'borderFrames'
+              ],
+              'artifactFields': ['reference', 'source'],
+              'borderFrameFields': ['snapshotId', 'frameIndex', 'artifact'],
+              'blobRoot': 'descriptorParentDirectory',
+              'inlineBase64': false
             },
-          if (bootstrap != null)
-            const {
-              'id': 'project_bootstrap_repair',
-              'summary': 'Repair a missing explicit Pokemon ruleset.',
-            },
-          if (creation != null)
-            const {
-              'id': 'project_templates',
-              'summary': 'List explicitly configured verified project templates.',
-            },
-          if (creation != null)
-            const {
-              'id': 'project_create_preview',
-              'actionId': 'project.create',
-              'summary': 'Preview a new project inside a configured parent root without writing.',
-              'templates': ['empty', 'playable', 'catalogue'],
-              'catalogueSelection': 'explicitTemplateId',
-              'tileSizes': [16, 32, 48],
-              'dimensions': ['twoD', 'threeD'],
-              'defaultDimension': 'twoD',
-              'mapInstanceRetentionPolicy': {
-                'schemaVersion': 1,
-                'dimension': 'twoD',
-                'templates': ['empty'],
-                'fields': [
-                  'viewportWidthTiles',
-                  'viewportHeightTiles',
-                  'marginTiles',
-                  'clampViewportToMapIds',
-                ],
-                'integerMaximum': 2147483647,
-                'confirmationBinding': 'exactPolicy',
-              },
-              'threeDTemplates': ['empty'],
-              'spatialCamera': {
-                'mode': 'fixed',
-                'fields': [
-                  'pitchDegrees',
-                  'yawDegrees',
-                  'fieldOfViewDegrees',
-                  'projection',
-                  'orthographicHeight',
-                  'distance',
-                ],
-              },
-            },
-          if (creation != null)
-            const {
-              'id': 'project_create',
-              'actionId': 'project.create',
-              'summary': 'Create the exact previewed new project after opaque confirmation.',
-              'undoable': false,
-              'replacesExisting': false,
-            },
-          if (_nativeProjectCreation != null)
-            for (final operation in ['prepare', 'plan', 'publish', 'release'])
-              {
-                'id': 'project_native_$operation',
-                'actionId': 'project.create_prepared_native',
-                'actionVersion': 1,
-                'summary': 'Create an exclusively new typed native project through witnessed source preparation and a sealed session plan.',
-                'sourceDescriptor': {'kind': 'nativeProjectCreationSource', 'schemaVersion': 1,
-                  'maximumDescriptorBytes': 500 * 1024 * 1024,
-                  'witnessFields': ['descriptorPath', 'sha256', 'byteLength'],
-                  'blobWitnessFields': ['relativePath', 'sha256', 'byteLength'],
-                  'rootFields': ['kind', 'schemaVersion', 'input'],
-                  'inputFields': ['manifest', 'maps', 'assetCatalog', 'artifacts',
-                    'dialogueSources', 'itemCatalog', 'pokemonCatalogs', 'species',
-                    'learnsets', 'evolutions', 'media', 'borderFrames'],
-                  'artifactFields': ['reference', 'source'],
-                  'borderFrameFields': ['snapshotId', 'frameIndex', 'artifact'],
-                  'blobRoot': 'descriptorParentDirectory',
-                  'inlineBase64': false},
-                'sourcePolicy': 'configuredRootsExactWitnessesNoSymlinks',
-                'handleScope': 'workerSessionOnlyReprepareAfterRestart',
-                'writesDestination': operation == 'publish',
-                'undoable': false, 'replacesExisting': false,
-              },
-          if (_mapAtmosphere != null)
-            for (final operation in ['inspect', 'set', 'undo'])
-              {
-                'id': 'map_atmosphere_$operation',
-                'actionId': 'map.atmosphere.set',
-                'readOnly': operation == 'inspect',
-                'summary':
-                    'Read or save one bounded map atmosphere sidecar without loading the project.',
-                'storagePattern': 'maps/<mapId>.atmosphere.json',
-                'maximumDocumentBytes': SpatialAtmosphereDocument.maxBytes,
-                'expectedRevision':
-                    operation != 'inspect' ? 'opaque revision from inspect' : null
-              },
-          if (_characterContactShadows != null)
-            for (final operation in ['inspect', 'set'])
-              {
-                'id': 'character_contact_shadow_$operation',
-                'actionId': 'characterStudio.contactShadow.set',
-                'readOnly': operation == 'inspect',
-                'summary':
-                    'Inspect and admit an existing working catalog, then update one character definition through the same worker session; never partitions a project implicitly.',
-                'expectedRevision': operation == 'set'
-                    ? 'document or catalog generation revision from inspect in this worker session'
-                    : null,
-                'initialAdmission': operation == 'inspect',
-                'partitionsProject': false,
-              },
-          if (_resourcePacks != null)
-            const {
-              'id': 'resource_pack',
-              'summary': 'Run scoped asynchronous native pack transfers.',
-            },
-          if (gameExport != null)
-            const {
-              'id': 'game_export',
-              'summary': 'Build and write an .avelunegame package for local testing or certified publication.',
-              'modes': ['publication', 'localTest'],
-              'defaultMode': 'publication',
-            },
-          if (_exportProfiles != null)
-            for (final operation in ['read', 'validate', 'save'])
-              {
-                'id': 'game_export_profile_$operation',
-                'summary': 'Canonical persisted export profile $operation.',
-                'path': '.pokemap/export-profile-v1.json',
-                'profileSchemaVersion': 1,
-                'readOnly': operation != 'save',
-                'expectedRevisions': operation == 'save'
-                    ? ['expectedProfileRevision', 'expectedContextRevision'] : [],
-                'contextScope': 'project.json, enabled new-game start map, declared profile assets',
-                'contextGuarantee': 'freshPreimageCheckBeforeProfileRename;notMultiFileAtomic',
-              },
-        ]..sort(
-          (left, right) =>
-              (left['id']! as String).compareTo(right['id']! as String),
-        );
+            'sourcePolicy': 'configuredRootsExactWitnessesNoSymlinks',
+            'handleScope': 'workerSessionOnlyReprepareAfterRestart',
+            'writesDestination': operation == 'publish',
+            'undoable': false,
+            'replacesExisting': false,
+          },
+      if (_mapElementOrder != null)
+        for (final operation in ['inspect', 'reorder', 'undo'])
+          {
+            'id': 'map_elements_$operation',
+            'actionId': 'map.elements.reorder',
+            'readOnly': operation == 'inspect',
+            'summary':
+                'Reorder one map layer stack or one layer decoration stack, front first.',
+            'resourceKind': 'map',
+            'loadsProject': false,
+            'order': 'frontFirst',
+            'expectedRevision':
+                operation != 'inspect' ? 'opaque revision from inspect' : null,
+          },
+      if (_mapEditor != null)
+        for (final operation in ['inspect', 'set', 'undo'])
+          {
+            'id': 'map_editor_$operation',
+            'actionId': 'map.editor.set',
+            'readOnly': operation == 'inspect',
+            'summary':
+                'Inspect or save bounded editor selection and movement locks for one map.',
+            'resourceKind': 'mapEditor',
+            'storagePattern': 'maps/<mapId>.editor.json',
+            'maximumDocumentBytes': MapEditorDocument.maxBytes,
+            'editorOnly': true,
+            'expectedRevision':
+                operation != 'inspect' ? 'opaque revision from inspect' : null,
+          },
+      if (_mapAtmosphere != null)
+        for (final operation in ['inspect', 'set', 'undo'])
+          {
+            'id': 'map_atmosphere_$operation',
+            'actionId': 'map.atmosphere.set',
+            'readOnly': operation == 'inspect',
+            'summary':
+                'Read or save one bounded map atmosphere sidecar without loading the project.',
+            'storagePattern': 'maps/<mapId>.atmosphere.json',
+            'maximumDocumentBytes': SpatialAtmosphereDocument.maxBytes,
+            'expectedRevision':
+                operation != 'inspect' ? 'opaque revision from inspect' : null
+          },
+      if (_characterContactShadows != null)
+        for (final operation in ['inspect', 'set'])
+          {
+            'id': 'character_contact_shadow_$operation',
+            'actionId': 'characterStudio.contactShadow.set',
+            'readOnly': operation == 'inspect',
+            'summary':
+                'Inspect and admit an existing working catalog, then update one character definition through the same worker session; never partitions a project implicitly.',
+            'expectedRevision': operation == 'set'
+                ? 'document or catalog generation revision from inspect in this worker session'
+                : null,
+            'initialAdmission': operation == 'inspect',
+            'partitionsProject': false,
+          },
+      if (_resourcePacks != null)
+        const {
+          'id': 'resource_pack',
+          'summary': 'Run scoped asynchronous native pack transfers.',
+        },
+      if (gameExport != null)
+        const {
+          'id': 'game_export',
+          'summary':
+              'Build and write an .avelunegame package for local testing or certified publication.',
+          'modes': ['publication', 'localTest'],
+          'defaultMode': 'publication',
+        },
+      if (_exportProfiles != null)
+        for (final operation in ['read', 'validate', 'save'])
+          {
+            'id': 'game_export_profile_$operation',
+            'summary': 'Canonical persisted export profile $operation.',
+            'path': '.pokemap/export-profile-v1.json',
+            'profileSchemaVersion': 1,
+            'readOnly': operation != 'save',
+            'expectedRevisions': operation == 'save'
+                ? ['expectedProfileRevision', 'expectedContextRevision']
+                : [],
+            'contextScope':
+                'project.json, enabled new-game start map, declared profile assets',
+            'contextGuarantee':
+                'freshPreimageCheckBeforeProfileRename;notMultiFileAtomic',
+          },
+    ]..sort(
+        (left, right) =>
+            (left['id']! as String).compareTo(right['id']! as String),
+      );
     return freezeContractJsonObject({
       ...read,
       'protocol': 'pokemap.authoring.v1',
@@ -1199,10 +1488,41 @@ final class JsonlWorker {
       if (_resourcePacks != null)
         'resourcePackTransfer': resourcePackTransferContract,
       if (mutation != null) 'mutationActions': mutation['actions'],
+      if (_mapEditor != null || _mapElementOrder != null)
+        'scopedMutationActions': [
+          if (_mapEditor != null) LocalMapEditorAuthoring.descriptor.toJson(),
+          if (_mapElementOrder != null)
+            LocalMapElementOrderAuthoring.descriptor.toJson(),
+        ],
+      if (_mapEditor != null)
+        'scopedResourceKinds': [
+          {
+            'id': 'mapEditor',
+            'version': 1,
+            'displayName': 'Map editor locks',
+            'summary':
+                'Editor-only selection and movement locks, scoped to one map.',
+            'extensions': {
+              'readCommand': 'map_editor_inspect',
+              'writeCommand': 'map_editor_set',
+              'undoCommand': 'map_editor_undo',
+              'storagePattern': 'maps/<mapId>.editor.json',
+              'maximumDocumentBytes': MapEditorDocument.maxBytes,
+              'runtime': false,
+            },
+          },
+        ],
+      if (_mapElementOrder != null)
+        'mapElementOrderAuthoring':
+            LocalMapElementOrderAuthoring.descriptor.toJson(),
+      if (_mapEditor != null)
+        'mapEditorAuthoring': LocalMapEditorAuthoring.descriptor.toJson(),
       if (_mapAtmosphere != null)
-        'mapAtmosphereAuthoring': LocalMapAtmosphereAuthoring.descriptor.toJson(),
+        'mapAtmosphereAuthoring':
+            LocalMapAtmosphereAuthoring.descriptor.toJson(),
       if (_characterContactShadows != null)
-        'characterContactShadowAuthoring': LocalCharacterContactShadowAuthoring.descriptor.toJson(),
+        'characterContactShadowAuthoring':
+            LocalCharacterContactShadowAuthoring.descriptor.toJson(),
       if (mutation != null)
         'multiFileGuarantee': mutation['multiFileGuarantee'],
       if (mutation != null) 'fullParity': mutation['fullParity'],

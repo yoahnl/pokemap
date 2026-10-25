@@ -11,7 +11,7 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
             .toSet() ??
         <String>{};
     return CallbackShortcuts(
-      bindings: {
+      bindings: textAwareEditorShortcuts({
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true): _save,
         const SingleActivator(LogicalKeyboardKey.keyS, control: true): _save,
         const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): () =>
@@ -30,7 +30,7 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
           shift: true,
         ): () =>
             _restore(true),
-      },
+      }),
       child: Focus(
         focusNode: _pageFocus,
         autofocus: true,
@@ -42,9 +42,9 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
             final library = EventLibrary(
               project: project,
               maps: c.maps,
-              mapsComplete: c.prepared,
+              mapsComplete: c.mapsComplete,
               onLoadHistory: () async {
-                await c.prepare();
+                await c.prepareAllMaps();
                 _refresh();
               },
               records: c.records,
@@ -159,7 +159,8 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                               : () async {
                                   _flush();
                                   await _pending;
-                                  if (await c.prepare() && context.mounted) {
+                                  if (await c.prepareAllMaps() &&
+                                      context.mounted) {
                                     await showEventSimulation(
                                       context,
                                       c,

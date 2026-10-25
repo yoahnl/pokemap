@@ -20,8 +20,22 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
   }
 
   void _openResources([ProjectElementEntry? element, bool edit = false]) {
-    if (!_controller.hasCompleteProject) {
-      unawaited(_materializeWorkshops(destination: WorkspaceSpace.resources));
+    if (!_controller.hasWorkshop(MapWorkspaceWorkshop.resources) &&
+        widget.resourceLibraryBuilder != null) {
+      _show(WorkspaceSpace.resources);
+      return;
+    }
+    final family = element == null
+        ? _resources?.library.family ?? ResourceLibraryFamily.decors
+        : ResourceLibraryFamily.decors;
+    if (!_controller.hasWorkshop(MapWorkspaceWorkshop.resources) ||
+        !_controller.hasResourceKind(family.canonicalKind)) {
+      unawaited(
+        _openResourceWorkshop(
+          () => _resources?.openElement(element, edit: edit),
+          family: family,
+        ),
+      );
       return;
     }
     if (_resources == null) return;
@@ -29,9 +43,37 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.resources);
   }
 
+  Future<void> _openResourceTools() async {
+    await _openResourceWorkshop(() => _resources?.showLibrary());
+  }
+
+  Future<void> _openResourceWorkshop(
+    VoidCallback prepare, {
+    ResourceLibraryFamily? family,
+  }) async {
+    final guard = _libraryExitGuard;
+    if (guard != null && !await guard()) return;
+    if (!mounted || !identical(guard, _libraryExitGuard)) return;
+    await _openWorkshop(
+      WorkspaceSpace.resources,
+      MapWorkspaceWorkshop.resources,
+      prepare: prepare,
+      loadDependencies: () => _controller.ensureResourceKind(
+        (family ?? _resources?.library.family ?? ResourceLibraryFamily.decors)
+            .canonicalKind,
+      ),
+    );
+  }
+
   void _openBorders() {
-    if (!_controller.hasCompleteProject) {
-      unawaited(_materializeWorkshops(destination: WorkspaceSpace.resources));
+    if (!_controller.hasWorkshop(MapWorkspaceWorkshop.resources) ||
+        !_controller.hasResourceKind('borderBlueprint')) {
+      unawaited(
+        _openResourceWorkshop(
+          () => _resources?.openBorders(),
+          family: ResourceLibraryFamily.borders,
+        ),
+      );
       return;
     }
     if (_resources == null) return;
@@ -65,10 +107,7 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
             (id: entry.id, name: entry.name),
         ],
         library: _controller.hasCompleteProject ? _controller.project : null,
-        testAvailable:
-            _controller.hasCompleteProject &&
-            _controller.active != null &&
-            !_actions.busy,
+        testAvailable: _controller.active != null && !_actions.busy,
         previewBuilder: (id) => StudioHomeMapPreview(
           key: ValueKey(
             'home-map-preview-${_controller.session.sessionId}-$id',
@@ -101,9 +140,17 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
       case 'resources':
         _openResources();
       case 'terrains':
-        _resources?.library.kind = ResourceKind.terrains;
-        _resources?.showLibrary();
-        _show(WorkspaceSpace.resources);
+        if (!_controller.hasWorkshop(MapWorkspaceWorkshop.resources) &&
+            widget.resourceLibraryBuilder != null) {
+          _openResources();
+          return;
+        }
+        unawaited(
+          _openResourceWorkshop(() {
+            _resources?.library.kind = ResourceKind.terrains;
+            _resources?.showLibrary();
+          }, family: ResourceLibraryFamily.terrains),
+        );
       case 'characters':
         _view?.prepareCharacterPlacement();
         _view?.revealPalette = true;
@@ -111,7 +158,7 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
         _openMap();
         _toolChanged();
       case 'story':
-        if (_narrative != null) _show(WorkspaceSpace.story);
+        _show(WorkspaceSpace.story);
       case 'testGame':
         if (_controller.active != null &&
             !_actions.busy &&

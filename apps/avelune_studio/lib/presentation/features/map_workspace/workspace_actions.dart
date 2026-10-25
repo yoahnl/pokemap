@@ -145,12 +145,6 @@ class WorkspaceActions {
       changed();
       return;
     }
-    if (!controller.hasCompleteProject) {
-      controller.active?.error =
-          'Chargez tous les ateliers avant de tester le jeu complet.';
-      changed();
-      return;
-    }
     if (regionalMap?.call()?.dirty == true) {
       regionalMap!.call()!.error =
           'Enregistrez la carte régionale avant de tester le jeu.';

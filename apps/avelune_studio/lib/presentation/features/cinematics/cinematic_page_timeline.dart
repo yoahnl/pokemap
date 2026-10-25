@@ -3,7 +3,7 @@ part of 'cinematic_workspace_page.dart';
 extension _CinematicPageTimeline on _CinematicWorkspacePageState {
   Widget timeline(CinematicAsset asset, CinematicViewState state) =>
       CallbackShortcuts(
-        bindings: {
+        bindings: textAwareEditorShortcuts({
           const SingleActivator(LogicalKeyboardKey.delete): deleteSteps,
           const SingleActivator(LogicalKeyboardKey.backspace): deleteSteps,
           const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): undo,
@@ -27,7 +27,7 @@ extension _CinematicPageTimeline on _CinematicWorkspacePageState {
           const SingleActivator(LogicalKeyboardKey.keyD, control: true):
               duplicateSelection,
           const SingleActivator(LogicalKeyboardKey.space): play,
-        },
+        }),
         child: CinematicTimelineEditor(
           asset: asset,
           view: state,

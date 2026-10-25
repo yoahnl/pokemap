@@ -20,6 +20,10 @@ import 'project_snapshot.dart';
 import 'project_snapshot_cache.dart';
 import 'project_snapshot_fingerprint_cache.dart';
 import 'workspace_handle_store.dart';
+import '../domains/narrative/standard_event_template.dart';
+import '../domains/narrative/scene_party_move_catalog.dart';
+
+part 'native_workshop_snapshot.dart';
 
 enum ProjectSnapshotLoadPolicy {
   strict,
@@ -238,6 +242,40 @@ final class ProjectSnapshotLoader {
     _handles.requireActiveProject(projectHandle);
   }
 
+  Future<ProjectSnapshot> loadWorkshop(
+    ProjectHandle projectHandle, {
+    required String actionId,
+    Map<String, Object?> parameters = const {},
+    Map<String, String> readDependencies = const {},
+  }) =>
+      _loadNativeWorkshop(this, projectHandle,
+          actionId: actionId,
+          parameters: parameters,
+          readDependencies: readDependencies);
+
+  Future<ProjectSnapshot> loadHistorySnapshot(ProjectHandle projectHandle) async {
+    final access = _handles.resolveProject(projectHandle);
+    await access.requireReadableProject();
+    final bytes = await access.readResourceBytes('project.json');
+    final revision = await _decodeExecutor.fingerprintResource(bytes.bytes,
+        relativePath: 'project.json');
+    if (!await access.matchesResourceBytes('project.json', bytes.bytes)) {
+      throw const ProjectSnapshotException('project.changed_during_snapshot',
+          'The project document changed while preparing its history operation.');
+    }
+    await access.requireReadableProject();
+    return ProjectSnapshot(
+        projectHandle: projectHandle,
+        revision: revision,
+        manifest: ProjectManifest(name: access.projectName, maps: const [], tilesets: const []),
+        maps: const [],
+        availableProjectSections: const {},
+        availableProjectDocuments: const {},
+        resourceFingerprints: {'project': revision},
+        resourceStorageKeys: const {'project': 'project.json'},
+        ownedResourceBytes: {'project': bytes});
+  }
+
   Future<ProjectSnapshot> loadPresentationDraft(
       ProjectHandle projectHandle) async {
     final access = _handles.resolveProject(projectHandle);
@@ -434,6 +472,9 @@ final class ProjectSnapshotLoader {
       return false;
     }
   }
+
+  Future<void> requireMutationRoot(ProjectHandle projectHandle, String root) =>
+      _handles.resolveProject(projectHandle).requireMutationRoot(root);
 
   Future<String> resourcePackManifestRevision(
     ProjectHandle projectHandle,

@@ -9,7 +9,7 @@ import 'document_errors.dart';
 
 final _mapDocumentWriteQueues = <String, Future<void>>{};
 
-Future<T> withMapDocumentWriteLock<T>(
+Future<T> withLocalMapDocumentWriteQueue<T>(
   String mapPath,
   Future<T> Function(String canonicalMapPath) action,
 ) async {
@@ -21,32 +21,43 @@ Future<T> withMapDocumentWriteLock<T>(
   _mapDocumentWriteQueues[canonicalMapPath] = tail;
   await previous;
 
-  RandomAccessFile? handle;
-  var locked = false;
   try {
-    final pathHash = narrativeEventBytesFingerprint(
-      utf8.encode(canonicalMapPath),
-    ).substring(7, 31);
-    final lockDirectory = Directory(
-      p.join(Directory.systemTemp.path, 'pokemap-map-document-locks'),
-    );
-    await lockDirectory.create(recursive: true);
-    final lockFile = File(p.join(lockDirectory.path, '$pathHash.lock'));
-    handle = await lockFile.open(mode: FileMode.append);
-    await handle.lock(FileLock.exclusive);
-    locked = true;
     return await action(canonicalMapPath);
   } finally {
-    if (handle != null) {
-      if (locked) await handle.unlock();
-      await handle.close();
-    }
     turn.complete();
     if (identical(_mapDocumentWriteQueues[canonicalMapPath], tail)) {
       _mapDocumentWriteQueues.remove(canonicalMapPath);
     }
   }
 }
+
+Future<T> withMapDocumentWriteLock<T>(
+  String mapPath,
+  Future<T> Function(String canonicalMapPath) action,
+) =>
+    withLocalMapDocumentWriteQueue(mapPath, (canonicalMapPath) async {
+      RandomAccessFile? handle;
+      var locked = false;
+      try {
+        final pathHash = narrativeEventBytesFingerprint(
+          utf8.encode(canonicalMapPath),
+        ).substring(7, 31);
+        final lockDirectory = Directory(
+          p.join(Directory.systemTemp.path, 'pokemap-map-document-locks'),
+        );
+        await lockDirectory.create(recursive: true);
+        final lockFile = File(p.join(lockDirectory.path, '$pathHash.lock'));
+        handle = await lockFile.open(mode: FileMode.append);
+        await handle.lock(FileLock.exclusive);
+        locked = true;
+        return await action(canonicalMapPath);
+      } finally {
+        if (handle != null) {
+          if (locked) await handle.unlock();
+          await handle.close();
+        }
+      }
+    });
 
 Future<String> canonicalMapDocumentPath(String mapPath) async {
   final requested = File(p.normalize(p.absolute(mapPath)));

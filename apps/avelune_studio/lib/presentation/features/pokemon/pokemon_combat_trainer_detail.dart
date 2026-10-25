@@ -27,7 +27,7 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
   final PokemonCombatController combat;
   final PokemonWorkspaceIndex index;
   final List<String> references;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final Future<void> Function(String kind, String id)? onOpenReference;
   final VoidCallback? onBack;
   final Future<PokemonSpeciesFile?> Function(String id)? loadSpecies;
@@ -127,7 +127,11 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                   'Implantation et scène',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                if (references.isEmpty)
+                if (combat.snapshot?.referencesComplete != true)
+                  const Text(
+                    'Les usages du projet n’ont pas encore été analysés.',
+                  )
+                else if (references.isEmpty)
                   const Text(
                     'Aucun PNJ ou bloc Combat ne référence encore ce dresseur. Placez-le dans Carte ou choisissez-le dans une scène Histoire.',
                   ),

@@ -102,5 +102,15 @@ void main() {
     expect(visuals, hasLength(2));
     expect(visuals[0].sourceRect.x, 0);
     expect(visuals[1].sourceRect.x, 32);
+    final first = plan.resolveBatch(elapsedMs: 0);
+    plan.resolveBatch(elapsedMs: 100);
+    final unchanged = plan.resolveBatch(elapsedMs: 16);
+    expect(unchanged.visuals, same(first.visuals));
+    final changed = plan.resolveBatch(
+      elapsedMs: 16,
+      animationElapsedMsForCell:
+          ({required cellX, required cellY, required elapsedMs}) => 100,
+    );
+    expect(changed.visuals.first.sourceRect.x, 32);
   });
 }

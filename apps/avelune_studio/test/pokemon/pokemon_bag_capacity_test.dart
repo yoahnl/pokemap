@@ -144,7 +144,7 @@ void main() {
   );
 
   test(
-    'Studio keeps the acknowledged capacity when catalog refresh fails',
+    'Studio accepts the saved capacity without reloading the workshop',
     () async {
       final port = _Port()..failReload = true;
       final commerce = PokemonCommerceController(port, changed: () {});
@@ -162,9 +162,9 @@ void main() {
       );
       expect(port.saved, [capacity]);
       expect(commerce.snapshot!.project.bagCapacity, capacity);
-      expect(commerce.error, contains('L’enregistrement a réussi'));
-      await commerce.load(refresh: true);
       expect(commerce.error, isNull);
+      expect(port.loads, 1);
+      expect(commerce.snapshot!.referencesComplete, isFalse);
     },
   );
 
@@ -313,8 +313,10 @@ final class _Port implements PokemonCommercePort {
   final saved = <ProjectBagCapacity>[];
   bool reject = false;
   bool failReload = false;
+  int loads = 0;
   @override
   Future<PokemonCommerceSnapshot> load() async {
+    loads++;
     if (failReload && saved.isNotEmpty) {
       failReload = false;
       throw StateError('Refresh unavailable');

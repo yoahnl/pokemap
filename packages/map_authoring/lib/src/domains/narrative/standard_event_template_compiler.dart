@@ -6,7 +6,12 @@ StandardEventTemplateProjection _compile(
     required StandardEventTemplateSpec spec,
     required ProjectItemCatalog? itemCatalog,
     required bool allowOwned,
+    String? sceneGeneration,
     bool validateDestination = true}) {
+  if (sceneGeneration != null &&
+      !RegExp(r'^[0-9a-f]{64}$').hasMatch(sceneGeneration)) {
+    _reject('scene_generation', 'La version des scènes générées est invalide.');
+  }
   if (project.settings.dimension != ProjectDimension.twoD) {
     _reject('dimension_unsupported',
         'Les événements standards sont disponibles sur les cartes 2D.');
@@ -69,27 +74,12 @@ StandardEventTemplateProjection _compile(
   final pageNames = spec.kind == StandardEventTemplateKind.conditionalNpc
       ? ['before', 'after']
       : ['main'];
-  String eventId(String page) {
-    final hex = sha256
-        .convert(utf8.encode(jsonEncode(
-            ['standardEventTemplate', 1, spec.mapId, spec.entityId, page])))
-        .toString();
-    return 'evt_${hex.substring(0, 8)}-${hex.substring(8, 12)}-7${hex.substring(13, 16)}-8${hex.substring(17, 20)}-${hex.substring(20, 32)}';
-  }
+  String eventId(String page) => _standardEventTemplateEventId(spec, page);
 
   final eventIds = pageNames.map(eventId).toSet();
-  final sceneIds = eventIds.map((id) => 'scene_$id').toSet();
-  if (allowOwned) {
-    final index = buildNarrativeDependencyIndex(project: project, maps: maps);
-    for (final id in sceneIds) {
-      if (index.usagesFor(NarrativeDependencyKey.scene(id)).any((usage) =>
-          usage.owner.kind != NarrativeDependencyTargetKind.eventV2 ||
-          !eventIds.contains(usage.owner.id))) {
-        _reject('scene_shared',
-            'Une scène générée est utilisée ailleurs ; ouvrez les détails avancés pour conserver cette liaison.');
-      }
-    }
-  }
+  String sceneId(String id) =>
+      _standardEventTemplateSceneId(id, sceneGeneration);
+  final sceneIds = eventIds.map(sceneId).toSet();
   for (final record in registry.records) {
     final source =
         record.definitionOrNull?.source ?? record.draftOrNull?.source;
@@ -136,7 +126,7 @@ StandardEventTemplateProjection _compile(
         facing: entity.npc?.facing ?? EntityFacing.south,
         interactionMode: MapEntityInteractionMode.front);
     final builder = _TemplateSceneBuilder(
-        'scene_$id', '${spec.name} — $pageName', owner, spec.kind);
+        sceneId(id), '${spec.name} — $pageName', owner, spec.kind);
     final actions = <String>[];
     switch (spec.kind) {
       case StandardEventTemplateKind.conditionalNpc:
@@ -254,6 +244,17 @@ StandardEventTemplateProjection _compile(
         actions: actions,
         appearance: appearance));
   }
+  if (sceneGeneration != entity.properties[_sceneGenerationKey]) {
+    for (final scene in scenes) {
+      final existing =
+          project.scenes.where((value) => value.id == scene.id).toList();
+      if (existing.isNotEmpty &&
+          (existing.length != 1 || existing.single != scene)) {
+        _reject('scene_owned',
+            'Une scène existante modifiée utilise déjà la nouvelle identité de cet événement.');
+      }
+    }
+  }
   final first = pages.first.appearance;
   final updated = entity.copyWith(
       name: spec.name,
@@ -271,8 +272,10 @@ StandardEventTemplateProjection _compile(
       presentation: MapEntityPresentation(
           variants: pages.map((page) => page.appearance).toList()),
       properties: {
-        ...entity.properties,
-        _recipeKey: canonicalizeNarrativeEventJson(spec.toJson())
+        for (final entry in entity.properties.entries)
+          if (entry.key != _sceneGenerationKey) entry.key: entry.value,
+        _recipeKey: canonicalizeNarrativeEventJson(spec.toJson()),
+        if (sceneGeneration != null) _sceneGenerationKey: sceneGeneration,
       });
   return StandardEventTemplateProjection(
       spec: spec,

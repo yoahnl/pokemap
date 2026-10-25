@@ -110,7 +110,7 @@ final class GamePackageProjectValidator {
         if (mapId == null) _fail('Atmosphere sidecar must belong to an existing map.');
         final bytes = readPayload(path);
         if (bytes == null || bytes.length > SpatialAtmosphereDocument.maxBytes) _fail('Atmosphere sidecar is missing or exceeds its byte limit.');
-        final document = SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
+        final document = SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         if (document.mapId != mapId) _fail('Atmosphere map identity mismatch.');
       }
       final spatial = project.settings.dimension == ProjectDimension.threeD;

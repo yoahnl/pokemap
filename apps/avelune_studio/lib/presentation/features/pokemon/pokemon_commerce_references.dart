@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
+import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'pokemon_ui_parts.dart';
 
@@ -22,6 +23,31 @@ class PokemonCommerceReferences extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final snapshot = commerce.snapshot!;
+    if (!snapshot.referencesComplete) {
+      return PokemonSurface(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const PokemonSectionHeading(
+              title: 'Usages du projet non analysés',
+              description: 'L’analyse complète lit les cartes et scènes enregistrées du projet.',
+            ),
+            StudioButton(
+              label: 'Analyser les usages du projet',
+              secondary: true,
+              onPressed:
+                  commerce.loading ||
+                      commerce.saving ||
+                      commerce.importing ||
+                      commerce.dirty ||
+                      commerce.port is! PokemonCommerceReferencePort
+                  ? null
+                  : commerce.analyzeReferences,
+            ),
+          ],
+        ),
+      );
+    }
     if (items) {
       final references = snapshot.references.referencesFor(commerce.item!.id);
       return PokemonSurface(
@@ -30,8 +56,7 @@ class PokemonCommerceReferences extends StatelessWidget {
           children: [
             PokemonSectionHeading(
               title: 'Usages et références · ${references.length}',
-              description:
-                  'Les liens ci-dessous proviennent de l’index canonique du projet enregistré.',
+              description: 'Les liens ci-dessous proviennent de l’index canonique du projet enregistré.',
             ),
             if (references.isEmpty)
               const Text(
@@ -102,8 +127,7 @@ class PokemonCommerceReferences extends StatelessWidget {
             children: [
               PokemonSectionHeading(
                 title: 'Raccordements · ${references.length}',
-                description:
-                    'Scènes et commandes enregistrées qui ouvrent cette boutique.',
+                description: 'Scènes et commandes enregistrées qui ouvrent cette boutique.',
               ),
               if (references.isEmpty)
                 const Text(

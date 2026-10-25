@@ -4,6 +4,7 @@ in vec2 fragTexCoord;
 in vec4 fragColor;
 in vec3 fragPosition;
 in vec3 fragNormal;
+in float fragViewDepth;
 
 out vec4 outColor;
 
@@ -37,10 +38,10 @@ uniform Atmosphere {
     vec4 windowRects[8];
 } atmosphere;
 
-float gaussianWeight(int offset) {
-    int distance = abs(offset);
-    return distance == 0 ? 6.0 : distance == 1 ? 4.0 : 1.0;
-}
+uniform Presentation {
+    vec4 fogColor;
+    vec4 depthRange;
+} presentation;
 
 float pointVisibility(vec3 delta, vec3 receiverNormal, int lightIndex, float radius) {
     if (point_shadows.options.x < 0.5 || dot(delta, delta) < 0.000001) return 1.0;
@@ -74,27 +75,42 @@ float pointVisibility(vec3 delta, vec3 receiverNormal, int lightIndex, float rad
     return visibility / 16.0;
 }
 
+float shadowComparison(vec2 pixel, float reference) {
+    float resolution = shadow.options.z;
+    if (any(lessThan(pixel, vec2(0.0))) || any(greaterThanEqual(pixel, vec2(resolution)))) return 1.0;
+    vec4 packed = texture(shadowTexture, (pixel + 0.5) / resolution);
+    float stored = dot(packed, vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
+    return reference <= stored ? 1.0 : 0.0;
+}
+
+float interpolatedShadowComparison(vec2 pixel, float reference) {
+    vec2 base = floor(pixel);
+    vec2 fraction = fract(pixel);
+    return mix(
+        mix(shadowComparison(base, reference), shadowComparison(base + vec2(1.0, 0.0), reference), fraction.x),
+        mix(shadowComparison(base + vec2(0.0, 1.0), reference), shadowComparison(base + vec2(1.0), reference), fraction.x),
+        fraction.y
+    );
+}
+
 float shadowVisibility(vec3 samplePosition) {
     vec4 projected = shadow.worldToLight * vec4(samplePosition, 1.0);
     vec3 coord = projected.xyz / projected.w;
     vec2 uv = vec2(coord.x * 0.5 + 0.5, 0.5 - coord.y * 0.5);
     if (coord.z < 0.0 || coord.z > 1.0 || any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 1.0;
-    float visibility = 0.0;
     float resolution = shadow.options.z;
-    for (int y = -2; y <= 2; y++) {
-        for (int x = -2; x <= 2; x++) {
-            float weight = gaussianWeight(x) * gaussianWeight(y);
-            vec2 sampleUv = (floor(uv * resolution + vec2(x, y) * shadow.receiverHeight.z) + 0.5) / resolution;
-            if (any(lessThan(sampleUv, vec2(0.0))) || any(greaterThan(sampleUv, vec2(1.0)))) {
-                visibility += weight;
-            } else {
-                vec4 packed = texture(shadowTexture, sampleUv);
-                float stored = dot(packed, vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
-                visibility += (coord.z - shadow.options.y <= stored ? 1.0 : 0.0) * weight;
-            }
+    float reference = coord.z - shadow.options.y;
+    if (shadow.receiverHeight.z == 0.0) return shadowComparison(floor(uv * resolution), reference);
+    vec2 pixel = uv * resolution - 0.5;
+    float spacing = sqrt(2.0) * shadow.receiverHeight.z;
+    float visibility = 0.0;
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            float weight = float((x == 0 ? 2 : 1) * (y == 0 ? 2 : 1));
+            visibility += interpolatedShadowComparison(pixel + vec2(x, y) * spacing, reference) * weight;
         }
     }
-    return visibility / 256.0;
+    return visibility / 16.0;
 }
 
 void main() {
@@ -151,6 +167,10 @@ void main() {
         }
         vec3 litGlass = atmosphere.windowColor.rgb * (0.72 + 0.28 * color.rgb);
         outColor.rgb = mix(outColor.rgb, litGlass, clamp(mask * atmosphere.windowColor.w, 0.0, 1.0));
+    }
+    if (presentation.fogColor.w > 0.0) {
+        float haze = smoothstep(presentation.depthRange.x, presentation.depthRange.y, fragViewDepth) * presentation.fogColor.w;
+        outColor.rgb = mix(outColor.rgb, presentation.fogColor.rgb, haze);
     }
     if (material.alphaMode == 0.0) {
         if (color.a < material.alphaCutoff) discard;

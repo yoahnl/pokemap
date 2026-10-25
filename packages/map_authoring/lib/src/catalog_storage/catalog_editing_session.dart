@@ -24,6 +24,7 @@ import '../transactions/idempotency_ledger.dart';
 import '../transactions/journaled_transaction.dart';
 import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
+import '../workspace/catalog/catalog_metadata_documents.dart';
 import 'catalog_generation_retention.dart';
 import 'catalog_revert_merge.dart';
 import 'catalog_storage_store.dart';
@@ -57,7 +58,9 @@ final class CatalogEditingSession {
     required AuthoringTransactionFaultInjector? faultInjector,
     required DateTime Function() clock,
     required LeasedCatalogSnapshot reader,
+    required bool incrementalHistory,
   })  : _clock = clock,
+        _incrementalHistory = incrementalHistory,
         _plans = AuthoringPlanStore(clock: clock),
         _reader = reader,
         _snapshot = reader.snapshot {
@@ -86,6 +89,7 @@ final class CatalogEditingSession {
     AuthoringIdempotencyLedger? idempotency,
     AuthoringTransactionFaultInjector? faultInjector,
     DateTime Function()? clock,
+    bool incrementalHistory = false,
   }) async {
     safeAuthoringSecurityIdentifier(actorId, 'actorId');
     safeAuthoringSecurityIdentifier(projectId, 'projectId');
@@ -100,14 +104,16 @@ final class CatalogEditingSession {
         () => retention.bindProjectUnderLock(projectId));
     final reader = await retention.openSnapshot();
     try {
-      await reader.snapshot.admitIndex();
+      await store.restoreIndexAdmission(reader.snapshot);
       return CatalogEditingSession._(
           store: store,
           projectId: projectId,
           actorId: actorId,
+          incrementalHistory: incrementalHistory,
           history: history ??
               await FileAuthoringHistoryStore.open(
-                  projectRoot: store.projectRoot),
+                  projectRoot: store.projectRoot,
+                  incrementalWrites: incrementalHistory),
           blobs: blobs ??
               await FileAuthoringContentBlobStore.open(
                   projectRoot: store.projectRoot),
@@ -115,6 +121,7 @@ final class CatalogEditingSession {
           idempotency: idempotency ??
               AuthoringIdempotencyLedger(
                   store: FileIdempotencyStore(
+                      incrementalWrites: incrementalHistory,
                       filePath:
                           '${store.projectRoot}/.pokemap/authoring/idempotency.jsonl')),
           faultInjector: faultInjector,
@@ -133,9 +140,11 @@ final class CatalogEditingSession {
   final AuthoringContentBlobStore blobs;
   final CatalogGenerationRetention retention;
   final DateTime Function() _clock;
+  final bool _incrementalHistory;
   final AuthoringPlanStore _plans;
   final Map<String, CatalogEditingPlan> _prepared = {};
   final Object _owner = Object();
+  final Set<CatalogObjectReference> _preparedRetainedGenerations = {};
   late final JournaledAuthoringTransaction _transaction;
   late final AuthoringRecoveryService recovery;
   LeasedCatalogSnapshot _reader;
@@ -189,7 +198,7 @@ final class CatalogEditingSession {
     }
     final reader = await retention.openSnapshot();
     try {
-      await reader.snapshot.admitIndex();
+      await store.restoreIndexAdmission(reader.snapshot);
     } on Object {
       await reader.close();
       rethrow;
@@ -213,6 +222,92 @@ final class CatalogEditingSession {
     });
     return receipt;
   }
+
+  Future<void> prepareRetainedGenerationAdmissions(
+      AuthoringHistoryEntry entry) async {
+    if (entry.projectId != projectId || entry.nonUndoableReason != null) return;
+    for (final change in entry.changes) {
+      if (change.storageKey != CatalogStorageStore.headStorageKey) continue;
+      for (final retained in [
+        (change.beforeBlobId, change.beforeRevision),
+        (change.afterBlobId, change.afterRevision)
+      ]) {
+        if (retained.$1 == null || retained.$2 == null) continue;
+        final root = await _historyRoot(retained.$1!, retained.$2!);
+        if (_preparedRetainedGenerations.contains(root)) continue;
+        final historical = (await store.openRoot(root)).snapshot;
+        List<CatalogDefinitionUnit>? units;
+        try {
+          await store.restoreIndexAdmission(historical);
+        } on CatalogStorageException catch (error) {
+          if (error.code != 'catalog.preparation_required') rethrow;
+          units = await historical.readAllUnits();
+          await store.publishIndexAdmissionUnderLock(historical);
+        }
+        if (!await store.metadataIndexPrepared(historical)) {
+          units ??= await historical.readAllUnits();
+          final initialized = CatalogMetadataDocuments.initialize(units);
+          if (_metadataIndexesMatch(units, initialized)) {
+            await store.publishMetadataIndexAdmissionUnderLock(historical);
+          }
+        }
+        _preparedRetainedGenerations.add(root);
+      }
+    }
+  }
+
+  static bool _metadataIndexesMatch(Iterable<CatalogDefinitionUnit> units,
+      Iterable<CatalogDefinitionUnit> initialized) {
+    final byKey = {for (final unit in units) unit.key: unit};
+    return initialized.every((unit) =>
+        byKey[unit.key] != null &&
+        canonicalAuthoringJson(byKey[unit.key]!.toJson()) ==
+            canonicalAuthoringJson(unit.toJson()));
+  }
+
+  Future<void> prepareMetadataDocuments({bool force = false}) =>
+      _serialize(() async {
+        _requireOpen();
+        var prepared = !force && await store.metadataIndexPrepared(snapshot);
+        if (prepared) {
+          for (final field in CatalogMetadataDocuments.fields) {
+            final marker =
+                await snapshot.lookup(CatalogMetadataDocuments.fieldKey(field));
+            if (marker?.payload['valid'] != true ||
+                (field == 'trainers' &&
+                    marker?.payload['trainerReferencesVersion'] != 1) ||
+                (field == 'scenes' &&
+                    marker?.payload['sceneDialogueReferencesVersion'] != 1) ||
+                (field == 'storylines' && marker?.payload['stepReferencesVersion'] != 1)) {
+              prepared = false;
+              break;
+            }
+          }
+        }
+        if (prepared) return;
+        final units = await snapshot.readAllUnits();
+        final initialized = CatalogMetadataDocuments.initialize(units);
+        if (_metadataIndexesMatch(units, initialized)) {
+          await store.gateway.withExclusiveWriteLock(() async {
+            await _requireAdmission(snapshot.root);
+            await store.publishMetadataIndexAdmissionUnderLock(snapshot);
+          });
+          return;
+        }
+        final plan = await _planPatch(
+            upserts: initialized,
+            removals: const [],
+            additionalChanges: const [],
+            workspaceFingerprint: null,
+            publicBaseRevision: null,
+            publicDiff: null,
+            publicPlan: null,
+            currentProjectRevision: null,
+            idempotencyKey: _token('metadata_prepare_'),
+            request: null,
+            prepareMetadataDocuments: true);
+        await _apply(plan);
+      });
 
   Future<CatalogEditingPlan> planPatch({
     Iterable<CatalogDefinitionUnit> upserts = const [],
@@ -249,6 +344,7 @@ final class CatalogEditingSession {
     required Future<String> Function()? currentProjectRevision,
     required String idempotencyKey,
     required AuthoringRequest? request,
+    bool prepareMetadataDocuments = false,
   }) async {
     _requireOpen();
     final base = snapshot;
@@ -262,12 +358,13 @@ final class CatalogEditingSession {
     }
     final units = upserts.toList();
     final deleted = removals.toList();
-    if (units.any((unit) =>
-            unit.key.kind == CatalogDefinitionKind.workspaceState ||
-            unit.references.any(
-                (key) => key.kind == CatalogDefinitionKind.workspaceState)) ||
-        deleted
-            .any((key) => key.kind == CatalogDefinitionKind.workspaceState)) {
+    if (!prepareMetadataDocuments &&
+        (units.any((unit) =>
+                unit.key.kind == CatalogDefinitionKind.workspaceState ||
+                unit.references.any((key) =>
+                    key.kind == CatalogDefinitionKind.workspaceState)) ||
+            deleted.any(
+                (key) => key.kind == CatalogDefinitionKind.workspaceState))) {
       throw const CatalogStorageException('catalog.reserved_resource',
           'Workspace state is owned by the catalog transaction.');
     }
@@ -303,6 +400,8 @@ final class CatalogEditingSession {
           key: key,
           payload: {'id': 'workspace', 'fingerprint': workspaceFingerprint}));
     }
+    units.addAll(await CatalogMetadataDocuments.maintain(
+        lookup: base.lookup, upserts: units, removals: deleted));
     final patch = await base.patch(upserts: units, removals: deleted);
     if (patch.isEmpty) {
       throw const CatalogStorageException('catalog.no_changes',
@@ -319,6 +418,11 @@ final class CatalogEditingSession {
       try {
         await store.publishObjectsUnderLock(patch.objects);
         final next = await patch.nextSnapshot(readObject: lease.readObject);
+        await store.publishIndexAdmissionUnderLock(next);
+        if (prepareMetadataDocuments ||
+            await store.metadataIndexPrepared(base)) {
+          await store.publishMetadataIndexAdmissionUnderLock(next);
+        }
         return _prepare(
             before: base.root,
             next: next,
@@ -429,9 +533,7 @@ final class CatalogEditingSession {
               prepared._currentProjectRevision, prepared.plan.baseRevision);
           await precondition?.call();
           if (context.expectedHeadEntryId != null) {
-            final head = (await history.list(projectId: projectId, limit: 1))
-                .entries
-                .firstOrNull;
+            final head = await readAuthoringHistoryHead(history, projectId);
             if (head?.entryId != context.expectedHeadEntryId) {
               throw AuthoringHistoryException(
                   context.kind == AuthoringHistoryKind.revert
@@ -454,7 +556,7 @@ final class CatalogEditingSession {
           ? await patch.nextSnapshot(readObject: nextReader.lease.readObject)
           : nextReader.snapshot;
       if (patch == null || nextReader.snapshot.root != prepared.root) {
-        await next.admitIndex();
+        await store.restoreIndexAdmission(next);
       }
     } on Object {
       await nextReader.close();
@@ -556,7 +658,11 @@ final class CatalogEditingSession {
     _requireOpen();
     return store.gateway.withExclusiveWriteLock(() async {
       await _requireAdmission(snapshot.root);
-      final entry = await history.get(projectId: projectId, entryId: entryId);
+      final entry =
+          _incrementalHistory && history is AuthoringLocalHistoryReader
+              ? await (history as AuthoringLocalHistoryReader)
+                  .getLocalEntry(projectId: projectId, entryId: entryId)
+              : await history.get(projectId: projectId, entryId: entryId);
       if (entry == null ||
           entry.nonUndoableReason != null ||
           entry.changes
@@ -567,9 +673,7 @@ final class CatalogEditingSession {
         throw const AuthoringHistoryException('history.entry_missing',
             'The selected entry is not an undoable catalog edit.');
       }
-      final latest = (await history.list(projectId: projectId, limit: 1))
-          .entries
-          .firstOrNull;
+      final latest = await readAuthoringHistoryHead(history, projectId);
       if (redo &&
           (latest?.kind != AuthoringHistoryKind.undo ||
               latest?.targetEntryId != entryId)) {
@@ -611,7 +715,7 @@ final class CatalogEditingSession {
       }
       final target = _decodeHead(bytes);
       final next = (await store.openRoot(target)).snapshot;
-      await next.admitIndex();
+      await store.restoreIndexAdmission(next);
       final additional = <AuthoringResourceChange>[];
       final payloads = <AuthoringPayload>[];
       try {
@@ -760,9 +864,7 @@ final class CatalogEditingSession {
     safeAuthoringSecurityIdentifier(selectedOperation, 'operationId');
     return store.gateway.withExclusiveWriteLock(() async {
       await _requireAdmission(snapshot.root);
-      final latest = (await history.list(projectId: projectId, limit: 1))
-          .entries
-          .firstOrNull;
+      final latest = await readAuthoringHistoryHead(history, projectId);
       if (latest?.entryId != expectedHeadEntryId) {
         throw const AuthoringHistoryException('history.head_stale',
             'The current history head differs from the expected head.');
@@ -867,6 +969,7 @@ final class CatalogEditingSession {
         try {
           await store.publishObjectsUnderLock(patch.objects);
           final next = await patch.nextSnapshot(readObject: lease.readObject);
+          await store.publishIndexAdmissionUnderLock(next);
           final prepared = _prepare(
               before: snapshot.root,
               next: next,
@@ -1029,7 +1132,8 @@ final class CatalogEditingSession {
             changeSet: changeSet, request: request, baseRevision: revision) ??
         AuthoringPlan(
             planId: _token('plan_'),
-            receiptId: _token('receipt_'),
+            receiptId:
+                _token(_incrementalHistory ? 'receipt_document_' : 'receipt_'),
             request: request,
             baseRevision: revision,
             seed: 0,

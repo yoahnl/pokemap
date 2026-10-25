@@ -70,7 +70,11 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
       _borderErase!.validFor(widget.document.current, widget.project) &&
       widget.view.tool == StudioMapTool.border &&
       widget.view.borderEditingMode == BorderStrokeEditingMode.erase &&
-      widget.view.borderFeature == (layerId: _borderErase!.layerId, featureId: _borderErase!.featureId) &&
+      widget.view.borderFeature ==
+          (
+            layerId: _borderErase!.layerId,
+            featureId: _borderErase!.featureId,
+          ) &&
       _borderEraseTransform == widget.view.transform.value;
   int? _panPointer;
   Offset? _panPosition;
@@ -127,15 +131,24 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   @override
   void didUpdateWidget(MapWorkspaceCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
+    widget.view.reconcileLocks(widget.document);
     if (oldWidget.document != widget.document ||
         oldWidget.gestureGeneration != widget.gestureGeneration ||
         (_stroke != null &&
             (!identical(_stroke!.project, widget.project) ||
                 !_stroke!.matches(widget.view))) ||
+        (_characterGesture?.isLocked == true) ||
+        (_moving != null &&
+            widget.view.isLocked(
+              widget.document,
+              MapSelectionFamily.decor,
+              _moving!.id,
+            )) ||
         (_environmentOwner != null && !_ownsEnvironmentGesture) ||
         (_borderErase != null && !_ownsBorderEraseGesture) ||
         (_decorDraft != null &&
-            (!identical(_decorDraft!.source, widget.document.current) ||
+            (!_canTransform(_decorDraft!.original) ||
+                !identical(_decorDraft!.source, widget.document.current) ||
                 !identical(_decorDraft!.project, widget.project) ||
                 _gestureTool != widget.view.tool ||
                 _decorDraft!.original.id != widget.document.selectedId))) {
@@ -169,7 +182,10 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
           _sampleBorderErase(event.localPosition);
           final draft = _borderErase;
           if (draft != null && _ownsBorderEraseGesture) {
-            MapBorderEditingCommands(widget.document, widget.project).finishErase(draft);
+            MapBorderEditingCommands(
+              widget.document,
+              widget.project,
+            ).finishErase(draft);
             widget.view.repairBorderSelection(widget.document.current);
           }
         }

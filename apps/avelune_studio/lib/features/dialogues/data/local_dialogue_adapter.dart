@@ -110,7 +110,7 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
     required ProjectDialogueEntry? entry,
     required String? source,
     List<DialogueLineTextEdit>? lineTextEdits,
-  }) => mapAdapter.withResourceMutation(() async {
+  }) async {
     try {
       if ((entry == null) != (source == null) ||
           (entry != null && entry.id != id) ||
@@ -148,5 +148,5 @@ class LocalDialogueAdapter implements DialoguePort, DialoguePortraitPort {
         'Le dialogue n’a pas été enregistré. Votre brouillon reste ouvert : $error',
       );
     }
-  });
+  }
 }

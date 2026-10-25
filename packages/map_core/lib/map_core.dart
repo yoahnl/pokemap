@@ -55,3 +55,4 @@ export 'src/models/project_party_companion_config.dart';
 export 'src/models/project_contact_device_config.dart';
 
 export 'src/models/spatial_atmosphere_settings.dart';
+export 'src/models/map_editor_state.dart';

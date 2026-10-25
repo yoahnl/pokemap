@@ -135,7 +135,7 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
   }
 
   void _initializePokemon() {
-    if (!_controller.hasCompleteProject) return;
+    if (_pokemon != null) return;
     final port = widget.pokemonPort;
     if (port != null) {
       _pokemon = PokemonWorkspaceController(
@@ -155,7 +155,14 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
                 projectChanged: (manifest) {
                   final current = _controller.project;
                   if (current != null && current != manifest) {
-                    _controller.acceptResources(current, manifest);
+                    _controller.acceptResources(
+                      current,
+                      mergeProjectMetadataSections(current, manifest, const {
+                        'pokemon',
+                        'trainers',
+                        'encounterTables',
+                      }),
+                    );
                   }
                 },
               ),
@@ -216,13 +223,9 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
       );
       if (loaded == null) return;
       _visuals = loaded.visuals;
-      _visualCatalog = _controller.project;
+      _visualCatalog = _controller.visualProject;
       _bindResourceManagement(loaded.resources);
       _narrative = loaded.narrative;
-      if (!_controller.hasCompleteProject) {
-        _changed();
-        return;
-      }
       _initializeScenes();
       _initializeStories();
       _initializeEvents();
@@ -240,7 +243,21 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
               )
               ? 'Enregistrez les cartes liées avant de publier la carte régionale.'
               : null,
-          projectChanged: _controller.acceptResources,
+          projectChanged: (before, after) {
+            final current = _controller.project;
+            if (current == null || current.regionalMap != before.regionalMap) {
+              throw const MapWorkspaceFailure(
+                MapWorkspaceProblem.conflict,
+                'La carte régionale a changé pendant la publication.',
+              );
+            }
+            _controller.acceptResources(
+              current,
+              mergeProjectMetadataSections(current, after, const {
+                'regionalMap',
+              }),
+            );
+          },
         );
       }
       _initializeWorld();

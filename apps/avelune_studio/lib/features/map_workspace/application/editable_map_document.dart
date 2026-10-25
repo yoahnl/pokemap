@@ -1,4 +1,5 @@
 import 'map_atmosphere_controller.dart';
+import 'map_editor_controller.dart';
 
 import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -6,9 +7,43 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 
 class EditableMapDocument {
-  EditableMapDocument(this.base) : current = base.map, saved = base.map;
+  EditableMapDocument(this.base) : current = base.map, saved = base.map {
+    _refreshLockParents();
+  }
 
   MapAtmosphereController? atmosphere;
+  MapEditorController? editor;
+  static final _unlockedEditorState = MapEditorState();
+  MapEditorState get editorState => editor?.current ?? _unlockedEditorState;
+  MapData? _indexedLockMap;
+  final _lockParents = <String, Set<String>>{};
+
+  void _refreshLockParents() {
+    final indexed = _indexedLockMap;
+    if (indexed != null && mapSharesElementOwnershipStorage(indexed, current)) return;
+    _indexedLockMap = current;
+    _lockParents.clear();
+    for (final item in current.placedElements) {
+      _lockParents.putIfAbsent('decor:${item.id}', () => {}).add(item.layerId);
+    }
+    for (final layer in current.layers) {
+      final generated = switch (layer) {
+        BorderLayer() => layer.content.features.expand((feature) => feature.generatedPlacementIds),
+        EnvironmentLayer() => layer.content.areas.expand((area) => area.generatedPlacementIds),
+        _ => const <String>[],
+      };
+      for (final id in generated) {
+        _lockParents.putIfAbsent('decor:$id', () => {}).add(layer.id);
+        _lockParents.putIfAbsent('model:$id', () => {}).add(layer.id);
+      }
+    }
+  }
+
+  bool isElementLocked(String kind, String id) {
+    final state = editorState;
+    if (state.isLocked(kind, id)) return true;
+    return _lockParents['$kind:$id']?.any((layerId) => state.isLocked('layer', layerId)) ?? false;
+  }
   MapWorkspaceDocument base;
   MapData current;
   MapData saved;
@@ -16,6 +51,7 @@ class EditableMapDocument {
   GridPos? stackPosition;
   PixelPosition? stackPixelPosition;
   bool saving = false;
+  bool elementOrderSaving = false;
   String? error;
   final _history = const MapHistoryCoordinator();
   List<MapHistoryEntry> _undo = [];
@@ -27,11 +63,27 @@ class EditableMapDocument {
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
   int get undoCount => _undo.length;
+  Object? get undoToken => _undo.lastOrNull;
+  Object? get redoToken => _redo.lastOrNull;
+  Set<Object> get historyTokens => {..._undo, ..._redo};
+
+  void Function() preserveDraft() {
+    final map = current;
+    final undo = _undo;
+    final redo = _redo;
+    return () {
+      current = map;
+      _undo = undo;
+      _redo = redo;
+      _repairSelection();
+    };
+  }
   MapPlacedElement? get selected => current.placedElements
       .where((element) => element.id == selectedId)
       .firstOrNull;
 
   void commit(MapData next) {
+    if (elementOrderSaving) return;
     if (next == current) return;
     final result = _history.recordMutation(
       before: current,
@@ -144,6 +196,7 @@ class EditableMapDocument {
   }
 
   void _repairSelection() {
+    _refreshLockParents();
     if (selected == null &&
         !(current.spatialScene?.instances.any(
               (item) => item.id == selectedId,

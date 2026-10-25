@@ -226,6 +226,7 @@ void main() {
         'close',
         'confirm',
         'describe',
+        'discard_preparation',
         'history',
         'open',
         'plan',

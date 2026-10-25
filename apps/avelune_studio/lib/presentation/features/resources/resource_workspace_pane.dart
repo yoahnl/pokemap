@@ -165,6 +165,7 @@ class ResourceWorkspacePane extends StatelessWidget {
                   ? null
                   : () => importPack(context),
               project: project,
+              onLoadFamily: n.loadFamily,
               openMaps: n.workspace.documents.values
                   .map((d) => d.current)
                   .toList(),

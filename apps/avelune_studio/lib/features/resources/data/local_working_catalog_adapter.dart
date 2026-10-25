@@ -30,6 +30,11 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
       policy: policy,
       fileReader: reader,
       handles: handles,
+      catalogMetadataFields: const {
+        'globalProperties',
+        'resourcePackInstallations',
+        'characterStudioCatalog',
+      },
     );
     final reads = AuthoringReadApi(
       openService: service,

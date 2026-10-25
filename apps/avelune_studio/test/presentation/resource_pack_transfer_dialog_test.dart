@@ -19,6 +19,39 @@ import '../resource_io/resource_pack_import_host_test.dart'
     show ResourcePackTestHost;
 
 void main() {
+  testWidgets('oversized derived draft notice remains visible before import', (
+    tester,
+  ) async {
+    final c = ResourcePackTransferController(
+      port: PackTestPort(),
+      picker: () async => null,
+      accept: (_) async {},
+    );
+    addTearDown(c.dispose);
+    c.phase = ResourcePackTransferPhase.preview;
+    c.preview = [
+      {
+        'kind': 'authoringDraftNotice',
+        'label': 'Eau animée',
+        'message': 'Le terrain publié reste disponible pour peindre. Son brouillon dépasse les limites du catalogue.',
+      },
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(body: ResourcePackTransferDialog(controller: c)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining(
+        'Eau animée : Le terrain publié reste disponible pour peindre.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Nécessaire pour « null »'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'unknown publication shows a status-only retry without premature success',
     (tester) async {

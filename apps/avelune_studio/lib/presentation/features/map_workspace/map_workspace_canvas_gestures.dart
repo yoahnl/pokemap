@@ -176,6 +176,7 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
         widget.view.tool == StudioMapTool.pan) {
       return;
     }
+    widget.view.reconcileLocks(widget.document);
     _focus.requestFocus();
     final cell = _cell(event.localPosition);
     final armed = widget.view.armedDecorIn(widget.document.current);

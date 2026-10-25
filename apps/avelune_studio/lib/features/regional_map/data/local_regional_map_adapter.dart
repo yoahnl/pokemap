@@ -7,80 +7,84 @@ import 'package:map_core/map_core.dart';
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../narrative/data/local_narrative_catalog_transaction.dart';
 import '../../project_session/domain/project_session.dart';
+import '../../project_session/data/local_workshop_reader.dart';
 import '../domain/regional_map_port.dart';
 
-final class LocalRegionalMapAdapter implements RegionalMapPort {
+final class LocalRegionalMapAdapter
+    implements RegionalMapPort, RegionalMapDetailsPort {
   const LocalRegionalMapAdapter({
     required this.session,
     required this.mapAdapter,
+    this.reader = const LocalProjectFileReader(),
   });
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
-
-  Future<ProjectSnapshot> _snapshot() async {
-    const reader = LocalProjectFileReader();
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [session.directoryPath],
-      fileReader: reader,
-    );
-    final handles = WorkspaceHandleStore();
-    final opened = await ProjectOpenService(
-      policy: policy,
-      fileReader: reader,
-      handles: handles,
-    ).openProject(session.directoryPath);
-    try {
-      return await ProjectSnapshotLoader(handles: handles)
-          .load(opened.projectHandle);
-    } finally {
-      handles.closeWorkspace(opened.workspaceHandle);
-    }
-  }
-
-  AssetCatalog _assets(ProjectSnapshot snapshot) {
-    final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
-    return bytes == null
-        ? AssetCatalog(records: [])
-        : AssetCatalog.fromJson(
-            Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
-          );
-  }
+  final ProjectFileReader reader;
 
   @override
-  Future<RegionalMapSource> load() async {
-    final baseline = await mapAdapter.resourceBaseline(
-      session,
-      refreshCatalog: true,
-    );
-    final snapshot = await _snapshot();
-    final revision = narrativeEventBytesFingerprint(
-      snapshot.resourceBytes('project'),
-    );
-    if (revision != baseline.revision) {
-      throw const NarrativeCatalogFailure(
-        'Le catalogue a changé pendant sa lecture.',
+  Future<RegionalMapSource> load() =>
+      LocalWorkshopReader(session, reader: reader).read(
+        metadataFields: {'maps', 'regionalMap'},
+        operation: (project, access, revision) async {
+          final probe = await access.probeResource(assetCatalogStorageKey);
+          final assets = probe.status == ProjectResourceProbeStatus.missing
+              ? AssetCatalog(records: [])
+              : AssetCatalog.fromJson(
+                  jsonDecode(
+                    utf8.decode(await access.readBytes(assetCatalogStorageKey)),
+                  ) as Map<String, dynamic>,
+                );
+          return RegionalMapSource(
+            project: project,
+            revision: revision,
+            maps: const {},
+            images: {
+              for (final asset in assets.records)
+                if (const {
+                  'image/png',
+                  'image/jpeg',
+                  'image/webp',
+                  'image/gif',
+                }.contains(asset.artifact.mediaType))
+                  asset.logicalPath: asset.logicalPath.split('/').last,
+            },
+          );
+        },
       );
-    }
-    return RegionalMapSource(
-      project: snapshot.manifest,
-      revision: revision,
-      maps: {for (final map in snapshot.maps) map.id: map},
-      images: {
-        for (final asset in _assets(snapshot).records)
-          if (const {
-            'image/png',
-            'image/jpeg',
-            'image/webp',
-            'image/gif',
-          }.contains(asset.artifact.mediaType))
-            asset.logicalPath: asset.logicalPath.split('/').last,
-      },
-    );
-  }
+
+  @override
+  Future<MapData> readMap({
+    required RegionalMapSource source,
+    required String mapId,
+  }) => LocalWorkshopReader(session, reader: reader).read(
+    metadataFields: {'maps', 'regionalMap'},
+    operation: (project, access, revision) async {
+      if (source.revision != revision) {
+        throw const NarrativeCatalogFailure(
+          'Le projet a changé. Rechargez la carte régionale.',
+        );
+      }
+      final entry = project.maps
+          .where((entry) => entry.id == mapId)
+          .firstOrNull;
+      if (entry == null) {
+        throw const NarrativeCatalogFailure(
+          'Cette carte ne figure plus dans le projet.',
+        );
+      }
+      final map = MapData.fromJson(
+        jsonDecode(utf8.decode(await access.readBytes(entry.relativePath)))
+            as Map<String, dynamic>,
+      );
+      if (map.id != mapId) {
+        throw const FormatException('regional_map: map identity mismatch');
+      }
+      return map;
+    },
+  );
 
   @override
   Future<Uint8List?> readImage(String path) async {
-    const reader = LocalProjectFileReader();
     final bytes = await reader.readBytes(
       projectRoot: session.directoryPath,
       relativePath: assetCatalogStorageKey,
@@ -112,13 +116,25 @@ final class LocalRegionalMapAdapter implements RegionalMapPort {
     required String actionId,
     required Map<String, Object?> parameters,
   }) async {
+    final expectedMaps = {...base.maps};
+    final pointValue = parameters['poi'];
+    if (pointValue is Map) {
+      final point = ProjectRegionPointOfInterest.fromJson(
+        Map<String, dynamic>.from(pointValue),
+      );
+      for (final id in {
+        if (point.destination != null) point.destination!.mapId,
+      }) {
+        expectedMaps[id] ??= await readMap(source: base, mapId: id);
+      }
+    }
     await LocalNarrativeCatalogTransaction(
       session: session,
       mapAdapter: mapAdapter,
     ).run(
       actionId: actionId,
       parameters: (project) {
-        if (project != base.project) {
+        if (project.regionalMap != base.project.regionalMap) {
           throw const NarrativeCatalogFailure(
             'Le projet a changé. Rechargez le catalogue après avoir conservé votre brouillon.',
           );
@@ -131,13 +147,10 @@ final class LocalRegionalMapAdapter implements RegionalMapPort {
         final point = ProjectRegionPointOfInterest.fromJson(
           Map<String, dynamic>.from(pointJson),
         );
-        final ids = {
-          ...point.mapIds,
-          if (point.destination != null) point.destination!.mapId,
-        };
+        final ids = {if (point.destination != null) point.destination!.mapId};
         for (final id in ids) {
           final actual = maps.where((map) => map.id == id).toList();
-          if (actual.length != 1 || actual.single != base.maps[id]) {
+          if (actual.length != 1 || actual.single != expectedMaps[id]) {
             throw const NarrativeCatalogFailure(
               'Une carte ou son arrivée a changé. Rechargez le catalogue avant de publier.',
             );
@@ -145,6 +158,12 @@ final class LocalRegionalMapAdapter implements RegionalMapPort {
         }
       },
     );
-    return load();
+    final after = await load();
+    return RegionalMapSource(
+      project: after.project,
+      revision: after.revision,
+      maps: expectedMaps,
+      images: after.images,
+    );
   }
 }

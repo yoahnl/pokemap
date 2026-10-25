@@ -83,6 +83,9 @@ final class ProjectSnapshot {
     required this.manifest,
     this.pokemonInventoryComplete = false,
     this.materializedCatalogProject = false,
+    Set<String>? availableProjectSections,
+    Map<String, Set<String>>? availableProjectDocuments,
+    Map<String, String?>? scopedStorageRevisions,
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
     ProjectItemCatalog? itemCatalog,
@@ -95,7 +98,17 @@ final class ProjectSnapshot {
     this.resourcePayloadReader,
     this.payloadOwner,
     Iterable<ProjectSnapshotLoadDiagnostic> loadDiagnostics = const [],
-  })  : storedResources = Map.unmodifiable(storedResources),
+  })  : scopedStorageRevisions = scopedStorageRevisions == null ? null : Map.unmodifiable(scopedStorageRevisions),
+        availableProjectDocuments = availableProjectDocuments == null
+            ? null
+            : Map.unmodifiable({
+                for (final entry in availableProjectDocuments.entries)
+                  entry.key: Set<String>.unmodifiable(entry.value),
+              }),
+        availableProjectSections = availableProjectSections == null
+            ? null
+            : Set.unmodifiable(availableProjectSections),
+        storedResources = Map.unmodifiable(storedResources),
         payloadResources = Map.unmodifiable(payloadResources),
         itemCatalog = itemCatalog?.normalized(),
         maps = List.unmodifiable(
@@ -206,6 +219,9 @@ final class ProjectSnapshot {
         manifest = source.manifest,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
+        availableProjectSections = source.availableProjectSections,
+        availableProjectDocuments = source.availableProjectDocuments,
+        scopedStorageRevisions = source.scopedStorageRevisions,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
         maps = source.maps,
@@ -230,6 +246,9 @@ final class ProjectSnapshot {
         projectHandle = source.projectHandle,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
+        availableProjectSections = source.availableProjectSections,
+        availableProjectDocuments = source.availableProjectDocuments,
+        scopedStorageRevisions = source.scopedStorageRevisions,
         itemCatalog = source.itemCatalog,
         additionalItemReferences = source.additionalItemReferences,
         maps = List.unmodifiable(
@@ -256,7 +275,19 @@ final class ProjectSnapshot {
   final ProjectManifest manifest;
   final bool pokemonInventoryComplete;
   final bool materializedCatalogProject;
-  late final List<int> _materializedAuthoringProjectBytes = List<int>.unmodifiable(utf8.encode(jsonEncode(manifest.toJson())));
+  final Set<String>? availableProjectSections;
+  final Map<String, Set<String>>? availableProjectDocuments;
+  final Map<String, String?>? scopedStorageRevisions;
+  void requireProjectSections(Iterable<String> sections) {
+    final available = availableProjectSections;
+    if (available != null && !available.containsAll(sections)) {
+      throw const ProjectSnapshotException('catalog.section_unavailable',
+          'The mutation requires project sections outside its declared scope.');
+    }
+  }
+
+  late final List<int> _materializedAuthoringProjectBytes =
+      List<int>.unmodifiable(utf8.encode(jsonEncode(manifest.toJson())));
   List<int> get authoringProjectBytes => materializedCatalogProject
       ? _materializedAuthoringProjectBytes
       : resourceBytes('project');
@@ -365,6 +396,9 @@ final class ProjectSnapshot {
           manifest: manifest,
           pokemonInventoryComplete: pokemonInventoryComplete,
           materializedCatalogProject: materializedCatalogProject,
+          availableProjectSections: availableProjectSections,
+          availableProjectDocuments: availableProjectDocuments,
+          scopedStorageRevisions: scopedStorageRevisions,
           itemCatalog: itemCatalog,
           additionalItemReferences: additionalItemReferences,
           maps: maps,
@@ -432,7 +466,9 @@ final class ProjectSnapshot {
     }
     if (!seenDialogues.containsAll(previousDialogues.keys) ||
         addedSources.length != additionalDialogueStorageKeys.length ||
-        !addedSources.keys.toSet().containsAll(additionalDialogueStorageKeys.keys)) {
+        !addedSources.keys
+            .toSet()
+            .containsAll(additionalDialogueStorageKeys.keys)) {
       throw ArgumentError('Invalid projected dialogue source inventory.');
     }
     if (manifest != null) {

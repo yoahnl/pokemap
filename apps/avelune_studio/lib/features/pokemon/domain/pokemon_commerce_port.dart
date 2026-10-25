@@ -12,6 +12,7 @@ final class PokemonCommerceSnapshot {
     required this.shopDiagnostics,
     required this.catalogPath,
     required this.problem,
+    this.referencesComplete = true,
   });
 
   final ProjectManifest project;
@@ -22,6 +23,11 @@ final class PokemonCommerceSnapshot {
   final List<ShopStateDiagnostic> shopDiagnostics;
   final String? catalogPath;
   final String? problem;
+  final bool referencesComplete;
+}
+
+abstract interface class PokemonCommerceReferencePort {
+  Future<PokemonCommerceSnapshot> analyzeReferences();
 }
 
 final class PokemonCommerceImportPreview {

@@ -6,7 +6,12 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/resources/data/local_working_catalog_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/working_catalog_port.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
+import 'package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../tool/create_example_project.dart';
@@ -123,6 +128,139 @@ void main() {
     expect(cleared.entry.placementContext, isEmpty);
   });
 
+  test(
+    'library publication preserves a map draft and its subsequent durable save',
+    () async {
+      final mapFile = File('${root.path}/maps/jardin.json');
+      final original = MapData(
+        id: 'jardin',
+        name: 'Jardin',
+        size: const GridSize(width: 2, height: 2),
+        visualStack: MapVisualStackConfig.canonicalV1,
+        layers: const [
+          TileLayer(id: 'ground', name: 'Sol', cells: [0, 0, 0, 0]),
+        ],
+      );
+      await mapFile.writeAsString(jsonEncode(original.toJson()));
+      final maps = MapWorkspaceController(session, LocalMapWorkspaceAdapter());
+      addTearDown(maps.dispose);
+      await maps.initialize();
+      expect(maps.error, isNull);
+      final draft = maps.active!;
+      draft.commit(draft.current.copyWith(name: 'Jardin modifié'));
+      final before = await mapFile.readAsBytes();
+      final found = await adapter.query(kind: 'element', text: 'Décor 124');
+      final detail = await adapter.open(found.items.single);
+      await adapter.save(
+        detail.entry,
+        WorkingCatalogDraft.fromEntry(detail.entry)
+            .copyWith(name: 'Décor renommé'),
+        revision: detail.revision,
+      );
+      expect(await mapFile.readAsBytes(), before);
+      await maps.refreshCatalogSelection();
+      expect(maps.active, same(draft));
+      expect(draft.dirty, isTrue);
+      expect(await maps.save(draft), isTrue);
+      expect(draft.error, isNull);
+      final reopened = LocalMapWorkspaceAdapter();
+      await reopened.loadCatalog(session);
+      final restored = await reopened.loadMapSelection(
+        session,
+        source.maps.first,
+      );
+      expect(restored.document.map.name, 'Jardin modifié');
+      expect(
+        (await adapter.query(
+          kind: 'element',
+          text: 'Décor renommé',
+        )).items.single.id,
+        'decor_124',
+      );
+    },
+  );
+
+  test(
+    'workshop publications retain the scoped map selection after reopening',
+    () async {
+      await File('${root.path}/maps/jardin.json').writeAsString(
+        jsonEncode(
+          MapData(
+            id: 'jardin',
+            name: 'Jardin',
+            size: const GridSize(width: 2, height: 2),
+            visualStack: MapVisualStackConfig.canonicalV1,
+            layers: const [
+              TileLayer(id: 'ground', name: 'Sol', cells: [0, 0, 0, 0]),
+            ],
+          ).toJson(),
+        ),
+      );
+      final mapAdapter = LocalMapWorkspaceAdapter();
+      final controller = MapWorkspaceController(session, mapAdapter);
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      expect(controller.error, isNull);
+      final visual = controller.visualProject;
+      await controller.ensureWorkshop(MapWorkspaceWorkshop.story);
+      expect(controller.hasCompleteProject, isFalse);
+      expect(controller.visualProject, same(visual));
+      final story = LocalStoryAdapter(session: session, mapAdapter: mapAdapter);
+      final factIds = <String>[];
+      for (var index = 0; index < 2; index++) {
+        final fact = addNarrativeFact(
+          controller.project!,
+          label: 'État $index',
+        ).createdFact;
+        factIds.add(fact.id);
+        final receipt = await story.publishFact(base: null, current: fact);
+        expect(receipt.before, controller.project);
+        controller.acceptResources(receipt.before, receipt.manifest);
+      }
+      await controller.refreshCatalogSelection();
+      expect(
+        controller.project!.facts.map((value) => value.id),
+        containsAll(factIds),
+      );
+      await controller.ensureWorkshop(MapWorkspaceWorkshop.dialogue);
+      final dialogue = LocalDialogueAdapter(
+        session: session,
+        mapAdapter: mapAdapter,
+      );
+      const entry = ProjectDialogueEntry(
+        id: 'local_dialogue',
+        name: 'Dialogue local',
+        relativePath: 'dialogues/local.yarn',
+      );
+      final created = await dialogue.publish(
+        id: entry.id,
+        base: null,
+        entry: entry,
+        source: 'title: Start\n---\nBonjour !\n===\n',
+      );
+      controller.acceptResources(
+        created.resources.before,
+        created.resources.manifest,
+      );
+      final changed = await dialogue.publish(
+        id: entry.id,
+        base: created.snapshot,
+        entry: entry,
+        source: 'title: Start\n---\nÀ bientôt !\n===\n',
+      );
+      controller.acceptResources(
+        changed.resources.before,
+        changed.resources.manifest,
+      );
+      expect((await dialogue.load(entry.id)).source, contains('À bientôt'));
+      expect(controller.hasCompleteProject, isFalse);
+      expect(
+        controller.project!.facts.map((value) => value.id),
+        containsAll(factIds),
+      );
+    },
+  );
+
   test('concurrent metadata publication rejects a stale draft', () async {
     final other = LocalWorkingCatalogAdapter(session);
     addTearDown(other.close);
@@ -162,16 +300,19 @@ void main() {
     () async {
       await adapter.close();
       await sessions.close(session);
-      final store = await CatalogStorageStore.open(projectRoot: root.path);
-      final current = (await store.openSnapshot())!;
-      final publication = PortableCatalogPublication.encodeProject(source);
-      await store.publish(
-        publication.storage,
-        expectedRootRevision: current.rootRevision,
+      final portableRoot = await Directory.systemTemp.createTemp(
+        'studio_portable_catalog_',
       );
-      await File('${root.path}/project.json')
+      addTearDown(() => portableRoot.delete(recursive: true));
+      await writeExampleProject(portableRoot);
+      final store = await CatalogStorageStore.open(
+        projectRoot: portableRoot.path,
+      );
+      final publication = PortableCatalogPublication.encodeProject(source);
+      await store.publish(publication.storage, expectedRootRevision: null);
+      await File('${portableRoot.path}/project.json')
           .writeAsString(jsonEncode(publication.descriptor));
-      session = await sessions.open(await root.resolveSymbolicLinks());
+      session = await sessions.open(await portableRoot.resolveSymbolicLinks());
       expect(session.storage, ProjectSessionStorage.portableCatalog);
       adapter = LocalWorkingCatalogAdapter(session);
       final page = await adapter.query(kind: 'element', text: 'Décor 124');

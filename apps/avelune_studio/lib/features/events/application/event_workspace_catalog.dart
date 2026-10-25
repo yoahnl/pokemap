@@ -8,14 +8,75 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
           case final MapData map)
         map,
   ];
-  Future<bool> prepare() =>
-      _preparing ??= _prepare().whenComplete(() => _preparing = null);
-  Future<bool> _prepare() async {
+  bool get mapsComplete {
+    final loaded = maps.map((map) => map.id).toSet();
+    return project.maps.every((entry) => loaded.contains(entry.id));
+  }
+
+  void acceptMap(MapData map) {
+    if (_closed) return;
+    _maps[map.id] = map;
+    _cachedContext = null;
+  }
+
+  Future<MapData> loadMap(String id) async {
+    final open = workspace.documents[id]?.current;
+    if (open != null) return open;
+    final cached = _maps[id];
+    if (cached != null) return cached;
+    return _mapLoads.putIfAbsent(id, () async {
+      try {
+        final entries = project.maps.where((entry) => entry.id == id).toList();
+        if (entries.length != 1) {
+          throw const EventFailure('Cette carte est absente ou ambiguë.');
+        }
+        final loaded = await workspace.port.loadMap(
+          workspace.session,
+          entries.single,
+        );
+        if (!_closed) acceptMap(loaded.map);
+        return loaded.map;
+      } finally {
+        _mapLoads.remove(id);
+      }
+    });
+  }
+
+  Future<bool> prepare({Iterable<String> mapIds = const []}) {
+    final source = active?.source;
+    final sourceMapId = source?.when<String?>(
+      entityInteract: (map, _) => map,
+      entityBump: (map, _) => map,
+      entityAutorun: (map, _) => map,
+      modelInteract: (map, _) => map,
+      triggerBump: (map, _) => map,
+      triggerEnter: (map, _) => map,
+      mapEnter: (map) => map,
+      outcomeReceived: (_) => null,
+    );
+    final requested = {...mapIds, ?sourceMapId};
+    final previous = _preparing;
+    late final Future<bool> operation;
+    operation = (previous ?? Future.value(true))
+        .then((_) => _prepare(requested))
+        .whenComplete(() {
+          if (identical(_preparing, operation)) _preparing = null;
+        });
+    _preparing = operation;
+    return operation;
+  }
+
+  Future<bool> prepareAllMaps() =>
+      prepare(mapIds: project.maps.map((entry) => entry.id));
+
+  Future<bool> _prepare(Set<String> mapIds) async {
     if (_closed) return false;
     final manifest = narrative.project;
     try {
       final gateway = port;
-      final mediaCatalog = gateway is EventPresentationCatalogPort
+      final mediaCatalog = _preparedManifest == manifest
+          ? _presentationMediaCatalog
+          : gateway is EventPresentationCatalogPort
           ? await (gateway as EventPresentationCatalogPort)
                 .loadPresentationMediaCatalog(manifest)
           : null;
@@ -28,17 +89,9 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
         );
       }
       _presentationMediaCatalog = mediaCatalog;
-      if (_preparedManifest == manifest) {
-        changed();
-        return true;
-      }
-      final loaded = <String, MapData>{};
-      for (final entry in manifest.maps) {
+      for (final id in mapIds) {
         if (_closed) return false;
-        final open = workspace.documents[entry.id];
-        loaded[entry.id] =
-            open?.current ??
-            (await workspace.port.loadMap(workspace.session, entry)).map;
+        await loadMap(id);
       }
       if (_closed) return false;
       if (manifest != narrative.project) {
@@ -46,9 +99,6 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
           'Le projet a changé pendant le chargement du catalogue. Réessayez.',
         );
       }
-      _maps
-        ..clear()
-        ..addAll(loaded);
       _preparedManifest = manifest;
       error = null;
       changed();
@@ -107,7 +157,7 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
   NarrativeEventSimulationReport simulation(
     NarrativeEventSimulationInput input,
   ) {
-    if (!prepared) {
+    if (!prepared || !mapsComplete) {
       throw const EventFailure(
         'Chargez le catalogue complet avant la simulation.',
       );

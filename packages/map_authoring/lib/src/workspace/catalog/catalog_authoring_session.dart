@@ -8,12 +8,16 @@ import '../../contracts/authoring_receipt.dart';
 import '../../workspace/project_snapshot.dart';
 import 'catalog_working_mutation.dart';
 import 'catalog_targeted_map_edit.dart';
+import 'catalog_workshop_selection.dart';
+import 'catalog_scoped_working_mutation.dart';
 import '../../catalog_storage/catalog_editing_session.dart';
 import '../../catalog_storage/catalog_storage_store.dart';
+import '../../catalog_storage/catalog_generation_retention.dart';
 import 'catalog_action_contracts.dart';
 import '../../contracts/authoring_request.dart';
 import '../../contracts/json_contract_support.dart';
 import '../../history/history_store.dart';
+import '../../history/file_history_store.dart';
 import '../../security/authoring_permission.dart';
 import '../../security/audit_record.dart';
 import '../../security/authorization_policy.dart';
@@ -38,6 +42,8 @@ final class CatalogAuthoringSession {
       required this.inspectHistoryReplay,
       required this.loadProject,
       required this.buildProjectPlan,
+      required this.buildScopedProjectPlan,
+      required this.projectHandle,
       required this.discardProjectPlan,
       required this.inspectReplay,
       required this.prepareApply,
@@ -64,6 +70,9 @@ final class CatalogAuthoringSession {
   final Future<ProjectSnapshot> Function() loadProject;
   final Future<AuthoringMutationPlanResult> Function(AuthoringRequest)
       buildProjectPlan;
+  final Future<AuthoringMutationPlanResult> Function(AuthoringRequest, ProjectSnapshot)
+      buildScopedProjectPlan;
+  final ProjectHandle projectHandle;
   final Future<void> Function(String) discardProjectPlan;
   final Future<AuthoringReceipt?> Function(String planId, String operationId)
       inspectReplay;
@@ -85,15 +94,28 @@ final class CatalogAuthoringSession {
   final Map<String, CatalogEditingPlan> _plans = {};
   final Map<String, String> _operations = {};
 
-  Future<CatalogEditingSession> _editing() =>
-      _editingFuture ??= CatalogEditingSession.open(
-          store: reader.store,
-          projectId: reader.projectId,
-          actorId: actor.actorId,
-          clock: _clock,
-          faultInjector: faultInjector);
+  bool _closed = false;
+
+  Future<CatalogEditingSession> _editing() {
+    if (_closed) throw StateError('The catalog authoring session is closed.');
+    final existing = _editingFuture;
+    if (existing != null) return existing;
+    late final Future<CatalogEditingSession> opening;
+    opening = CatalogEditingSession.open(store: reader.store,
+        projectId: reader.projectId, actorId: actor.actorId,
+        incrementalHistory: true, clock: _clock, faultInjector: faultInjector)
+      .catchError((Object error, StackTrace stack) {
+        if (identical(_editingFuture, opening)) _editingFuture = null;
+        Error.throwWithStackTrace(error, stack);
+      });
+    _editingFuture = opening;
+    return opening;
+  }
+
+  void requirePreparationAuthorization() => _authorize(AuthoringSecurityOperation.plan);
 
   void requireRead() {
+    if (_closed) throw StateError('The catalog authoring session is closed.');
     requireActive();
     if (!actor.allows(AuthoringPermissionScope.projectRead)) {
       throw const AuthoringAuthorizationException(
@@ -160,7 +182,8 @@ final class CatalogAuthoringSession {
     }
     if (request.actionId == 'map.save') return _planMap(request);
     if (request.actionId != catalogDefinitionUpdateDescriptor.id) {
-      return _planProject(request);
+      return request.extensions['workshopScope'] == true || CatalogWorkshopSelection.supports(request.actionId)
+          ? _planWorkshop(request) : _planProject(request);
     }
     if (request.actionVersion != 1) {
       throw AuthoringPlanException(
@@ -205,7 +228,7 @@ final class CatalogAuthoringSession {
           'catalog.definition: invalid placement context');
     }
     final current = await CatalogProjectReader.open(
-        store: reader.store, descriptor: reader.descriptor);
+        store: reader.store, descriptor: reader.descriptor, metadataFields: {});
     if (current!.revision != request.expectedRevision) {
       throw AuthoringPlanException(
           code: 'plan.stale', message: 'The catalog changed before planning.');
@@ -302,6 +325,75 @@ final class CatalogAuthoringSession {
             plan: prepared.plan,
             receipt: prepared.plan.toPlannedReceipt(),
             snapshotRevision: request.expectedRevision!));
+  }
+
+  Future<ProjectSnapshot> readWorkshopSnapshot({required String actionId,
+      Map<String, Object?> parameters = const {},
+      Map<String, String> readDependencies = const {}}) async {
+    requireRead();
+    final current = (await CatalogProjectReader.open(store: reader.store,
+        descriptor: reader.descriptor, metadataFields: {}))!;
+    return (await CatalogWorkshopSelection.read(reader: current,
+        projectHandle: projectHandle, actionId: actionId,
+        parameters: parameters, readDependencies: readDependencies)).snapshot;
+  }
+
+  Future<void> prepareWorkshopCatalog() async {
+    _authorize(AuthoringSecurityOperation.plan);
+    final prepareRetainedGenerations = await reader.store.prepareLocalEditing();
+    await reader.store.gateway.withExclusiveWriteLock(() =>
+        CatalogGenerationRetention(store: reader.store)
+            .bindProjectUnderLock(reader.projectId));
+    final editing = await _editing();
+    final history = editing.history;
+    if (history is FileAuthoringHistoryStore) {
+      await reader.store.gateway.withExclusiveWriteLock(() => history.prepareLocalHistory(
+          force: prepareRetainedGenerations,
+          prepareEntry: editing.prepareRetainedGenerationAdmissions));
+    }
+    await editing.prepareMetadataDocuments(force: prepareRetainedGenerations);
+  }
+
+  Future<AuthoringMutationPlanResult> _planWorkshop(AuthoringRequest request) async {
+    final current = (await CatalogProjectReader.open(store: reader.store,
+        descriptor: reader.descriptor, metadataFields: {}))!;
+    final selection = await CatalogWorkshopSelection.read(reader: current,
+        projectHandle: projectHandle, actionId: request.actionId,
+        parameters: request.parameters, readDependencies: Map<String, String>.from(
+            request.extensions['workshopReadDependencies'] as Map? ?? const {}));
+    selection.requireSafeParameters(request);
+    final built = await buildScopedProjectPlan(request, selection.snapshot);
+    if (!built.applicable) return built;
+    try {
+      final mutation = await CatalogScopedWorkingMutation.translate(
+          selection: selection, publicPlan: built.plan);
+      if (await reader.store.readProjectId() == null) {
+        CatalogWorkshopSelection.unsupported(request.actionId,
+            'explicit catalog identity preparation before the first targeted edit');
+      }
+      final editing = await _editing();
+      if (editing.snapshot.root != current.catalog.snapshot.root) {
+        throw AuthoringPlanException(code: 'plan.stale',
+            message: 'The catalog changed while planning this workshop edit.');
+      }
+      final prepared = await editing.planPatch(upserts: mutation.upserts,
+          removals: mutation.removals,
+          additionalChanges: mutation.additionalChanges,
+          workspaceFingerprint: mutation.workspaceFingerprint,
+          publicBaseRevision: selection.snapshot.revision,
+          publicDiff: mutation.diff, publicPlan: built.plan,
+          currentProjectRevision: selection.currentRevision,
+          idempotencyKey: request.idempotencyKey!, request: request);
+      _plans[prepared.plan.planId] = prepared;
+      final receipt = prepared.plan.toPlannedReceipt();
+      return AuthoringMutationPlanResult(plan: prepared.plan,
+          snapshotRevision: selection.snapshot.revision, receipt: receipt,
+          projectedProject: mutation.projectedProject,
+          publicProjection: await projections?.preparePlan(plan: prepared.plan,
+              receipt: receipt, snapshotRevision: selection.snapshot.revision));
+    } finally {
+      await discardProjectPlan(built.planId);
+    }
   }
 
   Future<AuthoringMutationPlanResult> _planMap(AuthoringRequest request) async {
@@ -406,6 +498,10 @@ final class CatalogAuthoringSession {
   }
 
   Future<bool> _isCatalogOnlyReceipt(AuthoringReceipt receipt) async {
+    if (receipt.diff.entries.any((entry) =>
+        entry.resource.extensions.containsKey('workshopResourcePaths'))) {
+      return true;
+    }
     if (const {'catalog.definition.update', 'map.save'}
         .contains(receipt.actionId)) {
       return true;
@@ -418,8 +514,7 @@ final class CatalogAuthoringSession {
             .history
             .get(projectId: reader.projectId, entryId: target);
         return entry != null &&
-            const {'catalog.definition.update', 'map.save'}
-                .contains(entry.receipt.actionId);
+            await _isCatalogOnlyReceipt(entry.receipt);
       }
     }
     return false;
@@ -427,14 +522,38 @@ final class CatalogAuthoringSession {
 
   Future<String> _catalogRevisionForReceipt(AuthoringReceipt receipt) async {
     final current = (await CatalogProjectReader.open(
-        store: reader.store, descriptor: reader.descriptor))!;
+        store: reader.store, descriptor: reader.descriptor, metadataFields: {}))!;
+    for (final entry in receipt.diff.entries) {
+      final paths = entry.resource.extensions['workshopResourcePaths'];
+      if (paths is List) {
+        return CatalogWorkshopSelection.fingerprint(current.revision, {
+          for (final path in paths.cast<String>())
+            path: await reader.store.gateway.readResourceRevision(path),
+        });
+      }
+    }
     final maps = receipt.diff.entries
         .where((entry) => entry.resource.kind == 'map')
         .map((entry) => entry.resource.id)
         .toSet();
     if (maps.length == 1) {
       return (await CatalogTargetedMapSelection.read(
-              reader: current, mapId: maps.single))
+              reader: await current.withMetadataFields({
+                'maps',
+                'groups',
+                'settings',
+                'newGame',
+                'scenes',
+                'eventRegistry',
+                'cinematics',
+                'trainers',
+                'scenarios',
+                'pokemon',
+                'dialogues',
+                'encounterTables',
+                'scripts',
+                'regionalMap',
+              }), mapId: maps.single))
           .snapshotRevision;
     }
     return current.revision;
@@ -732,6 +851,19 @@ final class CatalogAuthoringSession {
   AuthoringPlan activePlan(String planId) => _plan(planId).plan;
 
   Future<void> close() async {
-    if (_editingFuture != null) await (await _editingFuture!).close();
+    if (_closed) return;
+    _closed = true;
+    final opening = _editingFuture;
+    _editingFuture = null;
+    _plans.clear();
+    _operations.clear();
+    if (opening == null) return;
+    final CatalogEditingSession editing;
+    try {
+      editing = await opening;
+    } on Object {
+      return;
+    }
+    await editing.close();
   }
 }

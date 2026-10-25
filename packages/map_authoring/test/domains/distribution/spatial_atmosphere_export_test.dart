@@ -18,6 +18,9 @@ void main() {
         waterAnimated: true,
         windowsLit: true,
         fireflies: true,
+        halosEnabled: true, depthFogEnabled: true, haloStrength: 1.4, haloSpread: 1.25,
+        fogOpacity: .32, fogStart: 39, fogEnd: 49,
+        halos: [SpatialAtmosphereHalo(instanceId: 'model', localPosition: Model3dVector3(x: 0, y: 2, z: 0))],
         waterStrength: .6);
     files['project/$sidecar'] = utf8.encode(jsonEncode(
         SpatialAtmosphereDocument(mapId: 'map', settings: settings).toJson()));

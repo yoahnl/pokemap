@@ -188,6 +188,7 @@ class MapWorkspaceViewState {
   String characterQuery = '';
   double characterScrollOffset = 0;
   bool grid = false;
+  bool elementsVisible = false;
   bool navigatorCollapsed = false;
   bool highlightTerrain = true;
   bool dimOtherTerrains = false;
@@ -527,11 +528,48 @@ class MapWorkspaceViewState {
 
   bool hasSelectionIn(String mapId) => _target?.mapId == mapId;
 
+  bool isLocked(
+    EditableMapDocument document,
+    MapSelectionFamily family,
+    String id,
+  ) {
+    final kind = switch (family) {
+      MapSelectionFamily.decor =>
+        document.current.spatialScene?.instances.any(
+                  (entry) => entry.id == id,
+                ) ==
+                true
+            ? 'model'
+            : 'decor',
+      MapSelectionFamily.character || MapSelectionFamily.marker => 'entity',
+      MapSelectionFamily.warp => 'warp',
+      MapSelectionFamily.zone => 'zone',
+      MapSelectionFamily.trigger => 'trigger',
+    };
+    return document.isElementLocked(kind, id);
+  }
+
+  void reconcileLocks(EditableMapDocument document) {
+    final target = _target;
+    if (target != null &&
+        target.mapId == document.current.id &&
+        isLocked(document, target.family, target.id)) {
+      clearSelection(document);
+    }
+    final armed = pendingMove;
+    if (armed != null &&
+        armed.mapId == document.current.id &&
+        isLocked(document, armed.family, armed.id)) {
+      pendingMove = null;
+    }
+  }
+
   void select(
     EditableMapDocument document,
     MapSelectionFamily family,
     String id,
   ) {
+    if (isLocked(document, family, id)) return;
     _target = MapSelectionTarget(
       mapId: document.current.id,
       family: family,

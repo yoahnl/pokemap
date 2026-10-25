@@ -51,7 +51,8 @@ final class StandardEventTemplateActions {
       'atomicResources': ['project', 'map'],
       'nativeContracts': ['MapEntityPresentation', 'EventV2', 'Scene'],
       'ownership': 'versionedRecipeAndExactRecompileBeforeOverwrite',
-      'editing': 'sameKindStableOwnedIds',
+      'editing': 'sameKindStableEventIdsAndForkedScenes',
+      'sceneRetention': 'previousGeneratedScenesPreservedForExistingConsumers',
       'duplication': 'applyParametersToAnotherEntityWithIndependentOwnedIds',
       'registryMode': 'dualReadOrV2OnlyRequiredNeverImplicitlyChanged',
       'pickupConsumption': 'oneShotOnlyAfterReceivedRetryableBagFull',
@@ -94,6 +95,7 @@ final class StandardEventTemplateActions {
                 expectedRevision: request.expectedRevision,
                 idempotencyKey: request.idempotencyKey,
                 dryRun: request.dryRun,
+                extensions: request.extensions,
                 parameters: {
                   'map': projection.map.toJson(),
                   'mapRevision': mapRevision,

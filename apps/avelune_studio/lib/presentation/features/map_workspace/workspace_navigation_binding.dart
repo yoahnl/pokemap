@@ -37,9 +37,12 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     _changed();
   }
 
-  void _show(WorkspaceSpace space) {
-    if (space != WorkspaceSpace.map && !_controller.hasCompleteProject) {
-      unawaited(_materializeWorkshops(destination: space));
+  void _show(WorkspaceSpace space, {bool libraryGuarded = false}) {
+    if (_space == WorkspaceSpace.resources &&
+        space != _space &&
+        _libraryExitGuard != null &&
+        !libraryGuarded) {
+      unawaited(_leaveLibraryThenShow(space));
       return;
     }
     if (_space == WorkspaceSpace.pokemon &&
@@ -52,6 +55,18 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     if (_space == WorkspaceSpace.gameExport &&
         space != _space &&
         _gameExport?.operationActive == true) {
+      return;
+    }
+    final workshop = switch (space) {
+      WorkspaceSpace.map || WorkspaceSpace.interaction => null,
+      WorkspaceSpace.resources
+          when widget.resourceLibraryBuilder != null &&
+              !_controller.hasWorkshop(MapWorkspaceWorkshop.resources) =>
+        null,
+      _ => MapWorkspaceWorkshop.values.byName(space.name),
+    };
+    if (workshop != null && !_controller.hasWorkshop(workshop)) {
+      unawaited(_openWorkshop(space, workshop));
       return;
     }
     final inPresentation = _space == WorkspaceSpace.presentation;
@@ -85,6 +100,7 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     }
     _closeContextMenu();
     _navigationRequest++;
+    _openingWorkshop = false;
     _interactionNotice?.close();
     _narrative?.cancelOpening();
     final refreshCommerce =
@@ -102,6 +118,14 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     }
     if (refreshCombat) {
       unawaited(_pokemon!.combat!.load(refresh: true));
+    }
+  }
+
+  Future<void> _leaveLibraryThenShow(WorkspaceSpace destination) async {
+    final guard = _libraryExitGuard;
+    if (await guard!() && mounted && identical(guard, _libraryExitGuard)) {
+      _resourceLibrary = null;
+      _show(destination, libraryGuarded: true);
     }
   }
 

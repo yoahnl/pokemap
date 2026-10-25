@@ -30,19 +30,24 @@ const catalogResourceKinds = <String, CatalogDefinitionKind>{
 final class CatalogProjectReader {
   CatalogProjectReader._(
       this.store, this.descriptor, this._working, this._portable,
-      {WorkingProjectCatalogIdentity? recoveryIdentity})
-      : _recoveryIdentity = recoveryIdentity;
+      {WorkingProjectCatalogIdentity? recoveryIdentity,
+      Set<String>? metadataFields})
+      : _recoveryIdentity = recoveryIdentity,
+        _metadataFields =
+            metadataFields == null ? null : Set.unmodifiable(metadataFields);
 
   static Future<CatalogProjectReader?> open(
       {required CatalogStorageStore store,
       required Map<String, Object?> descriptor,
-      bool allowRecoveryBootstrap = false}) async {
+      bool allowRecoveryBootstrap = false,
+      Set<String>? metadataFields}) async {
     if (descriptor['format'] == 'avelune.working-catalog') {
       final parsed = WorkingProjectCatalogDescriptor.fromJson(descriptor);
       try {
-        final working =
-            await WorkingProjectCatalog.open(store: store, descriptor: parsed);
-        return CatalogProjectReader._(store, descriptor, working, null);
+        final working = await WorkingProjectCatalog.open(
+            store: store, descriptor: parsed, metadataFields: metadataFields);
+        return CatalogProjectReader._(store, descriptor, working, null,
+            metadataFields: metadataFields);
       } on CatalogStorageException catch (error) {
         if (!allowRecoveryBootstrap ||
             error.code != 'catalog.recovery_required') {
@@ -51,13 +56,14 @@ final class CatalogProjectReader {
         final identity = await WorkingProjectCatalog.inspectIdentity(
             store: store, descriptor: parsed);
         return CatalogProjectReader._(store, descriptor, null, null,
-            recoveryIdentity: identity);
+            recoveryIdentity: identity, metadataFields: metadataFields);
       }
     }
     if (descriptor['format'] == 'avelune.portable-catalog') {
       final portable = await PortableProjectCatalog.open(descriptor,
-          readObject: store.readObject);
-      return CatalogProjectReader._(store, descriptor, null, portable);
+          readObject: store.readObject, metadataFields: metadataFields);
+      return CatalogProjectReader._(store, descriptor, null, portable,
+          metadataFields: metadataFields);
     }
     return null;
   }
@@ -67,6 +73,7 @@ final class CatalogProjectReader {
   final WorkingProjectCatalog? _working;
   final PortableProjectCatalog? _portable;
   final WorkingProjectCatalogIdentity? _recoveryIdentity;
+  final Set<String>? _metadataFields;
   bool get recoveryRequired => _recoveryIdentity != null;
   bool get readOnly => descriptor['format'] == 'avelune.portable-catalog';
   String get projectId =>
@@ -91,6 +98,32 @@ final class CatalogProjectReader {
     }
     final working = _working;
     return working == null ? action(_portable!) : working.readCatalog(action);
+  }
+
+  Future<CatalogProjectReader> withMetadataFields(Set<String> fields) async {
+    if (recoveryRequired) {
+      return read((_) async => this);
+    }
+    final loaded = _metadataFields;
+    if (loaded == null || loaded.containsAll(fields)) {
+      return read((_) async => this);
+    }
+    final selected = {...loaded, ...fields};
+    final working = _working;
+    if (working != null) {
+      return CatalogProjectReader._(
+          store, descriptor, await working.withMetadataFields(selected), null,
+          metadataFields: selected);
+    }
+    final portable = await PortableProjectCatalog.fromSnapshot(catalog.snapshot,
+        metadataFields: selected);
+    return CatalogProjectReader._(store, descriptor, null, portable,
+        metadataFields: selected);
+  }
+
+  Future<ProjectManifest> readMetadata(Set<String> fields) async {
+    final scoped = await withMetadataFields(fields);
+    return scoped.read((catalog) async => catalog.projectMetadata);
   }
 
   Future<AuthoringQueryPage> queryMaps(AuthoringQueryRequest request,

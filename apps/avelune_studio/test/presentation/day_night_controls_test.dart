@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_day_night_panel.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_camera_panel.dart';
 import 'package:avelune_studio/presentation/features/resources/model_light_controls.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,40 @@ import 'package:map_render_3d/map_render_3d.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
+  testWidgets(
+    'camera details are folded and display readable precision without changing data',
+    (tester) async {
+      final map = spatialEnvironmentMap();
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(map: map, mapId: map.id, revision: 'camera'),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: MapCameraPanel(document: document, onChanged: () {}),
+            ),
+          ),
+        ),
+      );
+      expect(find.byType(TextField), findsNothing);
+      await tester.tap(find.text('Caméra du jeu'));
+      await tester.pumpAndSettle();
+      final pitch = document.current.spatialScene!.camera.pitchDegrees;
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is EditableText &&
+              w.controller.text == pitch.toStringAsFixed(2),
+        ),
+        findsOneWidget,
+      );
+      expect(document.current, same(map));
+      expect(document.dirty, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('atmosphere toggles update only their session in one frame', (
     tester,
   ) async {

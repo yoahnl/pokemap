@@ -1,10 +1,19 @@
 import 'package:map_core/map_core_domain.dart';
 
 final class PokemonCombatSnapshot {
-  const PokemonCombatSnapshot({required this.project, required this.maps});
+  const PokemonCombatSnapshot({
+    required this.project,
+    required this.maps,
+    this.referencesComplete = true,
+  });
 
   final ProjectManifest project;
   final List<MapData> maps;
+  final bool referencesComplete;
+}
+
+abstract interface class PokemonCombatReferencePort {
+  Future<PokemonCombatSnapshot> analyzeReferences();
 }
 
 abstract interface class PokemonCombatPort {

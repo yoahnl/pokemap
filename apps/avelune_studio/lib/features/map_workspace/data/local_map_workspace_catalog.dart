@@ -6,12 +6,14 @@ class _ProjectDocument {
     this.manifest,
     this.revision, {
     this.complete = true,
+    this.metadataFields,
   });
 
   final String root;
   final ProjectManifest manifest;
   final String revision;
   final bool complete;
+  final Set<String>? metadataFields;
 }
 
 extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
@@ -38,7 +40,8 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
                       ) ==
                       updatedMaps[index],
               ].every((unchanged) => unchanged)
-        : jsonEncode(originalMaps) == jsonEncode(updatedMaps);
+        : originalMaps == updatedMaps ||
+              jsonEncode(originalMaps) == jsonEncode(updatedMaps);
     if (project.revision != receipt.beforeRevision ||
         project.manifest != receipt.before ||
         !mapsMatch) {
@@ -51,6 +54,8 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       project.root,
       receipt.manifest,
       receipt.revision,
+      complete: project.complete,
+      metadataFields: project.metadataFields,
     );
     await _requireProjectRevision(session, next);
     _projects[session.sessionId] = next;
@@ -123,6 +128,38 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     ProjectSession session,
     _ProjectDocument project,
   ) async {
+    if (await resourceRevision(session) == project.revision) return project;
+    if (session.storage == ProjectSessionStorage.workingCatalog &&
+        !project.complete) {
+      final catalog = await _readScopedCatalog(
+        session,
+        (catalog, revision) async => MapWorkspaceCatalog(
+          metadata: catalog.projectMetadata,
+          revision: revision,
+        ),
+        metadataFields: project.metadataFields ?? _mapCatalogMetadataFields,
+      );
+      if (jsonEncode(catalog.metadata.maps) !=
+          jsonEncode(project.manifest.maps)) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le catalogue des cartes a changé. Vos brouillons restent ouverts.',
+        );
+      }
+      final refreshed = _ProjectDocument(
+        project.root,
+        mergeProjectMetadataSections(
+          project.manifest,
+          catalog.metadata,
+          project.metadataFields ?? _mapCatalogMetadataFields,
+        ),
+        catalog.revision,
+        complete: false,
+        metadataFields: project.metadataFields,
+      );
+      _projects[session.sessionId] = refreshed;
+      return refreshed;
+    }
     if (session.storage != ProjectSessionStorage.manifest) {
       final refreshed = await _readCatalogProject(session);
       if (jsonEncode(refreshed.manifest.maps) !=

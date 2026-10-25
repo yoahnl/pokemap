@@ -51,9 +51,12 @@ class CharacterEditingCommands {
     return entity;
   }
 
-  void move(String id, GridPos position) => document.commit(
-    moveEntityOnMap(document.current, entityId: id, pos: position),
-  );
+  void move(String id, GridPos position) {
+    if (document.isElementLocked('entity', id)) return;
+    document.commit(
+      moveEntityOnMap(document.current, entityId: id, pos: position),
+    );
+  }
 
   MapEntity duplicate(String id) {
     final source = selected(id);
@@ -68,6 +71,9 @@ class CharacterEditingCommands {
   }
 
   String? deletionProblem(String id) {
+    if (document.isElementLocked('entity', id)) {
+      return 'Cet élément est verrouillé. Déverrouillez-le dans Éléments.';
+    }
     final usages =
         buildNarrativeDependencyIndex(
           project: project,

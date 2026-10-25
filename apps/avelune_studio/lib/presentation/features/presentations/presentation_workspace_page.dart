@@ -1,7 +1,11 @@
+import 'package:avelune_studio/presentation/shared/keyboard/editor_shortcuts.dart';
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import '../../../features/presentations/application/presentation_preview_transport.dart';
 import '../../shared/widgets/buttons/studio_button.dart';

@@ -28,7 +28,7 @@ extension LocalPresentationMedia on LocalPresentationAdapter {
         'logicalPath':
             'assets/presentation/$id${path.extension(sourcePath).toLowerCase()}',
       };
-      final snapshot = await connection.read();
+      final snapshot = await connection.read(parameters: fields);
       final draft =
           await MapMutationDispatcher.canonical(artifactStore: artifacts).build(
             AuthoringPlanningContext(

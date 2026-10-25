@@ -6,7 +6,7 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
     final asset = controller.active?.asset, state = view;
     return StudioDialogueTheme(
       child: CallbackShortcuts(
-        bindings: {
+        bindings: textAwareEditorShortcuts({
           const SingleActivator(LogicalKeyboardKey.keyS, meta: true): save,
           const SingleActivator(LogicalKeyboardKey.keyS, control: true): save,
           const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): () {
@@ -25,7 +25,7 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
               refresh();
             }
           },
-        },
+        }),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact =
@@ -114,9 +114,9 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
                                           child: Container(
                                             width: 60,
                                             height: 2,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.outline,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outline,
                                           ),
                                         ),
                                       ),

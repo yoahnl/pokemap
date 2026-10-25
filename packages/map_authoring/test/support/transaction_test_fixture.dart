@@ -18,6 +18,7 @@ final class TransactionTestHarness {
 
   static Future<TransactionTestHarness> create({
     AuthoringTransactionFaultInjector? faultInjector,
+    bool documentReceiptIdentity = false,
   }) async {
     final projectDirectory = await Directory.systemTemp.createTemp(
       'pokemap_transaction_',
@@ -50,7 +51,9 @@ final class TransactionTestHarness {
     var token = 0;
     final planner = AuthoringActionPlanner(
       store: planStore,
-      tokenFactory: (prefix) => '$prefix${token++}',
+      tokenFactory: (prefix) => documentReceiptIdentity && prefix == 'receipt_'
+          ? 'receipt_document_${token++}'
+          : '$prefix${token++}',
       seedFactory: () => 404,
     );
     final plan = await planner.plan(

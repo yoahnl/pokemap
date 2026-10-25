@@ -12,6 +12,7 @@ out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragPosition;
 out vec3 fragNormal;
+out float fragViewDepth;
 
 uniform VertexInfo {
     mat4 model;
@@ -32,5 +33,6 @@ void main() {
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
     fragPosition = world.xyz;
+    fragViewDepth = -(vertex_info.view * world).z;
     fragNormal = vec3(0.0, 1.0, 0.0);
 }

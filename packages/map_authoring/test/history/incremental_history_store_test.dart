@@ -1,7 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/contracts/authoring_diff.dart';
+import 'package:map_authoring/src/contracts/authoring_receipt.dart';
+import 'package:map_authoring/src/contracts/resource_ref.dart';
+import 'package:map_authoring/src/history/authoring_history.dart';
+import 'package:map_authoring/src/history/file_history_store.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -10,6 +14,88 @@ void main() {
     project = await Directory.systemTemp.createTemp('history-incremental-');
   });
   tearDown(() => project.delete(recursive: true));
+
+  test('cold local head and entry reads do not replay 900 unrelated entries',
+      () async {
+    var fullReads = 0;
+    var store = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+        incrementalWrites: true,
+        onFullRead: () => fullReads++);
+    for (var index = 0; index < 900; index++) {
+      await store.append(_entry(index));
+    }
+    store = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+        incrementalWrites: true,
+        onFullRead: () => fullReads++);
+    expect((await store.latestLocalEntry(projectId: 'project'))!.entryId,
+        'receipt_document_899');
+    expect(
+        (await store.getLocalEntry(
+                projectId: 'project', entryId: 'receipt_document_450'))!
+            .entryId,
+        'receipt_document_450');
+    await store.append(_entry(900));
+    expect((await store.latestLocalEntry(projectId: 'project'))!.entryId,
+        'receipt_document_900');
+    expect(fullReads, 0);
+  });
+
+  test('explicit legacy preparation permits bounded cold entry and head lookup',
+      () async {
+    final legacy =
+        await FileAuthoringHistoryStore.open(projectRoot: project.path);
+    await legacy.append(_entry(1));
+    await legacy.append(_entry(2));
+    var fullReads = 0;
+    var store = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+        incrementalWrites: true,
+        onFullRead: () => fullReads++);
+    await expectLater(
+        store.latestLocalEntry(projectId: 'project'),
+        throwsA(isA<AuthoringHistoryException>().having(
+            (error) => error.code, 'code', 'history.preparation_required')));
+    expect(fullReads, 0);
+    await store.prepareLocalHistory();
+    expect(fullReads, 1);
+    store = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+        incrementalWrites: true,
+        onFullRead: () => fullReads++);
+    expect((await store.latestLocalEntry(projectId: 'project'))!.entryId,
+        'receipt_document_2');
+    expect(
+        (await store.getLocalEntry(
+                projectId: 'project', entryId: 'receipt_document_1'))!
+            .entryId,
+        'receipt_document_1');
+    await store.append(_entry(3));
+    await store.prepareLocalHistory();
+    expect(fullReads, 1);
+  });
+
+  test('a local head publication interruption is repaired by a bounded retry',
+      () async {
+    final store = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+        incrementalWrites: true,
+        onFullRead: () => throw StateError('global history read'));
+    final fault = _HistoryPublishFault('local-head');
+    await IOOverrides.runWithIOOverrides(() async {
+      await expectLater(store.append(_entry(1)),
+          throwsA(isA<AuthoringHistoryStoreException>()));
+    }, fault);
+    expect(fault.failed, isTrue);
+    await expectLater(
+        store.latestLocalEntry(projectId: 'project'),
+        throwsA(isA<AuthoringHistoryException>().having(
+            (error) => error.code, 'code', 'history.preparation_required')));
+    await store.append(_entry(1));
+    expect((await store.latestLocalEntry(projectId: 'project'))!.entryId,
+        'receipt_document_1');
+  });
 
   test('incremental append never reads the legacy journal', () async {
     final legacy =
@@ -312,8 +398,11 @@ final class _HistoryPublishFault extends IOOverrides {
     if (failed) return false;
     final entry = path.endsWith('receipt_document_1.json.tmp');
     final head = path.endsWith('history-entries.sequence.json.tmp');
+    final localHead =
+        path.contains('/history-local-heads/') && path.endsWith('.json.tmp');
     if (head) headRenames++;
-    if ((phase == 'entry' && entry) ||
+    if ((phase == 'local-head' && localHead) ||
+        (phase == 'entry' && entry) ||
         (phase == 'complete-head' && head && headRenames == 2)) {
       failed = true;
       return true;
@@ -335,6 +424,10 @@ final class _HistoryFaultFile implements File {
   Directory get parent => inner.parent;
   @override
   Future<bool> exists() => inner.exists();
+  @override
+  Future<FileStat> stat() => inner.stat();
+  @override
+  Future<int> length() => inner.length();
   @override
   Future<String> readAsString({Encoding encoding = utf8}) =>
       inner.readAsString(encoding: encoding);

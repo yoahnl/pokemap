@@ -214,7 +214,7 @@ void main() {
     reader.paths.clear();
     final page = await opened.snapshot.page(limit: 3);
     expect(page.items, hasLength(3));
-    expect(reader.paths, hasLength(2));
+    expect(reader.paths, hasLength(1));
     final unitHashes = {
       for (final entry in build.objects.entries)
         if ((jsonDecode(utf8.decode(entry.value)) as Map)['type'] == 'unit')

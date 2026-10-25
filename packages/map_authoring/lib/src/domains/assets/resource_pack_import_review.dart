@@ -51,6 +51,7 @@ ResourcePackImportReview _buildImportReview({
   List<_Output> outputs = const [],
   int metadataBytes = 0,
   Map<String, Object?>? budgetReport,
+  Set<String> skippedDraftPresetIds = const {},
 }) {
   final catalog = selection.inspection.catalog;
   final sources = indexResourcePackDefinitions(catalog.toJson());
@@ -243,6 +244,19 @@ ResourcePackImportReview _buildImportReview({
       'message': message
     });
   }
+  final draftNotices = [
+    for (final id in skippedDraftPresetIds.toList()..sort())
+      {
+        'kind': 'authoringDraftNotice',
+        'presetId': id,
+        'label': projection!.catalog.smartTileCatalog.presets
+            .singleWhere((preset) => preset.id == id).name,
+        'reasonCode': 'catalog_unit_too_large',
+        'message': 'Le terrain publié reste disponible pour peindre. Son brouillon '
+            'd’atelier n’a pas été préinitialisé automatiquement : il dépasse '
+            'les limites d’une unité du catalogue.',
+      },
+  ];
   final applicable = status == ResourcePackPreparedImportStatus.ready;
   final outputBytes = applicable
       ? outputs.fold<int>(
@@ -251,6 +265,7 @@ ResourcePackImportReview _buildImportReview({
   final definitionCount = resources.length + supports.length;
   return ResourcePackImportReview(
       Map.unmodifiable({
+        'autoDraftSkippedCount': skippedDraftPresetIds.length,
         'selectedResourceCount': selection.roots.length,
         'selectedPatternCount': selection.smartTilePatternIds.length,
         'resourceCount': resources.length,
@@ -285,5 +300,5 @@ ResourcePackImportReview _buildImportReview({
         },
         if (firstAdded != null) 'firstAdded': firstAdded,
       }),
-      List.unmodifiable([...conflictRows, ...rows]));
+      List.unmodifiable([...draftNotices, ...conflictRows, ...rows]));
 }

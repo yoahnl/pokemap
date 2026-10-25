@@ -19,6 +19,11 @@ class PokemonCombatReferenceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!snapshot.referencesComplete) {
+      return const Text(
+        'Lancez l’analyse des usages du projet pour afficher ses cartes et scènes liées.',
+      );
+    }
     final maps = [
       for (final map in snapshot.maps)
         if (map.gameplayZones.any(

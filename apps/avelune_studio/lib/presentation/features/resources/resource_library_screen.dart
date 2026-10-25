@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart'
 import '../map_workspace/map_workspace_visuals.dart';
 import '../map_workspace/workspace_compact_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import 'resource_catalog.dart';
 import 'resource_catalog_toolbar.dart';
@@ -67,8 +68,10 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.activeMapId,
     this.onModelShadowsChanged,
     this.onModelLightChanged,
+    this.onLoadFamily,
   });
   final ProjectManifest project;
+  final Future<bool> Function(ResourceLibraryFamily)? onLoadFamily;
   final List<MapData> openMaps;
   final MapWorkspaceVisuals visuals;
   final ResourceLibraryState state;
@@ -117,6 +120,9 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   );
   List<ResourceItem> items = [];
   ResourceLibraryState get state => widget.state;
+  int _familyRequest = 0;
+  bool _familyLoading = false;
+  String? _familyError;
   @override
   void initState() {
     super.initState();
@@ -148,8 +154,31 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
     if (scroll.hasClients) scroll.jumpTo(0);
   }
 
-  void changeFamily(ResourceLibraryFamily family) =>
+  Future<bool> changeFamily(ResourceLibraryFamily family) async {
+    final request = ++_familyRequest;
+    setState(() {
+      _familyLoading = true;
+      _familyError = null;
+    });
+    try {
+      final loaded = await widget.onLoadFamily?.call(family) ?? true;
+      if (!mounted || request != _familyRequest || !loaded) return false;
       change(() => state.selectFamily(family));
+      return true;
+    } catch (failure) {
+      if (mounted && request == _familyRequest) {
+        setState(
+          () => _familyError =
+              'Cette famille ne peut pas être chargée : $failure',
+        );
+      }
+      return false;
+    } finally {
+      if (mounted && request == _familyRequest) {
+        setState(() => _familyLoading = false);
+      }
+    }
+  }
 
   void changeNatureFamily(String id) => change(() {
     state.filters.familyId = id;
@@ -175,9 +204,8 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
 
   Widget families({VoidCallback? close}) => ResourceFamilyNavigation(
     selected: state.family,
-    onChanged: (family) {
-      changeFamily(family);
-      close?.call();
+    onChanged: (family) async {
+      if (await changeFamily(family)) close?.call();
     },
     onCharacters: widget.onCharacters == null
         ? null
@@ -291,5 +319,11 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   );
 
   @override
-  Widget build(BuildContext context) => buildLibrary(context);
+  Widget build(BuildContext context) => Column(
+    children: [
+      if (_familyLoading) const LinearProgressIndicator(),
+      if (_familyError != null) StudioNotice(_familyError!, isError: true),
+      Expanded(child: buildLibrary(context)),
+    ],
+  );
 }

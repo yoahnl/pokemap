@@ -29,7 +29,7 @@ class PokemonCombatTableDetail extends StatelessWidget {
 
   final PokemonCombatController combat;
   final PokemonWorkspaceIndex index;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final Future<void> Function(String kind, String id)? onOpenReference;
   final VoidCallback? onBack;
 

@@ -7,7 +7,6 @@ import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import 'authoring_plan.dart';
-import 'authoring_payload.dart';
 import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'plan_store.dart';
@@ -252,8 +251,8 @@ final class JournaledAuthoringTransaction {
             expectedRevision: change.afterRevision,
           );
         }
-      } on AuthoringPayloadPreparationAborted {
-        await _gateway.deleteTransaction(operationId);
+      } on Object {
+        await _discardFailedPreparationBestEffort(plan, scope, operationId);
         rethrow;
       }
       await _checkpoint(
@@ -504,6 +503,30 @@ final class JournaledAuthoringTransaction {
 
   Future<void> _deleteTransactionBestEffort(String operationId) async {
     try {
+      await _gateway.deleteTransaction(operationId);
+    } on Object {
+      return;
+    }
+  }
+
+  Future<void> _discardFailedPreparationBestEffort(
+    AuthoringPlan plan,
+    AuthoringIdempotencyScope scope,
+    String operationId,
+  ) async {
+    try {
+      if (await _idempotency.recordForRecovery(scope) != null) return;
+      final journal = await _gateway.readJournal(operationId);
+      if (journal == null ||
+          journal.planId != plan.planId ||
+          journal.scope.storageKey != scope.storageKey ||
+          journal.status != AuthoringTransactionStatus.preparing ||
+          journal.finalReceipt != null ||
+          journal.entries.any((entry) => entry.promoted || entry.compensated)) {
+        return;
+      }
+      AuthoringRevisionSet.beforeChangeSet(plan.changeSet)
+          .requireMatches(await _currentRevisions(plan));
       await _gateway.deleteTransaction(operationId);
     } on Object {
       return;

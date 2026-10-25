@@ -1,25 +1,33 @@
 import 'dart:convert';
-import 'dart:math';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show AuthoringTransactionFaultInjector;
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
 import '../../project_session/domain/project_session.dart';
+import '../../project_session/data/local_workshop_reader.dart';
 import '../domain/pokemon_commerce_port.dart';
 import 'pokemon_capture_sprite_import.dart';
+import 'local_pokemon_transaction.dart';
 import 'pokemon_media_projection.dart';
 
-final class LocalPokemonCommerceAdapter implements PokemonCommercePort {
+final class LocalPokemonCommerceAdapter
+    implements PokemonCommercePort, PokemonCommerceReferencePort {
   const LocalPokemonCommerceAdapter({
     required this.session,
     required this.mapAdapter,
+    this.reader = const LocalProjectFileReader(),
+    this.faultInjector,
   });
 
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
+  final ProjectFileReader reader;
+  final AuthoringTransactionFaultInjector? faultInjector;
 
   @override
   Future<String> importCaptureSprite({
@@ -81,22 +89,52 @@ final class LocalPokemonCommerceAdapter implements PokemonCommercePort {
   }
 
   @override
-  Future<PokemonCommerceSnapshot> load() => _withSnapshot((snapshot, _) async {
-    final manifest = snapshot.manifest;
+  Future<PokemonCommerceSnapshot>
+  load() => LocalWorkshopReader(session, reader: reader).read(
+    metadataFields: {'pokemon', 'shops', 'bagCapacity', 'newGame', 'trainers'},
+    operation: (project, access, _) async {
+      final path = project.pokemon.catalogFiles['items'];
+      ProjectItemCatalog? catalog;
+      if (path != null) {
+        final probe = await access.probeResource(path);
+        if (probe.status != ProjectResourceProbeStatus.missing) {
+          final bytes = await access.readBytes(path);
+          try {
+            catalog = decodeProjectItemCatalog(jsonDecode(utf8.decode(bytes)));
+          } on FormatException {
+            catalog = null;
+          }
+        }
+      }
+      return _projection(project, const [], catalog, referencesComplete: false);
+    },
+  );
+
+  @override
+  Future<PokemonCommerceSnapshot> analyzeReferences() => _transaction.analyze(
+    (snapshot) async =>
+        _projection(snapshot.manifest, snapshot.maps, snapshot.itemCatalog),
+  );
+
+  PokemonCommerceSnapshot _projection(
+    ProjectManifest manifest,
+    List<MapData> maps,
+    ProjectItemCatalog? catalog, {
+    bool referencesComplete = true,
+  }) {
     final catalogPath = manifest.pokemon.catalogFiles['items'];
-    final catalog = snapshot.itemCatalog;
     return PokemonCommerceSnapshot(
       project: manifest,
       catalog: catalog,
       shops: List.unmodifiable(manifest.shops),
       references: buildProjectItemReferenceIndex(
         project: manifest,
-        maps: snapshot.maps,
+        maps: maps,
         itemCatalog: catalog,
       ),
       narrativeReferences: buildNarrativeDependencyIndex(
         project: manifest,
-        maps: snapshot.maps,
+        maps: maps,
         itemCatalog: catalog,
       ),
       shopDiagnostics: ShopStateValidator(
@@ -108,6 +146,7 @@ final class LocalPokemonCommerceAdapter implements PokemonCommercePort {
         },
       ).validate(),
       catalogPath: catalogPath,
+      referencesComplete: referencesComplete,
       problem: !manifest.pokemon.enabled
           ? 'La configuration Pokémon est désactivée.'
           : catalogPath == null
@@ -116,166 +155,109 @@ final class LocalPokemonCommerceAdapter implements PokemonCommercePort {
           ? 'Le catalogue d’objets est absent ou illisible.'
           : null,
     );
-  });
+  }
+
+  LocalPokemonTransaction get _transaction => LocalPokemonTransaction(
+    session: session,
+    mapAdapter: mapAdapter,
+    reader: reader,
+    faultInjector: faultInjector,
+  );
 
   @override
   Future<void> saveItem(
     ProjectItemDefinition? before,
     ProjectItemDefinition after,
-  ) => mapAdapter.withResourceMutation(
-    () => _withSnapshot((snapshot, run) async {
+  ) async {
+    ProjectItemDefinition? current(ProjectSnapshot snapshot) {
       final catalog = snapshot.itemCatalog;
       if (catalog == null) throw StateError('Catalogue d’objets indisponible.');
-      final current = catalog.entries
-          .where((entry) => entry.id == after.id)
-          .firstOrNull;
-      if (!_same(current?.toJson(), before?.toJson())) {
-        throw StateError(
-          'Cet objet a changé sur le disque. Votre brouillon est conservé.',
-        );
-      }
-      await run(
-        before == null ? 'item.create' : 'item.update',
-        before == null
-            ? {'definition': after.toJson()}
-            : {'itemId': after.id, 'definition': after.toJson()},
-        snapshot.manifest.pokemon.catalogFiles['items'],
-      );
-    }),
-  );
+      return catalog.entries.where((entry) => entry.id == after.id).firstOrNull;
+    }
+
+    final warning = await _transaction.run(
+      actionId: before == null ? 'item.create' : 'item.update',
+      parameters: before == null
+          ? {'definition': after.toJson()}
+          : {'itemId': after.id, 'definition': after.toJson()},
+      allowedStorageKeys: (snapshot) {
+        final path = snapshot.manifest.pokemon.catalogFiles['items'];
+        if (path == null) throw StateError('Destination non configurée.');
+        return {path};
+      },
+      validateBefore: (snapshot) {
+        if (!_same(current(snapshot)?.toJson(), before?.toJson())) {
+          throw StateError(
+            'Cet objet a changé sur le disque. Votre brouillon est conservé.',
+          );
+        }
+      },
+      validateAfter: (snapshot) {
+        if (!_same(current(snapshot)?.toJson(), after.normalized().toJson())) {
+          throw StateError('L’objet enregistré ne correspond pas au reçu.');
+        }
+      },
+    );
+    if (warning != null) throw StateError(warning);
+  }
 
   @override
   Future<({String? refreshWarning})> saveBagCapacity(
     ProjectBagCapacity before,
     ProjectBagCapacity after,
-  ) => mapAdapter.withResourceMutation(() async {
-    await mapAdapter.resourceBaseline(session, refreshCatalog: true);
-    var applied = false;
-    try {
-      await _withSnapshot((snapshot, run) async {
+  ) async {
+    final warning = await _transaction.run(
+      actionId: 'bag.capacity.set',
+      parameters: after.toJson(),
+      allowedStorageKeys: (_) => {'project.json'},
+      validateBefore: (snapshot) {
         if (snapshot.manifest.bagCapacity != before) {
           throw StateError(
             'La capacité du sac a changé sur le disque. Votre brouillon est conservé.',
           );
         }
-        await run('bag.capacity.set', after.toJson(), 'project.json');
-        applied = true;
-        await mapAdapter.resourceBaseline(session, refreshCatalog: true);
-      });
-      return (refreshWarning: null);
-    } on Object catch (failure) {
-      if (!applied) rethrow;
-      return (
-        refreshWarning:
-            'Capacité enregistrée ; actualisation de l’atelier impossible : $failure',
-      );
-    }
-  });
+      },
+      validateAfter: (snapshot) {
+        if (snapshot.manifest.bagCapacity != after) {
+          throw StateError(
+            'La capacité enregistrée ne correspond pas au reçu.',
+          );
+        }
+      },
+    );
+    return (
+      refreshWarning: warning?.replaceFirst(
+        'Enregistrement confirmé',
+        'Capacité enregistrée',
+      ),
+    );
+  }
 
   @override
-  Future<void> saveShop(ShopDefinition? before, ShopDefinition after) =>
-      mapAdapter.withResourceMutation(
-        () => _withSnapshot((snapshot, run) async {
-          final current = snapshot.manifest.shops
-              .where((entry) => entry.id == after.id)
-              .firstOrNull;
-          if (!_same(current?.toJson(), before?.toJson())) {
-            throw StateError(
-              'Cette boutique a changé sur le disque. Votre brouillon est conservé.',
-            );
-          }
-          await run('campaign.shop.upsert', {
-            'value': after.toJson(),
-          }, 'project.json');
-          await mapAdapter.resourceBaseline(session, refreshCatalog: true);
-        }),
-      );
-
-  Future<T> _withSnapshot<T>(
-    Future<T> Function(
-      ProjectSnapshot snapshot,
-      Future<void> Function(String, Map<String, Object?>, String?) run,
-    )
-    operation,
-  ) async {
-    const reader = LocalProjectFileReader();
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [session.directoryPath],
-      fileReader: reader,
-    );
-    final handles = WorkspaceHandleStore();
-    final opened = await ProjectOpenService(
-      policy: policy,
-      fileReader: reader,
-      handles: handles,
-    ).openProject(session.directoryPath);
-    final snapshots = ProjectSnapshotLoader(handles: handles);
-    final api = LocalMapAuthoringMutationApi(
-      policy: policy,
-      snapshotLoader: snapshots,
-    );
-    var attached = false;
-    try {
-      await api.attachProject(
-        projectRootPath: session.directoryPath,
-        workspaceHandle: opened.workspaceHandle,
-        projectHandle: opened.projectHandle,
-      );
-      attached = true;
-      final snapshot = await snapshots.load(
-        opened.projectHandle,
-        policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-      );
-      Future<void> run(
-        String action,
-        Map<String, Object?> parameters,
-        String? path,
-      ) async {
-        if (path == null) throw StateError('Destination non configurée.');
-        final id =
-            'studio_commerce_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
-        final planned = await api.planMutation(
-          opened.projectHandle,
-          AuthoringRequest(
-            requestId: id,
-            actionId: action,
-            actionVersion: 1,
-            workspaceHandle: opened.workspaceHandle.value,
-            expectedRevision: snapshot.revision,
-            idempotencyKey: id,
-            parameters: parameters,
-          ),
-        );
-        if (planned.plan.changeSet.changes.any(
-          (change) => change.storageKey != path,
-        )) {
+  Future<void> saveShop(ShopDefinition? before, ShopDefinition after) async {
+    ShopDefinition? current(ProjectSnapshot snapshot) => snapshot.manifest.shops
+        .where((entry) => entry.id == after.id)
+        .firstOrNull;
+    final warning = await _transaction.run(
+      actionId: 'campaign.shop.upsert',
+      parameters: {'value': after.toJson()},
+      allowedStorageKeys: (_) => {'project.json'},
+      validateBefore: (snapshot) {
+        if (!_same(current(snapshot)?.toJson(), before?.toJson())) {
           throw StateError(
-            'La mutation vise une autre ressource que celle attendue.',
+            'Cette boutique a changé sur le disque. Votre brouillon est conservé.',
           );
         }
-        try {
-          await api.applyMutation(
-            opened.projectHandle,
-            planId: planned.planId,
-            operationId: id,
+      },
+      validateAfter: (snapshot) {
+        if (!_same(current(snapshot)?.toJson(), after.normalized().toJson())) {
+          throw StateError(
+            'La boutique enregistrée ne correspond pas au reçu.',
           );
-        } on Object catch (failure) {
-          try {
-            await api.recoverMutation(opened.projectHandle, operationId: id);
-          } on Object {
-            throw StateError(
-              'Écriture interrompue ; journal $id conservé : $failure',
-            );
-          }
-          rethrow;
         }
-      }
-
-      return await operation(snapshot, run);
-    } finally {
-      if (attached) await api.detachWorkspace(opened.workspaceHandle);
-      handles.closeWorkspace(opened.workspaceHandle);
-    }
+      },
+    );
+    if (warning != null) throw StateError(warning);
   }
 
   bool _same(Object? first, Object? second) =>

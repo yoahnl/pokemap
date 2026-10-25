@@ -216,7 +216,10 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       await prepareProjectAssets(widget.session.directoryPath);
       return true;
     }
-    if (project?.pokemon.enabled == false) return false;
+    if (widget.session.storage == ProjectSessionStorage.workingCatalog ||
+        project?.pokemon.enabled == false) {
+      return false;
+    }
     await StudioProjectItemIcons.shared.prepare(
       widget.session.directoryPath,
       shouldContinue: () => mounted,

@@ -11,6 +11,7 @@ out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragPosition;
 out vec3 fragNormal;
+out float fragViewDepth;
 
 uniform VertexInfo {
     mat4 model;
@@ -25,6 +26,7 @@ void main() {
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
     fragPosition = world.xyz;
+    fragViewDepth = -(vertex_info.view * world).z;
     mat3 basis = mat3(transform);
     fragNormal = abs(determinant(basis)) > 0.000001
         ? transpose(inverse(basis)) * vertexNormal

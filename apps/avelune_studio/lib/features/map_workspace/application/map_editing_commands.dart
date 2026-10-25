@@ -15,6 +15,7 @@ class MapEditingCommands {
       _placeElement(element, position);
 
   void move(String id, GridPos position) {
+    if (document.isElementLocked('decor', id)) return;
     final instance = document.current.placedElements
         .where((element) => element.id == id)
         .firstOrNull;
@@ -53,6 +54,7 @@ class MapEditingCommands {
   void deleteSelected() {
     final id = document.selectedId;
     if (id == null) return;
+    if (document.isElementLocked('decor', id)) return;
     if (document.current.movingProps.any((prop) => prop.placedElementId == id)) {
       document.error = 'Retirez le déplacement du décor avant de supprimer son visuel.';
       return;
@@ -66,6 +68,7 @@ class MapEditingCommands {
     required int y,
     required PixelSize? size,
   }) {
+    if (document.isElementLocked('decor', id)) return false;
     try {
       document.commit(
         const MovingPropEditing().reconcilePlacementChanges(before: document.current, project: project,
@@ -105,6 +108,8 @@ class MapEditingCommands {
   }
 
   void reorder({required bool forward}) {
+    final id = document.selectedId;
+    if (id != null && document.isElementLocked('decor', id)) return;
     document.commit(_reordered(forward: forward));
   }
 
@@ -174,6 +179,7 @@ class MapEditingCommands {
     required GridPos at,
     required bool forward,
   }) {
+    if (document.isElementLocked('decor', instanceId)) return document.current;
     try {
       return moveMapPlacedElementVisualOrder(
         document.current,
@@ -195,6 +201,7 @@ class MapEditingCommands {
   MapData _reordered({required bool forward}) {
     final id = document.selectedId;
     if (id == null) return document.current;
+    if (document.isElementLocked('decor', id)) return document.current;
     try {
       return moveMapPlacedElementVisualOrder(
         document.current,
@@ -213,14 +220,14 @@ class MapEditingCommands {
     document.current,
     project,
     position,
-  ).reversed.toList();
+  ).reversed.where((item) => !document.isElementLocked('decor', item.id)).toList();
 
   List<MapPlacedElement> stackAtPixel(PixelPosition position) =>
       mapPlacedElementsAtPixel(
         document.current,
         project,
         position,
-      ).reversed.toList();
+      ).reversed.where((item) => !document.isElementLocked('decor', item.id)).toList();
 
   List<MapPlacedElement> contextStack(GridPos position) =>
       document.stackPosition == position && document.stackPixelPosition != null

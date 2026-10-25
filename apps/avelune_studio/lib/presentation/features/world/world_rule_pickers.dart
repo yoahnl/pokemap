@@ -61,11 +61,13 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
 
   Future<void> _pickSource(WorldRuleDraft draft) async {
     if (!flush()) return;
-    final chosen =
-        await _choose<WorldRuleSourcePickerOption>('Choisir la condition', [
-          for (final option in controller.model.sourceOptions)
-            (option, option.label, option.subtitle),
-        ]);
+    final chosen = await _choose<WorldRuleSourcePickerOption>(
+      'Choisir la condition',
+      [
+        for (final option in controller.model.sourceOptions)
+          (option, option.label, option.subtitle),
+      ],
+    );
     if (chosen == null || !mounted) return;
     controller.editRule(draft.id, (d) {
       d.source = chosen.kind == WorldRuleSourceKind.fact
@@ -91,11 +93,23 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
   /// than keeping a combination the projection would refuse.
   Future<void> _pickTarget(WorldRuleDraft draft) async {
     if (!flush()) return;
-    final chosen =
-        await _choose<WorldRuleTargetPickerOption>('Choisir la cible', [
-          for (final option in controller.model.targetOptions)
-            (option, option.label, option.subtitle),
-        ]);
+    final mapId = await _choose<String>('Choisir la carte de la cible', [
+      for (final entry in controller.project.maps) (entry.id, entry.name, ''),
+      ('', 'Événements globaux', ''),
+    ]);
+    if (mapId == null || !mounted) return;
+    if (mapId.isNotEmpty && !await controller.loadTargetMap(mapId)) {
+      refresh();
+      return;
+    }
+    if (!mounted) return;
+    final chosen = await _choose<WorldRuleTargetPickerOption>(
+      'Choisir la cible',
+      [
+        for (final option in controller.model.targetOptions)
+          if (option.mapId == mapId) (option, option.label, option.subtitle),
+      ],
+    );
     if (chosen == null || !mounted) return;
     controller.editRule(draft.id, (d) {
       d.target = WorldRuleTarget(
@@ -117,25 +131,29 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
   Future<void> _pickEffect(WorldRuleDraft draft) async {
     if (!flush()) return;
     final options = controller.effectsFor(draft.id);
-    final chosen =
-        await _choose<WorldRuleEffectPickerOption>('Choisir l’effet', [
-          for (final option in options)
-            (
-              option,
-              _effectLabel(option.effectKind),
-              option.requiresDialogue
-                  ? 'Demande un dialogue de remplacement'
-                  : '',
-            ),
-        ]);
+    final chosen = await _choose<WorldRuleEffectPickerOption>(
+      'Choisir l’effet',
+      [
+        for (final option in options)
+          (
+            option,
+            _effectLabel(option.effectKind),
+            option.requiresDialogue
+                ? 'Demande un dialogue de remplacement'
+                : '',
+          ),
+      ],
+    );
     if (chosen == null || !mounted) return;
     String? dialogueId;
     if (chosen.requiresDialogue) {
-      dialogueId =
-          await _choose<String>('Choisir le dialogue de remplacement', [
-            for (final option in controller.model.dialogueOptions)
-              (option.dialogueId, option.label, option.subtitle),
-          ]);
+      dialogueId = await _choose<String>(
+        'Choisir le dialogue de remplacement',
+        [
+          for (final option in controller.model.dialogueOptions)
+            (option.dialogueId, option.label, option.subtitle),
+        ],
+      );
       if (dialogueId == null || !mounted) return;
     }
     controller.editRule(

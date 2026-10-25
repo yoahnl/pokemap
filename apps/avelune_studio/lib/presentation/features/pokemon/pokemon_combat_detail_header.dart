@@ -23,7 +23,7 @@ class PokemonCombatDetailHeader extends StatelessWidget {
   final bool saving;
   final VoidCallback onSave;
   final VoidCallback onDiscard;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
   final VoidCallback? onBack;
 
   @override

@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import 'model_byte_loader.dart';
 import 'spatial_ground.dart';
+import 'spatial_actor_occlusion.dart';
 
 final class SpatialScenePreparation {
   const SpatialScenePreparation({
@@ -56,6 +57,7 @@ final class SpatialSceneResourcePreparation {
 
   bool get isCurrent => !_discarded && request.isCurrent() && _sourceCurrent();
   Future<bool> prepare() => _pending ??= _prepare();
+  Set<String> get preparedGroundImageIds => _textures.keys.toSet();
 
   Future<bool> _prepare() async {
     try {
@@ -108,30 +110,48 @@ final class SpatialSceneResourcePreparation {
 
       await Future.wait([loadNext(), loadNext()]);
       final ground = SpatialGroundPlan(map, project);
-      for (final id in ground.imageIds) {
+      final occlusion = SpatialActorOcclusionPlan(map, project);
+      Set<String> imagesAt(int elapsed) => {
+        ...ground.imageIdsAt(elapsed),
+        for (final item in occlusion.resolve(elapsed)) item.visual.tilesetId,
+      };
+      final requiredImages = imagesAt(0);
+      final nextImages = ground.animated
+          ? imagesAt(ground.animationLookaheadMs)
+          : const <String>{};
+      final window = {...requiredImages, ...nextImages};
+      _textures.removeWhere((id, _) => !window.contains(id));
+      for (final id in window) {
         if (!isCurrent) {
           discard();
           return false;
         }
-        await _textures.putIfAbsent(
-          id,
-          () => loadSpatialGroundTextureFromSource(
-            () => request.loadGroundImage(id),
-            transparentColor: project.tilesets
-                .where((entry) => entry.id == id)
-                .firstOrNull
-                ?.transparentColor,
-            budget: request.resourceBudget,
-            isCurrent: () => isCurrent,
-            onResident: (lease) {
-              if (!isCurrent) {
-                lease.release();
-                return;
-              }
-              _textureLeases[id] = lease;
-            },
-          ),
-        );
+        try {
+          await _textures.putIfAbsent(
+            id,
+            () => loadSpatialGroundTextureFromSource(
+              () => request.loadGroundImage(id),
+              transparentColor: project.tilesets
+                  .where((entry) => entry.id == id)
+                  .firstOrNull
+                  ?.transparentColor,
+              budget: request.resourceBudget,
+              prefetch: !requiredImages.contains(id),
+              isCurrent: () => isCurrent,
+              onResident: (lease) {
+                if (!isCurrent) {
+                  lease.release();
+                  return;
+                }
+                _textureLeases[id] = lease;
+              },
+            ),
+          );
+        } on RuntimeResourceAdmissionException {
+          if (requiredImages.contains(id)) rethrow;
+          _textures.remove(id);
+          _textureLeases.remove(id)?.release();
+        }
         await Future<void>.delayed(Duration.zero);
       }
       if (!isCurrent) {

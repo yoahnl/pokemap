@@ -54,11 +54,30 @@ final class LocalProjectSessionAdapter implements ProjectSessionPort {
         policy: policy,
         fileReader: _reader,
         handles: _handles,
+        catalogMetadataFields: const {},
       );
       final opened = await service.openProject(canonicalPath);
       final catalog = opened.recoveryRequired
           ? null
           : await service.catalogProject(opened.projectHandle);
+      if (!opened.recoveryRequired && (catalog == null || !catalog.readOnly)) {
+        final api = LocalMapAuthoringMutationApi(
+          policy: policy,
+          snapshotLoader: ProjectSnapshotLoader(handles: _handles),
+        );
+        var attached = false;
+        try {
+          await api.attachProject(
+            projectRootPath: canonicalPath,
+            workspaceHandle: opened.workspaceHandle,
+            projectHandle: opened.projectHandle,
+          );
+          attached = true;
+          await api.prepareWorkshopCatalog(opened.projectHandle);
+        } finally {
+          if (attached) await api.detachWorkspace(opened.workspaceHandle);
+        }
+      }
       return ProjectSession(
         sessionId: opened.workspaceHandle.value,
         name: opened.projectName,

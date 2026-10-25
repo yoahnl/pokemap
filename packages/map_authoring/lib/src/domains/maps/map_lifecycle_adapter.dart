@@ -633,6 +633,62 @@ List<int> encodeProjectAuthoringDocument(
   final encoded = Map<String, Object?>.from(manifest.toJson());
   final previousCanonical = snapshot.manifest.toJson();
   final next = Map<String, Object?>.from(original);
+  final sections = snapshot.availableProjectSections;
+  if (!snapshot.materializedCatalogProject && sections != null) {
+    for (final key in {...previousCanonical.keys, ...encoded.keys}) {
+      final before = previousCanonical[key];
+      final after = encoded[key];
+      if (_sameProjectDocumentValue(before, after)) continue;
+      if (!sections.contains(key)) {
+        throw _failure('project.mutation_outside_scope',
+            'The action changes an unavailable project section.',
+            details: {'section': key});
+      }
+      final ids = snapshot.availableProjectDocuments?[key];
+      if (ids != null) {
+        if (key == 'eventRegistry') {
+          if (after is! Map || (before != null && before is! Map)) {
+            throw _projectDocumentScopeFailure();
+          }
+          final previous = before is Map ? before : const {};
+          if (!_sameProjectDocumentValue(
+              previous['legacyClaims'] ?? const [],
+              after['legacyClaims'] ?? const [])) {
+            throw _projectDocumentScopeFailure();
+          }
+          final raw = original[key];
+          if (raw != null && (raw is! Map || before == null)) {
+            throw _projectDocumentScopeFailure();
+          }
+          final rawRegistry = raw is Map ? raw : const {};
+          final previousHeader = Map<String, Object?>.from(previous)
+            ..remove('records');
+          final nextHeader = Map<String, Object?>.from(after)
+            ..remove('records');
+          final registry = Map<String, Object?>.from(
+              _preserveProjectDocumentDelta(
+                  rawRegistry, previousHeader, nextHeader) as Map);
+          registry['records'] = _mergeScopedProjectDocuments(
+              rawRegistry['records'], previous['records'], after['records'],
+              field: key, ids: ids);
+          next[key] = registry;
+        } else {
+          next[key] = _mergeScopedProjectDocuments(original[key], before, after,
+              field: key, ids: ids);
+        }
+      } else if (before is List || after is List) {
+        throw _projectDocumentScopeFailure();
+      } else if (!encoded.containsKey(key)) {
+        next.remove(key);
+      } else if (key == 'smartTileCatalog') {
+        next[key] = canonicalSmartTileCatalogDocument(original[key],
+            snapshot.manifest.smartTileCatalog, manifest.smartTileCatalog);
+      } else {
+        next[key] = _preserveProjectDocumentDelta(original[key], before, after);
+      }
+    }
+    return utf8.encode(jsonEncode(next));
+  }
   for (final key in previousCanonical.keys) {
     if (!encoded.containsKey(key)) {
       next.remove(key);
@@ -648,6 +704,143 @@ List<int> encodeProjectAuthoringDocument(
   }
   return utf8.encode(jsonEncode(next));
 }
+
+List<Object?> _mergeScopedProjectDocuments(
+    Object? original, Object? before, Object? after,
+    {required String field, required Set<String> ids}) {
+  if ((original != null && original is! List) ||
+      (before != null && before is! List) ||
+      after is! List) {
+    throw _projectDocumentScopeFailure();
+  }
+  Map<String, Object?> index(List values) {
+    final result = <String, Object?>{};
+    for (final value in values) {
+      final id = _projectDocumentIdentity(value, field);
+      if (id == null || !ids.contains(id) || result.containsKey(id)) {
+        throw _projectDocumentScopeFailure();
+      }
+      result[id] = value;
+    }
+    return result;
+  }
+
+  final previous = index(before is List ? before : const []);
+  final updated = index(after);
+  final found = <String>{};
+  final result = <Object?>[];
+  for (final value in original is List ? original : const []) {
+    final id = _projectDocumentIdentity(value, field);
+    if (id == null || !ids.contains(id)) {
+      result.add(value);
+      continue;
+    }
+    if (!found.add(id) || !previous.containsKey(id)) {
+      throw _projectDocumentScopeFailure();
+    }
+    if (updated.containsKey(id)) {
+      result
+          .add(_preserveProjectDocumentDelta(value, previous[id], updated[id]));
+    }
+  }
+  if (!found.containsAll(previous.keys)) {
+    throw _projectDocumentScopeFailure();
+  }
+  for (final entry in updated.entries) {
+    if (!previous.containsKey(entry.key)) result.add(entry.value);
+  }
+  return result;
+}
+
+String? _projectDocumentIdentity(Object? value, String field) {
+  if (value is! Map) return null;
+  final Object? id;
+  if (field == 'eventRegistry') {
+    final definition = value['definition'] ?? value['draft'];
+    id = definition is Map ? definition['id'] : null;
+  } else {
+    id = value[
+        field == 'narrativeDiagnosticSuppressions' ? 'diagnosticId' : 'id'];
+  }
+  return id is String && id.isNotEmpty && id.trim() == id ? id : null;
+}
+
+Object? _preserveProjectDocumentDelta(
+    Object? original, Object? before, Object? after) {
+  if (_sameProjectDocumentValue(before, after)) return original;
+  if (original is Map && before is Map && after is Map) {
+    final result = Map<String, Object?>.from(original);
+    for (final key in {...before.keys, ...after.keys}) {
+      if (!after.containsKey(key)) {
+        result.remove(key);
+      } else if (!before.containsKey(key)) {
+        result[key as String] = after[key];
+      } else if (!_sameProjectDocumentValue(before[key], after[key])) {
+        result[key as String] = _preserveProjectDocumentDelta(
+            original[key], before[key], after[key]);
+      }
+    }
+    return result;
+  }
+  if (original is List &&
+      before is List &&
+      after is List &&
+      original.length == before.length) {
+    final byId = <String, int>{};
+    if (before.every((value) => value is Map && value['id'] is String) &&
+        after.every((value) => value is Map && value['id'] is String)) {
+      for (var index = 0; index < before.length; index++) {
+        byId[(before[index] as Map)['id'] as String] = index;
+      }
+      return [
+        for (final value in after)
+          if (byId[(value as Map)['id']] case final index?)
+            _preserveProjectDocumentDelta(original[index], before[index], value)
+          else
+            value
+      ];
+    }
+    final used = <int>{};
+    return [
+      for (var position = 0; position < after.length; position++)
+        (() {
+          var index = -1;
+          for (var candidate = 0; candidate < before.length; candidate++) {
+            if (!used.contains(candidate) &&
+                _sameProjectDocumentValue(before[candidate], after[position])) {
+              index = candidate;
+              break;
+            }
+          }
+          if (index < 0 &&
+              position < before.length &&
+              !used.contains(position)) {
+            final old = before[position];
+            final next = after[position];
+            if (before.length == after.length ||
+                (old is Map &&
+                    next is Map &&
+                    old['speciesId'] != null &&
+                    old['speciesId'] == next['speciesId'])) {
+              index = position;
+            }
+          }
+          if (index < 0) return after[position];
+          used.add(index);
+          return _preserveProjectDocumentDelta(
+              original[index], before[index], after[position]);
+        })()
+    ];
+  }
+  return after;
+}
+
+bool _sameProjectDocumentValue(Object? before, Object? after) =>
+    jsonEncode(before) == jsonEncode(after);
+
+MapAuthoringException _projectDocumentScopeFailure() => _failure(
+    'project.manifest_scope_invalid',
+    'The selected project documents cannot be preserved safely.');
 
 AuthoringResourceChange _manifestChange(
   ProjectSnapshot snapshot,

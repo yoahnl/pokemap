@@ -21,6 +21,11 @@ extension WorldWorkspaceRulePublication on WorldWorkspaceController {
         WorldFailure('Il manque ${draft.missing.join(', ')} à cette règle.'),
       );
     }
+    if (current.target.mapId.isNotEmpty &&
+        !await loadTargetMap(current.target.mapId)) {
+      return false;
+    }
+    if (_closed) return false;
     final base = ruleBase(id);
     final WorldRuleDefinition sent;
     try {
@@ -127,6 +132,13 @@ extension WorldWorkspaceRulePublication on WorldWorkspaceController {
     if (_closed || saving) return false;
     final ids = pendingRules.keys.toList();
     if (ids.isEmpty) return true;
+    for (final mapId in {
+      for (final id in ids)
+        if (pendingRules[id]?.target?.mapId case final String mapId)
+          if (mapId.isNotEmpty) mapId,
+    }) {
+      if (!await loadTargetMap(mapId) || _closed) return false;
+    }
     final List<
       ({String id, WorldRuleDefinition? base, WorldRuleDefinition current})
     >

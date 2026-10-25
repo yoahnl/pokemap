@@ -16,6 +16,13 @@ final class RegionalMapSource {
   final Map<String, String> images;
 }
 
+abstract interface class RegionalMapDetailsPort {
+  Future<MapData> readMap({
+    required RegionalMapSource source,
+    required String mapId,
+  });
+}
+
 abstract interface class RegionalMapPort {
   Future<RegionalMapSource> load();
   Future<Uint8List?> readImage(String path);

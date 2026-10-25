@@ -16,6 +16,9 @@ final class RegionalMapController {
   final void Function(ProjectManifest before, ProjectManifest after)?
   projectChanged;
   RegionalMapSource? source;
+  final _mapReads = <String, Future<bool>>{};
+  final _mapsLoading = <String>{};
+  bool get loadingMap => _mapsLoading.isNotEmpty;
   ProjectRegionalMapCatalog catalog = ProjectRegionalMapCatalog();
   final _history = <ProjectRegionalMapCatalog>[];
   final _invalidRegionLabels = <String, String>{};
@@ -81,6 +84,47 @@ final class RegionalMapController {
     if (busy || !points.any((point) => point.id == id)) return;
     pointId = id;
     _notify();
+    final destination = point?.destination;
+    if (destination != null) loadMap(destination.mapId);
+  }
+
+  Future<bool> loadMap(String id) {
+    if (source?.maps.containsKey(id) == true) return Future.value(true);
+    return _mapReads[id] ??= _loadMap(id)
+        .whenComplete(() {
+          _mapReads.remove(id);
+        });
+  }
+
+  Future<bool> _loadMap(String id) async {
+    final port = this.port;
+    final before = source;
+    if (before == null || _disposed || port is! RegionalMapDetailsPort) {
+      return false;
+    }
+    _mapsLoading.add(id);
+    _notify();
+    try {
+      final map = await (port as RegionalMapDetailsPort).readMap(
+        source: before,
+        mapId: id,
+      );
+      if (_disposed || source?.revision != before.revision) return false;
+      final current = source!;
+      source = RegionalMapSource(
+        project: current.project,
+        revision: current.revision,
+        maps: {...current.maps, id: map},
+        images: current.images,
+      );
+      return true;
+    } on Object catch (failure) {
+      error = 'La carte d’arrivée ne peut pas être chargée : $failure';
+      return false;
+    } finally {
+      _mapsLoading.remove(id);
+      _notify();
+    }
   }
 
   bool _change(ProjectRegionalMapCatalog next) {
@@ -196,7 +240,7 @@ final class RegionalMapController {
   void createPoint(String label, String discoveryMapId) {
     if (region == null ||
         label.trim().isEmpty ||
-        !source!.maps.containsKey(discoveryMapId)) {
+        !source!.project.maps.any((map) => map.id == discoveryMapId)) {
       return;
     }
     final created = ProjectRegionPointOfInterest(
@@ -271,6 +315,7 @@ final class RegionalMapController {
         ],
       ),
     );
+    if (destination != null) loadMap(destination.mapId);
   }
 
   void deletePoint() {
@@ -349,13 +394,23 @@ final class RegionalMapController {
   Future<bool> saveAll() async {
     if (busy || _disposed) return false;
     if (!dirty) return true;
+    busy = true;
+    _notify();
+    for (final point in catalog.pointsOfInterest) {
+      final destination = point.destination;
+      if (destination != null && !await loadMap(destination.mapId)) {
+        error ??= 'Choisissez une carte d’arrivée disponible.';
+        busy = false;
+        _notify();
+        return false;
+      }
+    }
     error = validate();
     if (error != null) {
+      busy = false;
       _notify();
       return false;
     }
-    busy = true;
-    _notify();
     final desired = catalog;
     try {
       Future<void> publish(

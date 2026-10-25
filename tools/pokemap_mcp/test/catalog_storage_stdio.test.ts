@@ -35,6 +35,23 @@ test("MCP stdio queries and edits working catalogs with pinned pages and partial
     const tilesetKind = (described.resourceKinds as JsonRecord[]).find(kind => kind.id === "tileset");
     assert.equal(record(record(tilesetKind!.extensions).partitionedStorage).summary, "indexOnly");
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    assert.ok((described.commands as JsonRecord[]).some(command => command.id === "workshop_snapshot"));
+    const preparedWorkshop = await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle });
+    assert.equal(preparedWorkshop.prepared, true);
+    const trainerParameters = { value: { id: "local-trainer", name: "Local trainer", trainerClass: "Trainer", team: [] } };
+    const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
+      actionId: "campaign.trainer.upsert", parameters: trainerParameters });
+    assert.deepEqual(workshop.maps, []);
+    const trainerPlan = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+      requestId: "local-trainer", actionId: "campaign.trainer.upsert", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: workshop.snapshotRevision,
+      idempotencyKey: "local-trainer", parameters: trainerParameters } });
+    await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: trainerPlan.planId, operationId: "local-trainer-operation" });
+    const workshopAfter = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
+      actionId: "campaign.trainer.upsert", parameters: trainerParameters });
+    assert.equal(record((record(workshopAfter.project).trainers as JsonRecord[])[0]).name, "Local trainer");
+    assert.deepEqual(await readFile(join(root, "project.json")), descriptor);
     await assert.rejects(client.readResource({ uri: `pokemap://project/${encodeURIComponent(String(opened.projectHandle))}` }), /materialization|require/i);
     const explicitProject = await call("pokemap_query", { projectHandle: opened.projectHandle, resourceKind: "project", operation: "get", ids: ["project"], view: "detail", extensions: { materializeProject: true } });
     assert.equal(explicitProject.returned, 1);

@@ -42,6 +42,118 @@ SpatialAuthoredShadowCaster? caster(
 );
 
 void main() {
+  test('a fixed camera keeps one solar texel scale throughout daylight', () {
+    final near = caster(model(true), instance())!;
+    final remote = SpatialAuthoredShadowCaster(
+      id: 'neighbor:house',
+      bounds: model(true).inspection.bounds,
+      worldTransform: Matrix4.translationValues(-90, 2, 12),
+    );
+    final receivers = Aabb3.minMax(Vector3(6, 0, 8), Vector3(20, 3, 22));
+    final base = spatialAuthoredShadowLighting(
+      [near, remote],
+      receiverMinY: 0,
+      receiverMaxY: 3,
+    );
+    final extents = <double>{};
+    final clips = <Vector4>[];
+    for (final minute in [
+      360.0,
+      480.0,
+      for (var frame = 0; frame < 12; frame++) 720 + frame * .02,
+      960.0,
+      1140.0,
+    ]) {
+      final direction = spatialDayNightSunDirection(
+        base.sunDirection,
+        spatialDayNightFrame(minute),
+      );
+      final focused = spatialAuthoredShadowLighting(
+        [near, remote],
+        receiverMinY: 0,
+        receiverMaxY: 3,
+        receiverBounds: receivers,
+        sunDirection: direction,
+      );
+      extents.add(focused.shadow!.extent);
+      expect(focused.shadow!.resolution, 1024);
+      expect(focused.shadow!.casterInstanceIds, base.shadow!.casterInstanceIds);
+      final projection = spatialShadowProjection(
+        focused.shadow!,
+        focused.sunDirection,
+      ).viewProjection;
+      for (final x in [receivers.min.x, receivers.max.x]) {
+        for (final y in [receivers.min.y, receivers.max.y]) {
+          for (final z in [receivers.min.z, receivers.max.z]) {
+            clips.add(projection.transform(Vector4(x, y, z, 1)));
+          }
+        }
+      }
+    }
+    expect(extents, hasLength(1));
+    for (final clip in clips) {
+      expect(clip.x, inInclusiveRange(-1, 1));
+      expect(clip.y, inInclusiveRange(-1, 1));
+    }
+  });
+  test('receiver bounds follow camera rays and elevated terrain', () {
+    Matrix4 camera(double height) {
+      final view = Matrix4.zero()..setAsViewMatrix(Vector3(0, height + 12, 12), Vector3(0, height, 0), Vector3(0, 1, 0));
+      return (Matrix4.zero()..setAsPerspective(40, 1.5, .1, 1000))..multiply(view);
+    }
+    final ground = spatialShadowReceiverBounds(camera(0), minimumY: 0, maximumY: 2)!;
+    final elevated = spatialShadowReceiverBounds(camera(512), minimumY: 512, maximumY: 514)!;
+    expect(ground.min.x, lessThan(0));
+    expect(ground.max.x, greaterThan(0));
+    expect(ground.max.x - ground.min.x, lessThan(30));
+    expect(elevated.min.x, closeTo(ground.min.x, .005));
+    expect(elevated.max.z, closeTo(ground.max.z, .005));
+    expect(elevated.min.y, 512);
+    expect(elevated.max.y, 514);
+    expect(spatialShadowReceiverBounds(Matrix4.zero(), minimumY: 0, maximumY: 2), isNull);
+    final horizon = (Matrix4.zero()..setAsPerspective(40, 1, .1, 1000))
+      ..multiply(Matrix4.zero()..setAsViewMatrix(Vector3(0, 10, 10), Vector3(0, 10, 0), Vector3(0, 1, 0)));
+    expect(spatialShadowReceiverBounds(horizon, minimumY: 0, maximumY: 2), isNull);
+  });
+  test('a remote neighbor does not dilute visible shadow precision', () {
+    final near = caster(model(true), instance())!;
+    final remote = SpatialAuthoredShadowCaster(
+      id: 'neighbor:house',
+      bounds: model(true).inspection.bounds,
+      worldTransform: Matrix4.translationValues(-90, 2, 12),
+    );
+    final full = spatialAuthoredShadowLighting(
+      [near, remote],
+      receiverMinY: 0,
+      receiverMaxY: 3,
+    );
+    final focused = spatialAuthoredShadowLighting(
+      [near, remote],
+      receiverMinY: 0,
+      receiverMaxY: 3,
+      receiverBounds: Aabb3.minMax(Vector3(6, 0, 8), Vector3(20, 3, 22)),
+    );
+    expect(full.shadow!.extent, greaterThan(80));
+    expect(focused.shadow!.extent, lessThan(30));
+    expect(focused.shadow!.resolution, full.shadow!.resolution);
+    expect(focused.shadow!.casterInstanceIds, full.shadow!.casterInstanceIds);
+    final projection = spatialShadowProjection(
+      focused.shadow!,
+      focused.sunDirection,
+    ).viewProjection;
+    final sun = Vector3(
+      focused.sunDirection.x,
+      focused.sunDirection.y,
+      focused.sunDirection.z,
+    );
+    for (final corner in near.worldCorners) {
+      final point = corner - sun * (corner.y / sun.y);
+      final clip = projection.transform(Vector4(point.x, point.y, point.z, 1));
+      expect(clip.x, inInclusiveRange(-1, 1));
+      expect(clip.y, inInclusiveRange(-1, 1));
+      expect(clip.z, inInclusiveRange(0, 1));
+    }
+  });
   test('daylight refits the light volume for every moving caster ground projection', () {
     final source = caster(model(true), instance())!;
     final base = spatialAuthoredShadowLighting(

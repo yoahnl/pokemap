@@ -2,10 +2,112 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/domains/narrative/narrative_document_actions.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../support/standard_event_template_fixture.dart';
+
 void main() {
+  test(
+      'scoped publication validates the changed map without unrelated producers',
+      () {
+    final map = templateMap();
+    final scene = SceneAsset(
+        id: 'other_scene',
+        name: 'Other',
+        graph: SceneGraph(startNodeId: 'start', nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ], edges: [
+          SceneEdge(
+              id: 'flow',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.defaultFlow)
+        ]));
+    final project = templateProject().copyWith(
+        trainers: [],
+        maps: [
+          ...templateProject().maps,
+          const ProjectMapEntry(
+              id: 'other', name: 'Other', relativePath: 'maps/other.json'),
+        ],
+        scenes: [
+          scene
+        ],
+        eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            legacyClaims: [],
+            records: [
+              NarrativeEventRecord.configuredStructurallyUnchecked(
+                  NarrativeEventDefinition(
+                      id: 'evt_00000000-0000-7000-8000-000000000041',
+                      name: 'Other map',
+                      source: NarrativeEventSourceRef.mapEnter('other'),
+                      conditions: [],
+                      sceneId: scene.id,
+                      reusePolicy: NarrativeEventReusePolicy.reusable,
+                      priority: 0,
+                      order: 0),
+                  enabled: true),
+            ]));
+    final draft = const NarrativeDocumentActions()
+        .build(_scopedContext(project, map, {}));
+    expect(draft.changeSet.changes.map((change) => change.storageKey),
+        ['maps/room.json']);
+  });
+
+  test(
+      'composite scoped publication refuses a fact type change without incoming proof',
+      () {
+    final fact = NarrativeFactDefinition(
+        id: 'met', label: 'Met', initialValue: NarrativeValue.integer(1));
+    expect(
+        () => const NarrativeDocumentActions().build(_scopedContext(
+                templateProject().copyWith(trainers: []), templateMap(), {
+              'facts': [fact.toJson()]
+            })),
+        throwsA(isA<AuthoringPlanException>().having(
+            (error) => error.code, 'code', 'catalog.mutation_scope_required')));
+  });
+
+  test('scoped narrative publication preserves map geometry boundaries', () {
+    final map = templateMap();
+    expect(
+        () => const NarrativeDocumentActions().build(_scopedContext(
+                templateProject().copyWith(trainers: []), map, {
+              'map': map
+                  .copyWith(size: const GridSize(width: 8, height: 8))
+                  .toJson()
+            })),
+        throwsA(isA<AuthoringPlanException>().having(
+            (error) => error.code, 'code', 'catalog.mutation_scope_required')));
+  });
+
+  test('scoped map publication refuses removal of a configured event source',
+      () {
+    final map = templateMap();
+    final projection = compileStandardEventTemplate(
+        project: templateProject(),
+        maps: [map],
+        spec: templateSpec(StandardEventTemplateKind.conditionalNpc));
+    final project = templateProject().copyWith(
+        trainers: [],
+        scenes: projection.scenes,
+        eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: projection.events,
+            legacyClaims: []));
+    expect(
+        () => const NarrativeDocumentActions().build(_scopedContext(
+            project, map, {'map': map.copyWith(entities: []).toJson()})),
+        throwsStateError);
+  });
+
   test('JSONL discovers coherent dialogue/map publication and reopens it',
       () async {
     final temporary =
@@ -93,4 +195,56 @@ void main() {
     expect(utf8.decode(after.resourceBytes('dialogueSource:hello')), source);
     expect(after.manifest.eventRegistry, manifest.eventRegistry);
   });
+}
+
+AuthoringPlanningContext _scopedContext(
+    ProjectManifest project, MapData map, Map<String, Object?> additional) {
+  final bytes = utf8.encode(jsonEncode(map.toJson()));
+  final projectBytes = utf8.encode(jsonEncode(project.toJson()));
+  final revision = narrativeEventBytesFingerprint(bytes);
+  return AuthoringPlanningContext(
+      snapshot: ProjectSnapshot(
+          projectHandle: const ProjectHandle('project'),
+          revision: revision,
+          manifest: project,
+          maps: [
+            map
+          ],
+          availableProjectSections: const {
+            'maps',
+            'scenes',
+            'eventRegistry',
+            'facts'
+          },
+          resourceFingerprints: {
+            'project': computeAuthoringBytesFingerprint(projectBytes,
+                logicalName: 'project.json'),
+            'map:${map.id}': computeAuthoringBytesFingerprint(bytes,
+                logicalName: 'maps/${map.id}.json')
+          },
+          resourceStorageKeys: {
+            'project': 'project.json',
+            'map:${map.id}': 'maps/${map.id}.json'
+          },
+          resourceBytes: {
+            'project': projectBytes,
+            'map:${map.id}': bytes
+          }),
+      request: AuthoringRequest(
+          requestId: 'scoped',
+          actionId: 'narrative.publish_document',
+          actionVersion: 1,
+          workspaceHandle: 'workspace',
+          expectedRevision: revision,
+          idempotencyKey: 'scoped',
+          parameters: {
+            'map': map.copyWith(name: 'Edited').toJson(),
+            'mapRevision': revision,
+            ...additional
+          },
+          extensions: const {
+            'workshopScope': true
+          }),
+      planId: 'plan',
+      seed: 1);
 }

@@ -32,12 +32,48 @@ const scopedMapTilesets = [
   ),
 ];
 
-class ScopedTestMapPort implements MapWorkspacePort, MapWorkspaceScopedPort {
-  ScopedTestMapPort({this.metadata = scopedMapMetadata});
+class ScopedTestMapPort
+    implements
+        MapWorkspacePort,
+        MapWorkspaceWorkshopPort,
+        MapWorkspaceResourceKindPort {
+  ScopedTestMapPort({
+    this.metadata = scopedMapMetadata,
+    this.resourceDefinitions = const {},
+    this.beforeResourceRead,
+  });
+
+  final Map<String, ProjectManifest> resourceDefinitions;
+  final Future<void> Function(String)? beforeResourceRead;
 
   final ProjectManifest metadata;
   int fullReads = 0;
   final selections = <String>[];
+
+  final workshops = <MapWorkspaceWorkshop>[];
+
+  @override
+  Future<MapWorkspaceCatalog> loadWorkshop(
+    ProjectSession session,
+    MapWorkspaceWorkshop workshop,
+  ) async {
+    workshops.add(workshop);
+    return MapWorkspaceCatalog(metadata: metadata, revision: 'catalog-1');
+  }
+
+  final resourceKinds = <String>[];
+  @override
+  Future<MapWorkspaceCatalog> loadResourceKind(
+    ProjectSession session,
+    String canonicalKind,
+  ) async {
+    resourceKinds.add(canonicalKind);
+    await beforeResourceRead?.call(canonicalKind);
+    return MapWorkspaceCatalog(
+      metadata: resourceDefinitions[canonicalKind] ?? metadata,
+      revision: 'catalog-1',
+    );
+  }
 
   @override
   Future<ProjectManifest> loadProject(ProjectSession session) async {

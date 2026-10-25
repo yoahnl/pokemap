@@ -2,6 +2,8 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_toolbar.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
@@ -13,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_workspace_fixture.dart';
+import '../support/spatial_environment_fixture.dart';
 
 const _families = [
   'Sélection',
@@ -26,6 +29,45 @@ const _families = [
 ];
 
 void main() {
+  for (final spatial in [false, true]) {
+    testWidgets('elements toolbar opens and closes the shared panel spatial=$spatial', (tester) async {
+      await _mount(tester, const Size(1600, 1000), spatial: spatial);
+      final toolbar = tester.widget<MapWorkspaceToolbar>(find.byType(MapWorkspaceToolbar));
+      final document = toolbar.controller.active!;
+      final before = document.current;
+      await tester.tap(find.byKey(const ValueKey('map-open-elements')));
+      await tester.pumpAndSettle();
+      expect(find.byType(MapElementsPanel), findsOneWidget);
+      expect(document.current, same(before));
+      await tester.tap(find.byKey(const ValueKey('map-open-elements')));
+      await tester.pumpAndSettle();
+      expect(find.byType(MapElementsPanel), findsNothing);
+      expect(document.dirty, isFalse);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('3D ambiance has a direct entry without changing the map', (
+    tester,
+  ) async {
+    await _mount(tester, const Size(1600, 1000), spatial: true);
+    final toolbar = tester.widget<MapWorkspaceToolbar>(
+      find.byType(MapWorkspaceToolbar),
+    );
+    final document = toolbar.controller.active!;
+    final before = document.current;
+    await tester.tap(find.byKey(const ValueKey('map-open-ambiance')));
+    await tester.pumpAndSettle();
+    expect(find.text('Ambiance de la carte'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('map-day-night-enabled')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(document.current, same(before));
+    expect(document.dirty, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final size in [const Size(1600, 1000), const Size(1280, 800)]) {
     testWidgets(
       'navigator reserves canvas space and dock stays visible $size',
@@ -210,15 +252,15 @@ Future<MapWorkspaceViewState> _mount(
   WidgetTester tester,
   Size size, {
   double scale = 1,
+  bool spatial = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  final controller = MapWorkspaceController(
-    workspaceSession,
-    WorkspaceMemoryPort(),
-  );
+  final port = WorkspaceMemoryPort();
+  if (spatial) port.saved['a'] = spatialEnvironmentMap();
+  final controller = MapWorkspaceController(workspaceSession, port);
   await controller.initialize();
   final view = MapWorkspaceViewState();
   final search = TextEditingController();
@@ -231,9 +273,8 @@ Future<MapWorkspaceViewState> _mount(
     MaterialApp(
       theme: studioTheme(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(scale)),
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
         child: child!,
       ),
       home: StatefulBuilder(
@@ -252,7 +293,7 @@ Future<MapWorkspaceViewState> _mount(
           onChanged: () => update(() {}),
           onToolChanged: () => update(() {}),
           onActivate: (_) {},
-          onSave: () {},
+          onSave: () => controller.save(controller.active!),
           onTest: () {},
           onClose: () {},
           onResources: () {},

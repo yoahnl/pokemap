@@ -106,11 +106,17 @@ class MapEntityEditingCommands {
     return configured.entities.singleWhere((item) => item.id == entity.id);
   }
 
-  void move(String id, GridPos position) => document.commit(
-    moveEntityOnMap(document.current, entityId: id, pos: position),
-  );
+  void move(String id, GridPos position) {
+    if (document.isElementLocked('entity', id)) return;
+    document.commit(
+      moveEntityOnMap(document.current, entityId: id, pos: position),
+    );
+  }
 
   String? deletionProblem(String id) {
+    if (document.isElementLocked('entity', id)) {
+      return 'Cet élément est verrouillé. Déverrouillez-le dans Éléments.';
+    }
     if (selected(id) == null) {
       return 'Cet élément n’appartient plus à cette carte.';
     }

@@ -7,6 +7,7 @@ import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_point_shadow.dart';
 import 'spatial_atmosphere.dart';
+import 'spatial_presentation_effects.dart';
 
 enum SpatialPixelLightingRole { surface, actor, ground }
 
@@ -42,6 +43,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
       _environmentUniformsBound = false;
       _pointShadowUniformsBound = false;
       _atmosphereUniformsBound = false;
+      _presentationUniformsBound = false;
     });
   }
 
@@ -147,6 +149,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     _applyLighting(lighting, enabled: enabled, normalLighting: normalLighting);
     _applyEnvironment(lighting);
     _applyAtmosphere(context);
+    _applyPresentation(context);
     _applyPointShadow(
       context is SpatialLightingContext
           ? (context as SpatialLightingContext).pointShadowFrame
@@ -228,6 +231,41 @@ class SpatialPixelMaterial extends UnlitMaterial {
   }
 
   bool _atmosphereUniformsBound = false;
+  final _fogColor = Vector4.zero(), _fogDepth = Vector4.zero();
+  final _boundFogColor = Vector4.zero(), _boundFogDepth = Vector4.zero();
+  bool _presentationUniformsBound = false;
+  Shader? _presentationShader;
+  GpuShader? _presentationResource;
+  void _applyPresentation(RenderContext3D context) {
+    final presentation = context is SpatialPresentationContext
+        ? context as SpatialPresentationContext
+        : null;
+    final profile = presentation?.presentationProfile;
+    final color = presentation?.depthFogColor;
+    _fogColor.setValues(
+      color?.r ?? 0,
+      color?.g ?? 0,
+      color?.b ?? 0,
+      presentation?.depthFogEnabled == true ? profile!.fogOpacity : 0,
+    );
+    _fogDepth.setValues(profile?.fogStart ?? 0, profile?.fogEnd ?? 1, 0, 0);
+    final shader = fragmentShader, resource = shader.resource;
+    if (_presentationUniformsBound &&
+        identical(_presentationShader, shader) &&
+        identical(_presentationResource, resource) &&
+        _boundFogColor == _fogColor &&
+        _boundFogDepth == _fogDepth)
+      return;
+    shader
+      ..setVector4('Presentation.fogColor', _fogColor)
+      ..setVector4('Presentation.depthRange', _fogDepth);
+    _presentationUniformsBound = true;
+    _presentationShader = shader;
+    _presentationResource = resource;
+    _boundFogColor.setFrom(_fogColor);
+    _boundFogDepth.setFrom(_fogDepth);
+  }
+
   Shader? _atmosphereShader;
   GpuShader? _atmosphereResource;
   SpatialWindowGlow? _boundWindow;
@@ -539,6 +577,7 @@ class _PixelFragmentShader extends FragmentShader {
           'pointShadowTexture',
           'PointShadows',
           'Atmosphere',
+          'Presentation',
         ],
       );
 

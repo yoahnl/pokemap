@@ -8,6 +8,7 @@ import 'package:map_authoring/map_authoring.dart'
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../resources/domain/resource_port.dart';
 import '../domain/narrative_port.dart';
@@ -18,10 +19,14 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
     required this.session,
     required this.mapAdapter,
     this.faultInjector,
+    this.reader = const LocalProjectFileReader(),
+    this.performanceObserver,
   });
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   final AuthoringTransactionFaultInjector? faultInjector;
+  final ProjectFileReader reader;
+  final AuthoringPerformanceObserver? performanceObserver;
 
   @override
   Future<Uint8List?> readArtwork(
@@ -38,7 +43,7 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
       NarrativeArtworkKind.scene => 'assets/studio/narrative/scenes/$id.png',
     };
     try {
-      final bytes = await const LocalProjectFileReader().readBytes(
+      final bytes = await reader.readBytes(
         projectRoot: session.directoryPath,
         relativePath: path,
       );
@@ -65,7 +70,7 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
         'Ce dialogue ne figure plus dans le projet.',
       );
     }
-    final bytes = await const LocalProjectFileReader().readBytes(
+    final bytes = await reader.readBytes(
       projectRoot: session.directoryPath,
       relativePath: entry.relativePath,
     );
@@ -95,8 +100,15 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
         throw const NarrativeFailure('La carte de publication a changé.');
       }
       final baseline = await mapAdapter.resourceBaseline(session);
-      validateNarrativePublicationBases(publication, baseline.manifest);
-      const reader = LocalProjectFileReader();
+      final scoped = session.storage == ProjectSessionStorage.workingCatalog;
+      final actionId = template == null
+          ? 'narrative.publish_document'
+          : 'event_v2.template.apply';
+      final parameters = _publicationParameters(publication, template);
+      final readDependencies = <String, String>{
+        for (final source in publication.dialogues)
+          'dialogueSource:${source.entry.id}': source.entry.relativePath,
+      };
       final policy = await WorkspacePolicy.create(
         allowedRootPaths: [session.directoryPath],
         fileReader: reader,
@@ -106,12 +118,16 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
         policy: policy,
         fileReader: reader,
         handles: handles,
+        catalogMetadataFields: const {},
+      workshopScope: true,
       ).openProject(session.directoryPath);
       final snapshots = ProjectSnapshotLoader(handles: handles);
       final api = LocalMapAuthoringMutationApi(
         policy: policy,
         snapshotLoader: snapshots,
         faultInjector: faultInjector,
+        catalogFileReader: reader,
+        performanceObserver: performanceObserver,
       );
       var attached = false;
       try {
@@ -121,8 +137,26 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
           projectHandle: opened.projectHandle,
         );
         attached = true;
-        final snapshot = await snapshots.load(opened.projectHandle);
-        if (narrativeEventBytesFingerprint(snapshot.resourceBytes('project')) !=
+        final snapshot = await api.readWorkshopSnapshot(
+          opened.projectHandle,
+          actionId: actionId,
+          parameters: parameters,
+          readDependencies: readDependencies,
+        );
+        readDependencies.addAll({
+          for (final entry in snapshot.resourceStorageKeys.entries)
+            if (entry.key != 'project' &&
+                entry.value != 'project.json' &&
+                !entry.value.startsWith('catalog/') &&
+                !entry.value.startsWith('.pokemap/'))
+              entry.key: entry.value,
+        });
+        validateNarrativePublicationBases(publication, snapshot.manifest);
+        if ((scoped
+                ? await mapAdapter.resourceRevision(session)
+                : narrativeEventBytesFingerprint(
+                    snapshot.resourceBytes('project'),
+                  )) !=
             baseline.revision) {
           throw const NarrativeFailure('Le projet a changé sur le disque.');
         }
@@ -132,49 +166,16 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
           opened.projectHandle,
           AuthoringRequest(
             requestId: operation,
-            actionId: template == null
-                ? 'narrative.publish_document'
-                : 'event_v2.template.apply',
+            actionId: actionId,
+            extensions: {
+              'workshopScope': true,
+              'workshopReadDependencies': readDependencies,
+            },
             actionVersion: 1,
             workspaceHandle: opened.workspaceHandle.value,
             expectedRevision: snapshot.revision,
             idempotencyKey: operation,
-            parameters: template != null
-                ? {
-                    'spec': template.toJson(),
-                    'mapRevision': publication.base.revision,
-                  }
-                : jsonDecode(
-                    jsonEncode({
-                      'map': publication.current.toJson(),
-                      'mapRevision': publication.base.revision,
-                      'dialogues': [
-                        for (final source in publication.dialogues)
-                          {
-                            'entry': source.entry.toJson(),
-                            'source': source.source,
-                            'revision': source.revision,
-                          },
-                      ],
-                      'scenes': [
-                        for (final value in publication.scenes) value.toJson(),
-                      ],
-                      'cinematics': [
-                        for (final value in publication.cinematics)
-                          value.toJson(),
-                      ],
-                      'facts': [
-                        for (final value in publication.facts) value.toJson(),
-                      ],
-                      'storylines': [
-                        for (final value in publication.storylines)
-                          value.toJson(),
-                      ],
-                      'events': [
-                        for (final value in publication.events) value.toJson(),
-                      ],
-                    }),
-                  ) as Map<String, dynamic>,
+            parameters: parameters,
           ),
         );
         final changes = planned.plan.changeSet.changes;
@@ -184,10 +185,14 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
                 .firstOrNull
                 ?.afterBytes ??
             snapshot.resourceBytes('project');
-        final manifest = ProjectManifest.fromJson(
-          jsonDecode(utf8.decode(projectBytes)) as Map<String, dynamic>,
+        final manifest = mergeProjectMetadataSections(
+          baseline.manifest,
+          planned.projectedProject ?? snapshot.manifest,
+          snapshot.availableProjectSections!,
+          documentIds: snapshot.availableProjectDocuments,
         );
-        final mapEntry = manifest.maps.singleWhere(
+
+        final mapEntry = snapshot.manifest.maps.singleWhere(
           (e) => e.id == publication.current.id,
         );
         final mapBytes =
@@ -196,16 +201,17 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
                 .firstOrNull
                 ?.afterBytes ??
             snapshot.resourceBytes('map:${mapEntry.id}');
+        AuthoringMutationResult? committed;
         if (changes.isNotEmpty) {
           try {
-            await api.applyMutation(
+            committed = await api.applyMutation(
               opened.projectHandle,
               planId: planned.planId,
               operationId: operation,
             );
           } on Object catch (failure) {
             try {
-              await api.recoverMutation(
+              committed = await api.recoverMutation(
                 opened.projectHandle,
                 operationId: operation,
               );
@@ -217,7 +223,7 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
           }
         }
         final paths = <String, List<int>>{
-          'project.json': projectBytes,
+          if (!scoped) 'project.json': projectBytes,
           mapEntry.relativePath: mapBytes,
           for (final source in publication.dialogues)
             source.entry.relativePath: utf8.encode(source.source),
@@ -234,13 +240,36 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
             );
           }
         }
+        final projectRevision = await mapAdapter.resourceRevision(session);
+        {
+          final reopened = await api.readWorkshopSnapshot(
+            opened.projectHandle,
+            actionId: actionId,
+            parameters: parameters,
+            readDependencies: readDependencies,
+          );
+          if (reopened.revision !=
+                  (committed?.snapshotRevision ?? snapshot.revision) ||
+              await mapAdapter.resourceRevision(session) != projectRevision ||
+              mergeProjectMetadataSections(
+                    baseline.manifest,
+                    reopened.manifest,
+                    reopened.availableProjectSections!,
+                    documentIds: reopened.availableProjectDocuments,
+                  ) !=
+                  manifest) {
+            throw const NarrativeFailure(
+              'La publication a changé pendant sa relecture. Le brouillon reste ouvert.',
+            );
+          }
+        }
         await mapAdapter.acceptResourceMutation(
           session,
           ResourceMutationReceipt(
             before: baseline.manifest,
             manifest: manifest,
             beforeRevision: baseline.revision,
-            revision: narrativeEventBytesFingerprint(projectBytes),
+            revision: projectRevision,
             changedPaths: changes.map((e) => e.storageKey).toList(),
           ),
         );
@@ -272,3 +301,34 @@ class LocalNarrativeAdapter implements NarrativePort, NarrativeArtworkPort {
     }
   });
 }
+
+Map<String, Object?> _publicationParameters(
+  NarrativePublication publication,
+  StandardEventTemplateSpec? template,
+) => jsonDecode(
+  jsonEncode(
+    template != null
+        ? {'spec': template.toJson(), 'mapRevision': publication.base.revision}
+        : {
+            'map': publication.current.toJson(),
+            'mapRevision': publication.base.revision,
+            'dialogues': [
+              for (final source in publication.dialogues)
+                {
+                  'entry': source.entry.toJson(),
+                  'source': source.source,
+                  'revision': source.revision,
+                },
+            ],
+            'scenes': [for (final value in publication.scenes) value.toJson()],
+            'cinematics': [
+              for (final value in publication.cinematics) value.toJson(),
+            ],
+            'facts': [for (final value in publication.facts) value.toJson()],
+            'storylines': [
+              for (final value in publication.storylines) value.toJson(),
+            ],
+            'events': [for (final value in publication.events) value.toJson()],
+          },
+  ),
+) as Map<String, dynamic>;

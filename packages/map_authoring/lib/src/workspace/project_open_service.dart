@@ -63,13 +63,21 @@ final class ProjectOpenService {
     required WorkspacePolicy policy,
     required ProjectFileReader fileReader,
     required WorkspaceHandleStore handles,
+    Set<String>? catalogMetadataFields,
+    bool workshopScope = false,
   })  : _policy = policy,
         _fileReader = fileReader,
-        _handles = handles;
+        _handles = handles,
+        _workshopScope = workshopScope,
+        _catalogMetadataFields = catalogMetadataFields == null
+            ? null
+            : Set.unmodifiable(catalogMetadataFields);
 
   final WorkspacePolicy _policy;
   final ProjectFileReader _fileReader;
   final WorkspaceHandleStore _handles;
+  final bool _workshopScope;
+  final Set<String>? _catalogMetadataFields;
   final Map<ProjectHandle, Future<CatalogProjectReader?> Function()>
       _catalogReaders = {};
   final Map<WorkspaceHandle, ProjectHandle> _catalogWorkspaces = {};
@@ -115,17 +123,25 @@ final class ProjectOpenService {
         }
       }
       return CatalogProjectReader.open(
-          store: CatalogStorageStore(projectRoot:canonicalRoot,reader:_fileReader,gateway:await LocalTransactionFileGateway.open(projectRoot:canonicalRoot)),descriptor:descriptor,allowRecoveryBootstrap:true);
+          store: CatalogStorageStore(
+              projectRoot: canonicalRoot,
+              reader: _fileReader,
+              gateway: await LocalTransactionFileGateway.open(
+                  projectRoot: canonicalRoot)),
+          descriptor: descriptor,
+          allowRecoveryBootstrap: true,
+          metadataFields: _catalogMetadataFields);
     }
     final catalog = await catalogReader();
     final ownedBytes = manifestBytes is Uint8List
         ? manifestBytes
         : Uint8List.fromList(manifestBytes);
+    final workshopScope = _workshopScope;
     final inspection = catalog != null
         ? (name: catalog.name, fingerprint: catalog.revision)
         : ownedBytes.length >= 1024 * 1024
-            ? await Isolate.run(() => _inspectProjectManifest(ownedBytes))
-            : _inspectProjectManifest(ownedBytes);
+            ? await Isolate.run(() => _inspectProjectManifest(ownedBytes, workshopScope: workshopScope))
+            : _inspectProjectManifest(ownedBytes, workshopScope: workshopScope);
     final fingerprint = inspection.fingerprint;
     final reader = _fileReader;
     final registered = _handles.registerProject(
@@ -192,6 +208,16 @@ final class ProjectOpenService {
           return ProjectCatalogMaterialization(manifest:project,descriptorRevision:computeAuthoringBytesFingerprint(expectedDescriptorBytes,logicalName:'project.json'),headBytes:headBytes);
         });
       },
+      requireMutationRoot: (root) async {
+        final observed = await _policy.authorizeProjectRoot(root);
+        if (observed != canonicalRoot) {
+          throw const WorkspaceHandleException(
+            'workspace.mutation_binding_mismatch',
+            'The mutation root differs from the opened project.',
+          );
+        }
+        await requireReadableProject();
+      },
       requireReadableProject:physicalRoot?requireReadableProject:null,
       canReuseSnapshots: reader is ProjectSnapshotCacheIdentityReader,
     );
@@ -219,8 +245,8 @@ final class ProjectOpenService {
   }
 }
 
-({String name, String fingerprint}) _inspectProjectManifest(List<int> bytes) {
-  final manifest = _decodeManifest(bytes);
+({String name, String fingerprint}) _inspectProjectManifest(List<int> bytes, {bool workshopScope = false}) {
+  final manifest = workshopScope ? _decodeWorkshopHeader(bytes) : _decodeManifest(bytes);
   return (
     name: manifest.name,
     fingerprint: computeNarrativeProjectFingerprint([
@@ -230,6 +256,39 @@ final class ProjectOpenService {
       ),
     ]),
   );
+}
+
+ProjectManifest _decodeWorkshopHeader(List<int> bytes) {
+  try {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) throw const FormatException('Expected a JSON object.');
+    final pokemon = decoded['pokemon'];
+    if (pokemon is Map && pokemon['ruleset'] == null) {
+      throw const ProjectOpenException(
+        'project.pokemon_ruleset_required',
+        'The project manifest requires an explicit Pokemon ruleset.',
+      );
+    }
+    return ProjectManifest.fromJson({
+      'name': decoded['name'],
+      'version': decoded['version'],
+      'maps': <Object?>[],
+      'tilesets': <Object?>[],
+      if (decoded['settings'] case final Map settings)
+        'settings': {
+          for (final key in const {'dimension', 'spatialCamera', 'tileWidth', 'tileHeight'})
+            if (settings.containsKey(key)) key: settings[key],
+        },
+      'pokemon': pokemon is Map ? {'ruleset': pokemon['ruleset']} : pokemon,
+    });
+  } on ProjectOpenException {
+    rethrow;
+  } on Object {
+    throw const ProjectOpenException(
+      'project.manifest_invalid',
+      'The project manifest is not valid PokeMap JSON.',
+    );
+  }
 }
 
 ProjectManifest _decodeManifest(List<int> bytes) {

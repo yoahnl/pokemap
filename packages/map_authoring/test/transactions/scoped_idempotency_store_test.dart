@@ -92,7 +92,8 @@ void main() {
         .path;
     final other = await FileIdempotencyStore.forScope(
         filePath: path, scope: _scope(key: 'other'));
-    await other.reserve(_record(_scope(key: 'other')));
+    await other
+        .reserve(_record(_scope(key: 'other'), operationId: 'other-operation'));
     final otherPath = (await directory
             .list()
             .where((entry) =>
@@ -160,11 +161,11 @@ AuthoringIdempotencyScope _scope(
     );
 
 AuthoringIdempotencyRecord _record(AuthoringIdempotencyScope scope,
-        {bool completed = false}) =>
+        {bool completed = false, String operationId = 'operation'}) =>
     AuthoringIdempotencyRecord(
       scope: scope,
       payloadFingerprint: 'sha256:${'a' * 64}',
-      operationId: 'operation',
+      operationId: operationId,
       status: completed
           ? AuthoringIdempotencyStatus.completed
           : AuthoringIdempotencyStatus.pending,

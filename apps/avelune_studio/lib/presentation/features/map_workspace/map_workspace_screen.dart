@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
 import '../../../features/regional_map/application/regional_map_controller.dart';
@@ -35,7 +36,6 @@ import '../events/event_labels.dart';
 import '../events/event_playtest.dart';
 import '../narrative/narrative_name_dialog.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/dialogs/studio_review_dialog.dart';
 import '../../../features/stories/domain/story_port.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
 import '../stories/story_progression_view_store.dart';
@@ -60,6 +60,7 @@ import '../world/world_view_state.dart';
 import '../world/world_workspace_page.dart';
 import '../narrative/narrative_navigation.dart';
 import '../narrative/narrative_overview_view_state.dart';
+
 import 'package:flutter/services.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
@@ -67,12 +68,16 @@ import 'package:avelune_studio/features/map_workspace/application/map_context_me
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+
+import '../../../features/map_workspace/domain/map_workspace_port.dart';
+
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_selection_context.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+
 import '../resources/resource_navigation.dart';
 import '../resources/resource_catalog.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
@@ -112,6 +117,13 @@ part 'workspace_export_binding.dart';
 part 'workspace_map_library_binding.dart';
 part 'workspace_connection_binding.dart';
 
+typedef WorkspaceResourceLibraryBuilder = Widget Function(
+  BuildContext context,
+  void Function(Future<bool> Function()?) registerExitGuard,
+  Future<void> Function() onSaved,
+  VoidCallback onOpenTools,
+);
+
 class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
     super.key,
@@ -122,6 +134,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.onClose,
     required this.registerExitGuard,
     this.resourcePort,
+    this.resourceLibraryBuilder,
     this.resourcePackPort,
     this.resourcePackPicker,
     this.resourcePackLicensePicker,
@@ -151,6 +164,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final MapWorkspaceController controller;
   final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
+  final WorkspaceResourceLibraryBuilder? resourceLibraryBuilder;
   final ResourcePackPort? resourcePackPort;
   final PickResourcePack? resourcePackPicker;
   final PickResourcePackLicenses? resourcePackLicensePicker;
@@ -192,6 +206,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   WorkspaceSpace _interactionOrigin = WorkspaceSpace.map;
   final _storyViewState = NarrativeOverviewViewState();
   ResourceNavigation? _resources;
+  Future<bool> Function()? _libraryExitGuard;
+  Widget? _resourceLibrary;
   PokemonWorkspaceController? _pokemon;
   NarrativeWorkspaceController? _narrative;
   RegionalMapController? _regionalMap;
@@ -235,7 +251,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   MapWorkspaceVisuals? _visuals;
   ProjectManifest? _visualCatalog;
   bool _projectionVisualsLoading = false;
-  bool _materializingWorkshops = false;
+  bool _openingWorkshop = false;
   var _projectionVisualGeneration = 0;
   Future<void> _projectionVisualQueue = Future.value();
   String? _resourceError, _connectionError;
@@ -281,8 +297,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   void _changed() {
     _reconcileCatalogueView();
     _releaseStaleMapState();
-    final project = _controller.project;
-    if (!_materializingWorkshops &&
+    final project = _controller.visualProject;
+    if (!_openingWorkshop &&
         project != null &&
         _visuals != null &&
         !identical(project, _visualCatalog)) {

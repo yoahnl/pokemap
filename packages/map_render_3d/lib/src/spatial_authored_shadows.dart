@@ -32,6 +32,49 @@ double spatialShadowReceiverMinimumHeight(MapSpatialScene scene) {
   return minimum;
 }
 
+Aabb3? spatialShadowReceiverBounds(
+  Matrix4 viewProjection, {
+  required double minimumY,
+  required double maximumY,
+}) {
+  if (!minimumY.isFinite || !maximumY.isFinite || minimumY > maximumY)
+    return null;
+  final inverse = Matrix4.copy(viewProjection);
+  final determinant = inverse.invert();
+  if (!determinant.isFinite || determinant == 0) return null;
+  final points = <Vector3>[];
+  for (final x in [-1.0, 1.0]) {
+    for (final y in [-1.0, 1.0]) {
+      final near = inverse.transform(Vector4(x, y, -1, 1));
+      final far = inverse.transform(Vector4(x, y, 1, 1));
+      if (near.w.abs() < 1e-9 || far.w.abs() < 1e-9) return null;
+      final start = Vector3(near.x / near.w, near.y / near.w, near.z / near.w);
+      final end = Vector3(far.x / far.w, far.y / far.w, far.z / far.w);
+      final direction = end - start;
+      if (direction.y.abs() < 1e-9) return null;
+      for (final height in [minimumY, maximumY]) {
+        final fraction = (height - start.y) / direction.y;
+        if (!fraction.isFinite || fraction < 0 || fraction > 1) return null;
+        final point = start + direction * fraction;
+        if (![point.x, point.y, point.z].every((v) => v.isFinite)) return null;
+        points.add(point);
+      }
+    }
+  }
+  return Aabb3.minMax(
+    Vector3(
+      points.map((p) => p.x).reduce(math.min),
+      minimumY,
+      points.map((p) => p.z).reduce(math.min),
+    ),
+    Vector3(
+      points.map((p) => p.x).reduce(math.max),
+      maximumY,
+      points.map((p) => p.z).reduce(math.max),
+    ),
+  );
+}
+
 final class SpatialAuthoredShadowCaster {
   SpatialAuthoredShadowCaster({
     required this.id,
@@ -65,6 +108,7 @@ SpatialLightingProfile spatialAuthoredShadowLighting(
   List<SpatialAuthoredShadowCaster> casters, {
   required double receiverMinY,
   required double receiverMaxY,
+  Aabb3? receiverBounds,
   ({double x, double y, double z}) sunDirection = (x: -.45, y: 1, z: -.3),
 }) {
   if (casters.isEmpty) return SpatialLightingProfile.disabled;
@@ -90,21 +134,37 @@ SpatialLightingProfile spatialAuthoredShadowLighting(
       corner - sun * ((corner.y - minimumY) / sun.y),
     ],
   ];
-  (double, double) range(Vector3 axis) {
-    final values = points.map((point) => axis.dot(point));
+  (double, double) range(Vector3 axis, [List<Vector3>? source]) {
+    final values = (source ?? points).map((point) => axis.dot(point));
     return (values.reduce(math.min), values.reduce(math.max));
   }
 
-  final horizontal = range(right), vertical = range(up), distance = range(sun);
-  final center =
-      right * ((horizontal.$1 + horizontal.$2) / 2) +
-      up * ((vertical.$1 + vertical.$2) / 2) +
-      sun * ((distance.$1 + distance.$2) / 2);
+  var horizontal = range(right), vertical = range(up);
+  double? receiverDiameter;
+  final distance = range(sun);
+  if (receiverBounds != null) {
+    final center = receiverBounds.center;
+    receiverDiameter = (receiverBounds.max - receiverBounds.min).length;
+    final radius = receiverDiameter / 2;
+    final h = right.dot(center), v = up.dot(center);
+    horizontal = (h - radius, h + radius);
+    vertical = (v - radius, v + radius);
+  }
   final extent = math.max(
     8.0,
-    math.max(horizontal.$2 - horizontal.$1, vertical.$2 - vertical.$1) + 4,
+    (receiverDiameter ??
+            math.max(horizontal.$2 - horizontal.$1, vertical.$2 - vertical.$1)) +
+        4,
   );
   final depth = math.max(16.0, distance.$2 - distance.$1 + 8);
+  final texel = extent / 1024;
+  double stableCenter(double value) =>
+      receiverBounds == null ? value : (value / texel).round() * texel;
+  final center =
+      right * stableCenter((horizontal.$1 + horizontal.$2) / 2) +
+      up * stableCenter((vertical.$1 + vertical.$2) / 2) +
+      sun * ((distance.$1 + distance.$2) / 2);
+
   return SpatialLightingProfile.stylized(
     ambientColor: const Color(0xffffffff),
     sunColor: const Color(0xffffffff),

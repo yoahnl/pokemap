@@ -23,12 +23,14 @@ class MapWorkspaceToolbar extends StatelessWidget {
     required this.inspectorVisible,
     required this.navigatorVisible,
     this.showUndoRedo = true,
+    this.onAmbiance,
+    this.onElements,
   });
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
   final VoidCallback onChanged, onClose, onPalette, onInspector, onNavigator;
   final ValueChanged<ProjectMapEntry> onActivate;
-  final VoidCallback? onSave, onTest;
+  final VoidCallback? onSave, onTest, onAmbiance, onElements;
   final bool paletteVisible, inspectorVisible, navigatorVisible;
   final bool showUndoRedo;
 
@@ -105,6 +107,14 @@ class MapWorkspaceToolbar extends StatelessWidget {
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        if (document?.current.spatialScene != null && onAmbiance != null)
+          StudioButton(
+            key: const ValueKey('map-open-ambiance'),
+            label: 'Ambiance',
+            icon: Icons.wb_twilight_outlined,
+            secondary: true,
+            onPressed: onAmbiance,
+          ),
         StudioTool(
           label: 'Zoom arrière',
           icon: Icons.remove,
@@ -175,6 +185,13 @@ class MapWorkspaceToolbar extends StatelessWidget {
           selected: inspectorVisible,
           onPressed: onInspector,
         ),
+        StudioTool(
+          key: const ValueKey('map-open-elements'),
+          label: 'Éléments de la carte',
+          icon: Icons.layers_outlined,
+          selected: view?.elementsVisible ?? false,
+          onPressed: onElements,
+        ),
       ],
     );
     return Material(
@@ -215,10 +232,11 @@ class MapWorkspaceToolbar extends StatelessWidget {
             );
             Widget buildStatus() {
               final atmosphere = document?.atmosphere;
+              final editor = document?.editor;
               final label =
-                  document?.saving == true || atmosphere?.saving == true
+                  document?.saving == true || atmosphere?.saving == true || editor?.saving == true
                   ? 'Enregistrement…'
-                  : document?.dirty == true || atmosphere?.dirty == true
+                  : document?.dirty == true || atmosphere?.dirty == true || editor?.dirty == true
                   ? 'Non enregistré'
                   : 'Enregistré';
               return Tooltip(
@@ -233,10 +251,11 @@ class MapWorkspaceToolbar extends StatelessWidget {
             }
 
             final atmosphere = document?.atmosphere;
-            final status = atmosphere == null
+            final editor = document?.editor;
+            final status = atmosphere == null && editor == null
                 ? buildStatus()
                 : ListenableBuilder(
-                    listenable: atmosphere,
+                    listenable: Listenable.merge([?atmosphere, ?editor]),
                     builder: (context, _) => buildStatus(),
                   );
             if (largeText) {

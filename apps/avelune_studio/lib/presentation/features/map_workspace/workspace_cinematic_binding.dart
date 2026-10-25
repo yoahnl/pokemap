@@ -19,20 +19,23 @@ extension _WorkspaceCinematicBinding on _MapWorkspaceScreenState {
   }
 
   Future<void> _openSceneCinematic(SceneCinematicPayload payload) async {
+    final request = await _prepareWorkshopRoute(MapWorkspaceWorkshop.cinematic);
+    if (request == null) return;
     final owner = _cinematics;
     if (owner == null) return;
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
+    if (!await owner.open(payload.cinematicId) ||
+        !mounted ||
+        request != _navigationRequest) {
+      return;
+    }
     _cinematicOrigin = WorkspaceSpace.scene;
     _show(WorkspaceSpace.cinematic);
-    await owner.open(payload.cinematicId);
   }
 
   Future<void> _openCinematicDialogue(String id) async {
-    if (_dialogues == null) return;
-    _dialogueOrigin = WorkspaceSpace.cinematic;
-    _show(WorkspaceSpace.dialogue);
-    await _dialogues!.open(id);
+    await _openDialogueRoute(id, WorkspaceSpace.cinematic);
   }
 
   Future<String?> _locateCinematic(String id) async {

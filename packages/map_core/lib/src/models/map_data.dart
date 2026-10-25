@@ -27,6 +27,31 @@ import '../compatibility/environment_single_area_migration.dart';
 part 'map_data.freezed.dart';
 part 'map_data.g.dart';
 
+bool mapSharesElementOwnershipStorage(MapData before, MapData after) =>
+    identical(before, after) ||
+    before is _MapData && after is _MapData &&
+        identical(before._layers, after._layers) &&
+        identical(before._placedElements, after._placedElements);
+
+bool mapSharesNonVisualOrderStorage(MapData before, MapData after) =>
+    identical(before, after) ||
+    before is _MapData && after is _MapData &&
+        before.id == after.id && before.name == after.name &&
+        before.size == after.size && before.version == after.version &&
+        before.tilesetId == after.tilesetId &&
+        identical(before.spatialScene, after.spatialScene) &&
+        identical(before.visualStack, after.visualStack) &&
+        identical(before.mapMetadata, after.mapMetadata) &&
+        identical(before._movingPlatforms, after._movingPlatforms) &&
+        identical(before._movingProps, after._movingProps) &&
+        identical(before._entities, after._entities) &&
+        identical(before._connections, after._connections) &&
+        identical(before._warps, after._warps) &&
+        identical(before._triggers, after._triggers) &&
+        identical(before._gameplayZones, after._gameplayZones) &&
+        identical(before._properties, after._properties) &&
+        identical(before._events, after._events);
+
 @Freezed(fromJson: true, toJson: true)
 abstract class MapData with _$MapData implements NarrativeMapView {
   @JsonSerializable(explicitToJson: true)

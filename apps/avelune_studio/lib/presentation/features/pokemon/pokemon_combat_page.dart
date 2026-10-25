@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+import '../../../features/pokemon/domain/pokemon_combat_port.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_combat_list.dart';
@@ -88,7 +89,11 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
     final combat = widget.combat;
     final table = combat.table;
     final trainer = combat.trainer;
-    if (combat.dirty || (table == null && trainer == null)) return;
+    if (combat.dirty ||
+        combat.snapshot?.referencesComplete != true ||
+        (table == null && trainer == null)) {
+      return;
+    }
     final owner = table?.current.id ?? trainer!.current.id;
     final references = table != null
         ? combatTableReferences(combat.snapshot!, table.current)
@@ -156,7 +161,7 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
                         combat.trainer!.current,
                       ),
                 onOpenReference: widget.onOpenReference,
-                onDelete: _delete,
+                onDelete: snapshot.referencesComplete ? _delete : null,
                 onBack: compact
                     ? () => setState(() => compactDetail = false)
                     : null,
@@ -165,13 +170,34 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
                 combat: combat,
                 index: widget.index,
                 onOpenReference: widget.onOpenReference,
-                onDelete: _delete,
+                onDelete: snapshot.referencesComplete ? _delete : null,
                 onBack: compact
                     ? () => setState(() => compactDetail = false)
                     : null,
               );
         return Column(
           children: [
+            if (!snapshot.referencesComplete)
+              PokemonSurface(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Les usages dans les cartes et scènes n’ont pas encore été analysés.',
+                    ),
+                    StudioButton(
+                      label: 'Analyser les usages du projet',
+                      secondary: true,
+                      onPressed:
+                          combat.operationActive ||
+                              combat.dirty ||
+                              combat.port is! PokemonCombatReferencePort
+                          ? null
+                          : combat.analyzeReferences,
+                    ),
+                  ],
+                ),
+              ),
             StudioSelect(
               key: const ValueKey('combat-project-ruleset'),
               label: 'Règles du projet',

@@ -52,12 +52,43 @@ extension PokemonCombatValidation on PokemonCombatController {
         }
       }
       try {
+        final project = snapshot!.project;
+        final factIds = <String>{};
+        void collect(ScriptCondition condition) {
+          if (condition.type == ScriptConditionType.factEquals) {
+            final id = condition.params[ScriptConditionParams.factId];
+            if (id is String) factIds.add(id);
+          }
+          for (final child in condition.children) {
+            collect(child);
+          }
+        }
+
+        for (final condition in selectedTable.conditions) {
+          collect(condition);
+        }
+        for (final variant in selectedTable.variants) {
+          for (final condition in variant.conditions) {
+            collect(condition);
+          }
+        }
         ProjectValidator.validate(
-          snapshot!.project.copyWith(
-            encounterTables: [
-              for (final value in snapshot!.project.encounterTables)
-                if (value.id != selectedTable.id) value,
-              selectedTable,
+          ProjectManifest(
+            name: project.name,
+            version: project.version,
+            maps: const [],
+            tilesets: const [],
+            settings: ProjectSettings(
+              dimension: project.settings.dimension,
+              spatialCamera: project.settings.spatialCamera,
+              tileWidth: project.settings.tileWidth,
+              tileHeight: project.settings.tileHeight,
+            ),
+            pokemon: project.pokemon,
+            encounterTables: [selectedTable],
+            facts: [
+              for (final fact in project.facts)
+                if (factIds.contains(fact.id)) fact,
             ],
           ),
         );
@@ -131,6 +162,11 @@ extension PokemonCombatValidation on PokemonCombatController {
 
   Future<bool> deleteSelected() async {
     if (saving || dirty) return false;
+    if (snapshot?.referencesComplete != true) {
+      error = 'Analysez les usages du projet avant de supprimer cette fiche.';
+      changed();
+      return false;
+    }
     final selectedTable = table;
     final selectedTrainer = trainer;
     if (selectedTable == null && selectedTrainer == null) return false;
@@ -147,7 +183,21 @@ extension PokemonCombatValidation on PokemonCombatController {
       table = null;
       trainer = null;
       saving = false;
-      await load(refresh: true);
+      final project = snapshot!.project;
+      _acceptSavedProject(
+        project.copyWith(
+          encounterTables: selectedTable == null
+              ? project.encounterTables
+              : project.encounterTables
+                    .where((value) => value.id != selectedTable.current.id)
+                    .toList(),
+          trainers: selectedTrainer == null
+              ? project.trainers
+              : project.trainers
+                    .where((value) => value.id != selectedTrainer.current.id)
+                    .toList(),
+        ),
+      );
       notice = 'Fiche supprimée.';
       return !_disposed;
     } on Object catch (failure) {

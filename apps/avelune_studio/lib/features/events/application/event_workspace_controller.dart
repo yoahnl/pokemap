@@ -40,6 +40,7 @@ class EventWorkspaceController {
         ({String id, NarrativeEventRecord? before, NarrativeEventRecord? after})
       >[];
   final _maps = <String, MapData>{};
+  final _mapLoads = <String, Future<MapData>>{};
   final _publishing = <String>{};
   Future<bool>? _preparing;
   ProjectManifest? _preparedManifest;
@@ -167,8 +168,7 @@ class EventWorkspaceController {
       final latest = _stored(entry.key);
       if (latest == entry.value) continue;
       if (isDirty(entry.key)) {
-        error ??=
-            'Un événement ouvert a changé. Son brouillon est conservé ; rechargez-le pour résoudre le conflit.';
+        error ??= 'Un événement ouvert a changé. Son brouillon est conservé ; rechargez-le pour résoudre le conflit.';
       } else {
         _bases[entry.key] = latest;
         _invalidate(entry.key);

@@ -45,6 +45,29 @@ List<String> _render(World3D world, List<String> rendered) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets(
+    'subset replacement stops retaining retired resource components',
+    (tester) async {
+      final game = await _mountedGame(tester);
+      final scene = SpatialSceneComponents(game.world);
+      final rendered = <String>[];
+      final oldFrame = _SceneProbe('old', rendered);
+      final nextFrame = _SceneProbe('next', rendered);
+      final first = scene.replaceGroups({
+        'ground': [oldFrame],
+      });
+      await tester.runAsync(game.ready);
+      await tester.runAsync(() => first);
+      final dynamic batch = oldFrame.parent!;
+      scene.replaceSubset([oldFrame], [nextFrame], groupKey: 'ground');
+      await tester.runAsync(game.ready);
+      expect(batch.source, [same(nextFrame)]);
+      expect(nextFrame.parent, same(batch));
+      expect(oldFrame.parent, isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('connected maps retain mounted components when promoted', (
     tester,
   ) async {

@@ -234,6 +234,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   bool get contentGestureValid =>
       !locked &&
+      (modelGesture == null ||
+          !widget.document.isElementLocked('model', modelGesture!)) &&
+      gesture?.isLocked != true &&
       widget.view.tool == StudioMapTool.select &&
       gestureFreeView == widget.view.spatialFreeView &&
       identical(contentSource, widget.document.current) &&
@@ -373,6 +376,11 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   Future<void> updatePreview(SpatialWorkspaceVisuals visuals) async {
     final map = widget.document.current;
     if (identical(previewMap, map)) return;
+    final previous = previewMap;
+    if (previous != null && _previewOrderOnlyChange(previous, map)) {
+      previewMap = map;
+      return;
+    }
     previewMap = map;
     final generation = ++previewGeneration;
     if (map.entities.isEmpty) {
@@ -404,7 +412,27 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
   }
 
+  bool canSelectContent(SpatialSceneContentKind kind, String id) {
+    return !widget.document.isElementLocked(
+      switch (kind) {
+        SpatialSceneContentKind.model => 'model',
+        SpatialSceneContentKind.actor ||
+        SpatialSceneContentKind.marker => 'entity',
+        SpatialSceneContentKind.warp => 'warp',
+      },
+      kind == SpatialSceneContentKind.actor && id.startsWith('npc:')
+          ? id.substring(4)
+          : id,
+    );
+  }
+
   bool start(int x, int z, [SpatialSceneContentHit? hit]) {
+    widget.view.reconcileLocks(widget.document);
+    if (hit != null && !canSelectContent(hit.kind, hit.id)) {
+      discardGesture();
+      widget.onChanged();
+      return false;
+    }
     if (locked ||
         (widget.view.spatialFreeView &&
             widget.view.tool == StudioMapTool.select &&
@@ -523,10 +551,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                 .where(
                   (item) =>
                       item.position.x.floor() == x &&
-                      item.position.z.floor() == z,
+                      item.position.z.floor() == z &&
+                      !document.isElementLocked('model', item.id),
                 )
                 .lastOrNull;
       if (instance != null &&
+          !document.isElementLocked('model', instance.id) &&
           {
             StudioMapTool.select,
             StudioMapTool.erase,
@@ -833,7 +863,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         widget.document,
         widget.project,
       );
-      if (id != null && commands.selected(id) != null) {
+      if (id != null &&
+          commands.selected(id) != null &&
+          !widget.document.isElementLocked('model', id)) {
         if (!locked) {
           discardGesture();
           try {
@@ -982,6 +1014,8 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   @override
   Widget build(BuildContext context) {
+    widget.view.reconcileLocks(widget.document);
+    if (contentSource != null && !contentGestureValid) discardGesture();
     final visuals = widget.visuals;
     if (visuals is! SpatialWorkspaceVisuals) {
       return const StudioNotice(
@@ -1041,6 +1075,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         children: [
           Positioned.fill(
             child: SpatialSceneView(
+              canSelectContent: canSelectContent,
+              canSelectLayer: (id) =>
+                  !widget.document.isElementLocked('layer', id),
               animationPreview: widget.view.spatialAnimations,
               onHover: showsHover ? updateHover : null,
               onSurfaceTap: surfaceTap,
@@ -1215,4 +1252,25 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
     return cells;
   }
+}
+
+bool _previewOrderOnlyChange(MapData before, MapData after) {
+  if (!mapSharesNonVisualOrderStorage(before, after) ||
+      before.layers.length != after.layers.length ||
+      before.placedElements.length != after.placedElements.length) {
+    return false;
+  }
+  final layers = {for (final layer in before.layers) layer.id: layer};
+  for (final layer in after.layers) {
+    if (layers[layer.id] != layer) return false;
+  }
+  for (var index = 0; index < before.placedElements.length; index++) {
+    final previous = before.placedElements[index],
+        next = after.placedElements[index];
+    if (!identical(previous, next) &&
+        previous.copyWith(visualOrder: next.visualOrder) != next) {
+      return false;
+    }
+  }
+  return true;
 }

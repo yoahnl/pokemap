@@ -2,6 +2,13 @@ part of 'map_workspace_canvas.dart';
 
 extension _MapWorkspaceCanvasDecor on _MapWorkspaceCanvasState {
   bool _canTransform(MapPlacedElement instance) {
+    if (widget.view.isLocked(
+      widget.document,
+      MapSelectionFamily.decor,
+      instance.id,
+    )) {
+      return false;
+    }
     if (!identical(_ownershipMap, widget.document.current)) {
       _ownershipMap = widget.document.current;
       _environmentOwnedIds = environmentOwnedMapPlacedElementIds(
@@ -45,6 +52,7 @@ extension _MapWorkspaceCanvasDecor on _MapWorkspaceCanvasState {
   void _commitDecor() {
     final draft = _decorDraft;
     if (draft != null &&
+        _canTransform(draft.original) &&
         identical(draft.source, widget.document.current) &&
         identical(draft.project, widget.project) &&
         draft.original.id == widget.document.selectedId) {

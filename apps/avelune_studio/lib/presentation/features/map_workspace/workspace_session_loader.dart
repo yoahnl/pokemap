@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../narrative/narrative_navigation.dart';
 import '../resources/resource_catalog.dart';
@@ -49,8 +50,7 @@ loadWorkspaceSession(
     await visuals.dispose();
     return null;
   }
-  final narrative =
-      !workspace.hasCompleteProject || widget.narrativePort == null
+  final narrative = widget.narrativePort == null
       ? null
       : NarrativeWorkspaceController(
           workspace,
@@ -69,7 +69,7 @@ loadWorkspaceSession(
     workspace.historyGuard = (before, after) =>
         guardNarrativeHistory(narrative, before, after);
   }
-  final resources = !workspace.hasCompleteProject || widget.resourcePort == null
+  final resources = widget.resourcePort == null
       ? null
       : ResourceNavigation(
           workspace: workspace,

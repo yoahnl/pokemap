@@ -1,3 +1,5 @@
+import 'package:avelune_studio/presentation/shared/keyboard/editor_shortcuts.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -200,6 +202,7 @@ class _EventWorkspacePageState extends State<EventWorkspacePage> {
           child: StandardEventTemplateForm(
             project: c.project,
             maps: c.maps,
+            loadMap: c.loadMap,
             itemOptions: items,
             initialMapId: anchor?.$1 ?? c.workspace.active?.current.id,
             initialEntityId: anchor?.$2,
