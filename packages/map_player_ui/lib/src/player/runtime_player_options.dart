@@ -79,6 +79,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       widget.controlProfile ?? PlayerControlProfile.standard;
   final _drafts = <String, double>{};
   final _sliderFocus = <String, FocusNode>{};
+  final _choiceFocus = <String, FocusNode>{};
   final _categoryFocus = FocusScopeNode(debugLabel: 'Options categories');
   final _settingsFocus = FocusScopeNode(debugLabel: 'Options settings');
   PlayerOptionsCategory _category = PlayerOptionsCategory.general;
@@ -155,6 +156,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     for (final node in _sliderFocus.values) {
       node.dispose();
     }
+    for (final node in _choiceFocus.values) {
+      node.dispose();
+    }
     _categoryFocus.dispose();
     _settingsFocus.dispose();
     super.dispose();
@@ -197,6 +201,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         });
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted &&
+              _dialogRoute == null &&
               previousFocus?.context != null &&
               previousFocus!.canRequestFocus) {
             previousFocus.requestFocus();
@@ -206,7 +211,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     }
   }
 
-  Future<void> _saveProfile(PlayerControlProfile next) async {
+  Future<void> _saveProfile(
+    PlayerControlProfile next, {
+    FocusNode? focusAfterSave,
+  }) async {
     if (!mounted || _pending || widget.onControlProfileChanged == null) return;
     RuntimePlayerLocalActionNotification().dispatch(context);
     setState(() {
@@ -227,8 +235,25 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         });
       }
     } finally {
-      if (mounted) setState(() => _pending = false);
+      if (mounted) {
+        setState(() => _pending = false);
+        _restoreChoiceFocus(focusAfterSave);
+      }
     }
+  }
+
+  FocusNode _choiceNode(String id) =>
+      _choiceFocus.putIfAbsent(id, () => FocusNode(debugLabel: 'Option: $id'));
+
+  void _restoreChoiceFocus(FocusNode? node) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          _dialogRoute == null &&
+          node?.context != null &&
+          node!.canRequestFocus) {
+        node.requestFocus();
+      }
+    });
   }
 
   void _select(PlayerOptionsCategory category) {
@@ -319,7 +344,11 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             ] else if (widget.navigation == null && !_showCategories) ...[
               Row(
                 children: [
-                  Expanded(child: _categoryPicker()),
+                  Expanded(child: _categoryStepButton(-1)),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 2, child: _categoryPicker()),
+                  const SizedBox(width: 8),
+                  Expanded(child: _categoryStepButton(1)),
                   if (_category == PlayerOptionsCategory.controls &&
                       widget.activeInputSource != PlayerInputSource.touch) ...[
                     const SizedBox(width: 8),
@@ -462,16 +491,94 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         : () => setState(() => _showTouchSettings = !_showTouchSettings),
   );
 
-  Widget _actions(BuildContext context, [Widget? returnAction]) =>
-      returnAction == null
-      ? const SizedBox.shrink()
-      : Align(
-          alignment: Alignment.centerLeft,
-          child: SizedBox(
-            width: 88 * MediaQuery.textScalerOf(context).scale(1),
-            child: returnAction,
+  Widget _categoryStepButton(int delta) {
+    final category =
+        PlayerOptionsCategory.values[(_category.index + delta) %
+            PlayerOptionsCategory.values.length];
+    final label = _strings.category(category);
+    final direction = delta < 0 ? 'previous' : 'next';
+    final announcement = delta < 0
+        ? _strings.text('Catégorie précédente', 'Previous category')
+        : _strings.text('Catégorie suivante', 'Next category');
+    final icon = Icon(
+      delta < 0 ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+      size: 20,
+    );
+    return Tooltip(
+      message: '$announcement : $label',
+      child: PlayerMenuSelectableRow(
+        key: ValueKey('options-category-$direction'),
+        id: 'options-category-$direction',
+        label: label,
+        semanticValue: announcement,
+        leading: delta < 0 ? icon : null,
+        trailing: delta > 0 ? icon : null,
+        trailingWidth: delta > 0 ? 20 : null,
+        labelStyle: context.playerMenuTheme.meta,
+        labelMaxLines: 3,
+        reserveFocusMarker: false,
+        minimumHeight: 48,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        onPressed: _pending ? null : () => _stepCategory(delta),
+      ),
+    );
+  }
+
+  Widget _actions(
+    BuildContext context, [
+    Widget? returnAction,
+  ]) => LayoutBuilder(
+    builder: (context, constraints) {
+      final returnWidth = 88 * MediaQuery.textScalerOf(context).scale(1);
+      final neighbourWidth = (constraints.maxWidth - returnWidth - 16) / 2;
+      bool fits(int delta) {
+        if (neighbourWidth < 48) return false;
+        final category =
+            PlayerOptionsCategory.values[(_category.index + delta) %
+                PlayerOptionsCategory.values.length];
+        final painter = TextPainter(
+          text: TextSpan(
+            text: _strings.category(category),
+            style: context.playerMenuTheme.meta,
           ),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+          maxLines: 3,
+        )..layout(maxWidth: (neighbourWidth - 48).clamp(0, double.infinity));
+        final complete = !painter.didExceedMaxLines;
+        painter.dispose();
+        return complete;
+      }
+
+      Widget neighbours() => Row(
+        children: [
+          Expanded(child: _categoryStepButton(-1)),
+          const SizedBox(width: 8),
+          Expanded(child: _categoryStepButton(1)),
+        ],
+      );
+      final back = returnAction == null
+          ? null
+          : SizedBox(width: returnWidth, child: returnAction);
+      if (back != null && (!fits(-1) || !fits(1))) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            neighbours(),
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerLeft, child: back),
+          ],
         );
+      }
+      return Row(
+        children: [
+          if (back != null) ...[back, const SizedBox(width: 8)],
+          Expanded(child: neighbours()),
+        ],
+      );
+    },
+  );
 
   Widget _defaults({bool integrated = true}) => PlayerMenuSelectableRow(
     key: const ValueKey('options-defaults'),
@@ -701,9 +808,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   value: _strings.speed(value),
               },
               (value) => value.name,
+              focusAfterClose: _choiceNode('text-speed'),
             );
             if (value != null) {
-              await _save(_confirmed.copyWith(dialogueTextSpeed: value));
+              await _save(
+                _confirmed.copyWith(dialogueTextSpeed: value),
+                focusAfterSave: _choiceNode('text-speed'),
+              );
             }
           },
         ),
@@ -723,9 +834,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   value: _strings.effects(value),
               },
               (value) => value.name,
+              focusAfterClose: _choiceNode('menu-effects'),
             );
             if (value != null) {
-              await _save(_confirmed.copyWith(menuEffects: value));
+              await _save(
+                _confirmed.copyWith(menuEffects: value),
+                focusAfterSave: _choiceNode('menu-effects'),
+              );
             }
           },
         ),
@@ -798,9 +913,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                           value: _strings.runningMode(value),
                       },
                       (value) => value.name,
+                      focusAfterClose: _choiceNode('touch-run-mode'),
                     );
                     if (value != null) {
-                      await _save(_confirmed.copyWith(touchRunMode: value));
+                      await _save(
+                        _confirmed.copyWith(touchRunMode: value),
+                        focusAfterSave: _choiceNode('touch-run-mode'),
+                      );
                     }
                   },
                 ),
@@ -847,8 +966,14 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
               preferences.locale,
               const {'fr': 'Français', 'en': 'English'},
               (value) => value,
+              focusAfterClose: _choiceNode('locale'),
             );
-            if (value != null) await _save(_confirmed.copyWith(locale: value));
+            if (value != null) {
+              await _save(
+                _confirmed.copyWith(locale: value),
+                focusAfterSave: _choiceNode('locale'),
+              );
+            }
           },
         ),
       ],
@@ -940,6 +1065,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     PlayerMenuSelectableRow(
       key: ValueKey('options-$id-choice'),
       id: 'options-$id-choice',
+      focusNode: _choiceNode(id),
+      showFocusHighlight:
+          widget.activeInputSource == PlayerInputSource.keyboard ||
+          widget.activeInputSource == PlayerInputSource.controller,
       label: value,
       semanticValue: label,
       reserveFocusMarker: false,
@@ -1112,6 +1241,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         PlayerMenuSelectableRow(
           key: ValueKey('options-binding-${control.name}-choice'),
           id: 'options-binding-${control.name}-choice',
+          focusNode: _choiceNode('binding-${control.name}'),
           label: strings.control(control),
           labelMaxLines: null,
           labelStyle: context.playerMenuTheme.label.copyWith(fontSize: 14),
@@ -1133,7 +1263,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                   final inputs = device == PlayerControlDevice.keyboard
                       ? playerKeyboardInputs.keys
                       : playerGamepadInputs;
-                  final value = await _pickBinding(
+                  final value = await _choose(
                     strings.control(control),
                     _profile.bindingFor(device, control),
                     {
@@ -1141,6 +1271,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                         input: PlayerControlProfile.glyphForInput(input),
                     },
                     (value) => value,
+                    focusAfterClose: _choiceNode('binding-${control.name}'),
                   );
                   if (value == null || !mounted) return;
                   final result = _profile.rebind(
@@ -1152,7 +1283,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                     setState(() => _controlError = strings.conflict);
                     return;
                   }
-                  await _saveProfile(result.profile);
+                  await _saveProfile(
+                    result.profile,
+                    focusAfterSave: _choiceNode('binding-${control.name}'),
+                  );
                 }
               : null,
         ),
@@ -1184,22 +1318,12 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     String title,
     T current,
     Map<T, String> values,
-    String Function(T) id,
-  ) async {
+    String Function(T) id, {
+    FocusNode? focusAfterClose,
+  }) async {
+    if (!mounted || _pending || _dialogRoute != null) return null;
     RuntimePlayerLocalActionNotification().dispatch(context);
-    final keys = values.keys.toList(growable: false);
-    if (keys.isEmpty) return null;
-    return keys[(keys.indexOf(current) + 1) % keys.length];
-  }
-
-  Future<T?> _pickBinding<T>(
-    String title,
-    T current,
-    Map<T, String> values,
-    String Function(T) id,
-  ) async {
-    RuntimePlayerLocalActionNotification().dispatch(context);
-    return _showDialog<T>(
+    final selected = await _showDialog<T>(
       builder: (dialogContext) => _dialog(
         title: title,
         children: [
@@ -1224,6 +1348,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         ],
       ),
     );
+    _restoreChoiceFocus(focusAfterClose);
+    return selected == current ? null : selected;
   }
 
   Future<T?> _showDialog<T>({required WidgetBuilder builder}) async {
@@ -1266,24 +1392,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 620),
                 child: PlayerMenuPanel(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Flexible(
-                        child: PlayerPagedList(
-                          children: [
-                            Text(
-                              title,
-                              style: context.playerMenuTheme.subtitle,
-                            ),
-                            ...children,
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ...actions,
-                    ],
+                  child: _OptionsDialogBody(
+                    title: title,
+                    actions: actions,
+                    children: children,
                   ),
                 ),
               ),
@@ -1405,6 +1517,57 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     PlayerOptionsCategory.language => Icons.language_rounded,
     PlayerOptionsCategory.accessibility => Icons.accessibility_new_rounded,
   };
+}
+
+class _OptionsDialogBody extends StatefulWidget {
+  const _OptionsDialogBody({
+    required this.title,
+    required this.children,
+    required this.actions,
+  });
+
+  final String title;
+  final List<Widget> children;
+  final List<Widget> actions;
+
+  @override
+  State<_OptionsDialogBody> createState() => _OptionsDialogBodyState();
+}
+
+class _OptionsDialogBodyState extends State<_OptionsDialogBody> {
+  double? _contentHeight;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      Flexible(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SizedBox(
+            height: _contentHeight == null
+                ? constraints.maxHeight
+                : _contentHeight!.clamp(0, constraints.maxHeight),
+            child: PlayerPagedList(
+              onContentHeightChanged: (height) {
+                if (mounted &&
+                    (_contentHeight == null ||
+                        (_contentHeight! - height).abs() > .5)) {
+                  setState(() => _contentHeight = height);
+                }
+              },
+              children: [
+                Text(widget.title, style: context.playerMenuTheme.subtitle),
+                ...widget.children,
+              ],
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 12),
+      ...widget.actions,
+    ],
+  );
 }
 
 class _OptionSettingRow extends StatelessWidget {

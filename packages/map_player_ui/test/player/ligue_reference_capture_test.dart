@@ -241,6 +241,24 @@ void main() {
                 source: 'RuntimePlayerSurfaceRouter',
               );
             }
+            if (section == RuntimePlayerPauseSection.options &&
+                (_includes(_screenFilter, 'options.general') ||
+                    _includes(_screenFilter, 'options.dropdown'))) {
+              if (mode.key != 'thor-primary') {
+                await _tap(tester, 'options-category-general');
+              }
+              if (_includes(_screenFilter, 'options.general')) {
+                await _capture(tester, mode.key, theme, 'options.general',
+                    source: 'RuntimePlayerSurfaceRouter');
+              }
+              if (mode.key != 'thor-primary' &&
+                  _includes(_screenFilter, 'options.dropdown')) {
+                await _tap(tester, 'options-text-speed-choice');
+                await _capture(tester, mode.key, theme, 'options.dropdown',
+                    source: 'RuntimePlayerSurfaceRouter');
+                await _tap(tester, 'options-choice-back');
+              }
+            }
             if (section == RuntimePlayerPauseSection.party &&
                 _includes(_screenFilter, 'pokemon.summary')) {
               if (mode.key != 'thor-primary') {
@@ -643,6 +661,7 @@ void main() {
                     : BattleCommandOverlayMode.root),
             controllerLayout:
                 _controller(mode.key) || mode.key == 'portrait-touch',
+            portraitTouchLayout: mode.key == 'portrait-touch',
           );
           final recordMotion =
               _battleMotion &&
@@ -679,6 +698,7 @@ void main() {
                     placement: placement,
                     controllerLayout:
                         _controller(mode.key) || mode.key == 'portrait-touch',
+                    portraitTouchLayout: mode.key == 'portrait-touch',
                   ),
                   display: mode.key == 'thor-primary'
                       ? PlayerBattleDisplay.hudOnly
@@ -1721,10 +1741,12 @@ BattleCommandOverlaySnapshot _battleSnapshot(
   BattleCommandOverlayMode? extraMode,
   bool forced = false,
   bool controllerLayout = false,
+  bool portraitTouchLayout = false,
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
 }) => BattleCommandOverlaySnapshot(
   commandPanelPlacement: placement,
   controllerLayout: controllerLayout,
+  portraitTouchLayout: portraitTouchLayout,
   rootCommandOrder: const [0, 2, 1, 3],
   forcedReplacement: forced,
   phase: forced

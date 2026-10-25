@@ -753,6 +753,23 @@ void main() {
       expect(() => RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport({...encoded, 'collectionColumns': invalid})), throwsFormatException);
     }
   });
+  test('portrait touch layout crosses companion transport with a legacy false fallback', () {
+    final source = _battle(BattlePresentationPhase.choosingCommand);
+    final encoded = RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(source);
+    for (final touch in [false, true]) {
+      final payload = {...encoded, 'portraitTouchLayout': touch};
+      final decoded = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(payload));
+      final duplicate = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(payload));
+      expect(decoded.portraitTouchLayout, touch);
+      expect(decoded == source, !touch);
+      expect(decoded, duplicate);
+      expect(decoded.hashCode, duplicate.hashCode);
+      expect(RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(decoded)['portraitTouchLayout'], touch);
+    }
+    final legacy = {...encoded}..remove('portraitTouchLayout');
+    expect(RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(legacy)).portraitTouchLayout, isFalse);
+  });
+
   test('battle placements cross companion transport without losing ownership geometry', () {
     for (final placement in BattleCommandPanelPlacement.values) {
       final source = _battle(BattlePresentationPhase.choosingCommand, placement: placement);

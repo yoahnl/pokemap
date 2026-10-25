@@ -735,6 +735,7 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
           payload['placement'] as String,
         ),
         controllerLayout: payload['controllerLayout'] as bool,
+        portraitTouchLayout: payload['portraitTouchLayout'] as bool? ?? false,
         rootCommandOrder: rootCommandOrder,
         collectionColumns: collectionColumns as int?,
       ),

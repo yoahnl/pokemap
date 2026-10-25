@@ -49,7 +49,7 @@ class PlayerBattleOverlay extends StatefulWidget {
 }
 
 class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
-  (BattleCommandPanelPlacement, bool, Size, int, List<int>, int?)?
+  (BattleCommandPanelPlacement, bool, Size, int, List<int>, int?, bool)?
   _lastRequestedPlacement;
   bool _moveInfoOpen = false;
   Route<void>? _moveInfoRoute;
@@ -214,6 +214,7 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
         panel.selectionColor == null;
     var placement = snapshot.commandPanelPlacement;
     var controllerLayout = snapshot.controllerLayout;
+    var portraitTouchLayout = snapshot.portraitTouchLayout;
     if (display != PlayerBattleDisplay.commandsOnly) {
       final padding = MediaQuery.paddingOf(context);
       final supportsSidePanel =
@@ -245,6 +246,13 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
           (PlayerInputScope.usesController(context) ||
               snapshot.viewportSize.width < 480 &&
                   snapshot.viewportSize.height > snapshot.viewportSize.width);
+      portraitTouchLayout =
+          canonical &&
+          compactChrome &&
+          display == PlayerBattleDisplay.full &&
+          controllerLayout &&
+          snapshot.viewportSize.height > snapshot.viewportSize.width &&
+          !PlayerInputScope.usesController(context);
     }
     final rootCommandOrder =
         snapshot.mode == BattleCommandOverlayMode.root &&
@@ -291,10 +299,12 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
       snapshot.revision,
       rootCommandOrder,
       collectionColumns,
+      portraitTouchLayout,
     );
     final acknowledged =
         snapshot.commandPanelPlacement == placement &&
         snapshot.controllerLayout == controllerLayout &&
+        snapshot.portraitTouchLayout == portraitTouchLayout &&
         listEquals(snapshot.rootCommandOrder, rootCommandOrder) &&
         snapshot.collectionColumns == collectionColumns;
     final previous = _lastRequestedPlacement;
@@ -305,7 +315,8 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
         previous.$3 == request.$3 &&
         previous.$4 == request.$4 &&
         listEquals(previous.$5, request.$5) &&
-        previous.$6 == request.$6;
+        previous.$6 == request.$6 &&
+        previous.$7 == request.$7;
     if (acknowledged) _lastRequestedPlacement = null;
     if (!acknowledged && !alreadyRequested) {
       _lastRequestedPlacement = request;
@@ -317,6 +328,7 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
             expectedMode: snapshot.mode,
             placement: placement,
             controllerLayout: controllerLayout,
+            portraitTouchLayout: portraitTouchLayout,
             rootCommandOrder: rootCommandOrder,
             collectionColumns: collectionColumns,
           ),

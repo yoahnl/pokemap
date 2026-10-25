@@ -1599,19 +1599,22 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandPanelPlacement _commandPanelPlacement = BattleCommandPanelPlacement.bottom;
 
   bool _controllerLayout = false;
+  bool _portraitTouchLayout = false;
 
   List<int> _rootCommandOrder = const [0, 1, 2, 3];
   int? _collectionColumns;
 
   bool setCommandPanelPlacement(BattleCommandPanelPlacement placement, {
     bool controllerLayout = false,
+    bool portraitTouchLayout = false,
     List<int> rootCommandOrder = const [0, 1, 2, 3],
     int? collectionColumns,
   }) {
     if (!BattleSetCommandPanelPlacementCommand.isValidRootCommandOrder(rootCommandOrder) || collectionColumns != null && collectionColumns != 1 && collectionColumns != 2) return false;
-    if (_commandPanelPlacement == placement && _controllerLayout == controllerLayout && listEquals(_rootCommandOrder, rootCommandOrder) && _rootCommandOrder.contains(_selectedRootIndex) && _collectionColumns == collectionColumns) return true;
+    if (_commandPanelPlacement == placement && _controllerLayout == controllerLayout && _portraitTouchLayout == portraitTouchLayout && listEquals(_rootCommandOrder, rootCommandOrder) && _rootCommandOrder.contains(_selectedRootIndex) && _collectionColumns == collectionColumns) return true;
     _commandPanelPlacement = placement;
     _controllerLayout = controllerLayout;
+    _portraitTouchLayout = portraitTouchLayout;
     _rootCommandOrder = List<int>.unmodifiable(rootCommandOrder);
     _collectionColumns = collectionColumns;
     if (!_rootCommandOrder.contains(_selectedRootIndex)) _selectedRootIndex = _rootCommandOrder.first;
@@ -1635,6 +1638,7 @@ class BattleOverlayComponent extends PositionComponent {
         commandPanelPlacement: _commandPanelPlacement,
         commandPanelMode: _sceneLayoutMode,
         controllerLayout: _controllerLayout,
+      portraitTouchLayout: _portraitTouchLayout,
       );
 
   @visibleForTesting
@@ -1662,6 +1666,7 @@ class BattleOverlayComponent extends PositionComponent {
       commandPanelPlacement: _commandPanelPlacement,
       commandPanelMode: _sceneLayoutMode,
       controllerLayout: _controllerLayout,
+      portraitTouchLayout: _portraitTouchLayout,
     );
     _sceneLayout = layout;
 
@@ -2027,6 +2032,7 @@ class BattleOverlayComponent extends PositionComponent {
       commandPanelPlacement: _commandPanelPlacement,
       commandPanelMode: _sceneLayoutMode,
       controllerLayout: _controllerLayout,
+      portraitTouchLayout: _portraitTouchLayout,
     );
     _sceneLayout = layout;
 
@@ -2709,6 +2715,7 @@ class BattleOverlayComponent extends PositionComponent {
       panelRect: layout.commandPanelRect,
       commandPanelPlacement: layout.commandPanelPlacement,
       controllerLayout: _controllerLayout,
+      portraitTouchLayout: _portraitTouchLayout,
       rootCommandOrder: _rootCommandOrder,
       collectionColumns: _collectionColumns,
       additionalHuds: _additionalHudSnapshots(),
@@ -2788,6 +2795,7 @@ class BattleOverlayComponent extends PositionComponent {
       panelRect: layout.commandPanelRect,
       commandPanelPlacement: layout.commandPanelPlacement,
       controllerLayout: _controllerLayout,
+      portraitTouchLayout: _portraitTouchLayout,
       rootCommandOrder: _rootCommandOrder,
       collectionColumns: _collectionColumns,
       additionalHuds: _additionalHudSnapshots(),

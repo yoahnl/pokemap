@@ -4,7 +4,7 @@ import 'package:flutter/painting.dart' show EdgeInsets;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
-import 'package:map_runtime/map_runtime.dart'
+import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart'
     show BattleCommandPanelPlacement, BattleCommandOverlayMode;
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
@@ -17,6 +17,130 @@ const _certifiedViewports = <Size>[
 ];
 
 void main() {
+  test('touch portrait preference leaves other recipes unchanged', () {
+    for (final format in [
+      (const Size(844, 390), true, BattleCommandPanelPlacement.end),
+      (const Size(768, 432), true, BattleCommandPanelPlacement.detached),
+      (const Size(390, 844), false, BattleCommandPanelPlacement.bottom),
+    ]) {
+      for (final textScale in [1.0, 2.0]) {
+        final layouts = [
+          for (final touch in [false, true])
+            BattleSceneLayout.forViewport(
+              viewportSize: format.$1,
+              controllerLayout: format.$2,
+              commandPanelPlacement: format.$3,
+              portraitTouchLayout: touch,
+              textScale: textScale,
+            ),
+        ];
+        expect(layouts[0].commandPanelRect, layouts[1].commandPanelRect);
+        expect(layouts[0].arenaRect, layouts[1].arenaRect);
+        expect(layouts[0].playerHudRect, layouts[1].playerHudRect);
+        expect(layouts[0].enemyHudRect, layouts[1].enemyHudRect);
+        expect(layouts[0].playerSpriteRect, layouts[1].playerSpriteRect);
+        expect(layouts[0].enemySpriteRect, layouts[1].enemySpriteRect);
+      }
+    }
+  });
+
+  test('portrait touch aligns the player card beside its sprite', () {
+    for (final viewport in [
+      const Size(320, 568),
+      const Size(390, 844),
+      const Size(430, 932),
+    ]) {
+      for (final safe in [
+        EdgeInsets.zero,
+        const EdgeInsets.fromLTRB(8, 32, 8, 24),
+      ]) {
+        for (final textScale in [1.0, 1.6, 2.0]) {
+          final layouts = [
+            for (final mode in [
+              BattleCommandOverlayMode.root,
+              BattleCommandOverlayMode.fight,
+            ])
+              BattleSceneLayout.forViewport(
+                viewportSize: viewport,
+                safePadding: safe,
+                controllerLayout: true,
+                portraitTouchLayout: true,
+                commandPanelMode: mode,
+                textScale: textScale,
+              ),
+          ];
+          for (final layout in layouts) {
+            final reason = '$viewport $safe text$textScale ${layout.commandPanelMode}';
+            expect(layout.playerHudRect.left, greaterThanOrEqualTo(layout.playerSpriteRect.right + 8 - .1), reason: reason);
+            expect(layout.playerHudRect.top, lessThan(layout.playerSpriteRect.bottom), reason: reason);
+            expect(layout.playerHudRect.bottom, greaterThan(layout.playerSpriteRect.top), reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.playerSpriteRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.playerPlatformRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.enemyHudRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.enemySpriteRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.right, lessThanOrEqualTo(viewport.width - safe.right), reason: reason);
+            expect(layout.playerHudRect.bottom, lessThanOrEqualTo(layout.commandPanelRect.top - 8 + .1), reason: reason);
+            expect(layout.playerSpriteRect.width, greaterThan(0), reason: reason);
+          }
+          expect(layouts[0].playerHudRect, layouts[1].playerHudRect);
+          expect(layouts[0].playerSpriteRect, layouts[1].playerSpriteRect);
+          expect(layouts[0].enemyHudRect, layouts[1].enemyHudRect);
+          expect(layouts[0].enemySpriteRect, layouts[1].enemySpriteRect);
+        }
+      }
+    }
+  });
+
+  test('landscape controller keeps the player card above its sprite', () {
+    for (final viewport in [
+      const Size(760, 360),
+      const Size(844, 390),
+      const Size(1280, 720),
+    ]) {
+      for (final safe in [
+        EdgeInsets.zero,
+        const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      ]) {
+        for (final textScale in [1.0, 1.6, 2.0]) {
+          final layouts = [
+            for (final mode in [
+              BattleCommandOverlayMode.root,
+              BattleCommandOverlayMode.fight,
+            ])
+              BattleSceneLayout.forViewport(
+                viewportSize: viewport,
+                safePadding: safe,
+                controllerLayout: true,
+                commandPanelPlacement: BattleCommandPanelPlacement.end,
+                commandPanelMode: mode,
+                textScale: textScale,
+              ),
+          ];
+          for (final layout in layouts) {
+            final reason = '$viewport $safe text$textScale ${layout.commandPanelMode}';
+            expect(
+              layout.playerHudRect.bottom,
+              lessThanOrEqualTo(layout.playerSpriteRect.top - 8 + .1),
+              reason: reason,
+            );
+            expect(layout.playerHudRect.overlaps(layout.playerSpriteRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.playerPlatformRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.enemyHudRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.enemySpriteRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse, reason: reason);
+            expect(layout.playerHudRect.top, greaterThanOrEqualTo(safe.top), reason: reason);
+            expect(layout.playerHudRect.left, greaterThanOrEqualTo(safe.left), reason: reason);
+          }
+          expect(layouts[0].playerHudRect, layouts[1].playerHudRect);
+          expect(layouts[0].playerSpriteRect, layouts[1].playerSpriteRect);
+          expect(layouts[0].enemyHudRect, layouts[1].enemyHudRect);
+          expect(layouts[0].enemySpriteRect, layouts[1].enemySpriteRect);
+        }
+      }
+    }
+  });
+
   test('compact portrait places the player below its information card', () {
     for (final viewport in [const Size(390, 844), const Size(320, 568)]) {
       for (final textScale in [1.0, 2.0]) {

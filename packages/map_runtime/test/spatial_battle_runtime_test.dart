@@ -15,6 +15,7 @@ import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_demonstration.dart';
 import 'package:map_runtime/src/presentation/flame/runtime_input_event.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_runtime.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
@@ -596,6 +597,8 @@ void main() {
   testWidgets(
       'a restarted spatial battle rejects commands from the previous battle',
       (tester) async {
+    await tester.binding.setSurfaceSize(const ui.Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final fixture = (await tester.runAsync(_fixture))!;
     final runtime = SpatialBattleRuntime(
       readGameState: () => fixture.state,
@@ -641,10 +644,44 @@ void main() {
     expect(reordered.rootCommandOrder, [0, 2, 1, 3]);
     expect(reordered.collectionColumns, 2);
     expect(reordered.entries.map((entry) => entry.index), current.entries.map((entry) => entry.index));
+    final selected = reordered.entries.singleWhere((entry) => entry.selected).index;
+    for (final touch in [true, false]) {
+      final before = runtime.battlePresentationListenable.value!;
+      expect(runtime.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(
+        snapshotRevision: before.revision,
+        expectedMode: before.mode,
+        placement: BattleCommandPanelPlacement.bottom,
+        controllerLayout: true,
+        portraitTouchLayout: touch,
+        rootCommandOrder: before.rootCommandOrder,
+        collectionColumns: before.collectionColumns,
+      )), isTrue);
+      final after = runtime.battlePresentationListenable.value!;
+      final expected = BattleSceneLayout.forViewport(
+        viewportSize: after.viewportSize,
+        commandPanelMode: after.mode,
+        controllerLayout: true,
+        portraitTouchLayout: touch,
+      );
+      expect(after.revision, greaterThan(before.revision));
+      expect(after.portraitTouchLayout, touch);
+      expect(runtime.battleOverlay!.currentSceneLayout.portraitTouchLayout, touch);
+      expect(after.playerHud.rect, expected.playerHudRect);
+      expect(after.enemyHud.rect, expected.enemyHudRect);
+      expect(after.entries.singleWhere((entry) => entry.selected).index, selected);
+      expect(runtime.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(
+        snapshotRevision: before.revision,
+        expectedMode: before.mode,
+        placement: BattleCommandPanelPlacement.bottom,
+        controllerLayout: true,
+        portraitTouchLayout: !touch,
+      )), isFalse);
+    }
+    final ready = runtime.battlePresentationListenable.value!;
     expect(
       runtime.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
-        snapshotRevision: reordered.revision,
-        expectedMode: reordered.mode,
+        snapshotRevision: ready.revision,
+        expectedMode: ready.mode,
         entryIndex: 0,
       )),
       true,

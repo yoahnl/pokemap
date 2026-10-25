@@ -2711,7 +2711,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return false;
     }
     return switch (command) {
-      BattleSetCommandPanelPlacementCommand(:final placement, :final controllerLayout, :final rootCommandOrder, :final collectionColumns) => _battleOverlay?.setCommandPanelPlacement(placement, controllerLayout: controllerLayout, rootCommandOrder: rootCommandOrder, collectionColumns: collectionColumns) ?? false,
+      BattleSetCommandPanelPlacementCommand(:final placement, :final controllerLayout, :final portraitTouchLayout, :final rootCommandOrder, :final collectionColumns) => _battleOverlay?.setCommandPanelPlacement(placement, controllerLayout: controllerLayout, portraitTouchLayout: portraitTouchLayout, rootCommandOrder: rootCommandOrder, collectionColumns: collectionColumns) ?? false,
       BattleBackCommand() => backFromBattleOverlay(),
       BattleSelectEntryCommand(:final entryIndex) => switch (snapshot.mode) {
           // Le mode decision route par selectRootEntry : l'overlay y détourne

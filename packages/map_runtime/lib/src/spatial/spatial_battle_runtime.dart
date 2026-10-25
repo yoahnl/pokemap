@@ -138,6 +138,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
             panelRect: snapshot.panelRect,
             commandPanelPlacement: snapshot.commandPanelPlacement,
             controllerLayout: snapshot.controllerLayout,
+            portraitTouchLayout: snapshot.portraitTouchLayout,
             rootCommandOrder: snapshot.rootCommandOrder,
             collectionColumns: snapshot.collectionColumns,
             enemyHud: snapshot.enemyHud,
@@ -172,7 +173,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       return false;
     }
     return switch (command) {
-      BattleSetCommandPanelPlacementCommand(:final placement, :final controllerLayout, :final rootCommandOrder, :final collectionColumns) => overlay.setCommandPanelPlacement(placement, controllerLayout: controllerLayout, rootCommandOrder: rootCommandOrder, collectionColumns: collectionColumns),
+      BattleSetCommandPanelPlacementCommand(:final placement, :final controllerLayout, :final portraitTouchLayout, :final rootCommandOrder, :final collectionColumns) => overlay.setCommandPanelPlacement(placement, controllerLayout: controllerLayout, portraitTouchLayout: portraitTouchLayout, rootCommandOrder: rootCommandOrder, collectionColumns: collectionColumns),
       BattleBackCommand() => overlay.handleEscape(),
       BattleSelectEntryCommand(:final entryIndex) => switch (snapshot.mode) {
           BattleCommandOverlayMode.root ||

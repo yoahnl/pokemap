@@ -16,6 +16,43 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  for (final source in [PlayerInputSource.touch, PlayerInputSource.controller]) {
+    testWidgets('portrait layout acknowledges the actual input source $source', (tester) async {
+      const viewport = Size(390, 844);
+      await tester.binding.setSurfaceSize(viewport);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final touch = source == PlayerInputSource.touch;
+      final commands = <BattlePresentationCommand>[];
+      await _pumpOverlay(
+        tester,
+        source: source,
+        snapshot: _rootSnapshot(
+          viewportSize: viewport,
+          controllerLayout: true,
+          portraitTouchLayout: !touch,
+        ),
+        onCommand: commands.add,
+      );
+      final request = commands.single as BattleSetCommandPanelPlacementCommand;
+      expect(request.controllerLayout, isTrue);
+      expect(request.portraitTouchLayout, touch);
+      commands.clear();
+      await _pumpOverlay(
+        tester,
+        source: source,
+        snapshot: _rootSnapshot(
+          viewportSize: viewport,
+          controllerLayout: true,
+          portraitTouchLayout: touch,
+        ),
+        onCommand: commands.add,
+      );
+      await tester.pumpAndSettle();
+      expect(commands, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets(
     'portrait touch acknowledges compact commands without changing authored padding',
     (tester) async {
@@ -34,11 +71,12 @@ void main() {
       expect(commands, hasLength(1));
       final request = commands.single as BattleSetCommandPanelPlacementCommand;
       expect(request.controllerLayout, isTrue);
+      expect(request.portraitTouchLayout, isTrue);
       expect(request.placement, BattleCommandPanelPlacement.bottom);
       commands.clear();
       await _pumpOverlay(
         tester,
-        snapshot: _rootSnapshot(viewportSize: viewport, controllerLayout: true),
+        snapshot: _rootSnapshot(viewportSize: viewport, controllerLayout: true, portraitTouchLayout: true),
         onCommand: commands.add,
       );
       await tester.pumpAndSettle();
@@ -66,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         commands.whereType<BattleSetCommandPanelPlacementCommand>().every(
-          (command) => !command.controllerLayout,
+          (command) => !command.controllerLayout && !command.portraitTouchLayout,
         ),
         isTrue,
       );
@@ -222,6 +260,7 @@ void main() {
             viewportSize: format.$2,
             placement: placement,
             controllerLayout: format.$3 == PlayerBattleDisplay.full,
+            portraitTouchLayout: false,
             mode: format.$4,
             acknowledgeCollectionColumns: acknowledged,
             collectionColumns: acknowledged ? format.$5 : null,
@@ -364,6 +403,7 @@ void main() {
             viewportSize: const Size(320, 568),
             mode: mode,
             controllerLayout: true,
+            portraitTouchLayout: false,
             entries: [
               for (var index = 0; index < 6; index++)
                 BattleCommandOverlayEntry(
@@ -513,6 +553,9 @@ void main() {
               viewportSize: format.$1,
               placement: format.$4,
               controllerLayout: format.$5 || format.$1.height > format.$1.width,
+              portraitTouchLayout: format.$2 == PlayerInputSource.touch &&
+                  format.$1.height > format.$1.width &&
+                  format.$3 == PlayerBattleDisplay.full,
               rootCommandOrder: order,
               entries: entries,
             ),
@@ -721,6 +764,7 @@ void main() {
             snapshot: _rootSnapshot(
               viewportSize: viewport,
               controllerLayout: true,
+              portraitTouchLayout: false,
               placement: BattleCommandPanelPlacement.end,
               entries: entries,
             ),
@@ -1152,6 +1196,9 @@ void main() {
             snapshot: _snapshot(
               viewportSize: layout.$2,
               placement: layout.$5,
+              portraitTouchLayout: layout.$3 == PlayerInputSource.touch &&
+                  layout.$2.height > layout.$2.width &&
+                  layout.$4 == PlayerBattleDisplay.full,
               controllerLayout:
                   layout.$3 == PlayerInputSource.controller ||
                   layout.$2.height > layout.$2.width,
@@ -1361,6 +1408,9 @@ void main() {
               snapshot: _snapshot(
                 viewportSize: mode.$2,
                 placement: mode.$5,
+                portraitTouchLayout: mode.$3 == PlayerInputSource.touch &&
+                    mode.$2.height > mode.$2.width &&
+                    mode.$4 == PlayerBattleDisplay.full,
                 controllerLayout:
                     (mode.$3 == PlayerInputSource.controller ||
                         mode.$2.height > mode.$2.width) &&
@@ -1458,6 +1508,9 @@ void main() {
           final snapshot = _decisionSnapshot(
             viewportSize: mode.$2,
             placement: mode.$5,
+            portraitTouchLayout: mode.$3 == PlayerInputSource.touch &&
+                mode.$2.height > mode.$2.width &&
+                mode.$4 == PlayerBattleDisplay.full,
             controllerLayout:
                 (mode.$3 == PlayerInputSource.controller ||
                     mode.$2.height > mode.$2.width) &&
@@ -1887,6 +1940,7 @@ void main() {
             snapshot: BattleCommandOverlaySnapshot(
               revision: 32,
               controllerLayout: viewport.height > viewport.width,
+              portraitTouchLayout: viewport.height > viewport.width,
               mode: BattleCommandOverlayMode.moveTarget,
               viewportSize: viewport,
               panelRect: layout.commandPanelRect,
@@ -4206,6 +4260,7 @@ BattleCommandOverlaySnapshot _snapshot({
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
   EdgeInsets safePadding = EdgeInsets.zero,
   bool? controllerLayout,
+  bool? portraitTouchLayout,
   bool acknowledgeCollectionColumns = true,
   int? collectionColumns,
   Size viewportSize = const Size(800, 600),
@@ -4232,17 +4287,22 @@ BattleCommandOverlaySnapshot _snapshot({
 }) {
   controllerLayout ??=
       viewportSize.width < 480 && viewportSize.height > viewportSize.width;
+  portraitTouchLayout ??= controllerLayout &&
+      viewportSize.height > viewportSize.width &&
+      placement != BattleCommandPanelPlacement.detached;
   final layout = BattleSceneLayout.forViewport(
     viewportSize: viewportSize,
     safePadding: safePadding,
     commandPanelPlacement: placement,
     commandPanelMode: mode,
     controllerLayout: controllerLayout,
+    portraitTouchLayout: portraitTouchLayout,
   );
   return BattleCommandOverlaySnapshot(
     revision: 9,
     commandPanelPlacement: layout.commandPanelPlacement,
     controllerLayout: controllerLayout,
+    portraitTouchLayout: portraitTouchLayout,
     collectionColumns:
         collectionColumns ??
         (acknowledgeCollectionColumns &&
@@ -4345,15 +4405,20 @@ BattleCommandOverlaySnapshot _decisionSnapshot({
   Rect? panelRect,
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
   bool controllerLayout = false,
+  bool? portraitTouchLayout,
   String prompt = 'Brindibou peut apprendre Vive-Attaque.',
   List<String> labels = const ['Apprendre', 'Ne pas apprendre'],
   List<int>? indices,
 }) {
+  portraitTouchLayout ??= controllerLayout &&
+      viewportSize.height > viewportSize.width &&
+      placement != BattleCommandPanelPlacement.detached;
   final layout = BattleSceneLayout.forViewport(
     viewportSize: viewportSize,
     commandPanelPlacement: placement,
     commandPanelMode: BattleCommandOverlayMode.decision,
     controllerLayout: controllerLayout,
+    portraitTouchLayout: portraitTouchLayout,
   );
   return BattleCommandOverlaySnapshot(
     revision: 12,
@@ -4362,6 +4427,7 @@ BattleCommandOverlaySnapshot _decisionSnapshot({
     panelRect: panelRect ?? layout.commandPanelRect,
     commandPanelPlacement: layout.commandPanelPlacement,
     controllerLayout: controllerLayout,
+    portraitTouchLayout: portraitTouchLayout,
     enemyHud: _hud(
       rect: layout.enemyHudRect,
       owner: 'ENNEMI',
@@ -4401,6 +4467,7 @@ BattleCommandOverlaySnapshot _rootSnapshot({
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
   Size viewportSize = const Size(800, 600),
   bool? controllerLayout,
+  bool? portraitTouchLayout,
   BattlePresentationPhase phase = BattlePresentationPhase.choosingCommand,
   bool interactionsEnabled = true,
   List<int> rootCommandOrder = const [0, 2, 1, 3],
@@ -4412,16 +4479,21 @@ BattleCommandOverlaySnapshot _rootSnapshot({
 }) {
   controllerLayout ??=
       viewportSize.width < 480 && viewportSize.height > viewportSize.width;
+  portraitTouchLayout ??= controllerLayout &&
+      viewportSize.height > viewportSize.width &&
+      placement != BattleCommandPanelPlacement.detached;
   final layout = BattleSceneLayout.forViewport(
     viewportSize: viewportSize,
     commandPanelPlacement: placement,
     commandPanelMode: BattleCommandOverlayMode.root,
     controllerLayout: controllerLayout,
+    portraitTouchLayout: portraitTouchLayout,
   );
   return BattleCommandOverlaySnapshot(
     revision: 12,
     commandPanelPlacement: layout.commandPanelPlacement,
     controllerLayout: controllerLayout,
+    portraitTouchLayout: portraitTouchLayout,
     rootCommandOrder: rootCommandOrder,
     phase: phase,
     mode: BattleCommandOverlayMode.root,

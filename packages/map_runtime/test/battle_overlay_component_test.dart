@@ -1041,6 +1041,50 @@ void main() {
       }
     });
 
+    test('portrait touch preference republishes geometry without selecting an entry', () async {
+      final choices = <PlayerBattleChoice>[];
+      final published = <BattleCommandOverlaySnapshot?>[];
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(
+          player: _combatant(speciesId: 'sproutle', lineupIndex: 0, moves: [_tackle()]),
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_tackle()]),
+        ),
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: choices.add,
+        onCommandOverlaySnapshotChanged: published.add,
+      );
+      await loadFlameComponent(overlay);
+      final initial = overlay.currentCommandOverlaySnapshot!;
+      final selected = initial.entries.singleWhere((entry) => entry.selected).index;
+      var revision = initial.revision;
+      for (final touch in [false, true, false]) {
+        expect(overlay.setCommandPanelPlacement(
+          BattleCommandPanelPlacement.bottom,
+          controllerLayout: true,
+          portraitTouchLayout: touch,
+        ), isTrue);
+        final snapshot = overlay.currentCommandOverlaySnapshot!;
+        final expected = BattleSceneLayout.forViewport(
+          viewportSize: const ui.Size(390, 844),
+          commandPanelMode: snapshot.mode,
+          controllerLayout: true,
+          portraitTouchLayout: touch,
+        );
+        expect(snapshot.revision, greaterThan(revision));
+        revision = snapshot.revision;
+        expect(snapshot.portraitTouchLayout, touch);
+        expect(published.last!.portraitTouchLayout, touch);
+        expect(overlay.currentSceneLayout.portraitTouchLayout, touch);
+        expect(snapshot.playerHud.rect, expected.playerHudRect);
+        expect(snapshot.enemyHud.rect, expected.enemyHudRect);
+        expect(overlay.currentSceneLayout.playerSpriteRect, expected.playerSpriteRect);
+        expect(snapshot.entries.map((entry) => entry.index), initial.entries.map((entry) => entry.index));
+        expect(snapshot.entries.singleWhere((entry) => entry.selected).index, selected);
+        expect(choices, isEmpty);
+      }
+    });
+
     test('published root order drives visual directions without changing canonical entry identities', () async {
       final choices = <PlayerBattleChoice>[];
       final overlay = BattleOverlayComponent(

@@ -286,6 +286,7 @@ class BattleCommandOverlaySnapshot {
     this.revision = 0,
     this.commandPanelPlacement = BattleCommandPanelPlacement.bottom,
     this.controllerLayout = false,
+    this.portraitTouchLayout = false,
     this.rootCommandOrder = const [0, 1, 2, 3],
     this.collectionColumns,
     this.phase = BattlePresentationPhase.choosingCommand,
@@ -314,6 +315,7 @@ class BattleCommandOverlaySnapshot {
   final int revision;
   final BattleCommandPanelPlacement commandPanelPlacement;
   final bool controllerLayout;
+  final bool portraitTouchLayout;
   final List<int> rootCommandOrder;
   final int? collectionColumns;
   final BattlePresentationPhase phase;
@@ -348,6 +350,7 @@ class BattleCommandOverlaySnapshot {
         other.revision == revision &&
         other.commandPanelPlacement == commandPanelPlacement &&
         other.controllerLayout == controllerLayout &&
+        other.portraitTouchLayout == portraitTouchLayout &&
         listEquals(other.rootCommandOrder, rootCommandOrder) &&
         other.collectionColumns == collectionColumns &&
         other.phase == phase &&
@@ -374,6 +377,7 @@ class BattleCommandOverlaySnapshot {
     revision,
     commandPanelPlacement,
     controllerLayout,
+    portraitTouchLayout,
     Object.hashAll(rootCommandOrder),
     collectionColumns,
     phase,
@@ -434,12 +438,14 @@ final class BattleSetCommandPanelPlacementCommand
     required super.expectedMode,
     required this.placement,
     this.controllerLayout = false,
+    this.portraitTouchLayout = false,
     this.rootCommandOrder = const [0, 1, 2, 3],
     this.collectionColumns,
   });
 
   final BattleCommandPanelPlacement placement;
   final bool controllerLayout;
+  final bool portraitTouchLayout;
   final List<int> rootCommandOrder;
   final int? collectionColumns;
 

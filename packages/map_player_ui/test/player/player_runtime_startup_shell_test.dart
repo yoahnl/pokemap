@@ -618,10 +618,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('options-locale-choice')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('options-choice-en')));
+    await tester.pumpAndSettle();
     expect(player.preferences!.locale, 'en');
     expect(Localizations.localeOf(tester.element(options)).languageCode, 'en');
     expect(find.text('Language'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('options-locale-choice')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('options-choice-fr')));
     await tester.pumpAndSettle();
     expect(player.preferences!.locale, 'fr');
     expect(Localizations.localeOf(tester.element(options)).languageCode, 'fr');

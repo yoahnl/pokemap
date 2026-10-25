@@ -176,11 +176,6 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
   );
 
   Widget _build(BuildContext context) {
-    final menu = PokeMapPlayerMenuTheme.resolve(
-      context,
-      role: ProjectPresentationSurfaceRole.dialogue,
-      opaque: true,
-    );
     final ligue =
         context.playerDialogueProfile == null &&
         context.playerWindowTheme == null;
@@ -329,22 +324,7 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
         },
       ),
     );
-    return ligue
-        ? Stack(
-            fit: StackFit.expand,
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: ColoredBox(
-                    key: const ValueKey('player-dialogue-ligue-backdrop'),
-                    color: menu.shadow.withValues(alpha: .3),
-                  ),
-                ),
-              ),
-              surface,
-            ],
-          )
-        : surface;
+    return surface;
   }
 }
 

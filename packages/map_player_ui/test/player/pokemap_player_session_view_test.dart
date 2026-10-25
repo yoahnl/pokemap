@@ -213,6 +213,8 @@ void main() {
           expect(find.byKey(const ValueKey('options-text-speed-choice')), findsOneWidget);
           await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')));
           await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('options-choice-fast')));
+          await tester.pumpAndSettle();
           expect(controller.commands.single.action, RuntimePlayerAction.updatePreferences);
           await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
           await tester.pumpAndSettle();
@@ -2286,6 +2288,9 @@ void main() {
               .activeInputSource,
           PlayerInputSource.keyboard);
       await tester.tap(find.byKey(const ValueKey('options-text-speed-choice')),
+          kind: ui.PointerDeviceKind.touch);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('options-choice-fast')),
           kind: ui.PointerDeviceKind.touch);
       await tester.pumpAndSettle();
       expect(

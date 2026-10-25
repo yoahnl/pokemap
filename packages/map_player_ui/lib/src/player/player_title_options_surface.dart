@@ -102,15 +102,18 @@ class _PlayerTitleOptionsSurfaceState extends State<PlayerTitleOptionsSurface> {
                   ),
                   footer: Padding(
                     padding: const EdgeInsets.all(PlayerSpacing.sm),
-                    child: PlayerActionButton(
-                      key: const ValueKey<String>(
-                        'runtime-player-title-options-back',
+                    child: _navigation.buildActions(
+                      context,
+                      returnAction: PlayerActionButton(
+                        key: const ValueKey<String>(
+                          'runtime-player-title-options-back',
+                        ),
+                        label: context.playerL10n.back,
+                        icon: Icons.arrow_back_rounded,
+                        secondary: true,
+                        labelMaxLines: 3,
+                        onPressed: widget.onReturnToTitle,
                       ),
-                      label: context.playerL10n.returnToTitle,
-                      icon: Icons.arrow_back_rounded,
-                      secondary: true,
-                      labelMaxLines: 3,
-                      onPressed: widget.onReturnToTitle,
                     ),
                   ),
                   child: child!,

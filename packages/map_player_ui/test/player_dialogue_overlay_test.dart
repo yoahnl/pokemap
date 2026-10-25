@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -6,6 +9,44 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final dark in [false, true]) {
+    for (final choices in [false, true]) {
+      testWidgets('dialogue preserves world brightness dark=$dark choices=$choices', (tester) async {
+        const world = Color(0xFF72B68A);
+        final key = GlobalKey();
+        final commands = <DialoguePresentationCommand>[];
+        await tester.pumpWidget(MaterialApp(
+          theme: dark ? PokeMapPlayerTheme.dark(reducedMotion: true) : PokeMapPlayerTheme.light(reducedMotion: true),
+          home: Scaffold(body: RepaintBoundary(key: key, child: Stack(fit: StackFit.expand, children: [
+            const ColoredBox(color: world),
+            PlayerDialogueOverlay(
+              snapshot: choices ? DialoguePresentationSnapshot(
+                revision: 31, mode: DialoguePresentationMode.choices,
+                nodeTitle: 'route', speaker: 'Léa', text: 'Tu viens ?', fullText: 'Tu viens ?',
+                isCurrentLineFullyRevealed: true, isLastContent: false,
+                choices: const [DialoguePresentationChoice(index: 0, label: 'Oui', selected: true)],
+              ) : _lineSnapshot(),
+              onCommand: commands.add,
+            ),
+          ]))),
+        ));
+        await tester.pumpAndSettle();
+        final boundary = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final pixels = await tester.runAsync(() async {
+          final image = await boundary.toImage();
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+          image.dispose();
+          return bytes!;
+        });
+        final offset = (20 * boundary.size.width.round() + 20) * 4;
+        expect([for (var channel = 0; channel < 4; channel++) pixels!.getUint8(offset + channel)], [0x72, 0xB6, 0x8A, 0xFF]);
+        await tester.tapAt(const Offset(20, 20));
+        expect(commands, isEmpty);
+        expect(find.byKey(const ValueKey('player-dialogue-ligue-panel')), findsOneWidget);
+      });
+    }
+  }
+
   testWidgets('Ligue dialogue preserves an authored surface palette', (
     tester,
   ) async {

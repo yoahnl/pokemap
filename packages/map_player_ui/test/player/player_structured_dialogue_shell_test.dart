@@ -206,8 +206,7 @@ void main() {
         results: results,
       ),
     );
-    await tester.pump();
-    await tester.pump();
+    await tester.pumpAndSettle();
     final option = find.text('Nord');
     await tester.tap(option);
     await tester.tap(option, warnIfMissed: false);

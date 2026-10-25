@@ -55,6 +55,7 @@ final class BattleSceneLayout {
     required this.commandPanelPlacement,
     required this.commandPanelMode,
     required this.controllerLayout,
+    required this.portraitTouchLayout,
     required this.stageRect,
     required this.commandPanelRect,
     required this.enemyHudRect,
@@ -79,6 +80,7 @@ final class BattleSceneLayout {
   final BattleCommandPanelPlacement commandPanelPlacement;
   final BattleCommandOverlayMode commandPanelMode;
   final bool controllerLayout;
+  final bool portraitTouchLayout;
   final Rect stageRect;
   final Rect commandPanelRect;
   final Rect enemyHudRect;
@@ -209,6 +211,7 @@ final class BattleSceneLayout {
     double textScale = 1.0,
     BattleCommandOverlayMode commandPanelMode = BattleCommandOverlayMode.fight,
     bool controllerLayout = false,
+    bool portraitTouchLayout = false,
     BattleCommandPanelPlacement commandPanelPlacement =
         BattleCommandPanelPlacement.bottom,
   }) {
@@ -242,6 +245,7 @@ final class BattleSceneLayout {
         textScale: textScale,
         commandPanelMode: BattleCommandOverlayMode.fight,
         controllerLayout: controllerLayout,
+        portraitTouchLayout: portraitTouchLayout,
         commandPanelPlacement: isPortrait
             ? BattleCommandPanelPlacement.bottom
             : BattleCommandPanelPlacement.end,
@@ -328,6 +332,7 @@ final class BattleSceneLayout {
             : BattleCommandPanelPlacement.end,
         commandPanelMode: commandPanelMode,
         controllerLayout: controllerLayout,
+        portraitTouchLayout: portraitTouchLayout,
         stageRect: arena,
         commandPanelRect: panel,
         enemyHudRect: _growHudRect(
@@ -451,6 +456,7 @@ final class BattleSceneLayout {
             : BattleCommandPanelPlacement.end,
         commandPanelMode: commandPanelMode,
         controllerLayout: controllerLayout,
+        portraitTouchLayout: portraitTouchLayout,
         stageRect: arena,
         commandPanelRect: panel,
         enemyHudRect: _growHudRect(
@@ -643,10 +649,17 @@ final class BattleSceneLayout {
       );
       final playerHud = Rect.fromLTWH(
         sidePanel
-            ? 11 * scale
+            ? compactController
+                  ? sceneRect.left + 11 * scale
+                  : 11 * scale
             : viewportSize.width - playerHudSize.width - 24 * scale,
         sidePanel
-            ? viewportSize.height - (19 * scale) - playerHudSize.height
+            ? compactController
+                  ? viewportSize.height -
+                        (77 + 134) * scale -
+                        8 -
+                        playerHudSize.height
+                  : viewportSize.height - (19 * scale) - playerHudSize.height
             : viewportSize.height -
                   playerHudSize.height -
                   ((detachedMessage ? 120 : 20) * scale),
@@ -723,15 +736,17 @@ final class BattleSceneLayout {
       final playerHudCandidate = _growHudRect(
         base: playerHud,
         textScale: textScale,
-        bounds: Offset.zero & viewportSize,
+        bounds: compactController ? sceneRect : Offset.zero & viewportSize,
         obstacles: [
-          playerSprite.expandToInclude(playerPlatform),
+          compactController
+              ? playerSprite.expandToInclude(playerPlatform).inflate(8)
+              : playerSprite.expandToInclude(playerPlatform),
           enemySprite.expandToInclude(enemyPlatform),
-          enemyHud,
+          compactController ? grownEnemyHud : enemyHud,
           growthObstacle,
         ],
       );
-      final grownPlayerHud = sidePanel
+      final grownPlayerHud = sidePanel && !compactController
           ? Rect.fromLTRB(
               playerHudCandidate.left,
               math.max(playerHudCandidate.top, playerHud.top),
@@ -750,6 +765,7 @@ final class BattleSceneLayout {
         commandPanelPlacement: effectivePlacement,
         commandPanelMode: commandPanelMode,
         controllerLayout: controllerLayout,
+        portraitTouchLayout: portraitTouchLayout,
         stageRect: sceneRect.deflate(8),
         commandPanelRect: commandPanelRect,
         enemyHudRect: grownEnemyHud,
@@ -793,6 +809,7 @@ final class BattleSceneLayout {
         40.5 * visualScale,
       );
       final loweredPortrait = compactController && isPortrait;
+      final touchPortrait = loweredPortrait && portraitTouchLayout;
       final portraitSpriteScale = math.min(
         visualScale,
         math.max(
@@ -801,15 +818,32 @@ final class BattleSceneLayout {
             ) /
             246.3,
       );
+      final touchPlayerLeft = math.max(28 * visualScale, safePadding.left + 8);
+      final touchHudLeft =
+          viewportSize.width -
+          math.max(14 * visualScale, safePadding.right + 8) -
+          218 * visualScale;
+      final touchPlayerHeight = math.min(
+        137 * portraitSpriteScale,
+        math.max(0, touchHudLeft - 8 - touchPlayerLeft) * 137 / 147,
+      );
+      final touchHudTop = math.min(
+        scenePanelTop - 8 - 68.25 * visualScale,
+        scenePanelTop - 8 - (touchPlayerHeight + 68.25 * visualScale) / 2,
+      );
       final playerHud = Rect.fromLTWH(
-        viewportSize.width -
-            ((isPortrait ? 14 : 24) + (isPortrait ? 218 : 210)) * visualScale,
+        touchPortrait
+            ? touchHudLeft
+            : viewportSize.width -
+                  ((isPortrait ? 14 : 24) + (isPortrait ? 218 : 210)) * visualScale,
         isPortrait
             ? loweredPortrait
-                  ? scenePanelTop -
-                        16 -
-                        68.25 * visualScale -
-                        137 * portraitSpriteScale
+                  ? touchPortrait
+                        ? touchHudTop
+                        : scenePanelTop -
+                              16 -
+                              68.25 * visualScale -
+                              137 * portraitSpriteScale
                   : scenePanelTop - (30 + 68.25) * visualScale
             : math.min(
                     viewportSize.height - 142 * visualScale,
@@ -826,7 +860,9 @@ final class BattleSceneLayout {
             16,
       );
       final playerHeight = math.min(
-        isPortrait
+        touchPortrait
+            ? touchPlayerHeight
+            : isPortrait
             ? 137 * (loweredPortrait ? portraitSpriteScale : visualScale)
             : 126.3 * visualScale,
         availableSpriteHeight,
@@ -845,7 +881,7 @@ final class BattleSceneLayout {
               scenePanelTop - 8 * visualScale,
             );
       final playerSprite = Rect.fromLTWH(
-        (isPortrait ? 28 : 140.6) * visualScale,
+        touchPortrait ? touchPlayerLeft : (isPortrait ? 28 : 140.6) * visualScale,
         playerBottom - playerHeight,
         playerWidth,
         playerHeight,
@@ -891,10 +927,16 @@ final class BattleSceneLayout {
         enemyWidth * .7,
         12 * visualScale,
       );
+      final touchBounds = Rect.fromLTRB(
+        safePadding.left + 8,
+        safePadding.top + 8,
+        viewportSize.width - safePadding.right - 8,
+        scenePanelTop - 8,
+      );
       final enemyGrown = _growHudRect(
         base: enemyHud,
         textScale: textScale,
-        bounds: arena,
+        bounds: touchPortrait ? touchBounds : arena,
         obstacles: [
           playerSprite.expandToInclude(playerPlatform),
           enemySprite.expandToInclude(enemyPlatform),
@@ -904,13 +946,15 @@ final class BattleSceneLayout {
       final playerGrown = _growHudRect(
         base: playerHud,
         textScale: textScale,
-        bounds: arena,
+        bounds: touchPortrait ? touchBounds : arena,
         obstacles: [
           loweredPortrait
               ? playerSprite.expandToInclude(playerPlatform).inflate(8)
               : playerSprite.expandToInclude(playerPlatform),
-          enemySprite.expandToInclude(enemyPlatform),
-          enemyHud,
+          touchPortrait
+              ? enemySprite.expandToInclude(enemyPlatform).inflate(8)
+              : enemySprite.expandToInclude(enemyPlatform),
+          touchPortrait ? enemyGrown : enemyHud,
         ],
       );
       return BattleSceneLayout._(
@@ -924,6 +968,7 @@ final class BattleSceneLayout {
         commandPanelPlacement: effectivePlacement,
         commandPanelMode: commandPanelMode,
         controllerLayout: controllerLayout,
+        portraitTouchLayout: portraitTouchLayout,
         stageRect: Rect.fromLTRB(
           arena.left + portraitSafeMargin,
           arena.top + 14,
@@ -1255,6 +1300,7 @@ final class BattleSceneLayout {
       commandPanelPlacement: effectivePlacement,
       commandPanelMode: commandPanelMode,
       controllerLayout: controllerLayout,
+        portraitTouchLayout: portraitTouchLayout,
       stageRect: stageRect,
       commandPanelRect: commandPanelRect,
       enemyHudRect: grownEnemyHudRect,

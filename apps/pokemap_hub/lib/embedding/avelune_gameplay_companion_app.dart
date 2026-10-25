@@ -438,6 +438,8 @@ class _AveluneGameplayCompanionAppState
         if (command is BattleSetCommandPanelPlacementCommand)
           'controllerLayout': command.controllerLayout,
         if (command is BattleSetCommandPanelPlacementCommand)
+          'portraitTouchLayout': command.portraitTouchLayout,
+        if (command is BattleSetCommandPanelPlacementCommand)
           'rootCommandOrder': command.rootCommandOrder,
         if (command is BattleSetCommandPanelPlacementCommand)
           'collectionColumns': command.collectionColumns,

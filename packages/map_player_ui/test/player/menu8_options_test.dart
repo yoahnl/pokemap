@@ -10,6 +10,254 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final width in [320.0, 390.0]) {
+    testWidgets(
+      'title options keep neighbour names complete at width$width text2',
+      (tester) async {
+        await _loadFonts(tester);
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = Size(width, 844);
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: const Locale('fr'),
+            supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+            localizationsDelegates:
+                PokeMapPlayerLocalizations.localizationsDelegates,
+            theme: PokeMapPlayerTheme.dark(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: const TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: PlayerTitleOptionsSurface(
+              snapshot: RuntimePlayerSnapshot(
+                revision: 1,
+                phase: RuntimePlayerPhase.title,
+                gameTitle: 'Aube',
+                pauseSection: RuntimePlayerPauseSection.options,
+                preferences: _preferences,
+                actions: const [
+                  RuntimePlayerActionAvailability.enabled(
+                    RuntimePlayerAction.openOptions,
+                  ),
+                  RuntimePlayerActionAvailability.enabled(
+                    RuntimePlayerAction.updatePreferences,
+                  ),
+                  RuntimePlayerActionAvailability.enabled(
+                    RuntimePlayerAction.returnToTitle,
+                  ),
+                ],
+              ),
+              onReturnToTitle: () {},
+              onPreferencesChanged: (_) {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        for (final id in ['previous', 'next']) {
+          final button = find.byKey(ValueKey('options-category-$id'));
+          expect(button.hitTestable(), findsOneWidget);
+          expect(tester.getSize(button).width, greaterThanOrEqualTo(48));
+          expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+          for (final element
+              in find
+                  .descendant(of: button, matching: find.byType(RichText))
+                  .evaluate()) {
+            expect(
+              (element.renderObject! as RenderParagraph).didExceedMaxLines,
+              isFalse,
+              reason: '$id at $width',
+            );
+          }
+        }
+        expect(find.text('Accessibilité'), findsOneWidget);
+        expect(find.text('Affichage'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'cancelled dropdown returns keyboard focus to its invoking choice',
+    (tester) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      await _pump(tester, size: const Size(390, 844), onChanged: changes.add);
+      final choice = find.byKey(const ValueKey('options-text-speed-choice'));
+      await _tap(tester, 'options-text-speed-choice');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+      expect(changes, isEmpty);
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(choice)
+            .focusNode!
+            .hasPrimaryFocus,
+        isTrue,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('options-menu-effects-choice')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'portrait dropdown keeps four choices readable at double text scale',
+    (tester) async {
+      await _pump(tester, size: const Size(390, 844), scale: 2);
+      await _tap(tester, 'options-text-speed-choice');
+      final dialog = find.byType(Dialog);
+      final panel = find.descendant(
+        of: dialog,
+        matching: find.byType(PlayerMenuPanel),
+      );
+      expect(tester.getSize(panel).height, lessThanOrEqualTo(812));
+      for (final id in ['slow', 'normal', 'fast', 'instant']) {
+        final row = find.byKey(ValueKey('options-choice-$id'));
+        expect(row.hitTestable(), findsOneWidget);
+        expect(tester.getSize(row).height, greaterThanOrEqualTo(48));
+        for (final element
+            in find
+                .descendant(of: row, matching: find.byType(RichText))
+                .evaluate()) {
+          expect(
+            (element.renderObject! as RenderParagraph).didExceedMaxLines,
+            isFalse,
+          );
+        }
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'portrait dropdown sizes its four choices without an empty lower panel',
+    (tester) async {
+      await _pump(
+        tester,
+        size: const Size(390, 844),
+        activeInputSource: PlayerInputSource.touch,
+      );
+      await _tap(tester, 'options-text-speed-choice');
+      final dialog = find.byType(Dialog);
+      final panel = find.descendant(
+        of: dialog,
+        matching: find.byType(PlayerMenuPanel),
+      );
+      expect(panel, findsOneWidget);
+      expect(tester.getSize(panel).height, lessThanOrEqualTo(380));
+      final lastChoice = find.byKey(const ValueKey('options-choice-instant'));
+      final back = find.byKey(const ValueKey('options-choice-back'));
+      expect(lastChoice.hitTestable(), findsOneWidget);
+      expect(back.hitTestable(), findsOneWidget);
+      expect(
+        tester.getRect(back).top - tester.getRect(lastChoice).bottom,
+        lessThanOrEqualTo(24),
+      );
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.byKey(const ValueKey('player-page-next')),
+        ),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
+    testWidgets(
+      'integrated category neighbours stay visible and navigate at $size',
+      (tester) async {
+        await _pumpIntegrated(tester, size, input: PlayerInputSource.touch);
+        final previous = find.byKey(
+          const ValueKey('options-category-previous'),
+        );
+        final next = find.byKey(const ValueKey('options-category-next'));
+        expect(previous.hitTestable(), findsOneWidget);
+        expect(next.hitTestable(), findsOneWidget);
+        for (final target in [previous, next]) {
+          expect(tester.getSize(target).width, greaterThanOrEqualTo(48));
+          expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
+        }
+        expect(
+          find.descendant(of: previous, matching: find.text('Accessibilité')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: next, matching: find.text('Affichage')),
+          findsOneWidget,
+        );
+        await tester.tap(next);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('options-menu-effects-choice')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: previous, matching: find.text('Général')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: next, matching: find.text('Son')),
+          findsOneWidget,
+        );
+        await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('options-text-speed-choice')),
+          findsOneWidget,
+        );
+        expect(find.byType(Scrollable), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  testWidgets(
+    'dropdown opens published choices before changing the preference',
+    (tester) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      await _pump(
+        tester,
+        size: const Size(390, 844),
+        activeInputSource: PlayerInputSource.touch,
+        onChanged: changes.add,
+      );
+      await _tap(tester, 'options-text-speed-choice');
+      expect(changes, isEmpty);
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('options-choice-normal')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('options-choice-instant')),
+        findsOneWidget,
+      );
+      await _tap(tester, 'options-choice-instant');
+      expect(
+        changes.single.dialogueTextSpeed,
+        RuntimeDialogueTextSpeed.instant,
+      );
+      expect(find.byType(Dialog), findsNothing);
+      await _tap(tester, 'options-text-speed-choice');
+      await _tap(tester, 'options-choice-back');
+      expect(changes, hasLength(1));
+      expect(find.text('Instantanée'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final size in [
     const Size(390, 844),
     const Size(844, 390),
@@ -263,47 +511,49 @@ void main() {
     );
   }
 
-  testWidgets('simple choices persist inline and never open a dialog', (
-    tester,
-  ) async {
-    final changes = <PlayerPreferencesSnapshot>[];
-    await _pump(tester, onChanged: changes.add);
-    expect(
-      tester
-          .widget<PlayerMenuSelectableRow>(
-            find.byKey(const ValueKey('options-defaults')),
-          )
-          .onPressed,
-      isNull,
-    );
-    await _tap(tester, 'options-text-speed-choice');
-    expect(changes.single.dialogueTextSpeed, RuntimeDialogueTextSpeed.fast);
-    expect(find.byType(Dialog), findsNothing);
-    expect(
-      tester
-          .widget<PlayerMenuSelectableRow>(
-            find.byKey(const ValueKey('options-defaults')),
-          )
-          .onPressed,
-      isNotNull,
-    );
-    await _tap(tester, 'options-defaults');
-    await _tap(tester, 'options-reset-cancel');
-    expect(changes, hasLength(1));
-    await _tap(tester, 'options-defaults');
-    await _tap(tester, 'options-reset-confirm');
-    expect(changes.last.dialogueTextSpeed, RuntimeDialogueTextSpeed.normal);
-    expect(
-      tester
-          .widget<PlayerMenuSelectableRow>(
-            find.byKey(const ValueKey('options-defaults')),
-          )
-          .onPressed,
-      isNull,
-    );
-  });
+  testWidgets(
+    'selected choices persist and reset through explicit confirmation',
+    (tester) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      await _pump(tester, onChanged: changes.add);
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('options-defaults')),
+            )
+            .onPressed,
+        isNull,
+      );
+      await _tap(tester, 'options-text-speed-choice');
+      await _tap(tester, 'options-choice-fast');
+      expect(changes.single.dialogueTextSpeed, RuntimeDialogueTextSpeed.fast);
+      expect(find.byType(Dialog), findsNothing);
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('options-defaults')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      await _tap(tester, 'options-defaults');
+      await _tap(tester, 'options-reset-cancel');
+      expect(changes, hasLength(1));
+      await _tap(tester, 'options-defaults');
+      await _tap(tester, 'options-reset-confirm');
+      expect(changes.last.dialogueTextSpeed, RuntimeDialogueTextSpeed.normal);
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('options-defaults')),
+            )
+            .onPressed,
+        isNull,
+      );
+    },
+  );
 
-  testWidgets('failed inline choice preserves the confirmed preference', (
+  testWidgets('failed selected choice preserves the confirmed preference', (
     tester,
   ) async {
     await _pump(
@@ -312,6 +562,7 @@ void main() {
           throw const RuntimePlayerOptionsFailure('Écriture indisponible.'),
     );
     await _tap(tester, 'options-text-speed-choice');
+    await _tap(tester, 'options-choice-fast');
     expect(find.text('Écriture indisponible.'), findsOneWidget);
     expect(find.byType(Dialog), findsNothing);
     expect(
@@ -325,7 +576,7 @@ void main() {
   });
 
   testWidgets(
-    'inline persistence rejects duplicate activation until completion',
+    'choice selection rejects duplicate activation until persistence completes',
     (tester) async {
       final completion = Completer<void>();
       var writes = 0;
@@ -341,6 +592,22 @@ void main() {
       );
       row.onPressed!();
       row.onPressed!();
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(writes, 0);
+      await tester.tap(find.byKey(const ValueKey('options-choice-fast')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(writes, 1);
+      expect(find.byType(Dialog), findsNothing);
+      final pendingChoice = find.byKey(
+        const ValueKey('options-text-speed-choice'),
+      );
+      expect(
+        tester.widget<PlayerMenuSelectableRow>(pendingChoice).onPressed,
+        isNull,
+      );
+      await tester.tap(pendingChoice);
       await tester.pump();
       expect(writes, 1);
       completion.complete();
@@ -447,6 +714,7 @@ void main() {
       onChanged: changes.add,
     );
     await _tap(tester, 'options-text-speed-choice');
+    await _tap(tester, 'options-choice-fast');
     await _tap(tester, 'options-defaults');
     expect(
       MediaQuery.textScalerOf(
@@ -508,9 +776,11 @@ void main() {
     await _category(tester, 'controls');
     expect(tester.takeException(), isNull, reason: 'controls initial layout');
     await _tap(tester, 'options-touch-run-mode-choice');
+    await _tap(tester, 'options-choice-walkOnly');
     expect(changes.single.touchRunMode, RuntimePlayerTouchRunMode.walkOnly);
     expect(tester.takeException(), isNull, reason: 'walk-only persisted');
     await _tap(tester, 'options-touch-run-mode-choice');
+    await _tap(tester, 'options-choice-automatic');
     expect(changes.last.touchRunMode, RuntimePlayerTouchRunMode.automatic);
     expect(tester.takeException(), isNull, reason: 'automatic persisted');
     await _tap(tester, 'options-defaults');
@@ -611,6 +881,7 @@ void main() {
     await _pump(tester, onChanged: changes.add);
     await _category(tester, 'general');
     await _tap(tester, 'options-text-speed-choice');
+    await _tap(tester, 'options-choice-fast');
     changes.clear();
     await _tap(tester, 'options-defaults');
     expect(find.byKey(const ValueKey('options-reset-cancel')), findsOneWidget);
@@ -653,6 +924,7 @@ void main() {
     );
     await _category(tester, 'language');
     await _tap(tester, 'options-locale-choice');
+    await _tap(tester, 'options-choice-en');
     expect(current.value.locale, 'en');
     expect(find.text('Interface language'), findsOneWidget);
     expect(find.byKey(const ValueKey('options-locale-choice')), findsOneWidget);
@@ -710,8 +982,11 @@ void main() {
       final slider = find.byKey(const ValueKey('options-master-slider'));
       await tester.tap(slider);
       await tester.pumpAndSettle();
-      expect(tester.widget<Slider>(slider).focusNode!.hasFocus, isTrue,
-        reason: 'A quick tap retains the slider as the owner after saving.');
+      expect(
+        tester.widget<Slider>(slider).focusNode!.hasFocus,
+        isTrue,
+        reason: 'A quick tap retains the slider as the owner after saving.',
+      );
       changes.clear();
       final before = tester.widget<Slider>(slider).value;
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
