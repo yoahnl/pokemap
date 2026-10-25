@@ -22,6 +22,8 @@ import 'spatial_camera_magnification.dart';
 import 'flutter_frame_graphics_device.dart';
 import 'spatial_render_context.dart';
 import 'spatial_actor_visual.dart';
+import 'spatial_actor_occlusion.dart';
+import 'spatial_actor_contact_shadow.dart';
 import 'spatial_game_surface.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_ground.dart';
@@ -113,6 +115,8 @@ class SpatialSceneController extends ModelPreviewController {
   }
   Future<bool> Function(SpatialScenePreparation)? _prepareDestination;
   SpatialShadowStats Function()? _readShadowStats;
+  int Function()? _readActorContactShadowCount;
+  int get actorContactShadowCount => _readActorContactShadowCount?.call() ?? 0;
   SpatialShadowStats get shadowStats => _readShadowStats?.call() ?? const SpatialShadowStats();
 
   Future<bool> prepareDestination(SpatialScenePreparation request) =>
@@ -182,6 +186,7 @@ class SpatialSceneView extends StatefulWidget {
     this.modelRuntimeState,
     this.modelPresence,
     this.rasterAnimationElapsedMsForCell,
+    this.actorOcclusionStateForCell,
     this.presentationPaused,
     this.presentationElapsedSeconds,
     this.cameraPose,
@@ -202,6 +207,7 @@ class SpatialSceneView extends StatefulWidget {
     int elapsedMs,
   )?
   rasterAnimationElapsedMsForCell;
+  final SpatialActorOcclusionStateForCell? actorOcclusionStateForCell;
   final bool Function()? presentationPaused;
   final double Function()? presentationElapsedSeconds;
   final ({double x, double y, double z, double zoom})? Function()? cameraPose;
@@ -311,6 +317,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     widget.controller.addListener(scheduleHoverRefresh);
     widget.controller._prepareDestination = prepareDestination;
     widget.controller._readShadowStats = readShadowStats;
+    widget.controller._readActorContactShadowCount = readActorContactShadowCount;
     initialize();
   }
 
@@ -319,6 +326,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
 
   SpatialShadowStats readShadowStats() => game == null ? const SpatialShadowStats()
       : (game!.context as SpatialRenderContext).shadowStats;
+
+  int readActorContactShadowCount() =>
+      game?.actorContactShadows.components.length ?? 0;
 
   void scheduleHoverRefresh() {
     if (!mounted ||
@@ -486,7 +496,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       widget.controller.addListener(scheduleHoverRefresh);
       widget.controller._prepareDestination = prepareDestination;
       oldWidget.controller._readShadowStats = null;
+      oldWidget.controller._readActorContactShadowCount = null;
       widget.controller._readShadowStats = readShadowStats;
+      widget.controller._readActorContactShadowCount = readActorContactShadowCount;
     }
     if (widget.onHover == null) hoverPosition = null;
     final game = this.game;
@@ -547,6 +559,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     widget.controller.removeListener(scheduleHoverRefresh);
     if (widget.controller._prepareDestination == prepareDestination) {
       widget.controller._prepareDestination = null;
+    }
+    if (widget.controller._readActorContactShadowCount == readActorContactShadowCount) {
+      widget.controller._readActorContactShadowCount = null;
     }
     game?.placementRenderer.dispose();
     if (widget.controller._readShadowStats == readShadowStats) {
@@ -841,6 +856,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   int generation = 0;
   final actors =
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
+  late final actorContactShadows = SpatialActorContactShadows(world);
+  Map<String, SpatialActorVisual> actorFrames = const {};
   SpatialActorVisual? actorVisual;
   double billboardPitch = 0, billboardYaw = 0;
   final groundTextureCache = <String, Future<Texture>>{};
@@ -1189,6 +1206,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
             edge: snapshot.edge,
             selectedCell: placement.active ? snapshot.selectedCell : null,
             receiveShadows: receiveShadows,
+            occlusionPlan: SpatialActorOcclusionPlan(map, project),
           );
           sceneGround = ground;
           ground.resolve(
@@ -1429,6 +1447,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
           syncPlacementPreview();
           syncCamera();
           syncActors(0);
+          syncActorContactShadows();
           snapshot.onVisibleMapsChanged?.call(
             Set.unmodifiable({
               for (final placement in placements)
@@ -1633,6 +1652,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       }
     }
     syncActors(dt);
+    syncActorOcclusions();
     syncRuntimeModels();
     final configuration = visibleConfiguration;
     configuration.controller._advanceDayNight(
@@ -1641,6 +1661,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       configuration.presentationElapsedSeconds?.call(),
     );
     syncLighting();
+    syncActorContactShadows();
   }
 
   void syncRuntimeModels() {
@@ -1674,6 +1695,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     final frames =
         configuration.actorFrames?.call(dt) ??
         const <String, SpatialActorVisual>{};
+    actorFrames = frames;
     actorVisual = frames['hero'];
     for (final id
         in actors.keys.where((id) => !frames.containsKey(id)).toList()) {
@@ -1784,6 +1806,41 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
         );
     }
     syncCamera();
+  }
+
+  void syncActorOcclusions() {
+    final configuration = visibleConfiguration;
+    final elapsed = ((configuration.presentationElapsedSeconds?.call() ?? groundElapsed) * 1000).floor();
+    final cameraProfile = SpatialCameraProfile(pitchDegrees: billboardPitch * 180 / math.pi, yawDegrees: billboardYaw * 180 / math.pi);
+    for (final ground in grounds) {
+      final callback = configuration.actorOcclusionStateForCell;
+      final visuals = ground.occlusionPlan.resolve(elapsed, stateForCell: callback == null ? null :
+        (layer, x, y, time) => callback(ground.mapId, layer, x, y, time));
+      final changes = ground.occlusions.sync(visuals, ground.textures, camera: cameraProfile,
+        offset: ground.offset, topView: configuration.controller.view == SpatialEditorView.top);
+      if (changes.added.isEmpty && changes.removed.isEmpty) continue;
+      sceneComponents.replaceSubset(changes.removed, changes.added, groupKey: ground.mapId);
+      final chunk = sceneChunks[ground.mapId];
+      chunk?.components.removeWhere(changes.removed.contains);
+      chunk?.components.addAll(changes.added);
+    }
+  }
+
+  void syncActorContactShadows() {
+    final configuration = visibleConfiguration;
+    final preview = configuration.contentPreview;
+    actorContactShadows.sync(
+      actorFrames,
+      sceneOffset: configuration.sceneOffset,
+      lighting: (context as SpatialRenderContext).lighting,
+      previewActorId: preview?.kind == SpatialSceneContentKind.actor
+          ? preview?.id
+          : null,
+      previewPosition: preview?.position,
+      cameraPitch: billboardPitch,
+      cameraYaw: billboardYaw,
+      topView: configuration.controller.view == SpatialEditorView.top,
+    );
   }
 
   String? pickActor(Offset offset) {
@@ -2026,10 +2083,13 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     }
     retiredReservations.clear();
     _ownedResourceBudget.dispose();
+    for (final ground in grounds) { ground.occlusions.clear(); }
     grounds.clear();
     sceneChunks.clear();
     _smartTileProjectionCache.clear();
     actorSelections.clear();
+    actorContactShadows.clear();
+    actorFrames = const {};
     super.onRemove();
   }
 }
@@ -2102,8 +2162,11 @@ final class _SceneGround {
     required this.edge,
     required this.selectedCell,
     required this.receiveShadows,
+    required this.occlusionPlan,
   });
 
+  final SpatialActorOcclusionPlan occlusionPlan;
+  final occlusions = SpatialActorOcclusionBillboards();
   final SpatialGroundPlan plan;
   final Map<String, Texture> textures;
   final Offset offset;

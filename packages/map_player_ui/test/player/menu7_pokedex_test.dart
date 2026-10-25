@@ -33,57 +33,69 @@ void main() {
     expect(scrollers, isEmpty);
   });
 
-  testWidgets('reference geometry reserves the list and illustration areas', (
-    tester,
-  ) async {
-    await _pump(tester, _detail(_entries()));
-    final body = tester.getRect(
-      find.byKey(const ValueKey('runtime-player-detail-pokedex')),
-    );
-    final column = tester.getRect(
-      find.byKey(const ValueKey('pokedex-list-column')),
-    );
-    final search = tester.getRect(
-      find.byKey(const ValueKey('pokedex-search-panel')),
-    );
-    final filters = tester.getRect(
-      find.byKey(const ValueKey('pokedex-filters')),
-    );
-    final list = tester.getRect(find.byKey(const ValueKey('pokedex-list')));
-    final detail = tester.getRect(
-      find.byKey(const ValueKey('pokedex-detail-species.1')),
-    );
-    final row = tester.getRect(
-      find.byKey(const ValueKey('pokedex-entry-species.1')),
-    );
-    expect(body.size, const Size(1296, 628));
-    expect(column.width, 448);
-    expect(search.height, 48);
-    expect(filters.height, 48);
-    expect(filters.top - search.bottom, 12);
-    expect(list.top - filters.bottom, 16);
-    expect(list.height, 504);
-    expect(detail.width, 824);
-    expect(detail.left - column.right, 24);
-    expect(row.height, 64);
-    expect(
-      tester
-          .getSize(find.byKey(const ValueKey('pokedex-number-species.1')))
-          .width,
-      56,
-    );
-    expect(
-      tester.getSize(find.byKey(const ValueKey('pokedex-image-species.1-row'))),
-      const Size(48, 48),
-    );
-    expect(
-      tester.getSize(
-        find.byKey(const ValueKey('pokedex-image-species.1-detail')),
-      ),
-      const Size(300, 280),
-    );
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'reference geometry uses a full list and opens its illustration',
+    (tester) async {
+      final nav = RuntimePlayerPokedexNavigation();
+      addTearDown(nav.dispose);
+      await _pump(tester, _detail(_entries()), navigation: nav);
+      final body = tester.getRect(
+        find.byKey(const ValueKey('runtime-player-detail-pokedex')),
+      );
+      final search = tester.getRect(
+        find.byKey(const ValueKey('pokedex-search-panel')),
+      );
+      final filters = tester.getRect(
+        find.byKey(const ValueKey('pokedex-filters')),
+      );
+      final list = tester.getRect(find.byKey(const ValueKey('pokedex-list')));
+      final first = tester.getRect(
+        find.byKey(const ValueKey('pokedex-entry-species.1')),
+      );
+      final second = tester.getRect(
+        find.byKey(const ValueKey('pokedex-entry-species.133')),
+      );
+      expect(search.height, 48);
+      expect(filters.height, 48);
+      expect(search.top, filters.top);
+      expect(search.left - filters.right, 8);
+      expect(list.width, body.width);
+      expect(list.top - filters.bottom, 8);
+      expect(second.top, first.top);
+      expect(second.left - first.right, 8);
+      expect(first.height, 48);
+      expect(
+        tester
+            .getSize(find.byKey(const ValueKey('pokedex-number-species.1')))
+            .width,
+        24,
+      );
+      expect(
+        tester.getSize(
+          find.byKey(const ValueKey('pokedex-image-species.1-row')),
+        ),
+        const Size(36, 36),
+      );
+      expect(
+        find.byKey(const ValueKey('pokedex-detail-species.1')),
+        findsNothing,
+      );
+      await _tap(tester, 'pokedex-entry-species.1');
+      expect(
+        tester.getSize(
+          find.byKey(const ValueKey('pokedex-image-species.1-detail')),
+        ),
+        const Size(96, 96),
+      );
+      expect(nav.back(), isTrue);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('pokedex-entry-species.1')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('unknown entries cannot expose a hidden title or identity', (
     tester,
@@ -100,11 +112,11 @@ void main() {
       ]),
     );
     expect(find.text('Mew secret'), findsNothing);
-    expect(find.text('???'), findsNWidgets(2));
+    expect(find.text('???'), findsOneWidget);
     expect(find.byType(Image), findsNothing);
     expect(
       find.byKey(const ValueKey('pokedex-unknown-species.151-detail')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.byType(PlayerMenuBadge), findsNothing);
     final row = tester.getSemantics(
@@ -112,6 +124,12 @@ void main() {
     );
     expect(row.label, '???');
     expect(row.value, '151, Inconnu');
+    await _tap(tester, 'pokedex-entry-species.151');
+    expect(
+      find.byKey(const ValueKey('pokedex-unknown-species.151-detail')),
+      findsOneWidget,
+    );
+    expect(find.text('Mew secret'), findsNothing);
     await _search(tester, 'mew');
     expect(find.byKey(const ValueKey('pokedex-no-results')), findsOneWidget);
     expect(
@@ -227,7 +245,7 @@ void main() {
     expect(nav.selectedEntryId, 'species.133');
     await _tap(tester, 'pokedex-search-clear');
     expect(
-      find.byKey(const ValueKey('pokedex-detail-species.133')),
+      find.byKey(const ValueKey('pokedex-entry-species.133')),
       findsOneWidget,
     );
     await _tap(tester, 'pokedex-filter-seen');
@@ -288,6 +306,11 @@ void main() {
       tester.widget<PlayerMenuSelectableRow>(selected).focusNode!.hasFocus,
       isTrue,
     );
+    await _pump(tester, detail, navigation: nav, size: const Size(844, 390));
+    expect(selected.hitTestable(), findsOneWidget);
+    expect(nav.selectedEntryId, 'species.90');
+    await _pump(tester, detail, navigation: nav, size: size);
+    expect(selected.hitTestable(), findsOneWidget);
     nav.clearForNewSession();
     await tester.pumpAndSettle();
     expect(nav.selectedEntryId, 'species.1');
@@ -378,6 +401,7 @@ void main() {
         find.byKey(const ValueKey('pokedex-image-missing-species.1-row')),
         findsOneWidget,
       );
+      await _tap(tester, 'pokedex-entry-species.1');
       expect(
         find.byKey(const ValueKey('pokedex-image-missing-species.1-detail')),
         findsOneWidget,
@@ -387,7 +411,7 @@ void main() {
         findsOneWidget,
       );
       final images = tester.widgetList<PlayerFileImage>(
-        find.byType(PlayerFileImage),
+        find.byType(PlayerFileImage, skipOffstage: false),
       );
       expect(images.map((image) => image.fit), everyElement(BoxFit.contain));
       expect(
@@ -470,8 +494,7 @@ void main() {
             within: description,
           );
           expect(tester.takeException(), isNull);
-          final compact = size.width < 600 || scale == 2;
-          expect(nav.back(), compact);
+          expect(nav.back(), isTrue);
           await tester.pumpAndSettle();
           expect(nav.back(), isFalse);
           expect(
@@ -679,6 +702,11 @@ RuntimePlayerPauseDetailSnapshot _detail(
 );
 
 Future<void> _search(WidgetTester tester, String value) async {
+  tester
+      .widget<RuntimePlayerPokedex>(find.byType(RuntimePlayerPokedex))
+      .navigation
+      ?.back();
+  await tester.pumpAndSettle();
   if (find.byKey(const ValueKey('pokedex-search')).evaluate().isEmpty) {
     await _reveal(tester, find.byKey(const ValueKey('pokedex-search')));
   }
@@ -721,6 +749,13 @@ Future<void> _reveal(
 }
 
 Future<void> _tap(WidgetTester tester, String key) async {
+  if (key.startsWith('pokedex-filter-') || key == 'pokedex-search-clear') {
+    tester
+        .widget<RuntimePlayerPokedex>(find.byType(RuntimePlayerPokedex))
+        .navigation
+        ?.back();
+    await tester.pumpAndSettle();
+  }
   final finder = find.byKey(ValueKey(key));
   if (finder.evaluate().isEmpty) await _reveal(tester, finder);
   await tester.ensureVisible(finder);

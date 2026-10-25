@@ -226,7 +226,15 @@ class _AveluneGameplayCompanionAppState
       await _remote.send('battle', {
         'snapshotRevision': command.snapshotRevision,
         'expectedMode': command.expectedMode.name,
-        'action': command is BattleBackCommand ? 'back' : 'select',
+        'action': switch (command) {
+          BattleBackCommand() => 'back',
+          BattleSelectEntryCommand() => 'select',
+          BattleSetCommandPanelPlacementCommand() => 'layout',
+        },
+        if (command is BattleSetCommandPanelPlacementCommand)
+          'placement': command.placement.name,
+        if (command is BattleSetCommandPanelPlacementCommand)
+          'controllerLayout': command.controllerLayout,
         if (command is BattleSelectEntryCommand)
           'entryIndex': command.entryIndex,
       });

@@ -8,7 +8,29 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
   final files = spatialPayload();
   var project = ProjectManifest.fromJson(
       jsonDecode(utf8.decode(files['project/project.json']!)));
-  if (feature == 'camera') {
+  if (feature == 'actorOcclusion') {
+    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+    project = project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
+      atlases: const [ProjectSmartTileAtlas(id: 'grass-atlas', name: 'Grass', tilesetId: 'hero-atlas', columns: 1, rows: 1)],
+      materials: const [ProjectSmartTileMaterial(id: 'grass', name: 'Grass', connectionGroupId: 'grass', pathSurfaceKind: PathSurfaceKind.tallGrass)],
+      presets: [ProjectSmartTilePreset(id: 'grass', name: 'Grass', usage: SmartTileUsage.path,
+        topology: SmartTileTopology.uniform, templateHint: SmartTileTemplateHint.simple,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: const SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+        transformPolicy: const SmartTileTransformPolicy(), defaultMaterialId: 'grass', allowedMaterialIds: ['grass'],
+        rules: [SmartTileRule(id: 'grass', centerMatch: const SmartTileSlotMatch.material('grass'),
+          candidates: const [SmartTileCandidate(id: 'grass', parts: [SmartTileVisualPart(
+            channel: SmartTileRenderChannel.actorOcclusion,
+            source: SmartTileVisualSource.frame(frame: SmartTileFrameRef(atlasId: 'grass-atlas', column: 0, row: 0)),
+          )])])])],
+    ));
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(layers: [
+      ...map.layers, SmartTileLayer(id: 'grass', name: 'Grass', presetId: 'grass', usage: SmartTileUsage.path,
+        materialPalette: const ['', 'grass'], field: SmartTileField.cell(semanticCells: [
+          for (var i = 0; i < map.size.width * map.size.height; i++) i == 0 ? 1 : 0,
+        ])),
+    ]).toJson()));
+  } else if (feature == 'camera') {
     final map = MapData.fromJson(
         jsonDecode(utf8.decode(files['project/maps/map.json']!)));
     files['project/maps/map.json'] = utf8.encode(jsonEncode(map

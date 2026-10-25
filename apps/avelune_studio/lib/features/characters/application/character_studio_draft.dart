@@ -6,12 +6,14 @@ final class CharacterStudioDraft {
   CharacterStudioDraft(this.saved)
     : name = saved.name,
       frameWidth = saved.frameWidth,
-      frameHeight = saved.frameHeight;
+      frameHeight = saved.frameHeight,
+      contactShadow = saved.contactShadow;
 
   ProjectCharacterEntry saved;
   String name;
   int frameWidth;
   int frameHeight;
+  bool? contactShadow;
   final Map<CharacterClipKey, List<CharacterAnimationFrame?>> _frames = {};
   final Set<CharacterClipKey> _atlasAssignments = {};
 
@@ -19,6 +21,7 @@ final class CharacterStudioDraft {
       name != saved.name ||
       frameWidth != saved.frameWidth ||
       frameHeight != saved.frameHeight ||
+      contactShadow != saved.contactShadow ||
       _frames.keys.any((key) => clipChanged(key));
 
   List<CharacterAnimationFrame?> framesFor(CharacterClipKey key) =>
@@ -192,6 +195,7 @@ final class CharacterStudioDraft {
       name: name,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
+      contactShadow: contactShadow,
       animations: animations,
     );
   }
@@ -222,6 +226,7 @@ final class CharacterStudioDraft {
     name = saved.name;
     frameWidth = saved.frameWidth;
     frameHeight = saved.frameHeight;
+    contactShadow = saved.contactShadow;
     _frames.clear();
     _atlasAssignments.clear();
   }

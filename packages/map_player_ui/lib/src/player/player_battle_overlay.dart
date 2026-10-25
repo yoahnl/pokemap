@@ -4,6 +4,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../localization/player_localizations.dart';
 import '../foundation/player_image.dart';
+import '../foundation/player_input_scope.dart';
 import '../theme/pokemap_player_battle_theme.dart';
 import 'player_battle_scene.dart';
 import 'player_battle_surface.dart';
@@ -11,7 +12,7 @@ import 'player_battle_surface.dart';
 export 'player_battle_scene.dart';
 export 'player_battle_surface.dart';
 
-class PlayerBattleOverlay extends StatelessWidget {
+class PlayerBattleOverlay extends StatefulWidget {
   const PlayerBattleOverlay({
     super.key,
     required this.snapshot,
@@ -26,8 +27,72 @@ class PlayerBattleOverlay extends StatelessWidget {
   final PlayerBattleDisplay display;
 
   @override
+  State<PlayerBattleOverlay> createState() => _PlayerBattleOverlayState();
+}
+
+class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
+  (BattleCommandPanelPlacement, bool, Size, int)? _lastRequestedPlacement;
+
+  @override
   Widget build(BuildContext context) {
+    final snapshot = widget.snapshot;
+    final onCommand = widget.onCommand;
+    final display = widget.display;
+    final itemIconBuilder = widget.itemIconBuilder;
     final battle = context.playerBattleProfile;
+    final canonical =
+        battle == null ||
+        (battle.commandLayout == ProjectBattleCommandLayout.grid &&
+            battle.commandColumns == 2 &&
+            battle.enemyHudPosition == ProjectBattleHudPosition.topStart &&
+            battle.playerHudPosition == ProjectBattleHudPosition.bottomEnd);
+    if (display != PlayerBattleDisplay.commandsOnly) {
+      final padding = MediaQuery.paddingOf(context);
+      final supportsSidePanel =
+          snapshot.viewportSize.width - padding.horizontal >= 700 &&
+          snapshot.viewportSize.height - padding.vertical >= 320;
+      final placement = display == PlayerBattleDisplay.hudOnly
+          ? BattleCommandPanelPlacement.detached
+          : canonical &&
+                PlayerInputScope.usesController(context) &&
+                supportsSidePanel &&
+                snapshot.viewportSize.width > snapshot.viewportSize.height
+          ? BattleCommandPanelPlacement.end
+          : BattleCommandPanelPlacement.bottom;
+      final controllerLayout =
+          canonical &&
+          display == PlayerBattleDisplay.full &&
+          PlayerInputScope.usesController(context);
+      final request = (
+        placement,
+        controllerLayout,
+        snapshot.viewportSize,
+        snapshot.revision,
+      );
+      if (snapshot.commandPanelPlacement == placement &&
+          snapshot.controllerLayout == controllerLayout) {
+        _lastRequestedPlacement = null;
+      }
+      if ((snapshot.commandPanelPlacement != placement ||
+              snapshot.controllerLayout != controllerLayout) &&
+          _lastRequestedPlacement != request) {
+        _lastRequestedPlacement = request;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || widget.snapshot.revision != snapshot.revision) {
+            return;
+          }
+          onCommand(
+            BattleSetCommandPanelPlacementCommand(
+              snapshotRevision: snapshot.revision,
+              expectedMode: snapshot.mode,
+              placement: placement,
+              controllerLayout: controllerLayout,
+            ),
+          );
+        });
+      }
+    }
+
     return PlayerBattleScene(
       display: display,
       data: PlayerBattleViewData(
@@ -37,7 +102,8 @@ class PlayerBattleOverlay extends StatelessWidget {
         additionalHuds: [
           for (final hud in snapshot.additionalHuds)
             PlayerBattleAdditionalHud(
-              identity: 'battle-hud-${hud.effectiveSlot.side.name}-${hud.effectiveSlot.slotIndex}-${hud.combatantId}',
+              identity:
+                  'battle-hud-${hud.effectiveSlot.side.name}-${hud.effectiveSlot.slotIndex}-${hud.combatantId}',
               rect: hud.rect,
               data: _hud(hud),
               isPlayerSide: hud.isPlayerSide,
@@ -59,30 +125,29 @@ class PlayerBattleOverlay extends StatelessWidget {
         forcedReplacement: snapshot.forcedReplacement,
         panelKind: _panelKind(snapshot),
       ),
-      onAction: (action) => onCommand(
-        switch (action) {
-          PlayerBattleBackAction() => BattleBackCommand(
-              snapshotRevision: action.snapshotRevision,
-              expectedMode: snapshot.mode,
-            ),
-          PlayerBattleSelectEntryAction(:final entryIndex) =>
-            BattleSelectEntryCommand(
-              snapshotRevision: action.snapshotRevision,
-              expectedMode: snapshot.mode,
-              entryIndex: entryIndex,
-            ),
-        },
-      ),
-      itemIconBuilder: itemIconBuilder ??
+      onAction: (action) => onCommand(switch (action) {
+        PlayerBattleBackAction() => BattleBackCommand(
+          snapshotRevision: action.snapshotRevision,
+          expectedMode: snapshot.mode,
+        ),
+        PlayerBattleSelectEntryAction(:final entryIndex) =>
+          BattleSelectEntryCommand(
+            snapshotRevision: action.snapshotRevision,
+            expectedMode: snapshot.mode,
+            entryIndex: entryIndex,
+          ),
+      }),
+      itemIconBuilder:
+          itemIconBuilder ??
           (assetPath) => ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: PlayerFileImage(
-                  path: assetPath,
-                  width: 32,
-                  height: 32,
-                  fallback: const Icon(Icons.inventory_2_outlined, size: 18),
-                ),
-              ),
+            borderRadius: BorderRadius.circular(10),
+            child: PlayerFileImage(
+              path: assetPath,
+              width: 32,
+              height: 32,
+              fallback: const Icon(Icons.inventory_2_outlined, size: 18),
+            ),
+          ),
     );
   }
 }
@@ -90,18 +155,17 @@ class PlayerBattleOverlay extends StatelessWidget {
 String _localizedBattleTitle(
   PokeMapPlayerLocalizations localizations,
   BattleCommandOverlayMode mode,
-) =>
-    switch (mode) {
-      BattleCommandOverlayMode.root => localizations.battleCommands,
-      BattleCommandOverlayMode.fight ||
-      BattleCommandOverlayMode.bagMedicineMoveTarget => localizations.battleMoves,
-      BattleCommandOverlayMode.bag => localizations.battleBag,
-      BattleCommandOverlayMode.bagMedicineTarget => localizations.battleTarget,
-      BattleCommandOverlayMode.moveTarget => localizations.battleTarget,
-      BattleCommandOverlayMode.pokemon => localizations.battlePokemon,
-      BattleCommandOverlayMode.continueOnly => localizations.battleContinue,
-      BattleCommandOverlayMode.decision => localizations.battleDecision,
-    };
+) => switch (mode) {
+  BattleCommandOverlayMode.root => localizations.battleCommands,
+  BattleCommandOverlayMode.fight ||
+  BattleCommandOverlayMode.bagMedicineMoveTarget => localizations.battleMoves,
+  BattleCommandOverlayMode.bag => localizations.battleBag,
+  BattleCommandOverlayMode.bagMedicineTarget => localizations.battleTarget,
+  BattleCommandOverlayMode.moveTarget => localizations.battleTarget,
+  BattleCommandOverlayMode.pokemon => localizations.battlePokemon,
+  BattleCommandOverlayMode.continueOnly => localizations.battleContinue,
+  BattleCommandOverlayMode.decision => localizations.battleDecision,
+};
 
 List<PlayerBattleCommandViewData> _commands(
   BattleCommandOverlaySnapshot snapshot,
@@ -110,29 +174,30 @@ List<PlayerBattleCommandViewData> _commands(
   PlayerBattleCommandViewData mapEntry(
     BattleCommandOverlayEntry entry, {
     ProjectBattleCommandProfile? authored,
-  }) =>
-      PlayerBattleCommandViewData(
-        index: entry.index,
-        primaryLabel: authored?.label ?? entry.primaryLabel,
-        secondaryLabel: entry.secondaryLabel,
-        tertiaryLabel: entry.tertiaryLabel,
-        trailingLabel: entry.trailingLabel,
-        statusLabel: entry.statusLabel,
-        moveTypeId: entry.kind == BattleCommandOverlayEntryKind.move &&
-                entry.secondaryLabel.trim().isNotEmpty
-            ? entry.secondaryLabel
-            : null,
-        isBagItem: entry.kind == BattleCommandOverlayEntryKind.bag,
-        enabled: entry.enabled,
-        selected: entry.selected,
-        tone: _tone(entry.tone),
-        iconAssetPath: entry.iconAssetPath,
-        commandId: authored?.id ??
-            (entry.kind == BattleCommandOverlayEntryKind.root
-                ? _commandIdForRuntimeIndex(entry.index)
-                : null),
-        commandIcon: authored?.icon,
-      );
+  }) => PlayerBattleCommandViewData(
+    index: entry.index,
+    primaryLabel: authored?.label ?? entry.primaryLabel,
+    secondaryLabel: entry.secondaryLabel,
+    tertiaryLabel: entry.tertiaryLabel,
+    trailingLabel: entry.trailingLabel,
+    statusLabel: entry.statusLabel,
+    moveTypeId:
+        entry.kind == BattleCommandOverlayEntryKind.move &&
+            entry.secondaryLabel.trim().isNotEmpty
+        ? entry.secondaryLabel
+        : null,
+    isBagItem: entry.kind == BattleCommandOverlayEntryKind.bag,
+    enabled: entry.enabled,
+    selected: entry.selected,
+    tone: _tone(entry.tone),
+    iconAssetPath: entry.iconAssetPath,
+    commandId:
+        authored?.id ??
+        (entry.kind == BattleCommandOverlayEntryKind.root
+            ? _commandIdForRuntimeIndex(entry.index)
+            : null),
+    commandIcon: authored?.icon,
+  );
   if (snapshot.mode != BattleCommandOverlayMode.root || profile == null) {
     return snapshot.entries.map(mapEntry).toList(growable: false);
   }
@@ -150,12 +215,12 @@ List<PlayerBattleCommandViewData> _commands(
 }
 
 ProjectBattleCommandId? _commandIdForRuntimeIndex(int index) => switch (index) {
-      0 => ProjectBattleCommandId.fight,
-      1 => ProjectBattleCommandId.bag,
-      2 => ProjectBattleCommandId.party,
-      3 => ProjectBattleCommandId.run,
-      _ => null,
-    };
+  0 => ProjectBattleCommandId.fight,
+  1 => ProjectBattleCommandId.bag,
+  2 => ProjectBattleCommandId.party,
+  3 => ProjectBattleCommandId.run,
+  _ => null,
+};
 
 PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
   if (snapshot.phase != BattlePresentationPhase.choosingCommand ||
@@ -168,15 +233,14 @@ PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
     // mode root et laisse les libellés « Apprendre » / « Ne pas apprendre »
     // intacts.
     BattleCommandOverlayMode.root ||
-    BattleCommandOverlayMode.decision =>
-      PlayerBattlePanelKind.commands,
+    BattleCommandOverlayMode.decision => PlayerBattlePanelKind.commands,
     BattleCommandOverlayMode.fight ||
-    BattleCommandOverlayMode.bagMedicineMoveTarget => PlayerBattlePanelKind.moves,
+    BattleCommandOverlayMode.bagMedicineMoveTarget =>
+      PlayerBattlePanelKind.moves,
     BattleCommandOverlayMode.bagMedicineTarget => PlayerBattlePanelKind.target,
     BattleCommandOverlayMode.moveTarget => PlayerBattlePanelKind.target,
     BattleCommandOverlayMode.bag ||
-    BattleCommandOverlayMode.pokemon =>
-      PlayerBattlePanelKind.target,
+    BattleCommandOverlayMode.pokemon => PlayerBattlePanelKind.target,
     BattleCommandOverlayMode.continueOnly => PlayerBattlePanelKind.message,
   };
 }

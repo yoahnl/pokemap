@@ -572,6 +572,14 @@ void main() {
     }
   });
 
+  test('battle placements cross companion transport without losing ownership geometry', () {
+    for (final placement in BattleCommandPanelPlacement.values) {
+      final source = _battle(BattlePresentationPhase.choosingCommand, placement: placement);
+      final decoded = RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_crossTransport(RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(source)));
+      expect(decoded, source);
+      expect(decoded.commandPanelPlacement, placement);
+    }
+  });
   for (final phase in BattlePresentationPhase.values) {
     test('battle $phase transport retains command authority and selection', () {
       final source = _battle(phase);
@@ -676,9 +684,10 @@ RuntimePokemonSummarySnapshot _pokemon() => RuntimePokemonSummarySnapshot(
       ],
     );
 
-BattleCommandOverlaySnapshot _battle(BattlePresentationPhase phase) {
+BattleCommandOverlaySnapshot _battle(BattlePresentationPhase phase, {BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom}) {
   final forced = phase == BattlePresentationPhase.forcedReplacement;
   return BattleCommandOverlaySnapshot(
+    commandPanelPlacement: placement,
     revision: 42,
     phase: phase,
     forcedReplacement: forced,

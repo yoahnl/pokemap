@@ -122,6 +122,7 @@ final class PokeMapPlayerLocalizations {
   String get menu => 'Menu';
   String get pokemon => 'Pokémon';
   String get choose => _fr ? 'Choisir' : 'Choose';
+  String get battleChooseMove => _fr ? 'Choisir une capacité' : 'Choose a move';
   String get validate => _fr ? 'Valider' : 'Confirm';
   String get noSaveAvailable =>
       _fr ? 'Aucune sauvegarde disponible' : 'No save available';

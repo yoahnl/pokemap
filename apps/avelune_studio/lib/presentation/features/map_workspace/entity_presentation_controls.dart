@@ -205,8 +205,7 @@ class _EntityPresentationControlsState
                 value: '${entry.$2.size.height}',
                 tryCommit: (value) => _resize(entry.$1, value, width: false),
               ),
-              if (project.settings.dimension == ProjectDimension.twoD)
-                for (final side in EntityFacing.values)
+              for (final side in EntityFacing.values)
                   StudioChoice(
                     label:
                         'Interagir à travers un comptoir : ${switch (side) {

@@ -32,6 +32,7 @@ import '../security/confirmation_token.dart';
 import '../security/secure_mutation_executor.dart';
 import '../security/secure_recovery_executor.dart';
 import '../support/authoring_fingerprint.dart';
+import '../support/authoring_timeline.dart';
 import '../support/authoring_performance_observer.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
@@ -334,11 +335,14 @@ final class LocalMapAuthoringMutationApi
         ]),
       ),
     );
-    final recoveryState = await AuthoringRecoveryService(
-      gateway: initialGateway,
-      idempotency: initialLedger,
-      clock: _clock,
-    ).inspect();
+    final recoveryState = await traceAuthoringPhase(
+      'authoring.attach.recovery',
+      () => AuthoringRecoveryService(
+        gateway: initialGateway,
+        idempotency: initialLedger,
+        clock: _clock,
+      ).inspect(),
+    );
     final pending = recoveryState.any(
       (entry) =>
           entry.disposition == AuthoringRecoveryDisposition.resumable ||
@@ -358,29 +362,35 @@ final class LocalMapAuthoringMutationApi
       }
       initialRevision = observed;
     } else {
-      final snapshot = await _snapshotLoader.load(
-        projectHandle,
-        policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+      final snapshot = await traceAuthoringPhase(
+        'authoring.attach.snapshot',
+        () => _snapshotLoader.load(
+          projectHandle,
+          policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+        ),
       );
       await _requireRootMatchesSnapshot(canonicalRoot, snapshot);
       initialRevision = snapshot.revision;
     }
     final projectId = _projectIdentity(canonicalRoot);
-    final session = await _LocalMapAuthoringSession.open(
-      canonicalProjectRoot: canonicalRoot,
-      resourcePackSourceRoots: _resourcePackSourceRoots,
-      initialRevision: initialRevision,
-      projectId: projectId,
-      workspaceHandle: workspaceHandle,
-      projectHandle: projectHandle,
-      snapshotLoader: _snapshotLoader,
-      dispatcher: _dispatcher,
-      actor: _actor,
-      authorizationLimits: _authorizationLimits,
-      clock: _clock,
-      faultInjector: _faultInjector,
-      performanceObserver: _performanceObserver,
-      retainUndoHistory: _retainUndoHistory,
+    final session = await traceAuthoringPhase(
+      'authoring.session.open',
+      () => _LocalMapAuthoringSession.open(
+        canonicalProjectRoot: canonicalRoot,
+        resourcePackSourceRoots: _resourcePackSourceRoots,
+        initialRevision: initialRevision,
+        projectId: projectId,
+        workspaceHandle: workspaceHandle,
+        projectHandle: projectHandle,
+        snapshotLoader: _snapshotLoader,
+        dispatcher: _dispatcher,
+        actor: _actor,
+        authorizationLimits: _authorizationLimits,
+        clock: _clock,
+        faultInjector: _faultInjector,
+        performanceObserver: _performanceObserver,
+        retainUndoHistory: _retainUndoHistory,
+      ),
     );
     _sessions[projectHandle] = session;
     _partitionActions[projectHandle]=CatalogPartitionAction(store:await CatalogStorageStore.open(projectRoot:canonicalRoot),projectId:projectId);
@@ -777,6 +787,15 @@ final class LocalMapAuthoringMutationApi
   Future<void> _requireRootMatchesSnapshot(
     String canonicalRoot,
     ProjectSnapshot snapshot,
+  ) => traceAuthoringPhase(
+    'authoring.attach.root_binding',
+    () => _checkRootMatchesSnapshot(canonicalRoot, snapshot),
+    arguments: {'resourceCount': snapshot.resourceStorageKeys.length},
+  );
+
+  Future<void> _checkRootMatchesSnapshot(
+    String canonicalRoot,
+    ProjectSnapshot snapshot,
   ) async {
     final gateway =
         await LocalTransactionFileGateway.open(projectRoot: canonicalRoot);
@@ -947,7 +966,10 @@ final class _LocalMapAuthoringSession {
     // unless maintenance runs. Opening a project is the one moment that is
     // already off the interactive path; a failure here must not deny the open.
     try {
-      await idempotency.pruneExpired();
+      await traceAuthoringPhase(
+        'authoring.session.prune_idempotency',
+        idempotency.pruneExpired,
+      );
     } on Object {
       // Maintenance is best effort: a locked or unreadable ledger is reported
       // by the first real mutation, not by refusing to open the project.
@@ -1238,23 +1260,29 @@ final class _LocalMapAuthoringSession {
     final safePlanId = _safeIdentity(planId, 'planId');
     final safeOperationId = _safeIdentity(operationId, 'operationId');
     _snapshotLoader.requireActiveProject(projectHandle);
-    final replay = await _executor.inspectDurableReplay(
-      actor: _actor,
-      projectId: projectId,
-      planId: safePlanId,
-      operationId: safeOperationId,
-      lookup: () => _idempotencyStore.lookupOperation(
-        actorId: _actor.actorId,
+    final replay = await traceAuthoringPhase(
+      'authoring.apply.replay_lookup',
+      () => _executor.inspectDurableReplay(
+        actor: _actor,
         projectId: projectId,
+        planId: safePlanId,
         operationId: safeOperationId,
-        now: _plans.now,
+        lookup: () => _idempotencyStore.lookupOperation(
+          actorId: _actor.actorId,
+          projectId: projectId,
+          operationId: safeOperationId,
+          now: _plans.now,
+        ),
+        readHistory: (entryId) =>
+            _history.get(projectId: projectId, entryId: entryId),
+        resolveAction: _dispatcher.descriptor,
       ),
-      readHistory: (entryId) =>
-          _history.get(projectId: projectId, entryId: entryId),
-      resolveAction: _dispatcher.descriptor,
     );
     if (replay != null) return _mutationResult(replay);
-    await _requireReconciled();
+    await traceAuthoringPhase(
+      'authoring.apply.recovery',
+      _requireReconciled,
+    );
     final plan = await _plans.resolveActive(safePlanId);
     _requireApplicablePlan(plan);
     _requireWorkspace(plan.request.workspaceHandle);
@@ -1265,7 +1293,10 @@ final class _LocalMapAuthoringSession {
         message: 'Mutation apply requires an idempotency key.',
       );
     }
-    final snapshot = await _loadSnapshot(repairRequest: plan.request);
+    final snapshot = await traceAuthoringPhase(
+      'authoring.apply.snapshot_before',
+      () => _loadSnapshot(repairRequest: plan.request),
+    );
     final descriptor = _dispatcher.descriptor(plan.request.actionId);
     if (plan.request.actionId == 'resource_pack.import') {
       if (plan.appliedPayloadReleased) {
@@ -1291,26 +1322,29 @@ final class _LocalMapAuthoringSession {
     ProjectSnapshot? projected;
     var refreshUnavailable = false;
     try {
-      receipt = await _executor.apply(
-        actor: _actor,
-        projectId: projectId,
-        action: descriptor,
-        plan: plan,
-        currentProjectRevision: snapshot.revision,
-        scope: AuthoringIdempotencyScope(
-          actorId: _actor.actorId,
+      receipt = await traceAuthoringPhase(
+        'authoring.apply.commit',
+        () => _executor.apply(
+          actor: _actor,
           projectId: projectId,
-          actionId: descriptor.id,
-          actionVersion: descriptor.version,
-          key: key,
+          action: descriptor,
+          plan: plan,
+          currentProjectRevision: snapshot.revision,
+          scope: AuthoringIdempotencyScope(
+            actorId: _actor.actorId,
+            projectId: projectId,
+            actionId: descriptor.id,
+            actionVersion: descriptor.version,
+            key: key,
+          ),
+          operationId: safeOperationId,
+          confirmationToken: confirmationToken == null
+              ? null
+              : AuthoringConfirmationToken.fromWireValue(confirmationToken),
+          precondition: _lockedResourcePrecondition(plan, precondition),
+          beforeReservation: beforeReservation,
+          preparationCheck: preparationCheck,
         ),
-        operationId: safeOperationId,
-        confirmationToken: confirmationToken == null
-            ? null
-            : AuthoringConfirmationToken.fromWireValue(confirmationToken),
-        precondition: _lockedResourcePrecondition(plan, precondition),
-        beforeReservation: beforeReservation,
-        preparationCheck: preparationCheck,
       );
       refreshUnavailable = plan.payloadCleanupFailed;
       try {
@@ -1334,10 +1368,13 @@ final class _LocalMapAuthoringSession {
                             entry.path.startsWith('$path/'),
                       ),
                 )
-            ? await _snapshotLoader.adoptAppliedChanges(
-                projectHandle,
-                baseRevision: plan.baseRevision,
-                changes: changes,
+            ? await traceAuthoringPhase(
+                'authoring.apply.adopt_snapshot',
+                () => _snapshotLoader.adoptAppliedChanges(
+                  projectHandle,
+                  baseRevision: plan.baseRevision,
+                  changes: changes,
+                ),
               )
             : null;
       } on Object {
@@ -1346,7 +1383,10 @@ final class _LocalMapAuthoringSession {
       }
       if (receipt.status == AuthoringReceiptStatus.applied) {
         try {
-          await plan.releaseAppliedPayload();
+          await traceAuthoringPhase(
+            'authoring.apply.release_payload',
+            plan.releaseAppliedPayload,
+          );
         } on Object {
           refreshUnavailable = true;
           _snapshotLoader.invalidate(projectHandle);
@@ -1586,7 +1626,11 @@ final class _LocalMapAuthoringSession {
     AuthoringSnapshotRefreshDiagnostic? diagnostic;
     if (!refreshUnavailable) {
       try {
-        final resolvedSnapshot = snapshot ?? await _loadSnapshot();
+        final resolvedSnapshot = snapshot ??
+            await traceAuthoringPhase<ProjectSnapshot>(
+              'authoring.result.snapshot',
+              _loadSnapshot,
+            );
         snapshotRevision = resolvedSnapshot.revision;
       } on Object {
         _snapshotLoader.invalidate(projectHandle);
@@ -1595,10 +1639,14 @@ final class _LocalMapAuthoringSession {
     if (snapshotRevision == null) {
       diagnostic = const AuthoringSnapshotRefreshDiagnostic();
     }
-    final projection = await _projections.prepareCommittedMutation(
+    final projection = await traceAuthoringPhase(
+      'authoring.result.projection',
+      () => _projections.prepareCommittedMutation(
         receipt: receipt,
         snapshotRevision: snapshotRevision,
-        diagnostic: diagnostic?.toJson());
+        diagnostic: diagnostic?.toJson(),
+      ),
+    );
     return AuthoringMutationResult(
         receipt: receipt,
         snapshotRevision: snapshotRevision,

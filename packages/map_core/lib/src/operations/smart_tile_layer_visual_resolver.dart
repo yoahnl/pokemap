@@ -376,6 +376,7 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
             source: part.source,
             animations: animations,
             elapsedMs: elapsedMs,
+            activation: layer.animationActivation,
             deterministicHash: resolution.deterministicHash ?? 0,
           );
           if (frame == null) continue;
@@ -424,6 +425,7 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
           source: part.source,
           animations: animations,
           elapsedMs: elapsedMs,
+          activation: layer.animationActivation,
           deterministicHash: deterministicHash,
         );
         if (frame == null) continue;
@@ -927,6 +929,7 @@ SmartTileFrameRef? _resolveVisualFrame({
   required SmartTileVisualSource source,
   required Map<String, ProjectSmartTileAnimation> animations,
   required int elapsedMs,
+  required SmartTileAnimationActivation activation,
   required int deterministicHash,
 }) {
   return source.map(
@@ -942,7 +945,8 @@ SmartTileFrameRef? _resolveVisualFrame({
       );
       if (totalDuration <= 0) return timeline.first.frame;
       var time = elapsedMs < 0 ? 0 : elapsedMs;
-      if (animation.sync == SmartTileAnimationSync.perCell) {
+      if (animation.sync == SmartTileAnimationSync.perCell &&
+          activation == SmartTileAnimationActivation.always) {
         time += deterministicHash % totalDuration;
       }
       if (animation.loop == SmartTileAnimationLoop.once) {
@@ -1346,7 +1350,9 @@ final class SmartTileLayerVisualPlan {
           variants: variants,
           cumulativeMs: cumulativeMs,
           totalDurationMs: totalDurationMs,
-          syncOffsetMs: animation.sync == SmartTileAnimationSync.perCell
+          syncOffsetMs: animation.sync == SmartTileAnimationSync.perCell &&
+                  _layer!.animationActivation ==
+                      SmartTileAnimationActivation.always
               ? deterministicHash % totalDurationMs
               : 0,
           loopOnce: animation.loop == SmartTileAnimationLoop.once,

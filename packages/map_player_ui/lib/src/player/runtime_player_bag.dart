@@ -7,6 +7,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../foundation/player_image.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../localization/player_localizations.dart';
@@ -211,74 +212,18 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
     });
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < 600 ||
-            constraints.maxWidth < 1024 &&
-                constraints.maxHeight > constraints.maxWidth ||
-            MediaQuery.textScalerOf(context).scale(1) >= 1.8;
-        final short = constraints.maxHeight < 250;
-        final sidePockets =
-            constraints.maxHeight < 180 && constraints.maxWidth >= 600;
+        final short = constraints.maxHeight < 300;
         return Column(
           key: const ValueKey('runtime-player-detail-bag'),
           children: [
-            if ((!_showDetail || !compact) && !sidePockets) ...[
-              SizedBox(
-                height: short
-                    ? 48
-                    : MediaQuery.textScalerOf(context).scale(1) > 1.5
-                    ? 72
-                    : 56,
-                child: _pocketBar(pockets, short: short),
-              ),
-              SizedBox(height: short ? 8 : 16),
+            if (!_showDetail) ...[
+              SizedBox(height: 48, child: _pocketBar(pockets, short: short)),
+              const SizedBox(height: 8),
             ],
             Expanded(
-              child: Row(
-                children: [
-                  if (sidePockets && !_showDetail) ...[
-                    SizedBox(
-                      width: (constraints.maxWidth * .38).clamp(200.0, 360.0),
-                      child: Center(
-                        child: SizedBox(
-                          height: 48,
-                          child: _pocketBar(pockets, short: true),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: compact
-                        ? IndexedStack(
-                            index: _showDetail && _selected != null ? 1 : 0,
-                            children: [
-                              _list(compact, showTitle: !short),
-                              if (_selected != null)
-                                _detail(_selected!)
-                              else
-                                const SizedBox.shrink(),
-                            ],
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                flex: 30,
-                                child: _list(false, showTitle: !short),
-                              ),
-                              SizedBox(width: short ? 12 : 24),
-                              Expanded(
-                                flex: 23,
-                                child: _selected == null
-                                    ? const SizedBox.shrink()
-                                    : _detail(_selected!),
-                              ),
-                            ],
-                          ),
-                  ),
-                ],
-              ),
+              child: _showDetail && _selected != null
+                  ? _detail(_selected!)
+                  : _list(),
             ),
             if (_failure ?? widget.detail.message case final message?)
               Padding(
@@ -306,11 +251,17 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
     required bool short,
   }) => LayoutBuilder(
     builder: (context, constraints) {
-      final paged = pockets.length * 80 > constraints.maxWidth;
-      final count = ((constraints.maxWidth - (paged ? 112 : 0)) / 80)
+      final paged =
+          pockets.length * 56 + (pockets.length - 1) * 8 > constraints.maxWidth;
+      final count = ((constraints.maxWidth - (paged ? 112 : 0) + 8) / 64)
           .floor()
           .clamp(1, pockets.length.clamp(1, 100));
       final pages = (pockets.length / count).ceil().clamp(1, 100);
+      final tabWidth =
+          (constraints.maxWidth - (paged ? 112 : 0) - (count - 1) * 8) / count;
+      final showText =
+          (tabWidth >= 96 || pockets.length <= 5 && tabWidth >= 56) &&
+          MediaQuery.textScalerOf(context).scale(1) <= 1.3;
       _pocketPage = _pocketPage.clamp(0, pages - 1);
       void focusPocket(int index) {
         final chosen = index.clamp(0, pockets.length - 1);
@@ -357,8 +308,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                   index++
                 ) ...[
                   if (index > _pocketPage * count) const SizedBox(width: 8),
-                  SizedBox(
-                    width: 72,
+                  Expanded(
                     child: Actions(
                       actions: {
                         RuntimePlayerLogicalIntent:
@@ -400,19 +350,28 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                             key: ValueKey('bag-pocket-${pockets[index].id}'),
                             id: 'bag-pocket-${pockets[index].id}',
                             label: pockets[index].label,
-                            iconOnly: true,
+                            tab: true,
                             integrated: true,
-                            labelMaxLines: 1,
+                            iconOnly: !showText,
+                            reserveFocusMarker: !showText,
+                            labelMaxLines: 2,
+                            labelStyle: context.playerMenuTheme.label.copyWith(
+                              fontSize: tabWidth < 120 ? 12 : 14,
+                              height: 1.25,
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
+                            leading: showText
+                                ? null
+                                : Icon(
+                                    _pocketIcon(pockets[index].id),
+                                    size: 28,
+                                  ),
                             selected: pockets[index].id == _pocket,
                             focusNode: _node('pocket-${pockets[index].id}'),
-                            leading: Icon(
-                              _pocketIcon(pockets[index].id),
-                              size: 28,
-                            ),
+
                             onPressed: () => _changePocket(pockets[index].id),
                             onFocusChanged: (focused) {
                               if (focused) _changePocket(pockets[index].id);
@@ -451,7 +410,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
     _ => Icons.inventory_2_rounded,
   };
 
-  Widget _list(bool compact, {bool showTitle = true}) {
+  Widget _list() {
     if (_visible.isEmpty) {
       return PlayerEmptyState(
         key: const ValueKey('bag-pocket-empty'),
@@ -465,73 +424,163 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
             : _text('Cette poche est vide.', 'This pocket is empty.'),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (showTitle) ...[
-          Text(
-            _pockets.firstWhere((p) => p.id == _pocket).label,
-            style: context.playerMenuTheme.label,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final companion = PlayerCompanionScope.of(context);
+        final landscape = MediaQuery.sizeOf(context).aspectRatio > 1;
+        final columns = MediaQuery.textScalerOf(context).scale(1) >= 1.5
+            ? (landscape && constraints.maxWidth >= 600 ? 2 : 1)
+            : landscape || companion
+            ? (companion || constraints.maxWidth < 600 ? 2 : 3)
+            : 1;
+        return PlayerPagedList(
+          key: ValueKey('bag-list-$_pocket'),
+          sideNavigation: constraints.maxHeight < 240 && _visible.length > 6,
+          onPageReady: _restoreItemFocus,
+          revealChildKey: ValueKey(
+            'bag-list-row-$_pocket-${(_visible.indexOf(_selected!) ~/ columns) * columns}',
           ),
-          const SizedBox(height: 12),
-        ],
-        Expanded(
-          child: PlayerPagedList(
-            key: ValueKey('bag-list-$_pocket'),
-            onPageReady: _restoreItemFocus,
-            children: List.generate(_visible.length, (index) {
-              final entry = _visible[index];
-              final id = _id(entry);
-              return PlayerMenuSelectableRow(
-                key: ValueKey('bag-item-$id'),
-                id: 'bag-item-$id',
-                label: entry.title,
-                selected: id == _id(_selected!),
-                focusNode: _node(id),
-                minimumHeight: 52,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4.5,
-                ),
-                leading: PlayerBagItemImage(entry: entry, size: 40),
-                semanticValue:
-                    '${entry.bagItem?.quantity ?? entry.trailingLabel ?? ''}',
-                trailing: SizedBox(
-                  key: ValueKey('bag-quantity-$id'),
-                  width: 72,
-                  child: Text(
-                    '${widget.favoriteItemIds.contains(id) ? '★ ' : ''}× ${entry.bagItem?.quantity ?? entry.trailingLabel ?? '—'}',
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-                trailingWidth: 72,
-                onFocusChanged: (focused) {
-                  if (focused && _selections[_pocket!] != id) {
-                    _pendingItemFocus = id;
-                    setState(() => _selections[_pocket!] = id);
-                  }
-                },
-                onPressed: _busy
-                    ? null
-                    : () {
-                        setState(() => _selections[_pocket!] = id);
-                        final action = entry.bagAction;
-                        if (action?.isEnabled == true &&
-                            widget.onCommand != null) {
-                          unawaited(_use(entry, action!));
-                        } else {
-                          setState(
-                            () => _failure =
-                                action?.unavailableReason ??
-                                _text(
-                                  'Cet objet ne peut pas être utilisé ici.',
-                                  'This item cannot be used here.',
-                                ),
-                          );
-                        }
-                      },
-              );
-            }),
+          children: [
+            for (var i = 0; i < _visible.length; i += columns)
+              KeyedSubtree(
+                key: ValueKey('bag-list-row-$_pocket-$i'),
+                child: columns == 1
+                    ? _itemRow(
+                        _visible[i],
+                        compact: constraints.maxHeight < 496,
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var column = 0; column < columns; column++) ...[
+                            if (column > 0) const SizedBox(width: 8),
+                            Expanded(
+                              child: i + column < _visible.length
+                                  ? _itemRow(
+                                      _visible[i + column],
+                                      compact: true,
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
+                        ],
+                      ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _itemRow(
+    RuntimePlayerDetailEntrySnapshot entry, {
+    bool compact = false,
+  }) {
+    final id = _id(entry);
+    final row = PlayerMenuSelectableRow(
+      key: ValueKey('bag-item-$id'),
+      id: 'bag-item-$id',
+      label: entry.title,
+      reserveFocusMarker: false,
+      contentGap: 8,
+      supportingContent: compact
+          ? null
+          : Text(
+              entry.bagItem?.description ?? entry.subtitle ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                height: 1.35,
+                color: id == _id(_selected!)
+                    ? context.playerMenuTheme.selectionText.withValues(
+                        alpha: .75,
+                      )
+                    : context.playerMenuTheme.secondary,
+              ),
+            ),
+      selected: id == _id(_selected!),
+      focusNode: _node(id),
+      minimumHeight: compact ? 56 : 76,
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: compact ? 6 : 12,
+        vertical: compact ? 8 : 10,
+      ),
+      labelMaxLines: 1,
+      labelStyle: context.playerMenuTheme.label.copyWith(
+        fontSize: compact ? 14 : 15,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+      ),
+      leading: PlayerCompanionScope.of(context)
+          ? null
+          : PlayerBagItemImage(entry: entry, size: compact ? 24 : 32),
+      semanticValue: '${entry.bagItem?.quantity ?? entry.trailingLabel ?? ''}',
+      trailing: SizedBox(
+        key: ValueKey('bag-quantity-$id'),
+        width: compact ? 36 : 40,
+        child: Text(
+          '${widget.favoriteItemIds.contains(id) ? '★ ' : ''}× ${entry.bagItem?.quantity ?? entry.trailingLabel ?? '—'}',
+          textAlign: TextAlign.right,
+        ),
+      ),
+      trailingWidth: compact ? 36 : 40,
+      onFocusChanged: (focused) {
+        if (focused && _selections[_pocket!] != id) {
+          _pendingItemFocus = id;
+          setState(() => _selections[_pocket!] = id);
+        }
+      },
+      onPressed: _busy
+          ? null
+          : () {
+              setState(() => _selections[_pocket!] = id);
+              final action = entry.bagAction;
+              if (action?.isEnabled == true && widget.onCommand != null) {
+                unawaited(_use(entry, action!));
+              } else {
+                setState(
+                  () => _failure =
+                      action?.unavailableReason ??
+                      _text(
+                        'Cet objet ne peut pas être utilisé ici.',
+                        'This item cannot be used here.',
+                      ),
+                );
+              }
+            },
+    );
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: row),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 48,
+          height: compact ? 56 : 76,
+          child: IconButton(
+            key: ValueKey('bag-info-$id'),
+            tooltip: '${_text('Informations', 'Information')} · ${entry.title}',
+            constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+            onPressed: _busy
+                ? null
+                : () {
+                    setState(() {
+                      _selections[_pocket!] = id;
+                      _showDetail = true;
+                    });
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) _focusDetail();
+                    });
+                  },
+            style: IconButton.styleFrom(
+              foregroundColor: context.playerMenuTheme.secondary,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: context.playerMenuTheme.border),
+              ),
+            ),
+            icon: const Icon(Icons.info_outline),
           ),
         ),
       ],
@@ -584,16 +633,34 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
             children: [
               Row(
                 children: [
-                  if (!short) ...[
-                    PlayerBagItemImage(entry: entry, size: 48),
-                    const SizedBox(width: 12),
-                  ],
+                  ColoredBox(
+                    color: theme.recessed,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: PlayerBagItemImage(
+                        entry: entry,
+                        size: short ? 32 : 48,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       entry.title,
-                      style: short ? theme.label : theme.subtitle,
+                      style: theme.subtitle.copyWith(
+                        fontSize: short ? 18 : 22,
+                        height: 1.2,
+                      ),
                     ),
                   ),
+                  if (entry.bagItem?.quantity case final quantity?) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      '× $quantity',
+                      key: ValueKey('bag-detail-quantity-${_id(entry)}'),
+                      style: theme.numbers,
+                    ),
+                  ],
                 ],
               ),
               for (var index = 0; index < chunks.length; index++)
@@ -616,23 +683,7 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
     if (entry == null) return returnAction ?? const SizedBox.shrink();
     final action = entry.bagAction;
     final children = <Widget>[
-      PlayerMenuSelectableRow(
-        key: ValueKey('bag-info-${_id(entry)}'),
-        id: 'bag-info-${_id(entry)}',
-        integrated: returnAction == null,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        label: _text('Informations', 'Information'),
-        leading: const Icon(Icons.info_outline),
-        onPressed: _busy
-            ? null
-            : () {
-                setState(() => _showDetail = true);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) _focusDetail();
-                });
-              },
-      ),
-      if (action?.isEnabled == true && widget.onCommand != null)
+      if (_showDetail && action?.isEnabled == true && widget.onCommand != null)
         PlayerMenuSelectableRow(
           key: ValueKey('runtime-player-bag-use-${action!.itemTargetId}'),
           id: 'runtime-player-bag-use-${action.itemTargetId}',
@@ -804,8 +855,8 @@ class PlayerBagItemImage extends StatelessWidget {
     final placeholder = Icon(
       Icons.inventory_2_outlined,
       key: ValueKey('bag-image-missing-${entry.id}'),
-      size: size > 40 ? 80 : 28,
-      color: context.playerMenuTheme.secondary,
+      size: size,
+      color: IconTheme.of(context).color ?? context.playerMenuTheme.text,
     );
     return Semantics(
       image: true,

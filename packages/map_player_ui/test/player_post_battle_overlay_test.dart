@@ -111,6 +111,87 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final viewport in const [Size(390, 844), Size(844, 390)]) {
+    testWidgets('grouped result follows the reference bounds at $viewport', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(viewport);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pump(
+        tester,
+        _snapshot(
+          summaryMessages: const [
+            RuntimePostBattleMessage(
+              kind: RuntimePostBattleMessageKind.experience,
+              text: 'Compagnon gagne 84 EXP.',
+            ),
+            RuntimePostBattleMessage(
+              kind: RuntimePostBattleMessageKind.money,
+              text: 'Vous obtenez 120 pièces.',
+            ),
+          ],
+        ),
+      );
+      final panel = tester.getRect(
+        find.byKey(const ValueKey('post-battle-result-panel')),
+      );
+      if (viewport.width > viewport.height) {
+        expect(panel.width, 400);
+        expect(panel.right, viewport.width - 20);
+        expect(panel.top, 20);
+      } else {
+        expect(panel.height, 460);
+        expect(panel.bottom, viewport.height);
+        expect(panel.width, viewport.width);
+      }
+      expect(find.text('Compagnon gagne 84 EXP.'), findsOneWidget);
+      expect(find.text('Vous obtenez 120 pièces.'), findsOneWidget);
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+    'replacement choices preserve published indices and completed snapshots cannot submit',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(844, 390));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final commands = <PostBattlePresentationCommand>[];
+      final choices = [
+        for (final index in [7, 2, 9, 13, 5])
+          PostBattlePresentationChoice(
+            index: index,
+            label: 'Choix $index',
+            selected: index == 7,
+          ),
+      ];
+      await _pump(tester, _snapshot(choices: choices), onCommand: commands.add);
+      for (final index in [7, 2, 9, 13, 5]) {
+        final choice = find.byKey(ValueKey('post-battle-choice-$index'));
+        expect(tester.getSize(choice).height, greaterThanOrEqualTo(48));
+        await tester.tap(choice);
+        expect(
+          (commands.last as PostBattleSelectDecisionCommand).decisionIndex,
+          index,
+        );
+        expect(commands.last.snapshotRevision, 15);
+      }
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+      await _pump(
+        tester,
+        _snapshot(choices: choices, completed: true),
+        onCommand: commands.add,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('post-battle-choice-7')),
+        warnIfMissed: false,
+      );
+      expect(commands, hasLength(5));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('error result is announced and acknowledged', (tester) async {
     PostBattlePresentationCommand? command;
     await tester.pumpWidget(
@@ -140,6 +221,7 @@ void main() {
 
 PostBattlePresentationSnapshot _snapshot({
   bool hasFailure = false,
+  bool completed = false,
   List<RuntimePostBattleMessage> summaryMessages = const [],
   List<PostBattlePresentationChoice>
   choices = const <PostBattlePresentationChoice>[
@@ -163,7 +245,29 @@ PostBattlePresentationSnapshot _snapshot({
         ? 'La progression ne peut pas être appliquée.'
         : 'Pikachu veut apprendre Tonnerre.',
     choices: choices,
-    completed: false,
+    completed: completed,
     hasFailure: hasFailure,
   );
+}
+
+Future<void> _pump(
+  WidgetTester tester,
+  PostBattlePresentationSnapshot snapshot, {
+  ValueChanged<PostBattlePresentationCommand>? onCommand,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('fr'),
+      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+      theme: PokeMapPlayerTheme.dark(),
+      home: Scaffold(
+        body: PlayerPostBattleOverlay(
+          snapshot: snapshot,
+          onCommand: onCommand ?? (_) {},
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }

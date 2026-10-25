@@ -18,6 +18,8 @@ abstract final class AveluneRuntimeCompatibility {
           'map3d@1',
           'map3d.animation@1',
           SpatialModelShadowCapabilities.capabilityId,
+          SpatialActorContactShadowCapabilities.capabilityId,
+          SpatialActorOcclusionCapabilities.capabilityId,
           SpatialSceneLightingCapabilities.dayNightCapabilityId,
           SpatialSceneLightingCapabilities.pointLightCapabilityId,
           SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId,

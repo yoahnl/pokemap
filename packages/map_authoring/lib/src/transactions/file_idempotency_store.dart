@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import '../ports/idempotency_store.dart';
 import '../support/authoring_file_snapshot.dart';
 import '../support/authoring_fingerprint.dart';
+import '../support/authoring_timeline.dart';
 import '../support/authoring_performance_observer.dart';
 
 final class IdempotencyStoreException implements Exception {
@@ -185,6 +186,49 @@ final class FileIdempotencyStore implements IdempotencyStore {
         _performanceObserver = performanceObserver,
         _decodeExecutor = decodeExecutor ?? FileIdempotencyDecodeExecutor();
 
+  static Future<FileIdempotencyStore> forScope({
+    required String filePath,
+    required AuthoringIdempotencyScope scope,
+  }) async {
+    final file = File(filePath);
+    if (scope.actionId != 'characterStudio.contactShadow.set' ||
+        !file.isAbsolute ||
+        file.uri.pathSegments.last != 'idempotency.jsonl' ||
+        _directoryName(file.parent) != 'authoring' ||
+        _directoryName(file.parent.parent) != '.pokemap') {
+      throw ArgumentError(
+          'A scoped ledger requires the new contact shadow action and canonical ledger path.');
+    }
+    final digest = computeAuthoringBytesFingerprint(
+      utf8.encode(scope.storageKey),
+      logicalName: 'idempotency-scope.json',
+    ).substring(7);
+    final store = FileIdempotencyStore(
+      filePath: '${file.parent.path}/idempotency-scopes/$digest.jsonl',
+    ).._scopeKey = scope.storageKey;
+    await FileIdempotencyStore(filePath: filePath)._requireSafePaths();
+    await store._requireSafePaths();
+    return store;
+  }
+
+  String? _scopeKey;
+
+  Future<FileIdempotencyStore>? _scopeStore(AuthoringIdempotencyScope scope) {
+    if (_scopeKey != null) {
+      if (_scopeKey != scope.storageKey) {
+        return Future.error(const IdempotencyStoreException(
+          'idempotency.scope_mismatch',
+          'The scoped ledger belongs to a different mutation intent.',
+        ));
+      }
+      return null;
+    }
+    if (scope.actionId == 'characterStudio.contactShadow.set') {
+      return forScope(filePath: _file.path, scope: scope);
+    }
+    return null;
+  }
+
   final File _file;
   final File _lockFile;
   final File _compactionFile;
@@ -248,6 +292,8 @@ final class FileIdempotencyStore implements IdempotencyStore {
 
   @override
   Future<AuthoringIdempotencyRecord?> read(AuthoringIdempotencyScope scope) {
+    final scoped = _scopeStore(scope);
+    if (scoped != null) return scoped.then((store) => store.read(scope));
     return _withLock(() async {
       final indexes = await _readIndexUnlocked();
       final indexed = indexes[scope.storageKey];
@@ -265,6 +311,10 @@ final class FileIdempotencyStore implements IdempotencyStore {
         'pendingRecord',
         'reserve requires a pending record',
       );
+    }
+    final scoped = _scopeStore(pendingRecord.scope);
+    if (scoped != null) {
+      return scoped.then((store) => store.reserve(pendingRecord));
     }
     return _withLock(() async {
       final indexes = await _readIndexUnlocked();
@@ -293,6 +343,10 @@ final class FileIdempotencyStore implements IdempotencyStore {
         'completedRecord',
         'complete requires a completed record',
       );
+    }
+    final scoped = _scopeStore(completedRecord.scope);
+    if (scoped != null) {
+      return scoped.then((store) => store.complete(completedRecord));
     }
     return _withLock(() async {
       final indexes = await _readIndexUnlocked();
@@ -440,10 +494,18 @@ final class FileIdempotencyStore implements IdempotencyStore {
     _performanceObserver?.incrementCounter(
       AuthoringPerformanceCounterName.filesystemRead,
     );
-    final bytes = await _file.readAsBytes();
+    final bytes = await traceAuthoringPhase(
+      'authoring.ledger.read_file',
+      _file.readAsBytes,
+      arguments: {'bytes': snapshot.size},
+    );
     late final _FileIdempotencyDecodeResult decoded;
     try {
-      decoded = await _decodeExecutor._decode(bytes);
+      decoded = await traceAuthoringPhase(
+        'authoring.ledger.decode_dispatch',
+        () => _decodeExecutor._decode(bytes),
+        arguments: {'bytes': bytes.length},
+      );
     } on Object {
       throw const IdempotencyStoreException(
         'idempotency.store_corrupt',
@@ -455,6 +517,12 @@ final class FileIdempotencyStore implements IdempotencyStore {
       by: decoded.eventCount,
     );
     final indexes = decoded.indexes;
+    if (_scopeKey != null && indexes.keys.any((key) => key != _scopeKey)) {
+      throw const IdempotencyStoreException(
+        'idempotency.scope_mismatch',
+        'The scoped ledger contains a different mutation intent.',
+      );
+    }
     _replaceIndexes(Map<String, _IndexedIdempotencyRecord>.of(indexes));
     _cachedSnapshot = snapshot;
     _cacheInitialized = true;
@@ -657,7 +725,14 @@ AuthoringIdempotencyRecord _recordFromPutEvent(
   );
 }
 
-_FileIdempotencyDecodeResult _decodeFileIdempotencyEvents(Uint8List bytes) {
+_FileIdempotencyDecodeResult _decodeFileIdempotencyEvents(Uint8List bytes) =>
+    traceAuthoringSync(
+      'authoring.ledger.decode_worker',
+      () => _decodeIdempotencyEvents(bytes),
+      arguments: {'bytes': bytes.length},
+    );
+
+_FileIdempotencyDecodeResult _decodeIdempotencyEvents(Uint8List bytes) {
   final indexes = <String, _IndexedIdempotencyRecord>{};
   var lineStart = 0;
   var eventCount = 0;

@@ -1,7 +1,7 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -9,6 +9,113 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  setUpAll(() async {
+    for (final family in [
+      'packages/map_player_ui/PokeMapSplashDMSans',
+      'Avenir Next',
+      'Aube Display',
+    ]) {
+      await (FontLoader(
+        family,
+      )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+    }
+  });
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
+    testWidgets(
+      'reference pause keeps all shortcuts and input geometry at $size',
+      (tester) async {
+        await _setSurface(tester, size);
+        Rect? firstSheet;
+        Rect? firstOptions;
+        for (final source in [
+          PlayerInputSource.touch,
+          PlayerInputSource.controller,
+        ]) {
+          Widget shell = RuntimePlayerPauseShell.root(
+            gameTitle: 'Voyage',
+            actions: {
+              ..._actions(),
+              PlayerPauseAction.quests: const PlayerActionAvailability.disabled(
+                'Action indisponible',
+              ),
+            },
+            onSelected: (_) {},
+            detail: const SizedBox.shrink(),
+            activeInputSource: source,
+            rootActionsOnly: size == const Size(496, 432),
+          );
+          if (size == const Size(496, 432)) {
+            shell = PlayerCompanionScope(child: shell);
+          }
+          await tester.pumpWidget(
+            _app(
+              Builder(
+                builder: (context) => MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    padding: size.width == 390
+                        ? const EdgeInsets.only(top: 59, bottom: 34)
+                        : size.width == 844
+                        ? const EdgeInsets.fromLTRB(59, 0, 59, 21)
+                        : EdgeInsets.zero,
+                  ),
+                  child: shell,
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          for (final action in [
+            PlayerPauseAction.party,
+            PlayerPauseAction.bag,
+            PlayerPauseAction.pokedex,
+            PlayerPauseAction.quests,
+            PlayerPauseAction.contacts,
+            PlayerPauseAction.map,
+            PlayerPauseAction.profile,
+            PlayerPauseAction.options,
+          ]) {
+            final target = find.byKey(ValueKey('pause.${action.name}'));
+            expect(
+              target.hitTestable(),
+              findsOneWidget,
+              reason: '${action.name} must remain on first page',
+            );
+            expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
+          }
+          expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+          expect(find.byType(Scrollable), findsNothing);
+          final save = find.byKey(const ValueKey('pause.save'));
+          final exit = find.byKey(const ValueKey('pause.returnToTitle'));
+          expect(exit.hitTestable(), findsOneWidget);
+          expect(tester.getSize(exit), const Size(48, 48));
+          expect(
+            tester.getTopLeft(exit).dx - tester.getTopRight(save).dx,
+            greaterThanOrEqualTo(8),
+          );
+          final sheet = tester.getRect(
+            find.byKey(const ValueKey('pause-root-sheet')),
+          );
+          final options = tester.getRect(
+            find.byKey(const ValueKey('pause.options')),
+          );
+          if (firstSheet != null) {
+            expect(sheet, firstSheet);
+            expect(options, firstOptions);
+          }
+          firstSheet = sheet;
+          firstOptions = options;
+          if (size.width == 390) expect(sheet.top, greaterThan(300));
+          if (size.width == 844) expect(sheet.left, greaterThan(400));
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
+  }
+
   for (final source in [
     PlayerInputSource.keyboard,
     PlayerInputSource.controller,
@@ -42,12 +149,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final hint = tester.widget<PlayerMenuKeyHint>(
-        find.byType(PlayerMenuKeyHint).first,
-      );
       expect(
-        hint.glyph,
-        source == PlayerInputSource.controller ? 'Bouton ouest' : 'Z',
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Tooltip &&
+              widget.message ==
+                  '${source == PlayerInputSource.controller ? 'Bouton ouest' : 'Z'} · Valider',
+        ),
+        findsOneWidget,
       );
       expect(tester.takeException(), isNull);
     });
@@ -87,7 +196,13 @@ void main() {
         );
         await _revealPause(tester, find.text('Voyage'));
         expect(find.text('Voyage'), findsOneWidget);
-        expect(find.text('Reprendre'), findsOneWidget);
+        final resume = find.byWidgetPredicate(
+          (widget) =>
+              widget is PlayerMenuSelectableRow &&
+              widget.id == 'pause-frame-return' &&
+              widget.label == 'Reprendre',
+        );
+        expect(resume.hitTestable(), findsOneWidget);
         expect(find.byType(PlayerEmptyState), findsNothing);
         expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
         expect(

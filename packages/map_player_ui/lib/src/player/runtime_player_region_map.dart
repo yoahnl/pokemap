@@ -7,6 +7,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../foundation/player_image.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -66,7 +67,9 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
   final _overlapKey = GlobalKey();
   final _overlapFocus = FocusNode(debugLabel: 'Overlapping locations');
   final _regionBackFocus = FocusNode(debugLabel: 'Region choice back');
+  final _locationsFocus = FocusNode(debugLabel: 'Map locations');
   bool _showRegions = false;
+  bool _showLocations = false;
   bool _invalidated = false;
   bool _pendingPointFocus = true;
   RuntimePlayerRegionMapNavigation get _navigation =>
@@ -110,7 +113,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
     super.initState();
     _attach();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _rowFocus[_navigation.selectedPointId]?.requestFocus();
+      if (mounted) _locationsFocus.requestFocus();
     });
   }
 
@@ -125,6 +128,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
     _pendingPointFocus = true;
     setState(() {
       _showRegions = false;
+      _showLocations = false;
       _overlap = [];
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -190,6 +194,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
     _navigation.removeListener(_reset);
     _overlapFocus.dispose();
     _regionBackFocus.dispose();
+    _locationsFocus.dispose();
     for (final focus in [..._rowFocus.values, ..._regionChoiceFocus.values]) {
       focus.dispose();
     }
@@ -198,28 +203,42 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
   }
 
   bool _back() {
-    if (!_showRegions && _overlap.isEmpty) return false;
+    if (!_showRegions && !_showLocations && _overlap.isEmpty) return false;
     setState(() {
       _showRegions = false;
+      _showLocations = false;
       _overlap = [];
     });
-    _pendingPointFocus = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _locationsFocus.requestFocus();
+    });
     return true;
   }
 
-  void _select(RuntimePlayerMapPointSnapshot point, {bool revealRow = false}) {
+  void _openLocations() {
+    _pendingPointFocus = true;
+    setState(() => _showLocations = true);
+  }
+
+  void _select(
+    RuntimePlayerMapPointSnapshot point, {
+    bool revealRow = false,
+    bool closeLocations = true,
+  }) {
     _pendingPointFocus = true;
     setState(() {
       _navigation.selectedPointId = point.id;
       _invalidated = false;
-      _overlap = [];
+      if (closeLocations) {
+        _showLocations = false;
+        _overlap = [];
+      }
       if (point.isLocated) _navigation.center = Offset(point.u!, point.v!);
     });
     widget.onPointSelected?.call(point.id);
-    if (revealRow) {
+    if (revealRow || closeLocations) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _rowFocus[point.id]?.requestFocus();
+        if (mounted) _locationsFocus.requestFocus();
       });
     }
   }
@@ -240,7 +259,10 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
   }
 
   void _openRegions() {
-    setState(() => _showRegions = true);
+    setState(() {
+      _showLocations = false;
+      _showRegions = true;
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _regionBackFocus.requestFocus();
     });
@@ -355,23 +377,22 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
               ),
             );
           }
+          final companion = PlayerCompanionScope.of(context);
           final portrait =
-              constraints.maxWidth < 600 &&
-              constraints.maxHeight > constraints.maxWidth;
+              constraints.maxHeight > constraints.maxWidth && !companion;
           final compact =
               portrait ||
               constraints.maxHeight < 430 ||
               MediaQuery.textScalerOf(context).scale(1) >= 1.5;
-          final sidebarWidth = constraints.maxHeight < 300
-              ? math.min(520.0, constraints.maxWidth * .6)
-              : math.min(384.0, constraints.maxWidth * .42);
+          final sidebarWidth = companion ? 164.0 : 212.0;
+          final gap = companion ? 8.0 : 16.0;
           final map = _RegionImage(
             key: ValueKey('region-image-${region.id}'),
             region: region,
             compactControls:
                 (portrait
                     ? constraints.maxWidth
-                    : constraints.maxWidth - 24 - sidebarWidth) <
+                    : constraints.maxWidth - gap - sidebarWidth) <
                 600 * MediaQuery.textScalerOf(context).scale(1),
             navigation: _navigation,
             label: _label,
@@ -379,13 +400,16 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
             icon: _icon,
             text: _text,
             provider: widget.imageProvider,
+            locationsFocus: _locationsFocus,
+            onShowLocations: _openLocations,
             onSelect: (points) {
               if (points.length == 1) {
                 _select(points.single, revealRow: true);
               } else {
-                setState(
-                  () => _overlap = points.map((point) => point.id).toList(),
-                );
+                setState(() {
+                  _overlap = points.map((point) => point.id).toList();
+                  _showLocations = true;
+                });
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted) _overlapFocus.requestFocus();
                 });
@@ -393,52 +417,105 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
             },
             onChanged: () => setState(() {}),
           );
-          final side = PlayerMenuPanel(
-            key: const ValueKey('region-map-sidebar'),
-            padding: const EdgeInsets.all(12),
-            child: LayoutBuilder(
-              builder: (context, sideConstraints) {
-                final horizontal =
-                    sideConstraints.maxHeight <
-                    220 * MediaQuery.textScalerOf(context).scale(1);
-                final children = [
-                  Expanded(child: _listing(region, compact: compact)),
-                  if (horizontal)
-                    const SizedBox(width: 12)
-                  else
-                    const SizedBox(height: 12),
-                  Expanded(child: _detail()),
-                ];
-                return horizontal
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: children,
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: children,
-                      );
-              },
-            ),
+          final selector = SizedBox(
+            height: 48,
+            child: _regions.length > 1
+                ? PlayerMenuSelectableRow(
+                    key: const ValueKey('region-map-region'),
+                    id: 'region-map-region',
+                    label: region.label,
+                    labelMaxLines: 2,
+                    labelStyle: context.playerMenuTheme.label.copyWith(
+                      fontSize: 12,
+                    ),
+                    reserveFocusMarker: false,
+                    contentPadding: const EdgeInsets.all(8),
+                    onPressed: _openRegions,
+                  )
+                : Align(
+                    key: const ValueKey('region-map-region'),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      region.label,
+                      style: context.playerMenuTheme.label.copyWith(
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
           );
+          final detail = PlayerMenuPanel(
+            key: const ValueKey('region-map-sidebar'),
+            padding: EdgeInsets.all(portrait ? 12 : 8),
+            child: _detail(),
+          );
+          final mapHeight = math.min(
+            268.0,
+            math.max(32.0, (constraints.maxHeight - 64) * .55),
+          );
+          final content = portrait
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    selector,
+                    const SizedBox(height: 8),
+                    SizedBox(height: mapHeight + 68, child: map),
+                    const SizedBox(height: 8),
+                    Expanded(child: detail),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: sidebarWidth,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          selector,
+                          const SizedBox(height: 8),
+                          Expanded(child: detail),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: gap),
+                    Expanded(child: map),
+                  ],
+                );
           return SizedBox.expand(
             key: const ValueKey('runtime-player-detail-map'),
-            child: portrait
-                ? Column(
-                    children: [
-                      SizedBox(height: constraints.maxHeight * .34, child: map),
-                      const SizedBox(height: 8),
-                      Expanded(child: side),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: map),
-                      const SizedBox(width: 24),
-                      SizedBox(width: sidebarWidth, child: side),
-                    ],
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ExcludeFocus(
+                  excluding: _showLocations,
+                  child: IgnorePointer(
+                    ignoring: _showLocations,
+                    child: ExcludeSemantics(
+                      excluding: _showLocations,
+                      child: content,
+                    ),
                   ),
+                ),
+                if (_showLocations)
+                  PlayerMenuPanel(
+                    primary: true,
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        PlayerActionButton(
+                          key: const ValueKey('region-map-locations-close'),
+                          label: _text('Retour à la carte', 'Back to map'),
+                          icon: Icons.arrow_back,
+                          onPressed: _back,
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(child: _listing(region, compact: compact)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           );
         },
       ),
@@ -466,15 +543,6 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
           ? ValueKey('region-row-${_selected!.id}')
           : null,
       children: [
-        if (_regions.length > 1)
-          PlayerActionButton(
-            key: const ValueKey('region-map-region'),
-            label: region.label,
-            icon: Icons.unfold_more,
-            onPressed: _openRegions,
-          )
-        else
-          Text(region.label, style: context.playerMenuTheme.subtitle),
         if (_overlap.isNotEmpty) ...[
           Text(
             key: _overlapKey,
@@ -507,7 +575,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
               if (focused &&
                   !_invalidated &&
                   _navigation.selectedPointId != point.id) {
-                _select(point);
+                _select(point, closeLocations: false);
               }
             },
             onPressed: () => _select(point),
@@ -623,6 +691,8 @@ class _RegionImage extends StatefulWidget {
     required this.text,
     required this.onSelect,
     required this.onChanged,
+    required this.onShowLocations,
+    required this.locationsFocus,
     this.provider,
   });
   final RuntimePlayerRegionSnapshot region;
@@ -634,6 +704,8 @@ class _RegionImage extends StatefulWidget {
   final String Function(String, String) text;
   final void Function(List<RuntimePlayerMapPointSnapshot>) onSelect;
   final VoidCallback onChanged;
+  final VoidCallback onShowLocations;
+  final FocusNode locationsFocus;
   final ImageProvider<Object> Function(String)? provider;
   @override
   State<_RegionImage> createState() => _RegionImageState();
@@ -1007,6 +1079,13 @@ class _RegionImageState extends State<_RegionImage> {
                           widget.onChanged();
                         },
                 ),
+                _control(
+                  key: const ValueKey('region-map-locations'),
+                  label: widget.text('Lieux', 'Locations'),
+                  icon: Icons.list_rounded,
+                  focusNode: widget.locationsFocus,
+                  onPressed: widget.onShowLocations,
+                ),
               ],
             ),
           ),
@@ -1042,6 +1121,7 @@ class _RegionImageState extends State<_RegionImage> {
     required String label,
     required IconData icon,
     required VoidCallback? onPressed,
+    FocusNode? focusNode,
   }) {
     if (!widget.compactControls) {
       return PlayerActionButton(
@@ -1049,6 +1129,7 @@ class _RegionImageState extends State<_RegionImage> {
         label: label,
         icon: icon,
         expandWidth: false,
+        focusNode: focusNode,
         onPressed: onPressed,
       );
     }
@@ -1059,6 +1140,7 @@ class _RegionImageState extends State<_RegionImage> {
         child: PlayerMenuSelectableRow(
           key: key,
           id: key.value,
+          focusNode: focusNode,
           label: label,
           leading: Icon(icon),
           iconOnly: true,

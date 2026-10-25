@@ -212,12 +212,6 @@ List<String> validateMapEntityPresentation({
     if (variant.startsOnNpcContact && !variant.blocksMovement) {
       errors.add('variantNpcContactRequiresCollision');
     }
-    if ((map.spatialScene != null ||
-            map.version == ProjectVersion.v9 ||
-            project.settings.dimension == ProjectDimension.threeD) &&
-        variant.counterInteractionSides.isNotEmpty) {
-      errors.add('variantCounterReachSpatialUnsupported');
-    }
     final x = entity.pos.x;
     final y = entity.pos.y;
     if (x < 0 ||

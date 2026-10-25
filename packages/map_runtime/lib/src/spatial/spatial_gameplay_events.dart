@@ -44,6 +44,7 @@ final class SpatialGameplayEvents {
   SpatialGameplayEvents._({
     required this.project,
     this.currentModelDefinitions,
+    this.interactionPositionBlocked,
     required this.mapsById,
     required NarrativeEventRuntimeSnapshot narrativeSnapshot,
     required GameState Function() readGameState,
@@ -130,6 +131,7 @@ final class SpatialGameplayEvents {
   static Future<SpatialGameplayEvents> create({
     required ProjectManifest project,
     Iterable<ProjectModel3dEntry> Function()? currentModelDefinitions,
+    bool Function(double x, double z, String ignoredEntityId)? interactionPositionBlocked,
     required Map<String, MapData> mapsById,
     required GameState Function() readGameState,
     required void Function(GameState) commitGameState,
@@ -176,6 +178,7 @@ final class SpatialGameplayEvents {
     return SpatialGameplayEvents._(
       project: snapshot.project,
       currentModelDefinitions: currentModelDefinitions,
+      interactionPositionBlocked: interactionPositionBlocked,
       mapsById: maps,
       narrativeSnapshot: snapshot,
       readGameState: readGameState,
@@ -201,6 +204,7 @@ final class SpatialGameplayEvents {
 
   final ProjectManifest project;
   final Iterable<ProjectModel3dEntry> Function()? currentModelDefinitions;
+  final bool Function(double x, double z, String ignoredEntityId)? interactionPositionBlocked;
   final Map<String, MapData> mapsById;
   final NarrativeRuntimeActivityGate activityGate;
   final NarrativeEventRuntimeSnapshot _snapshot;
@@ -393,6 +397,7 @@ final class SpatialGameplayEvents {
       x: position.x,
       z: position.z,
       facing: state.playerFacing,
+      isPositionBlocked: interactionPositionBlocked,
     );
   }
 

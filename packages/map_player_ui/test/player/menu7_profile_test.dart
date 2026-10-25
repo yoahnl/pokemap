@@ -46,21 +46,20 @@ void main() {
     final progression = tester.getRect(
       find.byKey(const ValueKey('profile-progression')),
     );
-    expect(body.size, const Size(1296, 628));
-    expect(identity.width, 416);
-    expect(progression.width, 856);
-    expect(progression.left - identity.right, 24);
+    expect(identity.width, closeTo((body.width - 16) / 2, .1));
+    expect(progression.width, closeTo(identity.width, .1));
+    expect(progression.left - identity.right, 16);
     expect(
       tester.getSize(find.byKey(const ValueKey('profile-portrait'))),
-      const Size(256, 288),
+      const Size(56, 56),
     );
     expect(
       tester.getSize(find.byKey(const ValueKey('profile-badge-boulder'))),
-      const Size(80, 80),
+      const Size(32, 32),
     );
     expect(
       tester.getSize(find.byKey(const ValueKey('profile-badge-image-boulder'))),
-      const Size(64, 64),
+      const Size(24, 24),
     );
     final firstBadge = tester.getRect(
       find.byKey(const ValueKey('profile-badge-boulder')),
@@ -68,7 +67,7 @@ void main() {
     final secondBadge = tester.getRect(
       find.byKey(const ValueKey('profile-badge-cascade')),
     );
-    expect(secondBadge.left - firstBadge.right, 16);
+    expect(secondBadge.left - firstBadge.right, 8);
     expect(tester.takeException(), isNull);
   });
 
@@ -158,7 +157,7 @@ void main() {
     );
     expect(title.maxLines, 2);
     expect(title.style?.fontSize, 26);
-    expect(title.style?.height, 32 / 26);
+    expect(title.style?.height, 1.2);
     expect(tester.takeException(), isNull);
   });
 

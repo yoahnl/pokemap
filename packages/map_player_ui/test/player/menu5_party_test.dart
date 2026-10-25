@@ -21,6 +21,40 @@ void main() {
   for (final size in [
     const Size(1440, 900),
     const Size(1024, 768),
+    const Size(390, 844),
+    const Size(768, 1024),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
+    testWidgets('six party members remain visible together at $size', (
+      tester,
+    ) async {
+      final navigation = RuntimePlayerPartyNavigation();
+      addTearDown(navigation.dispose);
+      await _pump(
+        tester,
+        List.generate(6, (i) => _member('member$i', hp: i == 0 ? 0 : 30)),
+        navigation: navigation,
+        size: size,
+      );
+      final bounds = tester.getRect(
+        find.byKey(const ValueKey('runtime-player-detail-party')),
+      );
+      for (var i = 0; i < 6; i++) {
+        final member = find.byKey(ValueKey('party-member-member$i'));
+        expect(member.hitTestable(), findsOneWidget);
+        final rect = tester.getRect(member);
+        expect(rect.height, greaterThanOrEqualTo(48));
+        expect(rect.bottom, lessThanOrEqualTo(bounds.bottom + .1));
+      }
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final size in [
+    const Size(1440, 900),
+    const Size(1024, 768),
     const Size(768, 1024),
     const Size(844, 390),
     const Size(390, 844),
@@ -51,7 +85,7 @@ void main() {
         final second = tester.getRect(
           find.byKey(const ValueKey('party-member-member1')),
         );
-        if (size.width >= 440) {
+        if (size.aspectRatio > 1 && size.width >= 440) {
           expect(second.top, closeTo(first.top, .1));
           expect(second.left, greaterThan(first.right));
         } else {

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -195,14 +196,25 @@ final class _StoredAuthoringPayload extends AuthoringPayload {
       throw const AuthoringPayloadException(
           'payload.released', 'The owned payload has been released.');
     }
-    final inspection = _PayloadInspection(storageKey, byteLength);
+    final digest = _DigestSink();
+    final raw = sha256.startChunkedConversion(digest);
+    var length = 0;
     await for (final chunk in _openRead()) {
-      inspection.add(chunk);
+      length += chunk.length;
+      if (length > byteLength ||
+          chunk.any((byte) => byte < 0 || byte > 255)) {
+        throw const AuthoringPayloadException('payload.length_mismatch',
+            'The payload length or byte range is invalid.');
+      }
+      raw.add(chunk);
       yield chunk;
     }
-    final observed = inspection.close();
-    if (observed.rawSha256 != rawSha256 ||
-        observed.resourceRevision != resourceRevision) {
+    if (length != byteLength) {
+      throw const AuthoringPayloadException('payload.length_mismatch',
+          'The payload length differs from its descriptor.');
+    }
+    raw.close();
+    if (digest.value != rawSha256) {
       throw const AuthoringPayloadException('payload.source_mismatch',
           'The stored payload changed during reading.');
     }
@@ -224,11 +236,178 @@ Future<AuthoringPayloadInspection> inspectAuthoringPayload(
     Stream<List<int>> chunks,
     {required String storageKey,
     required int byteLength}) async {
+  if (const bool.fromEnvironment('dart.library.io') &&
+      byteLength >= 256 * 1024 &&
+      !chunks.isBroadcast) {
+    return _inspectAuthoringPayloadInWorker(chunks,
+        storageKey: storageKey, byteLength: byteLength);
+  }
   final inspection = _PayloadInspection(storageKey, byteLength);
   await for (final chunk in chunks) {
     inspection.add(chunk);
   }
   return inspection.close();
+}
+
+var _activePayloadInspectionWorkers = 0;
+final _waitingPayloadInspections = <Completer<void>>[];
+
+Future<void> _acquirePayloadInspectionWorker() {
+  if (_activePayloadInspectionWorkers < 2) {
+    _activePayloadInspectionWorkers++;
+    return Future.value();
+  }
+  final waiting = Completer<void>();
+  _waitingPayloadInspections.add(waiting);
+  return waiting.future;
+}
+
+void _releasePayloadInspectionWorker() {
+  if (_waitingPayloadInspections.isNotEmpty) {
+    _waitingPayloadInspections.removeAt(0).complete();
+  } else {
+    _activePayloadInspectionWorkers--;
+  }
+}
+
+Future<AuthoringPayloadInspection> _inspectAuthoringPayloadInWorker(
+  Stream<List<int>> chunks, {
+  required String storageKey,
+  required int byteLength,
+}) async {
+  await _acquirePayloadInspectionWorker();
+  final replies = ReceivePort();
+  final iterator = StreamIterator<Object?>(replies);
+  Isolate? worker;
+  Future<List<Object?>> next() async {
+    if (!await iterator.moveNext()) {
+      throw StateError(
+          'The payload inspection worker stopped without a result.');
+    }
+    final value = iterator.current;
+    if (value == null) {
+      throw StateError(
+          'The payload inspection worker exited before completion.');
+    }
+    if (value is! List || value.isEmpty) {
+      throw StateError(
+          'The payload inspection worker returned an invalid message.');
+    }
+    if (value.first == 'error') {
+      throw AuthoringPayloadException(value[1] as String, value[2] as String);
+    }
+    if (value.first == 'argumentError') {
+      throw ArgumentError.value(value[1], value[2] as String?, value[3]);
+    }
+    if (value.length == 2 && value[0] is String && value[1] is String) {
+      throw RemoteError(value[0] as String, value[1] as String);
+    }
+    return value.cast<Object?>();
+  }
+
+  try {
+    worker = await Isolate.spawn<List<Object?>>(
+      _runPayloadInspectionWorker,
+      [replies.sendPort, storageKey, byteLength],
+      onError: replies.sendPort,
+      onExit: replies.sendPort,
+      errorsAreFatal: true,
+    );
+    final ready = await next();
+    if (ready.first != 'ready' || ready[1] is! SendPort) {
+      throw StateError('The payload inspection worker failed to initialize.');
+    }
+    final commands = ready[1] as SendPort;
+    await for (final chunk in chunks) {
+      for (var offset = 0; offset < chunk.length; offset += 128 * 1024) {
+        final end = min(offset + 128 * 1024, chunk.length);
+        final Uint8List bytes;
+        if (chunk is Uint8List) {
+          bytes = Uint8List.sublistView(chunk, offset, end);
+        } else {
+          bytes = Uint8List(end - offset);
+          for (var index = offset; index < end; index++) {
+            final value = chunk[index];
+            if (value < 0 || value > 255) {
+              throw const AuthoringPayloadException('payload.length_mismatch',
+                  'The payload length or byte range is invalid.');
+            }
+            bytes[index - offset] = value;
+          }
+        }
+        commands.send([
+          'chunk',
+          TransferableTypedData.fromList([bytes])
+        ]);
+        if ((await next()).first != 'ack') {
+          throw StateError(
+              'The payload inspection worker did not accept a chunk.');
+        }
+      }
+    }
+    commands.send(['finish']);
+    final result = await next();
+    if (result.first != 'done') {
+      throw StateError(
+          'The payload inspection worker did not return a digest.');
+    }
+    return (
+      rawSha256: result[1] as String,
+      resourceRevision: result[2] as String,
+      byteLength: result[3] as int,
+      contentDigest: result[4] as String,
+    );
+  } finally {
+    worker?.kill(priority: Isolate.immediate);
+    replies.close();
+    try {
+      await iterator.cancel();
+    } finally {
+      _releasePayloadInspectionWorker();
+    }
+  }
+}
+
+void _runPayloadInspectionWorker(List<Object?> arguments) async {
+  final reply = arguments[0] as SendPort;
+  final commands = ReceivePort();
+  try {
+    final inspection =
+        _PayloadInspection(arguments[1] as String, arguments[2] as int);
+    reply.send(['ready', commands.sendPort]);
+    await for (final message in commands) {
+      final request = message as List;
+      if (request.first == 'chunk') {
+        inspection.add(
+            (request[1] as TransferableTypedData).materialize().asUint8List());
+        reply.send(['ack']);
+      } else if (request.first == 'finish') {
+        final result = inspection.close();
+        reply.send([
+          'done',
+          result.rawSha256,
+          result.resourceRevision,
+          result.byteLength,
+          result.contentDigest,
+        ]);
+        return;
+      } else {
+        throw StateError(
+            'The payload inspection worker received an invalid command.');
+      }
+    }
+  } on AuthoringPayloadException catch (failure) {
+    reply.send(['error', failure.code, failure.message]);
+  } on ArgumentError catch (failure) {
+    reply.send([
+      'argumentError',
+      failure.invalidValue,
+      failure.name,
+      failure.message,
+    ]);
+  } finally {
+    commands.close();
+  }
 }
 
 final class _PayloadInspection {

@@ -53,13 +53,72 @@ void main() {
       final pin = tester.getRect(
         find.byKey(const ValueKey('region-pin-hanazuki')),
       );
-      expect(sidebar.width, 384);
-      expect(canvas.width, 888);
-      expect(sidebar.left - canvas.right, 24);
+      expect(sidebar.width, 212);
+      expect(canvas.width, 1068);
+      expect(canvas.left - sidebar.right, 16);
+      expect(find.byKey(const PageStorageKey('region-map-list')), findsNothing);
       expect(pin.size, const Size(48, 48));
       expect(pin.center.dx, closeTo(canvas.left + canvas.width * .25, .01));
       expect(pin.center.dy, closeTo(canvas.center.dy, .01));
       expect(navigation.selectedPointId, 'hanazuki');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('companion uses the narrow left sidebar and no permanent list', (
+    tester,
+  ) async {
+    await _pump(tester, _detail(), size: const Size(496, 432), companion: true);
+    final sidebar = tester.getRect(
+      find.byKey(const ValueKey('region-map-sidebar')),
+    );
+    final map = tester.getRect(
+      find.byKey(const ValueKey('region-map-canvas-panel')),
+    );
+    expect(sidebar.width, 164);
+    expect(map.left - sidebar.right, 8);
+    expect(find.byKey(const PageStorageKey('region-map-list')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('portrait orders the region, 268px map and inline details', (
+    tester,
+  ) async {
+    await _pump(tester, _detail(), size: const Size(390, 844));
+    final region = tester.getRect(
+      find.byKey(const ValueKey('region-map-region')),
+    );
+    final map = tester.getRect(find.byKey(const ValueKey('region-map-canvas')));
+    final detail = tester.getRect(
+      find.byKey(const ValueKey('region-map-sidebar')),
+    );
+    expect(map.height, 268);
+    expect(map.top, greaterThan(region.bottom));
+    expect(detail.top, greaterThan(map.bottom));
+    expect(find.byKey(const PageStorageKey('region-map-list')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'optional locations retain unlocated points and restore focus on close',
+    (tester) async {
+      final navigation = RuntimePlayerRegionMapNavigation();
+      addTearDown(navigation.dispose);
+      await _pump(tester, _detail(extraPoints: 1), navigation: navigation);
+      await _revealMap(
+        tester,
+        find.byKey(const ValueKey('region-row-extra-0')),
+      );
+      await tester.tap(find.byKey(const ValueKey('region-row-extra-0')));
+      await tester.pumpAndSettle();
+      expect(navigation.selectedPointId, 'extra-0');
+      expect(find.text('Position non renseignée.'), findsOneWidget);
+      expect(find.byKey(const PageStorageKey('region-map-list')), findsNothing);
+      expect(FocusManager.instance.primaryFocus?.debugLabel, 'Map locations');
+      await _openLocations(tester);
+      expect(navigation.back(), isTrue);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const PageStorageKey('region-map-list')), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -69,11 +128,13 @@ void main() {
   ) async {
     final semantics = tester.ensureSemantics();
     await _pump(tester, _detail());
+    await _openLocations(tester);
     await tester.tap(find.byKey(const ValueKey('region-row-secret')));
     await tester.pumpAndSettle();
     expect(find.textContaining('Tsukikage'), findsNothing);
     expect(find.textContaining('Code secret'), findsNothing);
-    expect(find.text('???'), findsNWidgets(2));
+    expect(find.text('???'), findsOneWidget);
+    await _openLocations(tester);
     final row = tester.getSemantics(
       find.byKey(const ValueKey('region-row-secret')),
     );
@@ -89,6 +150,7 @@ void main() {
     final navigation = RuntimePlayerRegionMapNavigation();
     addTearDown(navigation.dispose);
     await _pump(tester, _detail(), navigation: navigation);
+    await _openLocations(tester);
     await tester.tap(find.byKey(const ValueKey('region-row-aohara')));
     for (var i = 0; i < 12; i++) {
       await tester.tap(find.byKey(const ValueKey('region-map-zoom-in')));
@@ -133,6 +195,7 @@ void main() {
         find.textContaining('Carte régionale indisponible'),
         findsOneWidget,
       );
+      await _openLocations(tester);
       expect(find.byKey(const ValueKey('region-row-hanazuki')), findsOneWidget);
       expect(
         find
@@ -146,6 +209,7 @@ void main() {
           isNull,
         ),
       );
+      await _openLocations(tester);
       await tester.tap(find.byKey(const ValueKey('region-row-aohara')));
       await tester.pumpAndSettle();
       await _pump(
@@ -192,6 +256,7 @@ void main() {
       controlProfile: _remapped(),
     );
     await _revealMap(tester, find.byKey(const ValueKey('region-row-aohara')));
+    await _openLocations(tester);
     await tester.tap(find.byKey(const ValueKey('region-row-aohara')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('region-detail-aohara')), findsOneWidget);
@@ -229,6 +294,7 @@ void main() {
     expect(page, greaterThan(0));
     await tester.pumpWidget(const SizedBox.shrink());
     await _pump(tester, detail, navigation: navigation);
+    await _openLocations(tester);
     expect(selected.hitTestable(), findsOneWidget);
     expect(navigation.selectedPointId, 'extra-15');
     expect(navigation.listPage, page);
@@ -336,7 +402,19 @@ void main() {
   });
 }
 
+Future<void> _openLocations(WidgetTester tester) async {
+  if (find
+      .byKey(const PageStorageKey('region-map-list'))
+      .evaluate()
+      .isNotEmpty) {
+    return;
+  }
+  await tester.tap(find.byKey(const ValueKey('region-map-locations')));
+  await tester.pumpAndSettle();
+}
+
 Future<void> _revealMap(WidgetTester tester, Finder target) async {
+  await _openLocations(tester);
   final list = find.byKey(const PageStorageKey('region-map-list'));
   for (var page = 0; target.evaluate().isEmpty && page < 80; page++) {
     final next = find.descendant(
@@ -457,6 +535,7 @@ Future<void> _pump(
   Size size = const Size(1296, 644),
   double textScale = 1,
   PlayerControlProfile? controlProfile,
+  bool companion = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -475,11 +554,16 @@ Future<void> _pump(
       home: Scaffold(
         body: PlayerMenuThemeScope(
           role: ProjectPresentationSurfaceRole.map,
-          child: RuntimePlayerRegionMap(
-            detail: detail,
-            navigation: navigation,
-            controlProfile: controlProfile,
-            imageProvider: (_) => MemoryImage(_image),
+          child: Builder(
+            builder: (context) {
+              final map = RuntimePlayerRegionMap(
+                detail: detail,
+                navigation: navigation,
+                controlProfile: controlProfile,
+                imageProvider: (_) => MemoryImage(_image),
+              );
+              return companion ? PlayerCompanionScope(child: map) : map;
+            },
           ),
         ),
       ),

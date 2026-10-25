@@ -13,6 +13,92 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final (source, style) in [
+    for (final source in ['keyboard', 'controller'])
+      for (final style in ProjectPauseMenuStyle.values) (source, style),
+  ]) {
+    testWidgets('modal exit owns $source in ${style.name} without resuming the paused session', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final events = StreamController<RuntimeInputEvent>.broadcast();
+      addTearDown(events.close);
+      final controller = _FakeRuntimePlayerCoordinator(
+        _snapshot(
+          revision: 30,
+          phase: RuntimePlayerPhase.paused,
+          actions: const [
+            RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.resume),
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.returnToTitle,
+            ),
+          ],
+        ),
+      );
+      addTearDown(controller.dispose);
+      final gameplay = <RuntimeInputEvent>[];
+      await _pumpMeasuredSessionWidget(
+        tester,
+        _app(
+          _view(
+            controller,
+            controllerInputEvents: events.stream,
+            pausePresentation: PlayerPausePresentation(style: style),
+            gameplayInputRoute: (event) {
+              gameplay.add(event);
+              return true;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final exit = find.byKey(const ValueKey('pause.returnToTitle'));
+      await _revealPagedTarget(tester, exit);
+      await tester.tap(exit);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('runtime-exit-dialog')), findsOneWidget);
+      if (source == 'keyboard') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      } else {
+        events.add(const RuntimeInputEvent.press(RuntimeInputControl.right));
+        events.add(const RuntimeInputEvent.release(RuntimeInputControl.right));
+      }
+      await tester.pumpAndSettle();
+      if (source == 'keyboard') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+      } else {
+        events.add(const RuntimeInputEvent.press(RuntimeInputControl.menu));
+        events.add(const RuntimeInputEvent.release(RuntimeInputControl.menu));
+      }
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('runtime-exit-dialog')), findsOneWidget);
+      expect(controller.commands, isEmpty);
+      expect(controller.backRequests, isEmpty);
+      expect(gameplay, isEmpty);
+      if (source == 'keyboard') {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      } else {
+        events.add(
+          const RuntimeInputEvent.press(RuntimeInputControl.secondary),
+        );
+        events.add(
+          const RuntimeInputEvent.release(RuntimeInputControl.secondary),
+        );
+      }
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('runtime-exit-dialog')), findsNothing);
+      expect(controller.commands, isEmpty);
+      expect(controller.backRequests, isEmpty);
+      expect(controller.snapshot.phase, RuntimePlayerPhase.paused);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(controller.commands.single.action, RuntimePlayerAction.resume);
+    });
+  }
+
+
   for (final source in [PlayerInputSource.keyboard, PlayerInputSource.controller]) {
     testWidgets('dialogue pages consume ${source.name} before the final runtime advance', (tester) async {
       tester.view.physicalSize = const Size(640, 360);
@@ -1559,7 +1645,15 @@ void main() {
             .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
             .activeInputSource,
         PlayerInputSource.controller);
-    expect(find.text('Manette', skipOffstage: false), findsOneWidget);
+    expect(
+      tester.widget<PlayerMenuSelectableRow>(find.byKey(const ValueKey('options-binding-primary-choice'), skipOffstage: false)).semanticValue,
+      PlayerControlProfile.standard.glyphFor(PlayerControlDevice.gamepad, RuntimeInputControl.primary),
+    );
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('options-binding-primary-choice'), skipOffstage: false),
+      matching: find.text(PlayerControlProfile.standard.glyphFor(PlayerControlDevice.gamepad, RuntimeInputControl.primary), skipOffstage: false),
+      skipOffstage: false,
+    ), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pumpAndSettle();
     expect(
@@ -1567,7 +1661,15 @@ void main() {
             .widget<RuntimePlayerOptions>(find.byType(RuntimePlayerOptions))
             .activeInputSource,
         PlayerInputSource.keyboard);
-    expect(find.text('Clavier', skipOffstage: false), findsOneWidget);
+    expect(
+      tester.widget<PlayerMenuSelectableRow>(find.byKey(const ValueKey('options-binding-primary-choice'), skipOffstage: false)).semanticValue,
+      PlayerControlProfile.standard.glyphFor(PlayerControlDevice.keyboard, RuntimeInputControl.primary),
+    );
+    expect(find.descendant(
+      of: find.byKey(const ValueKey('options-binding-primary-choice'), skipOffstage: false),
+      matching: find.text(PlayerControlProfile.standard.glyphFor(PlayerControlDevice.keyboard, RuntimeInputControl.primary), skipOffstage: false),
+      skipOffstage: false,
+    ), findsOneWidget);
     await tester.tapAt(
         tester.getTopLeft(find.byKey(const ValueKey('options-settings'))) +
             const Offset(8, 8),
@@ -1586,6 +1688,7 @@ void main() {
             .activeInputSource,
         PlayerInputSource.touch);
     expect(find.byKey(const ValueKey('options-touch-run-mode-choice')), findsOneWidget);
+    expect(find.byKey(const ValueKey('options-binding-primary-choice')), findsNothing);
     expect(controller.commands, isEmpty);
     expect(tester.takeException(), isNull);
   });
@@ -1845,36 +1948,24 @@ void main() {
       await _pumpMeasuredSessionWidget(tester, _app(_view(controller), platform: platform));
       await _selectOptionsCategory(tester, 'accessibility');
 
-      expect(
-        find.byKey(
-          const ValueKey<String>('runtime-player-reduced-motion-toggle'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey<String>('runtime-player-high-contrast-toggle'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('runtime-player-haptics-toggle')),
-        platform == TargetPlatform.android ? findsOneWidget : findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('runtime-player-text-scale-slider')),
-        findsOneWidget,
-      );
-
-      await tester.ensureVisible(find.byKey(
-        const ValueKey<String>('runtime-player-high-contrast-toggle'),
-      ));
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('runtime-player-high-contrast-toggle'),
-        ),
-      );
-      await tester.pump();
+      final settings = find.byKey(const ValueKey('options-settings'));
+      for (final key in [
+        'runtime-player-reduced-motion-toggle',
+        'runtime-player-high-contrast-toggle',
+        if (platform == TargetPlatform.android) 'runtime-player-haptics-toggle',
+        'runtime-player-text-scale-slider',
+      ]) {
+        final control = find.byKey(ValueKey(key));
+        await _revealPagedTarget(tester, control, scope: settings);
+        expect(control.hitTestable(), findsOneWidget);
+      }
+      if (platform == TargetPlatform.macOS) {
+        expect(find.byKey(const ValueKey('runtime-player-haptics-toggle')), findsNothing);
+      }
+      final contrast = find.byKey(const ValueKey('runtime-player-high-contrast-toggle'));
+      await _revealPagedTarget(tester, contrast, scope: settings);
+      await tester.tap(contrast);
+      await tester.pumpAndSettle();
       final command = controller.commands.single;
       expect(command.action, RuntimePlayerAction.updatePreferences);
       expect(
@@ -1882,10 +1973,15 @@ void main() {
         isTrue,
       );
       await _selectOptionsCategory(tester, 'controls');
+      final deviceSwitch = find.byKey(const ValueKey('options-control-device-switch'));
+      if (deviceSwitch.evaluate().isNotEmpty) {
+        await tester.tap(deviceSwitch);
+        await tester.pumpAndSettle();
+      }
       final hints = find
           .byKey(const ValueKey<String>('runtime-player-input-hints-toggle'));
-      expect(hints, findsOneWidget);
-      await tester.ensureVisible(hints);
+      await _revealPagedTarget(tester, hints, scope: settings);
+      expect(hints.hitTestable(), findsOneWidget);
       await tester.tap(hints);
       await tester.pumpAndSettle();
       expect(controller.commands, hasLength(2));
@@ -2312,7 +2408,7 @@ void main() {
       presentationContentPort: _PresentationContentPort(),
     )));
     await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pump();
@@ -3053,7 +3149,18 @@ void main() {
       find.byKey(const ValueKey<String>('battle-entry-0')),
     );
     expect(
-      commands.single,
+      commands,
+      hasLength(2),
+    );
+    expect(
+      commands.first,
+      isA<BattleSetCommandPanelPlacementCommand>()
+          .having((command) => command.snapshotRevision, 'revision', 12)
+          .having((command) => command.expectedMode, 'mode', BattleCommandOverlayMode.root)
+          .having((command) => command.placement, 'placement', BattleCommandPanelPlacement.end),
+    );
+    expect(
+      commands.last,
       isA<BattleSelectEntryCommand>()
           .having((command) => command.snapshotRevision, 'revision', 12)
           .having((command) => command.entryIndex, 'entry', 0),
@@ -3619,6 +3726,7 @@ PokeMapPlayerSessionView _view(
   RuntimePlayerActionPayloadBuilder? payloadForAction,
   Future<void> Function()? hapticFeedback,
   PlayerControlProfile? controlProfile,
+  PlayerPausePresentation? pausePresentation,
   FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged,
   ValueListenable<RuntimePresentationFrameSnapshot?>? presentationFrame,
   PresentationFrameContentPort? presentationContentPort,
@@ -3668,6 +3776,7 @@ PokeMapPlayerSessionView _view(
     onShowDiagnostics: onShowDiagnostics,
     hapticFeedback: hapticFeedback,
     controlProfile: controlProfile,
+    pausePresentation: pausePresentation,
     onControlProfileChanged: onControlProfileChanged,
     presentationFrame: presentationFrame,
     presentationContentPort: presentationContentPort,

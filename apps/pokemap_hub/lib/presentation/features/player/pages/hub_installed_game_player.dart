@@ -409,6 +409,12 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
       throw PlatformException(code: 'staleMode');
     }
     final command = switch (payload['action']) {
+      'layout' => BattleSetCommandPanelPlacementCommand(
+        snapshotRevision: snapshot.revision,
+        expectedMode: snapshot.mode,
+        placement: BattleCommandPanelPlacement.values.byName(payload['placement'] as String),
+        controllerLayout: payload['controllerLayout'] as bool,
+      ),
       'back' => BattleBackCommand(
         snapshotRevision: snapshot.revision,
         expectedMode: snapshot.mode,

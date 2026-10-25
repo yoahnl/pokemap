@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
-import '../foundation/player_paged_layout.dart';
+import '../foundation/player_input_scope.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import 'player_pause_summary_card.dart';
 
@@ -23,6 +23,9 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
     this.showSummary = true,
     this.summaryInNavigation = false,
     this.extraDetail,
+    this.footer,
+    this.saveMessage,
+    this.onBack,
   });
 
   final String gameTitle;
@@ -37,17 +40,22 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
   final bool showSummary;
   final bool summaryInNavigation;
   final Widget? extraDetail;
+  final Widget? footer;
+  final String? saveMessage;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, size) {
       final theme = context.playerMenuTheme;
-      final mobile = MediaQuery.sizeOf(context).shortestSide < 600;
+      final mobile = size.biggest.shortestSide < 600;
       final portrait = size.maxWidth < 650;
       final expanded = size.maxWidth >= 1100 && size.maxHeight >= 620;
       final railWidth = expanded ? 408.0 : 280.0;
       final slant = expanded ? 24.0 : 16.0;
-      final inset = expanded ? 28.0 : 16.0;
+      final safePadding = MediaQuery.paddingOf(context);
+      final inset = math.max(expanded ? 28.0 : 16.0, safePadding.left);
+      final titleTop = math.max(expanded ? 28.0 : 16.0, safePadding.top);
       final hasHint = hint != null && hint!.trim().isNotEmpty;
       final titleHeight =
           MediaQuery.textScalerOf(context).scale(20) *
@@ -84,211 +92,239 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
         mobile: mobile,
         minimal: mobile && !portrait,
       );
-      if (mobile && !portrait) {
+      if (mobile) {
+        final companion = PlayerCompanionScope.of(context);
+        final tall = size.maxHeight > size.maxWidth && !companion;
+        final safe = MediaQuery.paddingOf(context);
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final notice = companion && saveMessage?.trim().isNotEmpty == true
+            ? saveMessage
+            : null;
+        final panelHeight = tall
+            ? math.min(
+                size.maxHeight - safe.top - 24,
+                (390.0 + math.max(0, safe.bottom - 16)) * math.min(scale, 1.4),
+              )
+            : size.maxHeight;
+        final panelWidth = tall || companion
+            ? size.maxWidth
+            : math.min(size.maxWidth, 350.0 + math.max(0.0, safe.right - 44));
         return Stack(
           fit: StackFit.expand,
           children: [
-            background,
-            ColoredBox(color: theme.base.withValues(alpha: .84)),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 216,
-                    child: PlayerPagedList(
+            ExcludeSemantics(child: background),
+            ExcludeSemantics(
+              child: ColoredBox(color: theme.backdrop.withValues(alpha: .58)),
+            ),
+            Align(
+              alignment: tall ? Alignment.bottomCenter : Alignment.centerRight,
+              child: SizedBox(
+                key: const ValueKey('pause-root-sheet'),
+                width: panelWidth,
+                height: panelHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.base.withValues(alpha: theme.panelOpacity),
+                    borderRadius: BorderRadius.zero,
+                    border: Border(top: BorderSide(color: theme.border)),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      tall ? math.max(16, safe.left) : 16,
+                      tall ? 12 : math.max(12, safe.top),
+                      math.max(16, safe.right),
+                      math.max(8, safe.bottom),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        title,
-                        if (showSummary && !summaryInNavigation)
-                          ...summary.pagedEntries(context),
-                        if (hasHint) Text(hint!, style: theme.meta),
-                        if (showSummary && extraDetail != null) extraDetail!,
+                        if (showTitle || showGameTitle) ...[
+                          Row(
+                            children: [
+                              if (onBack != null) ...[
+                                PlayerMenuBackButton(onPressed: onBack!),
+                                const SizedBox(width: 12),
+                              ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (showTitle)
+                                      Text(
+                                        menuTitle,
+                                        key: const ValueKey(
+                                          'pause-root-menu-title',
+                                        ),
+                                        style: theme.title.copyWith(
+                                          fontSize: 23,
+                                          height: 1.15,
+                                        ),
+                                      ),
+                                    if (showSummary &&
+                                        size.maxHeight >= 300) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        notice ??
+                                            profile?.locationName ??
+                                            gameTitle,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.meta.copyWith(
+                                          fontSize: 12,
+                                          height: 1.35,
+                                          color: theme.secondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (hasHint) ...[
+                          Text(
+                            hint!,
+                            style: theme.meta,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        Expanded(child: navigation),
+                        if (footer != null) ...[
+                          const SizedBox(height: 8),
+                          footer!,
+                        ],
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(child: navigation),
-                ],
+                ),
               ),
-            ),
-          ],
-        );
-      }
-      if (portrait &&
-          (size.maxHeight < 400 ||
-              MediaQuery.textScalerOf(context).scale(1) >= 1.5)) {
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            background,
-            ColoredBox(color: theme.base.withValues(alpha: .84)),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                  child: title,
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: navigation,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      }
-      if (portrait) {
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            background,
-            ColoredBox(color: theme.base.withValues(alpha: .84)),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(padding: const EdgeInsets.all(16), child: title),
-                if (hasHint)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      hint!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.body,
-                    ),
-                  ),
-                if (showSummary && !summaryInNavigation)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: summary,
-                  ),
-                if (showSummary && extraDetail != null)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: extraDetail!,
-                  ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: navigation,
-                  ),
-                ),
-              ],
             ),
           ],
         );
       }
       final rightWidth = math.max(0.0, size.maxWidth - railWidth - slant);
-      return Stack(
-        fit: StackFit.expand,
+      return Column(
         children: [
-          Positioned(
-            left: railWidth,
-            top: 0,
-            right: 0,
-            bottom: 0,
+          Expanded(
             child: Stack(
               fit: StackFit.expand,
               children: [
-                background,
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        theme.base.withValues(alpha: 0),
-                        theme.base.withValues(alpha: .64),
-                      ],
-                      stops: const [.35, 1],
-                    ),
+                Positioned(
+                  left: railWidth,
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      background,
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              theme.base.withValues(alpha: 0),
+                              theme.base.withValues(alpha: .64),
+                            ],
+                            stops: const [.35, 1],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          Positioned(
-            key: const ValueKey('pause-root-rail'),
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: railWidth + slant,
-            child: ClipPath(
-              clipper: _PauseRailClipper(slant),
-              child: ColoredBox(color: theme.base),
-            ),
-          ),
-          Positioned(
-            left: inset,
-            top: expanded ? 28 : 16,
-            width: railWidth - inset * 2,
-            child: title,
-          ),
-          Positioned(
-            left: inset,
-            top: math.max(
-              expanded ? 80 : 52,
-              (expanded ? 28 : 16) + titleHeight + 16,
-            ),
-            bottom: 16,
-            width: railWidth - inset * 2,
-            child: navigation,
-          ),
-          if (hasHint && expanded)
-            Positioned(
-              left: railWidth + slant + 24,
-              right: 24,
-              top: size.maxHeight * .28,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: PlayerMenuPanel(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(
-                      hint!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: theme.subtitle,
-                    ),
+                Positioned(
+                  key: const ValueKey('pause-root-rail'),
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: railWidth + slant,
+                  child: ClipPath(
+                    clipper: _PauseRailClipper(slant),
+                    child: ColoredBox(color: theme.base),
                   ),
                 ),
-              ),
-            ),
-          if (showSummary && !summaryInNavigation || hasHint && !expanded)
-            Positioned(
-              right: 24,
-              bottom: 24,
-              width: math.min(640, math.max(0, rightWidth - 48)),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: math.max(0, size.maxHeight - 48),
+                Positioned(
+                  left: inset,
+                  top: titleTop,
+                  width: railWidth - inset * 2,
+                  child: title,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (hasHint && !expanded)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
+                Positioned(
+                  left: inset,
+                  top: math.max(
+                    expanded ? 80 : 52,
+                    titleTop + titleHeight + 16,
+                  ),
+                  bottom: 16,
+                  width: railWidth - inset * 2,
+                  child: navigation,
+                ),
+                if (hasHint && expanded)
+                  Positioned(
+                    left: railWidth + slant + 24,
+                    right: 24,
+                    top: size.maxHeight * .28,
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 520),
                         child: PlayerMenuPanel(
                           padding: const EdgeInsets.all(12),
                           child: Text(
                             hint!,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.body,
+                            textAlign: TextAlign.center,
+                            style: theme.subtitle,
                           ),
                         ),
                       ),
-                    if (showSummary && !summaryInNavigation) summary,
-                    if (showSummary && extraDetail != null) extraDetail!,
-                  ],
-                ),
-              ),
+                    ),
+                  ),
+                if (showSummary && !summaryInNavigation || hasHint && !expanded)
+                  Positioned(
+                    right: 24,
+                    bottom: 24,
+                    width: math.min(640, math.max(0, rightWidth - 48)),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: math.max(0, size.maxHeight - 48),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (hasHint && !expanded)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: PlayerMenuPanel(
+                                padding: const EdgeInsets.all(12),
+                                child: Text(
+                                  hint!,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.body,
+                                ),
+                              ),
+                            ),
+                          if (showSummary && !summaryInNavigation) summary,
+                          if (showSummary && extraDetail != null) extraDetail!,
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (footer != null)
+            ColoredBox(
+              color: theme.base,
+              child: SafeArea(top: false, child: footer!),
             ),
         ],
       );

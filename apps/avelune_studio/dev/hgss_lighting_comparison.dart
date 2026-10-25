@@ -16,10 +16,24 @@ import 'marionette_main.dart' show applyStudioCaptureLifecycle;
 String comparisonPlanRelativePath(String filename) => switch (filename) {
   'comparison-plan.json' ||
   'comparison-shadows-plan.json' => 'evidence/$filename',
+  'comparison-contact-shadows-plan.json' =>
+    'evidence/actor-contact-shadows/$filename',
   'comparison-day-night-plan.json' => 'evidence/day-night/$filename',
   'comparison-lamp-shadows-plan.json' => 'evidence/lamp-shadows/$filename',
   _ => throw StateError('Unsupported comparison plan.'),
 };
+
+void verifyComparisonContactActors({
+  required Set<String> authoredContactActorIds,
+  required Set<String> expectedActorIds,
+  required bool after,
+  required int renderedCount,
+}) {
+  if (!authoredContactActorIds.containsAll(expectedActorIds) ||
+      renderedCount != (after ? authoredContactActorIds.length : 0)) {
+    throw StateError('The contact shadow comparison actors are not ready.');
+  }
+}
 
 Future<Map<String, dynamic>> loadComparisonPlan(
   String root,
@@ -36,16 +50,25 @@ Future<Map<String, dynamic>> loadComparisonPlan(
   if (plan['testProject'] != '$root/jeu' || plan['mapId'] != 'first-map') {
     throw StateError('Comparison plan does not identify this copy.');
   }
-  if ((filename == 'comparison-day-night-plan.json') !=
-          (plan['dayNightTest'] == true) ||
-      (filename == 'comparison-lamp-shadows-plan.json') !=
-          (plan['pointLightShadowTest'] == true) ||
-      (plan['dayNightTest'] == true && plan['pointLightShadowTest'] == true) ||
-      ((plan['dayNightTest'] == true || plan['pointLightShadowTest'] == true) &&
-          plan.containsKey('shadowCasterInstanceIds'))) {
+  final mode = switch (filename) {
+    'comparison-day-night-plan.json' => 'dayNightTest',
+    'comparison-lamp-shadows-plan.json' => 'pointLightShadowTest',
+    'comparison-contact-shadows-plan.json' => 'actorContactShadowTest',
+    _ => null,
+  };
+  final modes = [
+    'dayNightTest',
+    'pointLightShadowTest',
+    'actorContactShadowTest',
+  ];
+  if ((mode != null && plan[mode] != true) ||
+      modes.any((key) => key != mode && plan[key] == true) ||
+      (mode != null && plan.containsKey('shadowCasterInstanceIds'))) {
     throw StateError('Comparison plan mixes rendering modes.');
   }
-  if ((plan['pointLightShadowTest'] == true || plan['dayNightTest'] == true) &&
+  if ((plan['pointLightShadowTest'] == true ||
+          plan['dayNightTest'] == true ||
+          plan['actorContactShadowTest'] == true) &&
       (((plan['hiddenMaterialsByInstance'] as Map<String, dynamic>?)
                   ?.isNotEmpty ??
               false) ||
@@ -75,6 +98,7 @@ double comparisonMinuteOfDay({
 void setComparisonLightingPhase({
   required bool dayNightTest,
   bool pointLightShadowTest = false,
+  bool actorContactShadowTest = false,
   required bool after,
   required bool probeOnly,
   required int frameIndex,
@@ -84,7 +108,12 @@ void setComparisonLightingPhase({
   required SpatialLightingProfile beforeProfile,
   required SpatialLightingProfile afterProfile,
 }) {
-  if (pointLightShadowTest) {
+  if (actorContactShadowTest) {
+    camera.previewMinuteOfDay = probeOnly || frameIndex >= frameCount ~/ 2
+        ? 1320
+        : 720;
+    camera.previewPointLightShadowsEnabled = true;
+  } else if (pointLightShadowTest) {
     camera.previewMinuteOfDay = 1320;
     camera.previewPointLightShadowsEnabled = after;
   } else if (dayNightTest) {
@@ -103,9 +132,10 @@ void setComparisonLightingPhase({
 Widget comparisonLightingSurface({
   required bool dayNightTest,
   bool pointLightShadowTest = false,
+  bool actorContactShadowTest = false,
   required ValueNotifier<SpatialLightingProfile> lighting,
   required Widget child,
-}) => dayNightTest || pointLightShadowTest
+}) => dayNightTest || pointLightShadowTest || actorContactShadowTest
     ? child
     : SpatialLightingPreview(controller: lighting, child: child);
 
@@ -158,7 +188,9 @@ Future<void> main() async {
     projectFilePath: '$project/project.json',
     mapId: plan['mapId'] as String,
   );
-  if ((plan['dayNightTest'] == true || plan['pointLightShadowTest'] == true) &&
+  if ((plan['dayNightTest'] == true ||
+          plan['pointLightShadowTest'] == true ||
+          plan['actorContactShadowTest'] == true) &&
       (bundle.map.spatialScene?.dayNightCycle == null ||
           !SpatialSceneLightingCapabilities.requiresPointLights(
             bundle.manifest,
@@ -224,8 +256,13 @@ final class LightingComparison {
   final captureKey = GlobalKey();
   late final bool dayNightTest = plan['dayNightTest'] == true;
   late final bool pointLightShadowTest = plan['pointLightShadowTest'] == true;
-  bool get usesAuthoredLighting => dayNightTest || pointLightShadowTest;
-  int get beforeMinuteOfDay => pointLightShadowTest ? 1320 : 720;
+  late final bool actorContactShadowTest =
+      plan['actorContactShadowTest'] == true;
+  bool contactShadowsAfter = false;
+  bool get usesAuthoredLighting =>
+      dayNightTest || pointLightShadowTest || actorContactShadowTest;
+  int get beforeMinuteOfDay =>
+      pointLightShadowTest || actorContactShadowTest ? 1320 : 720;
   late final bool shadowTest = plan.containsKey('shadowCasterInstanceIds');
   late final before = shadowTest
       ? profile(shadows: false)
@@ -257,7 +294,9 @@ final class LightingComparison {
     bool probeOnly = false,
     int frameIndex = 0,
   }) {
+    contactShadowsAfter = after;
     setComparisonLightingPhase(
+      actorContactShadowTest: actorContactShadowTest,
       dayNightTest: dayNightTest,
       pointLightShadowTest: pointLightShadowTest,
       after: after,
@@ -270,6 +309,24 @@ final class LightingComparison {
       afterProfile: this.after,
     );
   }
+
+  Map<String, SpatialActorVisual> get renderedActors =>
+      !actorContactShadowTest || contactShadowsAfter
+      ? actors
+      : {
+          for (final entry in actors.entries)
+            entry.key: SpatialActorVisual(
+              x: entry.value.x,
+              y: entry.value.y,
+              z: entry.value.z,
+              groundY: entry.value.groundY,
+              texture: entry.value.texture,
+              frame: entry.value.frame,
+              width: entry.value.width,
+              height: entry.value.height,
+              billboardVerticalOffset: entry.value.billboardVerticalOffset,
+            ),
+        };
 
   SpatialLightingProfile profile({required bool shadows}) {
     final sun = plan['sunDirection'] as Map<String, dynamic>?;
@@ -340,6 +397,12 @@ final class LightingComparison {
     'shadowStats': shadowStats,
     'dayNightTest': dayNightTest,
     'pointLightShadowTest': pointLightShadowTest,
+    'actorContactShadowTest': actorContactShadowTest,
+    'actorContactShadowCount': camera.actorContactShadowCount,
+    'authoredActorContactShadowIds': [
+      for (final actor in actors.entries)
+        if (actor.value.contactShadow) actor.key,
+    ],
     'previewPointLightShadowsEnabled': camera.previewPointLightShadowsEnabled,
     'previewMinuteOfDay': camera.previewMinuteOfDay,
     'lastVerifiedShadowStats': lastVerifiedShadowStats,
@@ -424,6 +487,20 @@ final class LightingComparison {
 
   Future<Uint8List> pixels() async {
     await settle();
+    if (actorContactShadowTest) {
+      verifyComparisonContactActors(
+        authoredContactActorIds: {
+          for (final entry in actors.entries)
+            if (entry.value.contactShadow) entry.key,
+        },
+        expectedActorIds:
+            ((plan['expectedActorContactShadowIds'] as List<dynamic>?) ?? [])
+                .cast<String>()
+                .toSet(),
+        after: contactShadowsAfter,
+        renderedCount: camera.actorContactShadowCount,
+      );
+    }
     if (pointLightShadowTest && camera.previewPointLightShadowsEnabled) {
       final stats = camera.shadowStats;
       if (stats.pointShadowLightCount == 0 ||
@@ -471,11 +548,15 @@ final class LightingComparison {
     final frames = <Map<String, Object?>>[];
     Map<String, int>? roundTripBeforeShadowStats;
     Map<String, int>? roundTripAfterShadowStats;
+    int? roundTripBeforeContactShadowCount;
+    int? roundTripAfterContactShadowCount;
     try {
       if (!ready) throw StateError('Native scene is not ready.');
       verifySession();
       final take = Directory(
-        '$root/evidence/${pointLightShadowTest
+        '$root/evidence/${actorContactShadowTest
+            ? 'actor-contact-shadows/native'
+            : pointLightShadowTest
             ? 'lamp-shadows/native'
             : dayNightTest
             ? 'day-night/native'
@@ -487,13 +568,21 @@ final class LightingComparison {
       output = take.path;
       await Directory('${take.path}/before').create();
       await Directory('${take.path}/after').create();
-      setBeforeAfter(after: false, probeOnly: dayNightTest || probeOnly);
+      setBeforeAfter(
+        after: false,
+        probeOnly: usesAuthoredLighting || probeOnly,
+      );
       final baseline = await pixels();
       roundTripBeforeShadowStats = shadowStats;
-      setBeforeAfter(after: true, probeOnly: dayNightTest || probeOnly);
+      roundTripBeforeContactShadowCount = camera.actorContactShadowCount;
+      setBeforeAfter(after: true, probeOnly: usesAuthoredLighting || probeOnly);
       final changed = await pixels();
       roundTripAfterShadowStats = shadowStats;
-      setBeforeAfter(after: false, probeOnly: dayNightTest || probeOnly);
+      roundTripAfterContactShadowCount = camera.actorContactShadowCount;
+      setBeforeAfter(
+        after: false,
+        probeOnly: usesAuthoredLighting || probeOnly,
+      );
       baselineRoundTripIdentical = listEquals(baseline, await pixels());
       if (!baselineRoundTripIdentical!) {
         throw StateError('Lighting toggle changed the frozen baseline.');
@@ -538,6 +627,8 @@ final class LightingComparison {
           await File('${take.path}/before/$filename.png')
               .writeAsBytes(await pixels());
           final beforeShadowStats = shadowStats;
+          final beforeContactShadowCount = camera.actorContactShadowCount;
+          final beforeCapturedMinute = camera.previewMinuteOfDay;
           setBeforeAfter(after: true, frameIndex: captured);
           await File('${take.path}/after/$filename.png')
               .writeAsBytes(await pixels());
@@ -549,8 +640,12 @@ final class LightingComparison {
             'z': session.movement.z,
             'facing': session.movement.facing.name,
             'shadowStats': shadowStats,
+            if (actorContactShadowTest)
+              'beforeContactShadowCount': beforeContactShadowCount,
+            if (actorContactShadowTest)
+              'afterContactShadowCount': camera.actorContactShadowCount,
             if (usesAuthoredLighting) 'beforeShadowStats': beforeShadowStats,
-            if (usesAuthoredLighting) 'beforeMinuteOfDay': beforeMinuteOfDay,
+            if (usesAuthoredLighting) 'beforeMinuteOfDay': beforeCapturedMinute,
             if (usesAuthoredLighting)
               'afterMinuteOfDay': camera.previewMinuteOfDay,
             if (pointLightShadowTest) 'beforePointLightShadowsEnabled': false,
@@ -594,6 +689,12 @@ final class LightingComparison {
               'status': status,
               'plan': plan,
               'probeOnly': probeOnly,
+              if (actorContactShadowTest)
+                'roundTripBeforeContactShadowCount':
+                    roundTripBeforeContactShadowCount,
+              if (actorContactShadowTest)
+                'roundTripAfterContactShadowCount':
+                    roundTripAfterContactShadowCount,
               if (usesAuthoredLighting) 'beforeMinuteOfDay': beforeMinuteOfDay,
               if (usesAuthoredLighting && probeOnly) 'afterMinuteOfDay': 1320,
               if (usesAuthoredLighting) 'roundTripAfterMinuteOfDay': 1320,
@@ -637,6 +738,7 @@ class ComparisonSurface extends StatelessWidget {
               child: comparisonLightingSurface(
                 dayNightTest: capture.dayNightTest,
                 pointLightShadowTest: capture.pointLightShadowTest,
+                actorContactShadowTest: capture.actorContactShadowTest,
                 lighting: capture.lighting,
                 child: SpatialSceneView(
                   scene: capture.scene,
@@ -652,7 +754,7 @@ class ComparisonSurface extends StatelessWidget {
                   loadGroundImage: capture.session.groundImageBytes,
                   resourceBudget: bundle.resourceBudget,
                   resourceIdentity: bundle.projectCatalog?.identity,
-                  actorFrames: (_) => capture.actors,
+                  actorFrames: (_) => capture.renderedActors,
                   modelRuntimeState: capture.modelState,
                   presentationElapsedSeconds: () =>
                       capture.session.presentationSeconds,

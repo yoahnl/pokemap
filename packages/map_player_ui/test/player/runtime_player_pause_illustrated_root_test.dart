@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/player/player_pause_illustrated_root.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -38,76 +39,106 @@ void main() {
     });
   }
 
-  testWidgets('expanded root keeps nine entries inside its left rail', (
-    tester,
-  ) async {
-    await _surface(tester, const Size(1440, 900));
-    await tester.pumpWidget(_app(_root()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'expanded root keeps eight entries in its rail and Save in the footer',
+    (tester) async {
+      await _surface(tester, const Size(1440, 900));
+      final selected = <PlayerPauseAction>[];
+      await tester.pumpWidget(_app(_root(onSelected: selected.add)));
+      await tester.pumpAndSettle();
 
-    final frame = tester.getRect(
-      find.byKey(const ValueKey('player-menu-frame-panel')),
-    );
-    final rail = tester.getRect(find.byKey(const ValueKey('pause-root-rail')));
-    expect(frame, const Rect.fromLTWH(48, 48, 1344, 804));
-    expect(rail.left, frame.left);
-    expect(rail.top, frame.top);
-    expect(rail.width, 432);
-    final railClip = tester.widget<ClipPath>(
-      find.descendant(
-        of: find.byKey(const ValueKey('pause-root-rail')),
-        matching: find.byType(ClipPath),
-      ),
-    );
-    final railPath = railClip.clipper!.getClip(rail.size);
-    expect(railPath.contains(const Offset(407, 1)), isTrue);
-    expect(railPath.contains(const Offset(409, 1)), isFalse);
-    expect(railPath.contains(Offset(430, rail.height - 1)), isTrue);
-    final footer = tester.getRect(find.byType(PlayerMenuFooter));
-    expect(footer.left, frame.left);
-    expect(footer.right, frame.right);
-    expect(footer.bottom, frame.bottom);
-    expect(footer.height, greaterThanOrEqualTo(64));
-    expect(rail.bottom, footer.top);
+      final frame = tester.getRect(find.byType(PlayerPauseIllustratedRoot));
+      final rail = tester.getRect(
+        find.byKey(const ValueKey('pause-root-rail')),
+      );
+      expect(frame, const Rect.fromLTWH(0, 0, 1440, 900));
+      expect(rail.left, frame.left);
+      expect(rail.top, frame.top);
+      expect(rail.width, 432);
+      final railClip = tester.widget<ClipPath>(
+        find.descendant(
+          of: find.byKey(const ValueKey('pause-root-rail')),
+          matching: find.byType(ClipPath),
+        ),
+      );
+      final railPath = railClip.clipper!.getClip(rail.size);
+      expect(railPath.contains(const Offset(407, 1)), isTrue);
+      expect(railPath.contains(const Offset(409, 1)), isFalse);
+      expect(railPath.contains(Offset(430, rail.height - 1)), isTrue);
+      final footer = tester.getRect(find.byType(PlayerMenuFooter));
+      expect(footer.left, frame.left);
+      expect(footer.right, frame.right);
+      expect(footer.bottom, frame.bottom);
+      expect(footer.height, greaterThanOrEqualTo(64));
+      expect(rail.bottom, footer.top);
 
-    const defaults = [
-      PlayerPauseAction.party,
-      PlayerPauseAction.bag,
-      PlayerPauseAction.pokedex,
-      PlayerPauseAction.quests,
-      PlayerPauseAction.contacts,
-      PlayerPauseAction.map,
-      PlayerPauseAction.profile,
-      PlayerPauseAction.save,
-      PlayerPauseAction.options,
-    ];
-    final rows = tester
-        .widgetList<PlayerMenuSelectableRow>(
-          find.byType(PlayerMenuSelectableRow, skipOffstage: false),
-        )
-        .where((row) => row.id.startsWith('pause.'))
-        .toList();
-    expect(
-      rows.map((row) => row.id),
-      defaults.map((action) => 'pause.${action.name}'),
-    );
-    for (var index = 0; index < defaults.length; index++) {
-      final action = defaults[index];
-      final finder = find.byKey(ValueKey('pause.${action.name}'));
-      await _reveal(tester, finder);
-      final rect = tester.getRect(finder);
-      expect(rect.left, greaterThanOrEqualTo(rail.left + 16));
-      expect(rect.right, lessThanOrEqualTo(rail.right - 16));
-      expect(rect.top, greaterThanOrEqualTo(rail.top));
-      expect(rect.bottom, lessThanOrEqualTo(rail.bottom));
-      expect(rect.height, greaterThanOrEqualTo(48));
-    }
-    expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
-    expect(find.byKey(const ValueKey('pause.returnToTitle')), findsNothing);
-    expect(find.text('Reprendre'), findsOneWidget);
-    expect(find.byType(PlayerEmptyState), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
+      const defaults = [
+        PlayerPauseAction.party,
+        PlayerPauseAction.bag,
+        PlayerPauseAction.pokedex,
+        PlayerPauseAction.quests,
+        PlayerPauseAction.contacts,
+        PlayerPauseAction.map,
+        PlayerPauseAction.profile,
+        PlayerPauseAction.options,
+      ];
+      final rows = tester
+          .widgetList<PlayerMenuSelectableRow>(
+            find.descendant(
+              of: find.byType(PlayerPauseNavigation),
+              matching: find.byType(
+                PlayerMenuSelectableRow,
+                skipOffstage: false,
+              ),
+              skipOffstage: false,
+            ),
+          )
+          .where((row) => row.id.startsWith('pause.'))
+          .toList();
+      expect(
+        rows.map((row) => row.id),
+        defaults.map((action) => 'pause.${action.name}'),
+      );
+      for (var index = 0; index < defaults.length; index++) {
+        final action = defaults[index];
+        final finder = find.byKey(ValueKey('pause.${action.name}'));
+        await _reveal(tester, finder);
+        final rect = tester.getRect(finder);
+        expect(rect.left, greaterThanOrEqualTo(rail.left + 16));
+        expect(rect.right, lessThanOrEqualTo(rail.right - 16));
+        expect(rect.top, greaterThanOrEqualTo(rail.top));
+        expect(rect.bottom, lessThanOrEqualTo(rail.bottom));
+        expect(rect.height, greaterThanOrEqualTo(48));
+      }
+      final save = find.byKey(const ValueKey('pause.save'));
+      expect(save.hitTestable(), findsOneWidget);
+      final saveBounds = tester.getRect(save);
+      expect(saveBounds.top, greaterThanOrEqualTo(footer.top));
+      expect(saveBounds.bottom, lessThanOrEqualTo(footer.bottom));
+      expect(saveBounds.height, greaterThanOrEqualTo(48));
+      await tester.tap(save);
+      await tester.tap(
+        find.byKey(const ValueKey('pause-frame-return-surface')),
+      );
+      final exit = find.byKey(const ValueKey('pause.returnToTitle'));
+      expect(exit.hitTestable(), findsOneWidget);
+      final exitBounds = tester.getRect(exit);
+      expect(exitBounds.top, greaterThanOrEqualTo(footer.top));
+      expect(exitBounds.bottom, lessThanOrEqualTo(footer.bottom));
+      expect(exitBounds.size, const Size(48, 48));
+      expect(exitBounds.left - saveBounds.right, greaterThanOrEqualTo(8));
+      await tester.tap(exit);
+      expect(selected, [
+        PlayerPauseAction.save,
+        PlayerPauseAction.resume,
+        PlayerPauseAction.returnToTitle,
+      ]);
+      expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
+      expect(find.text('Reprendre'), findsOneWidget);
+      expect(find.byType(PlayerEmptyState), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('actions only root keeps the full party detail surface', (
     tester,
@@ -202,9 +233,7 @@ void main() {
       find.byKey(const ValueKey('player-pause-summary-panel')),
     );
     final rail = tester.getRect(find.byKey(const ValueKey('pause-root-rail')));
-    final frame = tester.getRect(
-      find.byKey(const ValueKey('player-menu-frame-panel')),
-    );
+    final frame = tester.getRect(find.byType(PlayerPauseIllustratedRoot));
     expect(summary.left, greaterThan(rail.right));
     expect(summary.width, inInclusiveRange(520, 640));
     expect(summary.height, closeTo(208, 1));
@@ -260,7 +289,7 @@ void main() {
   });
 
   testWidgets(
-    'portrait with doubled text keeps summary and actions reachable',
+    'portrait with doubled text keeps context and profile access reachable',
     (tester) async {
       await _surface(tester, const Size(390, 844));
       final selected = <PlayerPauseAction>[];
@@ -277,28 +306,25 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('pause-root-rail')), findsNothing);
       expect(find.byType(Scrollable), findsNothing);
-      for (final label in [
-        'Port des brumes',
-        'Camille',
-        'Badges : 2 / 8',
-        'Temps de jeu : 12:05',
-        'Pokédex : 42 / 151',
-      ]) {
-        final text = find.text(label);
-        await _reveal(tester, text);
-        final rect = tester.getRect(text);
-        expect(rect.bottom, lessThanOrEqualTo(844));
-        expect(tester.takeException(), isNull);
-      }
+      expect(find.text('Port des brumes'), findsOneWidget);
+      final profile = find.byKey(const ValueKey('pause.profile'));
+      await _reveal(tester, profile);
+      expect(tester.getSize(profile).height, greaterThanOrEqualTo(48));
+      await tester.tap(profile);
+      expect(selected, [PlayerPauseAction.profile]);
       final options = find.byKey(const ValueKey('pause.options'));
       await _reveal(tester, options);
       await tester.tap(options);
       await tester.pumpAndSettle();
-      expect(selected, [PlayerPauseAction.options]);
+      expect(selected, [PlayerPauseAction.profile, PlayerPauseAction.options]);
       await tester.tap(
         find.byKey(const ValueKey('pause-frame-return-surface')),
       );
-      expect(selected, [PlayerPauseAction.options, PlayerPauseAction.resume]);
+      expect(selected, [
+        PlayerPauseAction.profile,
+        PlayerPauseAction.options,
+        PlayerPauseAction.resume,
+      ]);
       expect(tester.takeException(), isNull);
     },
   );

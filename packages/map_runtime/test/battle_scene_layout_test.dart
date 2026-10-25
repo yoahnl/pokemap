@@ -1,6 +1,11 @@
 import 'dart:ui';
 
+import 'package:flutter/painting.dart' show EdgeInsets;
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
+import 'package:map_runtime/map_runtime.dart'
+    show BattleCommandPanelPlacement, BattleCommandOverlayMode;
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
 /// Un viewport par classe, pour ne pas croire qu'une règle vérifiée sur un
@@ -12,6 +17,32 @@ const _certifiedViewports = <Size>[
 ];
 
 void main() {
+  test('root and fight keep the same HUD and sprite geometry for every presentation', () {
+    for (final viewport in const [
+      Size(390, 844),
+      Size(844, 390),
+      Size(1280, 720),
+    ]) {
+      for (final placement in BattleCommandPanelPlacement.values) {
+        final root = BattleSceneLayout.forViewport(
+          viewportSize: viewport,
+          commandPanelPlacement: placement,
+          commandPanelMode: BattleCommandOverlayMode.root,
+        );
+        final fight = BattleSceneLayout.forViewport(
+          viewportSize: viewport,
+          commandPanelPlacement: placement,
+          commandPanelMode: BattleCommandOverlayMode.fight,
+        );
+        expect(root.enemyHudRect, fight.enemyHudRect);
+        expect(root.playerHudRect, fight.playerHudRect);
+        expect(root.enemySpriteRect, fight.enemySpriteRect);
+        expect(root.playerSpriteRect, fight.playerSpriteRect);
+        expect(root.commandPanelRect, fight.commandPanelRect);
+      }
+    }
+  });
+
   double intersectionRatio(Rect rect, Rect container) {
     final intersection = rect.intersect(container);
     if (intersection.isEmpty) {
@@ -29,6 +60,106 @@ void main() {
         rect.bottom <= bounds.bottom;
   }
 
+  for (final size in [
+    const Size(844, 390),
+    const Size(960, 540),
+    const Size(1280, 720),
+  ]) {
+    for (final placement in [
+      BattleCommandPanelPlacement.end,
+      BattleCommandPanelPlacement.detached,
+    ]) {
+      test(
+        'reserved $placement arena keeps HUDs and single or double sprites clear at $size',
+        () {
+          final layout = BattleSceneLayout.forViewport(
+            viewportSize: size,
+            commandPanelPlacement: placement,
+          );
+          expect(layout.commandPanelPlacement, placement);
+          if (placement == BattleCommandPanelPlacement.detached) {
+            expect(layout.commandPanelRect.isEmpty, isTrue);
+            expect(layout.arenaRect, layout.sceneRect);
+          } else {
+            expect(
+              layout.arenaRect.right,
+              lessThan(layout.commandPanelRect.left),
+            );
+          }
+          for (final doubleBattle in [false, true]) {
+            for (final side in BattleSideId.values) {
+              for (var slot = 0; slot < (doubleBattle ? 2 : 1); slot++) {
+                final geometry = layout.combatantGeometry(
+                  BattleSlotRef(side: side, slotIndex: slot),
+                  doubles: doubleBattle,
+                );
+                expect(geometry.spriteRect.width, greaterThan(0));
+                expect(geometry.spriteRect.height, greaterThan(0));
+                expect(
+                  rectInside(geometry.spriteRect, layout.arenaRect),
+                  isTrue,
+                );
+                expect(rectInside(geometry.hudRect, layout.sceneRect), isTrue);
+                expect(geometry.hudRect.overlaps(geometry.spriteRect), isFalse);
+                if (!layout.commandPanelRect.isEmpty) {
+                  expect(
+                    geometry.spriteRect.overlaps(layout.commandPanelRect),
+                    isFalse,
+                  );
+                  expect(
+                    geometry.hudRect.overlaps(layout.commandPanelRect),
+                    isFalse,
+                  );
+                }
+              }
+            }
+          }
+        },
+      );
+    }
+  }
+  test('side and detached HUDs clear every sprite and platform at large text', () {
+    for (final placement in [
+      BattleCommandPanelPlacement.end,
+      BattleCommandPanelPlacement.detached,
+    ]) {
+      for (final scale in [1.0, 1.6]) {
+        final layout = BattleSceneLayout.forViewport(
+          viewportSize: const Size(844, 390),
+          commandPanelPlacement: placement,
+          textScale: scale,
+        );
+        for (final doubles in [false, true]) {
+          final geometry = [
+            for (final side in BattleSideId.values)
+              for (var slot = 0; slot < (doubles ? 2 : 1); slot++)
+                layout.combatantGeometry(
+                  BattleSlotRef(side: side, slotIndex: slot),
+                  doubles: doubles,
+                ),
+          ];
+          for (final hud in geometry.map((g) => g.hudRect)) {
+            expect(rectInside(hud, layout.sceneRect), isTrue);
+            expect(hud.overlaps(layout.commandPanelRect), isFalse);
+            for (final actor in geometry) {
+              expect(
+                hud.overlaps(actor.spriteRect),
+                isFalse,
+                reason:
+                    '$placement scale $scale doubles $doubles HUD $hud sprite ${actor.spriteRect}',
+              );
+              expect(
+                hud.overlaps(actor.platformRect),
+                isFalse,
+                reason:
+                    '$placement scale $scale doubles $doubles HUD $hud platform ${actor.platformRect}',
+              );
+            }
+          }
+        }
+      }
+    }
+  });
   group('BattleSceneLayout viewport contract', () {
     const viewports = <Size>[
       Size(360, 800),
@@ -50,8 +181,7 @@ void main() {
     ];
 
     for (final viewport in viewports) {
-      test('keeps a valid composition at ${viewport.width}x${viewport.height}',
-          () {
+      test('keeps a valid composition at ${viewport.width}x${viewport.height}', () {
         final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
 
         expect(layout.sceneRect.width, greaterThan(0));
@@ -65,14 +195,22 @@ void main() {
         expect(rectInside(layout.enemyHudRect, layout.sceneRect), isTrue);
         expect(rectInside(layout.playerHudRect, layout.sceneRect), isTrue);
 
-        expect(layout.playerSpriteRect.height,
-            greaterThan(layout.enemySpriteRect.height));
-        expect(layout.playerSpriteRect.width,
-            greaterThan(layout.enemySpriteRect.width));
         expect(
-            layout.playerFootAnchor.dy, greaterThan(layout.enemyFootAnchor.dy));
+          layout.playerSpriteRect.height,
+          greaterThan(layout.enemySpriteRect.height),
+        );
         expect(
-            layout.enemyFootAnchor.dx, greaterThan(layout.playerFootAnchor.dx));
+          layout.playerSpriteRect.width,
+          greaterThan(layout.enemySpriteRect.width),
+        );
+        expect(
+          layout.playerFootAnchor.dy,
+          greaterThan(layout.enemyFootAnchor.dy),
+        );
+        expect(
+          layout.enemyFootAnchor.dx,
+          greaterThan(layout.playerFootAnchor.dx),
+        );
 
         expect(
           intersectionRatio(layout.playerSpriteRect, layout.stageRect),
@@ -138,21 +276,18 @@ void main() {
 
     test('classifies battle viewports', () {
       expect(
-        BattleSceneLayout.forViewport(
-          viewportSize: const Size(390, 844),
-        ).viewportClass,
+        BattleSceneLayout.forViewport(viewportSize: const Size(390, 844))
+            .viewportClass,
         BattleViewportClass.compactPortrait,
       );
       expect(
-        BattleSceneLayout.forViewport(
-          viewportSize: const Size(844, 390),
-        ).viewportClass,
+        BattleSceneLayout.forViewport(viewportSize: const Size(844, 390))
+            .viewportClass,
         BattleViewportClass.mediumLandscape,
       );
       expect(
-        BattleSceneLayout.forViewport(
-          viewportSize: const Size(1280, 720),
-        ).viewportClass,
+        BattleSceneLayout.forViewport(viewportSize: const Size(1280, 720))
+            .viewportClass,
         BattleViewportClass.wideDesktop,
       );
     });
@@ -163,20 +298,20 @@ void main() {
       );
 
       expect(
-          layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.stacked);
+        layout.commandPanelLayoutMode,
+        BattleCommandPanelLayoutMode.stacked,
+      );
     });
 
     test('keeps split command panel layout when landscape space allows it', () {
       expect(
-        BattleSceneLayout.forViewport(
-          viewportSize: const Size(844, 390),
-        ).commandPanelLayoutMode,
+        BattleSceneLayout.forViewport(viewportSize: const Size(844, 390))
+            .commandPanelLayoutMode,
         BattleCommandPanelLayoutMode.split,
       );
       expect(
-        BattleSceneLayout.forViewport(
-          viewportSize: const Size(1280, 720),
-        ).commandPanelLayoutMode,
+        BattleSceneLayout.forViewport(viewportSize: const Size(1280, 720))
+            .commandPanelLayoutMode,
         BattleCommandPanelLayoutMode.split,
       );
     });
@@ -189,14 +324,22 @@ void main() {
         viewportSize: const Size(1600, 900),
       );
 
-      expect(wide.playerSpriteRect.width,
-          closeTo(reference.playerSpriteRect.width, 0.01));
-      expect(wide.playerSpriteRect.height,
-          closeTo(reference.playerSpriteRect.height, 0.01));
-      expect(wide.enemySpriteRect.width,
-          closeTo(reference.enemySpriteRect.width, 0.01));
-      expect(wide.enemySpriteRect.height,
-          closeTo(reference.enemySpriteRect.height, 0.01));
+      expect(
+        wide.playerSpriteRect.width,
+        closeTo(reference.playerSpriteRect.width, 0.01),
+      );
+      expect(
+        wide.playerSpriteRect.height,
+        closeTo(reference.playerSpriteRect.height, 0.01),
+      );
+      expect(
+        wide.enemySpriteRect.width,
+        closeTo(reference.enemySpriteRect.width, 0.01),
+      );
+      expect(
+        wide.enemySpriteRect.height,
+        closeTo(reference.enemySpriteRect.height, 0.01),
+      );
     });
 
     test('keeps the product validation viewport 528x467 readable', () {
@@ -214,7 +357,9 @@ void main() {
       );
       expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
       expect(
-          layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
+        layout.playerSpriteRect.overlaps(layout.commandPanelRect),
+        isFalse,
+      );
     });
 
     test('keeps the product validation viewport 1012x467 readable', () {
@@ -232,7 +377,9 @@ void main() {
       );
       expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
       expect(
-          layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
+        layout.playerSpriteRect.overlaps(layout.commandPanelRect),
+        isFalse,
+      );
     });
 
     test('keeps compact portrait staging protected at 390x844', () {
@@ -242,8 +389,10 @@ void main() {
 
       expect(layout.viewportClass, BattleViewportClass.compactPortrait);
       expect(
-          layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.stacked);
-      expect(layout.commandPanelRect.height, inInclusiveRange(280.0, 304.0));
+        layout.commandPanelLayoutMode,
+        BattleCommandPanelLayoutMode.stacked,
+      );
+      expect(layout.commandPanelRect.height, 300.0);
       expect(
         layout.stageRect.bottom,
         lessThanOrEqualTo(layout.commandPanelRect.top - 10),
@@ -254,6 +403,46 @@ void main() {
       );
     });
 
+    test('portrait staging fills the arena without HUD or panel occlusion', () {
+      for (final size in [
+        const Size(360, 640),
+        const Size(390, 844),
+        const Size(430, 932),
+      ]) {
+        for (final scale in [1.0, 1.6]) {
+          final layout = BattleSceneLayout.forViewport(
+            viewportSize: size,
+            safePadding: size.height > 800
+                ? const EdgeInsets.fromLTRB(0, 59, 0, 34)
+                : EdgeInsets.zero,
+            textScale: scale,
+          );
+          for (final hud in [layout.enemyHudRect, layout.playerHudRect]) {
+            expect(rectInside(hud, layout.arenaRect), isTrue);
+            for (final sprite in [
+              layout.playerSpriteRect,
+              layout.enemySpriteRect,
+              layout.playerPlatformRect,
+              layout.enemyPlatformRect,
+            ]) {
+              expect(
+                hud.overlaps(sprite),
+                isFalse,
+                reason: '$size/$scale: $hud overlaps $sprite',
+              );
+              expect(rectInside(sprite, layout.arenaRect), isTrue);
+              expect(sprite.overlaps(layout.commandPanelRect), isFalse);
+            }
+          }
+          if (size.width == 390) {
+            expect(layout.commandPanelRect.top, closeTo(486, 16));
+            expect(layout.playerSpriteRect.height, greaterThan(150));
+            expect(layout.enemySpriteRect.height, greaterThan(120));
+          }
+        }
+      }
+    });
+
     test('keeps medium landscape split at 844x390', () {
       final layout = BattleSceneLayout.forViewport(
         viewportSize: const Size(844, 390),
@@ -261,8 +450,8 @@ void main() {
 
       expect(layout.viewportClass, BattleViewportClass.mediumLandscape);
       expect(layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.split);
-      expect(layout.commandPanelRect.height, inInclusiveRange(132.0, 170.0));
-      expect(layout.commandPanelRect.width, greaterThanOrEqualTo(804.0));
+      expect(layout.commandPanelRect.height, 116.0);
+      expect(layout.commandPanelRect.width, greaterThanOrEqualTo(796.0));
       expect(
         layout.playerHudRect.bottom,
         lessThanOrEqualTo(layout.commandPanelRect.top - 8),
@@ -294,29 +483,34 @@ void main() {
 
       for (final viewport in portraitViewports) {
         test(
-            'keeps portrait HUDs off the screen edges at ${viewport.width}x${viewport.height}',
-            () {
-          final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
+          'keeps portrait HUDs off the screen edges at ${viewport.width}x${viewport.height}',
+          () {
+            final layout = BattleSceneLayout.forViewport(
+              viewportSize: viewport,
+            );
 
-          expect(
-            layout.enemyHudRect.left,
-            greaterThanOrEqualTo(portraitSafeMargin),
-          );
-          expect(
-            layout.sceneRect.right - layout.playerHudRect.right,
-            greaterThanOrEqualTo(portraitSafeMargin),
-          );
-          expect(
-            layout.enemyHudRect.overlaps(layout.enemySpriteRect.inflate(4)),
-            isFalse,
-          );
-          expect(
-            layout.enemyHudRect.overlaps(layout.playerSpriteRect.inflate(4)),
-            isFalse,
-          );
-          expect(
-              layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
-        });
+            expect(
+              layout.enemyHudRect.left,
+              greaterThanOrEqualTo(portraitSafeMargin),
+            );
+            expect(
+              layout.sceneRect.right - layout.playerHudRect.right,
+              greaterThanOrEqualTo(portraitSafeMargin),
+            );
+            expect(
+              layout.enemyHudRect.overlaps(layout.enemySpriteRect.inflate(4)),
+              isFalse,
+            );
+            expect(
+              layout.enemyHudRect.overlaps(layout.playerSpriteRect.inflate(4)),
+              isFalse,
+            );
+            expect(
+              layout.playerHudRect.overlaps(layout.commandPanelRect),
+              isFalse,
+            );
+          },
+        );
       }
 
       test('gives portrait HUDs more breathing room than the 4e baseline', () {
@@ -352,8 +546,11 @@ void main() {
           textScale: 1.0,
         );
 
-        expect(explicit.enemyHudRect, implicit.enemyHudRect,
-            reason: '$viewport');
+        expect(
+          explicit.enemyHudRect,
+          implicit.enemyHudRect,
+          reason: '$viewport',
+        );
         expect(
           explicit.playerHudRect,
           implicit.playerHudRect,
@@ -364,8 +561,11 @@ void main() {
           viewportSize: viewport,
           textScale: 0.8,
         );
-        expect(smaller.enemyHudRect, implicit.enemyHudRect,
-            reason: '$viewport');
+        expect(
+          smaller.enemyHudRect,
+          implicit.enemyHudRect,
+          reason: '$viewport',
+        );
       }
     });
 
@@ -390,10 +590,12 @@ void main() {
           };
 
           for (final side in const <String>['enemy', 'player']) {
-            final baseRect =
-                side == 'enemy' ? base.enemyHudRect : base.playerHudRect;
-            final grownRect =
-                side == 'enemy' ? grown.enemyHudRect : grown.playerHudRect;
+            final baseRect = side == 'enemy'
+                ? base.enemyHudRect
+                : base.playerHudRect;
+            final grownRect = side == 'enemy'
+                ? grown.enemyHudRect
+                : grown.playerHudRect;
 
             for (final obstacle in obstacles.entries) {
               if (baseRect.overlaps(obstacle.value)) continue;

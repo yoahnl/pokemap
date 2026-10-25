@@ -462,8 +462,9 @@ Future<void> _openSave(WidgetTester tester) async {
 }
 
 Future<void> _openExit(WidgetTester tester) async {
-  await _pageTo(tester, find.text('Retour au titre'));
-  await tester.tap(find.text('Retour au titre'));
+  final exit = find.byKey(const ValueKey('pause.returnToTitle'));
+  await _pageTo(tester, exit);
+  await tester.tap(exit);
   await tester.pumpAndSettle();
 }
 

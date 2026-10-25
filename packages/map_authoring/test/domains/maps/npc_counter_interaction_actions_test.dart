@@ -25,7 +25,7 @@ void main() {
       'distanceCells': 2,
       'intermediateCell': 'blockingAndWithoutEntity',
       'npcFootprint': {'width': 1, 'height': 1},
-      'mapMode': '2d',
+      'mapModes': ['2d', '3d'],
       'parameters': ['mapId', 'entityId', 'sides'],
     });
   });
@@ -72,8 +72,7 @@ void main() {
     });
   }
 
-  test('counter authoring refuses nonempty sides on spatial maps and wide NPCs',
-      () {
+  test('counter authoring accepts spatial maps and rejects wide NPCs', () {
     final map = _map();
     final spatial = map.copyWith(
         spatialScene: MapSpatialScene(
@@ -83,7 +82,16 @@ void main() {
     final wide = map.copyWith(entities: [
       map.entities.single.copyWith(size: const GridSize(width: 2, height: 1))
     ]);
-    for (final unsupported in [spatial, wide]) {
+    expect(
+        const EntityActions()
+            .setCounterInteractionSides(spatial,
+                entityId: 'nurse', sides: [EntityFacing.south])
+            .entities
+            .single
+            .npc!
+            .counterInteractionSides,
+        [EntityFacing.south]);
+    for (final unsupported in [wide]) {
       expect(
           () => const EntityActions().setCounterInteractionSides(unsupported,
               entityId: 'nurse', sides: [EntityFacing.south]),

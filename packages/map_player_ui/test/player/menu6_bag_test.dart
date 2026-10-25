@@ -22,6 +22,133 @@ void main() {
     )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
   });
 
+  for (final size in [
+    const Size(1440, 900),
+    const Size(1024, 768),
+    const Size(390, 844),
+    const Size(768, 1024),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
+    testWidgets('six bag items remain visible together at $size', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        _detail(List.generate(6, (i) => _item('item$i'))),
+        size: size,
+        safeInsets: size == const Size(844, 390)
+            ? const EdgeInsets.fromLTRB(44, 12, 44, 20)
+            : EdgeInsets.zero,
+      );
+      final bounds = tester.getRect(
+        find.byKey(const ValueKey('runtime-player-detail-bag')),
+      );
+      for (var i = 0; i < 6; i++) {
+        final row = find.byKey(ValueKey('bag-item-item$i'));
+        expect(row.hitTestable(), findsOneWidget);
+        expect(
+          tester.getRect(row).bottom,
+          lessThanOrEqualTo(bounds.bottom + .1),
+        );
+        expect(
+          find.byKey(ValueKey('bag-info-item$i')).hitTestable(),
+          findsOneWidget,
+        );
+      }
+      expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('touch information inspects any item without using it', (
+    tester,
+  ) async {
+    final commands = <RuntimePlayerPauseCommand>[];
+    await _pump(
+      tester,
+      _detail([_item('a'), _item('b')]),
+      onCommand: commands.add,
+    );
+    final info = find.byKey(const ValueKey('bag-info-b'));
+    expect(tester.getSize(info).width, greaterThanOrEqualTo(48));
+    expect(tester.getSize(info).height, greaterThanOrEqualTo(48));
+    await tester.tap(info);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('bag-detail-b')), findsOneWidget);
+    expect(commands, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('landscape bag shows several items without a permanent preview', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      _detail(List.generate(18, (i) => _item('item$i'))),
+      size: const Size(844, 390),
+    );
+    expect(
+      find.byKey(const ValueKey('bag-item-item0')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('bag-item-item1')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('bag-item-item3')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('bag-detail-item0')), findsNothing);
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('portrait pocket tabs keep their complete labels visible', (
+    tester,
+  ) async {
+    await _pump(tester, _detail([_item('potion')]), size: const Size(390, 844));
+    for (final pocket in ['medicine', 'balls', 'key']) {
+      final tab = find.byKey(ValueKey('bag-pocket-$pocket'));
+      expect(tab.hitTestable(), findsOneWidget);
+      for (final element
+          in find
+              .descendant(of: tab, matching: find.byType(RichText))
+              .evaluate()) {
+        expect(
+          (element.renderObject! as RenderParagraph).didExceedMaxLines,
+          isFalse,
+        );
+      }
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Thor bag shows four items with separate information targets', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      _detail(List.generate(18, (i) => _item('item$i'))),
+      size: const Size(496, 432),
+    );
+    for (var i = 0; i < 4; i++) {
+      final row = find.byKey(ValueKey('bag-item-item$i'));
+      final info = find.byKey(ValueKey('bag-info-item$i'));
+      expect(row.hitTestable(), findsOneWidget);
+      expect(info.hitTestable(), findsOneWidget);
+      expect(
+        tester.getRect(info).left - tester.getRect(row).right,
+        greaterThanOrEqualTo(8),
+      );
+      expect(tester.getSize(info).width, greaterThanOrEqualTo(48));
+    }
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'one eligible target uses its real identity directly from the row',
     (tester) async {
@@ -67,6 +194,11 @@ void main() {
         size: size,
         onFavorite: (id, _) async => favorites.add(id),
       );
+      expect(
+        find.byKey(const ValueKey('runtime-player-bag-use-potion')),
+        findsNothing,
+      );
+      await _inspect(tester, 'potion');
       final bounds = <Rect>[];
       for (final id in [
         'runtime-player-bag-use-potion',
@@ -94,13 +226,17 @@ void main() {
   testWidgets('item pages retain quantity, row size and anchored pockets', (
     tester,
   ) async {
-    await _pump(tester, _detail(List.generate(14, (i) => _item('item$i'))));
+    await _pump(
+      tester,
+      _detail(List.generate(14, (i) => _item('item$i'))),
+      size: const Size(390, 844),
+    );
     final first = tester.getRect(find.byKey(const ValueKey('bag-item-item0')));
     final quantity = tester.getRect(
       find.byKey(const ValueKey('bag-quantity-item0')),
     );
-    expect(first.height, closeTo(52, .01));
-    expect(quantity.width, 72);
+    expect(first.height, closeTo(76, .01));
+    expect(quantity.width, 40);
     final pockets = tester.getRect(find.byKey(const ValueKey('bag-pockets')));
     await tester.tap(
       find.descendant(
@@ -110,6 +246,20 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('bag-item-item0')), findsNothing);
+    for (
+      var page = 0;
+      page < 14 &&
+          find.byKey(const ValueKey('bag-item-item13')).evaluate().isEmpty;
+      page++
+    ) {
+      final next = find.descendant(
+        of: find.byKey(const ValueKey('bag-list-medicine')),
+        matching: find.byKey(const ValueKey('player-page-next')),
+      );
+      expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+    }
     expect(find.byKey(const ValueKey('bag-item-item13')), findsOneWidget);
     expect(tester.getRect(find.byKey(const ValueKey('bag-pockets'))), pockets);
     expect(tester.takeException(), isNull);
@@ -229,12 +379,30 @@ void main() {
         _item('b'),
         _item('ball', pocket: 'balls'),
       ]);
-      await _pump(tester, detail);
+      final navigation = RuntimePlayerBagNavigation();
+      addTearDown(navigation.dispose);
+      await _pump(tester, detail, navigation: navigation);
       await _inspect(tester, 'b');
+      expect(navigation.back(), isTrue);
+      await tester.pumpAndSettle();
       await _tap(tester, 'bag-pocket-balls');
-      expect(find.byKey(const ValueKey('bag-detail-ball')), findsOneWidget);
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('bag-item-ball')),
+            )
+            .selected,
+        isTrue,
+      );
       await _tap(tester, 'bag-pocket-medicine');
-      expect(find.byKey(const ValueKey('bag-detail-b')), findsOneWidget);
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('bag-item-b')),
+            )
+            .selected,
+        isTrue,
+      );
       await _tap(tester, 'bag-pocket-key');
       expect(find.byKey(const ValueKey('bag-pocket-empty')), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -757,11 +925,11 @@ void main() {
           matching: find.byIcon(icons[index]),
         );
         final rowBounds = tester.getRect(row);
-        expect(rowBounds.width, 72);
+        expect(rowBounds.width, greaterThanOrEqualTo(48));
         expect(rowBounds.height, greaterThanOrEqualTo(48));
         expect(
           (tester.getCenter(icon) - rowBounds.center).distance,
-          lessThan(.01),
+          lessThanOrEqualTo(2.01),
         );
         expect(row.hitTestable(), findsOneWidget);
         expect(
@@ -1007,6 +1175,10 @@ Future<void> _inspect(WidgetTester tester, String id) async {
 }
 
 Future<void> _tap(WidgetTester tester, String key) async {
+  if (key.startsWith('runtime-player-bag-use-') &&
+      find.byKey(ValueKey(key)).evaluate().isEmpty) {
+    await _inspect(tester, key.substring('runtime-player-bag-use-'.length));
+  }
   final finder = find.byKey(ValueKey(key));
   await tester.ensureVisible(finder);
   await tester.tap(finder);

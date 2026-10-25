@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_paged_layout.dart';
 import '../foundation/player_menu_components.dart';
 import '../localization/player_localizations.dart';
@@ -18,6 +19,9 @@ import 'runtime_player_actions.dart';
 
 final class RuntimePlayerPartyNavigation extends ChangeNotifier {
   bool Function()? _handleBack;
+  RuntimePokemonSummarySnapshot? Function()? _summary;
+
+  RuntimePokemonSummarySnapshot? get activeSummary => _summary?.call();
   Widget Function(BuildContext, Widget?)? _actionsBuilder;
 
   bool back() => _handleBack?.call() ?? false;
@@ -41,12 +45,14 @@ class RuntimePlayerParty extends StatefulWidget {
     required this.detail,
     required this.onCommand,
     this.canReorder = false,
+    this.summaryHeaderInShell = false,
     this.navigation,
   });
 
   final RuntimePlayerPauseDetailSnapshot detail;
   final FutureOr<void> Function(RuntimePlayerPauseCommand)? onCommand;
   final bool canReorder;
+  final bool summaryHeaderInShell;
   final RuntimePlayerPartyNavigation? navigation;
 
   @override
@@ -82,6 +88,10 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
     super.initState();
     widget.navigation?._handleBack = _back;
     widget.navigation?._actionsBuilder = _footerActions;
+    widget.navigation?._summary = () =>
+        _showDetail && widget.detail.entries.isNotEmpty
+        ? _selected.pokemonSummary
+        : null;
     if (widget.detail.entries.isNotEmpty) {
       _selectedId = _id(widget.detail.entries.first);
       _returnToMember();
@@ -94,8 +104,13 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
     if (oldWidget.navigation != widget.navigation) {
       oldWidget.navigation?._handleBack = null;
       oldWidget.navigation?._actionsBuilder = null;
+      oldWidget.navigation?._summary = null;
       widget.navigation?._handleBack = _back;
       widget.navigation?._actionsBuilder = _footerActions;
+      widget.navigation?._summary = () =>
+          _showDetail && widget.detail.entries.isNotEmpty
+          ? _selected.pokemonSummary
+          : null;
     }
     if (_selectedIndex < 0 && widget.detail.entries.isNotEmpty) {
       final previous = oldWidget.detail.entries.indexWhere(
@@ -119,6 +134,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
   void dispose() {
     widget.navigation?._handleBack = null;
     widget.navigation?._actionsBuilder = null;
+    widget.navigation?._summary = null;
     for (final node in _nodes.values) {
       node.dispose();
     }
@@ -300,10 +316,13 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
             final shortLargeText =
                 constraints.maxHeight < 160 &&
                 MediaQuery.textScalerOf(context).scale(1) >= 1.5;
-            final columns = constraints.maxWidth >= 440 && !shortLargeText
+            final landscape = MediaQuery.sizeOf(context).aspectRatio > 1;
+            final compact = landscape || PlayerCompanionScope.of(context);
+            final columns =
+                compact && constraints.maxWidth >= 320 && !shortLargeText
                 ? 2
                 : 1;
-            final list = _list(true, dense: true) as Column;
+            final list = _list(compact, dense: compact) as Column;
             final members = list.children
                 .where(
                   (child) => child is! SizedBox && child is! ExcludeSemantics,
@@ -346,6 +365,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                 ? PlayerPokemonSummarySheet(
                     key: ValueKey('party-selected-${_id(_selected)}'),
                     summary: _selected.pokemonSummary!,
+                    showHeader: !widget.summaryHeaderInShell,
                     actions: _actions(_selected, includeSummary: false),
                   )
                 : PlayerPagedList(
@@ -452,84 +472,46 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                 id: 'party-member-${_id(entry)}',
                 label: summary?.displayLabel ?? entry.title,
                 labelMaxLines: 1,
-                subtitle: summary == null
-                    ? entry.subtitle
-                    : '${strings.levelValue(summary.level)} · ${strings.hp} ${strings.hpValue(summary.currentHp, summary.maxHp)}',
+                showLabel: summary == null,
+                subtitle: summary == null ? entry.subtitle : null,
                 semanticValue: summary == null
                     ? null
                     : [
                         strings.hpValue(summary.currentHp, summary.maxHp),
-                        if (summary.genderLabel case final gender?) gender,
-                        if (status != null) status,
+                        ?summary.genderLabel,
+                        ?status,
                       ].join(' · '),
                 selected: _selectedId == _id(entry),
                 focusNode: _node(_id(entry)),
                 onFocusChanged: (focused) {
                   if (focused) _select(entry);
                 },
-                minimumHeight: dense ? 64 : 94,
+                reserveFocusMarker: false,
+                contentGap: dense ? 8 : 12,
+                minimumHeight: dense ? 64 : 74,
                 contentPadding: EdgeInsets.symmetric(
-                  horizontal: dense ? 6 : 12,
-                  vertical: dense ? 6 : 10,
+                  horizontal: dense ? 6 : 8,
+                  vertical: dense ? 6 : 8,
                 ),
                 leading: summary == null
                     ? const Icon(Icons.catching_pokemon)
-                    : PlayerMenuPortrait(
-                        circular: true,
-                        size: dense ? 48 : 64,
-                        child: PlayerPokemonImage(
-                          summary: summary,
-                          thumbnail: true,
-                          width: dense ? 40 : 56,
-                          height: dense ? 40 : 56,
-                        ),
-                      ),
-                trailingWidth: dense ? 48 : 64,
-                trailing: _moveSourceId == _id(entry)
-                    ? const Align(
-                        alignment: Alignment.centerRight,
-                        child: Icon(
-                          Icons.swap_vert,
-                          key: ValueKey('party-swap-source'),
-                        ),
-                      )
-                    : Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (summary?.genderLabel case final gender?)
-                            if (genderIcon != null)
-                              Icon(genderIcon, size: 20, semanticLabel: gender)
-                            else
-                              Builder(
-                                builder: (context) => Text(
-                                  gender,
-                                  style: context.playerMenuTheme.meta.copyWith(
-                                    color: DefaultTextStyle.of(context)
-                                        .style
-                                        .color,
-                                  ),
-                                ),
-                              ),
-                          if (status != null)
-                            PlayerMenuBadge(
-                              label: status,
-                              kind: PlayerMenuBadgeKind.status,
-                            ),
-                        ],
+                    : PlayerPokemonImage(
+                        summary: summary,
+                        thumbnail: true,
+                        width: dense ? 44 : 56,
+                        height: dense ? 44 : 56,
                       ),
                 supportingContent: summary == null
                     ? null
-                    : PlayerMenuGauge(
-                        value: summary.currentHp.toDouble(),
-                        maximum: summary.maxHp.toDouble(),
-                        label: strings.hp,
-                        showLabel: false,
-                        tone: summary.hpRatio <= .2
-                            ? PlayerMenuGaugeTone.danger
-                            : summary.hpRatio <= .5
-                            ? PlayerMenuGaugeTone.warning
-                            : PlayerMenuGaugeTone.normal,
+                    : Builder(
+                        builder: (cardContext) => _partyCardContent(
+                          cardContext,
+                          entry,
+                          summary,
+                          genderIcon,
+                          status,
+                          dense: dense,
+                        ),
                       ),
                 busy: _busy,
                 onPressed: () => _activate(entry, compact),
@@ -601,6 +583,82 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
 
   Widget _footerActions(BuildContext context, [Widget? returnAction]) =>
       returnAction ?? const SizedBox.shrink();
+
+  Widget _partyCardContent(
+    BuildContext context,
+    RuntimePlayerDetailEntrySnapshot entry,
+    RuntimePokemonSummarySnapshot summary,
+    IconData? genderIcon,
+    String? status, {
+    required bool dense,
+  }) {
+    final strings = PlayerPokemonSummaryStrings.of(context);
+    final text = DefaultTextStyle.of(context).style;
+    final meta = text.copyWith(fontSize: dense ? 11 : 12, height: 1.25);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                summary.displayLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: dense ? 15 : 17,
+                  height: 1.2,
+                ),
+              ),
+            ),
+            if (genderIcon != null) ...[
+              const SizedBox(width: 8),
+              Icon(genderIcon, size: 16),
+            ],
+            const SizedBox(width: 8),
+            Text(strings.levelValue(summary.level), style: meta),
+          ],
+        ),
+        SizedBox(height: dense ? 5 : 7),
+        PlayerMenuGauge(
+          value: summary.currentHp.toDouble(),
+          maximum: summary.maxHp.toDouble(),
+          label: strings.hp,
+          showLabel: false,
+          tone: summary.hpRatio <= .2
+              ? PlayerMenuGaugeTone.danger
+              : summary.hpRatio <= .5
+              ? PlayerMenuGaugeTone.warning
+              : PlayerMenuGaugeTone.normal,
+        ),
+        SizedBox(height: dense ? 5 : 6),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${strings.hpValue(summary.currentHp, summary.maxHp)} ${strings.hp}',
+                style: meta,
+              ),
+            ),
+            if (_moveSourceId == _id(entry))
+              const Icon(
+                Icons.swap_vert,
+                size: 20,
+                key: ValueKey('party-swap-source'),
+              )
+            else if (status != null)
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 32),
+                child: Text(status, textAlign: TextAlign.right, style: meta),
+              )
+            else if (widget.detail.entries.firstOrNull == entry)
+              Text(_text('En tête', 'Lead'), style: meta),
+          ],
+        ),
+      ],
+    );
+  }
 
   Widget _actions(
     RuntimePlayerDetailEntrySnapshot entry, {

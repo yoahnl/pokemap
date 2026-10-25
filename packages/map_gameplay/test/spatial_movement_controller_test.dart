@@ -502,6 +502,7 @@ void main() {
     expect(
         player.canTraverseActor(1.5, 2.5, 6.5, 2.5, ignoredEntityId: 'guide'),
         isFalse);
+    expect(player.canTraverseActor(1.5, 2.5, 6.5, 2.5, ignoredEntityIds: {'guide', 'other'}), isTrue);
     otherPresent = false;
     expect(
         player.canTraverseActor(1.5, 2.5, 6.5, 2.5, ignoredEntityId: 'guide'),

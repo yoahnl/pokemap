@@ -114,27 +114,46 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
               feedback?.advance.kind != DialogueLineAdvanceKind.autoAfterReveal,
         );
       }(),
-    DialogueWaitingForChoice(:final choices, :final selectedIndex) =>
-      DialoguePresentationSnapshot(
+    DialogueWaitingForChoice(:final choices, :final selectedIndex) => () {
+      final prompt = session.choicePrompt;
+      final fullLine = prompt == null
+          ? (speaker: null, text: '')
+          : prompt.feedback?.segments.isNotEmpty == true
+          ? (speaker: null, text: prompt.text)
+          : _splitDialogueLine(prompt.text);
+      final portrait =
+          prompt?.characterId == null || prompt?.portraitStateId == null
+          ? null
+          : resolvePortrait?.call(
+              characterId: prompt!.characterId!,
+              portraitStateId: prompt.portraitStateId!,
+            );
+      return DialoguePresentationSnapshot(
         revision: revision,
         mode: DialoguePresentationMode.choices,
         nodeTitle: session.currentNodeTitle,
-        speaker: null,
-        text: '',
-        fullText: '',
+        speaker: fullLine.speaker ?? portrait?.characterName,
+        text: fullLine.text,
+        fullText: fullLine.text,
+        portrait: portrait,
+        segments: visibleDialogueLineSegments(
+          prompt?.feedback?.segments ?? const [],
+          prompt?.text.runes.length ?? 0,
+        ),
+        iconPngBytes: Map.unmodifiable(iconPngBytes),
+        iconImages: Map.unmodifiable(iconImages),
         isCurrentLineFullyRevealed: true,
         isLastContent: false,
-        choices: List<DialoguePresentationChoice>.unmodifiable(
-          <DialoguePresentationChoice>[
-            for (var index = 0; index < choices.length; index++)
-              DialoguePresentationChoice(
-                index: index,
-                label: choices[index].text,
-                selected: index == selectedIndex,
-              ),
-          ],
-        ),
-      ),
+        choices: List<DialoguePresentationChoice>.unmodifiable([
+          for (var index = 0; index < choices.length; index++)
+            DialoguePresentationChoice(
+              index: index,
+              label: choices[index].text,
+              selected: index == selectedIndex,
+            ),
+        ]),
+      );
+    }(),
   };
 }
 

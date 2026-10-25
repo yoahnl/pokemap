@@ -21,11 +21,13 @@ final class CharacterStudioCharacterActions {
       characterStudioActionDescriptor(
         'characterStudio.character.create',
         'Create one Character Studio character identity',
+        inputSchema: _characterIdentitySchema(create: true),
         risk: AuthoringRiskLevel.low,
       ),
       characterStudioActionDescriptor(
         'characterStudio.character.update',
         'Update one Character Studio character identity',
+        inputSchema: _characterIdentitySchema(create: false),
         risk: AuthoringRiskLevel.low,
       ),
       characterStudioActionDescriptor(
@@ -94,6 +96,7 @@ final class CharacterStudioCharacterActions {
         'frameWidth',
         'frameHeight',
         'tags',
+        'contactShadow',
       },
     );
     final manifest = context.snapshot.manifest;
@@ -119,6 +122,7 @@ final class CharacterStudioCharacterActions {
       tilesetId: tilesetId,
       frameWidth: frameWidth,
       frameHeight: frameHeight,
+      contactShadow: parameters.optionalBoolean('contactShadow'),
       tags: tags,
       sortOrder: sortOrder,
     );
@@ -148,6 +152,7 @@ final class CharacterStudioCharacterActions {
         'frameWidth',
         'frameHeight',
         'tags',
+        'contactShadow',
       },
     );
     final manifest = context.snapshot.manifest;
@@ -170,6 +175,9 @@ final class CharacterStudioCharacterActions {
       frameWidth: frameWidth,
       frameHeight: frameHeight,
       tags: parameters.optionalStrings('tags') ?? before.tags,
+      contactShadow: parameters.contains('contactShadow')
+          ? parameters.optionalBoolean('contactShadow')
+          : before.contactShadow,
     );
     final characters = manifest.characters.toList()..[index] = after;
     final projected = manifest.copyWith(characters: characters);
@@ -665,7 +673,8 @@ ProjectManifest _resolveManifestReferences(
     }
   }
   final avatarFacts = <String, Map<String, NarrativeValue>>{
-    for (final avatar in manifest.newGame.initialFactValuesByAvatarCharacterId.entries)
+    for (final avatar
+        in manifest.newGame.initialFactValuesByAvatarCharacterId.entries)
       avatar.key: Map.of(avatar.value),
   };
   final removedValues = avatarFacts.remove(deletedId);
@@ -676,8 +685,11 @@ ProjectManifest _resolveManifestReferences(
         throw CharacterStudioActionException(
             'character_studio.avatar_initial_facts_conflict',
             'Replacing this avatar would merge contradictory initial Fact values.',
-            details: {'characterId': deletedId, 'replacementId': replacementId,
-              'factId': fact.key});
+            details: {
+              'characterId': deletedId,
+              'replacementId': replacementId,
+              'factId': fact.key
+            });
       }
       target[fact.key] = fact.value;
     }
@@ -687,9 +699,11 @@ ProjectManifest _resolveManifestReferences(
     ..remove('initialFactValuesByAvatarCharacterId');
   if (avatarFacts.isNotEmpty) {
     newGameJson['initialFactValuesByAvatarCharacterId'] = {
-      for (final avatar in avatarFacts.entries) avatar.key: {
-        for (final fact in avatar.value.entries) fact.key: fact.value.toJson(),
-      },
+      for (final avatar in avatarFacts.entries)
+        avatar.key: {
+          for (final fact in avatar.value.entries)
+            fact.key: fact.value.toJson(),
+        },
     };
   }
   return manifest.copyWith(
@@ -792,3 +806,39 @@ void _validateManifest(ProjectManifest manifest) {
     );
   }
 }
+
+Map<String, Object?> _characterIdentitySchema({required bool create}) => {
+      'type': 'object',
+      'additionalProperties': false,
+      'required': create ? ['name', 'tilesetId'] : ['characterId'],
+      'properties': {
+        if (!create) 'characterId': {'type': 'string', 'minLength': 1},
+        'name': {
+          'type': create ? 'string' : ['string', 'null'],
+          'minLength': 1
+        },
+        'tilesetId': {
+          'type': create ? 'string' : ['string', 'null'],
+          'minLength': 1
+        },
+        'frameWidth': {
+          'type': ['integer', 'null'],
+          'minimum': 1,
+          'maximum': 9999
+        },
+        'frameHeight': {
+          'type': ['integer', 'null'],
+          'minimum': 1,
+          'maximum': 9999
+        },
+        'tags': {
+          'type': ['array', 'null'],
+          'items': {'type': 'string'}
+        },
+        'contactShadow': {
+          'type': ['boolean', 'null'],
+          'description':
+              '3D foot contact shadow; null inherits the project default; omitted updates preserve the current override.',
+        },
+      },
+    };

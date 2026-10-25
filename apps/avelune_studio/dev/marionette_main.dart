@@ -171,7 +171,10 @@ Map<String, Object?> readStudioFullGameState(String expectedProjectPath) {
 }
 
 Future<void> main() async {
-  if (!kDebugMode || !Platform.isMacOS) {
+  if (!(kDebugMode ||
+          (kProfileMode &&
+              const bool.fromEnvironment('MARIONETTE_SAVE_PROFILE'))) ||
+      !Platform.isMacOS) {
     throw StateError(
       'The spatial Studio harness requires a macOS debug build.',
     );
@@ -405,7 +408,8 @@ Future<void> main() async {
         'undoCount': current.document.undoCount,
         'dirty': current.document.dirty,
         'selectedId': current.document.selectedId,
-        'dayNightCycle': current.document.current.spatialScene!.dayNightCycle?.toJson(),
+        'dayNightCycle': current.document.current.spatialScene!.dayNightCycle
+            ?.toJson(),
         'lightingMinuteOfDay': scene.controller.dayNightMinuteOfDay,
         'lightingPreviewRunning': scene.controller.previewDayNightRunning,
         'shadowStats': {

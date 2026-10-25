@@ -6,7 +6,9 @@ final class SpatialSmartTileAnimationController {
   SpatialSmartTileAnimationController({
     required MapData map,
     required ProjectManifest project,
-  }) : _rasterAnimations = SmartTileAnimationActivationController(
+  }) : _map = map,
+       _catalog = project.smartTileCatalog,
+       _rasterAnimations = SmartTileAnimationActivationController(
          map: map,
          catalog: project.smartTileCatalog,
        ) {
@@ -41,6 +43,10 @@ final class SpatialSmartTileAnimationController {
     }
   }
 
+  final MapData _map;
+  final ProjectSmartTileCatalog _catalog;
+  final _actorCells = <String, GridPos?>{};
+  final _actorAnimations = <String, SmartTileAnimationActivationController>{};
   final _instancesByCell = <GridPos, List<String>>{};
   final SmartTileAnimationActivationController _rasterAnimations;
   final _durations = <String, double>{};
@@ -51,6 +57,9 @@ final class SpatialSmartTileAnimationController {
   void update(double dt) {
     if (!dt.isFinite || dt <= 0) return;
     _rasterAnimations.update(dt);
+    for (final controller in _actorAnimations.values) {
+      controller.update(dt);
+    }
     _elapsed += dt;
     _startedAt.removeWhere(
       (id, startedAt) => _elapsed - startedAt >= _durations[id]!,
@@ -64,6 +73,66 @@ final class SpatialSmartTileAnimationController {
     for (final id in _instancesByCell[cell] ?? const <String>[]) {
       _startedAt[id] = _elapsed;
     }
+  }
+
+  void synchronizeActorOccupancy(
+    Map<String, GridPos?> cells, {
+    Set<String> reactingActors = const {},
+  }) {
+    _actorCells.removeWhere((id, _) => !cells.containsKey(id));
+    _actorAnimations.removeWhere((id, _) => !cells.containsKey(id));
+    for (final entry in cells.entries) {
+      final cell = entry.value;
+      final controller = _actorAnimations[entry.key];
+      if (controller == null) {
+        final created = SmartTileAnimationActivationController(
+          map: _map,
+          catalog: _catalog,
+        );
+        created.resetPlayerOccupancy(cell);
+        _actorAnimations[entry.key] = created;
+      } else if (_actorCells[entry.key] != cell) {
+        controller.resetPlayerOccupancy(null);
+        if (cell != null) {
+          controller.onPlayerEnteredCell(cell);
+          controller.onPlayerStepCompleted();
+          if (reactingActors.contains(entry.key)) {
+            onActorEnteredCell(cell);
+          }
+        }
+      }
+      _actorCells[entry.key] = cell;
+    }
+  }
+
+  ({bool active, int elapsedMs}) actorOcclusionStateForCell({
+    required String layerId,
+    required int cellX,
+    required int cellY,
+    required int globalElapsedMs,
+  }) {
+    final layer = _map.layers
+        .whereType<SmartTileLayer>()
+        .where((l) => l.id == layerId)
+        .firstOrNull;
+    if (layer?.animationActivation == SmartTileAnimationActivation.always) {
+      return (active: true, elapsedMs: globalElapsedMs);
+    }
+    int? elapsed;
+    for (final entry in _actorCells.entries) {
+      if (entry.value != GridPos(x: cellX, y: cellY)) continue;
+      final time = _actorAnimations[entry.key]!.elapsedMsForCell(
+        layerId: layerId,
+        cellX: cellX,
+        cellY: cellY,
+        globalElapsedMs: globalElapsedMs,
+        channel: SmartTileRenderChannel.actorOcclusion,
+      );
+      if (elapsed == null || time < elapsed) {
+        elapsed = time;
+      }
+    }
+    return (active: elapsed != null, elapsedMs: elapsed ?? 0);
   }
 
   int rasterElapsedMsForCell({

@@ -29,6 +29,12 @@ test("live MCP paints reactive FRLG grass and preserves its terrain, clip and de
   try {
     await client.connect(transport);
     const described = await call("pokemap_describe");
+    const preset = (described.resourceKinds as JsonRecord[]).find(kind => kind.id === "smartTilePreset");
+    const actorOcclusion = record(record(preset?.extensions).actorOcclusion3d);
+    assert.equal(actorOcclusion.capability, "map3d.actor-occlusion@1");
+    assert.equal(actorOcclusion.channel, "actor_occlusion");
+    assert.equal(actorOcclusion.encounters, false);
+    assert.match(String(actorOcclusion.geometry), /anchored to the terrain cell; fixed during movement inside that cell/);
     const actions = new Set((described.mutationActions as JsonRecord[]).map(action => action.id));
     for (const id of ["smart_tile.layer.create", "smart_tile.cell.paint", "smart_tile.cell.erase",
       "smart_tile.animation.upsert", "smart_tile.layer.set_animation_activation", "resource.classify"]) {

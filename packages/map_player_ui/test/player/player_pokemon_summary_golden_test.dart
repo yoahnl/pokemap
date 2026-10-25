@@ -93,6 +93,9 @@ void main() {
 }
 
 Future<void> _loadFixtureFonts() async {
+  await (FontLoader(
+    'packages/map_player_ui/PokeMapSplashDMSans',
+  )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
   final bytes = await File(
     '${Directory.current.path}/../../examples/playable_runtime_host/'
     'golden_personalization_v3/assets/presentation/fonts/display.ttf',

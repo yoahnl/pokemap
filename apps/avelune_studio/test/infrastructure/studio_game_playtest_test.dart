@@ -283,6 +283,8 @@ void main() {
         mountSpatial: (runtime) async {
           expect(runtime.descriptor.grantedCapabilities,
               contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
+          expect(runtime.descriptor.grantedCapabilities,
+              contains(SpatialActorOcclusionCapabilities.capabilityId));
           mounted = runtime;
           mounts++;
         },

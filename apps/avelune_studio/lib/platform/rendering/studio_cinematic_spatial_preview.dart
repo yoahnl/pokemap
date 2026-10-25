@@ -148,8 +148,12 @@ extension StudioCinematicSpatialPreview on StudioMapResources {
               x: x,
               y: map.spatialScene!.worldHeightAt(x, z) + (pose?.liftCells ?? 0),
               z: z,
+              groundY: map.spatialScene!.worldHeightAt(x, z),
               texture: textures[source.imageId]!,
               frame: source.sourceRect,
+              contactShadow:
+                  character.contactShadow ??
+                  manifest.settings.actorContactShadowsByDefault,
             );
           }
           return result;

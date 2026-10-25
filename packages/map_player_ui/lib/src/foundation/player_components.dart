@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 
@@ -22,19 +23,17 @@ class PlayerSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ColoredBox(
-        color: context.playerColors.background,
-        child: SafeArea(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: maxWidth ?? double.infinity,
-              ),
-              child: Padding(padding: padding, child: child),
-            ),
-          ),
+    color: context.playerColors.background,
+    child: SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth ?? double.infinity),
+          child: Padding(padding: padding, child: child),
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class PlayerPanel extends StatelessWidget {
@@ -66,14 +65,17 @@ class PlayerPanel extends StatelessWidget {
     final colors = context.playerColors;
     final semantic = context.playerSemanticTheme;
     final windowTheme = context.playerWindowTheme;
-    final tokenResolver = windowTheme ??
+    final tokenResolver =
+        windowTheme ??
         PokeMapPlayerWindowTheme(legacyProjectPresentationWindows);
-    final palette =
-        surfaceRole == null ? null : context.playerSurfacePalette(surfaceRole!);
+    final palette = surfaceRole == null
+        ? null
+        : context.playerSurfacePalette(surfaceRole!);
     final assignment = surfaceRole == null
         ? null
         : projectPresentationSurfaceAssignment(surfaceRole!);
-    final windowRole = assignment?.windowRole ??
+    final windowRole =
+        assignment?.windowRole ??
         switch (role) {
           PlayerPanelRole.dialogue => ProjectWindowRole.dialogue,
           PlayerPanelRole.menu => ProjectWindowRole.pauseMenu,
@@ -114,12 +116,14 @@ class PlayerPanel extends StatelessWidget {
     final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
       palette?.text,
     );
-    final resolvedSurface = surfaceColorOverride ??
+    final resolvedSurface =
+        surfaceColorOverride ??
         paletteSurface ??
         (windowStyle == null
             ? surface
             : tokenResolver.resolveToken(windowStyle.fillToken, semantic));
-    final resolvedBorder = borderColorOverride ??
+    final resolvedBorder =
+        borderColorOverride ??
         paletteBorder ??
         (windowStyle == null
             ? colors.outline
@@ -180,26 +184,23 @@ ShapeBorder _playerPanelShape(
   return switch (style?.shape ?? ProjectWindowShape.rounded) {
     ProjectWindowShape.rectangle => RoundedRectangleBorder(side: side),
     ProjectWindowShape.rounded => RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(radius),
-        side: side,
-      ),
+      borderRadius: BorderRadius.circular(radius),
+      side: side,
+    ),
     ProjectWindowShape.capsule => StadiumBorder(side: side),
     ProjectWindowShape.cutCorner => BeveledRectangleBorder(
-        borderRadius: BorderRadius.circular(radius),
-        side: side,
-      ),
+      borderRadius: BorderRadius.circular(radius),
+      side: side,
+    ),
     ProjectWindowShape.speech => _PlayerSpeechBubbleBorder(
-        side: side,
-        radius: radius,
-      ),
+      side: side,
+      radius: radius,
+    ),
   };
 }
 
 final class _PlayerSpeechBubbleBorder extends ShapeBorder {
-  const _PlayerSpeechBubbleBorder({
-    required this.side,
-    required this.radius,
-  });
+  const _PlayerSpeechBubbleBorder({required this.side, required this.radius});
 
   final BorderSide side;
 
@@ -207,17 +208,15 @@ final class _PlayerSpeechBubbleBorder extends ShapeBorder {
 
   @override
   EdgeInsetsGeometry get dimensions => EdgeInsets.only(
-        left: side.width,
-        top: side.width,
-        right: side.width,
-        bottom: side.width + 10,
-      );
+    left: side.width,
+    top: side.width,
+    right: side.width,
+    bottom: side.width + 10,
+  );
 
   @override
-  ShapeBorder scale(double t) => _PlayerSpeechBubbleBorder(
-        side: side.scale(t),
-        radius: radius * t,
-      );
+  ShapeBorder scale(double t) =>
+      _PlayerSpeechBubbleBorder(side: side.scale(t), radius: radius * t);
 
   @override
   Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
@@ -225,8 +224,12 @@ final class _PlayerSpeechBubbleBorder extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    final body =
-        Rect.fromLTRB(rect.left, rect.top, rect.right, rect.bottom - 10);
+    final body = Rect.fromLTRB(
+      rect.left,
+      rect.top,
+      rect.right,
+      rect.bottom - 10,
+    );
     return Path()
       ..addRRect(RRect.fromRectAndRadius(body, Radius.circular(radius)))
       ..moveTo(body.left + 28, body.bottom)
@@ -376,8 +379,8 @@ class PlayerActionButton extends StatefulWidget {
     this.backgroundColor,
     this.foregroundColor,
     this.disabledOpacity = 1,
-  })  : assert(minimumHeight >= 48),
-        assert(disabledOpacity >= 0 && disabledOpacity <= 1);
+  }) : assert(minimumHeight >= 48),
+       assert(disabledOpacity >= 0 && disabledOpacity <= 1);
 
   final String label;
   final IconData? icon;
@@ -420,7 +423,8 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
   void initState() {
     super.initState();
     _ownsFocusNode = widget.focusNode == null;
-    _focusNode = widget.focusNode ??
+    _focusNode =
+        widget.focusNode ??
         FocusNode(debugLabel: 'Player action: ${widget.label}');
     _focusNode.addListener(_onFocusChanged);
   }
@@ -441,14 +445,61 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
     final enabled = widget.onPressed != null;
     final colors = context.playerColors;
     final motion = context.playerMotion;
+    final menuScope = context
+        .dependOnInheritedWidgetOfExactType<PlayerMenuThemeScope>();
+    final menu = menuScope == null ? null : context.playerMenuTheme;
+    final menuForeground = menu == null
+        ? null
+        : widget.secondary || widget.quiet
+        ? menu.text
+        : menu.selectionText;
+    final menuBackground = menu == null
+        ? null
+        : widget.quiet
+        ? Colors.transparent
+        : widget.secondary
+        ? menu.recessed
+        : menu.selectionTop;
+    final menuStyle = menu == null
+        ? null
+        : ButtonStyle(
+            minimumSize: WidgetStatePropertyAll(Size(0, widget.minimumHeight)),
+            padding: const WidgetStatePropertyAll(
+              EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            ),
+            foregroundColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.disabled)) return menu.disabled;
+              return widget.foregroundColor ?? menuForeground;
+            }),
+            backgroundColor: WidgetStatePropertyAll(
+              widget.backgroundColor ?? menuBackground,
+            ),
+            textStyle: WidgetStatePropertyAll(menu.actionLabel),
+            iconSize: const WidgetStatePropertyAll(20),
+            shape: WidgetStatePropertyAll(
+              widget.shape ??
+                  const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(4)),
+                  ),
+            ),
+            side: const WidgetStatePropertyAll(BorderSide.none),
+            elevation: const WidgetStatePropertyAll(0),
+            visualDensity: VisualDensity.standard,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          );
     final buttonChild = Builder(
       builder: (buttonContext) {
-        final labelStyle = buttonContext.playerTypography.bodyStyle(
-          DefaultTextStyle.of(buttonContext).style,
-        );
+        final labelStyle = menu == null
+            ? buttonContext.playerTypography.bodyStyle(
+                DefaultTextStyle.of(buttonContext).style,
+              )
+            : menu.actionLabel.copyWith(
+                color: DefaultTextStyle.of(buttonContext).style.color,
+              );
         return Row(
-          mainAxisSize:
-              widget.expandContent ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisSize: widget.expandContent
+              ? MainAxisSize.max
+              : MainAxisSize.min,
           children: <Widget>[
             if (widget.icon != null) ...[
               Icon(widget.icon),
@@ -480,7 +531,8 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
         );
       },
     );
-    final hasStyleOverride = widget.foregroundColor != null ||
+    final hasStyleOverride =
+        widget.foregroundColor != null ||
         widget.backgroundColor != null ||
         widget.shape != null;
     final button = widget.quiet
@@ -488,41 +540,48 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
             onPressed: widget.onPressed,
             focusNode: _focusNode,
             autofocus: widget.autofocus,
-            style: TextButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              foregroundColor: widget.foregroundColor ?? colors.textSecondary,
-              backgroundColor: widget.backgroundColor,
-              shape: widget.shape,
-            ),
+            style:
+                menuStyle ??
+                TextButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  foregroundColor:
+                      widget.foregroundColor ?? colors.textSecondary,
+                  backgroundColor: widget.backgroundColor,
+                  shape: widget.shape,
+                ),
             child: buttonChild,
           )
         : widget.secondary
-            ? OutlinedButton(
-                onPressed: widget.onPressed,
-                focusNode: _focusNode,
-                autofocus: widget.autofocus,
-                style: hasStyleOverride
+        ? OutlinedButton(
+            onPressed: widget.onPressed,
+            focusNode: _focusNode,
+            autofocus: widget.autofocus,
+            style:
+                menuStyle ??
+                (hasStyleOverride
                     ? OutlinedButton.styleFrom(
                         foregroundColor: widget.foregroundColor,
                         backgroundColor: widget.backgroundColor,
                         shape: widget.shape,
                       )
-                    : null,
-                child: buttonChild,
-              )
-            : FilledButton(
-                onPressed: widget.onPressed,
-                focusNode: _focusNode,
-                autofocus: widget.autofocus,
-                style: hasStyleOverride
+                    : null),
+            child: buttonChild,
+          )
+        : FilledButton(
+            onPressed: widget.onPressed,
+            focusNode: _focusNode,
+            autofocus: widget.autofocus,
+            style:
+                menuStyle ??
+                (hasStyleOverride
                     ? FilledButton.styleFrom(
                         foregroundColor: widget.foregroundColor,
                         backgroundColor: widget.backgroundColor,
                         shape: widget.shape,
                       )
-                    : null,
-                child: buttonChild,
-              );
+                    : null),
+            child: buttonChild,
+          );
     return Semantics(
       key: ValueKey<String>('player-action-semantics-${widget.label}'),
       button: true,
@@ -536,12 +595,14 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
           key: const ValueKey<String>('player-action-focus-frame'),
           duration: motion.fast,
           constraints: BoxConstraints(minHeight: widget.minimumHeight),
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(PlayerRadii.sm + 3),
+          padding: menu == null ? const EdgeInsets.all(3) : EdgeInsets.zero,
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(
+              menu == null ? PlayerRadii.sm + 3 : 4,
+            ),
             border: Border.all(
               color: _focused && widget.showFocusHighlight
-                  ? colors.focus
+                  ? menu?.focus ?? colors.focus
                   : colors.focus.withValues(alpha: 0),
               width: 3,
             ),
@@ -550,12 +611,14 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
               ? Opacity(
                   opacity: widget.disabledOpacity,
                   child: SizedBox(
-                      width: widget.expandWidth ? double.infinity : null,
-                      child: button),
+                    width: widget.expandWidth ? double.infinity : null,
+                    child: button,
+                  ),
                 )
               : SizedBox(
                   width: widget.expandWidth ? double.infinity : null,
-                  child: button),
+                  child: button,
+                ),
         ),
       ),
     );
@@ -614,9 +677,9 @@ class PlayerBadge extends StatelessWidget {
                   label,
                   softWrap: true,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: foreground,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -645,36 +708,36 @@ class PlayerEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PlayerPanel(
-        child: Semantics(
-          container: true,
-          header: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 52, color: context.playerColors.primary),
-              const SizedBox(height: PlayerSpacing.md),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: PlayerSpacing.xs),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              if (action != null) ...<Widget>[
-                const SizedBox(height: PlayerSpacing.lg),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 320),
-                  child: action!,
-                ),
-              ],
-            ],
+    child: Semantics(
+      container: true,
+      header: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 52, color: context.playerColors.primary),
+          const SizedBox(height: PlayerSpacing.md),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
-        ),
-      );
+          const SizedBox(height: PlayerSpacing.xs),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          if (action != null) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.lg),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 320),
+              child: action!,
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 enum PlayerProgressStepState { pending, active, completed }
@@ -714,66 +777,65 @@ class PlayerProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PlayerPanel(
-        elevated: true,
-        child: Semantics(
-          liveRegion: true,
-          label: '$title, $stage',
-          value: value == null ? null : '${(value! * 100).round()} %',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+    elevated: true,
+    child: Semantics(
+      liveRegion: true,
+      label: '$title, $stage',
+      value: value == null ? null : '${(value! * 100).round()} %',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  if (progressLabel case final label?)
-                    Text(
-                      label,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: context.playerColors.primary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               ),
-              const SizedBox(height: PlayerSpacing.xs),
-              Text(stage),
-              const SizedBox(height: PlayerSpacing.md),
-              LinearProgressIndicator(value: value),
-              if (remainingLabel case final label?) ...<Widget>[
-                const SizedBox(height: PlayerSpacing.sm),
+              if (progressLabel case final label?)
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: context.playerColors.textSecondary,
-                      ),
-                ),
-              ],
-              if (steps.isNotEmpty) ...<Widget>[
-                const SizedBox(height: PlayerSpacing.md),
-                Divider(color: context.playerColors.outline),
-                const SizedBox(height: PlayerSpacing.xs),
-                for (final step in steps) _PlayerProgressStep(step: step),
-              ],
-              if (onCancel != null) ...<Widget>[
-                const SizedBox(height: PlayerSpacing.md),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: onCancel,
-                    child: Text(context.playerL10n.cancel),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: context.playerColors.primary,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ],
             ],
           ),
-        ),
-      );
+          const SizedBox(height: PlayerSpacing.xs),
+          Text(stage),
+          const SizedBox(height: PlayerSpacing.md),
+          LinearProgressIndicator(value: value),
+          if (remainingLabel case final label?) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.sm),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: context.playerColors.textSecondary),
+            ),
+          ],
+          if (steps.isNotEmpty) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.md),
+            Divider(color: context.playerColors.outline),
+            const SizedBox(height: PlayerSpacing.xs),
+            for (final step in steps) _PlayerProgressStep(step: step),
+          ],
+          if (onCancel != null) ...<Widget>[
+            const SizedBox(height: PlayerSpacing.md),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onCancel,
+                child: Text(context.playerL10n.cancel),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 class _PlayerProgressStep extends StatelessWidget {
@@ -786,17 +848,17 @@ class _PlayerProgressStep extends StatelessWidget {
     final colors = context.playerColors;
     final (icon, color) = switch (step.state) {
       PlayerProgressStepState.completed => (
-          Icons.check_circle_rounded,
-          colors.success
-        ),
+        Icons.check_circle_rounded,
+        colors.success,
+      ),
       PlayerProgressStepState.active => (
-          Icons.radio_button_checked_rounded,
-          colors.primary
-        ),
+        Icons.radio_button_checked_rounded,
+        colors.primary,
+      ),
       PlayerProgressStepState.pending => (
-          Icons.radio_button_unchecked_rounded,
-          colors.textSecondary
-        ),
+        Icons.radio_button_unchecked_rounded,
+        colors.textSecondary,
+      ),
     };
     return Padding(
       key: step.key,
@@ -809,13 +871,13 @@ class _PlayerProgressStep extends StatelessWidget {
             child: Text(
               step.label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: step.state == PlayerProgressStepState.pending
-                        ? colors.textSecondary
-                        : colors.textPrimary,
-                    fontWeight: step.state == PlayerProgressStepState.active
-                        ? FontWeight.w700
-                        : null,
-                  ),
+                color: step.state == PlayerProgressStepState.pending
+                    ? colors.textSecondary
+                    : colors.textPrimary,
+                fontWeight: step.state == PlayerProgressStepState.active
+                    ? FontWeight.w700
+                    : null,
+              ),
             ),
           ),
         ],

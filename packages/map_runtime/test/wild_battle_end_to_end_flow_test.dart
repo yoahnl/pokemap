@@ -17,6 +17,8 @@ import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/load_flame_component.dart';
@@ -37,6 +39,58 @@ void main() {
       if (await tempProjectRoot.exists()) {
         await tempProjectRoot.delete(recursive: true);
       }
+    });
+
+    test('canonical layout commands update the real battle renderer without advancing gameplay', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final game = _LoadedGame(bundle: _buildBundle(tempProjectRoot.path, manifest, map), projectFilePath: p.join(tempProjectRoot.path, 'project.json'), saveData: saveDataFromGameState(_playerState()), reducedMotion: true);
+      addTearDown(game.onRemove);
+      game.onGameResize(Vector2(844,390));
+      await game.onLoad();
+      await game.debugOpenBattleForTest(_wildRequest(manifest, map));
+      await game.debugWaitForBattleOverlaySync();
+      var snapshot = await _ppBattleSnapshot(game, 'root');
+      final session = game.debugBattleSessionSnapshot;
+      final state = game.gameStateSnapshot;
+      final oldRevision = snapshot.revision;
+      expect(game.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, placement: BattleCommandPanelPlacement.end)), isTrue);
+      snapshot = await _ppBattleSnapshot(game, 'root');
+      expect(snapshot.revision, greaterThan(oldRevision));
+      expect(snapshot.commandPanelPlacement, BattleCommandPanelPlacement.end);
+      final layout = game.debugBattleOverlayComponent!.currentSceneLayout;
+      expect(layout.commandPanelPlacement, BattleCommandPanelPlacement.end);
+      expect(layout.enemySpriteRect.overlaps(layout.commandPanelRect), isFalse);
+      expect(layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
+      expect(game.debugBattleOverlayComponent!.currentRmxpAnimationViewportSize.x, closeTo(layout.arenaRect.right, .001));
+      for (final actor in game.debugBattleOverlayComponent!.children.whereType<BattleSceneCombatantComponent>()) {
+        final expected = actor.isPlayerSide ? layout.playerSpriteRect : layout.enemySpriteRect;
+        expect(actor.currentSpriteRect.left, closeTo(expected.left, .001));
+        expect(actor.currentSpriteRect.top, closeTo(expected.top, .001));
+        expect(actor.currentSpriteRect.right, closeTo(expected.right, .001));
+        expect(actor.currentSpriteRect.bottom, closeTo(expected.bottom, .001));
+      }
+      final beforeFight = layout.playerSpriteRect;
+      expect(_ppSelectEntry(game, snapshot, BattleCommandRootAction.fight.index), isTrue);
+      snapshot = await _ppBattleSnapshot(game, 'fight');
+      expect(game.debugBattleOverlayComponent!.currentSceneLayout.playerSpriteRect, beforeFight);
+      expect(game.debugBattleSessionSnapshot, same(session));
+      expect(game.gameStateSnapshot, state);
+      expect(game.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(snapshotRevision: oldRevision, expectedMode: snapshot.mode, placement: BattleCommandPanelPlacement.bottom)), isFalse);
+      expect(game.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, placement: BattleCommandPanelPlacement.detached)), isTrue);
+      snapshot = await _ppBattleSnapshot(game, 'fight');
+      expect(snapshot.panelRect.isEmpty, isTrue);
+      expect(game.debugBattleOverlayComponent!.currentRmxpAnimationViewportSize.y, closeTo(snapshot.viewportSize.height, .001));
+      expect(game.debugBattleSessionSnapshot, same(session));
+      game.onGameResize(Vector2(390,844));
+      snapshot = await _ppBattleSnapshot(game, 'fight');
+      expect(game.dispatchBattlePresentationCommand(BattleSetCommandPanelPlacementCommand(snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, placement: BattleCommandPanelPlacement.bottom)), isTrue);
+      final portrait = game.debugBattleOverlayComponent!.currentSceneLayout;
+      final backdrop = game.debugBattleOverlayComponent!.children.whereType<BattleSceneBackdropComponent>().single;
+      expect(backdrop.size.x, 390);
+      expect(backdrop.size.y, closeTo(portrait.commandPanelRect.top, .001));
+      expect(portrait.playerSpriteRect.height, greaterThan(170));
+      expect(portrait.playerHudRect.overlaps(portrait.playerSpriteRect), isFalse);
     });
 
     test('real wild encounter chain resolves to victory and writes back hp',

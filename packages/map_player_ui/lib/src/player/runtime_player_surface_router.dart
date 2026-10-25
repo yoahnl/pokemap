@@ -6,6 +6,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../localization/player_localizations.dart';
@@ -461,6 +462,38 @@ class _RuntimePlayerSurfaceRouterState
             widget.snapshot.pauseSection == RuntimePlayerPauseSection.profile ||
             widget.snapshot.pauseSection == RuntimePlayerPauseSection.options ||
             widget.snapshot.pauseSection == RuntimePlayerPauseSection.map,
+        detailHeaderBuilder:
+            widget.snapshot.pauseSection == RuntimePlayerPauseSection.party &&
+                widget.partyNavigation != null
+            ? (context) => ListenableBuilder(
+                listenable: widget.partyNavigation!,
+                builder: (context, _) {
+                  final summary = widget.partyNavigation!.activeSummary;
+                  return PlayerMenuHeader(
+                    onBack: _backFromPause,
+                    icon: Icons.catching_pokemon,
+                    iconColor: context.playerMenuTheme.danger,
+                    title: summary?.displayLabel ?? context.playerL10n.party,
+                    secondary: summary == null
+                        ? null
+                        : Text('${summary.speciesLabel} · N.${summary.level}'),
+                  );
+                },
+              )
+            : widget.snapshot.pauseSection == RuntimePlayerPauseSection.options
+            ? (context) => ListenableBuilder(
+                listenable: _optionsNavigation,
+                builder: (context, _) => PlayerMenuHeader(
+                  icon: Icons.settings_outlined,
+                  onBack: _backFromPause,
+                  alignSecondaryEnd: true,
+                  title:
+                      _optionsNavigation.activeTitle ??
+                      context.playerL10n.options,
+                  secondary: _optionsNavigation.buildHeaderAction(context),
+                ),
+              )
+            : null,
         detailHeaderSecondary:
             widget.snapshot.pauseSection == RuntimePlayerPauseSection.bag
             ? _bagMoney(context)

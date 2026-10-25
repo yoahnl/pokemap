@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -9,6 +10,128 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+  });
+
+  testWidgets('landscape audio presents all three sliders together', (
+    tester,
+  ) async {
+    await _pump(tester, size: const Size(844, 390));
+    await _category(tester, 'audio');
+    for (final key in [
+      'options-master-slider',
+      'options-music-slider',
+      'options-effects-slider',
+    ]) {
+      final slider = find.byKey(ValueKey(key));
+      expect(slider.hitTestable(), findsOneWidget);
+      expect(tester.getRect(slider).height, greaterThanOrEqualTo(48));
+    }
+    for (final category in _categories) {
+      final tab = find.byKey(ValueKey('options-category-$category'));
+      expect(tab.hitTestable(), findsOneWidget);
+      expect(tester.getSize(tab).height, greaterThanOrEqualTo(48));
+      for (final text
+          in find
+              .descendant(of: tab, matching: find.byType(RichText))
+              .evaluate()) {
+        expect(
+          (text.renderObject! as RenderParagraph).didExceedMaxLines,
+          isFalse,
+          reason: category,
+        );
+      }
+    }
+    expect(find.byKey(const ValueKey('options-categories')), findsNothing);
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('landscape touch controls show the four preferences together', (
+    tester,
+  ) async {
+    await _pumpIntegrated(
+      tester,
+      const Size(844, 390),
+      input: PlayerInputSource.touch,
+    );
+    await _category(tester, 'controls');
+    for (final key in [
+      'options-touch-run-mode-choice',
+      'runtime-player-left-handed-touch-toggle',
+      'runtime-player-input-hints-toggle',
+      'touch-controls-opacity-slider',
+    ]) {
+      expect(find.byKey(ValueKey(key)).hitTestable(), findsOneWidget);
+    }
+    expect(
+      find.byKey(const ValueKey('player-page-next')).hitTestable(),
+      findsNothing,
+    );
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final size in [const Size(844, 390), const Size(496, 432)]) {
+    testWidgets(
+      'integrated options keep audio and controller bindings dense at $size',
+      (tester) async {
+        await _pumpIntegrated(tester, size);
+        await _category(tester, 'audio');
+        for (final channel in ['master', 'music', 'effects']) {
+          final slider = find.byKey(ValueKey('options-$channel-slider'));
+          expect(slider.hitTestable(), findsOneWidget);
+          expect(tester.getSize(slider).height, greaterThanOrEqualTo(48));
+        }
+        expect(
+          find.byKey(const ValueKey('player-page-next')).hitTestable(),
+          findsNothing,
+        );
+        await _category(tester, 'controls');
+        final visible = RuntimeInputControl.values
+            .map(
+              (control) => find.byKey(
+                ValueKey('options-binding-${control.name}-choice'),
+              ),
+            )
+            .where((finder) => finder.hitTestable().evaluate().isNotEmpty)
+            .toList();
+        expect(visible.length, greaterThanOrEqualTo(4));
+        for (final binding in visible) {
+          expect(tester.getSize(binding).height, greaterThanOrEqualTo(48));
+          for (final element
+              in find
+                  .descendant(of: binding, matching: find.byType(RichText))
+                  .evaluate()) {
+            expect(
+              (element.renderObject! as RenderParagraph).didExceedMaxLines,
+              isFalse,
+            );
+          }
+        }
+        expect(
+          find.byKey(const ValueKey('options-touch-run-mode-choice')),
+          findsNothing,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('options-control-device-switch')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find
+              .byKey(const ValueKey('options-touch-run-mode-choice'))
+              .hitTestable(),
+          findsOneWidget,
+        );
+        expect(find.byType(Scrollable), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('simple choices persist inline and never open a dialog', (
     tester,
   ) async {
@@ -122,6 +245,7 @@ void main() {
                 'options-binding-primary-choice',
               };
               var pages = 0;
+              var readTouchSettings = false;
               while (true) {
                 for (final key in controls) {
                   if (find
@@ -144,6 +268,16 @@ void main() {
                 );
                 if (next.evaluate().isEmpty ||
                     tester.widget<IconButton>(next).onPressed == null) {
+                  if (category == 'controls' && !readTouchSettings) {
+                    readTouchSettings = true;
+                    await tester.tap(
+                      find.byKey(
+                        const ValueKey('options-control-device-switch'),
+                      ),
+                    );
+                    await tester.pumpAndSettle();
+                    continue;
+                  }
                   break;
                 }
                 expect(pages++, lessThan(40), reason: category);
@@ -235,7 +369,11 @@ void main() {
     tester,
   ) async {
     final changes = <PlayerPreferencesSnapshot>[];
-    await _pump(tester, onChanged: changes.add);
+    await _pump(
+      tester,
+      onChanged: changes.add,
+      activeInputSource: PlayerInputSource.touch,
+    );
     await _category(tester, 'controls');
     expect(tester.takeException(), isNull, reason: 'controls initial layout');
     await _tap(tester, 'options-touch-run-mode-choice');
@@ -255,7 +393,11 @@ void main() {
     tester,
   ) async {
     final changes = <PlayerPreferencesSnapshot>[];
-    await _pump(tester, onChanged: changes.add);
+    await _pump(
+      tester,
+      onChanged: changes.add,
+      activeInputSource: PlayerInputSource.touch,
+    );
     await _category(tester, 'controls');
     await _tap(tester, 'runtime-player-left-handed-touch-toggle');
     expect(changes.single.leftHandedTouchControls, isTrue);
@@ -479,7 +621,7 @@ void main() {
             .widget<PlayerMenuSelectableRow>(
               find.byKey(const ValueKey('options-binding-primary-choice')),
             )
-            .label,
+            .semanticValue,
         'E',
       );
       expect(find.byKey(const ValueKey('options-saving')), findsOneWidget);
@@ -492,7 +634,7 @@ void main() {
             .widget<PlayerMenuSelectableRow>(
               find.byKey(const ValueKey('options-binding-primary-choice')),
             )
-            .label,
+            .semanticValue,
         'E',
       );
       expect(find.text('Le stockage est indisponible.'), findsOneWidget);
@@ -683,6 +825,73 @@ Future<void> _pump(
             valueListenable: notifier,
             builder: (context, value, child) => build(value),
           ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpIntegrated(
+  WidgetTester tester,
+  Size size, {
+  PlayerInputSource input = PlayerInputSource.controller,
+}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = size;
+  addTearDown(tester.view.reset);
+  final insets = size.width > 600
+      ? const EdgeInsets.fromLTRB(59, 0, 59, 21)
+      : EdgeInsets.zero;
+  await tester.pumpWidget(
+    MaterialApp(
+      locale: const Locale('fr'),
+      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+      theme: PokeMapPlayerTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(padding: insets, viewPadding: insets),
+        child: child!,
+      ),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) {
+            final router = RuntimePlayerSurfaceRouter(
+              snapshot: RuntimePlayerSnapshot(
+                revision: 1,
+                phase: RuntimePlayerPhase.paused,
+                gameTitle: 'Aube',
+                pauseSection: RuntimePlayerPauseSection.options,
+                preferences: _preferences,
+                actions: [
+                  RuntimePlayerActionAvailability.enabled(
+                    RuntimePlayerAction.openOptions,
+                  ),
+                  RuntimePlayerActionAvailability.enabled(
+                    RuntimePlayerAction.updatePreferences,
+                  ),
+                ],
+              ),
+              titlePresentation: const RuntimePlayerTitlePresentation(
+                author: 'MENU8',
+              ),
+              pausePresentation: const PlayerPausePresentation(
+                style: ProjectPauseMenuStyle.nightIllustrated,
+              ),
+              activeInputSource: input,
+              hardwareGamepadEnabled: true,
+              gameSceneBuilder: (_) => const SizedBox.expand(),
+              onAction: (_) async => const RuntimePlayerCommandResult(
+                status: RuntimePlayerCommandStatus.accepted,
+              ),
+              onPreferencesChanged: (_) {},
+              onControlProfileChanged: (_) {},
+            );
+            return size.width == 496
+                ? PlayerCompanionScope(child: router)
+                : router;
+          },
+        ),
+      ),
+    ),
   );
   await tester.pumpAndSettle();
 }

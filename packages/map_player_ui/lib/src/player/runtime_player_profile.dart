@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_paged_layout.dart';
 import '../foundation/player_image.dart';
 import '../localization/player_localizations.dart';
@@ -44,47 +45,40 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
     onFocusChange: (_) => setState(() {}),
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final compact =
-            constraints.maxWidth < 600 ||
-            constraints.maxHeight < 300 ||
-            MediaQuery.textScalerOf(context).scale(1) >= 1.8;
-        final portraitHeight = (constraints.maxHeight - (compact ? 64 : 112))
-            .clamp(
-              32.0,
-              compact || constraints.maxWidth < 1024 ? 144.0 : 288.0,
-            );
-        final identity = _identityItems(portraitHeight);
-        final progression = _progressionItems(
-          compact
-              ? constraints.maxWidth
-              : (constraints.maxWidth - 24) * 856 / 1272 - 48,
+        final companion = PlayerCompanionScope.of(context);
+        final wide = MediaQuery.sizeOf(context).aspectRatio > 1 || companion;
+        final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.8;
+        final gap = companion ? 8.0 : 16.0;
+        final portraitHeight = wide ? 56.0 : 80.0;
+        final columnWidth = wide
+            ? (constraints.maxWidth - gap) / 2
+            : constraints.maxWidth;
+        final identity = PlayerMenuPanel(
+          key: const ValueKey('profile-identity'),
+          padding: EdgeInsets.all(companion ? 8 : 12),
+          child: PlayerPagedList(children: _identityItems(portraitHeight)),
+        );
+        final progression = PlayerMenuPanel(
+          key: const ValueKey('profile-progression'),
+          padding: EdgeInsets.all(companion ? 8 : 12),
+          child: PlayerPagedList(
+            children: _progressionItems(columnWidth - (companion ? 16 : 24)),
+          ),
         );
         return SizedBox.expand(
           key: const ValueKey('runtime-player-detail-profile'),
-          child: compact
-              ? PlayerPagedList(
-                  key: const ValueKey('profile-body-pages'),
-                  children: [...identity, ...progression],
-                )
-              : Row(
+          child: wide && !largeText
+              ? Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      flex: 416,
-                      child: PlayerMenuPanel(
-                        key: const ValueKey('profile-identity'),
-                        child: PlayerPagedList(children: identity),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      flex: 856,
-                      child: PlayerMenuPanel(
-                        key: const ValueKey('profile-progression'),
-                        child: PlayerPagedList(children: progression),
-                      ),
-                    ),
+                    Expanded(child: identity),
+                    SizedBox(width: gap),
+                    Expanded(child: progression),
                   ],
+                )
+              : PlayerPagedList(
+                  key: const ValueKey('profile-body-pages'),
+                  children: [identity, progression],
                 ),
         );
       },
@@ -94,38 +88,78 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
   List<Widget> _identityItems(double portraitHeight) {
     final profile = widget.profile;
     final theme = context.playerMenuTheme;
-    final location = profile.locationName?.trim();
     final name = profile.playerName.characters.take(40).toString();
+    final companion = PlayerCompanionScope.of(context);
+    final material = MaterialLocalizations.of(context);
+    final currency = profile.currencyLabel?.trim();
+    final seconds = profile.playtimeSeconds;
     return [
-      Center(
-        child: SizedBox(
-          key: const ValueKey('profile-portrait'),
-          width: portraitHeight < 256 ? portraitHeight : 256,
-          height: portraitHeight,
-          child: PlayerMenuPortrait(
-            semanticLabel: _text('Portrait de $name', '$name’s portrait'),
-            child: _portrait(),
+      Text(
+        _text('CARTE DE JOUEUR', 'PLAYER CARD'),
+        style: theme.meta.copyWith(fontSize: 10),
+      ),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Semantics(
+              header: true,
+              label: profile.playerName,
+              excludeSemantics: true,
+              child: Text(
+                name,
+                key: const ValueKey('profile-name'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.title.copyWith(
+                  fontSize: companion ? 22 : 26,
+                  height: 1.2,
+                ),
+              ),
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          SizedBox(
+            key: const ValueKey('profile-portrait'),
+            width: portraitHeight,
+            height: portraitHeight,
+            child: PlayerMenuPortrait(
+              semanticLabel: _text('Portrait de $name', '$name’s portrait'),
+              child: _portrait(),
+            ),
+          ),
+        ],
       ),
-      Semantics(
-        header: true,
-        label: profile.playerName,
-        excludeSemantics: true,
-        child: Text(
-          name,
-          key: const ValueKey('profile-name'),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: theme.title,
-        ),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (seconds != null) ...[
+            Expanded(
+              child: _statistics([
+                (
+                  id: 'playtime',
+                  label: context.playerL10n.playTime,
+                  value:
+                      '${seconds ~/ 3600}:${(seconds ~/ 60 % 60).toString().padLeft(2, '0')}',
+                ),
+              ], stacked: true),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: _statistics([
+              (
+                id: 'money',
+                label: _text('Argent', 'Money'),
+                value: [
+                  material.formatDecimal(profile.money),
+                  if (currency != null && currency.isNotEmpty) currency,
+                ].join(' '),
+              ),
+            ], stacked: true),
+          ),
+        ],
       ),
-      if (location != null && location.isNotEmpty)
-        Text(
-          location,
-          key: const ValueKey('profile-location'),
-          style: theme.body.copyWith(color: theme.secondary),
-        ),
     ];
   }
 
@@ -135,7 +169,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
     final fallback = Icon(
       Icons.person_outline_rounded,
       key: const ValueKey('profile-portrait-fallback'),
-      size: 144,
+      size: 48,
       color: context.playerMenuTheme.secondary,
     );
     if (path == null || path.trim().isEmpty) return fallback;
@@ -144,8 +178,8 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
         'profile-portrait-source-${profile.avatarCharacterId}:$path',
       ),
       path: path,
-      width: 256,
-      height: 288,
+      width: 80,
+      height: 80,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
       excludeFromSemantics: true,
@@ -158,27 +192,10 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
     final l10n = context.playerL10n;
     final theme = context.playerMenuTheme;
     final material = MaterialLocalizations.of(context);
-    final currency = profile.currencyLabel?.trim();
-    final seconds = profile.playtimeSeconds;
     final pokedex = profile.pokedex;
     final badgeCount = material.formatDecimal(profile.badgeIds.length);
     final total = profile.badgeTotal;
     final statistics = <({String id, String label, String value})>[
-      if (seconds != null)
-        (
-          id: 'playtime',
-          label: l10n.playTime,
-          value:
-              '${seconds ~/ 3600}:${(seconds ~/ 60 % 60).toString().padLeft(2, '0')}',
-        ),
-      (
-        id: 'money',
-        label: _text('Argent', 'Money'),
-        value: [
-          material.formatDecimal(profile.money),
-          if (currency != null && currency.isNotEmpty) currency,
-        ].join(' '),
-      ),
       (
         id: 'badges',
         label: l10n.badges,
@@ -204,11 +221,18 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
         ),
       ],
     ];
-    final badgeColumns = (width / 96).floor().clamp(1, 100);
+    final companion = PlayerCompanionScope.of(context);
+    final badgeSize = companion ? 24.0 : 32.0;
+    final badgeColumns = companion
+        ? 4
+        : ((width + 8) / (badgeSize + 8)).floor().clamp(1, 100);
     return [
       Semantics(
         header: true,
-        child: Text(_text('Progression', 'Progress'), style: theme.title),
+        child: Text(
+          _text('Progression', 'Progress'),
+          style: theme.meta.copyWith(fontSize: 10),
+        ),
       ),
       for (final statistic in statistics)
         _statistics([statistic], stacked: false),
@@ -217,7 +241,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
           header: true,
           child: Text(
             _text('Badges obtenus', 'Earned badges'),
-            style: theme.subtitle,
+            style: theme.meta.copyWith(fontSize: 10),
           ),
         ),
         for (
@@ -229,14 +253,41 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
             key: ValueKey(
               start == 0 ? 'profile-earned-badges' : 'profile-badge-row-$start',
             ),
-            spacing: 16,
-            runSpacing: 16,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               for (final badge in profile.badges.skip(start).take(badgeColumns))
-                _badge(badge),
+                _badge(badge, size: badgeSize),
             ],
           ),
       ],
+      if (profile.locationName?.trim() case final location?
+          when location.isNotEmpty)
+        Container(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: theme.border)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _text('Lieu actuel', 'Current location'),
+                  style: theme.meta.copyWith(fontSize: 12),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  location,
+                  key: const ValueKey('profile-location'),
+                  textAlign: TextAlign.end,
+                  style: theme.body.copyWith(fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
     ];
   }
 
@@ -255,17 +306,28 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
             value: statistic.value,
             excludeSemantics: true,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: stacked
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
                           statistic.label,
-                          style: theme.body.copyWith(color: theme.secondary),
+                          style: theme.meta.copyWith(
+                            color: theme.secondary,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 4),
-                        Text(statistic.value, style: theme.numbers),
+                        Text(
+                          statistic.value,
+                          style: theme.numbers.copyWith(
+                            fontSize: PlayerCompanionScope.of(context)
+                                ? 15
+                                : 17,
+                            height: 1.2,
+                          ),
+                        ),
                       ],
                     )
                   : Row(
@@ -274,7 +336,10 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
                         Expanded(
                           child: Text(
                             statistic.label,
-                            style: theme.body.copyWith(color: theme.secondary),
+                            style: theme.meta.copyWith(
+                              color: theme.secondary,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -282,7 +347,12 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
                           child: Text(
                             statistic.value,
                             textAlign: TextAlign.right,
-                            style: theme.numbers,
+                            style: theme.numbers.copyWith(
+                              fontSize: PlayerCompanionScope.of(context)
+                                  ? 15
+                                  : 17,
+                              height: 1.2,
+                            ),
                           ),
                         ),
                       ],
@@ -293,11 +363,14 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
     );
   }
 
-  Widget _badge(RuntimePlayerProfileBadgeSnapshot badge) {
+  Widget _badge(
+    RuntimePlayerProfileBadgeSnapshot badge, {
+    required double size,
+  }) {
     final path = badge.iconFilePath;
     final fallback = Icon(
       Icons.workspace_premium_outlined,
-      size: 48,
+      size: size * .75,
       color: context.playerMenuTheme.secondary,
     );
     return Semantics(
@@ -308,13 +381,13 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
       child: Tooltip(
         message: badge.label,
         child: SizedBox(
-          width: 80,
-          height: 80,
+          width: size,
+          height: size,
           child: Center(
             child: SizedBox(
               key: ValueKey('profile-badge-image-${badge.id}'),
-              width: 64,
-              height: 64,
+              width: size * .75,
+              height: size * .75,
               child: path == null || path.trim().isEmpty
                   ? fallback
                   : PlayerFileImage(

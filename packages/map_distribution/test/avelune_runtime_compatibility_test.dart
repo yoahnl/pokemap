@@ -23,6 +23,7 @@ void main() {
           'dialogue.choices@1',
           'game.completion-party-journal@1',
           'map3d.animation@1',
+          'map3d.actor-occlusion@1',
           'map3d.camera-orthographic@1',
           'map3d.day-night@1',
           'map3d.directional-ledges@1',

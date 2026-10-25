@@ -5,6 +5,45 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('BattlePresentationCommand', () {
+    test(
+      'layout preferences remain revision guarded and do not select an entry',
+      () {
+        final snapshot = _snapshot();
+        for (final placement in BattleCommandPanelPlacement.values) {
+          final current = BattleSetCommandPanelPlacementCommand(
+            snapshotRevision: 7,
+            expectedMode: snapshot.mode,
+            placement: placement,
+          );
+          expect(
+            validateBattlePresentationCommand(snapshot, current).accepted,
+            isTrue,
+          );
+          expect(
+            validateBattlePresentationCommand(
+              snapshot,
+              BattleSetCommandPanelPlacementCommand(
+                snapshotRevision: 6,
+                expectedMode: snapshot.mode,
+                placement: placement,
+              ),
+            ).rejection,
+            BattlePresentationCommandRejection.staleSnapshot,
+          );
+          expect(
+            validateBattlePresentationCommand(
+              snapshot,
+              BattleSetCommandPanelPlacementCommand(
+                snapshotRevision: 7,
+                expectedMode: BattleCommandOverlayMode.fight,
+                placement: placement,
+              ),
+            ).rejection,
+            BattlePresentationCommandRejection.modeMismatch,
+          );
+        }
+      },
+    );
     test('accepts an enabled entry from the current snapshot', () {
       final snapshot = _snapshot();
 

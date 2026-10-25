@@ -1,10 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart'
-    show MapAuthoringException, AssetCatalog;
+    show
+        MapAuthoringException,
+        AssetCatalog,
+        JournaledAuthoringTransactionException,
+        AuthoringIdempotencyException;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
@@ -24,6 +29,8 @@ import 'resource_no_change.dart';
 part 'local_border_resource_adapter.dart';
 part 'local_resource_character_operations.dart';
 part 'local_resource_mutation.dart';
+part 'local_character_contact_shadow.dart';
+part 'local_resource_mutation_context.dart';
 part 'local_resource_preparation.dart';
 part 'local_resource_receipt.dart';
 part 'local_resource_reconciliation.dart';
@@ -48,6 +55,9 @@ final class LocalResourceAdapter
   final ProjectSession session;
   final LocalMapWorkspaceAdapter mapAdapter;
   bool _disposed = false;
+  _LocalResourceMutationContext? _mutationContext;
+  Future<void>? _mutationContextClosing;
+  bool _resourceMutationActive = false;
   final Future<void> Function()? beforeTransactionPrecondition;
   final Future<void> Function()? beforeReconciliation;
   final Set<ResourceMutationPreparation> _appliedPreparations = {};
@@ -59,6 +69,7 @@ final class LocalResourceAdapter
   );
 
   static final _actions = {
+    'project.actor_contact_shadows.configure',
     'model3d.import',
     'model3d.source.replace',
     'model3d.source.replace_batch',
@@ -292,10 +303,15 @@ final class LocalResourceAdapter
   @override
   Future<void> dispose() async {
     _disposed = true;
-    for (final preparation in _prepared.keys.toList()) {
-      await releasePreparation(preparation);
+    final closing = _closeMutationContext();
+    try {
+      for (final preparation in _prepared.keys.toList()) {
+        await releasePreparation(preparation);
+      }
+      await usages.dispose();
+    } finally {
+      await closing;
     }
-    await usages.dispose();
   }
 
   String _identity(String prefix) =>

@@ -13,18 +13,20 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP discovers and edits NPC counter sides with revision checks", { timeout: 120_000 }, async () => {
+for (const spatial of [false, true]) {
+test(`live MCP discovers and edits NPC counter sides with revision checks spatial=${spatial}`, { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "npc-counter-mcp-"));
   const mapFile = join(root, "maps/center.json");
   const projectFile = join(root, "project.json");
   await mkdir(join(root, "maps"));
-  await writeFile(projectFile, JSON.stringify({ name: "Counter MCP", version: "v8", tilesets: [], pokemon: canonicalPokemonConfig(),
+  await writeFile(projectFile, JSON.stringify({ name: "Counter MCP", version: spatial ? "v9" : "v8", settings: {dimension: spatial ? "threeD" : "twoD"}, tilesets: [], pokemon: canonicalPokemonConfig(),
     maps: [{ id: "center", name: "Center", relativePath: "maps/center.json" }] }));
   const entities = [
     { id: "nurse", kind: "npc", pos: { x: 2, y: 1 }, npc: { displayName: "Nurse", facing: "south" } },
     { id: "wide", kind: "npc", pos: { x: 4, y: 1 }, size: { width: 2, height: 1 }, npc: { displayName: "Wide" } },
   ];
-  await writeFile(mapFile, JSON.stringify({ id: "center", name: "Center", version: "v8",
+  await writeFile(mapFile, JSON.stringify({ id: "center", name: "Center", version: spatial ? "v9" : "v8",
+    ...(spatial ? {spatialScene: {schemaVersion: 1, width: 8, depth: 6, heightLevels: Array(48).fill(0), levelHeight: 1, camera: {mode: "fixed", yawDegrees: 0, pitchDegrees: 48.7, fieldOfViewDegrees: 16.2, distance: 42}, instances: []}} : {}),
     size: { width: 8, height: 6 }, layers: [], entities }));
   const projectBefore = await readFile(projectFile);
   const args = [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];
@@ -62,7 +64,7 @@ test("live MCP discovers and edits NPC counter sides with revision checks", { ti
     assert.deepEqual(record(record(action.extensions).counterInteraction), {
       relativeTo: "npc", directions: ["north", "south", "east", "west"], distanceCells: 2,
       intermediateCell: "blockingAndWithoutEntity", npcFootprint: { width: 1, height: 1 },
-      mapMode: "2d", parameters: ["mapId", "entityId", "sides"],
+      mapModes: ["2d", "3d"], parameters: ["mapId", "entityId", "sides"],
     });
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     const initial = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
@@ -104,3 +106,5 @@ test("live MCP discovers and edits NPC counter sides with revision checks", { ti
     await rm(root, { recursive: true, force: true });
   }
 });
+
+}

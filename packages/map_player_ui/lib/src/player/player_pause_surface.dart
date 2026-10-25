@@ -506,7 +506,10 @@ class PlayerPauseNavigation extends StatelessWidget {
       builder: (context, constraints) {
         final compactRows =
             sideNavigation ||
-            constraints.maxWidth < 450 && constraints.maxHeight < 300;
+            !mobileGrid &&
+                !fillViewport &&
+                constraints.maxWidth < 450 &&
+                constraints.maxHeight < 300;
         final columns = compactRows
             ? 1
             : fillViewport
@@ -514,8 +517,8 @@ class PlayerPauseNavigation extends StatelessWidget {
                   .floor()
                   .clamp(1, math.max(1, math.min(4, visibleActions.length)))
                   .toInt()
-            : mobileGrid && constraints.maxWidth >= 300
-            ? (constraints.maxWidth >= 420 ? 3 : 2)
+            : mobileGrid && constraints.maxWidth >= 240
+            ? 2
             : useGrid
             ? 2
             : 1;
@@ -556,7 +559,7 @@ class PlayerPauseNavigation extends StatelessWidget {
               : ValueKey(
                   'pause-row-${visibleActions[selectedIndex ~/ columns * columns].name}',
                 ),
-          spacing: fillViewport
+          spacing: fillViewport || mobileGrid
               ? 8
               : composition == null
               ? PlayerSpacing.sm
@@ -638,29 +641,45 @@ class PlayerPauseNavigation extends StatelessWidget {
         key: ValueKey(logicalId),
         id: logicalId,
         label: presentation.label(action, context.playerL10n),
+        labelStyle: mobileGrid || fillViewport
+            ? theme.label.copyWith(
+                fontSize: MediaQuery.sizeOf(context).width >= 650 ? 14 : 16,
+                height: 1.3,
+                fontWeight: FontWeight.w600,
+              )
+            : null,
+        reserveFocusMarker: !mobileGrid && !fillViewport,
+        trailing: mobileGrid || fillViewport
+            ? const Icon(Icons.chevron_right_rounded, size: 16)
+            : null,
+        trailingWidth: mobileGrid || fillViewport ? 16 : null,
+        labelMaxLines: mobileGrid || fillViewport ? 1 : null,
+        contentGap: mobileGrid || fillViewport ? 8 : 12,
         leading: SizedBox(
           width: fillViewport
               ? 32
               : mobileTiles
-              ? 24
+              ? 20
               : 48,
           child: Icon(
             presentation.icon(action),
-            size: mobileTiles ? 24 : 32,
-            color: color,
+            size: mobileTiles ? 20 : 32,
+            color: mobileGrid || fillViewport
+                ? (selected ? theme.selectionText : theme.text)
+                : color,
           ),
         ),
         integrated: !mobileTiles && !fillViewport,
-        tile: mobileTiles || fillViewport,
+        tile: false,
         fitTileContent: false,
         contentPadding: EdgeInsets.symmetric(
-          horizontal: mobileTiles ? 4 : 12,
-          vertical: mobileTiles ? 6 : 10,
+          horizontal: mobileTiles ? 6 : 12,
+          vertical: mobileTiles ? 8 : 10,
         ),
         minimumHeight: fillViewport
-            ? 68
+            ? 52
             : mobileTiles
-            ? 72
+            ? 48
             : composition == null ||
                   composition!.entrySize == ProjectPauseEntrySize.regular
             ? 64
@@ -673,6 +692,7 @@ class PlayerPauseNavigation extends StatelessWidget {
               'Player action: ${presentation.label(action, context.playerL10n)}',
         ),
         disabledReason: availability.disabledReason,
+        showDisabledReason: !mobileGrid && !fillViewport,
         onPressed: availability.isEnabled
             ? () {
                 controller?.select(

@@ -18,3 +18,5 @@ export 'src/spatial_lighting_preview.dart'
 export 'src/spatial_shadow_profile.dart'
     show SpatialShadowProfile, SpatialShadowStats;
 export 'src/spatial_point_light.dart' show SpatialPointLight;
+
+export 'src/spatial_actor_occlusion.dart' show SpatialActorOcclusionState, SpatialActorOcclusionStateForCell;

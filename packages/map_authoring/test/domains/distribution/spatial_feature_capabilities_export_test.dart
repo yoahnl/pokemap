@@ -151,6 +151,7 @@ void main() {
     'contact': ProjectContactDeviceConfig.capabilityId,
     'audio': SpatialGameplayCapabilities.audioCapabilityId,
     'sceneMusic': SpatialGameplayCapabilities.sceneMusicCapabilityId,
+    'actorOcclusion': SpatialActorOcclusionCapabilities.capabilityId,
   };
   for (final entry in features.entries) {
     test(

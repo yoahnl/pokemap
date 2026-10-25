@@ -59,6 +59,78 @@ void main() {
   });
   tearDownAll(() => _media.delete(recursive: true));
 
+  testWidgets(
+    'party router settles its shared summary header and restores focus on return',
+    (tester) async {
+      final harness = _Harness(RuntimePlayerPauseSection.party);
+      var notifications = 0;
+      harness.party.addListener(() => notifications++);
+      await _pump(
+        tester,
+        harness,
+        size: const Size(844, 390),
+        activeInputSource: PlayerInputSource.keyboard,
+      );
+      final member = find.byKey(const ValueKey('party-member-member0'));
+      final summary = harness.snapshot
+          .pauseDetailFor(RuntimePlayerPauseSection.party)!
+          .entries
+          .first
+          .pokemonSummary!;
+      expect(
+        tester.widget<PlayerMenuHeader>(find.byType(PlayerMenuHeader)).title,
+        'Équipe',
+      );
+      expect(harness.party.activeSummary, isNull);
+      await tester.tap(member);
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 50),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 3),
+      );
+      expect(
+        tester.widget<PlayerMenuHeader>(find.byType(PlayerMenuHeader)).title,
+        summary.displayLabel,
+      );
+      expect(harness.party.activeSummary?.individualId, summary.individualId);
+      expect(
+        tester
+            .widget<PlayerPokemonSummarySheet>(
+              find.byType(PlayerPokemonSummarySheet),
+            )
+            .showHeader,
+        isFalse,
+      );
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      final settledNotifications = notifications;
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(notifications, settledNotifications);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      await tester.tap(
+        find.byKey(const ValueKey('pause-frame-return-surface')),
+      );
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 50),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 3),
+      );
+      expect(find.byType(PlayerPokemonSummarySheet), findsNothing);
+      expect(
+        tester.widget<PlayerMenuHeader>(find.byType(PlayerMenuHeader)).title,
+        'Équipe',
+      );
+      expect(harness.party.activeSummary, isNull);
+      expect(member.hitTestable(), findsOneWidget);
+      expect(
+        tester.widget<PlayerMenuSelectableRow>(member).focusNode!.hasFocus,
+        isTrue,
+      );
+      expect(harness.actions, isEmpty);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      _expectNoErrors(tester);
+    },
+  );
+
   testWidgets('MENU mobile root exposes Options without scrolling', (
     tester,
   ) async {
@@ -187,20 +259,40 @@ void main() {
   }
 
   for (final source in [PlayerInputSource.touch, PlayerInputSource.keyboard]) {
-    testWidgets('MENU mobile root respects the current ${source.name} input', (
+    testWidgets('MENU mobile root respects the mapped ${source.name} input', (
       tester,
     ) async {
+      final profile = PlayerControlProfile.standard
+          .rebind(
+            device: PlayerControlDevice.keyboard,
+            control: RuntimeInputControl.primary,
+            inputId: 'keyQ',
+          )
+          .profile;
       await _pump(
         tester,
         _Harness(RuntimePlayerPauseSection.root),
         size: const Size(390, 844),
         phoneInsets: true,
         activeInputSource: source,
+        controlProfile: profile,
+      );
+      final expected =
+          '${profile.promptFor(PlayerControlDevice.keyboard, RuntimeInputControl.primary)} · Valider';
+      final hint = find.byWidgetPredicate(
+        (widget) => widget is Tooltip && widget.message == expected,
       );
       expect(
-        find.byType(PlayerMenuKeyHint),
+        hint,
         source == PlayerInputSource.touch ? findsNothing : findsOneWidget,
       );
+      if (source == PlayerInputSource.keyboard) {
+        final tooltip = tester.state<TooltipState>(hint);
+        tooltip.ensureTooltipVisible();
+        await tester.pumpAndSettle();
+        expect(find.text(expected), findsOneWidget);
+        expect(expected, startsWith('Q'));
+      }
       _expectNoErrors(tester);
     });
   }
@@ -330,7 +422,13 @@ void main() {
               accessible ? _safeInsets : EdgeInsets.zero,
             );
             if (accessible) {
-              final context = tester.element(find.byType(PlayerMenuFrame));
+              final context = tester.element(
+                section == RuntimePlayerPauseSection.root
+                    ? find.byKey(
+                        const ValueKey('runtime-night-illustrated-frame'),
+                      )
+                    : find.byType(PlayerMenuFrame),
+              );
               expect(context.playerMenuTheme.reducedMotion, isTrue);
               expect(context.playerMenuTheme.opaque, isTrue);
               expect(find.byType(BackdropFilter), findsNothing);
@@ -733,6 +831,7 @@ Future<void> _pump(
   EdgeInsets? insets,
   bool phoneInsets = false,
   PlayerInputSource? activeInputSource,
+  PlayerControlProfile? controlProfile,
   ValueNotifier<RuntimePlayerSnapshot>? snapshots,
   double keyboardInset = 0,
 }) async {
@@ -795,6 +894,7 @@ Future<void> _pump(
                   bagNavigation: harness.bag,
                   hardwareGamepadEnabled: false,
                   activeInputSource: activeInputSource,
+                  controlProfile: controlProfile,
                   gameSceneBuilder: (_) => const SizedBox.expand(),
                   onAction: (action) async {
                     harness.actions.add(action);

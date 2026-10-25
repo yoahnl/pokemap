@@ -13,8 +13,9 @@ import '../support/map_workspace_fixture.dart';
 import 'character_editing_test.dart' show guide;
 
 void main() {
+  for (final spatial in [false, true]) {
   testWidgets(
-    'palette and inspector support real instance edits at enlarged text',
+    'palette and inspector support real instance edits at enlarged text spatial=$spatial',
     (tester) async {
       tester.view.physicalSize = const Size(1024, 640);
       tester.view.devicePixelRatio = 1;
@@ -22,12 +23,13 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final document = EditableMapDocument(
         MapWorkspaceDocument(
-          map: workspaceMap('a'),
+          map: spatial ? workspaceMap('a').copyWith(version: ProjectVersion.v9, visualStack: null, layers: const [], spatialScene: MapSpatialScene(width: workspaceMap('a').size.width, depth: workspaceMap('a').size.height)) : workspaceMap('a'),
           revision: 'base',
           mapId: 'a',
         ),
       );
       final project = workspaceProject.copyWith(
+        settings: workspaceProject.settings.copyWith(dimension: spatial ? ProjectDimension.threeD : ProjectDimension.twoD),
         characters: [
           guide,
           guide.copyWith(id: 'traveler', name: 'Voyageuse'),
@@ -155,4 +157,5 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  }
 }

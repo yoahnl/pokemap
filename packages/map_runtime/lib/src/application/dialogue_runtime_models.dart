@@ -147,6 +147,12 @@ class DialogueSession {
     }
   }
 
+  YarnStepLine? get choicePrompt {
+    if (state is! DialogueWaitingForChoice || _stepIndex < 1) return null;
+    final previous = _currentSteps[_stepIndex - 1];
+    return previous is YarnStepLine ? previous : null;
+  }
+
   String? get currentNodeTitle => _currentNodeTitle;
   String? get selectedOutcomeId => _selectedOutcomeId;
 

@@ -72,6 +72,8 @@ test("all tools publish strict schemas, outputs and annotations", async () => {
         "pokemap_history",
         "pokemap_recovery_status",
         "pokemap_recovery",
+        "pokemap_character_contact_shadow_inspect",
+        "pokemap_character_contact_shadow_set",
         "pokemap_game_export_profile_read",
         "pokemap_game_export_profile_validate",
         "pokemap_game_export_profile_save",

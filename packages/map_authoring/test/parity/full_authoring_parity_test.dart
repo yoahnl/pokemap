@@ -7,6 +7,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('actor contact shadows expose four dedicated proven transports', () {
+      final evidence = AuthoringFullParityCatalog.canonical()
+          .requireMutationAction('project.actor_contact_shadows.configure');
+      expect(evidence.contractTestPath, 'test/domains/project/actor_contact_shadow_actions_test.dart');
+      expect(evidence.endToEndEvidence.keys.toSet(), AuthoringTransport.values.toSet());
+    });
+
     test('visual day night cycle names its real transport proofs', () {
       final evidence = AuthoringFullParityCatalog.canonical().requireMutationAction('map3d.day_night.configure');
       expect(evidence.endToEndEvidence.keys.toSet(), AuthoringTransport.values.toSet());
@@ -227,7 +234,7 @@ void main() {
           '../../tools/pokemap_mcp/test/model3d_configure_batch_stdio.test.ts');
     });
 
-    test('publishes no map-shadow actions or resources', () {
+    test('publishes only the dedicated actor contact shadow action', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       expect(
         catalog.resources.where(
@@ -238,8 +245,8 @@ void main() {
       expect(
         catalog.mutationActions.where(
           (action) => action.actionId.toLowerCase().contains('shadow'),
-        ),
-        isEmpty,
+        ).map((action) => action.actionId),
+        ['project.actor_contact_shadows.configure'],
       );
     });
 

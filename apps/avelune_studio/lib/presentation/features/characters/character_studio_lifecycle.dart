@@ -32,6 +32,7 @@ extension CharacterStudioLifecycle on CharacterStudioController {
         draft.name = current.name;
         draft.frameWidth = current.frameWidth;
         draft.frameHeight = current.frameHeight;
+        draft.contactShadow = current.contactShadow;
         changed = true;
       }
     }

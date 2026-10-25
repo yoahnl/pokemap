@@ -6,6 +6,148 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('long choice questions paginate without advancing the runtime', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final commands = <DialoguePresentationCommand>[];
+    final text = 'Prépare ton équipe avant de traverser la forêt. ' * 20;
+    await _pump(
+      tester,
+      snapshot: DialoguePresentationSnapshot(
+        revision: 31,
+        mode: DialoguePresentationMode.choices,
+        nodeTitle: 'route',
+        speaker: 'Léa',
+        text: text,
+        fullText: text,
+        isCurrentLineFullyRevealed: true,
+        isLastContent: false,
+        choices: const [
+          DialoguePresentationChoice(index: 0, label: 'Forêt', selected: true),
+          DialoguePresentationChoice(
+            index: 1,
+            label: 'Rivière',
+            selected: false,
+          ),
+        ],
+      ),
+      onCommand: commands.add,
+    );
+    final chunks = <String>[];
+    for (var page = 0; page < 80; page++) {
+      chunks.add(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('dialogue-page-text')))
+            .textSpan!
+            .toPlainText(),
+      );
+      final next = find.byKey(const ValueKey('dialogue-question-next'));
+      if (next.evaluate().isEmpty ||
+          tester.widget<IconButton>(next).onPressed == null) {
+        break;
+      }
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    }
+    expect(chunks.length, greaterThan(1));
+    expect(chunks.join(), text);
+    expect(commands, isEmpty);
+    expect(find.byType(Scrollable), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('dialogue-choice-1')));
+    expect(
+      commands.single,
+      isA<DialogueSelectChoiceCommand>().having(
+        (value) => value.snapshotRevision,
+        'revision',
+        31,
+      ),
+    );
+  });
+
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(768, 432),
+  ]) {
+    testWidgets(
+      'runtime choices retain their question and canonical command at $size',
+      (tester) async {
+        await tester.binding.setSurfaceSize(size);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        DialoguePresentationCommand? command;
+        const question =
+            'Le sentier traverse la forêt. Quelle route veux-tu prendre ?';
+        await _pump(
+          tester,
+          snapshot: const DialoguePresentationSnapshot(
+            revision: 17,
+            mode: DialoguePresentationMode.choices,
+            nodeTitle: 'route',
+            speaker: 'Léa',
+            text: question,
+            fullText: question,
+            isCurrentLineFullyRevealed: true,
+            isLastContent: false,
+            choices: [
+              DialoguePresentationChoice(
+                index: 0,
+                label: 'Traverser la forêt',
+                selected: true,
+              ),
+              DialoguePresentationChoice(
+                index: 1,
+                label: 'Suivre la rivière',
+                selected: false,
+              ),
+            ],
+          ),
+          onCommand: (value) => command = value,
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Léa'), findsOneWidget);
+        final prompt = find.byKey(const ValueKey('dialogue-page-text'));
+        expect(tester.widget<Text>(prompt).textSpan!.toPlainText(), question);
+        final first = find.byKey(const ValueKey('dialogue-choice-0'));
+        final second = find.byKey(const ValueKey('dialogue-choice-1'));
+        expect(first.hitTestable(), findsOneWidget);
+        expect(second.hitTestable(), findsOneWidget);
+        expect(tester.getSize(first).height, greaterThanOrEqualTo(48));
+        if (size.width >= 600) {
+          expect(
+            tester.getRect(first).top,
+            closeTo(tester.getRect(second).top, .1),
+          );
+          expect(
+            tester.getRect(second).left - tester.getRect(first).right,
+            greaterThanOrEqualTo(8),
+          );
+          expect(
+            tester.getRect(prompt).bottom,
+            lessThanOrEqualTo(tester.getRect(first).top - 8),
+          );
+        } else {
+          expect(
+            tester.getRect(second).top - tester.getRect(first).bottom,
+            greaterThanOrEqualTo(8),
+          );
+        }
+        expect(find.byType(Scrollable), findsNothing);
+        await tester.tap(second);
+        await tester.pump();
+        expect(
+          command,
+          isA<DialogueSelectChoiceCommand>()
+              .having((value) => value.snapshotRevision, 'revision', 17)
+              .having((value) => value.choiceIndex, 'choice', 1),
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets(
     'EV04 ten choices keep the keyboard selection visible in a small viewport',
     (tester) async {
@@ -436,8 +578,7 @@ Future<void> _pump(
         ),
       )
       .then((_) async {
-        await tester.pump();
-        await tester.pump();
+        await tester.pumpAndSettle();
         expect(find.byType(PlayerDialogueSurface), findsOneWidget);
       });
 }

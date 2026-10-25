@@ -224,46 +224,50 @@ Map<String, int> _cycleDurationsByLayer({
   return <String, int>{
     for (final layer in map.layers.whereType<SmartTileLayer>())
       if (layer.animationActivation == SmartTileAnimationActivation.onEnter)
-        layer.id: _maximumPresetAnimationDuration(
-          presetById[layer.presetId],
+        layer.id: _maximumAnimationDuration(
+          [
+            for (final rule
+                in presetById[layer.presetId]?.rules ?? const <SmartTileRule>[])
+              for (final candidate in rule.candidates) ...candidate.parts,
+            for (final pattern in catalog.patterns)
+              if (layer.patternStrokes.any(
+                (stroke) => stroke.patternId == pattern.id,
+              ))
+                for (final cell in pattern.cells) ...cell.parts,
+          ],
           animationById,
           actorOcclusionOnly: actorOcclusionOnly,
         ),
   };
 }
 
-int _maximumPresetAnimationDuration(
-  ProjectSmartTilePreset? preset,
+int _maximumAnimationDuration(
+  Iterable<SmartTileVisualPart> parts,
   Map<String, ProjectSmartTileAnimation> animationById, {
   bool actorOcclusionOnly = false,
 }) {
-  if (preset == null) return 0;
   var maximum = 0;
   var allOnce = true;
-  for (final rule in preset.rules) {
-    for (final candidate in rule.candidates) {
-      for (final part in candidate.parts) {
-        if (actorOcclusionOnly &&
-            part.channel != SmartTileRenderChannel.actorOcclusion) {
-          continue;
-        }
-        part.source.map(
-          model3d: (_) {},
-          frame: (_) {},
-          animation: (source) {
-            final animation = animationById[source.animationId];
-            if (animation == null) return;
-            if (actorOcclusionOnly &&
-                animation.loop != SmartTileAnimationLoop.once) {
-              allOnce = false;
-              return;
-            }
-            final duration = _animationCycleDuration(animation);
-            if (duration > maximum) maximum = duration;
-          },
-        );
-      }
+  for (final part in parts) {
+    if (actorOcclusionOnly &&
+        part.channel != SmartTileRenderChannel.actorOcclusion) {
+      continue;
     }
+    part.source.map(
+      model3d: (_) {},
+      frame: (_) {},
+      animation: (source) {
+        final animation = animationById[source.animationId];
+        if (animation == null) return;
+        if (actorOcclusionOnly &&
+            animation.loop != SmartTileAnimationLoop.once) {
+          allOnce = false;
+          return;
+        }
+        final duration = _animationCycleDuration(animation);
+        if (duration > maximum) maximum = duration;
+      },
+    );
   }
   return allOnce ? maximum : 0;
 }

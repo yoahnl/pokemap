@@ -216,6 +216,17 @@ ProjectManifest? _decodeManifestProjection(
     }
     final normalizedBefore = _withDefaults(rawBefore, modeledBefore) as Map;
     final normalizedAfter = _withDefaults(rawAfter, modeledAfter) as Map;
+    for (final normalized in [normalizedBefore, normalizedAfter]) {
+      if (normalized['characters'] case final List characters) {
+        normalized['characters'] = [
+          for (final character in characters)
+            if (character is Map)
+              Map.of(character)..remove('contactShadow')
+            else
+              character,
+        ];
+      }
+    }
     for (final field in [
       'maps',
       'groups',

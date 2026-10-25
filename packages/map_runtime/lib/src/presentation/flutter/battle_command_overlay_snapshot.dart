@@ -120,18 +120,18 @@ class BattleCommandOverlayEntry {
 
   @override
   int get hashCode => Object.hash(
-        index,
-        kind,
-        primaryLabel,
-        secondaryLabel,
-        tertiaryLabel,
-        trailingLabel,
-        statusLabel,
-        enabled,
-        selected,
-        tone,
-        iconAssetPath,
-      );
+    index,
+    kind,
+    primaryLabel,
+    secondaryLabel,
+    tertiaryLabel,
+    trailingLabel,
+    statusLabel,
+    enabled,
+    selected,
+    tone,
+    iconAssetPath,
+  );
 }
 
 /// Snapshot immutable d'un HUD battle rendu côté Flutter.
@@ -176,9 +176,11 @@ class BattleCommandOverlayHudSnapshot {
   final Rect rect;
   final BattleSlotRef? slot;
   final String combatantId;
-  BattleSlotRef get effectiveSlot => slot ?? BattleSlotRef.active(
-    isPlayerSide ? BattleSideId.player : BattleSideId.enemy,
-  );
+  BattleSlotRef get effectiveSlot =>
+      slot ??
+      BattleSlotRef.active(
+        isPlayerSide ? BattleSideId.player : BattleSideId.enemy,
+      );
   final String ownerLabel;
   final String speciesLabel;
   final int level;
@@ -254,32 +256,36 @@ class BattleCommandOverlayHudSnapshot {
 
   @override
   int get hashCode => Object.hashAll([
-        rect,
-        ownerLabel,
-        speciesLabel,
-        level,
-        currentHp,
-        maxHp,
-        isPlayerSide,
-        displayedHp,
-        targetDisplayedHp,
-        hpTweenDurationMs,
-        hpTweenRevision,
-        isRevealed,
-        genderSymbol,
-        statusLabel,
-        experienceProgress,
-        experienceProgressTarget,
-        xpTweenDurationMs,
-        xpTweenRevision,
-        slot,
-        combatantId,
-      ]);
+    rect,
+    ownerLabel,
+    speciesLabel,
+    level,
+    currentHp,
+    maxHp,
+    isPlayerSide,
+    displayedHp,
+    targetDisplayedHp,
+    hpTweenDurationMs,
+    hpTweenRevision,
+    isRevealed,
+    genderSymbol,
+    statusLabel,
+    experienceProgress,
+    experienceProgressTarget,
+    xpTweenDurationMs,
+    xpTweenRevision,
+    slot,
+    combatantId,
+  ]);
 }
+
+enum BattleCommandPanelPlacement { bottom, end, detached }
 
 class BattleCommandOverlaySnapshot {
   const BattleCommandOverlaySnapshot({
     this.revision = 0,
+    this.commandPanelPlacement = BattleCommandPanelPlacement.bottom,
+    this.controllerLayout = false,
     this.phase = BattlePresentationPhase.choosingCommand,
     this.forcedReplacement = false,
     required this.mode,
@@ -304,6 +310,8 @@ class BattleCommandOverlaySnapshot {
   /// Les commandes joueur transportent cette révision afin qu'une interaction
   /// différée ne puisse pas agir sur un menu devenu obsolète.
   final int revision;
+  final BattleCommandPanelPlacement commandPanelPlacement;
+  final bool controllerLayout;
   final BattlePresentationPhase phase;
   final bool forcedReplacement;
   final BattleCommandOverlayMode mode;
@@ -314,8 +322,11 @@ class BattleCommandOverlaySnapshot {
   final List<BattleCommandOverlayHudSnapshot> additionalHuds;
   final BattleSlotRef? actorSlot;
   final String? actorCombatantId;
-  List<BattleCommandOverlayHudSnapshot> get combatantHuds =>
-      [enemyHud, playerHud, ...additionalHuds];
+  List<BattleCommandOverlayHudSnapshot> get combatantHuds => [
+    enemyHud,
+    playerHud,
+    ...additionalHuds,
+  ];
   final String battleLabel;
   final String title;
   final String prompt;
@@ -331,6 +342,8 @@ class BattleCommandOverlaySnapshot {
     }
     return other is BattleCommandOverlaySnapshot &&
         other.revision == revision &&
+        other.commandPanelPlacement == commandPanelPlacement &&
+        other.controllerLayout == controllerLayout &&
         other.phase == phase &&
         other.forcedReplacement == forcedReplacement &&
         other.mode == mode &&
@@ -352,25 +365,27 @@ class BattleCommandOverlaySnapshot {
 
   @override
   int get hashCode => Object.hashAll([
-        revision,
-        phase,
-        forcedReplacement,
-        mode,
-        viewportSize,
-        panelRect,
-        enemyHud,
-        playerHud,
-        battleLabel,
-        title,
-        prompt,
-        Object.hashAll(narrationLines),
-        Object.hashAll(entries),
-        interactionsEnabled,
-        canGoBack,
-        Object.hashAll(additionalHuds),
-        actorSlot,
-        actorCombatantId,
-      ]);
+    revision,
+    commandPanelPlacement,
+    controllerLayout,
+    phase,
+    forcedReplacement,
+    mode,
+    viewportSize,
+    panelRect,
+    enemyHud,
+    playerHud,
+    battleLabel,
+    title,
+    prompt,
+    Object.hashAll(narrationLines),
+    Object.hashAll(entries),
+    interactionsEnabled,
+    canGoBack,
+    Object.hashAll(additionalHuds),
+    actorSlot,
+    actorCombatantId,
+  ]);
 }
 
 /// Commande fermée envoyée par la présentation Flutter au runtime.
@@ -402,6 +417,19 @@ final class BattleBackCommand extends BattlePresentationCommand {
     required super.snapshotRevision,
     required super.expectedMode,
   });
+}
+
+final class BattleSetCommandPanelPlacementCommand
+    extends BattlePresentationCommand {
+  const BattleSetCommandPanelPlacementCommand({
+    required super.snapshotRevision,
+    required super.expectedMode,
+    required this.placement,
+    this.controllerLayout = false,
+  });
+
+  final BattleCommandPanelPlacement placement;
+  final bool controllerLayout;
 }
 
 enum BattlePresentationCommandRejection {
@@ -444,19 +472,25 @@ BattlePresentationCommandValidation validateBattlePresentationCommand(
       BattlePresentationCommandRejection.modeMismatch,
     );
   }
+  if (command is BattleSetCommandPanelPlacementCommand) {
+    return const BattlePresentationCommandValidation.accepted();
+  }
   if (!snapshot.interactionsEnabled) {
     return const BattlePresentationCommandValidation.rejected(
       BattlePresentationCommandRejection.interactionsDisabled,
     );
   }
   return switch (command) {
+    BattleSetCommandPanelPlacementCommand() =>
+      const BattlePresentationCommandValidation.accepted(),
     BattleSelectEntryCommand(:final entryIndex) =>
       _validateBattleEntrySelection(snapshot, entryIndex),
-    BattleBackCommand() => snapshot.canGoBack
-        ? const BattlePresentationCommandValidation.accepted()
-        : const BattlePresentationCommandValidation.rejected(
-            BattlePresentationCommandRejection.backUnavailable,
-          ),
+    BattleBackCommand() =>
+      snapshot.canGoBack
+          ? const BattlePresentationCommandValidation.accepted()
+          : const BattlePresentationCommandValidation.rejected(
+              BattlePresentationCommandRejection.backUnavailable,
+            ),
   };
 }
 
@@ -464,8 +498,9 @@ BattlePresentationCommandValidation _validateBattleEntrySelection(
   BattleCommandOverlaySnapshot snapshot,
   int entryIndex,
 ) {
-  final matchingEntries =
-      snapshot.entries.where((entry) => entry.index == entryIndex);
+  final matchingEntries = snapshot.entries.where(
+    (entry) => entry.index == entryIndex,
+  );
   if (matchingEntries.isEmpty) {
     return const BattlePresentationCommandValidation.rejected(
       BattlePresentationCommandRejection.entryMissing,

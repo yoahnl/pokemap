@@ -1,0 +1,209 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  for (final jsonl in [false, true]) {
+    final transport = jsonl ? 'JSONL' : 'API';
+    test(
+        '$transport persists project and nullable character contact shadows with undo',
+        () async {
+      final h = await _Harness.create();
+      addTearDown(h.dispose);
+      final bytes = await h.file.readAsBytes();
+      final mapBytes = await h.mapFile.readAsBytes();
+      final plan = await h.plan({'enabled': true}, jsonl);
+      expect(await h.file.readAsBytes(), bytes);
+      final applied = await h.apply(plan, jsonl);
+      expect((await h.document())['settings'],
+          containsPair('actorContactShadowsByDefault', true));
+      await h.undo((applied['receipt'] as Map)['receiptId'] as String, jsonl);
+      expect(await h.file.readAsBytes(), bytes);
+      await h.apply(await h.plan({'enabled': true}, jsonl), jsonl);
+      final set = await h.plan(
+          {'characterId': 'hero', 'contactShadow': false}, jsonl,
+          actionId: 'characterStudio.character.update');
+      await h.apply(set, jsonl);
+      expect(((await h.document())['characters'] as List).single,
+          containsPair('contactShadow', false));
+      final preserve = await h.plan(
+          {'characterId': 'hero', 'name': 'Hero renamed'}, jsonl,
+          actionId: 'characterStudio.character.update');
+      await h.apply(preserve, jsonl);
+      expect(((await h.document())['characters'] as List).single,
+          containsPair('contactShadow', false));
+      final clear = await h.plan(
+          {'characterId': 'hero', 'contactShadow': null}, jsonl,
+          actionId: 'characterStudio.character.update');
+      await h.apply(clear, jsonl);
+      expect(((await h.document())['characters'] as List).single,
+          isNot(contains('contactShadow')));
+      expect(await h.mapFile.readAsBytes(), mapBytes);
+    });
+
+    test(
+        '$transport creates a character with an explicit contact shadow override',
+        () async {
+      final h = await _Harness.create();
+      addTearDown(h.dispose);
+      await h.apply(
+          await h.plan({
+            'name': 'Companion',
+            'tilesetId': 'actors',
+            'contactShadow': true
+          }, jsonl, actionId: 'characterStudio.character.create'),
+          jsonl);
+      expect(((await h.document())['characters'] as List).last,
+          containsPair('contactShadow', true));
+    });
+
+    test('$transport rejects non boolean contact shadows before mutation',
+        () async {
+      final h = await _Harness.create();
+      addTearDown(h.dispose);
+      final bytes = await h.file.readAsBytes();
+      for (final invalid in [null, 1, 'true']) {
+        await expectLater(
+            h.plan({'enabled': invalid}, jsonl), throwsA(anything));
+      }
+      for (final invalid in [1, 'false']) {
+        await expectLater(
+            h.plan({'characterId': 'hero', 'contactShadow': invalid}, jsonl,
+                actionId: 'characterStudio.character.update'),
+            throwsA(anything));
+      }
+      expect(await h.file.readAsBytes(), bytes);
+    });
+  }
+}
+
+final class _Harness {
+  _Harness(this.root, this.file, this.mapFile, this.api, this.mutations,
+      this.snapshots, this.opened, this.worker);
+
+  final Directory root;
+  final File file;
+  final File mapFile;
+  final AuthoringReadApi api;
+  final LocalMapAuthoringMutationApi mutations;
+  final ProjectSnapshotLoader snapshots;
+  final OpenedProject opened;
+  final JsonlWorker worker;
+  int sequence = 0;
+
+  static Future<_Harness> create() async {
+    final root = await Directory.systemTemp.createTemp('project-identity-');
+    final file = File('${root.path}/project.json');
+    final mapFile = File('${root.path}/maps/garden.json');
+    await mapFile.parent.create();
+    await mapFile.writeAsString(jsonEncode(MapData(
+            id: 'garden',
+            name: 'Garden',
+            size: const GridSize(width: 3, height: 3))
+        .toJson()));
+    await file.writeAsString(jsonEncode(ProjectManifest(
+      name: 'Adventure',
+      characters: const [
+        ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'actors')
+      ],
+      settings: const ProjectSettings(),
+      maps: const [
+        ProjectMapEntry(
+            id: 'garden', name: 'Garden', relativePath: 'maps/garden.json')
+      ],
+      tilesets: const [
+        ProjectTilesetEntry(
+            id: 'actors', name: 'Actors', relativePath: 'assets/actors.png')
+      ],
+    ).toJson()));
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path], fileReader: reader);
+    final handles = WorkspaceHandleStore();
+    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final api = AuthoringReadApi(
+        openService: ProjectOpenService(
+            policy: policy, fileReader: reader, handles: handles),
+        snapshotLoader: snapshots);
+    final mutations =
+        LocalMapAuthoringMutationApi(policy: policy, snapshotLoader: snapshots);
+    final opened = await api.openProject(root.path);
+    await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    return _Harness(root, file, mapFile, api, mutations, snapshots, opened,
+        JsonlWorker(api: api, mutations: mutations));
+  }
+
+  Future<Map<String, Object?>> document() async =>
+      Map<String, Object?>.from(jsonDecode(await file.readAsString()) as Map);
+
+  Future<Map<String, Object?>> wire(
+      String command, Map<String, Object?> args) async {
+    final response = AuthoringResult.fromJson(jsonDecode(
+        await worker.processLine(jsonEncode({
+      'id': 'wire-${sequence++}',
+      'command': command,
+      'args': args
+    }))) as Map<String, dynamic>);
+    if (response.status != AuthoringResultStatus.success) {
+      throw StateError(response.toJson().toString());
+    }
+    return response.data;
+  }
+
+  Future<Map<String, Object?>> plan(Map<String, Object?> parameters, bool jsonl,
+      {String actionId = 'project.actor_contact_shadows.configure'}) async {
+    final id = 'rename-${sequence++}';
+    final request = AuthoringRequest(
+        requestId: id,
+        actionId: actionId,
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle.value,
+        expectedRevision: (await snapshots.load(opened.projectHandle)).revision,
+        idempotencyKey: id,
+        parameters: parameters);
+    return jsonl
+        ? wire('plan', {
+            'projectHandle': opened.projectHandle.value,
+            'request': request.toJson()
+          })
+        : mutations.plan(opened.projectHandle, request);
+  }
+
+  Future<Map<String, Object?>> apply(
+      Map<String, Object?> plan, bool jsonl) async {
+    final planId = plan['planId']! as String;
+    return jsonl
+        ? wire('apply', {
+            'projectHandle': opened.projectHandle.value,
+            'planId': planId,
+            'operationId': 'apply-$planId'
+          })
+        : mutations.apply(opened.projectHandle,
+            planId: planId, operationId: 'apply-$planId');
+  }
+
+  Future<void> undo(String entryId, bool jsonl) async {
+    if (jsonl) {
+      await wire('undo', {
+        'projectHandle': opened.projectHandle.value,
+        'entryId': entryId,
+        'idempotencyKey': 'undo-$entryId'
+      });
+    } else {
+      await mutations.undo(opened.projectHandle,
+          entryId: entryId, idempotencyKey: 'undo-$entryId');
+    }
+  }
+
+  Future<void> dispose() async {
+    await mutations.detachWorkspace(opened.workspaceHandle);
+    await api.closeWorkspace(opened.workspaceHandle);
+    await root.delete(recursive: true);
+  }
+}

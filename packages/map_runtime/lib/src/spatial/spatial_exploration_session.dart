@@ -199,9 +199,11 @@ final class SpatialExplorationSession {
     );
     final currentCompanion = _companionTrail.position;
     if (!presentationPaused && !interactionActive.value &&
-        _companionTrail.moving && previousCompanion != null && currentCompanion != null &&
+        previousCompanion != null && currentCompanion != null &&
         !currentCompanion.airborne &&
-        (previousCompanion.x.floor() != currentCompanion.x.floor() ||
+        (_companionTrail.moving || previousCompanion.airborne) &&
+        (previousCompanion.airborne ||
+         previousCompanion.x.floor() != currentCompanion.x.floor() ||
          previousCompanion.z.floor() != currentCompanion.z.floor())) {
       _smartTileAnimations.onActorEnteredCell(GridPos(
           x: currentCompanion.x.floor(), y: currentCompanion.z.floor()));
@@ -244,6 +246,7 @@ final class SpatialExplorationSession {
       z: position.z,
       y: position.y,
       groundY: position.groundY,
+      contactShadow: actor.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault,
       texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
     );
@@ -300,6 +303,12 @@ final class SpatialExplorationSession {
             globalElapsedMs: elapsedMs,
           ) ??
       elapsedMs;
+
+  ({bool active, int elapsedMs}) actorOcclusionStateForCell(
+    String mapId, String layerId, int cellX, int cellY, int elapsedMs,
+  ) => (mapId == bundle.map.id ? _smartTileAnimations : _preparedMaps[mapId]?.animations)
+      ?.actorOcclusionStateForCell(layerId: layerId, cellX: cellX, cellY: cellY, globalElapsedMs: elapsedMs)
+      ?? (active: false, elapsedMs: 0);
 
   void attachWorldStateProviders() {
     final source = bundle;
@@ -958,7 +967,7 @@ final class SpatialExplorationSession {
           !transitioning.value &&
           !movement.isJumping &&
           (movement.moving || wasJumping) &&
-          (previousMapId != bundle.map.id || previousCell != cell)) {
+          (previousMapId != bundle.map.id || previousCell != cell || wasJumping)) {
         _smartTileAnimations.onPlayerEnteredCell(cell);
       }
       onFrame?.call();
@@ -1007,7 +1016,8 @@ final class SpatialExplorationSession {
     final resolved = _resolve(animation, selected);
     return SpatialActorVisual(
         x: story?.x ?? movement.x,
-        groundY: story == null ? movement.groundY : null,
+        groundY: story == null ? movement.groundY : bundle.map.spatialScene!.worldHeightAt(story.x, story.z),
+        contactShadow: character.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault,
         y: story == null
             ? movement.y
             : bundle.map.spatialScene!.worldHeightAt(story.x, story.z) + story.liftCells,
@@ -1056,6 +1066,20 @@ final class SpatialExplorationSession {
       if (nativeDoorHeroVisible) 'hero': hero,
       'party-companion': ?_companionFrame(),
     };
+    final occupants = <String, Map<String, GridPos?>>{bundle.map.id: {}};
+    final reactingActors = <String, Set<String>>{};
+    GridPos? occupiedCell(SpatialActorVisual visual) =>
+        visual.y > (visual.groundY ?? visual.y) + .000001
+          ? null : GridPos(x: visual.x.floor(), y: visual.z.floor());
+    if (result['hero'] != null) {
+      occupants[bundle.map.id]!['hero'] = occupiedCell(hero);
+    }
+    final companion = result['party-companion'];
+    final lead = presentationStateProvider?.call().party.members.where((p) => !p.isFainted).firstOrNull;
+    if (companion != null && lead != null) {
+      final actorId = 'companion:${lead.individualId}';
+      occupants[bundle.map.id]![actorId] = occupiedCell(companion);
+    }
     final heroEmote = heroStoryPose?.call();
     if (result['hero'] != null && heroEmote?.emoteId != null) {
       result['cinematic-emote:hero'] = _assets.emotes.frame(actor: hero,
@@ -1100,12 +1124,21 @@ final class SpatialExplorationSession {
           isPresent: present,
         ),
       };
+      final mapOccupants = occupants.putIfAbsent(id, () => {});
+      final mapReactingActors = reactingActors.putIfAbsent(id, () => {});
       for (final entry in visuals.entries) {
         final visual = entry.value;
+        if (entry.key.startsWith('npc:')) {
+          final actorId = '$id:${entry.key}';
+          mapOccupants[actorId] = occupiedCell(visual);
+          mapReactingActors.add(actorId);
+        }
         result['$id:${entry.key}'] = SpatialActorVisual(
             x: visual.x + offset.dx,
             y: visual.y,
             z: visual.z + offset.dy,
+            groundY: visual.groundY,
+            contactShadow: visual.contactShadow,
             texture: visual.texture,
             frame: visual.frame,
             width: visual.width,
@@ -1121,6 +1154,10 @@ final class SpatialExplorationSession {
         result['cinematic-emote:npc:${entity.id}'] = _assets.emotes.frame(
             actor: visual, emoteId: pose!.emoteId!, elapsedSeconds: pose.emoteElapsedSeconds);
       }
+    }
+    for (final id in {bundle.map.id, ..._preparedMaps.keys}) {
+      final animations = id == bundle.map.id ? _smartTileAnimations : _preparedMaps[id]!.animations;
+      animations.synchronizeActorOccupancy(occupants[id] ?? const {}, reactingActors: reactingActors[id] ?? const {});
     }
     return result;
   }
@@ -1181,6 +1218,8 @@ final class SpatialExplorationSession {
         x: x,
         z: z,
         y: source.map.spatialScene!.worldHeightAt(x, z) + (pose?.liftCells ?? 0),
+        groundY: source.map.spatialScene!.worldHeightAt(x, z),
+        contactShadow: actor.contactShadow ?? source.manifest.settings.actorContactShadowsByDefault,
         texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
     );

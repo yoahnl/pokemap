@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
@@ -7,6 +9,34 @@ import '../support/transaction_test_fixture.dart';
 
 void main() {
   group('FileAuthoringAuditLog', () {
+    test('incremental audit cleans a flushed temporary after rename failure',
+        () async {
+      final project =
+          await Directory.systemTemp.createTemp('pokemap_audit_incremental_');
+      addTearDown(() => project.delete(recursive: true));
+      final log = await FileAuthoringAuditLog.open(
+          projectRoot: project.path, incrementalWrites: true);
+      final outside = Zone.current;
+      await expectLater(
+          IOOverrides.runZoned(
+              () => log.append(_record(
+                  id: 'audit_document_${'1' * 32}',
+                  decision: AuthoringAuditDecision.succeeded)),
+              createFile: (path) {
+            final file = outside.run(() => File(path));
+            return path.endsWith('.json.tmp')
+                ? _AuditRenameFailure(file)
+                : file;
+          }),
+          throwsA(isA<AuthoringAuditLogException>()));
+      expect(
+          await Directory('${project.path}/.pokemap/authoring/audit-entries')
+              .list()
+              .toList(),
+          isEmpty);
+      expect(await log.readAll(), isEmpty);
+    });
+
     test('append-only redacted records survive reopen with a valid hash chain',
         () async {
       final project = await Directory.systemTemp.createTemp('pokemap_audit_');
@@ -564,3 +594,27 @@ AuthoringActionDescriptor _action({
 
 String _join(String first, String second, String third, String fourth) =>
     [first, second, third, fourth].join(Platform.pathSeparator);
+
+final class _AuditRenameFailure implements File {
+  _AuditRenameFailure(this.delegate);
+  final File delegate;
+  @override
+  String get path => delegate.path;
+  @override
+  Future<File> writeAsString(String contents,
+          {FileMode mode = FileMode.write,
+          Encoding encoding = utf8,
+          bool flush = false}) =>
+      delegate.writeAsString(contents,
+          mode: mode, encoding: encoding, flush: flush);
+  @override
+  Future<File> rename(String newPath) =>
+      Future.error(const FileSystemException('Injected rename failure'));
+  @override
+  Future<bool> exists() => delegate.exists();
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) =>
+      delegate.delete(recursive: recursive);
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}

@@ -50,10 +50,24 @@ void main() {
       final before = tester.getSize(find.byType(PlayerMenuSelectableRow).last);
       node.requestFocus();
       await tester.pumpAndSettle();
+      final decoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .descendant(
+                          of: find.byKey(const ValueKey('focused-surface')),
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
+      expect((decoration.border! as Border).left.width, 4);
       expect(
-        find.byKey(const ValueKey('focused-focus-marker')),
-        findsOneWidget,
+        (decoration.border! as Border).left.color,
+        const PokeMapPlayerMenuTheme().accent,
       );
+      expect(find.byKey(const ValueKey('focused-focus-marker')), findsNothing);
       expect(find.byKey(const ValueKey('selected-focus-marker')), findsNothing);
       expect(tester.getSize(find.byType(PlayerMenuSelectableRow).last), before);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -401,7 +415,10 @@ void main() {
     await tester.pumpWidget(detail('premier'));
     await tester.pumpWidget(detail('suivant'));
     final transform = find
-        .ancestor(of: find.text('suivant'), matching: find.byKey(const ValueKey('player-menu-detail-transform')))
+        .ancestor(
+          of: find.text('suivant'),
+          matching: find.byKey(const ValueKey('player-menu-detail-transform')),
+        )
         .first;
     expect(tester.widget<Transform>(transform).transform.getTranslation().x, 8);
     await tester.pump(const Duration(milliseconds: 90));
@@ -725,6 +742,7 @@ void main() {
                   child: PlayerMenuPanel(
                     child: PlayerMenuSelectableRow(
                       id: 'toggle',
+                      reserveFocusMarker: true,
                       label: 'Équipe',
                       subtitle: 'Six partenaires',
                       selected: selected,

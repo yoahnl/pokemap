@@ -1,10 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets(
+    'landscape choices share one row at the bottom and cancellation remains readable',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(844, 390));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final results = <SceneInteractionResult>[];
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.choice(
+            requestId: 'landscape-layout',
+            revision: 3,
+            prompt: _prompt('Quelle route ?'),
+            options: [
+              _option('forest', 'La forêt'),
+              _option('river', 'La rivière'),
+            ],
+          ),
+          results: results,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final first = tester.getRect(
+        find.byKey(const ValueKey('scene-interaction-option-forest')),
+      );
+      final second = tester.getRect(
+        find.byKey(const ValueKey('scene-interaction-option-river')),
+      );
+      expect(first.top, second.top);
+      expect(second.left - first.right, greaterThanOrEqualTo(8));
+      expect(first.height, greaterThanOrEqualTo(48));
+      final panel = tester.getRect(
+        find.byKey(const ValueKey('scene-interaction-panel')),
+      );
+      expect(panel.bottom, 374);
+      expect(panel.height, lessThan(180));
+      final cancel = find.descendant(
+        of: find.byKey(const ValueKey('scene-interaction-cancel')),
+        matching: find.text('Annuler'),
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(cancel);
+      expect(paragraph.didExceedMaxLines, isFalse);
+      await tester.tap(find.byKey(const ValueKey('scene-interaction-cancel')));
+      expect(results.single, isA<SceneCancelledInteractionResult>());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'long authored prompts are fully read before a decision can dispatch',
     (tester) async {
@@ -605,7 +653,7 @@ void main() {
       Actions.invoke(
         FocusManager.instance.primaryFocus!.context!,
         const RuntimePlayerLogicalIntent(
-          PlayerInputAction.down,
+          PlayerInputAction.right,
           source: PlayerInputSource.controller,
         ),
       );
@@ -954,7 +1002,7 @@ void main() {
     );
 
     expect(prompt.style?.color, semantic.textPrimary);
-    expect(cancel.style?.color, theme.colorScheme.primary);
+    expect(cancel.style?.color, semantic.textPrimary);
     expect(
       Theme.of(fieldContext).colorScheme.onSurfaceVariant,
       semantic.textSecondary,

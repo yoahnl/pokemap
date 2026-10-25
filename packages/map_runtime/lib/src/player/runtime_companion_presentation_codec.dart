@@ -1068,6 +1068,8 @@ abstract final class RuntimeCompanionPresentationCodec {
       {
         'revision': value.revision,
         'phase': value.phase.name,
+        'commandPanelPlacement': value.commandPanelPlacement.name,
+        'controllerLayout': value.controllerLayout,
         'forcedReplacement': value.forcedReplacement,
         'mode': value.mode.name,
         'viewportSize': [value.viewportSize.width, value.viewportSize.height],
@@ -1097,6 +1099,8 @@ abstract final class RuntimeCompanionPresentationCodec {
       BattleCommandOverlaySnapshot(
         revision: data['revision'] as int,
         phase: BattlePresentationPhase.values.byName(data['phase'] as String),
+        commandPanelPlacement: BattleCommandPanelPlacement.values.byName(data['commandPanelPlacement'] as String),
+        controllerLayout: data['controllerLayout'] as bool,
         forcedReplacement: data['forcedReplacement'] as bool,
         mode: BattleCommandOverlayMode.values.byName(data['mode'] as String),
         viewportSize: Size((data['viewportSize'] as List)[0].toDouble(),

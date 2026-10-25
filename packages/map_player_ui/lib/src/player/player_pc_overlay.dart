@@ -124,6 +124,21 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
         : RuntimeWorldServiceAction.withdraw;
     final enabled =
         entry?.canTransfer == true && snapshot.isActionEnabled(action);
+    void toggleParty() {
+      _focusSurface();
+      setState(() {
+        if (_party) {
+          _party = false;
+          _slot = _storedSlot;
+        } else {
+          _storedSlot = _slot;
+          _party = true;
+          _slot = 0;
+        }
+        _swap = false;
+      });
+    }
+
     return RuntimePlayerActions(
       includeDefaultKeyboardShortcuts: false,
       onBack: _back,
@@ -135,343 +150,347 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
         child: PlayerMenuThemeScope(
           role: ProjectPresentationSurfaceRole.pauseMenu,
           child: Builder(
-            builder: (context) => ColoredBox(
-              color: context.playerColors.scrim,
-              child: SafeArea(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: 1000,
-                        maxHeight: 760,
+            builder: (context) {
+              final theme = context.playerMenuTheme;
+              final footerStyle = TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                textStyle: theme.actionLabel.copyWith(fontSize: 14),
+                foregroundColor: theme.text,
+                backgroundColor: theme.panel,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.zero,
+                  side: BorderSide(color: theme.border),
+                ),
+              );
+              final footer = PlayerMenuFooter(
+                hints: const [],
+                returnAction: const SizedBox.shrink(),
+                padding: EdgeInsets.symmetric(
+                  horizontal: PlayerCompanionScope.of(context) ? 0 : 16,
+                  vertical: PlayerCompanionScope.of(context) ? 4 : 8,
+                ),
+                actionsBuilder: (context, _) => PlayerMenuActionGroup(
+                  children: [
+                    TextButton(
+                      key: ValueKey('pc-summary-${entry?.targetId ?? 'empty'}'),
+                      onPressed: entry == null
+                          ? null
+                          : () => _showSummary(context, entry),
+                      style: footerStyle,
+                      child: Text(french ? 'Résumé' : 'Summary'),
+                    ),
+                    if (!_party && entry != null)
+                      IconButton(
+                        key: ValueKey('pc-swap-${entry.targetId}'),
+                        tooltip: strings.swapTooltip,
+                        onPressed:
+                            snapshot.isActionEnabled(
+                                  RuntimeWorldServiceAction.swap,
+                                ) &&
+                                content.party.isNotEmpty
+                            ? () => setState(() {
+                                _swapTarget = entry.targetId;
+                                _storedSlot = _slot;
+                                _party = true;
+                                _swap = true;
+                                _slot = 0;
+                              })
+                            : null,
+                        icon: const Icon(Icons.swap_horiz),
                       ),
-                      child: PlayerMenuPanel(
-                        primary: true,
-                        padding: const EdgeInsets.all(8),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final landscape =
-                                !PlayerCompanionScope.of(context) &&
-                                constraints.maxWidth >
-                                    constraints.maxHeight * 1.3 &&
-                                constraints.maxWidth >= 560;
-                            final columns = _party
-                                ? (landscape ? 3 : 2)
-                                : (landscape ? 10 : 6);
-                            final count = _party ? 6 : (box?.capacity ?? 30);
-                            final rows = (count / columns).ceil();
-                            final compactHeader = constraints.maxHeight < 500;
-                            final boxNavigation = Row(
-                              children: [
-                                IconButton(
-                                  key: const ValueKey('pc-box-previous'),
-                                  tooltip: french
-                                      ? 'Boîte précédente'
-                                      : 'Previous box',
-                                  onPressed:
-                                      !_party &&
-                                          boxIndex > 0 &&
-                                          snapshot.isActionEnabled(
-                                            RuntimeWorldServiceAction.select,
-                                          )
-                                      ? () => _emit(
-                                          RuntimeWorldServiceAction.select,
-                                          targetId:
-                                              content.boxes[boxIndex - 1].boxId,
-                                        )
-                                      : null,
-                                  icon: const Icon(Icons.chevron_left),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    _party
-                                        ? strings.party
-                                        : compactHeader && entry != null
-                                        ? '${box?.label ?? 'Box'} · ${entry.label}'
-                                        : '${box?.label ?? 'Box'} · ${box?.count ?? 0}/${box?.capacity ?? 30}',
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: context.playerMenuTheme.label,
-                                  ),
-                                ),
-                                IconButton(
-                                  key: const ValueKey('pc-box-next'),
-                                  tooltip: french
-                                      ? 'Boîte suivante'
-                                      : 'Next box',
-                                  onPressed:
-                                      !_party &&
-                                          boxIndex >= 0 &&
-                                          boxIndex + 1 < content.boxes.length &&
-                                          snapshot.isActionEnabled(
-                                            RuntimeWorldServiceAction.select,
-                                          )
-                                      ? () => _emit(
-                                          RuntimeWorldServiceAction.select,
-                                          targetId:
-                                              content.boxes[boxIndex + 1].boxId,
-                                        )
-                                      : null,
-                                  icon: const Icon(Icons.chevron_right),
-                                ),
-                              ],
-                            );
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SizedBox(
-                                  height: 48,
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: compactHeader
-                                            ? boxNavigation
-                                            : Text(
-                                                _swap
-                                                    ? strings.swapTooltip
-                                                    : content.title,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: context
-                                                    .playerMenuTheme
-                                                    .title,
-                                              ),
-                                      ),
-                                      IconButton(
-                                        key: const ValueKey('pc-party-toggle'),
-                                        tooltip: _party
-                                            ? (box?.label ?? 'Box')
-                                            : strings.deposit,
-                                        onPressed: () {
-                                          _focusSurface();
-                                          setState(() {
-                                            if (_party) {
-                                              _party = false;
-                                              _slot = _storedSlot;
-                                            } else {
-                                              _storedSlot = _slot;
-                                              _party = true;
-                                              _slot = 0;
-                                            }
-                                            _swap = false;
-                                          });
-                                        },
-                                        icon: Icon(
-                                          _party
-                                              ? Icons.grid_view
-                                              : Icons.groups_outlined,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        key: const ValueKey('pc-close'),
-                                        tooltip: strings.close,
-                                        onPressed:
-                                            snapshot.isActionEnabled(
-                                              RuntimeWorldServiceAction.close,
-                                            )
-                                            ? () => _emit(
-                                                RuntimeWorldServiceAction.close,
-                                              )
-                                            : null,
-                                        icon: const Icon(Icons.close),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (!compactHeader)
-                                  SizedBox(height: 48, child: boxNavigation),
-                                const SizedBox(height: 12),
-                                if (snapshot.stage ==
-                                    RuntimeWorldServiceStage.applying)
-                                  const LinearProgressIndicator(),
-                                Expanded(
-                                  child: LayoutBuilder(
-                                    builder: (context, area) {
-                                      final minimumGrid =
-                                          rows * 48 + (rows - 1) * 8;
-                                      final rowHeight =
-                                          area.maxHeight >= minimumGrid
-                                          ? (area.maxHeight - (rows - 1) * 8) /
-                                                rows
-                                          : 48.0;
-                                      return PlayerPagedList(
-                                        key: ValueKey(
-                                          'pc-grid-${columns}x$rows',
-                                        ),
-                                        revealChildKey: ValueKey(
-                                          'pc-grid-row-${_slot ~/ columns}',
-                                        ),
-                                        children: [
-                                          for (var row = 0; row < rows; row++)
-                                            SizedBox(
-                                              key: ValueKey('pc-grid-row-$row'),
-                                              height: rowHeight,
-                                              child: Row(
-                                                children: [
-                                                  for (
-                                                    var column = 0;
-                                                    column < columns;
-                                                    column++
-                                                  ) ...[
-                                                    if (column > 0)
-                                                      const SizedBox(width: 8),
-                                                    Expanded(
-                                                      child:
-                                                          row * columns +
-                                                                  column >=
-                                                              count
-                                                          ? const SizedBox.shrink()
-                                                          : _cell(
-                                                              context,
-                                                              entries,
-                                                              row * columns +
-                                                                  column,
-                                                              _party,
-                                                            ),
-                                                    ),
-                                                  ],
-                                                ],
-                                              ),
-                                            ),
-                                        ],
-                                      );
-                                    },
-                                  ),
-                                ),
-                                if (!compactHeader ||
-                                    snapshot.safeMessage != null ||
-                                    entry?.unavailableReason != null)
-                                  SizedBox(
-                                    height: 40,
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        snapshot.safeMessage ??
-                                            entry?.unavailableReason ??
-                                            (entry == null
-                                                ? (entries.isEmpty
-                                                      ? (_party
-                                                            ? strings.emptyParty
-                                                            : strings.emptyBox)
-                                                      : strings.emptyPokemon)
-                                                : '${entry.label} · ${strings.levelValue(entry.level)}'),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: context.playerMenuTheme.meta,
-                                      ),
-                                    ),
-                                  ),
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  height: 48,
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextButton.icon(
-                                          key: ValueKey(
-                                            'pc-summary-${entry?.targetId ?? 'empty'}',
-                                          ),
-                                          onPressed: entry == null
-                                              ? null
-                                              : () => _showSummary(
-                                                  context,
-                                                  entry,
-                                                ),
-                                          icon: const Icon(Icons.info_outline),
-                                          label: Text(strings.summaryTooltip),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      if (!_party && entry != null) ...[
-                                        IconButton(
-                                          key: ValueKey(
-                                            'pc-swap-${entry.targetId}',
-                                          ),
-                                          tooltip: strings.swapTooltip,
-                                          onPressed:
-                                              snapshot.isActionEnabled(
-                                                    RuntimeWorldServiceAction
-                                                        .swap,
-                                                  ) &&
-                                                  content.party.isNotEmpty
-                                              ? () => setState(() {
-                                                  _swapTarget = entry.targetId;
-                                                  _storedSlot = _slot;
-                                                  _party = true;
-                                                  _swap = true;
-                                                  _slot = 0;
-                                                })
-                                              : null,
-                                          icon: const Icon(Icons.swap_horiz),
-                                        ),
-                                        const SizedBox(width: 8),
-                                      ],
-                                      Expanded(
-                                        child: TextButton.icon(
-                                          key: ValueKey(
-                                            _swap
-                                                ? 'pc-swap-with-${entry?.targetId ?? 'empty'}'
-                                                : 'pc-${action.name}-${entry?.targetId ?? 'empty'}',
-                                          ),
-                                          onPressed: _swap
-                                              ? entry != null &&
-                                                        snapshot.isActionEnabled(
-                                                          RuntimeWorldServiceAction
-                                                              .swap,
-                                                        )
-                                                    ? () {
-                                                        _emit(
-                                                          RuntimeWorldServiceAction
-                                                              .swap,
-                                                          targetId: _swapTarget,
-                                                          secondaryTargetId:
-                                                              entry.targetId,
-                                                        );
-                                                        setState(() {
-                                                          _swap = false;
-                                                          _party = false;
-                                                          _slot = 0;
-                                                        });
-                                                      }
-                                                    : null
-                                              : enabled
-                                              ? () => _emit(
-                                                  action,
-                                                  targetId: entry!.targetId,
-                                                )
-                                              : null,
-                                          icon: Icon(
-                                            _swap
-                                                ? Icons.swap_horiz
-                                                : _party
-                                                ? Icons.move_to_inbox_outlined
-                                                : Icons
-                                                      .person_add_alt_1_outlined,
-                                          ),
-                                          label: Text(
-                                            _swap
-                                                ? strings.swapTooltip
-                                                : _party
-                                                ? strings.deposit
-                                                : strings.withdraw,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+                    TextButton(
+                      key: ValueKey(
+                        _swap
+                            ? 'pc-swap-with-${entry?.targetId ?? 'empty'}'
+                            : 'pc-${action.name}-${entry?.targetId ?? 'empty'}',
+                      ),
+                      onPressed: _swap
+                          ? entry != null &&
+                                    snapshot.isActionEnabled(
+                                      RuntimeWorldServiceAction.swap,
+                                    )
+                                ? () {
+                                    _emit(
+                                      RuntimeWorldServiceAction.swap,
+                                      targetId: _swapTarget,
+                                      secondaryTargetId: entry.targetId,
+                                    );
+                                    setState(() {
+                                      _swap = false;
+                                      _party = false;
+                                      _slot = 0;
+                                    });
+                                  }
+                                : null
+                          : enabled
+                          ? () => _emit(action, targetId: entry!.targetId)
+                          : null,
+                      style: footerStyle,
+                      child: Text(
+                        _swap
+                            ? strings.swapTooltip
+                            : _party
+                            ? strings.deposit
+                            : strings.withdraw,
                       ),
                     ),
+                    TextButton(
+                      key: const ValueKey('pc-party-toggle'),
+                      onPressed: toggleParty,
+                      style: footerStyle,
+                      child: Text(
+                        _party ? (box?.label ?? 'Box') : strings.deposit,
+                      ),
+                    ),
+                    TextButton(
+                      key: const ValueKey('pc-footer-close'),
+                      onPressed:
+                          snapshot.isActionEnabled(
+                            RuntimeWorldServiceAction.close,
+                          )
+                          ? () => _emit(RuntimeWorldServiceAction.close)
+                          : null,
+                      style: footerStyle,
+                      child: Text(strings.close),
+                    ),
+                  ],
+                ),
+              );
+              return PlayerMenuFrame(
+                scrollable: false,
+                header: Padding(
+                  padding: PlayerCompanionScope.of(context)
+                      ? EdgeInsets.zero
+                      : const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Row(
+                    children: [
+                      PlayerMenuBackButton(
+                        key: const ValueKey('pc-close'),
+                        onPressed: _back,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _swap ? strings.swapTooltip : content.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.title.copyWith(fontSize: 22),
+                            ),
+                            Text(
+                              _party
+                                  ? strings.party
+                                  : '${box?.label ?? 'Box'} · ${box?.count ?? 0}/${box?.capacity ?? 30}',
+                              style: theme.meta.copyWith(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        key: const ValueKey('pc-box-previous'),
+                        tooltip: french ? 'Boîte précédente' : 'Previous box',
+                        onPressed:
+                            !_party &&
+                                boxIndex > 0 &&
+                                snapshot.isActionEnabled(
+                                  RuntimeWorldServiceAction.select,
+                                )
+                            ? () => _emit(
+                                RuntimeWorldServiceAction.select,
+                                targetId: content.boxes[boxIndex - 1].boxId,
+                              )
+                            : null,
+                        icon: const Icon(Icons.chevron_left),
+                      ),
+                      IconButton(
+                        key: const ValueKey('pc-box-next'),
+                        tooltip: french ? 'Boîte suivante' : 'Next box',
+                        onPressed:
+                            !_party &&
+                                boxIndex >= 0 &&
+                                boxIndex + 1 < content.boxes.length &&
+                                snapshot.isActionEnabled(
+                                  RuntimeWorldServiceAction.select,
+                                )
+                            ? () => _emit(
+                                RuntimeWorldServiceAction.select,
+                                targetId: content.boxes[boxIndex + 1].boxId,
+                              )
+                            : null,
+                        icon: const Icon(Icons.chevron_right),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ),
+                footer: footer,
+                child: LayoutBuilder(
+                  builder: (context, area) {
+                    final companion = PlayerCompanionScope.of(context);
+                    final wide =
+                        !companion &&
+                        area.maxWidth >= 600 &&
+                        MediaQuery.sizeOf(context).width >
+                            MediaQuery.sizeOf(context).height;
+                    final detailWidth = wide ? 164.0 : 0.0;
+                    final availableGridWidth =
+                        area.maxWidth - (wide ? detailWidth + 12 : 0);
+                    final preferredColumns = _party
+                        ? (wide ? 3 : 2)
+                        : (wide ? 10 : 6);
+                    final fittingColumns = ((availableGridWidth - 4) / 56)
+                        .floor();
+                    final columns = preferredColumns.clamp(
+                      1,
+                      fittingColumns < 1 ? 1 : fittingColumns,
+                    );
+                    final count = _party ? 6 : (box?.capacity ?? 30);
+                    final rows = (count / columns).ceil();
+                    final gridHeight = rows * 48.0 + (rows - 1) * 8;
+                    final showDetailBelow =
+                        !wide &&
+                        !companion &&
+                        area.maxHeight - gridHeight >= 160;
+                    final detail = Container(
+                      padding: EdgeInsets.only(
+                        left: wide ? 16 : 0,
+                        top: wide ? 0 : 16,
+                      ),
+                      decoration: BoxDecoration(
+                        border: wide
+                            ? Border(left: BorderSide(color: theme.border))
+                            : Border(top: BorderSide(color: theme.border)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              if (entry?.summary case final summary?) ...[
+                                PlayerPokemonImage(
+                                  summary: summary,
+                                  width: wide ? 40 : 56,
+                                  height: wide ? 40 : 56,
+                                ),
+                                const SizedBox(width: 8),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  snapshot.safeMessage ??
+                                      entry?.unavailableReason ??
+                                      (entry == null
+                                          ? (entries.isEmpty
+                                                ? (_party
+                                                      ? strings.emptyParty
+                                                      : strings.emptyBox)
+                                                : strings.emptyPokemon)
+                                          : '${entry.label} · ${strings.levelValue(entry.level)}'),
+                                  style: theme.body.copyWith(
+                                    fontSize: wide ? 12 : 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (entry?.summary case final summary?
+                              when area.maxHeight >= 180) ...[
+                            const SizedBox(height: 12),
+                            PlayerMenuGauge(
+                              value: summary.currentHp.toDouble(),
+                              maximum: summary.maxHp.toDouble(),
+                              label:
+                                  '${summary.currentHp} / ${summary.maxHp} ${french ? 'PV' : 'HP'}',
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                    final grid = SizedBox(
+                      height: gridHeight.clamp(
+                        48.0,
+                        area.maxHeight < 48 ? 48.0 : area.maxHeight,
+                      ),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: theme.recessed,
+                          border: Border.all(color: theme.border),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.zero,
+                          child: PlayerPagedList(
+                            spacing: 8,
+                            revealChildKey: ValueKey(
+                              'pc-grid-row-${_slot ~/ columns}',
+                            ),
+                            key: ValueKey('pc-grid-${columns}x$rows'),
+                            children: [
+                              for (var row = 0; row < rows; row++) ...[
+                                SizedBox(
+                                  key: ValueKey('pc-grid-row-$row'),
+                                  height: 48,
+                                  child: Row(
+                                    children: [
+                                      for (
+                                        var column = 0;
+                                        column < columns;
+                                        column++
+                                      ) ...[
+                                        if (column > 0)
+                                          const SizedBox(width: 8),
+                                        Expanded(
+                                          child: row * columns + column >= count
+                                              ? const SizedBox.shrink()
+                                              : _cell(
+                                                  context,
+                                                  entries,
+                                                  row * columns + column,
+                                                  _party,
+                                                ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (snapshot.stage == RuntimeWorldServiceStage.applying)
+                          const LinearProgressIndicator(),
+                        if (wide)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: grid),
+                              const SizedBox(width: 12),
+                              SizedBox(width: detailWidth, child: detail),
+                            ],
+                          )
+                        else
+                          grid,
+                        if (showDetailBelow) ...[
+                          const SizedBox(height: 12),
+                          detail,
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -497,12 +516,13 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
         onPressed: () => setState(() => _slot = index),
         style: TextButton.styleFrom(
           padding: const EdgeInsets.all(2),
-          backgroundColor: _slot == index ? theme.selectionTop : theme.recessed,
-          foregroundColor: _slot == index ? theme.selectionText : theme.text,
+          backgroundColor: theme.panel,
+          foregroundColor: theme.text,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(2),
             side: BorderSide(
-              color: _slot == index ? theme.focus : theme.border,
+              color: _slot == index ? theme.accent : theme.border,
+              width: _slot == index ? 3 : 1,
             ),
           ),
         ),
@@ -511,16 +531,15 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Flexible(
-                child: entry?.summary == null
-                    ? Icon(
-                        entry == null ? Icons.add : Icons.catching_pokemon,
-                        size: 24,
-                      )
+                child: entry == null
+                    ? const SizedBox.shrink()
+                    : entry.summary == null
+                    ? const Icon(Icons.catching_pokemon, size: 24)
                     : PlayerPokemonImage(
-                        summary: entry!.summary!,
+                        summary: entry.summary!,
                         thumbnail: true,
                         width: constraints.maxWidth,
-                        height: constraints.maxHeight > 50 ? 42 : 24,
+                        height: 42,
                       ),
               ),
               if (party && entry != null)
@@ -542,29 +561,26 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
     showDialog<void>(
       context: context,
       builder: (context) => PlayerMenuThemeScope(
-        child: Dialog(
-          insetPadding: const EdgeInsets.all(12),
-          child: SizedBox(
-            width: 640,
-            height: MediaQuery.sizeOf(context).height - 48,
-            child: PlayerMenuPanel(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: _summaryContent(context, entry, strings)),
-                  SizedBox(
-                    height: 48,
-                    child: TextButton.icon(
-                      key: const ValueKey('pc-summary-close'),
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                      label: Text(strings.close),
-                    ),
-                  ),
-                ],
+        child: Dialog.fullscreen(
+          child: PlayerMenuFrame(
+            scrollable: false,
+            header: PlayerMenuHeader(
+              icon: Icons.catching_pokemon,
+              title: entry.summary?.displayLabel ?? entry.label,
+              secondary: Text(
+                '${entry.summary?.speciesLabel ?? _humanize(entry.speciesId)} · ${strings.levelValue(entry.level)}',
+              ),
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            footer: PlayerMenuFooter(
+              hints: const [],
+              returnAction: TextButton(
+                key: const ValueKey('pc-summary-close'),
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(strings.close),
               ),
             ),
+            child: _summaryContent(context, entry, strings),
           ),
         ),
       ),
@@ -577,7 +593,7 @@ class _PlayerPcOverlayState extends State<PlayerPcOverlay> {
     PlayerPcStrings strings,
   ) {
     if (entry.summary case final summary?) {
-      return PlayerPokemonSummarySheet(summary: summary);
+      return PlayerPokemonSummarySheet(summary: summary, showHeader: false);
     }
     return PlayerPagedList(
       children: <Widget>[

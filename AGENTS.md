@@ -138,6 +138,59 @@ Do not broaden access to the home directory or filesystem root as a convenience 
 
 ## 5. Product and Architecture Rules
 
+### Mandatory local and incremental authoring
+
+**This is a blocking architecture and acceptance requirement for Avelune Studio,
+the Map Editor and their shared authoring APIs. It is not optional polish.**
+Yoahn reaffirmed this requirement on **2026-10-25** because disproportionate
+work behind simple interactions was a reason for abandoning the former PokeMap.
+Only a direct, explicit user instruction may authorize a bounded exception;
+convenience, existing code, deadlines or another workflow do not authorize one.
+
+- A local interaction (toggle, field edit, selection, placement, movement,
+  rotation, deletion, brush stroke or undo/redo) must update the affected draft
+  and preview incrementally. Its work must be bounded by the changed data and
+  their actual dependencies, not unrelated project size or accumulated history.
+- Never make a local edit, its first save, autosave or undo/redo trigger a full
+  project snapshot/load, traversal of every map or resource, rehash/decode of
+  unrelated assets, complete journal replay, global validation, renderer
+  reconstruction, export or rebuild. Do not hide that work in a helper or
+  require it as a prerequisite to completing the local operation.
+- Persist through the canonical authoring boundary using targeted writes to the
+  affected storage units. A shared document may require atomic replacement of
+  that document; this does not justify loading or rewriting unrelated files.
+  Preserve concurrent-write checks, crash safety, undo semantics and protected
+  data compatibility. Never bypass these guarantees with an editor-only writer.
+  If the current storage or transaction path cannot meet this requirement,
+  report the architectural defect and correct the narrow owning boundary.
+- Keep integrity and validation proportional to the mutation and its affected
+  dependencies. Project-wide validation, export, migration and reconstruction
+  belong to explicit operations with visible progress. Necessary initial
+  project loading must be measured separately and must not recur per edit or
+  be deferred onto the first save. Recovery must be explicit when required;
+  routine edits must not silently replay the entire project history.
+- An isolate, background queue, debounce, spinner or warm cache does not make
+  disproportionate work acceptable. Caches may reduce necessary work, but a
+  fast repeated operation does not excuse an expensive first operation.
+  Do not acknowledge a durable save before persistence has actually succeeded.
+- Before implementing a local authoring change, identify its affected storage
+  units, dependency scope and latency budget. Default acceptance targets for a
+  simple property edit on a documented representative local project are visible
+  feedback within **100 ms** and durable persistence within **500 ms**, for
+  both the first operation after opening and repeated operations. These are
+  acceptance targets, not claims of existing performance. Any different budget
+  requires explicit user agreement; never silently relax it to fit the result.
+- Prove the real UI-to-persistence path with focused tests counting relevant
+  reads, writes, decodes and invalidations, including added unrelated project
+  content/history. Measure first and repeated latency separately, document the
+  machine/build mode and verify persisted values after reopening. Use stable
+  work-count assertions for regression tests and local timing measurements;
+  do not add expensive CI soaks. Preserve API/CLI/MCP semantics and assess parity.
+- A working button with excessive or unproven cost is **PARTIAL**, not ready
+  for acceptance. Do not claim compliance from a small fixture, a warm-only
+  benchmark, debug-only timing or source inspection. Apply this gate to new
+  work and touched paths; never imply the whole existing editor is certified.
+
 ### Avelune game and save compatibility policy
 
 Yoahn established the compatibility baseline on **2026-10-24**, at Avelune

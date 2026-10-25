@@ -13,6 +13,7 @@ MapEntity? findSpatialNpcInteraction({
   required double z,
   required EntityFacing facing,
   SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+  bool Function(double x, double z, String ignoredEntityId)? isPositionBlocked,
 }) =>
     findSpatialEntityInteraction(
       scene: scene,
@@ -22,6 +23,7 @@ MapEntity? findSpatialNpcInteraction({
       z: z,
       facing: facing,
       actorStateProvider: actorStateProvider,
+      isPositionBlocked: isPositionBlocked,
     );
 
 MapEntity? findSpatialEntityInteraction({
@@ -31,6 +33,7 @@ MapEntity? findSpatialEntityInteraction({
   required double z,
   required EntityFacing facing,
   SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+  bool Function(double x, double z, String ignoredEntityId)? isPositionBlocked,
 }) {
   MapEntity? result;
   var nearest = double.infinity;
@@ -67,22 +70,98 @@ MapEntity? findSpatialEntityInteraction({
       EntityFacing.east => (dx, dz.abs()),
       EntityFacing.west => (-dx, dz.abs()),
     };
+    final counter = _canReachAcrossCounter(scene, candidates, entity,
+        x: x,
+        z: z,
+        targetX: targetX,
+        targetZ: targetZ,
+        facing: facing,
+        actorStateProvider: actorStateProvider,
+        isPositionBlocked: isPositionBlocked);
     if (forward > 0 &&
-        forward <= 1.25 &&
+        (forward <= 1.25 || counter) &&
         lateral <= .5 &&
         forward < nearest &&
         _hasNavigableTerrainBetween(scene, x, z, x + dx, z + dz,
-            ignoreBlockedAt: entity.kind == MapEntityKind.custom ||
-                    entity.kind == MapEntityKind.sign
-                ? (px, pz) =>
-                    px.floor() == targetX.floor() &&
-                    pz.floor() == targetZ.floor()
-                : null)) {
+            ignoreBlockedAt: counter
+                ? (px, pz) => _counterCellContains(x, z, facing, px, pz)
+                : entity.kind == MapEntityKind.custom ||
+                        entity.kind == MapEntityKind.sign
+                    ? (px, pz) =>
+                        px.floor() == targetX.floor() &&
+                        pz.floor() == targetZ.floor()
+                    : null)) {
       result = entity;
       nearest = forward;
     }
   }
   return result;
+}
+
+bool _counterCellContains(
+    double x, double z, EntityFacing facing, double px, double pz) {
+  final (dx, dz) = _facingDelta(facing);
+  return px.floor() == x.floor() + dx && pz.floor() == z.floor() + dz;
+}
+
+(int, int) _facingDelta(EntityFacing facing) => switch (facing) {
+      EntityFacing.north => (0, -1),
+      EntityFacing.south => (0, 1),
+      EntityFacing.east => (1, 0),
+      EntityFacing.west => (-1, 0),
+    };
+
+bool _canReachAcrossCounter(
+    MapSpatialScene scene, List<MapEntity> candidates, MapEntity entity,
+    {required double x,
+    required double z,
+    required double targetX,
+    required double targetZ,
+    required EntityFacing facing,
+    SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+    bool Function(double x, double z, String ignoredEntityId)?
+        isPositionBlocked}) {
+  final side = switch (facing) {
+    EntityFacing.north => EntityFacing.south,
+    EntityFacing.south => EntityFacing.north,
+    EntityFacing.east => EntityFacing.west,
+    EntityFacing.west => EntityFacing.east,
+  };
+  if (entity.size.width != 1 ||
+      entity.size.height != 1 ||
+      !entity.counterInteractionSides.contains(side) &&
+          entity.npc?.counterInteractionSides.contains(side) != true) {
+    return false;
+  }
+  final (dx, dz) = _facingDelta(facing);
+  if (targetX.floor() != x.floor() + 2 * dx ||
+      targetZ.floor() != z.floor() + 2 * dz) {
+    return false;
+  }
+  final frontX = x.floor() + dx + .5, frontZ = z.floor() + dz + .5;
+  if (!scene.navigation.blockedAreas
+          .any((area) => area.contains(frontX, frontZ)) &&
+      isPositionBlocked?.call(frontX, frontZ, entity.id) != true) {
+    return false;
+  }
+  if (isPositionBlocked?.call(targetX, targetZ, entity.id) == true) {
+    return false;
+  }
+  if ((scene.worldHeightAt(x, z) - scene.worldHeightAt(targetX, targetZ))
+          .abs() >
+      .000001) {
+    return false;
+  }
+  return !candidates.any((candidate) {
+    if (candidate.id == entity.id) return false;
+    final pose = actorStateProvider?.call(candidate.id);
+    final left = pose == null ? candidate.pos.x : pose.x.floor();
+    final top = pose == null ? candidate.pos.y : pose.z.floor();
+    return frontX >= left &&
+        frontX < left + candidate.size.width &&
+        frontZ >= top &&
+        frontZ < top + candidate.size.height;
+  });
 }
 
 SpatialModelInstance? findSpatialModelInteraction({

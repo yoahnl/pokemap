@@ -120,6 +120,10 @@ final class CharacterStudioResourceProjector {
             'tilesetId': character.tilesetId,
             'frameWidth': character.frameWidth,
             'frameHeight': character.frameHeight,
+            if (character.contactShadow != null)
+              'contactShadow': character.contactShadow,
+            'effectiveContactShadow': character.contactShadow ??
+                manifest.settings.actorContactShadowsByDefault,
             'tags': character.tags,
             'portraits': [
               for (final portrait in character.portraits) portrait.toJson(),

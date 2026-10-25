@@ -9,11 +9,10 @@ part 'character_studio_lifecycle.dart';
 
 enum CharacterStudioSection { library, identity, animations, portraits }
 
-typedef CharacterStudioMutation =
-    Future<ProjectManifest> Function(
-      String actionId,
-      Map<String, Object?> parameters,
-    );
+typedef CharacterStudioMutation = Future<ProjectManifest> Function(
+  String actionId,
+  Map<String, Object?> parameters,
+);
 
 final class CharacterStudioController extends ChangeNotifier {
   CharacterStudioController({required this.project, required this.mutate}) {
@@ -98,6 +97,32 @@ final class CharacterStudioController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setContactShadow(bool? value) {
+    final draft = selectedDraft;
+    if (draft == null) return;
+    draft.contactShadow = value;
+    notifyListeners();
+  }
+
+  Future<bool> setContactShadowsByDefault(bool value) async {
+    if (saving) return false;
+    saving = true;
+    error = null;
+    notifyListeners();
+    try {
+      await mutate('project.actor_contact_shadows.configure', {
+        'enabled': value,
+      });
+      return true;
+    } catch (failure) {
+      error = '$failure';
+      return false;
+    } finally {
+      saving = false;
+      notifyListeners();
+    }
+  }
+
   void setAnimationState(CharacterAnimationState value) {
     animationState = value;
     notifyListeners();
@@ -148,9 +173,7 @@ final class CharacterStudioController extends ChangeNotifier {
       frameHeight:
           project().settings.tileHeight * draft.frameHeight.clamp(2, 1 << 20),
     );
-    error = applied
-        ? null
-        : 'La planche doit contenir trois poses sur quatre directions, sans marge ni espacement.';
+    error = applied ? null : 'La planche doit contenir trois poses sur quatre directions, sans marge ni espacement.';
     notifyListeners();
     return applied;
   }
@@ -199,7 +222,8 @@ final class CharacterStudioController extends ChangeNotifier {
       if (boundsProblem != null) throw StateError(boundsProblem);
       if (draft.name != draft.saved.name ||
           draft.frameWidth != draft.saved.frameWidth ||
-          draft.frameHeight != draft.saved.frameHeight) {
+          draft.frameHeight != draft.saved.frameHeight ||
+          draft.contactShadow != draft.saved.contactShadow) {
         final manifest = await mutate('characterStudio.character.update', {
           'characterId': draft.saved.id,
           if (draft.name != draft.saved.name) 'name': draft.name,
@@ -207,6 +231,8 @@ final class CharacterStudioController extends ChangeNotifier {
             'frameWidth': draft.frameWidth,
           if (draft.frameHeight != draft.saved.frameHeight)
             'frameHeight': draft.frameHeight,
+          if (draft.contactShadow != draft.saved.contactShadow)
+            'contactShadow': draft.contactShadow,
         });
         completed++;
         current = manifest.characters.firstWhere(
@@ -224,7 +250,9 @@ final class CharacterStudioController extends ChangeNotifier {
           {
             'characterId': draft.saved.id,
             'kind': 'system',
-            'state': key.$1 == CharacterAnimationState.bicycleIdle ? 'bicycle_idle' : key.$1.name,
+            'state': key.$1 == CharacterAnimationState.bicycleIdle
+                ? 'bicycle_idle'
+                : key.$1.name,
             'direction': key.$2.name,
             if (frames.isNotEmpty) 'sourceAssetId': draft.sourceAssetIdFor(key),
             if (frames.isNotEmpty)

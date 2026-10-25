@@ -1595,6 +1595,18 @@ class BattleOverlayComponent extends PositionComponent {
     await waitForPendingVisualSync();
   }
 
+  BattleCommandPanelPlacement _commandPanelPlacement = BattleCommandPanelPlacement.bottom;
+
+  bool _controllerLayout = false;
+
+  bool setCommandPanelPlacement(BattleCommandPanelPlacement placement, {bool controllerLayout = false}) {
+    if (_commandPanelPlacement == placement && _controllerLayout == controllerLayout) return true;
+    _commandPanelPlacement = placement;
+    _controllerLayout = controllerLayout;
+    _applyViewportLayout(size);
+    return true;
+  }
+
   @visibleForTesting
   BattleSceneLayout get currentSceneLayout =>
       _sceneLayout ??
@@ -1602,6 +1614,9 @@ class BattleOverlayComponent extends PositionComponent {
         viewportSize: Size(size.x, size.y),
         safePadding: _safeAreaPadding,
         textScale: textScale,
+        commandPanelPlacement: _commandPanelPlacement,
+        commandPanelMode: _overlayModeForMenuMode(_effectiveMenuMode()),
+        controllerLayout: _controllerLayout,
       );
 
   @visibleForTesting
@@ -1626,12 +1641,15 @@ class BattleOverlayComponent extends PositionComponent {
       viewportSize: Size(size.x, size.y),
       safePadding: _safeAreaPadding,
       textScale: textScale,
+      commandPanelPlacement: _commandPanelPlacement,
+      commandPanelMode: _overlayModeForMenuMode(_effectiveMenuMode()),
+      controllerLayout: _controllerLayout,
     );
     _sceneLayout = layout;
 
     final backdropStopwatch = Stopwatch()..start();
     _backdrop = BattleSceneBackdropComponent(
-      size: size.clone(),
+      size: Vector2(size.x, layout.commandPanelPlacement == BattleCommandPanelPlacement.bottom ? layout.commandPanelRect.top : size.y),
       backgroundSpec: backgroundSpec,
       visualAssetCache: visualAssetCache,
     );
@@ -1978,7 +1996,7 @@ class BattleOverlayComponent extends PositionComponent {
     unawaited(_pendingVisualSync);
   }
 
-  void _applyViewportLayout(Vector2 viewportSize) {
+  void _applyViewportLayout(Vector2 viewportSize, {bool syncPanels = true}) {
     if (viewportSize.x <= 0 || viewportSize.y <= 0) {
       return;
     }
@@ -1987,10 +2005,13 @@ class BattleOverlayComponent extends PositionComponent {
       viewportSize: Size(size.x, size.y),
       safePadding: _safeAreaPadding,
       textScale: textScale,
+      commandPanelPlacement: _commandPanelPlacement,
+      commandPanelMode: _overlayModeForMenuMode(_effectiveMenuMode()),
+      controllerLayout: _controllerLayout,
     );
     _sceneLayout = layout;
 
-    _backdrop?.size = viewportSize.clone();
+    _backdrop?.size = Vector2(size.x, layout.commandPanelPlacement == BattleCommandPanelPlacement.bottom ? layout.commandPanelRect.top : size.y);
     _fxLayer?.size = viewportSize.clone();
     _applyBattleCameraTransform();
     _syncFieldAmbientState();
@@ -2015,7 +2036,7 @@ class BattleOverlayComponent extends PositionComponent {
     _debugPanel?.position = Vector2(size.x - 248, 32);
     _applyBattleCameraTransform();
     _notifyOutcomePresented();
-    _syncPanelsOnly();
+    if (syncPanels) _syncPanelsOnly();
   }
 
   bool moveSelectionUp() {
@@ -2542,6 +2563,9 @@ class BattleOverlayComponent extends PositionComponent {
       return;
     }
     _syncMenuStateFromModel();
+    if (_sceneLayout?.commandPanelMode != _overlayModeForMenuMode(_effectiveMenuMode())) {
+      _applyViewportLayout(size, syncPanels: false);
+    }
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
@@ -2660,6 +2684,8 @@ class BattleOverlayComponent extends PositionComponent {
       mode: BattleCommandOverlayMode.decision,
       viewportSize: layout.viewportSize,
       panelRect: layout.commandPanelRect,
+      commandPanelPlacement: layout.commandPanelPlacement,
+      controllerLayout: _controllerLayout,
       additionalHuds: _additionalHudSnapshots(),
       actorSlot: _isDoubles ? runtimeBattleSlot(_battlePresentation!.request.actor) : null,
       actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
@@ -2735,6 +2761,8 @@ class BattleOverlayComponent extends PositionComponent {
       mode: choosingTarget ? BattleCommandOverlayMode.moveTarget : _overlayModeForMenuMode(menuModel.mode),
       viewportSize: layout.viewportSize,
       panelRect: layout.commandPanelRect,
+      commandPanelPlacement: layout.commandPanelPlacement,
+      controllerLayout: _controllerLayout,
       additionalHuds: _additionalHudSnapshots(),
       actorSlot: _isDoubles ? runtimeBattleSlot(_battlePresentation!.request.actor) : null,
       actorCombatantId: _isDoubles ? _battlePresentation!.request.actorCombatantId : null,
@@ -3906,9 +3934,10 @@ class BattleOverlayComponent extends PositionComponent {
 
   Vector2 _rmxpAnimationViewportSize() {
     final layout = currentSceneLayout;
-    final battleViewportHeight =
-        layout.commandPanelRect.top.clamp(0.0, size.y).toDouble();
-    return Vector2(size.x, battleViewportHeight);
+    final sidePanel = layout.commandPanelPlacement == BattleCommandPanelPlacement.end;
+    final detached = layout.commandPanelPlacement == BattleCommandPanelPlacement.detached;
+    final battleViewportHeight = (sidePanel || detached ? layout.arenaRect.bottom : layout.commandPanelRect.top).clamp(0.0, size.y).toDouble();
+    return Vector2(sidePanel ? layout.arenaRect.right : size.x, battleViewportHeight);
   }
 
   void _handleSceneTintStep(SceneTintStep step) {

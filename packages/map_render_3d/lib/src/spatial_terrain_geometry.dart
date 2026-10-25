@@ -262,6 +262,15 @@ typedef SpatialGroundUnderlay = ({
 typedef SpatialGroundUnderlayIndex =
     Map<(int, int), List<SpatialGroundUnderlay>>;
 
+List<BorderGroundPoint> _underlayPolygon(Iterable<BorderGroundPoint> points) {
+  final result = <BorderGroundPoint>[];
+  for (final point in points) {
+    if (result.isEmpty || result.last != point) result.add(point);
+  }
+  if (result.length > 1 && result.first == result.last) result.removeLast();
+  return result;
+}
+
 Iterable<SpatialTerrainFace> spatialTerrainUnderlayFaces(
   SpatialTerrainFace face,
   SpatialGroundUnderlayIndex supports,
@@ -272,10 +281,11 @@ Iterable<SpatialTerrainFace> spatialTerrainUnderlayFaces(
     return;
   }
   if (underlays == null || underlays.isEmpty) return;
-  final points = [
+  final points = _underlayPolygon([
     for (final position in face.positions)
       BorderGroundPoint(x: position.x, z: position.z),
-  ];
+  ]);
+  if (points.length < 3 || _groundPolygonArea(points).abs() <= 1e-12) return;
   var pieces = [(points: points, offset: 0.0, covered: false)];
   var changed = false;
   for (final underlay in underlays) {
@@ -308,11 +318,20 @@ Iterable<SpatialTerrainFace> spatialTerrainUnderlayFaces(
     return;
   }
   final origin = face.positions[0];
-  final u = face.positions[1] - origin;
+  var u = Vector3.zero();
+  for (final point in face.positions.skip(1)) {
+    final candidate = point - origin;
+    if (candidate.x * candidate.x + candidate.z * candidate.z >
+        u.x * u.x + u.z * u.z) {
+      u = candidate;
+    }
+  }
   final v = face.positions
-      .skip(2)
+      .skip(1)
       .map((point) => point - origin)
-      .firstWhere((point) => (u.x * point.z - u.z * point.x).abs() > 1e-12);
+      .where((point) => (u.x * point.z - u.z * point.x).abs() > 1e-12)
+      .firstOrNull;
+  if (v == null) return;
   final determinant = u.x * v.z - u.z * v.x;
   double heightAt(BorderGroundPoint point) {
     final x = point.x - origin.x, z = point.z - origin.z;
@@ -323,15 +342,18 @@ Iterable<SpatialTerrainFace> spatialTerrainUnderlayFaces(
 
   for (final piece in pieces) {
     if (!piece.covered) continue;
+    final polygon = _underlayPolygon(piece.points);
+    if (polygon.length < 3 || _groundPolygonArea(polygon).abs() <= 1e-12)
+      continue;
     yield (
       cell: face.cell,
       isTop: true,
       positions: [
-        for (final point in piece.points)
+        for (final point in polygon)
           Vector3(point.x, heightAt(point) + piece.offset, point.z),
       ],
       uvs: [
-        for (final point in piece.points)
+        for (final point in polygon)
           Vector2(point.x - face.cell.$1, point.z - face.cell.$2),
       ],
     );

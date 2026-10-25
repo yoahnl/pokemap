@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+  });
   group('BETA-PTY-001 Party and PC render one shared sheet', () {
     testWidgets('the same summary renders identical text on both surfaces', (
       tester,
@@ -202,6 +209,157 @@ void main() {
       expect(find.text('Défense'), findsNothing);
       expect(find.text('Aucun'), findsOneWidget);
     });
+
+    testWidgets('all four tab labels fit at the five target surface sizes', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      for (final size in [
+        const Size(390, 844),
+        const Size(844, 390),
+        const Size(496, 432),
+        const Size(768, 432),
+      ]) {
+        tester.view.physicalSize = size;
+        await tester.pumpWidget(
+          _host(
+            PlayerPokemonSummarySheet(
+              key: ValueKey(size),
+              summary: _summary(
+                moves: [
+                  for (var i = 0; i < 4; i++)
+                    RuntimePokemonMoveSummarySnapshot(
+                      moveId: i == 0 ? 'tackle' : 'tackle$i',
+                      label: [
+                        'Charge',
+                        'Fouet Lianes',
+                        'Vampigraine',
+                        'Poudre Dodo',
+                      ][i],
+                      typeLabel: 'Normal',
+                      currentPp: 20,
+                      maxPp: 20,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        for (final name in ['summary', 'moves', 'stats', 'actions']) {
+          final button = find.byKey(ValueKey('pokemon-summary-tab-$name'));
+          final bounds = tester.getRect(button);
+          final text = find.descendant(of: button, matching: find.byType(Text));
+          final paragraph = tester.renderObject<RenderParagraph>(text);
+          expect(paragraph.didExceedMaxLines, isFalse, reason: '$size $name');
+          expect(bounds.height, greaterThanOrEqualTo(48));
+          expect(button.hitTestable(), findsOneWidget);
+        }
+        final firstTab = tester.getRect(
+          find.byKey(const ValueKey('pokemon-summary-tab-summary')),
+        );
+        final lastTab = tester.getRect(
+          find.byKey(const ValueKey('pokemon-summary-tab-actions')),
+        );
+        expect(
+          firstTab.top,
+          lastTab.top,
+          reason: '$size keeps four normal-size tabs on one line',
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('pokemon-summary-tab-moves')),
+        );
+        await tester.pumpAndSettle();
+        final move = find.byKey(const ValueKey('pokemon-summary-move-tackle'));
+        expect(move.hitTestable(), findsOneWidget);
+        expect(tester.getSize(move).height, greaterThanOrEqualTo(48));
+        for (var i = 1; i < 4; i++) {
+          expect(
+            find.byKey(ValueKey('pokemon-summary-move-tackle$i')).hitTestable(),
+            findsOneWidget,
+            reason: '$size move $i',
+          );
+        }
+        if (size.width >= 450) {
+          final second = tester.getRect(
+            find.byKey(const ValueKey('pokemon-summary-move-tackle1')),
+          );
+          expect(tester.getRect(move).top, second.top);
+          expect(second.left, greaterThan(tester.getRect(move).right));
+        }
+        await tester.tap(move);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('pokemon-summary-selected-move')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull, reason: '$size');
+      }
+    });
+
+    testWidgets(
+      'companion keeps all four moves in its constrained content pane',
+      (tester) async {
+        await tester.pumpWidget(
+          _host(
+            Center(
+              child: SizedBox(
+                width: 432,
+                height: 240,
+                child: PlayerCompanionScope(
+                  child: PlayerPokemonSummarySheet(
+                    showHeader: false,
+                    summary: _summary(
+                      moves: [
+                        for (var i = 0; i < 4; i++)
+                          RuntimePokemonMoveSummarySnapshot(
+                            moveId: 'move$i',
+                            label: [
+                              'Fouet Lianes',
+                              'Charge',
+                              'Vampigraine',
+                              'Poudre Dodo',
+                            ][i],
+                            currentPp: i,
+                            maxPp: 20,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('pokemon-summary-tab-moves')),
+        );
+        await tester.pumpAndSettle();
+        for (var i = 0; i < 4; i++) {
+          expect(
+            find.byKey(ValueKey('pokemon-summary-move-move$i')).hitTestable(),
+            findsOneWidget,
+          );
+        }
+        final first = tester.getRect(
+          find.byKey(const ValueKey('pokemon-summary-move-move0')),
+        );
+        final second = tester.getRect(
+          find.byKey(const ValueKey('pokemon-summary-move-move1')),
+        );
+        expect(first.top, second.top);
+        expect(second.left - first.right, greaterThanOrEqualTo(8));
+        expect(
+          find
+              .byKey(const ValueKey('pokemon-summary-selected-move'))
+              .hitTestable(),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets('the sheet survives a narrow portrait viewport', (
       tester,

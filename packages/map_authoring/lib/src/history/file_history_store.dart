@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import '../security/authoring_permission.dart';
 import '../support/authoring_file_snapshot.dart';
 import '../support/authoring_fingerprint.dart';
+import '../support/authoring_timeline.dart';
 import 'authoring_history.dart';
 import 'history_store.dart';
 
@@ -95,12 +96,14 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     this._projectRoot,
     this._onFullRead,
     this._decodeExecutor,
+    this._incrementalWrites,
   );
 
   static Future<FileAuthoringHistoryStore> open({
     required String projectRoot,
     void Function()? onFullRead,
     FileAuthoringHistoryDecodeExecutor? decodeExecutor,
+    bool incrementalWrites = false,
   }) async {
     try {
       final directory = Directory(projectRoot);
@@ -114,6 +117,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
         await directory.resolveSymbolicLinks(),
         onFullRead,
         decodeExecutor ?? FileAuthoringHistoryDecodeExecutor(),
+        incrementalWrites,
       );
     } on AuthoringHistoryStoreException {
       rethrow;
@@ -128,6 +132,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
   final String _projectRoot;
   final void Function()? _onFullRead;
   final FileAuthoringHistoryDecodeExecutor _decodeExecutor;
+  final bool _incrementalWrites;
   _HistoryAppendIndex? _cachedAppendIndex;
   AuthoringFileSnapshot? _cachedSnapshot;
 
@@ -137,6 +142,21 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
   Future<void> append(AuthoringHistoryEntry entry) {
     return _guard(() async {
       await _withLock(() async {
+        if (_incrementalWrites) {
+          if (!entry.entryId.startsWith('receipt_document_')) {
+            throw const AuthoringHistoryException(
+              'history.incremental_identity_required',
+              'Incremental history requires a document receipt identity.',
+            );
+          }
+          await _appendIncremental(entry);
+          return;
+        }
+        _requirePublishedHead(await _readIncrementalHead());
+        final incremental = await _readIncremental(entry.entryId);
+        if (incremental != null) {
+          _requireSameEntry(incremental.entry, entry);
+        }
         final file = await _historyFile();
         final state = await _readAppendIndex(file);
         final key = _entryKey(entry.projectId, entry.entryId);
@@ -150,6 +170,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
             'The history entry identity is already in use.',
           );
         }
+        if (incremental != null) return;
         await _appendEvent(
           file,
           state,
@@ -172,7 +193,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     final safeEntry = safeAuthoringSecurityIdentifier(entryId, 'entryId');
     return _guard(() async {
       return _withLock(() async {
-        final state = await _readState(await _historyFile());
+        final state = await _readMergedState();
         return state.entries[_entryKey(safeProject, safeEntry)]?.entry;
       });
     });
@@ -197,6 +218,19 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     return _guard(() async {
       return _withLock(() async {
         final state = await _readState(await _historyFile());
+        final incremental = await _readIncrementalEntries();
+        for (final stored in incremental) {
+          final existing = state
+              .entries[_entryKey(stored.entry.projectId, stored.entry.entryId)];
+          if (existing != null) {
+            _requireSameEntry(existing.entry, stored.entry, ignoreMark: true);
+          }
+        }
+        if ((cursor != null && _isMixedCursor(cursor)) ||
+            (cursor == null && incremental.isNotEmpty)) {
+          return _mixedPage(state, incremental,
+              projectId: safeProject, limit: limit, cursor: cursor);
+        }
         final projectEntries = state.entries.values
             .where((stored) => stored.entry.projectId == safeProject)
             .toList()
@@ -246,6 +280,24 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     }
     return _guard(() async {
       return _withLock(() async {
+        final incremental = await _readIncremental(safeEntry);
+        if (incremental != null && incremental.entry.projectId == safeProject) {
+          final state = await _readMergedState();
+          final entry = state.entries[_entryKey(safeProject, safeEntry)]!.entry;
+          if (entry.nonUndoableReason != null) return entry;
+          final directory =
+              await _incrementalDirectory('history-entry-marks', create: true);
+          final file = await _checkedFile(directory!, '$safeEntry.json');
+          await _writeRecord(
+              file,
+              {
+                'schemaVersion': 1,
+                'entryFingerprint': _entryFingerprint(incremental.entry),
+                'reason': reason,
+              },
+              'authoring-history-entry-mark.json');
+          return entry.markNonUndoable(reason);
+        }
         final file = await _historyFile();
         final state = await _readState(file);
         final stored = state.entries[_entryKey(safeProject, safeEntry)];
@@ -271,6 +323,350 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
         return stored.entry.markNonUndoable(reason);
       });
     });
+  }
+
+  Future<void> _appendIncremental(AuthoringHistoryEntry entry) async {
+    final head = await _readIncrementalHead();
+    final pending = head.pending;
+    final fingerprint = _entryFingerprint(entry);
+    if (pending != null && pending.entryId != entry.entryId) {
+      _requirePublishedHead(head);
+    }
+    if (pending != null && pending.fingerprint != fingerprint) {
+      throw const AuthoringHistoryStoreException('history.identity_conflict',
+          'The pending history entry owns another payload.');
+    }
+    final existing = await _readIncremental(entry.entryId);
+    if (existing != null) {
+      _requireSameEntry(existing.entry, entry);
+      if (pending == null && existing.generation > head.publishedGeneration) {
+        throw const FormatException();
+      }
+      if (pending == null) return;
+      if (existing.generation != pending.generation) {
+        throw const FormatException();
+      }
+    }
+    final generation = pending?.generation ?? head.publishedGeneration + 1;
+    if (pending == null) {
+      await _writeIncrementalHead(_IncrementalHistoryHead(
+        head.publishedGeneration,
+        _PendingIncrementalHistoryEntry(generation, entry.entryId, fingerprint),
+      ));
+    }
+    if (existing == null) {
+      final root = await _incrementalDirectory('history-entries', create: true);
+      final file = await _checkedFile(root!, '${entry.entryId}.json');
+      await _writeRecord(
+          file,
+          {
+            'schemaVersion': 1,
+            'generation': generation,
+            'entry': entry.toJson(),
+          },
+          'authoring-history-immutable-entry.json');
+    }
+    await _writeIncrementalHead(_IncrementalHistoryHead(generation, null));
+  }
+
+  Future<_IncrementalHistoryHead> _readIncrementalHead() async {
+    final file = await _checkedFile(
+        await _authoringRoot(), 'history-entries.sequence.json');
+    if (!await file.exists()) {
+      if (await _incrementalDirectory('history-entries') != null) {
+        throw const FormatException('Missing incremental history generation.');
+      }
+      return const _IncrementalHistoryHead(0, null);
+    }
+    final record = await _readRecord(
+        file,
+        'authoring-history-entry-sequence.json',
+        const {'schemaVersion', 'publishedGeneration', 'pending'});
+    final published = record['publishedGeneration'];
+    if (published is! int || published < 0) {
+      throw const FormatException();
+    }
+    final rawPending = record['pending'];
+    if (rawPending == null) return _IncrementalHistoryHead(published, null);
+    if (rawPending is! Map ||
+        rawPending.length != 3 ||
+        rawPending.keys.any((key) =>
+            !const {'generation', 'entryId', 'fingerprint'}.contains(key)) ||
+        rawPending['generation'] != published + 1 ||
+        rawPending['entryId'] is! String ||
+        rawPending['fingerprint'] is! String ||
+        !RegExp(r'^sha256:[0-9a-f]{64}$')
+            .hasMatch(rawPending['fingerprint'] as String)) {
+      throw const FormatException();
+    }
+    final entryId = safeAuthoringSecurityIdentifier(
+        rawPending['entryId'] as String, 'entryId');
+    if (!entryId.startsWith('receipt_document_')) throw const FormatException();
+    return _IncrementalHistoryHead(
+        published,
+        _PendingIncrementalHistoryEntry(
+            published + 1, entryId, rawPending['fingerprint'] as String));
+  }
+
+  Future<void> _writeIncrementalHead(_IncrementalHistoryHead head) async {
+    final file = await _checkedFile(
+        await _authoringRoot(), 'history-entries.sequence.json');
+    await _writeRecord(
+        file,
+        {
+          'schemaVersion': 1,
+          'publishedGeneration': head.publishedGeneration,
+          'pending': head.pending == null
+              ? null
+              : {
+                  'generation': head.pending!.generation,
+                  'entryId': head.pending!.entryId,
+                  'fingerprint': head.pending!.fingerprint,
+                },
+        },
+        'authoring-history-entry-sequence.json');
+  }
+
+  void _requirePublishedHead(_IncrementalHistoryHead head) {
+    if (head.pending != null) {
+      throw const AuthoringHistoryException('history.recovery_required',
+          'Retry the pending history entry before accessing or appending history.');
+    }
+  }
+
+  Future<_IncrementalHistoryEntry?> _readIncremental(String entryId) async {
+    final safeEntry = safeAuthoringSecurityIdentifier(entryId, 'entryId');
+    final root = await _incrementalDirectory('history-entries');
+    if (root == null) return null;
+    final file = await _checkedFile(root, '$safeEntry.json');
+    if (!await file.exists()) return null;
+    final record = await _readRecord(
+        file,
+        'authoring-history-immutable-entry.json',
+        const {'schemaVersion', 'generation', 'entry'});
+    final generation = record['generation'];
+    if (generation is! int || generation < 1 || record['entry'] is! Map) {
+      throw const FormatException();
+    }
+    final entry = AuthoringHistoryEntry.fromJson(
+        Map<String, dynamic>.from(record['entry']! as Map));
+    if (entry.entryId != safeEntry ||
+        !entry.entryId.startsWith('receipt_document_')) {
+      throw const FormatException();
+    }
+    return _IncrementalHistoryEntry(entry, generation);
+  }
+
+  Future<List<_IncrementalHistoryEntry>> _readIncrementalEntries() async {
+    final head = await _readIncrementalHead();
+    _requirePublishedHead(head);
+    final root = await _incrementalDirectory('history-entries');
+    if (root == null) {
+      if (head.publishedGeneration != 0) throw const FormatException();
+      return const [];
+    }
+    final maximum = head.publishedGeneration;
+    final generations = <int>{};
+    final entries = <_IncrementalHistoryEntry>[];
+    await for (final entity in root.list(followLinks: false)) {
+      final name = entity.uri.pathSegments.last;
+      if (entity is! File || !name.endsWith('.json')) {
+        throw const AuthoringHistoryStoreException('history.store_path_invalid',
+            'The incremental history path is unsafe.');
+      }
+      final entry = await _readIncremental(name.substring(0, name.length - 5));
+      if (entry == null ||
+          entry.generation > maximum ||
+          !generations.add(entry.generation)) {
+        throw const FormatException();
+      }
+      entries.add(_IncrementalHistoryEntry(
+          await _applyIncrementalMark(entry.entry), entry.generation));
+    }
+    if (generations.length != maximum) throw const FormatException();
+    return entries;
+  }
+
+  Future<AuthoringHistoryEntry> _applyIncrementalMark(
+      AuthoringHistoryEntry entry) async {
+    final root = await _incrementalDirectory('history-entry-marks');
+    if (root == null) return entry;
+    final file = await _checkedFile(root, '${entry.entryId}.json');
+    if (!await file.exists()) return entry;
+    final record = await _readRecord(file, 'authoring-history-entry-mark.json',
+        const {'schemaVersion', 'entryFingerprint', 'reason'});
+    final reason = record['reason'];
+    if (record['entryFingerprint'] != _entryFingerprint(entry) ||
+        reason is! String ||
+        !RegExp(r'^[a-z][a-z0-9_.-]*$').hasMatch(reason)) {
+      throw const FormatException();
+    }
+    return entry.markNonUndoable(reason);
+  }
+
+  Future<_HistoryState> _readMergedState() async {
+    final legacy = await _readState(await _historyFile());
+    final entries = Map<String, _StoredHistoryEntry>.of(legacy.entries);
+    for (final incremental in await _readIncrementalEntries()) {
+      final key =
+          _entryKey(incremental.entry.projectId, incremental.entry.entryId);
+      final existing = entries[key];
+      if (existing != null) {
+        _requireSameEntry(existing.entry, incremental.entry, ignoreMark: true);
+        if (existing.entry.nonUndoableReason == null) {
+          entries[key] = _StoredHistoryEntry(
+              entry: incremental.entry, sequence: existing.sequence);
+        }
+      } else {
+        entries[key] = _StoredHistoryEntry(
+            entry: incremental.entry, sequence: incremental.generation);
+      }
+    }
+    return _HistoryState(
+        entries: entries,
+        lastSequence: legacy.lastSequence,
+        lastDigest: legacy.lastDigest);
+  }
+
+  Future<AuthoringHistoryPage> _mixedPage(
+    _HistoryState legacy,
+    List<_IncrementalHistoryEntry> incremental, {
+    required String projectId,
+    required int limit,
+    required AuthoringHistoryCursor? cursor,
+  }) async {
+    final head = await _readIncrementalHead();
+    _requirePublishedHead(head);
+    final maximum = head.publishedGeneration;
+    final decoded =
+        cursor == null ? null : _decodeMixedCursor(cursor, projectId);
+    final legacyMaximum = decoded?.legacyMaximum ?? legacy.lastSequence;
+    final generationMaximum = decoded?.generationMaximum ?? maximum;
+    if (legacyMaximum > legacy.lastSequence || generationMaximum > maximum) {
+      throw const AuthoringHistoryException(
+          'history.cursor_invalid', 'The history snapshot is unavailable.');
+    }
+    final entries = <String, AuthoringHistoryEntry>{};
+    for (final stored in legacy.entries.values) {
+      if (stored.sequence <= legacyMaximum &&
+          stored.entry.projectId == projectId) {
+        entries[stored.entry.entryId] = stored.entry;
+      }
+    }
+    for (final stored in incremental) {
+      if (stored.entry.projectId != projectId) continue;
+      final existing =
+          legacy.entries[_entryKey(projectId, stored.entry.entryId)];
+      if (existing != null) {
+        _requireSameEntry(existing.entry, stored.entry, ignoreMark: true);
+      }
+      if (stored.generation <= generationMaximum) {
+        entries[stored.entry.entryId] =
+            existing?.entry.nonUndoableReason != null
+                ? existing!.entry
+                : stored.entry;
+      }
+    }
+    final ordered = entries.values
+        .where((entry) =>
+            decoded == null ||
+            _compareHistoryKey(entry.committedAt, entry.entryId,
+                    decoded.beforeTime, decoded.beforeId) <
+                0)
+        .toList()
+      ..sort((left, right) => _compareHistoryKey(
+          right.committedAt, right.entryId, left.committedAt, left.entryId));
+    final page = ordered.take(limit).toList(growable: false);
+    return AuthoringHistoryPage(
+        entries: List.unmodifiable(page),
+        nextCursor: ordered.length > page.length
+            ? _encodeMixedCursor(
+                projectId, legacyMaximum, generationMaximum, page.last)
+            : null);
+  }
+
+  void _requireSameEntry(
+      AuthoringHistoryEntry before, AuthoringHistoryEntry after,
+      {bool ignoreMark = false}) {
+    final left = before.toJson();
+    final right = after.toJson();
+    if (ignoreMark) {
+      if (before.nonUndoableReason != null &&
+          after.nonUndoableReason != null &&
+          before.nonUndoableReason != after.nonUndoableReason) {
+        throw const AuthoringHistoryStoreException(
+            'history.identity_conflict', 'The history entry marks conflict.');
+      }
+      left.remove('nonUndoableReason');
+      right.remove('nonUndoableReason');
+    }
+    if (canonicalAuthoringJson(left) != canonicalAuthoringJson(right)) {
+      throw const AuthoringHistoryStoreException('history.identity_conflict',
+          'The history entry identity is already in use.');
+    }
+  }
+
+  Future<Directory?> _incrementalDirectory(String name,
+      {bool create = false}) async {
+    final root = Directory(_join((await _authoringRoot()).path, name));
+    final type = await FileSystemEntity.type(root.path, followLinks: false);
+    if (type == FileSystemEntityType.notFound) {
+      if (!create) return null;
+      await root.create();
+    } else if (type != FileSystemEntityType.directory) {
+      throw const AuthoringHistoryStoreException('history.store_path_invalid',
+          'The incremental history directory is unsafe.');
+    }
+    return root;
+  }
+
+  Future<File> _checkedFile(Directory root, String name) async {
+    final file = File(_join(root.path, name));
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type != FileSystemEntityType.notFound &&
+        type != FileSystemEntityType.file) {
+      throw const AuthoringHistoryStoreException('history.store_path_invalid',
+          'The incremental history file is unsafe.');
+    }
+    return file;
+  }
+
+  Future<Map<String, Object?>> _readRecord(
+      File file, String logicalName, Set<String> keys) async {
+    final raw = jsonDecode(await file.readAsString());
+    if (raw is! Map) throw const FormatException();
+    final record = Map<String, Object?>.from(raw);
+    final digest = record.remove('digest');
+    if (record['schemaVersion'] != 1 ||
+        record.length != keys.length ||
+        record.keys.any((key) => !keys.contains(key)) ||
+        digest !=
+            computeAuthoringJsonFingerprint(record, logicalName: logicalName)) {
+      throw const FormatException();
+    }
+    return record;
+  }
+
+  Future<void> _writeRecord(
+      File file, Map<String, Object?> record, String logicalName) async {
+    final temporary =
+        await _checkedFile(file.parent, '${file.uri.pathSegments.last}.tmp');
+    try {
+      final writer = await temporary.open(mode: FileMode.write);
+      try {
+        await writer.writeString(jsonEncode({
+          ...record,
+          'digest':
+              computeAuthoringJsonFingerprint(record, logicalName: logicalName)
+        }));
+        await writer.flush();
+      } finally {
+        await writer.close();
+      }
+      await temporary.rename(file.path);
+    } finally {
+      if (await temporary.exists()) await temporary.delete();
+    }
   }
 
   Future<void> _appendEvent(
@@ -313,14 +709,22 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
       _cachedSnapshot = null;
       return state;
     }
-    final bytes = await file.readAsBytes();
+    final bytes = await traceAuthoringPhase(
+      'authoring.history.read_file',
+      file.readAsBytes,
+      arguments: {'bytes': snapshot.size},
+    );
     if (bytes.isEmpty) {
       final state = _HistoryState.empty();
       _cachedAppendIndex = _HistoryAppendIndex.fromState(state);
       _cachedSnapshot = snapshot;
       return state;
     }
-    final decoded = await _decodeExecutor._decode(bytes);
+    final decoded = await traceAuthoringPhase(
+      'authoring.history.decode_dispatch',
+      () => _decodeExecutor._decode(bytes),
+      arguments: {'bytes': bytes.length},
+    );
     final state = decoded.state;
     _cachedAppendIndex = decoded.appendIndex;
     _cachedSnapshot = snapshot;
@@ -426,6 +830,123 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
   }
 }
 
+final class _IncrementalHistoryEntry {
+  const _IncrementalHistoryEntry(this.entry, this.generation);
+
+  final AuthoringHistoryEntry entry;
+  final int generation;
+}
+
+final class _IncrementalHistoryHead {
+  const _IncrementalHistoryHead(this.publishedGeneration, this.pending);
+
+  final int publishedGeneration;
+  final _PendingIncrementalHistoryEntry? pending;
+}
+
+final class _PendingIncrementalHistoryEntry {
+  const _PendingIncrementalHistoryEntry(
+      this.generation, this.entryId, this.fingerprint);
+
+  final int generation;
+  final String entryId;
+  final String fingerprint;
+}
+
+final class _MixedHistoryCursor {
+  const _MixedHistoryCursor(this.legacyMaximum, this.generationMaximum,
+      this.beforeTime, this.beforeId);
+
+  final int legacyMaximum;
+  final int generationMaximum;
+  final DateTime beforeTime;
+  final String beforeId;
+}
+
+int _compareHistoryKey(
+    DateTime leftTime, String leftId, DateTime rightTime, String rightId) {
+  final compared = leftTime.compareTo(rightTime);
+  return compared == 0 ? leftId.compareTo(rightId) : compared;
+}
+
+Map<String, dynamic> _cursorEnvelope(AuthoringHistoryCursor cursor) {
+  final value = cursor.wireValue;
+  final padded =
+      value.padRight(value.length + ((4 - value.length % 4) % 4), '=');
+  final decoded = jsonDecode(utf8.decode(base64Url.decode(padded)));
+  if (decoded is! Map || decoded['payload'] is! Map) {
+    throw const FormatException();
+  }
+  return Map<String, dynamic>.from(decoded);
+}
+
+bool _isMixedCursor(AuthoringHistoryCursor cursor) {
+  try {
+    return (_cursorEnvelope(cursor)['payload'] as Map)['schemaVersion'] == 2;
+  } on Object {
+    throw const AuthoringHistoryException(
+        'history.cursor_invalid', 'The history cursor is invalid.');
+  }
+}
+
+AuthoringHistoryCursor _encodeMixedCursor(String projectId, int legacyMaximum,
+    int generationMaximum, AuthoringHistoryEntry before) {
+  final payload = <String, Object?>{
+    'schemaVersion': 2,
+    'projectId': projectId,
+    'legacyMaximum': legacyMaximum,
+    'generationMaximum': generationMaximum,
+    'beforeTime': before.committedAt.toUtc().toIso8601String(),
+    'beforeId': before.entryId,
+  };
+  return AuthoringHistoryCursor.fromWireValue(
+      base64UrlEncode(utf8.encode(jsonEncode({
+    'payload': payload,
+    'digest': computeAuthoringJsonFingerprint(payload,
+        logicalName: 'authoring-history-cursor.json'),
+  }))).replaceAll('=', ''));
+}
+
+_MixedHistoryCursor _decodeMixedCursor(
+    AuthoringHistoryCursor cursor, String projectId) {
+  try {
+    final envelope = _cursorEnvelope(cursor);
+    final payload = Map<String, Object?>.from(envelope['payload'] as Map);
+    const keys = {
+      'schemaVersion',
+      'projectId',
+      'legacyMaximum',
+      'generationMaximum',
+      'beforeTime',
+      'beforeId'
+    };
+    final legacy = payload['legacyMaximum'];
+    final generation = payload['generationMaximum'];
+    if (payload.length != keys.length ||
+        payload.keys.any((key) => !keys.contains(key)) ||
+        payload['schemaVersion'] != 2 ||
+        payload['projectId'] != projectId ||
+        legacy is! int ||
+        legacy < 0 ||
+        generation is! int ||
+        generation < 1 ||
+        payload['beforeTime'] is! String ||
+        payload['beforeId'] is! String ||
+        envelope['digest'] !=
+            computeAuthoringJsonFingerprint(payload,
+                logicalName: 'authoring-history-cursor.json')) {
+      throw const FormatException();
+    }
+    final time = DateTime.parse(payload['beforeTime']! as String);
+    final id = safeAuthoringSecurityIdentifier(
+        payload['beforeId']! as String, 'beforeId');
+    return _MixedHistoryCursor(legacy, generation, time, id);
+  } on Object {
+    throw const AuthoringHistoryException(
+        'history.cursor_invalid', 'The history cursor is invalid.');
+  }
+}
+
 final class _HistoryReadResult {
   const _HistoryReadResult({
     required this.state,
@@ -436,7 +957,14 @@ final class _HistoryReadResult {
   final _HistoryAppendIndex appendIndex;
 }
 
-_HistoryReadResult _decodeFileAuthoringHistory(Uint8List bytes) {
+_HistoryReadResult _decodeFileAuthoringHistory(Uint8List bytes) =>
+    traceAuthoringSync(
+      'authoring.history.decode_worker',
+      () => _decodeHistoryEvents(bytes),
+      arguments: {'bytes': bytes.length},
+    );
+
+_HistoryReadResult _decodeHistoryEvents(Uint8List bytes) {
   final entries = <String, _StoredHistoryEntry>{};
   var lastSequence = 0;
   String? lastDigest;
@@ -515,7 +1043,11 @@ _HistoryReadResult _decodeFileAuthoringHistory(Uint8List bytes) {
   );
   return _HistoryReadResult(
     state: state,
-    appendIndex: _HistoryAppendIndex.fromState(state),
+    appendIndex: traceAuthoringSync(
+      'authoring.history.build_append_index',
+      () => _HistoryAppendIndex.fromState(state),
+      arguments: {'entries': state.entries.length},
+    ),
   );
 }
 

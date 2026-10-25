@@ -46,3 +46,7 @@ flutter:
           weight: 500
         - asset: assets/fonts/DMSans-Variable.ttf
           weight: 600
+        - asset: assets/fonts/DMSans-Variable.ttf
+          weight: 700
+        - asset: assets/fonts/DMSans-Variable.ttf
+          weight: 800

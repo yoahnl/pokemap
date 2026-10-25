@@ -11,7 +11,7 @@ dependencies:
   flame: 2.0.0-dev.1
   flame_3d: 0.4.0-dev.1
   map_core:
-    path: ../map_core
+    path: /Users/karim/Project/pokemonProject/packages/map_core
 dev_dependencies:
   image: ^4.0.9
   flutter_test:

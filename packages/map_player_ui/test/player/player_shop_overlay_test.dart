@@ -4,233 +4,242 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  testWidgets('shop renders runtime prices and emits versioned commands',
-      (tester) async {
-    final commands = <RuntimeWorldServiceCommand>[];
-    final snapshot = RuntimeWorldServiceSnapshot(
-      revision: 7,
-      request: const OpenShopService(
-        interactionId: 'npc.merchant',
-        shopId: 'mart',
-      ),
-      stage: RuntimeWorldServiceStage.active,
-      content: RuntimeShopServiceContent(
-        title: 'Boutique du Port',
-        message: 'Bienvenue !',
-        money: 500,
-        entries: const <RuntimeShopEntrySnapshot>[
-          RuntimeShopEntrySnapshot(
-            itemId: 'potion',
-            label: 'Potion',
-            unitPrice: 60,
-            remainingStock: 3,
-          ),
-        ],
-        selectedItemId: 'potion',
-        quantity: 1,
-        totalPrice: 60,
-      ),
-      actions: const <RuntimeWorldServiceActionAvailability>[
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.select,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.increaseQuantity,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.confirm,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.close,
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      _app(
-        PlayerShopOverlay(
-          snapshot: snapshot,
-          onCommand: commands.add,
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
-
-    expect(find.descendant(of: find.byType(PlayerShopOverlay), matching: find.byType(Scrollable)), findsNothing);
-
-    expect(find.text('Boutique du Port'), findsOneWidget);
-    expect(find.text('500 ₽'), findsOneWidget);
-    expect(find.text('60 ₽'), findsWidgets);
-    expect(find.text('Stock : 3'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey<String>('shop-quantity-plus')));
-    await tester.tap(find.byKey(const ValueKey<String>('shop-buy')));
-    await tester.tap(find.byKey(const ValueKey<String>('shop-close')));
-
-    expect(
-      commands.map((command) => command.action),
-      <RuntimeWorldServiceAction>[
+  testWidgets(
+    'shop starts with its list and waits for runtime selection before quantity',
+    (tester) async {
+      final commands = <RuntimeWorldServiceCommand>[];
+      final initial = _snapshot();
+      await _pump(tester, initial, commands.add);
+      expect(find.text('Boutique du Port'), findsOneWidget);
+      expect(find.text('500 ₽'), findsOneWidget);
+      expect(find.text('Stock : 3'), findsWidgets);
+      expect(find.byKey(const ValueKey('shop-quantity-plus')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('shop-item-potion')));
+      await tester.pumpAndSettle();
+      expect(commands.single.action, RuntimeWorldServiceAction.select);
+      expect(commands.single.snapshotRevision, 7);
+      expect(commands.single.targetId, 'potion');
+      expect(find.byKey(const ValueKey('shop-quantity-review')), findsNothing);
+      await _pump(tester, initial.next(), commands.add);
+      expect(
+        find.byKey(const ValueKey('shop-quantity-review')),
+        findsOneWidget,
+      );
+      expect(find.text('Prix unitaire : 60 ₽'), findsOneWidget);
+      expect(find.text('Total : 60 ₽'), findsOneWidget);
+      expect(find.text('Solde après : 440 ₽'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('shop-quantity-plus')));
+      await tester.tap(find.byKey(const ValueKey('shop-buy')));
+      expect(commands.map((command) => command.action), [
+        RuntimeWorldServiceAction.select,
         RuntimeWorldServiceAction.increaseQuantity,
         RuntimeWorldServiceAction.confirm,
-        RuntimeWorldServiceAction.close,
-      ],
-    );
-    expect(commands.every((command) => command.snapshotRevision == 7), isTrue);
-    expect(commands[1].targetId, 'potion');
-    expect(commands[1].quantity, 1);
-  });
+      ]);
+      expect(commands.last.snapshotRevision, 8);
+      expect(commands.last.targetId, 'potion');
+      expect(commands.last.quantity, 1);
+      expect(
+        find.byKey(const ValueKey('shop-quantity-review')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(PlayerShopOverlay),
+          matching: find.byType(Scrollable),
+        ),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('empty and unavailable shop states stay player-safe',
-      (tester) async {
-    final snapshot = RuntimeWorldServiceSnapshot(
-      revision: 2,
-      request: const OpenShopService(
-        interactionId: 'npc.merchant',
-        shopId: 'empty',
-      ),
-      stage: RuntimeWorldServiceStage.active,
-      content: RuntimeShopServiceContent(
-        title: 'Échoppe',
-        message: 'Revenez plus tard.',
-        money: 10,
-        entries: <RuntimeShopEntrySnapshot>[],
-      ),
-      actions: <RuntimeWorldServiceActionAvailability>[
-        RuntimeWorldServiceActionAvailability.disabled(
-          RuntimeWorldServiceAction.confirm,
-          reason: 'Cette boutique est vide.',
+  testWidgets(
+    'quantity return is local while close emits the runtime close intent',
+    (tester) async {
+      final commands = <RuntimeWorldServiceCommand>[];
+      final initial = _snapshot();
+      await _pump(tester, initial, commands.add);
+      await tester.tap(find.byKey(const ValueKey('shop-item-potion')));
+      await _pump(tester, initial.next(), commands.add);
+      await tester.tap(find.byKey(const ValueKey('shop-quantity-back')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('shop-quantity-review')), findsNothing);
+      expect(find.byKey(const ValueKey('shop-item-potion')), findsOneWidget);
+      expect(commands.map((command) => command.action), [
+        RuntimeWorldServiceAction.select,
+      ]);
+      await tester.tap(find.byKey(const ValueKey('shop-close')));
+      expect(commands.last.action, RuntimeWorldServiceAction.close);
+      expect(commands.last.snapshotRevision, 8);
+      expect(
+        commands.any(
+          (command) => command.action == RuntimeWorldServiceAction.cancel,
         ),
-        const RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.close,
-        ),
-      ],
-    );
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-    await tester.pumpWidget(
-      _app(
-        PlayerShopOverlay(
-          snapshot: snapshot,
-          onCommand: (_) {},
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
+  testWidgets(
+    'stale snapshots cannot open quantity and missing items return to list',
+    (tester) async {
+      final commands = <RuntimeWorldServiceCommand>[];
+      final initial = _snapshot();
+      await _pump(tester, initial, commands.add);
+      await tester.tap(find.byKey(const ValueKey('shop-item-potion')));
+      await _pump(tester, _snapshot(), commands.add);
+      expect(find.byKey(const ValueKey('shop-quantity-review')), findsNothing);
+      await _pump(tester, initial.next(), commands.add);
+      expect(
+        find.byKey(const ValueKey('shop-quantity-review')),
+        findsOneWidget,
+      );
+      await _pump(tester, _snapshot(revision: 9, empty: true), commands.add);
+      expect(find.byKey(const ValueKey('shop-quantity-review')), findsNothing);
+      expect(find.text('Cette boutique est vide.'), findsOneWidget);
+      final buy = tester.widget<PlayerActionButton>(
+        find.byKey(const ValueKey('shop-buy')),
+      );
+      expect(buy.onPressed, isNull);
+      expect(commands, hasLength(1));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-    expect(find.text('Cette boutique est vide.'), findsOneWidget);
-    expect(find.text('Revenez plus tard.'), findsOneWidget);
-    final buy = tester.widget<PlayerActionButton>(
-      find.byKey(const ValueKey<String>('shop-buy')),
-    );
-    expect(buy.onPressed, isNull);
-  });
-
-  testWidgets('sell mode localizes owned quantities and emits sale intents',
-      (tester) async {
-    final commands = <RuntimeWorldServiceCommand>[];
-    final snapshot = RuntimeWorldServiceSnapshot(
-      revision: 11,
-      request: const OpenShopService(
-        interactionId: 'npc.merchant',
-        shopId: 'mart',
-      ),
-      stage: RuntimeWorldServiceStage.active,
-      content: RuntimeShopServiceContent(
-        title: 'Harbor Shop',
-        message: 'Welcome!',
-        money: 120,
-        mode: RuntimeShopMode.sell,
-        entries: const <RuntimeShopEntrySnapshot>[
-          RuntimeShopEntrySnapshot(
-            itemId: 'potion',
-            label: 'Potion',
-            unitPrice: 30,
-            ownedQuantity: 3,
-          ),
-          RuntimeShopEntrySnapshot(
-            itemId: 'bike-pass',
-            label: 'Bike Pass',
-            unitPrice: 0,
-            ownedQuantity: 1,
-            canTransact: false,
-            unavailableReason: 'Key items cannot be sold.',
-          ),
-        ],
-        selectedItemId: 'potion',
-        quantity: 2,
-        totalPrice: 60,
-      ),
-      actions: const <RuntimeWorldServiceActionAvailability>[
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.showPurchases,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.showSales,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.select,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.decreaseQuantity,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.increaseQuantity,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.confirm,
-        ),
-        RuntimeWorldServiceActionAvailability.enabled(
-          RuntimeWorldServiceAction.close,
-        ),
-      ],
-    );
-
-    await tester.pumpWidget(
-      _app(
-        PlayerShopOverlay(
-          snapshot: snapshot,
-          onCommand: commands.add,
-        ),
+  testWidgets(
+    'sell review uses runtime quantities and preserves versioned sale intents',
+    (tester) async {
+      final commands = <RuntimeWorldServiceCommand>[];
+      final initial = _snapshot(selling: true, quantity: 2);
+      await _pump(tester, initial, commands.add, locale: const Locale('en'));
+      expect(find.text('Owned: 3'), findsWidgets);
+      expect(find.text('Cannot be sold'), findsOneWidget);
+      expect(find.byKey(const ValueKey('shop-quantity-review')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('shop-item-potion')));
+      await _pump(
+        tester,
+        initial.next(),
+        commands.add,
         locale: const Locale('en'),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
+      );
+      expect(find.text('Total: 60 ₽'), findsOneWidget);
+      expect(find.text('Balance after : 560 ₽'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('shop-sell')));
+      expect(commands.last.action, RuntimeWorldServiceAction.confirm);
+      expect(commands.last.targetId, 'potion');
+      expect(commands.last.quantity, 2);
+      expect(commands.last.snapshotRevision, 8);
+      await tester.tap(find.byKey(const ValueKey('shop-quantity-back')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('shop-mode-buy')));
+      expect(commands.last.action, RuntimeWorldServiceAction.showPurchases);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-    expect(find.text('Buy'), findsOneWidget);
-    expect(find.text('Sell'), findsWidgets);
-    expect(find.text('Owned: 3'), findsOneWidget);
-    expect(find.text('Cannot be sold'), findsOneWidget);
-    expect(find.text('Total: 60 ₽'), findsOneWidget);
-
-    await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('shop-sell')),
-    );
-    await tester.tap(find.byKey(const ValueKey<String>('shop-sell')));
-    await tester.tap(find.byKey(const ValueKey<String>('shop-mode-buy')));
-
-    expect(
-      commands.map((command) => command.action),
-      <RuntimeWorldServiceAction>[
-        RuntimeWorldServiceAction.confirm,
-        RuntimeWorldServiceAction.showPurchases,
-      ],
-    );
-    expect(commands.first.targetId, 'potion');
-    expect(commands.first.quantity, 2);
-    expect(commands.every((command) => command.snapshotRevision == 11), isTrue);
-  });
+  testWidgets(
+    'disabled runtime transactions retain the reason and cannot confirm',
+    (tester) async {
+      final commands = <RuntimeWorldServiceCommand>[];
+      final initial = _snapshot(confirmEnabled: false);
+      await _pump(tester, initial, commands.add);
+      await tester.tap(find.byKey(const ValueKey('shop-item-potion')));
+      await _pump(tester, initial.next(), commands.add);
+      expect(find.text('Argent insuffisant.'), findsWidgets);
+      expect(
+        tester
+            .widget<PlayerActionButton>(find.byKey(const ValueKey('shop-buy')))
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('shop-buy')),
+        warnIfMissed: false,
+      );
+      expect(commands.map((command) => command.action), [
+        RuntimeWorldServiceAction.select,
+      ]);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
-Widget _app(
-  Widget child, {
+RuntimeWorldServiceSnapshot _snapshot({
+  int revision = 7,
+  bool empty = false,
+  bool selling = false,
+  bool confirmEnabled = true,
+  int quantity = 1,
+}) => RuntimeWorldServiceSnapshot(
+  revision: revision,
+  request: const OpenShopService(interactionId: 'npc.merchant', shopId: 'mart'),
+  stage: RuntimeWorldServiceStage.active,
+  content: RuntimeShopServiceContent(
+    title: 'Boutique du Port',
+    message: 'Bienvenue !',
+    money: 500,
+    mode: selling ? RuntimeShopMode.sell : RuntimeShopMode.buy,
+    entries: empty
+        ? []
+        : [
+            RuntimeShopEntrySnapshot(
+              itemId: 'potion',
+              label: 'Potion',
+              unitPrice: selling ? 30 : 60,
+              remainingStock: 3,
+              ownedQuantity: 3,
+            ),
+            if (selling)
+              const RuntimeShopEntrySnapshot(
+                itemId: 'bike-pass',
+                label: 'Bike Pass',
+                unitPrice: 0,
+                ownedQuantity: 1,
+                canTransact: false,
+                unavailableReason: 'Key items cannot be sold.',
+              ),
+          ],
+    selectedItemId: empty ? null : 'potion',
+    quantity: quantity,
+    totalPrice: empty ? 0 : (selling ? 30 : 60) * quantity,
+  ),
+  actions: [
+    for (final action in [
+      RuntimeWorldServiceAction.select,
+      RuntimeWorldServiceAction.showPurchases,
+      RuntimeWorldServiceAction.showSales,
+      RuntimeWorldServiceAction.decreaseQuantity,
+      RuntimeWorldServiceAction.increaseQuantity,
+      RuntimeWorldServiceAction.close,
+    ])
+      RuntimeWorldServiceActionAvailability.enabled(action),
+    if (empty || !confirmEnabled)
+      RuntimeWorldServiceActionAvailability.disabled(
+        RuntimeWorldServiceAction.confirm,
+        reason: empty ? 'Cette boutique est vide.' : 'Argent insuffisant.',
+      )
+    else
+      const RuntimeWorldServiceActionAvailability.enabled(
+        RuntimeWorldServiceAction.confirm,
+      ),
+  ],
+);
+
+Future<void> _pump(
+  WidgetTester tester,
+  RuntimeWorldServiceSnapshot snapshot,
+  ValueChanged<RuntimeWorldServiceCommand> onCommand, {
   Locale locale = const Locale('fr'),
-}) =>
+}) async {
+  await tester.pumpWidget(
     MaterialApp(
       locale: locale,
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
-      home: child,
-    );
+      home: PlayerShopOverlay(snapshot: snapshot, onCommand: onCommand),
+    ),
+  );
+  await tester.pumpAndSettle();
+}

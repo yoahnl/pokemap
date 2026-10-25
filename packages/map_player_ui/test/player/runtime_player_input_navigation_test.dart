@@ -56,7 +56,9 @@ void main() {
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
     addTearDown(mouse.removePointer);
     await mouse.addPointer();
-    await mouse.moveTo(tester.getCenter(find.text('Pokémon')));
+    await mouse.moveTo(
+      tester.getCenter(find.byKey(const ValueKey('pause.party'))),
+    );
     await tester.pumpAndSettle();
 
     expect(selected, isNull);
@@ -78,7 +80,7 @@ void main() {
       _app(_shell(onSelected: selected.add, focusController: focusController)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Pokémon'));
+    await tester.tap(find.byKey(const ValueKey('pause.party')));
     await tester.pumpAndSettle();
 
     expect(selected, <PlayerPauseAction>[PlayerPauseAction.party]);
@@ -148,7 +150,7 @@ void main() {
       expect(focusController.logicalSelectionId, 'pause.party');
       expect(
         FocusManager.instance.primaryFocus?.debugLabel,
-        'Player action: Pokémon',
+        'Player action: Équipe',
       );
 
       tester.view.physicalSize = const Size(390, 844);

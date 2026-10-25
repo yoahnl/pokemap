@@ -22,6 +22,25 @@ final class PokeMapPlayerBattleChrome
     required this.moveText,
     required this.dockSurface,
     required this.dockText,
+    this.moveOutline = const Color(0xFFFD443E),
+    this.moveFocus = const Color(0xFFFD443E),
+    this.moveDisabled = const Color(0xFF3D4854),
+    this.moveDisabledText = const Color(0xFFEEF0F4),
+    this.moveMuted = const Color(0xFF727986),
+    this.hudEdge = const Color(0xFFD6DBE0),
+    this.hudHpLabel = const Color(0xFFB28A22),
+    this.hpHealthy = const Color(0xFF32CB55),
+    this.experience = const Color(0xFF238FF3),
+    this.typeGrass = const Color(0xFF438856),
+    this.typePoison = const Color(0xFF91629A),
+    this.typeWater = const Color(0xFF447C9B),
+    this.typeFire = const Color(0xFFB85C3E),
+    this.typeElectric = const Color(0xFFB28A22),
+    this.typeNormal = const Color(0xFF7C7D86),
+    this.commandFight = const Color(0xFFAE4D43),
+    this.commandParty = const Color(0xFF3E705F),
+    this.commandBag = const Color(0xFF81602A),
+    this.commandRun = const Color(0xFF41596A),
   });
 
   static const darkFieldManual = PokeMapPlayerBattleChrome(
@@ -32,16 +51,16 @@ final class PokeMapPlayerBattleChrome
     textPrimary: Color(0xFFF3ECD9),
     textSecondary: Color(0xFF93A299),
     outline: Color(0xFF827866),
-    focus: Color(0xFFE86445),
+    focus: Color(0xFFFD443E),
     water: Color(0xFF3E9FE8),
     normal: Color(0xFFA99F8E),
-    hudSurface: Color(0xFFF6F3E9),
-    hudText: Color(0xFF19323B),
-    moveSurface: Color(0xFFF6F3E9),
-    moveSelected: Color(0xFFF5DCA1),
-    moveText: Color(0xFF19323B),
-    dockSurface: Color(0xFF142B36),
-    dockText: Color(0xFFF6F3E9),
+    hudSurface: Color(0xFFFFFFFF),
+    hudText: Color(0xFF070A10),
+    moveSurface: Color(0xFFFFFFFF),
+    moveSelected: Color(0xFF070A10),
+    moveText: Color(0xFF070A10),
+    dockSurface: Color(0x00000000),
+    dockText: Color(0xFF070A10),
   );
 
   final Color surface;
@@ -61,6 +80,34 @@ final class PokeMapPlayerBattleChrome
   final Color moveText;
   final Color dockSurface;
   final Color dockText;
+  final Color moveOutline;
+  final Color moveFocus;
+  final Color moveDisabled;
+  final Color moveDisabledText;
+  final Color moveMuted;
+  final Color hudEdge;
+  final Color hudHpLabel;
+  final Color hpHealthy;
+  final Color experience;
+  final Color typeGrass;
+  final Color typePoison;
+  final Color typeWater;
+  final Color typeFire;
+  final Color typeElectric;
+  final Color typeNormal;
+  final Color commandFight;
+  final Color commandParty;
+  final Color commandBag;
+  final Color commandRun;
+
+  Color typeBadge(String typeId) => switch (typeId.trim().toLowerCase()) {
+    'grass' || 'bug' => typeGrass,
+    'water' || 'ice' => typeWater,
+    'fire' => typeFire,
+    'electric' => typeElectric,
+    'poison' || 'psychic' || 'ghost' || 'fairy' => typePoison,
+    _ => typeNormal,
+  };
 
   @override
   PokeMapPlayerBattleChrome copyWith({
@@ -81,6 +128,25 @@ final class PokeMapPlayerBattleChrome
     Color? moveText,
     Color? dockSurface,
     Color? dockText,
+    Color? moveOutline,
+    Color? moveFocus,
+    Color? moveDisabled,
+    Color? moveDisabledText,
+    Color? moveMuted,
+    Color? hudEdge,
+    Color? hudHpLabel,
+    Color? hpHealthy,
+    Color? experience,
+    Color? typeGrass,
+    Color? typePoison,
+    Color? typeWater,
+    Color? typeFire,
+    Color? typeElectric,
+    Color? typeNormal,
+    Color? commandFight,
+    Color? commandParty,
+    Color? commandBag,
+    Color? commandRun,
   }) => PokeMapPlayerBattleChrome(
     surface: surface ?? this.surface,
     surfaceRaised: surfaceRaised ?? this.surfaceRaised,
@@ -99,6 +165,25 @@ final class PokeMapPlayerBattleChrome
     moveText: moveText ?? this.moveText,
     dockSurface: dockSurface ?? this.dockSurface,
     dockText: dockText ?? this.dockText,
+    moveOutline: moveOutline ?? this.moveOutline,
+    moveFocus: moveFocus ?? this.moveFocus,
+    moveDisabled: moveDisabled ?? this.moveDisabled,
+    moveDisabledText: moveDisabledText ?? this.moveDisabledText,
+    moveMuted: moveMuted ?? this.moveMuted,
+    hudEdge: hudEdge ?? this.hudEdge,
+    hudHpLabel: hudHpLabel ?? this.hudHpLabel,
+    hpHealthy: hpHealthy ?? this.hpHealthy,
+    experience: experience ?? this.experience,
+    typeGrass: typeGrass ?? this.typeGrass,
+    typePoison: typePoison ?? this.typePoison,
+    typeWater: typeWater ?? this.typeWater,
+    typeFire: typeFire ?? this.typeFire,
+    typeElectric: typeElectric ?? this.typeElectric,
+    typeNormal: typeNormal ?? this.typeNormal,
+    commandFight: commandFight ?? this.commandFight,
+    commandParty: commandParty ?? this.commandParty,
+    commandBag: commandBag ?? this.commandBag,
+    commandRun: commandRun ?? this.commandRun,
   );
 
   @override
@@ -125,6 +210,29 @@ final class PokeMapPlayerBattleChrome
       moveText: Color.lerp(moveText, other.moveText, t)!,
       dockSurface: Color.lerp(dockSurface, other.dockSurface, t)!,
       dockText: Color.lerp(dockText, other.dockText, t)!,
+      moveOutline: Color.lerp(moveOutline, other.moveOutline, t)!,
+      moveFocus: Color.lerp(moveFocus, other.moveFocus, t)!,
+      moveDisabled: Color.lerp(moveDisabled, other.moveDisabled, t)!,
+      moveDisabledText: Color.lerp(
+        moveDisabledText,
+        other.moveDisabledText,
+        t,
+      )!,
+      moveMuted: Color.lerp(moveMuted, other.moveMuted, t)!,
+      hudEdge: Color.lerp(hudEdge, other.hudEdge, t)!,
+      hudHpLabel: Color.lerp(hudHpLabel, other.hudHpLabel, t)!,
+      hpHealthy: Color.lerp(hpHealthy, other.hpHealthy, t)!,
+      experience: Color.lerp(experience, other.experience, t)!,
+      typeGrass: Color.lerp(typeGrass, other.typeGrass, t)!,
+      typePoison: Color.lerp(typePoison, other.typePoison, t)!,
+      typeWater: Color.lerp(typeWater, other.typeWater, t)!,
+      typeFire: Color.lerp(typeFire, other.typeFire, t)!,
+      typeElectric: Color.lerp(typeElectric, other.typeElectric, t)!,
+      typeNormal: Color.lerp(typeNormal, other.typeNormal, t)!,
+      commandFight: Color.lerp(commandFight, other.commandFight, t)!,
+      commandParty: Color.lerp(commandParty, other.commandParty, t)!,
+      commandBag: Color.lerp(commandBag, other.commandBag, t)!,
+      commandRun: Color.lerp(commandRun, other.commandRun, t)!,
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_image.dart';
+import '../foundation/player_input_scope.dart';
 
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
@@ -265,9 +266,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        _compact =
-            constraints.maxWidth < 600 ||
-            MediaQuery.textScalerOf(context).scale(1) >= 1.8;
+        _compact = true;
         final selected = _selected;
         final listing = _listing(
           scrollControls:
@@ -276,68 +275,91 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
         );
         return SizedBox.expand(
           key: const ValueKey('runtime-player-detail-pokedex'),
-          child: _compact
-              ? IndexedStack(
-                  index: _showDetail && selected != null ? 1 : 0,
-                  children: [
-                    listing,
-                    if (selected != null)
-                      _detail(selected)
-                    else
-                      const SizedBox.shrink(),
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      key: const ValueKey('pokedex-list-column'),
-                      width: math.min(448, (constraints.maxWidth - 24) * .4),
-                      child: listing,
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: selected == null
-                          ? const SizedBox.shrink()
-                          : _detail(selected),
-                    ),
-                  ],
-                ),
+          child: IndexedStack(
+            index: _showDetail && selected != null ? 1 : 0,
+            children: [
+              listing,
+              if (selected != null)
+                _detail(selected)
+              else
+                const SizedBox.shrink(),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _listing({required bool scrollControls}) {
-    final visible = _visible;
-    final rows = visible.isEmpty
-        ? _emptyRows()
-        : <Widget>[for (final entry in visible) _row(entry)];
-    Widget pages(List<Widget> children) => KeyedSubtree(
-      key: ValueKey(
-        'pokedex-browse-$_browseRevision-${_navigation._query}-${_navigation._filter.name}',
-      ),
-      child: PlayerPagedList(
-        key: const ValueKey('pokedex-list'),
-        initialPage: _navigation._listPage,
-        onPageChanged: (value) => _navigation._listPage = value,
-        children: children,
-      ),
-    );
-    if (scrollControls) {
-      return pages([_searchField(), _filters(), ...rows]);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _searchField(),
-        const SizedBox(height: 12),
-        _filters(),
-        const SizedBox(height: 16),
-        Expanded(child: FocusTraversalGroup(child: pages(rows))),
-      ],
-    );
-  }
+  Widget _listing({required bool scrollControls}) => LayoutBuilder(
+    builder: (context, constraints) {
+      final visible = _visible;
+      final companion = PlayerCompanionScope.of(context);
+      final wide = MediaQuery.sizeOf(context).aspectRatio > 1 || companion;
+      final columns = MediaQuery.textScalerOf(context).scale(1) >= 1.5
+          ? 1
+          : companion
+          ? 2
+          : wide
+          ? (constraints.maxWidth >= 600 ? 3 : 2)
+          : 1;
+      final rows = visible.isEmpty
+          ? _emptyRows()
+          : <Widget>[
+              for (var start = 0; start < visible.length; start += columns)
+                Row(
+                  key: ValueKey('pokedex-row-${start ~/ columns}'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var column = 0; column < columns; column++) ...[
+                      if (column > 0) const SizedBox(width: 8),
+                      Expanded(
+                        child: start + column < visible.length
+                            ? _row(visible[start + column])
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ],
+                ),
+            ];
+      Widget pages(List<Widget> children) => KeyedSubtree(
+        key: ValueKey(
+          'pokedex-browse-$_browseRevision-${_navigation._query}-${_navigation._filter.name}',
+        ),
+        child: PlayerPagedList(
+          key: const ValueKey('pokedex-list'),
+          initialPage: _navigation._listPage,
+          revealChildKey: ValueKey(
+            'pokedex-row-${math.max(0, visible.indexWhere((entry) => entry.id == _selected?.id)) ~/ columns}',
+          ),
+          onPageChanged: (value) => _navigation._listPage = value,
+          children: children,
+        ),
+      );
+      if (scrollControls) {
+        return pages([_searchField(), _filters(), ...rows]);
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (wide)
+            Row(
+              children: [
+                Expanded(child: _filters()),
+                const SizedBox(width: 8),
+                Expanded(child: _searchField()),
+              ],
+            )
+          else ...[
+            _searchField(),
+            const SizedBox(height: 12),
+            _filters(),
+          ],
+          const SizedBox(height: 8),
+          Expanded(child: FocusTraversalGroup(child: pages(rows))),
+        ],
+      );
+    },
+  );
 
   Widget _searchField() {
     final theme = context.playerMenuTheme;
@@ -413,6 +435,9 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
               RuntimePlayerPokedexFilter.caught => _text('Capturés', 'Caught'),
             },
             selected: _navigation._filter == filter,
+            tab: true,
+            reserveFocusMarker: false,
+            labelStyle: context.playerMenuTheme.label.copyWith(fontSize: 12),
             minimumHeight: 48,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 8,
@@ -438,23 +463,27 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
         id: 'pokedex-entry-${entry.id}',
         label: _title(entry),
         labelMaxLines: 1,
+        labelStyle: context.playerMenuTheme.label.copyWith(
+          fontSize: MediaQuery.sizeOf(context).aspectRatio > 1 ? 13 : 14,
+        ),
+        supportingContent: Text(
+          _status(entry),
+          style: const TextStyle(fontSize: 10, height: 1.3),
+        ),
+        reserveFocusMarker: false,
+        contentGap: 8,
         selected: _selected?.id == entry.id,
         semanticValue: '${_number(entry)}, ${_status(entry)}',
         focusNode: _node(entry.id),
-        minimumHeight: 64,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 6.5,
-        ),
+        minimumHeight: MediaQuery.sizeOf(context).aspectRatio > 1 ? 48 : 56,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
               key: ValueKey('pokedex-number-${entry.id}'),
-              width:
-                  (MediaQuery.sizeOf(context).shortestSide < 600 ? 40 : 56) *
-                  MediaQuery.textScalerOf(context).scale(1),
-              child: Text(_number(entry)),
+              width: MediaQuery.textScalerOf(context).scale(24),
+              child: Text(_number(entry), style: const TextStyle(fontSize: 10)),
             ),
             const SizedBox(width: 8),
             _image(entry, thumbnail: true),
@@ -505,7 +534,13 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
         builder: (context, constraints) {
           final theme = context.playerMenuTheme;
           final pageHeight = math.max(32.0, constraints.maxHeight - 68);
-          List<Widget> textPages(String text, TextStyle style, String id) {
+          List<Widget> textPages(
+            String text,
+            TextStyle style,
+            String id, {
+            double? width,
+            double? height,
+          }) {
             final chunks = <String>[];
             var chunk = '';
             for (final word in text.split(RegExp(r'\s+'))) {
@@ -514,8 +549,8 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
                 text: TextSpan(text: candidate, style: style),
                 textDirection: Directionality.of(context),
                 textScaler: MediaQuery.textScalerOf(context),
-              )..layout(maxWidth: constraints.maxWidth);
-              final overflow = measure.height > pageHeight;
+              )..layout(maxWidth: width ?? constraints.maxWidth);
+              final overflow = measure.height > (height ?? pageHeight);
               measure.dispose();
               if (overflow && chunk.isNotEmpty) {
                 chunks.add(chunk);
@@ -531,6 +566,100 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
             ];
           }
 
+          final wide =
+              MediaQuery.sizeOf(context).aspectRatio > 1 ||
+              PlayerCompanionScope.of(context);
+          if (wide && MediaQuery.textScalerOf(context).scale(1) < 1.5) {
+            final description = !_known(entry)
+                ? _text(
+                    'Ce Pokémon n’a pas encore été rencontré.',
+                    'This Pokémon has not been encountered yet.',
+                  )
+                : entry.pokedexEntry?.description ??
+                      _text(
+                        'Aucune description disponible.',
+                        'No description available.',
+                      );
+            final descriptionRows = textPages(
+              description,
+              theme.body.copyWith(fontSize: 14, height: 1.4),
+              'pokedex-description-text',
+              width: (constraints.maxWidth - 24) * 10 / 22,
+              height: math.max(32, constraints.maxHeight - 96),
+            );
+            return PlayerPagedList(
+              key: ValueKey('pokedex-description-${entry.id}'),
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 12,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _image(entry, width: 96, height: 96),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _title(entry),
+                                  style: theme.subtitle.copyWith(
+                                    fontSize: 22,
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '#${_number(entry)} · ${_status(entry)}',
+                                  style: theme.meta,
+                                ),
+                                if (_known(entry) &&
+                                    entry.pokedexEntry!.typeIds.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final type
+                                          in entry.pokedexEntry!.typeIds)
+                                        PlayerPokemonTypeBadge(type: type),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 10,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _text('DESCRIPTION', 'DESCRIPTION'),
+                            style: theme.meta.copyWith(fontSize: 10),
+                          ),
+                          const SizedBox(height: 8),
+                          if (descriptionRows.isNotEmpty) descriptionRows.first,
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                ...descriptionRows.skip(1),
+              ],
+            );
+          }
           return PlayerPagedList(
             key: ValueKey('pokedex-description-${entry.id}'),
             children: [
@@ -546,8 +675,14 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
               Center(
                 child: _image(
                   entry,
-                  width: math.min(300, constraints.maxWidth),
-                  height: math.min(280, pageHeight),
+                  width: math.min(
+                    MediaQuery.sizeOf(context).aspectRatio > 1 ? 96 : 160,
+                    constraints.maxWidth,
+                  ),
+                  height: math.min(
+                    MediaQuery.sizeOf(context).aspectRatio > 1 ? 96 : 160,
+                    pageHeight,
+                  ),
                 ),
               ),
               if (_known(entry) && entry.pokedexEntry!.typeIds.isNotEmpty)
@@ -600,7 +735,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
               ? 'pokedex-image-missing-${entry.id}-${thumbnail ? 'row' : 'detail'}'
               : 'pokedex-unknown-${entry.id}-${thumbnail ? 'row' : 'detail'}',
         ),
-        size: thumbnail ? 32 : 80,
+        size: thumbnail ? 28 : 64,
         color: context.playerMenuTheme.secondary,
       ),
     );
@@ -611,8 +746,8 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
         key: ValueKey(
           'pokedex-image-${entry.id}-${thumbnail ? 'row' : 'detail'}',
         ),
-        width: thumbnail ? 48 : width,
-        height: thumbnail ? 48 : height,
+        width: thumbnail ? 36 : width,
+        height: thumbnail ? 36 : height,
         child: media == null
             ? placeholder
             : PlayerFileImage(

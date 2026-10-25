@@ -83,23 +83,22 @@ final class PokeMapPlayerColors extends ThemeExtension<PokeMapPlayerColors> {
     Color? focus,
     Color? scrim,
     bool? highContrast,
-  }) =>
-      PokeMapPlayerColors(
-        background: background ?? this.background,
-        surface: surface ?? this.surface,
-        surfaceElevated: surfaceElevated ?? this.surfaceElevated,
-        primary: primary ?? this.primary,
-        onPrimary: onPrimary ?? this.onPrimary,
-        textPrimary: textPrimary ?? this.textPrimary,
-        textSecondary: textSecondary ?? this.textSecondary,
-        outline: outline ?? this.outline,
-        success: success ?? this.success,
-        warning: warning ?? this.warning,
-        danger: danger ?? this.danger,
-        focus: focus ?? this.focus,
-        scrim: scrim ?? this.scrim,
-        highContrast: highContrast ?? this.highContrast,
-      );
+  }) => PokeMapPlayerColors(
+    background: background ?? this.background,
+    surface: surface ?? this.surface,
+    surfaceElevated: surfaceElevated ?? this.surfaceElevated,
+    primary: primary ?? this.primary,
+    onPrimary: onPrimary ?? this.onPrimary,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    outline: outline ?? this.outline,
+    success: success ?? this.success,
+    warning: warning ?? this.warning,
+    danger: danger ?? this.danger,
+    focus: focus ?? this.focus,
+    scrim: scrim ?? this.scrim,
+    highContrast: highContrast ?? this.highContrast,
+  );
 
   @override
   PokeMapPlayerColors lerp(
@@ -150,25 +149,24 @@ final class PokeMapPlayerSemanticTheme
 
   factory PokeMapPlayerSemanticTheme.fromPlayerColors(
     PokeMapPlayerColors colors,
-  ) =>
-      PokeMapPlayerSemanticTheme(
-        primary: colors.primary,
-        onPrimary: colors.onPrimary,
-        background: colors.background,
-        surface: colors.surface,
-        surfaceElevated: colors.surfaceElevated,
-        textPrimary: colors.textPrimary,
-        textSecondary: colors.textSecondary,
-        outline: colors.outline,
-        success: colors.success,
-        warning: colors.warning,
-        danger: colors.danger,
-        titleSurface: colors.surfaceElevated,
-        dialogueSurface: colors.surfaceElevated,
-        menuSurface: colors.surfaceElevated,
-        overworldHudSurface: colors.surface,
-        battleHudSurface: colors.surfaceElevated,
-      );
+  ) => PokeMapPlayerSemanticTheme(
+    primary: colors.primary,
+    onPrimary: colors.onPrimary,
+    background: colors.background,
+    surface: colors.surface,
+    surfaceElevated: colors.surfaceElevated,
+    textPrimary: colors.textPrimary,
+    textSecondary: colors.textSecondary,
+    outline: colors.outline,
+    success: colors.success,
+    warning: colors.warning,
+    danger: colors.danger,
+    titleSurface: colors.surfaceElevated,
+    dialogueSurface: colors.surfaceElevated,
+    menuSurface: colors.surfaceElevated,
+    overworldHudSurface: colors.surface,
+    battleHudSurface: colors.surfaceElevated,
+  );
 
   static PokeMapPlayerSemanticTheme? tryFromHex({
     required String primary,
@@ -188,26 +186,27 @@ final class PokeMapPlayerSemanticTheme
     required String overworldHudSurface,
     required String battleHudSurface,
   }) {
-    final values = <String>[
-      primary,
-      onPrimary,
-      background,
-      surface,
-      surfaceElevated,
-      textPrimary,
-      textSecondary,
-      outline,
-      success,
-      warning,
-      danger,
-      titleSurface,
-      dialogueSurface,
-      menuSurface,
-      overworldHudSurface,
-      battleHudSurface,
-    ]
-        .map(PokeMapPlayerProjectColorResolver.tryOpaqueHex)
-        .toList(growable: false);
+    final values =
+        <String>[
+              primary,
+              onPrimary,
+              background,
+              surface,
+              surfaceElevated,
+              textPrimary,
+              textSecondary,
+              outline,
+              success,
+              warning,
+              danger,
+              titleSurface,
+              dialogueSurface,
+              menuSurface,
+              overworldHudSurface,
+              battleHudSurface,
+            ]
+            .map(PokeMapPlayerProjectColorResolver.tryOpaqueHex)
+            .toList(growable: false);
     if (values.any((color) => color == null)) return null;
     return PokeMapPlayerSemanticTheme(
       primary: values[0]!,
@@ -264,25 +263,24 @@ final class PokeMapPlayerSemanticTheme
     Color? menuSurface,
     Color? overworldHudSurface,
     Color? battleHudSurface,
-  }) =>
-      PokeMapPlayerSemanticTheme(
-        primary: primary ?? this.primary,
-        onPrimary: onPrimary ?? this.onPrimary,
-        background: background ?? this.background,
-        surface: surface ?? this.surface,
-        surfaceElevated: surfaceElevated ?? this.surfaceElevated,
-        textPrimary: textPrimary ?? this.textPrimary,
-        textSecondary: textSecondary ?? this.textSecondary,
-        outline: outline ?? this.outline,
-        success: success ?? this.success,
-        warning: warning ?? this.warning,
-        danger: danger ?? this.danger,
-        titleSurface: titleSurface ?? this.titleSurface,
-        dialogueSurface: dialogueSurface ?? this.dialogueSurface,
-        menuSurface: menuSurface ?? this.menuSurface,
-        overworldHudSurface: overworldHudSurface ?? this.overworldHudSurface,
-        battleHudSurface: battleHudSurface ?? this.battleHudSurface,
-      );
+  }) => PokeMapPlayerSemanticTheme(
+    primary: primary ?? this.primary,
+    onPrimary: onPrimary ?? this.onPrimary,
+    background: background ?? this.background,
+    surface: surface ?? this.surface,
+    surfaceElevated: surfaceElevated ?? this.surfaceElevated,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    outline: outline ?? this.outline,
+    success: success ?? this.success,
+    warning: warning ?? this.warning,
+    danger: danger ?? this.danger,
+    titleSurface: titleSurface ?? this.titleSurface,
+    dialogueSurface: dialogueSurface ?? this.dialogueSurface,
+    menuSurface: menuSurface ?? this.menuSurface,
+    overworldHudSurface: overworldHudSurface ?? this.overworldHudSurface,
+    battleHudSurface: battleHudSurface ?? this.battleHudSurface,
+  );
 
   @override
   PokeMapPlayerSemanticTheme lerp(
@@ -305,10 +303,16 @@ final class PokeMapPlayerSemanticTheme
       titleSurface: Color.lerp(titleSurface, other.titleSurface, t)!,
       dialogueSurface: Color.lerp(dialogueSurface, other.dialogueSurface, t)!,
       menuSurface: Color.lerp(menuSurface, other.menuSurface, t)!,
-      overworldHudSurface:
-          Color.lerp(overworldHudSurface, other.overworldHudSurface, t)!,
-      battleHudSurface:
-          Color.lerp(battleHudSurface, other.battleHudSurface, t)!,
+      overworldHudSurface: Color.lerp(
+        overworldHudSurface,
+        other.overworldHudSurface,
+        t,
+      )!,
+      battleHudSurface: Color.lerp(
+        battleHudSurface,
+        other.battleHudSurface,
+        t,
+      )!,
     );
   }
 }
@@ -320,15 +324,15 @@ final class PokeMapPlayerAuthoredSemanticTheme
   final PokeMapPlayerSemanticTheme semantic;
 
   @override
-  PokeMapPlayerAuthoredSemanticTheme copyWith(
-          {PokeMapPlayerSemanticTheme? semantic}) =>
-      PokeMapPlayerAuthoredSemanticTheme(semantic ?? this.semantic);
+  PokeMapPlayerAuthoredSemanticTheme copyWith({
+    PokeMapPlayerSemanticTheme? semantic,
+  }) => PokeMapPlayerAuthoredSemanticTheme(semantic ?? this.semantic);
 
   @override
   PokeMapPlayerAuthoredSemanticTheme lerp(
-          covariant ThemeExtension<PokeMapPlayerAuthoredSemanticTheme>? other,
-          double t) =>
-      t < .5 || other is! PokeMapPlayerAuthoredSemanticTheme ? this : other;
+    covariant ThemeExtension<PokeMapPlayerAuthoredSemanticTheme>? other,
+    double t,
+  ) => t < .5 || other is! PokeMapPlayerAuthoredSemanticTheme ? this : other;
 }
 
 @immutable
@@ -354,19 +358,17 @@ final class PokeMapPlayerMotion extends ThemeExtension<PokeMapPlayerMotion> {
     Duration? fast,
     Duration? standard,
     Duration? slow,
-  }) =>
-      PokeMapPlayerMotion(
-        fast: fast ?? this.fast,
-        standard: standard ?? this.standard,
-        slow: slow ?? this.slow,
-      );
+  }) => PokeMapPlayerMotion(
+    fast: fast ?? this.fast,
+    standard: standard ?? this.standard,
+    slow: slow ?? this.slow,
+  );
 
   @override
   PokeMapPlayerMotion lerp(
     covariant ThemeExtension<PokeMapPlayerMotion>? other,
     double t,
-  ) =>
-      t < 0.5 || other is! PokeMapPlayerMotion ? this : other;
+  ) => t < 0.5 || other is! PokeMapPlayerMotion ? this : other;
 }
 
 @immutable
@@ -388,9 +390,9 @@ final class PokeMapPlayerTypography
     this.dialogueMetrics,
     ProjectTypographyMetricsProfile? combatMetrics,
     this.numbersMetrics,
-  })  : combatFamily = combatFamily ?? bodyFamily,
-        combatFallback = combatFallback ?? bodyFallback,
-        combatMetrics = combatMetrics ?? bodyMetrics;
+  }) : combatFamily = combatFamily ?? bodyFamily,
+       combatFallback = combatFallback ?? bodyFallback,
+       combatMetrics = combatMetrics ?? bodyMetrics;
 
   final String? displayFamily;
   final List<String> displayFallback;
@@ -409,60 +411,57 @@ final class PokeMapPlayerTypography
   final ProjectTypographyMetricsProfile? numbersMetrics;
 
   TextStyle displayStyle(TextStyle base) => _style(
-        base,
-        family: displayFamily,
-        fallback: displayFallback,
-        metrics: displayMetrics,
-      );
+    base,
+    family: displayFamily,
+    fallback: displayFallback,
+    metrics: displayMetrics,
+  );
 
   TextStyle bodyStyle(TextStyle base) => _style(
-        base,
-        family: bodyFamily,
-        fallback: bodyFallback,
-        metrics: bodyMetrics,
-      );
+    base,
+    family: bodyFamily,
+    fallback: bodyFallback,
+    metrics: bodyMetrics,
+  );
 
   TextStyle dialogueStyle(TextStyle base) => _style(
-        base,
-        family: dialogueFamily,
-        fallback: dialogueFallback,
-        metrics: dialogueMetrics,
-      );
+    base,
+    family: dialogueFamily,
+    fallback: dialogueFallback,
+    metrics: dialogueMetrics,
+  );
 
   TextStyle combatStyle(TextStyle base) => _style(
-        base,
-        family: combatFamily,
-        fallback: combatFallback,
-        metrics: combatMetrics,
-      );
+    base,
+    family: combatFamily,
+    fallback: combatFallback,
+    metrics: combatMetrics,
+  );
 
   TextStyle numbersStyle(TextStyle base) => _style(
-        base,
-        family: numbersFamily,
-        fallback: numbersFallback,
-        metrics: numbersMetrics,
-      ).copyWith(
-        fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-      );
+    base,
+    family: numbersFamily,
+    fallback: numbersFallback,
+    metrics: numbersMetrics,
+  ).copyWith(fontFeatures: const <FontFeature>[FontFeature.tabularFigures()]);
 
   TextStyle _style(
     TextStyle base, {
     required String? family,
     required List<String> fallback,
     required ProjectTypographyMetricsProfile? metrics,
-  }) =>
-      base.copyWith(
-        fontFamily: family,
-        fontFamilyFallback: fallback,
-        fontSize: metrics == null || base.fontSize == null
-            ? base.fontSize
-            : base.fontSize! * metrics.sizeScale,
-        fontWeight: metrics == null
-            ? base.fontWeight
-            : FontWeight.values[(metrics.weight ~/ 100) - 1],
-        height: metrics?.lineHeight ?? base.height,
-        letterSpacing: metrics?.letterSpacing ?? base.letterSpacing,
-      );
+  }) => base.copyWith(
+    fontFamily: family,
+    fontFamilyFallback: fallback,
+    fontSize: metrics == null || base.fontSize == null
+        ? base.fontSize
+        : base.fontSize! * metrics.sizeScale,
+    fontWeight: metrics == null
+        ? base.fontWeight
+        : FontWeight.values[(metrics.weight ~/ 100) - 1],
+    height: metrics?.lineHeight ?? base.height,
+    letterSpacing: metrics?.letterSpacing ?? base.letterSpacing,
+  );
 
   @override
   PokeMapPlayerTypography copyWith({
@@ -481,31 +480,29 @@ final class PokeMapPlayerTypography
     ProjectTypographyMetricsProfile? dialogueMetrics,
     ProjectTypographyMetricsProfile? combatMetrics,
     ProjectTypographyMetricsProfile? numbersMetrics,
-  }) =>
-      PokeMapPlayerTypography(
-        displayFamily: displayFamily ?? this.displayFamily,
-        displayFallback: displayFallback ?? this.displayFallback,
-        bodyFamily: bodyFamily ?? this.bodyFamily,
-        bodyFallback: bodyFallback ?? this.bodyFallback,
-        dialogueFamily: dialogueFamily ?? this.dialogueFamily,
-        dialogueFallback: dialogueFallback ?? this.dialogueFallback,
-        combatFamily: combatFamily ?? this.combatFamily,
-        combatFallback: combatFallback ?? this.combatFallback,
-        numbersFamily: numbersFamily ?? this.numbersFamily,
-        numbersFallback: numbersFallback ?? this.numbersFallback,
-        displayMetrics: displayMetrics ?? this.displayMetrics,
-        bodyMetrics: bodyMetrics ?? this.bodyMetrics,
-        dialogueMetrics: dialogueMetrics ?? this.dialogueMetrics,
-        combatMetrics: combatMetrics ?? this.combatMetrics,
-        numbersMetrics: numbersMetrics ?? this.numbersMetrics,
-      );
+  }) => PokeMapPlayerTypography(
+    displayFamily: displayFamily ?? this.displayFamily,
+    displayFallback: displayFallback ?? this.displayFallback,
+    bodyFamily: bodyFamily ?? this.bodyFamily,
+    bodyFallback: bodyFallback ?? this.bodyFallback,
+    dialogueFamily: dialogueFamily ?? this.dialogueFamily,
+    dialogueFallback: dialogueFallback ?? this.dialogueFallback,
+    combatFamily: combatFamily ?? this.combatFamily,
+    combatFallback: combatFallback ?? this.combatFallback,
+    numbersFamily: numbersFamily ?? this.numbersFamily,
+    numbersFallback: numbersFallback ?? this.numbersFallback,
+    displayMetrics: displayMetrics ?? this.displayMetrics,
+    bodyMetrics: bodyMetrics ?? this.bodyMetrics,
+    dialogueMetrics: dialogueMetrics ?? this.dialogueMetrics,
+    combatMetrics: combatMetrics ?? this.combatMetrics,
+    numbersMetrics: numbersMetrics ?? this.numbersMetrics,
+  );
 
   @override
   PokeMapPlayerTypography lerp(
     covariant ThemeExtension<PokeMapPlayerTypography>? other,
     double t,
-  ) =>
-      t < 0.5 || other is! PokeMapPlayerTypography ? this : other;
+  ) => t < 0.5 || other is! PokeMapPlayerTypography ? this : other;
 }
 
 abstract final class PlayerSpacing {
@@ -530,22 +527,20 @@ abstract final class PokeMapPlayerTheme {
   static ThemeData light({
     bool highContrast = false,
     bool reducedMotion = false,
-  }) =>
-      _theme(
-        brightness: Brightness.light,
-        highContrast: highContrast,
-        reducedMotion: reducedMotion,
-      );
+  }) => _theme(
+    brightness: Brightness.light,
+    highContrast: highContrast,
+    reducedMotion: reducedMotion,
+  );
 
   static ThemeData dark({
     bool highContrast = false,
     bool reducedMotion = false,
-  }) =>
-      _theme(
-        brightness: Brightness.dark,
-        highContrast: highContrast,
-        reducedMotion: reducedMotion,
-      );
+  }) => _theme(
+    brightness: Brightness.dark,
+    highContrast: highContrast,
+    reducedMotion: reducedMotion,
+  );
 
   /// Projects runtime accessibility preferences without discarding authored
   /// project colors or typography.
@@ -565,25 +560,26 @@ abstract final class PokeMapPlayerTheme {
     );
     final baseSemantic = theme.extension<PokeMapPlayerSemanticTheme>();
     final semantic = baseSemantic?.copyWith(outline: colors.outline);
-    final extensions = theme.extensions.values
-        .where(
-          (extension) =>
-              extension is! PokeMapPlayerColors &&
-              extension is! PokeMapPlayerMotion &&
-              extension is! PokeMapPlayerSemanticTheme,
-        )
-        .toList(growable: true)
-      ..add(colors)
-      ..add(
-        reducedMotion
-            ? PokeMapPlayerMotion.reduced
-            : theme.extension<PokeMapPlayerMotion>() ??
-                const PokeMapPlayerMotion(
-                  fast: Duration(milliseconds: 120),
-                  standard: Duration(milliseconds: 220),
-                  slow: Duration(milliseconds: 420),
-                ),
-      );
+    final extensions =
+        theme.extensions.values
+            .where(
+              (extension) =>
+                  extension is! PokeMapPlayerColors &&
+                  extension is! PokeMapPlayerMotion &&
+                  extension is! PokeMapPlayerSemanticTheme,
+            )
+            .toList(growable: true)
+          ..add(colors)
+          ..add(
+            reducedMotion
+                ? PokeMapPlayerMotion.reduced
+                : theme.extension<PokeMapPlayerMotion>() ??
+                      const PokeMapPlayerMotion(
+                        fast: Duration(milliseconds: 120),
+                        standard: Duration(milliseconds: 220),
+                        slow: Duration(milliseconds: 420),
+                      ),
+          );
     if (semantic != null) extensions.add(semantic);
     return theme.copyWith(
       colorScheme: theme.colorScheme.copyWith(outline: colors.outline),
@@ -596,10 +592,11 @@ abstract final class PokeMapPlayerTheme {
     ThemeData theme,
     PokeMapPlayerTypography typography,
   ) {
-    final extensions = theme.extensions.values
-        .where((extension) => extension is! PokeMapPlayerTypography)
-        .toList(growable: true)
-      ..add(typography);
+    final extensions =
+        theme.extensions.values
+            .where((extension) => extension is! PokeMapPlayerTypography)
+            .toList(growable: true)
+          ..add(typography);
     return theme.copyWith(extensions: extensions);
   }
 
@@ -623,16 +620,18 @@ abstract final class PokeMapPlayerTheme {
       warning: semantic.warning,
       danger: semantic.danger,
     );
-    final extensions = theme.extensions.values
-        .where(
-          (extension) =>
-              extension is! PokeMapPlayerColors &&
-              extension is! PokeMapPlayerSemanticTheme &&
-              (!authored || extension is! PokeMapPlayerAuthoredSemanticTheme),
-        )
-        .toList(growable: true)
-      ..add(colors)
-      ..add(semantic);
+    final extensions =
+        theme.extensions.values
+            .where(
+              (extension) =>
+                  extension is! PokeMapPlayerColors &&
+                  extension is! PokeMapPlayerSemanticTheme &&
+                  (!authored ||
+                      extension is! PokeMapPlayerAuthoredSemanticTheme),
+            )
+            .toList(growable: true)
+          ..add(colors)
+          ..add(semantic);
     if (authored) extensions.add(PokeMapPlayerAuthoredSemanticTheme(semantic));
     final colorScheme = theme.colorScheme.copyWith(
       primary: colors.primary,
@@ -679,8 +678,9 @@ abstract final class PokeMapPlayerTheme {
         backgroundColor: colors.surface,
         indicatorColor: colors.primary.withValues(alpha: 0.18),
         selectedIconTheme: IconThemeData(color: colors.primary),
-        selectedLabelTextStyle:
-            textTheme.labelLarge?.copyWith(color: colors.primary),
+        selectedLabelTextStyle: textTheme.labelLarge?.copyWith(
+          color: colors.primary,
+        ),
       ),
       navigationBarTheme: theme.navigationBarTheme.copyWith(
         backgroundColor: colors.surface,
@@ -693,10 +693,13 @@ abstract final class PokeMapPlayerTheme {
     ThemeData theme,
     ProjectPresentationSurfacePalettesProfile profile,
   ) {
-    final extensions = theme.extensions.values
-        .where((extension) => extension is! PokeMapPlayerSurfacePaletteTheme)
-        .toList(growable: true)
-      ..add(PokeMapPlayerSurfacePaletteTheme(profile));
+    final extensions =
+        theme.extensions.values
+            .where(
+              (extension) => extension is! PokeMapPlayerSurfacePaletteTheme,
+            )
+            .toList(growable: true)
+          ..add(PokeMapPlayerSurfacePaletteTheme(profile));
     return theme.copyWith(extensions: extensions);
   }
 
@@ -707,27 +710,23 @@ abstract final class PokeMapPlayerTheme {
     final baseColors = theme.extension<PokeMapPlayerColors>();
     final baseSemantic = theme.extension<PokeMapPlayerSemanticTheme>();
     if (baseColors == null || baseSemantic == null) return theme;
-    final background = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          palette.background,
-        ) ??
+    final background =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.background) ??
         baseColors.background;
-    final surface = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          palette.surface,
-        ) ??
+    final surface =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.surface) ??
         baseColors.surface;
-    final border = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          palette.border,
-        ) ??
+    final border =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.border) ??
         baseColors.outline;
-    final text = PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.text) ??
+    final text =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.text) ??
         baseColors.textPrimary;
-    final accent = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          palette.accent,
-        ) ??
+    final accent =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.accent) ??
         baseColors.primary;
-    final selection = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-          palette.selection,
-        ) ??
+    final selection =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.selection) ??
         baseColors.focus;
     var resolved = withSemanticTheme(
       theme,
@@ -748,12 +747,13 @@ abstract final class PokeMapPlayerTheme {
       authored: false,
     );
     final colors = resolved.extension<PokeMapPlayerColors>()!.copyWith(
-          focus: selection,
-        );
-    final extensions = resolved.extensions.values
-        .where((extension) => extension is! PokeMapPlayerColors)
-        .toList(growable: true)
-      ..add(colors);
+      focus: selection,
+    );
+    final extensions =
+        resolved.extensions.values
+            .where((extension) => extension is! PokeMapPlayerColors)
+            .toList(growable: true)
+          ..add(colors);
     resolved = resolved.copyWith(
       extensions: extensions,
       focusColor: selection,
@@ -770,10 +770,11 @@ abstract final class PokeMapPlayerTheme {
     ThemeData theme,
     ProjectPresentationWindowsProfile windows,
   ) {
-    final extensions = theme.extensions.values
-        .where((extension) => extension is! PokeMapPlayerWindowTheme)
-        .toList(growable: true)
-      ..add(PokeMapPlayerWindowTheme(windows));
+    final extensions =
+        theme.extensions.values
+            .where((extension) => extension is! PokeMapPlayerWindowTheme)
+            .toList(growable: true)
+          ..add(PokeMapPlayerWindowTheme(windows));
     return theme.copyWith(extensions: extensions);
   }
 
@@ -781,10 +782,11 @@ abstract final class PokeMapPlayerTheme {
     ThemeData theme,
     ProjectPresentationLayoutsProfile layouts,
   ) {
-    final extensions = theme.extensions.values
-        .where((extension) => extension is! PokeMapPlayerLayoutTheme)
-        .toList(growable: true)
-      ..add(PokeMapPlayerLayoutTheme(layouts));
+    final extensions =
+        theme.extensions.values
+            .where((extension) => extension is! PokeMapPlayerLayoutTheme)
+            .toList(growable: true)
+          ..add(PokeMapPlayerLayoutTheme(layouts));
     return theme.copyWith(extensions: extensions);
   }
 
@@ -792,10 +794,11 @@ abstract final class PokeMapPlayerTheme {
     ThemeData theme,
     ProjectDialoguePresentationProfile dialogue,
   ) {
-    final extensions = theme.extensions.values
-        .where((extension) => extension is! PokeMapPlayerDialogueTheme)
-        .toList(growable: true)
-      ..add(PokeMapPlayerDialogueTheme(dialogue));
+    final extensions =
+        theme.extensions.values
+            .where((extension) => extension is! PokeMapPlayerDialogueTheme)
+            .toList(growable: true)
+          ..add(PokeMapPlayerDialogueTheme(dialogue));
     return theme.copyWith(extensions: extensions);
   }
 
@@ -803,10 +806,11 @@ abstract final class PokeMapPlayerTheme {
     ThemeData theme,
     ProjectBattlePresentationProfile battle,
   ) {
-    final extensions = theme.extensions.values
-        .where((extension) => extension is! PokeMapPlayerBattleTheme)
-        .toList(growable: true)
-      ..add(PokeMapPlayerBattleTheme(battle));
+    final extensions =
+        theme.extensions.values
+            .where((extension) => extension is! PokeMapPlayerBattleTheme)
+            .toList(growable: true)
+          ..add(PokeMapPlayerBattleTheme(battle));
     return theme.copyWith(extensions: extensions);
   }
 
@@ -817,21 +821,22 @@ abstract final class PokeMapPlayerTheme {
   }) {
     final isDark = brightness == Brightness.dark;
     final colors = PokeMapPlayerColors(
-      background: isDark ? const Color(0xFF080C16) : const Color(0xFFF4F7FB),
-      surface: isDark ? const Color(0xFF111827) : const Color(0xFFFFFFFF),
-      surfaceElevated:
-          isDark ? const Color(0xFF192235) : const Color(0xFFEAF0F8),
-      primary: isDark ? const Color(0xFF78DCE8) : const Color(0xFF086D7A),
-      onPrimary: isDark ? const Color(0xFF062D34) : const Color(0xFFFFFFFF),
-      textPrimary: isDark ? const Color(0xFFF8FAFC) : const Color(0xFF101827),
-      textSecondary: isDark ? const Color(0xFFB8C3D6) : const Color(0xFF526176),
+      background: isDark ? const Color(0xFF131923) : const Color(0xFFF1F3F5),
+      surface: isDark ? const Color(0xFF202735) : const Color(0xFFFFFFFF),
+      surfaceElevated: isDark
+          ? const Color(0xFF252E3D)
+          : const Color(0xFFE8EDF2),
+      primary: isDark ? const Color(0xFF080C13) : const Color(0xFF11151D),
+      onPrimary: isDark ? const Color(0xFFFFFFFF) : const Color(0xFFFFFFFF),
+      textPrimary: isDark ? const Color(0xFFF4F6FA) : const Color(0xFF11151D),
+      textSecondary: isDark ? const Color(0xFFABB6C6) : const Color(0xFF626A75),
       outline: highContrast
           ? (isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000))
-          : (isDark ? const Color(0xFF46556C) : const Color(0xFFB7C2D0)),
-      success: isDark ? const Color(0xFF70E0A1) : const Color(0xFF16794B),
-      warning: isDark ? const Color(0xFFFFCB6B) : const Color(0xFF8A5100),
-      danger: isDark ? const Color(0xFFFF8A9A) : const Color(0xFFB4233C),
-      focus: isDark ? const Color(0xFFFFD166) : const Color(0xFF8A4B00),
+          : (isDark ? const Color(0xFF455164) : const Color(0xFFD8DDE2)),
+      success: isDark ? const Color(0xFF32C654) : const Color(0xFF3EB65C),
+      warning: isDark ? const Color(0xFFEFBD64) : const Color(0xFF936607),
+      danger: isDark ? const Color(0xFFFF8C99) : const Color(0xFFB83748),
+      focus: isDark ? const Color(0xFFF44D59) : const Color(0xFFF44D59),
       scrim: const Color(0xB3000000),
       highContrast: highContrast,
     );
@@ -920,9 +925,7 @@ abstract final class PokeMapPlayerTheme {
             horizontal: PlayerSpacing.md,
             vertical: PlayerSpacing.sm,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(PlayerRadii.sm),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           textStyle: textTheme.labelLarge,
         ),
       ),
@@ -934,9 +937,7 @@ abstract final class PokeMapPlayerTheme {
             vertical: PlayerSpacing.sm,
           ),
           side: BorderSide(color: colors.outline),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(PlayerRadii.sm),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           textStyle: textTheme.labelLarge,
         ),
       ),
@@ -944,8 +945,9 @@ abstract final class PokeMapPlayerTheme {
         backgroundColor: colors.surface,
         indicatorColor: colors.primary.withValues(alpha: 0.18),
         selectedIconTheme: IconThemeData(color: colors.primary),
-        selectedLabelTextStyle:
-            textTheme.labelLarge?.copyWith(color: colors.primary),
+        selectedLabelTextStyle: textTheme.labelLarge?.copyWith(
+          color: colors.primary,
+        ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colors.surface,

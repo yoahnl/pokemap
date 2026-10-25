@@ -176,6 +176,13 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Project',
         summary: 'PokeMap project manifest and project-owned content',
         extensions: {
+          'actorContactShadows': {
+            'field': 'settings.actorContactShadowsByDefault',
+            'default': false,
+            'configureAction': 'project.actor_contact_shadows.configure',
+            'scope': 'threeD',
+            'projectedCharacterShadows': false,
+          },
           'encounterTables': {
             'batchAction': 'campaign.encounter_table.upsert_batch',
             'batchLimit': 200,
@@ -490,6 +497,21 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Smart Tile preset',
         summary: 'Topology, rules, candidates, and coverage contract',
+        extensions: const {
+          'actorOcclusion3d': {
+            'channel': 'actor_occlusion',
+            'capability': 'map3d.actor-occlusion@1',
+            'sourceKinds': ['frame', 'animation'],
+            'actions': ['smart_tile.preset.publish', 'smart_tile.layer.set_animation_activation'],
+            'geometry': 'authored footprint and pixel offsets anchored to the terrain cell; fixed during movement inside that cell',
+            'orientation': 'same billboard basis as characters',
+            'onEnter': 'independent occupant clocks; last frame held for tall_grass materials',
+            'initialOccupancy': 'last frame without an entry replay',
+            'identities': ['hero', 'companion:<individualId>', '<mapId>:npc:<entityId>'],
+            'encounters': false,
+            'spatialClip': false,
+          },
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'smartTileLayer',
@@ -765,6 +787,16 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Character Studio character',
         summary: 'Character identity, media coverage and selection status',
+        extensions: const {
+          'contactShadow': {
+            'field': 'contactShadow',
+            'type': ['boolean', 'null'],
+            'null': 'inheritProjectDefault',
+            'omittedUpdate': 'preserve',
+            'scope': 'threeD',
+            'configureAction': 'characterStudio.character.update',
+          },
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'characterStudioDependency',

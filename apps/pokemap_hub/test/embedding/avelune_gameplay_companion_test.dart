@@ -194,7 +194,17 @@ void main() {
         expect(find.byType(Scrollable), findsNothing);
         expect(find.byType(PlayerPauseSummaryCard), findsNothing);
         expect(find.byType(PlayerMenuHeader), findsNothing);
-        expect(find.byType(PlayerMenuFooter), findsNothing);
+        expect(find.byType(PlayerMenuFooter), findsOneWidget);
+        expect(
+          find
+              .byWidgetPredicate(
+                (widget) =>
+                    widget is PlayerMenuSelectableRow &&
+                    widget.id == 'pause-frame-return',
+              )
+              .hitTestable(),
+          findsOneWidget,
+        );
         expect(find.byKey(const ValueKey('pause.resume')), findsNothing);
         final viewport = Offset.zero & size;
         final expected = PlayerPauseAction.values
@@ -207,8 +217,13 @@ void main() {
             if (button.evaluate().isEmpty) continue;
             seen.add(action);
             final rect = tester.getRect(button);
-            expect(rect.width, greaterThanOrEqualTo(120));
-            expect(rect.height, greaterThanOrEqualTo(68));
+            expect(
+              rect.width,
+              greaterThanOrEqualTo(
+                action == PlayerPauseAction.returnToTitle ? 48 : 120,
+              ),
+            );
+            expect(rect.height, greaterThanOrEqualTo(48));
             expect(viewport.contains(rect.topLeft), isTrue);
             expect(viewport.contains(rect.bottomRight), isTrue);
           }

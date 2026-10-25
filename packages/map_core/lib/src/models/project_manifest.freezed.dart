@@ -1028,7 +1028,7 @@ as Map<String, String>,
 /// @nodoc
 mixin _$ProjectSettings {
 
- ProjectDimension get dimension;@JsonKey(includeIfNull: false) SpatialCameraProfile? get spatialCamera;@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? get mapInstanceRetentionPolicy; int get tileWidth; int get tileHeight; double get displayScale; int get defaultMapWidth; int get defaultMapHeight;@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? get defaultPlayerCharacterId;/// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+ ProjectDimension get dimension;@JsonKey(includeIfNull: false) SpatialCameraProfile? get spatialCamera;@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? get mapInstanceRetentionPolicy; bool get actorContactShadowsByDefault; int get tileWidth; int get tileHeight; double get displayScale; int get defaultMapWidth; int get defaultMapHeight;@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? get defaultPlayerCharacterId;/// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
 ///
 /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
 /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
@@ -1045,16 +1045,16 @@ $ProjectSettingsCopyWith<ProjectSettings> get copyWith => _$ProjectSettingsCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.mapInstanceRetentionPolicy, mapInstanceRetentionPolicy) || other.mapInstanceRetentionPolicy == mapInstanceRetentionPolicy)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.mapInstanceRetentionPolicy, mapInstanceRetentionPolicy) || other.mapInstanceRetentionPolicy == mapInstanceRetentionPolicy)&&(identical(other.actorContactShadowsByDefault, actorContactShadowsByDefault) || other.actorContactShadowsByDefault == actorContactShadowsByDefault)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,mapInstanceRetentionPolicy,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
+int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,mapInstanceRetentionPolicy,actorContactShadowsByDefault,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
 
 @override
 String toString() {
-  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, mapInstanceRetentionPolicy: $mapInstanceRetentionPolicy, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
+  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, mapInstanceRetentionPolicy: $mapInstanceRetentionPolicy, actorContactShadowsByDefault: $actorContactShadowsByDefault, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
 }
 
 
@@ -1065,7 +1065,7 @@ abstract mixin class $ProjectSettingsCopyWith<$Res>  {
   factory $ProjectSettingsCopyWith(ProjectSettings value, $Res Function(ProjectSettings) _then) = _$ProjectSettingsCopyWithImpl;
 @useResult
 $Res call({
- ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? mapInstanceRetentionPolicy, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
+ ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? mapInstanceRetentionPolicy, bool actorContactShadowsByDefault, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
 });
 
 
@@ -1082,12 +1082,13 @@ class _$ProjectSettingsCopyWithImpl<$Res>
 
 /// Create a copy of ProjectSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? mapInstanceRetentionPolicy = freezed,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? mapInstanceRetentionPolicy = freezed,Object? actorContactShadowsByDefault = null,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
   return _then(_self.copyWith(
 dimension: null == dimension ? _self.dimension : dimension // ignore: cast_nullable_to_non_nullable
 as ProjectDimension,spatialCamera: freezed == spatialCamera ? _self.spatialCamera : spatialCamera // ignore: cast_nullable_to_non_nullable
 as SpatialCameraProfile?,mapInstanceRetentionPolicy: freezed == mapInstanceRetentionPolicy ? _self.mapInstanceRetentionPolicy : mapInstanceRetentionPolicy // ignore: cast_nullable_to_non_nullable
-as MapInstanceRetentionPolicy?,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
+as MapInstanceRetentionPolicy?,actorContactShadowsByDefault: null == actorContactShadowsByDefault ? _self.actorContactShadowsByDefault : actorContactShadowsByDefault // ignore: cast_nullable_to_non_nullable
+as bool,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
 as int,tileHeight: null == tileHeight ? _self.tileHeight : tileHeight // ignore: cast_nullable_to_non_nullable
 as int,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as double,defaultMapWidth: null == defaultMapWidth ? _self.defaultMapWidth : defaultMapWidth // ignore: cast_nullable_to_non_nullable
@@ -1179,10 +1180,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  bool actorContactShadowsByDefault,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectSettings() when $default != null:
-return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.actorContactShadowsByDefault,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
   return orElse();
 
 }
@@ -1200,10 +1201,10 @@ return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPo
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  bool actorContactShadowsByDefault,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectSettings():
-return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.actorContactShadowsByDefault,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1220,10 +1221,10 @@ return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPo
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectDimension dimension, @JsonKey(includeIfNull: false)  SpatialCameraProfile? spatialCamera, @JsonKey(includeIfNull: false)  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,  bool actorContactShadowsByDefault,  int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectSettings() when $default != null:
-return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPolicy,_that.actorContactShadowsByDefault,_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
   return null;
 
 }
@@ -1235,12 +1236,13 @@ return $default(_that.dimension,_that.spatialCamera,_that.mapInstanceRetentionPo
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectSettings implements ProjectSettings {
-  const _ProjectSettings({this.dimension = ProjectDimension.twoD, @JsonKey(includeIfNull: false) this.spatialCamera, @JsonKey(includeIfNull: false) this.mapInstanceRetentionPolicy, this.tileWidth = 16, this.tileHeight = 16, this.displayScale = 2.0, this.defaultMapWidth = 20, this.defaultMapHeight = 15, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) this.defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false) this.mistralApiKey});
+  const _ProjectSettings({this.dimension = ProjectDimension.twoD, @JsonKey(includeIfNull: false) this.spatialCamera, @JsonKey(includeIfNull: false) this.mapInstanceRetentionPolicy, this.actorContactShadowsByDefault = false, this.tileWidth = 16, this.tileHeight = 16, this.displayScale = 2.0, this.defaultMapWidth = 20, this.defaultMapHeight = 15, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) this.defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false) this.mistralApiKey});
   factory _ProjectSettings.fromJson(Map<String, dynamic> json) => _$ProjectSettingsFromJson(json);
 
 @override@JsonKey() final  ProjectDimension dimension;
 @override@JsonKey(includeIfNull: false) final  SpatialCameraProfile? spatialCamera;
 @override@JsonKey(includeIfNull: false) final  MapInstanceRetentionPolicy? mapInstanceRetentionPolicy;
+@override@JsonKey() final  bool actorContactShadowsByDefault;
 @override@JsonKey() final  int tileWidth;
 @override@JsonKey() final  int tileHeight;
 @override@JsonKey() final  double displayScale;
@@ -1266,16 +1268,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.mapInstanceRetentionPolicy, mapInstanceRetentionPolicy) || other.mapInstanceRetentionPolicy == mapInstanceRetentionPolicy)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectSettings&&(identical(other.dimension, dimension) || other.dimension == dimension)&&(identical(other.spatialCamera, spatialCamera) || other.spatialCamera == spatialCamera)&&(identical(other.mapInstanceRetentionPolicy, mapInstanceRetentionPolicy) || other.mapInstanceRetentionPolicy == mapInstanceRetentionPolicy)&&(identical(other.actorContactShadowsByDefault, actorContactShadowsByDefault) || other.actorContactShadowsByDefault == actorContactShadowsByDefault)&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,mapInstanceRetentionPolicy,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
+int get hashCode => Object.hash(runtimeType,dimension,spatialCamera,mapInstanceRetentionPolicy,actorContactShadowsByDefault,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
 
 @override
 String toString() {
-  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, mapInstanceRetentionPolicy: $mapInstanceRetentionPolicy, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
+  return 'ProjectSettings(dimension: $dimension, spatialCamera: $spatialCamera, mapInstanceRetentionPolicy: $mapInstanceRetentionPolicy, actorContactShadowsByDefault: $actorContactShadowsByDefault, tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
 }
 
 
@@ -1286,7 +1288,7 @@ abstract mixin class _$ProjectSettingsCopyWith<$Res> implements $ProjectSettings
   factory _$ProjectSettingsCopyWith(_ProjectSettings value, $Res Function(_ProjectSettings) _then) = __$ProjectSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? mapInstanceRetentionPolicy, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
+ ProjectDimension dimension,@JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,@JsonKey(includeIfNull: false) MapInstanceRetentionPolicy? mapInstanceRetentionPolicy, bool actorContactShadowsByDefault, int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
 });
 
 
@@ -1303,12 +1305,13 @@ class __$ProjectSettingsCopyWithImpl<$Res>
 
 /// Create a copy of ProjectSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? mapInstanceRetentionPolicy = freezed,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? dimension = null,Object? spatialCamera = freezed,Object? mapInstanceRetentionPolicy = freezed,Object? actorContactShadowsByDefault = null,Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
   return _then(_ProjectSettings(
 dimension: null == dimension ? _self.dimension : dimension // ignore: cast_nullable_to_non_nullable
 as ProjectDimension,spatialCamera: freezed == spatialCamera ? _self.spatialCamera : spatialCamera // ignore: cast_nullable_to_non_nullable
 as SpatialCameraProfile?,mapInstanceRetentionPolicy: freezed == mapInstanceRetentionPolicy ? _self.mapInstanceRetentionPolicy : mapInstanceRetentionPolicy // ignore: cast_nullable_to_non_nullable
-as MapInstanceRetentionPolicy?,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
+as MapInstanceRetentionPolicy?,actorContactShadowsByDefault: null == actorContactShadowsByDefault ? _self.actorContactShadowsByDefault : actorContactShadowsByDefault // ignore: cast_nullable_to_non_nullable
+as bool,tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
 as int,tileHeight: null == tileHeight ? _self.tileHeight : tileHeight // ignore: cast_nullable_to_non_nullable
 as int,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
 as double,defaultMapWidth: null == defaultMapWidth ? _self.defaultMapWidth : defaultMapWidth // ignore: cast_nullable_to_non_nullable
@@ -7661,7 +7664,7 @@ as CharacterPortraitFitMode,
 /// @nodoc
 mixin _$ProjectCharacterEntry {
 
- String get id; String get name; String get tilesetId; int get frameWidth; int get frameHeight;@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> get portraits; List<CharacterAnimation> get animations;@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> get customAnimations; List<String> get tags; int get sortOrder;
+ String get id; String get name; String get tilesetId;@JsonKey(includeIfNull: false) bool? get contactShadow; int get frameWidth; int get frameHeight;@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> get portraits; List<CharacterAnimation> get animations;@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> get customAnimations; List<String> get tags; int get sortOrder;
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -7674,16 +7677,16 @@ $ProjectCharacterEntryCopyWith<ProjectCharacterEntry> get copyWith => _$ProjectC
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other.portraits, portraits)&&const DeepCollectionEquality().equals(other.animations, animations)&&const DeepCollectionEquality().equals(other.customAnimations, customAnimations)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.contactShadow, contactShadow) || other.contactShadow == contactShadow)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other.portraits, portraits)&&const DeepCollectionEquality().equals(other.animations, animations)&&const DeepCollectionEquality().equals(other.customAnimations, customAnimations)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(portraits),const DeepCollectionEquality().hash(animations),const DeepCollectionEquality().hash(customAnimations),const DeepCollectionEquality().hash(tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,contactShadow,frameWidth,frameHeight,const DeepCollectionEquality().hash(portraits),const DeepCollectionEquality().hash(animations),const DeepCollectionEquality().hash(customAnimations),const DeepCollectionEquality().hash(tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, contactShadow: $contactShadow, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -7694,7 +7697,7 @@ abstract mixin class $ProjectCharacterEntryCopyWith<$Res>  {
   factory $ProjectCharacterEntryCopyWith(ProjectCharacterEntry value, $Res Function(ProjectCharacterEntry) _then) = _$ProjectCharacterEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String tilesetId, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
+ String id, String name, String tilesetId,@JsonKey(includeIfNull: false) bool? contactShadow, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
 });
 
 
@@ -7711,12 +7714,13 @@ class _$ProjectCharacterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? contactShadow = freezed,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
-as String,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
+as String,contactShadow: freezed == contactShadow ? _self.contactShadow : contactShadow // ignore: cast_nullable_to_non_nullable
+as bool?,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
 as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
 as int,portraits: null == portraits ? _self.portraits : portraits // ignore: cast_nullable_to_non_nullable
 as List<CharacterPortraitVariant>,animations: null == animations ? _self.animations : animations // ignore: cast_nullable_to_non_nullable
@@ -7808,10 +7812,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry() when $default != null:
-return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   return orElse();
 
 }
@@ -7829,10 +7833,10 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frame
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry():
-return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -7849,10 +7853,10 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frame
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId, @JsonKey(includeIfNull: false)  bool? contactShadow,  int frameWidth,  int frameHeight, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations, @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry() when $default != null:
-return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.contactShadow,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   return null;
 
 }
@@ -7864,12 +7868,13 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frame
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectCharacterEntry implements ProjectCharacterEntry {
-  const _ProjectCharacterEntry({required this.id, required this.name, required this.tilesetId, this.frameWidth = 1, this.frameHeight = 2, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) final  List<CharacterPortraitVariant> portraits = const [], final  List<CharacterAnimation> animations = const [], @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) final  List<CharacterCustomAnimationClip> customAnimations = const [], final  List<String> tags = const [], this.sortOrder = 0}): _portraits = portraits,_animations = animations,_customAnimations = customAnimations,_tags = tags;
+  const _ProjectCharacterEntry({required this.id, required this.name, required this.tilesetId, @JsonKey(includeIfNull: false) this.contactShadow, this.frameWidth = 1, this.frameHeight = 2, @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) final  List<CharacterPortraitVariant> portraits = const [], final  List<CharacterAnimation> animations = const [], @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) final  List<CharacterCustomAnimationClip> customAnimations = const [], final  List<String> tags = const [], this.sortOrder = 0}): _portraits = portraits,_animations = animations,_customAnimations = customAnimations,_tags = tags;
   factory _ProjectCharacterEntry.fromJson(Map<String, dynamic> json) => _$ProjectCharacterEntryFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override final  String tilesetId;
+@override@JsonKey(includeIfNull: false) final  bool? contactShadow;
 @override@JsonKey() final  int frameWidth;
 @override@JsonKey() final  int frameHeight;
  final  List<CharacterPortraitVariant> _portraits;
@@ -7915,16 +7920,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other._portraits, _portraits)&&const DeepCollectionEquality().equals(other._animations, _animations)&&const DeepCollectionEquality().equals(other._customAnimations, _customAnimations)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.contactShadow, contactShadow) || other.contactShadow == contactShadow)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other._portraits, _portraits)&&const DeepCollectionEquality().equals(other._animations, _animations)&&const DeepCollectionEquality().equals(other._customAnimations, _customAnimations)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(_portraits),const DeepCollectionEquality().hash(_animations),const DeepCollectionEquality().hash(_customAnimations),const DeepCollectionEquality().hash(_tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,contactShadow,frameWidth,frameHeight,const DeepCollectionEquality().hash(_portraits),const DeepCollectionEquality().hash(_animations),const DeepCollectionEquality().hash(_customAnimations),const DeepCollectionEquality().hash(_tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, contactShadow: $contactShadow, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -7935,7 +7940,7 @@ abstract mixin class _$ProjectCharacterEntryCopyWith<$Res> implements $ProjectCh
   factory _$ProjectCharacterEntryCopyWith(_ProjectCharacterEntry value, $Res Function(_ProjectCharacterEntry) _then) = __$ProjectCharacterEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String tilesetId, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
+ String id, String name, String tilesetId,@JsonKey(includeIfNull: false) bool? contactShadow, int frameWidth, int frameHeight,@JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false) List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations,@JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false) List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
 });
 
 
@@ -7952,12 +7957,13 @@ class __$ProjectCharacterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? contactShadow = freezed,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_ProjectCharacterEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
-as String,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
+as String,contactShadow: freezed == contactShadow ? _self.contactShadow : contactShadow // ignore: cast_nullable_to_non_nullable
+as bool?,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
 as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
 as int,portraits: null == portraits ? _self._portraits : portraits // ignore: cast_nullable_to_non_nullable
 as List<CharacterPortraitVariant>,animations: null == animations ? _self._animations : animations // ignore: cast_nullable_to_non_nullable

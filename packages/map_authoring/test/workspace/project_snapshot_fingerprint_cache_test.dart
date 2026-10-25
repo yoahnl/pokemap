@@ -11,6 +11,60 @@ import 'package:test/test.dart';
 /// double-read consistency check still rejects a mid-load write.
 void main() {
   group('snapshot fingerprint cache', () {
+    test('adopts all contact shadow states with cold snapshot parity',
+        () async {
+      final manifest = ProjectManifest.fromJson(
+        jsonDecode(_manifestJson) as Map<String, dynamic>,
+      ).copyWith(
+        tilesets: const [
+          ProjectTilesetEntry(
+              id: 'people', name: 'People', relativePath: 'people.png'),
+        ],
+        characters: const [
+          ProjectCharacterEntry(id: 'hero', name: 'Hero', tilesetId: 'people'),
+        ],
+      );
+      final harness = await _Harness.create(
+        enableSnapshotCache: true,
+        manifestJson: jsonEncode(manifest.toJson()),
+      );
+      addTearDown(harness.dispose);
+      for (final value in <bool?>[true, false, null]) {
+        final before = await harness.load();
+        final character = ProjectCharacterEntry.fromJson({
+          ...before.manifest.characters.single.toJson(),
+          'contactShadow': value,
+        });
+        final afterBytes = utf8.encode(jsonEncode(
+          before.manifest.copyWith(characters: [character]).toJson(),
+        ));
+        await File('${harness.root.path}/project.json')
+            .writeAsBytes(afterBytes);
+        harness.reader.resetCounts();
+        final projected = await harness.loader.adoptAppliedChanges(
+          harness.projectHandle,
+          baseRevision: before.revision,
+          changes: [
+            AuthoringResourceChange(
+              resource: AuthoringResourceRef(kind: 'project', id: 'project'),
+              storageKey: 'project.json',
+              beforeBytes: before.resourceBytes('project'),
+              afterBytes: afterBytes,
+            ),
+          ],
+        );
+        expect(projected, isNotNull);
+        expect(projected!.manifest.characters.single.contactShadow, value);
+        expect(harness.reader.byteReads, 1);
+        final cold = await harness.loadStrictFresh();
+        expect(projected.revision, cold.revision);
+        expect(projected.manifest, cold.manifest);
+        expect(projected.maps, cold.maps);
+        expect(projected.resourceFingerprints, cold.resourceFingerprints);
+      }
+      expect(harness.snapshotCache!.adoptions, 3);
+    });
+
     test('bounds identity metadata independently from decoded models', () {
       final cache = ProjectSnapshotFingerprintCache(
         maximumEntries: 1,
@@ -32,13 +86,16 @@ void main() {
       }
       expect(cache.resourceFingerprint(identities.first), isNull);
       expect(cache.isAssetBlobCertified(identities.first), isFalse);
-      expect(cache.resourceFingerprint(identities[1]), identities[1].relativePath);
+      expect(
+          cache.resourceFingerprint(identities[1]), identities[1].relativePath);
       expect(cache.isAssetBlobCertified(identities[1]), isTrue);
       expect(cache.decoded<String>(identities[1]), isNull);
-      expect(cache.decoded<String>(identities.last), identities.last.relativePath);
+      expect(
+          cache.decoded<String>(identities.last), identities.last.relativePath);
     });
 
-    test('retains large-project identities without retaining decoded generations',
+    test(
+        'retains large-project identities without retaining decoded generations',
         () {
       final cache = ProjectSnapshotFingerprintCache();
       final identities = List.generate(
@@ -416,10 +473,14 @@ final class _Harness {
     required this.snapshotCache,
   });
 
-  static Future<_Harness> create({bool enableSnapshotCache = false}) async {
+  static Future<_Harness> create({
+    bool enableSnapshotCache = false,
+    String? manifestJson,
+  }) async {
     final root = await Directory.systemTemp.createTemp('pokemap_fp_cache_');
     await Directory('${root.path}/maps').create(recursive: true);
-    await File('${root.path}/project.json').writeAsString(_manifestJson);
+    await File('${root.path}/project.json')
+        .writeAsString(manifestJson ?? _manifestJson);
     await File('${root.path}/maps/alpha.json').writeAsString(_mapJson('Alpha'));
 
     final reader = _CountingIdentityReader();

@@ -812,6 +812,7 @@ abstract class ProjectSettings with _$ProjectSettings {
     @JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,
     @JsonKey(includeIfNull: false)
     MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,
+    @Default(false) bool actorContactShadowsByDefault,
     @Default(16) int tileWidth,
     @Default(16) int tileHeight,
     @Default(2.0) double displayScale,
@@ -1246,6 +1247,7 @@ abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
     required String id,
     required String name,
     required String tilesetId,
+    @JsonKey(includeIfNull: false) bool? contactShadow,
     @Default(1) int frameWidth,
     @Default(2) int frameHeight,
     @Default([])

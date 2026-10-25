@@ -162,11 +162,20 @@ final class GamePackageProjectValidator {
                 .contains('map3d.animation@1')) {
           _fail('Animated 3D decor requires map3d.animation@1.');
         }
+        if (SpatialActorOcclusionCapabilities.requiresCapability(project, maps: maps) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(SpatialActorOcclusionCapabilities.capabilityId)) {
+          _fail('3D actor occlusion requires map3d.actor-occlusion@1.');
+        }
         if (SpatialModelClipCapabilities.requiresCapability(project,
                 maps: maps) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialModelClipCapabilities.capabilityId)) {
           _fail('Clipped 3D models require map3d.model-clip@1.');
+        }
+        if (SpatialActorContactShadowCapabilities.requiresCapability(project) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(
+                SpatialActorContactShadowCapabilities.capabilityId)) {
+          _fail('3D actor contact shadows require map3d.actor-contact-shadows@1.');
         }
         if (SpatialModelShadowCapabilities.requiresCapability(project,
                 maps: maps) &&

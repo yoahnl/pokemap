@@ -7,6 +7,7 @@ import '../foundation/player_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_dialogue_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
@@ -225,10 +226,7 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                       : dialogue == null
                       ? constraints.maxWidth * resolved.maxWidthFactor
                       : constraints.maxWidth * dialogue.maxWidthFactor,
-                  maxHeight:
-                      resolved == null && data.mode != PlayerDialogueMode.line
-                      ? constraints.maxHeight * 0.58
-                      : constraints.maxHeight - margin * 2,
+                  maxHeight: constraints.maxHeight - margin * 2,
                 ),
                 child: PlayerPanel(
                   elevated: true,
@@ -295,6 +293,20 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
                         PlayerDialogueMode.choices => _DialogueChoiceContent(
                           data: data,
                           onAction: onAction,
+                          showSpeakerName: showSpeakerName,
+                          portrait: showPortrait
+                              ? resolvedPortrait ??
+                                    (data.speaker == null
+                                        ? null
+                                        : portraitBuilder?.call(data.speaker!))
+                              : null,
+                          preferredMaxHeight: resolved == null
+                              ? math.max(
+                                  0,
+                                  constraints.maxHeight * .58 -
+                                      contentPadding * 2,
+                                )
+                              : null,
                         ),
                       },
                     ),
@@ -373,7 +385,7 @@ class _DialogueLineContent extends StatelessWidget {
           ? measure(
                   speaker,
                   context.playerTypography.dialogueStyle(
-                    Theme.of(context).textTheme.titleLarge ?? const TextStyle(),
+                    Theme.of(context).textTheme.labelLarge ?? const TextStyle(),
                   ),
                   maxLines: profile == null ? null : 2,
                 ) +
@@ -409,10 +421,16 @@ class _DialogueLineContent extends StatelessWidget {
                       speaker,
                       style: context.playerTypography
                           .dialogueStyle(
-                            Theme.of(context).textTheme.titleLarge ??
+                            Theme.of(context).textTheme.labelLarge ??
                                 const TextStyle(),
                           )
-                          .copyWith(color: context.playerColors.primary),
+                          .copyWith(
+                            color: PokeMapPlayerMenuTheme.resolve(
+                              context,
+                              role: ProjectPresentationSurfaceRole.dialogue,
+                              opaque: true,
+                            ).accent,
+                          ),
                     )
                   : _DialogueNameplate(speaker: speaker, dialogue: profile),
               const SizedBox(height: PlayerSpacing.sm),
@@ -514,8 +532,13 @@ class _DialogueLineContent extends StatelessWidget {
 }
 
 class _DialogueTextPages extends StatefulWidget {
-  const _DialogueTextPages({super.key, required this.data});
+  const _DialogueTextPages({
+    super.key,
+    required this.data,
+    this.promptOnly = false,
+  });
   final PlayerDialogueViewData data;
+  final bool promptOnly;
   @override
   State<_DialogueTextPages> createState() => _DialogueTextPagesState();
 }
@@ -552,10 +575,7 @@ class _DialogueTextPagesState extends State<_DialogueTextPages> {
       );
       final scaler = MediaQuery.textScalerOf(context);
       final footerHeight = math.max(28.0, scaler.scale(14) * 1.5);
-      final available = math.max(
-        scaler.scale(style.fontSize ?? 16) * 1.25,
-        constraints.maxHeight - footerHeight - 12,
-      );
+
       final visible = data.lineSpan ?? TextSpan(text: data.text);
       final full = data.isCurrentLineFullyRevealed
           ? visible
@@ -600,6 +620,15 @@ class _DialogueTextPagesState extends State<_DialogueTextPages> {
         painter.setPlaceholderDimensions(placeholders);
       }
       painter.layout(maxWidth: constraints.maxWidth);
+      final effectiveFooterHeight = widget.promptOnly
+          ? (painter.height > constraints.maxHeight + .5 ? 48.0 : 0.0)
+          : footerHeight;
+      final available = math.max(
+        scaler.scale(style.fontSize ?? 16) * 1.25,
+        constraints.maxHeight -
+            effectiveFooterHeight -
+            (effectiveFooterHeight > 0 ? 12 : 0),
+      );
       final lines = painter.computeLineMetrics();
       final ranges = <TextRange>[];
       var start = 0;
@@ -637,33 +666,68 @@ class _DialogueTextPagesState extends State<_DialogueTextPages> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: footerHeight,
-            child: Row(
-              children: [
-                if (_count > 1)
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${_page + 1} / $_count',
-                        key: const ValueKey('dialogue-page-count'),
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
+          if (effectiveFooterHeight > 0) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: effectiveFooterHeight,
+              child: widget.promptOnly
+                  ? Row(
+                      children: [
+                        IconButton(
+                          key: const ValueKey('dialogue-question-previous'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: 48,
+                            height: 48,
+                          ),
+                          onPressed: _page > 0
+                              ? () => setState(() => _page--)
+                              : null,
+                          icon: const Icon(Icons.chevron_left),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '${_page + 1} / $_count',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        IconButton(
+                          key: const ValueKey('dialogue-question-next'),
+                          constraints: const BoxConstraints.tightFor(
+                            width: 48,
+                            height: 48,
+                          ),
+                          onPressed: _page + 1 < _count
+                              ? () => setState(() => _page++)
+                              : null,
+                          icon: const Icon(Icons.chevron_right),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        if (_count > 1)
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${_page + 1} / $_count',
+                                key: const ValueKey('dialogue-page-count'),
+                                style: Theme.of(context).textTheme.labelSmall,
+                              ),
+                            ),
+                          ),
+                        Expanded(
+                          child: _DialogueAdvanceLabel(
+                            data: data,
+                            hasMorePages: _page + 1 < _count,
+                            compact: constraints.maxWidth < 200,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                Expanded(
-                  child: _DialogueAdvanceLabel(
-                    data: data,
-                    hasMorePages: _page + 1 < _count,
-                    compact: constraints.maxWidth < 200,
-                  ),
-                ),
-              ],
             ),
-          ),
+          ],
         ],
       );
     },
@@ -753,14 +817,18 @@ class _DialogueNameplate extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: context.playerTypography
           .dialogueStyle(
-            Theme.of(context).textTheme.titleLarge ?? const TextStyle(),
+            Theme.of(context).textTheme.labelLarge ?? const TextStyle(),
           )
           .copyWith(
             color:
                 PokeMapPlayerProjectColorResolver.tryOpaqueHex(
                   dialogue.nameplateTextColor,
                 ) ??
-                context.playerColors.primary,
+                PokeMapPlayerMenuTheme.resolve(
+                  context,
+                  role: ProjectPresentationSurfaceRole.dialogue,
+                  opaque: true,
+                ).accent,
           ),
     );
     if (dialogue.nameplateStyle == ProjectDialogueNameplateStyle.inline) {
@@ -870,10 +938,19 @@ class _DialogueAdvanceLabel extends StatelessWidget {
 }
 
 class _DialogueChoiceContent extends StatefulWidget {
-  const _DialogueChoiceContent({required this.data, required this.onAction});
+  const _DialogueChoiceContent({
+    required this.data,
+    required this.onAction,
+    required this.showSpeakerName,
+    this.portrait,
+    this.preferredMaxHeight,
+  });
 
   final PlayerDialogueViewData data;
   final ValueChanged<PlayerDialogueAction> onAction;
+  final bool showSpeakerName;
+  final Widget? portrait;
+  final double? preferredMaxHeight;
 
   @override
   State<_DialogueChoiceContent> createState() => _DialogueChoiceContentState();
@@ -883,6 +960,7 @@ class _DialogueChoiceContentState extends State<_DialogueChoiceContent> {
   final _choiceKeys = <int, GlobalKey>{};
   final _choiceFocus = <int, FocusNode>{};
   int? _focusedSelection;
+  double? _choicesHeight;
   PlayerDialogueViewData get data => widget.data;
   ValueChanged<PlayerDialogueAction> get onAction => widget.onAction;
 
@@ -933,11 +1011,18 @@ class _DialogueChoiceContentState extends State<_DialogueChoiceContent> {
   Widget build(BuildContext context) {
     final dialogue = context.playerDialogueProfile;
     final spacing = math.max(8.0, dialogue?.choiceSpacing ?? PlayerSpacing.xs);
-    final selectedColor = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-      dialogue?.choiceSelectedColor,
+    final authoredSelectedColor =
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          dialogue?.choiceSelectedColor,
+        );
+    final menuTheme = PokeMapPlayerMenuTheme.resolve(
+      context,
+      role: ProjectPresentationSurfaceRole.dialogue,
+      opaque: true,
     );
-    final selectedForeground = selectedColor == null
-        ? null
+    final selectedColor = authoredSelectedColor ?? menuTheme.accent;
+    final selectedForeground = authoredSelectedColor == null
+        ? menuTheme.selectionText
         : ThemeData.estimateBrightnessForColor(selectedColor) == Brightness.dark
         ? context.playerColors.onPrimary
         : context.playerColors.textPrimary;
@@ -954,64 +1039,196 @@ class _DialogueChoiceContentState extends State<_DialogueChoiceContent> {
     final selected = data.choices
         .where((choice) => choice.selected && choice.enabled)
         .firstOrNull;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          context.playerL10n.yourChoice,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: PlayerPagedList(
-            spacing: spacing,
-            revealChildKey: selected == null
-                ? null
-                : _choiceKeys.putIfAbsent(selected.index, GlobalKey.new),
-            onPageReady: () {
-              if (selected != null && _focusedSelection != selected.index) {
-                _focusedSelection = selected.index;
-                _choiceFocus[selected.index]?.requestFocus();
-              }
-            },
-            children: <Widget>[
-              for (final choice in data.choices) ...<Widget>[
-                KeyedSubtree(
-                  key: _choiceKeys.putIfAbsent(choice.index, GlobalKey.new),
-                  child: PlayerActionButton(
-                    key: ValueKey<String>('dialogue-choice-${choice.index}'),
-                    label: choice.label,
-                    icon: choice.selected
-                        ? Icons.radio_button_checked_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    autofocus: false,
-                    focusNode: _choiceFocus.putIfAbsent(
-                      choice.index,
-                      FocusNode.new,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasPrompt = data.fullText.isNotEmpty;
+        final wide = constraints.maxWidth >= 600;
+        final columns = wide ? 2 : 1;
+        final questionWidth = constraints.maxWidth;
+        final choiceWidth = wide
+            ? (constraints.maxWidth - spacing) / 2
+            : constraints.maxWidth;
+        final textStyle = context.playerTypography.dialogueStyle(
+          Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
+        );
+        final speakerStyle = context.playerTypography.dialogueStyle(
+          Theme.of(context).textTheme.labelLarge ?? const TextStyle(),
+        );
+        double measure(String text, TextStyle style, double width) {
+          final painter = TextPainter(
+            text: TextSpan(
+              text: text,
+              style: DefaultTextStyle.of(context).style.merge(style),
+            ),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+          )..layout(maxWidth: math.max(1, width));
+          final height = painter.height;
+          painter.dispose();
+          return height;
+        }
+
+        final speakerHeight = widget.showSpeakerName && data.speaker != null
+            ? measure(data.speaker!, speakerStyle, questionWidth) + 8
+            : 0.0;
+        final questionHeight = hasPrompt
+            ? math.max(
+                widget.portrait == null ? 0.0 : 64.0,
+                speakerHeight +
+                    2 +
+                    measure(
+                      data.fullText,
+                      textStyle,
+                      questionWidth - (widget.portrait == null ? 0 : 80),
                     ),
-                    selected: choice.selected,
-                    secondary: !choice.selected,
-                    shape: shape,
-                    backgroundColor: choice.selected ? selectedColor : null,
-                    foregroundColor: choice.selected
-                        ? selectedForeground
-                        : null,
-                    disabledOpacity: dialogue?.choiceDisabledOpacity ?? 1,
-                    onPressed: choice.enabled
-                        ? () => onAction(
-                            PlayerDialogueSelectChoiceAction(
-                              snapshotRevision: data.revision,
-                              choiceIndex: choice.index,
-                            ),
-                          )
-                        : null,
-                  ),
+              )
+            : measure(
+                context.playerL10n.yourChoice,
+                speakerStyle,
+                questionWidth,
+              );
+        final buttonStyle = context.playerTypography.bodyStyle(
+          Theme.of(context).textTheme.labelLarge ??
+              const TextStyle(fontSize: 14),
+        );
+        final minimumChoice = data.choices.fold<double>(
+          64,
+          (height, choice) => math.max(
+            height,
+            measure(choice.label, buttonStyle, choiceWidth - 80) + 36,
+          ),
+        );
+        double extent(PlayerDialogueChoiceViewData choice) => math.max(
+          64,
+          measure(choice.label, buttonStyle, choiceWidth - 80) + 36,
+        );
+        var estimatedChoicesHeight = 0.0;
+        for (var i = 0; i < data.choices.length; i += columns) {
+          if (i > 0) estimatedChoicesHeight += spacing;
+          estimatedChoicesHeight += columns == 1 || i + 1 >= data.choices.length
+              ? extent(data.choices[i])
+              : math.max(extent(data.choices[i]), extent(data.choices[i + 1]));
+        }
+        final choicesHeight = _choicesHeight ?? estimatedChoicesHeight;
+        final questionFloor = hasPrompt
+            ? math.min(
+                questionHeight,
+                speakerHeight + measure('M', textStyle, questionWidth) + 60,
+              )
+            : questionHeight;
+        final choiceFloor = math.min(
+          choicesHeight,
+          data.choices.length <= 2
+              ? math.max(
+                  minimumChoice + 56,
+                  constraints.maxHeight - questionFloor - 16,
+                )
+              : minimumChoice + 56,
+        );
+        final natural = questionHeight + 16 + choicesHeight;
+        final minimum = questionFloor + 16 + choiceFloor;
+        final height = math.min(
+          constraints.maxHeight,
+          math.max(
+            math.min(minimum, constraints.maxHeight),
+            math.min(
+              natural,
+              widget.preferredMaxHeight ?? constraints.maxHeight,
+            ),
+          ),
+        );
+        final allocatedQuestion = math.min(
+          questionHeight,
+          math.max(0.0, height - 16 - choiceFloor),
+        );
+        final question = hasPrompt
+            ? _DialogueChoicePrompt(
+                data: data,
+                showSpeakerName: widget.showSpeakerName,
+                portrait: widget.portrait,
+              )
+            : Text(context.playerL10n.yourChoice, style: speakerStyle);
+        Widget choiceButton(PlayerDialogueChoiceViewData choice) =>
+            PlayerActionButton(
+              key: ValueKey<String>('dialogue-choice-${choice.index}'),
+              label: choice.label,
+              labelMaxLines: 8,
+              icon: choice.selected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              autofocus: false,
+              focusNode: _choiceFocus.putIfAbsent(choice.index, FocusNode.new),
+              selected: choice.selected,
+              secondary: !choice.selected,
+              shape: shape,
+              backgroundColor: choice.selected ? selectedColor : null,
+              foregroundColor: choice.selected
+                  ? selectedForeground
+                  : menuTheme.text,
+              disabledOpacity: dialogue?.choiceDisabledOpacity ?? 1,
+              onPressed: choice.enabled
+                  ? () => onAction(
+                      PlayerDialogueSelectChoiceAction(
+                        snapshotRevision: data.revision,
+                        choiceIndex: choice.index,
+                      ),
+                    )
+                  : null,
+            );
+        final choices = PlayerPagedList(
+          spacing: spacing,
+          onContentHeightChanged: (height) {
+            if (mounted &&
+                (_choicesHeight == null ||
+                    (_choicesHeight! - height).abs() > .5)) {
+              setState(() => _choicesHeight = height);
+            }
+          },
+          revealChildKey: selected == null
+              ? null
+              : _choiceKeys.putIfAbsent(
+                  selected.index ~/ columns * columns,
+                  GlobalKey.new,
                 ),
-              ],
+          onPageReady: () {
+            if (selected != null && _focusedSelection != selected.index) {
+              _focusedSelection = selected.index;
+              _choiceFocus[selected.index]?.requestFocus();
+            }
+          },
+          children: [
+            for (var i = 0; i < data.choices.length; i += columns)
+              KeyedSubtree(
+                key: _choiceKeys.putIfAbsent(i, GlobalKey.new),
+                child: columns == 1
+                    ? choiceButton(data.choices[i])
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: choiceButton(data.choices[i])),
+                          SizedBox(width: spacing),
+                          Expanded(
+                            child: i + 1 < data.choices.length
+                                ? choiceButton(data.choices[i + 1])
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
+                      ),
+              ),
+          ],
+        );
+        return SizedBox(
+          height: height,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(height: allocatedQuestion, child: question),
+              const SizedBox(height: 16),
+              Expanded(child: choices),
             ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -1023,4 +1240,67 @@ String _semanticLabel(PlayerDialogueViewData data, bool showSpeakerName) {
     PlayerDialogueMode.choices =>
       'Choix de dialogue, ${data.choices.length} options',
   };
+}
+
+class _DialogueChoicePrompt extends StatelessWidget {
+  const _DialogueChoicePrompt({
+    required this.data,
+    required this.showSpeakerName,
+    this.portrait,
+  });
+  final PlayerDialogueViewData data;
+  final bool showSpeakerName;
+  final Widget? portrait;
+  @override
+  Widget build(BuildContext context) {
+    final profile = context.playerDialogueProfile;
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showSpeakerName && data.speaker != null) ...[
+          profile == null
+              ? Text(
+                  data.speaker!,
+                  style: context.playerTypography
+                      .dialogueStyle(
+                        Theme.of(context).textTheme.labelLarge ??
+                            const TextStyle(),
+                      )
+                      .copyWith(
+                        color: PokeMapPlayerMenuTheme.resolve(
+                          context,
+                          role: ProjectPresentationSurfaceRole.dialogue,
+                          opaque: true,
+                        ).accent,
+                      ),
+                )
+              : _DialogueNameplate(speaker: data.speaker!, dialogue: profile),
+          const SizedBox(height: 8),
+        ],
+        Expanded(child: _DialogueTextPages(data: data, promptOnly: true)),
+      ],
+    );
+    return portrait == null
+        ? content
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              profile == null
+                  ? PlayerPortraitFrame(dimension: 64, child: portrait!)
+                  : _DialoguePortraitFrame(
+                      dimension: 64,
+                      shape: profile.portraitShape,
+                      borderWidth: profile.portraitFrameWidth,
+                      borderColor:
+                          PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                            profile.portraitFrameColor,
+                          ) ??
+                          context.playerColors.outline,
+                      child: portrait!,
+                    ),
+              const SizedBox(width: 16),
+              Expanded(child: content),
+            ],
+          );
+  }
 }

@@ -11,6 +11,8 @@ import 'package:map_runtime/map_runtime.dart'
 import 'player_dialogue_surface.dart';
 import '../foundation/player_components.dart';
 import '../foundation/player_paged_layout.dart';
+import '../foundation/player_menu_components.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../localization/player_localizations.dart';
@@ -62,6 +64,7 @@ class _PlayerSceneInteractionSurfaceState
   var _focusedInitialOptions = false;
   var _promptRead = false;
   var _contentWidth = 1.0;
+  var _choiceColumns = 1;
   final _reviewedOptions = <String>{};
   SceneInteractionOption? _reviewingOption;
   String? _returnOptionId;
@@ -70,7 +73,7 @@ class _PlayerSceneInteractionSurfaceState
   Timer? _revealTimer;
   var _revealedGraphemes = 0;
   final _naturalHeights = <String, double>{};
-  (double, double)? _naturalLayoutSignature;
+  (double, double, int)? _naturalLayoutSignature;
 
   void _rememberHeight(String id, double height) {
     if (!mounted || _naturalHeights[id] == height) return;
@@ -156,11 +159,14 @@ class _PlayerSceneInteractionSurfaceState
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => FocusScope(
-      key: ValueKey((widget.request.requestId, widget.request.revision)),
-      autofocus: true,
-      child: _buildContent(context, constraints),
+  Widget build(BuildContext context) => PlayerMenuThemeScope(
+    role: ProjectPresentationSurfaceRole.dialogue,
+    child: LayoutBuilder(
+      builder: (context, constraints) => FocusScope(
+        key: ValueKey((widget.request.requestId, widget.request.revision)),
+        autofocus: true,
+        child: _buildContent(context, constraints),
+      ),
     ),
   );
 
@@ -177,9 +183,17 @@ class _PlayerSceneInteractionSurfaceState
           ) -
           32,
     );
+    _choiceColumns =
+        request is SceneChoiceInteractionRequest &&
+            constraints.maxWidth > constraints.maxHeight &&
+            _contentWidth >= 480 &&
+            MediaQuery.textScalerOf(context).scale(1) < 1.5
+        ? 2
+        : 1;
     final signature = (
       _contentWidth,
       MediaQuery.textScalerOf(context).scale(1),
+      _choiceColumns,
     );
     if (_naturalLayoutSignature != signature) {
       _naturalLayoutSignature = signature;
@@ -200,6 +214,19 @@ class _PlayerSceneInteractionSurfaceState
         }),
       );
     }
+    final strings = PlayerSceneInteractionStrings.of(context);
+    final cancelLabel = TextPainter(
+      text: TextSpan(
+        text: strings.cancel,
+        style: context.playerTypography.bodyStyle(
+          Theme.of(context).textTheme.labelLarge ?? const TextStyle(),
+        ),
+      ),
+      textScaler: MediaQuery.textScalerOf(context),
+      textDirection: Directionality.of(context),
+    )..layout();
+    final cancelWidth = math.max(96.0, cancelLabel.width + 40);
+    cancelLabel.dispose();
     final canCancel =
         widget.allowCancellation &&
         (request is! SceneIntegerInteractionRequest || request.allowCancel);
@@ -207,7 +234,7 @@ class _PlayerSceneInteractionSurfaceState
         _requiresReading(
           context,
           prompt,
-          _contentWidth - (canCancel ? 128 : 0),
+          _contentWidth - (canCancel ? cancelWidth + PlayerSpacing.xs : 0),
           3,
           Theme.of(context).textTheme.titleMedium,
         )) {
@@ -218,7 +245,6 @@ class _PlayerSceneInteractionSurfaceState
         () => setState(() => _promptRead = true),
       );
     }
-    final strings = PlayerSceneInteractionStrings.of(context);
     final validationMessage = _validationIssue == null
         ? widget.errorMessage
         : strings.validation(_validationIssue!);
@@ -275,6 +301,9 @@ class _PlayerSceneInteractionSurfaceState
                         role: PlayerPanelRole.dialogue,
                         elevated: true,
                         padding: const EdgeInsets.all(PlayerSpacing.md),
+                        surfaceColorOverride: context.playerMenuTheme.base,
+                        textColorOverride: context.playerMenuTheme.text,
+                        borderColorOverride: context.playerMenuTheme.border,
                         child: Semantics(
                           scopesRoute: true,
                           namesRoute: true,
@@ -311,14 +340,20 @@ class _PlayerSceneInteractionSurfaceState
                                             left: PlayerSpacing.xs,
                                           ),
                                           child: SizedBox(
-                                            width: 120,
+                                            width: cancelWidth,
                                             child: PlayerActionButton(
                                               key: const ValueKey(
                                                 'scene-interaction-cancel',
                                               ),
                                               label: strings.cancel,
-                                              icon: Icons.close,
+                                              icon: null,
                                               secondary: true,
+                                              quiet: true,
+                                              backgroundColor: context
+                                                  .playerMenuTheme
+                                                  .recessed,
+                                              foregroundColor:
+                                                  context.playerMenuTheme.text,
                                               onPressed: _terminal
                                                   ? null
                                                   : _cancel,
@@ -396,7 +431,7 @@ class _PlayerSceneInteractionSurfaceState
         !_requiresReading(
           context,
           _resolvePrompt(option.label),
-          _contentWidth - 96,
+          (_contentWidth - (_choiceColumns - 1) * 8) / _choiceColumns - 48,
           2,
           context.playerTypography.bodyStyle(
             Theme.of(context).textTheme.labelLarge ?? const TextStyle(),
@@ -579,11 +614,31 @@ class _PlayerSceneInteractionSurfaceState
     ),
     SceneChoiceInteractionRequest(:final options) => PlayerPagedList(
       onContentHeightChanged: (height) => _rememberHeight('options', height),
-      revealChildKey: _firstOptionKey(options),
+      revealChildKey: _choiceRowKey(options),
       onPageReady: () => _focusOptions(request, options),
       children: [
-        for (var index = 0; index < options.length; index++)
-          _choiceButton(request, options[index], index, strings),
+        for (var index = 0; index < options.length; index += _choiceColumns)
+          IntrinsicHeight(
+            key: ValueKey('scene-choice-row-${options[index].id}'),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var column = 0; column < _choiceColumns; column++) ...[
+                  if (column > 0) const SizedBox(width: 8),
+                  Expanded(
+                    child: index + column < options.length
+                        ? _choiceButton(
+                            request,
+                            options[index + column],
+                            index + column,
+                            strings,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ],
+            ),
+          ),
       ],
     ),
     SceneIntegerInteractionRequest() => _integerInput(request, strings),
@@ -686,6 +741,20 @@ class _PlayerSceneInteractionSurfaceState
     SceneInteractionRequest() => const SizedBox.shrink(),
   };
 
+  Key? _choiceRowKey(List<SceneInteractionOption> options) {
+    final first = options.indexWhere(
+      (option) => option.enabled && option.id == _returnOptionId,
+    );
+    final index = first < 0
+        ? options.indexWhere((option) => option.enabled)
+        : first;
+    return index < 0
+        ? null
+        : ValueKey(
+            'scene-choice-row-${options[index ~/ _choiceColumns * _choiceColumns].id}',
+          );
+  }
+
   Key? _firstOptionKey(List<SceneInteractionOption> options) {
     final first =
         options
@@ -723,35 +792,40 @@ class _PlayerSceneInteractionSurfaceState
     SceneInteractionOption option,
     int index,
     PlayerSceneInteractionStrings strings,
-  ) => PlayerActionButton(
-    key: ValueKey<String>('scene-interaction-option-${option.id}'),
-    focusNode: _optionFocusNodes.putIfAbsent(
+  ) {
+    final node = _optionFocusNodes.putIfAbsent(
       option.id,
       () => FocusNode(
         debugLabel: 'Player action: ${_resolvePrompt(option.label)}',
       ),
-    ),
-    label: _resolvePrompt(option.label),
-    labelMaxLines: 2,
-    icon: Icons.chevron_right,
-    autofocus:
-        option.enabled &&
-        request.options.take(index).every((candidate) => !candidate.enabled),
-    disabledReason: option.enabled ? null : strings.optionUnavailable,
-    onPressed: widget.interactionEnabled && !_terminal && option.enabled
-        ? () {
-            if (_reviewOption(context, option)) return;
-            _publish(
-              request,
-              SceneInteractionResult.choiceSelected(
-                requestId: request.requestId,
-                revision: request.revision,
-                selectedOptionId: option.id,
-              ),
-            );
-          }
-        : null,
-  );
+    );
+    return PlayerMenuSelectableRow(
+      key: ValueKey<String>('scene-interaction-option-${option.id}'),
+      id: 'scene-choice-${option.id}',
+      focusNode: node,
+      label: _resolvePrompt(option.label),
+      labelMaxLines: 2,
+      selected: node.hasFocus,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      onFocusChanged: (_) {
+        if (mounted) setState(() {});
+      },
+      disabledReason: option.enabled ? null : strings.optionUnavailable,
+      onPressed: widget.interactionEnabled && !_terminal && option.enabled
+          ? () {
+              if (_reviewOption(context, option)) return;
+              _publish(
+                request,
+                SceneInteractionResult.choiceSelected(
+                  requestId: request.requestId,
+                  revision: request.revision,
+                  selectedOptionId: option.id,
+                ),
+              );
+            }
+          : null,
+    );
+  }
 
   Widget _integerInput(
     SceneIntegerInteractionRequest request,

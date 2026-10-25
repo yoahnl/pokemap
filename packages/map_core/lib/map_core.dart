@@ -30,6 +30,7 @@ export 'src/operations/moving_prop_operations.dart';
 export 'src/operations/moving_platform_operations.dart';
 export 'src/operations/validate_spatial_world_state.dart';
 export 'src/read_models/spatial_gameplay_capabilities.dart';
+export 'src/operations/spatial_actor_occlusion_capabilities.dart';
 export 'src/read_models/game_completion_party_capabilities.dart';
 
 export 'src/models/pokedex_species_range.dart';

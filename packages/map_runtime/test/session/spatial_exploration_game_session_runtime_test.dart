@@ -404,6 +404,31 @@ void main() {
     });
   }
 
+  test('spatial counter dispatches its V2 dialogue while preserving the barrier', () async {
+    await runtime.dispose();
+    final npc = bundle.map.entities.single.copyWith(npc: bundle.map.entities.single.npc!.copyWith(counterInteractionSides: [EntityFacing.south]));
+    final scene = SceneAsset(id: 'counter-scene', name: 'Counter', graph: SceneGraph(startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(id: 'talk', kind: SceneNodeKind.yarnDialogue, payload: SceneYarnDialoguePayload(dialogueId: 'hello')),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ], edges: [
+      SceneEdge(id: 'open', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'talk', kind: SceneEdgeKind.defaultFlow),
+      SceneEdge(id: 'close', fromNodeId: 'talk', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.defaultFlow),
+    ]));
+    bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc], spatialScene: bundle.map.spatialScene!.copyWith(navigation: SpatialNavigationProfile(blockedAreas: [SpatialBlockedArea(x: 4, z: 3, width: 1, depth: 1)]))), manifest: bundle.manifest.copyWith(scenes: [scene], eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, records: [spatialEvent(NarrativeEventSourceRef.entityInteract('field', 'npc'), scene.id)], legacyClaims: const [])));
+    runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: descriptor().initialGameState!.copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 4.5), playerFacing: EntityFacing.north)), projectFilePath: () async => '${root.path}/project.json', preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle), mountSession: (_) async {}, unmountSession: (_) async {});
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    expect(runtime.session!.movement.canTraverseActor(4.5, 4.5, 4.5, 3.5), false);
+    expect(runtime.overworldInteractionSnapshot!.primaryAction!.request.targetId, 'npc');
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+    runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+    for (var i=0;i<100 && runtime.dialoguePresentationListenable.value==null;i++) { await Future<void>.delayed(const Duration(milliseconds: 1)); }
+    expect(runtime.dialoguePresentationListenable.value!.fullText, 'Salut !');
+    expect(runtime.session!.interactionError.value, isNull);
+    expect(runtime.session!.movement.canTraverseActor(4.5, 4.5, 4.5, 3.5), false);
+  });
+
   test('autonomous spatial poses persist mid-step without a Scene transaction', () async {
     final npc = bundle.map.entities.single;
     bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc.copyWith(
@@ -425,6 +450,29 @@ void main() {
     await runtime.pause();
     expect(session.frames(1)['field:npc:npc']!.x, visible.x);
     await runtime.resume();
+    expect(session.frames(.05)['field:npc:npc']!.x, greaterThan(visible.x));
+  });
+
+  test('overworld movement pause freezes autonomous NPCs without pausing presentation', () async {
+    final npc = bundle.map.entities.single;
+    bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc.copyWith(
+      npc: npc.npc!.copyWith(movement: const MapEntityNpcMovementConfig(
+        mode: MapEntityNpcMovementMode.fixedRoute,
+        routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.east)],
+        pauseDurationMs: 1, stepDurationMs: 1000,
+      )),
+    )]));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    session.frames(.001);
+    final visible = session.frames(.05)['field:npc:npc']!;
+    expect(visible.x, greaterThan(4.5));
+    session.movement.setPaused(true);
+    expect(session.presentationPaused, false);
+    expect(session.frames(1)['field:npc:npc']!.x, visible.x);
+    expect(runtime.gameStateSnapshot.spatialWorldState.actorState('field', 'npc')!.x, visible.x);
+    session.movement.setPaused(false);
     expect(session.frames(.05)['field:npc:npc']!.x, greaterThan(visible.x));
   });
 
@@ -1964,6 +2012,60 @@ void main() {
           .setModelState('field', models.first.id, override);
       expect(session.modelRuntimeState('field', models.first.id), same(override));
       expect(session.modelRuntimeState('missing', models.first.id), isNull);
+    });
+  }
+
+  for (final minute in [239, 240, 599, 600, 1199, 1200]) {
+    test('session passes injected clock to encounter check at minute $minute', () async {
+      await runtime.dispose();
+      bundle = bundle.copyWith(
+          manifest: bundle.manifest.copyWith(encounterTables: const [
+            ProjectEncounterTable(
+                id: 'grass-table',
+                name: 'Grass',
+                encounterKind: EncounterKind.walk,
+                chancePerStep: 0,
+                entries: [
+                  ProjectEncounterEntry(
+                      speciesId: 'zubat', minLevel: 5, maxLevel: 5)
+                ])
+          ]),
+          map: bundle.map.copyWith(layers: [
+            SmartTileLayer(
+                id: 'grass',
+                name: 'Grass',
+                presetId: 'grass-preset',
+                usage: SmartTileUsage.path,
+                materialPalette: const ['', 'grass-material'],
+                field: SmartTileField.cell(
+                    semanticCells: List.filled(64, 1)),
+                encounterBehavior: const SmartTileEncounterBehavior(
+                    materialId: 'grass-material',
+                    encounter: EncounterZonePayload(
+                        encounterTableId: 'grass-table',
+                        encounterKind: EncounterKind.walk)))
+          ]));
+      var calls = 0;
+      runtime = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async {}, unmountSession: (_) async {},
+        now: () { calls++; return DateTime(2026, 10, 24, minute ~/ 60, minute % 60); },
+      );
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      final before = calls;
+      runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.down));
+      for (var i = 0; i < 30 && runtime.session!.movement.z < 5.01; i++) {
+        runtime.session!.frame(.05);
+        for (var j = 0; j < 30; j++) { await Future<void>.delayed(Duration.zero); }
+      }
+      runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.down));
+      await runtime.gameplayReady;
+      expect(runtime.session!.movement.z, greaterThanOrEqualTo(5));
+      expect(calls, before + 1);
+      expect(runtime.session!.interactionError.value, isNull);
     });
   }
 

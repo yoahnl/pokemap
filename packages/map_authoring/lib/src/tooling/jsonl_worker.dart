@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring_local.dart' show LocalCharacterContactShadowAuthoring;
 
 import '../api/authoring_mutation_api.dart';
 import '../api/authoring_read_api.dart';
@@ -72,6 +73,7 @@ final class JsonlWorker {
     ProjectPokemonRulesetBootstrapApiPort? projectBootstrap,
     ProjectCreationBootstrapApiPort? projectCreation,
     NativeProjectCreationTransportPort? nativeProjectCreation,
+    LocalCharacterContactShadowAuthoring? characterContactShadows,
     GamePackageExportApiPort? gameExport,
     GamePackageExportProfileApiPort? exportProfiles,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
@@ -83,6 +85,7 @@ final class JsonlWorker {
        _projectBootstrap = projectBootstrap,
        _projectCreation = projectCreation,
        _nativeProjectCreation = nativeProjectCreation,
+       _characterContactShadows = characterContactShadows,
        _gameExport = gameExport,
        _exportProfiles = exportProfiles {
     if (maxInputBytes <= 0) {
@@ -116,6 +119,7 @@ final class JsonlWorker {
   final ProjectPokemonRulesetBootstrapApiPort? _projectBootstrap;
   final ProjectCreationBootstrapApiPort? _projectCreation;
   final NativeProjectCreationTransportPort? _nativeProjectCreation;
+  final LocalCharacterContactShadowAuthoring? _characterContactShadows;
   final GamePackageExportApiPort? _gameExport;
   final GamePackageExportProfileApiPort? _exportProfiles;
   final int maxInputBytes;
@@ -757,6 +761,40 @@ final class JsonlWorker {
         await _resourcePacks?.closeTransferWorkspace(workspaceHandle);
         await _mutations?.detachWorkspace(workspaceHandle);
         return _api.close(workspaceHandle);
+      case 'character_contact_shadow_inspect':
+      case 'character_contact_shadow_set':
+        final service = _characterContactShadows ??
+            (throw const _UnsupportedWorkerCommand());
+        final setting = command == 'character_contact_shadow_set';
+        rejectUnknownContractKeys(args, {
+          'projectRoot',
+          'characterId',
+          if (setting) 'expectedRevision',
+          if (setting) 'enabled',
+          if (setting) 'operationId',
+        });
+        final root =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
+        final characterId =
+            requireContractString(args['characterId'], 'args.characterId');
+        if (!setting) {
+          return service.inspect(projectRoot: root, characterId: characterId);
+        }
+        final enabled = args['enabled'];
+        if (!args.containsKey('enabled') ||
+            (enabled != null && enabled is! bool)) {
+          throw const FormatException('enabled must be a boolean or null.');
+        }
+        return (await service.set(
+          projectRoot: root,
+          characterId: characterId,
+          expectedRevision: requireContractString(
+              args['expectedRevision'], 'args.expectedRevision'),
+          enabled: enabled as bool?,
+          operationId:
+              requireContractString(args['operationId'], 'args.operationId'),
+        ))
+            .toJson();
       case 'game_export':
         rejectUnknownContractKeys(
           args,
@@ -954,6 +992,7 @@ final class JsonlWorker {
         _exportProfiles == null &&
         creation == null &&
         _nativeProjectCreation == null &&
+        _characterContactShadows == null &&
         _resourcePacks == null) {
       return read;
     }
@@ -1048,6 +1087,18 @@ final class JsonlWorker {
                 'writesDestination': operation == 'publish',
                 'undoable': false, 'replacesExisting': false,
               },
+          if (_characterContactShadows != null)
+            for (final operation in ['inspect', 'set'])
+              {
+                'id': 'character_contact_shadow_$operation',
+                'actionId': 'characterStudio.contactShadow.set',
+                'readOnly': operation == 'inspect',
+                'summary':
+                    'Read or update one character contact shadow using only its project manifest and scoped transaction records.',
+                'expectedRevision': operation == 'set'
+                    ? 'project.json revision from inspect'
+                    : null,
+              },
           if (_resourcePacks != null)
             const {
               'id': 'resource_pack',
@@ -1085,6 +1136,8 @@ final class JsonlWorker {
       if (_resourcePacks != null)
         'resourcePackTransfer': resourcePackTransferContract,
       if (mutation != null) 'mutationActions': mutation['actions'],
+      if (_characterContactShadows != null)
+        'characterContactShadowAuthoring': LocalCharacterContactShadowAuthoring.descriptor.toJson(),
       if (mutation != null)
         'multiFileGuarantee': mutation['multiFileGuarantee'],
       if (mutation != null) 'fullParity': mutation['fullParity'],

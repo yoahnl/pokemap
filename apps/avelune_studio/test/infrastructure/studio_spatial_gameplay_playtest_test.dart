@@ -139,6 +139,124 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  test('Studio prepares and opens a painted actor-occlusion map', () async {
+    final material = const ProjectSmartTileMaterial(
+      id: 'contact',
+      name: 'Contact',
+      connectionGroupId: 'contact',
+      pathSurfaceKind: PathSurfaceKind.tallGrass,
+    );
+    final project = bundle.manifest.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: [material],
+        atlases: const [
+          ProjectSmartTileAtlas(
+            id: 'contact',
+            name: 'Contact',
+            tilesetId: 'hero-atlas',
+            columns: 1,
+            rows: 1,
+          ),
+        ],
+        animations: [
+          ProjectSmartTileAnimation(
+            id: 'contact',
+            name: 'Contact',
+            loop: SmartTileAnimationLoop.once,
+            frames: [
+              for (var i = 0; i < 2; i++)
+                const ProjectSmartTileAnimationFrame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'contact',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: 100,
+                ),
+            ],
+          ),
+        ],
+        presets: [
+          ProjectSmartTilePreset(
+            id: 'contact',
+            name: 'Contact',
+            usage: SmartTileUsage.path,
+            topology: SmartTileTopology.uniform,
+            templateHint: SmartTileTemplateHint.simple,
+            coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: const SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: const SmartTileTransformPolicy(),
+            defaultMaterialId: 'contact',
+            allowedMaterialIds: ['contact'],
+            rules: [
+              SmartTileRule(
+                id: 'contact',
+                centerMatch: const SmartTileSlotMatch.material('contact'),
+                candidates: const [
+                  SmartTileCandidate(
+                    id: 'contact',
+                    parts: [
+                      SmartTileVisualPart(
+                        channel: SmartTileRenderChannel.actorOcclusion,
+                        source: SmartTileVisualSource.animation(
+                          animationId: 'contact',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    bundle = bundle.copyWith(
+      manifest: project,
+      map: bundle.map.copyWith(
+        layers: [
+          SmartTileLayer(
+            id: 'contact',
+            name: 'Contact',
+            presetId: 'contact',
+            usage: SmartTileUsage.path,
+            animationActivation: SmartTileAnimationActivation.onEnter,
+            materialPalette: const ['', 'contact'],
+            field: SmartTileField.cell(
+              semanticCells: [for (var i = 0; i < 64; i++) i == 36 ? 1 : 0],
+            ),
+          ),
+        ],
+      ),
+    );
+    expect(
+      SpatialActorOcclusionCapabilities.requiresCapability(
+        project,
+        maps: [bundle.map],
+      ),
+      isTrue,
+    );
+    final host = await prepare();
+    await host.runtime.load((_) {});
+    expect(
+      host.runtime.descriptor.grantedCapabilities,
+      contains(SpatialActorOcclusionCapabilities.capabilityId),
+    );
+    host.runtime.session!.frames(0);
+    expect(
+      host.runtime.session!.actorOcclusionStateForCell(
+        'field',
+        'contact',
+        4,
+        4,
+        5000,
+      ),
+      (active: true, elapsedMs: 200),
+    );
+  });
+
   for (final (defaultAvatar, allowedAvatars, expectedAvatar) in [
     ('second', ['hero', 'second'], 'second'),
     ('hero', ['second', 'third'], 'second'),

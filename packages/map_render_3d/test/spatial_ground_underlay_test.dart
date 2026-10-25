@@ -266,6 +266,57 @@ void main() {
     },
   );
 
+  test('duplicate leading vertices retain clipped sloping surface heights', () {
+    final face = (
+      cell: (0, 0),
+      isTop: true,
+      positions: [
+        Vector3(0, 0, 0),
+        Vector3(0, 0, 0),
+        Vector3(0, 1, .5),
+        Vector3(0, 2, 1),
+        Vector3(1, 3, 1),
+        Vector3(1, 1, 0),
+        Vector3(0, 0, 0),
+      ],
+      uvs: <Vector2>[],
+    );
+    final faces = spatialTerrainUnderlayFaces(face, {
+      (0, 0): [_support(0, 1, -.25)],
+    }).toList();
+    expect(faces, isNotEmpty);
+    expect(faces.map(_area).reduce((a, b) => a + b), closeTo(1, 1e-12));
+    for (final part in faces) {
+      expect(part.positions.length, part.uvs.length);
+      for (var i = 0; i < part.positions.length; i++) {
+        final point = part.positions[i];
+        expect(point.y, closeTo(point.x + 2 * point.z - .25, 1e-12));
+        expect(point, isNot(part.positions[(i + 1) % part.positions.length]));
+      }
+    }
+  });
+
+  test('zero area top faces produce no underlay geometry', () {
+    for (final positions in [
+      <Vector3>[],
+      [Vector3(0, 0, 0)],
+      [Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 1, .5), Vector3(0, 2, 1)],
+    ]) {
+      final face = (
+        cell: (0, 0),
+        isTop: true,
+        positions: positions,
+        uvs: <Vector2>[],
+      );
+      expect(
+        spatialTerrainUnderlayFaces(face, {
+          (0, 0): [_support(0, 1, -.25)],
+        }),
+        isEmpty,
+      );
+    }
+  });
+
   test(
     'animated ground follows its current footprint instead of a fixed union',
     () {

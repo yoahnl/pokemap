@@ -397,6 +397,8 @@ export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
         BattlePresentationCommand,
         BattleSelectEntryCommand,
         BattleBackCommand,
+        BattleCommandPanelPlacement,
+        BattleSetCommandPanelPlacementCommand,
         BattlePresentationCommandRejection,
         BattlePresentationCommandValidation,
         validateBattlePresentationCommand;

@@ -399,7 +399,7 @@ final class EntityActions {
           'distanceCells': 2,
           'intermediateCell': 'blockingAndWithoutEntity',
           'npcFootprint': {'width': 1, 'height': 1},
-          'mapMode': '2d',
+          'mapModes': ['2d', '3d'],
           'parameters': ['mapId', 'entityId', 'sides'],
         },
       },
@@ -519,11 +519,9 @@ final class EntityActions {
         sides.length > 4 ||
         (sides.isNotEmpty &&
             (entity.size.width != 1 ||
-                entity.size.height != 1 ||
-                map.spatialScene != null ||
-                map.version == ProjectVersion.v9))) {
+                entity.size.height != 1))) {
       throw semanticFailure('npc.counter_interaction_invalid',
-          'Counter interaction requires unique cardinal sides and a 1x1 NPC on a 2D map.');
+          'Counter interaction requires unique cardinal sides and a 1x1 NPC.');
     }
     return updateEntityOnMap(map,
         entityId: entityId,
@@ -1176,10 +1174,7 @@ void _assertPresentationTarget(
       entity.fieldObstacle != null ||
       entity.healingDisplay != null ||
       entity.interactiveEncounter != null ||
-      errors.isNotEmpty ||
-      (map.spatialScene != null &&
-          entity.presentation!.variants
-              .any((variant) => variant.counterInteractionSides.isNotEmpty))) {
+      errors.isNotEmpty) {
     throw semanticFailure('entity.presentation_invalid',
         'Presentation requires one NPC or custom owner, valid references and in-bounds footprints.',
         details: {'errors': errors});

@@ -3,6 +3,9 @@ import 'dart:math' as math;
 import 'package:flutter/painting.dart';
 import 'package:map_battle/map_battle.dart';
 
+import '../flutter/battle_command_overlay_snapshot.dart'
+    show BattleCommandPanelPlacement, BattleCommandOverlayMode;
+
 final class BattleCombatantSceneGeometry {
   const BattleCombatantSceneGeometry({
     required this.spriteRect,
@@ -28,16 +31,9 @@ final class BattleCombatantSceneGeometry {
 const double battleMinimumTextScale = 0.8;
 const double battleMaximumTextScale = 1.6;
 
-enum BattleCommandPanelLayoutMode {
-  split,
-  stacked,
-}
+enum BattleCommandPanelLayoutMode { split, stacked }
 
-enum BattleViewportClass {
-  compactPortrait,
-  mediumLandscape,
-  wideDesktop,
-}
+enum BattleViewportClass { compactPortrait, mediumLandscape, wideDesktop }
 
 /// Contrat pur de composition de la battle scene.
 ///
@@ -55,6 +51,10 @@ final class BattleSceneLayout {
     required this.isPortrait,
     required this.portraitSafeMargin,
     required this.sceneRect,
+    required this.arenaRect,
+    required this.commandPanelPlacement,
+    required this.commandPanelMode,
+    required this.controllerLayout,
     required this.stageRect,
     required this.commandPanelRect,
     required this.enemyHudRect,
@@ -75,6 +75,10 @@ final class BattleSceneLayout {
   final bool isPortrait;
   final double portraitSafeMargin;
   final Rect sceneRect;
+  final Rect arenaRect;
+  final BattleCommandPanelPlacement commandPanelPlacement;
+  final BattleCommandOverlayMode commandPanelMode;
+  final bool controllerLayout;
   final Rect stageRect;
   final Rect commandPanelRect;
   final Rect enemyHudRect;
@@ -111,10 +115,13 @@ final class BattleSceneLayout {
       throw ArgumentError.value(slot, 'slot');
     }
     final field = Rect.fromLTRB(
-      sceneRect.left + 8,
-      sceneRect.top + 8,
-      sceneRect.right - 8,
-      commandPanelRect.top - 8,
+      arenaRect.left + 8,
+      arenaRect.top + 8,
+      arenaRect.right - 8,
+      (commandPanelPlacement != BattleCommandPanelPlacement.bottom
+              ? arenaRect.bottom
+              : commandPanelRect.top) -
+          8,
     );
     const hudHeight = 64.0;
     final hudWidth = math.min(field.width * 0.46, 198.0);
@@ -123,12 +130,14 @@ final class BattleSceneLayout {
         : field.top + slot.slotIndex * (hudHeight + 4);
     final spriteWidth = math.min(field.width * 0.22, player ? 144.0 : 112.0);
     final spriteHeight = math.min(field.height * 0.28, player ? 148.0 : 116.0);
-    final footX = field.left +
+    final footX =
+        field.left +
         field.width *
             (player
                 ? (slot.slotIndex == 0 ? 0.14 : 0.34)
                 : (slot.slotIndex == 0 ? 0.68 : 0.84));
-    final requestedFootY = field.top +
+    final requestedFootY =
+        field.top +
         field.height *
             (player
                 ? (slot.slotIndex == 0 ? 0.68 : 0.94)
@@ -139,14 +148,8 @@ final class BattleSceneLayout {
     final footY = !crossesOppositeHuds
         ? requestedFootY
         : player
-            ? math.max(
-                requestedFootY,
-                field.top + 2 * hudHeight + 8 + spriteHeight,
-              )
-            : math.min(
-                requestedFootY,
-                field.bottom - 2 * (hudHeight + 4) - 4,
-              );
+        ? math.max(requestedFootY, field.top + 2 * hudHeight + 8 + spriteHeight)
+        : math.min(requestedFootY, field.bottom - 2 * (hudHeight + 4) - 4);
     final foot = Offset(footX, footY);
     return BattleCombatantSceneGeometry(
       spriteRect: Rect.fromLTWH(
@@ -174,24 +177,50 @@ final class BattleSceneLayout {
     required Size viewportSize,
     EdgeInsets safePadding = EdgeInsets.zero,
     double textScale = 1.0,
+    BattleCommandOverlayMode commandPanelMode = BattleCommandOverlayMode.fight,
+    bool controllerLayout = false,
+    BattleCommandPanelPlacement commandPanelPlacement =
+        BattleCommandPanelPlacement.bottom,
   }) {
     final viewportClass = classifyViewport(
       viewportSize: viewportSize,
       safePadding: safePadding,
     );
     final isPortrait = viewportSize.height > viewportSize.width;
-    final sceneRect = Rect.fromLTWH(
+    final viewportRect = Rect.fromLTWH(
       safePadding.left,
       safePadding.top,
       math.max(0, viewportSize.width - safePadding.horizontal),
       math.max(0, viewportSize.height - safePadding.vertical),
     );
+    final sidePanel =
+        commandPanelPlacement == BattleCommandPanelPlacement.end &&
+        !isPortrait &&
+        viewportRect.width >= 700 &&
+        viewportRect.height >= 320;
+    final detached =
+        commandPanelPlacement == BattleCommandPanelPlacement.detached;
+    final effectivePlacement = detached
+        ? BattleCommandPanelPlacement.detached
+        : sidePanel
+        ? BattleCommandPanelPlacement.end
+        : BattleCommandPanelPlacement.bottom;
+    const sidePanelWidth = 294.0;
+    final sceneRect = sidePanel
+        ? Rect.fromLTRB(
+            viewportRect.left,
+            viewportRect.top,
+            viewportRect.right - sidePanelWidth - 12,
+            viewportRect.bottom,
+          )
+        : viewportRect;
     final portraitSafeMargin = isPortrait
         ? (sceneRect.width * 0.038).clamp(14.0, 20.0).toDouble()
         : 0.0;
 
-    final commandPanelLayoutMode =
-        _resolveCommandPanelLayoutMode(viewportClass);
+    final commandPanelLayoutMode = _resolveCommandPanelLayoutMode(
+      viewportClass,
+    );
     final commandPanelHorizontalPadding = switch (viewportClass) {
       BattleViewportClass.compactPortrait => 12.0,
       BattleViewportClass.mediumLandscape => 16.0,
@@ -203,19 +232,266 @@ final class BattleSceneLayout {
       BattleViewportClass.wideDesktop => 18.0,
     };
     final commandPanelHeight = switch (viewportClass) {
-      BattleViewportClass.compactPortrait =>
-        (sceneRect.height * 0.315).clamp(280.0, 304.0).toDouble(),
-      BattleViewportClass.mediumLandscape =>
-        (sceneRect.height * 0.34).clamp(138.0, 168.0).toDouble(),
+      BattleViewportClass.compactPortrait => math.min(
+        300.0,
+        viewportSize.height * .5,
+      ),
+      BattleViewportClass.mediumLandscape => 116.0,
       BattleViewportClass.wideDesktop =>
         (sceneRect.height * 0.22).clamp(146.0, 176.0).toDouble(),
     };
-    final commandPanelRect = Rect.fromLTWH(
-      sceneRect.left + commandPanelHorizontalPadding,
-      sceneRect.bottom - commandPanelBottomPadding - commandPanelHeight,
-      sceneRect.width - (commandPanelHorizontalPadding * 2),
-      commandPanelHeight,
-    );
+    final commandPanelRect = detached
+        ? Rect.zero
+        : sidePanel
+        ? Rect.fromLTWH(
+            viewportRect.right - 294,
+            math.max(
+              viewportRect.top + 12,
+              viewportSize.height - math.max(20, safePadding.bottom) - 276,
+            ),
+            294,
+            math.min(276, viewportRect.height - 24),
+          )
+        : viewportClass != BattleViewportClass.wideDesktop
+        ? Rect.fromLTWH(
+            viewportRect.left + (isPortrait ? 18 : 24),
+            viewportRect.bottom - commandPanelHeight - (isPortrait ? 24 : 12),
+            viewportRect.width - (isPortrait ? 36 : 48),
+            commandPanelHeight,
+          )
+        : Rect.fromLTWH(
+            sceneRect.left + commandPanelHorizontalPadding,
+            sceneRect.bottom - commandPanelBottomPadding - commandPanelHeight,
+            sceneRect.width - (commandPanelHorizontalPadding * 2),
+            commandPanelHeight,
+          );
+
+    if (sidePanel || detached) {
+      final detachedMessage =
+          detached && commandPanelMode == BattleCommandOverlayMode.continueOnly;
+      final enemyHudSize = sidePanel
+          ? const Size(261, 39)
+          : const Size(244, 56);
+      final playerHudSize = sidePanel
+          ? const Size(243, 67)
+          : const Size(250, 88);
+      final enemyHud = Rect.fromLTWH(
+        sidePanel
+            ? viewportSize.width - 14 - enemyHudSize.width
+            : sceneRect.left + 24,
+        sidePanel ? math.max(35, safePadding.top + 8) : sceneRect.top + 22,
+        enemyHudSize.width,
+        enemyHudSize.height,
+      );
+      final playerHud = Rect.fromLTWH(
+        sidePanel ? 11 : sceneRect.right - playerHudSize.width - 24,
+        sceneRect.bottom -
+            playerHudSize.height -
+            (sidePanel
+                ? 19
+                : detachedMessage
+                ? 120
+                : 20),
+        playerHudSize.width,
+        playerHudSize.height,
+      );
+      final scale = math.min(
+        .85,
+        math.min(sceneRect.width / 500, sceneRect.height / 440),
+      );
+      final playerSize = Size(350 * scale, 214 * scale);
+      final enemySize = Size(210 * scale, 154 * scale);
+      final playerSprite = Rect.fromLTWH(
+        sceneRect.left + (sidePanel ? 12 : sceneRect.width * .08),
+        (sidePanel
+                ? playerHud.top - 24
+                : sceneRect.bottom - (detachedMessage ? 128 : 24)) -
+            playerSize.height,
+        playerSize.width,
+        playerSize.height,
+      );
+      final enemySprite = Rect.fromLTWH(
+        (sidePanel
+                ? sceneRect.right - 12
+                : sceneRect.left + sceneRect.width * .88) -
+            enemySize.width,
+        sidePanel
+            ? sceneRect.top + sceneRect.height * .27
+            : sceneRect.top + sceneRect.height * .25,
+        enemySize.width,
+        enemySize.height,
+      );
+      final playerFoot = Offset(
+        playerSprite.left + playerSprite.width * .70,
+        playerSprite.bottom,
+      );
+      final enemyFoot = Offset(enemySprite.center.dx, enemySprite.bottom);
+      final playerPlatform = Rect.fromLTWH(
+        playerFoot.dx - 111 * scale,
+        playerFoot.dy - 5 * scale,
+        222 * scale,
+        28 * scale,
+      );
+      final enemyPlatform = Rect.fromLTWH(
+        enemyFoot.dx - 80 * scale,
+        enemyFoot.dy - 4 * scale,
+        160 * scale,
+        22 * scale,
+      );
+      final grownEnemyHud = _growHudRect(
+        base: enemyHud,
+        textScale: textScale,
+        bounds: sidePanel ? Offset.zero & viewportSize : sceneRect,
+        obstacles: [
+          playerSprite.expandToInclude(playerPlatform),
+          enemySprite.expandToInclude(enemyPlatform),
+          playerHud,
+          commandPanelRect,
+        ],
+      );
+      final grownPlayerHud = _growHudRect(
+        base: playerHud,
+        textScale: textScale,
+        bounds: sidePanel ? Offset.zero & viewportSize : sceneRect,
+        obstacles: [
+          playerSprite.expandToInclude(playerPlatform),
+          enemySprite.expandToInclude(enemyPlatform),
+          enemyHud,
+          commandPanelRect,
+        ],
+      );
+      return BattleSceneLayout._(
+        viewportSize: viewportSize,
+        safePadding: safePadding,
+        viewportClass: viewportClass,
+        isPortrait: isPortrait,
+        portraitSafeMargin: portraitSafeMargin,
+        sceneRect: viewportRect,
+        arenaRect: sceneRect,
+        commandPanelPlacement: effectivePlacement,
+        commandPanelMode: commandPanelMode,
+        controllerLayout: controllerLayout,
+        stageRect: sceneRect.deflate(8),
+        commandPanelRect: commandPanelRect,
+        enemyHudRect: grownEnemyHud,
+        playerHudRect: grownPlayerHud,
+        enemySpriteRect: enemySprite,
+        playerSpriteRect: playerSprite,
+        enemyPlatformRect: enemyPlatform,
+        playerPlatformRect: playerPlatform,
+        enemyFootAnchor: enemyFoot,
+        playerFootAnchor: playerFoot,
+        commandPanelLayoutMode: commandPanelLayoutMode,
+        scale: scale,
+      );
+    }
+
+    if (viewportClass == BattleViewportClass.compactPortrait) {
+      final arena = Rect.fromLTRB(
+        sceneRect.left,
+        sceneRect.top,
+        sceneRect.right,
+        commandPanelRect.top,
+      );
+      final enemyHud = Rect.fromLTWH(
+        sceneRect.left + 18,
+        math.max(50, sceneRect.top + 8),
+        math.min(200, sceneRect.width - 36),
+        56,
+      );
+      final playerHud = Rect.fromLTWH(
+        sceneRect.right - 18 - math.min(210, sceneRect.width * .56),
+        arena.bottom - 24 - 88,
+        math.min(210, sceneRect.width * .56),
+        88,
+      );
+      final playerSize = math.min(
+        sceneRect.width * .405,
+        playerHud.left - sceneRect.left - 4,
+      );
+      final enemySize = math.min(
+        sceneRect.width * .34,
+        math.max(48.0, playerHud.top - enemyHud.bottom - 24),
+      );
+      final playerSprite = Rect.fromLTWH(
+        sceneRect.left + 4,
+        math.max(enemyHud.bottom + 8, arena.bottom - 84 - playerSize),
+        playerSize,
+        playerSize,
+      );
+      final enemySprite = Rect.fromLTWH(
+        sceneRect.right - 10 - enemySize,
+        math.max(enemyHud.bottom + 12, arena.bottom * .59 - enemySize),
+        enemySize,
+        enemySize,
+      );
+      final playerFoot = Offset(
+        playerSprite.left + playerSize * .7,
+        playerSprite.bottom,
+      );
+      final enemyFoot = Offset(enemySprite.center.dx, enemySprite.bottom);
+      final playerPlatform = Rect.fromCenter(
+        center: playerFoot,
+        width: playerSize * .56,
+        height: 12,
+      );
+      final enemyPlatform = Rect.fromCenter(
+        center: enemyFoot,
+        width: enemySize * .7,
+        height: 12,
+      );
+      final enemyGrown = _growHudRect(
+        base: enemyHud,
+        textScale: textScale,
+        bounds: arena,
+        obstacles: [
+          playerSprite.expandToInclude(playerPlatform),
+          enemySprite.expandToInclude(enemyPlatform),
+          playerHud,
+        ],
+      );
+      final playerGrown = _growHudRect(
+        base: playerHud,
+        textScale: textScale,
+        bounds: arena,
+        obstacles: [
+          playerSprite.expandToInclude(playerPlatform),
+          enemySprite.expandToInclude(enemyPlatform),
+          enemyHud,
+        ],
+      );
+      return BattleSceneLayout._(
+        viewportSize: viewportSize,
+        safePadding: safePadding,
+        viewportClass: viewportClass,
+        isPortrait: isPortrait,
+        portraitSafeMargin: portraitSafeMargin,
+        sceneRect: viewportRect,
+        arenaRect: arena,
+        commandPanelPlacement: effectivePlacement,
+        commandPanelMode: commandPanelMode,
+        controllerLayout: controllerLayout,
+        stageRect: Rect.fromLTRB(
+          arena.left + portraitSafeMargin,
+          arena.top + 14,
+          arena.right - portraitSafeMargin,
+          arena.bottom - 16,
+        ),
+        commandPanelRect: commandPanelRect,
+        enemyHudRect: enemyGrown,
+        playerHudRect: playerGrown,
+        enemySpriteRect: enemySprite,
+        playerSpriteRect: playerSprite,
+        enemyPlatformRect: enemyPlatform,
+        playerPlatformRect: playerPlatform,
+        enemyFootAnchor: enemyFoot,
+        playerFootAnchor: playerFoot,
+        commandPanelLayoutMode: commandPanelLayoutMode,
+        scale: playerSize / 214,
+      );
+    }
+
+    final arenaBottom = commandPanelRect.top;
 
     // Calculé AVANT la scène, parce que l'ennemi doit pouvoir s'écarter de lui.
     // Ce HUD est le seul élément placé en pixels d'écran au-dessus du panneau :
@@ -224,27 +500,27 @@ final class BattleSceneLayout {
     // 0,5 — soit tous les téléphones en portrait — les deux se croisaient.
     final playerHudSize = switch (viewportClass) {
       BattleViewportClass.compactPortrait => Size(
-          (sceneRect.width * 0.47).clamp(190.0, 216.0).toDouble(),
-          (sceneRect.height * 0.105).clamp(70.0, 76.0).toDouble(),
-        ),
-      BattleViewportClass.mediumLandscape => const Size(184, 62),
-      BattleViewportClass.wideDesktop => const Size(244, 74),
+        (sceneRect.width * 0.47).clamp(190.0, 216.0).toDouble(),
+        (sceneRect.height * 0.105).clamp(70.0, 76.0).toDouble(),
+      ),
+      BattleViewportClass.mediumLandscape => const Size(210, 88),
+      BattleViewportClass.wideDesktop => const Size(244, 88),
     };
     // `wideDesktop` place le sien en coordonnées de scène, donc invariant
     // d'échelle et sans collision possible : rien à réserver pour lui.
     final panelAnchoredPlayerHudRect = switch (viewportClass) {
       BattleViewportClass.compactPortrait => Rect.fromLTWH(
-          sceneRect.right - portraitSafeMargin - playerHudSize.width,
-          commandPanelRect.top - playerHudSize.height - 10,
-          playerHudSize.width,
-          playerHudSize.height,
-        ),
+        sceneRect.right - portraitSafeMargin - playerHudSize.width,
+        arenaBottom - playerHudSize.height - 10,
+        playerHudSize.width,
+        playerHudSize.height,
+      ),
       BattleViewportClass.mediumLandscape => Rect.fromLTWH(
-          sceneRect.right - 192,
-          commandPanelRect.top - 72,
-          playerHudSize.width,
-          playerHudSize.height,
-        ),
+        sceneRect.right - 24 - playerHudSize.width,
+        arenaBottom - playerHudSize.height - 12,
+        playerHudSize.width,
+        playerHudSize.height,
+      ),
       BattleViewportClass.wideDesktop => Rect.zero,
     };
 
@@ -261,7 +537,7 @@ final class BattleSceneLayout {
         BattleViewportClass.wideDesktop => sceneRect.top + 18,
       },
       isPortrait ? sceneRect.right - portraitSafeMargin : sceneRect.right,
-      commandPanelRect.top - stageBottomGap,
+      arenaBottom - stageBottomGap,
     );
 
     final referenceStageWidth = switch (viewportClass) {
@@ -325,7 +601,8 @@ final class BattleSceneLayout {
           (enemySpriteReferenceSize.width * (1 - enemySpriteFootXRatio)),
       enemyFootReference.dx + (enemyPlatformReferenceSize.width / 2),
     ].reduce((left, right) => math.max(left, right));
-    final centeredStageLeft = stageAvailableRect.left +
+    final centeredStageLeft =
+        stageAvailableRect.left +
         ((stageAvailableRect.width - (referenceStageWidth * scale)) / 2);
     final stageLeft = math.max(
       stageAvailableRect.left - (combatantReferenceLeft * scale),
@@ -343,10 +620,7 @@ final class BattleSceneLayout {
     );
 
     Offset mapPoint(double x, double y) {
-      return Offset(
-        stageRect.left + (x * scale),
-        stageRect.top + (y * scale),
-      );
+      return Offset(stageRect.left + (x * scale), stageRect.top + (y * scale));
     }
 
     Rect mapRect(double left, double top, double width, double height) {
@@ -404,7 +678,8 @@ final class BattleSceneLayout {
     // HUD garde la taille lisible gagnée en BETA-BAT-007, et il reste de la
     // marge au-dessus de l'ennemi pour l'accueillir. Le `min` ne mord que là
     // où la collision existe réellement.
-    final enemyOverlapsPlayerHud = !panelAnchoredPlayerHudRect.isEmpty &&
+    final enemyOverlapsPlayerHud =
+        !panelAnchoredPlayerHudRect.isEmpty &&
         mappedEnemySpriteRect.right > panelAnchoredPlayerHudRect.left &&
         mappedEnemySpriteRect.left < panelAnchoredPlayerHudRect.right;
     // C'est le combattant AVEC son sol qui doit degager : la plateforme
@@ -446,36 +721,35 @@ final class BattleSceneLayout {
 
     final enemyHudRect = switch (viewportClass) {
       BattleViewportClass.compactPortrait => Rect.fromLTWH(
-          sceneRect.left + portraitSafeMargin,
-          sceneRect.top + portraitSafeMargin,
-          (sceneRect.width * 0.44).clamp(176.0, 196.0).toDouble(),
-          (sceneRect.height * 0.09).clamp(60.0, 66.0).toDouble(),
-        ),
+        sceneRect.left + portraitSafeMargin,
+        sceneRect.top + portraitSafeMargin,
+        (sceneRect.width * 0.44).clamp(176.0, 196.0).toDouble(),
+        (sceneRect.height * 0.09).clamp(60.0, 66.0).toDouble(),
+      ),
       // Recette du 2026-08-24 : à 156 px le nom de l'adversaire se tronquait
       // (« Ratt… ») dès qu'il dépassait six lettres. La largeur rejoint celle
       // du HUD portrait, qui affiche les mêmes informations sans couper. La
       // hauteur reste 54 : à 640×360, un pixel de plus mord le dégagement du
       // sprite joueur (invariant « non occultante » de BETA-BAT-009).
       BattleViewportClass.mediumLandscape => Rect.fromLTWH(
-          sceneRect.left + 8,
-          sceneRect.top + 8,
-          196,
-          54,
-        ),
+        sceneRect.left + 8,
+        sceneRect.top + 8,
+        196,
+        54,
+      ),
       BattleViewportClass.wideDesktop => mapRect(16, 8, 210, 70),
     };
     // Exactement le rectangle que l'ennemi a contourné : le recalculer ici
     // rouvrirait l'écart entre la bande réservée et la bande rendue.
     final playerHudRect = switch (viewportClass) {
       BattleViewportClass.compactPortrait ||
-      BattleViewportClass.mediumLandscape =>
-        panelAnchoredPlayerHudRect,
+      BattleViewportClass.mediumLandscape => panelAnchoredPlayerHudRect,
       BattleViewportClass.wideDesktop => mapRect(
-          668,
-          232,
-          playerHudSize.width,
-          playerHudSize.height,
-        ),
+        668,
+        232,
+        playerHudSize.width,
+        playerHudSize.height,
+      ),
     };
 
     // BETA-BAT-007. La hauteur du rectangle est ce qui plafonnait vraiment
@@ -518,7 +792,16 @@ final class BattleSceneLayout {
       viewportClass: viewportClass,
       isPortrait: isPortrait,
       portraitSafeMargin: portraitSafeMargin,
-      sceneRect: sceneRect,
+      sceneRect: viewportRect,
+      arenaRect: Rect.fromLTRB(
+        sceneRect.left,
+        sceneRect.top,
+        sceneRect.right,
+        commandPanelRect.top,
+      ),
+      commandPanelPlacement: effectivePlacement,
+      commandPanelMode: commandPanelMode,
+      controllerLayout: controllerLayout,
       stageRect: stageRect,
       commandPanelRect: commandPanelRect,
       enemyHudRect: grownEnemyHudRect,
@@ -579,10 +862,7 @@ Rect _growHudRect({
   required Rect bounds,
   required List<Rect> obstacles,
 }) {
-  final scale = textScale.clamp(
-    battleMinimumTextScale,
-    battleMaximumTextScale,
-  );
+  final scale = textScale.clamp(battleMinimumTextScale, battleMaximumTextScale);
   if (scale <= 1.0 || base.isEmpty) {
     return base;
   }
@@ -602,8 +882,7 @@ Rect _growHudRect({
   }
 
   final verticalNeighbours = obstacles.where(
-    (obstacle) =>
-        obstacle.top < base.bottom && obstacle.bottom > base.top,
+    (obstacle) => obstacle.top < base.bottom && obstacle.bottom > base.top,
   );
   final leftLimit = limit(
     verticalNeighbours

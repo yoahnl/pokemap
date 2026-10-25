@@ -68,11 +68,27 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(Scrollable), findsNothing);
+      expect(find.byIcon(Icons.add), findsNothing);
+      final frame = tester.getRect(
+        find.byKey(const ValueKey('player-menu-edge-to-edge')),
+      );
+      expect(frame, Offset.zero & size);
       for (var i = 0; i < 30; i++) {
         final cell = find.byKey(ValueKey('pc-slot-$i'));
         expect(cell, findsOneWidget, reason: '$size slot $i');
         expect(tester.getRect(cell).overlaps(Offset.zero & size), isTrue);
       }
+      final summary = find.byKey(const ValueKey('pc-summary-box-slot-0'));
+      final summaryBounds = tester.getRect(summary);
+      final label = find.descendant(of: summary, matching: find.byType(Text));
+      final labelBounds = tester.getRect(label);
+      expect(labelBounds.bottom, lessThanOrEqualTo(summaryBounds.bottom));
+      expect(labelBounds.top, greaterThanOrEqualTo(summaryBounds.top));
+      expect(summary.hitTestable(), findsOneWidget);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('pc-slot-0'))).height,
+        48,
+      );
       expect(tester.takeException(), isNull, reason: '$size');
     }
   });
@@ -142,6 +158,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Résumé de Lead'), findsOneWidget);
     expect(find.text('Nature : Hardy'), findsOneWidget);
+    for (
+      var page = 0;
+      page < 10 && find.text('Talent : Steadfast').evaluate().isEmpty;
+      page++
+    ) {
+      final next = find.byKey(const ValueKey('player-page-next'));
+      expect(next, findsOneWidget);
+      expect(tester.widget<IconButton>(next).onPressed, isNotNull);
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+    }
     expect(find.text('Talent : Steadfast'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey<String>('pc-summary-close')));
     await tester.pumpAndSettle();
@@ -229,8 +256,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Party'), findsOneWidget);
     expect(find.text('Deposit'), findsOneWidget);
-    expect(find.byTooltip('Box A'), findsOneWidget);
-    expect(find.byTooltip('Close'), findsOneWidget);
+    expect(find.text('Box A'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('pc-footer-close')).hitTestable(),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('pc-summary-party-slot-0')),
@@ -252,8 +282,9 @@ void main() {
       expected.removeWhere((label) => find.text(label).evaluate().isNotEmpty);
       final next = find.byKey(const ValueKey('player-page-next'));
       if (next.evaluate().isEmpty ||
-          tester.widget<IconButton>(next).onPressed == null)
+          tester.widget<IconButton>(next).onPressed == null) {
         break;
+      }
       await tester.tap(next);
       await tester.pumpAndSettle();
     }

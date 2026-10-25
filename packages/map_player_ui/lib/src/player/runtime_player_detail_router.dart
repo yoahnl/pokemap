@@ -115,6 +115,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         role: ProjectPresentationSurfaceRole.party,
         child: RuntimePlayerParty(
           navigation: partyNavigation,
+          summaryHeaderInShell: true,
           detail: detail,
           onCommand: onPauseCommand,
           canReorder: snapshot.isActionEnabled(

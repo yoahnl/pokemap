@@ -13,13 +13,18 @@ extension _LocalResourceMutation on LocalResourceAdapter {
     bool confirmDestructive = false,
     String? Function()? validateBeforeApply,
   }) => mapAdapter.withResourceMutation(() async {
+    _resourceMutationActive = true;
+    final trace = developer.TimelineTask()..start('studio.resource.save');
+    void phase(String name) => trace.instant(name);
     try {
       if (_disposed || !LocalResourceAdapter._actions.contains(actionId)) {
         throw const ResourceFailure(
           'Cette opération de ressource est indisponible.',
         );
       }
+      phase('baseline.start');
       final before = await mapAdapter.resourceBaseline(session);
+      phase('baseline.end');
       _requireAvailable();
       if (expectedBeforeRevision != null &&
           before.revision != expectedBeforeRevision) {
@@ -40,30 +45,42 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           changedPaths: const [],
         );
       }
-      const reader = LocalProjectFileReader();
-      final policy = await WorkspacePolicy.create(
-        allowedRootPaths: [session.directoryPath],
-        fileReader: reader,
-      );
-      final handles = WorkspaceHandleStore();
-      final opened = await ProjectOpenService(
-        policy: policy,
-        fileReader: reader,
-        handles: handles,
-      ).openProject(session.directoryPath);
-      final snapshots = ProjectSnapshotLoader(handles: handles);
-      final artifacts = LocalArtifactStore(
-        allowedSourceRoots: [session.directoryPath],
-        maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
-      );
-      final api = LocalMapAuthoringMutationApi(
-        policy: policy,
-        snapshotLoader: snapshots,
-        artifactStore: artifacts,
+      if (session.storage == ProjectSessionStorage.manifest &&
+          actionId == 'characterStudio.character.update' &&
+          fields.length == 2 &&
+          fields.containsKey('characterId') &&
+          fields.containsKey('contactShadow') &&
+          sourcePath == null &&
+          expectedSnapshotRevision == null) {
+        return await _setCharacterContactShadow(
+          before.manifest,
+          before.revision,
+          fields,
+          validateBeforeApply: validateBeforeApply,
+        );
+      }
+      final context = await _requireMutationContext();
+      final snapshots = context.snapshots;
+      final opened = context.opened;
+      final artifacts = context.artifacts;
+      final api = context.api;
+      context.profiles.sink = (profile) => trace.instant(
+        'snapshot.loaded',
+        arguments: {
+          'readUs': profile.initialReadMicroseconds,
+          'decodeUs': profile.decodeModelMicroseconds,
+          'observeUs': profile.secondObservationMicroseconds,
+          'fingerprintUs': profile.fingerprintMicroseconds,
+          'projectionUs': profile.projectionMicroseconds,
+          'totalUs': profile.totalMicroseconds,
+          'resources': profile.resourceCount,
+          'bytes': profile.resourceBytes,
+          'cacheHit': profile.cacheHit,
+        },
       );
       String? artifactHandle;
       final stagedHandles = <String>{};
-      var attached = false;
+      AuthoringPlan? ownedPlan;
       try {
         if (sourcePath != null) {
           await artifacts.authorizeSourceFile(sourcePath);
@@ -109,12 +126,9 @@ extension _LocalResourceMutation on LocalResourceAdapter {
                 },
           ];
         }
-        await api.attachProject(
-          projectRootPath: session.directoryPath,
-          workspaceHandle: opened.workspaceHandle,
-          projectHandle: opened.projectHandle,
-        );
-        attached = true;
+        phase('attach.start');
+        await context.attach();
+        phase('attach.end');
         final snapshot = await snapshots.load(
           opened.projectHandle,
           policy: ProjectSnapshotLoadPolicy.editorReadProjection,
@@ -130,6 +144,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             'Le projet a changé sur le disque. Rien n’a été écrasé.',
           );
         }
+        phase('snapshot.end');
         final operationId = _identity('resource');
         final planned = await api.planMutation(
           opened.projectHandle,
@@ -143,6 +158,8 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             idempotencyKey: operationId,
           ),
         );
+        ownedPlan = planned.plan;
+        phase('plan.end');
         final changes = planned.plan.changeSet.changes;
         final mapPaths = before.manifest.maps
             .map((map) => map.relativePath)
@@ -180,6 +197,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
               ? studioProjectPlanRevision(snapshot, planned.plan)
               : null,
         );
+        phase('receipt.end');
         _requireAvailable();
         try {
           final confirmation = confirmDestructive
@@ -216,6 +234,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           }
         }
         try {
+          phase('apply.end');
           await beforeReconciliation?.call();
           _requireAvailable();
           if (snapshot.materializedCatalogProject) {
@@ -241,18 +260,29 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             partialReceipt: receipt,
           );
         }
+        phase('reconciliation.end');
         return receipt;
       } finally {
-        for (final handle in stagedHandles) {
-          await artifacts.release(handle);
+        try {
+          await ownedPlan?.releaseAppliedPayload();
+          for (final handle in stagedHandles) {
+            await artifacts.release(handle);
+          }
+        } finally {
+          context.profiles.sink = null;
         }
-        if (attached) await api.detachWorkspace(opened.workspaceHandle);
-        handles.closeWorkspace(opened.workspaceHandle);
       }
     } on ResourceFailure {
       rethrow;
     } on Object catch (error) {
       throw _resourceFailure(error);
+    } finally {
+      _resourceMutationActive = false;
+      try {
+        if (_disposed) await _closeMutationContext();
+      } finally {
+        trace.finish();
+      }
     }
   });
 }

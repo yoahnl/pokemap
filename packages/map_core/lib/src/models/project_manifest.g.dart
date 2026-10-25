@@ -354,6 +354,8 @@ _ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>
           : MapInstanceRetentionPolicy.fromJson(
               json['mapInstanceRetentionPolicy'] as Map<String, dynamic>,
             ),
+      actorContactShadowsByDefault:
+          json['actorContactShadowsByDefault'] as bool? ?? false,
       tileWidth: (json['tileWidth'] as num?)?.toInt() ?? 16,
       tileHeight: (json['tileHeight'] as num?)?.toInt() ?? 16,
       displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
@@ -371,6 +373,7 @@ Map<String, dynamic> _$ProjectSettingsToJson(
   'dimension': _$ProjectDimensionEnumMap[instance.dimension]!,
   'spatialCamera': ?instance.spatialCamera?.toJson(),
   'mapInstanceRetentionPolicy': ?instance.mapInstanceRetentionPolicy?.toJson(),
+  'actorContactShadowsByDefault': instance.actorContactShadowsByDefault,
   'tileWidth': instance.tileWidth,
   'tileHeight': instance.tileHeight,
   'displayScale': instance.displayScale,
@@ -1021,6 +1024,7 @@ _ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
   id: json['id'] as String,
   name: json['name'] as String,
   tilesetId: json['tilesetId'] as String,
+  contactShadow: json['contactShadow'] as bool?,
   frameWidth: (json['frameWidth'] as num?)?.toInt() ?? 1,
   frameHeight: (json['frameHeight'] as num?)?.toInt() ?? 2,
   portraits:
@@ -1056,6 +1060,7 @@ Map<String, dynamic> _$ProjectCharacterEntryToJson(
   'id': instance.id,
   'name': instance.name,
   'tilesetId': instance.tilesetId,
+  'contactShadow': ?instance.contactShadow,
   'frameWidth': instance.frameWidth,
   'frameHeight': instance.frameHeight,
   'portraits': ?_characterPortraitsToJson(instance.portraits),

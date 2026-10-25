@@ -24,11 +24,13 @@ abstract interface class AuthoringAuditLog {
 
 /// Locked, flushed, hash-chained JSONL audit sink inside project metadata.
 final class FileAuthoringAuditLog implements AuthoringAuditLog {
-  FileAuthoringAuditLog._(this._projectRoot, this._onFullRead);
+  FileAuthoringAuditLog._(
+      this._projectRoot, this._onFullRead, this._incrementalWrites);
 
   static Future<FileAuthoringAuditLog> open({
     required String projectRoot,
     void Function()? onFullRead,
+    bool incrementalWrites = false,
   }) async {
     try {
       final directory = Directory(projectRoot);
@@ -41,6 +43,7 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
       return FileAuthoringAuditLog._(
         await directory.resolveSymbolicLinks(),
         onFullRead,
+        incrementalWrites,
       );
     } on AuthoringAuditLogException {
       rethrow;
@@ -52,6 +55,7 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
     }
   }
 
+  final bool _incrementalWrites;
   final String _projectRoot;
   final void Function()? _onFullRead;
   _AuditAppendIndex? _cachedAppendIndex;
@@ -63,6 +67,10 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
   Future<void> append(AuthoringAuditRecord record) {
     return _guard(() async {
       await _withLock(() async {
+        if (_incrementalWrites) {
+          await _appendIncremental(record);
+          return;
+        }
         final file = await _auditFile();
         final index = await _readAppendIndex(file);
         if (index.auditIds.contains(record.auditId)) {
@@ -98,9 +106,68 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
     return _guard(() async {
       return _withLock(() async {
         final events = await _readEvents(await _auditFile());
-        return List.unmodifiable(events.map((event) => event.record));
+        final records = [for (final event in events) event.record];
+        final directory = await _incrementalDirectory(create: false);
+        if (directory != null) {
+          await for (final file in directory.list(followLinks: false)) {
+            if (file is! File || !file.path.endsWith('.json')) {
+              throw const FormatException();
+            }
+            final event = _AuditEvent.fromJson(
+                jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+            if (event.previousDigest != null ||
+                event.digest != _eventDigest(null, event.record) ||
+                file.uri.pathSegments.last != '${event.record.auditId}.json' ||
+                records
+                    .any((record) => record.auditId == event.record.auditId)) {
+              throw const FormatException();
+            }
+            records.add(event.record);
+          }
+        }
+        return List.unmodifiable(records);
       });
     });
+  }
+
+  Future<Directory?> _incrementalDirectory({required bool create}) async {
+    final root = await _authoringRoot();
+    final directory = Directory(_join(root.path, 'audit-entries'));
+    final type =
+        await FileSystemEntity.type(directory.path, followLinks: false);
+    if (type == FileSystemEntityType.notFound) {
+      if (!create) return null;
+      await directory.create();
+    } else if (type != FileSystemEntityType.directory) {
+      throw const FormatException();
+    }
+    return directory;
+  }
+
+  Future<void> _appendIncremental(AuthoringAuditRecord record) async {
+    if (!RegExp(r'^audit_document_[a-f0-9]{32}$').hasMatch(record.auditId)) {
+      throw const FormatException();
+    }
+    final directory = (await _incrementalDirectory(create: true))!;
+    final target = File(_join(directory.path, '${record.auditId}.json'));
+    final temporary = File('${target.path}.tmp');
+    for (final file in [target, temporary]) {
+      if (await FileSystemEntity.type(file.path, followLinks: false) !=
+          FileSystemEntityType.notFound) {
+        throw const AuthoringAuditLogException('audit.identity_conflict',
+            'The audit identity is already present or unsafe.');
+      }
+    }
+    final event = _AuditEvent(
+        previousDigest: null,
+        record: record,
+        digest: _eventDigest(null, record));
+    try {
+      await temporary.writeAsString(jsonEncode(event.toJson()), flush: true);
+      await temporary.rename(target.path);
+    } finally {
+      if (await temporary.exists()) await temporary.delete();
+    }
   }
 
   Future<T> _withLock<T>(Future<T> Function() operation) async {
@@ -160,6 +227,12 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
   }
 
   Future<Directory> _authoringRoot() async {
+    if (await FileSystemEntity.type(_projectRoot, followLinks: false) !=
+            FileSystemEntityType.directory ||
+        await Directory(_projectRoot).resolveSymbolicLinks() != _projectRoot) {
+      throw const AuthoringAuditLogException('audit.path_invalid',
+          'The project root changed before writing its audit.');
+    }
     var current = Directory(_projectRoot);
     for (final segment in const ['.pokemap', 'authoring']) {
       final next = Directory(_join(current.path, segment));

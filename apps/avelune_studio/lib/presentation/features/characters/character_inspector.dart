@@ -219,9 +219,7 @@ class _CharacterInspectorState extends State<CharacterInspector> {
         Text('Interaction', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),
         const Text('Quand le joueur lui parle'),
-        if (widget.document.current.spatialScene == null &&
-            widget.document.current.version != ProjectVersion.v9 &&
-            entity.size.width == 1 &&
+        if (entity.size.width == 1 &&
             entity.size.height == 1) ...[
           const SizedBox(height: 8),
           const Text('Parler par-dessus un comptoir'),

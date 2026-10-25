@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import 'character_studio_controller.dart';
+import 'character_contact_shadow_controls.dart';
+import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../../features/characters/application/character_studio_draft.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
@@ -224,33 +227,58 @@ class _CharacterStudioPageState extends State<CharacterStudioPage> {
         ),
       );
     }
-    return StudioPanel(
-      title: 'Identité',
-      children: [
-        StudioDraftField(
-          key: ValueKey('character-name-${character.id}'),
-          value: draft.name,
-          label: 'Nom du personnage',
-          onChanged: widget.controller.setName,
-        ),
-        const SizedBox(height: 14),
-        Text(
-          'Source : ${widget.project.tilesets.where((entry) => entry.id == character.tilesetId).firstOrNull?.name ?? 'Image manquante'}',
-        ),
-        const SizedBox(height: 8),
-        Text('Identifiant stable : ${character.id}'),
-        const SizedBox(height: 8),
-        Text(
-          'Dimensions : ${character.frameWidth} × ${character.frameHeight} case(s)',
-        ),
-        if (widget.visuals is CharacterWorkspaceVisuals) ...[
-          const SizedBox(height: 20),
-          (widget.visuals as CharacterWorkspaceVisuals).characterThumbnail(
-            character,
-            size: 150,
+    return SingleChildScrollView(
+      child: StudioPanel(
+        title: 'Identité',
+        children: [
+          StudioDraftField(
+            key: ValueKey('character-name-${character.id}'),
+            value: draft.name,
+            label: 'Nom du personnage',
+            onChanged: widget.controller.setName,
           ),
+          const SizedBox(height: 14),
+          Text(
+            'Source : ${widget.project.tilesets.where((entry) => entry.id == character.tilesetId).firstOrNull?.name ?? 'Image manquante'}',
+          ),
+          const SizedBox(height: 8),
+          Text('Identifiant stable : ${character.id}'),
+          if (widget.project.settings.dimension == ProjectDimension.threeD) ...[
+            const SizedBox(height: 14),
+            Text('Rendu 3D', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            StudioToggleRow(
+              key: const ValueKey('project-actor-contact-shadows-default'),
+              label: 'Ombre sous les pieds par défaut',
+              description: 'Pour les personnages de ce projet 3D. Enregistré immédiatement. Chaque personnage peut avoir son propre réglage.',
+              value: widget.project.settings.actorContactShadowsByDefault,
+              onChanged: widget.controller.saving
+                  ? null
+                  : (value) => unawaited(
+                      widget.controller.setContactShadowsByDefault(value),
+                    ),
+            ),
+            CharacterContactShadowControls(
+              projectDefault:
+                  widget.project.settings.actorContactShadowsByDefault,
+              value: draft.contactShadow,
+              busy: widget.controller.saving,
+              onChanged: widget.controller.setContactShadow,
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            'Dimensions : ${character.frameWidth} × ${character.frameHeight} case(s)',
+          ),
+          if (widget.visuals is CharacterWorkspaceVisuals) ...[
+            const SizedBox(height: 20),
+            (widget.visuals as CharacterWorkspaceVisuals).characterThumbnail(
+              character,
+              size: 150,
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 

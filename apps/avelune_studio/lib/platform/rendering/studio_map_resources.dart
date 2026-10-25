@@ -13,6 +13,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
+
 import 'studio_image_store.dart';
 import 'studio_map_visual_widgets.dart';
 import 'studio_resource_decoder.dart';
@@ -169,6 +170,9 @@ final class StudioMapResources
           z: z,
           texture: textures[imageId]!,
           frame: source.sourceRect,
+          contactShadow:
+              actor.contactShadow ??
+              manifest.settings.actorContactShadowsByDefault,
         );
       }
       return SpatialNpcPreview(frames, () {
@@ -290,9 +294,7 @@ final class StudioMapResources
       updated,
       next.supported,
     );
-    await store.settled;
-    if (_disposed) return;
-    final invalid = changedStudioResourceIds(
+    Set<String> invalidResourceIds() => changedStudioResourceIds(
       root: projectRoot,
       before: paths,
       after: resolved,
@@ -300,6 +302,12 @@ final class StudioMapResources
       nextColors: next.colors,
       changedRelativePaths: changedRelativePaths,
     );
+    var invalid = invalidResourceIds();
+    if (invalid.isNotEmpty) {
+      await store.settled;
+      invalid = invalidResourceIds();
+    }
+    if (_disposed) return;
     final borderChanged =
         manifest.borderCatalog != updated.borderCatalog ||
         manifest.settings != updated.settings ||

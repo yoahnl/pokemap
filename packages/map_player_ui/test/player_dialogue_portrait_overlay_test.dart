@@ -79,7 +79,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('choice mode never retains the previous line portrait', (
+  testWidgets('choice without a prompt never retains a previous portrait', (
     tester,
   ) async {
     final portrait = (await tester.runAsync(() => _portrait('elia-choice')))!;
@@ -98,6 +98,37 @@ void main() {
       find.byKey(const ValueKey<String>('dialogue-portrait-shape-circle')),
       findsNothing,
     );
+    expect(find.text('Continuer'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('choice prompt retains its canonical speaker portrait', (
+    tester,
+  ) async {
+    final portrait = (await tester.runAsync(
+      () => _portrait('elia-choice-prompt'),
+    ))!;
+    addTearDown(
+      () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
+    );
+    await _pump(
+      tester,
+      snapshot: _choiceSnapshot(portrait: portrait, withPrompt: true),
+      dialogue: const ProjectDialoguePresentationProfile(
+        portraitShape: ProjectDialoguePortraitShape.circle,
+      ),
+    );
+    expect(
+      find.byKey(const ValueKey<String>('dialogue-portrait-shape-circle')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('dialogue-portrait-portrait.elia.surprised'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Élia'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -424,14 +455,15 @@ DialoguePresentationSnapshot _lineSnapshot({
 
 DialoguePresentationSnapshot _choiceSnapshot({
   ResolvedDialoguePortrait? portrait,
+  bool withPrompt = false,
 }) {
   return DialoguePresentationSnapshot(
     revision: 8,
     mode: DialoguePresentationMode.choices,
     nodeTitle: 'choice',
-    speaker: null,
-    text: '',
-    fullText: '',
+    speaker: withPrompt ? 'Élia' : null,
+    text: withPrompt ? 'Veux-tu continuer ?' : '',
+    fullText: withPrompt ? 'Veux-tu continuer ?' : '',
     isCurrentLineFullyRevealed: true,
     isLastContent: false,
     choices: const <DialoguePresentationChoice>[

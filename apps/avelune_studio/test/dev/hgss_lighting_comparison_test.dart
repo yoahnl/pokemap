@@ -9,6 +9,120 @@ import 'package:map_render_3d/map_render_3d.dart';
 import '../../dev/hgss_lighting_comparison.dart';
 
 void main() {
+  test(
+    'contact capture requires every named actor to have the authored flag',
+    () {
+      expect(
+        () => verifyComparisonContactActors(
+          authoredContactActorIds: {'hero'},
+          expectedActorIds: {'hero', 'npc'},
+          after: true,
+          renderedCount: 1,
+        ),
+        throwsStateError,
+      );
+      verifyComparisonContactActors(
+        authoredContactActorIds: {'hero', 'npc'},
+        expectedActorIds: {'hero', 'npc'},
+        after: false,
+        renderedCount: 0,
+      );
+      verifyComparisonContactActors(
+        authoredContactActorIds: {'hero', 'npc'},
+        expectedActorIds: {'hero', 'npc'},
+        after: true,
+        renderedCount: 2,
+      );
+      expect(
+        () => verifyComparisonContactActors(
+          authoredContactActorIds: {'hero', 'npc'},
+          expectedActorIds: {'hero', 'npc'},
+          after: false,
+          renderedCount: 1,
+        ),
+        throwsStateError,
+      );
+    },
+  );
+
+  test(
+    'contact shadow comparison keeps the same hour and scenery in each pair',
+    () {
+      final camera = SpatialSceneController();
+      final before = SpatialLightingProfile.disabled;
+      final lighting = ValueNotifier(before);
+      addTearDown(camera.dispose);
+      addTearDown(lighting.dispose);
+      for (final index in [0, 59, 60, 119]) {
+        for (final after in [false, true]) {
+          setComparisonLightingPhase(
+            dayNightTest: false,
+            actorContactShadowTest: true,
+            after: after,
+            probeOnly: false,
+            frameIndex: index,
+            frameCount: 120,
+            camera: camera,
+            lighting: lighting,
+            beforeProfile: before,
+            afterProfile: SpatialLightingProfile.stylized(),
+          );
+          expect(camera.previewMinuteOfDay, index < 60 ? 720 : 1320);
+          expect(camera.previewPointLightShadowsEnabled, isTrue);
+          expect(lighting.value, same(before));
+        }
+      }
+      const child = SizedBox();
+      expect(
+        comparisonLightingSurface(
+          dayNightTest: false,
+          actorContactShadowTest: true,
+          lighting: lighting,
+          child: child,
+        ),
+        same(child),
+      );
+    },
+  );
+
+  test('contact plans reject mixed lighting, masked props and unowned paths', () async {
+    final root = await Directory.systemTemp.createTemp('avelune-contact-plan-');
+    addTearDown(() => root.delete(recursive: true));
+    final path = await root.resolveSymbolicLinks();
+    await Directory('$path/evidence/actor-contact-shadows')
+        .create(recursive: true);
+    final file = File(
+      '$path/evidence/actor-contact-shadows/comparison-contact-shadows-plan.json',
+    );
+    final plan = {
+      'testProject': '$path/jeu',
+      'mapId': 'first-map',
+      'actorContactShadowTest': true,
+    };
+    await file.writeAsString(jsonEncode(plan));
+    expect(
+      await loadComparisonPlan(path, 'comparison-contact-shadows-plan.json'),
+      plan,
+    );
+    for (final extra in [
+      {'dayNightTest': true},
+      {'pointLightShadowTest': true},
+      {
+        'shadowCasterInstanceIds': ['house'],
+      },
+      {
+        'hiddenInstanceIds': ['tree'],
+      },
+      {'testProject': '/other/jeu'},
+    ]) {
+      await file.writeAsString(jsonEncode({...plan, ...extra}));
+      await expectLater(
+        loadComparisonPlan(path, 'comparison-contact-shadows-plan.json'),
+        throwsStateError,
+      );
+    }
+  });
+
   test('comparison plans retain both modes and bound the day/night folder', () {
     expect(
       comparisonPlanRelativePath('comparison-plan.json'),

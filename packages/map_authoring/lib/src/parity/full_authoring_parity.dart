@@ -687,6 +687,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/contact_device_stdio.test.ts',
     };
   }
+  if (actionId == 'project.actor_contact_shadows.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/project/actor_contact_shadow_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/project/actor_contact_shadow_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/characters/actor_contact_shadow_controller_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/actor_contact_shadows_stdio.test.ts',
+    };
+  }
   if (actionId == 'project.rename') {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/project_identity_actions_test.dart',
@@ -2144,6 +2152,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['project.battle_audio.', 'map.audio.'],
     'test/domains/project/runtime_audio_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['project.actor_contact_shadows.'],
+    'test/domains/project/actor_contact_shadow_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['project.rename'],

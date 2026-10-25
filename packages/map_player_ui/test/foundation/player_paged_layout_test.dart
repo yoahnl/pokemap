@@ -58,13 +58,18 @@ void main() {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
+      var returns = 0;
       await tester.pumpWidget(
         MaterialApp(
           theme: PokeMapPlayerTheme.dark(),
           home: PlayerMenuThemeScope(
             child: PlayerMenuFrame(
               scrollable: false,
-              header: const PlayerMenuHeader(icon: Icons.menu, title: 'Menu'),
+              header: PlayerMenuHeader(
+                icon: Icons.menu,
+                title: 'Menu',
+                onBack: () => returns++,
+              ),
               footer: PlayerMenuFooter(
                 hints: const [],
                 returnAction: PlayerMenuSelectableRow(
@@ -87,6 +92,29 @@ void main() {
       expect(action.top - body.bottom, greaterThanOrEqualTo(16));
       expect(size.height - action.bottom, greaterThanOrEqualTo(16));
       expect(action.height, greaterThanOrEqualTo(48));
+      expect(action.width, lessThanOrEqualTo(168));
+      expect(action.left, lessThan(size.width / 2));
+      if (size.shortestSide < 600) {
+        expect(
+          find.byKey(const ValueKey('player-menu-frame-panel')),
+          findsNothing,
+        );
+        expect(
+          tester.getRect(
+            find.byKey(const ValueKey('player-menu-edge-to-edge')),
+          ),
+          Offset.zero & size,
+        );
+        final back = find.byType(PlayerMenuBackButton);
+        expect(tester.getSize(back), const Size(48, 48));
+        await tester.tap(back);
+        expect(returns, 1);
+      } else {
+        expect(
+          find.byKey(const ValueKey('player-menu-frame-panel')),
+          findsOneWidget,
+        );
+      }
       expect(find.byType(Scrollable), findsNothing);
       expect(tester.takeException(), isNull);
     });

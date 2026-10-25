@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -14,6 +15,181 @@ void main() {
   late ResourceStressFixture fixture;
   setUp(() async => fixture = await ResourceStressFixture.create());
   tearDown(() => fixture.dispose());
+
+  for (final contactShadow in <bool?>[true, false, null]) {
+    test(
+      'metadata contact shadow $contactShadow refresh does not wait for pending image decode',
+      () async {
+        final before = fixture.manifest.copyWith(
+          characters: [
+            for (final character in fixture.manifest.characters)
+              character.copyWith(contactShadow: contactShadow != true),
+          ],
+        );
+        await _expectMetadataRefreshWithoutDecode(
+          fixture,
+          before,
+          before.copyWith(
+            characters: [
+              for (final character in before.characters)
+                character.copyWith(contactShadow: contactShadow),
+            ],
+          ),
+        );
+      },
+      timeout: const Timeout(Duration(seconds: 20)),
+    );
+  }
+
+  test('metadata project shadow default refresh does not wait for pending image decode', () async {
+    await _expectMetadataRefreshWithoutDecode(
+      fixture,
+      fixture.manifest,
+      fixture.manifest.copyWith(
+        settings: fixture.manifest.settings.copyWith(
+          actorContactShadowsByDefault: true,
+        ),
+      ),
+    );
+  }, timeout: const Timeout(Duration(seconds: 20)));
+
+  test(
+    'pixel refresh still waits for pending image decode before invalidation',
+    () async {
+      final started = Completer<void>();
+      final release = Completer<void>();
+      final resources = await StudioMapResources.load(
+        fixture.session,
+        fixture.manifest,
+        decode: (bytes, {transparentColor}) async {
+          if (!started.isCompleted) {
+            started.complete();
+            await release.future;
+          }
+          return decodeRuntimeTilesetImage(
+            bytes,
+            transparentColor: transparentColor,
+          );
+        },
+      );
+      addTearDown(resources.dispose);
+      final request = resources.store.request(fixture.lateAtlasId);
+      Future<void>? refresh;
+      try {
+        await started.future.timeout(const Duration(seconds: 5));
+        var completed = false;
+        refresh = resources
+            .updateCatalog(
+              fixture.manifest,
+              changedRelativePaths: {
+                fixture.manifest.tilesets
+                    .firstWhere((entry) => entry.id == fixture.lateAtlasId)
+                    .relativePath,
+              },
+            )
+            .then((_) => completed = true);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        expect(completed, isFalse);
+        expect(resources.catalogVersion, 0);
+      } finally {
+        if (!release.isCompleted) release.complete();
+        await request;
+        await refresh;
+      }
+      expect(resources.catalogVersion, 1);
+      expect(resources.images, isNot(contains(fixture.lateAtlasId)));
+    },
+    timeout: const Timeout(Duration(seconds: 20)),
+  );
+
+  test(
+    'overlapping image refreshes invalidate changes applied while waiting',
+    () async {
+      for (final entry in {
+        'a': 0xffff0000,
+        'a-next': 0xff0000ff,
+        'b': 0xff00ff00,
+        'b-next': 0xffffff00,
+        'blocker': 0xff000000,
+      }.entries) {
+        await File('${fixture.directory.path}/assets/${entry.key}.png')
+            .writeAsBytes(await _png(16, 16, entry.value));
+      }
+      final manifest = fixture.manifest.copyWith(
+        tilesets: [
+          for (final id in ['a', 'b', 'blocker'])
+            ProjectTilesetEntry(
+              id: id,
+              name: id,
+              relativePath: 'assets/$id.png',
+            ),
+        ],
+      );
+      final started = Completer<void>();
+      final release = Completer<void>();
+      var decodes = 0;
+      final resources = await StudioMapResources.load(
+        fixture.session,
+        manifest,
+        decode: (bytes, {transparentColor}) async {
+          if (++decodes == 2) {
+            started.complete();
+            await release.future;
+          }
+          return decodeRuntimeTilesetImage(
+            bytes,
+            transparentColor: transparentColor,
+          );
+        },
+      );
+      final owner = Object();
+      addTearDown(() async {
+        resources.release(owner);
+        await resources.dispose();
+      });
+      resources.retain(owner, {'a'});
+      await resources.settled;
+      expect(await _pixel(resources.images['a']!), [255, 0, 0, 255]);
+      final blocker = resources.store.request('blocker');
+      Future<void>? first;
+      Future<void>? second;
+      final firstManifest = manifest.copyWith(
+        tilesets: [
+          for (final entry in manifest.tilesets)
+            entry.id == 'a'
+                ? entry.copyWith(relativePath: 'assets/a-next.png')
+                : entry,
+        ],
+      );
+      final secondManifest = manifest.copyWith(
+        tilesets: [
+          for (final entry in manifest.tilesets)
+            entry.id == 'b'
+                ? entry.copyWith(relativePath: 'assets/b-next.png')
+                : entry,
+        ],
+      );
+      try {
+        await started.future.timeout(const Duration(seconds: 5));
+        first = resources.updateCatalog(firstManifest);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        second = resources.updateCatalog(secondManifest);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        expect(resources.catalogVersion, 0);
+      } finally {
+        if (!release.isCompleted) release.complete();
+        await blocker;
+        await first;
+        await second;
+      }
+      await resources.settled;
+      expect(resources.catalogVersion, 2);
+      expect(resources.manifest, secondManifest);
+      expect(resources.paths['a'], endsWith('/assets/a.png'));
+      expect(await _pixel(resources.images['a']!), [255, 0, 0, 255]);
+    },
+    timeout: const Timeout(Duration(seconds: 20)),
+  );
 
   test(
     'catalogue refresh keeps unrelated decoded images and requests only demand',
@@ -172,6 +348,17 @@ void main() {
       );
       addTearDown(resources.dispose);
       await resources.store.request('large');
+      final diagnostics = resources.diagnostics
+          .map((item) => '${item.cause.name}: ${item.detail}')
+          .join('; ');
+      expect(
+        resources.images,
+        contains('large'),
+        reason: 'reads=${resources.store.decoder.reads}, '
+            'decodes=${resources.store.decoder.decodes}, '
+            'transient=${resources.store.decoder.peakTransientBytes}, '
+            'diagnostics=$diagnostics',
+      );
       final image = resources.images['large']!;
       expect(image.width, 4096);
       expect(image.height, 5280);
@@ -195,6 +382,50 @@ void main() {
       expect(resources.diagnostics, isEmpty);
     },
   );
+}
+
+Future<void> _expectMetadataRefreshWithoutDecode(
+  ResourceStressFixture fixture,
+  ProjectManifest before,
+  ProjectManifest after,
+) async {
+  expect(before.characters, isNotEmpty);
+  final started = Completer<void>();
+  final release = Completer<void>();
+  final resources = await StudioMapResources.load(
+    fixture.session,
+    before,
+    decode: (bytes, {transparentColor}) async {
+      started.complete();
+      await release.future;
+      return decodeRuntimeTilesetImage(
+        bytes,
+        transparentColor: transparentColor,
+      );
+    },
+  );
+  addTearDown(resources.dispose);
+  final request = resources.store.request(fixture.lateAtlasId);
+  Future<void>? refresh;
+  try {
+    await started.future.timeout(const Duration(seconds: 5));
+    refresh = resources.updateCatalog(
+      after,
+      changedRelativePaths: {'project.json'},
+    );
+    await refresh.timeout(const Duration(seconds: 1));
+    expect(resources.manifest, after);
+    expect(resources.catalogVersion, 1);
+    expect(resources.store.decoder.decodes, 1);
+    expect(resources.images, isNot(contains(fixture.lateAtlasId)));
+    expect(release.isCompleted, isFalse);
+  } finally {
+    if (!release.isCompleted) release.complete();
+    await request;
+    await refresh;
+  }
+  expect(resources.images, contains(fixture.lateAtlasId));
+  expect(resources.store.decoder.decodes, 1);
 }
 
 Future<Uint8List> _png(int width, int height, int argb) async {

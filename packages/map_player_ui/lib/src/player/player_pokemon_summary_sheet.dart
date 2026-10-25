@@ -5,11 +5,13 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import 'player_pokemon_image.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_menu_theme.dart';
+import '../theme/pokemap_player_pokemon_type_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_hp_tone.dart';
 import 'player_pokemon_summary_strings.dart';
@@ -25,11 +27,13 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
     required this.summary,
     this.surfaceRole = ProjectPresentationSurfaceRole.party,
     this.actions,
+    this.showHeader = true,
   });
 
   final RuntimePokemonSummarySnapshot summary;
   final ProjectPresentationSurfaceRole surfaceRole;
   final Widget? actions;
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) => PlayerMenuThemeScope(
@@ -43,16 +47,12 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
-            Expanded(
-              child: Text(
-                strings.hp,
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-            ),
             Text(
               strings.hpValue(summary.currentHp, summary.maxHp),
-              style: Theme.of(context).textTheme.labelLarge,
+              style: context.playerMenuTheme.actionLabel,
             ),
+            const SizedBox(width: 4),
+            Text(strings.hp, style: context.playerMenuTheme.actionLabel),
           ],
         ),
         const SizedBox(height: PlayerSpacing.xs),
@@ -62,6 +62,7 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
         // threshold bands as the battle HUD.
         LinearProgressIndicator(
           value: summary.hpRatio,
+          minHeight: 6,
           color: playerHpColorFor(context, summary.hpRatio),
           backgroundColor: context.playerColors.outline.withValues(alpha: 0.35),
         ),
@@ -80,95 +81,69 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
     );
   }
 
-  Widget _identity(BuildContext context, PlayerPokemonSummaryStrings strings) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _SummaryLine(label: strings.species, value: summary.speciesLabel),
-        if (summary.formLabel case final form?)
-          _SummaryLine(label: strings.form, value: form),
-        if (summary.experience case final experience?)
-          _SummaryLine(label: strings.experience, value: '$experience'),
-        _SummaryLine(label: strings.nature, value: summary.natureLabel),
-        _SummaryLine(label: strings.ability, value: summary.abilityLabel),
-        if (summary.genderLabel case final gender?)
-          _SummaryLine(label: strings.gender, value: gender),
-        _SummaryLine(
-          label: strings.heldItem,
-          value: summary.heldItemLabel ?? strings.none,
-        ),
-        _SummaryLine(
-          label: strings.friendship,
-          value: strings.friendshipValue(summary.friendship),
-        ),
-      ],
-    );
-  }
-
   Widget _statsGrid(
     BuildContext context,
     PlayerPokemonSummaryStrings strings,
     RuntimePokemonStatsSummarySnapshot stats,
   ) {
+    final theme = context.playerMenuTheme;
+    final values = [
+      (strings.hp, summary.maxHp),
+      (strings.attack, stats.attack),
+      (strings.defense, stats.defense),
+      (strings.specialAttack, stats.specialAttack),
+      (strings.specialDefense, stats.specialDefense),
+      (strings.speed, stats.speed),
+    ];
+    final columns =
+        MediaQuery.sizeOf(context).aspectRatio > 1 &&
+            !PlayerCompanionScope.of(context)
+        ? 3
+        : 2;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _SummaryLine(label: strings.attack, value: '${stats.attack}'),
-        _SummaryLine(label: strings.defense, value: '${stats.defense}'),
-        _SummaryLine(
-          label: strings.specialAttack,
-          value: '${stats.specialAttack}',
-        ),
-        _SummaryLine(
-          label: strings.specialDefense,
-          value: '${stats.specialDefense}',
-        ),
-        _SummaryLine(label: strings.speed, value: '${stats.speed}'),
-      ],
-    );
-  }
-
-  Widget _moves(BuildContext context, PlayerPokemonSummaryStrings strings) {
-    if (summary.moves.isEmpty) {
-      return Text(strings.none, style: Theme.of(context).textTheme.bodyMedium);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        for (final move in summary.moves)
-          // The snapshot carries the move type and nobody rendered it: the
-          // sheet dropped a canonical field while its test claimed every one
-          // reached the screen.
-          _SummaryLine(
-            key: ValueKey<String>('pokemon-summary-move-${move.moveId}'),
-            label: (move.typeLabel?.trim() ?? '').isEmpty
-                ? move.label
-                : '${move.label} · ${move.typeLabel}',
-            value: move.hasPpTracking
-                ? strings.ppValue(move.currentPp!, move.maxPp!)
-                : strings.ppUnavailable,
+      children: [
+        for (var start = 0; start < values.length; start += columns)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                for (
+                  var index = start;
+                  index < math.min(start + columns, values.length);
+                  index++
+                ) ...[
+                  if (index > start) const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: theme.border)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              values[index].$1,
+                              style: theme.actionLabel,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${values[index].$2}',
+                            style: theme.actionLabel.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-      ],
-    );
-  }
-
-  Widget _provenance(
-    BuildContext context,
-    PlayerPokemonSummaryStrings strings,
-    RuntimePokemonProvenanceSummarySnapshot provenance,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _SummaryLine(label: strings.origin, value: provenance.originLabel),
-        if (provenance.metMapLabel case final map?)
-          _SummaryLine(label: strings.metLocation, value: map),
-        if (provenance.metSourceLabel case final source?)
-          _SummaryLine(label: strings.metSource, value: source),
-        if (provenance.metLevel case final metLevel?)
-          _SummaryLine(label: strings.metLevel, value: '$metLevel'),
-        if (provenance.ballLabel case final ball?)
-          _SummaryLine(label: strings.captureBall, value: ball),
       ],
     );
   }
@@ -185,12 +160,310 @@ class _PlayerPokemonSummaryTabs extends StatefulWidget {
 
 class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
   var _tab = 0;
+  var _selectedMove = 0;
+  final _tabFocus = FocusNode(debugLabel: 'Pokemon summary tabs');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _tabFocus.canRequestFocus) _tabFocus.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabFocus.dispose();
+    super.dispose();
+  }
 
   List<Widget> _rows(Widget child) => child is Column
       ? child.children
       : child is Wrap
       ? child.children
       : [child];
+
+  List<Widget> _moveRows(
+    BuildContext context,
+    PlayerPokemonSummaryStrings strings, {
+    bool wide = false,
+  }) {
+    final moves = widget.sheet.summary.moves;
+    if (moves.isEmpty) return [Text(strings.none)];
+    final selected = _selectedMove.clamp(0, moves.length - 1);
+    final theme = context.playerMenuTheme;
+    final move = moves[selected];
+    String? typeLabel(RuntimePokemonMoveSummarySnapshot move) {
+      final label = move.typeLabel?.trim();
+      if (label != null && label.isNotEmpty) return label;
+      final id = move.typeId?.trim();
+      return id == null || id.isEmpty
+          ? null
+          : context.playerL10n.battleMoveType(id);
+    }
+
+    Widget card(int index) => TextButton(
+      key: ValueKey('pokemon-summary-move-${moves[index].moveId}'),
+      style: TextButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        backgroundColor: index == selected ? theme.selectionTop : theme.panel,
+        foregroundColor: index == selected ? theme.selectionText : theme.text,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: theme.border),
+        ),
+      ),
+      onPressed: () => setState(() => _selectedMove = index),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              moves[index].label,
+              style: theme.actionLabel.copyWith(
+                color: index == selected ? theme.selectionText : theme.text,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            moves[index].hasPpTracking
+                ? strings.ppValue(moves[index].currentPp!, moves[index].maxPp!)
+                : strings.ppUnavailable,
+            style: theme.actionLabel.copyWith(
+              color: index == selected ? theme.selectionText : theme.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+    final columns = wide ? 2 : 1;
+    return [
+      for (var start = 0; start < moves.length; start += columns)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (
+              var index = start;
+              index < math.min(start + columns, moves.length);
+              index++
+            ) ...[
+              if (index > start) const SizedBox(width: 8),
+              Expanded(child: card(index)),
+            ],
+          ],
+        ),
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Row(
+          key: const ValueKey('pokemon-summary-selected-move'),
+          children: [
+            Expanded(
+              child: Text(
+                [move.label, ?typeLabel(move)].join(' · '),
+                style: theme.actionLabel,
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (move.hasPpTracking)
+              Text(
+                strings.ppValue(move.currentPp!, move.maxPp!),
+                style: theme.actionLabel,
+              ),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  String _typeLabel(String value) => value.isEmpty
+      ? value
+      : value[0].toUpperCase() + value.substring(1).toLowerCase();
+
+  List<Widget> _summaryRows(
+    BuildContext context,
+    PlayerPokemonSummaryStrings strings, {
+    required bool wide,
+  }) {
+    final sheet = widget.sheet;
+    final summary = sheet.summary;
+    final theme = context.playerMenuTheme;
+    final provenance = summary.provenance;
+    Widget fact(String label, String value) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: theme.meta.copyWith(fontSize: wide ? 10 : 11, height: 1.3),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: theme.body.copyWith(fontSize: wide ? 12 : 14, height: 1.35),
+        ),
+      ],
+    );
+    Widget line(String label, String value) => Container(
+      padding: EdgeInsets.symmetric(vertical: wide ? 5 : 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: theme.border)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: theme.meta.copyWith(fontSize: wide ? 12 : 14),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: theme.body.copyWith(fontSize: wide ? 12 : 14),
+            ),
+          ),
+        ],
+      ),
+    );
+    final types = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final type in summary.typeIds)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Color.alphaBlend(
+                PokeMapPlayerPokemonTypeTheme.color(type)
+                    .withValues(alpha: .18),
+                theme.panel,
+              ),
+              border: Border(
+                left: BorderSide(
+                  color: PokeMapPlayerPokemonTypeTheme.color(type),
+                  width: 3,
+                ),
+              ),
+            ),
+            child: Text(
+              _typeLabel(context.playerL10n.battleMoveType(type)),
+              style: theme.actionLabel.copyWith(
+                fontSize: 10,
+                height: 1.2,
+                fontWeight: FontWeight.w700,
+                color: theme.text,
+              ),
+            ),
+          ),
+      ],
+    );
+    final overview = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (summary.typeIds.isNotEmpty) types,
+        SizedBox(height: wide ? 8 : 16),
+        sheet._hpBar(context, strings),
+        SizedBox(height: wide ? 8 : 16),
+        line(strings.heldItem, summary.heldItemLabel ?? strings.none),
+        line(strings.ability, summary.abilityLabel),
+      ],
+    );
+    final facts = [
+      fact(strings.nature, summary.natureLabel),
+      if (provenance != null) fact(strings.origin, provenance.originLabel),
+      if (provenance != null)
+        fact(
+          strings.metLocation,
+          provenance.metMapLabel ?? provenance.originLabel,
+        ),
+    ];
+    final extra = <(String, String)>[
+      (strings.species, summary.speciesLabel),
+      if (summary.formLabel case final value?) (strings.form, value),
+      if (summary.experience case final value?) (strings.experience, '$value'),
+      if (summary.genderLabel case final value?) (strings.gender, value),
+      (strings.friendship, strings.friendshipValue(summary.friendship)),
+      if (provenance?.metSourceLabel case final value?)
+        (strings.metSource, value),
+      if (provenance?.metLevel case final value?) (strings.metLevel, '$value'),
+      if (provenance?.ballLabel case final value?) (strings.captureBall, value),
+    ];
+    final image = PlayerPokemonImage(
+      summary: summary,
+      width: wide ? 112 : 160,
+      height: wide ? 124 : 160,
+    );
+    return [
+      if (wide)
+        Row(
+          key: const ValueKey('pokemon-summary-overview'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            image,
+            const SizedBox(width: 12),
+            Expanded(child: overview),
+            const SizedBox(width: 16),
+            Container(
+              width: PlayerCompanionScope.of(context) ? 128 : 150,
+              padding: const EdgeInsets.only(left: 16),
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: theme.border)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < facts.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 12),
+                    facts[i],
+                  ],
+                ],
+              ),
+            ),
+          ],
+        )
+      else ...[
+        Center(key: const ValueKey('pokemon-summary-overview'), child: image),
+        overview,
+        Container(
+          padding: const EdgeInsets.only(top: 16),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: theme.border)),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) => Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                for (final entry in facts)
+                  SizedBox(
+                    width: (constraints.maxWidth - 16) / 2,
+                    child: entry,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      if (summary.isShiny) Text(strings.shiny, style: theme.meta),
+      for (var start = 0; start < extra.length; start += 2)
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: fact(extra[start].$1, extra[start].$2)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: start + 1 < extra.length
+                  ? fact(extra[start + 1].$1, extra[start + 1].$2)
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,37 +475,38 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
         ? ['Résumé', 'Capacités', 'Stats', 'Actions']
         : ['Summary', 'Moves', 'Stats', 'Actions'];
     final ids = ['summary', 'moves', 'stats', 'actions'];
-    final rows = switch (_tab) {
-      1 => _rows(sheet._moves(context, strings)),
-      2 =>
-        summary.stats == null
-            ? <Widget>[Text(strings.none)]
-            : _rows(sheet._statsGrid(context, strings, summary.stats!)),
-      3 =>
-        sheet.actions == null
-            ? <Widget>[
-                Text(
-                  '${strings.heldItem} : ${summary.heldItemLabel ?? strings.none}',
-                ),
-              ]
-            : _rows(sheet.actions!),
-      _ => <Widget>[
-        _SummaryLine(
-          label: french ? 'Nom' : 'Name',
-          value: summary.displayLabel,
-        ),
-        if (summary.isShiny) Text(strings.shiny),
-        sheet._hpBar(context, strings),
-        ..._rows(sheet._identity(context, strings)),
-        if (summary.provenance case final provenance?)
-          ..._rows(sheet._provenance(context, strings, provenance)),
-      ],
-    };
-    return PlayerPanel(
-      surfaceRole: sheet.surfaceRole,
-      padding: const EdgeInsets.all(8),
+    return Padding(
+      padding: EdgeInsets.zero,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final rows = switch (_tab) {
+            1 => _moveRows(
+              context,
+              strings,
+              wide:
+                  constraints.maxWidth >= 450 ||
+                  PlayerCompanionScope.of(context),
+            ),
+            2 =>
+              summary.stats == null
+                  ? <Widget>[Text(strings.none)]
+                  : _rows(sheet._statsGrid(context, strings, summary.stats!)),
+            3 =>
+              sheet.actions == null
+                  ? <Widget>[
+                      Text(
+                        '${strings.heldItem} : ${summary.heldItemLabel ?? strings.none}',
+                      ),
+                    ]
+                  : _rows(sheet.actions!),
+            _ => _summaryRows(
+              context,
+              strings,
+              wide:
+                  MediaQuery.sizeOf(context).aspectRatio > 1 ||
+                  PlayerCompanionScope.of(context),
+            ),
+          };
           final bounded = constraints.hasBoundedHeight;
           final body = PlayerMenuDetailTransition(
             contentKey: ValueKey('pokemon-summary-content-$_tab'),
@@ -242,72 +516,71 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
               children: rows,
             ),
           );
-          final compactTabs =
-              constraints.maxHeight < 320 ||
-              constraints.maxWidth < 500 &&
-                  MediaQuery.textScalerOf(context).scale(1) >= 1.5;
-          final tabsBar = Row(
+          final theme = context.playerMenuTheme;
+          final tabStyle = theme.actionLabel.copyWith(
+            fontSize: 14,
+            height: 1.2,
+          );
+          final textScaler = MediaQuery.textScalerOf(context);
+          final widestTab = tabs
+              .map((label) {
+                final painter = TextPainter(
+                  text: TextSpan(text: label, style: tabStyle),
+                  textDirection: Directionality.of(context),
+                  textScaler: textScaler,
+                )..layout();
+                return painter.width;
+              })
+              .reduce(math.max);
+          final tabColumns = (constraints.maxWidth - 24) / 4 >= widestTab + 8
+              ? 4
+              : 2;
+          Widget tab(int i) => PlayerMenuSelectableRow(
+            key: ValueKey('pokemon-summary-tab-${ids[i]}'),
+            id: 'pokemon-summary-tab-${ids[i]}',
+            label: tabs[i],
+            selected: _tab == i,
+            focusNode: i == 0 ? _tabFocus : null,
+            tab: true,
+            reserveFocusMarker: false,
+            showLabel: false,
+            labelStyle: tabStyle,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 4,
+              vertical: 8,
+            ),
+            supportingContent: Center(
+              child: Text(
+                tabs[i],
+                maxLines: 1,
+                softWrap: false,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            onPressed: () => setState(() => _tab = i),
+          );
+          final tabsBar = Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              for (var i = 0; i < tabs.length; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: Semantics(
-                    selected: _tab == i,
-                    child: TextButton(
-                      key: ValueKey('pokemon-summary-tab-${ids[i]}'),
-                      autofocus: i == 0,
-                      onPressed: () => setState(() => _tab = i),
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        animationDuration:
-                            context.playerMenuTheme.selectionDuration,
-                        backgroundColor: _tab == i
-                            ? context.playerMenuTheme.accent.withValues(
-                                alpha: .14,
-                              )
-                            : context.playerMenuTheme.base.withValues(alpha: 0),
-                        foregroundColor: _tab == i
-                            ? context.playerMenuTheme.text
-                            : context.playerMenuTheme.secondary,
-                        side: BorderSide(
-                          width: 1.5,
-                          color: _tab == i
-                              ? context.playerMenuTheme.focus
-                              : context.playerMenuTheme.border.withValues(
-                                  alpha: .3,
-                                ),
-                        ),
-                      ),
-                      child: compactTabs
-                          ? Tooltip(
-                              message: tabs[i],
-                              child: Icon(
-                                [
-                                  Icons.info_outline,
-                                  Icons.bolt,
-                                  Icons.bar_chart,
-                                  Icons.more_horiz,
-                                ][i],
-                                semanticLabel: tabs[i],
-                              ),
-                            )
-                          : Text(tabs[i], textAlign: TextAlign.center),
-                    ),
-                  ),
+              for (var start = 0; start < tabs.length; start += tabColumns) ...[
+                if (start > 0) const SizedBox(height: 8),
+                Row(
+                  children: [
+                    for (
+                      var i = start;
+                      i < math.min(start + tabColumns, tabs.length);
+                      i++
+                    ) ...[
+                      if (i > start) const SizedBox(width: 8),
+                      Expanded(child: tab(i)),
+                    ],
+                  ],
                 ),
               ],
             ],
           );
           final header = Row(
             children: [
-              PlayerPokemonImage(
-                summary: summary,
-                thumbnail: true,
-                width: 48,
-                height: 48,
-              ),
-              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -319,9 +592,20 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    Text(
-                      strings.levelValue(summary.level),
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            summary.speciesLabel,
+                            style: context.playerMenuTheme.actionLabel,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          strings.levelValue(summary.level),
+                          style: context.playerMenuTheme.actionLabel,
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -337,24 +621,15 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
               if (bounded) Expanded(child: body) else body,
             ],
           );
-          if (bounded &&
-              constraints.maxHeight < 300 &&
-              constraints.maxWidth >= 600) {
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(width: constraints.maxWidth * .28, child: header),
-                const SizedBox(width: 16),
-                Expanded(child: content),
-              ],
-            );
-          }
           return Column(
             mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              header,
-              const SizedBox(height: 8),
+              if (sheet.showHeader &&
+                  (!bounded || constraints.maxHeight >= 360)) ...[
+                header,
+                const SizedBox(height: 12),
+              ],
               if (bounded) Expanded(child: content) else content,
             ],
           );
@@ -362,42 +637,6 @@ class _PlayerPokemonSummaryTabsState extends State<_PlayerPokemonSummaryTabs> {
       ),
     );
   }
-}
-
-class _SummaryLine extends StatelessWidget {
-  const _SummaryLine({super.key, required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final style = Theme.of(context).textTheme.bodyMedium;
-      final labelSize = TextPainter(
-        text: TextSpan(text: label, style: style),
-        textDirection: Directionality.of(context),
-        textScaler: MediaQuery.textScalerOf(context),
-      )..layout();
-      final labelWidth = math.min(labelSize.width, constraints.maxWidth * .8);
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: labelWidth,
-              child: Text(label, style: style),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(value, textAlign: TextAlign.end, style: style),
-            ),
-          ],
-        ),
-      );
-    },
-  );
 }
 
 /// Ouvre la fiche partagée dans le même cadre depuis l'Équipe et le PC.

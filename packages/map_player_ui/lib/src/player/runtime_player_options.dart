@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_paged_layout.dart';
 import '../foundation/player_menu_components.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -21,6 +22,12 @@ final class RuntimePlayerOptionsFailure implements Exception {
 final class RuntimePlayerOptionsNavigation extends ChangeNotifier {
   bool Function()? _back;
   Widget Function(BuildContext, Widget?)? _actions;
+  String Function()? _title;
+  Widget Function(BuildContext)? _header;
+
+  String? get activeTitle => _title?.call();
+  Widget buildHeaderAction(BuildContext context) =>
+      _header?.call(context) ?? const SizedBox.shrink();
 
   bool back() => _back?.call() ?? false;
   Widget buildActions(BuildContext context, {Widget? returnAction}) =>
@@ -71,6 +78,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   final _settingsFocus = FocusScopeNode(debugLabel: 'Options settings');
   PlayerOptionsCategory _category = PlayerOptionsCategory.general;
   bool _showCategories = false;
+  bool _showTouchSettings = false;
+  bool get _showBindings =>
+      widget.activeInputSource != PlayerInputSource.touch &&
+      !_showTouchSettings;
   bool _pending = false;
   bool _failed = false;
   String? _saveError;
@@ -93,6 +104,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   void _bind() {
     widget.navigation?._back = _back;
     widget.navigation?._actions = _actions;
+    widget.navigation?._title = () => _showCategories
+        ? _strings.text('Options', 'Options')
+        : _strings.category(_category);
+    widget.navigation?._header = (_) => _headerAction();
   }
 
   @override
@@ -101,6 +116,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     if (oldWidget.navigation != widget.navigation) {
       oldWidget.navigation?._back = null;
       oldWidget.navigation?._actions = null;
+      oldWidget.navigation?._title = null;
+      oldWidget.navigation?._header = null;
       _bind();
     }
     if (!_pending && !identical(oldWidget.preferences, widget.preferences)) {
@@ -116,6 +133,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   void dispose() {
     widget.navigation?._back = null;
     widget.navigation?._actions = null;
+    widget.navigation?._title = null;
+    widget.navigation?._header = null;
     final route = _dialogRoute;
     if (route != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -249,114 +268,170 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     },
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 600;
-        final short = compact && constraints.maxHeight < 280;
+        final horizontalTabs =
+            widget.navigation == null &&
+            constraints.maxWidth >= 600 &&
+            MediaQuery.textScalerOf(context).scale(1) <= 1.3;
         return Column(
           key: const ValueKey('runtime-player-options'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (short) ...[
+            if (horizontalTabs) ...[
+              _categoryTabs(),
+              const SizedBox(height: 8),
+            ] else if (widget.navigation == null && !_showCategories) ...[
               Row(
                 children: [
-                  Expanded(flex: 2, child: _categoryPicker()),
-                  if (widget.navigation == null) ...[
-                    const SizedBox(width: 12),
-                    Flexible(flex: 3, child: _standaloneDefaults()),
+                  Expanded(child: _categoryPicker()),
+                  if (_category == PlayerOptionsCategory.controls &&
+                      widget.activeInputSource != PlayerInputSource.touch) ...[
+                    const SizedBox(width: 8),
+                    _controlDeviceSwitch(),
                   ],
                 ],
               ),
-              const SizedBox(height: 12),
-            ] else if (compact && !_showCategories) ...[
-              _categoryPicker(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
             ],
-            Expanded(
-              child: compact
-                  ? (_showCategories ? _categories() : _settings(compact))
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          width: constraints.maxWidth < 900 ? 200 : 320,
-                          child: Column(
-                            children: [
-                              Expanded(child: _categories()),
-                              if (widget.navigation == null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 12),
-                                  child: _standaloneDefaults(),
-                                ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: constraints.maxWidth < 900 ? 12 : 24),
-                        Expanded(
-                          child: _settings(
-                            constraints.maxHeight >= 360 &&
-                                constraints.maxWidth < 900,
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-            if (compact && !short && widget.navigation == null) ...[
-              const SizedBox(height: 12),
-              _standaloneDefaults(),
-            ],
+            Expanded(child: _showCategories ? _categories() : _settings(true)),
           ],
         );
       },
     ),
   );
 
-  Widget _categoryPicker() => PlayerActionButton(
-    key: const ValueKey('options-category-picker'),
-    label: _strings.category(_category),
-    labelMaxLines: 3,
-    expandContent: true,
-    icon: Icons.menu_rounded,
-    secondary: true,
-    onPressed: _pending
-        ? null
-        : () {
-            RuntimePlayerLocalActionNotification().dispatch(context);
-            setState(() => _showCategories = !_showCategories);
-          },
+  Widget _headerAction() => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      if (_category == PlayerOptionsCategory.controls &&
+          widget.activeInputSource != PlayerInputSource.touch) ...[
+        _controlDeviceSwitch(),
+        const SizedBox(width: 8),
+      ],
+      IconButton(
+        key: const ValueKey('options-category-picker'),
+        tooltip: _strings.text('Catégories des options', 'Options categories'),
+        constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+        icon: const Icon(Icons.menu_rounded),
+        onPressed: _pending
+            ? null
+            : () {
+                RuntimePlayerLocalActionNotification().dispatch(context);
+                setState(() => _showCategories = !_showCategories);
+              },
+      ),
+    ],
   );
 
-  Widget _standaloneDefaults() => Align(
-    alignment: Alignment.centerRight,
-    child:
-        MediaQuery.sizeOf(context).height < 480 &&
-            MediaQuery.textScalerOf(context).scale(1) >= 1.5
-        ? IconButton(
-            key: const ValueKey('options-defaults'),
-            tooltip: _strings.defaults,
+  Widget _categoryPicker() {
+    if (MediaQuery.sizeOf(context).height < 480 &&
+        MediaQuery.textScalerOf(context).scale(1) >= 1.5) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: IconButton(
+          key: const ValueKey('options-category-picker'),
+          tooltip: _strings.category(_category),
+          constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+          icon: const Icon(Icons.menu_rounded),
+          onPressed: _pending
+              ? null
+              : () => setState(() => _showCategories = !_showCategories),
+        ),
+      );
+    }
+    return PlayerActionButton(
+      key: const ValueKey('options-category-picker'),
+      label: _strings.category(_category),
+      labelMaxLines: 3,
+      expandContent: true,
+      icon: Icons.menu_rounded,
+      secondary: true,
+      onPressed: _pending
+          ? null
+          : () {
+              RuntimePlayerLocalActionNotification().dispatch(context);
+              setState(() => _showCategories = !_showCategories);
+            },
+    );
+  }
+
+  Widget _categoryTabs() => SizedBox(
+    height: 48,
+    child: Row(
+      children: [
+        for (var i = 0; i < PlayerOptionsCategory.values.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(
+            flex: _strings
+                .category(PlayerOptionsCategory.values[i])
+                .length
+                .clamp(5, 14),
+            child: PlayerMenuSelectableRow(
+              key: ValueKey(
+                'options-category-${PlayerOptionsCategory.values[i].name}',
+              ),
+              id: 'options-category-${PlayerOptionsCategory.values[i].name}',
+              label: _strings.category(PlayerOptionsCategory.values[i]),
+              tab: true,
+              labelMaxLines: 1,
+              labelStyle: context.playerMenuTheme.label.copyWith(fontSize: 14),
+              reserveFocusMarker: false,
+              integrated: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 2),
+              selected: _category == PlayerOptionsCategory.values[i],
+              onPressed: _pending
+                  ? null
+                  : () => _select(PlayerOptionsCategory.values[i]),
+            ),
+          ),
+        ],
+        if (_category == PlayerOptionsCategory.controls &&
+            widget.activeInputSource != PlayerInputSource.touch) ...[
+          const SizedBox(width: 8),
+          _controlDeviceSwitch(),
+        ],
+        if (widget.onReturnToTitle != null) ...[
+          const SizedBox(width: 8),
+          IconButton(
+            key: const ValueKey('options-return-title'),
+            tooltip: _strings.text('Retour au titre', 'Return to title'),
             constraints: const BoxConstraints.tightFor(width: 48, height: 48),
-            onPressed: _enabled && _hasCategoryChanges ? _reset : null,
-            icon: const Icon(Icons.restart_alt),
-          )
-        : IntrinsicWidth(child: _defaults()),
+            onPressed: _pending ? null : widget.onReturnToTitle,
+            icon: const Icon(Icons.exit_to_app),
+          ),
+        ],
+      ],
+    ),
+  );
+
+  Widget _controlDeviceSwitch() => IconButton(
+    key: const ValueKey('options-control-device-switch'),
+    tooltip: _showBindings
+        ? _strings.text('Réglages tactiles', 'Touch settings')
+        : PlayerControlStrings.of(context).device(
+            widget.activeInputSource == PlayerInputSource.controller
+                ? PlayerControlDevice.gamepad
+                : PlayerControlDevice.keyboard,
+          ),
+    constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+    icon: Icon(
+      _showBindings
+          ? Icons.touch_app_rounded
+          : widget.activeInputSource == PlayerInputSource.controller
+          ? Icons.gamepad_rounded
+          : Icons.keyboard_rounded,
+    ),
+    onPressed: _pending
+        ? null
+        : () => setState(() => _showTouchSettings = !_showTouchSettings),
   );
 
   Widget _actions(BuildContext context, [Widget? returnAction]) =>
-      PlayerMenuThemeScope(
-        role: ProjectPresentationSurfaceRole.options,
-        child: RuntimePlayerInputBindings(
-          controlProfile: _profile,
-          hardwareGamepadEnabled: widget.hardwareGamepadEnabled,
-          child: returnAction == null
-              ? _standaloneDefaults()
-              : PlayerMenuActionGroup(
-                  children: [_defaults(integrated: false), returnAction],
-                ),
-        ),
-      );
+      returnAction ?? const SizedBox.shrink();
 
   Widget _defaults({bool integrated = true}) => PlayerMenuSelectableRow(
     key: const ValueKey('options-defaults'),
     id: 'options-defaults',
-    label: _strings.defaults,
+    label: _strings.text('Rétablir cette catégorie', 'Reset this category'),
     leading: const Icon(Icons.restart_alt_rounded),
     labelMaxLines: 2,
     integrated: integrated,
@@ -369,81 +444,110 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     node: _categoryFocus,
     child: LayoutBuilder(
       builder: (context, constraints) {
-        final icons = <Widget>[
+        final wide = MediaQuery.sizeOf(context).aspectRatio > 1;
+        final companion = PlayerCompanionScope.of(context);
+        final columns = MediaQuery.textScalerOf(context).scale(1) >= 1.5
+            ? 1
+            : companion
+            ? 2
+            : wide
+            ? 3
+            : 1;
+        final entries = <Widget>[
           for (final category in PlayerOptionsCategory.values)
-            IconButton.filledTonal(
+            PlayerMenuSelectableRow(
               key: ValueKey('options-category-${category.name}'),
-              tooltip: _strings.category(category),
-              isSelected: _category == category,
-              constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+              id: 'options-category-${category.name}',
+              label: _strings.category(category),
+              minimumHeight: 56,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              leading: Icon(_icon(category), size: 24),
+              selected: _category == category,
               onPressed: _pending ? null : () => _select(category),
-              icon: Icon(_icon(category)),
             ),
           if (widget.onReturnToTitle != null)
-            IconButton(
+            PlayerMenuSelectableRow(
               key: const ValueKey('options-return-title'),
-              tooltip: _strings.text('Retour au titre', 'Return to title'),
-              constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+              id: 'options-return-title',
+              label: _strings.text('Retour au titre', 'Return to title'),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              leading: const Icon(Icons.exit_to_app),
               onPressed: _pending ? null : widget.onReturnToTitle,
-              icon: const Icon(Icons.exit_to_app),
             ),
         ];
         return PlayerPagedList(
           key: const ValueKey('options-categories'),
-          children: constraints.maxHeight < 200
-              ? [
-                  for (var i = 0; i < icons.length; i += 3)
-                    Row(
-                      children: [
-                        for (var j = i; j < i + 3 && j < icons.length; j++)
-                          Expanded(child: Center(child: icons[j])),
-                      ],
+          children: [
+            for (var i = 0; i < entries.length; i += columns)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var j = 0; j < columns; j++) ...[
+                    if (j > 0) const SizedBox(width: 8),
+                    Expanded(
+                      child: i + j < entries.length
+                          ? entries[i + j]
+                          : const SizedBox.shrink(),
                     ),
-                ]
-              : [
-                  for (final category in PlayerOptionsCategory.values)
-                    PlayerMenuSelectableRow(
-                      key: ValueKey('options-category-${category.name}'),
-                      id: 'options-category-${category.name}',
-                      label: _strings.category(category),
-                      integrated: true,
-                      minimumHeight: 48,
-                      leading: Icon(_icon(category), size: 24),
-                      selected: _category == category,
-                      onPressed: _pending ? null : () => _select(category),
-                    ),
-                  if (widget.onReturnToTitle != null)
-                    PlayerMenuSelectableRow(
-                      key: const ValueKey('options-return-title'),
-                      id: 'options-return-title',
-                      label: _strings.text(
-                        'Retour au titre',
-                        'Return to title',
-                      ),
-                      leading: const Icon(Icons.exit_to_app),
-                      onPressed: _pending ? null : widget.onReturnToTitle,
-                    ),
+                  ],
                 ],
+              ),
+          ],
         );
       },
     ),
   );
 
-  Widget _settings(bool compact) => PlayerMenuPanel(
+  Widget _settings(bool compact) => KeyedSubtree(
     key: const ValueKey('options-settings'),
-    padding: EdgeInsets.all(compact ? 8 : 16),
     child: LayoutBuilder(
       builder: (context, constraints) {
         final sideNavigation =
             constraints.maxHeight < 240 &&
             constraints.maxWidth >= 400 &&
-            MediaQuery.textScalerOf(context).scale(1) >= 1.5;
-        final rows = _categorySettings(compact);
+            (MediaQuery.textScalerOf(context).scale(1) >= 1.5 ||
+                (_category == PlayerOptionsCategory.controls && _showBindings));
+        final companion = PlayerCompanionScope.of(context);
+        final landscape = MediaQuery.sizeOf(context).aspectRatio > 1;
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final columns = scale > 1.3
+            ? 1
+            : _category == PlayerOptionsCategory.audio
+            ? (landscape && !companion ? 3 : 1)
+            : _category == PlayerOptionsCategory.controls && _showBindings
+            ? (landscape || companion ? 3 : 1)
+            : _category == PlayerOptionsCategory.controls ||
+                  _category == PlayerOptionsCategory.accessibility
+            ? (companion
+                  ? 2
+                  : landscape
+                  ? 4
+                  : 1)
+            : (landscape && !companion ? 3 : 1);
+        final rows = _categorySettings(
+          _category == PlayerOptionsCategory.audio ||
+              constraints.maxWidth < 400,
+        );
         return FocusScope(
           node: _settingsFocus,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.navigation == null &&
+                  _category == PlayerOptionsCategory.controls &&
+                  widget.activeInputSource != PlayerInputSource.touch &&
+                  MediaQuery.sizeOf(context).width >= 900 &&
+                  MediaQuery.sizeOf(context).height >= 480)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _controlDeviceSwitch(),
+                ),
               if (_pending)
                 _status(
                   _strings.saving,
@@ -464,14 +568,49 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                 ),
               Expanded(
                 child: PlayerPagedList(
-                  key: ValueKey('options-settings-${_category.name}'),
+                  key: ValueKey(
+                    'options-settings-${_category.name}-${_showBindings ? 'bindings' : 'touch'}',
+                  ),
                   sideNavigation: sideNavigation,
                   children: [
-                    for (final row in rows)
-                      if (sideNavigation && row is _OptionSettingRow)
-                        ...row.atoms(context)
-                      else
-                        row,
+                    if (columns > 1)
+                      for (var i = 0; i < rows.length; i += columns)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (
+                              var column = 0;
+                              column < columns;
+                              column++
+                            ) ...[
+                              if (column > 0)
+                                SizedBox(width: companion ? 16 : 24),
+                              Expanded(
+                                child: i + column < rows.length
+                                    ? rows[i + column]
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
+                          ],
+                        )
+                    else
+                      for (var index = 0; index < rows.length; index++)
+                        if (sideNavigation && rows[index] is _OptionSettingRow)
+                          ...(rows[index] as _OptionSettingRow).atoms(context)
+                        else
+                          rows[index],
+                    if (_category != PlayerOptionsCategory.controls ||
+                        !_showBindings)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          top:
+                              companion &&
+                                  _category == PlayerOptionsCategory.audio
+                              ? 0
+                              : 8,
+                        ),
+                        child: _defaults(),
+                      ),
                   ],
                 ),
               ),
@@ -592,52 +731,57 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           ),
         ),
       ],
-      PlayerOptionsCategory.controls => [
-        _choiceRow(
-          _strings.touchRunMode,
-          _strings.runningMode(preferences.touchRunMode),
-          'touch-run-mode',
-          compact,
-          () async {
-            final value = await _choose(
-              _strings.touchRunMode,
-              preferences.touchRunMode,
-              {
-                for (final value in RuntimePlayerTouchRunMode.values)
-                  value: _strings.runningMode(value),
-              },
-              (value) => value.name,
-            );
-            if (value != null) {
-              await _save(_confirmed.copyWith(touchRunMode: value));
-            }
-          },
-        ),
-        _toggle(
-          _strings.leftHandedTouchControls,
-          'runtime-player-left-handed-touch-toggle',
-          preferences.leftHandedTouchControls,
-          compact,
-          (value) => _save(_confirmed.copyWith(leftHandedTouchControls: value)),
-        ),
-        _toggle(
-          _strings.hints,
-          'runtime-player-input-hints-toggle',
-          preferences.showInputHints,
-          compact,
-          (value) => _save(_confirmed.copyWith(showInputHints: value)),
-        ),
-        _slider(
-          _strings.touchOpacity,
-          'touch-controls-opacity-slider',
-          preferences.touchControlsOpacity,
-          compact,
-          (value) => _save(_confirmed.copyWith(touchControlsOpacity: value)),
-          min: .3,
-          divisions: 14,
-        ),
-        ..._bindings(compact),
-      ],
+      PlayerOptionsCategory.controls =>
+        _showBindings
+            ? _bindings(compact)
+            : [
+                _choiceRow(
+                  _strings.touchRunMode,
+                  _strings.runningMode(preferences.touchRunMode),
+                  'touch-run-mode',
+                  compact,
+                  () async {
+                    final value = await _choose(
+                      _strings.touchRunMode,
+                      preferences.touchRunMode,
+                      {
+                        for (final value in RuntimePlayerTouchRunMode.values)
+                          value: _strings.runningMode(value),
+                      },
+                      (value) => value.name,
+                    );
+                    if (value != null) {
+                      await _save(_confirmed.copyWith(touchRunMode: value));
+                    }
+                  },
+                ),
+                _toggle(
+                  _strings.leftHandedTouchControls,
+                  'runtime-player-left-handed-touch-toggle',
+                  preferences.leftHandedTouchControls,
+                  compact,
+                  (value) => _save(
+                    _confirmed.copyWith(leftHandedTouchControls: value),
+                  ),
+                ),
+                _toggle(
+                  _strings.hints,
+                  'runtime-player-input-hints-toggle',
+                  preferences.showInputHints,
+                  compact,
+                  (value) => _save(_confirmed.copyWith(showInputHints: value)),
+                ),
+                _slider(
+                  _strings.touchOpacity,
+                  'touch-controls-opacity-slider',
+                  preferences.touchControlsOpacity,
+                  compact,
+                  (value) =>
+                      _save(_confirmed.copyWith(touchControlsOpacity: value)),
+                  min: .3,
+                  divisions: 14,
+                ),
+              ],
       PlayerOptionsCategory.language => [
         _choiceRow(
           _strings.interfaceLanguage,
@@ -717,11 +861,17 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     Widget control,
     bool compact, {
     int labelFlex = 6,
+    String? valueLabel,
   }) => _OptionSettingRow(
     label: label,
     control: control,
     compact: compact,
     labelFlex: labelFlex,
+    valueLabel: valueLabel,
+    dense:
+        _category == PlayerOptionsCategory.controls &&
+        MediaQuery.sizeOf(context).height <= 480 &&
+        MediaQuery.textScalerOf(context).scale(1) <= 1.3,
   );
 
   Widget _choiceRow(
@@ -738,9 +888,11 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       id: 'options-$id-choice',
       label: value,
       semanticValue: label,
+      reserveFocusMarker: false,
       trailing: const Icon(Icons.expand_more_rounded),
       trailingWidth: 24,
       labelMaxLines: 3,
+      labelStyle: context.playerMenuTheme.label.copyWith(fontSize: 14),
       contentPadding: const EdgeInsets.symmetric(horizontal: 8),
       onPressed: (enabled ?? _enabled) ? onPressed : null,
     ),
@@ -798,6 +950,24 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           RuntimePlayerLogicalIntent:
               CallbackAction<RuntimePlayerLogicalIntent>(
                 onInvoke: (intent) {
+                  if (_category == PlayerOptionsCategory.audio &&
+                      (intent.action == PlayerInputAction.up ||
+                          intent.action == PlayerInputAction.down)) {
+                    const channels = [
+                      'options-master-slider',
+                      'options-music-slider',
+                      'options-effects-slider',
+                    ];
+                    final index = channels.indexOf(key);
+                    final next =
+                        index +
+                        (intent.action == PlayerInputAction.down ? 1 : -1);
+                    if (index >= 0 && next >= 0 && next < channels.length) {
+                      final focus = _sliderFocus[channels[next]];
+                      if (focus?.canRequestFocus == true) focus!.requestFocus();
+                    }
+                    return null;
+                  }
                   if (intent.action == PlayerInputAction.left ||
                       intent.action == PlayerInputAction.right) {
                     step(intent.action == PlayerInputAction.left ? -1 : 1);
@@ -812,11 +982,6 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '${(draft * 100).round()} %',
-                textAlign: TextAlign.end,
-                style: context.playerMenuTheme.label,
-              ),
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   activeTrackColor: context.playerMenuTheme.accent,
@@ -854,8 +1019,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           ),
         ),
       ),
-      compact,
+      true,
       labelFlex: 7,
+      valueLabel: '${(draft * 100).round()} %',
     );
   }
 
@@ -866,39 +1032,53 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         ? PlayerControlDevice.gamepad
         : PlayerControlDevice.keyboard;
     return [
-      Text(strings.device(device), style: context.playerMenuTheme.label),
       for (final control in RuntimeInputControl.values)
-        _choiceRow(
-          strings.control(control),
-          _profile.glyphFor(device, control),
-          'binding-${control.name}',
-          compact,
-          () async {
-            final inputs = device == PlayerControlDevice.keyboard
-                ? playerKeyboardInputs.keys
-                : playerGamepadInputs;
-            final value = await _pickBinding(
-              strings.control(control),
-              _profile.bindingFor(device, control),
-              {
-                for (final input in inputs)
-                  input: PlayerControlProfile.glyphForInput(input),
-              },
-              (value) => value,
-            );
-            if (value == null || !mounted) return;
-            final result = _profile.rebind(
-              device: device,
-              control: control,
-              inputId: value,
-            );
-            if (result.hasConflict) {
-              setState(() => _controlError = strings.conflict);
-              return;
-            }
-            await _saveProfile(result.profile);
-          },
-          enabled: !_pending && widget.onControlProfileChanged != null,
+        PlayerMenuSelectableRow(
+          key: ValueKey('options-binding-${control.name}-choice'),
+          id: 'options-binding-${control.name}-choice',
+          label: strings.control(control),
+          labelMaxLines: null,
+          labelStyle: context.playerMenuTheme.label.copyWith(fontSize: 14),
+          minimumHeight: 48,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 4,
+          ),
+          trailing: Text(
+            _profile.glyphFor(device, control),
+            style: context.playerMenuTheme.numbers.copyWith(fontSize: 14),
+            maxLines: 1,
+            softWrap: false,
+          ),
+          trailingWidth: MediaQuery.textScalerOf(context).scale(64),
+          semanticValue: _profile.glyphFor(device, control),
+          onPressed: !_pending && widget.onControlProfileChanged != null
+              ? () async {
+                  final inputs = device == PlayerControlDevice.keyboard
+                      ? playerKeyboardInputs.keys
+                      : playerGamepadInputs;
+                  final value = await _pickBinding(
+                    strings.control(control),
+                    _profile.bindingFor(device, control),
+                    {
+                      for (final input in inputs)
+                        input: PlayerControlProfile.glyphForInput(input),
+                    },
+                    (value) => value,
+                  );
+                  if (value == null || !mounted) return;
+                  final result = _profile.rebind(
+                    device: device,
+                    control: control,
+                    inputId: value,
+                  );
+                  if (result.hasConflict) {
+                    setState(() => _controlError = strings.conflict);
+                    return;
+                  }
+                  await _saveProfile(result.profile);
+                }
+              : null,
         ),
       if (widget.onControlProfileChanged != null)
         PlayerActionButton(
@@ -1156,26 +1336,95 @@ class _OptionSettingRow extends StatelessWidget {
     required this.control,
     required this.compact,
     required this.labelFlex,
+    this.valueLabel,
+    this.dense = false,
   });
 
   final String label;
   final Widget control;
   final bool compact;
   final int labelFlex;
+  final String? valueLabel;
+  final bool dense;
 
   List<Widget> atoms(BuildContext context) => [
-    Text(label, style: context.playerMenuTheme.label),
+    if (valueLabel == null)
+      Text(
+        label,
+        style: context.playerMenuTheme.label.copyWith(
+          fontSize: dense ? 14 : null,
+        ),
+      )
+    else
+      Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: context.playerMenuTheme.label.copyWith(
+                fontSize: dense ? 14 : null,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            valueLabel!,
+            style: context.playerMenuTheme.numbers.copyWith(
+              fontSize: dense ? 14 : null,
+            ),
+          ),
+        ],
+      ),
     control,
   ];
 
   @override
   Widget build(BuildContext context) => ConstrainedBox(
-    constraints: const BoxConstraints(minHeight: 64),
-    child: compact
+    constraints: BoxConstraints(
+      minHeight: valueLabel != null && PlayerCompanionScope.of(context)
+          ? 68
+          : 72,
+    ),
+    child: valueLabel != null
+        ? LayoutBuilder(
+            builder: (context, constraints) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: context.playerMenuTheme.label.copyWith(
+                            fontSize: dense ? 14 : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        valueLabel!,
+                        style: context.playerMenuTheme.numbers.copyWith(
+                          fontSize: dense ? 14 : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  control,
+                ],
+              );
+            },
+          )
+        : compact
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(label, style: context.playerMenuTheme.label),
+              Text(
+                label,
+                style: context.playerMenuTheme.label.copyWith(
+                  fontSize: dense ? 14 : null,
+                ),
+              ),
               const SizedBox(height: 8),
               control,
             ],
@@ -1184,7 +1433,12 @@ class _OptionSettingRow extends StatelessWidget {
             children: [
               Expanded(
                 flex: labelFlex,
-                child: Text(label, style: context.playerMenuTheme.label),
+                child: Text(
+                  label,
+                  style: context.playerMenuTheme.label.copyWith(
+                    fontSize: dense ? 14 : null,
+                  ),
+                ),
               ),
               const SizedBox(width: 24),
               Expanded(flex: 4, child: control),

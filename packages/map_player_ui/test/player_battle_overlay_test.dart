@@ -12,6 +12,105 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  testWidgets(
+    'input ownership requests canonical battle placement and companion does not configure the arena',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(844, 390));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final commands = <BattlePresentationCommand>[];
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(viewportSize: const Size(844, 390)),
+        onCommand: commands.add,
+        source: PlayerInputSource.controller,
+      );
+      expect(
+        commands.single,
+        isA<BattleSetCommandPanelPlacementCommand>()
+            .having(
+              (c) => c.placement,
+              'controller',
+              BattleCommandPanelPlacement.end,
+            )
+            .having((c) => c.snapshotRevision, 'revision', 12),
+      );
+      commands.clear();
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(
+          viewportSize: const Size(844, 390),
+          placement: BattleCommandPanelPlacement.end,
+        ),
+        onCommand: commands.add,
+        source: PlayerInputSource.controller,
+      );
+      expect(commands, isEmpty);
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(
+          viewportSize: const Size(844, 390),
+          placement: BattleCommandPanelPlacement.end,
+        ),
+        onCommand: commands.add,
+        source: PlayerInputSource.touch,
+      );
+      expect(
+        commands.single,
+        isA<BattleSetCommandPanelPlacementCommand>().having(
+          (c) => c.placement,
+          'touch',
+          BattleCommandPanelPlacement.bottom,
+        ),
+      );
+      commands.clear();
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(viewportSize: const Size(844, 390)),
+        onCommand: commands.add,
+        source: PlayerInputSource.controller,
+        display: PlayerBattleDisplay.commandsOnly,
+      );
+      expect(commands, isEmpty);
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(viewportSize: const Size(844, 390)),
+        onCommand: commands.add,
+        source: PlayerInputSource.controller,
+        display: PlayerBattleDisplay.hudOnly,
+      );
+      expect(
+        commands.single,
+        isA<BattleSetCommandPanelPlacementCommand>().having(
+          (c) => c.placement,
+          'primary',
+          BattleCommandPanelPlacement.detached,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
+    'authored noncanonical battle compositions retain their own layout',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(844, 390));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final commands = <BattlePresentationCommand>[];
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(viewportSize: const Size(844, 390)),
+        onCommand: commands.add,
+        source: PlayerInputSource.controller,
+        theme: PokeMapPlayerTheme.withBattleProfile(
+          PokeMapPlayerTheme.dark(),
+          const ProjectBattlePresentationProfile(
+            commandLayout: ProjectBattleCommandLayout.radial,
+          ),
+        ),
+      );
+      expect(commands, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
   for (final viewport in const [
     Size(390, 844),
     Size(640, 360),
@@ -215,8 +314,8 @@ void main() {
           ),
           onCommand: commands.add,
         );
-        expect(find.text('PP 35/35'), findsOneWidget);
-        expect(find.text('PP 0/5'), findsOneWidget);
+        expect(find.text('35 / 35'), findsOneWidget);
+        expect(find.text('0 / 5'), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey<String>('battle-entry-0')));
         expect(commands, isEmpty);
         await tester.tap(find.byKey(const ValueKey<String>('battle-entry-1')));
@@ -234,65 +333,60 @@ void main() {
       },
     );
   }
-  testWidgets(
-    'companion portrait puts fight above the three secondary commands',
-    (tester) async {
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.binding.setSurfaceSize(const Size(540, 620));
-      final commands = <BattlePresentationCommand>[];
-      await _pumpOverlay(
-        tester,
-        snapshot: _rootSnapshot(viewportSize: const Size(960, 540)),
-        onCommand: commands.add,
-        display: PlayerBattleDisplay.commandsOnly,
-      );
-      final fight = tester.getRect(
-        find.byKey(const ValueKey<String>('battle-entry-0')),
-      );
-      final bag = tester.getRect(
-        find.byKey(const ValueKey<String>('battle-entry-1')),
-      );
-      final run = tester.getRect(
-        find.byKey(const ValueKey<String>('battle-entry-3')),
-      );
-      final party = tester.getRect(
-        find.byKey(const ValueKey<String>('battle-entry-2')),
-      );
+  testWidgets('companion portrait keeps commands in two tactile rows', (
+    tester,
+  ) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(const Size(540, 620));
+    final commands = <BattlePresentationCommand>[];
+    await _pumpOverlay(
+      tester,
+      snapshot: _rootSnapshot(viewportSize: const Size(960, 540)),
+      onCommand: commands.add,
+      display: PlayerBattleDisplay.commandsOnly,
+    );
+    final fight = tester.getRect(
+      find.byKey(const ValueKey<String>('battle-entry-0')),
+    );
+    final bag = tester.getRect(
+      find.byKey(const ValueKey<String>('battle-entry-1')),
+    );
+    final run = tester.getRect(
+      find.byKey(const ValueKey<String>('battle-entry-3')),
+    );
+    final party = tester.getRect(
+      find.byKey(const ValueKey<String>('battle-entry-2')),
+    );
 
-      expect(fight.left, closeTo(bag.left, .5));
-      expect(fight.right, closeTo(run.right, .5));
-      expect(fight.bottom, lessThan(bag.top));
-      expect(fight.height, greaterThan(bag.height));
-      expect(bag.top, closeTo(run.top, .5));
-      expect(run.top, closeTo(party.top, .5));
-      expect(bag.bottom, closeTo(party.bottom, .5));
-      expect(bag.right, lessThan(party.left));
-      expect(party.right, lessThan(run.left));
-      expect(bag.width, closeTo(run.width, .5));
-      expect(run.width, closeTo(party.width, .5));
+    expect(fight.top, closeTo(party.top, .5));
+    expect(fight.left, closeTo(bag.left, .5));
+    expect(party.left, closeTo(run.left, .5));
+    expect(fight.bottom, lessThan(bag.top));
+    expect(fight.height, closeTo(bag.height, .5));
+    expect(bag.top, closeTo(run.top, .5));
+    expect(fight.width, closeTo(party.width, .5));
+    expect(
+      find.byKey(const ValueKey<String>('battle-dialogue-panel')),
+      findsNothing,
+    );
+
+    for (final index in [0, 1, 3, 2]) {
+      await tester.tap(find.byKey(ValueKey<String>('battle-entry-$index')));
       expect(
-        find.byKey(const ValueKey<String>('battle-dialogue-panel')),
-        findsOneWidget,
+        commands.last,
+        isA<BattleSelectEntryCommand>()
+            .having((command) => command.entryIndex, 'runtime index', index)
+            .having((command) => command.snapshotRevision, 'revision', 12)
+            .having(
+              (command) => command.expectedMode,
+              'mode',
+              BattleCommandOverlayMode.root,
+            ),
       );
-
-      for (final index in [0, 1, 3, 2]) {
-        await tester.tap(find.byKey(ValueKey<String>('battle-entry-$index')));
-        expect(
-          commands.last,
-          isA<BattleSelectEntryCommand>()
-              .having((command) => command.entryIndex, 'runtime index', index)
-              .having((command) => command.snapshotRevision, 'revision', 12)
-              .having(
-                (command) => command.expectedMode,
-                'mode',
-                BattleCommandOverlayMode.root,
-              ),
-        );
-      }
-      expect(commands, hasLength(4));
-      expect(tester.takeException(), isNull);
-    },
-  );
+    }
+    expect(commands, hasLength(4));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('companion moves retain four slots and an anchored back action', (
     tester,
@@ -330,7 +424,7 @@ void main() {
     expect(first.width, closeTo(second.width, .5));
     expect(first.width, closeTo(third.width, .5));
     expect(first.bottom, lessThan(third.top));
-    expect(cancel.bottom, lessThan(grid.top));
+    expect(cancel.top, greaterThanOrEqualTo(grid.bottom));
     expect(cancel.right, lessThanOrEqualTo(grid.right));
     expect(find.byTooltip('Retour'), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('battle-entry-3')), findsNothing);
@@ -363,49 +457,64 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('primary HUD keeps battle narration without command controls', (
-    tester,
-  ) async {
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    const viewport = Size(800, 600);
-    await tester.binding.setSurfaceSize(viewport);
-    final commands = <BattlePresentationCommand>[];
-    final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
-    await _pumpOverlay(
-      tester,
-      snapshot: _snapshot(
+  testWidgets(
+    'detached primary HUD keeps battle narration without command controls',
+    (tester) async {
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      const viewport = Size(800, 600);
+      await tester.binding.setSurfaceSize(viewport);
+      final commands = <BattlePresentationCommand>[];
+      final layout = BattleSceneLayout.forViewport(
         viewportSize: viewport,
-        phase: BattlePresentationPhase.presentingTurn,
-        mode: BattleCommandOverlayMode.continueOnly,
-        narrationLines: const ['Pikachu utilise Tonnerre !'],
-        entries: const [],
-      ),
-      onCommand: commands.add,
-      display: PlayerBattleDisplay.hudOnly,
-    );
+        commandPanelPlacement: BattleCommandPanelPlacement.detached,
+        commandPanelMode: BattleCommandOverlayMode.continueOnly,
+      );
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: viewport,
+          placement: BattleCommandPanelPlacement.detached,
+          phase: BattlePresentationPhase.presentingTurn,
+          mode: BattleCommandOverlayMode.continueOnly,
+          narrationLines: const ['Pikachu utilise Tonnerre !'],
+          entries: const [],
+        ),
+        onCommand: commands.add,
+        display: PlayerBattleDisplay.hudOnly,
+      );
 
-    expect(find.text('Pikachu utilise Tonnerre !'), findsOneWidget);
-    final dialogue = tester.getRect(
-      find.byKey(const ValueKey<String>('battle-dialogue-panel')),
-    );
-    _expectRectClose(dialogue, layout.commandPanelRect);
-    expect(
-      find.byKey(const ValueKey<String>('battle-hud-target-enemy')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('battle-hud-target-player')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('battle-command-panel')),
-      findsNothing,
-    );
-    expect(find.byKey(const ValueKey<String>('battle-back')), findsNothing);
-    await tester.tap(find.text('Pikachu utilise Tonnerre !'));
-    expect(commands, isEmpty);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('Pikachu utilise Tonnerre !'), findsOneWidget);
+      final dialogue = tester.getRect(
+        find.byKey(const ValueKey<String>('battle-dialogue-panel')),
+      );
+      expect(layout.commandPanelRect, Rect.zero);
+      expect(dialogue.height, greaterThanOrEqualTo(64));
+      expect(dialogue.width, greaterThan(0));
+      expect((Offset.zero & viewport).contains(dialogue.topLeft), isTrue);
+      expect((Offset.zero & viewport).contains(dialogue.bottomRight), isTrue);
+      expect(dialogue.overlaps(layout.enemyHudRect), isFalse);
+      expect(dialogue.overlaps(layout.playerHudRect), isFalse);
+      expect(dialogue.overlaps(layout.enemySpriteRect), isFalse);
+      expect(dialogue.overlaps(layout.playerSpriteRect), isFalse);
+      expect(
+        find.byKey(const ValueKey<String>('battle-hud-target-enemy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-hud-target-player')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('battle-command-panel')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey<String>('battle-back')), findsNothing);
+      expect(commands, isEmpty);
+      await tester.tap(find.text('Pikachu utilise Tonnerre !'));
+      expect(commands, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('companion command layouts fit small viewports and large text', (
     tester,
@@ -504,7 +613,9 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 600));
       await _pumpOverlay(
         tester,
-        snapshot: _rootSnapshot(),
+        snapshot: _rootSnapshot(
+          placement: BattleCommandPanelPlacement.detached,
+        ),
         onCommand: (_) {},
         display: PlayerBattleDisplay.hudOnly,
       );
@@ -520,6 +631,11 @@ void main() {
         find.byKey(const ValueKey<String>('battle-hud-target-player')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey<String>('battle-dialogue-panel')),
+        findsNothing,
+      );
+      expect(find.text('Choisissez une action.'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -703,21 +819,25 @@ void main() {
       );
 
       Material entryMaterial(int index) {
-        final semantics = tester.widget<Semantics>(
-          find.byKey(ValueKey<String>('battle-entry-$index')),
+        return tester.widget<Material>(
+          find
+              .descendant(
+                of: find.byKey(ValueKey<String>('battle-entry-$index')),
+                matching: find.byType(Material),
+              )
+              .first,
         );
-        return (semantics.child! as Tooltip).child! as Material;
       }
 
       final dockPanel = tester.widget<PlayerPanel>(
         find.byKey(const ValueKey<String>('battle-command-panel')),
       );
       expect(find.text('NORMAL'), findsOneWidget);
-      expect(find.text('EAU · SPÉCIAL'), findsOneWidget);
+      expect(find.text('EAU'), findsOneWidget);
       expect(find.text('ÉLECTRIK'), findsOneWidget);
       expect(find.text('FEU'), findsOneWidget);
-      expect(find.text('PP 35/35'), findsOneWidget);
-      expect(find.text('PP 17/25'), findsOneWidget);
+      expect(find.text('35 / 35'), findsOneWidget);
+      expect(find.text('17 / 25'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('battle-gender-enemy')),
         findsOneWidget,
@@ -726,12 +846,9 @@ void main() {
         find.byKey(const ValueKey<String>('battle-gender-player')),
         findsOneWidget,
       );
-      expect(entryMaterial(0).shape, isA<RoundedRectangleBorder>());
+      expect(entryMaterial(0).shape, isNot(isA<RoundedRectangleBorder>()));
       expect(entryMaterial(0).color, isNot(entryMaterial(1).color));
-      expect(
-        entryMaterial(1).elevation,
-        greaterThan(entryMaterial(0).elevation),
-      );
+      expect(entryMaterial(1).elevation, 0);
       expect(
         dockPanel.surfaceColorOverride,
         PokeMapPlayerBattleChrome.darkFieldManual.dockSurface,
@@ -894,16 +1011,17 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('XP'), findsOneWidget);
-      final playerHudPanel = tester.widget<PlayerPanel>(
-        find.descendant(
-          of: find.byKey(const ValueKey<String>('battle-hud-target-player')),
-          matching: find.byType(PlayerPanel),
-        ),
+      final playerHudMaterial = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byKey(
+                const ValueKey<String>('battle-hud-target-player'),
+              ),
+              matching: find.byType(Material),
+            )
+            .first,
       );
-      expect(
-        playerHudPanel.windowStyleOverride?.shape,
-        ProjectWindowShape.rounded,
-      );
+      expect(playerHudMaterial.shape, isNot(isA<RoundedRectangleBorder>()));
       expect(tester.takeException(), isNull);
 
       await _pumpOverlay(
@@ -918,7 +1036,7 @@ void main() {
 
       expect(
         find.byKey(const ValueKey<String>('battle-xp-player')),
-        findsNothing,
+        findsOneWidget,
       );
       expect(
         tester
@@ -933,7 +1051,7 @@ void main() {
   );
 
   testWidgets(
-    'battle uses a navy dock, light move cards and contextual move data',
+    'battle uses a transparent dock, beveled move cards and contextual move data',
     (tester) async {
       const viewport = Size(436, 697);
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -974,8 +1092,39 @@ void main() {
         find.byKey(const ValueKey<String>('battle-selection-cursor-1')),
         findsNothing,
       );
-      expect(find.text('EAU · SPÉCIAL'), findsOneWidget);
+      expect(find.text('EAU'), findsOneWidget);
       expect(find.text('XP'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'portrait move information is available without selecting an attack',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final commands = <BattlePresentationCommand>[];
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          viewportSize: const Size(390, 844),
+          entries: _richMoveEntries,
+        ),
+        onCommand: commands.add,
+      );
+      final info = find.byKey(const ValueKey('battle-move-info'));
+      expect(tester.getSize(info).shortestSide, greaterThanOrEqualTo(48));
+      await tester.tap(info);
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(Dialog),
+          matching: find.textContaining('WATER · Special · Power 40'),
+        ),
+        findsOneWidget,
+      );
+      expect(commands, isEmpty);
       expect(tester.takeException(), isNull);
     },
   );
@@ -1280,12 +1429,8 @@ void main() {
       );
       expect(enemyMaterial.color, chrome.hudSurface);
       expect(playerMaterial.color, chrome.hudSurface);
-      final enemyShape = enemyMaterial.shape! as RoundedRectangleBorder;
-      final playerShape = playerMaterial.shape! as RoundedRectangleBorder;
-      expect(enemyShape.side.style, BorderStyle.none);
-      expect(enemyShape.side.width, 0);
-      expect(playerShape.side.style, BorderStyle.none);
-      expect(playerShape.side.width, 0);
+      expect(enemyMaterial.shape, isNot(isA<RoundedRectangleBorder>()));
+      expect(playerMaterial.shape, isNot(isA<RoundedRectangleBorder>()));
     },
   );
 
@@ -1351,65 +1496,67 @@ void main() {
     },
   );
 
-  testWidgets(
-    'battle root uses distinct semantic colors for its four commands',
-    (tester) async {
-      const viewport = Size(508, 379);
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.binding.setSurfaceSize(viewport);
-      final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
-        primary: '#23323B',
-        onPrimary: '#FFFFFF',
-        background: '#E3DFD7',
-        surface: '#E9E6DA',
-        surfaceElevated: '#DADEDA',
-        textPrimary: '#1B242C',
-        textSecondary: '#4F5860',
-        outline: '#657078',
-        success: '#16794B',
-        warning: '#8A5100',
-        danger: '#B4233C',
-        titleSurface: '#E3DFD7',
-        dialogueSurface: '#FFFFFF',
-        menuSurface: '#E9E6DA',
-        overworldHudSurface: '#FFFFFF',
-        battleHudSurface: '#F8F8F8',
-      )!;
-      final theme = PokeMapPlayerTheme.withSurfacePalettes(
-        PokeMapPlayerTheme.withSemanticTheme(
-          PokeMapPlayerTheme.light(),
-          semantic,
+  testWidgets('battle root uses Ligue state colors across its four commands', (
+    tester,
+  ) async {
+    const viewport = Size(508, 379);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.binding.setSurfaceSize(viewport);
+    final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
+      primary: '#23323B',
+      onPrimary: '#FFFFFF',
+      background: '#E3DFD7',
+      surface: '#E9E6DA',
+      surfaceElevated: '#DADEDA',
+      textPrimary: '#1B242C',
+      textSecondary: '#4F5860',
+      outline: '#657078',
+      success: '#16794B',
+      warning: '#8A5100',
+      danger: '#B4233C',
+      titleSurface: '#E3DFD7',
+      dialogueSurface: '#FFFFFF',
+      menuSurface: '#E9E6DA',
+      overworldHudSurface: '#FFFFFF',
+      battleHudSurface: '#F8F8F8',
+    )!;
+    final theme = PokeMapPlayerTheme.withSurfacePalettes(
+      PokeMapPlayerTheme.withSemanticTheme(
+        PokeMapPlayerTheme.light(),
+        semantic,
+      ),
+      const ProjectPresentationSurfacePalettesProfile(
+        battle: ProjectSurfacePaletteProfile(
+          surface: '#F8F8F8',
+          border: '#484848',
+          text: '#303030',
+          accent: '#B83B54',
+          selection: '#305FD9',
         ),
-        const ProjectPresentationSurfacePalettesProfile(
-          battle: ProjectSurfacePaletteProfile(
-            surface: '#F8F8F8',
-            border: '#484848',
-            text: '#303030',
-            accent: '#B83B54',
-            selection: '#305FD9',
-          ),
-        ),
-      );
-      await _pumpOverlay(
-        tester,
-        snapshot: _rootSnapshot(viewportSize: viewport),
-        onCommand: (_) {},
-        theme: theme,
-      );
+      ),
+    );
+    await _pumpOverlay(
+      tester,
+      snapshot: _rootSnapshot(viewportSize: viewport),
+      onCommand: (_) {},
+      theme: theme,
+    );
 
-      Material entryMaterial(int index) {
-        final semantics = tester.widget<Semantics>(
-          find.byKey(ValueKey<String>('battle-entry-$index')),
-        );
-        final tooltip = semantics.child! as Tooltip;
-        return tooltip.child! as Material;
-      }
+    Material entryMaterial(int index) {
+      return tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byKey(ValueKey<String>('battle-entry-$index')),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+    }
 
-      expect({
-        for (var index = 0; index < 4; index++) entryMaterial(index).color,
-      }, hasLength(4));
-    },
-  );
+    expect({
+      for (var index = 0; index < 4; index++) entryMaterial(index).color,
+    }, hasLength(2));
+  });
 
   testWidgets(
     'French labels remain stable on the coherent dark battle chrome',
@@ -1484,10 +1631,14 @@ void main() {
       );
 
       Material entryMaterial(int index) {
-        final semantics = tester.widget<Semantics>(
-          find.byKey(ValueKey<String>('battle-entry-$index')),
+        return tester.widget<Material>(
+          find
+              .descendant(
+                of: find.byKey(ValueKey<String>('battle-entry-$index')),
+                matching: find.byType(Material),
+              )
+              .first,
         );
-        return (semantics.child! as Tooltip).child! as Material;
       }
 
       expect(find.text('CAPACITÉS'), findsNothing);
@@ -1791,6 +1942,20 @@ void main() {
       findsOneWidget,
     );
 
+    final authoredHud = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('battle-hud-target-enemy')),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(authoredHud.shape, isA<RoundedRectangleBorder>());
+    expect(
+      (authoredHud.shape! as RoundedRectangleBorder).borderRadius,
+      BorderRadius.zero,
+    );
+
     final panel = find.byKey(const ValueKey<String>('battle-command-panel'));
     final material = tester.widget<Material>(
       find.descendant(of: panel, matching: find.byType(Material)).first,
@@ -1858,7 +2023,7 @@ void main() {
       tester.getSemantics(find.byKey(const ValueKey('battle-entry-1'))).hint,
       contains('ÉLECTRIK'),
     );
-    expect(find.text('PP 12/15'), findsOneWidget);
+    expect(find.text('12 / 15'), findsOneWidget);
     expect(
       tester
           .getSemantics(find.byKey(const ValueKey<String>('battle-entry-1')))
@@ -2112,11 +2277,10 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
     expect(
       tester
-          .widget<Text>(
-            find.text('Le monde est peuplé de créatures extraordinaires.'),
-          )
+          .widget<Text>(find.byKey(const ValueKey('dialogue-page-text')))
           .style
           ?.fontFamily,
       'Studio Dialogue',
@@ -2132,6 +2296,7 @@ Future<void> _pumpOverlay(
   TextScaler textScaler = TextScaler.noScaling,
   ThemeData? theme,
   PlayerBattleDisplay display = PlayerBattleDisplay.full,
+  PlayerInputSource source = PlayerInputSource.touch,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -2142,11 +2307,14 @@ Future<void> _pumpOverlay(
       home: MediaQuery(
         data: MediaQueryData(textScaler: textScaler),
         child: Scaffold(
-          body: PlayerBattleOverlay(
-            display: display,
-            snapshot: snapshot,
-            onCommand: onCommand,
-            itemIconBuilder: itemIconBuilder,
+          body: PlayerInputScope(
+            activeInputSource: source,
+            child: PlayerBattleOverlay(
+              display: display,
+              snapshot: snapshot,
+              onCommand: onCommand,
+              itemIconBuilder: itemIconBuilder,
+            ),
           ),
         ),
       ),
@@ -2278,6 +2446,7 @@ const _richBagEntries = <BattleCommandOverlayEntry>[
 ];
 
 BattleCommandOverlaySnapshot _snapshot({
+  BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
   Size viewportSize = const Size(800, 600),
   BattlePresentationPhase phase = BattlePresentationPhase.choosingCommand,
   BattleCommandOverlayMode mode = BattleCommandOverlayMode.fight,
@@ -2300,9 +2469,14 @@ BattleCommandOverlaySnapshot _snapshot({
   int playerHpTweenRevision = 0,
   List<String> narrationLines = const [],
 }) {
-  final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
+  final layout = BattleSceneLayout.forViewport(
+    viewportSize: viewportSize,
+    commandPanelPlacement: placement,
+    commandPanelMode: mode,
+  );
   return BattleCommandOverlaySnapshot(
     revision: 9,
+    commandPanelPlacement: layout.commandPanelPlacement,
     phase: phase,
     forcedReplacement: phase == BattlePresentationPhase.forcedReplacement,
     mode: mode,
@@ -2428,6 +2602,7 @@ BattleCommandOverlaySnapshot _decisionSnapshot({
 }
 
 BattleCommandOverlaySnapshot _rootSnapshot({
+  BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
   Size viewportSize = const Size(800, 600),
   Rect? panelRect,
   Rect? enemyHudRect,
@@ -2435,9 +2610,13 @@ BattleCommandOverlaySnapshot _rootSnapshot({
   List<String> narrationLines = const <String>[],
   List<BattleCommandOverlayEntry>? entries,
 }) {
-  final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
+  final layout = BattleSceneLayout.forViewport(
+    viewportSize: viewportSize,
+    commandPanelPlacement: placement,
+  );
   return BattleCommandOverlaySnapshot(
     revision: 12,
+    commandPanelPlacement: layout.commandPanelPlacement,
     mode: BattleCommandOverlayMode.root,
     viewportSize: viewportSize,
     panelRect: panelRect ?? layout.commandPanelRect,

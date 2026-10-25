@@ -80,3 +80,5 @@ export 'src/api/local_resource_pack_transfer_api.dart';
 
 export 'src/workspace/catalog_project_materialization.dart';
 export 'src/workspace/catalog/catalog_targeted_map_edit.dart' show CatalogTargetedMapSelection;
+
+export 'src/documents/character_contact_shadow_authoring.dart';

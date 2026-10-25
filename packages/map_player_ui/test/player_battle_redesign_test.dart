@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
+import 'package:map_runtime/map_runtime.dart' show BattleCommandPanelPlacement;
 
 void main() {
   for (final viewport in const [Size(390, 844), Size(844, 390)]) {
     testWidgets(
-      'root gives fight priority without hiding secondary commands at $viewport',
+      'root provides two tactile rows without hiding secondary commands at $viewport',
       (tester) async {
         await _pump(tester, viewport: viewport);
         final fight = tester.getRect(
@@ -21,16 +23,12 @@ void main() {
         final run = tester.getRect(
           find.byKey(const ValueKey('battle-entry-3')),
         );
-        if (viewport.height > viewport.width) {
-          expect(fight.width, greaterThan(bag.width * 2));
-          expect(fight.bottom, lessThanOrEqualTo(bag.top));
-          expect(bag.top, party.top);
-          expect(party.top, run.top);
-        } else {
-          expect(fight.left, lessThan(bag.left));
-          expect(fight.width, greaterThan(bag.width));
-          expect(fight.top, bag.top);
-        }
+        expect(fight.width, bag.width);
+        expect(fight.top, party.top);
+        expect(bag.top, run.top);
+        expect(fight.bottom, lessThan(bag.top));
+        expect(fight.left, lessThan(party.left));
+        expect(bag.left, lessThan(run.left));
         for (final rect in [fight, bag, party, run]) {
           expect(rect.height, greaterThanOrEqualTo(48));
         }
@@ -39,6 +37,28 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'all command labels contrast with their actual command background',
+    (tester) async {
+      await _pump(tester, viewport: const Size(390, 844));
+      for (var index = 0; index < 4; index++) {
+        final button = find.byKey(ValueKey('battle-entry-$index'));
+        final material = tester.widget<Material>(
+          find.descendant(of: button, matching: find.byType(Material)).first,
+        );
+        final label = tester.widget<Text>(
+          find.descendant(of: button, matching: find.byType(Text)).first,
+        );
+        final background = material.color!.computeLuminance();
+        final foreground = label.style!.color!.computeLuminance();
+        final ratio = foreground > background
+            ? (foreground + .05) / (background + .05)
+            : (background + .05) / (foreground + .05);
+        expect(ratio, greaterThanOrEqualTo(4.5), reason: 'command $index');
+      }
+    },
+  );
 
   testWidgets(
     'four moves remain a two by two grid and exhausted PP cannot submit',
@@ -62,7 +82,7 @@ void main() {
       }
       final back = tester.getRect(find.byKey(const ValueKey('battle-back')));
       expect(back.left - rects[1].right, greaterThanOrEqualTo(12));
-      expect(find.text('PP 0/20'), findsOneWidget);
+      expect(find.text('0 / 20'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('battle-entry-0')));
       expect(actions, isEmpty);
       await tester.tap(find.byKey(const ValueKey('battle-entry-1')));
@@ -138,6 +158,152 @@ void main() {
     },
   );
 
+  testWidgets(
+    'busy turns show compact narration without disabled command grid',
+    (tester) async {
+      final actions = <PlayerBattleAction>[];
+      await _pump(
+        tester,
+        viewport: const Size(844, 390),
+        busy: true,
+        onAction: actions.add,
+      );
+      expect(find.text('Le tour se déroule.'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text('Le tour se déroule.')).style?.color,
+        const Color(0xFF070A10),
+      );
+      expect(find.byKey(const ValueKey('battle-entry-0')), findsNothing);
+      expect(find.text('Choisissez une capacité.'), findsNothing);
+      expect(
+        tester
+            .getSize(find.byKey(const ValueKey('battle-dialogue-panel')))
+            .height,
+        lessThanOrEqualTo(80),
+      );
+      expect(actions, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Ligue cards use bevels and distinguish exhausted moves', (
+    tester,
+  ) async {
+    await _pump(tester, viewport: const Size(390, 844), moves: true);
+    for (var index = 0; index < 4; index++) {
+      final entry = find.byKey(ValueKey('battle-entry-$index'));
+      final card = tester.widget<Material>(
+        find.descendant(of: entry, matching: find.byType(Material)).first,
+      );
+      expect(card.shape, isNot(isA<RoundedRectangleBorder>()));
+      expect(
+        tester.getSize(find.byKey(ValueKey('battle-type-icon-$index'))),
+        const Size(20, 20),
+      );
+      expect(
+        card.color,
+        index == 0
+            ? const Color(0xFF3D4854)
+            : index == 1
+            ? const Color(0xFF070A10)
+            : const Color(0xFFFFFFFF),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('authored shape and padding survive without color overrides', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      viewport: const Size(390, 844),
+      profile: const ProjectBattlePresentationProfile(
+        commandShape: ProjectWindowShape.capsule,
+        commandPadding: 20,
+      ),
+    );
+    final panel = tester.widget<PlayerPanel>(
+      find.byKey(const ValueKey('battle-command-panel')),
+    );
+    expect(panel.windowStyleOverride?.shape, ProjectWindowShape.capsule);
+    expect(panel.windowStyleOverride?.contentPadding, 20);
+    final material = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey('battle-entry-0')),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(material.shape, isA<RoundedRectangleBorder>());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('move footer exposes button semantics and full touch targets', (
+    tester,
+  ) async {
+    await _pump(tester, viewport: const Size(390, 844), moves: true);
+    for (final key in ['battle-move-info', 'battle-back']) {
+      final button = find.byKey(ValueKey(key));
+      expect(tester.getSemantics(button).flagsCollection.isButton, isTrue);
+      expect(tester.getSize(button).shortestSide, greaterThanOrEqualTo(48));
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final viewport in const [
+    Size(390, 844),
+    Size(844, 390),
+    Size(496, 432),
+  ]) {
+    testWidgets('PP values and type badges fit without ellipsis at $viewport', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        viewport: viewport,
+        moves: true,
+        display: viewport.width == 496
+            ? PlayerBattleDisplay.commandsOnly
+            : PlayerBattleDisplay.full,
+        source: viewport.width == 844
+            ? PlayerInputSource.controller
+            : PlayerInputSource.touch,
+      );
+      for (var index = 0; index < 4; index++) {
+        final numberFinder = find.byKey(ValueKey('battle-pp-number-$index'));
+        final number = tester.widget<Text>(numberFinder);
+        expect(number.overflow, isNot(TextOverflow.ellipsis));
+        final measure = TextPainter(
+          text: TextSpan(text: number.data, style: number.style),
+          textDirection: TextDirection.ltr,
+          textScaler: TextScaler.noScaling,
+        )..layout();
+        expect(
+          tester.getSize(numberFinder).width,
+          greaterThanOrEqualTo(measure.width - .1),
+        );
+        measure.dispose();
+        final badge = find.byKey(ValueKey('battle-type-badge-$index'));
+        final badgeText = tester.widget<Text>(
+          find.descendant(of: badge, matching: find.byType(Text)),
+        );
+        final typeMeasure = TextPainter(
+          text: TextSpan(text: badgeText.data, style: badgeText.style),
+          textDirection: TextDirection.ltr,
+          textScaler: TextScaler.noScaling,
+        )..layout();
+        expect(
+          tester.getSize(badge).width,
+          greaterThanOrEqualTo(typeMeasure.width + 14),
+        );
+        typeMeasure.dispose();
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('reduced motion removes HUD entrance movement', (tester) async {
     await _pump(tester, viewport: const Size(844, 390), reducedMotion: true);
     final slides = tester.widgetList<AnimatedSlide>(find.byType(AnimatedSlide));
@@ -165,6 +331,8 @@ Future<void> _pump(
   WidgetTester tester, {
   required Size viewport,
   bool moves = false,
+  ProjectBattlePresentationProfile? profile,
+  bool busy = false,
   bool reducedMotion = false,
   int bagCount = 0,
   PlayerBattleDisplay display = PlayerBattleDisplay.full,
@@ -180,13 +348,23 @@ Future<void> _pump(
     currentHp: 24,
     maxHp: 30,
   );
-  final panelHeight = viewport.height > viewport.width ? 298.0 : 140.0;
+  final sceneLayout = BattleSceneLayout.forViewport(
+    viewportSize: viewport,
+    commandPanelPlacement: source == PlayerInputSource.controller
+        ? BattleCommandPanelPlacement.end
+        : BattleCommandPanelPlacement.bottom,
+  );
   await tester.pumpWidget(
     MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
+      theme: profile == null
+          ? PokeMapPlayerTheme.dark(reducedMotion: reducedMotion)
+          : PokeMapPlayerTheme.withBattleProfile(
+              PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
+              profile,
+            ),
       home: Scaffold(
         body: PlayerInputScope(
           activeInputSource: source,
@@ -207,29 +385,21 @@ Future<void> _pump(
               prompt: moves
                   ? 'Choisissez une capacité.'
                   : 'Que doit faire Créature ?',
-              narrationLines: const [],
-              interactionsEnabled: true,
+              narrationLines: busy ? const ['Le tour se déroule.'] : const [],
+              interactionsEnabled: !busy,
               canGoBack: moves || bagCount > 0,
-              panelKind: bagCount > 0
+              panelKind: busy
+                  ? PlayerBattlePanelKind.message
+                  : bagCount > 0
                   ? PlayerBattlePanelKind.target
                   : moves
                   ? PlayerBattlePanelKind.moves
                   : PlayerBattlePanelKind.commands,
               viewportLayout: PlayerBattleViewportLayout(
                 viewportSize: viewport,
-                panelRect: Rect.fromLTWH(
-                  0,
-                  viewport.height - panelHeight,
-                  viewport.width,
-                  panelHeight,
-                ),
-                enemyHudRect: const Rect.fromLTWH(18, 16, 200, 70),
-                playerHudRect: Rect.fromLTWH(
-                  viewport.width - 228,
-                  viewport.height - panelHeight - 90,
-                  210,
-                  80,
-                ),
+                panelRect: sceneLayout.commandPanelRect,
+                enemyHudRect: sceneLayout.enemyHudRect,
+                playerHudRect: sceneLayout.playerHudRect,
               ),
               commands: [
                 for (

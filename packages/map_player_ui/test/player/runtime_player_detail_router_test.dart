@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_player_ui/src/player/runtime_player_options.dart';
+import 'package:map_player_ui/src/player/runtime_player_bag.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -40,12 +41,12 @@ void main() {
         find.byKey(ValueKey<String>('runtime-player-detail-${section.name}')),
         findsOneWidget,
       );
-      expect(
-        find.text('Contenu ${section.name}'),
-        section == RuntimePlayerPauseSection.bag
-            ? findsNWidgets(2)
-            : findsOneWidget,
-      );
+      expect(find.text('Contenu ${section.name}'), findsOneWidget);
+      if (section == RuntimePlayerPauseSection.bag) {
+        expect(find.text('Donnée runtime'), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('bag-info-bag-entry')));
+        await tester.pumpAndSettle();
+      }
       expect(find.text('Donnée runtime'), findsOneWidget);
     });
   }
@@ -282,6 +283,7 @@ void main() {
       _app(
         RuntimePlayerDetailRouter(
           snapshot: snapshot,
+          activeInputSource: PlayerInputSource.touch,
           onPreferencesChanged: (preferences) => changed = preferences,
         ),
       ),
@@ -370,12 +372,13 @@ void main() {
         ),
       );
 
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await tester.ensureVisible(
-        find.byKey(const ValueKey<String>('runtime-player-bag-use-potion')),
+        find.byKey(const ValueKey<String>('bag-item-bag.medicine.potion')),
       );
       await tester.tap(
-        find.byKey(const ValueKey<String>('runtime-player-bag-use-potion')),
+        find.byKey(const ValueKey<String>('bag-item-bag.medicine.potion')),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -470,8 +473,9 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const ValueKey<String>('runtime-player-bag-use-tm-protect')),
+      find.byKey(const ValueKey<String>('bag-item-bag.machines.tm-protect')),
     );
     await tester.pumpAndSettle();
 
@@ -552,8 +556,9 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const ValueKey<String>('runtime-player-bag-use-hm-surf')),
+      find.byKey(const ValueKey<String>('bag-item-bag.machines.hm-surf')),
     );
     await tester.pumpAndSettle();
 
@@ -1055,7 +1060,16 @@ Widget _app(Widget child) => MaterialApp(
 );
 
 Future<void> _tapBagControl(WidgetTester tester, String key) async {
-  final control = find.byKey(ValueKey<String>(key));
+  var target = key;
+  if (key.startsWith('runtime-player-bag-use-')) {
+    final itemId = key.substring('runtime-player-bag-use-'.length);
+    final bag = tester.widget<RuntimePlayerBag>(find.byType(RuntimePlayerBag));
+    final entry = bag.detail.entries.firstWhere(
+      (entry) => entry.bagAction?.itemTargetId == itemId,
+    );
+    target = 'bag-item-${entry.bagItem?.itemId ?? entry.id}';
+  }
+  final control = find.byKey(ValueKey<String>(target));
   await _revealControl(tester, control);
   await tester.tap(control);
   await tester.pumpAndSettle();

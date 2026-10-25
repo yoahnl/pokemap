@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:ui' show Color;
+import 'dart:ui' show Color, Size;
 
 import 'package:flame_3d/game.dart';
 import 'package:flame_3d/components.dart' show Object3D;
@@ -7,6 +7,7 @@ import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
+import 'package:map_render_3d/src/spatial_actor_contact_shadow.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_shadow_profile.dart';
@@ -94,6 +95,27 @@ void main() {
     material.fragmentShader.bind(device);
     expect(device.uniforms['PointShadows']!.first, 0);
     expect(device.textures['pointShadowTexture'], same(Texture.standard));
+  });
+
+  test('contact ellipse never enters solar or point caster passes even with a matching id', () {
+    final contact = SpatialActorContactShadow();
+    final caster = _OffscreenPointCaster(contact.material);
+    final spatial = SpatialRenderContext(device)
+      ..pointShadowCasters = [caster]
+      ..lighting = SpatialLightingProfile.stylized(
+        shadow: SpatialShadowProfile(casterInstanceIds: {'town:wall'}),
+        pointLights: [SpatialPointLight(position: (x: 0, y: 2, z: 0), radius: 5)],
+        pointShadowCasterInstanceIds: {'town:wall'},
+      );
+    device.begin();
+    device.beginPass(const Size(16, 16));
+    spatial.submitDraw(caster, Matrix4.identity());
+    spatial.flush();
+    device.end();
+    expect(spatial.shadowStats.casterDrawCount, 0);
+    expect(spatial.shadowStats.pointCasterDrawCount, 0);
+    expect(spatial.shadowStats.pointTargetAllocations, 0);
+    expect(spatial.shadowStats.receiverDrawCount, 0);
   });
 
   test('environment uniforms tint prelit artwork and restore all point slots after disabling', () {

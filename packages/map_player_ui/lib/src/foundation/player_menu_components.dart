@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../theme/pokemap_player_layout_theme.dart';
 import 'player_paged_layout.dart';
+import 'player_input_scope.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 
@@ -76,6 +77,55 @@ class PlayerMenuFrame extends StatelessWidget {
           role,
           constraints,
         );
+        final companion = PlayerCompanionScope.of(context);
+        final edgeToEdge =
+            authored == null &&
+            (constraints.biggest.shortestSide < 600 || companion);
+        if (edgeToEdge) {
+          final safe = MediaQuery.paddingOf(context);
+          final landscape = constraints.maxWidth > constraints.maxHeight;
+          final horizontal = companion
+              ? 16.0
+              : landscape
+              ? 44.0
+              : 0.0;
+          return PlayerMenuTransition(
+            visible: visible,
+            child: DecoratedBox(
+              key: const ValueKey('player-menu-edge-to-edge'),
+              decoration: BoxDecoration(color: theme.backdrop),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  math.max(horizontal, safe.left),
+                  companion ? math.max(12, safe.top) : safe.top,
+                  math.max(horizontal, safe.right),
+                  safe.bottom,
+                ),
+                child: Column(
+                  children: [
+                    header,
+                    Expanded(
+                      child: Padding(
+                        padding:
+                            contentPadding ??
+                            EdgeInsets.symmetric(
+                              horizontal: landscape || companion ? 0 : 16,
+                              vertical: 12,
+                            ),
+                        child: scrollable && child is Column
+                            ? PlayerPagedList(
+                                children: (child as Column).children,
+                              )
+                            : child,
+                      ),
+                    ),
+                    footer,
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
         final margin =
             authored?.additionalSafeAreaPadding ??
             (compact
@@ -168,6 +218,7 @@ class PlayerMenuHeader extends StatelessWidget {
     this.iconColor,
     this.secondary,
     this.alignSecondaryEnd = false,
+    this.onBack,
   });
 
   final IconData icon;
@@ -175,6 +226,7 @@ class PlayerMenuHeader extends StatelessWidget {
   final String title;
   final Widget? secondary;
   final bool alignSecondaryEnd;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -187,9 +239,10 @@ class PlayerMenuHeader extends StatelessWidget {
             MediaQuery.sizeOf(context).height <
                 projectPresentationCompactHeight;
         final shortLandscape =
-            MediaQuery.sizeOf(context).height < 500 &&
-            MediaQuery.sizeOf(context).width >
-                MediaQuery.sizeOf(context).height;
+            PlayerCompanionScope.of(context) ||
+            (MediaQuery.sizeOf(context).height < 500 &&
+                MediaQuery.sizeOf(context).width >
+                    MediaQuery.sizeOf(context).height);
         final titleMeasure = TextPainter(
           text: TextSpan(text: title, style: theme.title),
           textDirection: Directionality.of(context),
@@ -200,31 +253,71 @@ class PlayerMenuHeader extends StatelessWidget {
             !shortLandscape || titleMeasure.didExceedMaxLines;
         final heading = Row(
           children: [
-            Icon(
-              icon,
-              size: compact ? 24 : 32,
-              color: iconColor ?? theme.accent,
-            ),
+            if (onBack != null)
+              PlayerMenuBackButton(onPressed: onBack!)
+            else
+              Icon(
+                icon,
+                size: compact ? 24 : 32,
+                color: iconColor ?? theme.accent,
+              ),
             const SizedBox(width: PlayerSpacing.sm),
-            Expanded(child: Text(title, style: theme.title)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: compact
+                        ? theme.title.copyWith(fontSize: 23, height: 1.15)
+                        : theme.title,
+                  ),
+                  if (onBack != null &&
+                      secondary != null &&
+                      !alignSecondaryEnd) ...[
+                    const SizedBox(height: 3),
+                    DefaultTextStyle(
+                      style: theme.meta.copyWith(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: theme.secondary,
+                      ),
+                      child: secondary!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         );
         return Container(
           width: alignSecondaryEnd ? double.infinity : null,
-          constraints: BoxConstraints(minHeight: compact ? 44 : 64),
-          padding: EdgeInsets.symmetric(
-            horizontal: compact ? 12 : 24,
-            vertical: compact ? 4 : 15.5,
-          ),
+          constraints: BoxConstraints(minHeight: shortLandscape ? 56 : 64),
+          padding: shortLandscape
+              ? const EdgeInsets.only(bottom: 8)
+              : EdgeInsets.symmetric(
+                  horizontal: compact ? 16 : 24,
+                  vertical: compact ? 8 : 15.5,
+                ),
           decoration: BoxDecoration(
-            color: theme.header.withValues(alpha: theme.panelOpacity),
+            color: shortLandscape ? null : theme.header,
             border: Border(
               bottom: BorderSide(color: theme.border.withValues(alpha: .22)),
             ),
           ),
-          child:
-              stackSecondary &&
-                  (narrow || MediaQuery.textScalerOf(context).scale(18) > 27)
+          child: onBack != null
+              ? Row(
+                  children: [
+                    Expanded(child: heading),
+                    if (alignSecondaryEnd && secondary != null) ...[
+                      const SizedBox(width: 12),
+                      Flexible(child: secondary!),
+                    ],
+                  ],
+                )
+              : stackSecondary &&
+                    (narrow || MediaQuery.textScalerOf(context).scale(18) > 27)
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -270,6 +363,31 @@ class PlayerMenuHeader extends StatelessWidget {
   }
 }
 
+class PlayerMenuBackButton extends StatelessWidget {
+  const PlayerMenuBackButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.playerMenuTheme;
+    return IconButton(
+      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+      onPressed: onPressed,
+      icon: const Icon(Icons.arrow_back_rounded, size: 22),
+      style: IconButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        maximumSize: const Size(48, 48),
+        padding: EdgeInsets.zero,
+        foregroundColor: theme.text,
+        backgroundColor: theme.recessed,
+        side: BorderSide.none,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      ),
+    );
+  }
+}
+
 class PlayerMenuFooter extends StatelessWidget {
   const PlayerMenuFooter({
     super.key,
@@ -279,7 +397,9 @@ class PlayerMenuFooter extends StatelessWidget {
     this.stackActions = false,
     this.alignReturnEnd = false,
     this.actionsBuilder,
+    this.padding,
   });
+  final EdgeInsetsGeometry? padding;
   final List<Widget> hints;
   final Widget? returnAction;
   final int hintsFlex;
@@ -291,13 +411,18 @@ class PlayerMenuFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
+    final companion = PlayerCompanionScope.of(context);
+    final landscape = MediaQuery.sizeOf(context).aspectRatio > 1;
+    final wide = landscape || companion;
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 48),
-      padding: EdgeInsets.symmetric(
-        horizontal: actionsBuilder == null ? 24 : 16,
-        vertical: 8,
-      ),
+      padding:
+          padding ??
+          (wide
+              ? EdgeInsets.only(top: 8, bottom: companion ? 12 : 0)
+              : const EdgeInsets.fromLTRB(16, 8, 16, 16)),
+      decoration: BoxDecoration(color: wide ? null : theme.header),
       foregroundDecoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: theme.border.withValues(alpha: .22)),
@@ -306,7 +431,13 @@ class PlayerMenuFooter extends StatelessWidget {
       child: returnAction != null && actionsBuilder != null
           ? actionsBuilder!(context, returnAction!)
           : returnAction != null && hints.isEmpty
-          ? PlayerMenuActionGroup(children: [returnAction!])
+          ? Align(
+              alignment: Alignment.centerLeft,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 168),
+                child: returnAction!,
+              ),
+            )
           : returnAction == null
           ? Wrap(
               spacing: PlayerSpacing.lg,
@@ -480,6 +611,10 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.subtitle,
     this.supportingContent,
     this.labelMaxLines,
+    this.labelStyle,
+    this.showDisabledReason = true,
+    this.showLabel = true,
+    this.reserveFocusMarker = false,
     this.semanticValue,
     this.onFocusChanged,
     this.selected = false,
@@ -490,6 +625,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.disabledReason,
     this.focusNode,
     this.integrated = false,
+    this.tab = false,
     this.iconOnly = false,
     this.tile = false,
     this.fitTileContent = false,
@@ -498,6 +634,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
       horizontal: 12,
       vertical: 10,
     ),
+    this.contentGap = 12,
     this.showFocusHighlight = true,
   });
 
@@ -510,6 +647,10 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final String? subtitle;
   final Widget? supportingContent;
   final int? labelMaxLines;
+  final TextStyle? labelStyle;
+  final bool showDisabledReason;
+  final bool showLabel;
+  final bool reserveFocusMarker;
   final String? semanticValue;
   final ValueChanged<bool>? onFocusChanged;
   final bool selected;
@@ -520,11 +661,13 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final String? disabledReason;
   final FocusNode? focusNode;
   final bool integrated;
+  final bool tab;
   final bool iconOnly;
   final bool tile;
   final bool fitTileContent;
   final double minimumHeight;
   final EdgeInsetsGeometry contentPadding;
+  final double contentGap;
   final bool showFocusHighlight;
 
   @override
@@ -551,56 +694,39 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
         .dependOnInheritedWidgetOfExactType<_PlayerMenuActionScope>();
     final integrated = widget.integrated || actionScope != null;
     final focused = widget.showFocusHighlight && (widget.focused || _focused);
+    final highlighted = widget.selected || focused;
     final hovered = widget.hovered || _hovered;
     final pressed = widget.pressed || _pressed;
     final unselected = pressed && _enabled
-        ? Color.alphaBlend(theme.shadow.withValues(alpha: .24), theme.recessed)
+        ? Color.alphaBlend(theme.shadow.withValues(alpha: .08), theme.panel)
         : hovered && _enabled
-        ? theme.accent.withValues(alpha: .09)
-        : integrated
-        ? theme.base.withValues(alpha: 0)
-        : theme.recessed.withValues(alpha: .4);
+        ? theme.recessed
+        : theme.panel;
     final decoration = BoxDecoration(
       gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: widget.selected
-            ? theme.selectionGradientColors(
-                shade: pressed && _enabled
-                    ? .10
-                    : hovered && _enabled
-                    ? .04
-                    : 0,
-              )
+        colors: highlighted
+            ? theme.selectionGradientColors()
             : List.filled(
                 2,
-                Color.alphaBlend(
-                  unselected,
-                  integrated || theme.opaque ? theme.base : theme.panel,
-                ),
+                widget.tab || integrated ? theme.base : unselected,
               ),
       ),
       borderRadius: BorderRadius.circular(PokeMapPlayerMenuTheme.rowRadius),
-      border: Border.all(
-        width: 1.5,
-        color: focused || widget.selected
-            ? theme.focus
-            : theme.border.withValues(
-                alpha: hovered
-                    ? .7
-                    : integrated
-                    ? 0
-                    : .22,
+      border: widget.tab
+          ? Border(
+              bottom: BorderSide(
+                color: highlighted ? theme.accent : theme.border,
+                width: highlighted ? 4 : 2,
               ),
-      ),
-      boxShadow: widget.selected && !theme.opaque
-          ? [
-              BoxShadow(
-                color: theme.accent.withValues(alpha: .28),
-                blurRadius: 14,
+            )
+          : highlighted
+          ? Border(left: BorderSide(color: theme.accent, width: 4))
+          : Border(
+              bottom: BorderSide(
+                color: theme.border,
+                width: integrated ? 0 : 1,
               ),
-            ]
-          : null,
+            ),
     );
     final row = TweenAnimationBuilder<Decoration>(
       tween: DecorationTween(begin: decoration, end: decoration),
@@ -615,7 +741,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
         final gradient = painted.gradient! as LinearGradient;
         final presentation = theme.rowPresentation(
           gradient.colors,
-          preferredForeground: widget.selected
+          preferredForeground: highlighted
               ? theme.selectionText
               : !_enabled && !widget.busy
               ? theme.disabled
@@ -625,15 +751,13 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
         final secondary = theme
             .rowPresentation(
               presentation.backgrounds,
-              preferredForeground: widget.selected
-                  ? foreground
-                  : theme.secondary,
+              preferredForeground: highlighted ? foreground : theme.secondary,
             )
             .foreground;
         final focusColor = theme
             .rowPresentation(
               presentation.backgrounds,
-              preferredForeground: widget.selected
+              preferredForeground: highlighted
                   ? theme.selectionText
                   : theme.focus,
             )
@@ -642,7 +766,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
           key: ValueKey('${widget.id}-surface'),
           constraints: BoxConstraints(
             minHeight: actionScope?.compact == true
-                ? math.max(64, widget.minimumHeight)
+                ? math.max(48, widget.minimumHeight)
                 : widget.minimumHeight,
           ),
           padding: actionScope == null
@@ -652,7 +776,11 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
             gradient: LinearGradient(
               begin: gradient.begin,
               end: gradient.end,
-              colors: integrated && !widget.selected && !hovered && !pressed
+              colors:
+                  (integrated || widget.tab) &&
+                      !highlighted &&
+                      !hovered &&
+                      !pressed
                   ? List.filled(2, theme.base.withValues(alpha: 0))
                   : presentation.backgrounds,
             ),
@@ -660,8 +788,11 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
           child: IconTheme(
             data: IconThemeData(color: foreground, size: 24),
             child: DefaultTextStyle(
-              style: (actionScope == null ? theme.label : theme.actionLabel)
-                  .copyWith(color: foreground),
+              style:
+                  (actionScope == null
+                          ? widget.labelStyle ?? theme.label
+                          : theme.actionLabel)
+                      .copyWith(color: foreground),
               child: actionScope != null
                   ? _actionContent(actionScope.compact)
                   : widget.tile
@@ -696,29 +827,31 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                     )
                   : Row(
                       children: [
-                        SizedBox(
-                          width: 6,
-                          height: 20,
-                          child: focused
-                              ? DecoratedBox(
-                                  key: ValueKey('${widget.id}-focus-marker'),
-                                  decoration: BoxDecoration(
-                                    color: focusColor,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: PlayerSpacing.sm),
+                        if (widget.reserveFocusMarker)
+                          SizedBox(
+                            width: 6,
+                            height: 20,
+                            child: focused
+                                ? DecoratedBox(
+                                    key: ValueKey('${widget.id}-focus-marker'),
+                                    decoration: BoxDecoration(
+                                      color: focusColor,
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  )
+                                : null,
+                          ),
+                        if (widget.reserveFocusMarker)
+                          const SizedBox(width: PlayerSpacing.sm),
                         if (widget.leading != null) ...[
                           widget.leading!,
-                          const SizedBox(width: PlayerSpacing.sm),
+                          SizedBox(width: widget.contentGap),
                         ],
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (widget.label.isNotEmpty)
+                              if (widget.showLabel && widget.label.isNotEmpty)
                                 Text(
                                   widget.label,
                                   maxLines: widget.labelMaxLines,
@@ -733,7 +866,8 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                                 ),
                               if (widget.supportingContent != null)
                                 widget.supportingContent!,
-                              if (widget.disabledReason != null)
+                              if (widget.showDisabledReason &&
+                                  widget.disabledReason != null)
                                 Text(
                                   widget.disabledReason!,
                                   style: theme.meta.copyWith(color: foreground),
@@ -745,7 +879,7 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                           const SizedBox(width: PlayerSpacing.sm),
                           Icon(Icons.hourglass_top_rounded, color: foreground),
                         ] else if (widget.trailing != null) ...[
-                          const SizedBox(width: PlayerSpacing.sm),
+                          SizedBox(width: widget.contentGap),
                           if (widget.trailingWidth case final width?)
                             SizedBox(width: width, child: widget.trailing!)
                           else
@@ -836,23 +970,17 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
     final icon = widget.busy
         ? const Icon(Icons.hourglass_top_rounded)
         : widget.leading;
-    final label = Text(widget.label, textAlign: TextAlign.center);
-    return compact
-        ? Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[icon, const SizedBox(height: 4)],
-              label,
-            ],
-          )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[icon, const SizedBox(width: 8)],
-              Flexible(child: label),
-            ],
-          );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (icon != null) ...[
+          IconTheme.merge(data: const IconThemeData(size: 18), child: icon),
+          const SizedBox(width: 8),
+        ],
+        Flexible(child: Text(widget.label, textAlign: TextAlign.center)),
+      ],
+    );
   }
 }
 

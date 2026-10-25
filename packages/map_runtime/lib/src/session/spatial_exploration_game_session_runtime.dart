@@ -416,6 +416,8 @@ final class SpatialExplorationGameSessionRuntime
       ..addListener(_syncMovement);
     _gameplay = await SpatialGameplayEvents.create(
         project: project,
+        now: _now,
+        interactionPositionBlocked: (x, z, ignoredEntityId) => _session == null || !_session!.movement.canTraverseActor(x, z, x, z, ignoredEntityId: ignoredEntityId),
         currentModelDefinitions: () =>
             _session?.bundle.manifest.models3d ?? project.models3d,
         mapsById: _mapsById,
@@ -954,6 +956,10 @@ final class SpatialExplorationGameSessionRuntime
           stage: 'resources', current: 1, total: 3));
       _gameState = state;
       if (bundle.map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic && !descriptor.grantedCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) throw StateError('The map requires ${SpatialCameraProfile.orthographicCapabilityId}.');
+      if (SpatialActorOcclusionCapabilities.requiresCapability(manifest, maps: [bundle.map]) &&
+          !descriptor.grantedCapabilities.contains(SpatialActorOcclusionCapabilities.capabilityId)) {
+        throw StateError('The map requires ${SpatialActorOcclusionCapabilities.capabilityId}.');
+      }
       _audioMapId = bundle.map.id;
       _sceneAudio = SpatialSceneAudioRuntime(
         mediaAssets: manifest.cinematicMediaAssets,

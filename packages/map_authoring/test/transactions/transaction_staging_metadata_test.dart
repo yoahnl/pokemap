@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/transactions/authoring_payload.dart'
+    show inspectAuthoringPayload;
 import 'package:test/test.dart';
 
 void main() {
@@ -37,6 +39,51 @@ void main() {
 
   Matcher error(String code) => throwsA(isA<TransactionFileGatewayException>()
       .having((e) => e.code, 'code', code));
+
+  test('live resource revision equals full inspection across multiple chunks',
+      () async {
+    const storageKey = 'assets/été😀.bin';
+    final source = List<int>.generate(64 * 1024 * 3 + 17,
+        (index) => (index * 37 + index ~/ 251) % 256);
+    await Directory('${root.path}/assets').create();
+    final file = File('${root.path}/$storageKey');
+    await file.writeAsBytes(source);
+    final full = await inspectAuthoringPayload(file.openRead(),
+        storageKey: storageKey, byteLength: source.length);
+    expect(await gateway.readResourceRevision(storageKey), full.resourceRevision);
+    expect(await file.readAsBytes(), source);
+  });
+
+  test('live resource revision refuses an incorrect declared byte length',
+      () async {
+    await expectLater(
+        IOOverrides.runZoned(
+          () => gateway.readResourceRevision('project.json'),
+          stat: (path) async {
+            final actual = await Zone.root.run(() => FileStat.stat(path));
+            return path == '${root.path}/project.json'
+                ? _Stat(actual, changed: actual.changed, size: actual.size + 1)
+                : actual;
+          },
+        ),
+        error('transaction.io'));
+    expect(await File('${root.path}/project.json').readAsBytes(), bytes);
+  });
+
+  for (final outward in [false, true]) {
+    test('live resource revision rejects a symlink, outward=$outward', () async {
+      final outside = await Directory.systemTemp.createTemp('revision-link-');
+      addTearDown(() => outside.delete(recursive: true));
+      final target = outward
+          ? File('${outside.path}/source.bin')
+          : File('${root.path}/source.bin');
+      await target.writeAsBytes(bytes);
+      await Link('${root.path}/linked.bin').create(target.path);
+      await expectLater(gateway.readResourceRevision('linked.bin'),
+          error('transaction.resource_not_regular'));
+      expect(await target.readAsBytes(), bytes);
+    });
+  }
 
   test('stable staging preserves its exact frozen bytes', () async {
     await stage((_, actual) async => actual);
