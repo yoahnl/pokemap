@@ -3,12 +3,19 @@ import 'dart:ui';
 import 'package:flame_3d/graphics.dart';
 import 'package:flutter/scheduler.dart';
 
-class FlutterFrameGraphicsDevice extends GraphicsDevice {
-  FlutterFrameGraphicsDevice({GpuBackend? backend, super.clearValue})
-    : super(
-        backend: _FlutterFrameBackend.shared(backend ?? GpuBackend.instance),
-      );
+import 'flutter_image_presenter.dart';
 
+class FlutterFrameGraphicsDevice extends GraphicsDevice {
+  FlutterFrameGraphicsDevice({
+    GpuBackend? backend,
+    Image Function(Image)? presentImage,
+    super.clearValue,
+  }) : _presentImage = presentImage ?? createFlutterImagePresenter(),
+       super(
+         backend: _FlutterFrameBackend.shared(backend ?? GpuBackend.instance),
+       );
+
+  final Image Function(Image) _presentImage;
   GpuRenderTarget? currentRenderTarget;
   Size renderSize = Size.zero;
   Image Function(GpuRenderTarget, Size)? postProcess;
@@ -47,10 +54,16 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
     final image = super.endPass();
     final process = postProcess;
     final target = currentRenderTarget;
-    if (process == null || target == null) return image;
+    Image? processed;
     try {
-      return process(target, renderSize);
+      processed = process == null || target == null
+          ? image
+          : process(target, renderSize);
+      return _presentImage(processed);
     } finally {
+      if (processed != null && !identical(processed, image)) {
+        processed.dispose();
+      }
       image.dispose();
     }
   }
