@@ -482,7 +482,7 @@ final class BattleSceneLayout {
       );
     }
     final compactController = controllerLayout && !detached;
-    final compactSideWidth = math.min(viewportSize.width * .32, 340.0);
+    final compactSideWidth = math.min(viewportSize.width * .25, 280.0);
     final sidePanelWidth = compactController ? compactSideWidth : 310.0;
     final sceneRect = sidePanel
         ? Rect.fromLTRB(
@@ -660,7 +660,11 @@ final class BattleSceneLayout {
           ? Size(77 * scale, 96 * scale)
           : Size(128 * scale, 142 * scale);
       final playerSprite = Rect.fromLTWH(
-        sidePanel ? 169 * scale : 99 * scale,
+        sidePanel
+            ? compactController
+                  ? sceneRect.left + sceneRect.width * .18
+                  : 169 * scale
+            : 99 * scale,
         sidePanel
             ? viewportSize.height - (77 * scale) - playerSize.height
             : viewportSize.height -
@@ -671,10 +675,12 @@ final class BattleSceneLayout {
       );
       final enemySprite = Rect.fromLTWH(
         sidePanel
-            ? math.min(
-                viewportSize.width - (343.5 * scale) - enemySize.width,
-                sceneRect.right - enemySize.width,
-              )
+            ? compactController
+                  ? sceneRect.right - enemySize.width - 24 * scale
+                  : math.min(
+                      viewportSize.width - (343.5 * scale) - enemySize.width,
+                      sceneRect.right - enemySize.width,
+                    )
             : viewportSize.width - 299 * scale,
         sidePanel
             ? viewportSize.height - (159 * scale) - enemySize.height
@@ -786,11 +792,25 @@ final class BattleSceneLayout {
         216 * visualScale,
         40.5 * visualScale,
       );
+      final loweredPortrait = compactController && isPortrait;
+      final portraitSpriteScale = math.min(
+        visualScale,
+        math.max(
+              0.0,
+              scenePanelTop - enemyHud.bottom - 68.25 * visualScale - 36,
+            ) /
+            246.3,
+      );
       final playerHud = Rect.fromLTWH(
         viewportSize.width -
             ((isPortrait ? 14 : 24) + (isPortrait ? 218 : 210)) * visualScale,
         isPortrait
-            ? scenePanelTop - (30 + 68.25) * visualScale
+            ? loweredPortrait
+                  ? scenePanelTop -
+                        16 -
+                        68.25 * visualScale -
+                        137 * portraitSpriteScale
+                  : scenePanelTop - (30 + 68.25) * visualScale
             : math.min(
                     viewportSize.height - 142 * visualScale,
                     scenePanelTop - 12 * visualScale,
@@ -801,15 +821,21 @@ final class BattleSceneLayout {
       );
       final availableSpriteHeight = math.max(
         24.0,
-        (isPortrait ? playerHud.top : arena.bottom) - enemyHud.bottom - 16,
+        (isPortrait && !loweredPortrait ? playerHud.top : arena.bottom) -
+            enemyHud.bottom -
+            16,
       );
       final playerHeight = math.min(
-        (isPortrait ? 137 : 126.3) * visualScale,
+        isPortrait
+            ? 137 * (loweredPortrait ? portraitSpriteScale : visualScale)
+            : 126.3 * visualScale,
         availableSpriteHeight,
       );
       final playerWidth =
           playerHeight * (isPortrait ? 147 / 137 : 134.7 / 126.3);
-      final playerBottom = isPortrait
+      final playerBottom = loweredPortrait
+          ? scenePanelTop - 8
+          : isPortrait
           ? (scenePanelTop - 112.5 * visualScale).clamp(
               math.min(enemyHud.bottom + 8 + playerHeight, playerHud.top - 8),
               playerHud.top - 8,
@@ -825,13 +851,20 @@ final class BattleSceneLayout {
         playerHeight,
       );
       final enemyHeight = math.min(
-        (isPortrait ? 109.3 : 94) * visualScale,
+        isPortrait
+            ? 109.3 * (loweredPortrait ? portraitSpriteScale : visualScale)
+            : 94 * visualScale,
         availableSpriteHeight,
       );
       final enemyWidth = enemyHeight * (isPortrait ? 98.7 / 109.3 : 84.8 / 94);
       final enemyBottom = math.min(
         isPortrait
-            ? scenePanelTop - 150.7 * visualScale
+            ? compactController
+                  ? math.min(
+                      scenePanelTop - 224.5 * visualScale,
+                      playerHud.top - 12,
+                    )
+                  : scenePanelTop - 150.7 * visualScale
             : viewportSize.height - 208.3 * visualScale,
         playerHud.top - 8,
       );
@@ -873,7 +906,9 @@ final class BattleSceneLayout {
         textScale: textScale,
         bounds: arena,
         obstacles: [
-          playerSprite.expandToInclude(playerPlatform),
+          loweredPortrait
+              ? playerSprite.expandToInclude(playerPlatform).inflate(8)
+              : playerSprite.expandToInclude(playerPlatform),
           enemySprite.expandToInclude(enemyPlatform),
           enemyHud,
         ],

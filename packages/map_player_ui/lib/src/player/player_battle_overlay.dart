@@ -242,7 +242,9 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
           canonical &&
           compactChrome &&
           display == PlayerBattleDisplay.full &&
-          PlayerInputScope.usesController(context);
+          (PlayerInputScope.usesController(context) ||
+              snapshot.viewportSize.width < 480 &&
+                  snapshot.viewportSize.height > snapshot.viewportSize.width);
     }
     final rootCommandOrder =
         snapshot.mode == BattleCommandOverlayMode.root &&

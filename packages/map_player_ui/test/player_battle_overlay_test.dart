@@ -16,6 +16,68 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  testWidgets(
+    'portrait touch acknowledges compact commands without changing authored padding',
+    (tester) async {
+      const viewport = Size(390, 844);
+      await tester.binding.setSurfaceSize(viewport);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final commands = <BattlePresentationCommand>[];
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(
+          viewportSize: viewport,
+          controllerLayout: false,
+        ),
+        onCommand: commands.add,
+      );
+      expect(commands, hasLength(1));
+      final request = commands.single as BattleSetCommandPanelPlacementCommand;
+      expect(request.controllerLayout, isTrue);
+      expect(request.placement, BattleCommandPanelPlacement.bottom);
+      commands.clear();
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(viewportSize: viewport, controllerLayout: true),
+        onCommand: commands.add,
+      );
+      await tester.pumpAndSettle();
+      expect(commands, isEmpty);
+      for (var index = 0; index < 4; index++) {
+        expect(
+          tester.getSize(find.byKey(ValueKey('battle-entry-$index'))).height,
+          inInclusiveRange(48, 64),
+        );
+      }
+      expect(find.byType(Scrollable), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(
+          viewportSize: viewport,
+          controllerLayout: false,
+        ),
+        onCommand: commands.add,
+        theme: PokeMapPlayerTheme.withBattleProfile(
+          PokeMapPlayerTheme.dark(),
+          const ProjectBattlePresentationProfile(commandPadding: 24),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        commands.whereType<BattleSetCommandPanelPlacementCommand>().every(
+          (command) => !command.controllerLayout,
+        ),
+        isTrue,
+      );
+      expect(
+        tester.getSize(find.byKey(const ValueKey('battle-entry-0'))).height,
+        greaterThanOrEqualTo(48),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final format in [
     (340.0, EdgeInsets.zero, 1),
     (340.0, const EdgeInsets.symmetric(horizontal: 12), 1),
@@ -450,7 +512,7 @@ void main() {
             snapshot: _rootSnapshot(
               viewportSize: format.$1,
               placement: format.$4,
-              controllerLayout: format.$5,
+              controllerLayout: format.$5 || format.$1.height > format.$1.width,
               rootCommandOrder: order,
               entries: entries,
             ),
@@ -1090,7 +1152,9 @@ void main() {
             snapshot: _snapshot(
               viewportSize: layout.$2,
               placement: layout.$5,
-              controllerLayout: layout.$3 == PlayerInputSource.controller,
+              controllerLayout:
+                  layout.$3 == PlayerInputSource.controller ||
+                  layout.$2.height > layout.$2.width,
               mode: BattleCommandOverlayMode.continueOnly,
               narrationLines: ['Victoire publiée.'],
               entries: const [
@@ -1298,7 +1362,8 @@ void main() {
                 viewportSize: mode.$2,
                 placement: mode.$5,
                 controllerLayout:
-                    mode.$3 == PlayerInputSource.controller &&
+                    (mode.$3 == PlayerInputSource.controller ||
+                        mode.$2.height > mode.$2.width) &&
                     mode.$4 == PlayerBattleDisplay.full,
                 mode: collection.$1,
                 entries: [
@@ -1394,7 +1459,8 @@ void main() {
             viewportSize: mode.$2,
             placement: mode.$5,
             controllerLayout:
-                mode.$3 == PlayerInputSource.controller &&
+                (mode.$3 == PlayerInputSource.controller ||
+                    mode.$2.height > mode.$2.width) &&
                 mode.$4 == PlayerBattleDisplay.full,
             prompt: prompt,
             labels: evolution
@@ -1820,6 +1886,7 @@ void main() {
             textScaler: TextScaler.linear(textScale),
             snapshot: BattleCommandOverlaySnapshot(
               revision: 32,
+              controllerLayout: viewport.height > viewport.width,
               mode: BattleCommandOverlayMode.moveTarget,
               viewportSize: viewport,
               panelRect: layout.commandPanelRect,
@@ -4009,6 +4076,7 @@ Future<void> _pumpOverlay(
       ),
     ),
   );
+  await tester.pump(const Duration(milliseconds: 140));
   expect(find.byType(PlayerBattleSurface), findsOneWidget);
 }
 
@@ -4137,7 +4205,7 @@ const _richBagEntries = <BattleCommandOverlayEntry>[
 BattleCommandOverlaySnapshot _snapshot({
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
   EdgeInsets safePadding = EdgeInsets.zero,
-  bool controllerLayout = false,
+  bool? controllerLayout,
   bool acknowledgeCollectionColumns = true,
   int? collectionColumns,
   Size viewportSize = const Size(800, 600),
@@ -4162,6 +4230,8 @@ BattleCommandOverlaySnapshot _snapshot({
   int playerHpTweenRevision = 0,
   List<String> narrationLines = const [],
 }) {
+  controllerLayout ??=
+      viewportSize.width < 480 && viewportSize.height > viewportSize.width;
   final layout = BattleSceneLayout.forViewport(
     viewportSize: viewportSize,
     safePadding: safePadding,
@@ -4330,7 +4400,7 @@ BattleCommandOverlaySnapshot _decisionSnapshot({
 BattleCommandOverlaySnapshot _rootSnapshot({
   BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
   Size viewportSize = const Size(800, 600),
-  bool controllerLayout = false,
+  bool? controllerLayout,
   BattlePresentationPhase phase = BattlePresentationPhase.choosingCommand,
   bool interactionsEnabled = true,
   List<int> rootCommandOrder = const [0, 2, 1, 3],
@@ -4340,6 +4410,8 @@ BattleCommandOverlaySnapshot _rootSnapshot({
   List<String> narrationLines = const <String>[],
   List<BattleCommandOverlayEntry>? entries,
 }) {
+  controllerLayout ??=
+      viewportSize.width < 480 && viewportSize.height > viewportSize.width;
   final layout = BattleSceneLayout.forViewport(
     viewportSize: viewportSize,
     commandPanelPlacement: placement,

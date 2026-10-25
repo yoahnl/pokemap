@@ -31,6 +31,7 @@ const _modeFilter = String.fromEnvironment('LIGUE_CAPTURE_MODES');
 const _captureVariants = bool.fromEnvironment('LIGUE_CAPTURE_VARIANTS');
 const _widePhone = bool.fromEnvironment('LIGUE_CAPTURE_WIDE_PHONE');
 const _threeMoves = bool.fromEnvironment('LIGUE_CAPTURE_THREE_MOVES');
+const _battleMotion = bool.fromEnvironment('LIGUE_CAPTURE_BATTLE_MOTION');
 const _enabled = _referenceRoot != '' && _captureRoot != '';
 const _species = [
   'bulbasaur',
@@ -640,8 +641,14 @@ void main() {
                     : moves
                     ? BattleCommandOverlayMode.fight
                     : BattleCommandOverlayMode.root),
-            controllerLayout: _controller(mode.key),
+            controllerLayout:
+                _controller(mode.key) || mode.key == 'portrait-touch',
           );
+          final recordMotion =
+              _battleMotion &&
+              mode.key == 'portrait-touch' &&
+              !dark &&
+              (screen == 'battle.root' || screen == 'battle.fight');
           await _mount(
             tester,
             mode.key,
@@ -670,7 +677,8 @@ void main() {
                         ? (decision ? 'decision' : 'victory')
                         : null,
                     placement: placement,
-                    controllerLayout: _controller(mode.key),
+                    controllerLayout:
+                        _controller(mode.key) || mode.key == 'portrait-touch',
                   ),
                   display: mode.key == 'thor-primary'
                       ? PlayerBattleDisplay.hudOnly
@@ -681,7 +689,9 @@ void main() {
                 ),
               ],
             ),
+            settle: !recordMotion,
           );
+          if (recordMotion) await _captureBattleMotion(tester, screen);
           await _capture(
             tester,
             mode.key,
@@ -1033,8 +1043,9 @@ Future<void> _mount(
   WidgetTester tester,
   String mode,
   bool dark,
-  Widget surface,
-) async {
+  Widget surface, {
+  bool settle = true,
+}) async {
   Widget body = PlayerInputScope(
     activeInputSource: _controller(mode)
         ? PlayerInputSource.controller
@@ -1069,11 +1080,47 @@ Future<void> _mount(
       home: Scaffold(body: SizedBox.expand(child: body)),
     ),
   );
-  await tester.pumpAndSettle(
-    const Duration(milliseconds: 50),
-    EnginePhase.sendSemanticsUpdate,
-    const Duration(seconds: 5),
-  );
+  if (settle) {
+    await tester.pumpAndSettle(
+      const Duration(milliseconds: 50),
+      EnginePhase.sendSemanticsUpdate,
+      const Duration(seconds: 5),
+    );
+  }
+}
+
+Future<void> _captureBattleMotion(WidgetTester tester, String screen) async {
+  final directory = Directory(p.join(_captureRoot, 'motion', screen));
+  await tester.runAsync(() => directory.create(recursive: true));
+  TestGesture? gesture;
+  for (var frame = 0; frame < 45; frame++) {
+    if (frame == 15) {
+      gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const ValueKey('battle-entry-0'))),
+      );
+    }
+    if (frame == 22) await gesture?.up();
+    await tester.pump(const Duration(microseconds: 33333));
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(const ValueKey('ligue-capture')),
+    );
+    final image = (await tester.runAsync(
+      () => boundary.toImage(pixelRatio: 1),
+    ))!;
+    try {
+      final bytes = (await tester.runAsync(
+        () => image.toByteData(format: ui.ImageByteFormat.png),
+      ))!;
+      await tester.runAsync(
+        () => File(
+          p.join(directory.path, '${frame.toString().padLeft(3, '0')}.png'),
+        ).writeAsBytes(bytes.buffer.asUint8List()),
+      );
+    } finally {
+      image.dispose();
+    }
+  }
+  expect(tester.takeException(), isNull);
 }
 
 Widget _router(_Harness harness, String mode) => RuntimePlayerSurfaceRouter(

@@ -17,6 +17,51 @@ const _certifiedViewports = <Size>[
 ];
 
 void main() {
+  test('compact portrait places the player below its information card', () {
+    for (final viewport in [const Size(390, 844), const Size(320, 568)]) {
+      for (final textScale in [1.0, 2.0]) {
+        for (final mode in [BattleCommandOverlayMode.root, BattleCommandOverlayMode.fight]) {
+          final layout = BattleSceneLayout.forViewport(
+            viewportSize: viewport,
+            safePadding: const EdgeInsets.only(top: 32, bottom: 24),
+            controllerLayout: true,
+            commandPanelMode: mode,
+            textScale: textScale,
+          );
+          expect(layout.playerSpriteRect.top, greaterThanOrEqualTo(layout.playerHudRect.bottom + 8 - .1), reason: '$viewport $mode text$textScale');
+          expect(layout.playerPlatformRect.bottom, lessThanOrEqualTo(layout.commandPanelRect.top));
+          expect(layout.playerHudRect.overlaps(layout.enemySpriteRect), isFalse);
+          expect(layout.playerSpriteRect.height, greaterThan(0));
+        }
+      }
+    }
+  });
+
+  test('compact phone portrait gives opponents a clear diagonal without changing scene anchors', () {
+    for (final mode in [
+      BattleCommandOverlayMode.root,
+      BattleCommandOverlayMode.fight,
+    ]) {
+      final layout = BattleSceneLayout.forViewport(
+        viewportSize: const Size(390, 844),
+        controllerLayout: true,
+        commandPanelMode: mode,
+      );
+      expect(
+        layout.playerFootAnchor.dy - layout.enemyFootAnchor.dy,
+        greaterThanOrEqualTo(90),
+      );
+      expect(
+        layout.enemySpriteRect.top,
+        greaterThanOrEqualTo(layout.enemyHudRect.bottom + 8),
+      );
+      expect(
+        layout.playerSpriteRect.top,
+        greaterThanOrEqualTo(layout.playerHudRect.bottom + 8),
+      );
+    }
+  });
+
   test(
     'compact portrait sprite bounds stay finite at enlarged text limits',
     () {
@@ -28,8 +73,8 @@ void main() {
       expect(layout.playerSpriteRect.isFinite, isTrue);
       expect(layout.playerSpriteRect.overlaps(layout.playerHudRect), isFalse);
       expect(
-        layout.playerSpriteRect.bottom,
-        lessThanOrEqualTo(layout.playerHudRect.top - 8 + .1),
+        layout.playerSpriteRect.top,
+        greaterThanOrEqualTo(layout.playerHudRect.bottom + 8 - .1),
       );
     },
   );
@@ -81,9 +126,9 @@ void main() {
         for (final layout in layouts) {
           expect(
             layout.commandPanelRect.width,
-            lessThanOrEqualTo(viewport.width * .33),
+            lessThanOrEqualTo(viewport.width * .25),
           );
-          expect(layout.commandPanelRect.width, lessThanOrEqualTo(340));
+          expect(layout.commandPanelRect.width, lessThanOrEqualTo(280));
           expect(
             layout.commandPanelRect.top,
             greaterThanOrEqualTo(layout.enemyHudRect.bottom + 7),
@@ -97,6 +142,7 @@ void main() {
             greaterThanOrEqualTo(viewport.width * .60),
           );
         }
+        expect(layouts[0].enemySpriteRect.left - layouts[0].playerSpriteRect.right, greaterThanOrEqualTo(viewport.width * .2));
         expect(layouts[0].playerSpriteRect, layouts[1].playerSpriteRect);
         expect(layouts[0].enemySpriteRect, layouts[1].enemySpriteRect);
         expect(layouts[0].playerHudRect, layouts[1].playerHudRect);

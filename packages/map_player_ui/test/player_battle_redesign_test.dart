@@ -11,6 +11,50 @@ import 'package:map_runtime/map_runtime.dart'
 
 void main() {
   testWidgets(
+    'battle controls enter once and acknowledge touch without shrinking hit targets',
+    (tester) async {
+      for (final reduced in [false, true]) {
+        await tester.pumpWidget(const SizedBox.shrink());
+        final actions = <PlayerBattleAction>[];
+        await _pump(
+          tester,
+          viewport: const Size(390, 844),
+          reducedMotion: reduced,
+          onAction: actions.add,
+        );
+        Transform panel() => tester.widget<Transform>(
+          find.byKey(const ValueKey('battle-panel-transition')),
+        );
+        expect(
+          panel().transform.getTranslation().y,
+          reduced ? 0 : greaterThan(0),
+        );
+        await tester.pump(const Duration(milliseconds: 140));
+        expect(panel().transform.getTranslation().y, 0);
+        final entry = find.byKey(const ValueKey('battle-entry-0'));
+        final bounds = tester.getRect(entry);
+        final gesture = await tester.startGesture(bounds.center);
+        await tester.pump(const Duration(milliseconds: 110));
+        final press = find.byKey(const ValueKey('battle-entry-press-0'));
+        expect(press, findsOneWidget);
+        expect(
+          tester.widget<AnimatedScale>(press).scale,
+          reduced ? 1 : lessThan(1),
+        );
+        expect(tester.getRect(entry), bounds);
+        await gesture.up();
+        await tester.pumpAndSettle();
+        expect(tester.widget<AnimatedScale>(press).scale, 1);
+        expect(
+          actions.whereType<PlayerBattleSelectEntryAction>(),
+          hasLength(1),
+        );
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
+  testWidgets(
     'single screen controller uses compact natural rows with complete move metadata',
     (tester) async {
       await tester.runAsync(() async {
@@ -39,8 +83,8 @@ void main() {
             find.byKey(const ValueKey('battle-command-panel')),
           );
           if (viewport.width > viewport.height) {
-            expect(panel.width, lessThanOrEqualTo(viewport.width * .33));
-            expect(panel.width, lessThanOrEqualTo(340));
+            expect(panel.width, lessThanOrEqualTo(viewport.width * .25));
+            expect(panel.width, lessThanOrEqualTo(280));
           } else {
             expect(panel.height, lessThanOrEqualTo(moves ? 236 : 128));
           }
@@ -99,19 +143,55 @@ void main() {
   );
 
   testWidgets(
+    'compact landscape keeps long move names inside the row and complete in details',
+    (tester) async {
+      const label = 'Puissance Cachée de la Forêt Ancienne';
+      for (final viewport in [const Size(844, 390), const Size(760, 351)]) {
+        await _pump(
+          tester,
+          viewport: viewport,
+          moves: true,
+          referenceMoves: true,
+          selectedMoveLabel: label,
+          source: PlayerInputSource.controller,
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        final name = tester.widget<Text>(
+          find.byKey(const ValueKey('battle-move-name-1')),
+        );
+        expect(name.maxLines, 1);
+        expect(name.data, label);
+        await tester.tap(find.byKey(const ValueKey('battle-move-info')));
+        await tester.pumpAndSettle();
+        expect(
+          find.descendant(of: find.byType(Dialog), matching: find.text(label)),
+          findsOneWidget,
+        );
+        await tester.tap(find.byKey(const ValueKey('battle-move-info-close')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
+  testWidgets(
     'small portrait and enlarged text keep every move reachable without changing runtime indices',
     (tester) async {
       for (final scenario in [
-        (const Size(320, 568), 1.0),
-        (const Size(320, 568), 2.0),
-        (const Size(844, 390), 2.0),
+        (const Size(320, 568), 1.0, PlayerInputSource.controller),
+        (const Size(320, 568), 2.0, PlayerInputSource.controller),
+        (const Size(844, 390), 2.0, PlayerInputSource.controller),
+        (const Size(320, 568), 1.0, PlayerInputSource.touch),
+        (const Size(320, 568), 2.0, PlayerInputSource.touch),
+        (const Size(390, 844), 2.0, PlayerInputSource.touch),
       ]) {
         await _pump(
           tester,
           viewport: scenario.$1,
           moves: true,
           referenceMoves: true,
-          source: PlayerInputSource.controller,
+          source: scenario.$3,
           textScaler: TextScaler.linear(scenario.$2),
         );
         await tester.pump(const Duration(milliseconds: 140));
@@ -709,6 +789,7 @@ Future<void> _pump(
   required Size viewport,
   bool moves = false,
   bool referenceMoves = false,
+  String? selectedMoveLabel,
   ProjectBattlePresentationProfile? profile,
   bool busy = false,
   bool emptyCommands = false,
@@ -731,7 +812,9 @@ Future<void> _pump(
   );
   final sceneLayout = BattleSceneLayout.forViewport(
     viewportSize: viewport,
-    controllerLayout: source == PlayerInputSource.controller,
+    controllerLayout:
+        source == PlayerInputSource.controller ||
+        viewport.height > viewport.width && profile == null,
     textScale: textScaler.scale(1),
     commandPanelMode: busy
         ? BattleCommandOverlayMode.continueOnly
@@ -811,7 +894,9 @@ Future<void> _pump(
                   PlayerBattleCommandViewData(
                     isBagItem: bagCount > 0,
                     index: index,
-                    primaryLabel: referenceMoves
+                    primaryLabel: index == 1 && selectedMoveLabel != null
+                        ? selectedMoveLabel
+                        : referenceMoves
                         ? const [
                             'Fouet Lianes',
                             'Charge',

@@ -36,7 +36,11 @@ void main() {
       final size = entry.value;
       await tester.binding.setSurfaceSize(size);
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      final layout = BattleSceneLayout.forViewport(viewportSize: size);
+      final layout = BattleSceneLayout.forViewport(
+        viewportSize: size,
+        commandPanelMode: BattleCommandOverlayMode.root,
+        controllerLayout: size.width < 480 && size.height > size.width,
+      );
 
       await tester.pumpWidget(
         MaterialApp(
@@ -233,6 +237,7 @@ final class _StagePainter extends CustomPainter {
 BattleCommandOverlaySnapshot _snapshot(Size size, BattleSceneLayout layout) =>
     BattleCommandOverlaySnapshot(
       revision: 7,
+      controllerLayout: size.width < 480 && size.height > size.width,
       mode: BattleCommandOverlayMode.root,
       viewportSize: size,
       panelRect: layout.commandPanelRect,

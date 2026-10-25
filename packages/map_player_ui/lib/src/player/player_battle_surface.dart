@@ -622,9 +622,10 @@ class _BattlePanelTransition extends StatefulWidget {
 
 class _BattlePanelTransitionState extends State<_BattlePanelTransition>
     with SingleTickerProviderStateMixin {
+  var _introduced = false;
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    value: 1,
+    value: 0,
     duration: const Duration(milliseconds: 140),
   );
   @override
@@ -633,7 +634,12 @@ class _BattlePanelTransitionState extends State<_BattlePanelTransition>
     _controller.duration = context.playerMotion.standard == Duration.zero
         ? Duration.zero
         : const Duration(milliseconds: 140);
-    if (_controller.duration == Duration.zero) _controller.value = 1;
+    if (_controller.duration == Duration.zero) {
+      _controller.value = 1;
+    } else if (!_introduced) {
+      _controller.forward();
+    }
+    _introduced = true;
   }
 
   @override
@@ -1383,7 +1389,7 @@ class _BattleSeparatedCommandDock extends StatelessWidget {
     }
     final controller = PlayerInputScope.usesController(context);
     final compactController =
-        controller &&
+        (controller || stacked) &&
         !companion &&
         _usesCanonicalBattleStructure(profile) &&
         panelProfile.surfaceColor == null &&
@@ -2233,6 +2239,7 @@ class _BattleDockEntries extends StatelessWidget {
         panelKind: data.panelKind,
         singleLine: singleLine,
         compactController: compactController,
+        compactLandscape: compactController && landscape,
         commandFontSize: compactController
             ? 18
             : entry.commandId == ProjectBattleCommandId.fight
@@ -2366,13 +2373,10 @@ class _BattleDockEntries extends StatelessWidget {
             final scale = MediaQuery.textScalerOf(context)
                 .scale(1)
                 .clamp(1.0, 2.0);
-            final fittedRow = (constraints.maxHeight - 56 - 24) / 4;
             final rowHeight = scale > 1.3
                 ? 84.0 * scale
                 : columns == 2
                 ? (constraints.maxWidth < 320 ? 96.0 : 80.0) * scale
-                : landscape && scale == 1
-                ? fittedRow.clamp(48.0, 52.0)
                 : 52.0 * scale;
             final rows = (data.commands.length / columns).ceil();
             final naturalHeight =
@@ -3150,6 +3154,7 @@ class _BattleEntryButton extends StatefulWidget {
     this.singleLine = false,
     this.commandFontSize,
     this.compactController = false,
+    this.compactLandscape = false,
     this.panelKind,
     required this.onPressed,
     required this.showProjectIcon,
@@ -3165,6 +3170,7 @@ class _BattleEntryButton extends StatefulWidget {
   final bool singleLine;
   final double? commandFontSize;
   final bool compactController;
+  final bool compactLandscape;
   final PlayerBattlePanelKind? panelKind;
   final VoidCallback onPressed;
   final bool showProjectIcon;
@@ -3177,6 +3183,11 @@ class _BattleEntryButton extends StatefulWidget {
 class _BattleEntryButtonState extends State<_BattleEntryButton> {
   late final FocusNode _focusNode;
   var _focused = false;
+  var _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (mounted && _pressed != pressed) setState(() => _pressed = pressed);
+  }
 
   @override
   void initState() {
@@ -3220,6 +3231,8 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
         (entry.commandId != null || entry.moveTypeId != null)) {
       return _LigueBattleEntry(
         entry: entry,
+        pressed: _pressed,
+        onPressedChanged: _setPressed,
         enabled: enabled,
         focused: _focused,
         focusNode: _focusNode,
@@ -3227,6 +3240,7 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
         onPressed: widget.onPressed,
         commandFontSize: widget.commandFontSize,
         compactController: widget.compactController,
+        compactLandscape: widget.compactLandscape,
         showProjectIcon: widget.showProjectIcon,
       );
     }
@@ -3824,6 +3838,8 @@ class _BattleBevelShape extends ShapeBorder {
 class _LigueBattleEntry extends StatelessWidget {
   const _LigueBattleEntry({
     required this.entry,
+    required this.pressed,
+    required this.onPressedChanged,
     required this.enabled,
     required this.focused,
     required this.focusNode,
@@ -3831,10 +3847,13 @@ class _LigueBattleEntry extends StatelessWidget {
     required this.onPressed,
     required this.commandFontSize,
     required this.compactController,
+    required this.compactLandscape,
     required this.showProjectIcon,
   });
 
   final PlayerBattleCommandViewData entry;
+  final bool pressed;
+  final ValueChanged<bool> onPressedChanged;
   final bool enabled;
   final bool focused;
   final FocusNode focusNode;
@@ -3842,6 +3861,7 @@ class _LigueBattleEntry extends StatelessWidget {
   final VoidCallback onPressed;
   final double? commandFontSize;
   final bool compactController;
+  final bool compactLandscape;
   final bool showProjectIcon;
 
   @override
@@ -3904,198 +3924,201 @@ class _LigueBattleEntry extends StatelessWidget {
               focusNode: focusNode,
               autofocus: autofocus,
               onTap: enabled ? onPressed : null,
+              onTapDown: enabled ? (_) => onPressedChanged(true) : null,
+              onTapUp: enabled ? (_) => onPressedChanged(false) : null,
+              onTapCancel: () => onPressedChanged(false),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 48),
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    compactController ? 4 : 6,
-                    20,
-                    compactController ? 4 : 6,
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final move = entry.moveTypeId;
-                      if (move == null) {
-                        return Row(
-                          children: [
-                            Expanded(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  entry.primaryLabel,
-                                  maxLines: 1,
-                                  style: nameStyle.copyWith(
-                                    fontSize: commandFontSize ?? 18,
+                child: AnimatedScale(
+                  key: ValueKey('battle-entry-press-${entry.index}'),
+                  scale:
+                      enabled &&
+                          pressed &&
+                          context.playerMotion.standard != Duration.zero
+                      ? .98
+                      : 1,
+                  duration: context.playerMotion.standard == Duration.zero
+                      ? Duration.zero
+                      : const Duration(milliseconds: 80),
+                  curve: Curves.easeOutCubic,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      compactLandscape
+                          ? 2
+                          : compactController
+                          ? 4
+                          : 6,
+                      20,
+                      compactLandscape
+                          ? 2
+                          : compactController
+                          ? 4
+                          : 6,
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final move = entry.moveTypeId;
+                        if (move == null) {
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    entry.primaryLabel,
+                                    maxLines: 1,
+                                    style: nameStyle.copyWith(
+                                      fontSize: commandFontSize ?? 18,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            if (showProjectIcon) ...[
-                              const SizedBox(width: 8),
-                              if (entry.commandId ==
-                                      ProjectBattleCommandId.party &&
-                                  (entry.commandIcon == null ||
-                                      entry.commandIcon ==
-                                          ProjectBattleCommandIcon.party))
-                                CustomPaint(
-                                  size: const Size.square(20),
-                                  painter: _BattleBallPainter(
-                                    chrome.experience,
-                                    selected
-                                        ? chrome.moveSurface
-                                        : chrome.moveText,
+                              if (showProjectIcon) ...[
+                                const SizedBox(width: 8),
+                                if (entry.commandId ==
+                                        ProjectBattleCommandId.party &&
+                                    (entry.commandIcon == null ||
+                                        entry.commandIcon ==
+                                            ProjectBattleCommandIcon.party))
+                                  CustomPaint(
+                                    size: const Size.square(20),
+                                    painter: _BattleBallPainter(
+                                      chrome.experience,
+                                      selected
+                                          ? chrome.moveSurface
+                                          : chrome.moveText,
+                                    ),
+                                  )
+                                else
+                                  Icon(
+                                    _commandIcon(
+                                      entry.commandIcon ??
+                                          switch (entry.commandId) {
+                                            ProjectBattleCommandId.fight =>
+                                              ProjectBattleCommandIcon.fight,
+                                            ProjectBattleCommandId.bag =>
+                                              ProjectBattleCommandIcon.bag,
+                                            ProjectBattleCommandId.run =>
+                                              ProjectBattleCommandIcon.run,
+                                            _ => ProjectBattleCommandIcon.party,
+                                          },
+                                    ),
+                                    size: 20,
+                                    color: ink,
                                   ),
-                                )
-                              else
-                                Icon(
-                                  _commandIcon(
-                                    entry.commandIcon ??
-                                        switch (entry.commandId) {
-                                          ProjectBattleCommandId.fight =>
-                                            ProjectBattleCommandIcon.fight,
-                                          ProjectBattleCommandId.bag =>
-                                            ProjectBattleCommandIcon.bag,
-                                          ProjectBattleCommandId.run =>
-                                            ProjectBattleCommandIcon.run,
-                                          _ => ProjectBattleCommandIcon.party,
-                                        },
-                                  ),
-                                  size: 20,
-                                  color: ink,
-                                ),
+                              ],
                             ],
-                          ],
-                        );
-                      }
-                      final tall =
-                          !compactController && constraints.maxHeight > 72;
-                      final typeColor = chrome.typeBadge(move);
-                      final icon = Container(
-                        key: ValueKey('battle-type-icon-${entry.index}'),
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: typeColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          switch (move.toLowerCase()) {
-                            'grass' || 'bug' => Icons.eco_rounded,
-                            'fire' => Icons.local_fire_department_rounded,
-                            'water' || 'ice' => Icons.water_drop_rounded,
-                            'electric' => Icons.bolt_rounded,
-                            'poison' => Icons.science_rounded,
-                            _ => Icons.adjust_rounded,
-                          },
-                          size: 14,
-                          color: chrome.moveSurface,
-                        ),
-                      );
-                      final type = _BattleMoveInfoBadge(
-                        label: context.playerL10n.battleMoveType(move),
-                        background: typeColor,
-                        foreground: chrome.moveSurface,
-                        border: typeColor,
-                        horizontalPadding: 5,
-                      );
-                      final name = Text(
-                        entry.primaryLabel,
-                        key: ValueKey('battle-move-name-${entry.index}'),
-                        maxLines:
-                            compactController &&
-                                (constraints.maxWidth < 190 ||
-                                    MediaQuery.textScalerOf(context).scale(1) >
-                                        1.3)
-                            ? 2
-                            : 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: nameStyle.copyWith(fontSize: tall ? 14 : 14.8),
-                      );
-                      final detail = Text(
-                        entry.statusLabel ??
-                            (compactController
-                                ? ''
-                                : entry.tertiaryLabel ?? ''),
-                        key: ValueKey('battle-move-detail-${entry.index}'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: nameStyle.copyWith(
-                          fontSize: 10,
-                          color: muted,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0,
-                        ),
-                      );
-                      final ppNumber = (entry.trailingLabel ?? '')
-                          .replaceFirst(
-                            RegExp(r'^\s*PP\s*', caseSensitive: false),
-                            '',
-                          )
-                          .replaceAll(RegExp(r'\s*/\s*'), ' / ');
-                      final ppStyle = context.playerTypography
-                          .numbersStyle(nameStyle)
-                          .copyWith(fontSize: tall ? 14 : 14.8);
-                      double measure(String value, TextStyle style) {
-                        final painter = TextPainter(
-                          text: TextSpan(
-                            text: value,
-                            style: inheritedStyle.merge(style),
-                          ),
-                          textDirection: Directionality.of(context),
-                          textScaler: MediaQuery.textScalerOf(context),
-                        )..layout();
-                        final width = painter.width;
-                        painter.dispose();
-                        return width;
-                      }
-
-                      final badgeStyle = context.playerTypography
-                          .numbersStyle(
-                            Theme.of(context).textTheme.labelSmall ??
-                                const TextStyle(),
-                          )
-                          .copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 10,
-                            letterSpacing: .3,
-                            height: 1,
                           );
-                      final badgeWidth =
-                          measure(
-                            context.playerL10n.battleMoveType(move),
-                            badgeStyle,
-                          ) +
-                          12;
-                      final ppWidth = measure(ppNumber, ppStyle) + 2;
-                      final compactPp = Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            ppNumber,
-                            key: ValueKey('battle-pp-number-${entry.index}'),
-                            maxLines: 1,
-                            softWrap: false,
-                            style: ppStyle,
+                        }
+                        final tall =
+                            !compactController && constraints.maxHeight > 72;
+                        final typeColor = chrome.typeBadge(move);
+                        final icon = Container(
+                          key: ValueKey('battle-type-icon-${entry.index}'),
+                          width: compactLandscape ? 16 : 20,
+                          height: compactLandscape ? 16 : 20,
+                          decoration: BoxDecoration(
+                            color: typeColor,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 3),
-                          Text(
-                            'PP',
-                            key: ValueKey('battle-pp-caption-${entry.index}'),
-                            style: ppStyle.copyWith(
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w500,
-                              color: muted,
+                          child: Icon(
+                            switch (move.toLowerCase()) {
+                              'grass' || 'bug' => Icons.eco_rounded,
+                              'fire' => Icons.local_fire_department_rounded,
+                              'water' || 'ice' => Icons.water_drop_rounded,
+                              'electric' => Icons.bolt_rounded,
+                              'poison' => Icons.science_rounded,
+                              _ => Icons.adjust_rounded,
+                            },
+                            size: compactLandscape ? 12 : 14,
+                            color: chrome.moveSurface,
+                          ),
+                        );
+                        final type = _BattleMoveInfoBadge(
+                          label: context.playerL10n.battleMoveType(move),
+                          background: typeColor,
+                          foreground: chrome.moveSurface,
+                          border: typeColor,
+                          horizontalPadding: 5,
+                        );
+                        final name = Text(
+                          entry.primaryLabel,
+                          key: ValueKey('battle-move-name-${entry.index}'),
+                          maxLines:
+                              compactController &&
+                                  !compactLandscape &&
+                                  (constraints.maxWidth < 190 ||
+                                      MediaQuery.textScalerOf(context)
+                                              .scale(1) >
+                                          1.3)
+                              ? 2
+                              : 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: nameStyle.copyWith(fontSize: tall ? 14 : 14.8),
+                        );
+                        final detail = Text(
+                          entry.statusLabel ??
+                              (compactController
+                                  ? ''
+                                  : entry.tertiaryLabel ?? ''),
+                          key: ValueKey('battle-move-detail-${entry.index}'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: nameStyle.copyWith(
+                            fontSize: 10,
+                            color: muted,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0,
+                          ),
+                        );
+                        final ppNumber = (entry.trailingLabel ?? '')
+                            .replaceFirst(
+                              RegExp(r'^\s*PP\s*', caseSensitive: false),
+                              '',
+                            )
+                            .replaceAll(RegExp(r'\s*/\s*'), ' / ');
+                        final ppStyle = context.playerTypography
+                            .numbersStyle(nameStyle)
+                            .copyWith(
+                              fontSize: tall ? 14 : 14.8,
+                              height: compactLandscape ? 1 : null,
+                            );
+                        double measure(String value, TextStyle style) {
+                          final painter = TextPainter(
+                            text: TextSpan(
+                              text: value,
+                              style: inheritedStyle.merge(style),
                             ),
-                          ),
-                        ],
-                      );
-                      final pp = SizedBox(
-                        width: ppWidth,
-                        child: Column(
+                            textDirection: Directionality.of(context),
+                            textScaler: MediaQuery.textScalerOf(context),
+                          )..layout();
+                          final width = painter.width;
+                          painter.dispose();
+                          return width;
+                        }
+
+                        final badgeStyle = context.playerTypography
+                            .numbersStyle(
+                              Theme.of(context).textTheme.labelSmall ??
+                                  const TextStyle(),
+                            )
+                            .copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10,
+                              letterSpacing: .3,
+                              height: 1,
+                            );
+                        final badgeWidth =
+                            measure(
+                              context.playerL10n.battleMoveType(move),
+                              badgeStyle,
+                            ) +
+                            12;
+                        final ppWidth = measure(ppNumber, ppStyle) + 2;
+                        final compactPp = Row(
                           mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
                               ppNumber,
@@ -4104,6 +4127,7 @@ class _LigueBattleEntry extends StatelessWidget {
                               softWrap: false,
                               style: ppStyle,
                             ),
+                            const SizedBox(width: 3),
                             Text(
                               'PP',
                               key: ValueKey('battle-pp-caption-${entry.index}'),
@@ -4114,210 +4138,248 @@ class _LigueBattleEntry extends StatelessWidget {
                               ),
                             ),
                           ],
-                        ),
-                      );
-                      final sizedType = SizedBox(
-                        width: badgeWidth,
-                        key: ValueKey('battle-type-badge-${entry.index}'),
-                        child: type,
-                      );
-                      if (constraints.maxWidth < 120 ||
-                          (MediaQuery.textScalerOf(context).scale(1) > 1.4 &&
-                              constraints.maxHeight < 160)) {
-                        return Row(
-                          children: [
-                            if (constraints.maxWidth >= 60) ...[
-                              icon,
-                              const SizedBox(width: 8),
+                        );
+                        final pp = SizedBox(
+                          width: ppWidth,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                ppNumber,
+                                key: ValueKey(
+                                  'battle-pp-number-${entry.index}',
+                                ),
+                                maxLines: 1,
+                                softWrap: false,
+                                style: ppStyle,
+                              ),
+                              Text(
+                                'PP',
+                                key: ValueKey(
+                                  'battle-pp-caption-${entry.index}',
+                                ),
+                                style: ppStyle.copyWith(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: muted,
+                                ),
+                              ),
                             ],
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: name,
+                          ),
+                        );
+                        final sizedType = SizedBox(
+                          width: badgeWidth,
+                          key: ValueKey('battle-type-badge-${entry.index}'),
+                          child: type,
+                        );
+                        if (constraints.maxWidth < 120 ||
+                            (MediaQuery.textScalerOf(context).scale(1) > 1.4 &&
+                                constraints.maxHeight < 160)) {
+                          return Row(
+                            children: [
+                              if (constraints.maxWidth >= 60) ...[
+                                icon,
+                                const SizedBox(width: 8),
+                              ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: name,
+                                      ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              sizedType,
+                                              const SizedBox(width: 8),
+                                              pp,
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        if (compactController) {
+                          final largeText =
+                              MediaQuery.textScalerOf(context).scale(1) > 1.3;
+                          final narrow =
+                              constraints.maxWidth <
+                                  (compactLandscape ? 220 : 190) ||
+                              largeText;
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  icon,
+                                  const SizedBox(width: 8),
+                                  Expanded(child: name),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              if (largeText || constraints.maxWidth < 110) ...[
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: sizedType,
+                                ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: compactPp,
+                                ),
+                              ] else
+                                Row(
+                                  children: [
+                                    if (!narrow) ...[
+                                      Expanded(child: detail),
+                                      const SizedBox(width: 6),
+                                    ] else
+                                      const Spacer(),
+                                    SizedBox(
+                                      width: math.min(
+                                        constraints.maxWidth,
+                                        badgeWidth +
+                                            6 +
+                                            ppWidth +
+                                            3 +
+                                            measure(
+                                              'PP',
+                                              ppStyle.copyWith(fontSize: 9.5),
+                                            ),
+                                      ),
                                       child: FittedBox(
                                         fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerRight,
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             sizedType,
-                                            const SizedBox(width: 8),
-                                            pp,
+                                            const SizedBox(width: 6),
+                                            compactPp,
                                           ],
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      if (compactController) {
-                        final largeText =
-                            MediaQuery.textScalerOf(context).scale(1) > 1.3;
-                        final narrow = constraints.maxWidth < 190 || largeText;
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                icon,
-                                const SizedBox(width: 8),
-                                Expanded(child: name),
+                                  ],
+                                ),
+                              if (narrow) ...[
+                                const SizedBox(height: 2),
+                                detail,
                               ],
-                            ),
-                            const SizedBox(height: 2),
-                            if (largeText || constraints.maxWidth < 110) ...[
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: sizedType,
-                              ),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: compactPp,
-                              ),
-                            ] else
+                            ],
+                          );
+                        }
+                        if (tall) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
                               Row(
                                 children: [
-                                  if (!narrow) ...[
-                                    Expanded(child: detail),
-                                    const SizedBox(width: 6),
-                                  ] else
-                                    const Spacer(),
-                                  SizedBox(
-                                    width: math.min(
-                                      constraints.maxWidth,
-                                      badgeWidth +
-                                          6 +
-                                          ppWidth +
-                                          3 +
-                                          measure(
-                                            'PP',
-                                            ppStyle.copyWith(fontSize: 9.5),
-                                          ),
+                                  icon,
+                                  const SizedBox(width: 6),
+                                  Expanded(child: name),
+                                ],
+                              ),
+                              if (badgeWidth + ppWidth + 4 <=
+                                  constraints.maxWidth)
+                                Row(children: [sizedType, const Spacer(), pp])
+                              else
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: sizedType,
                                     ),
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
+                                    Align(
                                       alignment: Alignment.centerRight,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          sizedType,
-                                          const SizedBox(width: 6),
-                                          compactPp,
-                                        ],
+                                      child: pp,
+                                    ),
+                                  ],
+                                ),
+                              detail,
+                            ],
+                          );
+                        }
+                        if (constraints.maxWidth < 200) {
+                          return Row(
+                            children: [
+                              icon,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: name,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    Expanded(
+                                      child: Align(
+                                        alignment: Alignment.centerRight,
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              sizedType,
+                                              const SizedBox(width: 8),
+                                              pp,
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            if (narrow) ...[const SizedBox(height: 2), detail],
-                          ],
-                        );
-                      }
-                      if (tall) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            Row(
-                              children: [
-                                icon,
-                                const SizedBox(width: 6),
-                                Expanded(child: name),
-                              ],
-                            ),
-                            if (badgeWidth + ppWidth + 4 <=
-                                constraints.maxWidth)
-                              Row(children: [sizedType, const Spacer(), pp])
-                            else
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: sizedType,
-                                  ),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: pp,
-                                  ),
-                                ],
-                              ),
-                            detail,
-                          ],
-                        );
-                      }
-                      if (constraints.maxWidth < 200) {
+                            ],
+                          );
+                        }
                         return Row(
                           children: [
                             icon,
                             const SizedBox(width: 8),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: name,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Align(
-                                      alignment: Alignment.centerRight,
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            sizedType,
-                                            const SizedBox(width: 8),
-                                            pp,
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                                  name,
+                                  const SizedBox(height: 2),
+                                  detail,
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 5),
+                            sizedType,
+                            const SizedBox(width: 6),
+                            pp,
                           ],
                         );
-                      }
-                      return Row(
-                        children: [
-                          icon,
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                name,
-                                const SizedBox(height: 2),
-                                detail,
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          sizedType,
-                          const SizedBox(width: 6),
-                          pp,
-                        ],
-                      );
-                    },
+                      },
+                    ),
                   ),
                 ),
               ),
