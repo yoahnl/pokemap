@@ -109,9 +109,11 @@ final class LocalMapAtmosphereAuthoring {
       ],
       extensions: const {
         'documentSchemaVersions': [1, 2],
-        'effects': ['waterAnimated', 'windowsLit', 'fireflies', 'halosEnabled', 'depthFogEnabled'],
+        'effects': ['waterAnimated', 'windowsLit', 'fireflies', 'halosEnabled', 'depthFogEnabled', 'depthOfFieldEnabled'],
+        'depthOfFieldStrength': {'minimum': 0, 'maximum': 1},
+        'depthOfFieldFocusRange': {'minimum': 2, 'maximum': 40, 'unit': 'worldCells', 'meaning': 'fullSharpZoneDepthExtent'},
         'haloBindings': 'instanceLocalPosition',
-        'settingsFields': ['haloStrength', 'haloSpread', 'halos', 'fogOpacity', 'fogStart', 'fogEnd'],
+        'settingsFields': ['haloStrength', 'haloSpread', 'halos', 'fogOpacity', 'fogStart', 'fogEnd', 'depthOfFieldStrength', 'depthOfFieldFocusRange'],
         'revisionScope': 'mapAtmosphereDocument',
         'storagePattern': 'maps/<mapId>.atmosphere.json',
         'maximumDocumentBytes': SpatialAtmosphereDocument.maxBytes,

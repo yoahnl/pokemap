@@ -2,6 +2,72 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('depth of field round trips bounded presentation settings', () {
+    final settings = SpatialAtmosphereSettings.fromJson({
+      'depthOfFieldEnabled': true,
+      'depthOfFieldStrength': .65,
+      'depthOfFieldFocusRange': 18,
+    });
+    expect(settings.toJson()['depthOfFieldEnabled'], isTrue);
+    expect(settings.toJson()['depthOfFieldStrength'], .65);
+    expect(settings.toJson()['depthOfFieldFocusRange'], 18);
+    final changed = settings.copyWith(
+      depthOfFieldEnabled: false,
+      depthOfFieldStrength: .4,
+      depthOfFieldFocusRange: 20,
+    );
+    expect(changed.depthOfFieldEnabled, isFalse);
+    expect(changed.depthOfFieldStrength, .4);
+    expect(changed.depthOfFieldFocusRange, 20);
+    expect(
+      settings.copyWith(windowsLit: true).toJson()['depthOfFieldStrength'],
+      .65,
+    );
+    expect(
+      SpatialAtmosphereDocument.fromJson(
+        SpatialAtmosphereDocument(
+          mapId: 'village',
+          settings: settings,
+        ).toJson(),
+      ).settings,
+      settings,
+    );
+  });
+  test(
+    'legacy atmosphere keeps depth of field disabled with neutral defaults',
+    () {
+      final settings = SpatialAtmosphereSettings.fromJson({});
+      expect(settings.toJson()['depthOfFieldEnabled'], isFalse);
+      expect(settings.toJson()['depthOfFieldStrength'], .35);
+      expect(settings.toJson()['depthOfFieldFocusRange'], 12);
+    },
+  );
+  test('depth of field rejects non finite and out of range settings', () {
+    for (final raw in [
+      {'depthOfFieldEnabled': 1},
+      {'depthOfFieldStrength': -.01},
+      {'depthOfFieldStrength': 1.01},
+      {'depthOfFieldStrength': double.nan},
+      {'depthOfFieldFocusRange': 1.99},
+      {'depthOfFieldFocusRange': 40.01},
+      {'depthOfFieldFocusRange': double.infinity},
+    ]) {
+      expect(
+        () => SpatialAtmosphereSettings.fromJson(raw),
+        throwsFormatException,
+      );
+    }
+    for (final raw in [
+      {'depthOfFieldStrength': 0, 'depthOfFieldFocusRange': 2},
+      {'depthOfFieldStrength': 1, 'depthOfFieldFocusRange': 40},
+    ]) {
+      expect(
+        SpatialAtmosphereSettings.fromJson(raw),
+        isA<SpatialAtmosphereSettings>(),
+      );
+    }
+  });
+
   test('v2 halo and fog settings survive a complete document round trip', () {
     final raw = <String, dynamic>{
       'schemaVersion': 2,

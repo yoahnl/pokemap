@@ -13,6 +13,8 @@ import 'spatial_shadow_map.dart';
 import 'spatial_point_shadow.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
+import 'spatial_depth_of_field.dart';
+import 'flutter_frame_graphics_device.dart';
 
 class SpatialRenderContext extends RenderContext3D
     implements
@@ -44,6 +46,7 @@ class SpatialRenderContext extends RenderContext3D
   @override
   SpatialPresentationProfile presentationProfile =
       SpatialPresentationProfile.disabled;
+  SpatialDepthOfField? depthOfField;
   @override
   bool depthFogEnabled = false;
   @override
@@ -131,9 +134,30 @@ class SpatialRenderContext extends RenderContext3D
     pointShadowFrame = null;
     _hiddenDrawCount = 0;
     try {
-      _collecting = shadow != null || hasPointShadows;
+      final focus = depthOfField;
+      final focusDevice = device;
+      final focusActive = focus?.profile.active == true &&
+          focusDevice is FlutterFrameGraphicsDevice;
+      _collecting = shadow != null || hasPointShadows || focusActive;
       super.flush();
       _collecting = false;
+      if (focusActive) {
+        focus!.renderDepth(
+          size: (focusDevice as FlutterFrameGraphicsDevice).renderSize,
+          view: view, projection: projection,
+          draw: (depthContext, materialFor) {
+            for (final entry in _captured) {
+              _withPose(entry, () {
+                depthContext.model.setFrom(entry.model);
+                depthContext.jointsInfo.jointTransforms = entry.joints;
+                depthContext.device.clearBindings();
+                depthContext.applyMaterial(materialFor(entry.material));
+                depthContext.device.bindGeometry(entry.surface);
+              });
+            }
+          },
+        );
+      }
       if ((shadow != null || hasPointShadows) && shadowCasters.isNotEmpty) {
         final previousModel = model.clone();
         final previousJoints = jointsInfo.jointTransforms;

@@ -45,6 +45,7 @@ import 'spatial_authored_shadows.dart';
 import 'spatial_environment_lighting.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
+import 'spatial_depth_of_field.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -118,6 +119,16 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
+  SpatialDepthOfFieldProfile _depthOfFieldProfile = SpatialDepthOfFieldProfile();
+  SpatialDepthOfFieldProfile get depthOfFieldProfile => _depthOfFieldProfile;
+  set depthOfFieldProfile(SpatialDepthOfFieldProfile value) {
+    _depthOfFieldProfile = value;
+    super.notifyListeners();
+  }
+  bool get depthOfFieldEnabled => _depthOfFieldProfile.enabled;
+  set depthOfFieldEnabled(bool value) => depthOfFieldProfile =
+      SpatialDepthOfFieldProfile(enabled: value,
+        strength: _depthOfFieldProfile.strength, focusRange: _depthOfFieldProfile.focusRange);
   SpatialPresentationProfile _presentationProfile =
       SpatialPresentationProfile.disabled;
   SpatialPresentationProfile get presentationProfile => _presentationProfile;
@@ -177,6 +188,9 @@ class SpatialSceneController extends ModelPreviewController {
         previous.copyWith(
               halosEnabled: settings.halosEnabled,
               depthFogEnabled: settings.depthFogEnabled,
+              depthOfFieldEnabled: settings.depthOfFieldEnabled,
+              depthOfFieldStrength: settings.depthOfFieldStrength,
+              depthOfFieldFocusRange: settings.depthOfFieldFocusRange,
               haloStrength: settings.haloStrength,
               haloSpread: settings.haloSpread,
               fogOpacity: settings.fogOpacity,
@@ -214,6 +228,11 @@ class SpatialSceneController extends ModelPreviewController {
     }
     _halosEnabled = settings.halosEnabled;
     _depthFogEnabled = settings.depthFogEnabled;
+    _depthOfFieldProfile = SpatialDepthOfFieldProfile(
+      enabled: settings.depthOfFieldEnabled,
+      strength: settings.depthOfFieldStrength,
+      focusRange: settings.depthOfFieldFocusRange,
+    );
     _authoredAtmosphere = settings;
     _waterAnimated = settings.waterAnimated;
     _windowsLit = settings.windowsLit;
@@ -959,7 +978,9 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
 @visibleForTesting
 class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
-  late final GraphicsDevice device = FlutterFrameGraphicsDevice();
+  late final FlutterFrameGraphicsDevice device = FlutterFrameGraphicsDevice();
+
+  SpatialDepthOfField? _depthOfField;
 
   @override
   late final RenderContext3D context = SpatialRenderContext(device);
@@ -2618,6 +2639,18 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         ? 0.0
         : 1 - spatialDayNightFrame(minute).daylight;
     final renderContext = context as SpatialRenderContext;
+    final focusProfile = control.depthOfFieldProfile;
+    if (focusProfile.active) {
+      final focus = _depthOfField ??= SpatialDepthOfField(device.backend);
+      focus
+        ..profile = focusProfile
+        ..focusDepth = (camera.position - camera.target).length;
+      renderContext.depthOfField = focus;
+      device.postProcess = focus.composite;
+    } else {
+      renderContext.depthOfField = null;
+      device.postProcess = null;
+    }
     renderContext
       ..presentationProfile = control.presentationProfile
       ..depthFogEnabled = control.depthFogEnabled

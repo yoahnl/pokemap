@@ -24,7 +24,7 @@ void main() {
     files['project/maps/map.atmosphere.json'] = utf8.encode(jsonEncode(
         SpatialAtmosphereDocument(
                 mapId: 'map',
-                settings: SpatialAtmosphereSettings(fireflies: true, halosEnabled: true, depthFogEnabled: true, haloStrength: 1.4, fogOpacity: .32))
+                settings: SpatialAtmosphereSettings(fireflies: true, depthOfFieldEnabled: true, depthOfFieldStrength: .65, depthOfFieldFocusRange: 18, halosEnabled: true, depthFogEnabled: true, haloStrength: 1.4, fogOpacity: .32))
             .toJson()));
     final result = const GamePackageBuilder()
         .build(manifest: spatialManifest(), payloadFiles: files);

@@ -9,6 +9,13 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('semantic atmosphere catalog declares bounded depth of field', () {
+    final extensions = LocalMapAtmosphereAuthoring.descriptor.extensions;
+    expect(extensions['effects'], contains('depthOfFieldEnabled'));
+    expect(extensions['settingsFields'], containsAll(['depthOfFieldStrength', 'depthOfFieldFocusRange']));
+    expect(extensions['depthOfFieldFocusRange'], {'minimum': 2, 'maximum': 40, 'unit': 'worldCells', 'meaning': 'fullSharpZoneDepthExtent'});
+  });
+
   late Directory root;
   late WorkspacePolicy policy;
   setUp(() async {
@@ -85,6 +92,7 @@ Future<void> main(List<String> args) async {
       () async {
     var operation = 0;
     for (final settings in [
+      SpatialAtmosphereSettings.fromJson({'depthOfFieldEnabled': true, 'depthOfFieldStrength': .65, 'depthOfFieldFocusRange': 18}),
       SpatialAtmosphereSettings(waterAnimated: true),
       SpatialAtmosphereSettings(windowsLit: true),
       SpatialAtmosphereSettings(fireflies: true),
@@ -133,7 +141,7 @@ Future<void> main(List<String> args) async {
     final outside = Zone.current;
     final attempts = <String>[];
     await IOOverrides.runZoned(() async {
-      for (var i = 0; i < 5; i++) {
+      for (var i = 0; i < 6; i++) {
         final service = LocalMapAtmosphereAuthoring(policy: policy);
         final before =
             await service.inspect(projectRoot: root.path, mapId: 'shore');
@@ -141,10 +149,14 @@ Future<void> main(List<String> args) async {
             projectRoot: root.path,
             mapId: 'shore',
             expectedRevision: before.revision,
-            settings: SpatialAtmosphereSettings(
+            settings: SpatialAtmosphereSettings.fromJson({
+                ...SpatialAtmosphereSettings(
                 waterAnimated: i == 0, windowsLit: i == 1, fireflies: i == 2,
                 halosEnabled: i == 3, depthFogEnabled: i == 4,
-                haloStrength: 1.4, fogOpacity: .32),
+                haloStrength: 1.4, fogOpacity: .32).toJson(),
+                'depthOfFieldEnabled': i == 5,
+                'depthOfFieldStrength': .65,
+                'depthOfFieldFocusRange': 18}),
             operationId: 'bounded_$i');
       }
     }, createFile: (path) {

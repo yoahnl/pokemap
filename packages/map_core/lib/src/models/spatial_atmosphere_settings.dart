@@ -237,6 +237,9 @@ final class SpatialAtmosphereSettings {
     'haloSpread',
     'halos',
     'depthFogEnabled',
+    'depthOfFieldEnabled',
+    'depthOfFieldStrength',
+    'depthOfFieldFocusRange',
     'fogOpacity',
     'fogStart',
     'fogEnd',
@@ -247,6 +250,9 @@ final class SpatialAtmosphereSettings {
     this.fireflies = false,
     this.halosEnabled = false,
     this.depthFogEnabled = false,
+    this.depthOfFieldEnabled = false,
+    num depthOfFieldStrength = .35,
+    num depthOfFieldFocusRange = 12,
     num haloStrength = 1,
     num haloSpread = 1,
     num fogOpacity = .2,
@@ -260,7 +266,9 @@ final class SpatialAtmosphereSettings {
     List<SpatialAtmosphereMaterialTarget> waterTargets = const [],
     List<SpatialAtmosphereWindow> windows = const [],
     List<SpatialAtmosphereFireflyZone> fireflyZones = const [],
-  }) : haloStrength = _range(haloStrength, 0, 2),
+  }) : depthOfFieldStrength = _range(depthOfFieldStrength, 0, 1),
+       depthOfFieldFocusRange = _range(depthOfFieldFocusRange, 2, 40),
+       haloStrength = _range(haloStrength, 0, 2),
        haloSpread = _range(haloSpread, .1, 3),
        fogOpacity = _range(fogOpacity, 0, .5),
        fogStart = _range(fogStart, 0, 100000),
@@ -285,7 +293,8 @@ final class SpatialAtmosphereSettings {
     }
   }
   final bool waterAnimated, windowsLit, fireflies;
-  final bool halosEnabled, depthFogEnabled;
+  final bool halosEnabled, depthFogEnabled, depthOfFieldEnabled;
+  final double depthOfFieldStrength, depthOfFieldFocusRange;
   final double haloStrength, haloSpread, fogOpacity, fogStart, fogEnd;
   final List<SpatialAtmosphereHalo> halos;
   final double waterStrength, waterSpeed, windowStrength, fireflyDensity;
@@ -309,6 +318,9 @@ final class SpatialAtmosphereSettings {
     return SpatialAtmosphereSettings(
       halosEnabled: _boolean(json['halosEnabled'], false),
       depthFogEnabled: _boolean(json['depthFogEnabled'], false),
+      depthOfFieldEnabled: _boolean(json['depthOfFieldEnabled'], false),
+      depthOfFieldStrength: _number(json['depthOfFieldStrength'] ?? .35),
+      depthOfFieldFocusRange: _number(json['depthOfFieldFocusRange'] ?? 12),
       haloStrength: _number(json['haloStrength'] ?? 1),
       haloSpread: _number(json['haloSpread'] ?? 1),
       fogOpacity: _number(json['fogOpacity'] ?? .2),
@@ -341,6 +353,9 @@ final class SpatialAtmosphereSettings {
   SpatialAtmosphereSettings copyWith({
     bool? halosEnabled,
     bool? depthFogEnabled,
+    bool? depthOfFieldEnabled,
+    num? depthOfFieldStrength,
+    num? depthOfFieldFocusRange,
     num? haloStrength,
     num? haloSpread,
     num? fogOpacity,
@@ -360,6 +375,10 @@ final class SpatialAtmosphereSettings {
   }) => SpatialAtmosphereSettings(
     halosEnabled: halosEnabled ?? this.halosEnabled,
     depthFogEnabled: depthFogEnabled ?? this.depthFogEnabled,
+    depthOfFieldEnabled: depthOfFieldEnabled ?? this.depthOfFieldEnabled,
+    depthOfFieldStrength: depthOfFieldStrength ?? this.depthOfFieldStrength,
+    depthOfFieldFocusRange:
+        depthOfFieldFocusRange ?? this.depthOfFieldFocusRange,
     haloStrength: haloStrength ?? this.haloStrength,
     haloSpread: haloSpread ?? this.haloSpread,
     fogOpacity: fogOpacity ?? this.fogOpacity,
@@ -380,6 +399,9 @@ final class SpatialAtmosphereSettings {
   Map<String, dynamic> toJson() => {
     'halosEnabled': halosEnabled,
     'depthFogEnabled': depthFogEnabled,
+    'depthOfFieldEnabled': depthOfFieldEnabled,
+    'depthOfFieldStrength': depthOfFieldStrength,
+    'depthOfFieldFocusRange': depthOfFieldFocusRange,
     'haloStrength': haloStrength,
     'haloSpread': haloSpread,
     'fogOpacity': fogOpacity,

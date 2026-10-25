@@ -8,6 +8,30 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
     : super(
         backend: _FlutterFrameBackend.shared(backend ?? GpuBackend.instance),
       );
+
+  GpuRenderTarget? currentRenderTarget;
+  Size renderSize = Size.zero;
+  Image Function(GpuRenderTarget, Size)? postProcess;
+
+  @override
+  void beginPass(Size size) {
+    super.beginPass(size);
+    renderSize = size;
+    currentRenderTarget = (backend as _FlutterFrameBackend).currentRenderTarget;
+  }
+
+  @override
+  Image endPass() {
+    final image = super.endPass();
+    final process = postProcess;
+    final target = currentRenderTarget;
+    if (process == null || target == null) return image;
+    try {
+      return process(target, renderSize);
+    } finally {
+      image.dispose();
+    }
+  }
 }
 
 final class _FlutterFrameBackend extends GpuBackend {
@@ -22,10 +46,12 @@ final class _FlutterFrameBackend extends GpuBackend {
 
   final GpuBackend delegate;
   _FlutterFrame? _frame;
+  GpuRenderTarget? currentRenderTarget;
 
   @override
   GpuFrame beginFrame() =>
-      _frame ??= _FlutterFrame(delegate.beginFrame(), () => _frame = null);
+      _frame ??= _FlutterFrame(delegate.beginFrame(), () => _frame = null,
+          (target) => currentRenderTarget = target);
 
   @override
   GpuTexture createTexture({
@@ -73,10 +99,11 @@ final class _FlutterFrameBackend extends GpuBackend {
 }
 
 class _FlutterFrame implements GpuFrame {
-  _FlutterFrame(this.delegate, this.release);
+  _FlutterFrame(this.delegate, this.release, this.onTarget);
 
   final GpuFrame delegate;
   final VoidCallback release;
+  final void Function(GpuRenderTarget) onTarget;
   bool _endScheduled = false;
 
   @override
@@ -84,11 +111,11 @@ class _FlutterFrame implements GpuFrame {
     GpuRenderTarget target, {
     required BlendState blend,
     required DepthStencilState depthStencil,
-  }) => delegate.beginRenderPass(
-    target,
-    blend: blend,
-    depthStencil: depthStencil,
-  );
+  }) {
+    onTarget(target);
+    return delegate.beginRenderPass(target,
+      blend: blend, depthStencil: depthStencil);
+  }
 
   @override
   void end() {

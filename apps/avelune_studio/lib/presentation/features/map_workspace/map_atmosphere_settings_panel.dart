@@ -211,8 +211,9 @@ class _MapAtmosphereSettingsPanelState
     String label,
     double value,
     double maximum,
-    SpatialAtmosphereSettings Function(double) update,
-  ) => Padding(
+    SpatialAtmosphereSettings Function(double) update, {
+    double minimum = 0,
+  }) => Padding(
     padding: const EdgeInsets.only(top: 10),
     child: StudioCommitField(
       key: ValueKey('atmosphere-$key'),
@@ -222,9 +223,11 @@ class _MapAtmosphereSettingsPanelState
         final number = double.tryParse(text.trim().replaceAll(',', '.'));
         if (number == null ||
             !number.isFinite ||
-            number < 0 ||
+            number < minimum ||
             number > maximum) {
-          controller.reject('Choisissez une valeur entre 0 et $maximum.');
+          controller.reject(
+            'Choisissez une valeur entre $minimum et $maximum.',
+          );
           return false;
         }
         try {
@@ -349,6 +352,39 @@ class _MapAtmosphereSettingsPanelState
             ),
           ],
           const SizedBox(height: 16),
+          StudioPanel(
+            compact: true,
+            accent: StudioAccent.fog,
+            children: [
+              StudioToggleRow(
+                key: const ValueKey('atmosphere-dof-enabled'),
+                icon: Icons.camera_outlined,
+                accent: StudioAccent.fog,
+                label: 'Profondeur de champ',
+                value: settings.depthOfFieldEnabled,
+                description: 'Garde la zone centrale nette et adoucit les profondeurs proches et lointaines.',
+                onChanged: (value) => controller.edit(
+                  settings.copyWith(depthOfFieldEnabled: value),
+                ),
+              ),
+              _number(
+                'dof-strength',
+                'Intensité du flou (%)',
+                settings.depthOfFieldStrength * 100,
+                100,
+                (value) => settings.copyWith(depthOfFieldStrength: value / 100),
+              ),
+              _number(
+                'dof-focus-range',
+                'Largeur de la zone nette (cases)',
+                settings.depthOfFieldFocusRange,
+                40,
+                (value) => settings.copyWith(depthOfFieldFocusRange: value),
+                minimum: 2,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           StudioPanel(
             compact: true,
             accent: StudioAccent.halo,

@@ -23,6 +23,18 @@ Future<void> main() async {
       ),
   ].firstWhere((file) => file.existsSync());
   final bundle = {
+    'CameraDepthFragment': {
+      'type': 'fragment',
+      'file': '${package.path}/shaders/camera_depth.frag',
+    },
+    'DepthOfFieldVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/depth_of_field.vert',
+    },
+    'DepthOfFieldFragment': {
+      'type': 'fragment',
+      'file': '${package.path}/shaders/depth_of_field.frag',
+    },
     'TextureFragment': {
       'type': 'fragment',
       'file': '${package.path}/shaders/pixel_material.frag',
