@@ -762,11 +762,11 @@ final class GameSessionController
     SaveStatus status, {
     required GameSessionCheckpointTrigger trigger,
   }) async {
-    final checkpoint = await _adapter!.captureCheckpoint();
-    if (checkpoint == null) {
-      return trigger != GameSessionCheckpointTrigger.manual;
-    }
     try {
+      final checkpoint = await _adapter!.captureCheckpoint();
+      if (checkpoint == null) {
+        return trigger != GameSessionCheckpointTrigger.manual;
+      }
       await _commitCheckpoint(
         GameSessionCheckpointCommit(
           descriptor: _snapshot.descriptor!,

@@ -227,6 +227,7 @@ class _AveluneGameplayCompanionAppState
           if (resolvedReady &&
               snapshot != null &&
               snapshot.companionAttached &&
+              !snapshot.hasPrimaryDialogue &&
               !_remote.busy &&
               snapshot.narrativeIdentity != null &&
               !snapshot.narrativeReady) {
@@ -291,6 +292,7 @@ class _AveluneGameplayCompanionAppState
     AveluneGameplayCompanionSnapshot snapshot,
     player_ui.RuntimePlayerPresentation presentation,
   ) {
+    if (snapshot.hasPrimaryDialogue) return const SizedBox.expand();
     switch (snapshot.mode) {
       case AveluneGameplayCompanionMode.menu:
         if (snapshot.player == null) return const SizedBox.expand();
@@ -382,25 +384,7 @@ class _AveluneGameplayCompanionAppState
         );
       case AveluneGameplayCompanionMode.waiting:
       case AveluneGameplayCompanionMode.blocked:
-        final french = Localizations.localeOf(context).languageCode == 'fr';
-        final waiting = snapshot.mode == AveluneGameplayCompanionMode.waiting;
-        return Center(
-          child: player_ui.PlayerEmptyState(
-            icon: waiting ? Icons.hourglass_empty : Icons.pause_circle_outline,
-            title: waiting
-                ? (french ? 'Session en préparation' : 'Preparing session')
-                : (french
-                      ? 'Commandes momentanément indisponibles'
-                      : 'Controls temporarily unavailable'),
-            message: waiting
-                ? (french
-                      ? 'Les commandes apparaîtront lorsque le jeu sera prêt.'
-                      : 'Controls will appear when the game is ready.')
-                : (french
-                      ? 'Suivez l’action sur l’écran principal.'
-                      : 'Follow the action on the main screen.'),
-          ),
-        );
+        return const SizedBox.expand();
     }
   }
 

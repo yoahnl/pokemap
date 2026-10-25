@@ -612,6 +612,71 @@ void main() {
     variant: const TargetPlatformVariant({TargetPlatform.iOS}),
   );
 
+  test('paint acknowledgement survives text reveal revisions without replaying input', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port()..dialogue = _narrative(text: 'B');
+    owner.start('reveal');
+    owner.bind(port);
+    await owner.refresh();
+    owner.setCompanionAttached('reveal', true);
+    final painted = owner.value!;
+    port.dialogue = _narrative(revision: 9, text: 'Bo');
+    await owner.refresh();
+    expect(owner.value!.revision, greaterThan(painted.revision));
+    await owner.applyIntent({
+      ..._intent(painted),
+      'kind': 'narrativeReady',
+      'payload': {'generation': painted.narrativeGeneration},
+    });
+    expect(owner.value!.narrativeReady, isTrue);
+    expect(port.executed, isEmpty);
+    await expectLater(owner.applyIntent({
+      ..._intent(painted, sequence: 2),
+      'kind': 'dialogue',
+      'payload': RuntimeCompanionPresentationCodec.encodeDialogueCommand(
+        const DialogueAdvanceCommand(snapshotRevision: 8),
+      ),
+    }), _error('staleRevision'));
+  });
+
+  testWidgets('companion root has no pause heading or back arrow', (tester) async {
+    await _mountMenu(tester, size: const Size(1080, 1240));
+    expect(find.byKey(const ValueKey('pause-root-menu-title')), findsNothing);
+    expect(find.byType(PlayerMenuBackButton), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
+
+  testWidgets('companion transition is an empty black surface and recovers', (tester) async {
+    await _mountMenu(tester);
+    const channel = MethodChannel('com.avelune.runtime/companion');
+    final state = AveluneGameplayCompanionSnapshot(
+      sessionId: 'session-grid', revision: 20, companionAttached: true,
+      mode: AveluneGameplayCompanionMode.blocked,
+    );
+    await _nativeCall(channel, 'stateChanged', state.toPayload());
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(PlayerEmptyState), findsNothing);
+    expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, Colors.black);
+    await _nativeCall(channel, 'stateChanged', {
+      ...state.toPayload(), 'revision': 21, 'mode': 'waiting',
+    });
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(PlayerEmptyState), findsNothing);
+    await _nativeCall(channel, 'stateChanged', {
+      ..._savedSnapshot().toPayload(),
+      'sessionId': 'session-grid',
+      'revision': 22,
+    });
+    await tester.pumpAndSettle();
+    expect(find.byType(PokeMapPlayerSessionView), findsOneWidget);
+    expect(find.byType(ErrorWidget), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
+
   test('narrative ownership requires painted generation and rejects stale replay and reconnect', () async {
     final owner = AveluneGameplayCompanionOwner();
     addTearDown(owner.dispose);
@@ -737,11 +802,11 @@ void main() {
   });
 
   testWidgets(
-    'already ready companion dialogue paints before any RPC and advances once',
+    'ready dialogue stays off the companion and cannot advance there',
     (tester) async {
       final calls = await _mountMenu(tester, dialogue: _narrative());
       expect(calls, isEmpty);
-      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsOneWidget);
+      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsNothing);
       const channel = MethodChannel('com.avelune.runtime/companion');
       for (final phase in ['press', 'release']) {
         await _nativeCall(channel, 'input', {
@@ -753,13 +818,7 @@ void main() {
         });
         await tester.pumpAndSettle();
       }
-      expect(calls, hasLength(1));
-      expect(calls.single['kind'], 'dialogue');
-      final command = RuntimeCompanionPresentationCodec.decodeDialogueCommand(
-        Map<String, dynamic>.from(calls.single['payload'] as Map),
-      );
-      expect(command, isA<DialogueAdvanceCommand>());
-      expect(command.snapshotRevision, 8);
+      expect(calls, isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
@@ -767,19 +826,17 @@ void main() {
   );
 
   testWidgets(
-    'companion acknowledges narrative only after its first rendered frame',
+    'companion never claims an unpainted primary dialogue',
     (tester) async {
       final calls = await _mountMenu(
         tester,
         dialogue: _narrative(),
         narrativeReady: false,
       );
-      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsOneWidget);
-      expect(calls, hasLength(1));
-      expect(calls.single['kind'], 'narrativeReady');
-      expect(calls.single['payload'], {'generation': 1});
+      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsNothing);
+      expect(calls, isEmpty);
       await tester.pumpAndSettle();
-      expect(calls, hasLength(1));
+      expect(calls, isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
@@ -787,7 +844,7 @@ void main() {
   );
 
   testWidgets(
-    'companion choices retain canonical enabled state and selected target',
+    'dialogue choices stay on the primary screen',
     (tester) async {
       final calls = await _mountMenu(
         tester,
@@ -811,25 +868,9 @@ void main() {
           ],
         ),
       );
-      final disabled = tester.widget<PlayerActionButton>(
-        find.byKey(const ValueKey('dialogue-choice-1')),
-      );
-      expect(disabled.onPressed, isNull);
-      await tester.tap(find.byKey(const ValueKey('dialogue-choice-0')));
-      await tester.pumpAndSettle();
-      expect(calls, hasLength(1));
-      final command = RuntimeCompanionPresentationCodec.decodeDialogueCommand(
-        Map<String, dynamic>.from(calls.single['payload'] as Map),
-      );
-      expect(
-        command,
-        isA<DialogueSelectChoiceCommand>().having(
-          (command) => command.choiceIndex,
-          'choice',
-          0,
-        ),
-      );
-      expect(command.snapshotRevision, 19);
+      expect(find.byKey(const ValueKey('dialogue-choice-0')), findsNothing);
+      expect(find.byKey(const ValueKey('dialogue-choice-1')), findsNothing);
+      expect(calls, isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
@@ -837,7 +878,7 @@ void main() {
   );
 
   testWidgets(
-    'companion structured confirmation sends exact request identity once',
+    'structured dialogue confirmation stays on the primary screen',
     (tester) async {
       final request = SceneInteractionRequest.confirmation(
         requestId: 'train',
@@ -848,25 +889,8 @@ void main() {
         ),
       );
       final calls = await _mountMenu(tester, interaction: request);
-      await tester.tap(
-        find.byKey(const ValueKey('scene-interaction-confirm-yes')),
-      );
-      await tester.pumpAndSettle();
-      expect(calls, hasLength(1));
-      expect(calls.single['kind'], 'player');
-      final command = RuntimeCompanionPresentationCodec.decodePlayerCommand(
-        Map<String, dynamic>.from(calls.single['payload'] as Map),
-      );
-      expect(command.action, RuntimePlayerAction.resolvePreSessionInteraction);
-      expect(command.snapshotRevision, 7);
-      expect(
-        command.payload,
-        SceneInteractionResult.confirmed(
-          requestId: 'train',
-          revision: 4,
-          value: true,
-        ),
-      );
+      expect(find.byKey(const ValueKey('scene-interaction-confirm-yes')), findsNothing);
+      expect(calls, isEmpty);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },

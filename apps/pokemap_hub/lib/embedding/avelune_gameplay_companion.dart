@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 const _gameplayCompanionChannel = MethodChannel(
@@ -25,6 +26,11 @@ class AveluneGameplayCompanionData {
   final BattleCommandOverlaySnapshot? battle;
   final DialoguePresentationSnapshot? dialogue;
   final Map<String, Object?> presentation;
+
+  bool get hasPrimaryDialogue =>
+      dialogue != null ||
+      player?.phase == RuntimePlayerPhase.preSession &&
+          player?.preSessionRequest is! SceneTextInteractionRequest;
 
   String? get narrativeIdentity {
     if (mode != AveluneGameplayCompanionMode.menu) return null;
@@ -323,7 +329,9 @@ class AveluneGameplayCompanionOwner
       throw PlatformException(code: 'invalidIntent');
     }
     if (sequence <= (_sourceSequences[sourceId] ?? 0)) return current;
-    if (intent['revision'] != current.revision)
+    final revision = intent['revision'];
+    if (revision is! int || revision < 0 || revision > current.revision ||
+        revision != current.revision && intent['kind'] != 'narrativeReady')
       throw PlatformException(code: 'staleRevision');
     if (intent['mode'] != current.mode.name)
       throw PlatformException(code: 'staleMode');

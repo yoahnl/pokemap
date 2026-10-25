@@ -8,6 +8,7 @@ VideoPlayerController createPlayerIntroVideoController(
     return VideoPlayerController.asset(
       uri.path.startsWith('/') ? uri.path.substring(1) : uri.path,
       closedCaptionFile: captions,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
     );
   }
   if (uri.scheme == 'file') {
@@ -16,5 +17,6 @@ VideoPlayerController createPlayerIntroVideoController(
   return VideoPlayerController.networkUrl(
     uri,
     closedCaptionFile: captions,
+    videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
   );
 }

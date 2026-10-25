@@ -3,8 +3,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
+import 'package:map_player_ui/src/player/player_intro_video_controller.dart';
 
 void main() {
+  for (final source in [
+    Uri.parse('file:///title.mp4'),
+    Uri.parse('asset:///title.mp4'),
+    Uri.parse('https://example.test/title.mp4'),
+  ]) {
+    test('presentation video preserves the runtime music focus for $source', () {
+      final controller = createPlayerIntroVideoController(source);
+      expect(controller.videoPlayerOptions?.mixWithOthers, isTrue);
+    });
+  }
+
   test('gives MP4 blobs a typed file until decoder disposal', () async {
     final directory = await Directory.systemTemp.createTemp('video-blob-test-');
     addTearDown(() => directory.delete(recursive: true));

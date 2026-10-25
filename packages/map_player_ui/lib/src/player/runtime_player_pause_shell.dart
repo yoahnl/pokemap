@@ -825,9 +825,11 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                             context.playerL10n,
                           ),
                           showTitle:
+                              !_isActionsOnlyRoot &&
                               !compactRootChrome &&
                               (composition?.showTitle ?? true),
                           showGameTitle:
+                              !_isActionsOnlyRoot &&
                               !compactRootChrome &&
                               (resolved?.variant.visibleSecondaryElements
                                       .contains(
@@ -851,7 +853,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                               : null,
                           background: illustratedBackground!,
                           footer: rootFooter,
-                          onBack: () =>
+                          onBack: _isActionsOnlyRoot ? null : () =>
                               widget.onSelected(PlayerPauseAction.resume),
                           saveMessage: widget.saveMessage,
                           navigation: _navigation(

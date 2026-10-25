@@ -122,24 +122,18 @@ class _HubGameplayCompanionPort implements AveluneGameplayCompanionOwnerPort {
     if (snapshot.phase == RuntimePlayerPhase.preSession &&
         snapshot.preSessionRequest != null) {
       return AveluneGameplayCompanionData(
-        mode: AveluneGameplayCompanionMode.menu,
-        player: snapshot,
+        mode: snapshot.preSessionRequest is SceneTextInteractionRequest
+            ? AveluneGameplayCompanionMode.menu
+            : AveluneGameplayCompanionMode.blocked,
+        player: snapshot.preSessionRequest is SceneTextInteractionRequest
+            ? snapshot : null,
         presentation: presentation,
       );
     }
     final dialogue = _dialogue;
     if (snapshot.phase == RuntimePlayerPhase.playing && dialogue != null) {
-      final authority = _authority;
-      final supported =
-          authority?.acceptsRuntimeInput == true &&
-          (authority?.context == RuntimeInputContext.dialogue ||
-              authority?.context == RuntimeInputContext.cinematic);
       return AveluneGameplayCompanionData(
-        mode: supported
-            ? AveluneGameplayCompanionMode.menu
-            : AveluneGameplayCompanionMode.blocked,
-        player: supported ? snapshot : null,
-        dialogue: supported ? dialogue : null,
+        mode: AveluneGameplayCompanionMode.blocked,
         presentation: presentation,
       );
     }
@@ -945,6 +939,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         final movie = VideoPlayerController.asset(
           'assets/avelune/splash/avelune_eclipse.mp4',
           package: 'pokemap_hub',
+          videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
         try {
           await movie.initialize();
@@ -1411,21 +1406,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final companion = widget.companionOwner?.value;
     final snapshot = viewController.snapshot;
     final battle = _mountedGame?.battleCommandOverlayListenable.value;
-    final dialogue =
-        _mountedGame?.dialoguePresentationListenable.value ??
-        _mountedSpatial?.dialoguePresentationListenable.value;
-    final narrativeIdentity = AveluneGameplayCompanionData(
-      mode: AveluneGameplayCompanionMode.menu,
-      player: snapshot,
-      dialogue: dialogue,
-    ).narrativeIdentity;
     final delegatesNarrative =
         companion != null &&
         companion.companionAttached &&
-        companion.narrativeReady &&
-        narrativeIdentity != null &&
-        companion.narrativeIdentity == narrativeIdentity &&
-        companion.player?.revision == snapshot.revision &&
+        snapshot.phase == RuntimePlayerPhase.preSession &&
+        snapshot.preSessionRequest is SceneTextInteractionRequest &&
         _mountedGame?.battleExitTransitionVisible.value != true;
     final delegatesCompanion =
         companion != null &&

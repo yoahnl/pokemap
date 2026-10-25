@@ -11,16 +11,19 @@ VideoPlayerController createPlayerIntroVideoController(
     return VideoPlayerController.file(
       File(path),
       closedCaptionFile: captions,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
     );
   }
   if (uri.scheme == 'asset') {
     return VideoPlayerController.asset(
       uri.path.startsWith('/') ? uri.path.substring(1) : uri.path,
       closedCaptionFile: captions,
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
     );
   }
   return VideoPlayerController.networkUrl(
     uri,
     closedCaptionFile: captions,
+    videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
   );
 }

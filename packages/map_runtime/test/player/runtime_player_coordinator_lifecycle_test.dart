@@ -5,6 +5,22 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test('checkpoint capture failure cannot strand lifecycle suspension', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.checkpointLoader = () async =>
+        throw StateError('A spatial gameplay action is still in progress.');
+    await harness.coordinator.pauseForLifecycle();
+    expect(harness.sessions.snapshot.state, GameSessionState.lifecyclePaused);
+    expect(harness.sessions.snapshot.failure?.code, GameSessionFailureCode.storage);
+    expect(harness.saves.commits, isEmpty);
+    await harness.coordinator.resumeFromLifecycle();
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
+    expect(harness.sessions.snapshot.state, GameSessionState.running);
+    expect(harness.adapter.calls.where((call) => call == 'resume'), hasLength(1));
+  });
+
   test('playing lifecycle pause and resume are idempotent', () async {
     final harness = RuntimePlayerTestHarness();
     addTearDown(harness.dispose);
