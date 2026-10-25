@@ -596,6 +596,8 @@ class _BattleHud extends StatelessWidget {
             warningHex: profile?.hpWarningColor,
             dangerHex: profile?.hpDangerColor,
           );
+    final usesLigueShape =
+        profile == null || profile?.hudShape == ProjectWindowShape.rounded;
     final showExactHp = profile?.showExactHp ?? sideId == 'player';
     final hpBarShape = profile?.hpBarShape ?? ProjectBattleHpBarShape.rounded;
     final experience = data.experienceProgress?.clamp(0.0, 1.0);
@@ -733,10 +735,12 @@ class _BattleHud extends StatelessWidget {
                             if (showExactHp) ...[
                               const SizedBox(height: 3),
                               Text(
-                                context.playerL10n.hpFraction(
-                                  hp.round(),
-                                  data.maxHp,
-                                ),
+                                usesLigueShape
+                                    ? '${hp.round()} / ${data.maxHp}'
+                                    : context.playerL10n.hpFraction(
+                                        hp.round(),
+                                        data.maxHp,
+                                      ),
                                 key: ValueKey<String>(
                                   'battle-exact-hp-${identity ?? sideId}',
                                 ),
@@ -1543,6 +1547,7 @@ class _BattleDockEntries extends StatelessWidget {
       final info = _BattleFooterButton(
         key: const ValueKey('battle-move-info'),
         label: 'Infos',
+        compactPaint: sidePanel,
         icon: Icons.info_outline_rounded,
         leadingAccent: true,
         onPressed: () => _showBattleMoveInfo(context, selected),
@@ -1550,6 +1555,7 @@ class _BattleDockEntries extends StatelessWidget {
       final back = _BattleFooterButton(
         key: const ValueKey('battle-back'),
         label: context.playerL10n.back,
+        compactPaint: sidePanel,
         icon: Icons.arrow_back_rounded,
         onPressed:
             data.canGoBack &&
@@ -3121,12 +3127,14 @@ class _BattleFooterButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.leadingAccent = false,
+    this.compactPaint = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
   final bool leadingAccent;
+  final bool compactPaint;
 
   @override
   Widget build(BuildContext context) {
@@ -3140,36 +3148,44 @@ class _BattleFooterButton extends StatelessWidget {
       child: Tooltip(
         message: label,
         child: Material(
-          color: chrome.moveSurface,
-          shape: _BattleBevelShape(
-            accent: leadingAccent ? chrome.focus : null,
-            leading: true,
-          ),
-          clipBehavior: Clip.antiAlias,
+          color: chrome.moveSurface.withValues(alpha: 0),
           child: InkWell(
             onTap: onPressed,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 18, color: chrome.moveText),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.playerTypography
-                          .combatStyle(const TextStyle())
-                          .copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: chrome.moveText,
-                          ),
-                    ),
+              padding: EdgeInsets.symmetric(vertical: compactPaint ? 8 : 0),
+              child: Ink(
+                key: ValueKey('battle-footer-paint-$label'),
+                decoration: ShapeDecoration(
+                  color: chrome.moveSurface,
+                  shape: _BattleBevelShape(
+                    accent: leadingAccent ? chrome.focus : null,
+                    leading: true,
                   ),
-                ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 18, color: chrome.moveText),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.playerTypography
+                              .combatStyle(const TextStyle())
+                              .copyWith(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: chrome.moveText,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

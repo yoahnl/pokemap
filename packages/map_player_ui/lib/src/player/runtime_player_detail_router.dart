@@ -106,9 +106,12 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
     if (section == RuntimePlayerPauseSection.contacts &&
         detail != null &&
         detail.entries.isNotEmpty) {
-      return RuntimePlayerContacts(
-        snapshot: snapshot,
-        onPauseCommand: onPauseCommand,
+      return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.pauseMenu,
+        child: RuntimePlayerContacts(
+          snapshot: snapshot,
+          onPauseCommand: onPauseCommand,
+        ),
       );
     }
     if (section == RuntimePlayerPauseSection.quests &&
@@ -116,7 +119,11 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         detail.entries.isNotEmpty) {
       return PlayerMenuThemeScope(
         role: ProjectPresentationSurfaceRole.pauseMenu,
-        child: RuntimePlayerJournal(detail: detail),
+        child: RuntimePlayerJournal(
+          detail: detail,
+          controlProfile: controlProfile,
+          hardwareGamepadEnabled: hardwareGamepadEnabled,
+        ),
       );
     }
     if (section == RuntimePlayerPauseSection.party && detail != null) {

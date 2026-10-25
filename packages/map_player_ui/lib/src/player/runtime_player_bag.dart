@@ -477,6 +477,8 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
     bool compact = false,
   }) {
     final id = _id(entry);
+    final favorite = widget.favoriteItemIds.contains(id);
+    final quantityWidth = (compact ? 36.0 : 40.0) + (favorite ? 16 : 0);
     final row = PlayerMenuSelectableRow(
       key: ValueKey('bag-item-$id'),
       id: 'bag-item-$id',
@@ -519,13 +521,30 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
       semanticValue: '${entry.bagItem?.quantity ?? entry.trailingLabel ?? ''}',
       trailing: SizedBox(
         key: ValueKey('bag-quantity-$id'),
-        width: compact ? 36 : 40,
-        child: Text(
-          '${widget.favoriteItemIds.contains(id) ? '★ ' : ''}× ${entry.bagItem?.quantity ?? entry.trailingLabel ?? '—'}',
-          textAlign: TextAlign.right,
+        width: quantityWidth,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (favorite) ...[
+              Icon(
+                Icons.star_rounded,
+                key: ValueKey('bag-favorite-marker-$id'),
+                size: 12,
+              ),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                '× ${entry.bagItem?.quantity ?? entry.trailingLabel ?? '—'}',
+                maxLines: 1,
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ],
         ),
       ),
-      trailingWidth: compact ? 36 : 40,
+      trailingWidth: quantityWidth,
       onFocusChanged: (focused) {
         if (focused && _selections[_pocket!] != id) {
           _pendingItemFocus = id;

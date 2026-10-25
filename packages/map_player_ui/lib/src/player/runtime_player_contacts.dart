@@ -5,6 +5,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
+import '../foundation/player_menu_icon.dart';
 import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 
@@ -58,11 +59,14 @@ class _RuntimePlayerContactsState extends State<RuntimePlayerContacts> {
             contentGap: 12,
             labelStyle: theme.label.copyWith(fontSize: 16),
             leading: contact.portraitFilePath == null
-                ? const Icon(Icons.phone_outlined, size: 24)
+                ? const PlayerMenuIcon(PlayerMenuGlyph.phone, size: 24)
                 : PlayerImageBuilder(
                     key: ValueKey('contact-portrait-source-${contact.id}'),
                     path: contact.portraitFilePath!,
-                    fallback: const Icon(Icons.person_outline, size: 40),
+                    fallback: const PlayerMenuIcon(
+                      PlayerMenuGlyph.profile,
+                      size: 40,
+                    ),
                     builder: (context, image) => RawImage(
                       key: ValueKey('contact-portrait-${contact.id}'),
                       image: image,
@@ -89,7 +93,7 @@ class _RuntimePlayerContactsState extends State<RuntimePlayerContacts> {
                   Flexible(child: Text(trailing, style: theme.meta)),
                   const SizedBox(width: 8),
                 ],
-                const Icon(Icons.chevron_right, size: 16),
+                const PlayerMenuIcon(PlayerMenuGlyph.chevron, size: 16),
               ],
             ),
             showDisabledReason: false,

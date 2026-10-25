@@ -1,11 +1,21 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/src/foundation/player_menu_icon.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/src/player/runtime_player_contacts.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+  });
+
   for (final size in [
     const Size(1440, 900),
     const Size(1024, 768),
@@ -157,7 +167,10 @@ void main() {
       var calls = 0;
       await _pumpContacts(tester, enabled: false, onCommand: (_) => calls++);
       final row = find.byKey(const ValueKey('contact.private-lea'));
-      expect(tester.getSemantics(row).flagsCollection.isEnabled, isFalse);
+      expect(
+        tester.getSemantics(row).flagsCollection.isEnabled,
+        ui.Tristate.isFalse,
+      );
       await tester.tap(row);
       await tester.pumpAndSettle();
       expect(calls, 0);
@@ -176,7 +189,14 @@ void main() {
         find.byKey(const ValueKey('contact-portrait-source-private-lea')),
       );
       expect(portrait.path, '/missing/authored-contact.png');
-      expect(find.byIcon(Icons.person_outline), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is PlayerMenuIcon &&
+              widget.glyph == PlayerMenuGlyph.profile,
+        ),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
     },
   );

@@ -21,7 +21,7 @@ void main() {
         PlayerPauseAction.contacts,
         PokeMapPlayerLocalizations.lookup(const Locale('fr')),
       ),
-      'Téléphone',
+      'Contacts',
     );
     expect(available.icon(PlayerPauseAction.contacts), Icons.call_outlined);
     final authored = const PlayerPausePresentation(

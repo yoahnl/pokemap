@@ -902,7 +902,7 @@ void main() {
       final early = readPlayerHp();
       expect(
         early,
-        isNot(contains('9/72')),
+        isNot(contains('9 / 72')),
         reason:
             'au début du drain, le nombre ne montre pas l’état final '
             '(il affichait $early)',
@@ -911,7 +911,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 700));
       expect(
         readPlayerHp(),
-        contains('9/72'),
+        contains('9 / 72'),
         reason: 'une fois le drain joué, le nombre atteint la valeur finale',
       );
     },

@@ -169,7 +169,10 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.bySemanticsLabel('Hanazuki, Vous êtes ici'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.text('Hanazuki')).getSemanticsData().label,
+      contains('Hanazuki, Vous êtes ici'),
+    );
     expect(tester.widget<Text>(find.text('Hanazuki')).style?.fontSize, 17);
     expect(
       tester.widget<Text>(find.text('Le départ du train.')).style?.fontSize,

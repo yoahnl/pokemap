@@ -223,6 +223,35 @@ void main() {
     });
   }
 
+  testWidgets(
+    'favorite quantity uses a real icon without unsupported text glyphs',
+    (tester) async {
+      for (final size in [const Size(390, 844), const Size(844, 390)]) {
+        await _pump(
+          tester,
+          _detail([_item('a', quantity: 8)]),
+          size: size,
+          favorites: {'a'},
+        );
+        final quantity = find.byKey(const ValueKey('bag-quantity-a'));
+        final icon = find.byKey(const ValueKey('bag-favorite-marker-a'));
+        expect(icon, findsOneWidget);
+        expect(tester.widget<Icon>(icon).icon, Icons.star_rounded);
+        expect(tester.getSize(icon), const Size(12, 12));
+        expect(
+          find.descendant(of: quantity, matching: find.text('× 8')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('★'), findsNothing);
+        expect(
+          tester.getRect(icon).right,
+          lessThan(tester.getRect(quantity).right),
+        );
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
   testWidgets('item pages retain quantity, row size and anchored pockets', (
     tester,
   ) async {

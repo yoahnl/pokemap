@@ -106,6 +106,7 @@ const _items = <({String label, int quantity, String description, int price})>[
 ];
 final _images = <String, RuntimeUiImageLease>{};
 final _manifest = <Map<String, Object?>>[];
+final _opaqueSources = <String, Rect>{};
 late String _assets;
 
 bool _includes(String filter, String value) =>
@@ -176,6 +177,30 @@ void main() {
             _images[path] = (await tester.runAsync(
               () => loadRuntimeUiImageFromFilePath(path),
             ))!;
+            final image = _images[path]!.image;
+            final pixels = await tester.runAsync(() => image.toByteData());
+            if (pixels != null) {
+              var left = image.width;
+              var top = image.height;
+              var right = 0;
+              var bottom = 0;
+              for (var y = 0; y < image.height; y++) {
+                for (var x = 0; x < image.width; x++) {
+                  if (pixels.getUint8((y * image.width + x) * 4 + 3) == 0)
+                    continue;
+                  if (x < left) left = x;
+                  if (y < top) top = y;
+                  if (x + 1 > right) right = x + 1;
+                  if (y + 1 > bottom) bottom = y + 1;
+                }
+              }
+              _opaqueSources[name] = Rect.fromLTRB(
+                left.toDouble(),
+                top.toDouble(),
+                right.toDouble(),
+                bottom.toDouble(),
+              );
+            }
           }
         }
         for (final section in _sections) {
@@ -294,10 +319,19 @@ void main() {
                   revision: 7,
                   prompt: SceneInteractionPrompt(
                     localizationKey: screen,
-                    fallbackText: 'Choisissez votre compagnon',
+                    fallbackText: 'Choisissez entre un et deux compagnons.',
+                  ),
+                  constraints: SceneSelectionConstraints(
+                    minSelections: 1,
+                    maxSelections: 2,
                   ),
                   options: [
-                    for (final name in ['Bulbi', 'Salamèche', 'Carapuce'])
+                    for (final name in [
+                      'Bulbi',
+                      'Salamèche',
+                      'Carapuce',
+                      'Pikachu',
+                    ])
                       SceneInteractionOption(
                         id: name,
                         label: SceneInteractionPrompt(
@@ -497,11 +531,11 @@ void main() {
                   _image('battle-ligue'),
                   Positioned.fromRect(
                     rect: layout.enemySpriteRect,
-                    child: _image('pidgey-front', fit: BoxFit.contain),
+                    child: _combatant('pidgey-front', .5),
                   ),
                   Positioned.fromRect(
                     rect: layout.playerSpriteRect,
-                    child: _image('bulbasaur-back', fit: BoxFit.contain),
+                    child: _combatant('bulbasaur-back', .68),
                   ),
                 ],
                 PlayerBattleOverlay(
@@ -531,7 +565,7 @@ void main() {
             source:
                 'PlayerBattleOverlay > PlayerBattleSurface; BattleSceneLayout',
             limitations: [
-              'The battle stage is reference art composited at runtime-published sprite rectangles; Flame scene execution is not exercised.',
+              'Reference art is composited with opaque bounds, contain fit and foot anchors matching the runtime renderer; Flame scene execution is not exercised.',
             ],
           );
         }
@@ -548,6 +582,45 @@ Widget _image(String name, {BoxFit fit = BoxFit.cover}) => RawImage(
   fit: fit,
   filterQuality: FilterQuality.none,
 );
+
+Widget _combatant(String name, double footXRatio) => CustomPaint(
+  painter: _CombatantPainter(
+    _images[p.join(_assets, '$name.png')]!.image,
+    _opaqueSources[name]!,
+    footXRatio,
+  ),
+);
+
+class _CombatantPainter extends CustomPainter {
+  const _CombatantPainter(this.image, this.source, this.footXRatio);
+
+  final ui.Image image;
+  final Rect source;
+  final double footXRatio;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fitted = applyBoxFit(BoxFit.contain, source.size, size).destination;
+    final destination = Rect.fromLTWH(
+      (size.width - fitted.width) * footXRatio,
+      size.height - fitted.height,
+      fitted.width,
+      fitted.height,
+    );
+    canvas.drawImageRect(
+      image,
+      source,
+      destination,
+      Paint()..filterQuality = FilterQuality.none,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CombatantPainter oldDelegate) =>
+      image != oldDelegate.image ||
+      source != oldDelegate.source ||
+      footXRatio != oldDelegate.footXRatio;
+}
 
 Future<void> _mount(
   WidgetTester tester,
@@ -934,17 +1007,28 @@ RuntimePlayerPauseDetailSnapshot _detail(
               subtitle: 'Terminé · Rencontrer le professeur',
               trailingLabel: 'Terminé',
             ),
+            RuntimePlayerDetailEntrySnapshot(
+              id: 'river',
+              title: 'Au bord du ruisseau',
+              subtitle: 'En cours · Explorer les environs',
+              trailingLabel: 'En cours',
+            ),
           ],
           RuntimePlayerPauseSection.contacts => [
             RuntimePlayerDetailEntrySnapshot(
+              id: 'lea',
+              title: 'Léa',
+              subtitle: 'Disponible',
+            ),
+            RuntimePlayerDetailEntrySnapshot(
               id: 'professor',
-              title: 'Professeur',
-              subtitle: 'Laboratoire de la Clairière',
+              title: 'Professeur Orme',
+              subtitle: 'Disponible',
             ),
             RuntimePlayerDetailEntrySnapshot(
               id: 'guard',
-              title: 'Garde forestier',
-              subtitle: 'Clairière des Sources',
+              title: 'Garde du pont',
+              subtitle: 'Le passage sera ouvert après votre prochaine visite.',
             ),
           ],
           RuntimePlayerPauseSection.bag => List.generate(

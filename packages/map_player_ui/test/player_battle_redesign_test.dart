@@ -100,6 +100,32 @@ void main() {
     },
   );
 
+  testWidgets(
+    'controller footer paints 32 pixels inside its 48 pixel hit area',
+    (tester) async {
+      final actions = <PlayerBattleAction>[];
+      await _pump(
+        tester,
+        viewport: const Size(844, 390),
+        moves: true,
+        source: PlayerInputSource.controller,
+        onAction: actions.add,
+      );
+      final back = tester.getRect(find.byKey(const ValueKey('battle-back')));
+      final paint = tester.getRect(
+        find.byKey(const ValueKey('battle-footer-paint-Retour')),
+      );
+      expect(back.height, 48);
+      expect(paint.height, 32);
+      expect(paint.top - back.top, 8);
+      expect(back.bottom - paint.bottom, 8);
+      expect(find.text('24 / 30'), findsOneWidget);
+      await tester.tapAt(Offset(back.center.dx, back.top + 2));
+      expect(actions.single, isA<PlayerBattleBackAction>());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('controller has a move list, details and a real back command', (
     tester,
   ) async {

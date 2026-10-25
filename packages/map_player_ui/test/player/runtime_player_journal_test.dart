@@ -7,6 +7,12 @@ import 'package:map_player_ui/src/player/runtime_player_journal.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  setUpAll(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+  });
+
   for (final format in [
     (size: Size(1440, 900), companion: false),
     (size: Size(1024, 768), companion: false),
@@ -84,6 +90,36 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(returns, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'journal honors remapped keyboard and logical controller navigation',
+    (tester) async {
+      final profile = PlayerControlProfile.standard
+          .rebind(
+            device: PlayerControlDevice.keyboard,
+            control: RuntimeInputControl.down,
+            inputId: 'keyS',
+          )
+          .profile;
+      await _pump(tester, _detail(), controlProfile: profile);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+      expect(find.text('Un passage dans la forêt'), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.pumpAndSettle();
+      expect(find.text('Le premier compagnon'), findsOneWidget);
+      Actions.invoke(
+        tester.element(find.byKey(const ValueKey('journal-selected-title'))),
+        const RuntimePlayerLogicalIntent(
+          PlayerInputAction.up,
+          source: PlayerInputSource.controller,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Un passage dans la forêt'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -214,6 +250,8 @@ Future<void> _pump(
   Size size = const Size(844, 390),
   bool companion = false,
   double scale = 1,
+  PlayerControlProfile? controlProfile,
+  bool hardwareGamepadEnabled = true,
   VoidCallback? onBack,
 }) async {
   tester.view.physicalSize = size;
@@ -234,22 +272,32 @@ Future<void> _pump(
         ),
         child: companion ? PlayerCompanionScope(child: child!) : child!,
       ),
-      home: PlayerMenuThemeScope(
-        child: Scaffold(
-          body: RuntimePlayerPauseShell(
-            gameTitle: 'Voyage',
-            pauseSection: RuntimePlayerPauseSection.quests,
-            actions: {
-              for (final action in PlayerPauseAction.values)
-                action: PlayerActionAvailability.enabled,
-            },
-            onSelected: (_) {},
-            onBackToRoot: onBack ?? () {},
-            presentation: const PlayerPausePresentation(
-              style: ProjectPauseMenuStyle.nightIllustrated,
+      home: RuntimePlayerActions(
+        onBack: onBack ?? () {},
+        onMenu: () {},
+        onInputSourceChanged: (_) {},
+        includeDefaultKeyboardShortcuts: false,
+        child: PlayerMenuThemeScope(
+          child: Scaffold(
+            body: RuntimePlayerPauseShell(
+              gameTitle: 'Voyage',
+              pauseSection: RuntimePlayerPauseSection.quests,
+              actions: {
+                for (final action in PlayerPauseAction.values)
+                  action: PlayerActionAvailability.enabled,
+              },
+              onSelected: (_) {},
+              onBackToRoot: onBack ?? () {},
+              presentation: const PlayerPausePresentation(
+                style: ProjectPauseMenuStyle.nightIllustrated,
+              ),
+              detailOwnsScroll: true,
+              detail: RuntimePlayerJournal(
+                detail: detail,
+                controlProfile: controlProfile,
+                hardwareGamepadEnabled: hardwareGamepadEnabled,
+              ),
             ),
-            detailOwnsScroll: true,
-            detail: RuntimePlayerJournal(detail: detail),
           ),
         ),
       ),

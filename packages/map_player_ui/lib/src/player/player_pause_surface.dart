@@ -66,8 +66,7 @@ final class PlayerPauseMenuLabels {
         PlayerPauseAction.bag => bag ?? l10n.bag,
         PlayerPauseAction.pokedex => pokedex ?? l10n.pokedex,
         PlayerPauseAction.map => map ?? l10n.map,
-        PlayerPauseAction.quests =>
-          quests ?? (l10n.locale.languageCode == 'fr' ? 'Journal' : 'Journal'),
+        PlayerPauseAction.quests => quests ?? 'Journal',
         PlayerPauseAction.contacts =>
           l10n.locale.languageCode == 'fr' ? 'Contacts' : 'Contacts',
         PlayerPauseAction.profile => profile ?? l10n.profile,
@@ -210,8 +209,9 @@ final class PlayerPausePresentation {
 
   IconData icon(PlayerPauseAction action) {
     if (action == PlayerPauseAction.contacts &&
-        !actionIcons.containsKey(action))
+        !actionIcons.containsKey(action)) {
       return Icons.call_outlined;
+    }
     return switch (actionIcons[action] ?? _defaultPauseActionIcon(action)) {
       ProjectPauseActionIcon.play => Icons.play_arrow_rounded,
       ProjectPauseActionIcon.party => Icons.catching_pokemon,
@@ -658,6 +658,8 @@ class PlayerPauseNavigation extends StatelessWidget {
         key: ValueKey(logicalId),
         id: logicalId,
         label: presentation.label(action, context.playerL10n),
+        button: mobileGrid || fillViewport,
+        bevel: mobileGrid || fillViewport ? 7 : 0,
         labelStyle: mobileGrid || fillViewport
             ? theme.label.copyWith(
                 fontSize: MediaQuery.sizeOf(context).width >= 650 ? 14 : 16,

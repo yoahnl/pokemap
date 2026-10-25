@@ -372,21 +372,45 @@ class PlayerMenuBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.playerMenuTheme;
-    return IconButton(
-      tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-      onPressed: onPressed,
-      icon: const PlayerMenuIcon(PlayerMenuGlyph.back, size: 20),
-      style: IconButton.styleFrom(
-        minimumSize: const Size(48, 48),
-        maximumSize: const Size(48, 48),
-        padding: EdgeInsets.zero,
-        foregroundColor: theme.text,
-        backgroundColor: theme.recessed,
-        side: BorderSide.none,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+    return ClipPath(
+      clipper: const _PlayerMenuBevelClipper(7),
+      child: IconButton(
+        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+        onPressed: onPressed,
+        icon: const PlayerMenuIcon(PlayerMenuGlyph.back, size: 20),
+        style: IconButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          maximumSize: const Size(48, 48),
+          padding: EdgeInsets.zero,
+          foregroundColor: theme.text,
+          backgroundColor: theme.recessed,
+          side: BorderSide.none,
+          shape: const RoundedRectangleBorder(),
+        ),
       ),
     );
   }
+}
+
+class _PlayerMenuBevelClipper extends CustomClipper<Path> {
+  const _PlayerMenuBevelClipper(this.cut);
+
+  final double cut;
+
+  @override
+  Path getClip(Size size) {
+    final inset = math.min(cut, size.width / 2);
+    return Path()
+      ..moveTo(inset, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width - inset, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(_PlayerMenuBevelClipper oldClipper) =>
+      oldClipper.cut != cut;
 }
 
 class PlayerMenuFooter extends StatelessWidget {
@@ -628,6 +652,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.integrated = false,
     this.tab = false,
     this.button = false,
+    this.bevel = 0,
     this.iconOnly = false,
     this.tile = false,
     this.fitTileContent = false,
@@ -665,6 +690,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final bool integrated;
   final bool tab;
   final bool button;
+  final double bevel;
   final bool iconOnly;
   final bool tile;
   final bool fitTileContent;
@@ -717,7 +743,9 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
               ),
       ),
       borderRadius: BorderRadius.circular(
-        widget.button ? 4 : PokeMapPlayerMenuTheme.rowRadius,
+        widget.button && widget.bevel == 0
+            ? 4
+            : PokeMapPlayerMenuTheme.rowRadius,
       ),
       border: widget.button
           ? null
@@ -965,7 +993,12 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
             scale: pressed && _enabled && !theme.reducedMotion ? .985 : 1,
             duration: theme.pressDuration,
             curve: Curves.easeOutCubic,
-            child: row,
+            child: widget.bevel > 0
+                ? ClipPath(
+                    clipper: _PlayerMenuBevelClipper(widget.bevel),
+                    child: row,
+                  )
+                : row,
           ),
         ),
       ),
