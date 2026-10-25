@@ -347,6 +347,63 @@ void main() {
     });
   }
 
+  for (final facing in EntityFacing.values) {
+    test('scene interaction faces moved NPC ${facing.name} and restores after cancellation', () async {
+      await runtime.dispose();
+      final directions = EntityFacing.values;
+      await File('${root.path}/hero.png').writeAsBytes(img.encodePng(img.Image(width: 128, height: 32)));
+      final character = bundle.manifest.characters.single.copyWith(animations: [
+        for (var index = 0; index < directions.length; index++)
+          CharacterAnimation(state: CharacterAnimationState.walk, direction: directions[index],
+              sourceAssetId: 'hero-sheet', frames: [CharacterAnimationFrame(
+                  source: TilesetSourceRect(x: index * 32, y: 0, width: 32, height: 32), durationMs: 100)])
+      ]);
+      final npc = bundle.map.entities.single.copyWith(npc: bundle.map.entities.single.npc!.copyWith(facing: EntityFacing.west));
+      final scene = SceneAsset(id: 'facing-scene', name: 'Facing', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'talk', kind: SceneNodeKind.yarnDialogue, payload: SceneYarnDialoguePayload(dialogueId: 'hello')),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [
+        SceneEdge(id: 'open', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'talk', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'close', fromNodeId: 'talk', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.defaultFlow),
+      ]));
+      bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc]), manifest: bundle.manifest.copyWith(
+        characters: [character], scenes: [scene], eventRegistry: NarrativeEventRegistry(schemaVersion: 1,
+            mode: EventSystemMode.v2Only, records: [spatialEvent(NarrativeEventSourceRef.entityInteract('field', 'npc'), scene.id)], legacyClaims: const [])));
+      final (x, z, expected) = switch (facing) {
+        EntityFacing.north => (4.5, 5.5, EntityFacing.south),
+        EntityFacing.south => (4.5, 3.5, EntityFacing.north),
+        EntityFacing.east => (3.5, 4.5, EntityFacing.west),
+        EntityFacing.west => (5.5, 4.5, EntityFacing.east),
+      };
+      final world = const SpatialWorldState.empty().setActorState('field', 'npc',
+          SpatialActorRuntimeState(x: 4.5, z: 4.5, facing: EntityFacing.west));
+      final state = descriptor().initialGameState!.copyWith(playerPosition: GridPos(x: x.floor(), y: z.floor()),
+          playerSpatialPosition: PlayerSpatialPosition(x: x, z: z), playerFacing: facing, spatialWorldState: world);
+      runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: state),
+          projectFilePath: () async => '${root.path}/project.json',
+          preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+          mountSession: (_) async {}, unmountSession: (_) async {});
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      expect(runtime.overworldInteractionSnapshot!.primaryAction!.request.targetId, 'npc');
+      runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+      await waitForValue(runtime.dialoguePresentationListenable, (value) => value != null);
+      expect(runtime.session!.npcFrame(npc).frame.left, directions.indexOf(expected) * 32);
+      await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: true);
+      expect(runtime.session!.npcFrame(npc).frame.left, directions.indexOf(expected) * 32);
+      await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: false);
+      runtime.session!.cancelDialogue();
+      for (var i = 0; i < 300 && runtime.session!.interactionEntity != null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(runtime.session!.interactionEntity, isNull);
+      expect(runtime.session!.npcFrame(npc).frame.left, directions.indexOf(EntityFacing.west) * 32);
+      expect(runtime.gameStateSnapshot.spatialWorldState.actorState('field', 'npc'), world.actorState('field', 'npc'));
+    });
+  }
+
   test('autonomous spatial poses persist mid-step without a Scene transaction', () async {
     final npc = bundle.map.entities.single;
     bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc.copyWith(
@@ -2455,8 +2512,94 @@ void main() {
     expect(mounts, 1);
   });
 
-  test('rejects a 2D save and a blocked spatial save before mounting',
+  for (final obstacle in ['free', 'enclosed', 'wide', 'static', 'sealed']) {
+    test('Continue near an explicit NPC $obstacle preserves original save bytes', () async {
+      final blocked = obstacle == 'static';
+      final sealed = obstacle == 'sealed';
+      final enclosed = obstacle == 'enclosed';
+      final wide = obstacle == 'wide';
+      final npc = bundle.map.entities.single.copyWith(pos: GridPos(x: sealed ? 0 : wide ? 3 : 4, y: sealed ? 0 : wide ? 3 : 4),
+          size: GridSize(width: sealed ? 8 : wide ? 4 : 1, height: sealed ? 8 : wide ? 4 : 1),
+          properties: {'collision.width': sealed ? '8' : wide ? '4' : '1', 'collision.height': sealed ? '8' : wide ? '4' : '1'});
+      bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc],
+          spatialScene: bundle.map.spatialScene!.copyWith(navigation: SpatialNavigationProfile(
+            spawn: SpatialSpawn(x: 1.5, z: 1.5), blockedAreas: [
+              if (blocked) SpatialBlockedArea(x: 4, z: 4, width: 1, depth: 2),
+              if (wide) SpatialBlockedArea(x: 0, z: 7.125, width: 8, depth: .875),
+              if (enclosed) ...[
+                SpatialBlockedArea(x: 0, z: 5.125, width: 8, depth: 1),
+                SpatialBlockedArea(x: 3.9375, z: 3, width: .0625, depth: 2.125),
+                SpatialBlockedArea(x: 5, z: 3, width: .0625, depth: 2.125),
+              ],
+            ]))));
+      final state = descriptor().initialGameState!.copyWith(playerPosition: GridPos(x: wide ? 5 : 4, y: wide ? 7 : 5),
+          playerSpatialPosition: PlayerSpatialPosition(x: wide ? 5 : 4.5, z: wide ? 7 : 5), playerFacing: EntityFacing.east,
+          trainerProfile: const TrainerProfile(name: 'Yoahn', avatarCharacterId: 'hero', money: 123),
+          party: const PlayerParty(members: [PlayerPokemon(individualId: 'starter', speciesId: 'bulbasaur',
+              natureId: 'hardy', abilityId: 'overgrow', currentHp: 2)]),
+          storyFlags: const StoryFlags(activeFlags: {'started'}),
+          bag: const Bag(entries: [BagEntry(itemId: 'poke-ball', quantity: 7)]));
+      final save = spatialSave(state);
+      final savedState = const GameStateSaveEnvelopeMapper().restore(save);
+      final original = const SaveEnvelopeCodec().encodeUtf8(save);
+      final file = File('${root.path}/saved-playthrough.json');
+      await file.writeAsBytes(original);
+      var writes = 0;
+      GameState? mountedState;
+      late final SpatialExplorationGameSessionRuntime continued;
+      continued = SpatialExplorationGameSessionRuntime(descriptor: descriptor(continueGame: true),
+          projectFilePath: () async => '${root.path}/project.json',
+          initialSave: () async => const SaveEnvelopeCodec().decodeUtf8(await file.readAsBytes(), acceptedSaveFormats: {1}),
+          preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+          commitCheckpoint: (_) async => writes++,
+          mountSession: (_) async { mounts++; mountedState = continued.gameStateSnapshot; },
+          unmountSession: (_) async => unmounts++);
+      addTearDown(continued.dispose);
+      if (blocked || sealed) {
+        await expectLater(continued.load((_) {}), throwsA(isA<StateError>().having(
+            (error) => error.message, 'message', contains('sauvegarde d’origine est conservée'))));
+        expect(continued.session, isNull);
+        expect(mounts, 0);
+      } else {
+        await continued.load((_) {});
+        final position = wide ? PlayerSpatialPosition(x: 2.625, z: 7) :
+            enclosed ? PlayerSpatialPosition(x: 4.5, z: 3.9375) : PlayerSpatialPosition(x: 4.5, z: 5.4375);
+        expect(continued.session!.movement.spatialPosition, position);
+        expect(continued.session!.movement.isPositionTraversable, isTrue);
+        expect(mountedState!.toJson(), savedState.copyWith(playerPosition: GridPos(x: position.x.floor(), y: position.z.floor()),
+            playerSpatialPosition: position).toJson());
+        expect(continued.gameStateSnapshot.party, savedState.party);
+        expect(continued.gameStateSnapshot.trainerProfile, savedState.trainerProfile);
+        expect(continued.gameStateSnapshot.storyFlags, savedState.storyFlags);
+        expect(mounts, 1);
+      }
+      expect(writes, 0);
+      expect(await file.readAsBytes(), orderedEquals(original));
+    });
+  }
+
+  test('New Game keeps rejecting an authored NPC overlap', () async {
+    final npc = bundle.map.entities.single.copyWith(pos: const GridPos(x: 4, y: 4),
+        properties: const {'collision.width': '1', 'collision.height': '1'});
+    bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc]));
+    final state = descriptor().initialGameState!.copyWith(playerPosition: const GridPos(x: 4, y: 5),
+        playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 5));
+    final started = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: state),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async => mounts++, unmountSession: (_) async => unmounts++);
+    addTearDown(started.dispose);
+    await expectLater(started.load((_) {}), throwsStateError);
+    expect(started.session, isNull);
+    expect(mounts, 0);
+  });
+
+  test('rejects a 2D save and a statically blocked spatial save before mounting',
       () async {
+    bundle = bundle.copyWith(map: bundle.map.copyWith(spatialScene: bundle.map.spatialScene!.copyWith(
+        navigation: bundle.map.spatialScene!.navigation.copyWith(blockedAreas: [
+          SpatialBlockedArea(x: 4, z: 2, width: 1, depth: 1),
+        ]))));
     for (final position in [null, PlayerSpatialPosition(x: 4.5, z: 2.5)]) {
       final state = GameState(
           saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',

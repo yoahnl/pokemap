@@ -26,6 +26,88 @@ void advance(SpatialDoorTraversalController controller, int ticks) {
 }
 
 void main() {
+  for (final scenario in [
+    for (final direction in [(0, -1), (0, 1), (-1, 0), (1, 0)])
+      for (final hz in [10, 60]) (direction, hz),
+  ]) {
+    final direction = scenario.$1, hz = scenario.$2;
+    test(
+        'fractional native departure aligns before entering $direction at $hz Hz',
+        () {
+      const threshold = GridPos(x: 4, y: 4);
+      final exit = GridPos(x: 4 - direction.$1, y: 4 - direction.$2);
+      final scene = MapSpatialScene(
+        width: 9,
+        depth: 9,
+        navigation: SpatialNavigationProfile(blockedAreas: [
+          for (var cell = 0; cell < 9; cell++)
+            if (cell != 4)
+              SpatialBlockedArea(
+                x: direction.$1 == 0 ? cell.toDouble() : 4,
+                z: direction.$2 == 0 ? cell.toDouble() : 4,
+                width: 1,
+                depth: 1,
+              ),
+        ]),
+      );
+      var checked = 0;
+      for (var px = 0; px < 16; px++) {
+        for (var pz = 0; pz < 16; pz++) {
+          final start = (x: exit.x + px / 16, z: exit.y + pz / 16);
+          final movement = SpatialMovementController.fromMap(
+            map: MapData(
+                id: 'outside',
+                name: 'Outside',
+                size: const GridSize(width: 9, height: 9),
+                spatialScene: scene),
+            models: const [],
+            spatialArrival: PlayerSpatialPosition(x: start.x, z: start.z),
+            validateSpawn: false,
+          );
+          if (!movement.isPositionTraversable) continue;
+          checked++;
+          movement.setPaused(true);
+          final rollback = movement.captureNativeTraversalRollback();
+          final controller = SpatialDoorTraversalController();
+          controller.start(
+            departure: SpatialDoorTraversalBinding(
+              mapId: 'outside',
+              instance: binding('outside').instance,
+              openAnimationIndex: 0,
+              closeAnimationIndex: 1,
+              openDurationSeconds: 7 / 30,
+              closeDurationSeconds: 7 / 30,
+              exitPos: exit,
+            ),
+            departurePos: threshold,
+            departureStart: start,
+          );
+          for (var tick = 0; tick < hz; tick++) {
+            controller.update(1 / hz);
+            final pose = controller.playerPose!;
+            expect(
+                () => movement.setNativeTraversalPose(
+                    x: pose.x,
+                    z: pose.z,
+                    facing: pose.facing,
+                    moving: pose.moving,
+                    animationSeconds: pose.animationSeconds),
+                returnsNormally,
+                reason:
+                    '$start tick $tick at ${movement.x},${movement.z} to $pose');
+          }
+          expect(
+              movement.spatialPosition, PlayerSpatialPosition(x: 4.5, z: 4.5),
+              reason: '$start');
+          controller.cancel();
+          rollback();
+          expect(movement.spatialPosition,
+              PlayerSpatialPosition(x: start.x, z: start.z));
+        }
+      }
+      expect(checked, greaterThan(100));
+    });
+  }
   group('HGSS native door optical camera', () {
     const hgss = MapWarpTransition(type: MapWarpTransitionType.hgss);
     const start = (x: 3.5, z: 5.75);

@@ -263,6 +263,73 @@ void main() {
     expect(condition(), isTrue);
   }
 
+  for (final startX in [3.0, 3.8125]) {
+    test(
+      'fractional door approach at $startX aligns outside the walls',
+      () async {
+        final source = outside.copyWith(
+          map: outside.map.copyWith(
+            spatialScene: outside.map.spatialScene!.copyWith(
+              navigation: outside.map.spatialScene!.navigation.copyWith(
+                blockedAreas: [
+                  SpatialBlockedArea(x: 0, z: 4, width: 3, depth: 1),
+                  SpatialBlockedArea(x: 4, z: 4, width: 4, depth: 1),
+                ],
+              ),
+            ),
+          ),
+        );
+        final session = await SpatialExplorationSession.load(
+          source,
+          spatialArrival: PlayerSpatialPosition(x: startX, z: 5.5),
+          loadMap: (_) async => inside,
+          knownMaps: [source.map, inside.map],
+        );
+        addTearDown(session.dispose);
+        expect(session.movement.isPositionTraversable, isTrue);
+        session.movement.setInput(x: 0, z: -1);
+        session.frames(1 / 60);
+        await untilMap(session, 'inside');
+        for (var tick = 0; tick < 500 && session.transitioning.value; tick++) {
+          session.frames(1 / 60);
+          await flush();
+        }
+        expect(session.interactionError.value, isNull);
+        expect(session.transitioning.value, isFalse);
+        expect(
+          session.movement.spatialPosition,
+          PlayerSpatialPosition(x: 3.5, z: 4.5),
+        );
+      },
+    );
+  }
+
+  test(
+    'cancelling fractional door alignment restores its precise source',
+    () async {
+      final session = await SpatialExplorationSession.load(
+        outside,
+        spatialArrival: PlayerSpatialPosition(x: 3, z: 5.5),
+        loadMap: (_) async => inside,
+        knownMaps: [outside.map, inside.map],
+      );
+      addTearDown(session.dispose);
+      final operation = session.enterWarp(entrance);
+      await flush();
+      for (var tick = 0; tick < 18; tick++) session.frames(1 / 60);
+      expect(session.movement.x, greaterThan(3));
+      session.cancelPendingTransition();
+      await operation;
+      expect(session.bundle.map.id, 'outside');
+      expect(
+        session.movement.spatialPosition,
+        PlayerSpatialPosition(x: 3, z: 5.5),
+      );
+      expect(session.nativeDoorTraversalActive, isFalse);
+      expect(session.interactionError.value, isNull);
+    },
+  );
+
   test('native destination decoding starts during opening and stays covered until transfer', () async {
     final budget = RuntimeResourceBudget(
       profile: const RuntimeResourceProfile(maximumConcurrentDecodes: 1),

@@ -54,6 +54,7 @@ final class SpatialDoorTraversalController {
   ({double x, double z})? _departureStart;
   double _elapsed = 0;
   double _sourceWalkElapsed = 0;
+  bool _departureAlignmentPresented = false;
   double _arrivalWalkElapsed = 0;
   double _departureZoomElapsed = 0;
   bool _transferred = false;
@@ -165,6 +166,7 @@ final class SpatialDoorTraversalController {
     _arrivalPos = arrivalPos;
     _elapsed =
         _sourceWalkElapsed = _arrivalWalkElapsed = _departureZoomElapsed = 0;
+    _departureAlignmentPresented = false;
     _transferred = false;
     _arrivalFirstFramePending = false;
     _ready = Completer<bool>();
@@ -230,6 +232,22 @@ final class SpatialDoorTraversalController {
     if (_elapsed + duration * 1e-7 >= duration) _elapsed = duration;
     if (phase == SpatialDoorTraversalPhase.steppingDeparture) {
       _sourceWalkElapsed = _elapsed;
+      if (!_departureAlignmentPresented) {
+        final start = _departureStart!, target = _departurePos!;
+        final horizontal = target.y == _departure!.exitPos.y;
+        final alignment = horizontal
+            ? (target.y + .5 - start.z).abs()
+            : (target.x + .5 - start.x).abs();
+        final advance = horizontal
+            ? (target.x + .5 - start.x).abs()
+            : (target.y + .5 - start.z).abs();
+        final alignmentTime =
+            stepDurationSeconds * alignment / (alignment + advance);
+        if (_elapsed >= alignmentTime) {
+          _departureAlignmentPresented = true;
+          if (alignment > 0) _sourceWalkElapsed = alignmentTime;
+        }
+      }
     } else if (phase == SpatialDoorTraversalPhase.steppingArrival) {
       _arrivalWalkElapsed = _elapsed;
     }
@@ -325,13 +343,34 @@ final class SpatialDoorTraversalController {
         departureStart != null) {
       final progress =
           (_sourceWalkElapsed / stepDurationSeconds).clamp(0.0, 1.0);
+      final targetX = departurePos.x + .5, targetZ = departurePos.y + .5;
+      final alignX =
+          departurePos.x == departure.exitPos.x ? targetX : departureStart.x;
+      final alignZ =
+          departurePos.y == departure.exitPos.y ? targetZ : departureStart.z;
+      final alignDistance =
+          (alignX - departureStart.x).abs() + (alignZ - departureStart.z).abs();
+      final advanceDistance =
+          (targetX - alignX).abs() + (targetZ - alignZ).abs();
+      final distance = (alignDistance + advanceDistance) * progress;
+      final aligning = alignDistance > 0 && distance < alignDistance;
+      final segmentProgress = aligning
+          ? distance / alignDistance
+          : advanceDistance == 0
+              ? 1.0
+              : ((distance - alignDistance) / advanceDistance).clamp(0.0, 1.0);
       return (
-        x: departureStart.x +
-            (departurePos.x + .5 - departureStart.x) * progress,
-        z: departureStart.z +
-            (departurePos.y + .5 - departureStart.z) * progress,
-        facing: _facing(departurePos.x - departure.exitPos.x,
-            departurePos.y - departure.exitPos.y),
+        x: aligning
+            ? departureStart.x + (alignX - departureStart.x) * segmentProgress
+            : alignX + (targetX - alignX) * segmentProgress,
+        z: aligning
+            ? departureStart.z + (alignZ - departureStart.z) * segmentProgress
+            : alignZ + (targetZ - alignZ) * segmentProgress,
+        facing: aligning && phase == SpatialDoorTraversalPhase.steppingDeparture
+            ? _facing((alignX - departureStart.x).sign.toInt(),
+                (alignZ - departureStart.z).sign.toInt())
+            : _facing(departurePos.x - departure.exitPos.x,
+                departurePos.y - departure.exitPos.y),
         moving: phase == SpatialDoorTraversalPhase.steppingDeparture,
         animationSeconds: _sourceWalkElapsed,
       );

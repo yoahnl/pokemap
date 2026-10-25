@@ -273,8 +273,9 @@ final class SpatialExplorationGameSessionRuntime
     if (gameplay == null) {
       unawaited(_session!.interact());
     } else {
+      final entity = gameplay.interactionTarget;
       unawaited(_runGameplay(() async {
-        await gameplay.interact();
+        await _session!.withEntityInteraction(entity, () => gameplay.interact());
       }));
     }
     return true;
@@ -532,6 +533,7 @@ final class SpatialExplorationGameSessionRuntime
             () => _session!.showDialogue(DialogueRef(
                 dialogueId: request.dialogueId,
                 startNode: request.yarnNodeName),
+                entity: _session!.interactionEntity,
                 choicePolicies: request.choicePolicies,
                 linePolicies: request.linePolicies)),
         battle: (request) => _withSceneState(read, commit, () async {
@@ -965,6 +967,7 @@ final class SpatialExplorationGameSessionRuntime
           narrativeSnapshot: preload?.narrativeSnapshot);
       _ensureLoadActive(generation);
       final loaded = await SpatialExplorationSession.load(bundle,
+          allowNpcOverlapRecovery: descriptor.launchMode == GameSessionLaunchMode.continueGame,
           knownMaps: _mapsById.values,
           worldStateProvider: () =>
               _sceneStateReader?.call().spatialWorldState ??
@@ -988,6 +991,11 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError('Exploration closed while loading.');
       }
       _session = loaded;
+      if (loaded.movement.spatialPosition != position) {
+        _gameState = state.copyWith(playerPosition: GridPos(
+            x: loaded.movement.x.floor(), y: loaded.movement.z.floor()),
+            playerSpatialPosition: loaded.movement.spatialPosition);
+      }
       _story = SpatialStoryPlayback(
         session: loaded,
         readGameState: _readMutableState,

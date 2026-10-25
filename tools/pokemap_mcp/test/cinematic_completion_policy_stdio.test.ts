@@ -15,7 +15,7 @@ function record(value: unknown): JsonRecord {
 
 function cinematic(policy: string): JsonRecord {
   return {
-    id: "completion", title: "Completion fixture", actorCompletionPolicy: policy, mapId: "room",
+    id: "completion", title: "Completion fixture", actorCompletionPolicy: policy, allowMobileActorCrossing: policy === "restoreInitial", mapId: "room",
     requiredActors: [{ actorId: "actor", label: "Actor" }],
     movementTargets: [{ targetId: "destination", label: "Destination" }],
     stageContext: {
@@ -54,7 +54,7 @@ test("MCP authors both cinematic completion policies and refuses an unknown poli
     await client.connect(transport);
     const described = await call("pokemap_describe", {});
     const descriptor = (described.mutationActions as JsonRecord[]).find(action => action.id === "cinematic.upsert");
-    assert.match(String(descriptor?.summary), /actorCompletionPolicy/);
+    assert.match(String(descriptor?.summary), /allowMobileActorCrossing/);
     assert.match(String(descriptor?.summary), /keepFinal.*restoreInitial/);
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
@@ -77,6 +77,7 @@ test("MCP authors both cinematic completion policies and refuses an unknown poli
       const item = record((project.cinematics as JsonRecord[]).find(asset => asset.id === "completion"));
       const steps = record(item.timeline).steps as JsonRecord[];
       assert.equal(item.actorCompletionPolicy, mode);
+      assert.equal(item.allowMobileActorCrossing, mode === "restoreInitial");
       assert.equal(record(steps[1]!.metadata)["actor.facingMode"], "preserve");
       assert.equal(record(steps[0]!.metadata)["actor.direction"], "left");
       const disk = record(JSON.parse(await readFile(file, "utf8")));

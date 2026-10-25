@@ -60,8 +60,9 @@ final class SpatialStoryPlayback {
         writeActor: (actor, pose) => _poses[_key(actor)] = pose,
         readCamera: () => camera,
         writeCamera: (pose) => camera = pose,
-        canTraverse: (actor, fromX, fromZ, toX, toZ, poses) => session.movement.canTraverseActor(
+        canTraverse: (actor, fromX, fromZ, toX, toZ, poses, crossingActors) => session.movement.canTraverseActor(
             fromX, fromZ, toX, toZ, ignoredEntityId: actor.mapEntityId,
+            ignoredEntityIds: {for (final binding in crossingActors) if (binding.mapEntityId != null) binding.mapEntityId!},
             actorStateProvider: (id) {
           final pose = poses.entries
               .where((entry) =>
@@ -90,7 +91,7 @@ final class SpatialStoryPlayback {
                         .z ??
                     _poses['player']?.z ??
                     session.movement.z),
-            collideWithPlayer: actor.kind == CinematicActorBindingKind.mapEntity),
+            collideWithPlayer: actor.kind == CinematicActorBindingKind.mapEntity && !crossingActors.any((binding) => binding.kind == CinematicActorBindingKind.player)),
         setInputLocked: (locked) {
           session.storyInputLocked = locked;
           if (!locked) _publishActivity();
@@ -259,7 +260,7 @@ final class SpatialStoryPlayback {
 
   void update(double dt, bool paused) {
     if (_disposed) return;
-    autonomousNpcs.update(dt, paused: paused || models.isPlaying || cinematics.isPlaying ||
+    autonomousNpcs.update(dt, paused: paused || session.movement.paused || models.isPlaying || cinematics.isPlaying ||
         session.interactionActive.value || session.storyInputLocked || session.nativeDoorTraversalActive);
     models.update(dt, paused: paused);
     if (!paused && dt.isFinite && dt > 0) {

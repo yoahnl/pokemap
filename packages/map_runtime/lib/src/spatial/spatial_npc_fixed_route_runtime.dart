@@ -167,8 +167,8 @@ final class SpatialNpcFixedRouteRuntime {
 
   void _advance(MapEntity entity, _SpatialNpcRouteEntry entry, double dt) {
     final from = entry.from!, to = entry.to!, attempt = entry.attempt!;
-    entry.elapsed += dt;
-    final progress = (entry.elapsed * 1000 / attempt.stepDurationMs).clamp(
+    final elapsed = entry.elapsed + dt;
+    final progress = (elapsed * 1000 / attempt.stepDurationMs).clamp(
       0.0,
       1.0,
     );
@@ -177,11 +177,18 @@ final class SpatialNpcFixedRouteRuntime {
     final z = from.z + (to.z - from.z) * progress;
     if (!_canTraverse(entity, previous.x, previous.z, x, z)) {
       _flushEntry(entity.id, entry);
-      entry.controller.resolveStep(attempt, NpcFixedRouteStepOutcome.blocked);
-      entry.clearMotion();
-      _poses.remove(entity.id);
+      if (entry.elapsed == 0) {
+        entry.controller.resolveStep(attempt, NpcFixedRouteStepOutcome.blocked);
+        entry.clearMotion();
+        _poses.remove(entity.id);
+      } else {
+        _poses[entity.id] = previous.copyWith(
+          motion: CharacterAnimationState.idle,
+        );
+      }
       return;
     }
+    entry.elapsed = elapsed;
     if (progress >= 1) {
       commitActor(entity.id, to);
       entry.lastCommitted = to;

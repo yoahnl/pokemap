@@ -6,6 +6,7 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
+import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
@@ -204,6 +205,13 @@ class CinematicInspector extends StatelessWidget {
     const Text(
       'La pose comprend la position et l’orientation. Une annulation restaure toujours la pose de départ.',
     ),
+    if (controller.project.settings.dimension == ProjectDimension.threeD)
+      StudioToggleRow(
+        label: 'Autoriser le croisement des personnages en mouvement',
+        description: 'Concerne uniquement les personnages qui se déplacent simultanément. Les obstacles et les positions finales restent vérifiés.',
+        value: asset.allowMobileActorCrossing,
+        onChanged: (value) => _edit(asset, (a) => a.copyWith(allowMobileActorCrossing: value)),
+      ),
     StudioCommitField(
       key: ValueKey('cinematic-notes-${asset.id}'),
       label: 'Notes de mise en scène',

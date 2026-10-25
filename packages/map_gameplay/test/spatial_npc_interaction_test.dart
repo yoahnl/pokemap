@@ -5,6 +5,120 @@ import 'package:test/test.dart';
 import 'spatial_movement_controller_test.dart' show plateau;
 
 void main() {
+  SpatialMovementController recoveryFixture({List<SpatialBlockedArea> blocked = const [],
+      List<MapEntity> others = const [], MapEntity? owner,
+      List<ProjectModel3dEntry> models = const [], List<SpatialModelInstance> instances = const [],
+      PlayerSpatialPosition? arrival}) {
+    final npc = owner ?? MapEntity(id: 'contact', kind: MapEntityKind.npc,
+        pos: const GridPos(x: 4, y: 4), properties: const {'collision.width': '1', 'collision.height': '1'},
+        npc: const MapEntityNpcData(characterId: 'actor'));
+    return SpatialMovementController.fromMap(map: MapData(id: 'map', name: 'Map',
+        size: const GridSize(width: 10, height: 10), entities: [npc, ...others],
+        spatialScene: MapSpatialScene(width: 10, depth: 10, instances: instances,
+            navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 1.5, z: 1.5), blockedAreas: blocked))),
+        models: models, spatialArrival: arrival ?? PlayerSpatialPosition(x: 4.5, z: 5), validateSpawn: false);
+  }
+  test('NPC footprint recovery reaches the enclosed one cell northern exit', () {
+    final movement = recoveryFixture(blocked: [
+      SpatialBlockedArea(x: 0, z: 5.125, width: 10, depth: 1),
+      SpatialBlockedArea(x: 3.9375, z: 3, width: .0625, depth: 2.125),
+      SpatialBlockedArea(x: 5, z: 3, width: .0625, depth: 2.125),
+    ]);
+    expect(movement.findNpcOverlapRecovery(), PlayerSpatialPosition(x: 4.5, z: 3.9375));
+  });
+  test('NPC footprint recovery reaches a four cell actor lateral exit', () {
+    final movement = recoveryFixture(owner: MapEntity(id: 'large', kind: MapEntityKind.npc,
+        pos: const GridPos(x: 3, y: 3), size: const GridSize(width: 4, height: 4),
+        properties: const {'collision.width': '4', 'collision.height': '4'},
+        npc: const MapEntityNpcData(characterId: 'actor')),
+        arrival: PlayerSpatialPosition(x: 5, z: 7),
+        blocked: [SpatialBlockedArea(x: 0, z: 7.125, width: 10, depth: 1)]);
+    expect(movement.findNpcOverlapRecovery(), PlayerSpatialPosition(x: 2.625, z: 7));
+  });
+  test('NPC arrival recovery finds the nearest free pixel without mutating movement', () {
+    final movement = recoveryFixture();
+    expect(movement.findNpcOverlapRecovery(), PlayerSpatialPosition(x: 4.5, z: 5.4375));
+    expect(movement.findNpcOverlapRecovery(), PlayerSpatialPosition(x: 4.5, z: 5.4375));
+    expect(movement.spatialPosition, PlayerSpatialPosition(x: 4.5, z: 5));
+    expect(movement.isPositionTraversable, isFalse);
+  });
+  test('NPC arrival recovery follows current poses and ignores absent actors', () {
+    final movement = recoveryFixture();
+    movement.setRuntimeStateProviders(actorStateProvider: (_) =>
+        SpatialActorRuntimeState(x: 4.5, z: 5.5, facing: EntityFacing.south));
+    expect(movement.findNpcOverlapRecovery(), PlayerSpatialPosition(x: 4.5, z: 4.9375));
+    movement.setEntityPresencePredicate((_) => false);
+    expect(movement.isPositionTraversable, isTrue);
+    expect(movement.findNpcOverlapRecovery(), isNull);
+  });
+  test('NPC arrival recovery never ignores a model collision', () {
+    final model = ProjectModel3dEntry(id: 'block', name: 'Block', sourceAssetId: 'block',
+        relativePath: 'assets/models3d/block.glb', inspection: Model3dInspection(meshCount: 1, triangleCount: 1,
+            bounds: Model3dBounds(min: Model3dVector3(x: -.1, y: 0, z: -.1),
+                max: Model3dVector3(x: .1, y: 1, z: .1))));
+    final movement = recoveryFixture(models: [model], instances: [SpatialModelInstance(
+        id: 'block', modelId: model.id, position: Model3dVector3(x: 4.5, y: 0, z: 5), blocksMovement: true)]);
+    expect(movement.findNpcOverlapRecovery(), isNull);
+  });
+  test('NPC arrival recovery refuses a static overlap', () {
+    final movement = recoveryFixture(blocked: [SpatialBlockedArea(x: 4, z: 4, width: 1, depth: 2)]);
+    expect(movement.findNpcOverlapRecovery(), isNull);
+  });
+  test('NPC arrival recovery cannot cross a static wall to the nearest endpoint', () {
+    final movement = recoveryFixture(blocked: [SpatialBlockedArea(x: 4, z: 5.0625, width: 1, depth: .0625)]);
+    expect(movement.findNpcOverlapRecovery(), PlayerSpatialPosition(x: 3.625, z: 5));
+  });
+  test('NPC arrival recovery keeps other NPCs solid around an enclosed actor', () {
+    final movement = recoveryFixture(blocked: [SpatialBlockedArea(x: 4, z: 5.0625, width: 1, depth: .0625),
+          SpatialBlockedArea(x: 4, z: 3.9375, width: 1, depth: .0625)],
+        others: [for (final x in [3, 5]) MapEntity(id: 'side-$x', kind: MapEntityKind.npc,
+          pos: GridPos(x: x, y: 4), size: const GridSize(width: 1, height: 2),
+          properties: const {'collision.width': '1', 'collision.height': '2'},
+          npc: const MapEntityNpcData(characterId: 'actor'))]);
+    expect(movement.findNpcOverlapRecovery(), isNull);
+  });
+  test('NPC arrival recovery follows the actual large footprint bounds', () {
+    final movement = recoveryFixture(owner: MapEntity(id: 'large', kind: MapEntityKind.npc,
+        pos: const GridPos(x: 2, y: 2), size: const GridSize(width: 6, height: 6),
+        properties: const {'collision.width': '6', 'collision.height': '6'},
+        npc: const MapEntityNpcData(characterId: 'actor')));
+    expect(movement.findNpcOverlapRecovery(), PlayerSpatialPosition(x: 1.625, z: 5));
+  });
+
+  test('explicit NPC collision retains its authored cell and runtime offset', () {
+    final npc = MapEntity(id: 'explicit', kind: MapEntityKind.npc,
+        pos: const GridPos(x: 4, y: 4),
+        properties: const {'collision.width': '1', 'collision.height': '1'},
+        npc: const MapEntityNpcData(characterId: 'actor'));
+    final movement = SpatialMovementController(
+        scene: MapSpatialScene(width: 10, depth: 10,
+            navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 1.5, z: 1.5))),
+        models: [], entities: [npc]);
+    expect(movement.canTraverseActor(2.5, 3.5, 6.5, 3.5), isTrue);
+    expect(movement.canTraverseActor(2.5, 5, 6.5, 5), isFalse);
+    movement.setRuntimeStateProviders(actorStateProvider: (_) =>
+        SpatialActorRuntimeState(x: 5.5, z: 6.5, facing: EntityFacing.north));
+    expect(movement.canTraverseActor(3.5, 5.5, 7.5, 5.5), isTrue);
+    expect(movement.canTraverseActor(3.5, 7, 7.5, 7), isFalse);
+  });
+  test('default NPC contact shares the actor inclusive feet anchor', () {
+    final npc = MapEntity(id: 'contact', kind: MapEntityKind.npc,
+        pos: const GridPos(x: 4, y: 4),
+        npc: const MapEntityNpcData(characterId: 'actor'));
+    final movement = SpatialMovementController(
+        scene: MapSpatialScene(width: 10, depth: 10,
+            navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 1.5, z: 1.5))),
+        models: [], entities: [npc]);
+    expect(movement.canTraverseActor(4.5, 3, 4.5, 4), isTrue);
+    expect(movement.canTraverseActor(4.5, 3, 4.5, 4.0625), isFalse);
+    expect(movement.canTraverseActor(4.5, 6, 4.5, 5), isTrue);
+    expect(movement.canTraverseActor(4.5, 6, 4.5, 4.9375), isFalse);
+    expect(movement.canTraverseActor(3, 4.5, 3.75, 4.5), isTrue);
+    expect(movement.canTraverseActor(3, 4.5, 3.8125, 4.5), isFalse);
+    expect(movement.canTraverseActor(6, 4.5, 5.25, 4.5), isTrue);
+    expect(movement.canTraverseActor(6, 4.5, 5.1875, 4.5), isFalse);
+  });
+
   final npc = MapEntity(
       id: 'npc',
       kind: MapEntityKind.npc,

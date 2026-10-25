@@ -265,6 +265,7 @@ final class CanonicalGamePackageExportService {
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresAudio(projection.project)) SpatialGameplayCapabilities.audioCapabilityId,
         if (projection.project.partyCompanion.enabled) SpatialGameplayCapabilities.companionCapabilityId,
+        if (projection.project.cinematics.any((cinematic) => cinematic.allowMobileActorCrossing)) CinematicAsset.mobileActorCrossingCapabilityId,
         if (projection.project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneBattlePayload && (node.payload as SceneBattlePayload).demonstration != null))) SceneBattleDemonstration.capabilityId,
       }.toList(growable: false)
         ..sort();

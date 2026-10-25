@@ -6,12 +6,12 @@ import 'package:map_runtime/src/application/scene_runtime/cinematic_runtime_play
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
-  test('spatial playback refuses actor-relative stage points without any writes', () async {
+  test('spatial playback refuses absent relative origins without any writes', () async {
     final host = _Host();
     final base = _asset();
     final context = base.stageContext!;
     final asset = CinematicAsset.fromJson({...base.toJson(), 'stageContext': {...context.toJson(),
-      'stagePoints': [for (final point in context.stagePoints) {...point.toJson(), 'relativeToActorId': 'hero'}],
+      'stagePoints': [for (final point in context.stagePoints) {...point.toJson(), 'relativeToActorId': 'missing'}],
     }});
     final initial = Map.of(host.poses);
     expect((await host.controller.play(asset)).success, isFalse);
@@ -19,6 +19,65 @@ void main() {
     expect(host.poses, initial);
     expect(host.locked, isFalse);
   });
+
+  for (final cancelled in [false, true]) {
+    test('relative zero-distance walking preserves fractional poses and ${cancelled ? 'cancels' : 'completes'}', () async {
+      final host = _Host();
+      host.poses['hero'] = const SpatialCinematicActorPose(x: 1.3125, z: 2.0625, facing: EntityFacing.east);
+      final initial = Map.of(host.poses);
+      final completion = host.controller.play(_relativeAsset());
+      expect(host.controller.isPlaying, isTrue);
+      host.controller.update(const Duration(milliseconds: 250));
+      expect(host.poses['hero']!.x, 1.3125);
+      expect(host.poses['hero']!.z, 2.0625);
+      expect(host.poses['hero']!.motion, CharacterAnimationState.walk);
+      expect(host.poses['hero']!.animationSeconds, .25);
+      expect(host.poses['hero']!.liftCells, 0);
+      if (cancelled) {
+        host.controller.cancel();
+        expect((await completion).success, isFalse);
+        expect(host.poses, initial);
+        expect(host.committed, isEmpty);
+      } else {
+        host.controller.update(const Duration(days: 1));
+        expect((await completion).success, isTrue);
+        expect(host.committed.keys.map((binding) => binding.actorId), contains('hero'));
+        expect(host.poses['hero']!.motion, CharacterAnimationState.idle);
+      }
+      expect(host.locked, isFalse);
+    });
+  }
+
+  test('relative route offsets use the initial snapshot across later groups', () async {
+    final host = _Host();
+    host.poses['hero'] = const SpatialCinematicActorPose(x: 1.3125, z: 2.0625, facing: EntityFacing.east);
+    final asset = _relativeAsset(offsets: [.5, 1]);
+    final completion = host.controller.play(asset);
+    host.controller.update(const Duration(seconds: 1));
+    expect(host.poses['hero']!.x, 1.8125);
+    host.controller.update(const Duration(seconds: 1));
+    expect((await completion).success, isTrue);
+    expect(host.poses['hero']!.x, 2.3125);
+    expect(host.poses['hero']!.z, 2.0625);
+  });
+
+  for (final failure in ['repositioned origin', 'outside map', 'wall']) {
+    test('relative routes reject $failure before changing actors', () async {
+      final host = _Host(wall: failure == 'wall');
+      var asset = _relativeAsset(offsets: [failure == 'outside map' ? 10 : 1]);
+      if (failure == 'repositioned origin') {
+        asset = asset.copyWith(stageContext: CinematicStageContext.fromJson({...asset.stageContext!.toJson(), 'initialPlacements': [
+          {'actorId': 'hero', 'kind': 'stagePoint', 'stagePointId': 'fixed'},
+        ], 'stagePoints': [...asset.stageContext!.stagePoints.map((point) => point.toJson()),
+          {'id': 'fixed', 'label': 'Fixed', 'x': 1, 'y': 2},
+        ]}));
+      }
+      expect((await host.controller.play(asset)).success, isFalse);
+      expect(host.writes, 0);
+      expect(host.committed, isEmpty);
+      expect(host.locked, isFalse);
+    });
+  }
 
   test(
     'parallel actors can clear one another path at the same timestamp',
@@ -51,6 +110,84 @@ void main() {
       expect(host.poses['guide']!.liftCells, 0);
     },
   );
+
+  test('explicit mobile actor crossing permits a simultaneous swap', () async {
+    final host = _Host();
+    final asset = CinematicAsset.fromJson({..._asset(swap: true).toJson(), 'allowMobileActorCrossing': true});
+    final completion = host.controller.play(asset);
+    host.controller.update(const Duration(milliseconds: 1500));
+    expect((await completion).success, isTrue);
+    expect(host.committed, hasLength(2));
+    expect(host.locked, isFalse);
+  });
+
+  for (final blockedBy in ['wall', 'stationary actor', 'overlapping final poses']) {
+    test('mobile crossing preserves $blockedBy rejection', () async {
+      final host = _Host(wall: blockedBy == 'wall', stationaryActor: blockedBy == 'stationary actor');
+      var asset = _asset(swap: true).copyWith(allowMobileActorCrossing: true);
+      if (blockedBy == 'overlapping final poses') {
+        asset = asset.copyWith(stageContext: CinematicStageContext.fromJson({...asset.stageContext!.toJson(), 'stagePoints': [
+          {'id': 'a', 'label': 'A', 'x': 3, 'y': 2},
+          {'id': 'b', 'label': 'B', 'x': 3, 'y': 2},
+        ]}));
+      }
+      final result = await host.controller.play(asset);
+      expect(result.success, isFalse);
+      expect(host.writes, 0);
+      expect(host.committed, isEmpty);
+      expect(host.locked, isFalse);
+    });
+  }
+
+  test('crossing opt-in never exempts a stationary member of the same group', () async {
+    final host = _Host();
+    final base = _asset(swap: true);
+    final asset = base.copyWith(allowMobileActorCrossing: true, timeline: CinematicTimeline(steps: [
+      for (final step in base.timeline.steps)
+        if (step.actorId == 'guide')
+          CinematicTimelineStep.fromJson({...step.toJson(), 'kind': 'actorFace', 'targetId': null, 'metadata': {'actor.direction': 'left'}})
+        else step,
+    ]));
+    expect((await host.controller.play(asset)).success, isFalse);
+    expect(host.writes, 0);
+    expect(host.committed, isEmpty);
+  });
+
+  test('cancelling a permitted crossing restores both actors before commit', () async {
+    final host = _Host();
+    final initial = Map.of(host.poses);
+    final completion = host.controller.play(_asset(swap: true).copyWith(allowMobileActorCrossing: true));
+    host.controller.update(const Duration(milliseconds: 500));
+    expect(host.poses['hero']!.x, host.poses['guide']!.x);
+    host.controller.cancel();
+    expect((await completion).success, isFalse);
+    expect(host.poses, initial);
+    expect(host.committed, isEmpty);
+    expect(host.locked, isFalse);
+  });
+
+  for (final kind in [CinematicTimelineStepKind.actorMove, CinematicTimelineStepKind.actorJump]) {
+    test('zero-distance ${kind.name} remains a blocker with crossing enabled', () async {
+      final host = _Host();
+      final base = _asset();
+      final asset = base.copyWith(allowMobileActorCrossing: true,
+        stageContext: CinematicStageContext.fromJson({...base.stageContext!.toJson(), 'stagePoints': [
+          {'id': 'a', 'label': 'A', 'x': 5, 'y': 2},
+          {'id': 'b', 'label': 'B', 'x': 3, 'y': 2},
+        ]}),
+        timeline: CinematicTimeline(steps: [for (final step in base.timeline.steps)
+          if (step.actorId == 'guide' && kind == CinematicTimelineStepKind.actorJump)
+            CinematicTimelineStep.fromJson({...step.toJson(), 'kind': 'actorJump', 'metadata': {'actor.jumpHeightCells': '1'}})
+          else step,
+        ]));
+      final completion = host.controller.play(asset);
+      host.controller.update(const Duration(milliseconds: 1500));
+      expect((await completion).success, isFalse);
+      expect(host.writes, 0);
+      expect(host.committed, isEmpty);
+      expect(host.locked, isFalse);
+    });
+  }
 
   test('crossing actor routes are refused before any visual writes', () async {
     final host = _Host();
@@ -100,8 +237,25 @@ void main() {
   );
 }
 
+CinematicAsset _relativeAsset({List<double> offsets = const [0]}) {
+  final base = _asset();
+  return CinematicAsset.fromJson({...base.toJson(), 'movementTargets': [
+    for (var i = 0; i < offsets.length; i++) {'targetId': 'relative-$i', 'label': 'Relative $i'},
+  ], 'stageContext': {...base.stageContext!.toJson(), 'initialPlacements': [
+    {'actorId': 'hero', 'kind': 'fromMapEntity'},
+  ], 'stagePoints': [
+    for (var i = 0; i < offsets.length; i++) {'id': 'relative-$i', 'label': 'Relative $i', 'x': offsets[i], 'y': 0, 'relativeToActorId': 'hero'},
+  ], 'movementTargetBindings': [
+    for (var i = 0; i < offsets.length; i++) {'targetId': 'relative-$i', 'kind': 'stagePoint', 'sourceId': 'relative-$i'},
+  ]}, 'timeline': {'steps': [
+    for (var i = 0; i < offsets.length; i++) {'id': 'relative-$i', 'kind': 'actorMove', 'actorId': 'hero', 'targetId': 'relative-$i', 'durationMs': 1000, 'metadata': {
+      'actor.movementMode': 'walk', 'actor.pathMode': 'direct', 'actor.facingMode': 'preserve',
+    }},
+  ]}});
+}
+
 final class _Host {
-  _Host({bool jump = false}) {
+  _Host({bool jump = false, bool wall = false, bool stationaryActor = false}) {
     poses['hero'] = const SpatialCinematicActorPose(
       x: 1,
       z: 2,
@@ -131,8 +285,10 @@ final class _Host {
         writeCamera: (pose) => camera = pose,
         setInputLocked: (value) => locked = value,
         onCompletedPoses: (values) => committed.addAll(values),
-        canTraverse: (actor, x, z, nx, nz, candidates) => candidates.entries
-            .where((entry) => entry.key.actorId != actor.actorId)
+        canTraverse: (actor, x, z, nx, nz, candidates, crossingActors) =>
+            (!wall || nx < 1.75 || nx > 2.25) &&
+            (!stationaryActor || (nx - 2).abs() >= .5 || (nz - 2).abs() >= .5) && candidates.entries
+            .where((entry) => entry.key.actorId != actor.actorId && !crossingActors.contains(entry.key))
             .every(
               (entry) =>
                   math.sqrt(

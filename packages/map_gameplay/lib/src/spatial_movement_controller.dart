@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:collection';
 
 import 'package:map_core/map_core.dart';
 
@@ -243,6 +244,53 @@ final class SpatialMovementController {
       x < scene.width &&
       z < scene.depth &&
       !_connectedCollides(_hitbox(_position));
+  PlayerSpatialPosition? findNpcOverlapRecovery() {
+    final origin = spatialPosition;
+    final footprint = _hitbox(_position);
+    final overlaps = <String>{};
+    final overlappingEntities = <MapEntity>[];
+    for (final source in entities) {
+      final entity = entityProjection == null ? source : entityProjection!(source);
+      if (entity != null && entity.kind == MapEntityKind.npc && entity.blocksMovement &&
+          (_entityPresencePredicate?.call(entity) ?? true) && _entityCollides(footprint, entity)) {
+        overlaps.add(entity.id);
+        overlappingEntities.add(entity);
+      }
+    }
+    if (overlaps.isEmpty || _collides(footprint, ignoredEntityIds: overlaps)) return null;
+    final pending = Queue<({int dx, int dz})>()..add((dx: 0, dz: 0));
+    final visited = <({int dx, int dz})>{(dx: 0, dz: 0)};
+    while (pending.isNotEmpty) {
+      final current = pending.removeFirst();
+      final fromX = origin.x + current.dx / pixelsPerCell;
+      final fromZ = origin.z + current.dz / pixelsPerCell;
+      for (final delta in [(dx: 0, dz: -1), (dx: -1, dz: 0), (dx: 1, dz: 0), (dx: 0, dz: 1)]) {
+        final next = (dx: current.dx + delta.dx, dz: current.dz + delta.dz);
+        if (visited.contains(next)) continue;
+        final toX = origin.x + next.dx / pixelsPerCell;
+        final toZ = origin.z + next.dz / pixelsPerCell;
+        final candidate = _actorFootprint(toX, toZ);
+        final expanded = PixelRect(leftPx: candidate.rect.leftPx - 1,
+            topPx: candidate.rect.topPx - 1, widthPx: candidate.rect.widthPx + 2,
+            heightPx: candidate.rect.heightPx + 2);
+        if (!overlappingEntities.any((entity) => _entityCollides(expanded, entity,
+            offsetX: candidate.offsetX, offsetZ: candidate.offsetZ))) {
+          continue;
+        }
+        if (!canTraverseActor(fromX, fromZ, toX, toZ, ignoredEntityIds: overlaps)) continue;
+        visited.add(next);
+        if (canTraverseActor(toX, toZ, toX, toZ)) {
+          return PlayerSpatialPosition(x: toX, z: toZ);
+        }
+        if (overlappingEntities.any((entity) => _entityCollides(candidate.rect, entity,
+            offsetX: candidate.offsetX, offsetZ: candidate.offsetZ))) {
+          pending.add(next);
+        }
+      }
+    }
+    return null;
+  }
+
   void setConnectedNeighbors(
       Map<MapConnectionDirection, SpatialMovementNeighbor> neighbors,
       {bool waitForReady = false}) {
@@ -323,6 +371,7 @@ final class SpatialMovementController {
 
   bool canTraverseActor(double fromX, double fromZ, double toX, double toZ,
       {String? ignoredEntityId,
+      Set<String> ignoredEntityIds = const {},
       bool collideWithPlayer = false,
       PlayerSpatialPosition? playerPosition,
       SpatialActorRuntimeState? Function(String entityId)?
@@ -349,6 +398,7 @@ final class SpatialMovementController {
               offsetX: footprint.offsetX,
               offsetZ: footprint.offsetZ,
               ignoredEntityId: ignoredEntityId,
+              ignoredEntityIds: ignoredEntityIds,
               actorStateProvider: actorStateProvider) ||
           collideWithPlayer &&
               _overlapsPlayer(footprint.rect,
@@ -784,6 +834,7 @@ final class SpatialMovementController {
       double offsetX = 0,
       double offsetZ = 0,
       String? ignoredEntityId,
+      Set<String> ignoredEntityIds = const {},
       SpatialActorRuntimeState? Function(String entityId)?
           actorStateProvider}) {
     final left = rect.leftPx / pixelsPerCell + offsetX,
@@ -819,25 +870,10 @@ final class SpatialMovementController {
           ? sourceEntity
           : entityProjection!(sourceEntity);
       if (entity == null || !entity.blocksMovement) continue;
-      if (entity.id == ignoredEntityId) continue;
+      if (entity.id == ignoredEntityId || ignoredEntityIds.contains(entity.id)) continue;
       if (!(_entityPresencePredicate?.call(entity) ?? true)) continue;
-      final footprint = resolveEntityCollisionRectPx(entity,
-          tileWidthPx: pixelsPerCell, tileHeightPx: pixelsPerCell);
-      final state = actorStateProvider?.call(entity.id) ??
-          this.actorStateProvider?.call(entity.id);
-      final entityOffsetX = state == null ? 0 : state.x - entity.pos.x - .5;
-      final entityOffsetZ = state == null ? 0 : state.z - entity.pos.y - .5;
-      final npcLeft = footprint.leftPx / pixelsPerCell + entityOffsetX,
-          npcTop = footprint.topPx / pixelsPerCell - .5 + entityOffsetZ,
-          npcRight = (footprint.leftPx + footprint.widthPx) / pixelsPerCell +
-              entityOffsetX,
-          npcBottom = (footprint.topPx + footprint.heightPx) / pixelsPerCell -
-              .5 +
-              entityOffsetZ;
-      if (left < npcRight &&
-          right > npcLeft &&
-          top < npcBottom &&
-          bottom > npcTop) {
+      if (_entityCollides(rect, entity,
+          offsetX: offsetX, offsetZ: offsetZ, actorStateProvider: actorStateProvider)) {
         return true;
       }
     }
@@ -858,6 +894,43 @@ final class SpatialMovementController {
       }
     }
     return false;
+  }
+
+  bool _entityCollides(PixelRect rect, MapEntity entity,
+      {double offsetX = 0, double offsetZ = 0,
+      SpatialActorRuntimeState? Function(String entityId)? actorStateProvider}) {
+    final left = rect.leftPx / pixelsPerCell + offsetX,
+        top = rect.topPx / pixelsPerCell + offsetZ,
+        right = (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX,
+        bottom = (rect.topPx + rect.heightPx) / pixelsPerCell + offsetZ;
+    final footprint = resolveEntityCollisionRectPx(entity,
+        tileWidthPx: pixelsPerCell, tileHeightPx: pixelsPerCell);
+    final state = actorStateProvider?.call(entity.id) ??
+        this.actorStateProvider?.call(entity.id);
+    final entityOffsetX = state == null ? 0 : state.x - entity.pos.x - .5;
+    final entityOffsetZ = state == null ? 0 : state.z - entity.pos.y - .5;
+    final hasExplicitCollision = entity.properties.keys.any(const {
+      mapEntityCollisionWidthProperty,
+      mapEntityCollisionHeightProperty,
+      mapEntityCollisionOffsetXProperty,
+      mapEntityCollisionOffsetYProperty,
+      'collisionWidth',
+      'collisionHeight',
+      'collisionOffsetX',
+      'collisionOffsetY',
+    }.contains);
+    final verticalAnchorOffset =
+        entity.kind == MapEntityKind.npc && !hasExplicitCollision
+          ? .5 - 1 / pixelsPerCell
+          : 0;
+    final npcLeft = footprint.leftPx / pixelsPerCell + entityOffsetX,
+        npcTop = footprint.topPx / pixelsPerCell - verticalAnchorOffset + entityOffsetZ,
+        npcRight = (footprint.leftPx + footprint.widthPx) / pixelsPerCell +
+          entityOffsetX,
+        npcBottom = (footprint.topPx + footprint.heightPx) / pixelsPerCell -
+          verticalAnchorOffset +
+          entityOffsetZ;
+    return left < npcRight && right > npcLeft && top < npcBottom && bottom > npcTop;
   }
 
   bool _modelCollides(PixelRect rect, SpatialModelInstance instance,

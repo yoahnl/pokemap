@@ -364,6 +364,38 @@ final class SpatialExplorationSession {
   }
 
   final Map<String, EntityFacing> npcFacing = {};
+  MapEntity? _interactionEntity;
+  String? _interactionMapId;
+
+  MapEntity? get interactionEntity =>
+      _interactionMapId == bundle.map.id ? _interactionEntity : null;
+
+  Future<T> withEntityInteraction<T>(
+      MapEntity? entity, Future<T> Function() operation) async {
+    if (entity?.npc == null) return operation();
+    final target = entity!;
+    final mapId = bundle.map.id;
+    final previousEntity = _interactionEntity;
+    final previousMapId = _interactionMapId;
+    final previousFacing = npcFacing[target.id];
+    _interactionEntity = target;
+    _interactionMapId = mapId;
+    npcFacing[target.id] = spatialNpcFacingPlayer(target,
+        x: movement.x, z: movement.z, actorState: actorRuntimeState(target));
+    try {
+      return await operation();
+    } finally {
+      _interactionEntity = previousEntity;
+      _interactionMapId = previousMapId;
+      if (!_disposed && bundle.map.id == mapId) {
+        if (previousFacing == null) {
+          npcFacing.remove(target.id);
+        } else {
+          npcFacing[target.id] = previousFacing;
+        }
+      }
+    }
+  }
 
   void setTextSpeed(RuntimeDialogueTextSpeed value) {
     textSpeed = value;
@@ -629,9 +661,11 @@ final class SpatialExplorationSession {
     GameState Function()? presentationStateProvider,
     SpatialWorldState Function()? worldStateProvider,
     Future<RuntimeMapBundle> Function(String)? loadMap,
+    bool allowNpcOverlapRecovery = false,
     Iterable<MapData> knownMaps = const [],
   }) =>
       _load(bundle,
+          allowNpcOverlapRecovery: allowNpcOverlapRecovery,
           arrival: arrival,
           spatialArrival: spatialArrival,
           facing: facing,
@@ -659,6 +693,7 @@ final class SpatialExplorationSession {
     SpatialModelRuntimeState? Function(String mapId, String instanceId)?
     modelPoseProvider,
     bool validateSpawn = true,
+    bool allowNpcOverlapRecovery = false,
     Iterable<MapData> knownMaps = const [],
   }) async {
     final scene = bundle.map.spatialScene;
@@ -728,11 +763,11 @@ final class SpatialExplorationSession {
       }
       characters.add(npcCharacter);
     }
-    final movement = SpatialMovementController.fromMap(
+    SpatialMovementController movementAt(PlayerSpatialPosition? position) => SpatialMovementController.fromMap(
         map: bundle.map,
         models: bundle.manifest.models3d,
         arrival: arrival,
-        spatialArrival: spatialArrival,
+        spatialArrival: position,
         entityPresencePredicate: (entity) =>
             entityIsPresent?.call(bundle.map.id, entity) ?? true,
         entityProjection: (entity) => entityProjection == null ? entity :
@@ -742,9 +777,14 @@ final class SpatialExplorationSession {
             worldStateProvider?.call().modelState(bundle.map.id, id),
         actorStateProvider: (id) =>
             worldStateProvider?.call().actorState(bundle.map.id, id),
-        validateSpawn: validateSpawn && spatialArrival == null,
+        validateSpawn: validateSpawn && position == null,
       facing: facing,
     );
+    var movement = movementAt(spatialArrival);
+    if (allowNpcOverlapRecovery && spatialArrival != null && !movement.isPositionTraversable) {
+      final recovered = movement.findNpcOverlapRecovery();
+      if (recovered != null) movement = movementAt(recovered);
+    }
     final entityVisuals = SpatialEntityVisualPlan(bundle.map, bundle.manifest);
     movement.entityProjection = (entity) => entityProjection == null ? entity :
       entityProjection(bundle.map.id, entity);
@@ -828,7 +868,7 @@ final class SpatialExplorationSession {
       session._preparedMaps[bundle.map.id] = session._capturePrepared();
       session._mapOrigins[bundle.map.id] = ui.Offset.zero;
       if (validateSpawn && spatialArrival != null) {
-        await session._validateSavedPosition();
+        await session._validateSavedPosition(npcRecoveryAttempted: allowNpcOverlapRecovery);
       }
       return session;
     } on Object {
@@ -1101,7 +1141,7 @@ final class SpatialExplorationSession {
         : worldStateProvider?.call().actorState(source.map.id, entity.id);
     final presentationFacing = _presentationFacingFor(entity, source, saved);
     final facing = storyPose?.facing ??
-        (active && _dialogueEntityId == entity.id
+        (active && (_dialogueEntityId == entity.id || interactionEntity?.id == entity.id)
             ? npcFacing[entity.id]
             : null) ??
         pose?.facing ??
@@ -1498,14 +1538,16 @@ final class SpatialExplorationSession {
     cancelPendingTransition();
   }
 
-  Future<void> _validateSavedPosition() async {
+  Future<void> _validateSavedPosition({bool npcRecoveryAttempted = false}) async {
     if (movement.isPositionTraversable) return;
     for (final connection in viewConnections) {
       await loadConnectionNeighbor(connection);
     }
     _linkPreparedMaps(_preparedMaps.keys.toSet());
     if (!movement.isPositionTraversable) {
-      throw StateError('La position sauvegardée est bloquée.');
+      throw StateError(npcRecoveryAttempted
+          ? 'La position sauvegardée est bloquée. Aucune position de reprise accessible autour des personnages. La sauvegarde d’origine est conservée.'
+          : 'La position sauvegardée est bloquée.');
     }
   }
 

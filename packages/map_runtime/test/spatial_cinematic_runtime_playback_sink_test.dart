@@ -607,7 +607,7 @@ final class _Host {
         },
         readCamera: () => camera,
         writeCamera: (next) => camera = next,
-        canTraverse: (actor, ax, az, bx, bz, poses) =>
+        canTraverse: (actor, ax, az, bx, bz, poses, crossingActors) =>
             canTraverseSpatialTerrainStep(map.spatialScene!, ax, az, bx, bz) &&
             !(blocked?.call(ax, az, bx, bz) ?? false),
         setInputLocked: (next) {
@@ -655,7 +655,7 @@ final class _MultiActorHost {
         writeCamera: (pose) {},
         setInputLocked: (value) => locked = value,
         onCompletedPoses: (poses) {},
-        canTraverse: (actor, ax, az, bx, bz, simulated) {
+        canTraverse: (actor, ax, az, bx, bz, simulated, crossingActors) {
           final candidates = simulated.isEmpty
               ? {
                   for (final binding in bindings)

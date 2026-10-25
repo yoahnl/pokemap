@@ -35,6 +35,7 @@ abstract final class AveluneRuntimeCompatibility {
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,
           SceneBattleDemonstration.capabilityId,
+          CinematicAsset.mobileActorCrossingCapabilityId,
           'overworld.menu@1',
           'world.shop@1',
         },

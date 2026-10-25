@@ -57,6 +57,7 @@ final class CinematicAsset {
     this.stageContext,
     required this.timeline,
     this.actorCompletionPolicy = CinematicActorCompletionPolicy.keepFinal,
+    this.allowMobileActorCrossing = false,
     String? notes,
     Map<String, String> metadata = const <String, String>{},
   })  : id = _requireTrimmed(id, 'CinematicAsset.id'),
@@ -104,6 +105,11 @@ final class CinematicAsset {
         'stageContext',
         CinematicStageContext.fromJson,
       ),
+      allowMobileActorCrossing: switch (json['allowMobileActorCrossing']) {
+        bool value => value,
+        null when !json.containsKey('allowMobileActorCrossing') => false,
+        _ => throw const FormatException('allowMobileActorCrossing requires a boolean.'),
+      },
       actorCompletionPolicy: json.containsKey('actorCompletionPolicy')
           ? _readEnum(CinematicActorCompletionPolicy.values, json['actorCompletionPolicy'], 'actorCompletionPolicy')
           : CinematicActorCompletionPolicy.keepFinal,
@@ -126,6 +132,8 @@ final class CinematicAsset {
   final List<CinematicMovementTargetRef> movementTargets;
   final CinematicStageContext? stageContext;
   final CinematicTimeline timeline;
+  static const mobileActorCrossingCapabilityId = 'map3d.cinematic-mobile-crossing@1';
+  final bool allowMobileActorCrossing;
   final CinematicActorCompletionPolicy actorCompletionPolicy;
   final String? notes;
   final Map<String, String> metadata;
@@ -143,6 +151,7 @@ final class CinematicAsset {
     Object? stageContext = _cinematicCopyUnset,
     CinematicTimeline? timeline,
     CinematicActorCompletionPolicy? actorCompletionPolicy,
+    bool? allowMobileActorCrossing,
     Object? notes = _cinematicCopyUnset,
     Map<String, String>? metadata,
   }) {
@@ -168,6 +177,7 @@ final class CinematicAsset {
           : stageContext as CinematicStageContext?,
       timeline: timeline ?? this.timeline,
       actorCompletionPolicy: actorCompletionPolicy ?? this.actorCompletionPolicy,
+      allowMobileActorCrossing: allowMobileActorCrossing ?? this.allowMobileActorCrossing,
       notes:
           identical(notes, _cinematicCopyUnset) ? this.notes : notes as String?,
       metadata: metadata ?? this.metadata,
@@ -189,6 +199,7 @@ final class CinematicAsset {
         'stageContext': stageContext?.toJson(),
         'timeline': timeline.toJson(),
         'actorCompletionPolicy': actorCompletionPolicy.name,
+        'allowMobileActorCrossing': allowMobileActorCrossing,
         'notes': notes,
         'metadata': metadata,
       });
@@ -209,6 +220,7 @@ final class CinematicAsset {
           other.stageContext == stageContext &&
           other.timeline == timeline &&
           other.actorCompletionPolicy == actorCompletionPolicy &&
+          other.allowMobileActorCrossing == allowMobileActorCrossing &&
           other.notes == notes &&
           _mapEquals(other.metadata, metadata);
 
@@ -226,6 +238,7 @@ final class CinematicAsset {
         stageContext,
         timeline,
         actorCompletionPolicy,
+        allowMobileActorCrossing,
         notes,
         _mapHash(metadata),
       );

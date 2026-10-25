@@ -7,6 +7,7 @@ import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.d
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_inspector.dart';
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_view_state.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -27,12 +28,14 @@ void main() {
             MapData(
               id: 'room',
               name: 'Room',
+              version: ProjectVersion.v9,
+              spatialScene: MapSpatialScene(width: 16, depth: 16),
               size: const GridSize(width: 16, height: 16),
             ).toJson(),
           ),
         );
         await f.writeManifest(
-          facingProject(facingCinematic(facingMode: null, manual: true)),
+          facingProject(facingCinematic(facingMode: null, manual: true)).copyWith(version: ProjectVersion.v9, settings: ProjectSettings(dimension: ProjectDimension.threeD)),
         );
         return f;
       }))!;
@@ -97,6 +100,15 @@ void main() {
         ),
         findsOneWidget,
       );
+      final crossing = find.byWidgetPredicate((widget) => widget is StudioToggleRow && widget.label == 'Autoriser le croisement des personnages en mouvement');
+      expect(crossing, findsOneWidget);
+      expect(tester.widget<StudioToggleRow>(crossing).value, isFalse);
+      tester.widget<StudioToggleRow>(crossing).onChanged!(true);
+      expect(controller.active!.asset.allowMobileActorCrossing, isTrue);
+      controller.undo();
+      expect(controller.active!.asset.allowMobileActorCrossing, isFalse);
+      controller.redo();
+      expect(controller.active!.asset.allowMobileActorCrossing, isTrue);
       final initial = controller.active!.asset;
       for (final entry in [
         (

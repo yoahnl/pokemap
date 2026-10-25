@@ -5,6 +5,24 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/spatial/spatial_npc_fixed_route_runtime.dart';
 
 void main() {
+  test('mid-step obstruction resumes the same destination inside fixed bounds', () {
+    final host = _Host();
+    final runtime = host.runtime();
+    runtime.update(.001);
+    runtime.update(.04);
+    host.blocked = true;
+    runtime.update(.04);
+    expect(host.saved['actor']!.x, closeTo(2.9, .0001));
+    expect(runtime.poseFor('actor')!.motion, CharacterAnimationState.idle);
+    runtime.update(3);
+    expect(host.saved['actor']!.x, closeTo(2.9, .0001));
+    host.blocked = false;
+    runtime.update(.06);
+    expect(host.saved['actor']!.x, 3.5);
+    expect(runtime.poseFor('actor'), isNull);
+    runtime.dispose();
+  });
+
   test('an external displacement while paused is never overwritten by the pending route', () {
     final host = _Host();
     final runtime = host.runtime();

@@ -52,6 +52,9 @@ final class GamePackageProjectValidator {
         }
         return bytes;
       });
+      if (project.cinematics.any((cinematic) => cinematic.allowMobileActorCrossing) && !packageManifest.compatibility.requiredCapabilities.contains(CinematicAsset.mobileActorCrossingCapabilityId)) {
+        _fail('Mobile actor crossings require the explicit cinematic capability.');
+      }
       final objectPaths = payloadPaths
           .where((path) => path.startsWith('project/catalog/objects/'))
           .toSet();

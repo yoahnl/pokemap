@@ -169,7 +169,7 @@ void main() {
     final map = MapData(id: 'map', name: 'Map', version: ProjectVersion.v9,
       size: const GridSize(width: 8, height: 8), entities: [owner],
       spatialScene: MapSpatialScene(width: 8, depth: 8,
-        navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 4, z: 4))));
+        navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 2, z: 4))));
     final project = ProjectManifest(name: 'Test', version: ProjectVersion.v9,
       settings: const ProjectSettings(dimension: ProjectDimension.threeD, defaultPlayerCharacterId: 'actor'),
       maps: const [], tilesets: const [], characters: [character],
@@ -458,6 +458,29 @@ void main() {
     expect(session.npcFrame(other).frame, const Rect.fromLTWH(96, 0, 32, 32));
     world = const SpatialWorldState.empty();
     expect(session.npcFrame(other).frame, const Rect.fromLTWH(64, 0, 32, 32));
+    world = before;
+    final beforeFacing = Map<String, EntityFacing>.from(session.npcFacing);
+    await expectLater(session.withEntityInteraction(npc, () async {
+      expect(session.interactionEntity, npc);
+      expect(session.npcFrame(npc).frame, const Rect.fromLTWH(32, 0, 32, 32));
+      expect(session.npcFrame(other).frame, const Rect.fromLTWH(96, 0, 32, 32));
+      session.npcStoryPose = (entity) => entity.id == npc.id
+          ? const SpatialCinematicActorPose(x: 4.5, z: 2.5, facing: EntityFacing.north)
+          : null;
+      expect(session.npcFrame(npc).frame, const Rect.fromLTWH(0, 0, 32, 32));
+      session.npcStoryPose = null;
+      final scopedDialogue = session.showDialogue(const DialogueRef(dialogueId: 'hello'),
+          entity: session.interactionEntity);
+      await _waitForDialogue(session);
+      session.confirmDialogue();
+      expect((await scopedDialogue).success, isTrue);
+      expect(session.npcFrame(npc).frame, const Rect.fromLTWH(32, 0, 32, 32));
+      throw StateError('interaction cancelled');
+    }), throwsStateError);
+    expect(session.interactionEntity, isNull);
+    expect(session.npcFacing, beforeFacing);
+    expect(session.npcFrame(npc).frame, const Rect.fromLTWH(64, 0, 32, 32));
+    expect(world, before);
   });
   test('3D test rejects missing player instead of inventing an atlas',
       () async {

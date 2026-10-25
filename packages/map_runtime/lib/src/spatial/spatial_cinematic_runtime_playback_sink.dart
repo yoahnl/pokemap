@@ -93,7 +93,8 @@ typedef SpatialCinematicTraversal = bool Function(
     double fromZ,
     double toX,
     double toZ,
-    Map<CinematicActorBinding, SpatialCinematicActorPose> poses);
+    Map<CinematicActorBinding, SpatialCinematicActorPose> poses,
+    Set<CinematicActorBinding> crossingActors);
 
 final class SpatialCinematicRuntimePlaybackSink
     implements CinematicRuntimePlaybackSink, CinematicRuntimeGroupPlaybackSink {
@@ -151,14 +152,6 @@ final class SpatialCinematicRuntimePlaybackSink
     try {
       if (!(isReady?.call() ?? true)) {
         throw StateError('The spatial cinematic host is unavailable.');
-      }
-      if (asset.stageContext?.stagePoints.any(
-            (point) => point.relativeToActorId != null,
-          ) ??
-          false) {
-        return _rejected(
-          'Actor-relative stage points require a 2D cinematic map.',
-        );
       }
       final map = activeMap();
       if (map.spatialScene == null || asset.mapId != map.id) {
@@ -246,7 +239,7 @@ final class SpatialCinematicRuntimePlaybackSink
       for (final entry in initial.entries) {
         final pose = entry.value;
         if (!canTraverse(
-            entry.key, pose.x, pose.z, pose.x, pose.z, initialPoses)) {
+            entry.key, pose.x, pose.z, pose.x, pose.z, initialPoses, const {})) {
           throw StateError(
               'Initial placement ${entry.key.actorId} is blocked.');
         }
@@ -309,11 +302,13 @@ final class SpatialCinematicRuntimePlaybackSink
         }
         }
         _validateGroupMotion(map: map, bindings: bindings, start: before,
-            routes: routes, steps: group.members.map((member) => member.step).toList());
+            routes: routes, steps: group.members.map((member) => member.step).toList(),
+            allowCrossing: asset.allowMobileActorCrossing);
         poses..clear()..addAll(next);
       }
       for (final entry in poses.entries) {
         _terminalPose(entry.key, entry.value);
+        _validateLanding(map, entry.key, (x: entry.value.x, y: entry.value.z), poses);
       }
       _prepared =
           _SpatialCinematicPreparation(asset, map, bindings, initial, routes);
@@ -331,7 +326,7 @@ final class SpatialCinematicRuntimePlaybackSink
     _groupStartPoses = _livePoses(prepared);
     _groupSteps = contexts.map((context) => context.step).toList();
     _validateGroupMotion(map: prepared.map, bindings: prepared.bindings,
-        start: _groupStartPoses, routes: prepared.routes, steps: _groupSteps);
+        start: _groupStartPoses, routes: prepared.routes, steps: _groupSteps, allowCrossing: prepared.asset.allowMobileActorCrossing);
     for (final context in contexts) { beginStep(context); }
   }
 
@@ -426,7 +421,8 @@ final class SpatialCinematicRuntimePlaybackSink
     if (route != null && binding != null && _groupSteps.isNotEmpty) {
       _validateGroupMotion(map: prepared.map, bindings: prepared.bindings,
           start: _groupStartPoses, routes: prepared.routes, steps: _groupSteps,
-          from: _routeProgress, to: progress);
+          from: _routeProgress, to: progress,
+          allowCrossing: prepared.asset.allowMobileActorCrossing);
     }
     if (route != null && binding != null && _jumpHeight != null) {
       if (progress >= 1) {
@@ -651,7 +647,18 @@ final class SpatialCinematicRuntimePlaybackSink
     required Map<String, List<({double x, double y})>> routes,
     required List<CinematicTimelineStep> steps,
     double from = 0, double to = 1,
+    bool allowCrossing = false,
   }) {
+    final crossingActors = <CinematicActorBinding>{
+      if (allowCrossing)
+        for (final step in steps)
+          if ((step.kind == CinematicTimelineStepKind.actorMove || step.kind == CinematicTimelineStepKind.actorJump) &&
+              bindings[step.actorId] != null &&
+              routes[step.id]?.any((point) =>
+                  (point.x - start[bindings[step.actorId]]!.x).abs() > .000000001 ||
+                  (point.y - start[bindings[step.actorId]]!.z).abs() > .000000001) == true)
+            bindings[step.actorId]!,
+    };
     var length = 0.0;
     for (final step in steps) {
       final binding = bindings[step.actorId];
@@ -695,7 +702,7 @@ final class SpatialCinematicRuntimePlaybackSink
               for (var segment = before.segment + 1; segment <= after.segment; segment++)
                 route[segment],
             (x: pose.x, y: pose.z),
-          ], poses: candidates);
+          ], poses: candidates, crossingActors: crossingActors);
         }
       }
       previous = candidates;
@@ -705,7 +712,8 @@ final class SpatialCinematicRuntimePlaybackSink
 
   void _validateRoute(MapData map, CinematicActorBinding binding,
       List<({double x, double y})> route,
-      {required Map<CinematicActorBinding, SpatialCinematicActorPose> poses}) {
+      {required Map<CinematicActorBinding, SpatialCinematicActorPose> poses,
+      Set<CinematicActorBinding> crossingActors = const {}}) {
     final traversalPoses =
         Map<CinematicActorBinding, SpatialCinematicActorPose>.unmodifiable(
             poses);
@@ -728,7 +736,7 @@ final class SpatialCinematicRuntimePlaybackSink
           y: from.y + (to.y - from.y) * i / count
         );
         if (!canTraverse(binding, previous.x, previous.y, point.x, point.y,
-            traversalPoses)) {
+            traversalPoses, crossingActors)) {
           throw StateError('Actor ${binding.actorId} route is blocked: (${previous.x}, ${previous.y}) -> (${point.x}, ${point.y}).');
         }
         previous = point;
@@ -740,7 +748,7 @@ final class SpatialCinematicRuntimePlaybackSink
       ({double x, double y}) target,
       Map<CinematicActorBinding, SpatialCinematicActorPose> poses) {
     if (!_inside(map, target.x, target.y) ||
-        !canTraverse(binding, target.x, target.y, target.x, target.y, poses)) {
+        !canTraverse(binding, target.x, target.y, target.x, target.y, poses, const {})) {
       throw StateError('Actor ${binding.actorId} jump landing is blocked.');
     }
   }
@@ -752,7 +760,21 @@ final class SpatialCinematicRuntimePlaybackSink
     if (point == null) {
       throw StateError('Cinematic stage point $id is missing.');
     }
-    return (x: point.x, y: point.y);
+    final actorId = point.relativeToActorId;
+    if (actorId == null) return (x: point.x, y: point.y);
+    final binding = asset.stageContext?.actorBindings
+        .where((binding) => binding.actorId == actorId)
+        .firstOrNull;
+    final origin = binding == null
+        ? null
+        : _snapshot?.actors[binding] ?? readActor(binding);
+    final resolved = resolveCinematicStagePoint(point, {
+      if (origin != null) actorId: (x: origin.x, y: origin.z),
+    });
+    if (resolved == null) {
+      throw StateError('Cinematic stage point $id has no actor origin.');
+    }
+    return (x: resolved.x, y: resolved.y);
   }
 
   ({double x, double y}) _entityPoint(CinematicAsset asset, MapData map,

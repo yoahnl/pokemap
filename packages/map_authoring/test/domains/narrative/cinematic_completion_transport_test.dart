@@ -11,7 +11,10 @@ void main() {
       final f = await _Fixture.create();
       addTearDown(f.dispose);
       for (final policy in CinematicActorCompletionPolicy.values) {
-        final asset = facingCinematic().copyWith(actorCompletionPolicy: policy);
+        final asset = facingCinematic().copyWith(
+            actorCompletionPolicy: policy,
+            allowMobileActorCrossing:
+                policy == CinematicActorCompletionPolicy.restoreInitial);
         final request =
             await f.request('cinematic.upsert', {'cinematic': asset.toJson()});
         final before = await f.file.readAsBytes();
@@ -49,7 +52,31 @@ void main() {
             asset);
       }
       final describe = await f.command('describe', {});
-      expect(jsonEncode(describe.toJson()), contains('actorCompletionPolicy'));
+      expect(
+          jsonEncode(describe.toJson()), contains('allowMobileActorCrossing'));
+    });
+    test('invalid crossing option refuses before mutation jsonl=$jsonl',
+        () async {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      final before = await f.file.readAsBytes();
+      for (final value in [null, 'true', 1]) {
+        final asset = facingCinematic().toJson()
+          ..['allowMobileActorCrossing'] = value;
+        final request =
+            await f.request('cinematic.upsert', {'cinematic': asset});
+        if (jsonl) {
+          final result = await f.command('plan', {
+            'projectHandle': f.opened.projectHandle.value,
+            'request': request.toJson()
+          });
+          expect(result.status, isNot(AuthoringResultStatus.success));
+        } else {
+          await expectLater(f.api.planMutation(f.opened.projectHandle, request),
+              throwsA(anything));
+        }
+        expect(await f.file.readAsBytes(), before);
+      }
     });
     test('invalid completion policy refuses before mutation jsonl=$jsonl',
         () async {
