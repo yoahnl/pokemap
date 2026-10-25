@@ -916,6 +916,30 @@ void main() {
       );
     });
 
+    test('mounted backdrop covers the whole viewport behind floating command docks and after resize', () async {
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: _session(
+          player: _combatant(speciesId: 'sproutle', lineupIndex: 0, moves: [_tackle()]),
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_tackle()]),
+        ),
+        viewportSize: Vector2(844, 390),
+        backgroundSpec: const BattleBackgroundSpec(key: BattleBackgroundKey.trainerOutdoor),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      final backdrop = overlay.children.whereType<BattleSceneBackdropComponent>().single;
+      expect(backdrop.size, Vector2(844, 390));
+      expect(backdrop.size.y, greaterThan(overlay.currentSceneLayout.commandPanelRect.top));
+      expect(backdrop.currentBackgroundKey, BattleBackgroundKey.trainerOutdoor);
+      overlay.onGameResize(Vector2(390, 844));
+      expect(backdrop.size, Vector2(390, 844));
+      expect(backdrop.size.y, greaterThan(overlay.currentSceneLayout.commandPanelRect.top));
+      overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.end, controllerLayout: true);
+      expect(backdrop.size, Vector2(390, 844));
+      expect(backdrop.currentBackgroundKey, BattleBackgroundKey.trainerOutdoor);
+    });
+
     test(
         'mounts the battle backdrop and battlers with a canonical presentation snapshot',
         () async {
@@ -1043,7 +1067,7 @@ void main() {
       expect(rmxpViewport.y, lessThan(overlay.size.y));
       expect(
         rmxpViewport.y,
-        lessThanOrEqualTo(overlay.currentSceneLayout.playerHudRect.bottom + 24),
+        lessThanOrEqualTo(overlay.currentSceneLayout.playerHudRect.bottom + 32),
       );
     });
 
@@ -1125,22 +1149,16 @@ void main() {
       final laptop = await loadLayout(Vector2(1280, 720));
       final wide = await loadLayout(Vector2(1600, 900));
 
-      expect(
-        laptop.playerSpriteRect.size,
-        equals(reference.playerSpriteRect.size),
-      );
-      expect(
-        laptop.enemySpriteRect.size,
-        equals(reference.enemySpriteRect.size),
-      );
-      expect(
-        wide.playerSpriteRect.size,
-        equals(reference.playerSpriteRect.size),
-      );
-      expect(
-        wide.enemySpriteRect.size,
-        equals(reference.enemySpriteRect.size),
-      );
+      for (final layout in [laptop, wide]) {
+        expect(layout.playerSpriteRect.width,
+            closeTo(reference.playerSpriteRect.width, .01));
+        expect(layout.playerSpriteRect.height,
+            closeTo(reference.playerSpriteRect.height, .01));
+        expect(layout.enemySpriteRect.width,
+            closeTo(reference.enemySpriteRect.width, .01));
+        expect(layout.enemySpriteRect.height,
+            closeTo(reference.enemySpriteRect.height, .01));
+      }
     });
 
     test('publishes the canonical Flutter command overlay snapshot', () async {

@@ -1649,7 +1649,7 @@ class BattleOverlayComponent extends PositionComponent {
 
     final backdropStopwatch = Stopwatch()..start();
     _backdrop = BattleSceneBackdropComponent(
-      size: Vector2(size.x, layout.commandPanelPlacement == BattleCommandPanelPlacement.bottom ? layout.commandPanelRect.top : size.y),
+      size: Vector2(size.x, size.y),
       backgroundSpec: backgroundSpec,
       visualAssetCache: visualAssetCache,
     );
@@ -2011,7 +2011,7 @@ class BattleOverlayComponent extends PositionComponent {
     );
     _sceneLayout = layout;
 
-    _backdrop?.size = Vector2(size.x, layout.commandPanelPlacement == BattleCommandPanelPlacement.bottom ? layout.commandPanelRect.top : size.y);
+    _backdrop?.size = Vector2(size.x, size.y);
     _fxLayer?.size = viewportSize.clone();
     _applyBattleCameraTransform();
     _syncFieldAmbientState();

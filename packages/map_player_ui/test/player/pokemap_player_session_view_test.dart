@@ -290,6 +290,170 @@ void main() {
     expect(detached.status, RuntimePlayerCommandStatus.unavailable);
   });
 
+  testWidgets(
+    'confirmed narrative owner receives A once and disconnect restores primary scene',
+    (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+        _snapshot(revision: 1, phase: RuntimePlayerPhase.playing),
+      );
+      final inputs = StreamController<RuntimeInputEvent>.broadcast();
+      final lifecycle = _SceneLifecycle();
+      final viewportKey = GlobalKey();
+      final text = List.filled(
+        20,
+        'La narration possède ses propres pages.',
+      ).join(' ');
+      final dialogue = ValueNotifier<DialoguePresentationSnapshot?>(
+        DialoguePresentationSnapshot(
+          revision: 8,
+          mode: DialoguePresentationMode.line,
+          nodeTitle: 'intro',
+          speaker: 'Guide',
+          text: text,
+          fullText: text,
+          isCurrentLineFullyRevealed: true,
+          isLastContent: false,
+          choices: const [],
+        ),
+      );
+      final forwarded = <RuntimeInputEvent>[];
+      final gameplay = <RuntimeInputEvent>[];
+      final commands = <DialoguePresentationCommand>[];
+      addTearDown(controller.dispose);
+      addTearDown(inputs.close);
+      addTearDown(dialogue.dispose);
+      Widget build(bool attached) => _app(
+        _view(
+          controller,
+          lifecycle: lifecycle,
+          gameplayViewportKey: viewportKey,
+          controllerInputEvents: inputs.stream,
+          companionNarrativeAttached: attached,
+          dialoguePresentation: dialogue,
+          onDialogueCommand: commands.add,
+          onCompanionInput: (event) {
+            forwarded.add(event);
+            return true;
+          },
+          gameplayInputRoute: (event) {
+            gameplay.add(event);
+            return true;
+          },
+        ),
+      );
+      await _pumpMeasuredSessionWidget(tester, build(true));
+      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsNothing);
+      for (final event in [
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        const RuntimeInputEvent.release(RuntimeInputControl.primary),
+      ]) {
+        inputs.add(event);
+        await tester.pump();
+      }
+      expect(forwarded, [
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        const RuntimeInputEvent.release(RuntimeInputControl.primary),
+      ]);
+      expect(commands, isEmpty);
+      expect(gameplay, isEmpty);
+      await _pumpMeasuredSessionWidget(tester, build(false));
+      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsOneWidget);
+      expect(lifecycle.mounts, 1);
+      expect(lifecycle.disposals, 0);
+    },
+  );
+
+  testWidgets(
+    'confirmed pre-session owner hides only interaction and restores it on disconnect',
+    (tester) async {
+      final request = SceneInteractionRequest.confirmation(
+        requestId: 'train',
+        revision: 4,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'train',
+          fallbackText: 'Partir ?',
+        ),
+      );
+      final controller = _FakeRuntimePlayerCoordinator(
+        RuntimePlayerSnapshot(
+          revision: 12,
+          phase: RuntimePlayerPhase.preSession,
+          gameTitle: 'Aube',
+          preSessionRequest: request,
+          actions: const [
+            RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.resolvePreSessionInteraction,
+            ),
+          ],
+        ),
+      );
+      addTearDown(controller.dispose);
+      await _pumpMeasuredSessionWidget(
+        tester,
+        _app(_view(controller, companionNarrativeAttached: true)),
+      );
+      expect(
+        find.byKey(const ValueKey('scene-interaction-confirm-yes')),
+        findsNothing,
+      );
+      expect(controller.commands, isEmpty);
+      await _pumpMeasuredSessionWidget(tester, _app(_view(controller)));
+      await tester.tap(
+        find.byKey(const ValueKey('scene-interaction-confirm-yes')),
+      );
+      await tester.pump();
+      expect(controller.commands, hasLength(1));
+      final command = controller.commands.single;
+      expect(command.snapshotRevision, 12);
+      expect(
+        command.payload,
+        SceneInteractionResult.confirmed(
+          requestId: 'train',
+          revision: 4,
+          value: true,
+        ),
+      );
+    },
+  );
+
+  testWidgets('companion pagination consumes local A pages before one canonical advance', (tester) async {
+    tester.view.physicalSize = const Size(496, 432);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 4, phase: RuntimePlayerPhase.playing));
+    final inputs = StreamController<RuntimeInputEvent>.broadcast();
+    final text = List.filled(24, 'Chaque page reste lisible sur le compagnon.').join(' ');
+    final dialogue = ValueNotifier<DialoguePresentationSnapshot?>(DialoguePresentationSnapshot(
+      revision: 8, mode: DialoguePresentationMode.line, nodeTitle: 'intro', speaker: 'Guide',
+      text: text, fullText: text, isCurrentLineFullyRevealed: true, isLastContent: false, choices: const []));
+    final commands = <DialoguePresentationCommand>[];
+    addTearDown(controller.dispose);
+    addTearDown(inputs.close);
+    addTearDown(dialogue.dispose);
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller,
+      controllerInputEvents: inputs.stream, relayedControllerInput: true,
+      dialoguePresentation: dialogue, onDialogueCommand: commands.add)));
+    await tester.pumpAndSettle();
+    Future<void> confirm() async {
+      inputs.add(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      await tester.pump();
+      inputs.add(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+      await tester.pumpAndSettle();
+    }
+    final count = find.byKey(const ValueKey('dialogue-page-count'));
+    final first = tester.widget<Text>(count).data;
+    await confirm();
+    expect(tester.widget<Text>(count).data, isNot(first));
+    expect(commands, isEmpty);
+    for (var i = 0; i < 100 && commands.isEmpty; i++) {
+      await confirm();
+    }
+    expect(commands, hasLength(1));
+    expect(commands.single, isA<DialogueAdvanceCommand>().having((command) => command.snapshotRevision, 'revision', 8));
+    expect(controller.commands, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('companion menu disconnect restores primary menu without remounting game', (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.paused));
     final lifecycle = _SceneLifecycle();
@@ -3733,6 +3897,7 @@ PokeMapPlayerSessionView _view(
   Future<void> Function()? onPresentationSkip,
   RuntimePlayerSessionCommandController? commandController,
   bool companionMenusAttached = false,
+  bool companionNarrativeAttached = false,
   bool Function(RuntimeInputEvent)? onCompanionInput,
   bool relayedControllerInput = false,
   ValueListenable<bool>? menuInteractionBlocked,
@@ -3741,6 +3906,7 @@ PokeMapPlayerSessionView _view(
   return PokeMapPlayerSessionView(
     commandController: commandController,
     companionMenusAttached: companionMenusAttached,
+    companionNarrativeAttached: companionNarrativeAttached,
     onCompanionInput: onCompanionInput,
     relayedControllerInput: relayedControllerInput,
     menuInteractionBlocked: menuInteractionBlocked,

@@ -6,32 +6,58 @@ void main() {
   for (final dark in [false, true]) {
     for (final mode in [
       (
+        scale: 1.0,
+        companion: false,
         name: 'landscape-touch',
         size: const Size(844, 390),
         padding: const EdgeInsets.fromLTRB(44, 12, 44, 20),
         source: PlayerInputSource.touch,
       ),
       (
+        scale: 1.0,
+        companion: false,
         name: 'landscape-controller',
         size: const Size(844, 390),
         padding: const EdgeInsets.fromLTRB(44, 12, 44, 20),
         source: PlayerInputSource.controller,
       ),
       (
+        scale: 1.0,
+        companion: false,
         name: 'portrait-touch',
         size: const Size(390, 844),
         padding: const EdgeInsets.fromLTRB(0, 32, 0, 24),
         source: PlayerInputSource.touch,
       ),
       (
+        scale: 1.0,
+        companion: false,
         name: 'portrait-controller',
         size: const Size(390, 844),
         padding: const EdgeInsets.fromLTRB(0, 32, 0, 24),
         source: PlayerInputSource.controller,
       ),
       (
+        scale: 1.0,
+        companion: false,
         name: 'thor-primary',
         size: const Size(768, 432),
+        padding: EdgeInsets.zero,
+        source: PlayerInputSource.controller,
+      ),
+      (
+        scale: 1.0,
+        companion: true,
+        name: 'thor-companion',
+        size: const Size(496, 432),
+        padding: EdgeInsets.zero,
+        source: PlayerInputSource.controller,
+      ),
+      (
+        scale: 2.0,
+        companion: true,
+        name: 'thor-companion-text2',
+        size: const Size(496, 432),
         padding: EdgeInsets.zero,
         source: PlayerInputSource.controller,
       ),
@@ -47,21 +73,32 @@ void main() {
                 ? PokeMapPlayerTheme.dark(reducedMotion: true)
                 : PokeMapPlayerTheme.light(reducedMotion: true),
             home: MediaQuery(
-              data: MediaQueryData(size: mode.size, padding: mode.padding),
+              data: MediaQueryData(
+                size: mode.size,
+                padding: mode.padding,
+                textScaler: TextScaler.linear(mode.scale),
+              ),
               child: PlayerInputScope(
                 activeInputSource: mode.source,
-                child: PlayerDialogueSurface(
-                  data: const PlayerDialogueViewData(
-                    revision: 1,
-                    mode: PlayerDialogueMode.line,
-                    speaker: 'Léa',
-                    text: 'Prépare ton équipe avant de partir.',
-                    fullText: 'Prépare ton équipe avant de partir.',
-                    isCurrentLineFullyRevealed: true,
-                    isLastContent: false,
-                    choices: [],
-                  ),
-                  onAction: (_) {},
+                child: Builder(
+                  builder: (context) {
+                    final dialogue = PlayerDialogueSurface(
+                      data: const PlayerDialogueViewData(
+                        revision: 1,
+                        mode: PlayerDialogueMode.line,
+                        speaker: 'Léa',
+                        text: 'Prépare ton équipe avant de partir.',
+                        fullText: 'Prépare ton équipe avant de partir.',
+                        isCurrentLineFullyRevealed: true,
+                        isLastContent: false,
+                        choices: [],
+                      ),
+                      onAction: (_) {},
+                    );
+                    return mode.companion
+                        ? PlayerCompanionScope(child: dialogue)
+                        : dialogue;
+                  },
                 ),
               ),
             ),
@@ -70,7 +107,7 @@ void main() {
         await tester.pumpAndSettle();
         final panel = find.byKey(const ValueKey('player-dialogue-ligue-panel'));
         final rect = tester.getRect(panel);
-        final landscape = mode.size.width > mode.size.height;
+        final landscape = mode.size.width > mode.size.height && !mode.companion;
         expect(rect.left, landscape ? 44 : 16);
         expect(rect.right, mode.size.width - (landscape ? 44 : 16));
         expect(
@@ -96,6 +133,16 @@ void main() {
         expect(advance.height, greaterThanOrEqualTo(48));
         expect(advance.left, greaterThan(rect.left));
         expect(advance.right, lessThan(rect.right));
+        if (mode.companion) {
+          expect(rect.top, 16);
+          expect(rect.height, 400);
+          expect(advance.width, greaterThan(rect.width * .8));
+          final speaker = tester.getRect(find.text('Léa'));
+          expect(
+            (speaker.top + advance.bottom) / 2,
+            closeTo(rect.center.dy, 12),
+          );
+        }
         expect(find.byType(Scrollable), findsNothing);
         expect(tester.takeException(), isNull);
       });

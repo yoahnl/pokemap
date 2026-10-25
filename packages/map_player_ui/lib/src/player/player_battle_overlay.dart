@@ -232,8 +232,8 @@ PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
     // son propre mode : le remapping de personnalisation ne s'applique qu'au
     // mode root et laisse les libellés « Apprendre » / « Ne pas apprendre »
     // intacts.
-    BattleCommandOverlayMode.root ||
-    BattleCommandOverlayMode.decision => PlayerBattlePanelKind.commands,
+    BattleCommandOverlayMode.root => PlayerBattlePanelKind.commands,
+    BattleCommandOverlayMode.decision => PlayerBattlePanelKind.decision,
     BattleCommandOverlayMode.fight ||
     BattleCommandOverlayMode.bagMedicineMoveTarget =>
       PlayerBattlePanelKind.moves,

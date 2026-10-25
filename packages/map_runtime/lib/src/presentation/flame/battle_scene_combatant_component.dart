@@ -583,6 +583,23 @@ class BattleSceneCombatantComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
 
+    if (_spriteImage != null) {
+      final rendered = _currentRenderedSpriteRectLocal();
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: _footAnchor + const Offset(0, 2),
+          width: rendered.width * .55,
+          height: (rendered.height * .045).clamp(2.0, 10.0),
+        ),
+        Paint()
+          ..color = _applyOpacity(const Color(0x26000000))
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+      );
+      _renderDashTrail(canvas);
+      _renderSprite(canvas);
+      return;
+    }
+
     canvas.drawOval(
       _platformRect,
       Paint()
@@ -608,12 +625,6 @@ class BattleSceneCombatantComponent extends PositionComponent {
       height: _spriteRect.height * 0.6,
     );
     canvas.drawOval(auraRect, _auraPaintFor(auraRect));
-
-    if (_spriteImage != null) {
-      _renderDashTrail(canvas);
-      _renderSprite(canvas);
-      return;
-    }
 
     _renderSilhouette(canvas);
   }

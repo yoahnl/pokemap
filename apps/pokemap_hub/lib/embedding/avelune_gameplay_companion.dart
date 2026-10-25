@@ -5,7 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-const _gameplayCompanionChannel = MethodChannel('com.avelune.runtime/companion');
+const _gameplayCompanionChannel = MethodChannel('com.avelune.runtime/companion',
+);
 
 enum AveluneGameplayCompanionMode { waiting, menu, battle, blocked }
 
@@ -14,18 +15,53 @@ class AveluneGameplayCompanionData {
     required this.mode,
     this.player,
     this.battle,
+    this.dialogue,
     this.presentation = const {},
   });
 
   final AveluneGameplayCompanionMode mode;
   final RuntimePlayerSnapshot? player;
   final BattleCommandOverlaySnapshot? battle;
+  final DialoguePresentationSnapshot? dialogue;
   final Map<String, Object?> presentation;
+
+  String? get narrativeIdentity {
+    if (mode != AveluneGameplayCompanionMode.menu) return null;
+    final request = player?.preSessionRequest;
+    if (player?.phase == RuntimePlayerPhase.preSession && request != null) {
+      return jsonEncode({'interaction': request.toJson()});
+    }
+    final line = dialogue;
+    if (player?.phase != RuntimePlayerPhase.playing || line == null)
+      return null;
+    return jsonEncode({
+      'mode': line.mode.name,
+      'nodeTitle': line.nodeTitle,
+      'speaker': line.speaker,
+      'fullText': line.fullText,
+      'choices': [
+        for (final choice in line.choices)
+          [choice.index, choice.label, choice.enabled],
+      ],
+      'portrait': [
+        line.portrait?.characterId,
+        line.portrait?.portraitStateId,
+        line.portrait?.assetId,
+        line.portrait?.absoluteFilePath,
+        line.portrait?.fitMode.name,
+      ],
+      'icons': line.iconPngBytes.keys.toList()..sort(),
+    });
+  }
 
   Map<String, Object?> toPayload() => {
     'mode': mode.name,
     'player': player == null ? null : RuntimeCompanionPresentationCodec.encodePlayer(player!),
-    'battle': battle == null ? null : RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(battle!),
+    'battle': battle == null ? null : RuntimeCompanionPresentationCodec.encodeBattleCommandOverlaySnapshot(battle!,
+          ),
+    'dialogue': dialogue == null
+        ? null
+        : RuntimeCompanionPresentationCodec.encodeDialogue(dialogue!),
     'presentation': presentation,
   };
 }
@@ -38,13 +74,18 @@ class AveluneGameplayCompanionSnapshot extends AveluneGameplayCompanionData {
     required super.mode,
     super.player,
     super.battle,
+    super.dialogue,
     super.presentation,
+    this.narrativeGeneration = 0,
+    this.narrativeReady = false,
     Map<String, Object?>? encodedData,
   }) : _encodedData = encodedData;
 
   final String sessionId;
   final int revision;
   final bool companionAttached;
+  final int narrativeGeneration;
+  final bool narrativeReady;
   final Map<String, Object?>? _encodedData;
   Map<String, Object?> get dataPayload => _encodedData ?? super.toPayload();
 
@@ -60,9 +101,20 @@ class AveluneGameplayCompanionSnapshot extends AveluneGameplayCompanionData {
       companionAttached: map['companionAttached'] as bool,
       mode: AveluneGameplayCompanionMode.values.byName(map['mode'] as String),
       player: map['player'] == null ? null : RuntimeCompanionPresentationCodec.decodePlayer(_map(map['player'])),
-      battle: map['battle'] == null ? null : RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_map(map['battle'])),
+      battle: map['battle'] == null ? null : RuntimeCompanionPresentationCodec.decodeBattleCommandOverlaySnapshot(_map(map['battle']),
+            ),
+      dialogue: map['dialogue'] == null
+          ? null
+          : RuntimeCompanionPresentationCodec.decodeDialogue(
+              _map(map['dialogue']),
+            ),
+      narrativeGeneration: map['narrativeGeneration'] as int? ?? 0,
+      narrativeReady: map['narrativeReady'] == true,
       presentation: _map(map['presentation']),
-      encodedData: {'mode': map['mode'], 'player': map['player'], 'battle': map['battle'], 'presentation': map['presentation']},
+      encodedData: {'mode': map['mode'], 'player': map['player'], 'battle': map['battle'],
+        'dialogue': map['dialogue'],
+        'presentation': map['presentation'],
+      },
     );
   }
 
@@ -71,6 +123,8 @@ class AveluneGameplayCompanionSnapshot extends AveluneGameplayCompanionData {
     'sessionId': sessionId,
     'revision': revision,
     'companionAttached': companionAttached,
+    'narrativeGeneration': narrativeGeneration,
+    'narrativeReady': narrativeReady,
     ...dataPayload,
   };
 }
@@ -78,7 +132,8 @@ class AveluneGameplayCompanionSnapshot extends AveluneGameplayCompanionData {
 abstract interface class AveluneGameplayCompanionOwnerPort {
   bool get isPaused;
   Future<AveluneGameplayCompanionData> read();
-  Future<void> execute(String kind, Map<String, Object?> payload, AveluneGameplayCompanionSnapshot expected);
+  Future<void> execute(String kind, Map<String, Object?> payload, AveluneGameplayCompanionSnapshot expected,
+  );
 }
 
 class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompanionSnapshot?> {
@@ -92,6 +147,8 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
   Future<void>? _refreshing;
   bool _readRequested = false;
   String? _dataFingerprint;
+  String? _narrativeIdentity;
+  int _narrativeGeneration = 0;
 
   void start(String sessionId) {
     if (sessionId.trim().isEmpty) throw PlatformException(code: 'invalidSession');
@@ -100,6 +157,8 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
     _generation++;
     _sourceSequences.clear();
     _busy = false;
+    _narrativeIdentity = null;
+    _narrativeGeneration = 0;
     value = AveluneGameplayCompanionSnapshot(
       sessionId: sessionId, revision: 0, companionAttached: false,
       mode: AveluneGameplayCompanionMode.waiting,
@@ -116,6 +175,8 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
     _busy = false;
     _readRequested = false;
     _dataFingerprint = null;
+    _narrativeIdentity = null;
+    _narrativeGeneration = 0;
     _sourceSequences.clear();
     value = null;
   }
@@ -146,7 +207,9 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
     }, onError: (Object error, StackTrace stack) {
       _refreshing = null;
       complete.completeError(error, stack);
-    }));
+    },
+      ),
+    );
     return complete.future;
   }
 
@@ -163,7 +226,9 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
       } on Object catch (error) {
         if (generation != _generation || read != _readGeneration || !identical(port, _port) || _readRequested) continue;
         debugPrint('Avelune gameplay companion read: $error');
-        _publishData(const AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.blocked));
+        _publishData(const AveluneGameplayCompanionData(mode: AveluneGameplayCompanionMode.blocked,
+          ),
+        );
       }
     }
   }
@@ -172,14 +237,19 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
     final current = _active();
     if (current.sessionId != sessionId) throw PlatformException(code: 'staleSession');
     if (current.companionAttached == attached) return;
+    if (current.narrativeIdentity != null) _narrativeGeneration++;
     value = AveluneGameplayCompanionSnapshot(
       sessionId: current.sessionId, revision: current.revision + 1, companionAttached: attached,
-      mode: current.mode, player: current.player, battle: current.battle, presentation: current.presentation,
+      mode: current.mode, player: current.player, battle: current.battle,
+      dialogue: current.dialogue,
+      presentation: current.presentation,
+      narrativeGeneration: _narrativeGeneration,
       encodedData: current.dataPayload,
     );
   }
 
-  Future<AveluneGameplayCompanionSnapshot?> applyIntent(Map<Object?, Object?> intent) async {
+  Future<AveluneGameplayCompanionSnapshot?> applyIntent(Map<Object?, Object?> intent,
+  ) async {
     final current = _active();
     if (intent['sessionId'] != current.sessionId) throw PlatformException(code: 'staleSession');
     if (!current.companionAttached) throw PlatformException(code: 'companionDetached');
@@ -199,6 +269,32 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
     final kind = intent['kind'];
     if (kind is! String) throw PlatformException(code: 'invalidIntent');
     final payload = _map(intent['payload']);
+    if (kind == 'narrativeReady') {
+      if (current.narrativeIdentity == null ||
+          payload['generation'] != current.narrativeGeneration) {
+        throw PlatformException(code: 'staleRevision');
+      }
+      _sourceSequences[sourceId] = sequence;
+      if (!current.narrativeReady) {
+        value = AveluneGameplayCompanionSnapshot(
+          sessionId: current.sessionId,
+          revision: current.revision + 1,
+          companionAttached: current.companionAttached,
+          mode: current.mode,
+          player: current.player,
+          battle: current.battle,
+          dialogue: current.dialogue,
+          presentation: current.presentation,
+          narrativeGeneration: current.narrativeGeneration,
+          narrativeReady: true,
+          encodedData: current.dataPayload,
+        );
+      }
+      return value;
+    }
+    if (current.narrativeIdentity != null && !current.narrativeReady) {
+      throw PlatformException(code: 'companionUnavailable');
+    }
     final generation = _generation;
     _sourceSequences[sourceId] = sequence;
     _busy = true;
@@ -231,9 +327,18 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
     final fingerprint = jsonEncode(payload);
     if (fingerprint == _dataFingerprint) return;
     _dataFingerprint = fingerprint;
+    final narrativeIdentity = data.narrativeIdentity;
+    final sameNarrative =
+        narrativeIdentity != null && narrativeIdentity == _narrativeIdentity;
+    if (narrativeIdentity != _narrativeIdentity) _narrativeGeneration++;
+    _narrativeIdentity = narrativeIdentity;
     value = AveluneGameplayCompanionSnapshot(
       sessionId: current.sessionId, revision: current.revision + 1, companionAttached: current.companionAttached,
-      mode: data.mode, player: data.player, battle: data.battle, presentation: data.presentation,
+      mode: data.mode, player: data.player, battle: data.battle,
+      dialogue: data.dialogue,
+      presentation: data.presentation,
+      narrativeGeneration: _narrativeGeneration,
+      narrativeReady: sameNarrative && current.narrativeReady,
       encodedData: payload,
     );
   }
@@ -251,7 +356,8 @@ class AveluneGameplayCompanionOwner extends ValueNotifier<AveluneGameplayCompani
 }
 
 class AveluneGameplayCompanionBridge {
-  AveluneGameplayCompanionBridge(this.owner, {MethodChannel channel = _gameplayCompanionChannel, bool Function()? canStart})
+  AveluneGameplayCompanionBridge(this.owner, {MethodChannel channel = _gameplayCompanionChannel, bool Function()? canStart,
+  })
       : _channel = channel, _canStart = canStart ?? (() => true);
 
   final AveluneGameplayCompanionOwner owner;
@@ -320,14 +426,16 @@ class AveluneGameplayCompanionBridge {
       case 'intent':
         await owner.applyIntent(_map(call.arguments));
       default:
-        throw MissingPluginException('Unknown gameplay companion method: ${call.method}');
+        throw MissingPluginException('Unknown gameplay companion method: ${call.method}',
+        );
     }
     return owner.value?.toPayload();
   }
 }
 
 class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompanionSnapshot?> {
-  AveluneGameplayCompanionRemote({MethodChannel channel = _gameplayCompanionChannel}) : _channel = channel, super(null);
+  AveluneGameplayCompanionRemote({MethodChannel channel = _gameplayCompanionChannel,
+  }) : _channel = channel, super(null);
 
   final MethodChannel _channel;
   final _inputs = StreamController<RuntimeInputEvent>.broadcast(sync: true);
@@ -353,7 +461,8 @@ class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompan
         case 'input':
           _acceptInput(call.arguments);
         default:
-          throw MissingPluginException('Unknown companion method: ${call.method}');
+          throw MissingPluginException('Unknown companion method: ${call.method}',
+          );
       }
       return null;
     });
@@ -394,7 +503,8 @@ class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompan
     if (!_attached || current == null) return;
     final generation = _generation;
     try {
-      final payload = await _channel.invokeMethod<Object?>('surfaceReady', {'sessionId': current.sessionId, 'ready': ready});
+      final payload = await _channel.invokeMethod<Object?>('surfaceReady', {'sessionId': current.sessionId, 'ready': ready,
+      });
       if (payload != null && value?.sessionId == current.sessionId) _accept(payload, generation);
     } on PlatformException catch (error) {
       debugPrint('Avelune companion surface readiness: ${error.code}');
@@ -440,9 +550,11 @@ class AveluneGameplayCompanionRemote extends ValueNotifier<AveluneGameplayCompan
         input['revision'] != current.revision || current.mode != AveluneGameplayCompanionMode.menu) {
       return;
     }
-    final control = RuntimeInputControl.values.byName(input['control'] as String);
+    final control = RuntimeInputControl.values.byName(input['control'] as String,
+    );
     final event = switch (input['phase']) {
-      'press' => RuntimeInputEvent.press(control, isRepeat: input['isRepeat'] as bool),
+      'press' => RuntimeInputEvent.press(control, isRepeat: input['isRepeat'] as bool,
+      ),
       'release' => RuntimeInputEvent.release(control),
       _ => throw const FormatException('Invalid companion input phase.'),
     };

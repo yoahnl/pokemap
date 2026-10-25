@@ -8,6 +8,156 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('dialogue presentation crosses JSON and platform transport with authored media', () {
+    final source = DialoguePresentationSnapshot(
+      revision: 13,
+      mode: DialoguePresentationMode.choices,
+      nodeTitle: 'station',
+      speaker: 'Guide',
+      text: 'Bon',
+      fullText: 'Bonjour',
+      isCurrentLineFullyRevealed: false,
+      isLastContent: false,
+      isAdvanceAvailable: false,
+      choices: const [
+        DialoguePresentationChoice(index: 2, label: 'Partir', selected: true),
+        DialoguePresentationChoice(
+          index: 5,
+          label: 'Attendre',
+          selected: false,
+          enabled: false,
+        ),
+      ],
+      portrait: const ResolvedDialoguePortrait(
+        characterId: 'guide',
+        characterName: 'Guide',
+        portraitStateId: 'calm',
+        portraitStateName: 'Calme',
+        assetId: 'portrait',
+        absoluteFilePath: '/game/resources/portrait.png',
+        fitMode: CharacterPortraitFitMode.contain,
+      ),
+      segments: [
+        DialogueTextSegment('Bon'),
+        DialogueIconSegment(assetId: 'ticket', widthPx: 16, heightPx: 20),
+      ],
+      iconPngBytes: {
+        'ticket': Uint8List.fromList([0, 127, 255]),
+      },
+    );
+    final encoded = RuntimeCompanionPresentationCodec.encodeDialogue(source);
+    final decoded = RuntimeCompanionPresentationCodec.decodeDialogue(
+      _crossTransport(encoded),
+    );
+    expect(RuntimeCompanionPresentationCodec.encodeDialogue(decoded), encoded);
+    expect(decoded.iconImages, isEmpty);
+    expect(decoded.portrait!.absoluteFilePath, '/game/resources/portrait.png');
+    expect(decoded.choices.last.enabled, isFalse);
+    expect(
+      () => RuntimeCompanionPresentationCodec.decodeDialogue({
+        ...encoded,
+        'iconPngBytes': {
+          'ticket': [256],
+        },
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => RuntimeCompanionPresentationCodec.decodeDialogue({
+        ...encoded,
+        'choices': [
+          for (var i = 0; i < 2; i++) (encoded['choices'] as List).first,
+        ],
+      }),
+      throwsFormatException,
+    );
+  });
+
+  test(
+    'dialogue commands retain exact revisions and reject malformed targets',
+    () {
+      for (final command in [
+        const DialogueAdvanceCommand(snapshotRevision: 9),
+        const DialogueSelectChoiceCommand(snapshotRevision: 10, choiceIndex: 3),
+      ]) {
+        final encoded = RuntimeCompanionPresentationCodec.encodeDialogueCommand(
+          command,
+        );
+        final decoded = RuntimeCompanionPresentationCodec.decodeDialogueCommand(
+          _crossTransport(encoded),
+        );
+        expect(
+          RuntimeCompanionPresentationCodec.encodeDialogueCommand(decoded),
+          encoded,
+        );
+      }
+      for (final payload in [
+        {'action': 'advance', 'snapshotRevision': -1},
+        {'action': 'choice', 'snapshotRevision': 9, 'choiceIndex': -1},
+        {'action': 'unknown', 'snapshotRevision': 9},
+      ]) {
+        expect(
+          () =>
+              RuntimeCompanionPresentationCodec.decodeDialogueCommand(payload),
+          throwsFormatException,
+        );
+      }
+    },
+  );
+
+  test(
+    'pre-session request and typed result preserve both canonical revisions',
+    () {
+      final request = SceneInteractionRequest.confirmation(
+        requestId: 'travel',
+        revision: 3,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'travel.confirm',
+          fallbackText: 'Partir ?',
+        ),
+      );
+      final source = RuntimePlayerSnapshot(
+        revision: 22,
+        phase: RuntimePlayerPhase.preSession,
+        gameTitle: 'Avelune',
+        preSessionRequest: request,
+        actions: const [
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.resolvePreSessionInteraction,
+          ),
+        ],
+      );
+      final encoded = RuntimeCompanionPresentationCodec.encodePlayer(source);
+      final decoded = RuntimeCompanionPresentationCodec.decodePlayer(
+        _crossTransport(encoded),
+      );
+      expect(decoded.preSessionRequest!.toJson(), request.toJson());
+      final result = SceneInteractionResult.confirmed(
+        requestId: 'travel',
+        revision: 3,
+        value: true,
+      );
+      final command = RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: 22,
+        payload: result,
+      );
+      final transported = RuntimeCompanionPresentationCodec.decodePlayerCommand(
+        _crossTransport(
+          RuntimeCompanionPresentationCodec.encodePlayerCommand(command),
+        ),
+      );
+      expect(transported.snapshotRevision, 22);
+      expect(transported.payload, result);
+      final legacy = {...encoded}..remove('preSessionRequest');
+      expect(
+        RuntimeCompanionPresentationCodec.decodePlayer(_crossTransport(legacy))
+            .preSessionRequest,
+        isNull,
+      );
+    },
+  );
+
   test('world-service transport rejects mismatched typed content', () {
     final services = _worldServices().toList();
     final pc = RuntimeCompanionPresentationCodec.encodeWorldService(services[2]);

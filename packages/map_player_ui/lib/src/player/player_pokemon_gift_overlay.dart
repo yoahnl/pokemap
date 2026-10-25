@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_image.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -37,6 +40,18 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
     final party = request.projectedState.party.members.any(
       (pokemon) => pokemon.individualId == request.pokemon.individualId,
     );
+    final dexEntry = request.pokedexDetail?.entries
+        .where(
+          (entry) =>
+              entry.id == request.pokemon.speciesId ||
+              entry.pokedexEntry?.identity?.speciesId ==
+                  request.pokemon.speciesId,
+        )
+        .firstOrNull
+        ?.pokedexEntry;
+    final media = dexEntry?.knowledge == RuntimePlayerPokedexKnowledge.unknown
+        ? null
+        : dexEntry?.media.illustration ?? dexEntry?.media.thumbnail;
     final enabled = snapshot.isActionEnabled(RuntimeWorldServiceAction.confirm);
     final choices = interaction is SceneChoiceInteractionRequest
         ? interaction.options
@@ -94,39 +109,70 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child: PlayerPagedList(
-                            children: [
-                              Text(
-                                french
-                                    ? 'Vous recevez $name !'
-                                    : 'You receive $name!',
-                                style: context.playerMenuTheme.subtitle,
-                              ),
-                              Text(
-                                '$nickname · ${french ? 'Niv.' : 'Lv.'} ${request.pokemon.level}',
-                              ),
-                              if (request.isNewPokedexEntry)
+                          child: LayoutBuilder(
+                            builder: (context, constraints) => PlayerPagedList(
+                              children: [
+                                if (media != null)
+                                  Semantics(
+                                    image: true,
+                                    label: nickname,
+                                    child: SizedBox(
+                                      height: math.max(
+                                        1,
+                                        math.min(
+                                          144,
+                                          constraints.maxHeight - 64,
+                                        ),
+                                      ),
+                                      child: PlayerFileImage(
+                                        key: const ValueKey(
+                                          'gift-pokemon-image',
+                                        ),
+                                        path: media.absoluteFilePath,
+                                        fit: BoxFit.contain,
+                                        filterQuality:
+                                            media.sampling ==
+                                                ProjectMenuImageSampling
+                                                    .pixelArt
+                                            ? FilterQuality.none
+                                            : FilterQuality.medium,
+                                        excludeFromSemantics: true,
+                                        fallback: const SizedBox.shrink(),
+                                      ),
+                                    ),
+                                  ),
                                 Text(
                                   french
-                                      ? 'Nouvelle entrée Pokédex à ajouter'
-                                      : 'New Pokédex entry to add',
+                                      ? 'Vous recevez $name !'
+                                      : 'You receive $name!',
+                                  style: context.playerMenuTheme.subtitle,
                                 ),
-                              Text(
-                                party
-                                    ? (french
-                                          ? '$nickname rejoindra votre équipe.'
-                                          : '$nickname will join your party.')
-                                    : (french
-                                          ? '$nickname sera envoyé au PC.'
-                                          : '$nickname will be sent to the PC.'),
-                              ),
-                              if (snapshot.safeMessage case final message?
-                                  when message.isNotEmpty)
-                                Semantics(
-                                  liveRegion: true,
-                                  child: Text(message),
+                                Text(
+                                  '$nickname · ${french ? 'Niv.' : 'Lv.'} ${request.pokemon.level}',
                                 ),
-                            ],
+                                if (request.isNewPokedexEntry)
+                                  Text(
+                                    french
+                                        ? 'Nouvelle entrée Pokédex à ajouter'
+                                        : 'New Pokédex entry to add',
+                                  ),
+                                Text(
+                                  party
+                                      ? (french
+                                            ? '$nickname rejoindra votre équipe.'
+                                            : '$nickname will join your party.')
+                                      : (french
+                                            ? '$nickname sera envoyé au PC.'
+                                            : '$nickname will be sent to the PC.'),
+                                ),
+                                if (snapshot.safeMessage case final message?
+                                    when message.isNotEmpty)
+                                  Semantics(
+                                    liveRegion: true,
+                                    child: Text(message),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                         if (snapshot.stage == RuntimeWorldServiceStage.applying)

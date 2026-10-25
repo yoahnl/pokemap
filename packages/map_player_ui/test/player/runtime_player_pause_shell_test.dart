@@ -736,14 +736,12 @@ void main() {
       expect(find.text('#133 · Capturé'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await _tapPreviewControl(tester, 'pause-frame-return-surface');
-      if (size.width < size.height) {
-        expect(find.byKey(const ValueKey('pokedex-search')), findsOneWidget);
-        expect(
-          find.byKey(const ValueKey('player-pause-preview-detail-pokedex')),
-          findsOneWidget,
-        );
-        await _tapPreviewControl(tester, 'pause-frame-return-surface');
-      }
+      expect(find.byKey(const ValueKey('pokedex-search')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('player-pause-preview-detail-pokedex')),
+        findsOneWidget,
+      );
+      await _tapPreviewControl(tester, 'pause-frame-return-surface');
       expect(find.byKey(const ValueKey('pokedex-search')), findsNothing);
       await _tapPreviewControl(tester, 'pause.pokedex');
       expect(

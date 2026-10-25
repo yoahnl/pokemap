@@ -336,10 +336,12 @@ void main() {
   testWidgets(
     'reference move names and details fit alongside type and PP using the rendered font',
     (tester) async {
-      final font = ByteData.sublistView(
-        await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
-      );
-      await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+      await tester.runAsync(() async {
+        final font = ByteData.sublistView(
+          await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
+        );
+        await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+      });
       for (final source in [
         PlayerInputSource.controller,
         PlayerInputSource.touch,

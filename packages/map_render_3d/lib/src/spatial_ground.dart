@@ -676,6 +676,7 @@ Iterable<Mesh> spatialGroundMeshes(
       previous = key;
       material = SpatialPixelMaterial(
         texture,
+        sourceMaterialName: 'ground:${visual.tilesetId}',
         groundDepthOnly: scene != null,
         lightingRole: SpatialPixelLightingRole.ground,
       )..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
@@ -716,6 +717,7 @@ Iterable<Mesh> spatialGroundMeshes(
         previous = key;
         material = SpatialPixelMaterial(
           texture,
+          sourceMaterialName: 'ground:${visual.tilesetId}',
           groundDepthOnly: scene != null,
           lightingRole: SpatialPixelLightingRole.ground,
         )..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);

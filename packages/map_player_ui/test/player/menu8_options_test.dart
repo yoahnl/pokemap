@@ -10,12 +10,6 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  setUpAll(() async {
-    await (FontLoader(
-      'packages/map_player_ui/PokeMapSplashDMSans',
-    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
-  });
-
   for (final size in [const Size(844, 390), const Size(496, 432)]) {
     testWidgets('general choice text fits its 48px target at $size', (
       tester,
@@ -847,6 +841,7 @@ Future<void> _pump(
   double scale = 1,
   double? localScale,
 }) async {
+  await _loadFonts(tester);
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
   addTearDown(tester.view.reset);
@@ -927,6 +922,7 @@ Future<void> _pumpIntegrated(
   Size size, {
   PlayerInputSource input = PlayerInputSource.controller,
 }) async {
+  await _loadFonts(tester);
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
   addTearDown(tester.view.reset);
@@ -987,4 +983,18 @@ Future<void> _pumpIntegrated(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+bool _fontsLoaded = false;
+
+Future<void> _loadFonts(WidgetTester tester) async {
+  if (_fontsLoaded) return;
+  final loaded = await tester.runAsync(() async {
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+    return true;
+  });
+  expect(loaded, isTrue);
+  _fontsLoaded = true;
 }

@@ -131,6 +131,16 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                             label:
                                                 '${member.label} · ${text('Niv.', 'Lv.')} ${member.level}',
                                             icon: Icons.catching_pokemon,
+                                            secondary: true,
+                                            selected:
+                                                member.individualId ==
+                                                (phase ==
+                                                        RuntimePartyTradePhase
+                                                            .selectPartner
+                                                    ? content
+                                                          .partnerIndividualId
+                                                    : content
+                                                          .firstIndividualId),
                                             autofocus:
                                                 member == content.members.first,
                                             onPressed:
@@ -200,11 +210,107 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
                                       ],
                                       if (phase ==
                                           RuntimePartyTradePhase.review) ...[
-                                        Text(
-                                          '${text('Pokémon :', 'Pokémon:')} ${label(content.firstIndividualId)}',
-                                        ),
-                                        Text(
-                                          '${text('Partenaire :', 'Partner:')} ${label(content.partnerIndividualId)}',
+                                        LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            Widget identity(
+                                              String prefix,
+                                              String? id,
+                                            ) {
+                                              final member = content.members
+                                                  .where(
+                                                    (member) =>
+                                                        member.individualId ==
+                                                        id,
+                                                  )
+                                                  .firstOrNull;
+                                              return PlayerMenuPanel(
+                                                key: ValueKey(
+                                                  'party-trade-identity-$prefix',
+                                                ),
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      '$prefix ${label(id)}',
+                                                      style: context
+                                                          .playerMenuTheme
+                                                          .label,
+                                                    ),
+                                                    if (member != null) ...[
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        '${text('Niv.', 'Lv.')} ${member.level}',
+                                                        style: context
+                                                            .playerMenuTheme
+                                                            .meta,
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              );
+                                            }
+
+                                            final first = identity(
+                                              text('Pokémon :', 'Pokémon:'),
+                                              content.firstIndividualId,
+                                            );
+                                            final partner = identity(
+                                              text('Partenaire :', 'Partner:'),
+                                              content.partnerIndividualId,
+                                            );
+                                            return SizedBox(
+                                              key: const ValueKey(
+                                                'party-trade-pair',
+                                              ),
+                                              child:
+                                                  constraints.maxWidth >= 400 &&
+                                                      MediaQuery.textScalerOf(
+                                                            context,
+                                                          ).scale(1) <
+                                                          1.5
+                                                  ? Row(
+                                                      children: [
+                                                        Expanded(child: first),
+                                                        const Padding(
+                                                          padding:
+                                                              EdgeInsets.symmetric(
+                                                                horizontal: 12,
+                                                              ),
+                                                          child: Icon(
+                                                            Icons.swap_horiz,
+                                                          ),
+                                                        ),
+                                                        Expanded(
+                                                          child: partner,
+                                                        ),
+                                                      ],
+                                                    )
+                                                  : Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .stretch,
+                                                      children: [
+                                                        first,
+                                                        const Padding(
+                                                          padding:
+                                                              EdgeInsets.symmetric(
+                                                                vertical: 8,
+                                                              ),
+                                                          child: Icon(
+                                                            Icons.swap_vert,
+                                                          ),
+                                                        ),
+                                                        partner,
+                                                      ],
+                                                    ),
+                                            );
+                                          },
                                         ),
                                       ],
                                     ],

@@ -124,6 +124,18 @@ void main() {
     await _openExit(tester);
     await tester.pumpAndSettle();
     expect(find.text('Rester'), findsOneWidget);
+    final dialog = tester.widget<Dialog>(
+      find.byKey(const ValueKey('runtime-exit-dialog')),
+    );
+    expect(
+      dialog.shape,
+      const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(4)),
+      ),
+    );
+    expect(dialog.insetPadding, const EdgeInsets.all(16));
+    expect(dialog.constraints?.maxWidth, 500);
+    expect(dialog.clipBehavior, Clip.antiAlias);
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('runtime-exit-dialog')), findsNothing);

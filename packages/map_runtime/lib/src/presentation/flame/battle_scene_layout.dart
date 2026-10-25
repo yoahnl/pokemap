@@ -205,21 +205,19 @@ final class BattleSceneLayout {
         : sidePanel
         ? BattleCommandPanelPlacement.end
         : BattleCommandPanelPlacement.bottom;
-    const sidePanelWidth = 294.0;
+    const sidePanelWidth = 310.0;
     final sceneRect = sidePanel
         ? Rect.fromLTRB(
             viewportRect.left,
             viewportRect.top,
             viewportSize.width -
-                math.max(14, safePadding.right) -
+                math.max(20, safePadding.right) -
                 sidePanelWidth -
                 4,
             viewportRect.bottom,
           )
         : viewportRect;
-    final portraitSafeMargin = isPortrait
-        ? (sceneRect.width * 0.038).clamp(14.0, 20.0).toDouble()
-        : 0.0;
+    final portraitSafeMargin = isPortrait ? 14.0 : 0.0;
 
     final commandPanelLayoutMode = _resolveCommandPanelLayoutMode(
       viewportClass,
@@ -239,27 +237,38 @@ final class BattleSceneLayout {
         300.0,
         viewportSize.height * .5,
       ),
-      BattleViewportClass.mediumLandscape => 116.0,
+      BattleViewportClass.mediumLandscape => 108.0,
       BattleViewportClass.wideDesktop =>
         (sceneRect.height * 0.22).clamp(146.0, 176.0).toDouble(),
     };
+    final rootDock = commandPanelMode == BattleCommandOverlayMode.root;
+    final sideDockWidth = rootDock ? 310.0 : 293.0;
+    final sideDockHeight = rootDock ? 284.0 : 267.0;
     final commandPanelRect = detached
         ? Rect.zero
         : sidePanel
         ? Rect.fromLTWH(
-            viewportSize.width - math.max(14, safePadding.right) - 294,
+            viewportSize.width -
+                math.max(rootDock ? 20 : 14, safePadding.right) -
+                sideDockWidth,
             math.max(
               viewportRect.top + 12,
-              viewportSize.height - math.max(20, safePadding.bottom) - 276,
+              viewportSize.height -
+                  math.max(rootDock ? 16 : 18, safePadding.bottom) -
+                  sideDockHeight,
             ),
-            294,
-            math.min(276, viewportRect.height - 24),
+            sideDockWidth,
+            math.min(sideDockHeight, viewportRect.height - 24),
           )
         : viewportClass != BattleViewportClass.wideDesktop
         ? Rect.fromLTWH(
-            viewportRect.left + (isPortrait ? 18 : 24),
-            viewportRect.bottom - commandPanelHeight - (isPortrait ? 24 : 12),
-            viewportRect.width - (isPortrait ? 36 : 48),
+            math.max(isPortrait ? 18 : 24, safePadding.left),
+            viewportSize.height -
+                math.max(isPortrait ? 24 : 12, safePadding.bottom) -
+                commandPanelHeight,
+            viewportSize.width -
+                math.max(isPortrait ? 18 : 24, safePadding.left) -
+                math.max(isPortrait ? 18 : 24, safePadding.right),
             commandPanelHeight,
           )
         : Rect.fromLTWH(
@@ -270,6 +279,17 @@ final class BattleSceneLayout {
           );
 
     if (sidePanel || detached) {
+      final growthObstacle = sidePanel
+          ? Rect.fromLTWH(
+              viewportSize.width - math.max(20, safePadding.right) - 310,
+              math.max(
+                viewportRect.top + 12,
+                viewportSize.height - math.max(16, safePadding.bottom) - 284,
+              ),
+              310,
+              math.min(284, viewportRect.height - 24),
+            )
+          : commandPanelRect;
       final detachedMessage =
           detached && commandPanelMode == BattleCommandOverlayMode.continueOnly;
       final scale = sidePanel
@@ -278,47 +298,49 @@ final class BattleSceneLayout {
               math.min(viewportSize.width / 844, viewportSize.height / 390),
             )
           : math.min(
-              .85,
-              math.min(sceneRect.width / 500, sceneRect.height / 440),
+              1.0,
+              math.min(viewportSize.width / 768, viewportSize.height / 432),
             );
       final enemyHudSize = sidePanel
           ? Size(261 * scale, 39 * scale)
-          : const Size(244, 56);
+          : Size(244 * scale, 40.5 * scale);
       final playerHudSize = sidePanel
           ? Size(243 * scale, 67 * scale)
-          : const Size(250, 88);
+          : Size(250 * scale, 68.25 * scale);
       final enemyHud = Rect.fromLTWH(
         sidePanel
             ? viewportSize.width - (14 * scale) - enemyHudSize.width
-            : sceneRect.left + 24,
+            : 24 * scale,
         sidePanel
             ? math.max(35 * scale, safePadding.top + 8)
-            : sceneRect.top + 22,
+            : math.max(22 * scale, safePadding.top),
         enemyHudSize.width,
         enemyHudSize.height,
       );
       final playerHud = Rect.fromLTWH(
-        sidePanel ? 11 * scale : sceneRect.right - playerHudSize.width - 24,
+        sidePanel
+            ? 11 * scale
+            : viewportSize.width - playerHudSize.width - 24 * scale,
         sidePanel
             ? viewportSize.height - (19 * scale) - playerHudSize.height
-            : sceneRect.bottom -
+            : viewportSize.height -
                   playerHudSize.height -
-                  (detachedMessage ? 120 : 20),
+                  ((detachedMessage ? 120 : 20) * scale),
         playerHudSize.width,
         playerHudSize.height,
       );
       final playerSize = sidePanel
           ? Size(148 * scale, 134 * scale)
-          : Size(350 * scale, 214 * scale);
+          : Size(185 * scale, 174 * scale);
       final enemySize = sidePanel
           ? Size(77 * scale, 96 * scale)
-          : Size(210 * scale, 154 * scale);
+          : Size(128 * scale, 142 * scale);
       final playerSprite = Rect.fromLTWH(
-        sidePanel ? 169 * scale : sceneRect.left + sceneRect.width * .08,
+        sidePanel ? 169 * scale : 99 * scale,
         sidePanel
             ? viewportSize.height - (77 * scale) - playerSize.height
-            : sceneRect.bottom -
-                  (detachedMessage ? 128 : 24) -
+            : viewportSize.height -
+                  ((detachedMessage ? 134 : 74) * scale) -
                   playerSize.height,
         playerSize.width,
         playerSize.height,
@@ -327,52 +349,56 @@ final class BattleSceneLayout {
         sidePanel
             ? math.min(
                 viewportSize.width - (343.5 * scale) - enemySize.width,
-                commandPanelRect.left - 4 - enemySize.width,
+                sceneRect.right - enemySize.width,
               )
-            : sceneRect.left + sceneRect.width * .88 - enemySize.width,
+            : viewportSize.width - 299 * scale,
         sidePanel
             ? viewportSize.height - (159 * scale) - enemySize.height
-            : sceneRect.top + sceneRect.height * .25,
+            : math.min(
+                    viewportSize.height - 161.5 * scale,
+                    playerHud.top - 8 * scale,
+                  ) -
+                  enemySize.height,
         enemySize.width,
         enemySize.height,
       );
       final playerFoot = Offset(
-        playerSprite.left + playerSprite.width * (sidePanel ? .68 : .70),
+        playerSprite.left + playerSprite.width * .68,
         playerSprite.bottom,
       );
       final enemyFoot = Offset(enemySprite.center.dx, enemySprite.bottom);
       final playerPlatform = Rect.fromLTWH(
-        playerFoot.dx - (sidePanel ? 12 : 111) * scale,
+        playerFoot.dx - (sidePanel ? 12 : 52) * scale,
         playerFoot.dy - 5 * scale,
-        (sidePanel ? 24 : 222) * scale,
-        (sidePanel ? 12 : 28) * scale,
+        (sidePanel ? 24 : 104) * scale,
+        12 * scale,
       );
       final enemyPlatform = Rect.fromLTWH(
-        enemyFoot.dx - (sidePanel ? 40 : 80) * scale,
+        enemyFoot.dx - (sidePanel ? 40 : 48) * scale,
         enemyFoot.dy - 4 * scale,
-        (sidePanel ? 80 : 160) * scale,
-        (sidePanel ? 12 : 22) * scale,
+        (sidePanel ? 80 : 96) * scale,
+        12 * scale,
       );
       final grownEnemyHud = _growHudRect(
         base: enemyHud,
         textScale: textScale,
-        bounds: sidePanel ? Offset.zero & viewportSize : sceneRect,
+        bounds: Offset.zero & viewportSize,
         obstacles: [
           playerSprite.expandToInclude(playerPlatform),
           enemySprite.expandToInclude(enemyPlatform),
           playerHud,
-          commandPanelRect,
+          growthObstacle,
         ],
       );
       final playerHudCandidate = _growHudRect(
         base: playerHud,
         textScale: textScale,
-        bounds: sidePanel ? Offset.zero & viewportSize : sceneRect,
+        bounds: Offset.zero & viewportSize,
         obstacles: [
           playerSprite.expandToInclude(playerPlatform),
           enemySprite.expandToInclude(enemyPlatform),
           enemyHud,
-          commandPanelRect,
+          growthObstacle,
         ],
       );
       final grownPlayerHud = sidePanel
@@ -409,59 +435,100 @@ final class BattleSceneLayout {
       );
     }
 
-    if (viewportClass == BattleViewportClass.compactPortrait) {
+    if (effectivePlacement == BattleCommandPanelPlacement.bottom) {
+      final bounds = Offset.zero & viewportSize;
       final arena = Rect.fromLTRB(
-        sceneRect.left,
-        sceneRect.top,
-        sceneRect.right,
+        0,
+        0,
+        viewportSize.width,
         commandPanelRect.top,
       );
+      final visualScale = math.min(
+        1.0,
+        isPortrait
+            ? viewportSize.width / 390
+            : math.min(viewportSize.width / 844, viewportSize.height / 390),
+      );
       final enemyHud = Rect.fromLTWH(
-        sceneRect.left + 18,
-        math.max(50, sceneRect.top + 8),
-        math.min(200, sceneRect.width - 36),
-        56,
+        (isPortrait ? 14 : 20) * visualScale,
+        math.max(
+          (isPortrait ? 48 : 12) * visualScale,
+          safePadding.top + (isPortrait ? 8 : 0),
+        ),
+        216 * visualScale,
+        40.5 * visualScale,
       );
       final playerHud = Rect.fromLTWH(
-        sceneRect.right - 18 - math.min(210, sceneRect.width * .56),
-        arena.bottom - 24 - 88,
-        math.min(210, sceneRect.width * .56),
-        88,
+        viewportSize.width -
+            ((isPortrait ? 14 : 24) + (isPortrait ? 218 : 210)) * visualScale,
+        isPortrait
+            ? commandPanelRect.top - (30 + 68.25) * visualScale
+            : math.min(
+                    viewportSize.height - 142 * visualScale,
+                    commandPanelRect.top - 12 * visualScale,
+                  ) -
+                  68.25 * visualScale,
+        (isPortrait ? 218 : 210) * visualScale,
+        68.25 * visualScale,
       );
-      final playerSize = math.min(
-        sceneRect.width * .405,
-        playerHud.left - sceneRect.left - 4,
+      final availableSpriteHeight = math.max(
+        24.0,
+        (isPortrait ? playerHud.top : arena.bottom) - enemyHud.bottom - 16,
       );
-      final enemySize = math.min(
-        sceneRect.width * .34,
-        math.max(48.0, playerHud.top - enemyHud.bottom - 24),
+      final playerHeight = math.min(
+        (isPortrait ? 137 : 126.3) * visualScale,
+        availableSpriteHeight,
       );
+      final playerWidth =
+          playerHeight * (isPortrait ? 147 / 137 : 134.7 / 126.3);
+      final playerBottom = isPortrait
+          ? (commandPanelRect.top - 112.5 * visualScale).clamp(
+              enemyHud.bottom + 8 + playerHeight,
+              playerHud.top - 8,
+            )
+          : math.min(
+              viewportSize.height - 132.2 * visualScale,
+              commandPanelRect.top - 8 * visualScale,
+            );
       final playerSprite = Rect.fromLTWH(
-        sceneRect.left + 4,
-        math.max(enemyHud.bottom + 8, arena.bottom - 84 - playerSize),
-        playerSize,
-        playerSize,
+        (isPortrait ? 28 : 140.6) * visualScale,
+        playerBottom - playerHeight,
+        playerWidth,
+        playerHeight,
+      );
+      final enemyHeight = math.min(
+        (isPortrait ? 109.3 : 94) * visualScale,
+        availableSpriteHeight,
+      );
+      final enemyWidth = enemyHeight * (isPortrait ? 98.7 / 109.3 : 84.8 / 94);
+      final enemyBottom = math.min(
+        isPortrait
+            ? commandPanelRect.top - 150.7 * visualScale
+            : viewportSize.height - 208.3 * visualScale,
+        playerHud.top - 8,
       );
       final enemySprite = Rect.fromLTWH(
-        sceneRect.right - 10 - enemySize,
-        math.max(enemyHud.bottom + 12, arena.bottom * .59 - enemySize),
-        enemySize,
-        enemySize,
+        viewportSize.width - (isPortrait ? 136 : 306.3) * visualScale,
+        math.max(enemyHud.bottom + 8, enemyBottom - enemyHeight),
+        enemyWidth,
+        enemyHeight,
       );
       final playerFoot = Offset(
-        playerSprite.left + playerSize * .7,
+        playerSprite.left + playerWidth * .68,
         playerSprite.bottom,
       );
       final enemyFoot = Offset(enemySprite.center.dx, enemySprite.bottom);
-      final playerPlatform = Rect.fromCenter(
-        center: playerFoot,
-        width: playerSize * .56,
-        height: 12,
+      final playerPlatform = Rect.fromLTWH(
+        playerFoot.dx - playerWidth * .28,
+        playerFoot.dy - 4 * visualScale,
+        playerWidth * .56,
+        12 * visualScale,
       );
-      final enemyPlatform = Rect.fromCenter(
-        center: enemyFoot,
-        width: enemySize * .7,
-        height: 12,
+      final enemyPlatform = Rect.fromLTWH(
+        enemyFoot.dx - enemyWidth * .35,
+        enemyFoot.dy - 4 * visualScale,
+        enemyWidth * .7,
+        12 * visualScale,
       );
       final enemyGrown = _growHudRect(
         base: enemyHud,
@@ -489,7 +556,7 @@ final class BattleSceneLayout {
         viewportClass: viewportClass,
         isPortrait: isPortrait,
         portraitSafeMargin: portraitSafeMargin,
-        sceneRect: viewportRect,
+        sceneRect: bounds,
         arenaRect: arena,
         commandPanelPlacement: effectivePlacement,
         commandPanelMode: commandPanelMode,
@@ -510,7 +577,7 @@ final class BattleSceneLayout {
         enemyFootAnchor: enemyFoot,
         playerFootAnchor: playerFoot,
         commandPanelLayoutMode: commandPanelLayoutMode,
-        scale: playerSize / 214,
+        scale: visualScale,
       );
     }
 

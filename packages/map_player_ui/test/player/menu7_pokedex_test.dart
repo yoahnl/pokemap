@@ -11,15 +11,6 @@ import 'package:map_player_ui/src/player/runtime_player_pokedex.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
-  setUpAll(() async {
-    await (FontLoader(
-      'MaterialIcons',
-    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-    await (FontLoader(
-      'packages/map_player_ui/PokeMapSplashDMSans',
-    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
-  });
-
   for (final format in [
     (size: Size(844, 390), companion: false),
     (size: Size(496, 432), companion: true),
@@ -36,6 +27,7 @@ void main() {
         detail,
         size: format.size,
         companion: format.companion,
+        integrated: true,
         safeInsets: format.companion
             ? EdgeInsets.zero
             : const EdgeInsets.fromLTRB(44, 12, 44, 20),
@@ -57,6 +49,7 @@ void main() {
         final row = find.byKey(ValueKey('pokedex-entry-species.$index'));
         expect(row.hitTestable(), findsOneWidget);
         final rect = tester.getRect(row);
+        expect(rect.height, greaterThanOrEqualTo(48));
         expect(body.contains(rect.topLeft), isTrue);
         expect(rect.bottom, lessThanOrEqualTo(body.bottom + .1));
       }
@@ -834,9 +827,11 @@ Future<void> _pump(
   Size size = const Size(1440, 900),
   double scale = 1,
   bool companion = false,
+  bool integrated = false,
   EdgeInsets safeInsets = EdgeInsets.zero,
   RuntimePlayerPokedexNavigation? navigation,
 }) async {
+  await _loadFonts(tester);
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
   addTearDown(tester.view.reset);
@@ -861,28 +856,74 @@ Future<void> _pump(
         child: Scaffold(
           body: RepaintBoundary(
             key: const ValueKey('pokedex-capture'),
-            child: RuntimePlayerPauseShell(
-              gameTitle: 'Le train de 17h42',
-              pauseSection: RuntimePlayerPauseSection.pokedex,
-              actions: {
-                for (final action in PlayerPauseAction.values)
-                  action: PlayerActionAvailability.enabled,
-              },
-              onSelected: (_) {},
-              onBackToRoot: nav.back,
-              presentation: const PlayerPausePresentation(
-                style: ProjectPauseMenuStyle.nightIllustrated,
-              ),
-              detailHeaderSecondary: Text(
-                '${detail.entries.where((entry) => entry.pokedexEntry?.knowledge != RuntimePlayerPokedexKnowledge.unknown).length} vus · ${detail.entries.where((entry) => entry.pokedexEntry?.knowledge == RuntimePlayerPokedexKnowledge.caught).length} capturé',
-              ),
-              detailOwnsScroll: true,
-              detail: RuntimePlayerPokedex(detail: detail, navigation: nav),
-            ),
+            child: integrated
+                ? RuntimePlayerSurfaceRouter(
+                    snapshot: RuntimePlayerSnapshot(
+                      revision: 1,
+                      phase: RuntimePlayerPhase.paused,
+                      gameTitle: 'Le train de 17h42',
+                      pauseSection: RuntimePlayerPauseSection.pokedex,
+                      actions: [
+                        for (final action in RuntimePlayerAction.values)
+                          RuntimePlayerActionAvailability.enabled(action),
+                      ],
+                      pauseDetails: {RuntimePlayerPauseSection.pokedex: detail},
+                    ),
+                    titlePresentation: const RuntimePlayerTitlePresentation(
+                      author: '',
+                    ),
+                    gameSceneBuilder: (_) => const SizedBox.expand(),
+                    pausePresentation: const PlayerPausePresentation(
+                      style: ProjectPauseMenuStyle.nightIllustrated,
+                    ),
+                    pokedexNavigation: nav,
+                    activeInputSource: PlayerInputSource.controller,
+                    onAction: (_) async => const RuntimePlayerCommandResult(
+                      status: RuntimePlayerCommandStatus.accepted,
+                    ),
+                  )
+                : RuntimePlayerPauseShell(
+                    gameTitle: 'Le train de 17h42',
+                    pauseSection: RuntimePlayerPauseSection.pokedex,
+                    actions: {
+                      for (final action in PlayerPauseAction.values)
+                        action: PlayerActionAvailability.enabled,
+                    },
+                    onSelected: (_) {},
+                    onBackToRoot: nav.back,
+                    presentation: const PlayerPausePresentation(
+                      style: ProjectPauseMenuStyle.nightIllustrated,
+                    ),
+                    detailHeaderSecondary: Text(
+                      '${detail.entries.where((entry) => entry.pokedexEntry?.knowledge != RuntimePlayerPokedexKnowledge.unknown).length} vus · ${detail.entries.where((entry) => entry.pokedexEntry?.knowledge == RuntimePlayerPokedexKnowledge.caught).length} capturé',
+                    ),
+                    detailOwnsScroll: true,
+                    detail: RuntimePlayerPokedex(
+                      detail: detail,
+                      navigation: nav,
+                    ),
+                  ),
           ),
         ),
       ),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+bool _fontsLoaded = false;
+
+Future<void> _loadFonts(WidgetTester tester) async {
+  if (_fontsLoaded) return;
+  final loaded = await tester.runAsync(() async {
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
+    await (FontLoader(
+      'packages/map_player_ui/PokeMapSplashDMSans',
+    )..addFont(rootBundle.load('assets/fonts/DMSans-Variable.ttf'))).load();
+    return true;
+  });
+  expect(loaded, isTrue);
+  _fontsLoaded = true;
 }

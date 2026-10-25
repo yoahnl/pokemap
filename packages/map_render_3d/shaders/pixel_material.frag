@@ -31,6 +31,12 @@ uniform Environment {
     vec4 pointColorIntensity[4];
 } environment;
 
+uniform Atmosphere {
+    vec4 options;
+    vec4 windowColor;
+    vec4 windowRects[8];
+} atmosphere;
+
 float gaussianWeight(int offset) {
     int distance = abs(offset);
     return distance == 0 ? 6.0 : distance == 1 ? 4.0 : 1.0;
@@ -97,7 +103,7 @@ void main() {
     if (environment.samplePosition.w > 0.5) receiverNormal = vec3(0.0, 1.0, 0.0);
     vec4 color = samplePixelColor();
     outColor = color * material.albedoColor * (material.alphaMode == 4.0 ? vec4(1.0) : fragColor);
-    if (material.lightingOptions.x > 0.5) {
+    if (atmosphere.options.z < 0.5 && material.lightingOptions.x > 0.5) {
         vec3 normal = vec3(0.0, 1.0, 0.0);
         if (material.lightingOptions.y > 0.5 && dot(fragNormal, fragNormal) > 0.000001) {
             normal = normalize(fragNormal);
@@ -111,7 +117,7 @@ void main() {
         vec3 lighting = material.lightingAmbient.rgb + material.lightingSun.rgb * diffuse * sunVisibility;
         outColor.rgb *= mix(vec3(1.0), lighting, material.lightingOptions.z);
     }
-    if (environment.options.x > 0.5) {
+    if (atmosphere.options.z < 0.5 && environment.options.x > 0.5) {
         vec3 samplePosition = environment.samplePosition.w > 0.5 ? environment.samplePosition.xyz : fragPosition;
         vec3 localLight = vec3(0.0);
         for (int index = 0; index < 4; index++) {
@@ -125,6 +131,26 @@ void main() {
         }
         vec3 baseColor = color.rgb * material.albedoColor.rgb * (material.alphaMode == 4.0 ? vec3(1.0) : fragColor.rgb);
         outColor.rgb = outColor.rgb * environment.tint.rgb + baseColor * localLight;
+    }
+    if (atmosphere.options.x > 0.5) {
+        vec2 pixelWorld = floor(fragPosition.xz * 32.0) / 32.0;
+        float t = atmosphere.options.y;
+        float wave = sin(pixelWorld.x * 7.0 + pixelWorld.y * 3.5 + t * 1.4);
+        float crossWave = sin(pixelWorld.x * 2.3 - pixelWorld.y * 8.0 - t * 0.85);
+        float glint = pow(max(0.0, wave * crossWave), 12.0);
+        float ripple = (wave + crossWave) * 0.025;
+        outColor.rgb = max(vec3(0.0), outColor.rgb + vec3(ripple * 0.6, ripple, ripple * 1.15));
+        outColor.rgb += vec3(0.13, 0.20, 0.22) * glint;
+    }
+    if (atmosphere.windowColor.w > 0.0) {
+        float mask = 0.0;
+        for (int i = 0; i < 8; i++) {
+            if (float(i) >= atmosphere.options.w) break;
+            vec4 rect = atmosphere.windowRects[i];
+            mask = max(mask, step(rect.x, fragTexCoord.x) * step(rect.y, fragTexCoord.y) * step(fragTexCoord.x, rect.z) * step(fragTexCoord.y, rect.w));
+        }
+        vec3 litGlass = atmosphere.windowColor.rgb * (0.72 + 0.28 * color.rgb);
+        outColor.rgb = mix(outColor.rgb, litGlass, clamp(mask * atmosphere.windowColor.w, 0.0, 1.0));
     }
     if (material.alphaMode == 0.0) {
         if (color.a < material.alphaCutoff) discard;

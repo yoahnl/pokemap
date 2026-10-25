@@ -328,6 +328,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
         ),
         child: PlayerPagedList(
           key: const ValueKey('pokedex-list'),
+          spacing: companion ? 4 : 8,
           initialPage: _navigation._listPage,
           revealChildKey: ValueKey(
             'pokedex-row-${math.max(0, visible.indexWhere((entry) => entry.id == _selected?.id)) ~/ columns}',
@@ -355,7 +356,7 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
             const SizedBox(height: 12),
             _filters(),
           ],
-          const SizedBox(height: 8),
+          SizedBox(height: companion ? 4 : 8),
           Expanded(child: FocusTraversalGroup(child: pages(rows))),
         ],
       );
@@ -476,7 +477,11 @@ class _RuntimePlayerPokedexState extends State<RuntimePlayerPokedex> {
         selected: _selected?.id == entry.id,
         semanticValue: '${_number(entry)}, ${_status(entry)}',
         focusNode: _node(entry.id),
-        minimumHeight: MediaQuery.sizeOf(context).aspectRatio > 1 ? 48 : 56,
+        minimumHeight:
+            PlayerCompanionScope.of(context) ||
+                MediaQuery.sizeOf(context).aspectRatio > 1
+            ? 48
+            : 56,
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         leading: Row(
           mainAxisSize: MainAxisSize.min,

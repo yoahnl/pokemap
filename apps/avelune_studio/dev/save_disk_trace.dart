@@ -32,6 +32,7 @@ final class SaveDiskTrace {
   Map<String, Object> snapshot() => {
     'root': root,
     'coverage': 'Dart File and Directory APIs in the UI isolate, including data reads, completed writes and directory listings',
+    'byteSemantics': 'Completed content reads and writes; stream deliveries are separate from underlying reads. Not physical SSD traffic.',
     'rows': _rows.values.toList(),
   };
 
@@ -63,7 +64,8 @@ final class _TraceOverrides extends IOOverrides {
 }
 
 final class _TraceFile implements File {
-  _TraceFile(this.file, this.trace);
+  _TraceFile(File source, this.trace)
+    : file = source is _TraceFile ? source.file : source;
   final File file;
   final SaveDiskTrace trace;
   void note(String operation, [int bytes = 0]) =>
@@ -142,7 +144,7 @@ final class _TraceFile implements File {
   Stream<List<int>> openRead([int? start, int? end]) {
     note('openRead');
     return file.openRead(start, end).map((chunk) {
-      note('read', chunk.length);
+      note('streamDelivered', chunk.length);
       return chunk;
     });
   }
@@ -290,7 +292,8 @@ final class _TraceRandomFile implements RandomAccessFile {
 }
 
 final class _TraceDirectory implements Directory {
-  _TraceDirectory(this.directory, this.trace);
+  _TraceDirectory(Directory source, this.trace)
+    : directory = source is _TraceDirectory ? source.directory : source;
   final Directory directory;
   final SaveDiskTrace trace;
   @override

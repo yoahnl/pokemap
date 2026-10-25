@@ -718,34 +718,40 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
           onPressed: _busy ? null : () => _use(entry, action),
         ),
       if (widget.onFavoriteChanged != null)
-        PlayerMenuSelectableRow(
-          key: ValueKey('bag-favorite-${_id(entry)}'),
-          focusNode: action?.isEnabled == true && widget.onCommand != null
-              ? null
-              : _detailFocus,
-          id: 'bag-favorite-${_id(entry)}',
-          integrated: returnAction == null,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 10,
-          ),
-          label: widget.favoriteItemIds.contains(_id(entry))
-              ? _text('Retirer des favoris', 'Unfavorite')
-              : _text('Favori', 'Favorite'),
-          leading: Icon(
-            widget.favoriteItemIds.contains(_id(entry))
-                ? Icons.star
-                : Icons.star_border,
-          ),
-          busy: _busy,
-          onPressed: _busy
-              ? null
-              : () => _run(
-                  () => widget.onFavoriteChanged!(
-                    _id(entry),
-                    !widget.favoriteItemIds.contains(_id(entry)),
+        Tooltip(
+          message: widget.favoriteItemIds.contains(_id(entry))
+              ? _text('Retirer des favoris', 'Remove from favorites')
+              : _text('Ajouter aux favoris', 'Add to favorites'),
+          child: PlayerMenuSelectableRow(
+            key: ValueKey('bag-favorite-${_id(entry)}'),
+            focusNode: action?.isEnabled == true && widget.onCommand != null
+                ? null
+                : _detailFocus,
+            id: 'bag-favorite-${_id(entry)}',
+            integrated: returnAction == null,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 10,
+            ),
+            label: _text('Favori', 'Favorite'),
+            semanticValue: widget.favoriteItemIds.contains(_id(entry))
+                ? _text('Retirer des favoris', 'Remove from favorites')
+                : _text('Ajouter aux favoris', 'Add to favorites'),
+            leading: Icon(
+              widget.favoriteItemIds.contains(_id(entry))
+                  ? Icons.star
+                  : Icons.star_border,
+            ),
+            busy: _busy,
+            onPressed: _busy
+                ? null
+                : () => _run(
+                    () => widget.onFavoriteChanged!(
+                      _id(entry),
+                      !widget.favoriteItemIds.contains(_id(entry)),
+                    ),
                   ),
-                ),
+          ),
         ),
     ];
     return PlayerMenuThemeScope(

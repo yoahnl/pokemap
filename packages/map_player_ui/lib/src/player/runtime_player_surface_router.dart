@@ -628,6 +628,8 @@ class _RuntimePlayerSurfaceRouterState
         endingLabel:
             widget.snapshot.credits?.endingLabel ??
             widget.titlePresentation.description,
+        contributors: widget.snapshot.credits?.contributors ?? const [],
+        licenses: widget.snapshot.credits?.licenses ?? const [],
         onReturnToTitle: _callbackFor(RuntimePlayerAction.returnToTitle),
         onReturnToHub: _callbackFor(RuntimePlayerAction.returnToHost),
       ),

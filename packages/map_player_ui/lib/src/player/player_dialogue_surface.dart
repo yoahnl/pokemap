@@ -198,6 +198,7 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
               PlayerSpacing.sm + (resolved?.additionalSafeAreaPadding ?? 0);
           final companion = PlayerCompanionScope.of(context);
           final landscape = constraints.maxWidth > constraints.maxHeight;
+          final fillCompanion = companion && ligue && resolved == null;
           final horizontalMargin = landscape && !companion ? 44.0 : 16.0;
           final bottomMargin = landscape || companion ? 16.0 : 24.0;
           final defaultInsets = EdgeInsets.fromLTRB(
@@ -229,7 +230,9 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
           final contentPadding =
               dialogue?.contentPadding ??
               (ligue && resolved == null
-                  ? 18.0
+                  ? companion
+                        ? 10.0
+                        : 18.0
                   : PlayerSpacing.md * (resolved?.spacingScale ?? 1));
           return Padding(
             padding: insets,
@@ -245,6 +248,9 @@ class _PlayerDialogueSurfaceState extends State<PlayerDialogueSurface> {
               alignment: alignment,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
+                  minHeight: fillCompanion
+                      ? math.max(0, constraints.maxHeight - insets.vertical)
+                      : 0,
                   maxWidth: resolved == null
                       ? dialogue == null
                             ? math.max(
@@ -404,6 +410,7 @@ class _DialoguePanel extends StatelessWidget {
             .dialogueSurface ??
         menu.base;
     final landscape = MediaQuery.sizeOf(context).aspectRatio > 1;
+    final companion = PlayerCompanionScope.of(context);
     final textTheme = baseTheme.textTheme.apply(
       bodyColor: menu.text,
       displayColor: menu.text,
@@ -412,7 +419,14 @@ class _DialoguePanel extends StatelessWidget {
       data: baseTheme.copyWith(
         textTheme: textTheme.copyWith(
           bodyLarge: context.playerTypography.dialogueStyle(
-            menu.body.copyWith(fontSize: landscape ? 16 : 17, height: 1.5),
+            menu.body.copyWith(
+              fontSize: companion
+                  ? 18
+                  : landscape
+                  ? 16
+                  : 17,
+              height: 1.5,
+            ),
           ),
           labelLarge: context.playerTypography.dialogueStyle(
             menu.label.copyWith(fontSize: 14, height: 1.5),
@@ -431,9 +445,19 @@ class _DialoguePanel extends StatelessWidget {
           child: IconTheme(
             data: IconThemeData(color: menu.text),
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: contentPadding,
-                vertical: landscape ? 14 : contentPadding,
+              padding: EdgeInsets.fromLTRB(
+                contentPadding + 5,
+                companion
+                    ? contentPadding
+                    : landscape
+                    ? 14
+                    : contentPadding,
+                contentPadding,
+                companion
+                    ? contentPadding
+                    : landscape
+                    ? 14
+                    : contentPadding,
               ),
               child: child,
             ),
@@ -1049,34 +1073,41 @@ class _DialogueAdvanceLabel extends StatelessWidget {
         role: ProjectPresentationSurfaceRole.dialogue,
         opaque: true,
       );
+      final companion = PlayerCompanionScope.of(context);
+      final foreground = companion ? menu.text : menu.selectionText;
       return Align(
         alignment: Alignment.centerLeft,
-        child: DecoratedBox(
-          key: const ValueKey('player-dialogue-ligue-advance'),
-          decoration: BoxDecoration(
-            color: menu.selectionTop,
-            borderRadius: BorderRadius.circular(3),
-            border: Border(left: BorderSide(color: menu.accent, width: 3)),
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (compact && icon != null)
-                    Icon(icon, color: menu.selectionText)
-                  else
-                    Flexible(
-                      child: Text(
-                        label,
-                        style: menu.actionLabel.copyWith(
-                          color: menu.selectionText,
+        child: SizedBox(
+          width: companion ? double.infinity : null,
+          child: DecoratedBox(
+            key: const ValueKey('player-dialogue-ligue-advance'),
+            decoration: BoxDecoration(
+              color: companion ? menu.recessed : menu.selectionTop,
+              borderRadius: BorderRadius.circular(3),
+              border: Border(left: BorderSide(color: menu.accent, width: 3)),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Row(
+                  mainAxisSize: companion ? MainAxisSize.max : MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (compact && icon != null)
+                      Icon(icon, color: foreground)
+                    else
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: menu.actionLabel.copyWith(color: foreground),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

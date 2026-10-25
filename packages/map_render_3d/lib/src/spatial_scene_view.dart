@@ -42,6 +42,7 @@ import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_authored_shadows.dart';
 import 'spatial_environment_lighting.dart';
+import 'spatial_atmosphere.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -72,6 +73,56 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
+  final _sceneChanges = ChangeNotifier();
+  Listenable get sceneChanges => _sceneChanges;
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    _sceneChanges.notifyListeners();
+  }
+  @override
+  void dispose() {
+    _sceneChanges.dispose();
+    super.dispose();
+  }
+
+  SpatialAtmosphereProfile _atmosphereProfile =
+      SpatialAtmosphereProfile.disabled;
+  SpatialAtmosphereProfile get atmosphereProfile => _atmosphereProfile;
+  set atmosphereProfile(SpatialAtmosphereProfile value) {
+    if (identical(_atmosphereProfile, value)) return;
+    _atmosphereProfile = value;
+    super.notifyListeners();
+  }
+
+  bool _waterAnimated = false, _windowsLit = false, _fireflies = false;
+  bool get waterAnimated => _waterAnimated;
+  set waterAnimated(bool value) {
+    if (_waterAnimated == value) return;
+    _waterAnimated = value;
+    super.notifyListeners();
+  }
+
+  bool get windowsLit => _windowsLit;
+  set windowsLit(bool value) {
+    if (_windowsLit == value) return;
+    _windowsLit = value;
+    super.notifyListeners();
+  }
+
+  bool get fireflies => _fireflies;
+  set fireflies(bool value) {
+    if (_fireflies == value) return;
+    _fireflies = value;
+    super.notifyListeners();
+  }
+
+  ({bool water, bool windows, bool fireflies}) get atmosphereAvailability => (
+    water: _atmosphereProfile.waterTargets.isNotEmpty,
+    windows: _atmosphereProfile.windows.isNotEmpty,
+    fireflies: _atmosphereProfile.fireflyZones.isNotEmpty,
+  );
+
   bool _previewPointLightShadowsEnabled = true;
   bool get previewPointLightShadowsEnabled => _previewPointLightShadowsEnabled;
   set previewPointLightShadowsEnabled(bool value) {
@@ -314,7 +365,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(scheduleHoverRefresh);
+    widget.controller.sceneChanges.addListener(scheduleHoverRefresh);
     widget.controller._prepareDestination = prepareDestination;
     widget.controller._readShadowStats = readShadowStats;
     widget.controller._readActorContactShadowCount = readActorContactShadowCount;
@@ -489,11 +540,11 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   void didUpdateWidget(SpatialSceneView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(scheduleHoverRefresh);
+      oldWidget.controller.sceneChanges.removeListener(scheduleHoverRefresh);
       if (oldWidget.controller._prepareDestination == prepareDestination) {
         oldWidget.controller._prepareDestination = null;
       }
-      widget.controller.addListener(scheduleHoverRefresh);
+      widget.controller.sceneChanges.addListener(scheduleHoverRefresh);
       widget.controller._prepareDestination = prepareDestination;
       oldWidget.controller._readShadowStats = null;
       oldWidget.controller._readActorContactShadowCount = null;
@@ -504,8 +555,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     final game = this.game;
     if (game == null) return;
     if (oldWidget.controller != widget.controller && game.sceneReady) {
-      oldWidget.controller.removeListener(game.syncCamera);
-      widget.controller.addListener(game.syncCamera);
+      oldWidget.controller.sceneChanges.removeListener(game.syncCamera);
+      widget.controller.sceneChanges.addListener(game.syncCamera);
     }
     if (oldWidget.animationPreview != widget.animationPreview &&
         game.sceneReady) {
@@ -556,7 +607,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
 
   @override
   void dispose() {
-    widget.controller.removeListener(scheduleHoverRefresh);
+    widget.controller.sceneChanges.removeListener(scheduleHoverRefresh);
     if (widget.controller._prepareDestination == prepareDestination) {
       widget.controller._prepareDestination = null;
     }
@@ -857,6 +908,8 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
   final actors =
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
   late final actorContactShadows = SpatialActorContactShadows(world);
+  late final atmosphereEffects = SpatialAtmosphereEffects(world);
+  double atmosphereElapsed = 0;
   Map<String, SpatialActorVisual> actorFrames = const {};
   SpatialActorVisual? actorVisual;
   double billboardPitch = 0, billboardYaw = 0;
@@ -1003,7 +1056,7 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     await super.onLoad();
     if (closed) return;
     sceneReady = true;
-    configuration.controller.addListener(syncCamera);
+    configuration.controller.sceneChanges.addListener(syncCamera);
     configuration.animationPreview?.addListener(syncAnimations);
     world.add(LightComponent.ambient(intensity: 0.85));
     await refresh();
@@ -1661,6 +1714,32 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
       configuration.presentationElapsedSeconds?.call(),
     );
     syncLighting();
+    if (configuration.presentationPaused?.call() != true &&
+        dt.isFinite &&
+        dt > 0)
+      atmosphereElapsed += dt;
+    final control = configuration.controller;
+    final elapsed =
+        configuration.presentationElapsedSeconds?.call() ?? atmosphereElapsed;
+    final minute = control.dayNightMinuteOfDay;
+    final night = minute == null
+        ? 0.0
+        : 1 - spatialDayNightFrame(minute).daylight;
+    final renderContext = context as SpatialRenderContext;
+    renderContext
+      ..atmosphereProfile = control.atmosphereProfile
+      ..waterAnimated = control.waterAnimated
+      ..windowsLit = control.windowsLit
+      ..atmosphereElapsedSeconds = elapsed
+      ..atmosphereNight = night;
+    atmosphereEffects.sync(
+      profile: control.atmosphereProfile,
+      enabled: control.fireflies,
+      elapsedSeconds: elapsed,
+      night: night,
+      cameraPitch: billboardPitch,
+      cameraYaw: billboardYaw,
+    );
     syncActorContactShadows();
   }
 
@@ -2067,9 +2146,10 @@ class _SpatialGame extends FlameGame3D<World3D, CameraComponent3D> {
     _destinationPreparation = null;
     closed = true;
     generation++;
+    atmosphereEffects.clear();
     sceneComponents.dispose();
     placementRenderer.dispose();
-    configuration.controller.removeListener(syncCamera);
+    configuration.controller.sceneChanges.removeListener(syncCamera);
     configuration.animationPreview?.removeListener(syncAnimations);
     clearModelResourceCache();
     loadedModelSources.clear();

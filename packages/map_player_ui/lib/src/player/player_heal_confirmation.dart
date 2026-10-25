@@ -183,24 +183,34 @@ class _HealPartyMember extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = PlayerHealStrings.of(context);
-    final hpRatio = (member.currentHp / member.maxHp).clamp(0.0, 1.0);
-    return PlayerPanel(
-      surfaceRole: ProjectPresentationSurfaceRole.confirmation,
-      padding: const EdgeInsets.all(PlayerSpacing.sm),
+    final theme = context.playerMenuTheme;
+    return PlayerMenuPanel(
+      key: ValueKey('heal-member-${member.partyIndex}'),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(member.label, style: Theme.of(context).textTheme.titleMedium),
+          Text(member.label, style: theme.label),
           const SizedBox(height: PlayerSpacing.xs),
-          LinearProgressIndicator(value: hpRatio),
+          PlayerMenuGauge(
+            value: member.currentHp.toDouble(),
+            maximum: member.maxHp.toDouble(),
+            label: strings.hp(member.currentHp, member.maxHp),
+            showLabel: false,
+            tone: member.currentHp / member.maxHp <= .2
+                ? PlayerMenuGaugeTone.danger
+                : member.currentHp / member.maxHp <= .5
+                ? PlayerMenuGaugeTone.warning
+                : PlayerMenuGaugeTone.normal,
+          ),
           const SizedBox(height: PlayerSpacing.xxs),
-          Text(strings.hp(member.currentHp, member.maxHp)),
+          Text(strings.hp(member.currentHp, member.maxHp), style: theme.meta),
           Wrap(
             spacing: PlayerSpacing.sm,
             runSpacing: PlayerSpacing.xxs,
             children: <Widget>[
-              Text(strings.status(member.hasStatus)),
-              Text(strings.pp(member.depletedMoveCount)),
+              Text(strings.status(member.hasStatus), style: theme.meta),
+              Text(strings.pp(member.depletedMoveCount), style: theme.meta),
             ],
           ),
         ],
@@ -216,23 +226,39 @@ class _HealFailureFallback extends StatelessWidget {
   final VoidCallback onClose;
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: context.playerColors.scrim,
-    child: Center(
-      child: PlayerPanel(
-        surfaceRole: ProjectPresentationSurfaceRole.confirmation,
-        elevated: true,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(strings.unavailable),
-            const SizedBox(height: PlayerSpacing.md),
-            PlayerActionButton(
-              label: strings.close,
-              icon: Icons.close,
-              onPressed: onClose,
+  Widget build(BuildContext context) => PlayerMenuThemeScope(
+    role: ProjectPresentationSurfaceRole.confirmation,
+    child: Builder(
+      builder: (context) => ColoredBox(
+        color: context.playerColors.scrim,
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: PlayerMenuPanel(
+                  primary: true,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        strings.unavailable,
+                        style: context.playerMenuTheme.body,
+                      ),
+                      const SizedBox(height: 16),
+                      PlayerActionButton(
+                        label: strings.close,
+                        icon: Icons.close,
+                        onPressed: onClose,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ],
+          ),
         ),
       ),
     ),

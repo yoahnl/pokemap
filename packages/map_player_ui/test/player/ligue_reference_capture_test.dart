@@ -10,9 +10,16 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_player_ui/src/player/runtime_player_bag.dart';
+import 'package:map_player_ui/src/player/player_save_dialog.dart';
+import 'package:map_player_ui/src/player/player_world_loading_surface.dart';
 import 'package:map_player_ui/src/player/runtime_player_party.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/battle_pokemon_sprite_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/battle_visual_asset_cache.dart';
 import 'package:path/path.dart' as p;
 
 const _referenceRoot = String.fromEnvironment('LIGUE_REFERENCE_ROOT');
@@ -106,7 +113,7 @@ const _items = <({String label, int quantity, String description, int price})>[
 ];
 final _images = <String, RuntimeUiImageLease>{};
 final _manifest = <Map<String, Object?>>[];
-final _opaqueSources = <String, Rect>{};
+final _runtimeStages = <_RuntimeStagePainter>[];
 late String _assets;
 
 bool _includes(String filter, String value) =>
@@ -149,6 +156,10 @@ void main() {
     }
   });
   tearDownAll(() async {
+    for (final stage in _runtimeStages) {
+      stage.dispose();
+    }
+    _runtimeStages.clear();
     for (final lease in _images.values) {
       lease.dispose();
     }
@@ -177,31 +188,6 @@ void main() {
             _images[path] = (await tester.runAsync(
               () => loadRuntimeUiImageFromFilePath(path),
             ))!;
-            final image = _images[path]!.image;
-            final pixels = await tester.runAsync(() => image.toByteData());
-            if (pixels != null) {
-              var left = image.width;
-              var top = image.height;
-              var right = 0;
-              var bottom = 0;
-              for (var y = 0; y < image.height; y++) {
-                for (var x = 0; x < image.width; x++) {
-                  if (pixels.getUint8((y * image.width + x) * 4 + 3) == 0) {
-                    continue;
-                  }
-                  if (x < left) left = x;
-                  if (y < top) top = y;
-                  if (x + 1 > right) right = x + 1;
-                  if (y + 1 > bottom) bottom = y + 1;
-                }
-              }
-              _opaqueSources[name] = Rect.fromLTRB(
-                left.toDouble(),
-                top.toDouble(),
-                right.toDouble(),
-                bottom.toDouble(),
-              );
-            }
           }
         }
         for (final section in _sections) {
@@ -382,11 +368,29 @@ void main() {
               fit: StackFit.expand,
               children: [
                 _image('world'),
-                if (mode.key != 'thor-companion')
-                  PlayerSceneInteractionSurface(
-                    request: request,
-                    onResult: (_) {},
-                  ),
+                if (mode.key != 'thor-primary')
+                  if (choice)
+                    PlayerDialogueSurface(
+                      data: PlayerDialogueViewData(
+                        revision: 7,
+                        mode: PlayerDialogueMode.choices,
+                        speaker: 'Léa',
+                        text: prompt.fallbackText!,
+                        fullText: prompt.fallbackText!,
+                        isCurrentLineFullyRevealed: true,
+                        isLastContent: true,
+                        choices: const [
+                          PlayerDialogueChoiceViewData(index: 0, label: 'Oui, allons-y !', selected: true),
+                          PlayerDialogueChoiceViewData(index: 1, label: 'Pas maintenant', selected: false),
+                        ],
+                      ),
+                      onAction: (_) {},
+                    )
+                  else
+                    PlayerSceneInteractionSurface(
+                      request: request,
+                      onResult: (_) {},
+                    ),
               ],
             ),
           );
@@ -400,7 +404,7 @@ void main() {
             source: 'PlayerSceneInteractionSurface',
             limitations: mode.key == 'thor-companion'
                 ? [
-                    'Dialogue remains owner-rendered; this fixture does not simulate a new remote dialogue protocol.',
+                    'Narrative widgets are composed in ready companion ownership; transport acknowledgement and stale-command rejection are tested separately.',
                   ]
                 : [],
           );
@@ -440,7 +444,8 @@ void main() {
                 : Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (mode.key != 'thor-companion') _battleStage(mode.key),
+                      if (mode.key != 'thor-companion')
+                        await _battleStage(tester, mode.key),
                       if (mode.key != 'thor-primary')
                         PlayerPostBattleOverlay(
                           snapshot: PostBattlePresentationSnapshot(
@@ -502,6 +507,72 @@ void main() {
                 : [],
           );
         }
+        for (final screen in const [
+          'session.loading',
+          'session.result',
+          'session.credits',
+          'session.error',
+          'save.exit',
+          'save.recovery',
+          'heal.confirm',
+          'heal.result',
+          'trade.select-first',
+          'trade.review',
+          'gift.received',
+        ]) {
+          if (!_includes(_screenFilter, screen)) continue;
+          final saveState = ValueNotifier(
+            RuntimePlayerSnapshot(
+              revision: 7,
+              phase: RuntimePlayerPhase.paused,
+              gameTitle: 'Les Clairières',
+              activeSaveAddress: const RuntimePlayerSaveAddress(
+                gameId: 'clairieres',
+                profileId: 'yoahn',
+                slotId: '1',
+              ),
+              actions: const [
+                RuntimePlayerActionAvailability.enabled(
+                  RuntimePlayerAction.save,
+                ),
+                RuntimePlayerActionAvailability.enabled(
+                  RuntimePlayerAction.returnToTitle,
+                ),
+              ],
+            ),
+          );
+          try {
+            await _mount(
+              tester,
+              mode.key,
+              dark,
+              Stack(
+                fit: StackFit.expand,
+                children: [
+                  _image('world'),
+                  if (mode.key != 'thor-primary')
+                    _supplementalSurface(screen, saveState),
+                ],
+              ),
+            );
+            await _capture(
+              tester,
+              mode.key,
+              theme,
+              screen,
+              source: 'Public native session and world-service widgets',
+              limitations: [
+                'Synthetic service state; no save or service mutation is executed.',
+                if (mode.key.startsWith('thor')) 'Direct widget composition; remote ownership for this service is not certified.',
+                if (screen.startsWith('heal') || screen.startsWith('trade')) 'The canonical service exposes text identity without a sprite projection.',
+              ],
+            );
+          } finally {
+            await tester.pumpWidget(const SizedBox.shrink());
+            await tester.pump();
+            saveState.dispose();
+          }
+        }
         for (final screen in ['battle.root', 'battle.fight', 'battle.turn']) {
           if (!_includes(_screenFilter, screen)) continue;
           final moves = screen == 'battle.fight';
@@ -532,17 +603,8 @@ void main() {
             Stack(
               fit: StackFit.expand,
               children: [
-                if (mode.key != 'thor-companion') ...[
-                  _image('battle-ligue'),
-                  Positioned.fromRect(
-                    rect: layout.enemySpriteRect,
-                    child: _combatant('pidgey-front', .5),
-                  ),
-                  Positioned.fromRect(
-                    rect: layout.playerSpriteRect,
-                    child: _combatant('bulbasaur-back', .68),
-                  ),
-                ],
+                if (mode.key != 'thor-companion')
+                  await _runtimeStage(tester, layout),
                 PlayerBattleOverlay(
                   snapshot: _battleSnapshot(
                     size,
@@ -570,16 +632,200 @@ void main() {
             source:
                 'PlayerBattleOverlay > PlayerBattleSurface; BattleSceneLayout',
             limitations: [
-              'Reference art is composited with opaque bounds, contain fit and foot anchors matching the runtime renderer; Flame scene execution is not exercised.',
+              'Real Flame backdrop and combatant paint methods are composed with runtime layout, using reference assets; game loop, turn choreography and physical device execution are not exercised.',
             ],
           );
         }
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();
+        for (final stage in _runtimeStages) {
+          stage.dispose();
+        }
+        _runtimeStages.clear();
         await tester.runAsync(_writeManifest);
       });
     }
   }
+}
+
+Widget _supplementalSurface(
+  String screen,
+  ValueNotifier<RuntimePlayerSnapshot> saveState,
+) {
+  final healed = screen == 'heal.result';
+  final tradeReview = screen == 'trade.review';
+  final snapshot = RuntimeWorldServiceSnapshot(
+    revision: 7,
+    stage: healed
+        ? RuntimeWorldServiceStage.completed
+        : RuntimeWorldServiceStage.active,
+    request: screen.startsWith('heal')
+        ? const OpenHealService(interactionId: 'nurse')
+        : const OpenPartyTradeService(interactionId: 'trade'),
+    content: screen.startsWith('heal')
+        ? RuntimeHealServiceContent(
+            title: healed
+                ? 'Votre équipe est en pleine forme !'
+                : 'Soigner votre équipe ?',
+            message: healed
+                ? 'Les PV, les PP et les altérations de statut ont été restaurés.'
+                : 'Nous pouvons restaurer les PV et les PP de vos compagnons.',
+            wasHealed: healed,
+            members: [
+              for (var i = 0; i < 6; i++)
+                RuntimeHealPartyMemberSnapshot(
+                  partyIndex: i,
+                  label: _speciesLabels[i],
+                  currentHp: healed ? 48 : 32,
+                  maxHp: 48,
+                  hasStatus: !healed && i == 1,
+                  depletedMoveCount: healed ? 0 : 1,
+                ),
+            ],
+          )
+        : RuntimePartyTradeServiceContent(
+            phase: tradeReview
+                ? RuntimePartyTradePhase.review
+                : RuntimePartyTradePhase.selectFirst,
+            firstIndividualId: tradeReview ? 'member0' : null,
+            partnerIndividualId: tradeReview ? 'member1' : null,
+            members: [
+              for (var i = 0; i < 6; i++)
+                RuntimePartyTradePokemonSnapshot(
+                  individualId: 'member$i',
+                  speciesId: _species[i],
+                  label: _speciesLabels[i],
+                  level: 16,
+                ),
+            ],
+          ),
+    actions: [
+      RuntimeWorldServiceActionAvailability.enabled(
+        healed
+            ? RuntimeWorldServiceAction.close
+            : screen == 'trade.select-first'
+            ? RuntimeWorldServiceAction.select
+            : RuntimeWorldServiceAction.confirm,
+      ),
+      if (!healed)
+        const RuntimeWorldServiceActionAvailability.enabled(
+          RuntimeWorldServiceAction.cancel,
+        ),
+    ],
+  );
+  return switch (screen) {
+    'session.loading' => PlayerWorldLoadingSurface(
+      gameTitle: 'Les Clairières',
+      stage: 'Préparation de votre aventure…',
+      progress: .65,
+      onCancel: () {},
+    ),
+    'session.result' => PlayerResultSurface(
+      title: 'Fin de l’aventure',
+      summary: 'Vous avez terminé cette aventure.',
+      details: const ['Votre progression a été conservée.'],
+      onShowCredits: () {},
+    ),
+    'session.credits' => PlayerCreditsSurface(
+      title: 'Les Clairières',
+      author: 'Avelune',
+      contributors: const ['Création et développement · Yoahn'],
+      licenses: const [
+        'Les crédits des ressources sont fournis par le projet.',
+      ],
+      onReturnToTitle: () {},
+      onReturnToHub: () {},
+    ),
+    'session.error' => PlayerErrorSurface(
+      title: 'Le chargement a échoué',
+      message: 'La partie n’a pas pu être ouverte.',
+      recommendation: 'Réessayez ou revenez à votre bibliothèque.',
+      onRetry: () {},
+      onReturnToHub: () {},
+    ),
+    'save.exit' => PlayerMenuThemeScope(child: PlayerSaveDialog(
+      snapshot: saveState,
+      onSave: () async => _accepted,
+      onReceiptShown: (_) {},
+      returnToTitle: screen == 'save.exit',
+      onDiscard: () async => _accepted,
+    )),
+    'save.recovery' => Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: PlayerSaveRecoverySurface(
+          diagnostic: const SaveLoadDiagnostic(
+            code: SaveLoadFailureCode.unreadable,
+            expectedSchemaVersion: 1,
+            recommendedActions: [
+              SaveRecoveryAction.retry,
+              SaveRecoveryAction.returnToTitle,
+              SaveRecoveryAction.deleteSave,
+            ],
+          ),
+          onAction: (_) {},
+        ),
+      ),
+    ),
+    'heal.confirm' || 'heal.result' => PlayerHealConfirmation(
+      snapshot: snapshot,
+      onCommand: (_) {},
+    ),
+    'trade.select-first' || 'trade.review' => PlayerPartyTradeOverlay(
+      snapshot: snapshot,
+      onCommand: (_) {},
+    ),
+    'gift.received' => PlayerPokemonGiftOverlay(
+      snapshot: _giftSnapshot(),
+      onCommand: (_) {},
+    ),
+    _ => const SizedBox.shrink(),
+  };
+}
+
+RuntimeWorldServiceSnapshot _giftSnapshot() {
+  final interaction = SceneChoiceInteractionRequest(
+    requestId: 'gift',
+    revision: 7,
+    prompt: SceneInteractionPrompt(localizationKey: 'pokemonGift.received'),
+    options: [
+      for (final id in ['continue', 'nickname'])
+        SceneInteractionOption(
+          id: id,
+          label: SceneInteractionPrompt(localizationKey: 'pokemonGift.$id'),
+        ),
+    ],
+  );
+  return RuntimeWorldServiceSnapshot(
+    revision: 7,
+    stage: RuntimeWorldServiceStage.active,
+    request: OpenPokemonGiftInteractionService(
+      interactionId: 'gift',
+      interaction: interaction,
+      stage: PokemonGiftInteractionStage.received,
+      pokemon: const PlayerPokemon(
+        speciesId: 'bulbasaur',
+        nickname: 'Bulbi',
+        level: 16,
+        natureId: 'hardy',
+        abilityId: 'overgrow',
+        currentHp: 48,
+      ),
+      projectedState: const GameState(saveId: 'gift'),
+      speciesName: 'Bulbizarre',
+      isNewPokedexEntry: true,
+      pokedexDetail: _detail(RuntimePlayerPauseSection.pokedex, empty: false),
+    ),
+    content: interaction,
+    actions: const [
+      RuntimeWorldServiceActionAvailability.enabled(
+        RuntimeWorldServiceAction.confirm,
+      ),
+      RuntimeWorldServiceActionAvailability.enabled(
+        RuntimeWorldServiceAction.cancel,
+      ),
+    ],
+  );
 }
 
 Widget _image(String name, {BoxFit fit = BoxFit.cover}) => RawImage(
@@ -588,7 +834,7 @@ Widget _image(String name, {BoxFit fit = BoxFit.cover}) => RawImage(
   filterQuality: FilterQuality.none,
 );
 
-Widget _battleStage(String mode) {
+Future<Widget> _battleStage(WidgetTester tester, String mode) async {
   final size = _modes[mode]!;
   final placement = mode.startsWith('thor')
       ? BattleCommandPanelPlacement.detached
@@ -604,15 +850,7 @@ Widget _battleStage(String mode) {
   return Stack(
     fit: StackFit.expand,
     children: [
-      _image('battle-ligue'),
-      Positioned.fromRect(
-        rect: layout.enemySpriteRect,
-        child: _combatant('pidgey-front', .5),
-      ),
-      Positioned.fromRect(
-        rect: layout.playerSpriteRect,
-        child: _combatant('bulbasaur-back', .68),
-      ),
+      await _runtimeStage(tester, layout),
       PlayerBattleOverlay(
         snapshot: _battleSnapshot(
           size,
@@ -628,43 +866,87 @@ Widget _battleStage(String mode) {
   );
 }
 
-Widget _combatant(String name, double footXRatio) => CustomPaint(
-  painter: _CombatantPainter(
-    _images[p.join(_assets, '$name.png')]!.image,
-    _opaqueSources[name]!,
-    footXRatio,
-  ),
-);
+Future<Widget> _runtimeStage(
+  WidgetTester tester,
+  BattleSceneLayout layout,
+) async {
+  final cache = BattleVisualAssetCache(
+    imageLoader: (path) async => _images[path]!.image.clone(),
+  );
+  final player = BattleSceneCombatantComponent(
+    sceneSpriteRect: layout.playerSpriteRect,
+    scenePlatformRect: layout.playerPlatformRect,
+    sceneFootAnchor: layout.playerFootAnchor,
+    spriteFootXRatio: .68,
+    isPlayerSide: true,
+    speciesLabel: 'Bulbi',
+    visualAssetCache: cache,
+    initialSpriteSpec: BattleCombatantSpriteSpec(
+      facing: BattleCombatantSpriteFacing.back,
+      explicitImageAbsolutePath: p.join(_assets, 'bulbasaur-back.png'),
+    ),
+  );
+  final enemy = BattleSceneCombatantComponent(
+    sceneSpriteRect: layout.enemySpriteRect,
+    scenePlatformRect: layout.enemyPlatformRect,
+    sceneFootAnchor: layout.enemyFootAnchor,
+    spriteFootXRatio: .5,
+    isPlayerSide: false,
+    speciesLabel: 'Roucool',
+    visualAssetCache: cache,
+    initialSpriteSpec: BattleCombatantSpriteSpec(
+      facing: BattleCombatantSpriteFacing.front,
+      explicitImageAbsolutePath: p.join(_assets, 'pidgey-front.png'),
+    ),
+  );
+  final backdrop = BattleSceneBackdropComponent(
+    size: player.size.clone()
+      ..setValues(layout.viewportSize.width, layout.viewportSize.height),
+    visualAssetCache: cache,
+    backgroundSpec: BattleBackgroundSpec.explicitImage(
+      fallbackKey: BattleBackgroundKey.wildOutdoor,
+      absolutePath: p.join(_assets, 'battle-ligue.png'),
+    ),
+  );
+  await tester.runAsync(
+    () => Future.wait([player.onLoad(), enemy.onLoad(), backdrop.onLoad()]),
+  );
+  expect(player.hasResolvedExplicitSprite, isTrue);
+  expect(enemy.hasResolvedExplicitSprite, isTrue);
+  expect(backdrop.hasResolvedExplicitImage, isTrue);
+  final painter = _RuntimeStagePainter(cache, backdrop, player, enemy);
+  _runtimeStages.add(painter);
+  return CustomPaint(painter: painter);
+}
 
-class _CombatantPainter extends CustomPainter {
-  const _CombatantPainter(this.image, this.source, this.footXRatio);
-
-  final ui.Image image;
-  final Rect source;
-  final double footXRatio;
+class _RuntimeStagePainter extends CustomPainter {
+  const _RuntimeStagePainter(
+    this.cache,
+    this.backdrop,
+    this.player,
+    this.enemy,
+  );
+  final BattleVisualAssetCache cache;
+  final BattleSceneBackdropComponent backdrop;
+  final BattleSceneCombatantComponent player;
+  final BattleSceneCombatantComponent enemy;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final fitted = applyBoxFit(BoxFit.contain, source.size, size).destination;
-    final destination = Rect.fromLTWH(
-      (size.width - fitted.width) * footXRatio,
-      size.height - fitted.height,
-      fitted.width,
-      fitted.height,
-    );
-    canvas.drawImageRect(
-      image,
-      source,
-      destination,
-      Paint()..filterQuality = FilterQuality.none,
-    );
+    backdrop.renderTree(canvas);
+    player.renderTree(canvas);
+    enemy.renderTree(canvas);
+  }
+
+  void dispose() {
+    backdrop.onRemove();
+    player.onRemove();
+    enemy.onRemove();
+    cache.dispose();
   }
 
   @override
-  bool shouldRepaint(_CombatantPainter oldDelegate) =>
-      image != oldDelegate.image ||
-      source != oldDelegate.source ||
-      footXRatio != oldDelegate.footXRatio;
+  bool shouldRepaint(_RuntimeStagePainter oldDelegate) => oldDelegate != this;
 }
 
 Future<void> _mount(
@@ -698,15 +980,13 @@ Future<void> _mount(
             padding: _safePadding(mode),
             viewPadding: _safePadding(mode),
           ),
-          child: child!,
+          child: RepaintBoundary(
+            key: const ValueKey('ligue-capture'),
+            child: child!,
+          ),
         ),
       ),
-      home: Scaffold(
-        body: RepaintBoundary(
-          key: const ValueKey('ligue-capture'),
-          child: SizedBox.expand(child: body),
-        ),
-      ),
+      home: Scaffold(body: SizedBox.expand(child: body)),
     ),
   );
   await tester.pumpAndSettle(
@@ -795,12 +1075,24 @@ Future<void> _capture(
       },
       'source': source,
       'snapshotRevision':
-          screen.startsWith('battle') ||
-              screen.startsWith('pc') ||
-              screen.startsWith('shop') ||
-              screen.startsWith('dialogue')
-          ? 7
-          : 1,
+          (screen == 'title.menu' ||
+              screen.startsWith('session.') ||
+              screen == 'save.recovery'
+          ? null
+          : (const [
+                  'pause.root',
+                  'party.list',
+                  'pokemon.summary',
+                  'bag.list',
+                  'map.view',
+                  'dex.list',
+                  'profile.card',
+                  'options.categories',
+                  'quests.list',
+                  'contacts.list',
+                ].contains(screen)
+                ? 1
+                : 7)),
       'referenceRoot': _referenceRoot,
       'assetsRoot': _assets,
       'reference': 'Ligue 26 HTML atlas; synthetic public snapshots using its demo identities, inventory, health and provided artwork.',
@@ -1190,13 +1482,19 @@ RuntimePlayerPauseDetailSnapshot _detail(
                         status: i == 0
                             ? RuntimePlayerMapPointStatus.current
                             : RuntimePlayerMapPointStatus.discovered,
-                        u: (i % 6 + 1) / 7,
-                        v: (i ~/ 6 + 1) / 4,
+                        u: i == 0 ? .5 : .65,
+                        v: i == 0 ? .5 : .45,
                         description: i == 0
                             ? 'Vous vous trouvez ici. Un village calme au bord de la forêt.'
                             : 'Le garde veille sur le passage de la forêt.',
                       ),
                     ),
+            ),
+            RuntimePlayerRegionSnapshot(
+              id: 'highlands',
+              label: 'Les Hautes Terres',
+              imageFilePath: empty ? null : '$_assets/region.png',
+              points: const [],
             ),
           ],
         )

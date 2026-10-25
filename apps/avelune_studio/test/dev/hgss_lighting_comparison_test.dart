@@ -10,6 +10,49 @@ import '../../dev/hgss_lighting_comparison.dart';
 
 void main() {
   test(
+    'atmosphere pairs share the clock and independently restore all flags',
+    () {
+      final camera = SpatialSceneController();
+      final lighting = ValueNotifier(SpatialLightingProfile.disabled);
+      addTearDown(camera.dispose);
+      addTearDown(lighting.dispose);
+      for (final frame in [0, 120, 239]) {
+        double? beforeMinute;
+        for (final enabled in [false, true, false]) {
+          setComparisonLightingPhase(
+            dayNightTest: false,
+            atmosphereTest: true,
+            after: enabled,
+            probeOnly: false,
+            frameIndex: frame,
+            frameCount: 240,
+            camera: camera,
+            lighting: lighting,
+            beforeProfile: SpatialLightingProfile.disabled,
+            afterProfile: SpatialLightingProfile.disabled,
+          );
+          beforeMinute ??= camera.previewMinuteOfDay;
+          expect(camera.previewMinuteOfDay, beforeMinute);
+          expect(camera.waterAnimated, enabled);
+          expect(camera.windowsLit, enabled);
+          expect(camera.fireflies, enabled);
+        }
+      }
+      expect(camera.previewMinuteOfDay, 1320);
+      const child = SizedBox();
+      expect(
+        comparisonLightingSurface(
+          dayNightTest: false,
+          atmosphereTest: true,
+          lighting: lighting,
+          child: child,
+        ),
+        same(child),
+      );
+    },
+  );
+
+  test(
     'contact capture requires every named actor to have the authored flag',
     () {
       expect(

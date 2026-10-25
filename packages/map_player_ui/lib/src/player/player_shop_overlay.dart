@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_input_scope.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -213,7 +214,9 @@ class _PlayerShopOverlayState extends State<PlayerShopOverlay> {
                                     snapshot: snapshot,
                                     content: content,
                                     onSelect: _select,
-                                    columns: constraints.maxWidth >= 700
+                                    columns:
+                                        constraints.maxWidth >= 700 ||
+                                            PlayerCompanionScope.of(context)
                                         ? 2
                                         : 1,
                                   );
@@ -460,6 +463,7 @@ class _ShopEntry extends StatelessWidget {
               if (!selling && stock != null) l10n.shopStock(stock),
             ].join(' · ')
           : null,
+      trailingWidth: compact ? 16 : null,
       trailing: compact
           ? const Icon(Icons.chevron_right_rounded, size: 16)
           : Column(

@@ -128,6 +128,8 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
   Widget build(BuildContext context) {
     final strings = PlayerSaveStrings.of(context);
     final tokens = context.playerMenuTheme;
+    final viewport = MediaQuery.sizeOf(context);
+    final landscape = viewport.width > viewport.height;
     final hasResult = _receipt != null || _failure != null;
     final summary = _summary(context, strings) as Column;
     return PopScope(
@@ -148,11 +150,23 @@ class _PlayerSaveDialogState extends State<PlayerSaveDialog> {
                     : 'runtime-save-dialog',
               ),
               insetPadding: const EdgeInsets.all(16),
-              constraints: const BoxConstraints(maxWidth: 640, maxHeight: 600),
+              constraints: BoxConstraints(
+                maxWidth: landscape ? 500 : 440,
+                maxHeight: 600,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  PokeMapPlayerMenuTheme.panelRadius,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
               backgroundColor: tokens.base,
               child: PlayerMenuPanel(
                 key: const ValueKey('runtime-save-panel'),
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: landscape ? 18 : 22,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

@@ -333,14 +333,12 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  _text('Lieu actuel', 'Current location'),
-                  style: theme.meta.copyWith(fontSize: 12),
-                ),
+              Text(
+                _text('Lieu actuel', 'Current location'),
+                style: theme.meta.copyWith(fontSize: 12),
               ),
               const SizedBox(width: 8),
-              Flexible(
+              Expanded(
                 child: Text(
                   location,
                   key: const ValueKey('profile-location'),
@@ -405,15 +403,13 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            statistic.value,
-                            textAlign: TextAlign.right,
-                            style: theme.numbers.copyWith(
-                              fontSize: 12,
-                              height: 1.3,
-                            ),
+                        const SizedBox(width: 8),
+                        Text(
+                          statistic.value,
+                          textAlign: TextAlign.right,
+                          style: theme.numbers.copyWith(
+                            fontSize: 12,
+                            height: 1.3,
                           ),
                         ),
                       ],

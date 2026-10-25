@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -13,10 +14,12 @@ void main() {
       tester.view.physicalSize = const Size(844, 390);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      final font = ByteData.sublistView(
-        await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
-      );
-      await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+      await tester.runAsync(() async {
+        final font = ByteData.sublistView(
+          await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
+        );
+        await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+      });
       final commands = <RuntimeWorldServiceCommand>[];
       await _pump(
         tester,
@@ -38,10 +41,56 @@ void main() {
         expect(card.bottom, lessThanOrEqualTo(370));
       }
       expect(find.byKey(const ValueKey('shop-open-quantity')), findsOneWidget);
+      final label = tester.renderObject<RenderParagraph>(
+        find.text('Super Potion'),
+      );
+      expect(
+        label.getMaxIntrinsicWidth(double.infinity),
+        lessThanOrEqualTo(label.size.width + .5),
+      );
+      final stock = tester.renderObject<RenderParagraph>(
+        find.text('700 ₽ · Stock : 12'),
+      );
+      expect(
+        stock.getMaxIntrinsicWidth(double.infinity),
+        lessThanOrEqualTo(stock.size.width + .5),
+      );
       await tester.tap(find.byKey(const ValueKey('shop-item-antidote')));
       expect(commands.single.action, RuntimeWorldServiceAction.select);
       expect(commands.single.targetId, 'antidote');
       expect(commands.single.snapshotRevision, 7);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'companion shop keeps four articles in two columns without pagination',
+    (tester) async {
+      tester.view.physicalSize = const Size(496, 432);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.runAsync(() async {
+        final font = ByteData.sublistView(
+          await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
+        );
+        await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+      });
+      await _pump(
+        tester,
+        _snapshot(fourEntries: true),
+        (_) {},
+        companion: true,
+      );
+      expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      final cards = [
+        for (final id in ['potion', 'super-potion', 'antidote', 'revive'])
+          tester.getRect(find.byKey(ValueKey('shop-item-$id'))),
+      ];
+      expect(cards[0].top, cards[1].top);
+      expect(cards[2].top, cards[3].top);
+      expect(cards[2].top, greaterThan(cards[0].bottom));
+      expect(cards.last.bottom, lessThan(432));
+      expect(find.byType(Scrollable), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );
@@ -298,6 +347,7 @@ Future<void> _pump(
   ValueChanged<RuntimeWorldServiceCommand> onCommand, {
   Locale locale = const Locale('fr'),
   EdgeInsets safePadding = EdgeInsets.zero,
+  bool companion = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -310,7 +360,14 @@ Future<void> _pump(
             .copyWith(padding: safePadding, viewPadding: safePadding),
         child: child!,
       ),
-      home: PlayerShopOverlay(snapshot: snapshot, onCommand: onCommand),
+      home: companion
+          ? PlayerCompanionScope(
+              child: PlayerShopOverlay(
+                snapshot: snapshot,
+                onCommand: onCommand,
+              ),
+            )
+          : PlayerShopOverlay(snapshot: snapshot, onCommand: onCommand),
     ),
   );
   await tester.pumpAndSettle();

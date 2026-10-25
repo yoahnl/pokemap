@@ -50,6 +50,7 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
   }
 
   void _insert(String value) {
+    if (!widget.enabled) return;
     final current = widget.controller.value;
     final selection = current.selection.isValid
         ? current.selection
@@ -59,6 +60,10 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
       selection.end,
       value,
     );
+    if (widget.numeric &&
+        !RegExp(widget.signed ? r'^-?[0-9]*$' : r'^[0-9]*$').hasMatch(text)) {
+      return;
+    }
     if (widget.maximum != null && text.characters.length > widget.maximum!) {
       return;
     }
@@ -72,6 +77,7 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
   }
 
   void _erase() {
+    if (!widget.enabled) return;
     final current = widget.controller.value;
     final selection = current.selection.isValid
         ? current.selection
@@ -94,6 +100,7 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
     String label,
     VoidCallback action, {
     bool autofocus = false,
+    IconData? icon,
   }) {
     final theme = context.playerMenuTheme;
     final selected = _focused == id;
@@ -101,7 +108,9 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
       key: ValueKey('scene-keyboard-$id'),
       id: 'scene-keyboard-$id',
       label: label,
-      tile: true,
+      tile: icon == null,
+      iconOnly: icon != null,
+      leading: icon == null ? null : Icon(icon, size: 22),
       labelStyle: theme.actionLabel.copyWith(fontSize: 14),
       contentPadding: const EdgeInsets.all(4),
       focusNode: autofocus ? _initialFocus : null,
@@ -134,9 +143,16 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
       builder: (context, constraints) {
         final columns = math.max(
           1,
-          math.min(12, ((constraints.maxWidth + 8) / 56).floor()),
+          math.min(14, ((constraints.maxWidth + 8) / 56).floor()),
         );
-        final rows = math.max(1, ((constraints.maxHeight - 56) / 56).floor());
+        final keyHeight = math.max(
+          48.0,
+          MediaQuery.textScalerOf(context).scale(20) + 20,
+        );
+        final rows = math.max(
+          1,
+          ((constraints.maxHeight - keyHeight) / (keyHeight + 8)).floor(),
+        );
         final pageSize = columns * rows;
         final values = characters.characters.toList();
         final pages = (values.length / pageSize).ceil();
@@ -147,7 +163,7 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
           if (pages > 1)
             _key(
               'page',
-              '${page + 1} / $pages',
+              '${page + 1}/$pages',
               () => setState(() => _page = (page + 1) % pages),
             ),
           if (!widget.numeric)
@@ -155,10 +171,21 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
               'case',
               _uppercase ? 'abc' : 'ABC',
               () => setState(() => _uppercase = !_uppercase),
+              icon: Icons.keyboard_capslock,
             ),
           if (!widget.numeric)
-            _key('space', french ? 'Espace' : 'Space', () => _insert(' ')),
-          _key('erase', french ? 'Effacer' : 'Delete', _erase),
+            _key(
+              'space',
+              french ? 'Espace' : 'Space',
+              () => _insert(' '),
+              icon: Icons.space_bar,
+            ),
+          _key(
+            'erase',
+            french ? 'Effacer' : 'Delete',
+            _erase,
+            icon: Icons.backspace_outlined,
+          ),
           widget.submit,
         ];
         return Column(
@@ -182,7 +209,7 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
                     if (index > offset) const SizedBox(width: 8),
                     SizedBox(
                       width: keyWidth,
-                      height: 48,
+                      height: keyHeight,
                       child: _key(
                         'char-${visible[index]}',
                         _uppercase
@@ -206,15 +233,15 @@ class _PlayerSceneKeyboardState extends State<PlayerSceneKeyboard> {
             ],
             const SizedBox(height: 8),
             SizedBox(
-              height: 48,
+              height: keyHeight,
               child: Row(
                 children: [
                   for (var index = 0; index < toolbar.length; index++) ...[
                     if (index > 0) const SizedBox(width: 8),
-                    Expanded(
-                      flex: index == toolbar.length - 1 ? 2 : 1,
-                      child: toolbar[index],
-                    ),
+                    if (index == toolbar.length - 1)
+                      Expanded(child: toolbar[index])
+                    else
+                      SizedBox(width: 48, child: toolbar[index]),
                   ],
                 ],
               ),

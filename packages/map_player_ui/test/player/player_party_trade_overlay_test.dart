@@ -143,6 +143,15 @@ void main() {
       await pump(tester, snapshot(RuntimePartyTradePhase.review), commands);
       expect(find.text('Pokémon : Machoke'), findsOneWidget);
       expect(find.text('Partenaire : Onix'), findsOneWidget);
+      final pair = find.byKey(const ValueKey('party-trade-pair'));
+      expect(pair, findsOneWidget);
+      expect(
+        find.descendant(of: pair, matching: find.byType(PlayerMenuPanel)),
+        findsNWidgets(2),
+      );
+      expect(find.text('Niv. 28'), findsOneWidget);
+      expect(find.text('Niv. 25'), findsOneWidget);
+      expect(find.byType(PlayerPanel), findsNothing);
       expect(commands, isEmpty);
       await tester.tap(find.byKey(const ValueKey('party-trade-confirm')));
       expect(commands.single.action, RuntimeWorldServiceAction.confirm);

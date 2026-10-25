@@ -20,3 +20,10 @@ export 'src/spatial_shadow_profile.dart'
 export 'src/spatial_point_light.dart' show SpatialPointLight;
 
 export 'src/spatial_actor_occlusion.dart' show SpatialActorOcclusionState, SpatialActorOcclusionStateForCell;
+
+export 'src/spatial_atmosphere.dart'
+    show
+        SpatialAtmosphereProfile,
+        SpatialAtmosphereTarget,
+        SpatialWindowGlow,
+        SpatialFireflyZone;

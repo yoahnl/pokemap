@@ -12,6 +12,163 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  for (final mode in const [
+    (
+      'landscape-touch',
+      Size(844, 390),
+      PlayerInputSource.touch,
+      PlayerBattleDisplay.full,
+      BattleCommandPanelPlacement.bottom,
+    ),
+    (
+      'landscape-controller',
+      Size(844, 390),
+      PlayerInputSource.controller,
+      PlayerBattleDisplay.full,
+      BattleCommandPanelPlacement.end,
+    ),
+    (
+      'portrait-touch',
+      Size(390, 844),
+      PlayerInputSource.touch,
+      PlayerBattleDisplay.full,
+      BattleCommandPanelPlacement.bottom,
+    ),
+    (
+      'portrait-controller',
+      Size(390, 844),
+      PlayerInputSource.controller,
+      PlayerBattleDisplay.full,
+      BattleCommandPanelPlacement.bottom,
+    ),
+    (
+      'thor-companion',
+      Size(496, 432),
+      PlayerInputSource.controller,
+      PlayerBattleDisplay.commandsOnly,
+      BattleCommandPanelPlacement.detached,
+    ),
+  ]) {
+    for (final evolution in [false, true]) {
+      testWidgets(
+        'Ligue in-scene ${evolution ? 'evolution' : 'learning'} decision preserves prompt and versioned choices in ${mode.$1}',
+        (tester) async {
+          await tester.binding.setSurfaceSize(mode.$2);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          final commands = <BattlePresentationCommand>[];
+          final prompt = evolution
+              ? 'Brindibou peut évoluer. Que faire ?'
+              : 'Brindibou peut apprendre Vive-Attaque.';
+          final snapshot = _decisionSnapshot(
+            viewportSize: mode.$2,
+            placement: mode.$5,
+            controllerLayout:
+                mode.$3 == PlayerInputSource.controller &&
+                mode.$4 == PlayerBattleDisplay.full,
+            prompt: prompt,
+            labels: evolution
+                ? const ['Évoluer', 'Refuser']
+                : const ['Apprendre', 'Ne pas apprendre'],
+            indices: const [3, 17],
+          );
+          await _pumpOverlay(
+            tester,
+            snapshot: snapshot,
+            display: mode.$4,
+            source: mode.$3,
+            onCommand: commands.add,
+          );
+          expect(commands, isEmpty);
+          expect(
+            find.byKey(const ValueKey('battle-decision-panel')),
+            findsOneWidget,
+          );
+          expect(find.text(prompt), findsOneWidget);
+          expect(find.byKey(const ValueKey('battle-root-grid')), findsNothing);
+          expect(find.byKey(const ValueKey('battle-back')), findsNothing);
+          expect(find.byType(Scrollable), findsNothing);
+          for (final index in [3, 17]) {
+            final rect = tester.getRect(
+              find.byKey(ValueKey('battle-entry-$index')),
+            );
+            expect(rect.height, greaterThanOrEqualTo(48));
+            expect(rect.left, greaterThanOrEqualTo(0));
+            expect(rect.right, lessThanOrEqualTo(mode.$2.width));
+            expect(rect.bottom, lessThanOrEqualTo(mode.$2.height));
+          }
+          if (mode.$4 == PlayerBattleDisplay.full) {
+            expect(
+              tester.getRect(
+                find.byKey(const ValueKey('battle-decision-panel')),
+              ),
+              snapshot.panelRect,
+            );
+            expect(
+              tester.getRect(
+                find.byKey(const ValueKey('battle-hud-target-player')),
+              ),
+              snapshot.playerHud.rect,
+            );
+          }
+          await tester.tap(find.byKey(const ValueKey('battle-entry-17')));
+          expect(
+            commands.single,
+            isA<BattleSelectEntryCommand>()
+                .having((value) => value.snapshotRevision, 'revision', 12)
+                .having(
+                  (value) => value.expectedMode,
+                  'mode',
+                  BattleCommandOverlayMode.decision,
+                )
+                .having((value) => value.entryIndex, 'runtime index', 17),
+          );
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
+  testWidgets('compact decision keeps every replacement index reachable', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(844, 390));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final commands = <BattlePresentationCommand>[];
+    await _pumpOverlay(
+      tester,
+      snapshot: _decisionSnapshot(
+        viewportSize: const Size(844, 390),
+        labels: const [
+          'Fouet Lianes',
+          'Charge',
+          'Vampigraine',
+          'Poudre Dodo',
+          'Ne pas apprendre',
+        ],
+        indices: const [4, 9, 16, 25, 41],
+      ),
+      onCommand: commands.add,
+    );
+    for (var page = 0; page < 2; page++) {
+      await tester.tap(find.byKey(const ValueKey('battle-page-next')));
+      await tester.pump();
+    }
+    expect(commands, isEmpty);
+    final decline = find.byKey(const ValueKey('battle-entry-41'));
+    expect(tester.getSize(decline).height, greaterThanOrEqualTo(48));
+    await tester.tap(decline);
+    expect(
+      commands.single,
+      isA<BattleSelectEntryCommand>().having(
+        (value) => value.entryIndex,
+        'index',
+        41,
+      ),
+    );
+    expect(find.byType(Scrollable), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'input ownership requests canonical battle placement and companion does not configure the arena',
     (tester) async {
@@ -2551,13 +2708,25 @@ BattleCommandOverlaySnapshot _snapshot({
 /// dédié — jamais `root`, que la personnalisation projet rhabille par index.
 BattleCommandOverlaySnapshot _decisionSnapshot({
   Size viewportSize = const Size(800, 600),
+  BattleCommandPanelPlacement placement = BattleCommandPanelPlacement.bottom,
+  bool controllerLayout = false,
+  String prompt = 'Brindibou peut apprendre Vive-Attaque.',
+  List<String> labels = const ['Apprendre', 'Ne pas apprendre'],
+  List<int>? indices,
 }) {
-  final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
+  final layout = BattleSceneLayout.forViewport(
+    viewportSize: viewportSize,
+    commandPanelPlacement: placement,
+    commandPanelMode: BattleCommandOverlayMode.decision,
+    controllerLayout: controllerLayout,
+  );
   return BattleCommandOverlaySnapshot(
     revision: 12,
     mode: BattleCommandOverlayMode.decision,
     viewportSize: viewportSize,
     panelRect: layout.commandPanelRect,
+    commandPanelPlacement: placement,
+    controllerLayout: controllerLayout,
     enemyHud: _hud(
       rect: layout.enemyHudRect,
       owner: 'ENNEMI',
@@ -2574,27 +2743,19 @@ BattleCommandOverlaySnapshot _decisionSnapshot({
     ),
     battleLabel: 'COMBAT SAUVAGE',
     title: 'CHOIX',
-    prompt: 'Brindibou peut apprendre Vive-Attaque.',
+    prompt: prompt,
     narrationLines: const <String>[],
-    entries: const <BattleCommandOverlayEntry>[
-      BattleCommandOverlayEntry(
-        index: 0,
-        kind: BattleCommandOverlayEntryKind.decision,
-        primaryLabel: 'Apprendre',
-        secondaryLabel: '',
-        enabled: true,
-        selected: true,
-        tone: BattleCommandOverlayEntryTone.neutral,
-      ),
-      BattleCommandOverlayEntry(
-        index: 1,
-        kind: BattleCommandOverlayEntryKind.decision,
-        primaryLabel: 'Ne pas apprendre',
-        secondaryLabel: '',
-        enabled: true,
-        selected: false,
-        tone: BattleCommandOverlayEntryTone.neutral,
-      ),
+    entries: <BattleCommandOverlayEntry>[
+      for (var index = 0; index < labels.length; index++)
+        BattleCommandOverlayEntry(
+          index: indices?[index] ?? index,
+          kind: BattleCommandOverlayEntryKind.decision,
+          primaryLabel: labels[index],
+          secondaryLabel: '',
+          enabled: true,
+          selected: index == 0,
+          tone: BattleCommandOverlayEntryTone.neutral,
+        ),
     ],
     interactionsEnabled: true,
     canGoBack: false,

@@ -1,11 +1,15 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../foundation/player_paged_layout.dart';
+import '../foundation/player_menu_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_menu_theme.dart';
 
 class PlayerDetailEntryCard extends StatelessWidget {
   const PlayerDetailEntryCard({
@@ -18,36 +22,50 @@ class PlayerDetailEntryCard extends StatelessWidget {
   final ProjectPresentationSurfaceRole? surfaceRole;
 
   @override
-  Widget build(BuildContext context) => PlayerPanel(
-    surfaceRole: surfaceRole,
-    child: Semantics(
-      container: true,
-      label: entry.title,
-      value: entry.trailingLabel,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  entry.title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+  Widget build(BuildContext context) => PlayerMenuThemeScope(
+    role: surfaceRole ?? ProjectPresentationSurfaceRole.notification,
+    child: Builder(
+      builder: (context) => PlayerMenuPanel(
+        padding: const EdgeInsets.all(16),
+        child: Semantics(
+          container: true,
+          label: entry.title,
+          value: entry.trailingLabel,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.title,
+                      style: context.playerMenuTheme.label,
+                    ),
+                  ),
+                  if (entry.trailingLabel case final trailing?)
+                    Flexible(
+                      child: Text(
+                        trailing,
+                        style: context.playerMenuTheme.meta,
+                      ),
+                    ),
+                ],
               ),
-              if (entry.trailingLabel case final trailing?)
-                Text(trailing, style: Theme.of(context).textTheme.labelLarge),
+              if (entry.subtitle case final subtitle?) ...[
+                const SizedBox(height: 8),
+                Text(subtitle, style: context.playerMenuTheme.body),
+              ],
+              if (entry.progress case final progress?) ...[
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: progress,
+                  color: context.playerMenuTheme.accent,
+                  backgroundColor: context.playerMenuTheme.recessed,
+                ),
+              ],
             ],
           ),
-          if (entry.subtitle case final subtitle?) ...<Widget>[
-            const SizedBox(height: PlayerSpacing.xs),
-            Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
-          ],
-          if (entry.progress case final progress?) ...<Widget>[
-            const SizedBox(height: PlayerSpacing.sm),
-            LinearProgressIndicator(value: progress),
-          ],
-        ],
+        ),
       ),
     ),
   );
@@ -66,18 +84,37 @@ class PlayerLoadingSurface extends StatelessWidget {
   final VoidCallback? onCancel;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: PlayerSurface(
-      maxWidth: 620,
-      child: Center(
-        child: PlayerProgressCard(
-          title: context.playerL10n.loading,
-          stage: stage,
-          value: progress,
-          onCancel: onCancel,
+  Widget build(BuildContext context) => PlayerSessionPanel(
+    title: context.playerL10n.loading,
+    framed: false,
+    titleAlign: TextAlign.center,
+    body: [
+      Text(stage, textAlign: TextAlign.center),
+      Semantics(
+        liveRegion: true,
+        value: progress == null ? null : '${(progress! * 100).round()} %',
+        child: Builder(
+          builder: (context) => TickerMode(
+            enabled: progress != null,
+            child: LinearProgressIndicator(
+              value: progress,
+              color: context.playerMenuTheme.accent,
+              backgroundColor: context.playerMenuTheme.recessed,
+              minHeight: 4,
+            ),
+          ),
         ),
       ),
-    ),
+    ],
+    actions: [
+      if (onCancel != null)
+        PlayerActionButton(
+          labelMaxLines: 3,
+          label: context.playerL10n.cancel,
+          icon: Icons.close,
+          onPressed: onCancel,
+        ),
+    ],
   );
 }
 
@@ -96,7 +133,7 @@ class PlayerResultSurface extends StatelessWidget {
   final VoidCallback? onShowCredits;
 
   @override
-  Widget build(BuildContext context) => _CenteredSessionPanel(
+  Widget build(BuildContext context) => PlayerSessionPanel(
     icon: Icons.emoji_events_rounded,
     title: title,
     surfaceRole: ProjectPresentationSurfaceRole.battleResult,
@@ -106,6 +143,7 @@ class PlayerResultSurface extends StatelessWidget {
     ],
     actions: [
       PlayerActionButton(
+        labelMaxLines: 3,
         label: context.playerL10n.showCredits,
         icon: Icons.movie_filter_rounded,
         autofocus: true,
@@ -124,6 +162,8 @@ class PlayerCreditsSurface extends StatelessWidget {
     required this.title,
     required this.author,
     this.endingLabel,
+    this.contributors = const [],
+    this.licenses = const [],
     required this.onReturnToTitle,
     required this.onReturnToHub,
   });
@@ -131,20 +171,27 @@ class PlayerCreditsSurface extends StatelessWidget {
   final String title;
   final String author;
   final String? endingLabel;
+  final List<String> contributors;
+  final List<String> licenses;
   final VoidCallback? onReturnToTitle;
   final VoidCallback? onReturnToHub;
 
   @override
-  Widget build(BuildContext context) => _CenteredSessionPanel(
+  Widget build(BuildContext context) => PlayerSessionPanel(
     icon: Icons.auto_stories_rounded,
     title: title,
     surfaceRole: ProjectPresentationSurfaceRole.credits,
     body: [
       Text(author, style: Theme.of(context).textTheme.titleLarge),
       if (endingLabel != null) Text(endingLabel!, textAlign: TextAlign.center),
+      for (final contributor in contributors)
+        Text(contributor, textAlign: TextAlign.center),
+      for (final license in licenses)
+        Text(license, textAlign: TextAlign.center),
     ],
     actions: [
       PlayerActionButton(
+        labelMaxLines: 3,
         label: context.playerL10n.returnToTitle,
         icon: Icons.title_rounded,
         autofocus: onReturnToTitle != null,
@@ -154,6 +201,7 @@ class PlayerCreditsSurface extends StatelessWidget {
             : null,
       ),
       PlayerActionButton(
+        labelMaxLines: 3,
         label: context.playerL10n.returnToHub,
         icon: Icons.home_rounded,
         secondary: true,
@@ -192,7 +240,7 @@ class PlayerErrorSurface extends StatelessWidget {
   final VoidCallback? onShowDiagnostics;
 
   @override
-  Widget build(BuildContext context) => _CenteredSessionPanel(
+  Widget build(BuildContext context) => PlayerSessionPanel(
     icon: Icons.error_outline_rounded,
     iconColor: context.playerColors.danger,
     title: title,
@@ -205,21 +253,28 @@ class PlayerErrorSurface extends StatelessWidget {
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       if (code != null)
-        PlayerBadge(
-          label: code!,
-          icon: Icons.tag_rounded,
-          tone: PlayerBadgeTone.danger,
+        Builder(
+          builder: (context) => Text(
+            code!,
+            textAlign: TextAlign.center,
+            style: context.playerMenuTheme.meta.copyWith(
+              color: context.playerMenuTheme.danger,
+            ),
+          ),
         ),
       if (stage != null)
-        PlayerBadge(
-          label: stage!,
-          icon: Icons.route_rounded,
-          tone: PlayerBadgeTone.warning,
+        Builder(
+          builder: (context) => Text(
+            stage!,
+            textAlign: TextAlign.center,
+            style: context.playerMenuTheme.meta,
+          ),
         ),
     ],
     actions: [
       if (onRetry != null)
         PlayerActionButton(
+          labelMaxLines: 3,
           label: context.playerL10n.retry,
           icon: Icons.refresh_rounded,
           autofocus: true,
@@ -227,6 +282,7 @@ class PlayerErrorSurface extends StatelessWidget {
         ),
       if (onReturnToHub != null)
         PlayerActionButton(
+          labelMaxLines: 3,
           label: context.playerL10n.returnToHub,
           icon: Icons.home_rounded,
           secondary: true,
@@ -235,6 +291,7 @@ class PlayerErrorSurface extends StatelessWidget {
         ),
       if (onCancel != null)
         PlayerActionButton(
+          labelMaxLines: 3,
           label: context.playerL10n.close,
           icon: Icons.close_rounded,
           secondary: true,
@@ -243,6 +300,7 @@ class PlayerErrorSurface extends StatelessWidget {
         ),
       if (onShowDiagnostics != null)
         PlayerActionButton(
+          labelMaxLines: 3,
           label: context.playerL10n.diagnostics,
           icon: Icons.health_and_safety_outlined,
           secondary: true,
@@ -252,96 +310,192 @@ class PlayerErrorSurface extends StatelessWidget {
   );
 }
 
-class _CenteredSessionPanel extends StatelessWidget {
-  const _CenteredSessionPanel({
-    required this.icon,
+class PlayerSessionPanel extends StatefulWidget {
+  const PlayerSessionPanel({
+    super.key,
+    this.icon,
     required this.title,
     required this.body,
     required this.actions,
     this.iconColor,
-    this.surfaceRole,
+    this.surfaceRole = ProjectPresentationSurfaceRole.notification,
+    this.framed = true,
+    this.titleAlign = TextAlign.start,
   });
-  final IconData icon;
+
+  final IconData? icon;
   final String title;
   final List<Widget> body;
   final List<Widget> actions;
   final Color? iconColor;
-  final ProjectPresentationSurfaceRole? surfaceRole;
+  final ProjectPresentationSurfaceRole surfaceRole;
+  final bool framed;
+  final TextAlign titleAlign;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: PlayerSurface(
-      maxWidth: 680,
-      padding: const EdgeInsets.all(PlayerSpacing.md),
-      child: PlayerPanel(
-        elevated: true,
-        surfaceRole: surfaceRole,
-        padding: const EdgeInsets.all(PlayerSpacing.md),
-        child: Semantics(
-          container: true,
-          namesRoute: true,
-          label: title,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxHeight < 400;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        icon,
-                        size: compact ? 28 : 40,
-                        color: iconColor ?? context.playerColors.primary,
-                      ),
-                      const SizedBox(width: PlayerSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: PlayerSpacing.md),
-                  Expanded(
-                    child: PlayerPagedList(
-                      children: [
-                        for (var index = 0; index < body.length; index++)
-                          KeyedSubtree(
-                            key: ValueKey('session-content-$index'),
-                            child: body[index],
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (actions.isNotEmpty)
-                    const SizedBox(height: PlayerSpacing.md),
-                  for (
-                    var row = 0;
-                    row < (actions.length / 2).ceil();
-                    row++
-                  ) ...[
-                    if (row > 0) const SizedBox(height: PlayerSpacing.xs),
-                    Row(
-                      children: [
-                        for (var column = 0; column < 2; column++) ...[
-                          if (column > 0 && row * 2 + column < actions.length)
-                            const SizedBox(width: PlayerSpacing.xs),
-                          if (row * 2 + column < actions.length)
-                            Expanded(child: actions[row * 2 + column]),
-                        ],
-                      ],
-                    ),
-                  ],
-                ],
-              );
-            },
+  State<PlayerSessionPanel> createState() => _PlayerSessionPanelState();
+}
+
+class _PlayerSessionPanelState extends State<PlayerSessionPanel> {
+  double? _contentHeight;
+
+  List<Widget> _bodyAtoms(BuildContext context, double width, double height) {
+    final result = <Widget>[];
+    for (var index = 0; index < widget.body.length; index++) {
+      final child = widget.body[index];
+      if (child is! Text || child.data == null) {
+        result.add(
+          KeyedSubtree(key: ValueKey('session-content-$index'), child: child),
+        );
+        continue;
+      }
+      final graphemes = child.data!.characters.toList();
+      final style = context.playerMenuTheme.body.merge(child.style);
+      final painter = TextPainter(
+        textDirection: Directionality.of(context),
+        textScaler: MediaQuery.textScalerOf(context),
+      );
+      var start = 0;
+      var part = 0;
+      while (start < graphemes.length) {
+        var low = start + 1;
+        var high = graphemes.length;
+        var end = low;
+        while (low <= high) {
+          final middle = (low + high) ~/ 2;
+          painter.text = TextSpan(
+            text: graphemes.sublist(start, middle).join(),
+            style: style,
+          );
+          painter.layout(maxWidth: width);
+          if (painter.height <= height) {
+            end = middle;
+            low = middle + 1;
+          } else {
+            high = middle - 1;
+          }
+        }
+        result.add(
+          Text(
+            graphemes.sublist(start, end).join(),
+            key: ValueKey('session-paragraph-$index-${part++}'),
+            style: style,
+            textAlign: child.textAlign,
+            textDirection: child.textDirection,
           ),
-        ),
-      ),
+        );
+        start = end;
+      }
+      painter.dispose();
+      if (graphemes.isEmpty) result.add(child);
+    }
+    return result;
+  }
+
+  @override
+  Widget build(BuildContext context) => PlayerMenuThemeScope(
+    role: widget.surfaceRole,
+    child: Builder(
+      builder: (context) {
+        final theme = context.playerMenuTheme;
+        return ColoredBox(
+          color: theme.backdrop,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = math.min(640.0, constraints.maxWidth);
+                  final height = math.min(
+                    constraints.maxHeight,
+                    (_contentHeight ?? constraints.maxHeight) + 32,
+                  );
+                  final scale = MediaQuery.textScalerOf(context).scale(1);
+                  final columns = width >= 440 && scale < 1.5 ? 2 : 1;
+                  final content = SizedBox(
+                    width: width,
+                    height: height,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: PlayerPagedList(
+                        onContentHeightChanged: (value) {
+                          if (mounted && _contentHeight != value) {
+                            setState(() => _contentHeight = value);
+                          }
+                        },
+                        children: [
+                          Row(
+                            children: [
+                              if (widget.icon != null) ...[
+                                Icon(
+                                  widget.icon,
+                                  size: 24,
+                                  color: widget.iconColor ?? theme.text,
+                                ),
+                                const SizedBox(width: 12),
+                              ],
+                              Expanded(
+                                child: Text(
+                                  widget.title,
+                                  key: const ValueKey('player-session-title'),
+                                  textAlign: widget.titleAlign,
+                                  style: theme.title,
+                                ),
+                              ),
+                            ],
+                          ),
+                          ..._bodyAtoms(
+                            context,
+                            math.max(1, width - 32),
+                            math.max(48, constraints.maxHeight - 88),
+                          ),
+                          for (
+                            var i = 0;
+                            i < widget.actions.length;
+                            i += columns
+                          )
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (
+                                  var j = i;
+                                  j <
+                                      math.min(
+                                        i + columns,
+                                        widget.actions.length,
+                                      );
+                                  j++
+                                ) ...[
+                                  if (j > i) const SizedBox(width: 8),
+                                  Expanded(child: widget.actions[j]),
+                                ],
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                  return Center(
+                    heightFactor: 1,
+                    widthFactor: 1,
+                    child: Semantics(
+                      container: true,
+                      namesRoute: true,
+                      label: widget.title,
+                      child: widget.framed
+                          ? PlayerMenuPanel(
+                              padding: EdgeInsets.zero,
+                              child: content,
+                            )
+                          : DefaultTextStyle(style: theme.body, child: content),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     ),
   );
 }

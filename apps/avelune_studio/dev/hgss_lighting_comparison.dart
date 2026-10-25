@@ -11,6 +11,11 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
+import 'package:avelune_studio/presentation/features/map_workspace/map_atmosphere_preview_controls.dart';
+import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+
+import 'atmosphere_comparison_support.dart';
+import 'save_disk_trace.dart';
 import 'marionette_main.dart' show applyStudioCaptureLifecycle;
 
 String comparisonPlanRelativePath(String filename) => switch (filename) {
@@ -19,6 +24,7 @@ String comparisonPlanRelativePath(String filename) => switch (filename) {
   'comparison-contact-shadows-plan.json' =>
     'evidence/actor-contact-shadows/$filename',
   'comparison-day-night-plan.json' => 'evidence/day-night/$filename',
+  'comparison-atmosphere-plan.json' => 'evidence/atmosphere/$filename',
   'comparison-lamp-shadows-plan.json' => 'evidence/lamp-shadows/$filename',
   _ => throw StateError('Unsupported comparison plan.'),
 };
@@ -52,11 +58,13 @@ Future<Map<String, dynamic>> loadComparisonPlan(
   }
   final mode = switch (filename) {
     'comparison-day-night-plan.json' => 'dayNightTest',
+    'comparison-atmosphere-plan.json' => 'atmosphereTest',
     'comparison-lamp-shadows-plan.json' => 'pointLightShadowTest',
     'comparison-contact-shadows-plan.json' => 'actorContactShadowTest',
     _ => null,
   };
   final modes = [
+    'atmosphereTest',
     'dayNightTest',
     'pointLightShadowTest',
     'actorContactShadowTest',
@@ -66,7 +74,8 @@ Future<Map<String, dynamic>> loadComparisonPlan(
       (mode != null && plan.containsKey('shadowCasterInstanceIds'))) {
     throw StateError('Comparison plan mixes rendering modes.');
   }
-  if ((plan['pointLightShadowTest'] == true ||
+  if ((plan['atmosphereTest'] == true ||
+          plan['pointLightShadowTest'] == true ||
           plan['dayNightTest'] == true ||
           plan['actorContactShadowTest'] == true) &&
       (((plan['hiddenMaterialsByInstance'] as Map<String, dynamic>?)
@@ -97,6 +106,7 @@ double comparisonMinuteOfDay({
 
 void setComparisonLightingPhase({
   required bool dayNightTest,
+  bool atmosphereTest = false,
   bool pointLightShadowTest = false,
   bool actorContactShadowTest = false,
   required bool after,
@@ -108,7 +118,14 @@ void setComparisonLightingPhase({
   required SpatialLightingProfile beforeProfile,
   required SpatialLightingProfile afterProfile,
 }) {
-  if (actorContactShadowTest) {
+  if (atmosphereTest) {
+    camera.previewMinuteOfDay = probeOnly
+        ? 1320
+        : 720 + frameIndex / (frameCount - 1) * 600;
+    camera.waterAnimated = after;
+    camera.windowsLit = after;
+    camera.fireflies = after;
+  } else if (actorContactShadowTest) {
     camera.previewMinuteOfDay = probeOnly || frameIndex >= frameCount ~/ 2
         ? 1320
         : 720;
@@ -131,11 +148,16 @@ void setComparisonLightingPhase({
 
 Widget comparisonLightingSurface({
   required bool dayNightTest,
+  bool atmosphereTest = false,
   bool pointLightShadowTest = false,
   bool actorContactShadowTest = false,
   required ValueNotifier<SpatialLightingProfile> lighting,
   required Widget child,
-}) => dayNightTest || pointLightShadowTest || actorContactShadowTest
+}) =>
+    atmosphereTest ||
+        dayNightTest ||
+        pointLightShadowTest ||
+        actorContactShadowTest
     ? child
     : SpatialLightingPreview(controller: lighting, child: child);
 
@@ -165,8 +187,10 @@ MapData prepareComparisonMap(MapData source, Set<String> hiddenInstanceIds) {
 }
 
 Future<void> main() async {
-  if (!kDebugMode || !Platform.isMacOS) {
-    throw StateError('This comparison requires a native macOS debug build.');
+  if (kReleaseMode || !Platform.isMacOS) {
+    throw StateError(
+      'This comparison requires a native macOS development build.',
+    );
   }
   MarionetteBinding.ensureInitialized();
   const configuredRoot = String.fromEnvironment('LIGHTING_COMPARISON_ROOT');
@@ -188,7 +212,8 @@ Future<void> main() async {
     projectFilePath: '$project/project.json',
     mapId: plan['mapId'] as String,
   );
-  if ((plan['dayNightTest'] == true ||
+  if ((plan['atmosphereTest'] == true ||
+          plan['dayNightTest'] == true ||
           plan['pointLightShadowTest'] == true ||
           plan['actorContactShadowTest'] == true) &&
       (bundle.map.spatialScene?.dayNightCycle == null ||
@@ -205,6 +230,31 @@ Future<void> main() async {
     characterId: bundle.manifest.settings.defaultPlayerCharacterId,
   );
   final comparison = LightingComparison(root, plan, session);
+  final trace = SaveDiskTrace(project);
+  final toggleProbe = AtmosphereToggleProbe(
+    comparison.camera,
+    trace,
+    counters: () => comparison.loadCounters,
+  );
+  if (comparison.atmosphereTest) {
+    comparison.camera.atmosphereProfile = comparisonAtmosphereProfile(
+      plan['atmosphereProfile'] as Map<String, dynamic>,
+    );
+    comparison.camera.previewMinuteOfDay = 1320;
+    registerMarionetteExtension(
+      name: 'avelune.atmospherePreview',
+      description: 'Inspects the test copy and times real atmosphere controls.',
+      callback: (parameters) async {
+        if (parameters['action'] == 'arm') toggleProbe.arm();
+        return MarionetteExtensionResult.success({
+          'projectPath': project,
+          'state': toggleProbe.state,
+          'measurement': toggleProbe.result,
+          'loads': comparison.loadCounters,
+        });
+      },
+    );
+  }
   registerMarionetteExtension(
     name: 'avelune.lightingComparison',
     description: 'Captures synchronized native GPU lighting comparisons.',
@@ -227,13 +277,16 @@ Future<void> main() async {
       return MarionetteExtensionResult.success(comparison.status);
     },
   );
-  runApp(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: ComparisonSurface(comparison: comparison),
-    ),
-  );
-  applyStudioCaptureLifecycle(AppLifecycleState.resumed);
+  await trace.run(() async {
+    runApp(
+      MaterialApp(
+        theme: studioTheme(),
+        debugShowCheckedModeBanner: false,
+        home: ComparisonSurface(comparison: comparison),
+      ),
+    );
+    applyStudioCaptureLifecycle(AppLifecycleState.resumed);
+  });
 }
 
 final class LightingComparison {
@@ -254,15 +307,31 @@ final class LightingComparison {
   final MapData renderMap;
   MapSpatialScene get scene => renderMap.spatialScene!;
   final captureKey = GlobalKey();
+  final idleClock = Stopwatch()..start();
+  int modelLoads = 0, groundImageLoads = 0, readyCalls = 0;
+  Map<String, int> get loadCounters => {
+    'modelLoads': modelLoads,
+    'groundImageLoads': groundImageLoads,
+    'readyCalls': readyCalls,
+  };
+  double get presentationSeconds => running || !atmosphereTest
+      ? session.presentationSeconds
+      : idleClock.elapsedMicroseconds / 1000000;
+  late final bool atmosphereTest = plan['atmosphereTest'] == true;
   late final bool dayNightTest = plan['dayNightTest'] == true;
   late final bool pointLightShadowTest = plan['pointLightShadowTest'] == true;
   late final bool actorContactShadowTest =
       plan['actorContactShadowTest'] == true;
   bool contactShadowsAfter = false;
   bool get usesAuthoredLighting =>
-      dayNightTest || pointLightShadowTest || actorContactShadowTest;
+      atmosphereTest ||
+      dayNightTest ||
+      pointLightShadowTest ||
+      actorContactShadowTest;
   int get beforeMinuteOfDay =>
-      pointLightShadowTest || actorContactShadowTest ? 1320 : 720;
+      atmosphereTest || pointLightShadowTest || actorContactShadowTest
+      ? 1320
+      : 720;
   late final bool shadowTest = plan.containsKey('shadowCasterInstanceIds');
   late final before = shadowTest
       ? profile(shadows: false)
@@ -284,9 +353,11 @@ final class LightingComparison {
   bool? baselineRoundTripIdentical;
   Map<String, int>? lastVerifiedShadowStats;
 
+  int get tickStride => (plan['captureTickStride'] as int?) ?? 2;
+
   int get frameCount => (plan['phases'] as List<dynamic>).fold<int>(
     0,
-    (total, phase) => total + (phase['ticks'] as int) ~/ 2,
+    (total, phase) => total + (phase['ticks'] as int) ~/ tickStride,
   );
 
   void setBeforeAfter({
@@ -296,6 +367,7 @@ final class LightingComparison {
   }) {
     contactShadowsAfter = after;
     setComparisonLightingPhase(
+      atmosphereTest: atmosphereTest,
       actorContactShadowTest: actorContactShadowTest,
       dayNightTest: dayNightTest,
       pointLightShadowTest: pointLightShadowTest,
@@ -395,6 +467,7 @@ final class LightingComparison {
     'hiddenMaterialsByInstance': plan['hiddenMaterialsByInstance'] ?? {},
     'shadowCasterInstanceIds': plan['shadowCasterInstanceIds'] ?? [],
     'shadowStats': shadowStats,
+    'atmosphereTest': atmosphereTest,
     'dayNightTest': dayNightTest,
     'pointLightShadowTest': pointLightShadowTest,
     'actorContactShadowTest': actorContactShadowTest,
@@ -554,7 +627,9 @@ final class LightingComparison {
       if (!ready) throw StateError('Native scene is not ready.');
       verifySession();
       final take = Directory(
-        '$root/evidence/${actorContactShadowTest
+        '$root/evidence/${atmosphereTest
+            ? 'atmosphere/native'
+            : actorContactShadowTest
             ? 'actor-contact-shadows/native'
             : pointLightShadowTest
             ? 'lamp-shadows/native'
@@ -616,8 +691,8 @@ final class LightingComparison {
       }
       for (final phase in plan['phases'] as List<dynamic>) {
         session.movement.setInput(x: phase['x'] as int, z: phase['z'] as int);
-        for (var step = 0; step < (phase['ticks'] as int); step += 2) {
-          for (var substep = 0; substep < 2; substep++) {
+        for (var step = 0; step < (phase['ticks'] as int); step += tickStride) {
+          for (var substep = 0; substep < tickStride; substep++) {
             actors = session.frames(1 / 60);
             tick++;
             verifySession();
@@ -728,62 +803,84 @@ class ComparisonSurface extends StatelessWidget {
     final anchor = capture.plan['cameraAnchor'] as Map<String, dynamic>;
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Center(
-        child: FittedBox(
-          child: SizedBox(
-            width: 960,
-            height: 720,
-            child: RepaintBoundary(
-              key: capture.captureKey,
-              child: comparisonLightingSurface(
-                dayNightTest: capture.dayNightTest,
-                pointLightShadowTest: capture.pointLightShadowTest,
-                actorContactShadowTest: capture.actorContactShadowTest,
-                lighting: capture.lighting,
-                child: SpatialSceneView(
-                  scene: capture.scene,
-                  models: bundle.manifest.models3d,
-                  loadModel: capture.session.modelBytes,
-                  controller: capture.camera,
-                  onCell: (_, _) {},
-                  background: colors.shadow,
-                  ground: colors.primaryContainer,
-                  edge: colors.outlineVariant,
-                  groundMap: capture.renderMap,
-                  groundProject: bundle.manifest,
-                  loadGroundImage: capture.session.groundImageBytes,
-                  resourceBudget: bundle.resourceBudget,
-                  resourceIdentity: bundle.projectCatalog?.identity,
-                  actorFrames: (_) => capture.renderedActors,
-                  modelRuntimeState: capture.modelState,
-                  presentationElapsedSeconds: () =>
-                      capture.session.presentationSeconds,
-                  rasterAnimationElapsedMsForCell: (map, layer, x, z, _) =>
-                      capture.session.rasterAnimationElapsedMsForCell(
-                        map,
-                        layer,
-                        x,
-                        z,
-                        capture.tick * 1000 ~/ 60,
+      body: Column(
+        children: [
+          if (capture.atmosphereTest)
+            SizedBox(
+              width: 960,
+              child: MapAtmospherePreviewControls(controller: capture.camera),
+            ),
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                child: SizedBox(
+                  width: 960,
+                  height: 720,
+                  child: RepaintBoundary(
+                    key: capture.captureKey,
+                    child: comparisonLightingSurface(
+                      atmosphereTest: capture.atmosphereTest,
+                      dayNightTest: capture.dayNightTest,
+                      pointLightShadowTest: capture.pointLightShadowTest,
+                      actorContactShadowTest: capture.actorContactShadowTest,
+                      lighting: capture.lighting,
+                      child: SpatialSceneView(
+                        scene: capture.scene,
+                        models: bundle.manifest.models3d,
+                        loadModel: (id) {
+                          capture.modelLoads++;
+                          return capture.session.modelBytes(id);
+                        },
+                        controller: capture.camera,
+                        onCell: (_, _) {},
+                        background: colors.shadow,
+                        ground: colors.primaryContainer,
+                        edge: colors.outlineVariant,
+                        groundMap: capture.renderMap,
+                        groundProject: bundle.manifest,
+                        loadGroundImage: (id) {
+                          capture.groundImageLoads++;
+                          return capture.session.groundImageBytes(id);
+                        },
+                        resourceBudget: bundle.resourceBudget,
+                        resourceIdentity: bundle.projectCatalog?.identity,
+                        actorFrames: (_) => capture.renderedActors,
+                        modelRuntimeState: capture.modelState,
+                        presentationElapsedSeconds: () =>
+                            capture.presentationSeconds,
+                        rasterAnimationElapsedMsForCell:
+                            (map, layer, x, z, _) =>
+                                capture.session.rasterAnimationElapsedMsForCell(
+                                  map,
+                                  layer,
+                                  x,
+                                  z,
+                                  capture.tick * 1000 ~/ 60,
+                                ),
+                        cameraPose: () => (
+                          x: (anchor['x'] as num).toDouble(),
+                          y: (anchor['y'] as num).toDouble(),
+                          z: (anchor['z'] as num).toDouble(),
+                          zoom: (anchor['zoom'] as num).toDouble(),
+                        ),
+                        cameraMagnification: () =>
+                            capture.session.nativeCameraMagnification,
+                        onReady: () {
+                          capture.readyCalls++;
+                          capture.ready = true;
+                        },
+                        errorBuilder: (_, error) {
+                          capture.failure = error.toString();
+                          return Text(error.toString());
+                        },
                       ),
-                  cameraPose: () => (
-                    x: (anchor['x'] as num).toDouble(),
-                    y: (anchor['y'] as num).toDouble(),
-                    z: (anchor['z'] as num).toDouble(),
-                    zoom: (anchor['zoom'] as num).toDouble(),
+                    ),
                   ),
-                  cameraMagnification: () =>
-                      capture.session.nativeCameraMagnification,
-                  onReady: () => capture.ready = true,
-                  errorBuilder: (_, error) {
-                    capture.failure = error.toString();
-                    return Text(error.toString());
-                  },
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

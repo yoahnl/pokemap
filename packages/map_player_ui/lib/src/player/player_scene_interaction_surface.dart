@@ -182,7 +182,11 @@ class _PlayerSceneInteractionSurfaceState
     final form =
         request is SceneTextInteractionRequest ||
         request is SceneIntegerInteractionRequest;
-    final fullScreen = selection || form;
+    final fullScreen =
+        selection ||
+        form ||
+        (PlayerCompanionScope.of(context) &&
+            request is SceneChoiceInteractionRequest);
     final centered = request is SceneConfirmationInteractionRequest;
     final panelWidth = fullScreen
         ? constraints.maxWidth
@@ -225,6 +229,9 @@ class _PlayerSceneInteractionSurfaceState
       );
     }
     final strings = PlayerSceneInteractionStrings.of(context);
+    final promptStyle = context.playerMenuTheme.title.copyWith(
+      fontSize: centered ? 20 : 24,
+    );
     const cancelWidth = 48.0;
     final canCancel =
         widget.allowCancellation &&
@@ -235,7 +242,7 @@ class _PlayerSceneInteractionSurfaceState
           prompt,
           _contentWidth - (canCancel ? cancelWidth + PlayerSpacing.xs : 0),
           3,
-          Theme.of(context).textTheme.titleMedium,
+          promptStyle,
         )) {
       return _buildReading(
         context,
@@ -332,10 +339,7 @@ class _PlayerSceneInteractionSurfaceState
                                             prompt,
                                             maxLines: 3,
                                             overflow: TextOverflow.ellipsis,
-                                            style: context.playerMenuTheme.title
-                                                .copyWith(
-                                                  fontSize: centered ? 20 : 24,
-                                                ),
+                                            style: promptStyle,
                                           ),
                                         ),
                                         if (widget.allowCancellation &&
@@ -887,6 +891,7 @@ class _PlayerSceneInteractionSurfaceState
     numeric: true,
     signed: request.minimum < 0,
     maximum: request.digits + (request.minimum < 0 ? 1 : 0),
+    keyboardEnabled: widget.interactionEnabled && !_terminal,
     onKeyboardChanged: () => setState(() => _validationIssue = null),
     measureEpoch: (
       request.requestId,
@@ -1001,6 +1006,7 @@ class _PlayerSceneInteractionSurfaceState
       controllerKeyboard: _usesControllerKeyboard(context),
       controller: _textController,
       maximum: maximum,
+      keyboardEnabled: widget.interactionEnabled && !_terminal,
       onKeyboardChanged: () => setState(() => _validationIssue = null),
       measureEpoch: (
         request.requestId,
@@ -1291,6 +1297,7 @@ class _SceneInteractionInputForm extends StatelessWidget {
     this.numeric = false,
     this.signed = false,
     this.onKeyboardChanged,
+    this.keyboardEnabled = true,
   });
   final bool fullScreen;
   final bool controllerKeyboard;
@@ -1299,6 +1306,7 @@ class _SceneInteractionInputForm extends StatelessWidget {
   final bool numeric;
   final bool signed;
   final VoidCallback? onKeyboardChanged;
+  final bool keyboardEnabled;
   final Widget field;
   final GlobalKey fieldKey;
   final Widget submit;
@@ -1321,15 +1329,33 @@ class _SceneInteractionInputForm extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       if (fullScreen && constraints.maxHeight >= 160) {
-        final field = Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _field(),
-            if (counter case final content?)
-              Padding(padding: const EdgeInsets.only(top: 8), child: content),
-          ],
-        );
+        final compactField =
+            controllerKeyboard &&
+            constraints.maxWidth >= 400 &&
+            constraints.maxHeight < 400;
+        final field = compactField
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(child: _field()),
+                  if (counter case final content?) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(width: 100, child: content),
+                  ],
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _field(),
+                  if (counter case final content?)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: content,
+                    ),
+                ],
+              );
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -1344,6 +1370,7 @@ class _SceneInteractionInputForm extends StatelessWidget {
                   numeric: numeric,
                   signed: signed,
                   onChanged: onKeyboardChanged!,
+                  enabled: keyboardEnabled,
                 ),
               ),
             ] else ...[

@@ -11,9 +11,10 @@ import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_shadow_map.dart';
 import 'spatial_point_shadow.dart';
+import 'spatial_atmosphere.dart';
 
 class SpatialRenderContext extends RenderContext3D
-    implements SpatialLightingContext {
+    implements SpatialLightingContext, SpatialAtmosphereContext {
   SpatialRenderContext(super.device);
 
   @override
@@ -22,6 +23,17 @@ class SpatialRenderContext extends RenderContext3D
   SpatialShadowFrame? shadowFrame;
   @override
   SpatialPointShadowFrame? pointShadowFrame;
+  @override
+  SpatialAtmosphereProfile atmosphereProfile =
+      SpatialAtmosphereProfile.disabled;
+  @override
+  bool waterAnimated = false;
+  @override
+  bool windowsLit = false;
+  @override
+  double atmosphereElapsedSeconds = 0;
+  @override
+  double atmosphereNight = 0;
   bool pointLightShadowsEnabled = true;
   Iterable<Object3D> pointShadowCasters = const [];
   String? sourceInstanceId;
@@ -237,7 +249,13 @@ class SpatialRenderContext extends RenderContext3D
             jointsInfo.jointTransforms = entry.joints;
             entry.surface.material = entry.material;
             entry.pose.apply(entry.material);
-            super.drawSurface(entry.surface);
+            final previousInstance = sourceInstanceId;
+            try {
+              sourceInstanceId = entry.instanceId;
+              super.drawSurface(entry.surface);
+            } finally {
+              sourceInstanceId = previousInstance;
+            }
           } finally {
             entry.surface.material = previousMaterial;
             previousPose.apply(entry.material);

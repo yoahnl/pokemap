@@ -181,6 +181,26 @@ void main() {
         expect(rect.bottom, lessThanOrEqualTo(body.bottom + .1), reason: id);
       }
       expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      if (format.companion) {
+        for (final value in ['Pokémon capturés', 'Clairière des Sources']) {
+          final finder = find.text(value);
+          final text = tester.widget<Text>(finder);
+          final element = tester.element(finder);
+          final painter = TextPainter(
+            text: TextSpan(
+              text: text.data,
+              style: DefaultTextStyle.of(element).style.merge(text.style),
+            ),
+            textDirection: Directionality.of(element),
+            textScaler: MediaQuery.textScalerOf(element),
+          )..layout(maxWidth: tester.getSize(finder).width);
+          expect(
+            painter.computeLineMetrics().length,
+            lessThanOrEqualTo(value == 'Pokémon capturés' ? 1 : 2),
+          );
+          painter.dispose();
+        }
+      }
       final portrait = find.descendant(
         of: find.byKey(const ValueKey('profile-portrait')),
         matching: find.byType(ClipOval),

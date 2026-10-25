@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_point_shadow.dart';
+import 'spatial_atmosphere.dart';
 
 enum SpatialPixelLightingRole { surface, actor, ground }
 
@@ -20,6 +21,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     this.lightingRole = SpatialPixelLightingRole.surface,
     this.sourceMaterialName,
     this.preserveUnlitColor = false,
+    this.emissive = false,
   }) : _defaultAlbedoTexture = texture,
        _activeWrapS = wrapS,
        _activeWrapT = wrapT,
@@ -39,6 +41,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
       _shadowUniformsBound = false;
       _environmentUniformsBound = false;
       _pointShadowUniformsBound = false;
+      _atmosphereUniformsBound = false;
     });
   }
 
@@ -53,6 +56,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
   final SpatialPixelLightingRole lightingRole;
   final String? sourceMaterialName;
   final bool preserveUnlitColor;
+  final bool emissive;
   Vector3? shadowSamplePosition;
   late final VertexShader _unlitVertexShader;
   late final VertexShader _litVertexShader = _PixelVertexShader(
@@ -142,6 +146,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     super.apply(context);
     _applyLighting(lighting, enabled: enabled, normalLighting: normalLighting);
     _applyEnvironment(lighting);
+    _applyAtmosphere(context);
     _applyPointShadow(
       context is SpatialLightingContext
           ? (context as SpatialLightingContext).pointShadowFrame
@@ -220,6 +225,79 @@ class SpatialPixelMaterial extends UnlitMaterial {
     _boundWrapS = _activeWrapS;
     _boundWrapT = _activeWrapT;
     _uniformsBound = true;
+  }
+
+  bool _atmosphereUniformsBound = false;
+  Shader? _atmosphereShader;
+  GpuShader? _atmosphereResource;
+  SpatialWindowGlow? _boundWindow;
+  final _boundAtmosphereOptions = Vector4.zero();
+  final _boundAtmosphereColor = Vector4.zero();
+  final _atmosphereOptions = Vector4.zero();
+  final _atmosphereColor = Vector4.zero();
+  final _atmosphereMask = List.generate(8, (_) => Vector4.zero());
+  void _applyAtmosphere(RenderContext3D context) {
+    final atmosphere = context is SpatialAtmosphereContext
+        ? context as SpatialAtmosphereContext
+        : null;
+    final profile = atmosphere?.atmosphereProfile;
+    final instance = atmosphere?.sourceInstanceId;
+    final water =
+        atmosphere?.waterAnimated == true &&
+        profile?.isWater(instance, sourceMaterialName) == true;
+    final window = atmosphere?.windowsLit == true
+        ? profile?.window(instance, sourceMaterialName)
+        : null;
+    _atmosphereOptions.setValues(
+      water ? 1 : 0,
+      water ? atmosphere!.atmosphereElapsedSeconds : 0,
+      emissive ? 1 : 0,
+      window?.uvRects.length.toDouble() ?? 0,
+    );
+    final color = window?.color;
+    _atmosphereColor.setValues(
+      color?.r ?? 0,
+      color?.g ?? 0,
+      color?.b ?? 0,
+      (window?.strength ?? 0) * (atmosphere?.atmosphereNight ?? 0),
+    );
+    final shader = fragmentShader, resource = shader.resource;
+    if (_atmosphereUniformsBound &&
+        identical(_atmosphereShader, shader) &&
+        identical(_atmosphereResource, resource) &&
+        identical(_boundWindow, window) &&
+        _boundAtmosphereOptions == _atmosphereOptions &&
+        _boundAtmosphereColor == _atmosphereColor)
+      return;
+    final masksChanged =
+        !_atmosphereUniformsBound ||
+        !identical(_atmosphereShader, shader) ||
+        !identical(_atmosphereResource, resource) ||
+        !identical(_boundWindow, window);
+    fragmentShader
+      ..setVector4('Atmosphere.options', _atmosphereOptions)
+      ..setVector4('Atmosphere.windowColor', _atmosphereColor);
+    for (var i = 0; masksChanged && i < 8; i++) {
+      final rect = window != null && i < window.uvRects.length
+          ? window.uvRects[i]
+          : null;
+      _atmosphereMask[i].setValues(
+        rect?.left ?? 0,
+        rect?.top ?? 0,
+        rect?.right ?? 0,
+        rect?.bottom ?? 0,
+      );
+      fragmentShader.setVector4(
+        'Atmosphere.windowRects[$i]',
+        _atmosphereMask[i],
+      );
+    }
+    _atmosphereUniformsBound = true;
+    _atmosphereShader = shader;
+    _atmosphereResource = resource;
+    _boundWindow = window;
+    _boundAtmosphereOptions.setFrom(_atmosphereOptions);
+    _boundAtmosphereColor.setFrom(_atmosphereColor);
   }
 
   void prepareLighting(SpatialLightingProfile lighting) {
@@ -458,6 +536,7 @@ class _PixelFragmentShader extends FragmentShader {
           'Environment',
           'pointShadowTexture',
           'PointShadows',
+          'Atmosphere',
         ],
       );
 

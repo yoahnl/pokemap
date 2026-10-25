@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:ui' show Color, Size;
+import 'dart:ui' show Color, Size, Rect;
 
 import 'package:flame_3d/game.dart';
 import 'package:flame_3d/components.dart' show Object3D;
@@ -7,6 +7,7 @@ import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
+import 'package:map_render_3d/src/spatial_atmosphere.dart';
 import 'package:map_render_3d/src/spatial_actor_contact_shadow.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
@@ -29,6 +30,79 @@ void main() {
     material.vertexShader.resource;
     material.fragmentShader.resource;
   });
+
+  test('atmosphere uniforms target one instance and keep all off pixels and resources intact', () {
+    final spatial = SpatialRenderContext(device)..sourceInstanceId = 'house';
+    final glass = SpatialPixelMaterial(
+      material.albedoTexture,
+      sourceMaterialName: 'glass',
+    );
+    final target = SpatialAtmosphereTarget(
+      instanceId: 'house',
+      materialName: 'glass',
+    );
+    spatial.atmosphereProfile = SpatialAtmosphereProfile(
+      waterTargets: [target],
+      windows: [
+        SpatialWindowGlow(
+          target: target,
+          uvRects: [const Rect.fromLTWH(.1, .2, .3, .4)],
+        ),
+      ],
+    );
+    glass.vertexShader.resource;
+    glass.fragmentShader.resource;
+    glass.apply(spatial);
+    glass.fragmentShader.bind(device);
+    final vertex = glass.vertexShader, fragment = glass.fragmentShader;
+    final original = device.uniforms['Material']!.toList();
+    expect(device.uniforms['Atmosphere']!.sublist(0, 4), [0, 0, 0, 0]);
+    spatial
+      ..waterAnimated = true
+      ..windowsLit = true
+      ..atmosphereElapsedSeconds = 2
+      ..atmosphereNight = .75;
+    glass.apply(spatial);
+    glass.fragmentShader.bind(device);
+    expect(device.uniforms['Atmosphere']!.sublist(0, 4), [1, 2, 0, 1]);
+    expect(device.uniforms['Atmosphere']![7], closeTo(.6, 1e-6));
+    expect(
+      device.uniforms['Atmosphere']!.sublist(8, 12),
+      [.1, .2, .4, .6].map((v) => closeTo(v, 1e-6)),
+    );
+    expect(device.uniforms['Material'], original);
+    expect(glass.vertexShader, same(vertex));
+    expect(glass.fragmentShader, same(fragment));
+    spatial.sourceInstanceId = 'neighbor';
+    glass.apply(spatial);
+    glass.fragmentShader.bind(device);
+    expect(device.uniforms['Atmosphere']!.sublist(0, 4), [0, 0, 0, 0]);
+    spatial
+      ..sourceInstanceId = 'house'
+      ..waterAnimated = false
+      ..windowsLit = false;
+    glass.apply(spatial);
+    glass.fragmentShader.bind(device);
+    expect(device.uniforms['Atmosphere']!.every((value) => value == 0), isTrue);
+    expect(device.textures['albedoTexture'], same(material.albedoTexture));
+  });
+  test(
+    'unchanged atmosphere does not rewrite uniforms for unrelated draws',
+    () {
+      final shader = _CountingFragmentShader();
+      shader.resource;
+      material.fragmentShader = shader;
+      final spatial = SpatialRenderContext(device);
+      material.apply(spatial);
+      final writes = shader.atmosphereWrites;
+      expect(writes, greaterThan(0));
+      for (var i = 0; i < 120; i++) {
+        spatial.atmosphereElapsedSeconds = i.toDouble();
+        material.apply(spatial);
+      }
+      expect(shader.atmosphereWrites, writes);
+    },
+  );
 
   test('an offscreen opted-in masked caster produces six point depth draws and OFF ON reuses its atlas', () {
     final mask = SpatialPixelMaterial(
@@ -104,7 +178,9 @@ void main() {
       ..pointShadowCasters = [caster]
       ..lighting = SpatialLightingProfile.stylized(
         shadow: SpatialShadowProfile(casterInstanceIds: {'town:wall'}),
-        pointLights: [SpatialPointLight(position: (x: 0, y: 2, z: 0), radius: 5)],
+        pointLights: [
+          SpatialPointLight(position: (x: 0, y: 2, z: 0), radius: 5),
+        ],
         pointShadowCasterInstanceIds: {'town:wall'},
       );
     device.begin();
@@ -611,14 +687,19 @@ final class _CountingFragmentShader extends FragmentShader {
           'Environment',
           'PointShadows',
           'pointShadowTexture',
+          'Atmosphere',
         ],
       );
 
   int pixelWrites = 0;
+  int atmosphereWrites = 0;
 
   @override
   void setVector4(String key, Vector4 value) {
-    if (!key.startsWith('Environment.') && !key.startsWith('PointShadows.'))
+    if (key.startsWith('Atmosphere.')) atmosphereWrites++;
+    if (!key.startsWith('Environment.') &&
+        !key.startsWith('PointShadows.') &&
+        !key.startsWith('Atmosphere.'))
       pixelWrites++;
     super.setVector4(key, value);
   }
@@ -727,6 +808,11 @@ final class _Shader implements GpuShader {
       'samplePosition': 32,
       'pointPositionRadius': 48,
       'pointColorIntensity': 112,
+    }),
+    'Atmosphere' => _UniformSlot(slot, 160, {
+      'options': 0,
+      'windowColor': 16,
+      'windowRects': 32,
     }),
     'PointShadows' => _UniformSlot(slot, 16, {'options': 0}),
     'PointDepth' => _UniformSlot(slot, 32, {'positionRadius': 0, 'tile': 16}),

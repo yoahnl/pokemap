@@ -1,8 +1,11 @@
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:map_core/map_core.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import '../session/player_input.dart';
+import '../application/dialogue_portrait_resolver.dart';
+import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_player_host.dart';
@@ -35,6 +38,7 @@ abstract final class RuntimeCompanionPresentationCodec {
 
   static Map<String, Object?> encodePlayer(RuntimePlayerSnapshot value) => {
         'revision': value.revision,
+        'preSessionRequest': value.preSessionRequest?.toJson(),
         'worldService': value.worldService == null ? null : encodeWorldService(value.worldService!),
         'phase': value.phase.name,
         'gameTitle': value.gameTitle,
@@ -70,6 +74,9 @@ abstract final class RuntimeCompanionPresentationCodec {
   static RuntimePlayerSnapshot decodePlayer(Map<String, dynamic> data) =>
       RuntimePlayerSnapshot(
         revision: data['revision'] as int,
+        preSessionRequest: data['preSessionRequest'] == null
+            ? null
+            : SceneInteractionRequest.fromJson(_map(data['preSessionRequest'])),
         worldService: data['worldService'] == null ? null : decodeWorldService(_map(data['worldService'])),
         phase: RuntimePlayerPhase.values.byName(data['phase'] as String),
         gameTitle: data['gameTitle'] as String,
@@ -114,6 +121,143 @@ abstract final class RuntimeCompanionPresentationCodec {
                 decodeRuntimePlayerPauseDetailSnapshot(_map(raw)),
         },
       );
+
+  static Map<String, Object?> encodeDialogue(
+    DialoguePresentationSnapshot value,
+  ) => {
+    'revision': value.revision,
+    'mode': value.mode.name,
+    'nodeTitle': value.nodeTitle,
+    'speaker': value.speaker,
+    'text': value.text,
+    'fullText': value.fullText,
+    'isCurrentLineFullyRevealed': value.isCurrentLineFullyRevealed,
+    'isLastContent': value.isLastContent,
+    'isAdvanceAvailable': value.isAdvanceAvailable,
+    'choices': [
+      for (final choice in value.choices)
+        {
+          'index': choice.index,
+          'label': choice.label,
+          'selected': choice.selected,
+          'enabled': choice.enabled,
+        },
+    ],
+    'portrait': value.portrait == null
+        ? null
+        : {
+            'characterId': value.portrait!.characterId,
+            'characterName': value.portrait!.characterName,
+            'portraitStateId': value.portrait!.portraitStateId,
+            'portraitStateName': value.portrait!.portraitStateName,
+            'assetId': value.portrait!.assetId,
+            'absoluteFilePath': value.portrait!.absoluteFilePath,
+            'fitMode': value.portrait!.fitMode.name,
+          },
+    'segments': value.segments.map((segment) => segment.toJson()).toList(),
+    'iconPngBytes': {
+      for (final entry in value.iconPngBytes.entries)
+        entry.key: entry.value.toList(growable: false),
+    },
+  };
+
+  static DialoguePresentationSnapshot decodeDialogue(
+    Map<String, dynamic> data,
+  ) {
+    final revision = data['revision'];
+    if (revision is! int || revision < 0) {
+      throw const FormatException('Invalid dialogue presentation revision.');
+    }
+    final choices = (data['choices'] as List)
+        .map((raw) {
+          final choice = _map(raw);
+          final index = choice['index'];
+          if (index is! int || index < 0) {
+            throw const FormatException('Invalid dialogue choice index.');
+          }
+          return DialoguePresentationChoice(
+            index: index,
+            label: choice['label'] as String,
+            selected: choice['selected'] as bool,
+            enabled: choice['enabled'] as bool,
+          );
+        })
+        .toList(growable: false);
+    if (choices.map((choice) => choice.index).toSet().length !=
+        choices.length) {
+      throw const FormatException('Duplicate dialogue choice index.');
+    }
+    final portrait = data['portrait'] == null ? null : _map(data['portrait']);
+    return DialoguePresentationSnapshot(
+      revision: revision,
+      mode: DialoguePresentationMode.values.byName(data['mode'] as String),
+      nodeTitle: data['nodeTitle'] as String?,
+      speaker: data['speaker'] as String?,
+      text: data['text'] as String,
+      fullText: data['fullText'] as String,
+      isCurrentLineFullyRevealed: data['isCurrentLineFullyRevealed'] as bool,
+      isLastContent: data['isLastContent'] as bool,
+      isAdvanceAvailable: data['isAdvanceAvailable'] as bool,
+      choices: choices,
+      portrait: portrait == null
+          ? null
+          : ResolvedDialoguePortrait(
+              characterId: portrait['characterId'] as String,
+              characterName: portrait['characterName'] as String,
+              portraitStateId: portrait['portraitStateId'] as String,
+              portraitStateName: portrait['portraitStateName'] as String,
+              assetId: portrait['assetId'] as String,
+              absoluteFilePath: portrait['absoluteFilePath'] as String,
+              fitMode: CharacterPortraitFitMode.values.byName(
+                portrait['fitMode'] as String,
+              ),
+            ),
+      segments: (data['segments'] as List)
+          .map((raw) => DialogueLineSegment.fromJson(_map(raw)))
+          .toList(growable: false),
+      iconPngBytes: {
+        for (final entry in _map(data['iconPngBytes']).entries)
+          entry.key: _dialogueIconBytes(entry.value),
+      },
+    );
+  }
+
+  static Uint8List _dialogueIconBytes(Object? value) {
+    if (value is! List ||
+        value.any((byte) => byte is! int || byte < 0 || byte > 255)) {
+      throw const FormatException('Invalid dialogue icon bytes.');
+    }
+    return Uint8List.fromList(value.cast<int>());
+  }
+
+  static Map<String, Object?> encodeDialogueCommand(
+    DialoguePresentationCommand command,
+  ) => {
+    'snapshotRevision': command.snapshotRevision,
+    'action': command is DialogueAdvanceCommand ? 'advance' : 'choice',
+    if (command is DialogueSelectChoiceCommand)
+      'choiceIndex': command.choiceIndex,
+  };
+
+  static DialoguePresentationCommand decodeDialogueCommand(
+    Map<String, dynamic> data,
+  ) {
+    final revision = data['snapshotRevision'];
+    if (revision is! int || revision < 0) {
+      throw const FormatException('Invalid dialogue command revision.');
+    }
+    return switch (data['action']) {
+      'advance' => DialogueAdvanceCommand(snapshotRevision: revision),
+      'choice'
+          when data['choiceIndex'] is int &&
+              (data['choiceIndex'] as int) >= 0 =>
+        DialogueSelectChoiceCommand(
+          snapshotRevision: revision,
+          choiceIndex: data['choiceIndex'] as int,
+        ),
+      _ => throw const FormatException('Invalid dialogue command.'),
+    };
+  }
 
   static bool supportsWorldService(RuntimeWorldServiceSnapshot value) =>
       const {RuntimeWorldServiceKind.shop, RuntimeWorldServiceKind.heal,
@@ -172,6 +316,10 @@ abstract final class RuntimeCompanionPresentationCodec {
               'kind': 'preferences',
               'value': encodePlayerPreferencesSnapshot(value)
             },
+          final SceneInteractionResult value => {
+              'kind': 'interaction',
+              'value': value.toJson(),
+            },
           final RuntimePlayerExitRequest value => {
               'kind': 'exit',
               'saveBeforeExit': value.saveBeforeExit
@@ -197,6 +345,7 @@ abstract final class RuntimeCompanionPresentationCodec {
       final value = _map(raw);
       payload = switch (value['kind']) {
         'preferences' => decodePlayerPreferencesSnapshot(_map(value['value'])),
+        'interaction' => SceneInteractionResult.fromJson(_map(value['value'])),
         'exit' => RuntimePlayerExitRequest(
             saveBeforeExit: value['saveBeforeExit'] as bool),
         'pause' => switch (RuntimePlayerPauseCommandKind.values

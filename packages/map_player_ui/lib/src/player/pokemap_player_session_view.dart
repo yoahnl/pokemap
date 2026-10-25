@@ -182,6 +182,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.onPresentationSkip,
     this.commandController,
     this.companionMenusAttached = false,
+    this.companionNarrativeAttached = false,
     this.onCompanionInput,
     this.beforePauseAction,
     this.relayedControllerInput = false,
@@ -197,6 +198,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final Object? imageScopeIdentity;
   final RuntimePlayerSessionCommandController? commandController;
   final bool companionMenusAttached;
+  final bool companionNarrativeAttached;
   final bool Function(RuntimeInputEvent)? onCompanionInput;
   final Future<bool> Function()? beforePauseAction;
   final bool relayedControllerInput;
@@ -755,7 +757,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       return PlayerInputSurface.blocked;
     }
     final snapshot = _latestSnapshot;
-    if (snapshot.worldService != null) return PlayerInputSurface.title;
+    if (snapshot.worldService != null ||
+        (widget.relayedControllerInput &&
+            widget.dialoguePresentation?.value != null &&
+            snapshot.phase == RuntimePlayerPhase.playing)) {
+      return PlayerInputSurface.title;
+    }
     return switch (snapshot.phase) {
       RuntimePlayerPhase.playing => PlayerInputSurface.gameplay,
       RuntimePlayerPhase.title => PlayerInputSurface.title,
@@ -807,6 +814,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   }) async {
     final relayed = widget.relayedControllerInput && source == PlayerInputSource.controller;
     if (!relayed && (!_lifecycleActive || !_viewFocused) && event.isPress) {
+      return;
+    }
+    if (widget.companionNarrativeAttached &&
+        ((_latestSnapshot.phase == RuntimePlayerPhase.preSession &&
+                _latestSnapshot.preSessionRequest != null) ||
+            widget.dialoguePresentation?.value != null)) {
+      widget.onCompanionInput?.call(event);
       return;
     }
     if (event.control == RuntimeInputControl.primary) {
@@ -938,6 +952,18 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
   Future<void> _routeSurfaceInput(PlayerInputCommand command) async {
     if (!command.isPress) return;
     final snapshot = _latestSnapshot;
+    final dialogue = widget.dialoguePresentation?.value;
+    if (widget.relayedControllerInput &&
+        snapshot.phase == RuntimePlayerPhase.playing &&
+        dialogue?.mode == DialoguePresentationMode.line &&
+        command.action == PlayerInputAction.confirm) {
+      if (!command.isRepeat && dialogue!.isAdvanceAvailable) {
+        widget.onDialogueCommand?.call(
+          DialogueAdvanceCommand(snapshotRevision: dialogue.revision),
+        );
+      }
+      return;
+    }
     if (snapshot.phase == RuntimePlayerPhase.preSession ||
         snapshot.worldService != null ||
         snapshot.phase == RuntimePlayerPhase.paused ||
@@ -1187,9 +1213,11 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
           excluding: snapshot.worldService?.request.kind ==
               RuntimeWorldServiceKind.regionalMap,
           child: RuntimePlayerSurfaceRouter(
-            showPlayerOverlay: !widget.companionMenusAttached ||
-                (snapshot.phase != RuntimePlayerPhase.paused &&
-                    snapshot.phase != RuntimePlayerPhase.saving),
+            showPlayerOverlay: (!widget.companionMenusAttached ||
+                    (snapshot.phase != RuntimePlayerPhase.paused &&
+                        snapshot.phase != RuntimePlayerPhase.saving)) &&
+                !(widget.companionNarrativeAttached &&
+                    snapshot.phase == RuntimePlayerPhase.preSession),
             beforePauseAction: widget.beforePauseAction,
             pauseFocusController: _pauseFocusController,
             snapshot: snapshot,
@@ -1273,7 +1301,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
                 payload: result,
               ),
             ),
-            showPreSessionInteraction: widget.presentationFrame?.value == null,
+            showPreSessionInteraction: widget.presentationFrame?.value == null &&
+                !widget.companionNarrativeAttached,
             onAction: (action) => _dispatchSurfaceAction(action, snapshot),
             onReturnToTitle: (saveBeforeExit) => _dispatchCommand(
               RuntimePlayerAction.returnToTitle,
@@ -1297,7 +1326,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
                         ? null
                         : widget.onPresentationSkip,
                   ),
-                  if (snapshot.preSessionRequest case final request?)
+                  if (snapshot.preSessionRequest case final request?
+                      when !widget.companionNarrativeAttached)
                     PlayerSceneInteractionSurface(
                       request: request,
                       interactionEnabled: snapshot.isActionEnabled(
@@ -1365,7 +1395,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
             ),
           ),
         if (widget.dialoguePresentation case final dialogue?
-            when snapshot.phase == RuntimePlayerPhase.playing)
+            when snapshot.phase == RuntimePlayerPhase.playing &&
+                !widget.companionNarrativeAttached)
           ValueListenableBuilder<DialoguePresentationSnapshot?>(
             valueListenable: dialogue,
             builder: (context, presentation, _) {

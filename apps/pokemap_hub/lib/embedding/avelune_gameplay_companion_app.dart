@@ -29,6 +29,7 @@ class _AveluneGameplayCompanionAppState
   String? _presentationKey;
   Future<player_ui.RuntimePlayerPresentation>? _presentation;
   String? _readySurface;
+  String? _narrativeAckRequested;
 
   @override
   void initState() {
@@ -98,6 +99,31 @@ class _AveluneGameplayCompanionAppState
               }
             });
           }
+          if (resolvedReady &&
+              snapshot != null &&
+              snapshot.companionAttached &&
+              !_remote.busy &&
+              snapshot.narrativeIdentity != null &&
+              !snapshot.narrativeReady) {
+            final acknowledgement =
+                '${snapshot.sessionId}:${snapshot.revision}:${snapshot.narrativeGeneration}';
+            if (_narrativeAckRequested != acknowledgement) {
+              _narrativeAckRequested = acknowledgement;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final current = _remote.value;
+                if (mounted &&
+                    current?.sessionId == snapshot.sessionId &&
+                    current?.narrativeGeneration ==
+                        snapshot.narrativeGeneration &&
+                    current?.companionAttached == true &&
+                    current?.narrativeReady == false) {
+                  unawaited(
+                    _acknowledgeNarrative(snapshot.narrativeGeneration),
+                  );
+                }
+              });
+            }
+          }
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             locale: locale,
@@ -144,7 +170,10 @@ class _AveluneGameplayCompanionAppState
       case AveluneGameplayCompanionMode.menu:
         if (snapshot.player == null) return const SizedBox.expand();
         return AbsorbPointer(
-          absorbing: _remote.busy || !snapshot.companionAttached,
+          absorbing:
+              _remote.busy ||
+              !snapshot.companionAttached ||
+              (snapshot.narrativeIdentity != null && !snapshot.narrativeReady),
           child: player_ui.PokeMapPlayerSessionView(
             imageScopeIdentity: (_imageBudget, snapshot.sessionId),
             imageLoader: (path, {required isCurrent}) async {
@@ -160,6 +189,8 @@ class _AveluneGameplayCompanionAppState
             },
             key: ValueKey('companion-player-${snapshot.sessionId}'),
             controller: _controller,
+            dialoguePresentation: _controller.dialogue,
+            onDialogueCommand: (command) => unawaited(_sendDialogue(command)),
             titlePresentation: presentation.title,
             pauseMenuLabels: presentation.pauseMenuLabels,
             pausePresentation: presentation.pausePresentation,
@@ -218,6 +249,25 @@ class _AveluneGameplayCompanionAppState
                       : 'Follow the action on the main screen.'),
           ),
         );
+    }
+  }
+
+  Future<void> _acknowledgeNarrative(int generation) async {
+    try {
+      await _remote.send('narrativeReady', {'generation': generation});
+    } on PlatformException catch (error) {
+      debugPrint('Avelune companion narrative readiness: ${error.code}');
+    }
+  }
+
+  Future<void> _sendDialogue(DialoguePresentationCommand command) async {
+    try {
+      await _remote.send(
+        'dialogue',
+        RuntimeCompanionPresentationCodec.encodeDialogueCommand(command),
+      );
+    } on PlatformException catch (error) {
+      debugPrint('Avelune companion dialogue command: ${error.code}');
     }
   }
 
@@ -318,6 +368,7 @@ class _RemotePlayerController
     sync: true,
   );
   RuntimePlayerSnapshot? _last;
+  final dialogue = ValueNotifier<DialoguePresentationSnapshot?>(null);
 
   @override
   RuntimePlayerSnapshot get snapshot =>
@@ -332,6 +383,7 @@ class _RemotePlayerController
   Stream<RuntimePlayerSnapshot> get snapshots => _snapshots.stream;
 
   void _changed() {
+    dialogue.value = remote.value?.dialogue;
     final next = remote.value?.player;
     if (next != null && !identical(next, _last)) {
       _last = next;
@@ -437,6 +489,7 @@ class _RemotePlayerController
 
   void dispose() {
     remote.removeListener(_changed);
+    dialogue.dispose();
     unawaited(_snapshots.close());
   }
 }

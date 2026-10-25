@@ -36,21 +36,31 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
       snapshotLoader: snapshots,
     );
     final opened = await reads.openProject(session.directoryPath);
-    if (_closed) {
-      await reads.closeWorkspace(opened.workspaceHandle);
-      throw StateError('Le projet est fermé.');
-    }
-    return _CatalogSession(
-      service: service,
-      reads: reads,
-      mutations: LocalMapAuthoringMutationApi(
+    final shadows = LocalCharacterContactShadowAuthoring(policy: policy);
+    try {
+      if (session.storage == ProjectSessionStorage.workingCatalog) {
+        await shadows.prepareCatalog(projectRoot: session.directoryPath);
+      }
+      if (_closed) throw StateError('Le projet est fermé.');
+      return _CatalogSession(
+        service: service,
+        reads: reads,
+        mutations: LocalMapAuthoringMutationApi(
+          policy: policy,
+          snapshotLoader: snapshots,
+        ),
+        opened: opened,
         policy: policy,
-        snapshotLoader: snapshots,
-      ),
-      opened: opened,
-      policy: policy,
-      shadows: LocalCharacterContactShadowAuthoring(policy: policy),
-    );
+        shadows: shadows,
+      );
+    } on Object {
+      try {
+        await shadows.close();
+      } finally {
+        await reads.closeWorkspace(opened.workspaceHandle);
+      }
+      rethrow;
+    }
   }
 
   @override

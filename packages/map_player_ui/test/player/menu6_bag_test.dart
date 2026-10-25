@@ -183,7 +183,11 @@ void main() {
     expect(find.byKey(const ValueKey('player-page-next')), findsOneWidget);
   });
 
-  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+  for (final size in [
+    const Size(390, 844),
+    const Size(844, 390),
+    const Size(496, 432),
+  ]) {
     testWidgets('bag footer exposes every action without scrolling at $size', (
       tester,
     ) async {
@@ -192,6 +196,8 @@ void main() {
         tester,
         _detail([_item('potion')]),
         size: size,
+        companion: size.width == 496,
+        favorites: {'potion'},
         onFavorite: (id, _) async => favorites.add(id),
       );
       expect(
@@ -212,6 +218,7 @@ void main() {
         expect(rect.right, lessThanOrEqualTo(size.width));
         expect(rect.bottom, lessThanOrEqualTo(size.height));
         expect(rect.height, greaterThanOrEqualTo(48));
+        expect(rect.height, 48);
         bounds.add(rect);
       }
       expect(bounds[0].width, closeTo(bounds[1].width, .1));
@@ -1004,7 +1011,14 @@ void main() {
       final detail = _detail([_item('a'), _item('b')]);
       await _pump(tester, detail, onFavorite: (_, _) => pending.future);
       await _tap(tester, 'bag-favorite-a');
-      expect(find.text('Retirer des favoris'), findsNothing);
+      expect(
+        tester
+            .widget<PlayerMenuSelectableRow>(
+              find.byKey(const ValueKey('bag-favorite-a')),
+            )
+            .semanticValue,
+        'Ajouter aux favoris',
+      );
       pending.complete();
       await tester.pumpAndSettle();
       await _pump(
@@ -1221,6 +1235,7 @@ Future<void> _pump(
   Size size = const Size(1440, 900),
   double scale = 1,
   EdgeInsets safeInsets = EdgeInsets.zero,
+  bool companion = false,
   RuntimePlayerBagNavigation? navigation,
   FutureOr<void> Function(RuntimePlayerPauseCommand)? onCommand,
   Set<String> favorites = const {},
@@ -1243,7 +1258,7 @@ Future<void> _pump(
           padding: safeInsets,
           viewPadding: safeInsets,
         ),
-        child: child!,
+        child: companion ? PlayerCompanionScope(child: child!) : child!,
       ),
       home: PlayerMenuThemeScope(
         role: ProjectPresentationSurfaceRole.bag,

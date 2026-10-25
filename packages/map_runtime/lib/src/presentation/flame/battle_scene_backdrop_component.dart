@@ -22,12 +22,8 @@ class BattleSceneBackdropComponent extends PositionComponent {
     this.visualAssetCache,
     BattleBackgroundSpec backgroundSpec =
         const BattleBackgroundSpec.fallbackField(),
-  })  : _backgroundSpec = backgroundSpec,
-        super(
-          size: size,
-          anchor: Anchor.topLeft,
-          priority: 0,
-        );
+  }) : _backgroundSpec = backgroundSpec,
+       super(size: size, anchor: Anchor.topLeft, priority: 0);
 
   BattleBackgroundSpec _backgroundSpec;
   final BattleVisualAssetCache? visualAssetCache;
@@ -64,9 +60,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
   /// - il garde le composant localement testable ;
   /// - il laisse le lot 2 injecter une variation de contexte visible ;
   /// - il ne promet pas pour autant un système de theming plus large.
-  void sync({
-    required BattleBackgroundSpec backgroundSpec,
-  }) {
+  void sync({required BattleBackgroundSpec backgroundSpec}) {
     _backgroundSpec = backgroundSpec;
     _syncExplicitImage();
   }
@@ -102,9 +96,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
     final palette = _paletteFor(_backgroundSpec.key);
 
     if (_explicitImage != null) {
-      _renderExplicitImage(canvas, rect, palette);
-      _renderFloor(canvas, palette);
-      _renderForegroundAccent(canvas, palette);
+      _renderExplicitImage(canvas, rect);
       return;
     }
 
@@ -144,7 +136,8 @@ class BattleSceneBackdropComponent extends PositionComponent {
       return;
     }
 
-    if (_explicitImage != null && _explicitImageSourcePath == explicitImagePath) {
+    if (_explicitImage != null &&
+        _explicitImageSourcePath == explicitImagePath) {
       return;
     }
 
@@ -162,54 +155,16 @@ class BattleSceneBackdropComponent extends PositionComponent {
     }
   }
 
-  void _renderExplicitImage(
-    Canvas canvas,
-    Rect rect,
-    _BattleBackdropPalette palette,
-  ) {
+  void _renderExplicitImage(Canvas canvas, Rect rect) {
     final image = _explicitImage!;
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
     final fitted = applyBoxFit(BoxFit.cover, imageSize, rect.size);
     final inputSubrect = Alignment.center.inscribe(
       fitted.source,
       Offset.zero & imageSize,
     );
-    final outputSubrect = Alignment.center.inscribe(
-      fitted.destination,
-      rect,
-    );
+    final outputSubrect = Alignment.center.inscribe(fitted.destination, rect);
     canvas.drawImageRect(image, inputSubrect, outputSubrect, Paint());
-
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = ui.Gradient.linear(
-          const Offset(0, 0),
-          Offset(0, size.y),
-          <Color>[
-            const Color(0x6610141E),
-            palette.bandColor.withValues(alpha: 0.18),
-            const Color(0xB80B1017),
-          ],
-          const <double>[0.0, 0.45, 1.0],
-        ),
-    );
-
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = ui.Gradient.radial(
-          Offset(size.x * 0.52, size.y * 0.32),
-          size.x * 0.46,
-          <Color>[
-            palette.glowColor.withValues(alpha: 0.16),
-            const Color(0x00000000),
-          ],
-        ),
-    );
   }
 
   void _renderMidground(Canvas canvas, _BattleBackdropPalette palette) {
@@ -290,16 +245,17 @@ class BattleSceneBackdropComponent extends PositionComponent {
 
   void _renderIndoorPanels(Canvas canvas, _BattleBackdropPalette palette) {
     final wallRect = Rect.fromLTWH(
-        size.x * 0.08, size.y * 0.14, size.x * 0.84, size.y * 0.34);
+      size.x * 0.08,
+      size.y * 0.14,
+      size.x * 0.84,
+      size.y * 0.34,
+    );
     canvas.drawRRect(
       RRect.fromRectAndRadius(wallRect, const Radius.circular(26)),
       Paint()..color = palette.bandColor,
     );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        wallRect.deflate(12),
-        const Radius.circular(18),
-      ),
+      RRect.fromRectAndRadius(wallRect.deflate(12), const Radius.circular(18)),
       Paint()..color = palette.softBandColor,
     );
 
@@ -351,89 +307,89 @@ class BattleSceneBackdropComponent extends PositionComponent {
   _BattleBackdropPalette _paletteFor(BattleBackgroundKey key) {
     return switch (key) {
       BattleBackgroundKey.fallbackField => const _BattleBackdropPalette(
-          skyColors: <Color>[
-            Color(0xFF16243B),
-            Color(0xFF263B5D),
-            Color(0xFF4F7A79),
-            Color(0xFF99A56E),
-          ],
-          floorColors: <Color>[
-            Color(0x14000000),
-            Color(0x4411161E),
-            Color(0xCC0B0E14),
-          ],
-          glowColor: Color(0x55FFF7C8),
-          bandColor: Color(0x12FFFFFF),
-          softBandColor: Color(0x10FFFFFF),
-          ribbonColor: Color(0x16FFFFFF),
-          floorAccentColor: Color(0x24000000),
-          glowCenterDx: 0.52,
-          glowCenterDy: 0.42,
-          glowRadiusScale: 0.42,
-        ),
+        skyColors: <Color>[
+          Color(0xFF16243B),
+          Color(0xFF263B5D),
+          Color(0xFF4F7A79),
+          Color(0xFF99A56E),
+        ],
+        floorColors: <Color>[
+          Color(0x14000000),
+          Color(0x4411161E),
+          Color(0xCC0B0E14),
+        ],
+        glowColor: Color(0x55FFF7C8),
+        bandColor: Color(0x12FFFFFF),
+        softBandColor: Color(0x10FFFFFF),
+        ribbonColor: Color(0x16FFFFFF),
+        floorAccentColor: Color(0x24000000),
+        glowCenterDx: 0.52,
+        glowCenterDy: 0.42,
+        glowRadiusScale: 0.42,
+      ),
       BattleBackgroundKey.wildOutdoor => const _BattleBackdropPalette(
-          skyColors: <Color>[
-            Color(0xFF10304D),
-            Color(0xFF215F6B),
-            Color(0xFF5A9A6F),
-            Color(0xFFB9C97A),
-          ],
-          floorColors: <Color>[
-            Color(0x18050C08),
-            Color(0x66151F12),
-            Color(0xD012140F),
-          ],
-          glowColor: Color(0x6BFFF2B4),
-          bandColor: Color(0x4C3E6F58),
-          softBandColor: Color(0x384FA172),
-          ribbonColor: Color(0x26E6FFD0),
-          floorAccentColor: Color(0x38456A35),
-          glowCenterDx: 0.44,
-          glowCenterDy: 0.38,
-          glowRadiusScale: 0.34,
-        ),
+        skyColors: <Color>[
+          Color(0xFF10304D),
+          Color(0xFF215F6B),
+          Color(0xFF5A9A6F),
+          Color(0xFFB9C97A),
+        ],
+        floorColors: <Color>[
+          Color(0x18050C08),
+          Color(0x66151F12),
+          Color(0xD012140F),
+        ],
+        glowColor: Color(0x6BFFF2B4),
+        bandColor: Color(0x4C3E6F58),
+        softBandColor: Color(0x384FA172),
+        ribbonColor: Color(0x26E6FFD0),
+        floorAccentColor: Color(0x38456A35),
+        glowCenterDx: 0.44,
+        glowCenterDy: 0.38,
+        glowRadiusScale: 0.34,
+      ),
       BattleBackgroundKey.trainerOutdoor => const _BattleBackdropPalette(
-          skyColors: <Color>[
-            Color(0xFF2A163C),
-            Color(0xFF6D3151),
-            Color(0xFFB75A45),
-            Color(0xFFE0AE61),
-          ],
-          floorColors: <Color>[
-            Color(0x180B0608),
-            Color(0x6B2D1517),
-            Color(0xD0140D12),
-          ],
-          glowColor: Color(0x75FFD4A4),
-          bandColor: Color(0x523E1B43),
-          softBandColor: Color(0x4FA33E57),
-          ribbonColor: Color(0x40FFE2A0),
-          floorAccentColor: Color(0x42321A25),
-          glowCenterDx: 0.5,
-          glowCenterDy: 0.32,
-          glowRadiusScale: 0.3,
-        ),
+        skyColors: <Color>[
+          Color(0xFF2A163C),
+          Color(0xFF6D3151),
+          Color(0xFFB75A45),
+          Color(0xFFE0AE61),
+        ],
+        floorColors: <Color>[
+          Color(0x180B0608),
+          Color(0x6B2D1517),
+          Color(0xD0140D12),
+        ],
+        glowColor: Color(0x75FFD4A4),
+        bandColor: Color(0x523E1B43),
+        softBandColor: Color(0x4FA33E57),
+        ribbonColor: Color(0x40FFE2A0),
+        floorAccentColor: Color(0x42321A25),
+        glowCenterDx: 0.5,
+        glowCenterDy: 0.32,
+        glowRadiusScale: 0.3,
+      ),
       BattleBackgroundKey.indoor => const _BattleBackdropPalette(
-          skyColors: <Color>[
-            Color(0xFF141729),
-            Color(0xFF232742),
-            Color(0xFF394063),
-            Color(0xFF6B6A78),
-          ],
-          floorColors: <Color>[
-            Color(0x1A020305),
-            Color(0x8036374A),
-            Color(0xD0111219),
-          ],
-          glowColor: Color(0x4CC9D9FF),
-          bandColor: Color(0x5B252A3B),
-          softBandColor: Color(0x643C435D),
-          ribbonColor: Color(0x3838F0FF),
-          floorAccentColor: Color(0x3B727A95),
-          glowCenterDx: 0.5,
-          glowCenterDy: 0.24,
-          glowRadiusScale: 0.24,
-        ),
+        skyColors: <Color>[
+          Color(0xFF141729),
+          Color(0xFF232742),
+          Color(0xFF394063),
+          Color(0xFF6B6A78),
+        ],
+        floorColors: <Color>[
+          Color(0x1A020305),
+          Color(0x8036374A),
+          Color(0xD0111219),
+        ],
+        glowColor: Color(0x4CC9D9FF),
+        bandColor: Color(0x5B252A3B),
+        softBandColor: Color(0x643C435D),
+        ribbonColor: Color(0x3838F0FF),
+        floorAccentColor: Color(0x3B727A95),
+        glowCenterDx: 0.5,
+        glowCenterDy: 0.24,
+        glowRadiusScale: 0.24,
+      ),
     };
   }
 }

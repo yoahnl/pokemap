@@ -72,44 +72,11 @@ void main() {
     );
   });
 
-  test('project semantic theme resolves centrally and updates player tokens',
-      () {
-    final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
-      primary: '#003A44',
-      onPrimary: '#FFFFFF',
-      background: '#F4F7FB',
-      surface: '#FFFFFF',
-      surfaceElevated: '#EAF0F8',
-      textPrimary: '#101827',
-      textSecondary: '#526176',
-      outline: '#65758B',
-      success: '#16794B',
-      warning: '#8A5100',
-      danger: '#B4233C',
-      titleSurface: '#D9F4F6',
-      dialogueSurface: '#FFFFFF',
-      menuSurface: '#EAF0F8',
-      overworldHudSurface: '#FFFFFF',
-      battleHudSurface: '#FFFFFF',
-    );
-
-    expect(semantic, isNotNull);
-    final theme = PokeMapPlayerTheme.withSemanticTheme(
-      PokeMapPlayerTheme.light(),
-      semantic!,
-    );
-    expect(
-      theme.extension<PokeMapPlayerColors>()!.primary,
-      semantic.primary,
-    );
-    expect(
-      theme.extension<PokeMapPlayerSemanticTheme>()!.titleSurface,
-      semantic.titleSurface,
-    );
-    expect(theme.textTheme.headlineLarge?.color, semantic.textPrimary);
-    expect(
-      PokeMapPlayerSemanticTheme.tryFromHex(
-        primary: 'navy',
+  test(
+    'project semantic theme resolves centrally and updates player tokens',
+    () {
+      final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
+        primary: '#003A44',
         onPrimary: '#FFFFFF',
         background: '#F4F7FB',
         surface: '#FFFFFF',
@@ -125,13 +92,46 @@ void main() {
         menuSurface: '#EAF0F8',
         overworldHudSurface: '#FFFFFF',
         battleHudSurface: '#FFFFFF',
-      ),
-      isNull,
-    );
-  });
+      );
 
-  testWidgets('player panels consume their explicit semantic surface role',
-      (tester) async {
+      expect(semantic, isNotNull);
+      final theme = PokeMapPlayerTheme.withSemanticTheme(
+        PokeMapPlayerTheme.light(),
+        semantic!,
+      );
+      expect(theme.extension<PokeMapPlayerColors>()!.primary, semantic.primary);
+      expect(
+        theme.extension<PokeMapPlayerSemanticTheme>()!.titleSurface,
+        semantic.titleSurface,
+      );
+      expect(theme.textTheme.headlineLarge?.color, semantic.textPrimary);
+      expect(
+        PokeMapPlayerSemanticTheme.tryFromHex(
+          primary: 'navy',
+          onPrimary: '#FFFFFF',
+          background: '#F4F7FB',
+          surface: '#FFFFFF',
+          surfaceElevated: '#EAF0F8',
+          textPrimary: '#101827',
+          textSecondary: '#526176',
+          outline: '#65758B',
+          success: '#16794B',
+          warning: '#8A5100',
+          danger: '#B4233C',
+          titleSurface: '#D9F4F6',
+          dialogueSurface: '#FFFFFF',
+          menuSurface: '#EAF0F8',
+          overworldHudSurface: '#FFFFFF',
+          battleHudSurface: '#FFFFFF',
+        ),
+        isNull,
+      );
+    },
+  );
+
+  testWidgets('player panels consume their explicit semantic surface role', (
+    tester,
+  ) async {
     final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
       primary: '#003A44',
       onPrimary: '#FFFFFF',
@@ -174,8 +174,9 @@ void main() {
     expect(material.color, semantic.battleHudSurface);
   });
 
-  testWidgets('player action has a 48px target and visible keyboard focus',
-      (tester) async {
+  testWidgets('player action has a 48px target and visible keyboard focus', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: PokeMapPlayerTheme.dark(),
@@ -191,10 +192,14 @@ void main() {
     );
     await tester.pump();
 
-    expect(tester.getSize(find.byType(PlayerActionButton)).height,
-        greaterThanOrEqualTo(48));
     expect(
-        tester.widget<FilledButton>(find.byType(FilledButton)).style, isNull);
+      tester.getSize(find.byType(PlayerActionButton)).height,
+      greaterThanOrEqualTo(48),
+    );
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).style,
+      isNull,
+    );
     expect(
       find.descendant(
         of: find.byType(PlayerActionButton),
@@ -205,7 +210,8 @@ void main() {
     final frame = tester.widget<AnimatedContainer>(
       find.byKey(const ValueKey<String>('player-action-focus-frame')),
     );
-    final border = (frame.decoration! as BoxDecoration).border! as Border;
+    final border =
+        (frame.foregroundDecoration! as BoxDecoration).border! as Border;
     expect(
       border.top.color,
       PokeMapPlayerTheme.dark().extension<PokeMapPlayerColors>()!.focus,
@@ -232,9 +238,7 @@ void main() {
 
     expect(find.byType(Tooltip), findsOneWidget);
     final semantics = tester.getSemantics(
-      find.byKey(
-        const ValueKey<String>('player-action-semantics-Continuer'),
-      ),
+      find.byKey(const ValueKey<String>('player-action-semantics-Continuer')),
     );
     expect(semantics.hint, contains('Aucune sauvegarde'));
   });

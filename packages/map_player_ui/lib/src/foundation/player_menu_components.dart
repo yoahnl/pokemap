@@ -100,7 +100,7 @@ class PlayerMenuFrame extends StatelessWidget {
                   math.max(horizontal, safe.left),
                   companion ? math.max(12, safe.top) : safe.top,
                   math.max(horizontal, safe.right),
-                  safe.bottom,
+                  math.max(landscape && !companion ? 20 : 0, safe.bottom),
                 ),
                 child: Column(
                   children: [

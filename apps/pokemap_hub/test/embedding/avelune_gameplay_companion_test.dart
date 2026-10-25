@@ -12,6 +12,266 @@ import 'package:pokemap_hub/embedding/avelune_gameplay_companion_app.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('narrative ownership requires painted generation and rejects stale replay and reconnect', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port()..dialogue = _narrative();
+    owner.start('narrative-session');
+    owner.bind(port);
+    await owner.refresh();
+    owner.setCompanionAttached('narrative-session', true);
+    final initial = owner.value!;
+    final command = {
+      ..._intent(initial),
+      'kind': 'dialogue',
+      'payload': RuntimeCompanionPresentationCodec.encodeDialogueCommand(
+        const DialogueAdvanceCommand(snapshotRevision: 8),
+      ),
+    };
+    await expectLater(
+      owner.applyIntent(command),
+      _error('companionUnavailable'),
+    );
+    final ready = {
+      ..._intent(initial),
+      'kind': 'narrativeReady',
+      'payload': {'generation': initial.narrativeGeneration},
+    };
+    await owner.applyIntent(ready);
+    expect(owner.value!.narrativeReady, isTrue);
+    expect(port.executed, isEmpty);
+    await owner.applyIntent(ready);
+    expect(port.executed, isEmpty);
+    final active = owner.value!;
+    await expectLater(
+      owner.applyIntent({...command, 'sequence': 2}),
+      _error('staleRevision'),
+    );
+    final accepted = {...command, 'sequence': 2, 'revision': active.revision};
+    await owner.applyIntent(accepted);
+    await owner.applyIntent(accepted);
+    expect(port.executed, hasLength(1));
+    port.dialogue = _narrative(revision: 9, text: 'Bon');
+    await owner.refresh();
+    expect(owner.value!.narrativeReady, isTrue);
+    expect(owner.value!.narrativeGeneration, initial.narrativeGeneration);
+    port.dialogue = _narrative(revision: 10, fullText: 'Au revoir');
+    await owner.refresh();
+    expect(owner.value!.narrativeReady, isFalse);
+    expect(
+      owner.value!.narrativeGeneration,
+      greaterThan(initial.narrativeGeneration),
+    );
+    await expectLater(
+      owner.applyIntent({
+        ..._intent(owner.value!, sequence: 3),
+        'kind': 'narrativeReady',
+        'payload': {'generation': initial.narrativeGeneration},
+      }),
+      _error('staleRevision'),
+    );
+    final beforeDetach = owner.value!;
+    owner.setCompanionAttached('narrative-session', false);
+    expect(owner.value!.narrativeReady, isFalse);
+    await expectLater(
+      owner.applyIntent({
+        ..._intent(owner.value!, sequence: 3),
+        'kind': 'narrativeReady',
+        'payload': {'generation': owner.value!.narrativeGeneration},
+      }),
+      _error('companionDetached'),
+    );
+    owner.setCompanionAttached('narrative-session', true);
+    await expectLater(
+      owner.applyIntent({
+        ..._intent(owner.value!, sequence: 3),
+        'kind': 'narrativeReady',
+        'payload': {'generation': beforeDetach.narrativeGeneration},
+      }),
+      _error('staleRevision'),
+    );
+    await owner.applyIntent({
+      ..._intent(owner.value!, sequence: 3),
+      'kind': 'narrativeReady',
+      'payload': {'generation': owner.value!.narrativeGeneration},
+    });
+    expect(owner.value!.narrativeReady, isTrue);
+    await expectLater(
+      owner.applyIntent({
+        ..._intent(owner.value!, sequence: 4),
+        'sessionId': 'old-session',
+        'kind': 'dialogue',
+      }),
+      _error('staleSession'),
+    );
+  });
+
+  test('narrative snapshot transports dialogue and defaults legacy readiness safely', () {
+    final source = AveluneGameplayCompanionSnapshot(
+      sessionId: 'narrative',
+      revision: 12,
+      companionAttached: true,
+      mode: AveluneGameplayCompanionMode.menu,
+      player: RuntimePlayerSnapshot(
+        revision: 4,
+        phase: RuntimePlayerPhase.playing,
+        gameTitle: 'Game',
+      ),
+      dialogue: _narrative(),
+      narrativeGeneration: 3,
+      narrativeReady: true,
+    );
+    final decoded = AveluneGameplayCompanionSnapshot.fromPayload(
+      source.toPayload(),
+    );
+    expect(decoded.narrativeIdentity, source.narrativeIdentity);
+    expect(decoded.narrativeReady, isTrue);
+    expect(decoded.narrativeGeneration, 3);
+    final old = {...source.toPayload()}
+      ..remove('dialogue')
+      ..remove('narrativeGeneration')
+      ..remove('narrativeReady');
+    final legacy = AveluneGameplayCompanionSnapshot.fromPayload(old);
+    expect(legacy.dialogue, isNull);
+    expect(legacy.narrativeReady, isFalse);
+  });
+
+  testWidgets(
+    'companion dialogue emits one typed advance for one relayed A press',
+    (tester) async {
+      final calls = await _mountMenu(tester, dialogue: _narrative());
+      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsOneWidget);
+      const channel = MethodChannel('com.avelune.runtime/companion');
+      for (final phase in ['press', 'release']) {
+        await _nativeCall(channel, 'input', {
+          'sessionId': 'session-grid',
+          'revision': 8,
+          'control': 'primary',
+          'phase': phase,
+          'isRepeat': false,
+        });
+        await tester.pumpAndSettle();
+      }
+      expect(calls, hasLength(1));
+      expect(calls.single['kind'], 'dialogue');
+      final command = RuntimeCompanionPresentationCodec.decodeDialogueCommand(
+        Map<String, dynamic>.from(calls.single['payload'] as Map),
+      );
+      expect(command, isA<DialogueAdvanceCommand>());
+      expect(command.snapshotRevision, 8);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+    variant: const TargetPlatformVariant({TargetPlatform.iOS}),
+  );
+
+  testWidgets(
+    'companion acknowledges narrative only after its first rendered frame',
+    (tester) async {
+      final calls = await _mountMenu(
+        tester,
+        dialogue: _narrative(),
+        narrativeReady: false,
+      );
+      expect(find.byKey(const ValueKey('dialogue-tap-zone')), findsOneWidget);
+      expect(calls, hasLength(1));
+      expect(calls.single['kind'], 'narrativeReady');
+      expect(calls.single['payload'], {'generation': 1});
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+    variant: const TargetPlatformVariant({TargetPlatform.iOS}),
+  );
+
+  testWidgets(
+    'companion choices retain canonical enabled state and selected target',
+    (tester) async {
+      final calls = await _mountMenu(
+        tester,
+        dialogue: const DialoguePresentationSnapshot(
+          revision: 19,
+          mode: DialoguePresentationMode.choices,
+          nodeTitle: 'station',
+          speaker: 'Guide',
+          text: 'Où aller ?',
+          fullText: 'Où aller ?',
+          isCurrentLineFullyRevealed: true,
+          isLastContent: false,
+          choices: [
+            DialoguePresentationChoice(index: 0, label: 'Port', selected: true),
+            DialoguePresentationChoice(
+              index: 1,
+              label: 'Montagne',
+              selected: false,
+              enabled: false,
+            ),
+          ],
+        ),
+      );
+      final disabled = tester.widget<PlayerActionButton>(
+        find.byKey(const ValueKey('dialogue-choice-1')),
+      );
+      expect(disabled.onPressed, isNull);
+      await tester.tap(find.byKey(const ValueKey('dialogue-choice-0')));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1));
+      final command = RuntimeCompanionPresentationCodec.decodeDialogueCommand(
+        Map<String, dynamic>.from(calls.single['payload'] as Map),
+      );
+      expect(
+        command,
+        isA<DialogueSelectChoiceCommand>().having(
+          (command) => command.choiceIndex,
+          'choice',
+          0,
+        ),
+      );
+      expect(command.snapshotRevision, 19);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+    variant: const TargetPlatformVariant({TargetPlatform.iOS}),
+  );
+
+  testWidgets(
+    'companion structured confirmation sends exact request identity once',
+    (tester) async {
+      final request = SceneInteractionRequest.confirmation(
+        requestId: 'train',
+        revision: 4,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'train',
+          fallbackText: 'Partir ?',
+        ),
+      );
+      final calls = await _mountMenu(tester, interaction: request);
+      await tester.tap(
+        find.byKey(const ValueKey('scene-interaction-confirm-yes')),
+      );
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1));
+      expect(calls.single['kind'], 'player');
+      final command = RuntimeCompanionPresentationCodec.decodePlayerCommand(
+        Map<String, dynamic>.from(calls.single['payload'] as Map),
+      );
+      expect(command.action, RuntimePlayerAction.resolvePreSessionInteraction);
+      expect(command.snapshotRevision, 7);
+      expect(
+        command.payload,
+        SceneInteractionResult.confirmed(
+          requestId: 'train',
+          revision: 4,
+          value: true,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+    variant: const TargetPlatformVariant({TargetPlatform.iOS}),
+  );
+
   testWidgets('native companion nickname keeps typed result revisions', (
     tester,
   ) async {
@@ -721,6 +981,9 @@ Future<List<Map<String, dynamic>>> _mountMenu(
   bool hiddenPokedex = false,
   String logicalSelectionId = 'pause.party',
   RuntimeWorldServiceSnapshot? worldService,
+  DialoguePresentationSnapshot? dialogue,
+  SceneInteractionRequest? interaction,
+  bool narrativeReady = true,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -730,16 +993,22 @@ Future<List<Map<String, dynamic>>> _mountMenu(
   const channel = MethodChannel('com.avelune.runtime/companion');
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
-  final state = AveluneGameplayCompanionSnapshot(
+  var state = AveluneGameplayCompanionSnapshot(
     sessionId: 'session-grid',
     revision: 8,
+    dialogue: dialogue,
+    narrativeGeneration: 1,
+    narrativeReady: narrativeReady && (dialogue != null || interaction != null),
     companionAttached: true,
     mode: AveluneGameplayCompanionMode.menu,
     player: RuntimePlayerSnapshot(
       revision: 7,
-      phase: worldService == null
-          ? RuntimePlayerPhase.paused
-          : RuntimePlayerPhase.playing,
+      phase: interaction != null
+          ? RuntimePlayerPhase.preSession
+          : worldService != null || dialogue != null
+          ? RuntimePlayerPhase.playing
+          : RuntimePlayerPhase.paused,
+      preSessionRequest: interaction,
       worldService: worldService,
       gameTitle: 'Avelune test',
       pauseSection: RuntimePlayerPauseSection.root,
@@ -764,6 +1033,13 @@ Future<List<Map<String, dynamic>>> _mountMenu(
   messenger.setMockMethodCallHandler(channel, (call) async {
     if (call.method == 'intent') {
       calls.add(Map<String, dynamic>.from(call.arguments as Map));
+      if (calls.last['kind'] == 'narrativeReady') {
+        state = AveluneGameplayCompanionSnapshot.fromPayload({
+          ...state.toPayload(),
+          'revision': state.revision + 1,
+          'narrativeReady': true,
+        });
+      }
     }
     return state.toPayload();
   });
@@ -851,6 +1127,7 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
   int maximumConcurrentReads = 0;
   bool paused = false;
   RuntimeWorldServiceSnapshot? service;
+  DialoguePresentationSnapshot? dialogue;
 
   @override
   bool get isPaused => paused;
@@ -866,9 +1143,12 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
     concurrentReads--;
     return AveluneGameplayCompanionData(
       mode: AveluneGameplayCompanionMode.menu,
+      dialogue: dialogue,
       player: RuntimePlayerSnapshot(
         revision: 7,
-        phase: RuntimePlayerPhase.paused,
+        phase: dialogue == null
+            ? RuntimePlayerPhase.paused
+            : RuntimePlayerPhase.playing,
         worldService: service,
         gameTitle: 'Avelune test',
         actions: const [
@@ -923,4 +1203,20 @@ RuntimeWorldServiceSnapshot _pcService() => RuntimeWorldServiceSnapshot(
       RuntimeWorldServiceAction.close,
     ),
   ],
+);
+
+DialoguePresentationSnapshot _narrative({
+  int revision = 8,
+  String text = 'Bonjour',
+  String fullText = 'Bonjour',
+}) => DialoguePresentationSnapshot(
+  revision: revision,
+  mode: DialoguePresentationMode.line,
+  nodeTitle: 'station',
+  speaker: 'Guide',
+  text: text,
+  fullText: fullText,
+  isCurrentLineFullyRevealed: text == fullText,
+  isLastContent: false,
+  choices: const [],
 );

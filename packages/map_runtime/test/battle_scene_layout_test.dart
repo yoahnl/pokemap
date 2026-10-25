@@ -38,7 +38,12 @@ void main() {
         expect(root.playerHudRect, fight.playerHudRect);
         expect(root.enemySpriteRect, fight.enemySpriteRect);
         expect(root.playerSpriteRect, fight.playerSpriteRect);
-        expect(root.commandPanelRect, fight.commandPanelRect);
+        if (root.commandPanelPlacement == BattleCommandPanelPlacement.end) {
+          expect(root.commandPanelRect.width, 310);
+          expect(fight.commandPanelRect.width, 293);
+        } else {
+          expect(root.commandPanelRect, fight.commandPanelRect);
+        }
       }
     }
   });
@@ -66,10 +71,7 @@ void main() {
       expect(
         layout.enemySpriteRect.right,
         closeTo(
-          (viewport.width - 343.5 * scale).clamp(
-            0.0,
-            layout.commandPanelRect.left - 4,
-          ),
+          (viewport.width - 343.5 * scale).clamp(0.0, layout.arenaRect.right),
           .01,
         ),
       );
@@ -84,6 +86,74 @@ void main() {
       expect(layout.playerHudRect.overlaps(layout.playerPlatformRect), isFalse);
     }
   });
+
+  test('non-controller Ligue profiles use opaque silhouette budgets and measured HUD heights', () {
+    final portrait = BattleSceneLayout.forViewport(
+      viewportSize: const Size(390, 844),
+    );
+    expect(portrait.commandPanelRect, const Rect.fromLTWH(18, 520, 354, 300));
+    expect(portrait.enemyHudRect, const Rect.fromLTWH(14, 48, 216, 40.5));
+    expect(
+      portrait.playerHudRect,
+      const Rect.fromLTWH(158, 421.75, 218, 68.25),
+    );
+    expect(portrait.playerSpriteRect, const Rect.fromLTWH(28, 270.5, 147, 137));
+    expect(portrait.enemySpriteRect.left, 254);
+    expect(portrait.enemySpriteRect.top, closeTo(260, .01));
+    expect(portrait.enemySpriteRect.width, closeTo(98.7, .01));
+    expect(portrait.enemySpriteRect.height, closeTo(109.3, .01));
+    final tactile = BattleSceneLayout.forViewport(
+      viewportSize: const Size(844, 390),
+    );
+    expect(tactile.commandPanelRect, const Rect.fromLTWH(24, 270, 796, 108));
+    expect(tactile.enemyHudRect, const Rect.fromLTWH(20, 12, 216, 40.5));
+    expect(tactile.playerHudRect, const Rect.fromLTWH(610, 179.75, 210, 68.25));
+    expect(tactile.playerSpriteRect.left, closeTo(140.6, .01));
+    expect(tactile.playerSpriteRect.width, closeTo(134.7, .01));
+    expect(tactile.playerSpriteRect.height, closeTo(126.3, .01));
+    expect(tactile.playerSpriteRect.bottom, closeTo(257.8, .01));
+    expect(tactile.enemySpriteRect.width, closeTo(84.8, .01));
+    expect(tactile.enemySpriteRect.height, closeTo(94, .01));
+    expect(tactile.enemyHudRect.overlaps(tactile.enemySpriteRect), isFalse);
+    expect(tactile.playerHudRect.overlaps(tactile.enemyPlatformRect), isFalse);
+    final primary = BattleSceneLayout.forViewport(
+      viewportSize: const Size(768, 432),
+      commandPanelPlacement: BattleCommandPanelPlacement.detached,
+    );
+    expect(primary.enemyHudRect, const Rect.fromLTWH(24, 22, 244, 40.5));
+    expect(primary.playerHudRect, const Rect.fromLTWH(494, 343.75, 250, 68.25));
+    expect(primary.playerSpriteRect, const Rect.fromLTWH(99, 184, 185, 174));
+    expect(primary.enemySpriteRect, const Rect.fromLTWH(469, 128.5, 128, 142));
+    for (final layout in [portrait, tactile, primary]) {
+      expect(
+        layout.playerFootAnchor.dx,
+        closeTo(
+          layout.playerSpriteRect.left + layout.playerSpriteRect.width * .68,
+          .01,
+        ),
+      );
+      expect(layout.playerFootAnchor.dy, layout.playerSpriteRect.bottom);
+      expect(layout.enemyFootAnchor.dy, layout.enemySpriteRect.bottom);
+    }
+  });
+
+  test(
+    'Ligue docks take the greater CSS or system inset without adding both',
+    () {
+      final tactile = BattleSceneLayout.forViewport(
+        viewportSize: const Size(844, 390),
+        safePadding: const EdgeInsets.fromLTRB(44, 12, 44, 20),
+      );
+      expect(tactile.commandPanelRect, const Rect.fromLTWH(44, 262, 756, 108));
+      expect(tactile.enemyHudRect.top, 12);
+      final portrait = BattleSceneLayout.forViewport(
+        viewportSize: const Size(390, 844),
+        safePadding: const EdgeInsets.only(top: 32, bottom: 24),
+      );
+      expect(portrait.commandPanelRect, const Rect.fromLTWH(18, 520, 354, 300));
+      expect(portrait.enemyHudRect.top, 48);
+    },
+  );
 
   double intersectionRatio(Rect rect, Rect container) {
     final intersection = rect.intersect(container);
@@ -506,9 +576,9 @@ void main() {
             }
           }
           if (size.width == 390) {
-            expect(layout.commandPanelRect.top, closeTo(486, 16));
-            expect(layout.playerSpriteRect.height, greaterThan(150));
-            expect(layout.enemySpriteRect.height, greaterThan(120));
+            expect(layout.commandPanelRect.top, closeTo(510, 16));
+            expect(layout.playerSpriteRect.height, closeTo(137, .01));
+            expect(layout.enemySpriteRect.height, closeTo(109.3, .01));
           }
         }
       }
@@ -521,7 +591,7 @@ void main() {
 
       expect(layout.viewportClass, BattleViewportClass.mediumLandscape);
       expect(layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.split);
-      expect(layout.commandPanelRect.height, 116.0);
+      expect(layout.commandPanelRect.height, 108.0);
       expect(layout.commandPanelRect.width, greaterThanOrEqualTo(796.0));
       expect(
         layout.playerHudRect.bottom,
@@ -591,7 +661,7 @@ void main() {
 
         expect(layout.enemyHudRect.width, greaterThanOrEqualTo(110));
         expect(layout.playerHudRect.width, greaterThanOrEqualTo(128));
-        expect(layout.enemyHudRect.height, greaterThanOrEqualTo(46));
+        expect(layout.enemyHudRect.height, greaterThanOrEqualTo(40));
         expect(layout.playerHudRect.height, greaterThanOrEqualTo(54));
       });
     });
