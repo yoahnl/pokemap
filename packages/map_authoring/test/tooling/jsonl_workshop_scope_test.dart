@@ -69,7 +69,7 @@ void main() {
                 parameters: parameters)
             .toJson()
       });
-      await client.call('apply', {
+      final applied = await client.call('apply', {
         'projectHandle': handle,
         'planId': plan['planId'],
         'operationId': 'trainer-operation'
@@ -92,6 +92,17 @@ void main() {
         expect(persisted['tilesets'], project.toJson()['tilesets']);
         expect((persisted['trainers'] as List).single['name'], 'After');
       }
+      await client.call('undo', {
+        'projectHandle': handle,
+        'entryId': (applied['receipt'] as Map)['receiptId'],
+        'idempotencyKey': 'undo-trainer',
+      });
+      final undone = await client.call('workshop_snapshot', {
+        'projectHandle': handle,
+        'actionId': 'campaign.trainer.upsert',
+        'parameters': parameters,
+      });
+      expect((((undone['project'] as Map)['trainers'] as List).single as Map)['name'], 'Before');
     } finally {
       await client?.close();
       await root.delete(recursive: true);

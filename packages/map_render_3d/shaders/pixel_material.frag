@@ -10,6 +10,7 @@ out vec4 outColor;
 
 #include "pixel_sampling.glsl"
 #include "point_shadow_cube.glsl"
+#include "shadow_filter.glsl"
 
 uniform sampler2D pointShadowTexture;
 uniform PointShadows {
@@ -75,42 +76,60 @@ float pointVisibility(vec3 delta, vec3 receiverNormal, int lightIndex, float rad
     return visibility / 16.0;
 }
 
-float shadowComparison(vec2 pixel, float reference) {
+float shadowComparison(vec2 pixel, float reference, vec2 receiverPixel, vec2 depthGradient) {
     float resolution = shadow.options.z;
     if (any(lessThan(pixel, vec2(0.0))) || any(greaterThanEqual(pixel, vec2(resolution)))) return 1.0;
     vec4 packed = texture(shadowTexture, (pixel + 0.5) / resolution);
     float stored = dot(packed, vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
-    return reference <= stored ? 1.0 : 0.0;
+    return reference + dot(pixel - receiverPixel, depthGradient) <= stored ? 1.0 : 0.0;
 }
 
-float interpolatedShadowComparison(vec2 pixel, float reference) {
+float interpolatedShadowComparison(vec2 pixel, float reference, vec2 receiverPixel, vec2 depthGradient) {
     vec2 base = floor(pixel);
     vec2 fraction = fract(pixel);
     return mix(
-        mix(shadowComparison(base, reference), shadowComparison(base + vec2(1.0, 0.0), reference), fraction.x),
-        mix(shadowComparison(base + vec2(0.0, 1.0), reference), shadowComparison(base + vec2(1.0), reference), fraction.x),
+        mix(shadowComparison(base, reference, receiverPixel, depthGradient), shadowComparison(base + vec2(1.0, 0.0), reference, receiverPixel, depthGradient), fraction.x),
+        mix(shadowComparison(base + vec2(0.0, 1.0), reference, receiverPixel, depthGradient), shadowComparison(base + vec2(1.0), reference, receiverPixel, depthGradient), fraction.x),
         fraction.y
     );
 }
 
-float shadowVisibility(vec3 samplePosition) {
+float shadowVisibility(vec3 samplePosition, vec3 receiverNormal) {
     vec4 projected = shadow.worldToLight * vec4(samplePosition, 1.0);
     vec3 coord = projected.xyz / projected.w;
     vec2 uv = vec2(coord.x * 0.5 + 0.5, 0.5 - coord.y * 0.5);
     if (coord.z < 0.0 || coord.z > 1.0 || any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 1.0;
     float resolution = shadow.options.z;
     float reference = coord.z - shadow.options.y;
-    if (shadow.receiverHeight.z == 0.0) return shadowComparison(floor(uv * resolution), reference);
     vec2 pixel = uv * resolution - 0.5;
-    float spacing = sqrt(2.0) * shadow.receiverHeight.z;
+    vec3 lightX = vec3(shadow.worldToLight[0].x, shadow.worldToLight[1].x, shadow.worldToLight[2].x);
+    vec3 lightY = vec3(shadow.worldToLight[0].y, shadow.worldToLight[1].y, shadow.worldToLight[2].y);
+    vec3 lightZ = vec3(shadow.worldToLight[0].z, shadow.worldToLight[1].z, shadow.worldToLight[2].z);
+    vec3 plane = vec3(dot(receiverNormal, lightX) / dot(lightX, lightX), dot(receiverNormal, lightY) / dot(lightY, lightY), dot(receiverNormal, lightZ) / dot(lightZ, lightZ));
+    vec2 depthGradient = abs(plane.z) > 0.000001 ? vec2(-plane.x, plane.y) * (2.0 / (resolution * plane.z)) : vec2(0.0);
+    if (shadow.receiverHeight.z == 0.0) return shadowComparison(floor(uv * resolution), reference, pixel, depthGradient);
+    float radius = max(0.5, shadow.receiverHeight.z);
+    vec2 first = floor(pixel - radius + 0.5);
+    int pairs = int(ceil((2.0 * radius + 1.0) / 2.0));
     float visibility = 0.0;
-    for (int y = -1; y <= 1; y++) {
-        for (int x = -1; x <= 1; x++) {
-            float weight = float((x == 0 ? 2 : 1) * (y == 0 ? 2 : 1));
-            visibility += interpolatedShadowComparison(pixel + vec2(x, y) * spacing, reference) * weight;
+    for (int y = 0; y < 9; y++) {
+        if (y >= pairs) break;
+        float row = first.y + float(y * 2);
+        float offsetY = row - pixel.y;
+        float weightY = shadowPairWeight(offsetY, radius);
+        if (weightY <= 0.0) continue;
+        float sampleY = row + shadowPairOffset(offsetY, radius);
+        for (int x = 0; x < 9; x++) {
+            if (x >= pairs) break;
+            float column = first.x + float(x * 2);
+            float offsetX = column - pixel.x;
+            float weightX = shadowPairWeight(offsetX, radius);
+            if (weightX <= 0.0) continue;
+            float sampleX = column + shadowPairOffset(offsetX, radius);
+            visibility += interpolatedShadowComparison(vec2(sampleX, sampleY), reference, pixel, depthGradient) * weightX * weightY;
         }
     }
-    return visibility / 16.0;
+    return visibility;
 }
 
 void main() {
@@ -128,7 +147,7 @@ void main() {
         float sunVisibility = 1.0;
         vec3 shadowPosition = shadow.samplePosition.w > 0.5 ? shadow.samplePosition.xyz : fragPosition;
         if (shadow.options.x > 0.5 && shadowPosition.y >= shadow.receiverHeight.x && shadowPosition.y <= shadow.receiverHeight.y) {
-            sunVisibility = 1.0 - shadow.options.w * (1.0 - shadowVisibility(shadowPosition));
+            sunVisibility = 1.0 - shadow.options.w * (1.0 - shadowVisibility(shadowPosition, receiverNormal));
         }
         vec3 lighting = material.lightingAmbient.rgb + material.lightingSun.rgb * diffuse * sunVisibility;
         outColor.rgb *= mix(vec3(1.0), lighting, material.lightingOptions.z);

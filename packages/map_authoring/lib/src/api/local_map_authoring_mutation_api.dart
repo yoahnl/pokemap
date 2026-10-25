@@ -1203,6 +1203,7 @@ final class _LocalMapAuthoringSession {
     required AuthoringRevisionRevertService revertService,
     required AuthoringRecoveryService recovery,
     required AuthoringHistoryStore history,
+    required AuthoringContentBlobStore historyBlobs,
     required SecureAuthoringRecoveryExecutor recoveryExecutor,
     required AuthoringPerformanceObserver? performanceObserver,
     required AuthoringResultProjectionStore projections,
@@ -1223,6 +1224,7 @@ final class _LocalMapAuthoringSession {
         _revertService = revertService,
         _recovery = recovery,
         _history = history,
+        _historyBlobs = historyBlobs,
         _recoveryExecutor = recoveryExecutor,
         _performanceObserver = performanceObserver,
         _projections = projections,
@@ -1435,6 +1437,7 @@ final class _LocalMapAuthoringSession {
       ),
       recovery: recovery,
       history: history,
+      historyBlobs: blobs,
       recoveryExecutor: recoveryExecutor,
       performanceObserver: performanceObserver,
     );
@@ -1488,6 +1491,7 @@ final class _LocalMapAuthoringSession {
   final AuthoringRevisionRevertService _revertService;
   final AuthoringRecoveryService _recovery;
   final AuthoringHistoryStore _history;
+  final AuthoringContentBlobStore _historyBlobs;
   final SecureAuthoringRecoveryExecutor _recoveryExecutor;
   final AuthoringPerformanceObserver? _performanceObserver;
   final Map<String, AuthoringRequest> _workshopPlans = {};
@@ -1502,6 +1506,8 @@ final class _LocalMapAuthoringSession {
     await _idempotencyStore.prepareIncrementalStorage();
     final history = _history;
     if (history is FileAuthoringHistoryStore) await history.prepareLocalHistory();
+    await _executor.prepareFinalizedJournals(requireHistory: (journal) =>
+        requireFinalizedJournalHistory(journal: journal, history: history, blobs: _historyBlobs));
   }
 
   Future<AuthoringMutationHistoryResult> listMutationHistory({

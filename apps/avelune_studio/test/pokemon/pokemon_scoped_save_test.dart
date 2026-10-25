@@ -152,8 +152,15 @@ void main() {
             mapAdapter: coldMaps,
             reader: fixture.reader,
           );
+          fixture.reader.clear();
           final savedCommerce = await coldCommerce.load();
           final savedCombat = await coldCombat.load();
+          expect(
+            [...fixture.reader.paths, ...fixture.reader.probes].where(
+              (path) => path.startsWith('maps/') || path.startsWith('assets/'),
+            ),
+            isEmpty,
+          );
           expect(savedCommerce.catalog!.entries.single.displayName, 'Item 1');
           expect(
             savedCommerce.shops
@@ -185,6 +192,12 @@ void main() {
           expect(
             savedCombat.project.pokemon.ruleset,
             PokemonRulesetProfile.standardV1,
+          );
+          expect(
+            (await fixture.maps.resourceBaseline(fixture.session))
+                .manifest
+                .newGame,
+            savedCommerce.project.newGame,
           );
           if (originalRaw != null) {
             final savedRaw = jsonDecode(
@@ -423,31 +436,37 @@ void main() {
     );
   });
 
-  test(
-    'recovered publication is verified before Studio acknowledges success',
-    () async {
-      final fixture = await _Fixture.open(0);
-      addTearDown(fixture.close);
-      var injected = false;
-      final adapter = LocalPokemonCommerceAdapter(
-        session: fixture.session,
-        mapAdapter: fixture.maps,
-        reader: fixture.reader,
-        faultInjector: (checkpoint) {
-          if (!injected &&
-              checkpoint.checkpoint ==
-                  AuthoringTransactionCheckpoint.afterResourcePromoted) {
-            injected = true;
-            throw const AuthoringTransactionSimulatedCrash();
-          }
-        },
-      );
-      final before = (await adapter.load()).shops.single;
-      await adapter.saveShop(before, before.copyWith(label: 'Recovered'));
-      expect(injected, isTrue);
-      expect((await adapter.load()).shops.single.label, 'Recovered');
-    },
-  );
+  for (final nativeJson in [false, true]) {
+    test(
+      'recovered ${nativeJson ? 'native JSON' : 'catalog'} publication is verified before Studio acknowledges success',
+      () async {
+        final fixture = await _Fixture.open(
+          0,
+          nativeJson: nativeJson,
+          configuredNewGame: nativeJson,
+        );
+        addTearDown(fixture.close);
+        var injected = false;
+        final adapter = LocalPokemonCommerceAdapter(
+          session: fixture.session,
+          mapAdapter: fixture.maps,
+          reader: fixture.reader,
+          faultInjector: (checkpoint) {
+            if (!injected &&
+                checkpoint.checkpoint ==
+                    AuthoringTransactionCheckpoint.afterResourcePromoted) {
+              injected = true;
+              throw const AuthoringTransactionSimulatedCrash();
+            }
+          },
+        );
+        final before = (await adapter.load()).shops.single;
+        await adapter.saveShop(before, before.copyWith(label: 'Recovered'));
+        expect(injected, isTrue);
+        expect((await adapter.load()).shops.single.label, 'Recovered');
+      },
+    );
+  }
 
   test('concurrent HEAD publication after verification does not merge across catalog generations', () async {
     final fixture = await _Fixture.open(0);

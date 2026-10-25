@@ -27,8 +27,12 @@ void main() {
         },
       ),
     );
-    await c.prepare();
-    c.rename(Ui06SceneFixture.eventId, 'Récupéré');
+    expect(await c.prepare(), isTrue, reason: c.error);
+    expect(c.record(Ui06SceneFixture.eventId), isNotNull,
+        reason: 'stored=${c.project.eventRegistry?.records.map((record) => record.id).toList()} '
+            'fixture=${f.source.manifest.eventRegistry?.records.map((record) => record.id).toList()}');
+    expect(c.rename(Ui06SceneFixture.eventId, 'Récupéré'), isTrue,
+        reason: '${c.error} ${c.catalog.diagnostics.map((value) => '${value.code}: ${value.path}').toList()}');
     expect(await c.save(), isTrue, reason: c.error);
     expect(interrupted, isTrue);
     expect(
@@ -46,7 +50,7 @@ void main() {
       final port = DelayedEventPort(f.port, failOn: Ui06SceneFixture.eventId)
         ..release.complete();
       final c = f.attach(overridePort: port);
-      await c.prepare();
+      expect(await c.prepare(), isTrue, reason: c.error);
       final added = c.create('Déjà enregistré')!;
       c.rename(Ui06SceneFixture.eventId, 'Reste ouvert');
       expect(await c.save(), isFalse);
@@ -64,7 +68,7 @@ void main() {
       final f = await EventBackendFixture.create();
       addTearDown(f.dispose);
       final c = f.attach();
-      await c.prepare();
+      expect(await c.prepare(), isTrue, reason: c.error);
       const id = Ui06SceneFixture.eventId;
       c.open(id);
       c.rename(id, 'Publié');

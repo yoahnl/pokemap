@@ -5,6 +5,88 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final unrelated in [0, 900]) {
+    test(
+        'step owner facets remain targeted with $unrelated unrelated storylines',
+        () async {
+      final fixture = _Fixture.units([
+        _storyline(0, 'owner', ['prepare']),
+        _storyline(1, 'shared', ['prepare']),
+        for (var i = 0; i < unrelated; i++)
+          _storyline(i + 2, 'unused-$i', ['unused-step-$i']),
+      ]);
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final snapshot = await fixture.open();
+        fixture.readDefinitions.clear();
+        fixture.readUnits.clear();
+        expect(
+            await CatalogMetadataDocuments.readStorylineIdsForStep(
+                snapshot: snapshot, stepId: 'prepare'),
+            {'owner', 'shared'});
+        expect(fixture.readDefinitions, isEmpty);
+        expect(fixture.readUnits, [
+          CatalogMetadataDocuments.fieldKey('storylines'),
+          CatalogMetadataDocuments.storylineStepKey('prepare')
+        ]);
+      }
+      final snapshot = await fixture.open();
+      fixture.readDefinitions.clear();
+      final changes = [
+        _storyline(0, 'owner', ['new']),
+        _storyline(unrelated + 2, 'appended', ['new'])
+      ];
+      final indexChanges = await CatalogMetadataDocuments.maintain(
+          lookup: snapshot.lookup, upserts: changes);
+      expect(fixture.readDefinitions, [0]);
+      final patch =
+          await snapshot.patch(upserts: [...changes, ...indexChanges]);
+      fixture.objects.addAll(patch.objects);
+      fixture.root = patch.root;
+      final reopened = await fixture.open();
+      fixture.readDefinitions.clear();
+      expect(
+          await CatalogMetadataDocuments.readStorylineIdsForStep(
+              snapshot: reopened, stepId: 'prepare'),
+          {'shared'});
+      expect(
+          await CatalogMetadataDocuments.readStorylineIdsForStep(
+              snapshot: reopened, stepId: 'new'),
+          {'owner', 'appended'});
+      expect(
+          await CatalogMetadataDocuments.readStorylineIdsForStep(
+              snapshot: reopened, stepId: 'absent'),
+          isEmpty);
+      expect(fixture.readDefinitions, isEmpty);
+    });
+  }
+  test('step owner facets require explicit preparation of old indexes',
+      () async {
+    final fixture = _Fixture.units([
+      _storyline(0, 'owner', ['prepare'])
+    ]);
+    final snapshot = await fixture.open();
+    final key = CatalogMetadataDocuments.fieldKey('storylines');
+    final payload = {...(await snapshot.lookup(key))!.payload}
+      ..remove('stepReferencesVersion');
+    final patch = await snapshot
+        .patch(upserts: [CatalogDefinitionUnit(key: key, payload: payload)]);
+    fixture.objects.addAll(patch.objects);
+    fixture.root = patch.root;
+    final reopened = await fixture.open();
+    fixture.readDefinitions.clear();
+    await expectLater(
+        CatalogMetadataDocuments.readStorylineIdsForStep(
+            snapshot: reopened, stepId: 'prepare'),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', contains('preparation_required'))));
+    final maintained = await CatalogMetadataDocuments.maintain(
+        lookup: reopened.lookup,
+        upserts: [
+          _storyline(0, 'owner', ['new'])
+        ]);
+    expect(maintained.single.payload['valid'], isFalse);
+    expect(fixture.readDefinitions, isEmpty);
+  });
   test('scene dialogue facets are explicitly prepared from typed scene nodes',
       () {
     final units = [
@@ -425,6 +507,34 @@ CatalogDefinitionUnit _trainer(int position, String id,
         },
       },
     );
+
+CatalogDefinitionUnit _storyline(
+        int position, String id, List<String> stepIds) =>
+    CatalogDefinitionUnit(
+        key: _definitionKey('storylines', position),
+        payload: {
+          'section': r'$projectDefinition',
+          'id': _definitionKey('storylines', position).id,
+          'position': position,
+          'value': {
+            'field': 'storylines',
+            'definition': StorylineAsset(
+                id: id,
+                type: StorylineType.main,
+                title: id,
+                chapters: [
+                  StorylineChapter(
+                      id: 'chapter',
+                      title: 'Chapter',
+                      order: 0,
+                      steps: [
+                        for (var i = 0; i < stepIds.length; i++)
+                          StorylineStep(
+                              id: stepIds[i], title: stepIds[i], order: i),
+                      ]),
+                ]).toJson(),
+          },
+        });
 
 CatalogDefinitionUnit _scene(
         int position, String id, List<String> dialogueIds) =>

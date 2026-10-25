@@ -163,6 +163,126 @@ void main() {
         {'evt_019abcde-0029-7000-8000-000000000001'});
     expect(snapshot.maps.map((map) => map.id), ['owner']);
   });
+  test(
+      'guided step references select their story owner without foreign hydration',
+      () async {
+    final f = _Fixture(unrelated: 900);
+    final story = StorylineAsset(
+      id: 'owner_story',
+      type: StorylineType.main,
+      title: 'Owner story',
+      chapters: [
+        StorylineChapter(
+            id: 'chapter',
+            title: 'Chapter',
+            order: 0,
+            steps: [StorylineStep(id: 'needed', title: 'Needed', order: 0)])
+      ],
+    );
+    f.raw['storylines'] = [
+      story.toJson(),
+      {'id': 'unrelated_story', 'title': 8}
+    ];
+    f.updateProject();
+    final scene = SceneAsset(
+        id: 'edited',
+        name: 'Edited',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+                id: 'action',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.consequence(
+                    SceneCompleteStoryStepConsequence(stepId: 'needed'))),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+                id: 'flow',
+                fromNodeId: 'start',
+                fromPortId: 'completed',
+                toNodeId: 'action',
+                kind: SceneEdgeKind.defaultFlow),
+            SceneEdge(
+                id: 'done',
+                fromNodeId: 'action',
+                fromPortId: 'completed',
+                toNodeId: 'end',
+                kind: SceneEdgeKind.defaultFlow),
+          ],
+        ));
+    final snapshot = await f.loader.loadWorkshop(f.handle,
+        actionId: 'narrative.publish_document',
+        parameters: {
+          'map': {'id': 'owner'},
+          'scenes': [scene.toJson()]
+        });
+    expect(snapshot.manifest.storylines, [story]);
+    expect(snapshot.availableProjectDocuments!['storylines'], {'owner_story'});
+    expect(snapshot.maps.map((map) => map.id), ['owner']);
+  });
+  test('an unchanged owner scene does not pull foreign event source maps',
+      () async {
+    final f = _Fixture(unrelated: 900);
+    final scene = SceneAsset(
+        id: 'shared',
+        name: 'Shared',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(id: 'end', kind: SceneNodeKind.end)
+          ],
+          edges: [
+            SceneEdge(
+                id: 'flow',
+                fromNodeId: 'start',
+                fromPortId: 'completed',
+                toNodeId: 'end',
+                kind: SceneEdgeKind.defaultFlow)
+          ],
+        ));
+    f.raw['scenes'] = [
+      {...scene.toJson(), 'futurePresentation': 'preserve'}
+    ];
+    f.raw['eventRegistry'] = NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.v2Only,
+        records: [
+          for (final entry in {'owner': '001', 'foreign_0': '002'}.entries)
+            NarrativeEventRecord.configuredStructurallyUnchecked(
+                NarrativeEventDefinition(
+                  id: 'evt_019abcde-0029-7000-8000-000000000${entry.value}',
+                  name: entry.key,
+                  source: NarrativeEventSourceRef.mapEnter(entry.key),
+                  conditions: [],
+                  sceneId: scene.id,
+                  reusePolicy: NarrativeEventReusePolicy.reusable,
+                  priority: 0,
+                  order: 0,
+                ),
+                enabled: true)
+        ],
+        legacyClaims: []).toJson();
+    f.updateProject();
+    for (final explicitScene in [false, true]) {
+      f.reads.clear();
+      final snapshot = await f.loader.loadWorkshop(f.handle,
+          actionId: 'narrative.publish_document',
+          parameters: {
+            'map': {'id': 'owner'},
+            if (explicitScene) 'scenes': [scene.toJson()],
+          });
+      expect(snapshot.maps.map((map) => map.id), ['owner']);
+      expect(
+          snapshot.manifest.eventRegistry!.records.map((record) => record.id),
+          ['evt_019abcde-0029-7000-8000-000000000001']);
+      expect(f.reads.where((path) => path.startsWith('missing/')), isEmpty);
+      expect(snapshot.resourceBytes('project'), f.resources['project.json']);
+    }
+  });
   test('selected malformed documents fail without reading foreign files',
       () async {
     final f = _Fixture(unrelated: 900);
@@ -183,6 +303,17 @@ void main() {
         f.loader.loadWorkshop(f.handle, actionId: 'bag.capacity.set'),
         throwsA(isA<ProjectSnapshotException>().having(
             (error) => error.code, 'code', 'project.changed_during_snapshot')));
+  });
+  test(
+      'history snapshots retain opaque project bytes without hydrating definitions',
+      () async {
+    final f = _Fixture(unrelated: 900);
+    final snapshot = await f.loader.loadHistorySnapshot(f.handle);
+    expect(snapshot.manifest.maps, isEmpty);
+    expect(snapshot.manifest.facts, isEmpty);
+    expect(snapshot.resourceBytes('project'), f.resources['project.json']);
+    expect(f.reads, ['project.json', 'project.json']);
+    expect(snapshot.availableProjectSections, isEmpty);
   });
   test('read dependencies cannot replace the retained project identity',
       () async {

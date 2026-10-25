@@ -71,8 +71,10 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
 
   Future<bool> _prepare(Set<String> mapIds) async {
     if (_closed) return false;
-    final manifest = narrative.project;
     try {
+      await workspace.ensureWorkshop(MapWorkspaceWorkshop.events);
+      if (_closed) return false;
+      final manifest = narrative.project;
       final gateway = port;
       final mediaCatalog = _preparedManifest == manifest
           ? _presentationMediaCatalog
@@ -138,6 +140,7 @@ extension EventWorkspaceCatalog on EventWorkspaceController {
     final catalog = buildNarrativeEventProjectCatalog(
       project: value,
       maps: maps,
+      mapInventoryComplete: mapsComplete,
       presentationMediaCatalog: _presentationMediaCatalog,
     );
     return NarrativeEventAuthoringContext(

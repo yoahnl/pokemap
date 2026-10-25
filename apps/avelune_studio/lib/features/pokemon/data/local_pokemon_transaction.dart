@@ -54,7 +54,8 @@ final class LocalPokemonTransaction {
       policy: policy,
       fileReader: reader,
       handles: handles,
-      catalogMetadataFields: scoped ? const {} : null,
+      catalogMetadataFields: const {},
+      workshopScope: true,
     ).openProject(session.directoryPath);
     final snapshots = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(

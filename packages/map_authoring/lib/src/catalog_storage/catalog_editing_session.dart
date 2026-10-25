@@ -265,6 +265,12 @@ final class CatalogEditingSession {
             canonicalAuthoringJson(unit.toJson()));
   }
 
+  Future<void> prepareFinalizedJournals() => _serialize(() async {
+    _requireOpen();
+    await _transaction.prepareFinalizedJournals(requireHistory: (journal) =>
+        requireFinalizedJournalHistory(journal: journal, history: history, blobs: blobs));
+  });
+
   Future<void> prepareMetadataDocuments({bool force = false}) =>
       _serialize(() async {
         _requireOpen();

@@ -443,6 +443,49 @@ final class JournaledAuthoringTransaction {
     return staged;
   }
 
+  Future<int> prepareFinalizedJournals({
+    required Future<void> Function(AuthoringTransactionJournal journal)
+        requireHistory,
+  }) =>
+      _gateway.withExclusiveWriteLock(() async {
+        final journals = await _gateway.listJournals();
+        for (final journal in journals) {
+          final receipt = journal.finalReceipt;
+          if (!const {
+                AuthoringTransactionStatus.committed,
+                AuthoringTransactionStatus.compensated
+              }.contains(journal.status) ||
+              receipt == null) {
+            throw const JournaledAuthoringTransactionException(
+                'transaction.preparation_recovery_required',
+                'Recover or explicitly discard the pending transaction before preparing local editing.');
+          }
+          final record = await _idempotency.recordForRecovery(journal.scope);
+          if (record == null ||
+              record.status != AuthoringIdempotencyStatus.completed ||
+              record.scope.storageKey != journal.scope.storageKey ||
+              record.operationId != journal.operationId ||
+              canonicalAuthoringJson(record.receipt!.toJson()) !=
+                  canonicalAuthoringJson(receipt.toJson())) {
+            throw const JournaledAuthoringTransactionException(
+                'transaction.preparation_receipt_required',
+                'A retained transaction has no matching durable completed receipt. Preserve it and reconcile recovery explicitly.');
+          }
+          if (journal.status == AuthoringTransactionStatus.committed) {
+            await requireHistory(journal);
+          }
+        }
+        for (final journal in journals) {
+          await _gateway.deleteTransaction(journal.operationId);
+          if (await _gateway.readJournal(journal.operationId) != null) {
+            throw const JournaledAuthoringTransactionException(
+                'transaction.preparation_cleanup_failed',
+                'A verified completed transaction could not be retired. Retry explicit preparation before editing.');
+          }
+        }
+        return journals.length;
+      });
+
   Future<void> cleanupCompletedReplay({
     required AuthoringIdempotencyScope scope,
     required String planId,
@@ -469,16 +512,17 @@ final class JournaledAuthoringTransaction {
         }
         final finalized =
             (journal.status == AuthoringTransactionStatus.committed ||
-                journal.status == AuthoringTransactionStatus.compensated) &&
-            journal.finalReceipt != null &&
-            canonicalAuthoringJson(journal.finalReceipt!.toJson()) ==
-                canonicalAuthoringJson(receipt.toJson());
+                    journal.status == AuthoringTransactionStatus.compensated) &&
+                journal.finalReceipt != null &&
+                canonicalAuthoringJson(journal.finalReceipt!.toJson()) ==
+                    canonicalAuthoringJson(receipt.toJson());
         if (!finalized) {
           final stale = switch (journal.status) {
             AuthoringTransactionStatus.preparing ||
             AuthoringTransactionStatus.staged ||
             AuthoringTransactionStatus.prepared ||
-            AuthoringTransactionStatus.promoting => true,
+            AuthoringTransactionStatus.promoting =>
+              true,
             _ => false,
           };
           if (!stale ||

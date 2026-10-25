@@ -7,6 +7,7 @@ import '../contracts/authoring_receipt.dart';
 import '../ports/idempotency_store.dart';
 import '../transactions/authoring_plan.dart';
 import '../transactions/journaled_transaction.dart';
+import '../transactions/transaction_journal.dart';
 import 'audit_log.dart';
 import 'audit_record.dart';
 import 'authoring_permission.dart';
@@ -352,6 +353,9 @@ final class SecureAuthoringMutationExecutor {
     );
     return receipt;
   }
+
+  Future<int> prepareFinalizedJournals({required Future<void> Function(AuthoringTransactionJournal) requireHistory}) =>
+      _transaction.prepareFinalizedJournals(requireHistory: requireHistory);
 
   Future<void> cleanupRecoveredMutation({required AuthoringIdempotencyScope scope,required String planId,required String operationId,required AuthoringReceipt receipt}) => _transaction.cleanupCompletedReplay(scope:scope,planId:planId,operationId:operationId,receipt:receipt);
 

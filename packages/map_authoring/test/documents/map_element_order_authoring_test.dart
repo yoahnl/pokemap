@@ -425,6 +425,149 @@ void main() {
             (row['path'] as String).startsWith('assets/')),
         isEmpty);
   });
+  for (final worker in [false, true]) {
+    test('file revision fused order cold replay conflict undo worker=$worker',
+        () async {
+      final service =
+          LocalMapElementOrderAuthoring(policy: policy, runInWorker: worker);
+      final before =
+          await service.inspect(projectRoot: root.path, mapId: 'shore');
+      final result = await service.reorderFromFileRevision(
+          projectRoot: root.path,
+          mapId: 'shore',
+          expectedFileRevision: before.fileRevision,
+          kind: 'layers',
+          frontFirstIds: ['front', 'markers', 'rear'],
+          operationId: 'file_first');
+      expect(result.beforeRevision, before.revision);
+      expect(
+          jsonDecode(
+              await mapFile.readAsString())['futureOptionalPresentation'],
+          original['futureOptionalPresentation']);
+      final replay = await service.reorderFromFileRevision(
+          projectRoot: root.path,
+          mapId: 'shore',
+          expectedFileRevision: before.fileRevision,
+          kind: 'layers',
+          frontFirstIds: ['front', 'markers', 'rear'],
+          operationId: 'file_first');
+      expect(replay.receipt.receiptId, result.receipt.receiptId);
+      await expectLater(
+          service.reorderFromFileRevision(
+              projectRoot: root.path,
+              mapId: 'shore',
+              expectedFileRevision: result.fileRevision,
+              kind: 'layers',
+              frontFirstIds: ['front', 'markers', 'rear'],
+              operationId: 'file_first'),
+          throwsA(predicate(
+              (error) => error.toString().contains('payload_conflict'))));
+      await expectLater(
+          service.reorderFromFileRevision(
+              projectRoot: root.path,
+              mapId: 'shore',
+              expectedFileRevision: before.fileRevision,
+              kind: 'layers',
+              frontFirstIds: ['markers', 'rear', 'front'],
+              operationId: 'file_stale'),
+          throwsFormatException);
+      final undone = await service.undo(
+          projectRoot: root.path,
+          mapId: 'shore',
+          mutation: result,
+          operationId: 'file_undo');
+      expect(undone.afterMap, before.map);
+      expect(jsonDecode(await mapFile.readAsString()), original);
+    });
+  }
+
+  test('fused file revision resumes promotion and preserves future bytes',
+      () async {
+    final direct = LocalMapElementOrderAuthoring(policy: policy);
+    final before = await direct.inspect(projectRoot: root.path, mapId: 'shore');
+    final crash = LocalMapElementOrderAuthoring(
+        policy: policy,
+        faultInjector: (context) {
+          if (context.checkpoint ==
+              AuthoringTransactionCheckpoint.afterResourcePromoted) {
+            throw const AuthoringTransactionSimulatedCrash();
+          }
+        });
+    await expectLater(
+        crash.reorderFromFileRevision(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedFileRevision: before.fileRevision,
+            kind: 'layers',
+            frontFirstIds: ['front', 'markers', 'rear'],
+            operationId: 'file_resume'),
+        throwsA(anything));
+    final worker =
+        LocalMapElementOrderAuthoring(policy: policy, runInWorker: true);
+    final recovered = await worker.reorderFromFileRevision(
+        projectRoot: root.path,
+        mapId: 'shore',
+        expectedFileRevision: before.fileRevision,
+        kind: 'layers',
+        frontFirstIds: ['front', 'markers', 'rear'],
+        operationId: 'file_resume');
+    final future = jsonEncode({...original, 'version': 'v10'});
+    await mapFile.writeAsString(future);
+    final replay = await worker.reorderFromFileRevision(
+        projectRoot: root.path,
+        mapId: 'shore',
+        expectedFileRevision: before.fileRevision,
+        kind: 'layers',
+        frontFirstIds: ['front', 'markers', 'rear'],
+        operationId: 'file_resume');
+    expect(replay.receipt.receiptId, recovered.receipt.receiptId);
+    await expectLater(
+        worker.reorderFromFileRevision(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedFileRevision:
+                narrativeEventBytesFingerprint(utf8.encode(future)),
+            kind: 'layers',
+            frontFirstIds: ['front', 'markers', 'rear'],
+            operationId: 'file_future'),
+        throwsFormatException);
+    expect(await mapFile.readAsString(), future);
+  });
+
+  test(
+      'fused file revision waits for native writer and rejects its newer bytes',
+      () async {
+    final service =
+        LocalMapElementOrderAuthoring(policy: policy, runInWorker: true);
+    final before =
+        await service.inspect(projectRoot: root.path, mapId: 'shore');
+    final entered = Completer<void>();
+    final release = Completer<void>();
+    final held = withMapDocumentWriteLock(mapFile.path, (_) async {
+      entered.complete();
+      await release.future;
+    });
+    await entered.future;
+    var completed = false;
+    final pending = service
+        .reorderFromFileRevision(
+            projectRoot: root.path,
+            mapId: 'shore',
+            expectedFileRevision: before.fileRevision,
+            kind: 'layers',
+            frontFirstIds: ['front', 'markers', 'rear'],
+            operationId: 'file_host_writer')
+        .whenComplete(() => completed = true);
+    final verdict = expectLater(pending, throwsFormatException);
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+    expect(completed, isFalse);
+    final changed = jsonEncode({...original, 'newerWriter': true});
+    await mapFile.writeAsString(changed);
+    release.complete();
+    await held;
+    await verdict;
+    expect(await mapFile.readAsString(), changed);
+  });
 }
 
 final class _UnreadableFile implements File {

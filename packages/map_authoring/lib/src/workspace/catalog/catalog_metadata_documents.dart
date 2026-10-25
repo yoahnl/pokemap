@@ -61,6 +61,10 @@ abstract final class CatalogMetadataDocuments {
       CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
           jsonEncode(['sceneDialogue', dialogueId]));
 
+  static CatalogDefinitionKey storylineStepKey(String stepId) =>
+      CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
+          jsonEncode(['storylineStep', stepId]));
+
   static List<CatalogDefinitionUnit> initialize(
       Iterable<CatalogDefinitionUnit> units) {
     final byField = <String, Map<int, CatalogDefinitionUnit>>{};
@@ -75,6 +79,7 @@ abstract final class CatalogMetadataDocuments {
     final result = <CatalogDefinitionUnit>[];
     final trainerFacets = <CatalogDefinitionKey, Set<String>>{};
     final sceneFacets = <CatalogDefinitionKey, Set<String>>{};
+    final storylineFacets = <CatalogDefinitionKey, Set<String>>{};
     for (final field in fields) {
       final positions = byField[field] ?? const <int, CatalogDefinitionUnit>{};
       final ids = <String>{};
@@ -87,6 +92,11 @@ abstract final class CatalogMetadataDocuments {
         if (field == 'trainers') {
           for (final facet in _trainerFacets(unit)) {
             trainerFacets.putIfAbsent(facet, () => {}).add(id);
+          }
+        }
+        if (field == 'storylines') {
+          for (final facet in _storylineFacets(unit)) {
+            storylineFacets.putIfAbsent(facet, () => {}).add(id);
           }
         }
         if (field == 'scenes') {
@@ -103,7 +113,26 @@ abstract final class CatalogMetadataDocuments {
     for (final entry in sceneFacets.entries) {
       result.add(_facetRow(entry.key, entry.value, idsField: 'sceneIds'));
     }
+    for (final entry in storylineFacets.entries) {
+      result.add(_facetRow(entry.key, entry.value, idsField: 'storylineIds'));
+    }
     return result;
+  }
+
+  static Future<Set<String>> readStorylineIdsForStep({
+    required CatalogSnapshot snapshot,
+    required String stepId,
+  }) async {
+    _requireId(stepId);
+    final count =
+        _count(await snapshot.lookup(fieldKey('storylines')), 'storylines');
+    if (count > snapshot.limits.maxDefinitions ||
+        await snapshot.lookup(definitionKey('storylines', count)) != null) {
+      _invalid('index_stale');
+    }
+    return Set.unmodifiable(_facetIds(
+        await snapshot.lookup(storylineStepKey(stepId)),
+        idsField: 'storylineIds'));
   }
 
   static Future<Set<String>> readSceneIdsForDialogue({
@@ -246,7 +275,7 @@ abstract final class CatalogMetadataDocuments {
           break;
         }
         pending.add(_row(field, id, position, unit));
-        if (field == 'trainers' || field == 'scenes') {
+        if (const {'trainers', 'scenes', 'storylines'}.contains(field)) {
           final previousFacets = before == null
               ? <CatalogDefinitionKey>{}
               : _documentFacets(before, field);
@@ -262,7 +291,11 @@ abstract final class CatalogMetadataDocuments {
       if (valid) {
         result.addAll(pending);
         for (final facet in {...facetAdds.keys, ...facetRemovals.keys}) {
-          final idsField = field == 'scenes' ? 'sceneIds' : 'trainerIds';
+          final idsField = switch (field) {
+            'scenes' => 'sceneIds',
+            'storylines' => 'storylineIds',
+            _ => 'trainerIds',
+          };
           final ids = _facetIds(await lookup(facet), idsField: idsField);
           final removed = facetRemovals[facet] ?? const <String>{};
           final added = facetAdds[facet] ?? const <String>{};
@@ -339,6 +372,7 @@ abstract final class CatalogMetadataDocuments {
             unit.payload['trainerReferencesVersion'] != 1) ||
         (field == 'scenes' &&
             unit.payload['sceneDialogueReferencesVersion'] != 1) ||
+        (field == 'storylines' && unit.payload['stepReferencesVersion'] != 1) ||
         unit.payload['count'] is! int ||
         (unit.payload['count'] as int) < 0) {
       _invalid('preparation_required');
@@ -386,6 +420,7 @@ abstract final class CatalogMetadataDocuments {
           'valid': valid,
           if (field == 'trainers') 'trainerReferencesVersion': 1,
           if (field == 'scenes') 'sceneDialogueReferencesVersion': 1,
+          if (field == 'storylines') 'stepReferencesVersion': 1,
         },
       );
 
@@ -403,7 +438,22 @@ abstract final class CatalogMetadataDocuments {
 
   static Set<CatalogDefinitionKey> _documentFacets(
           CatalogDefinitionUnit unit, String field) =>
-      field == 'scenes' ? _sceneFacets(unit) : _trainerFacets(unit);
+      switch (field) {
+        'scenes' => _sceneFacets(unit),
+        'storylines' => _storylineFacets(unit),
+        _ => _trainerFacets(unit),
+      };
+
+  static Set<CatalogDefinitionKey> _storylineFacets(
+      CatalogDefinitionUnit unit) {
+    final position = unit.payload['position'] as int;
+    final storyline = StorylineAsset.fromJson(
+        Map<String, dynamic>.from(_definition(unit, 'storylines', position)));
+    return {
+      for (final chapter in storyline.chapters)
+        for (final step in chapter.steps) storylineStepKey(step.id),
+    };
+  }
 
   static Set<CatalogDefinitionKey> _sceneFacets(CatalogDefinitionUnit unit) {
     final position = unit.payload['position'] as int;

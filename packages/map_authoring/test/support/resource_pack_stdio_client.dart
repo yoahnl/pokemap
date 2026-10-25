@@ -147,14 +147,14 @@ final class ResourcePackStdioClient {
   Future<void> close() => _closing ??= _close();
   Future<void> _close() async {
     await process.stdin.close();
-    expect(
-        await process.exitCode.timeout(const Duration(seconds: 10),
-            onTimeout: () {
-          process.kill();
-          return -1;
-        }),
-        0);
+    final exitCode = await process.exitCode.timeout(const Duration(seconds: 10),
+        onTimeout: () {
+      process.kill();
+      return -1;
+    });
     await _output.cancel();
-    expect(await _errors, isEmpty);
+    final errors = await _errors;
+    expect(exitCode, 0, reason: errors);
+    expect(errors, isEmpty);
   }
 }

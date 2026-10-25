@@ -5,6 +5,7 @@ import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../security/resource_pack_bulk_capability.dart';
 import '../transactions/authoring_plan.dart';
+import '../transactions/transaction_journal.dart';
 import '../support/authoring_fingerprint.dart';
 import '../ports/idempotency_store.dart';
 import 'authoring_history.dart';
@@ -192,6 +193,54 @@ final class AuthoringHistoryRecorder
             ? 'Redo is unsafe because the project history has diverged.'
             : 'The current history head differs from the expected head.',
       );
+    }
+  }
+}
+
+Future<void> requireFinalizedJournalHistory({
+  required AuthoringTransactionJournal journal,
+  required AuthoringHistoryStore history,
+  required AuthoringContentBlobStore blobs,
+}) async {
+  final entry = await history.get(
+      projectId: journal.scope.projectId,
+      entryId: journal.intendedReceipt.receiptId);
+  final expectedReceipt =
+      canonicalAuthoringJson(journal.intendedReceipt.toJson());
+  if (entry == null ||
+      entry.projectId != journal.scope.projectId ||
+      entry.actorId != journal.scope.actorId ||
+      entry.planId != journal.planId ||
+      entry.operationId != journal.operationId ||
+      (canonicalAuthoringJson(entry.receipt.toJson()) != expectedReceipt &&
+          canonicalAuthoringJson(entry.receipt.toJson()) !=
+              canonicalAuthoringJson(journal.finalReceipt!.toJson())) ||
+      canonicalAuthoringJson(entry.bulkCapability?.toJson()) !=
+          canonicalAuthoringJson(journal.bulkCapability?.toJson()) ||
+      entry.changes.length != journal.entries.length) {
+    throw const AuthoringHistoryException(
+        'history.preparation_evidence_required',
+        'A completed transaction has no matching retained history. Preserve its recovery files and reconcile it explicitly.');
+  }
+  final changes = {
+    for (final change in entry.changes) change.storageKey: change
+  };
+  for (final retained in journal.entries) {
+    final change = changes[retained.storageKey];
+    if (change == null ||
+        change.beforeRevision != retained.beforeRevision ||
+        change.afterRevision != retained.afterRevision ||
+        canonicalAuthoringJson(change.resource.toJson()) !=
+            canonicalAuthoringJson(retained.resource.toJson())) {
+      throw const AuthoringHistoryException(
+          'history.preparation_evidence_required',
+          'The retained transaction and history inventories differ. Preserve the recovery files.');
+    }
+  }
+  for (final blobId in entry.changes.expand((change) => change.retainedBlobIds).toSet()) {
+    if (!await blobs.contains(blobId)) {
+      throw const AuthoringHistoryException('history.preparation_blob_required',
+          'A retained history payload is unavailable. Preserve the transaction recovery files and repair history explicitly.');
     }
   }
 }

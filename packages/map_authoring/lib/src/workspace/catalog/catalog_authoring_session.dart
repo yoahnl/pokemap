@@ -351,6 +351,7 @@ final class CatalogAuthoringSession {
           force: prepareRetainedGenerations,
           prepareEntry: editing.prepareRetainedGenerationAdmissions));
     }
+    await editing.prepareFinalizedJournals();
     await editing.prepareMetadataDocuments(force: prepareRetainedGenerations);
   }
 

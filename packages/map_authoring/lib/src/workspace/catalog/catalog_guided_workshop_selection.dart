@@ -95,6 +95,7 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
       parameters,
       owner.toJson(),
     ];
+    final changedSceneIds = <String>{};
     if (spec != null) {
       final entity = owner.entities
           .where((entity) => entity.id == spec.entityId)
@@ -111,11 +112,14 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
         add('scenes',
             standardEventTemplateSceneIds(previous, generation: generation));
       }
-      add(
-          'scenes',
-          standardEventTemplateSceneIds(spec,
-              generation: standardEventTemplateNextSceneGeneration(spec,
-                  previous: previous, previousGeneration: generation)));
+      final nextGeneration = standardEventTemplateNextSceneGeneration(spec,
+          previous: previous, previousGeneration: generation);
+      final nextScenes =
+          standardEventTemplateSceneIds(spec, generation: nextGeneration);
+      add('scenes', nextScenes);
+      if (previous == null || nextGeneration != generation) {
+        changedSceneIds.addAll(nextScenes);
+      }
       for (final value in [spec, if (previous != null) previous]) {
         final destination = value.parameters['destinationMapId'];
         if (destination is String) add('maps', [destination]);
@@ -146,18 +150,30 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
       for (final source in sources.whereType<Map>()) {
         if (source['entry'] case final Map entry) {
           if (entry['id'] case final String dialogueId) {
-            add('scenes', await CatalogMetadataDocuments.readSceneIdsForDialogue(
-                snapshot: catalog.snapshot, dialogueId: dialogueId));
+            add(
+                'scenes',
+                await CatalogMetadataDocuments.readSceneIdsForDialogue(
+                    snapshot: catalog.snapshot, dialogueId: dialogueId));
           }
         }
       }
     }
-    final changedSceneIds = <String>{
-      if (parameters['scenes'] case final List scenes)
+    if (parameters['scenes'] case final List scenes when scenes.isNotEmpty) {
+      final incoming = [
         for (final scene in scenes.whereType<Map>())
-          if (scene['id'] case final String id) id,
-      if (spec != null) ...?ids['scenes'],
-    };
+          SceneAsset.fromJson(Map<String, dynamic>.from(scene)),
+      ];
+      final previous = await CatalogMetadataDocuments.readDocuments(
+          snapshot: catalog.snapshot,
+          project: base,
+          ids: {'scenes': incoming.map((scene) => scene.id).toSet()});
+      final before = {
+        for (final scene in previous.project.scenes) scene.id: scene,
+      };
+      changedSceneIds.addAll(incoming
+          .where((scene) => before[scene.id] != scene)
+          .map((scene) => scene.id));
+    }
     final neededEvents = <String>{
       if (parameters['events'] case final List events)
         for (final event in events.whereType<Map>())
@@ -166,26 +182,44 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
     };
     final selectedEvents = <String>{};
     void includeEventDependencies() {
-      neededEvents.addAll(CatalogWorkshopSelection._referenceIds(candidates,
-          const {'eventId', 'eventIds', 'consumedEventId', 'consumedEventIds'}));
+      neededEvents.addAll(CatalogWorkshopSelection._referenceIds(
+          candidates, const {
+        'eventId',
+        'eventIds',
+        'consumedEventId',
+        'consumedEventIds'
+      }));
       var advanced = true;
       while (advanced) {
         advanced = false;
-        for (final record in base.eventRegistry?.records ?? const <NarrativeEventRecord>[]) {
+        for (final record
+            in base.eventRegistry?.records ?? const <NarrativeEventRecord>[]) {
           if (selectedEvents.contains(record.id)) continue;
-          final source = (record.definitionOrNull?.source ?? record.draftOrNull?.source)?.toJson();
+          final source =
+              (record.definitionOrNull?.source ?? record.draftOrNull?.source)
+                  ?.toJson();
           final wire = record.toJson();
-          final sceneRefs = CatalogWorkshopSelection._referenceIds(wire, const {'sceneId'});
-          if (!neededEvents.contains(record.id) && source?['mapId'] != mapId &&
-              !sceneRefs.any(changedSceneIds.contains)) { continue; }
+          final sceneRefs =
+              CatalogWorkshopSelection._referenceIds(wire, const {'sceneId'});
+          if (!neededEvents.contains(record.id) &&
+              source?['mapId'] != mapId &&
+              !sceneRefs.any(changedSceneIds.contains)) {
+            continue;
+          }
           selectedEvents.add(record.id);
           candidates.add(wire);
-          neededEvents.addAll(CatalogWorkshopSelection._referenceIds(wire,
-              const {'eventId', 'eventIds', 'consumedEventId', 'consumedEventIds'}));
+          neededEvents.addAll(CatalogWorkshopSelection._referenceIds(
+              wire, const {
+            'eventId',
+            'eventIds',
+            'consumedEventId',
+            'consumedEventIds'
+          }));
           advanced = true;
         }
       }
     }
+
     final dependencyKeys = {
       'facts': {'factId', 'existingPartyFactId'},
       'maps': {'mapId', 'destinationMapId', 'targetMapId', 'sourceMapId'},
@@ -208,6 +242,7 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
       'scripts': {'scriptId'},
       'scenarios': {'scenarioId'},
     };
+    final resolvedStepIds = <String>{};
     var previous = -1;
     while (previous !=
         ids.values.fold<int>(0, (sum, values) => sum + values.length)) {
@@ -223,6 +258,14 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
       for (final entry in dependencyKeys.entries) {
         add(entry.key,
             CatalogWorkshopSelection._referenceIds(candidates, entry.value));
+      }
+      for (final stepId in CatalogWorkshopSelection._referenceIds(
+          candidates, const {'stepId'}).difference(resolvedStepIds)) {
+        resolvedStepIds.add(stepId);
+        add(
+            'storylines',
+            await CatalogMetadataDocuments.readStorylineIdsForStep(
+                snapshot: catalog.snapshot, stepId: stepId));
       }
     }
     final dependentMapIds = CatalogWorkshopSelection._referenceIds(candidates,
@@ -261,7 +304,8 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
         elements: assets.elements,
         characters: assets.characters,
         models3d: assets.models3d);
-    if (CatalogWorkshopSelection._referenceIds(candidates, const {'starterOptionId'}).isNotEmpty) {
+    if (CatalogWorkshopSelection._referenceIds(
+        candidates, const {'starterOptionId'}).isNotEmpty) {
       final context = await selected.readMetadata({'newGame'});
       manifest = manifest.copyWith(newGame: context.newGame);
       fields.add('newGame');

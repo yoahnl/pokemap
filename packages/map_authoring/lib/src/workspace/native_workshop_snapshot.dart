@@ -260,6 +260,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   StandardEventTemplateSpec? spec;
   String? ownerMapId;
+  final changedSceneIds = <String>{};
   if (guided) {
     final rawSpec = parameters['spec'];
     if (rawSpec is Map) {
@@ -309,11 +310,14 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         add('scenes',
             standardEventTemplateSceneIds(previous, generation: generation));
       }
-      add(
-          'scenes',
-          standardEventTemplateSceneIds(spec,
-              generation: standardEventTemplateNextSceneGeneration(spec,
-                  previous: previous, previousGeneration: generation)));
+      final nextGeneration = standardEventTemplateNextSceneGeneration(spec,
+          previous: previous, previousGeneration: generation);
+      final nextScenes =
+          standardEventTemplateSceneIds(spec, generation: nextGeneration);
+      add('scenes', nextScenes);
+      if (previous == null || nextGeneration != generation) {
+        changedSceneIds.addAll(nextScenes);
+      }
     }
     for (final field in const {
       'dialogues',
@@ -332,6 +336,19 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
             add(field, [document['id'] as String]);
           }
         }
+      }
+    }
+  }
+  if (guided && parameters['scenes'] is List) {
+    for (final scene in (parameters['scenes'] as List).whereType<Map>()) {
+      final id = scene['id'];
+      if (id is! String) continue;
+      final before = index('scenes')[id];
+      if (before == null ||
+          before.length != 1 ||
+          SceneAsset.fromJson(before.single) !=
+              SceneAsset.fromJson(Map<String, dynamic>.from(scene))) {
+        changedSceneIds.add(id);
       }
     }
   }
@@ -357,6 +374,26 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         if (_nativeEventId(event) case final String id) id,
   };
   final eventRecords = <String, Map<String, dynamic>>{};
+  final storyStepOwners = <String, Set<String>>{};
+  if (guided) {
+    for (final rows in index('storylines').values) {
+      for (final story in rows) {
+        final chapters = story['chapters'];
+        if (chapters is! List) continue;
+        for (final chapter in chapters.whereType<Map>()) {
+          final steps = chapter['steps'];
+          if (steps is! List) continue;
+          for (final step in steps.whereType<Map>()) {
+            if (step['id'] case final String id) {
+              storyStepOwners
+                  .putIfAbsent(id, () => {})
+                  .add(story['id'] as String);
+            }
+          }
+        }
+      }
+    }
+  }
   var previousCount = -1;
   while (previousCount !=
       ids.values
@@ -364,6 +401,11 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     previousCount = ids.values
         .fold<int>(eventRecords.length, (n, values) => n + values.length);
     collect();
+    if (guided) {
+      for (final stepId in _nativeReferenceIds(candidates, const {'stepId'})) {
+        add('storylines', storyStepOwners[stepId] ?? const {});
+      }
+    }
     for (final entry in _nativeWorkshopReferences.entries) {
       if (!guided &&
           const {
@@ -400,7 +442,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
           final scenes = _nativeReferenceIds(record, const {'sceneId'});
           if (!eventIds.contains(id) &&
               !mapRefs.contains(ownerMapId) &&
-              !scenes.any((id) => ids['scenes']?.contains(id) ?? false)) {
+              !scenes.any(changedSceneIds.contains)) {
             continue;
           }
           if (records

@@ -43,11 +43,14 @@ final class MapElementOrderSnapshot {
       {required this.revision,
       required this.map,
       required this.fileRevision,
-      required Map<String, dynamic> json})
-      : _json = json;
+      required Map<String, dynamic> json,
+      List<int>? bytes})
+      : _json = json,
+        _bytes = bytes;
   final String revision, fileRevision;
   final MapData map;
   final Map<String, dynamic> _json;
+  final List<int>? _bytes;
   Map<String, Object?> toJson() =>
       {'revision': revision, 'fileRevision': fileRevision, 'map': _json};
 }
@@ -179,73 +182,56 @@ final class LocalMapElementOrderAuthoring {
     }
     final context = await _context(projectRoot, mapId, mapRelativePath);
     final before = await _read(context, mapId);
-    final raw = Map<String, dynamic>.from(before._json);
-    var sameOrder = false;
-    if (kind == 'layers') {
-      if (layerId != null) {
-        throw const FormatException(
-            'Layer reordering does not take a layerId.');
-      }
-      _requirePermutation(
-          frontFirstIds, before.map.layers.map((layer) => layer.id).toList());
-      final ordered = mapPaintsFirstLayerInFront(before.map)
-          ? frontFirstIds
-          : frontFirstIds.reversed.toList();
-      final layers = {
-        for (final value in raw['layers'] as List)
-          (value as Map)['id'] as String: value
-      };
-      raw['layers'] = [for (final id in ordered) layers[id]];
-    } else if (kind == 'decor') {
-      if (layerId == null ||
-          !before.map.layers
-              .any((layer) => layer.id == layerId && layer is TileLayer)) {
-        throw const FormatException(
-            'Decoration reordering requires an existing TileLayer.');
-      }
-      final elements = before.map.placedElements
-          .where((element) => element.layerId == layerId)
-          .toList();
-      if (before.map.placedElements
-              .map((element) => element.id)
-              .toSet()
-              .length !=
-          before.map.placedElements.length) {
-        throw const FormatException('Map decoration IDs must be unique.');
-      }
-      _requirePermutation(
-          frontFirstIds, elements.map((element) => element.id).toList());
-      sameOrder = const DeepCollectionEquality().equals(
-        frontFirstIds,
-        sortMapPlacedElementsForPainting(elements)
-            .reversed
-            .map((element) => element.id)
-            .toList(),
-      );
-      final ranks = {
-        for (final entry in frontFirstIds.indexed)
-          entry.$2: frontFirstIds.length - entry.$1 - 1
-      };
-      raw['placedElements'] = [
-        for (final value in raw['placedElements'] as List? ?? const [])
-          if (ranks.containsKey((value as Map)['id']))
-            {
-              ...Map<String, dynamic>.from(value),
-              'visualOrder': ranks[value['id']]
-            }
-          else
-            value
-      ];
-    } else {
-      throw const FormatException('Unsupported map element order kind.');
-    }
+    final ordered = _orderedMapJson(before, kind, frontFirstIds, layerId);
     return _set(
         projectRoot: projectRoot,
         mapId: mapId,
         mapRelativePath: mapRelativePath,
         expectedRevision: expectedRevision,
-        mapJson: raw,
-        rejectNoChanges: sameOrder,
+        mapJson: ordered.json,
+        rejectNoChanges: ordered.sameOrder,
+        intent: {
+          'kind': kind,
+          'frontFirstIds': frontFirstIds,
+          if (layerId != null) 'layerId': layerId
+        },
+        operationId: operationId,
+        precondition: precondition);
+  }
+
+  Future<MapElementOrderMutation> reorderFromFileRevision({
+    required String projectRoot,
+    required String mapId,
+    String? mapRelativePath,
+    required String expectedFileRevision,
+    required String kind,
+    required List<String> frontFirstIds,
+    String? layerId,
+    required String operationId,
+    FutureOr<void> Function()? precondition,
+  }) async {
+    if (runInWorker) {
+      if (precondition != null) {
+        throw ArgumentError(
+            'Worker mutations require a local data precondition.');
+      }
+      return await _runWorker(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          command: 'reorderFile',
+          expectedRevision: expectedFileRevision,
+          kind: kind,
+          frontFirstIds: frontFirstIds,
+          layerId: layerId,
+          operationId: operationId) as MapElementOrderMutation;
+    }
+    return _set(
+        projectRoot: projectRoot,
+        mapId: mapId,
+        mapRelativePath: mapRelativePath,
+        expectedRevision: expectedFileRevision,
+        expectedFileRevision: expectedFileRevision,
         intent: {
           'kind': kind,
           'frontFirstIds': frontFirstIds,
@@ -260,7 +246,8 @@ final class LocalMapElementOrderAuthoring {
     required String mapId,
     String? mapRelativePath,
     required String expectedRevision,
-    required Map<String, dynamic> mapJson,
+    Map<String, dynamic>? mapJson,
+    String? expectedFileRevision,
     bool rejectNoChanges = false,
     Map<String, Object?>? intent,
     required String operationId,
@@ -284,11 +271,13 @@ final class LocalMapElementOrderAuthoring {
           );
         }
         return _setLocked(
+          context: context,
           projectRoot: projectRoot,
           mapId: mapId,
           mapRelativePath: mapRelativePath,
           expectedRevision: expectedRevision,
           mapJson: mapJson,
+          expectedFileRevision: expectedFileRevision,
           rejectNoChanges: rejectNoChanges,
           intent: intent,
           operationId: operationId,
@@ -300,30 +289,23 @@ final class LocalMapElementOrderAuthoring {
   }
 
   Future<MapElementOrderMutation> _setLocked({
+    required _ElementOrderContext context,
     required String projectRoot,
     required String mapId,
     String? mapRelativePath,
     required String expectedRevision,
-    required Map<String, dynamic> mapJson,
+    Map<String, dynamic>? mapJson,
+    String? expectedFileRevision,
     bool rejectNoChanges = false,
     Map<String, Object?>? intent,
     required String operationId,
     FutureOr<void> Function()? precondition,
     AuthoringHistoryContext? historyContext,
   }) async {
-    final context = await _context(projectRoot, mapId, mapRelativePath);
     if (!_actor.allows(AuthoringPermissionScope.projectWrite)) {
       throw const FormatException('project.write permission is required.');
     }
     safeAuthoringSecurityIdentifier(operationId, 'operationId');
-    final afterMap = MapData.fromJson(mapJson);
-    if (afterMap.id != mapId) {
-      throw const FormatException('Map order identity mismatch.');
-    }
-    final afterBytes = utf8.encode(jsonEncode(mapJson));
-    if (afterBytes.length > _maximumMapBytes) {
-      throw const FormatException('Map document exceeds its byte limit.');
-    }
     final request = AuthoringRequest(
         requestId: operationId,
         actionId: descriptor.id,
@@ -332,6 +314,8 @@ final class LocalMapElementOrderAuthoring {
         parameters: {
           'mapId': mapId,
           'mapRelativePath': context.mapPath,
+          if (expectedFileRevision != null)
+            'expectedFileRevision': expectedFileRevision,
           'intent': intent ?? {'restoreMap': mapJson}
         },
         expectedRevision: expectedRevision,
@@ -385,7 +369,11 @@ final class LocalMapElementOrderAuthoring {
         throw const FormatException('Invalid editor replay receipt.');
       }
       final replay = MapElementOrderMutation.fromReceipt(receipt);
-      if (replay.beforeRevision != expectedRevision ||
+      if ((expectedFileRevision == null
+              ? replay.beforeRevision != expectedRevision
+              : receipt.diff.entries.single
+                      .extensions['mapBeforeFileRevision'] !=
+                  expectedFileRevision) ||
           receipt.diff.entries.single.resource.id != mapId) {
         throw const FormatException('Editor replay intent mismatch.');
       }
@@ -394,24 +382,37 @@ final class LocalMapElementOrderAuthoring {
       return replay;
     }
     final before = await _read(context, mapId);
-    if (before.revision != expectedRevision) {
+    if ((expectedFileRevision == null
+            ? before.revision
+            : before.fileRevision) !=
+        expectedRevision) {
       throw const FormatException(
           'map.elements_revision_conflict: Map changed before this edit.');
+    }
+    if (mapJson == null) {
+      final ordered = _orderedMapJson(
+          before,
+          intent!['kind']! as String,
+          List<String>.from(intent['frontFirstIds']! as List),
+          intent['layerId'] as String?);
+      mapJson = ordered.json;
+      rejectNoChanges = rejectNoChanges || ordered.sameOrder;
+    }
+    final afterMap = MapData.fromJson(mapJson);
+    if (afterMap.id != mapId) {
+      throw const FormatException('Map order identity mismatch.');
+    }
+    final afterBytes = utf8.encode(jsonEncode(mapJson));
+    if (afterBytes.length > _maximumMapBytes) {
+      throw const FormatException('Map document exceeds its byte limit.');
     }
     if (rejectNoChanges ||
         const DeepCollectionEquality().equals(before._json, mapJson)) {
       throw const FormatException(
           'map.elements_no_changes: Elements already have this order.');
     }
-    final beforeBytes = await context.gateway.readResource(context.storageKey);
-    final beforeRevision = beforeBytes == null
-        ? _absentRevision(mapId)
-        : computeAuthoringBytesFingerprint(beforeBytes,
-            logicalName: context.storageKey);
-    if (beforeRevision != expectedRevision) {
-      throw const FormatException(
-          'map.elements_revision_conflict: Map changed during preparation.');
-    }
+    final beforeBytes = before._bytes!;
+    final beforeRevision = before.revision;
     final afterRevision = computeAuthoringBytesFingerprint(afterBytes,
         logicalName: context.storageKey);
     if (afterRevision == beforeRevision) {
@@ -429,7 +430,8 @@ final class LocalMapElementOrderAuthoring {
           extensions: {
             'documentBeforeRevision': beforeRevision,
             'documentAfterRevision': afterRevision,
-            'documentBeforePresent': beforeBytes != null,
+            'documentBeforePresent': true,
+            'mapBeforeFileRevision': before.fileRevision,
             'documentAfterPresent': true,
             'mapFileRevision': narrativeEventBytesFingerprint(afterBytes)
           })
@@ -488,7 +490,13 @@ final class LocalMapElementOrderAuthoring {
               }
             }
           });
-      return MapElementOrderMutation.fromReceipt(receipt);
+      return MapElementOrderMutation(
+          beforeRevision: beforeRevision,
+          afterRevision: afterRevision,
+          beforeMap: before.map,
+          afterMap: afterMap,
+          fileRevision: diff.entries.single.extensions['mapFileRevision']! as String,
+          receipt: receipt);
     } finally {
       await plan.releaseAppliedPayload();
     }
@@ -671,7 +679,8 @@ final class LocalMapElementOrderAuthoring {
             logicalName: context.storageKey),
         fileRevision: narrativeEventBytesFingerprint(bytes),
         map: map,
-        json: raw);
+        json: raw,
+        bytes: bytes);
   }
 
   Future<void> _auditReplay(
@@ -705,10 +714,6 @@ final class _ElementOrderContext {
 
 String _identity(String prefix) =>
     '$prefix${List.generate(16, (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
-
-String _absentRevision(String mapId) =>
-    computeAuthoringJsonFingerprint({'mapId': mapId, 'present': false},
-        logicalName: 'map-editor-absence.json');
 
 const _maximumMapBytes = 64 * 1024 * 1024;
 void _requirePermutation(List<String> requested, List<String> existing) {
@@ -774,6 +779,17 @@ Future<Object> _runMapOrderWorkerDirect(_MapOrderWorkerRequest request) async {
         mapId: request.mapId,
         mapRelativePath: request.mapRelativePath);
   }
+  if (request.command == 'reorderFile') {
+    return service.reorderFromFileRevision(
+        projectRoot: request.root,
+        mapId: request.mapId,
+        mapRelativePath: request.mapRelativePath,
+        expectedFileRevision: request.expectedRevision!,
+        kind: request.kind!,
+        frontFirstIds: request.frontFirstIds!,
+        layerId: request.layerId,
+        operationId: request.operationId!);
+  }
   if (request.command == 'undo') {
     return service.undoReceipt(
         projectRoot: request.root,
@@ -792,4 +808,68 @@ Future<Object> _runMapOrderWorkerDirect(_MapOrderWorkerRequest request) async {
       frontFirstIds: request.frontFirstIds!,
       layerId: request.layerId,
       operationId: request.operationId!);
+}
+
+({Map<String, dynamic> json, bool sameOrder}) _orderedMapJson(
+    MapElementOrderSnapshot before,
+    String kind,
+    List<String> frontFirstIds,
+    String? layerId) {
+  final raw = Map<String, dynamic>.from(before._json);
+  var sameOrder = false;
+  if (kind == 'layers') {
+    if (layerId != null) {
+      throw const FormatException('Layer reordering does not take a layerId.');
+    }
+    _requirePermutation(
+        frontFirstIds, before.map.layers.map((layer) => layer.id).toList());
+    final ordered = mapPaintsFirstLayerInFront(before.map)
+        ? frontFirstIds
+        : frontFirstIds.reversed.toList();
+    final layers = {
+      for (final value in raw['layers'] as List)
+        (value as Map)['id'] as String: value
+    };
+    raw['layers'] = [for (final id in ordered) layers[id]];
+  } else if (kind == 'decor') {
+    if (layerId == null ||
+        !before.map.layers
+            .any((layer) => layer.id == layerId && layer is TileLayer)) {
+      throw const FormatException(
+          'Decoration reordering requires an existing TileLayer.');
+    }
+    final elements = before.map.placedElements
+        .where((element) => element.layerId == layerId)
+        .toList();
+    if (before.map.placedElements.map((element) => element.id).toSet().length !=
+        before.map.placedElements.length) {
+      throw const FormatException('Map decoration IDs must be unique.');
+    }
+    _requirePermutation(
+        frontFirstIds, elements.map((element) => element.id).toList());
+    sameOrder = const DeepCollectionEquality().equals(
+      frontFirstIds,
+      sortMapPlacedElementsForPainting(elements)
+          .reversed
+          .map((element) => element.id)
+          .toList(),
+    );
+    final ranks = {
+      for (final entry in frontFirstIds.indexed)
+        entry.$2: frontFirstIds.length - entry.$1 - 1
+    };
+    raw['placedElements'] = [
+      for (final value in raw['placedElements'] as List? ?? const [])
+        if (ranks.containsKey((value as Map)['id']))
+          {
+            ...Map<String, dynamic>.from(value),
+            'visualOrder': ranks[value['id']]
+          }
+        else
+          value
+    ];
+  } else {
+    throw const FormatException('Unsupported map element order kind.');
+  }
+  return (json: raw, sameOrder: sameOrder);
 }

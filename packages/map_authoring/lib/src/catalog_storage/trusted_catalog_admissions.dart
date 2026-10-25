@@ -67,7 +67,7 @@ final class TrustedCatalogAdmissions {
   }
 
   Future<bool> metadataIndexPrepared(CatalogSnapshot snapshot) async {
-    final record = {...await _record(snapshot), 'metadataIndexVersion': 2};
+    final record = {...await _record(snapshot), 'metadataIndexVersion': 3};
     final file = await _file(record);
     if (await FileSystemEntity.type(file.path, followLinks: false) ==
         FileSystemEntityType.notFound) {
@@ -86,7 +86,7 @@ final class TrustedCatalogAdmissions {
     if (snapshot.admittedStoredBytes == null) {
       throw StateError('The catalog has no structural admission.');
     }
-    final record = {...await _record(snapshot), 'metadataIndexVersion': 2};
+    final record = {...await _record(snapshot), 'metadataIndexVersion': 3};
     await _publishRecord(
         await _file(record), utf8.encode(canonicalAuthoringJson(record)));
   }

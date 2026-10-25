@@ -27,6 +27,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   List<NarrativeOutcomeRef> referencedOutcomes = const [],
   List<NarrativeEventRecord> proposedRecords = const [],
   bool deferFingerprints = false,
+  bool mapInventoryComplete = true,
 }) {
   maps = List.unmodifiable(maps);
   final spatialSources = buildNarrativeSpatialEventSourceCatalog(
@@ -45,6 +46,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     spatialSources: spatialSources,
     outcomeSources: outcomeSources,
     diagnostics: diagnostics,
+    mapInventoryComplete: mapInventoryComplete,
   );
   final mapsById = {for (final map in maps) map.id: map};
   final sceneDiagnostics = SceneProjectDiagnosticsContext(
@@ -372,6 +374,7 @@ void _appendSourceCatalogDiagnostics({
   required NarrativeSpatialEventSourceCatalog spatialSources,
   required NarrativeOutcomeEventSourceCatalog outcomeSources,
   required List<NarrativeEventProjectDiagnostic> diagnostics,
+  required bool mapInventoryComplete,
 }) {
   const blockingSpatialCodes = {
     'duplicateEntityId',
@@ -386,7 +389,8 @@ void _appendSourceCatalogDiagnostics({
     diagnostics.add(
       NarrativeEventProjectDiagnostic(
         code: 'spatial.${diagnostic.code}',
-        severity: blockingSpatialCodes.contains(diagnostic.code)
+        severity: blockingSpatialCodes.contains(diagnostic.code) &&
+                (mapInventoryComplete || diagnostic.code != 'missingMapData')
             ? NarrativeEventProjectDiagnosticSeverity.error
             : NarrativeEventProjectDiagnosticSeverity.warning,
         message: diagnostic.message,

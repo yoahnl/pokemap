@@ -5,6 +5,27 @@ import 'package:test/test.dart';
 
 void main() {
   _additionalProjectionTests();
+  test('partial map inventory preserves unavailable sources without blocking local metadata', () {
+    final project = _project.copyWith(maps: [
+      ..._project.maps,
+      const ProjectMapEntry(id: 'unread', name: 'Unread', relativePath: 'maps/unread.json'),
+    ]);
+    final complete = buildNarrativeEventProjectCatalog(project: project, maps: [_map]);
+    final partial = buildNarrativeEventProjectCatalog(
+      project: project, maps: [_map], mapInventoryComplete: false,
+    );
+    expect(complete.diagnostics.singleWhere((value) => value.code == 'spatial.missingMapData').severity,
+        NarrativeEventProjectDiagnosticSeverity.error);
+    expect(partial.diagnostics.singleWhere((value) => value.code == 'spatial.missingMapData').severity,
+        NarrativeEventProjectDiagnosticSeverity.warning);
+    expect(partial.resolveSource(NarrativeEventSourceRef.mapEnter('unread')).status,
+        NarrativeEventProjectResolutionStatus.unavailable);
+    final ambiguous = buildNarrativeEventProjectCatalog(
+      project: project, maps: [_map, _map], mapInventoryComplete: false,
+    );
+    expect(ambiguous.diagnostics.any((value) => value.code == 'spatial.duplicateMapData' &&
+        value.severity == NarrativeEventProjectDiagnosticSeverity.error), isTrue);
+  });
   test(
     'a full map implements the narrative view without losing its layers',
     () {

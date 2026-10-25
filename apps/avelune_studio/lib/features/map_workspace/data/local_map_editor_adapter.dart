@@ -35,22 +35,11 @@ extension _LocalMapEditorAdapter on LocalMapWorkspaceAdapter {
     _requireEditorWritable(session);
     final service = await _elementOrderAuthoring(session);
     final path = _editorMapPath(session, base.mapId);
-    final snapshot = await service.inspect(
+    final mutation = await service.reorderFromFileRevision(
       projectRoot: session.directoryPath,
       mapId: base.mapId,
       mapRelativePath: path,
-    );
-    if (snapshot.fileRevision != base.revision) {
-      throw const MapWorkspaceFailure(
-        MapWorkspaceProblem.conflict,
-        'La carte a changé sur le disque. Rouvrez-la avant de réessayer.',
-      );
-    }
-    final mutation = await service.reorder(
-      projectRoot: session.directoryPath,
-      mapId: base.mapId,
-      mapRelativePath: path,
-      expectedRevision: snapshot.revision,
+      expectedFileRevision: base.revision,
       kind: kind,
       frontFirstIds: frontFirstIds,
       layerId: layerId,
