@@ -244,17 +244,27 @@ final class SmartTileLayerActions {
         ],
       );
     }
-    final result = planNativeSmartTileLayerCreation(
-      projectMaps: planning.snapshot.maps,
-      targetMapId: context.map.id,
-      manifest: context.manifest,
-      preset: preset,
-      layerId: layerId,
-      layerName: context.parameters.string('name'),
-      // Callers that know the authored stack say where the layer belongs;
-      // omitting it keeps the historical append-to-the-end behaviour.
-      insertIndex: context.parameters.optionalInteger('insertIndex'),
-    );
+    final scoped = isSelectedMapSmartTileSnapshot(planning.snapshot);
+    final result = scoped
+        ? planNativeSmartTileLayerCreationForMap(
+            map: context.map,
+            manifest: context.manifest,
+            preset: preset,
+            layerId: layerId,
+            layerName: context.parameters.string('name'),
+            insertIndex: context.parameters.optionalInteger('insertIndex'),
+          )
+        : planNativeSmartTileLayerCreation(
+            projectMaps: planning.snapshot.maps,
+            targetMapId: context.map.id,
+            manifest: context.manifest,
+            preset: preset,
+            layerId: layerId,
+            layerName: context.parameters.string('name'),
+            // Callers that know the authored stack say where the layer belongs;
+            // omitting it keeps the historical append-to-the-end behaviour.
+            insertIndex: context.parameters.optionalInteger('insertIndex'),
+          );
     if (result case final SmartTileLayerCreationFailure failure) {
       throw semanticFailure(failure.code, failure.message);
     }
@@ -266,7 +276,7 @@ final class SmartTileLayerActions {
     );
     return _creationDraft(
       context,
-      manifest: success.manifest,
+      manifest: scoped ? context.manifest : success.manifest,
       map: success.map,
       preset: preset,
       layerId: success.layerId,
@@ -967,7 +977,14 @@ AuthoringMutationDraft _creationDraft(
       'usage': preset.usage.name,
       'manifestChanged': manifestChanged,
       'batchAtomicity': 'all_or_nothing',
-      'projectWidePreflight': 'passed',
+      'projectWidePreflight':
+          isSelectedMapSmartTileSnapshot(context.planning.snapshot)
+              ? 'not_required_catalog_unchanged'
+              : 'passed',
+      'validationScope':
+          isSelectedMapSmartTileSnapshot(context.planning.snapshot)
+              ? 'selected_map'
+              : 'project',
     },
   );
 }

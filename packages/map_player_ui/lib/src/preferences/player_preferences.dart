@@ -25,7 +25,15 @@ final class PlayerPreferences {
     this.launchMostRecentGameOnStartup = false,
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
-  });
+    this.targetFramesPerSecond = AveluneFrameRate.defaultLimit,
+  }) : assert(
+          targetFramesPerSecond == 30 ||
+              targetFramesPerSecond == 45 ||
+              targetFramesPerSecond == 60 ||
+              targetFramesPerSecond == 90 ||
+              targetFramesPerSecond == 120,
+          'targetFramesPerSecond must be a supported frame rate limit',
+        );
 
   factory PlayerPreferences.fromJson(Map<String, Object?> json) {
     const keys = <String>{
@@ -46,6 +54,7 @@ final class PlayerPreferences {
       'launchMostRecentGameOnStartup',
       'dialogueTextSpeed',
       'menuEffects',
+      'targetFramesPerSecond',
     };
     if (json.keys.toSet().difference(keys).isNotEmpty ||
         json['schemaVersion'] != 1) {
@@ -75,6 +84,12 @@ final class PlayerPreferences {
     final touchRunMode = RuntimePlayerTouchRunMode.values
         .where((value) => value.name == (json['touchRunMode'] ?? 'gesture'))
         .firstOrNull;
+    final targetFramesPerSecond = json.containsKey('targetFramesPerSecond')
+        ? read<int>('targetFramesPerSecond')
+        : AveluneFrameRate.defaultLimit;
+    if (!AveluneFrameRate.supportedLimits.contains(targetFramesPerSecond)) {
+      throw const FormatException('Invalid target frame rate limit.');
+    }
     if (dialogueTextSpeed == null || menuEffects == null || touchRunMode == null) {
       throw const FormatException('Invalid player presentation preference.');
     }
@@ -117,6 +132,7 @@ final class PlayerPreferences {
       theme: theme,
       dialogueTextSpeed: dialogueTextSpeed,
       menuEffects: menuEffects,
+      targetFramesPerSecond: targetFramesPerSecond,
       masterVolume: masterVolume,
       musicVolume: musicVolume,
       effectsVolume: effectsVolume,
@@ -150,6 +166,7 @@ final class PlayerPreferences {
   final bool launchMostRecentGameOnStartup;
   final RuntimeDialogueTextSpeed dialogueTextSpeed;
   final RuntimePlayerMenuEffects menuEffects;
+  final int targetFramesPerSecond;
 
   Locale? get locale => switch (language) {
         PlayerLanguage.system => null,
@@ -183,6 +200,7 @@ final class PlayerPreferences {
         showInputHints: showInputHints,
         dialogueTextSpeed: dialogueTextSpeed,
         menuEffects: menuEffects,
+        targetFramesPerSecond: targetFramesPerSecond,
       );
 
   PlayerPreferences copyWithRuntimeSnapshot(PlayerPreferencesSnapshot snapshot) =>
@@ -205,6 +223,7 @@ final class PlayerPreferences {
         showInputHints: snapshot.showInputHints,
         dialogueTextSpeed: snapshot.dialogueTextSpeed,
         menuEffects: snapshot.menuEffects,
+        targetFramesPerSecond: snapshot.targetFramesPerSecond,
       );
 
   PlayerPreferences copyWith({
@@ -224,11 +243,14 @@ final class PlayerPreferences {
     bool? launchMostRecentGameOnStartup,
     RuntimeDialogueTextSpeed? dialogueTextSpeed,
     RuntimePlayerMenuEffects? menuEffects,
+    int? targetFramesPerSecond,
   }) =>
       PlayerPreferences(
         language: language ?? this.language,
         dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
         menuEffects: menuEffects ?? this.menuEffects,
+        targetFramesPerSecond:
+            targetFramesPerSecond ?? this.targetFramesPerSecond,
         theme: theme ?? this.theme,
         masterVolume: masterVolume ?? this.masterVolume,
         musicVolume: musicVolume ?? this.musicVolume,
@@ -251,6 +273,7 @@ final class PlayerPreferences {
         'language': language.name,
         'dialogueTextSpeed': dialogueTextSpeed.name,
         'menuEffects': menuEffects.name,
+        'targetFramesPerSecond': targetFramesPerSecond,
         'theme': theme.name,
         'masterVolume': masterVolume,
         'musicVolume': musicVolume,
@@ -273,6 +296,7 @@ final class PlayerPreferences {
       language == other.language &&
       dialogueTextSpeed == other.dialogueTextSpeed &&
       menuEffects == other.menuEffects &&
+      targetFramesPerSecond == other.targetFramesPerSecond &&
       theme == other.theme &&
       masterVolume == other.masterVolume &&
       musicVolume == other.musicVolume &&
@@ -293,6 +317,7 @@ final class PlayerPreferences {
         language,
         dialogueTextSpeed,
         menuEffects,
+        targetFramesPerSecond,
         theme,
         masterVolume,
         musicVolume,

@@ -119,6 +119,19 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
+  SpatialVisualPatch _visualProfile = SpatialVisualPatch();
+  SpatialVisualPatch get visualProfile => _visualProfile;
+  set visualProfile(SpatialVisualPatch value) {
+    if (_visualProfile == value) return;
+    _visualProfile = value;
+    _applyAtmosphereSettings(value.applyAtmosphere(_baseAtmosphere));
+    super.notifyListeners();
+  }
+  SpatialAtmosphereSettings _baseAtmosphere = SpatialAtmosphereSettings();
+  SpatialCameraProfile effectiveCamera(SpatialCameraProfile base) => _visualProfile.applyCamera(base);
+  SpatialDayNightCycle? effectiveCycle(SpatialDayNightCycle? base) => _visualProfile.applyCycle(base);
+  bool get lockVerticalFraming => _visualProfile.enabled(SpatialVisualParameter.lockVerticalFraming) ?? false;
+
   SpatialDepthOfFieldProfile _depthOfFieldProfile =
       SpatialDepthOfFieldProfile();
   SpatialDepthOfFieldProfile get depthOfFieldProfile => _depthOfFieldProfile;
@@ -186,6 +199,10 @@ class SpatialSceneController extends ModelPreviewController {
 
   SpatialAtmosphereSettings? _authoredAtmosphere;
   void applyAtmosphereSettings(SpatialAtmosphereSettings settings) {
+    _baseAtmosphere = settings;
+    _applyAtmosphereSettings(_visualProfile.applyAtmosphere(settings));
+  }
+  void _applyAtmosphereSettings(SpatialAtmosphereSettings settings) {
     if (_authoredAtmosphere == settings) return;
     final previous = _authoredAtmosphere;
     final geometryChanged =
@@ -308,7 +325,7 @@ class SpatialSceneController extends ModelPreviewController {
   ) {
     _dayNightClock.advance(dt);
     final minute = cycle == null
-        ? null
+        ? previewMinuteOfDay ?? visualProfile.number(SpatialVisualParameter.minuteOfDay)
         : _dayNightClock.minute(cycle, externalElapsedSeconds: externalElapsed);
     final before = _dayNightMinute;
     if (minute != before) {
@@ -1048,9 +1065,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     }
     final configuration = visibleConfiguration;
     final shadowCasters = _visibleShadowCasters ?? authoredShadowCasters;
-    final cycle = configuration.scene.dayNightCycle;
+    final cycle = configuration.controller.effectiveCycle(configuration.scene.dayNightCycle);
     final minute = cycle == null
-        ? null
+        ? configuration.controller.previewMinuteOfDay ?? configuration.controller.visualProfile.number(SpatialVisualParameter.minuteOfDay)
         : configuration.controller._dayNightClock.minute(
             cycle,
             externalElapsedSeconds: configuration.presentationElapsedSeconds
@@ -2573,6 +2590,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         radius,
       );
     }
+    final cameraProfile = control.effectiveCamera(scene.camera);
     var pitch = control.pitch;
     var yaw = control.yaw;
     camera.projection = CameraProjection.perspective;
@@ -2587,17 +2605,17 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       pitch = math.pi / 2 - 0.0001;
       yaw = 0;
     } else if (control.view == SpatialEditorView.game) {
-      pitch = scene.camera.pitchDegrees * math.pi / 180;
-      yaw = scene.camera.yawDegrees * math.pi / 180;
+      pitch = cameraProfile.pitchDegrees * math.pi / 180;
+      yaw = cameraProfile.yawDegrees * math.pi / 180;
       final zoom = control.zoom * (cameraPose?.zoom ?? 1);
       distance =
-          scene.camera.distance *
-          (scene.camera.projection == SpatialCameraProjection.perspective
+          cameraProfile.distance *
+          (cameraProfile.projection == SpatialCameraProjection.perspective
               ? zoom
               : 1);
       applySpatialCameraProfile(
         camera,
-        profile: scene.camera,
+        profile: cameraProfile,
         zoom: zoom,
         viewportAspectRatio: aspect,
         magnification: configuration.cameraMagnification?.call() ?? 1,
@@ -2611,7 +2629,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       center,
       pitch: pitch,
       yaw: yaw,
-      distance: distance,
+      distance: control.lockVerticalFraming && control.view == SpatialEditorView.game
+          ? distance * math.min(1.0, aspect) : distance,
       viewportAspectRatio: aspect,
     );
   }
@@ -2663,7 +2682,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final configuration = visibleConfiguration;
     configuration.controller._advanceDayNight(
       configuration.presentationPaused?.call() == true ? 0 : dt,
-      configuration.scene.dayNightCycle,
+      configuration.controller.effectiveCycle(configuration.scene.dayNightCycle),
       configuration.presentationElapsedSeconds?.call(),
     );
     syncLighting();
@@ -2674,7 +2693,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final control = configuration.controller;
     final elapsed =
         configuration.presentationElapsedSeconds?.call() ?? atmosphereElapsed;
-    final minute = control.dayNightMinuteOfDay;
+    final minute = control.dayNightMinuteOfDay ?? control.previewMinuteOfDay ?? control.visualProfile.number(SpatialVisualParameter.minuteOfDay);
     final night = minute == null
         ? 0.0
         : 1 - spatialDayNightFrame(minute).daylight;

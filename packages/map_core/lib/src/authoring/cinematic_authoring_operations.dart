@@ -1962,6 +1962,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorFacingStep(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: _actorFacingLabel(actor),
     durationMs: durationMs == null
         ? step.durationMs
@@ -2096,6 +2097,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorMoveStep(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: _actorMoveLabel(actor),
     durationMs: durationMs == null
         ? step.durationMs
@@ -2213,6 +2215,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorJumpStep(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: step.label,
     actorId: actor.actorId,
     targetId: target.targetId,
@@ -2389,6 +2392,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorEmoteStep(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: _actorEmoteLabel(actor, emote),
     durationMs: durationMs == null
         ? step.durationMs
@@ -2486,6 +2490,7 @@ bool isCinematicTimelineCommandStep(CinematicTimelineStep step) {
     return false;
   }
   return switch (step.kind) {
+    CinematicTimelineStepKind.atmosphere ||
     CinematicTimelineStepKind.dialogueLine ||
     CinematicTimelineStepKind.shake ||
     CinematicTimelineStepKind.sound ||
@@ -2771,6 +2776,7 @@ CinematicStageContextAuthoringResult addCinematicManualPathForActorMove(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: step.label,
     durationMs: step.durationMs,
     actorId: step.actorId,
@@ -2901,6 +2907,7 @@ CinematicStageContextAuthoringResult removeCinematicManualPath(
         id: step.id,
         parallelGroupId: step.parallelGroupId,
         kind: step.kind,
+    visualSettings: step.visualSettings,
         label: step.label,
         durationMs: step.durationMs,
         actorId: step.actorId,
@@ -3132,6 +3139,7 @@ CinematicTimelineStepUpdateResult setActorMovePathMode(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: step.label,
     durationMs: step.durationMs,
     actorId: step.actorId,
@@ -3185,6 +3193,7 @@ CinematicStageContextAuthoringResult clearActorMoveManualPath(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: step.label,
     durationMs: step.durationMs,
     actorId: step.actorId,
@@ -3627,6 +3636,7 @@ CinematicTimelineStep _copyBasicBlockStepWithParams(
     id: step.id,
     parallelGroupId: step.parallelGroupId,
     kind: step.kind,
+    visualSettings: step.visualSettings,
     label: label,
     durationMs: durationMs == null
         ? step.durationMs

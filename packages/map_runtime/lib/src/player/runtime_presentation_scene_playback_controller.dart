@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:map_core/map_core.dart';
 
 import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart';
@@ -454,7 +455,12 @@ String _defaultVisualMediaResolver(
 Stream<int> _systemFrameDeltas(int _) async* {
   while (true) {
     final frameStopwatch = Stopwatch()..start();
-    await Future<void>.delayed(const Duration(milliseconds: 16));
+    await Future<void>.delayed(
+      Duration(
+        microseconds:
+            (Duration.microsecondsPerSecond / AveluneFrameRate.limit).round(),
+      ),
+    );
     final deltaUs = frameStopwatch.elapsedMicroseconds;
     yield deltaUs;
   }

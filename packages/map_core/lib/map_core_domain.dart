@@ -452,3 +452,8 @@ export 'src/operations/narrative_parallel_program.dart';
 
 export 'src/models/spatial_day_night_cycle.dart';
 export 'src/operations/spatial_scene_lighting_capabilities.dart';
+
+export 'src/models/spatial_visual_profile.dart';
+export 'src/models/spatial_atmosphere_settings.dart';
+
+export 'src/projection/spatial_visual_rule_resolver.dart';

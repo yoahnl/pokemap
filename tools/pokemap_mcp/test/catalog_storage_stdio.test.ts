@@ -42,9 +42,17 @@ test("MCP stdio queries and edits working catalogs with pinned pages and partial
     const workshop = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
       actionId: "campaign.trainer.upsert", parameters: trainerParameters });
     assert.deepEqual(workshop.maps, []);
+    const compactWorkshop = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
+      actionId: "campaign.trainer.upsert", parameters: trainerParameters, includeDocuments: false });
+    const { project: workshopProject, maps: workshopMaps, ...workshopMetadata } = workshop;
+    assert.ok(workshopProject);
+    assert.ok(workshopMaps);
+    assert.deepEqual(compactWorkshop, workshopMetadata);
+    assert.equal(Object.hasOwn(compactWorkshop, "project"), false);
+    assert.equal(Object.hasOwn(compactWorkshop, "maps"), false);
     const trainerPlan = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
       requestId: "local-trainer", actionId: "campaign.trainer.upsert", actionVersion: 1,
-      workspaceHandle: opened.workspaceHandle, expectedRevision: workshop.snapshotRevision,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: compactWorkshop.snapshotRevision,
       idempotencyKey: "local-trainer", parameters: trainerParameters } });
     await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
       planId: trainerPlan.planId, operationId: "local-trainer-operation" });

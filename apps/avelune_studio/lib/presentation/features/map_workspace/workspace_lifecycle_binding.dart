@@ -191,6 +191,7 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     _presentations?.dispose();
     _regionalMap?.dispose();
     _world?.dispose();
+    _projectVisuals?.dispose();
     _worldView.dispose();
     _verification?.dispose();
     _verificationView.dispose();

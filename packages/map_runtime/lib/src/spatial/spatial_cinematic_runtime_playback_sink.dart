@@ -109,6 +109,9 @@ final class SpatialCinematicRuntimePlaybackSink
     required this.setInputLocked,
     required this.onCompletedPoses,
     this.isReady,
+    this.readVisuals,
+    this.readVisualOverrides,
+    this.writeVisuals,
   });
 
   final ProjectManifest project;
@@ -123,6 +126,11 @@ final class SpatialCinematicRuntimePlaybackSink
   final void Function(Map<CinematicActorBinding, SpatialCinematicActorPose>)
       onCompletedPoses;
   final bool Function()? isReady;
+  final SpatialVisualPatch Function()? readVisuals, readVisualOverrides;
+  final void Function(SpatialVisualPatch)? writeVisuals;
+  SpatialVisualPatch? _savedVisuals;
+  final _visualFrom = <String, SpatialVisualPatch>{};
+  final _visualTo = <String, SpatialVisualPatch>{};
 
   _SpatialCinematicPreparation? _prepared;
   _SpatialCinematicSnapshot? _snapshot;
@@ -159,8 +167,9 @@ final class SpatialCinematicRuntimePlaybackSink
             'The cinematic does not target the active spatial map.');
       }
       for (final step in asset.timeline.steps) {
-        if (!const {
+        if (!{
           CinematicTimelineStepKind.wait,
+          if (readVisuals != null && readVisualOverrides != null && writeVisuals != null) CinematicTimelineStepKind.atmosphere,
           CinematicTimelineStepKind.camera,
           CinematicTimelineStepKind.actorMove,
           CinematicTimelineStepKind.actorJump,
@@ -344,6 +353,11 @@ final class SpatialCinematicRuntimePlaybackSink
     _cameraFrom = _cameraTarget = null;
     final step = context.step;
     switch (step.kind) {
+      case CinematicTimelineStepKind.atmosphere:
+        final before = readVisuals!();
+        final override = readVisualOverrides!().overriddenBy(step.visualSettings!);
+        _visualFrom[step.id] = before;
+        _visualTo[step.id] = before.overriddenBy(override);
       case CinematicTimelineStepKind.actorJump:
         _jumpHeight = cinematicTimelineActorJumpHeightCellsOf(step)!;
         final binding = _stepActor = prepared.bindings[step.actorId]!;
@@ -407,6 +421,9 @@ final class SpatialCinematicRuntimePlaybackSink
     final progress = duration <= 0
         ? 1.0
         : (context.elapsed.inMicroseconds / (duration * 1000)).clamp(0.0, 1.0);
+    if (context.step.kind == CinematicTimelineStepKind.atmosphere) {
+      writeVisuals!(SpatialVisualPatch.interpolate(_visualFrom[context.step.id]!, _visualTo[context.step.id]!, progress));
+    }
     final route = _route, binding = _stepActor;
     if (context.step.kind == CinematicTimelineStepKind.actorEmote &&
         binding != null) {
@@ -511,6 +528,8 @@ final class SpatialCinematicRuntimePlaybackSink
     _preservedFacing = null;
     _cameraFrom = _cameraTarget = null;
     _states.remove(context.step.id);
+    _visualFrom.remove(context.step.id);
+    _visualTo.remove(context.step.id);
   }
 
   @override
@@ -536,6 +555,10 @@ final class SpatialCinematicRuntimePlaybackSink
     var current = false;
     attempt(() => current = identical(activeMap(), snapshot.map));
     if (current) attempt(() => writeCamera(snapshot.camera));
+    if (current && _savedVisuals != null) attempt(() => writeVisuals?.call(_savedVisuals!));
+    _savedVisuals = null;
+    _visualFrom.clear();
+    _visualTo.clear();
     attempt(() => setInputLocked(false));
     if (current && termination == CinematicRuntimeTermination.completed &&
         failure == null &&
@@ -563,6 +586,7 @@ final class SpatialCinematicRuntimePlaybackSink
       throw StateError('Spatial cinematic playback was not prepared.');
     }
     _current(asset);
+    _savedVisuals = readVisualOverrides?.call();
     _snapshot = _SpatialCinematicSnapshot(prepared.map, readCamera(), {
       for (final binding in prepared.bindings.values) binding: _actor(binding),
     }, asset.actorCompletionPolicy);

@@ -57,6 +57,18 @@ void main() {
       });
       expect((before['project'] as Map)['trainers'], hasLength(1));
       expect(before['maps'], isEmpty);
+      final compact = await client.call('workshop_snapshot', {
+        'projectHandle': handle,
+        'actionId': 'campaign.trainer.upsert',
+        'parameters': parameters,
+        'includeDocuments': false,
+      });
+      expect(compact.containsKey('project'), isFalse);
+      expect(compact.containsKey('maps'), isFalse);
+      expect(compact, {
+        for (final entry in before.entries)
+          if (entry.key != 'project' && entry.key != 'maps') entry.key: entry.value,
+      });
       final plan = await client.call('plan', {
         'projectHandle': handle,
         'request': AuthoringRequest(
@@ -64,7 +76,7 @@ void main() {
                 actionId: 'campaign.trainer.upsert',
                 actionVersion: 1,
                 workspaceHandle: opened['workspaceHandle'] as String,
-                expectedRevision: before['snapshotRevision'] as String,
+                expectedRevision: compact['snapshotRevision'] as String,
                 idempotencyKey: 'trainer',
                 parameters: parameters)
             .toJson()

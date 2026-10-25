@@ -90,3 +90,5 @@ export 'src/documents/map_element_order_authoring.dart';
 
 export 'src/support/map_authoring_worker_trace.dart'
     show MapAuthoringWorkerDiagnostics;
+
+export 'src/documents/visual_settings_authoring.dart';

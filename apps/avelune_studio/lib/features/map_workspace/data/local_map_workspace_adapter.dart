@@ -6,6 +6,7 @@ import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
 import '../domain/map_atmosphere_port.dart';
+import '../../project_visuals/domain/project_visuals_port.dart';
 import '../domain/map_editor_port.dart';
 
 import 'package:map_core/map_core.dart';
@@ -19,6 +20,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../../project_session/data/studio_project_document_revision.dart';
 
 part 'local_map_atmosphere_adapter.dart';
+part 'local_project_visuals_adapter.dart';
 part 'local_map_editor_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
@@ -30,6 +32,7 @@ final class LocalMapWorkspaceAdapter
         MapWorkspaceWorkshopPort,
         MapWorkspaceResourceKindPort,
         MapAtmospherePort,
+        ProjectVisualsPort,
         MapEditorPort,
         MapElementOrderPort {
   LocalMapWorkspaceAdapter({
@@ -37,6 +40,15 @@ final class LocalMapWorkspaceAdapter
     AtomicMapDocumentPersistence? persistence,
   }) : _reader = reader ?? const LocalProjectFileReader(),
        _persistence = persistence ?? const AtomicMapDocumentPersistence();
+
+  final _visualServices = <String, Future<LocalVisualSettingsAuthoring>>{};
+  var _visualOperations = 0;
+  @override
+  Future<ProjectVisualsState> loadVisuals(ProjectSession session, {ProjectMapEntry? map}) => _loadVisuals(session, map);
+  @override
+  Future<ProjectVisualsState> saveVisuals(ProjectSession session, SpatialVisualPatch profile, String expectedRevision, {ProjectMapEntry? map}) => _saveVisuals(session, profile, expectedRevision, map);
+  @override
+  Future<ProjectVisualsState> undoVisuals(ProjectSession session, String receiptId, String expectedRevision, {ProjectMapEntry? map}) => _undoVisuals(session, receiptId, expectedRevision, map);
 
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(

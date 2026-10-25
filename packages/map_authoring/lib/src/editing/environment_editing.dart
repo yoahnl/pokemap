@@ -153,6 +153,16 @@ class EnvironmentEditing with _EnvironmentGenerationEditing {
           {required String layerId, required String areaId}) =>
       _clearMask(map, layerId: layerId, areaId: areaId);
 
+  MapData adoptGeneratedPlacements(
+    ProjectManifest manifest,
+    MapData map, {
+    required String layerId,
+    required String areaId,
+    required List<String> placementIds,
+  }) =>
+      _adoptManualPlacements(manifest, map,
+          layerId: layerId, areaId: areaId, placementIds: placementIds);
+
   MapData addGeneratedPlacement(
     ProjectManifest manifest,
     MapData map, {

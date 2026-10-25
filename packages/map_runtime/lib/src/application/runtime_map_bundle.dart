@@ -13,9 +13,13 @@ class RuntimeMapBundle {
     this.borderRuntimePreparation,
     this.projectCatalog,
     SpatialAtmosphereSettings? spatialAtmosphereSettings,
+    SpatialVisualPatch? projectVisualProfile,
+    SpatialVisualPatch? mapVisualProfile,
     RuntimeResourceBudget? resourceBudget,
   }) : spatialAtmosphereSettings =
            spatialAtmosphereSettings ?? SpatialAtmosphereSettings(),
+       projectVisualProfile = projectVisualProfile ?? SpatialVisualPatch(),
+       mapVisualProfile = mapVisualProfile ?? SpatialVisualPatch(),
        resourceBudget = resourceBudget ?? RuntimeResourceBudget(),
        map = projectSpatialSmartTileModels(
          map: map,
@@ -25,6 +29,10 @@ class RuntimeMapBundle {
        );
 
   final SpatialAtmosphereSettings spatialAtmosphereSettings;
+  final SpatialVisualPatch projectVisualProfile;
+  final SpatialVisualPatch mapVisualProfile;
+  SpatialVisualPatch get visualProfile =>
+      projectVisualProfile.overriddenBy(mapVisualProfile);
   final ProjectManifest manifest;
   final MapData map;
   final String projectRootDirectory;
@@ -43,6 +51,8 @@ class RuntimeMapBundle {
   RuntimeMapBundle copyWith({
     ProjectManifest? manifest,
     SpatialAtmosphereSettings? spatialAtmosphereSettings,
+    SpatialVisualPatch? projectVisualProfile,
+    SpatialVisualPatch? mapVisualProfile,
     MapData? map,
     String? projectRootDirectory,
     Map<String, String>? tilesetAbsolutePathsById,
@@ -59,6 +69,12 @@ class RuntimeMapBundle {
         nextProjectRoot != this.projectRootDirectory;
     return RuntimeMapBundle(
       manifest: nextManifest,
+      projectVisualProfile: projectVisualProfile ?? this.projectVisualProfile,
+      mapVisualProfile:
+          mapVisualProfile ??
+          (nextMap.id == this.map.id
+              ? this.mapVisualProfile
+              : SpatialVisualPatch()),
       spatialAtmosphereSettings:
           spatialAtmosphereSettings ??
           (nextMap.id == this.map.id

@@ -101,6 +101,9 @@ final class SceneWorldPresentationController {
     Object? sceneOwner,
   }) {
     switch (command.operation) {
+      case SceneWorldPresentationOperation.atmosphere:
+      case SceneWorldPresentationOperation.restoreAtmosphere:
+        return false;
       case SceneWorldPresentationOperation.showPicture:
         final previous = _pictures[command.slotId!];
         if (previous != null &&

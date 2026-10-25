@@ -326,6 +326,7 @@ _LaneLookup _laneForStep(
   }
 
   final laneId = switch (step.kind) {
+    CinematicTimelineStepKind.atmosphere => 'fx',
     CinematicTimelineStepKind.camera => 'camera',
     CinematicTimelineStepKind.dialogueLine => 'dialogue',
     CinematicTimelineStepKind.fx || CinematicTimelineStepKind.shake => 'fx',

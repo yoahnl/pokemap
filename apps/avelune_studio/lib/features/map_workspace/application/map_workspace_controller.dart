@@ -1,3 +1,4 @@
+import '../../project_visuals/domain/project_visuals_port.dart';
 import 'map_atmosphere_controller.dart';
 import 'map_editor_controller.dart';
 import 'dart:async';
@@ -63,6 +64,17 @@ class MapWorkspaceController {
   }
 
   EditableMapDocument? active;
+  SpatialVisualPatch? _projectVisualProfile;
+  final _mapVisualProfiles = <String, SpatialVisualPatch>{};
+  void acceptVisualProfile(SpatialVisualPatch profile, {String? mapId}) {
+    if (mapId == null) { _projectVisualProfile = profile; }
+    else { _mapVisualProfiles[mapId] = profile; }
+    final document = active;
+    if (document != null && (mapId == null || document.base.mapId == mapId)) {
+      document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch()).overriddenBy(_mapVisualProfiles[document.base.mapId] ?? SpatialVisualPatch());
+      notify();
+    }
+  }
   bool loading = false;
   String? error;
   String? Function(MapData before, MapData after)? historyGuard;
@@ -320,6 +332,7 @@ class MapWorkspaceController {
       documents[entry.id] = document;
       if (generation == _generation) {
         active = document;
+        document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch()).overriddenBy(_mapVisualProfiles[entry.id] ?? SpatialVisualPatch());
         final selection = _selections[entry.id];
         if (!hasCompleteProject && selection != null) {
           project = _withWorkshops(selection.definitions);
@@ -372,6 +385,12 @@ class MapWorkspaceController {
         return document;
       }
       document.atmosphere = atmosphere;
+    }
+    if (document.current.spatialScene != null && port is ProjectVisualsPort) {
+      final visuals = port as ProjectVisualsPort;
+      _projectVisualProfile ??= (await visuals.loadVisuals(session)).profile;
+      _mapVisualProfiles[entry.id] = (await visuals.loadVisuals(session, map: entry)).profile;
+      document.visualProfile = _projectVisualProfile!.overriddenBy(_mapVisualProfiles[entry.id]!);
     }
     return document;
   }

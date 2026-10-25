@@ -108,6 +108,7 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
     String? dialogueText,
     CinematicMediaAsset? mediaAsset,
     int? durationMs,
+    SpatialVisualPatch? visualSettings,
     double volume = 1,
     int fadeMs = 0,
     bool loop = false,
@@ -123,6 +124,7 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
       dialogueText: dialogueText,
       mediaAsset: mediaAsset,
       durationMs: durationMs,
+      visualSettings: visualSettings,
       volume: volume,
       fadeMs: fadeMs,
       loop: loop,
@@ -134,6 +136,9 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
       throw ArgumentError('La durée doit être strictement positive.');
     }
     final s = a.timeline.steps.firstWhere((s) => s.id == stepId);
+    if (s.kind == CinematicTimelineStepKind.atmosphere) {
+      return updateCinematicTimelineCommandStep(a, stepId: stepId, durationMs: durationMs).cinematic;
+    }
     if (isCinematicTimelineBasicBlockStep(s)) {
       return updateCinematicTimelineBasicBlockStep(
         _with(a),

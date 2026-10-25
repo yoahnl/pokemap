@@ -424,6 +424,7 @@ NarrativeMapWorldRuleRow _worldRuleRow(
     }
   }
   final targetAvailable = switch (rule.target.kind) {
+    WorldRuleTargetKind.atmosphere => maps.any((map) => map.id == rule.target.mapId),
     WorldRuleTargetKind.mapEntity ||
     WorldRuleTargetKind.npcDialogue =>
       source != null && source.option.selectable,

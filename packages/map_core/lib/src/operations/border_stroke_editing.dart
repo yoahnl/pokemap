@@ -76,6 +76,7 @@ final class BorderStrokeEditingDraft {
       id: pendingStrokeId!,
       sampledPoints: _sampledPoints,
       closed: false,
+      preserveTraversal: preserveTraversal,
     );
     return BorderStrokeGeometry(
       strokes: <BorderStroke>[...baseGeometry.strokes, stroke],

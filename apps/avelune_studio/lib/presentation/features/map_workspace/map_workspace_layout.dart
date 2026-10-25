@@ -47,6 +47,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onEnvironments,
     this.onBorders,
     required this.onMap,
+    this.onProjectSettings,
     this.onRegionalMap,
     required this.onExport,
     required this.onPokemon,
@@ -86,6 +87,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<String>? onSearch;
   final Widget? resourceContent;
+  final VoidCallback? onProjectSettings;
   final VoidCallback? onStory, onHome, onEnvironments, onBorders, onRegionalMap;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<NarrativeEventSourceRef>? onEventSource;
@@ -197,7 +199,12 @@ class MapWorkspaceLayout extends StatelessWidget {
         final replacingElements = view?.elementsVisible == true;
         if (view != null) view!.elementsVisible = false;
         if (compactInspector && ready) {
-          showWorkspaceCompactPanel(context, title: 'Inspecteur', builder: (context, refresh, close) => inspectorContent(refresh, close));
+          showWorkspaceCompactPanel(
+            context,
+            title: 'Inspecteur',
+            builder: (context, refresh, close) =>
+                inspectorContent(refresh, close),
+          );
         } else if (!replacingElements || !showInspector) {
           onInspector();
         }
@@ -235,14 +242,19 @@ class MapWorkspaceLayout extends StatelessWidget {
               view: view,
               onChanged: onToolChanged,
               paletteVisible: showPaletteDock,
-              inspectorVisible: showInspector && !compactInspector && view?.elementsVisible != true,
+              inspectorVisible:
+                  showInspector &&
+                  !compactInspector &&
+                  view?.elementsVisible != true,
               navigatorVisible: showNavigator,
               showUndoRedo: activeSpace != 'map',
               onNavigator: openNavigator,
-              onElements: !ready ? null : () {
-                view!.elementsVisible = !view!.elementsVisible;
-                onToolChanged();
-              },
+              onElements: !ready
+                  ? null
+                  : () {
+                      view!.elementsVisible = !view!.elementsVisible;
+                      onToolChanged();
+                    },
               onPalette: compactPalette && ready ? openPalette : onPalette,
               onInspector: openInspector,
               onAmbiance: !ready || doc.current.spatialScene == null
@@ -280,6 +292,8 @@ class MapWorkspaceLayout extends StatelessWidget {
           switch (destination) {
             case 'home':
               onHome?.call();
+            case 'projectSettings':
+              onProjectSettings?.call();
             case 'map':
               onMap();
             case 'regionalMap':
@@ -336,7 +350,9 @@ class MapWorkspaceLayout extends StatelessWidget {
                                     project: project,
                                     view: view!,
                                     onChanged: onToolChanged,
-                                    onReorder: controller.canReorderElements ? controller.reorderElements : null,
+                                    onReorder: controller.canReorderElements
+                                        ? controller.reorderElements
+                                        : null,
                                     onInspect: openInspector,
                                   ),
                                 )

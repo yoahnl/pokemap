@@ -48,8 +48,8 @@ final class PlayerOptionsStrings {
             'Choisissez la vitesse d’affichage des dialogues.',
             'Choose how quickly dialogue text appears.'),
         PlayerOptionsCategory.display => text(
-            'Les effets concernent les menus. Le mode Réduit limite leurs animations ; Sans transparence utilise des panneaux opaques.',
-            'These effects apply to menus. Reduced limits their animations; Opaque uses solid panels.'),
+            'Une limite d’images plus basse réduit la consommation. La fréquence réelle dépend de l’écran et de l’appareil. Les effets concernent les menus : Réduit limite leurs animations ; Sans transparence utilise des panneaux opaques.',
+            'A lower frame rate limit reduces power use. The actual rate depends on the display and device. These effects apply to menus: Reduced limits their animations; Opaque uses solid panels.'),
         PlayerOptionsCategory.audio => text(
             'Le volume principal règle tous les canaux. À 0 %, le son est coupé. Les touches gauche et droite ajustent le volume par pas de 5 %.',
             'Master volume controls every channel. At 0%, sound is muted. Left and right adjust volume in steps of 5%.'),
@@ -78,6 +78,8 @@ final class PlayerOptionsStrings {
   String get returnToTitle => text('Retour au titre', 'Return to title');
   String get textSpeed => text('Vitesse des textes', 'Text speed');
   String get menuEffects => text('Effets du menu', 'Menu effects');
+  String get frameRateLimit => text('Images par seconde', 'Frames per second');
+  String frameRate(int value) => '$value FPS';
   String get master => text('Volume principal', 'Master volume');
   String get music => text('Musique', 'Music');
   String get soundEffects => text('Effets sonores', 'Sound effects');

@@ -4,6 +4,82 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('frame rate defaults to sixty for existing preference files', () {
+    expect(const PlayerPreferences().targetFramesPerSecond, 60);
+    final legacy = const PlayerPreferences().toJson()
+      ..remove('targetFramesPerSecond');
+    final restored = PlayerPreferences.fromJson(legacy);
+
+    expect(restored.toJson()['targetFramesPerSecond'], 60);
+    expect(
+      RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+        restored.toRuntimeSnapshot(fallbackLocale: 'fr'),
+      )['targetFramesPerSecond'],
+      60,
+    );
+  });
+
+  test('every frame rate survives preference copies and runtime round trips', () {
+    const defaults = PlayerPreferences();
+    for (final limit in [30, 45, 60, 90, 120]) {
+      final preferences = PlayerPreferences.fromJson({
+        ...defaults.toJson(),
+        'targetFramesPerSecond': limit,
+      });
+      expect(defaults.copyWith(targetFramesPerSecond: limit), preferences);
+      final copied = preferences.copyWith(highContrast: true);
+      final restored = PlayerPreferences.fromJson(copied.toJson());
+      final runtime = restored.toRuntimeSnapshot(fallbackLocale: 'fr');
+      final runtimeCopy = runtime.copyWith(locale: 'en');
+      final returned = defaults.copyWithRuntimeSnapshot(runtimeCopy);
+
+      expect(copied.toJson()['targetFramesPerSecond'], limit);
+      expect(
+        runtime.copyWith(targetFramesPerSecond: limit).targetFramesPerSecond,
+        limit,
+      );
+      expect(restored, copied);
+      expect(returned.toJson()['targetFramesPerSecond'], limit);
+      expect(
+        RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+          runtimeCopy,
+        )['targetFramesPerSecond'],
+        limit,
+      );
+      if (limit != 60) expect(preferences, isNot(defaults));
+    }
+  });
+
+  test('frame rate constructors reject unsupported limits', () {
+    for (final limit in [0, 24, 59, 144]) {
+      expect(
+        () => PlayerPreferences(targetFramesPerSecond: limit),
+        throwsAssertionError,
+      );
+      expect(
+        () => PlayerPreferencesSnapshot(
+          locale: 'fr',
+          accessibility: const GameSessionAccessibilityOptions(),
+          targetFramesPerSecond: limit,
+        ),
+        throwsAssertionError,
+      );
+    }
+  });
+
+  test('frame rate rejects invalid stored types and unsupported limits', () {
+    for (final value in [null, '60', 60.0, true, 0, 24, 59, 144]) {
+      expect(
+        () => PlayerPreferences.fromJson({
+          ...const PlayerPreferences().toJson(),
+          'targetFramesPerSecond': value,
+        }),
+        throwsFormatException,
+        reason: '$value',
+      );
+    }
+  });
+
   test('touch running mode survives storage and runtime round trips', () {
     for (final mode in RuntimePlayerTouchRunMode.values) {
       final preferences = const PlayerPreferences().copyWith(touchRunMode: mode);

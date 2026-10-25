@@ -1,3 +1,5 @@
+import '../../presentation/features/project_settings/project_settings_page.dart';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,3 +48,8 @@ final workspaceRuntimeBuilderProvider =
 
 final projectRuntimeBuilderProvider =
     Provider<Widget Function(ProjectSession, VoidCallback)?>((ref) => null);
+
+final workspaceVisualTestBuilderProvider =
+    Provider<
+      StudioVisualTestBuilder Function(ProjectSession, MapWorkspacePort)?
+    >((ref) => null);

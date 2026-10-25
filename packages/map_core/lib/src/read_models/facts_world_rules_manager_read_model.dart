@@ -516,7 +516,10 @@ List<WorldRuleTargetPickerOption> _buildTargetOptions(
   final manifestMapNames = {
     for (final map in project.maps) map.id: map.name,
   };
-  final options = <WorldRuleTargetPickerOption>[];
+  final options = <WorldRuleTargetPickerOption>[
+    for (final entry in project.maps) WorldRuleTargetPickerOption(kind: WorldRuleTargetKind.atmosphere,
+      mapId: entry.id, label: 'Ambiance de ${entry.name}', subtitle: 'Caméra et effets 3D', debugTechnicalLabel: '${entry.id}:atmosphere'),
+  ];
   for (final map in maps) {
     final mapLabel = manifestMapNames[map.id] ?? map.name;
     for (final entity in map.entities) {
@@ -587,6 +590,7 @@ String _narrativeEventLabel(NarrativeEventRecord record) => record.when(
 
 List<WorldRuleEffectPickerOption> _buildEffectOptions() {
   return const [
+    WorldRuleEffectPickerOption(effectKind: WorldRuleEffectKind.atmosphere, compatibleTargetKind: WorldRuleTargetKind.atmosphere, label: 'Changer l’ambiance 3D', requiresDialogue: false),
     WorldRuleEffectPickerOption(
       effectKind: WorldRuleEffectKind.entityVisible,
       compatibleTargetKind: WorldRuleTargetKind.mapEntity,
@@ -694,6 +698,7 @@ String _targetLabel(
 ) {
   final map = mapById[target.mapId];
   return switch (target.kind) {
+    WorldRuleTargetKind.atmosphere => target.label ?? 'Ambiance de ${target.mapId}',
     WorldRuleTargetKind.mapEntity => target.label ??
         _entityLabelOrNull(_findEntity(map, target.entityId)) ??
         target.entityId ??
@@ -734,6 +739,7 @@ String _effectLabel(
       ? 'Narrative Event V2'
       : 'Event de map legacy';
   return switch (effect.kind) {
+    WorldRuleEffectKind.atmosphere => 'Modifier l’ambiance 3D',
     WorldRuleEffectKind.entityVisible => 'Entité visible',
     WorldRuleEffectKind.entityHidden => 'Entité cachée',
     WorldRuleEffectKind.npcDialogueOverride =>

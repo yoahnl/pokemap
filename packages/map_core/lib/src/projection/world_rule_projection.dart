@@ -40,7 +40,7 @@ List<WorldRuleResolvedEffect> projectWorldRuleEffects(
     if (mapId != null && rule.target.mapId != mapId) {
       continue;
     }
-    if (!_sourceMatches(rule.source, gameState, factResolver)) {
+    if (!worldRuleSourceMatches(rule.source, gameState, factResolver)) {
       continue;
     }
     resolved.add(
@@ -62,7 +62,7 @@ List<WorldRuleResolvedEffect> projectWorldRuleEffects(
   return List<WorldRuleResolvedEffect>.unmodifiable(resolved);
 }
 
-bool _sourceMatches(
+bool worldRuleSourceMatches(
   WorldRuleSource source,
   GameState gameState,
   NarrativeFactRuntimeResolver factResolver,

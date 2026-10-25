@@ -1,0 +1,87 @@
+--- a/shell/platform/darwin/macos/framework/Source/FlutterSurfaceManager.mm
++++ b/shell/platform/darwin/macos/framework/Source/FlutterSurfaceManager.mm
+@@ -244,7 +244,7 @@
+                  notify:(dispatch_block_t)notify {
+   id<MTLCommandBuffer> commandBuffer = [_commandQueue commandBuffer];
+   [commandBuffer commit];
+-  [commandBuffer waitUntilScheduled];
++  [commandBuffer waitUntilCompleted];
+ 
+   CGSize size = GetRequiredFrameSize(surfaces);
+ 
+--- a/shell/platform/darwin/macos/framework/Source/FlutterSurfaceManagerTest.mm
++++ b/shell/platform/darwin/macos/framework/Source/FlutterSurfaceManagerTest.mm
+@@ -4,6 +4,7 @@
+ 
+ #import <Cocoa/Cocoa.h>
+ #import <Metal/Metal.h>
++#import <OCMock/OCMock.h>
+ 
+ #import "flutter/shell/platform/darwin/macos/framework/Source/FlutterSurface.h"
+ #import "flutter/shell/platform/darwin/macos/framework/Source/FlutterSurfaceManager.h"
+@@ -62,6 +63,65 @@
+   res.zIndex = index;
+   res.paintRegion = paintRegion;
+   return res;
++}
++
++TEST(FlutterSurfaceManager, WaitsForGPUCompletionBeforePresentationAndNotification) {
++  id device = OCMProtocolMock(@protocol(MTLDevice));
++  id queue = OCMProtocolMock(@protocol(MTLCommandQueue));
++  id commandBuffer = OCMProtocolMock(@protocol(MTLCommandBuffer));
++  id delegate = OCMProtocolMock(@protocol(FlutterSurfaceManagerDelegate));
++  NSMutableArray<NSString*>* events = [NSMutableArray array];
++  __block bool committed = false;
++  __block bool completed = false;
++  __block bool notified = false;
++
++  OCMStub([queue commandBuffer]).andReturn(commandBuffer);
++  OCMExpect([commandBuffer commit]).andDo(^(NSInvocation* invocation) {
++    (void)invocation;
++    committed = true;
++    [events addObject:@"commit"];
++  });
++  OCMStub([commandBuffer waitUntilScheduled]).andDo(^(NSInvocation* invocation) {
++    (void)invocation;
++    EXPECT_TRUE(committed);
++    [events addObject:@"scheduled"];
++  });
++  OCMExpect([commandBuffer waitUntilCompleted]).andDo(^(NSInvocation* invocation) {
++    (void)invocation;
++    EXPECT_TRUE(committed);
++    completed = true;
++    [events addObject:@"completed"];
++  });
++  OCMStub([delegate onPresent:CGSizeZero withBlock:[OCMArg any] delay:0])
++      .andDo(^(NSInvocation* invocation) {
++        EXPECT_TRUE(completed);
++        [events addObject:@"present"];
++        __unsafe_unretained dispatch_block_t presentBlock;
++        [invocation getArgument:&presentBlock atIndex:3];
++        presentBlock();
++      });
++
++  FlutterSurfaceManager* manager = [[FlutterSurfaceManager alloc]
++      initWithDevice:device
++        commandQueue:queue
++               layer:[CALayer layer]
++            delegate:delegate
++           wideGamut:NO];
++  [manager presentSurfaces:@[]
++                    atTime:0
++                    notify:^{
++                      EXPECT_TRUE(completed);
++                      notified = true;
++                      [events addObject:@"notify"];
++                    }];
++
++  EXPECT_TRUE(notified);
++  EXPECT_TRUE(([events isEqualToArray:@[ @"commit", @"completed", @"present", @"notify" ]]));
++  @try {
++    [commandBuffer verify];
++  } @catch (NSException* exception) {
++    ADD_FAILURE() << exception.reason.UTF8String;
++  }
+ }
+ 
+ TEST(FlutterSurfaceManager, MetalTextureSizeMatchesSurfaceSize) {

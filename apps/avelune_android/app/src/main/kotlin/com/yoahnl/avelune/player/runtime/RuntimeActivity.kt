@@ -5,10 +5,16 @@ import android.hardware.input.InputManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.Surface
+import android.view.SurfaceHolder
+import android.view.View
+import android.view.ViewGroup
 import com.yoahnl.avelune.player.AveluneApplication
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterSurfaceView
 import io.flutter.embedding.android.FlutterView
 import io.flutter.embedding.engine.FlutterEngine
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +30,24 @@ class RuntimeActivity : FlutterActivity(), GamepadsCompatibleActivity {
     private var keyEventHandler: ((KeyEvent) -> Boolean)? = null
     private var motionEventHandler: ((MotionEvent) -> Boolean)? = null
     private var companionSession: RuntimeCompanionSession? = null
+    private var frameRateSurface: SurfaceHolder? = null
+    private val frameRateHint = RuntimeFrameRateHint(
+        applyLimit = ::applyFrameRateLimit,
+        clearLimit = { applyFrameRateLimit(0) },
+    )
+    private val frameRateSurfaceCallback = object : SurfaceHolder.Callback {
+        override fun surfaceCreated(holder: SurfaceHolder) {
+            if (holder === frameRateSurface) frameRateHint.surfaceAvailable()
+        }
+
+        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+            if (holder === frameRateSurface) frameRateHint.surfaceAvailable()
+        }
+
+        override fun surfaceDestroyed(holder: SurfaceHolder) {
+            if (holder === frameRateSurface) frameRateHint.surfaceDestroyed()
+        }
+    }
 
     override fun provideFlutterEngine(context: Context): FlutterEngine = runtime.engine
 
@@ -34,6 +58,9 @@ class RuntimeActivity : FlutterActivity(), GamepadsCompatibleActivity {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         companionSession = runtime.gameplayCompanion.also { it.ownerCreated(this) }
+        activityScope.launch {
+            runtime.frameRateLimit.collect(frameRateHint::updateLimit)
+        }
         activityScope.launch {
             runtime.activeGame.collect { gameId ->
                 if (gameId == null && !isFinishing) finish()
@@ -55,6 +82,8 @@ class RuntimeActivity : FlutterActivity(), GamepadsCompatibleActivity {
     override fun onStart() {
         super.onStart()
         companionSession?.ownerStarted(this, currentDisplayId())
+        attachFrameRateSurface()
+        frameRateHint.start()
     }
 
     override fun onPause() {
@@ -63,6 +92,8 @@ class RuntimeActivity : FlutterActivity(), GamepadsCompatibleActivity {
     }
 
     override fun onStop() {
+        frameRateHint.stop()
+        detachFrameRateSurface()
         companionSession?.ownerStopped(this)
         super.onStop()
     }
@@ -103,6 +134,8 @@ class RuntimeActivity : FlutterActivity(), GamepadsCompatibleActivity {
     }
 
     override fun onDestroy() {
+        frameRateHint.stop()
+        detachFrameRateSurface()
         val stopSession = isFinishing && companionSession?.isOwner(this) == true && runtime.activeGame.value != null
         companionSession?.ownerDestroyed(this)
         activityScope.cancel()
@@ -110,6 +143,54 @@ class RuntimeActivity : FlutterActivity(), GamepadsCompatibleActivity {
         keyEventHandler = null
         motionEventHandler = null
         if (stopSession) runtime.requestStop()
+    }
+
+    private fun attachFrameRateSurface() {
+        val flutterView = findViewById<FlutterView>(FLUTTER_VIEW_ID) ?: return
+        val holder = findFlutterSurfaceView(flutterView)?.holder ?: return
+        if (frameRateSurface === holder) return
+        detachFrameRateSurface()
+        frameRateSurface = holder
+        holder.addCallback(frameRateSurfaceCallback)
+        if (holder.surface.isValid) frameRateHint.surfaceAvailable()
+    }
+
+    private fun detachFrameRateSurface() {
+        frameRateHint.surfaceDestroyed()
+        frameRateSurface?.removeCallback(frameRateSurfaceCallback)
+        frameRateSurface = null
+    }
+
+    private fun findFlutterSurfaceView(view: View): FlutterSurfaceView? {
+        if (view is FlutterSurfaceView) return view
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                findFlutterSurfaceView(view.getChildAt(index))?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun applyFrameRateLimit(limit: Int) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val surface = frameRateSurface?.surface ?: return
+                if (!surface.isValid) return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    surface.setFrameRate(
+                        limit.toFloat(),
+                        Surface.FRAME_RATE_COMPATIBILITY_DEFAULT,
+                        Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS,
+                    )
+                } else {
+                    surface.setFrameRate(limit.toFloat(), Surface.FRAME_RATE_COMPATIBILITY_DEFAULT)
+                }
+            } else {
+                window.attributes = window.attributes.apply { preferredRefreshRate = limit.toFloat() }
+            }
+        } catch (error: RuntimeException) {
+            Log.w("AveluneFrameRate", "La fréquence demandée n’a pas pu être appliquée.", error)
+        }
     }
 
     private fun currentDisplayId(): Int? {

@@ -76,6 +76,10 @@ final class EnvironmentActions extends EnvironmentEditing {
       'Advance the area seed and atomically regenerate it',
     ),
     semanticActionDescriptor(
+      'environment.generated_placement_adopt_batch',
+      'Adopt existing spatial instances as exact manual Environment placements',
+    ),
+    semanticActionDescriptor(
       'environment.generated_placement_add',
       'Add a manual Environment placement override',
     ),
@@ -105,6 +109,23 @@ final class EnvironmentActions extends EnvironmentEditing {
               'properties': {
                 'mapId': {'type': 'string', 'minLength': 1},
                 'layerId': {'type': 'string', 'minLength': 1},
+              },
+            },
+          if (descriptor.id == 'environment.generated_placement_adopt_batch')
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['mapId', 'layerId', 'areaId', 'placementIds'],
+              'properties': {
+                for (final id in ['mapId', 'layerId', 'areaId'])
+                  id: {'type': 'string', 'minLength': 1},
+                'placementIds': {
+                  'type': 'array',
+                  'minItems': 1,
+                  'maxItems': 250,
+                  'uniqueItems': true,
+                  'items': {'type': 'string', 'minLength': 1}
+                },
               },
             },
           if (descriptor.id == 'environment.generated_placement_add')
@@ -204,6 +225,11 @@ final class EnvironmentActions extends EnvironmentEditing {
           'layerId',
           'areaId',
           'newSeed',
+        },
+      'environment.generated_placement_adopt_batch' => const {
+          'layerId',
+          'areaId',
+          'placementIds',
         },
       'environment.generated_placement_add' => const {
           'layerId',
@@ -387,6 +413,16 @@ final class EnvironmentActions extends EnvironmentEditing {
         );
         changedItems = preview.placements.length;
         extraPreview['generation'] = preview.toJson();
+      case 'environment.generated_placement_adopt_batch':
+        final values = parameters.list('placementIds');
+        if (values.any((value) => value is! String)) {
+          throw invalidSemanticField('placementIds', 'a list of stable IDs');
+        }
+        updated = adoptGeneratedPlacements(context.manifest, context.map,
+            layerId: layerId,
+            areaId: parameters.string('areaId'),
+            placementIds: values.cast<String>());
+        changedItems = values.length;
       case 'environment.generated_placement_add':
         updated = addGeneratedPlacement(
           context.manifest,

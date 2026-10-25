@@ -791,7 +791,7 @@ final class NarrativeCommandCatalog {
       ),
       NarrativeCommandDescriptor(
         id: NarrativeCommandIds.worldPresentation,
-        label: 'Images, flash et secousse',
+        label: 'Images, ambiance, flash et secousse',
         description: 'Affiche et anime des images dans un cadre de référence explicite. Les effets de carte durent jusqu’au transfert ; les effets de scène se terminent avec la scène.',
         backend: NarrativeCommandBackend.interactiveRuntimeCommand,
         capabilities: const NarrativeCommandCapabilities(
@@ -804,6 +804,7 @@ final class NarrativeCommandCatalog {
         wireId: 'SceneInteractiveCommand.worldPresentation',
         parameters: [
           _parameter('operation', 'Effet', NarrativeCommandParameterKind.text),
+          _parameter('visualSettings', 'Paramètres d’ambiance 3D', NarrativeCommandParameterKind.text, required: false),
           _parameter('scope', 'Durée de présence', NarrativeCommandParameterKind.text, required: false),
           _parameter('slotId', 'Emplacement', NarrativeCommandParameterKind.integer, required: false),
           _parameter('mediaAssetId', 'Image', NarrativeCommandParameterKind.text, required: false),

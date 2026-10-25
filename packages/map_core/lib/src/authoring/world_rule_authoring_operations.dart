@@ -254,6 +254,8 @@ void _validateWorldRuleForAuthoring(
     );
   }
   switch (rule.target.kind) {
+    case WorldRuleTargetKind.atmosphere:
+      break;
     case WorldRuleTargetKind.mapEntity:
     case WorldRuleTargetKind.npcDialogue:
       if ((rule.target.entityId ?? '').trim().isEmpty) {
@@ -272,6 +274,9 @@ void _validateWorldRuleForAuthoring(
           'World rule target event id is required.',
         );
       }
+  }
+  if ((rule.effect.kind == WorldRuleEffectKind.atmosphere) != (rule.effect.visualSettings != null) || (rule.effect.visualSettings?.isEmpty ?? false)) {
+    throw ArgumentError('Atmosphere effects require nonempty visual settings.');
   }
   if (rule.effect.kind == WorldRuleEffectKind.npcDialogueOverride &&
       (rule.effect.dialogueId ?? '').trim().isEmpty) {
@@ -348,6 +353,8 @@ void _validateTargetReferences(
     return;
   }
   switch (rule.target.kind) {
+    case WorldRuleTargetKind.atmosphere:
+      break;
     case WorldRuleTargetKind.mapEntity:
       final entityIds = references.entityIdsByMap.putIfAbsent(
         map.id,

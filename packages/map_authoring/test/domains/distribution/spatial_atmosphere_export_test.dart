@@ -22,6 +22,9 @@ void main() {
         fogOpacity: .32, fogStart: 39, fogEnd: 49,
         halos: [SpatialAtmosphereHalo(instanceId: 'model', localPosition: Model3dVector3(x: 0, y: 2, z: 0))],
         waterStrength: .6);
+    final visual = SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'pitchDegrees':34,'depthOfFieldEnabled':true}));
+    files['project/project.visual.json'] = utf8.encode(jsonEncode(visual.toJson()));
+    files['project/maps/map.visual.json'] = utf8.encode(jsonEncode(SpatialVisualDocument(mapId: 'map', profile: SpatialVisualPatch.fromJson({'fogOpacity': .3})).toJson()));
     files['project/$sidecar'] = utf8.encode(jsonEncode(
         SpatialAtmosphereDocument(mapId: 'map', settings: settings).toJson()));
     for (final e in files.entries) {
@@ -39,7 +42,11 @@ void main() {
             defaultLocale: 'fr',
             supportedLocales: ['fr']),
         mode: GamePackageExportMode.localTest);
+    expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialVisualDocument.capabilityId));
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
+    for (final path in ['project/project.visual.json', 'project/maps/map.visual.json']) {
+      expect(archive.findFile(path)?.content, files[path]);
+    }
     final packed = archive.findFile('project/$sidecar');
     expect(packed, isNotNull);
     expect(

@@ -1,3 +1,5 @@
+import 'dart:convert';
+import '../project_settings/spatial_visual_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -25,6 +27,7 @@ class SceneWorldVisualActionForm extends StatefulWidget {
 class _SceneWorldVisualActionFormState
     extends State<SceneWorldVisualActionForm> {
   final _values = <String, String>{};
+  SpatialVisualPatch _visual = SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true});
   ProjectMediaCatalog? _catalog;
   String? _error;
   int _request = 0;
@@ -56,8 +59,9 @@ class _SceneWorldVisualActionFormState
     final command = widget.current?.interactiveCommand;
     if (command is SceneWorldPresentationInteractiveCommand) {
       _defaults(command.operation.name);
+      _visual = command.visualSettings ?? SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true});
       for (final entry in command.toJson().entries) {
-        if (entry.key != 'kind') {
+        if (entry.key != 'kind' && entry.key != 'visualSettings') {
           _values[entry.key] = '${entry.value}';
         }
       }
@@ -120,6 +124,7 @@ class _SceneWorldVisualActionFormState
       if (media.kind == ProjectMediaKind.image) media.id: media.label,
   };
   Map<String, String> get _parameters => {
+    if (_operation == 'atmosphere') 'visualSettings': jsonEncode(_visual.toJson()),
     for (final entry in _values.entries)
       if (const {
             'operation',
@@ -200,6 +205,8 @@ class _SceneWorldVisualActionFormState
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       _select('operation', 'Effet', const {
+        'atmosphere': 'Changer l’ambiance 3D',
+        'restoreAtmosphere': 'Rétablir l’ambiance héritée',
         'showPicture': 'Afficher une image',
         'movePicture': 'Déplacer une image',
         'erasePicture': 'Effacer une image',
@@ -213,6 +220,9 @@ class _SceneWorldVisualActionFormState
       const StudioNotice(
         'Scène : disparaît à sa fin. Carte : reste jusqu’au changement de carte. Les effets sont suspendus pendant une présentation ou un combat.',
       ),
+      if (_operation == 'atmosphere') SpatialVisualControls(patch: _visual,
+        inherited: SpatialVisualPatch.fromScene(camera: SpatialCameraProfile(), atmosphere: SpatialAtmosphereSettings()),
+        onChanged: (value) {if (!value.isEmpty) setState(() => _visual = value);}),
       if (_picture || _operation == 'erasePicture')
         _field(
           'slotId',
@@ -270,7 +280,7 @@ class _SceneWorldVisualActionFormState
           help: 'De 0,1 à 60 oscillations par seconde.',
         ),
       ],
-      if (_operation == 'movePicture' ||
+      if (_operation == 'atmosphere' || _operation == 'restoreAtmosphere' || _operation == 'movePicture' ||
           _operation == 'flash' ||
           _operation == 'shake') ...[
         _field(

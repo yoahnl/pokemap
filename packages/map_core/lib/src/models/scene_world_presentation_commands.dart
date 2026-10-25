@@ -6,6 +6,8 @@ enum SceneWorldPresentationOperation {
   erasePicture,
   flash,
   shake,
+  atmosphere,
+  restoreAtmosphere,
 }
 
 enum SceneVisualScope { scene, map }
@@ -17,6 +19,7 @@ final class SceneWorldPresentationInteractiveCommand
     extends SceneInteractiveCommand {
   SceneWorldPresentationInteractiveCommand({
     required this.operation,
+    this.visualSettings,
     this.scope = SceneVisualScope.map,
     this.slotId,
     this.mediaAssetId,
@@ -37,6 +40,10 @@ final class SceneWorldPresentationInteractiveCommand
     this.durationMs = 0,
     this.waitForCompletion = false,
   }) {
+    if ((operation == SceneWorldPresentationOperation.atmosphere) != (visualSettings != null) ||
+        (visualSettings?.isEmpty ?? false)) {
+      throw ArgumentError('Atmosphere requires a nonempty visual settings patch.');
+    }
     if (durationMs < 0 || durationMs > 60000) {
       throw ArgumentError.value(
         durationMs,
@@ -147,6 +154,7 @@ final class SceneWorldPresentationInteractiveCommand
         'scope',
         'durationMs',
         'waitForCompletion',
+        if (operation == SceneWorldPresentationOperation.atmosphere) 'visualSettings',
         if (picture ||
             operation == SceneWorldPresentationOperation.erasePicture)
           'slotId',
@@ -187,6 +195,7 @@ final class SceneWorldPresentationInteractiveCommand
       }
       return SceneWorldPresentationInteractiveCommand(
         operation: operation,
+        visualSettings: json['visualSettings'] == null ? null : SpatialVisualPatch.fromJson(Map<String, dynamic>.from(json['visualSettings'] as Map)),
         scope: json.containsKey('scope')
             ? _requiredEnum(json, 'scope', SceneVisualScope.values)
             : SceneVisualScope.map,
@@ -219,6 +228,7 @@ final class SceneWorldPresentationInteractiveCommand
   }
 
   final SceneWorldPresentationOperation operation;
+  final SpatialVisualPatch? visualSettings;
   final SceneVisualScope scope;
   final int? slotId;
   final String? mediaAssetId;
@@ -248,6 +258,7 @@ final class SceneWorldPresentationInteractiveCommand
   Map<String, dynamic> toJson() => {
     'kind': kind.name,
     'operation': operation.name,
+    if (visualSettings != null) 'visualSettings': visualSettings!.toJson(),
     'scope': scope.name,
     'durationMs': durationMs,
     'waitForCompletion': waitForCompletion,
@@ -279,9 +290,9 @@ final class SceneWorldPresentationInteractiveCommand
     final own = toJson();
     final theirs = other.toJson();
     return own.length == theirs.length &&
-        own.entries.every((entry) => theirs[entry.key] == entry.value);
+        own.entries.every((entry) => (entry.key == 'visualSettings' ? other.visualSettings == visualSettings : theirs[entry.key] == entry.value));
   }
 
   @override
-  int get hashCode => Object.hashAll(toJson().values);
+  int get hashCode => Object.hashAll(toJson().entries.map((e) => e.key == 'visualSettings' ? visualSettings : e.value));
 }

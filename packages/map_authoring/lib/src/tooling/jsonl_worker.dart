@@ -11,6 +11,7 @@ import 'package:map_authoring/map_authoring_local.dart'
     show
         LocalCharacterContactShadowAuthoring,
         LocalMapAtmosphereAuthoring,
+        LocalVisualSettingsAuthoring,
         LocalMapEditorAuthoring,
         MapEditorIncompleteStateException,
         LocalMapElementOrderAuthoring;
@@ -82,6 +83,7 @@ final class JsonlWorker {
     NativeProjectCreationTransportPort? nativeProjectCreation,
     LocalCharacterContactShadowAuthoring? characterContactShadows,
     LocalMapAtmosphereAuthoring? mapAtmosphere,
+    LocalVisualSettingsAuthoring? visualSettings,
     LocalMapEditorAuthoring? mapEditor,
     LocalMapElementOrderAuthoring? mapElementOrder,
     GamePackageExportApiPort? gameExport,
@@ -97,6 +99,7 @@ final class JsonlWorker {
         _nativeProjectCreation = nativeProjectCreation,
         _characterContactShadows = characterContactShadows,
         _mapAtmosphere = mapAtmosphere,
+        _visualSettings = visualSettings,
         _mapEditor = mapEditor,
         _mapElementOrder = mapElementOrder,
         _gameExport = gameExport,
@@ -134,6 +137,7 @@ final class JsonlWorker {
   final NativeProjectCreationTransportPort? _nativeProjectCreation;
   final LocalCharacterContactShadowAuthoring? _characterContactShadows;
   final LocalMapAtmosphereAuthoring? _mapAtmosphere;
+  final LocalVisualSettingsAuthoring? _visualSettings;
   final LocalMapEditorAuthoring? _mapEditor;
   final LocalMapElementOrderAuthoring? _mapElementOrder;
   final GamePackageExportApiPort? _gameExport;
@@ -942,6 +946,71 @@ final class JsonlWorker {
               requireContractString(args['operationId'], 'args.operationId'),
         ))
             .toJson();
+      case 'visual_settings_undo':
+        final service =
+            _visualSettings ?? (throw const _UnsupportedWorkerCommand());
+        rejectUnknownContractKeys(args, const {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          'receiptId',
+          'expectedRevision',
+          'operationId'
+        });
+        return (await service.undoReceipt(
+                projectRoot: requireContractString(
+                    args['projectRoot'], 'args.projectRoot'),
+                mapId: args['mapId'] == null ? LocalVisualSettingsAuthoring.projectScopeId : requireContractString(args['mapId'], 'args.mapId'),
+                mapRelativePath: args['mapRelativePath'] == null
+                    ? null
+                    : requireContractString(
+                        args['mapRelativePath'], 'args.mapRelativePath'),
+                receiptId:
+                    requireContractString(args['receiptId'], 'args.receiptId'),
+                expectedRevision: requireContractString(
+                    args['expectedRevision'], 'args.expectedRevision'),
+                operationId: requireContractString(
+                    args['operationId'], 'args.operationId')))
+            .toJson();
+      case 'visual_settings_inspect':
+      case 'visual_settings_set':
+        final service =
+            _visualSettings ?? (throw const _UnsupportedWorkerCommand());
+        final setting = command == 'visual_settings_set';
+        rejectUnknownContractKeys(args, {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          if (setting) 'expectedRevision',
+          if (setting) 'settings',
+          if (setting) 'operationId'
+        });
+        final root =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
+        final mapId = args['mapId'] == null ? LocalVisualSettingsAuthoring.projectScopeId : requireContractString(args['mapId'], 'args.mapId');
+        final mapPath = args['mapRelativePath'] == null
+            ? null
+            : requireContractString(
+                args['mapRelativePath'], 'args.mapRelativePath');
+        if (!setting) {
+          return (await service.inspect(
+                  projectRoot: root, mapId: mapId, mapRelativePath: mapPath))
+              .toJson();
+        }
+        final settings = args['settings'];
+        if (settings is! Map<String, dynamic>) {
+          throw const FormatException('settings must be an atmosphere object.');
+        }
+        return (await service.set(
+                projectRoot: root,
+                mapId: mapId,
+                mapRelativePath: mapPath,
+                expectedRevision: requireContractString(
+                    args['expectedRevision'], 'args.expectedRevision'),
+                settings: SpatialVisualPatch.fromJson(settings),
+                operationId: requireContractString(
+                    args['operationId'], 'args.operationId')))
+            .toJson();
       case 'map_atmosphere_undo':
         final service =
             _mapAtmosphere ?? (throw const _UnsupportedWorkerCommand());
@@ -1093,14 +1162,20 @@ final class JsonlWorker {
           'projectHandle',
           'actionId',
           'parameters',
-          'readDependencies'
+          'readDependencies',
+          'includeDocuments',
         });
         final workshops = _mutations;
         if (workshops is! AuthoringWorkshopPort) {
           throw const _UnsupportedWorkerCommand();
         }
+        final includeDocuments = args['includeDocuments'];
+        if (args.containsKey('includeDocuments') && includeDocuments is! bool) {
+          throw ArgumentError.value(includeDocuments, 'args.includeDocuments');
+        }
         return (workshops as AuthoringWorkshopPort).readWorkshopDocument(
             _projectHandle(args),
+            includeDocuments: includeDocuments as bool? ?? true,
             actionId: requireContractString(args['actionId'], 'args.actionId'),
             parameters: args['parameters'] == null
                 ? const {}
@@ -1297,6 +1372,7 @@ final class JsonlWorker {
         _nativeProjectCreation == null &&
         _characterContactShadows == null &&
         _mapAtmosphere == null &&
+        _visualSettings == null &&
         _mapEditor == null &&
         _mapElementOrder == null &&
         _resourcePacks == null) {
@@ -1439,6 +1515,19 @@ final class JsonlWorker {
             'expectedRevision':
                 operation != 'inspect' ? 'opaque revision from inspect' : null,
           },
+      if (_visualSettings != null)
+        for (final operation in ['inspect', 'set', 'undo'])
+          {
+            'id': 'visual_settings_$operation',
+            'actionId': 'visual.settings.set',
+            'readOnly': operation == 'inspect',
+            'summary':
+                'Read or save one bounded map atmosphere sidecar without loading the project.',
+            'storagePattern': ['project.visual.json','maps/<mapId>.visual.json'],
+            'maximumDocumentBytes': SpatialVisualDocument.maxBytes,
+            'expectedRevision':
+                operation != 'inspect' ? 'opaque revision from inspect' : null
+          },
       if (_mapAtmosphere != null)
         for (final operation in ['inspect', 'set', 'undo'])
           {
@@ -1543,6 +1632,8 @@ final class JsonlWorker {
             LocalMapElementOrderAuthoring.descriptor.toJson(),
       if (_mapEditor != null)
         'mapEditorAuthoring': LocalMapEditorAuthoring.descriptor.toJson(),
+      if (_visualSettings != null)
+        'visualSettingsAuthoring': LocalVisualSettingsAuthoring.descriptor.toJson(),
       if (_mapAtmosphere != null)
         'mapAtmosphereAuthoring':
             LocalMapAtmosphereAuthoring.descriptor.toJson(),

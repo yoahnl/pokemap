@@ -346,7 +346,18 @@ final class _OwnedGltfImage extends gltf.Image {
     try {
       image = (await codec.getNextFrame()).image;
       reservation.ensureCurrent();
-      return await resources.ImageTexture.create(image);
+      final pixels = await image.toByteData(
+        format: ui.ImageByteFormat.rawStraightRgba,
+      );
+      reservation.ensureCurrent();
+      if (pixels == null) {
+        throw StateError('Model texture pixels are unavailable.');
+      }
+      return resources.ImageTexture(
+        pixels,
+        width: image.width,
+        height: image.height,
+      );
     } finally {
       image?.dispose();
       codec.dispose();

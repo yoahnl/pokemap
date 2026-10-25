@@ -404,6 +404,7 @@ String _ruleExplanation(
 }
 
 String _targetKey(WorldRuleTarget target) => switch (target.kind) {
+      WorldRuleTargetKind.atmosphere => '${target.mapId}:atmosphere',
       WorldRuleTargetKind.mapEntity =>
         '${target.mapId}:entity:${target.entityId ?? ''}',
       WorldRuleTargetKind.npcDialogue =>

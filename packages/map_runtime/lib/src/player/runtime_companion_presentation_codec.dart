@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:ui';
+import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -1317,6 +1318,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         'showInputHints': value.showInputHints,
         'dialogueTextSpeed': value.dialogueTextSpeed.name,
         'menuEffects': value.menuEffects.name,
+        'targetFramesPerSecond': value.targetFramesPerSecond,
       };
   static PlayerPreferencesSnapshot decodePlayerPreferencesSnapshot(
           Map<String, dynamic> data) =>
@@ -1335,7 +1337,18 @@ abstract final class RuntimeCompanionPresentationCodec {
             .byName(data['dialogueTextSpeed'] as String),
         menuEffects: RuntimePlayerMenuEffects.values
             .byName(data['menuEffects'] as String),
+        targetFramesPerSecond: _decodeTargetFramesPerSecond(data),
       );
+
+  static int _decodeTargetFramesPerSecond(Map<String, dynamic> data) {
+    final value = data.containsKey('targetFramesPerSecond')
+        ? data['targetFramesPerSecond']
+        : AveluneFrameRate.defaultLimit;
+    if (value is! int || !AveluneFrameRate.supportedLimits.contains(value)) {
+      throw const FormatException('Invalid target frame rate limit.');
+    }
+    return value;
+  }
 
   static Map<String, Object?> encodeRuntimeAudioMix(RuntimeAudioMix value) => {
         'masterVolume': value.masterVolume,

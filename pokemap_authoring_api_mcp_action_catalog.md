@@ -1477,6 +1477,7 @@ environment.regenerate_apply
 environment.shuffle_plan
 environment.shuffle_apply
 environment.generated_placement_add
+environment.generated_placement_adopt_batch
 environment.generated_placement_move
 environment.generated_placement_delete
 environment.generated_placements_clear
@@ -1504,6 +1505,15 @@ locale sont contrôlées directement et par les usages transitifs sauvegardés.
 L'identité automatique conserve sa cellule d'origine indépendamment du décalage
 XYZ : une régénération locale, un déplacement ou une suppression visent cette
 cellule canonique. Les placements manuels conservent leurs transformations libres.
+
+`environment.generated_placement_adopt_batch` rattache de 1 à 250 placements
+existants à une zone avec `mapId`, `layerId`, `areaId` et `placementIds`.
+L'opération conserve leurs identités, transformations et propriétés ; elle les
+enregistre comme placements manuels de la zone, sans supprimer ni recréer les
+objets. Elle refuse les identités dupliquées, absentes, déjà rattachées à une
+autre zone ou incompatibles avec la palette. Cette opération permet notamment
+de reprendre un décor existant dans le système Environnement sans déplacer ses
+éléments ni casser leurs références.
 
 ### 13.3 Bordures
 

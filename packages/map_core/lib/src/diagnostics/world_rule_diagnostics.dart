@@ -354,6 +354,8 @@ void _diagnoseTarget(
     return;
   }
   switch (rule.target.kind) {
+    case WorldRuleTargetKind.atmosphere:
+      break;
     case WorldRuleTargetKind.mapEntity:
       final entityId = rule.target.entityId?.trim() ?? '';
       if (entityId.isEmpty) {
@@ -404,6 +406,11 @@ void _diagnoseEffect(
   List<WorldRuleDiagnostic> diagnostics, {
   required Set<String> dialogueIds,
 }) {
+  if ((rule.effect.kind == WorldRuleEffectKind.atmosphere) != (rule.effect.visualSettings != null) || (rule.effect.visualSettings?.isEmpty ?? false)) {
+    diagnostics.add(WorldRuleDiagnostic(code: WorldRuleDiagnosticCode.worldRuleEffectTargetMismatch,
+      severity: WorldRuleDiagnosticSeverity.error, message: 'L’ambiance nécessite au moins un réglage visuel.', ruleId: rule.id,
+      suggestedFixLabel: 'Choisir les paramètres d’ambiance.'));
+  }
   if (!isWorldRuleEffectCompatibleWithTarget(
     rule.target.kind,
     rule.effect.kind,
@@ -865,6 +872,7 @@ Set<String> _eventIds(ProjectManifest project, List<NarrativeMapView> maps) {
 
 String _targetIdentity(WorldRuleTarget target) {
   return switch (target.kind) {
+    WorldRuleTargetKind.atmosphere => '${target.mapId}:atmosphere',
     WorldRuleTargetKind.mapEntity =>
       '${target.mapId}:entity:${target.entityId ?? ''}',
     WorldRuleTargetKind.npcDialogue =>

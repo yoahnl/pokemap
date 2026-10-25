@@ -1,5 +1,78 @@
 part of 'environment_editing.dart';
 
+MapData _adoptManualPlacements(
+  ProjectManifest manifest,
+  MapData map, {
+  required String layerId,
+  required String areaId,
+  required List<String> placementIds,
+}) {
+  if (placementIds.isEmpty ||
+      placementIds.length > 250 ||
+      placementIds.toSet().length != placementIds.length ||
+      placementIds.any((id) => id.isEmpty || id.trim() != id)) {
+    throw invalidSemanticField('placementIds', 'one to 250 unique stable IDs');
+  }
+  final target =
+      _target(manifest: manifest, map: map, layerId: layerId, areaId: areaId);
+  if (!target.layer.content.targetsSpatialTerrain) {
+    throw semanticFailure('environment.dimension_mismatch',
+        'Adopting existing instances requires a spatial Environment.');
+  }
+  final owned = <String>{};
+  for (final layer in map.layers) {
+    if (layer is EnvironmentLayer) {
+      for (final area in layer.content.areas) {
+        owned.addAll(area.generatedPlacementIds);
+      }
+    } else if (layer is BorderLayer) {
+      for (final feature in layer.content.features) {
+        owned.addAll(feature.generatedPlacementIds);
+      }
+    }
+  }
+  final instances = {
+    for (final instance in map.spatialScene!.instances) instance.id: instance
+  };
+  final palette = target.preset.palette.map((item) => item.modelId).toSet();
+  for (final id in placementIds) {
+    final instance = instances[id];
+    if (instance == null) {
+      throw semanticFailure('environment.placement_missing',
+          'The existing spatial placement does not exist.',
+          details: {'placementId': id});
+    }
+    if (owned.contains(id) || id.startsWith('smt_')) {
+      throw semanticFailure('environment.placement_owner_conflict',
+          'An existing generated placement cannot be adopted by another owner.',
+          details: {'placementId': id});
+    }
+    if (!palette.contains(instance.modelId)) {
+      throw semanticFailure('environment.element_not_in_palette',
+          'The existing spatial model is not in the area palette.',
+          details: {'placementId': id, 'modelId': instance.modelId});
+    }
+    if (instance.position.x < 0 ||
+        instance.position.z < 0 ||
+        instance.position.x >= map.size.width ||
+        instance.position.z >= map.size.height) {
+      throw semanticFailure('environment.placement_out_of_bounds',
+          'The existing placement anchor is outside the map.',
+          details: {'placementId': id});
+    }
+  }
+  return _replaceArea(map,
+      layerId: layerId,
+      areaId: areaId,
+      update: (area) => _copyArea(area, generatedPlacementIds: [
+            ...area.generatedPlacementIds,
+            ...placementIds
+          ], manualPlacementIds: [
+            ...area.manualPlacementIds,
+            ...placementIds
+          ]));
+}
+
 MapData _addManualPlacement(
   ProjectManifest manifest,
   MapData map, {

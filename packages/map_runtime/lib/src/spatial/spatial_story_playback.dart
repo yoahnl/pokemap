@@ -8,6 +8,7 @@ import '../application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.d
 import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_exploration_session.dart';
 import 'spatial_npc_fixed_route_runtime.dart';
+import 'spatial_visual_playback.dart';
 
 final class SpatialStoryPlayback {
   SpatialStoryPlayback({
@@ -15,6 +16,9 @@ final class SpatialStoryPlayback {
     required this.readGameState,
     required this.writeGameState,
   }) {
+    visualRules = SpatialVisualRuleResolver(session.bundle.manifest);
+    session.worldVisualProfile = () => visualRules.resolve(readGameState(), session.bundle.map.id);
+    visuals = SpatialVisualPlayback(readBase: resolvedVisuals, publish: (profile) => session.visualOverrides = profile);
     models = SpatialModelAnimationController(
       mapId: () => session.bundle.map.id,
       instances: () => session.bundle.map.spatialScene!.instances,
@@ -59,6 +63,9 @@ final class SpatialStoryPlayback {
         readActor: _readActor,
         writeActor: (actor, pose) => _poses[_key(actor)] = pose,
         readCamera: () => camera,
+        readVisuals: () => resolvedVisuals().overriddenBy(session.visualOverrides).overriddenBy(session.cinematicVisualOverrides),
+        readVisualOverrides: () => session.cinematicVisualOverrides,
+        writeVisuals: (profile) => session.cinematicVisualOverrides = profile,
         writeCamera: (pose) => camera = pose,
         canTraverse: (actor, fromX, fromZ, toX, toZ, poses, crossingActors) => session.movement.canTraverseActor(
             fromX, fromZ, toX, toZ, ignoredEntityId: actor.mapEntityId,
@@ -112,6 +119,8 @@ final class SpatialStoryPlayback {
     session.npcStoryPose = (entity) => cinematics.isPlaying ? _poses['entity:${entity.id}'] : null;
     session.npcAutonomousPose = (entity) => autonomousNpcs.poseFor(entity.id);
     session.onBeforeMapChange = () {
+      visuals.reset();
+      session.cinematicVisualOverrides = SpatialVisualPatch();
       autonomousNpcs.flush();
       autonomousNpcs.reset();
     };
@@ -123,6 +132,16 @@ final class SpatialStoryPlayback {
   }
 
   final SpatialExplorationSession session;
+  late final SpatialVisualRuleResolver visualRules;
+  late final SpatialVisualPlayback visuals;
+  SpatialVisualPatch resolvedVisuals() {
+    final bundle = session.bundle;
+    final scene = bundle.map.spatialScene!;
+    return SpatialVisualPatch.fromScene(camera: scene.camera, atmosphere: bundle.spatialAtmosphereSettings, cycle: scene.dayNightCycle)
+        .overriddenBy(bundle.visualProfile).overriddenBy(session.worldVisualProfile?.call() ?? SpatialVisualPatch());
+  }
+  Future<String> playVisual(SceneInteractiveCommand command, {Object? owner}) => command is SceneWorldPresentationInteractiveCommand
+      ? visuals.execute(command, owner: owner) : Future.value('blocked');
   final GameState Function() readGameState;
   final void Function(GameState) writeGameState;
   late final SpatialModelAnimationController models;
@@ -280,6 +299,7 @@ final class SpatialStoryPlayback {
     autonomousNpcs.update(dt, paused: paused || session.movement.paused || models.isPlaying || cinematics.isPlaying ||
         session.interactionActive.value || session.storyInputLocked || session.nativeDoorTraversalActive);
     models.update(dt, paused: paused);
+    if (!paused) visuals.advance(dt);
     if (!paused && dt.isFinite && dt > 0) {
       cinematics.update(Duration(microseconds: (dt * 1000000).round()));
     }
@@ -288,6 +308,8 @@ final class SpatialStoryPlayback {
   void synchronize(SpatialWorldState state) {
     if (models.isPlaying || cinematics.isPlaying) cancel();
     models.synchronize(state);
+    visuals.reset();
+    session.cinematicVisualOverrides = SpatialVisualPatch();
     _poses.clear();
     autonomousNpcs.reset();
     camera = null;
@@ -317,6 +339,9 @@ final class SpatialStoryPlayback {
     if (_disposed) return;
     cancel();
     _disposed = true;
+    visuals.reset();
+    session.worldVisualProfile = null;
+    session.cinematicVisualOverrides = SpatialVisualPatch();
     autonomousNpcs.dispose();
     models.dispose();
     session.onPresentationFrame = null;

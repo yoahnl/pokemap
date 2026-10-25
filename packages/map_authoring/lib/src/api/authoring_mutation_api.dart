@@ -59,7 +59,8 @@ abstract interface class AuthoringWorkshopPort {
   Future<Map<String, Object?>> readWorkshopDocument(ProjectHandle projectHandle,
       {required String actionId,
       Map<String, Object?> parameters = const {},
-      Map<String, String> readDependencies = const {}});
+      Map<String, String> readDependencies = const {},
+      bool includeDocuments = true});
   Future<Map<String, Object?>> prepareWorkshopDocument(
       ProjectHandle projectHandle);
 }

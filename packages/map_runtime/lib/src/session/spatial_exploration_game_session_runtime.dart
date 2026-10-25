@@ -449,7 +449,10 @@ final class SpatialExplorationGameSessionRuntime
             '$prefix${_runtimeIds.generate(existingRecords: const []).substring(3)}',
         narrativeSnapshot: narrativeSnapshot,
         afterStateCommitted: _materializeState,
-        onSceneTerminated: (owner) async => _sceneAudio?.releaseScene(owner),
+        onSceneTerminated: (owner) async {
+          _story?.visuals.releaseScene(owner);
+          await _sceneAudio?.releaseScene(owner);
+        },
         buildSceneConsequenceWriter: (state, sceneId) async {
           final scene =
               project.scenes.firstWhere((scene) => scene.id == sceneId);
@@ -577,6 +580,7 @@ final class SpatialExplorationGameSessionRuntime
             commit,
             () => SceneInteractiveCommandRuntimeExecutor(
                 sceneMusic: (command) => _sceneAudio!.execute(command, sceneOwner: read),
+                worldPresentation: (command) => _story!.playVisual(command, owner: read),
                 playModelAnimation: (command) => _story!.playModel(command),
                 playSoundEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 playMusicEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),

@@ -17,6 +17,7 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
   String _targetSummary(WorldRuleTarget target) =>
       target.label ??
       switch (target.kind) {
+        WorldRuleTargetKind.atmosphere => 'Ambiance de ${target.mapId}',
         WorldRuleTargetKind.mapEntity => 'Personnage ${target.entityId}',
         WorldRuleTargetKind.npcDialogue => 'Dialogue de ${target.entityId}',
         WorldRuleTargetKind.mapEvent => 'Événement ${target.eventId}',
@@ -128,6 +129,17 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
     refresh();
   }
 
+  Future<void> _pickAtmosphereTarget(WorldRuleDraft draft) async {
+    final mapId = await _choose<String>('Ambiance de quelle carte ?', [for (final entry in controller.project.maps) (entry.id, entry.name, '')]);
+    if (mapId == null || !mounted) return;
+    controller.editRule(draft.id, (d) {
+      d.target = WorldRuleTarget(kind: WorldRuleTargetKind.atmosphere, mapId: mapId);
+      d.effect = WorldRuleEffect(kind: WorldRuleEffectKind.atmosphere,
+        visualSettings: SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true}));
+    });
+    refresh();
+  }
+
   Future<void> _pickEffect(WorldRuleDraft draft) async {
     if (!flush()) return;
     final options = controller.effectsFor(draft.id);
@@ -161,6 +173,7 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
       (d) => d.effect = WorldRuleEffect(
         kind: chosen.effectKind,
         dialogueId: dialogueId,
+        visualSettings: chosen.effectKind == WorldRuleEffectKind.atmosphere ? SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true}) : null,
       ),
     );
     refresh();

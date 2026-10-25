@@ -8,6 +8,7 @@ import 'package:pokemap_hub/features/session/data/repositories/control_profile_r
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 
 import 'avelune_library_bridge.dart';
+import 'avelune_frame_rate_bridge.dart';
 import 'avelune_gameplay_companion.dart';
 import 'avelune_surface_probe.dart';
 import 'avelune_surface_probe_app.dart';
@@ -22,6 +23,7 @@ class AveluneRuntimeApp extends StatefulWidget {
 }
 
 class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
+  final _frameRate = AveluneFrameRateBridge();
   final _playerController = HubInstalledGamePlayerController();
   final _companion = AveluneGameplayCompanionOwner();
   late final _companionBridge = AveluneGameplayCompanionBridge(
@@ -44,6 +46,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
   @override
   void initState() {
     super.initState();
+    _frameRate.attach();
     _diagnostics.attach();
     _bridge.playing.addListener(_updateDiagnosticsSession);
     _probeBridge.attach();
@@ -53,6 +56,7 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
 
   @override
   void dispose() {
+    _frameRate.detach();
     _bridge.playing.removeListener(_updateDiagnosticsSession);
     _diagnostics.dispose();
     unawaited(_companionBridge.stopOwnedSession());

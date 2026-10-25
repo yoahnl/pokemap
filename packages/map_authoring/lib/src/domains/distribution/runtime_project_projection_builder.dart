@@ -634,6 +634,40 @@ final class RuntimeProjectProjectionBuilder {
       }
     }
 
+    for (final scope in <String?>[
+      null,
+      ...projectedProject.maps.map((entry) => entry.id)
+    ]) {
+      final relative = scope == null
+          ? SpatialVisualDocument.projectRelativePath
+          : SpatialVisualDocument.relativePathForMap(scope);
+      final file = File(p.join(projectRoot.path, relative));
+      if (!await file.exists()) continue;
+      try {
+        if (await file.length() > SpatialVisualDocument.maxBytes)
+          throw const FormatException(
+              'Visual settings exceed their byte limit.');
+        final bytes = await authorFiles.read(relative, budget, jsonLike: true);
+        if (bytes.length > SpatialVisualDocument.maxBytes)
+          throw const FormatException(
+              'Visual settings exceed their byte limit.');
+        final document = SpatialVisualDocument.fromJson(
+            Map<String, dynamic>.from(
+                decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
+        if (document.mapId != scope)
+          throw const FormatException('Visual settings identity mismatch.');
+        atmospherePaths.add(relative);
+        budget.addPayload(
+            payload, _normalizePackagePath('project/$relative'), bytes);
+      } on Object catch (error) {
+        throw GamePackageExportException(
+            code: 'visual_settings.invalid',
+            path: relative,
+            message: 'The visual settings are malformed or unsupported.',
+            cause: error);
+      }
+    }
+
     final jsonRoots = <String>{
       ...atmospherePaths,
       'project.json',

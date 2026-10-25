@@ -91,6 +91,7 @@ extension _WorldRuleComposer on _WorldWorkspacePageState {
                     : _targetSummary(draft.target!),
                 filled: draft.target != null,
                 onTap: () => unawaited(_pickTarget(draft)),
+                child: StudioButton(label: 'Ambiance d’une carte', icon: Icons.wb_twilight, secondary: true, onPressed: () => unawaited(_pickAtmosphereTarget(draft))),
               ),
               _arrow(),
               _block(
@@ -107,6 +108,10 @@ extension _WorldRuleComposer on _WorldWorkspacePageState {
                           'd’abord.'
                     : null,
               ),
+              if (draft.effect?.kind == WorldRuleEffectKind.atmosphere)
+                SpatialVisualControls(patch: draft.effect!.visualSettings!,
+                  inherited: SpatialVisualPatch.fromScene(camera: SpatialCameraProfile(), atmosphere: SpatialAtmosphereSettings()),
+                  onChanged: (value) {if (value.isEmpty) return; controller.editRule(draft.id, (d) => d.effect = WorldRuleEffect(kind: WorldRuleEffectKind.atmosphere, visualSettings: value)); refresh();}),
               if (draft.missing.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 StudioNotice(
@@ -264,6 +269,7 @@ String _operatorLabel(NarrativeFactOperator operator) => switch (operator) {
 };
 
 String _effectLabel(WorldRuleEffectKind kind) => switch (kind) {
+  WorldRuleEffectKind.atmosphere => 'Changer l’ambiance 3D',
   WorldRuleEffectKind.entityVisible => 'Afficher le personnage',
   WorldRuleEffectKind.entityHidden => 'Masquer le personnage',
   WorldRuleEffectKind.npcDialogueOverride => 'Remplacer le dialogue',

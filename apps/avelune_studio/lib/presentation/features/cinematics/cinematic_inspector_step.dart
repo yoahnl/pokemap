@@ -12,6 +12,13 @@ extension CinematicInspectorStep on CinematicInspector {
     ),
     Text(step.label ?? cinematicActionLabel(step.kind)),
     ..._parallelFields(asset, step),
+    if (step.kind == CinematicTimelineStepKind.atmosphere)
+      SpatialVisualControls(patch: step.visualSettings!,
+        inherited: SpatialVisualPatch.fromScene(camera: SpatialCameraProfile(), atmosphere: SpatialAtmosphereSettings()),
+        onChanged: (value) {
+          if (value.isEmpty) return;
+          _edit(asset, (a) => updateCinematicTimelineCommandStep(a, stepId: step.id, visualSettings: value).cinematic);
+        }),
     if (cinematicDurationEditable(step))
       StudioCommitField(
         key: ValueKey('duration-${asset.id}-${step.id}'),

@@ -140,6 +140,8 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onEnvironments: _openEnvironments,
                           onBorders: _openBorders,
                           onMap: _openMap,
+                          onProjectSettings: () =>
+                              _show(WorkspaceSpace.projectSettings),
                           onRegionalMap: () =>
                               _show(WorkspaceSpace.regionalMap),
                           onExport: _openGameExport,
@@ -178,6 +180,14 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                       _controller.refreshCatalogSelection,
                                       _openResourceTools,
                                     )
+                              : _space == WorkspaceSpace.projectSettings &&
+                                    _controller.port is ProjectVisualsPort
+                              ? ProjectSettingsPage(
+                                  key: ValueKey(_controller.session.sessionId),
+                                  workspace: _controller,
+                                  owner: _visualOwner,
+                                  testBuilder: widget.visualTestBuilder,
+                                )
                               : _space == WorkspaceSpace.regionalMap &&
                                     _regionalMap != null
                               ? RegionalMapPage(controller: _regionalMap!)

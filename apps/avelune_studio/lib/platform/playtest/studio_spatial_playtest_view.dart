@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -11,12 +13,14 @@ class StudioSpatialPlaytestView extends StatefulWidget {
     this.onReady,
     this.onError,
     this.sceneBuilder,
+    this.previewVisuals,
   });
 
   final SpatialExplorationGameSessionRuntime runtime;
   final VoidCallback? onReady;
   final void Function(Object)? onError;
   final WidgetBuilder? sceneBuilder;
+  final ValueListenable<SpatialVisualPatch>? previewVisuals;
 
   @override
   State<StudioSpatialPlaytestView> createState() =>
@@ -97,6 +101,7 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                     SpatialExplorationView(
                       key: ObjectKey(runtime),
                       session: session,
+                      previewVisuals: widget.previewVisuals,
                       keyboardInputEnabled: false,
                       onReady: widget.onReady,
                       onError: widget.onError,
@@ -178,9 +183,15 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                                 onCommand: command,
                               ),
                             RuntimeWorldServiceKind.regionalMap =>
-                              PlayerRegionalMapOverlay(snapshot: service, onCommand: command),
+                              PlayerRegionalMapOverlay(
+                                snapshot: service,
+                                onCommand: command,
+                              ),
                             RuntimeWorldServiceKind.partyTrade =>
-                              PlayerPartyTradeOverlay(snapshot: service, onCommand: command),
+                              PlayerPartyTradeOverlay(
+                                snapshot: service,
+                                onCommand: command,
+                              ),
                           };
                         },
                       ),

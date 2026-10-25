@@ -1,3 +1,4 @@
+import '../project_settings/spatial_visual_controls.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';

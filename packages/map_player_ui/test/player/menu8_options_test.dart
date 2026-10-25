@@ -10,6 +10,72 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('display frame rate choices persist and reset only display', (
+    tester,
+  ) async {
+    final changes = <PlayerPreferencesSnapshot>[];
+    await _pump(
+      tester,
+      preferences: _preferences.copyWith(
+        audioMix: const RuntimeAudioMix(masterVolume: .4),
+        highContrast: true,
+      ),
+      onChanged: changes.add,
+    );
+    await _category(tester, 'display');
+    expect(
+      find.byKey(const ValueKey('options-frame-rate-choice')),
+      findsOneWidget,
+    );
+    for (final limit in [30, 45, 60, 90, 120]) {
+      await _tap(tester, 'options-frame-rate-choice');
+      for (final choice in [30, 45, 60, 90, 120]) {
+        expect(
+          find.byKey(ValueKey('options-choice-$choice')),
+          findsOneWidget,
+        );
+      }
+      await _tap(tester, 'options-choice-$limit');
+      expect(
+        RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+          changes.last,
+        )['targetFramesPerSecond'],
+        limit,
+      );
+    }
+    await _tap(tester, 'options-defaults');
+    await _tap(tester, 'options-reset-confirm');
+    expect(
+      RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+        changes.last,
+      )['targetFramesPerSecond'],
+      60,
+    );
+    expect(changes.last.audioMix.masterVolume, .4);
+    expect(changes.last.highContrast, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('failed frame rate persistence keeps the confirmed choice', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      onChanged: (_) => throw StateError('storage unavailable'),
+    );
+    await _category(tester, 'display');
+    await _tap(tester, 'options-frame-rate-choice');
+    await _tap(tester, 'options-choice-120');
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('options-frame-rate-choice')),
+        matching: find.text('60 FPS'),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in [320.0, 390.0]) {
     testWidgets(
       'title options keep neighbour names complete at width$width text2',
@@ -936,6 +1002,7 @@ void main() {
       locale: 'en',
       accessibility: GameSessionAccessibilityOptions(),
       audioMix: RuntimeAudioMix(musicVolume: .8, effectsVolume: .8),
+      targetFramesPerSecond: 90,
     );
     await _pump(tester, defaultPreferences: defaults, onChanged: changes.add);
     await _category(tester, 'language');
@@ -945,6 +1012,12 @@ void main() {
     await _category(tester, 'audio');
     await _tap(tester, 'options-defaults');
     await _tap(tester, 'options-reset-confirm');
+    expect(changes.last.audioMix, defaults.audioMix);
+    expect(changes.last.locale, 'en');
+    await _category(tester, 'display');
+    await _tap(tester, 'options-defaults');
+    await _tap(tester, 'options-reset-confirm');
+    expect(changes.last.targetFramesPerSecond, 90);
     expect(changes.last.audioMix, defaults.audioMix);
     expect(changes.last.locale, 'en');
   });

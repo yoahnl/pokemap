@@ -68,8 +68,19 @@ class SpatialRenderContext extends RenderContext3D
   final _unlitDepth = <_TransparentSurface>[];
   final _depthProxies = Expando<SpatialPixelMaterial>();
 
+  static final _staticJointTransform = Matrix4.identity();
+
   @override
   void applyMaterial(Material material) {
+    if (material is UnlitMaterial &&
+        material is! SpatialPixelMaterial &&
+        jointsInfo.jointTransforms.isEmpty) {
+      material.resource;
+      material.vertexShader.setMatrix4(
+        'JointMatrices.joints[0]',
+        _staticJointTransform,
+      );
+    }
     if (material is SpatialPixelMaterial) material.prepareLighting(lighting);
     super.applyMaterial(material);
   }

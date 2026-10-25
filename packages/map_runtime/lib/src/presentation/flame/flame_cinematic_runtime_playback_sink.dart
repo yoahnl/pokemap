@@ -321,6 +321,8 @@ final class FlameCinematicRuntimePlaybackSink
 
     final step = context.step;
     switch (step.kind) {
+      case CinematicTimelineStepKind.atmosphere:
+        throw UnsupportedError('Atmosphere requires a 3D map.');
       case CinematicTimelineStepKind.wait:
         _stepState = const _PassiveStepState();
       case CinematicTimelineStepKind.camera:
@@ -626,6 +628,8 @@ final class FlameCinematicRuntimePlaybackSink
     }
 
     switch (step.kind) {
+      case CinematicTimelineStepKind.atmosphere:
+        return invalid('requires a 3D map.');
       case CinematicTimelineStepKind.wait:
       case CinematicTimelineStepKind.dialogueLine:
         return null;

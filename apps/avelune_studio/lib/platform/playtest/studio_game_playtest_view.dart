@@ -10,15 +10,18 @@ import 'package:map_runtime/map_runtime.dart';
 import '../../presentation/shared/widgets/buttons/studio_button.dart';
 import '../../presentation/shared/widgets/feedback/studio_notice.dart';
 import 'studio_game_playtest.dart';
+import '../../features/rendering/application/studio_rendering_preferences.dart';
 
 class StudioGamePlaytestView extends StatefulWidget {
   const StudioGamePlaytestView({
     super.key,
     required this.projectFilePath,
     required this.onClose,
+    this.renderingPreferences,
   });
   final String projectFilePath;
   final VoidCallback onClose;
+  final StudioRenderingPreferences? renderingPreferences;
   @override
   State<StudioGamePlaytestView> createState() => _StudioGamePlaytestViewState();
 }
@@ -49,6 +52,7 @@ class _StudioGamePlaytestViewState extends State<StudioGamePlaytestView>
     try {
       final game = await StudioGamePlaytest.prepare(
         projectFilePath: widget.projectFilePath,
+        renderingPreferences: widget.renderingPreferences,
         onExit: () async {
           if (mounted) widget.onClose();
         },
@@ -236,7 +240,8 @@ class _StudioGamePlaytestViewState extends State<StudioGamePlaytestView>
       });
     }
     final reducedMotion =
-        snapshot.playerSnapshot?.preferences?.accessibility.reducedMotion ?? false;
+        snapshot.playerSnapshot?.preferences?.accessibility.reducedMotion ??
+        false;
     final baseTheme = Theme.of(context).brightness == Brightness.dark
         ? PokeMapPlayerTheme.dark(reducedMotion: reducedMotion)
         : PokeMapPlayerTheme.light(reducedMotion: reducedMotion);

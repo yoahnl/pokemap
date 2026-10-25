@@ -166,6 +166,7 @@ BorderStroke buildBorderTraversalPreservedFragmentV1({
     id: id,
     sampledPoints: orderedPoints,
     closed: false,
+    preserveTraversal: true,
   );
   return BorderStroke(
     id: id,
@@ -389,6 +390,7 @@ BorderLinearStrokeLattice buildBorderLinearLatticeV1({
     id: stroke.id,
     sampledPoints: stroke.points,
     closed: stroke.closed,
+    preserveTraversal: preservesTraversal,
   );
   final points =
       preservesTraversal ? stroke.points : validatedCanonical.points;

@@ -1,3 +1,4 @@
+import 'spatial_visual_profile.dart';
 import 'package:meta/meta.dart' show immutable;
 
 const cinematicLibraryArchivedMetadataKey = 'pokemap.cinematic.archived';
@@ -19,6 +20,7 @@ enum CinematicTimelineStepKind {
   shake,
   fx,
   marker,
+  atmosphere,
 }
 
 enum CinematicActorCompletionPolicy { keepFinal, restoreInitial }
@@ -766,6 +768,7 @@ final class CinematicTimelineStep {
     required this.kind,
     String? label,
     this.durationMs,
+    this.visualSettings,
     String? parallelGroupId,
     String? actorId,
     String? targetId,
@@ -787,6 +790,7 @@ final class CinematicTimelineStep {
       kind: _readEnum(CinematicTimelineStepKind.values, json['kind'], 'kind'),
       label: _readOptionalString(json, 'label'),
       durationMs: _readOptionalInt(json, 'durationMs'),
+      visualSettings: json['visualSettings'] == null ? null : SpatialVisualPatch.fromJson(Map<String, dynamic>.from(json['visualSettings'] as Map)),
       parallelGroupId: json.containsKey('parallelGroupId')
           ? _parallelGroupIdFromJson(json['parallelGroupId'])
           : null,
@@ -802,6 +806,7 @@ final class CinematicTimelineStep {
   final CinematicTimelineStepKind kind;
   final String? label;
   final int? durationMs;
+  final SpatialVisualPatch? visualSettings;
   final String? parallelGroupId;
   final String? actorId;
   final String? targetId;
@@ -814,6 +819,7 @@ final class CinematicTimelineStep {
         'kind': kind.name,
         'label': label,
         'durationMs': durationMs,
+        'visualSettings': visualSettings?.toJson(),
         'parallelGroupId': parallelGroupId,
         'actorId': actorId,
         'targetId': targetId,
@@ -830,6 +836,7 @@ final class CinematicTimelineStep {
           other.kind == kind &&
           other.label == label &&
           other.durationMs == durationMs &&
+          other.visualSettings == visualSettings &&
           other.parallelGroupId == parallelGroupId &&
           other.actorId == actorId &&
           other.targetId == targetId &&
@@ -843,6 +850,7 @@ final class CinematicTimelineStep {
         kind,
         label,
         durationMs,
+        visualSettings,
         parallelGroupId,
         actorId,
         targetId,

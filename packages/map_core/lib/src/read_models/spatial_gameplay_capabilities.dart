@@ -65,6 +65,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.sceneMusic,
   };
   static const cinematicStepKinds = <CinematicTimelineStepKind>{
+    CinematicTimelineStepKind.atmosphere,
     CinematicTimelineStepKind.wait,
     CinematicTimelineStepKind.camera,
     CinematicTimelineStepKind.actorMove,
@@ -231,7 +232,9 @@ abstract final class SpatialGameplayCapabilities {
         payload.consequence != null
             ? commandIds.contains(payload.consequence!.kind.name)
             : payload.interactiveCommand != null
-            ? commandIds.contains(
+            ? payload.interactiveCommand is SceneWorldPresentationInteractiveCommand
+              ? const {SceneWorldPresentationOperation.atmosphere, SceneWorldPresentationOperation.restoreAtmosphere}.contains((payload.interactiveCommand as SceneWorldPresentationInteractiveCommand).operation)
+              : commandIds.contains(
                 NarrativeCommandIds.forInteractiveCommand(
                   payload.interactiveCommand!,
                 ),

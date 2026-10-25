@@ -27,6 +27,7 @@ import { registerResourcePackTool } from "./tools/resource_packs.js";
 import { registerProjectionTool } from "./tools/projections.js";
 import { registerRuntimeTools } from "./tools/runtime.js";
 import { registerMapEditorTools } from "./tools/map_editor.js";
+import { registerVisualSettingsTools } from "./tools/visual_settings.js";
 import { registerMapAtmosphereTools } from "./tools/map_atmosphere.js";
 import { registerCharacterContactShadowTools } from "./tools/character_contact_shadows.js";
 
@@ -59,6 +60,7 @@ export function createPokeMapMcpServer(
   registerMutationTools(server, authoring);
   registerCharacterContactShadowTools(server, authoring);
   registerMapAtmosphereTools(server, authoring);
+  registerVisualSettingsTools(server, authoring);
   registerMapEditorTools(server, authoring);
   registerGameExportTool(server, authoring, dependencies.projectRoots);
   registerProjectCreationTools(server, authoring);

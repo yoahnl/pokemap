@@ -12,6 +12,7 @@ class EditableMapDocument {
   }
 
   MapAtmosphereController? atmosphere;
+  SpatialVisualPatch visualProfile = SpatialVisualPatch();
   MapEditorController? editor;
   static final _unlockedEditorState = MapEditorState();
   MapEditorState get editorState => editor?.current ?? _unlockedEditorState;

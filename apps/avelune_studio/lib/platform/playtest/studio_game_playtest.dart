@@ -6,6 +6,8 @@ import 'package:map_player_ui/presentation_renderer.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
+import '../../features/rendering/application/studio_rendering_preferences.dart';
+
 const studioGameBranding = RuntimeHostSplashBranding(
   displayName: 'AVELUNE',
   signature: 'CRÉEZ · JOUEZ · PARTAGEZ',
@@ -48,7 +50,9 @@ final class StudioGamePlaytest {
     required SpatialExplorationSessionMount unmountSpatial,
     Future<void> Function()? stopIntroPlayback,
     RuntimePresentationFrameDeltas? presentationFrameDeltas,
+    StudioRenderingPreferences? renderingPreferences,
   }) async {
+    await renderingPreferences?.load();
     final project = await loadProjectManifestFromFile(projectFilePath);
     final assets = StudioGameAssets(projectFilePath, project);
     final media = await loadProjectDirectoryPresentationMedia(
@@ -64,7 +68,7 @@ final class StudioGamePlaytest {
       reducedMotion: false,
       frameDeltas: presentationFrameDeltas,
     );
-    final preferences = _StudioGamePreferences(audio);
+    final preferences = _StudioGamePreferences(audio, renderingPreferences);
     final source = _StudioGameSource(project, preferences);
     final saves = StudioGameSaves(source.identity);
     final preloader = RuntimeInitialMapPreloader(
@@ -284,8 +288,9 @@ final class StudioGameSaves implements PlayerSaveGateway {
 }
 
 final class _StudioGamePreferences implements PlayerPreferencesGateway {
-  _StudioGamePreferences(this.audio);
+  _StudioGamePreferences(this.audio, this.renderingPreferences);
   final RuntimeAudioMixer audio;
+  final StudioRenderingPreferences? renderingPreferences;
   @override
   final defaultPreferences = const PlayerPreferencesSnapshot(
     locale: 'fr',
@@ -293,12 +298,44 @@ final class _StudioGamePreferences implements PlayerPreferencesGateway {
   );
   PlayerPreferencesSnapshot? _value;
   @override
-  Future<PlayerPreferencesSnapshot> load() async =>
-      _value ?? defaultPreferences;
+  Future<PlayerPreferencesSnapshot> load() async {
+    await renderingPreferences?.load();
+    return (_value ?? defaultPreferences).copyWith(
+      targetFramesPerSecond: AveluneFrameRate.limit,
+    );
+  }
+
   @override
   Future<void> save(PlayerPreferencesSnapshot preferences) async {
-    await audio.transitionTo(preferences.audioMix);
-    _value = preferences;
+    final previous = _value ?? defaultPreferences;
+    final changesAudio =
+        preferences.audioMix.masterVolume != previous.audioMix.masterVolume ||
+        preferences.audioMix.musicVolume != previous.audioMix.musicVolume ||
+        preferences.audioMix.effectsVolume != previous.audioMix.effectsVolume;
+    final changesFrameRate =
+        preferences.targetFramesPerSecond != AveluneFrameRate.limit;
+    var newerFrameRateChoice = false;
+    void observeFrameRate() => newerFrameRateChoice = true;
+    AveluneFrameRate.changes.addListener(observeFrameRate);
+    try {
+      if (changesAudio) await audio.transitionTo(preferences.audioMix);
+      if (changesFrameRate && !newerFrameRateChoice) {
+        final rendering = renderingPreferences;
+        if (rendering == null) {
+          AveluneFrameRate.setLimit(preferences.targetFramesPerSecond);
+        } else {
+          await rendering.setLimit(preferences.targetFramesPerSecond);
+        }
+      }
+      _value = preferences.copyWith(
+        targetFramesPerSecond: AveluneFrameRate.limit,
+      );
+    } catch (_) {
+      if (changesAudio) await audio.transitionTo(previous.audioMix);
+      rethrow;
+    } finally {
+      AveluneFrameRate.changes.removeListener(observeFrameRate);
+    }
   }
 }
 
@@ -364,6 +401,7 @@ final class _StudioGameSource implements RuntimeGameSource {
           SpatialGameplayCapabilities.storyCapabilityId,
           SpatialGameplayCapabilities.companionCapabilityId,
           SpatialCameraProfile.orthographicCapabilityId,
+          SpatialVisualDocument.capabilityId,
           ProjectContactDeviceConfig.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -30,6 +31,7 @@ class StudioPlaytestView extends StatefulWidget {
     required this.port,
     required this.onClose,
     this.testSession,
+    this.previewVisuals,
     this.prepareProjectAssets,
   });
 
@@ -39,6 +41,7 @@ class StudioPlaytestView extends StatefulWidget {
   final MapWorkspacePort port;
   final VoidCallback onClose;
   final StudioPlaytestSession? testSession;
+  final ValueListenable<SpatialVisualPatch>? previewVisuals;
   final Future<void> Function(String projectRoot)? prepareProjectAssets;
 
   @override
@@ -507,6 +510,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
               return StudioSpatialPlaytestView(
                 key: ObjectKey(game),
                 runtime: game.runtime,
+                previewVisuals: widget.previewVisuals,
                 onReady: _finishSpatialMount,
                 onError: _finishSpatialMount,
               );

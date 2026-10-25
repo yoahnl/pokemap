@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
+import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
@@ -50,6 +51,7 @@ final class RuntimePlayerCoordinator {
     _sessionSubscription = _sessions.snapshots.listen(_onSessionSnapshot);
     _worldServiceSubscription =
         _sessions.worldServiceSnapshots.listen(_onWorldServiceSnapshot);
+    AveluneFrameRate.changes.addListener(_onSharedFrameRateChanged);
   }
 
   final RuntimeGameSource _gameSource;
@@ -83,6 +85,7 @@ final class RuntimePlayerCoordinator {
   NewGameSeedCommitJournal _newGameCommitJournal =
       NewGameSeedCommitJournal.empty();
   int _launchGeneration = 0;
+  int _frameRateRevision = 0;
   bool _lifecycleActive = true;
   bool _creditsOpenedFromTitle = false;
   bool _disposed = false;
@@ -700,7 +703,10 @@ final class RuntimePlayerCoordinator {
           );
         }
         final localeChanged = _preferences?.locale != preferences.locale;
+        final sessionPreferencesChanged =
+            _sessionPreferencesDiffer(_preferences, preferences);
         final preferencesSessionId = _sessions.snapshot.descriptor?.sessionId;
+        final frameRateRevision = _frameRateRevision;
         try {
           await _preferencesGateway.save(preferences);
         } on Object {
@@ -720,8 +726,19 @@ final class RuntimePlayerCoordinator {
             status: RuntimePlayerCommandStatus.cancelled,
           );
         }
-        _preferences = preferences;
-        _sessions.applyPlayerPreferences(preferences);
+        final frameRateChanged = _frameRateRevision != frameRateRevision;
+        final confirmedPreferences = frameRateChanged
+            ? preferences.copyWith(
+                targetFramesPerSecond: AveluneFrameRate.limit,
+              )
+            : preferences;
+        _preferences = confirmedPreferences;
+        if (!frameRateChanged) {
+          AveluneFrameRate.setLimit(confirmedPreferences.targetFramesPerSecond);
+        }
+        if (sessionPreferencesChanged) {
+          _sessions.applyPlayerPreferences(confirmedPreferences);
+        }
         if (localeChanged && _snapshot.phase == RuntimePlayerPhase.paused) {
           Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
               details;
@@ -746,7 +763,7 @@ final class RuntimePlayerCoordinator {
             pauseDetails: details,
           );
         }
-        _publish(_snapshot.next(preferences: preferences));
+        _publish(_snapshot.next(preferences: _preferences));
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.accepted,
         );
@@ -1614,6 +1631,8 @@ final class RuntimePlayerCoordinator {
   }
 
   Future<bool> _loadTitleData({GameSessionFailure? failure}) async {
+    final frameRateRevision = _frameRateRevision;
+    final generation = _launchGeneration;
     try {
       final titleData = await Future.wait<Object?>(
         <Future<Object?>>[
@@ -1623,13 +1642,22 @@ final class RuntimePlayerCoordinator {
         ],
         eagerError: false,
       );
-      _preferences = titleData[0]! as PlayerPreferencesSnapshot;
+      if (_disposed || generation != _launchGeneration) return false;
+      final preferences = titleData[0]! as PlayerPreferencesSnapshot;
       _latestSave = titleData[1] as PlayerSaveSummary?;
       _validateSaveScope(_latestSave);
+      final frameRateChanged = _frameRateRevision != frameRateRevision;
+      _preferences = frameRateChanged
+          ? preferences.copyWith(targetFramesPerSecond: AveluneFrameRate.limit)
+          : preferences;
+      if (!frameRateChanged) {
+        AveluneFrameRate.setLimit(_preferences!.targetFramesPerSecond);
+      }
       _retryLaunch = null;
       _publishTitle(failure: failure);
       return true;
     } catch (_) {
+      if (_disposed || generation != _launchGeneration) return false;
       _publishFailure(
         const GameSessionFailure(
           code: GameSessionFailureCode.storage,
@@ -1671,6 +1699,7 @@ final class RuntimePlayerCoordinator {
   Future<void> _disposeOwnedResources() async {
     if (_disposed) return;
     _disposed = true;
+    AveluneFrameRate.changes.removeListener(_onSharedFrameRateChanged);
     _launchGeneration++;
     _cancelPreSessionInteraction(SceneInteractionCancellationReason.disposed);
     _newGameFlow.clear();
@@ -1684,6 +1713,41 @@ final class RuntimePlayerCoordinator {
     await _sessionSubscription.cancel();
     await _sessions.dispose();
     await _snapshots.close();
+  }
+
+  bool _sessionPreferencesDiffer(
+    PlayerPreferencesSnapshot? before,
+    PlayerPreferencesSnapshot after,
+  ) =>
+      before == null ||
+      before.locale != after.locale ||
+      before.accessibility.reducedMotion != after.accessibility.reducedMotion ||
+      before.accessibility.textScale != after.accessibility.textScale ||
+      before.accessibility.hapticsEnabled != after.accessibility.hapticsEnabled ||
+      before.audioMix.masterVolume != after.audioMix.masterVolume ||
+      before.audioMix.musicVolume != after.audioMix.musicVolume ||
+      before.audioMix.effectsVolume != after.audioMix.effectsVolume ||
+      before.touchControlsOpacity != after.touchControlsOpacity ||
+      before.leftHandedTouchControls != after.leftHandedTouchControls ||
+      before.touchRunMode != after.touchRunMode ||
+      before.highContrast != after.highContrast ||
+      before.showInputHints != after.showInputHints ||
+      before.dialogueTextSpeed != after.dialogueTextSpeed ||
+      before.menuEffects != after.menuEffects;
+
+  void _onSharedFrameRateChanged() {
+    _frameRateRevision++;
+    final preferences = _preferences;
+    if (_disposed ||
+        preferences == null ||
+        preferences.targetFramesPerSecond == AveluneFrameRate.limit) {
+      return;
+    }
+    final updated = preferences.copyWith(
+      targetFramesPerSecond: AveluneFrameRate.limit,
+    );
+    _preferences = updated;
+    _publish(_snapshot.next(preferences: updated));
   }
 
   void _onSessionSnapshot(GameSessionSnapshot session) {

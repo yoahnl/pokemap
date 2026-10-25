@@ -230,6 +230,8 @@ Iterable<String> _resources(
     yield identity;
   }
   switch (step.kind) {
+    case CinematicTimelineStepKind.atmosphere:
+      yield 'atmosphere';
     case CinematicTimelineStepKind.camera:
     case CinematicTimelineStepKind.shake:
       yield 'camera';

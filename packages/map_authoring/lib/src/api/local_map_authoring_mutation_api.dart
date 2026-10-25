@@ -285,15 +285,16 @@ final class LocalMapAuthoringMutationApi
   Future<Map<String, Object?>> readWorkshopDocument(ProjectHandle projectHandle,
       {required String actionId,
       Map<String, Object?> parameters = const {},
-      Map<String, String> readDependencies = const {}}) async {
+      Map<String, String> readDependencies = const {},
+      bool includeDocuments = true}) async {
     final snapshot = await readWorkshopSnapshot(projectHandle,
         actionId: actionId,
         parameters: parameters,
         readDependencies: readDependencies);
     return {
       'snapshotRevision': snapshot.revision,
-      'project': snapshot.manifest.copyWith(settings: snapshot.manifest.settings.copyWith(mistralApiKey: null)).toJson(),
-      'maps': [for (final map in snapshot.maps) map.toJson()],
+      if (includeDocuments) 'project': snapshot.manifest.copyWith(settings: snapshot.manifest.settings.copyWith(mistralApiKey: null)).toJson(),
+      if (includeDocuments) 'maps': [for (final map in snapshot.maps) map.toJson()],
       'resourceRevisions': snapshot.resourceFingerprints,
       'availableProjectSections': snapshot.availableProjectSections?.toList(),
       'availableProjectDocuments': {

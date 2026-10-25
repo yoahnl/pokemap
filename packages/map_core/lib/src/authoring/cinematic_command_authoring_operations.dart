@@ -1,3 +1,4 @@
+import '../models/spatial_visual_profile.dart';
 import '../models/cinematic_asset.dart';
 import '../models/cinematic_media_asset.dart';
 import 'cinematic_authoring_operations.dart';
@@ -31,6 +32,7 @@ List<CinematicTimelineStep> cinematicCommandPublicationBlockers(
     );
 
 const _runtimeSupportedCommandKinds = {
+  CinematicTimelineStepKind.atmosphere,
   CinematicTimelineStepKind.dialogueLine,
   CinematicTimelineStepKind.shake,
   CinematicTimelineStepKind.sound,
@@ -48,6 +50,7 @@ CinematicCommandAuthoringResult addCinematicTimelineCommandStep(
   String? dialogueText,
   CinematicMediaAsset? mediaAsset,
   int? durationMs,
+  SpatialVisualPatch? visualSettings,
   double volume = 1,
   int fadeMs = 0,
   bool loop = false,
@@ -64,6 +67,7 @@ CinematicCommandAuthoringResult addCinematicTimelineCommandStep(
     dialogueText: dialogueText,
     mediaAsset: mediaAsset,
     durationMs: durationMs,
+    visualSettings: visualSettings,
     volume: volume,
     fadeMs: fadeMs,
     loop: loop,
@@ -82,6 +86,7 @@ CinematicCommandAuthoringResult updateCinematicTimelineCommandStep(
   String? dialogueText,
   CinematicMediaAsset? mediaAsset,
   int? durationMs,
+  SpatialVisualPatch? visualSettings,
   double? volume,
   int? fadeMs,
   bool? loop,
@@ -107,6 +112,7 @@ CinematicCommandAuthoringResult updateCinematicTimelineCommandStep(
     dialogueText: dialogueText ?? source.dialogueText,
     mediaAsset: mediaAsset ?? _mediaFromStep(source),
     durationMs: durationMs ?? source.durationMs,
+    visualSettings: visualSettings ?? source.visualSettings,
     volume:
         volume ?? _double(source, cinematicTimelineCommandVolumeMetadataKey, 1),
     fadeMs: fadeMs ??
@@ -144,13 +150,15 @@ CinematicTimelineStep _buildCommandStep(
   String? dialogueText,
   CinematicMediaAsset? mediaAsset,
   int? durationMs,
+  SpatialVisualPatch? visualSettings,
   required double volume,
   required int fadeMs,
   required bool loop,
   required double intensity,
 }) {
   const supported = {
-    CinematicTimelineStepKind.dialogueLine,
+    CinematicTimelineStepKind.atmosphere,
+  CinematicTimelineStepKind.dialogueLine,
     CinematicTimelineStepKind.shake,
     CinematicTimelineStepKind.sound,
     CinematicTimelineStepKind.music,
@@ -192,6 +200,9 @@ CinematicTimelineStep _buildCommandStep(
       minMs: 1,
     );
   }
+  if ((kind == CinematicTimelineStepKind.atmosphere) != (visualSettings != null) || (visualSettings?.isEmpty ?? false)) {
+    throw ArgumentError('Atmosphere commands require visual settings.');
+  }
   final cleanLabel = label?.trim();
   if (kind == CinematicTimelineStepKind.marker &&
       (cleanLabel == null || cleanLabel.isEmpty)) {
@@ -219,6 +230,7 @@ CinematicTimelineStep _buildCommandStep(
     parallelGroupId: parallelGroupId,
     id: id ?? _freshId(cinematic, 'step_${kind.name}'),
     kind: kind,
+    visualSettings: visualSettings,
     label: cleanLabel?.isNotEmpty == true ? cleanLabel : _defaultLabel(kind),
     durationMs: durationMs ?? _defaultDuration(kind),
     actorId: actorId,
@@ -265,6 +277,7 @@ String _freshId(CinematicAsset cinematic, String root) {
 }
 
 String _defaultLabel(CinematicTimelineStepKind kind) => switch (kind) {
+      CinematicTimelineStepKind.atmosphere => 'Changer l’ambiance 3D',
       CinematicTimelineStepKind.dialogueLine => 'Jouer un dialogue',
       CinematicTimelineStepKind.shake => 'Tremblement caméra',
       CinematicTimelineStepKind.sound => 'Jouer un son',
@@ -275,6 +288,7 @@ String _defaultLabel(CinematicTimelineStepKind kind) => switch (kind) {
     };
 
 int? _defaultDuration(CinematicTimelineStepKind kind) => switch (kind) {
+      CinematicTimelineStepKind.atmosphere => 1000,
       CinematicTimelineStepKind.dialogueLine => 1500,
       CinematicTimelineStepKind.shake => 500,
       CinematicTimelineStepKind.fx => 800,

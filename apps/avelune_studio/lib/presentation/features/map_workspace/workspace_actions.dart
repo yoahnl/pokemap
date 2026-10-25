@@ -1,3 +1,4 @@
+import '../../../features/project_visuals/application/project_visuals_controller.dart';
 import '../../../features/regional_map/application/regional_map_controller.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
@@ -39,6 +40,7 @@ class WorkspaceActions {
     this.presentations,
     this.regionalMap,
     this.world,
+    this.projectVisuals,
     this.worldInputsValid,
     this.publishedCinematicContext,
     required this.runtimeBuilder,
@@ -57,6 +59,7 @@ class WorkspaceActions {
   final PresentationWorkspaceController? Function()? presentations;
   final RegionalMapController? Function()? regionalMap;
   final WorldWorkspaceController? Function()? world;
+  final ProjectVisualsController? Function()? projectVisuals;
   final bool Function()? worldInputsValid;
   final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -64,6 +67,7 @@ class WorkspaceActions {
   bool testing = false;
   bool closing = false;
   bool get busy =>
+      projectVisuals?.call()?.saving == true ||
       testing ||
       closing ||
       dialogues?.call()?.busy == true ||
@@ -81,6 +85,7 @@ class WorkspaceActions {
   bool get hasPendingChanges => controller.dirty || hasCatalogDependencyDraft;
 
   bool get hasCatalogDependencyDraft =>
+      projectVisuals?.call()?.dirty == true ||
       resources()?.dirty == true ||
       narrative()?.dirty == true ||
       dialogues?.call()?.dirty == true ||

@@ -844,6 +844,30 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             }
           },
         ),
+        _choiceRow(
+          _strings.frameRateLimit,
+          _strings.frameRate(preferences.targetFramesPerSecond),
+          'frame-rate',
+          compact,
+          () async {
+            final value = await _choose(
+              _strings.frameRateLimit,
+              preferences.targetFramesPerSecond,
+              {
+                for (final limit in AveluneFrameRate.supportedLimits)
+                  limit: _strings.frameRate(limit),
+              },
+              (value) => value.toString(),
+              focusAfterClose: _choiceNode('frame-rate'),
+            );
+            if (value != null) {
+              await _save(
+                _confirmed.copyWith(targetFramesPerSecond: value),
+                focusAfterSave: _choiceNode('frame-rate'),
+              );
+            }
+          },
+        ),
       ],
       PlayerOptionsCategory.audio => [
         _slider(
@@ -1447,7 +1471,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       PlayerOptionsCategory.general =>
         value.dialogueTextSpeed != defaults.dialogueTextSpeed,
       PlayerOptionsCategory.display =>
-        value.menuEffects != defaults.menuEffects,
+        value.menuEffects != defaults.menuEffects ||
+            value.targetFramesPerSecond != defaults.targetFramesPerSecond,
       PlayerOptionsCategory.audio =>
         value.audioMix.masterVolume != defaults.audioMix.masterVolume ||
             value.audioMix.musicVolume != defaults.audioMix.musicVolume ||
@@ -1485,6 +1510,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       ),
       PlayerOptionsCategory.display => _confirmed.copyWith(
         menuEffects: defaults.menuEffects,
+        targetFramesPerSecond: defaults.targetFramesPerSecond,
       ),
       PlayerOptionsCategory.audio => _confirmed.copyWith(
         audioMix: defaults.audioMix,

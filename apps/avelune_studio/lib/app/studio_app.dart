@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'di/home_providers.dart';
+import 'di/rendering_providers.dart';
+import '../features/rendering/application/studio_rendering_preferences.dart';
+import '../presentation/features/rendering/studio_display_preferences.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -29,6 +34,7 @@ class StudioApp extends ConsumerStatefulWidget {
 
 class _StudioAppState extends ConsumerState<StudioApp> {
   late final ProjectSessionController _session;
+  late final StudioRenderingPreferences _renderingPreferences;
   late final AppLifecycleListener _lifecycle;
   Future<bool> Function()? _exitGuard;
   String? _guardSession;
@@ -38,6 +44,8 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   void initState() {
     super.initState();
     _session = ref.read(projectSessionControllerProvider);
+    _renderingPreferences = ref.read(studioRenderingPreferencesProvider);
+    unawaited(_renderingPreferences.load());
     _lifecycle = AppLifecycleListener(
       onExitRequested: () async {
         return await _prepareForUpdate()
@@ -72,6 +80,10 @@ class _StudioAppState extends ConsumerState<StudioApp> {
     locale: const Locale('fr'),
     supportedLocales: const [Locale('fr')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
+    builder: (context, child) => StudioRenderingPreferencesScope(
+      preferences: _renderingPreferences,
+      child: child ?? const SizedBox(),
+    ),
     home: StudioUpdateHost(
       onRestartRequested: _canRestartUpdate,
       child: ProjectSessionScreen(

@@ -54,13 +54,17 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   final focus = FocusNode();
   MapAtmosphereController? _atmosphere;
   void _syncAtmosphere() {
+    camera.visualProfile = widget.document.visualProfile;
     final settings = _atmosphere?.current;
     if (settings != null) camera.applyAtmosphereSettings(settings);
   }
 
   void _bindAtmosphere() {
     final next = widget.document.atmosphere;
-    if (identical(next, _atmosphere)) return;
+    if (identical(next, _atmosphere)) {
+      _syncAtmosphere();
+      return;
+    }
     _atmosphere?.removeListener(_syncAtmosphere);
     _atmosphere = next;
     _atmosphere?.addListener(_syncAtmosphere);

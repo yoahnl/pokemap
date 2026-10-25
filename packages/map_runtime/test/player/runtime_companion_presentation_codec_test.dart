@@ -8,6 +8,58 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('frame rate defaults and exact limits cross companion transports', () {
+    const defaults = PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(),
+    );
+    final encoded =
+        RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+          defaults,
+        );
+    expect(encoded['targetFramesPerSecond'], 60);
+    for (final limit in [30, 45, 60, 90, 120]) {
+      final restored =
+          RuntimeCompanionPresentationCodec.decodePlayerPreferencesSnapshot(
+            _crossTransport({...encoded, 'targetFramesPerSecond': limit}),
+          );
+      expect(
+        RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+          restored.copyWith(locale: 'en'),
+        )['targetFramesPerSecond'],
+        limit,
+      );
+    }
+    final legacy = {...encoded}..remove('targetFramesPerSecond');
+    expect(
+      RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+        RuntimeCompanionPresentationCodec.decodePlayerPreferencesSnapshot(
+          _crossTransport(legacy),
+        ),
+      )['targetFramesPerSecond'],
+      60,
+    );
+  });
+
+  test('companion transport rejects invalid frame rates', () {
+    final encoded =
+        RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+          const PlayerPreferencesSnapshot(
+            locale: 'fr',
+            accessibility: GameSessionAccessibilityOptions(),
+          ),
+        );
+    for (final value in [null, '60', 60.0, true, 0, 24, 59, 144]) {
+      expect(
+        () => RuntimeCompanionPresentationCodec.decodePlayerPreferencesSnapshot(
+          {...encoded, 'targetFramesPerSecond': value},
+        ),
+        throwsFormatException,
+        reason: '$value',
+      );
+    }
+  });
+
   test('dialogue presentation crosses JSON and platform transport with authored media', () {
     final source = DialoguePresentationSnapshot(
       revision: 13,
@@ -627,6 +679,7 @@ void main() {
       showInputHints: false,
       dialogueTextSpeed: RuntimeDialogueTextSpeed.fast,
       menuEffects: RuntimePlayerMenuEffects.opaque,
+      targetFramesPerSecond: 120,
     );
     final snapshot = RuntimePlayerSnapshot(
       revision: 27,
@@ -653,6 +706,7 @@ void main() {
       command.payload as PlayerPreferencesSnapshot
     ]) {
       expect(value.locale, 'en-GB');
+      expect(value.targetFramesPerSecond, 120);
       expect(value.accessibility.reducedMotion, isTrue);
       expect(value.accessibility.textScale, 1.4);
       expect(value.accessibility.hapticsEnabled, isFalse);

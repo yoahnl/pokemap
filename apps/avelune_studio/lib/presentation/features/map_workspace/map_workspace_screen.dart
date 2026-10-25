@@ -1,4 +1,7 @@
 import 'dart:async';
+import '../project_settings/project_settings_page.dart';
+import '../../../features/project_visuals/domain/project_visuals_port.dart';
+import '../../../features/project_visuals/application/project_visuals_controller.dart';
 
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
@@ -131,6 +134,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     required this.loadVisuals,
     required this.runtimeBuilder,
     this.projectRuntimeBuilder,
+    this.visualTestBuilder,
     required this.onClose,
     required this.registerExitGuard,
     this.resourcePort,
@@ -191,6 +195,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final LoadWorkspaceVisuals loadVisuals;
   final StudioRuntimeBuilder runtimeBuilder;
   final Widget Function(VoidCallback onClose)? projectRuntimeBuilder;
+  final StudioVisualTestBuilder? visualTestBuilder;
   final Future<void> Function() onClose;
   final void Function(Future<bool> Function()? guard) registerExitGuard;
   @override
@@ -259,6 +264,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   int _gestureGeneration = 0;
   int _navigationRequest = 0;
   late final WorkspaceActions _actions;
+  ProjectVisualsController? _projectVisuals;
+  ProjectVisualsController get _visualOwner => _projectVisuals ??= ProjectVisualsController(session: _controller.session, port: _controller.port as ProjectVisualsPort);
   StudioGameExportPort? get _gameExport => widget.gameExport;
   MapWorkspaceController get _controller => widget.controller;
   @override
@@ -282,6 +289,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       presentations: () => _presentations,
       regionalMap: () => _regionalMap,
       world: () => _world,
+      projectVisuals: () => _projectVisuals,
       worldInputsValid: () => _worldView.invalidFields.isEmpty,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,

@@ -21,6 +21,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  avelune_rendering:
+    path: ../avelune_rendering
   flame: 2.0.0-dev.1
   flame_audio: 2.13.0-dev.1
   image: ^4.2.0

@@ -64,6 +64,11 @@ class _AveluneGameplayCompanionAppState
 
   void _syncBattleInputs() {
     final current = _remote.value;
+    final preferences =
+        current?.player?.preferences ?? current?.player?.defaultPreferences;
+    if (preferences != null) {
+      AveluneFrameRate.setLimit(preferences.targetFramesPerSecond);
+    }
     final active =
         current?.companionAttached == true &&
         current?.mode == AveluneGameplayCompanionMode.battle &&

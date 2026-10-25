@@ -84,6 +84,8 @@ final class RuntimeWorldRuleProjectionState {
 
     for (final effect in effects) {
       switch (effect.effect.kind) {
+        case WorldRuleEffectKind.atmosphere:
+          break;
         case WorldRuleEffectKind.entityVisible:
           final entityId = effect.target.entityId;
           if (entityId == null || entityId.trim().isEmpty) {

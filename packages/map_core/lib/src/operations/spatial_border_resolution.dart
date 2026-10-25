@@ -1338,6 +1338,58 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   );
 }
 
+Set<String> resolveSpatialBorderFeatureBaseSlotKeys({
+  required ProjectManifest manifest,
+  required MapData map,
+  required String layerId,
+  required String featureId,
+}) {
+  final feature = map.layers
+      .whereType<BorderLayer>()
+      .where((layer) => layer.id == layerId)
+      .firstOrNull
+      ?.content
+      .featureById(featureId);
+  final definition = manifest.borderCatalog
+      .recordById(feature?.blueprintId ?? '')
+      ?.latestPublished
+      ?.definition;
+  if (feature == null ||
+      definition == null ||
+      !definition.isSpatial ||
+      map.spatialScene == null ||
+      map.version != ProjectVersion.v9) {
+    throw const ValidationException(
+      'A published spatial Border feature is required',
+    );
+  }
+  if (feature.geometry case final BorderRegionGeometry region
+      when region.width != map.size.width || region.height != map.size.height) {
+    throw const ValidationException(
+      'The spatial Border region size must match the map',
+    );
+  }
+  final diagnostics = validateSpatialBorderFeatureGeometry(
+    blueprintId: feature.blueprintId,
+    featureId: featureId,
+    definition: definition,
+    geometry: feature.geometry,
+  );
+  if (diagnostics.hasErrors) {
+    throw const ValidationException('The spatial Border geometry is invalid');
+  }
+  return Set.unmodifiable(
+    _translatedSpatialSlotKeys(
+      feature.geometry,
+      layerId: layerId,
+      featureId: featureId,
+      directed: definition.followContourDirection,
+      dx: 0,
+      dz: 0,
+    ).keys,
+  );
+}
+
 MapData moveSpatialBorderFeature(
   MapData map, {
   required ProjectManifest manifest,

@@ -489,6 +489,82 @@ void main() {
     expect(device.uniforms['Shadow']![16], 0);
   });
 
+  test('unlit context binds identity joints on its first static draw', () {
+    final spatial = SpatialRenderContext(device);
+    final unlit = UnlitMaterial(albedoTexture: material.albedoTexture);
+    final originalJoints = spatial.jointsInfo.jointTransforms;
+
+    spatial.applyMaterial(unlit);
+
+    expect(device.uniforms, contains('JointMatrices'));
+    final joints = device.uniforms['JointMatrices']!;
+    expect(joints, hasLength(16 * 16));
+    expect(joints.take(16), Matrix4.identity().storage);
+    expect(joints.skip(16), everyElement(0));
+    expect(spatial.jointsInfo.jointTransforms, same(originalJoints));
+    expect(originalJoints, isEmpty);
+  });
+
+  test('unlit context preserves actual skeletal joint transforms', () {
+    final spatial = SpatialRenderContext(device);
+    final unlit = UnlitMaterial(albedoTexture: material.albedoTexture);
+    final joints = [
+      Matrix4.translationValues(2, 3, 4),
+      Matrix4.diagonal3Values(2, 3, 4),
+    ];
+    final expected = [for (final joint in joints) joint.storage.toList()];
+    spatial.jointsInfo.jointTransforms = joints;
+
+    spatial.applyMaterial(unlit);
+
+    final buffer = device.uniforms['JointMatrices']!;
+    expect(buffer.take(16), expected.first);
+    expect(buffer.skip(16).take(16), expected.last);
+    expect(spatial.jointsInfo.jointTransforms, same(joints));
+    expect(joints.first.storage, expected.first);
+    expect(joints.last.storage, expected.last);
+  });
+
+  test('unlit context restores identity after an animated draw', () {
+    final spatial = SpatialRenderContext(device);
+    final unlit = UnlitMaterial(albedoTexture: material.albedoTexture);
+    final joint = Matrix4.translationValues(2, 3, 4);
+    spatial.jointsInfo.jointTransforms = [joint];
+    spatial.applyMaterial(unlit);
+    expect(device.uniforms['JointMatrices']!.take(16), joint.storage);
+    final staticJoints = <Matrix4>[];
+    spatial.jointsInfo.jointTransforms = staticJoints;
+    device.uniforms.clear();
+
+    spatial.applyMaterial(unlit);
+
+    expect(
+      device.uniforms['JointMatrices']!.take(16),
+      Matrix4.identity().storage,
+    );
+    expect(spatial.jointsInfo.jointTransforms, same(staticJoints));
+    expect(staticJoints, isEmpty);
+  });
+
+  test('unlit context restores joint binding after replacing its shader', () {
+    final spatial = SpatialRenderContext(device);
+    final unlit = UnlitMaterial(albedoTexture: material.albedoTexture);
+    spatial.applyMaterial(unlit);
+    final replacement = _CountingVertexShader();
+    unlit.vertexShader = replacement;
+    device.uniforms.clear();
+
+    spatial.applyMaterial(unlit);
+
+    expect(replacement.jointWrites, greaterThan(0));
+    expect(device.uniforms, contains('JointMatrices'));
+    expect(
+      device.uniforms['JointMatrices']!.take(16),
+      Matrix4.identity().storage,
+    );
+    expect(spatial.jointsInfo.jointTransforms, isEmpty);
+  });
+
   test('static surfaces bind the required joint matrix buffer', () {
     material.apply(context);
     material.vertexShader.bind(device);

@@ -1,21 +1,25 @@
 import 'package:map_core/map_core.dart';
 
 import '../../workspace/project_snapshot.dart';
+import '../../support/authoring_fingerprint.dart';
 import 'map_lifecycle_adapter.dart';
 import 'semantic_map_action_support.dart';
 
-/// Validates the complete project boundary before any native Smart Tile write.
-///
-/// Catalog mutations are project-wide by definition: changing a material,
-/// preset, atlas, or animation can invalidate a layer in a different map. This
-/// guard therefore rejects incomplete snapshots and any projected state that
-/// fails canonical manifest/map validation.
 void preflightNativeSmartTileMutation({
   required ProjectSnapshot snapshot,
   required ProjectManifest projectedManifest,
   Map<String, MapData> projectedMaps = const <String, MapData>{},
 }) {
-  _requireCompleteMapSnapshot(snapshot);
+  final mapOnly = isSelectedMapSmartTileSnapshot(snapshot);
+  if (mapOnly) {
+    if (canonicalAuthoringJson(projectedManifest.toJson()) !=
+        canonicalAuthoringJson(snapshot.manifest.toJson())) {
+      throw semanticFailure('smart_tile_catalog_mutation_outside_map_scope',
+          'A selected map edit cannot change shared project definitions.');
+    }
+  } else {
+    _requireCompleteMapSnapshot(snapshot);
+  }
 
   final unknownProjectedIds = projectedMaps.keys
       .where((mapId) => snapshot.mapById(mapId) == null)
@@ -88,7 +92,9 @@ void requireExistingNativeSmartTileProject(
   required String operation,
   String? layerId,
 }) {
-  _requireCompleteMapSnapshot(snapshot);
+  if (!isSelectedMapSmartTileSnapshot(snapshot)) {
+    _requireCompleteMapSnapshot(snapshot);
+  }
   if (!_isSupportedProjectManifestVersion(snapshot.manifest)) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
@@ -123,6 +129,22 @@ bool _isSupportedProjectManifestVersion(ProjectManifest manifest) =>
     (manifest.settings.dimension == ProjectDimension.threeD
         ? ProjectVersion.v9
         : ProjectVersion.v8);
+
+bool isSelectedMapSmartTileSnapshot(ProjectSnapshot snapshot) {
+  if (!snapshot.materializedCatalogProject ||
+      snapshot.availableProjectSections?.isEmpty != true ||
+      snapshot.maps.length != 1 ||
+      snapshot.scopedStorageRevisions?.length != 1) {
+    return false;
+  }
+  final id = snapshot.maps.single.id;
+  final path = snapshot.resourceStorageKeys['map:$id'];
+  return path != null &&
+      path != 'project.json' &&
+      snapshot.scopedStorageRevisions![path] != null &&
+      snapshot.scopedStorageRevisions![path] ==
+          snapshot.resourceFingerprints['map:$id'];
+}
 
 void _requireCompleteMapSnapshot(ProjectSnapshot snapshot) {
   final manifestIds = <String>{};

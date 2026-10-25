@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
@@ -12,14 +13,18 @@ import 'spatial_exploration_session.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 
 class SpatialExplorationView extends StatefulWidget {
-  const SpatialExplorationView(
-      {super.key,
-      required this.session,
-      this.keyboardInputEnabled = true,
-      this.onReady,
+  const SpatialExplorationView({
+    super.key,
+    required this.session,
+    this.keyboardInputEnabled = true,
+    this.onReady,
+    this.previewVisuals,
+    this.sceneController,
     this.onError,
   });
   final SpatialExplorationSession session;
+  final ValueListenable<SpatialVisualPatch>? previewVisuals;
+  final SpatialSceneController? sceneController;
   final bool keyboardInputEnabled;
   final VoidCallback? onReady;
   final void Function(Object)? onError;
@@ -30,7 +35,19 @@ class SpatialExplorationView extends StatefulWidget {
 class _SpatialExplorationViewState extends State<SpatialExplorationView>
     with WidgetsBindingObserver {
   final focus = FocusNode();
-  final camera = SpatialSceneController()..setView(SpatialEditorView.game);
+  late final camera =
+      widget.sceneController ??
+      (SpatialSceneController()..setView(SpatialEditorView.game));
+  void applyVisuals() {
+    camera.visualProfile = activeBundle.visualProfile
+        .overriddenBy(
+          widget.session.worldVisualProfile?.call() ?? SpatialVisualPatch(),
+        )
+        .overriddenBy(widget.session.visualOverrides)
+        .overriddenBy(widget.session.cinematicVisualOverrides)
+        .overriddenBy(widget.previewVisuals?.value ?? SpatialVisualPatch());
+  }
+
   final keys = <LogicalKeyboardKey>{};
   int inputEpoch = -1;
   late RuntimeMapBundle activeBundle;
@@ -48,16 +65,20 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     final identity = destination.projectCatalog?.identity;
     if (identity == null) return;
     final session = widget.session;
-    await camera.prepareDestination(SpatialScenePreparation(
-      map: destination.map,
-      project: destination.manifest,
-      loadModel: (id) => session.modelBytesForBundle(destination, id),
-      loadGroundImage: (id) => groundBytes(destination, id),
-      resourceIdentity: identity,
-      resourceBudget: destination.resourceBudget,
-      isCurrent: () => mounted && identical(widget.session, session) && isCurrent(),
-    ));
+    await camera.prepareDestination(
+      SpatialScenePreparation(
+        map: destination.map,
+        project: destination.manifest,
+        loadModel: (id) => session.modelBytesForBundle(destination, id),
+        loadGroundImage: (id) => groundBytes(destination, id),
+        resourceIdentity: identity,
+        resourceBudget: destination.resourceBudget,
+        isCurrent: () =>
+            mounted && identical(widget.session, session) && isCurrent(),
+      ),
+    );
   }
+
   void release() {
     keys.clear();
     if (widget.keyboardInputEnabled) widget.session.movement.releaseInput();
@@ -67,9 +88,11 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.previewVisuals?.addListener(applyVisuals);
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     activeBundle = widget.session.bundle;
+    applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
     widget.session.prepareNativeDoorDestination = prepareNativeDestination;
@@ -80,6 +103,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   void mapChanged() {
     final previous = activeBundle;
     activeBundle = widget.session.bundle;
+    applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     final entry = widget.session.connectionEntry;
     if (entry == null) {
@@ -88,23 +112,23 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       neighbors = const [];
     } else {
       final translation = spatialConnectionOffset(
-          entry.sourceSize,
-          activeBundle.map.size,
-          entry.connection.direction,
+        entry.sourceSize,
+        activeBundle.map.size,
+        entry.connection.direction,
         entry.connection.offset,
       );
       sceneOffset += translation;
       neighbors = [
         SpatialSceneNeighbor(
-            map: previous.map,
-            offset: -translation,
+          map: previous.map,
+          offset: -translation,
           loadGroundImage: (id) => groundBytes(previous, id),
         ),
         for (final existing in neighbors)
           if (existing.map.id != activeBundle.map.id)
             SpatialSceneNeighbor(
-                map: existing.map,
-                offset: existing.offset - translation,
+              map: existing.map,
+              offset: existing.offset - translation,
               loadGroundImage: existing.loadGroundImage,
             ),
       ];
@@ -118,10 +142,11 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     RuntimeMapBundle bundle,
     MapConnection connection,
   ) => SpatialSceneNeighbor(
-          map: bundle.map,
-          project: bundle.manifest,
-          loadModel: (id) => widget.session.modelBytesForBundle(bundle, id),
-          offset: spatialConnectionOffset(activeBundle.map.size,
+    map: bundle.map,
+    project: bundle.manifest,
+    loadModel: (id) => widget.session.modelBytesForBundle(bundle, id),
+    offset: spatialConnectionOffset(
+      activeBundle.map.size,
       bundle.map.size,
       connection.direction,
       connection.offset,
@@ -135,7 +160,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       throw StateError('Image du terrain introuvable : $id');
     }
     final file = File(path);
-    if (await file.length() > bundle.resourceBudget.profile.maximumEncodedBytes) {
+    if (await file.length() >
+        bundle.resourceBudget.profile.maximumEncodedBytes) {
       throw const RuntimeResourceAdmissionException('encoded_bytes');
     }
     return file.readAsBytes();
@@ -182,6 +208,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     String renderedMapId,
   ) {
     final frames = widget.session.frames(dt, mapIds: renderedMaps);
+    applyVisuals();
     if (widget.session.bundle.map.id != renderedMapId &&
         widget.session.connectionEntry == null) {
       return renderedFramesMapId == renderedMapId ? renderedFrames : const {};
@@ -211,6 +238,11 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   @override
   void didUpdateWidget(SpatialExplorationView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.previewVisuals != widget.previewVisuals) {
+      oldWidget.previewVisuals?.removeListener(applyVisuals);
+      widget.previewVisuals?.addListener(applyVisuals);
+      applyVisuals();
+    }
     if (oldWidget.session == widget.session) return;
     renderedFramesMapId = null;
     renderedFrames = const {};
@@ -224,6 +256,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
     widget.session.prepareNativeDoorDestination = prepareNativeDestination;
     activeBundle = widget.session.bundle;
+    applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     sceneOffset = Offset.zero;
     neighbors = const [];
@@ -296,19 +329,22 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     bool pressed(LogicalKeyboardKey a, LogicalKeyboardKey b) =>
         keys.contains(a) || keys.contains(b);
     widget.session.movement.setInput(
-        x: (pressed(LogicalKeyboardKey.arrowRight, LogicalKeyboardKey.keyD)
-                ? 1
-                : 0) -
-            (pressed(LogicalKeyboardKey.arrowLeft, LogicalKeyboardKey.keyQ)
-                ? 1
-                : 0),
-        z: (pressed(LogicalKeyboardKey.arrowDown, LogicalKeyboardKey.keyS)
-                ? 1
-                : 0) -
-            (pressed(LogicalKeyboardKey.arrowUp, LogicalKeyboardKey.keyZ)
-                ? 1
-                : 0),
-        run: keys.contains(LogicalKeyboardKey.shiftLeft) ||
+      x:
+          (pressed(LogicalKeyboardKey.arrowRight, LogicalKeyboardKey.keyD)
+              ? 1
+              : 0) -
+          (pressed(LogicalKeyboardKey.arrowLeft, LogicalKeyboardKey.keyQ)
+              ? 1
+              : 0),
+      z:
+          (pressed(LogicalKeyboardKey.arrowDown, LogicalKeyboardKey.keyS)
+              ? 1
+              : 0) -
+          (pressed(LogicalKeyboardKey.arrowUp, LogicalKeyboardKey.keyZ)
+              ? 1
+              : 0),
+      run:
+          keys.contains(LogicalKeyboardKey.shiftLeft) ||
           keys.contains(LogicalKeyboardKey.shiftRight),
     );
     return KeyEventResult.handled;
@@ -324,7 +360,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.transitioning.removeListener(release);
     WidgetsBinding.instance.removeObserver(this);
     focus.dispose();
-    camera.dispose();
+    widget.previewVisuals?.removeListener(applyVisuals);
+    if (widget.sceneController == null) camera.dispose();
     super.dispose();
   }
 
@@ -374,7 +411,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                     frames(dt, renderedOrigin, renderedMaps, renderedMapId),
                 modelRuntimeState: widget.session.modelRuntimeState,
                 modelPresence: widget.session.modelIsPresent,
-                actorOcclusionStateForCell: widget.session.actorOcclusionStateForCell,
+                actorOcclusionStateForCell:
+                    widget.session.actorOcclusionStateForCell,
                 rasterAnimationElapsedMsForCell:
                     widget.session.rasterAnimationElapsedMsForCell,
                 presentationPaused: () => widget.session.presentationPaused,
@@ -433,44 +471,45 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                 ),
               ),
             ),
-              Positioned(
-                  bottom: 16,
-                  left: 16,
-                  child: ValueListenableBuilder<bool>(
-                    valueListenable: widget.session.storyActive,
-                    builder: (context, active, _) => !active
-                        ? const SizedBox.shrink()
-                        : Row(children: [
-                            FilledButton.tonal(
-                                onPressed: widget.session.onSkipStory,
+            Positioned(
+              bottom: 16,
+              left: 16,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: widget.session.storyActive,
+                builder: (context, active, _) => !active
+                    ? const SizedBox.shrink()
+                    : Row(
+                        children: [
+                          FilledButton.tonal(
+                            onPressed: widget.session.onSkipStory,
                             child: const Text('Passer la scène'),
                           ),
-                            const SizedBox(width: 8),
-                            FilledButton.tonal(
-                                onPressed: widget.session.onCancelStory,
+                          const SizedBox(width: 8),
+                          FilledButton.tonal(
+                            onPressed: widget.session.onCancelStory,
                             child: const Text('Annuler'),
                           ),
                         ],
                       ),
               ),
             ),
-              Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 16,
-                  child: ValueListenableBuilder<Object?>(
-                    valueListenable: widget.session.interactionError,
-                    builder: (context, error, _) => error == null &&
-                            neighborError == null
-                        ? const SizedBox.shrink()
-                        : ColoredBox(
-                            color: colors.errorContainer,
-                            child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Text(
-                                    neighborError != null && error == null
-                                        ? 'Impossible d’afficher une carte voisine.'
-                                        : 'Impossible d’ouvrir ce passage ou ce dialogue.',
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: ValueListenableBuilder<Object?>(
+                valueListenable: widget.session.interactionError,
+                builder: (context, error, _) =>
+                    error == null && neighborError == null
+                    ? const SizedBox.shrink()
+                    : ColoredBox(
+                        color: colors.errorContainer,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            neighborError != null && error == null
+                                ? 'Impossible d’afficher une carte voisine.'
+                                : 'Impossible d’ouvrir ce passage ou ce dialogue.',
                             style: TextStyle(color: colors.onErrorContainer),
                           ),
                         ),

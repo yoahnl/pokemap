@@ -1,9 +1,12 @@
 import 'dart:io';
+
 import '../features/resources/data/local_resource_pack_adapter.dart';
 import '../platform/files/native_resource_pack_picker.dart';
 import '../platform/files/native_resource_pack_export_sink.dart';
 import '../features/regional_map/data/local_regional_map_adapter.dart';
+
 import 'package:map_authoring/map_authoring_local.dart';
+
 import '../platform/files/native_project_creation_picker.dart';
 
 import '../features/game_export/data/studio_game_export_controller.dart';
@@ -14,7 +17,9 @@ import '../platform/files/native_pokemon_json_picker.dart';
 import '../platform/files/native_pokemon_png_picker.dart';
 import '../platform/files/native_game_export_picker.dart';
 import '../platform/files/scoped_project_session_adapter.dart';
+
 import 'package:flutter/widgets.dart';
+
 import '../features/cinematics/data/local_cinematic_adapter.dart';
 import '../features/presentations/data/local_presentation_adapter.dart';
 import '../features/verification/data/local_verification_adapter.dart';
@@ -22,8 +27,13 @@ import '../features/world/data/local_world_adapter.dart';
 import '../platform/files/native_presentation_media_picker.dart';
 import '../features/dialogues/data/local_dialogue_adapter.dart';
 import '../features/events/data/local_event_adapter.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'di/home_providers.dart';
+import 'di/rendering_providers.dart';
+import '../features/rendering/application/studio_rendering_preferences.dart';
+import '../platform/files/local_rendering_preferences_store.dart';
 import '../features/scenes/data/local_scene_adapter.dart';
 import '../features/stories/data/local_story_adapter.dart';
 import '../platform/files/studio_preferences.dart';
@@ -50,15 +60,26 @@ class StudioBootstrap extends StatelessWidget {
     this.debugSession,
     this.templateCatalog = const ProjectTemplateCatalog.empty(),
     this.readTemplate,
+    this.renderingPreferences,
   });
 
   final ProjectSessionController? debugSession;
   final ProjectTemplateCatalog templateCatalog;
   final Future<List<int>> Function(Uri)? readTemplate;
+  final StudioRenderingPreferences? renderingPreferences;
 
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      studioRenderingPreferencesProvider.overrideWith((ref) {
+        final supplied = renderingPreferences;
+        if (supplied != null) return supplied;
+        final preferences = StudioRenderingPreferences(
+          studioRenderingPreferencesStore(),
+        );
+        ref.onDispose(preferences.dispose);
+        return preferences;
+      }),
       if (Platform.isMacOS)
         resourcePackExportSinkProvider.overrideWith(
           (ref) => NativeResourcePackExportSink(),
@@ -256,12 +277,20 @@ class StudioBootstrap extends StatelessWidget {
           ) as LocalMapWorkspaceAdapter,
         ),
       ),
-      projectRuntimeBuilderProvider.overrideWithValue(
-        (session, close) => StudioGamePlaytestView(
+      projectRuntimeBuilderProvider.overrideWith((ref) {
+        final preferences = ref.read(studioRenderingPreferencesProvider);
+        return (session, close) => StudioGamePlaytestView(
           projectFilePath: '${session.directoryPath}/project.json',
           onClose: close,
-        ),
-      ),
+          renderingPreferences: preferences,
+        );
+      }),
+      workspaceVisualTestBuilderProvider.overrideWithValue((session, port) {
+        final saves = StudioPlaytestSession();
+        return (entry, revision, close, preview) => StudioPlaytestView(session: session,
+          entry: entry, expectedRevision: revision, port: port, onClose: close,
+          testSession: saves, previewVisuals: preview);
+      }),
       workspaceRuntimeBuilderProvider.overrideWithValue((session, port) {
         final testSession = StudioPlaytestSession();
         return (entry, revision, close) => StudioPlaytestView(

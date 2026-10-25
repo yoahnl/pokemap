@@ -109,6 +109,7 @@ extension _SceneLinkedCinematic on SceneLinkedDocuments {
 }
 
 String _stepLabel(CinematicTimelineStepKind kind) => switch (kind) {
+  CinematicTimelineStepKind.atmosphere => 'Ambiance 3D',
   CinematicTimelineStepKind.wait => 'Attendre',
   CinematicTimelineStepKind.camera => 'Déplacer la caméra',
   CinematicTimelineStepKind.actorMove => 'Déplacer un acteur',

@@ -21,7 +21,7 @@ extension WorldWorkspaceRulePublication on WorldWorkspaceController {
         WorldFailure('Il manque ${draft.missing.join(', ')} à cette règle.'),
       );
     }
-    if (current.target.mapId.isNotEmpty &&
+    if (current.target.kind != WorldRuleTargetKind.atmosphere && current.target.mapId.isNotEmpty &&
         !await loadTargetMap(current.target.mapId)) {
       return false;
     }
@@ -134,6 +134,7 @@ extension WorldWorkspaceRulePublication on WorldWorkspaceController {
     if (ids.isEmpty) return true;
     for (final mapId in {
       for (final id in ids)
+        if (pendingRules[id]?.target?.kind != WorldRuleTargetKind.atmosphere)
         if (pendingRules[id]?.target?.mapId case final String mapId)
           if (mapId.isNotEmpty) mapId,
     }) {

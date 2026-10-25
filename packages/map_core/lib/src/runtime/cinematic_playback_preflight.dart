@@ -242,6 +242,11 @@ CinematicPlaybackPreflightReport preflightCinematicPlayback({
   }
 
   for (final step in cinematic.timeline.steps) {
+    if ((step.kind == CinematicTimelineStepKind.atmosphere) != (step.visualSettings != null) ||
+        (step.visualSettings?.isEmpty ?? false) ||
+        (step.kind == CinematicTimelineStepKind.atmosphere && (step.durationMs == null || step.durationMs! > 60000))) {
+      issues.add(_stepIssue(step, 'requires visual settings and a duration within 0..60000 ms.'));
+    }
     if (step.durationMs != null && step.durationMs! < 0) {
       issues.add(_stepIssue(step, 'has a negative duration.'));
     }

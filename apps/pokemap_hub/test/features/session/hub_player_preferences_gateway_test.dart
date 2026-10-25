@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +23,43 @@ void main() {
 
   tearDown(() async {
     if (await root.exists()) await root.delete(recursive: true);
+  });
+
+  test('frame rate survives runtime save and a fresh gateway load', () async {
+    final next = RuntimeCompanionPresentationCodec.decodePlayerPreferencesSnapshot({
+      ...RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+        await gateway.load(),
+      ),
+      'targetFramesPerSecond': 90,
+    });
+    await gateway.save(next);
+
+    final reloaded = await HubPlayerPreferencesGateway(
+      store: HubPreferencesStore(supportRoot: root),
+      fallbackLocale: 'fr',
+    ).load();
+    expect(
+      RuntimeCompanionPresentationCodec.encodePlayerPreferencesSnapshot(
+        reloaded,
+      )['targetFramesPerSecond'],
+      90,
+    );
+    expect((await store.load()).preferences.toJson()['targetFramesPerSecond'], 90);
+  });
+
+  test('invalid frame rate leaves the original preference file unchanged', () async {
+    final file = File('${root.path}/preferences.json');
+    final original = jsonEncode({
+      ...const PlayerPreferences().toJson(),
+      'targetFramesPerSecond': 144,
+    });
+    await file.writeAsString(original, flush: true);
+
+    final read = await store.load();
+
+    expect(read.currentCorrupt, isTrue);
+    expect(read.preferences.targetFramesPerSecond, 60);
+    expect(await file.readAsString(), original);
   });
 
   test('projects safe defaults when no preferences were persisted', () async {

@@ -8,6 +8,7 @@ import '../../contracts/authoring_receipt.dart';
 import '../../workspace/project_snapshot.dart';
 import 'catalog_working_mutation.dart';
 import 'catalog_targeted_map_edit.dart';
+import 'catalog_spatial_map_selection.dart';
 import 'catalog_workshop_selection.dart';
 import 'catalog_scoped_working_mutation.dart';
 import '../../catalog_storage/catalog_editing_session.dart';
@@ -181,6 +182,7 @@ final class CatalogAuthoringSession {
           'The request does not belong to this workspace.');
     }
     if (request.actionId == 'map.save') return _planMap(request);
+    if (CatalogSpatialMapSelection.supports(request.actionId, parameters: request.parameters)) return _planSpatialMap(request);
     if (request.actionId != catalogDefinitionUpdateDescriptor.id) {
       return request.extensions['workshopScope'] == true || CatalogWorkshopSelection.supports(request.actionId)
           ? _planWorkshop(request) : _planProject(request);
@@ -333,6 +335,10 @@ final class CatalogAuthoringSession {
     requireRead();
     final current = (await CatalogProjectReader.open(store: reader.store,
         descriptor: reader.descriptor, metadataFields: {}))!;
+    if (CatalogSpatialMapSelection.supports(actionId, parameters: parameters)) {
+      if (readDependencies.isNotEmpty) throw const FormatException('catalog.spatial: external read dependencies are unsupported');
+      return (await CatalogSpatialMapSelection.read(reader: current, projectHandle: projectHandle, actionId: actionId, parameters: parameters)).snapshot;
+    }
     return (await CatalogWorkshopSelection.read(reader: current,
         projectHandle: projectHandle, actionId: actionId,
         parameters: parameters, readDependencies: readDependencies)).snapshot;
@@ -448,6 +454,50 @@ final class CatalogAuthoringSession {
             snapshotRevision: edit.selection.snapshotRevision));
   }
 
+  Future<AuthoringMutationPlanResult> _planSpatialMap(
+      AuthoringRequest request) async {
+    final current = (await CatalogProjectReader.open(
+        store: reader.store,
+        descriptor: reader.descriptor,
+        metadataFields: {}))!;
+    final selection = await CatalogSpatialMapSelection.read(
+        reader: current,
+        projectHandle: projectHandle,
+        actionId: request.actionId,
+        parameters: request.parameters);
+    final built = await buildScopedProjectPlan(request, selection.snapshot);
+    if (!built.applicable) { return built; }
+    try {
+      final mutation = await selection.translate(built.plan);
+      final editing = await _editing();
+      if ('sha256:${editing.snapshot.root.sha256}' != selection.catalogRevision) {
+        throw AuthoringPlanException(
+            code: 'plan.stale',
+            message: 'The catalog changed during spatial map planning.'); }
+      final prepared = await editing.planPatch(
+          additionalChanges: mutation.changes,
+          workspaceFingerprint: mutation.fingerprint,
+          publicBaseRevision: selection.snapshot.revision,
+          publicDiff: mutation.diff,
+          publicPlan: built.plan,
+          currentProjectRevision: selection.currentRevision,
+          idempotencyKey: request.idempotencyKey!,
+          request: request);
+      _plans[prepared.plan.planId] = prepared;
+      final receipt = prepared.plan.toPlannedReceipt();
+      return AuthoringMutationPlanResult(
+          plan: prepared.plan,
+          snapshotRevision: selection.snapshot.revision,
+          receipt: receipt,
+          publicProjection: await projections?.preparePlan(
+              plan: prepared.plan,
+              receipt: receipt,
+              snapshotRevision: selection.snapshot.revision));
+    } finally {
+      await discardProjectPlan(built.planId);
+    }
+  }
+
   Future<AuthoringMutationPlanResult> _planProject(
       AuthoringRequest request) async {
     final built = await buildProjectPlan(request);
@@ -500,7 +550,7 @@ final class CatalogAuthoringSession {
 
   Future<bool> _isCatalogOnlyReceipt(AuthoringReceipt receipt) async {
     if (receipt.diff.entries.any((entry) =>
-        entry.resource.extensions.containsKey('workshopResourcePaths'))) {
+        (entry.resource.extensions.containsKey('workshopResourcePaths') || entry.resource.extensions.containsKey('nativeMapResourcePath')))) {
       return true;
     }
     if (const {'catalog.definition.update', 'map.save'}
@@ -525,6 +575,12 @@ final class CatalogAuthoringSession {
     final current = (await CatalogProjectReader.open(
         store: reader.store, descriptor: reader.descriptor, metadataFields: {}))!;
     for (final entry in receipt.diff.entries) {
+      final nativePath = entry.resource.extensions['nativeMapResourcePath'];
+      if (nativePath is String) {
+        final revision = await reader.store.gateway.readResourceRevision(nativePath);
+        if (revision == null) throw const FormatException('catalog.spatial: selected map missing');
+        return CatalogSpatialMapSelection.fingerprint(current.revision, entry.resource.id, revision);
+      }
       final paths = entry.resource.extensions['workshopResourcePaths'];
       if (paths is List) {
         return CatalogWorkshopSelection.fingerprint(current.revision, {

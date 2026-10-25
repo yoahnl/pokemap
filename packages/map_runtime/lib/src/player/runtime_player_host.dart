@@ -1,3 +1,4 @@
+import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:map_core/map_core.dart';
 
 import '../session/game_session_contract.dart';
@@ -130,7 +131,16 @@ final class PlayerPreferencesSnapshot {
     this.showInputHints = true,
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
+    this.targetFramesPerSecond = AveluneFrameRate.defaultLimit,
   })  : assert(locale != ''),
+        assert(
+          targetFramesPerSecond == 30 ||
+              targetFramesPerSecond == 45 ||
+              targetFramesPerSecond == 60 ||
+              targetFramesPerSecond == 90 ||
+              targetFramesPerSecond == 120,
+          'targetFramesPerSecond must be a supported frame rate limit',
+        ),
         assert(
           touchControlsOpacity >= 0.3 && touchControlsOpacity <= 1,
           'touchControlsOpacity must be between 0.3 and 1',
@@ -146,6 +156,7 @@ final class PlayerPreferencesSnapshot {
   final bool showInputHints;
   final RuntimeDialogueTextSpeed dialogueTextSpeed;
   final RuntimePlayerMenuEffects menuEffects;
+  final int targetFramesPerSecond;
 
   PlayerPreferencesSnapshot copyWith({
     String? locale,
@@ -158,6 +169,7 @@ final class PlayerPreferencesSnapshot {
     bool? showInputHints,
     RuntimeDialogueTextSpeed? dialogueTextSpeed,
     RuntimePlayerMenuEffects? menuEffects,
+    int? targetFramesPerSecond,
   }) =>
       PlayerPreferencesSnapshot(
         locale: locale ?? this.locale,
@@ -171,6 +183,8 @@ final class PlayerPreferencesSnapshot {
         showInputHints: showInputHints ?? this.showInputHints,
         dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
         menuEffects: menuEffects ?? this.menuEffects,
+        targetFramesPerSecond:
+            targetFramesPerSecond ?? this.targetFramesPerSecond,
       );
 }
 

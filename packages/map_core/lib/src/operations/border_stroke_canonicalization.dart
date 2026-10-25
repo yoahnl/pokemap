@@ -74,7 +74,8 @@ BorderStroke canonicalizeBorderStrokeV1({
     rasterized.removeLast();
   }
 
-  _validateCanonicalizableChain(rasterized, closed: closed);
+  _validateCanonicalizableChain(rasterized,
+      closed: closed, preserveTraversal: preserveTraversal);
   final canonicalPoints = preserveTraversal
       ? rasterized
       : closed
@@ -110,6 +111,7 @@ BorderStrokeGeometry canonicalizeBorderStrokeGeometryV1(
 void _validateCanonicalizableChain(
   List<GridPos> points, {
   required bool closed,
+  required bool preserveTraversal,
 }) {
   final minimum = closed ? 4 : 2;
   if (points.length < minimum) {
@@ -143,10 +145,7 @@ void _validateCanonicalizableChain(
     );
   }
 
-  // A non-consecutive cardinal contact introduces an undeclared edge and can
-  // create a branch/crossing even though the ordered chain itself is valid.
-  // The point index keeps this check linear: inspect only the four possible
-  // cardinal neighbors and visit each discovered pair once.
+  if (preserveTraversal) return;
   for (var first = 0; first < points.length; first += 1) {
     final point = points[first];
     for (final offset in _cardinalNeighborOffsets) {

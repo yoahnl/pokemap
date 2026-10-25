@@ -43,6 +43,8 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
     private val channel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.avelune.runtime/library")
     private val platform = MethodChannel(engine.dartExecutor.binaryMessenger, "com.yoahnl.avelune.player/android")
     private val diagnostics = MethodChannel(engine.dartExecutor.binaryMessenger, "com.avelune.runtime/diagnostics")
+    private val frameRateChannel = MethodChannel(engine.dartExecutor.binaryMessenger, "com.avelune.runtime/frame_rate")
+    private val frameRate = RuntimeFrameRate()
     private val settings = context.getSharedPreferences("avelune_settings", Context.MODE_PRIVATE)
     private val inputManager = context.getSystemService(InputManager::class.java)
     private val inputListeners = mutableSetOf<InputManager.InputDeviceListener>()
@@ -59,10 +61,23 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
     val activeGame: StateFlow<String?> = mutableActiveGame.asStateFlow()
     val presentationFailure = mutablePresentationFailure.asStateFlow()
     val recovery = mutableRecovery.asStateFlow()
+    val frameRateLimit: StateFlow<Int> = frameRate.limit
     val surfaceProbe = SurfaceProbeSession(context, engine, engineGroup, displays, ::awaitReady)
     val gameplayCompanion = RuntimeCompanionSession(context, engine, engineGroup, displays)
 
     init {
+        frameRateChannel.setMethodCallHandler { call, result ->
+            if (call.method == "setLimit") {
+                try {
+                    frameRate.setLimit(call.arguments)
+                    result.success(null)
+                } catch (error: IllegalArgumentException) {
+                    result.error("invalidArguments", "Limite d’images par seconde invalide.", null)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
         diagnostics.setMethodCallHandler { call, result ->
             if (call.method == "processSample") {
                 runCatching { NativeProcessMetrics.read(context.applicationContext) }
@@ -192,6 +207,7 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
         channel.setMethodCallHandler(null)
         platform.setMethodCallHandler(null)
         diagnostics.setMethodCallHandler(null)
+        frameRateChannel.setMethodCallHandler(null)
         val cache = FlutterEngineCache.getInstance()
         if (cache.get(ENGINE_ID) === engine) cache.remove(ENGINE_ID)
         engine.destroy()

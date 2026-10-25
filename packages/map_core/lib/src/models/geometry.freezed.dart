@@ -1289,8 +1289,8 @@ return $default(_that.pos,_that.size);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _MapRect implements MapRect {
   const _MapRect({required this.pos, required this.size});
   factory _MapRect.fromJson(Map<String, dynamic> json) => _$MapRectFromJson(json);

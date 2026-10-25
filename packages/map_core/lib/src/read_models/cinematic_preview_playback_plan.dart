@@ -1189,6 +1189,8 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
 
     if (relativeOriginIssues.isEmpty && !relativeGeometryInvalid) {
       switch (step.kind) {
+      case CinematicTimelineStepKind.atmosphere:
+        break;
       case CinematicTimelineStepKind.actorFace:
         final direction = cinematicTimelineActorFacingDirectionOf(step);
         if (step.actorId == null || !actorTrackIds.contains(step.actorId)) {
@@ -1436,6 +1438,8 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
     for (final member in group.members) {
       final item = plan.timelineItems[member.stepIndex];
       switch (item.kind) {
+        case CinematicTimelineStepKind.atmosphere:
+          break;
         case CinematicTimelineStepKind.actorFace:
           final direction = plan._actorFaceDirections[item.stepId];
           final actorId = item.actorId;
@@ -2380,6 +2384,7 @@ CinematicActorEmotePlaybackState _emotePlaybackStateFor({
 
 bool _stepSupportedForPlayback(CinematicTimelineStep step) {
   return switch (step.kind) {
+    CinematicTimelineStepKind.atmosphere => step.visualSettings?.isEmpty == false,
     CinematicTimelineStepKind.actorJump =>
       cinematicTimelineActorFacingModeOf(step) != null &&
           cinematicTimelineActorJumpHeightCellsOf(step) != null,

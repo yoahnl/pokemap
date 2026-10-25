@@ -1,16 +1,86 @@
 import 'dart:convert';
 import 'dart:async';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flame/cache.dart';
 import 'package:flame/flame.dart';
 import 'package:flame_3d/model.dart';
+import 'package:flame_3d/graphics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
+import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
+import 'package:map_render_3d/src/spatial_pixel_material.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('model textures upload straight RGB for every glTF alpha mode', () async {
+    final pixels = [
+      [255, 255, 255, 115],
+      [0, 0, 0, 115],
+      [128, 64, 32, 115],
+      [255, 128, 64, 255],
+      [0, 0, 0, 0],
+    ];
+    for (final mode in ['BLEND', 'MASK', 'OPAQUE']) {
+      final backend = _AlphaUploadBackend();
+      final model = await ModelByteLoader.load(
+        _texturedTriangle(pixels, alphaMode: mode),
+      );
+      final material =
+          model.nodes.values.single.mesh!.surfaces.single.material
+              as SpatialPixelMaterial;
+
+      material.albedoTexture.resource;
+
+      expect(backend.uploads, hasLength(1), reason: mode);
+      expect(backend.size, const ui.Size(5, 1));
+      expect(backend.format, GpuPixelFormat.rgba8888);
+      final uploaded = backend.uploads.single;
+      expect(uploaded.take(4), pixels.first, reason: '$mode semi-white');
+      expect(uploaded.skip(4).take(4), pixels[1], reason: '$mode semi-black');
+      for (var channel = 0; channel < 4; channel++) {
+        expect(
+          uploaded[8 + channel],
+          closeTo(pixels[2][channel], 1),
+          reason: '$mode colored channel $channel',
+        );
+      }
+      expect(uploaded.skip(12).take(4), pixels[3], reason: '$mode opaque');
+      expect(uploaded.skip(16), pixels[4], reason: '$mode transparent');
+      expect(material.alphaMode, switch (mode) {
+        'BLEND' => Model3dAlphaMode.blend,
+        'MASK' => Model3dAlphaMode.mask,
+        _ => Model3dAlphaMode.opaque,
+      });
+    }
+  });
+
+  test('straight model texture upload keeps material color and opacity factors', () async {
+    final backend = _AlphaUploadBackend();
+    final model = await ModelByteLoader.load(
+      _texturedTriangle(
+        [[255, 255, 255, 115]],
+        alphaMode: 'BLEND',
+        colorFactor: [.5, .25, .75, .5],
+      ),
+    );
+    final material =
+        model.nodes.values.single.mesh!.surfaces.single.material
+            as SpatialPixelMaterial;
+
+    material.albedoTexture.resource;
+
+    expect(backend.uploads.single, [255, 255, 255, 115]);
+    expect(material.albedoColor.r, .5);
+    expect(material.albedoColor.g, .25);
+    expect(material.albedoColor.b, .75);
+    expect(material.albedoColor.a, .5);
+    expect(material.alphaMode, Model3dAlphaMode.blend);
+  });
 
   test(
     'scene model preload overlaps four reads and reuses cached models',
@@ -241,6 +311,111 @@ class _Bundle extends CachingAssetBundle {
     if (key != 'assets/ordinary.txt') throw StateError('Unexpected asset $key');
     return ByteData.sublistView(Uint8List.fromList(utf8.encode('ordinary')));
   }
+}
+
+final class _AlphaUploadBackend extends GpuBackend {
+  final uploads = <List<int>>[];
+  ui.Size? size;
+  GpuPixelFormat? format;
+
+  @override
+  GpuTexture createTexture({
+    required GpuStorageMode storageMode,
+    required int width,
+    required int height,
+    required GpuPixelFormat format,
+  }) {
+    size = ui.Size(width.toDouble(), height.toDouble());
+    this.format = format;
+    return _AlphaUploadTexture(uploads);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError(invocation.memberName.toString());
+}
+
+final class _AlphaUploadTexture implements GpuTexture {
+  _AlphaUploadTexture(this.uploads);
+  final List<List<int>> uploads;
+
+  @override
+  void write(ByteData data) {
+    uploads.add(
+      data.buffer
+          .asUint8List(data.offsetInBytes, data.lengthInBytes)
+          .toList(),
+    );
+  }
+
+  @override
+  ui.Image asImage() => throw UnsupportedError('GPU upload capture only');
+}
+
+Uint8List _texturedTriangle(
+  List<List<int>> pixels, {
+  required String alphaMode,
+  List<double> colorFactor = const [1, 1, 1, 1],
+}) {
+  final source = _triangle('Alpha fixture');
+  final sourceData = ByteData.sublistView(source);
+  final jsonLength = sourceData.getUint32(12, Endian.little);
+  final json = jsonDecode(utf8.decode(source.sublist(20, 20 + jsonLength)))
+      as Map<String, dynamic>;
+  final image = img.Image(width: pixels.length, height: 1, numChannels: 4);
+  for (var index = 0; index < pixels.length; index++) {
+    final rgba = pixels[index];
+    image.setPixelRgba(index, 0, rgba[0], rgba[1], rgba[2], rgba[3]);
+  }
+  final png = img.encodePng(image);
+  final binary = Uint8List(60 + png.length);
+  binary.setRange(0, 36, source.sublist(28 + jsonLength, 64 + jsonLength));
+  binary.setRange(60, binary.length, png);
+  json['buffers'][0]['byteLength'] = binary.length;
+  json['bufferViews'].addAll([
+    {'buffer': 0, 'byteOffset': 36, 'byteLength': 24},
+    {'buffer': 0, 'byteOffset': 60, 'byteLength': png.length},
+  ]);
+  json['accessors'].add({
+    'bufferView': 1,
+    'componentType': 5126,
+    'count': 3,
+    'type': 'VEC2',
+  });
+  json['meshes'][0]['primitives'][0]['attributes']['TEXCOORD_0'] = 1;
+  json['meshes'][0]['primitives'][0]['material'] = 0;
+  json['images'] = [
+    {'bufferView': 2, 'mimeType': 'image/png'},
+  ];
+  json['textures'] = [
+    {'source': 0},
+  ];
+  json['materials'] = [
+    {
+      'alphaMode': alphaMode,
+      if (alphaMode == 'MASK') 'alphaCutoff': .5,
+      'pbrMetallicRoughness': {
+        'baseColorTexture': {'index': 0},
+        'baseColorFactor': colorFactor,
+      },
+    },
+  ];
+  final encodedJson = utf8.encode(jsonEncode(json));
+  final paddedJsonLength = (encodedJson.length + 3) ~/ 4 * 4;
+  final paddedBinaryLength = (binary.length + 3) ~/ 4 * 4;
+  final output = Uint8List(28 + paddedJsonLength + paddedBinaryLength);
+  final outputData = ByteData.sublistView(output);
+  outputData.setUint32(0, 0x46546c67, Endian.little);
+  outputData.setUint32(4, 2, Endian.little);
+  outputData.setUint32(8, output.length, Endian.little);
+  outputData.setUint32(12, paddedJsonLength, Endian.little);
+  outputData.setUint32(16, 0x4e4f534a, Endian.little);
+  output.fillRange(20, 20 + paddedJsonLength, 32);
+  output.setRange(20, 20 + encodedJson.length, encodedJson);
+  outputData.setUint32(20 + paddedJsonLength, paddedBinaryLength, Endian.little);
+  outputData.setUint32(24 + paddedJsonLength, 0x004e4942, Endian.little);
+  output.setRange(28 + paddedJsonLength, 28 + paddedJsonLength + binary.length, binary);
+  return output;
 }
 
 Uint8List _triangle(String name) {

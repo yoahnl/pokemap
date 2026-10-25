@@ -59,6 +59,7 @@ abstract class GridSize with _$GridSize {
 
 @freezed
 abstract class MapRect with _$MapRect {
+  @JsonSerializable(explicitToJson: true)
   const factory MapRect({
     required GridPos pos,
     required GridSize size,

@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import 'narrative_value.dart';
+import 'spatial_visual_profile.dart';
 
 enum WorldRuleSourceKind {
   fact,
@@ -26,6 +27,7 @@ enum WorldRuleTargetKind {
 
   /// Project-owned Event V2 stored in `NarrativeEventRegistry`.
   narrativeEvent,
+  atmosphere,
 }
 
 enum WorldRuleEffectKind {
@@ -35,6 +37,7 @@ enum WorldRuleEffectKind {
   eventEnabled,
   eventDisabled,
   eventHidden,
+  atmosphere,
 }
 
 @immutable
@@ -217,23 +220,27 @@ final class WorldRuleEffect {
     required this.kind,
     this.dialogueId,
     this.label,
+    this.visualSettings,
   });
 
   factory WorldRuleEffect.fromJson(Map<String, dynamic> json) {
     return WorldRuleEffect(
       kind: _readEnum(WorldRuleEffectKind.values, json['kind'], 'kind'),
       dialogueId: _readOptionalString(json, 'dialogueId'),
+      visualSettings: json['visualSettings'] == null ? null : SpatialVisualPatch.fromJson(Map<String, dynamic>.from(json['visualSettings'] as Map)),
       label: _readOptionalString(json, 'label'),
     );
   }
 
   final WorldRuleEffectKind kind;
   final String? dialogueId;
+  final SpatialVisualPatch? visualSettings;
   final String? label;
 
   Map<String, dynamic> toJson() => _withoutNulls({
         'kind': kind.name,
         'dialogueId': dialogueId,
+        'visualSettings': visualSettings?.toJson(),
         'label': label,
       });
 
@@ -243,10 +250,11 @@ final class WorldRuleEffect {
       other is WorldRuleEffect &&
           other.kind == kind &&
           other.dialogueId == dialogueId &&
+          other.visualSettings == visualSettings &&
           other.label == label;
 
   @override
-  int get hashCode => Object.hash(kind, dialogueId, label);
+  int get hashCode => Object.hash(kind, dialogueId, label, visualSettings);
 }
 
 @immutable
@@ -358,6 +366,7 @@ bool isWorldRuleEffectCompatibleWithTarget(
   WorldRuleEffectKind effectKind,
 ) {
   return switch (targetKind) {
+    WorldRuleTargetKind.atmosphere => effectKind == WorldRuleEffectKind.atmosphere,
     WorldRuleTargetKind.mapEntity =>
       effectKind == WorldRuleEffectKind.entityVisible ||
           effectKind == WorldRuleEffectKind.entityHidden,

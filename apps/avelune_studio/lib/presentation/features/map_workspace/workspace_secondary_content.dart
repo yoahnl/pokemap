@@ -34,6 +34,7 @@ import '../resources/resource_workspace_pane.dart';
 import 'map_workspace_visuals.dart';
 
 enum WorkspaceSpace {
+  projectSettings,
   map,
   regionalMap,
   resources,

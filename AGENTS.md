@@ -266,6 +266,14 @@ Do not pivot from mechanics to shadows, surfaces, tileset polish, or rendering u
 
 PokeMap owns its data. Do not make Tiled, RMXP, Pokemon SDK, or other external editors/formats runtime requirements. They can inspire layouts/imports, but PokeMap must author and run its own project data.
 
+Native map construction is mandatory for reconstructions as well as new maps:
+
+- Paint repeatable ground through the native terrain system, and water and roads through connected native paths.
+- Author shores, cliffs and relief edges with native Borders, including their contour and corner rules.
+- Place complete reusable trees through the Environment/tree system, including their base when it belongs to the tree.
+- Keep other objects complete and reusable. Border profile modules remain owned by their native contour; do not assemble terrain or objects from independently placed visual fragments.
+- Verify visual fidelity and native editability separately. A matching screenshot alone does not prove that a map uses these systems.
+
 Package boundaries:
 
 - shared contracts and JSON models: `map_core`;

@@ -1123,6 +1123,7 @@ String _worldRulePredicateLabel(
 
 String _worldRuleTargetId(WorldRuleTarget target) {
   return switch (target.kind) {
+    WorldRuleTargetKind.atmosphere => target.label ?? 'Ambiance de ${target.mapId}',
     WorldRuleTargetKind.mapEntity =>
       target.entityId ?? target.eventId ?? target.mapId,
     WorldRuleTargetKind.npcDialogue =>
@@ -1141,6 +1142,7 @@ String _worldRuleTargetLabel(WorldRuleTarget target) {
 String _worldRuleEffectLabel(WorldRuleEffect effect) {
   return effect.label ??
       switch (effect.kind) {
+    WorldRuleEffectKind.atmosphere => 'Modifier l’ambiance 3D',
         WorldRuleEffectKind.entityVisible => 'Rend visible',
         WorldRuleEffectKind.entityHidden => 'Masque l’élément',
         WorldRuleEffectKind.npcDialogueOverride => 'Change le dialogue',

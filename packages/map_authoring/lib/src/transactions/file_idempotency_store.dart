@@ -1094,6 +1094,7 @@ _FileIdempotencyDecodeResult _decodeIdempotencyEvents(Uint8List bytes) {
 bool _usesScopedLedger(String actionId) => const {
       'characterStudio.contactShadow.set',
       'map.atmosphere.set',
+      'visual.settings.set',
       'map.editor.set',
       'map.elements.reorder',
     }.contains(actionId);

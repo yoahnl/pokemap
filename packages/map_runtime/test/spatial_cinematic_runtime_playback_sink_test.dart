@@ -6,6 +6,24 @@ import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtim
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
+  test('atmosphere interpolation restores the original overlay on completion and cancellation', () async {
+    for (final cancelled in [false, true]) {
+      final host = _Host();
+      host.visual = SpatialVisualPatch.fromJson({'haloStrength': .7});
+      final initial = host.visual;
+      final asset = _asset().copyWith(timeline: CinematicTimeline(steps: [CinematicTimelineStep(id: 'light', kind: CinematicTimelineStepKind.atmosphere,
+        durationMs: 1000, visualSettings: SpatialVisualPatch.fromJson({'haloStrength': 1.7}))]));
+      final controller = host.controller();
+      final done = controller.play(asset);
+      controller.update(const Duration(milliseconds: 500));
+      expect(host.visual.number(SpatialVisualParameter.haloStrength), closeTo(1.2, .0001));
+      if (cancelled) {controller.cancel();} else {controller.update(const Duration(milliseconds: 500));}
+      expect((await done).success, !cancelled);
+      expect(host.visual, initial);
+      expect(host.locked, isFalse);
+    }
+  });
+
   test('parallel emote expiry preserves the other actor facing', () async {
     final host = _MultiActorHost();
     final controller = host.controller();
@@ -571,6 +589,7 @@ void main() {
 }
 
 final class _Host {
+  SpatialVisualPatch visual = SpatialVisualPatch();
   final project = const ProjectManifest(
       name: 'Spatial',
       maps: [],
@@ -598,6 +617,9 @@ final class _Host {
       CinematicRuntimePlaybackController(
           sink: SpatialCinematicRuntimePlaybackSink(
         project: project,
+        readVisuals: () => SpatialVisualPatch.fromScene(camera: map.spatialScene!.camera, atmosphere: SpatialAtmosphereSettings()).overriddenBy(visual),
+        readVisualOverrides: () => visual,
+        writeVisuals: (value) => visual = value,
         activeMap: () =>
             mapUnavailable ? throw StateError('Map disposed') : map,
         readActor: (_) => actorPresent ? pose : null,

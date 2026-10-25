@@ -182,8 +182,8 @@ Future<ProjectManifest> _decodeProjectManifestOffThread(
     if (raw['format'] == 'avelune.working-catalog') {
       final project = await loadWorkingRuntimeProjectManifest(
         p.join(projectRoot, 'project.json'),
-        expectedSourceSha256:
-            narrativeEventBytesFingerprint(utf8.encode(text)).substring(7),
+        expectedSourceSha256: narrativeEventBytesFingerprint(utf8.encode(text))
+            .substring(7),
       );
       final manifest = normalizeRuntimeProjectManifest(project);
       ProjectValidator.validate(manifest);
@@ -422,6 +422,50 @@ Future<SpatialAtmosphereSettings> loadSpatialAtmosphereSettings({
   }
 }
 
+Future<SpatialVisualPatch> loadSpatialVisualProfile({
+  required String projectRoot,
+  String? mapId,
+}) async {
+  final relativePath = mapId == null
+      ? SpatialVisualDocument.projectRelativePath
+      : SpatialVisualDocument.relativePathForMap(mapId);
+  const reader = LocalProjectFileReader();
+  final root = await reader.canonicalizeDirectory(projectRoot);
+  final probe = await reader.probeResource(
+    projectRoot: root,
+    relativePath: relativePath,
+  );
+  if (probe.status == ProjectResourceProbeStatus.missing)
+    return SpatialVisualPatch();
+  try {
+    if (probe.status != ProjectResourceProbeStatus.exists ||
+        probe.identity!.byteLength > SpatialVisualDocument.maxBytes) {
+      throw const FormatException(
+        'Visual document is unsafe or exceeds its byte limit.',
+      );
+    }
+    final bytes = await reader.readBytes(
+      projectRoot: root,
+      relativePath: relativePath,
+    );
+    if (bytes.length > SpatialVisualDocument.maxBytes) {
+      throw const FormatException('Visual document exceeds its byte limit.');
+    }
+    final document = SpatialVisualDocument.fromJson(
+      Map<String, dynamic>.from(
+        decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map,
+      ),
+    );
+    if (document.mapId != mapId)
+      throw const FormatException('Visual document identity mismatch.');
+    return document.profile;
+  } on Object catch (error) {
+    throw MapLoadException(
+      'Failed to load visual settings $relativePath: $error',
+    );
+  }
+}
+
 Future<RuntimeMapBundle> loadRuntimeMapBundle({
   required String projectFilePath,
   required String mapId,
@@ -507,6 +551,13 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     projectRoot: projectRoot,
     mapId: map.id,
   );
+  final projectVisualProfile = await loadSpatialVisualProfile(
+    projectRoot: projectRoot,
+  );
+  final mapVisualProfile = await loadSpatialVisualProfile(
+    projectRoot: projectRoot,
+    mapId: map.id,
+  );
   mapWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.mapData);
   final assetCatalogWatch = Stopwatch()..start();
@@ -558,6 +609,8 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
       manifest: manifest,
       map: map,
       spatialAtmosphereSettings: atmosphere,
+      projectVisualProfile: projectVisualProfile,
+      mapVisualProfile: mapVisualProfile,
       projectRootDirectory: projectRoot,
       tilesetAbsolutePathsById: paths,
       characterAnimationAbsolutePathsByAssetId:

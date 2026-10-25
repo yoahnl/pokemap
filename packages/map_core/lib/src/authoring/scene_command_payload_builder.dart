@@ -645,7 +645,7 @@ SceneNodePayload _buildWorldPresentationPayload(Map<String, String> parameters) 
   const numbers = {'x', 'y', 'scaleX', 'scaleY', 'opacity', 'red', 'green', 'blue', 'alpha', 'power', 'speed'};
   for (final entry in parameters.entries) {
     if (entry.value.trim().isEmpty) { continue; }
-    json[entry.key] = integers.contains(entry.key) ? int.parse(entry.value) : numbers.contains(entry.key) ? double.parse(entry.value) : entry.key == 'waitForCompletion' ? entry.value == 'true' : entry.value;
+    json[entry.key] = entry.key == 'visualSettings' ? jsonDecode(entry.value) : integers.contains(entry.key) ? int.parse(entry.value) : numbers.contains(entry.key) ? double.parse(entry.value) : entry.key == 'waitForCompletion' ? entry.value == 'true' : entry.value;
   }
   return SceneActionPayload.interactive(SceneWorldPresentationInteractiveCommand.fromJson(json));
 }

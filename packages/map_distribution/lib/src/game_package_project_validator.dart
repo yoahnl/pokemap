@@ -62,6 +62,23 @@ final class GamePackageProjectValidator {
           !objectPaths.containsAll(consumed)) {
         _fail('Unreachable catalog objects are forbidden.');
       }
+      final visualPaths = <String, String?>{
+        'project/${SpatialVisualDocument.projectRelativePath}': null,
+        for (final entry in project.maps) 'project/${SpatialVisualDocument.relativePathForMap(entry.id)}': entry.id,
+      };
+      var visualProfiles = false;
+      for (final entry in visualPaths.entries) {
+        if (!payloadPaths.contains(entry.key)) continue;
+        visualProfiles = true;
+        final bytes = readPayload(entry.key);
+        if (bytes == null || bytes.length > SpatialVisualDocument.maxBytes) _fail('Invalid visual settings payload.');
+        final document = SpatialVisualDocument.fromJson(Map<String, dynamic>.from(decodeNarrativeEventJsonStrict(utf8.decode(bytes!)) as Map));
+        if (document.mapId != entry.value) _fail('Visual settings identity mismatch.');
+      }
+      if ((visualProfiles || project.worldRules.any((rule) => rule.effect.kind == WorldRuleEffectKind.atmosphere) ||
+          project.cinematics.any((asset) => asset.timeline.steps.any((step) => step.kind == CinematicTimelineStepKind.atmosphere)) ||
+          project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneWorldPresentationInteractiveCommand && const {SceneWorldPresentationOperation.atmosphere, SceneWorldPresentationOperation.restoreAtmosphere}.contains(((node.payload as SceneActionPayload).interactiveCommand as SceneWorldPresentationInteractiveCommand).operation)))) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(SpatialVisualDocument.capabilityId)) _fail('Visual profiles require map3d.visual-profile@1.');
       _validateComplexity(project.toJson());
       ProjectValidator.validate(project);
       if (GameCompletionPartyCapabilities.requiresCapability(project) &&

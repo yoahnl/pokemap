@@ -243,6 +243,11 @@ final class CanonicalGamePackageExportService {
       }
       final requiredCapabilities = <String>{
         ...profile.requiredCapabilities,
+        if (projection.payloadFiles.keys.any((path) => path == 'project/project.visual.json' || path.endsWith('.visual.json')) ||
+            projection.project.worldRules.any((rule) => rule.effect.kind == WorldRuleEffectKind.atmosphere) ||
+            projection.project.cinematics.any((asset) => asset.timeline.steps.any((step) => step.kind == CinematicTimelineStepKind.atmosphere)) ||
+            projection.project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneWorldPresentationInteractiveCommand && const {SceneWorldPresentationOperation.atmosphere, SceneWorldPresentationOperation.restoreAtmosphere}.contains(((node.payload as SceneActionPayload).interactiveCommand as SceneWorldPresentationInteractiveCommand).operation))))
+          SpatialVisualDocument.capabilityId,
         if (GameCompletionPartyCapabilities.requiresCapability(projection.project))
           GameCompletionPartyCapabilities.capabilityId,
         if (projection.project.maps.isNotEmpty)

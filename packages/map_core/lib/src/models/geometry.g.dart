@@ -46,6 +46,6 @@ _MapRect _$MapRectFromJson(Map<String, dynamic> json) => _MapRect(
 );
 
 Map<String, dynamic> _$MapRectToJson(_MapRect instance) => <String, dynamic>{
-  'pos': instance.pos,
-  'size': instance.size,
+  'pos': instance.pos.toJson(),
+  'size': instance.size.toJson(),
 };

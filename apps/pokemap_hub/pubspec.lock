@@ -104,13 +104,20 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  avelune_rendering:
+    dependency: transitive
+    description:
+      path: "../../packages/avelune_rendering"
+      relative: true
+    source: path
+    version: "0.1.0"
   avelune_studio:
     dependency: "direct dev"
     description:
       path: "../avelune_studio"
       relative: true
     source: path
-    version: "0.3.26+326"
+    version: "0.3.32+332"
   boolean_selector:
     dependency: transitive
     description:

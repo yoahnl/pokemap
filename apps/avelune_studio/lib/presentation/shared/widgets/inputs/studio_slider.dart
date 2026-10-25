@@ -6,9 +6,19 @@ class StudioSlider extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
+    this.min = 0,
+    this.max = 1,
+    this.divisions,
+    this.valueLabel,
+    this.onChangeStart,
+    this.onChangeEnd,
   });
   final String label;
   final double value;
+  final double min, max;
+  final int? divisions;
+  final String? valueLabel;
+  final ValueChanged<double>? onChangeStart, onChangeEnd;
   final ValueChanged<double>? onChanged;
 
   @override
@@ -16,13 +26,19 @@ class StudioSlider extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Text(
-        '$label · ${(value * 100).round()} %',
+        '$label · ${valueLabel ?? '${(value * 100).round()} %'}',
         style: Theme.of(context).textTheme.labelLarge,
       ),
       Slider(
-        value: value,
+        value: value.clamp(min, max),
+        min: min,
+        max: max,
+        divisions: divisions,
+        onChangeStart: onChangeStart,
+        onChangeEnd: onChangeEnd,
         onChanged: onChanged,
-        semanticFormatterCallback: (value) => '${(value * 100).round()} %',
+        semanticFormatterCallback: (value) =>
+            valueLabel ?? '${(value * 100).round()} %',
       ),
     ],
   );

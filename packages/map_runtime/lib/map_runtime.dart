@@ -1,5 +1,7 @@
 library;
 
+export 'package:avelune_rendering/avelune_rendering.dart';
+
 export 'src/application/runtime_simulation_clock.dart';
 export 'package:map_core/map_core.dart' show PlaytestSpeed;
 

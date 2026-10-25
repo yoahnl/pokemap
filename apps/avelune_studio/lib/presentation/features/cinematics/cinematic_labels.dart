@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 
 String cinematicActionLabel(CinematicTimelineStepKind kind) => switch (kind) {
+  CinematicTimelineStepKind.atmosphere => 'Ambiance 3D',
   CinematicTimelineStepKind.wait => 'Attendre',
   CinematicTimelineStepKind.camera => 'Déplacer la caméra',
   CinematicTimelineStepKind.actorMove => 'Déplacer un acteur',
@@ -21,6 +22,7 @@ String cinematicActionLabel(CinematicTimelineStepKind kind) => switch (kind) {
 };
 
 IconData cinematicActionIcon(CinematicTimelineStepKind kind) => switch (kind) {
+  CinematicTimelineStepKind.atmosphere => Icons.wb_twilight,
   CinematicTimelineStepKind.wait => Icons.hourglass_bottom,
   CinematicTimelineStepKind.camera => Icons.videocam_outlined,
   CinematicTimelineStepKind.actorMove => Icons.directions_walk,

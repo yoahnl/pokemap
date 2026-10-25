@@ -1,3 +1,4 @@
+import 'spatial_visual_profile.dart';
 import 'package:meta/meta.dart' show immutable;
 import 'package:characters/characters.dart';
 
@@ -130,6 +131,7 @@ abstract base class SceneInteractiveCommand {
 
   factory SceneInteractiveCommand.worldPresentation({
     required SceneWorldPresentationOperation operation,
+    SpatialVisualPatch? visualSettings,
     SceneVisualScope scope,
     int? slotId,
     String? mediaAssetId,

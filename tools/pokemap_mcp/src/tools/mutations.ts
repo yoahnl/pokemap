@@ -21,11 +21,12 @@ export function registerMutationTools(
     "pokemap_workshop",
     {
       title: "Read or prepare scoped workshop authoring",
-      description: "Reads only the documents needed by a catalog action. Explicit preparation admits an older or copied catalog and prepares its editing indexes and retained history; preparation may inspect the whole catalog and belongs before local edits. Use returned snapshotRevision and planExtensions with pokemap_plan.",
+      description: "Reads only the documents needed by a catalog action. Explicit preparation admits an older or copied catalog and prepares its editing indexes and retained history; preparation may inspect the whole catalog and belongs before local edits. Use returned snapshotRevision and planExtensions with pokemap_plan. Set includeDocuments=false when only planning metadata is needed to omit project and map documents.",
       inputSchema: z.discriminatedUnion("operation", [
         z.object({ operation: z.literal("read"), projectHandle: z.string().min(1),
           actionId: z.string().min(1), parameters: jsonRecordSchema.default({}),
-          readDependencies: z.record(z.string(), z.string()).optional(), }).strict(),
+          readDependencies: z.record(z.string(), z.string()).optional(),
+          includeDocuments: z.boolean().default(true), }).strict(),
         z.object({ operation: z.literal("prepare"), projectHandle: z.string().min(1) }).strict(),
       ]),
       outputSchema: toolEnvelopeSchema,
@@ -34,7 +35,7 @@ export function registerMutationTools(
     async (input) => authoringResult(() => input.operation === "prepare"
       ? authoring.request("workshop_prepare", { projectHandle: input.projectHandle })
       : authoring.request("workshop_snapshot", { projectHandle: input.projectHandle,
-          actionId: input.actionId, parameters: input.parameters,
+          actionId: input.actionId, parameters: input.parameters, includeDocuments: input.includeDocuments,
           ...(input.readDependencies ? {readDependencies: input.readDependencies} : {}) })),
   );
 

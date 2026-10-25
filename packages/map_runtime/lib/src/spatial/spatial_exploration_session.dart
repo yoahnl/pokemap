@@ -152,6 +152,9 @@ final class SpatialExplorationSession {
   SpatialCinematicActorPose? Function(MapEntity)? npcStoryPose;
   SpatialCinematicActorPose? Function(MapEntity)? npcAutonomousPose;
   SpatialCinematicCameraPose? Function()? storyCamera;
+  SpatialVisualPatch visualOverrides = SpatialVisualPatch();
+  SpatialVisualPatch cinematicVisualOverrides = SpatialVisualPatch();
+  SpatialVisualPatch Function()? worldVisualProfile;
   VoidCallback? onCancelStory, onSkipStory, onBeforeMapChange;
   final storyActive = ValueNotifier(false);
   bool storyInputLocked = false;

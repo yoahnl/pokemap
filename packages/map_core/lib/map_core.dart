@@ -56,3 +56,7 @@ export 'src/models/project_contact_device_config.dart';
 
 export 'src/models/spatial_atmosphere_settings.dart';
 export 'src/models/map_editor_state.dart';
+
+export 'src/models/spatial_visual_profile.dart';
+
+export 'src/projection/spatial_visual_rule_resolver.dart';

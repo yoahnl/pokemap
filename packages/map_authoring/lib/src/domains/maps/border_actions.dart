@@ -1601,7 +1601,9 @@ MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
             'The spatial Border base slots cannot be resolved.',
             details: {'diagnostics': base.result.diagnostics.map((issue) => issue.code).toList()});
       }
-      slots = base.result.materialization!.spatialPlacements.map((placement) => placement.slotKey).toSet();
+      slots = resolveSpatialBorderFeatureBaseSlotKeys(
+          manifest: manifest, map: baseMap,
+          layerId: layerId, featureId: featureId);
     } else {
       slots = resolveBorderFeatureBaseSlotKeys(requestFor(baseFeature));
     }
@@ -1652,26 +1654,28 @@ MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
       transformOverride: suppression ? null : field == 'transformOverride'
           ? transform == null ? null : BorderSpriteTransform(quarterTurns: turns!, flipX: transform.boolean('flipX'))
           : current?.transformOverride);
-  if (!clear) {
-    final corrected = _copyFeature(baseFeature, overrides: [replacement]);
-    final diagnostics = spatial
-        ? resolveSpatialBorderFeature(manifest: manifest,
-            map: upsertBorderFeature(map, layerId: layerId, feature: corrected),
-            layerId: layerId, featureId: featureId).result.diagnostics
-        : resolveBorderFeature(requestFor(corrected)).diagnostics;
-    final errors = diagnostics.where((issue) => issue.severity == BorderDiagnosticSeverity.error &&
-        (spatial ? issue.slotKey == slotKey : issue.code.startsWith('border.resolution.override_'))).toList();
-    if (errors.isNotEmpty) {
-      throw semanticFailure(errors.first.code, 'The requested Border slot correction is invalid.',
-          details: {'slotKey': slotKey, 'diagnostics': errors.map((issue) => issue.code).toList()});
-    }
-  }
   if (clear) {
     if (index >= 0) overrides.removeAt(index);
   } else if (index < 0) {
     overrides.add(replacement);
   } else {
     overrides[index] = replacement;
+  }
+  if (spatial || !clear) {
+    final corrected = spatial
+        ? _copyFeature(feature, keepOutRegions: const [], overrides: overrides)
+        : _copyFeature(baseFeature, overrides: [replacement]);
+    final diagnostics = spatial
+        ? resolveSpatialBorderFeature(manifest: manifest,
+            map: upsertBorderFeature(map, layerId: layerId, feature: corrected),
+            layerId: layerId, featureId: featureId).result.diagnostics
+        : resolveBorderFeature(requestFor(corrected)).diagnostics;
+    final errors = diagnostics.where((issue) => issue.severity == BorderDiagnosticSeverity.error &&
+        (spatial || issue.code.startsWith('border.resolution.override_'))).toList();
+    if (errors.isNotEmpty) {
+      throw semanticFailure(errors.first.code, 'The requested Border slot correction is invalid.',
+          details: {'slotKey': slotKey, 'diagnostics': errors.map((issue) => issue.code).toList()});
+    }
   }
   return updateBorderFeatureOverrides(map, layerId: layerId, featureId: featureId, overrides: overrides);
 }

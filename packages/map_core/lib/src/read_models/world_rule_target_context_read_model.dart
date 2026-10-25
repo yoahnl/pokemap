@@ -115,6 +115,7 @@ bool _matchesTargetContext(
     return false;
   }
   return switch (targetKind) {
+    WorldRuleTargetKind.atmosphere => true,
     WorldRuleTargetKind.mapEntity ||
     WorldRuleTargetKind.npcDialogue =>
       target.entityId == entityId,
@@ -158,6 +159,7 @@ String _targetLabel(
 ) {
   final map = mapsById[target.mapId];
   return switch (target.kind) {
+    WorldRuleTargetKind.atmosphere => target.label ?? 'Ambiance de ${target.mapId}',
     WorldRuleTargetKind.mapEntity => target.label ??
         map?.entities
             .where((entity) => entity.id == target.entityId)
@@ -189,6 +191,7 @@ String _effectLabel(
   Map<String, ProjectDialogueEntry> dialogueById,
 ) {
   return switch (effect.kind) {
+    WorldRuleEffectKind.atmosphere => 'Modifier l’ambiance 3D',
     WorldRuleEffectKind.entityVisible => 'Entité visible',
     WorldRuleEffectKind.entityHidden => 'Entité cachée',
     WorldRuleEffectKind.npcDialogueOverride =>

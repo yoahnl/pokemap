@@ -34,6 +34,9 @@ extension _WorkspaceCloseActions on WorkspaceActions {
     if (controller.saving || (busy && !closing) || !_validateWorldInputs()) {
       return false;
     }
+    if (projectVisuals?.call() case final owner?) {
+      if (!await owner.save()) return false;
+    }
     if (world?.call() case final owner?) {
       if (!await owner.saveNewFacts()) {
         controller.error = owner.error;

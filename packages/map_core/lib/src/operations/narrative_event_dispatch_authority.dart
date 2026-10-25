@@ -384,6 +384,7 @@ final class NarrativeEventDispatchAuthorityReady
         WorldRuleEffectKind.eventDisabled =>
           _NarrativeEventWorldRuleState.disabled,
         WorldRuleEffectKind.eventHidden => _NarrativeEventWorldRuleState.hidden,
+        WorldRuleEffectKind.atmosphere ||
         WorldRuleEffectKind.entityVisible ||
         WorldRuleEffectKind.entityHidden ||
         WorldRuleEffectKind.npcDialogueOverride =>

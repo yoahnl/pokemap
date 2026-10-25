@@ -139,6 +139,9 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
     final after = state.stepId;
     String? id;
     switch (kind) {
+      case CinematicTimelineStepKind.atmosphere:
+        id = controller.addCommand(kind, afterStepId: after, durationMs: 1000,
+          visualSettings: SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true}));
       case CinematicTimelineStepKind.wait:
         id = controller.addBasic(
           CinematicTimelineBasicBlockKind.wait,
