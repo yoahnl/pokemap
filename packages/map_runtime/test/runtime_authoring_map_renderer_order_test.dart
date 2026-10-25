@@ -80,144 +80,143 @@ void main() {
       addTearDown(painted.dispose);
 
       expect(await pixelAt(painted, 16, 16), rgba(0, 0, 255, 255));
+      renderer.setEditorState(
+        MapEditorState(hiddenElements: {'entity:trainer-entity'}),
+      );
+      final hidden = await _paint(renderer.paint, height: 64);
+      addTearDown(hidden.dispose);
+      expect(await pixelAt(hidden, 16, 16), rgba(0, 0, 0, 0));
+      renderer.setEditorState(MapEditorState(lockedFamilies: {'entity'}));
+      final locked = await _paint(renderer.paint, height: 64);
+      addTearDown(locked.dispose);
+      expect(await pixelAt(locked, 16, 16), rgba(0, 0, 255, 255));
     },
   );
 
-  test('authoring pixels and runtime passes obey order after JSON reload',
-      () async {
-    final map = MapData.fromJson(const MapData(
-      id: 'order',
-      name: 'Order',
-      size: GridSize(width: 1, height: 1),
-      layers: [
-        TileLayer(id: 'decor', name: 'Decor', cells: [0])
-      ],
-      placedElements: [
-        MapPlacedElement(
-            id: 'red',
-            layerId: 'decor',
-            elementId: 'red',
-            pos: GridPos(x: 0, y: 0),
-            visualOrder: 2),
-        MapPlacedElement(
-            id: 'blue',
-            layerId: 'decor',
-            elementId: 'blue',
-            pos: GridPos(x: 0, y: 0),
-            visualOrder: 1),
-      ],
-    ).toJson());
-    final bundle = surfaceTestBundle(map: map, elements: [
-      for (final id in ['red', 'blue'])
-        ProjectElementEntry(
-            id: id,
-            name: id,
-            tilesetId: id,
-            categoryId: 'test',
-            frames: const [
-              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
-            ]),
-    ]);
-    final images = {
-      'red': await runtimeTilesetImage(const [Color(0xffff0000)]),
-      'blue': await runtimeTilesetImage(const [Color(0xff0000ff)]),
-    };
-    addTearDown(() {
-      for (final image in images.values) {
-        image.dispose();
-      }
-    });
-    final authoring =
-        RuntimeAuthoringMapRenderer(bundle: bundle, images: images)..update(0);
-    final studioImage = await _paint((canvas) => authoring.paint(canvas));
-    addTearDown(studioImage.dispose);
-    final background =
-        MapLayersComponent(bundle: bundle, tileImagesByTilesetId: images)
-          ..update(0);
-    final foreground = MapLayersComponent(
-        bundle: bundle,
-        tileImagesByTilesetId: images,
-        renderPass: MapLayerRenderPass.foreground)
-      ..update(0);
-    final runtimeImage = await _paint((canvas) {
-      background.render(canvas);
-      foreground.render(canvas);
-    });
-    addTearDown(runtimeImage.dispose);
-    expect(await pixelAt(studioImage, 16, 16), rgba(255, 0, 0, 255));
-    expect(await pixelAt(runtimeImage, 16, 16), rgba(255, 0, 0, 255));
-  });
-
-  test('fixed rank never moves upper decor behind actor pass', () async {
-    final bundle = surfaceTestBundle(
-        map: const MapData(
-          id: 'phase',
-          name: 'Phase',
-          size: GridSize(width: 1, height: 2),
+  test(
+    'authoring pixels and runtime passes obey order after JSON reload',
+    () async {
+      final map = MapData.fromJson(
+        MapData(
+          id: 'order',
+          name: 'Order',
+          size: GridSize(width: 1, height: 1),
           layers: [
-            TileLayer(id: 'decor', name: 'Decor', cells: [0, 0])
+            const TileLayer(id: 'decor', name: 'Decor', cells: [0]),
+            EnvironmentLayer(
+              id: 'plants',
+              name: 'Plants',
+              content: EnvironmentLayerContent(
+                targetTileLayerId: 'decor',
+                areas: [
+                  EnvironmentArea(
+                    id: 'area',
+                    name: 'Area',
+                    presetId: 'plants',
+                    seed: 1,
+                    mask: EnvironmentAreaMask(
+                      width: 1,
+                      height: 1,
+                      cells: [true],
+                    ),
+                    generatedPlacementIds: ['red'],
+                  ),
+                ],
+              ),
+            ),
           ],
           placedElements: [
             MapPlacedElement(
-                id: 'tree',
-                layerId: 'decor',
-                elementId: 'tree',
-                pos: GridPos(x: 0, y: 0),
-                visualOrder: -100)
+              id: 'red',
+              layerId: 'decor',
+              elementId: 'red',
+              pos: GridPos(x: 0, y: 0),
+              visualOrder: 2,
+            ),
+            MapPlacedElement(
+              id: 'blue',
+              layerId: 'decor',
+              elementId: 'blue',
+              pos: GridPos(x: 0, y: 0),
+              visualOrder: 1,
+            ),
           ],
-        ),
-        elements: const [
-          ProjectElementEntry(
-            id: 'tree',
-            name: 'Tree',
-            tilesetId: 'tree',
-            categoryId: 'test',
-            frames: [
-              TilesetVisualFrame(
-                  source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2))
-            ],
-            collisionProfile:
-                ElementCollisionProfile(cells: [GridPos(x: 0, y: 1)]),
-          )
-        ]);
-    final pixels = await _paint(
-        (canvas) => canvas.drawRect(const Rect.fromLTWH(0, 0, 32, 64),
-            Paint()..color = const Color(0xffff0000)),
-        height: 64);
-    final image = RuntimeTilesetImage(
-        images: [pixels],
-        chunks: const [RuntimeTilesetChunk(top: 0, height: 64, width: 32)],
-        width: 32,
-        height: 64);
-    addTearDown(image.dispose);
-    final background = MapLayersComponent(
-        bundle: bundle, tileImagesByTilesetId: {'tree': image})
-      ..update(0);
-    final foreground = MapLayersComponent(
+        ).toJson(),
+      );
+      final bundle = surfaceTestBundle(
+        map: map,
+        elements: [
+          for (final id in ['red', 'blue'])
+            ProjectElementEntry(
+              id: id,
+              name: id,
+              tilesetId: id,
+              categoryId: 'test',
+              frames: const [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+              ],
+            ),
+        ],
+      );
+      final images = {
+        'red': await runtimeTilesetImage(const [Color(0xffff0000)]),
+        'blue': await runtimeTilesetImage(const [Color(0xff0000ff)]),
+      };
+      addTearDown(() {
+        for (final image in images.values) {
+          image.dispose();
+        }
+      });
+      final authoring = RuntimeAuthoringMapRenderer(
         bundle: bundle,
-        tileImagesByTilesetId: {'tree': image},
-        renderPass: MapLayerRenderPass.foreground)
-      ..update(0);
-    final rendered = await _paint((canvas) {
-      background.render(canvas);
-      canvas.drawRect(const Rect.fromLTWH(0, 0, 32, 64),
-          Paint()..color = const Color(0xff00ff00));
-      foreground.render(canvas);
-    }, height: 64);
-    addTearDown(rendered.dispose);
-    expect(await pixelAt(rendered, 16, 16), rgba(255, 0, 0, 255));
-    expect(await pixelAt(rendered, 16, 48), rgba(0, 255, 0, 255));
-  });
+        images: images,
+      )..update(0);
+      final studioImage = await _paint((canvas) => authoring.paint(canvas));
+      addTearDown(studioImage.dispose);
+      final background = MapLayersComponent(
+        bundle: bundle,
+        tileImagesByTilesetId: images,
+      )..update(0);
+      final foreground = MapLayersComponent(
+        bundle: bundle,
+        tileImagesByTilesetId: images,
+        renderPass: MapLayerRenderPass.foreground,
+      )..update(0);
+      final runtimeImage = await _paint((canvas) {
+        background.render(canvas);
+        foreground.render(canvas);
+      });
+      addTearDown(runtimeImage.dispose);
+      expect(await pixelAt(studioImage, 16, 16), rgba(255, 0, 0, 255));
+      expect(await pixelAt(runtimeImage, 16, 16), rgba(255, 0, 0, 255));
+      authoring.setEditorState(MapEditorState(hiddenElements: {'decor:red'}));
+      final uncovered = await _paint(authoring.paint);
+      addTearDown(uncovered.dispose);
+      expect(await pixelAt(uncovered, 16, 16), rgba(0, 0, 255, 255));
+      authoring.setEditorState(
+        MapEditorState(hiddenElements: {'layer:plants'}),
+      );
+      final generatedHidden = await _paint(authoring.paint);
+      addTearDown(generatedHidden.dispose);
+      expect(await pixelAt(generatedHidden, 16, 16), rgba(0, 0, 255, 255));
+      authoring.setEditorState(MapEditorState(hiddenElements: {'layer:decor'}));
+      final hiddenLayer = await _paint(authoring.paint);
+      addTearDown(hiddenLayer.dispose);
+      expect(await pixelAt(hiddenLayer, 16, 16), rgba(0, 0, 0, 0));
+      authoring.setEditorState(MapEditorState());
+      final restored = await _paint(authoring.paint);
+      addTearDown(restored.dispose);
+      expect(await pixelAt(restored, 16, 16), rgba(255, 0, 0, 255));
+    },
+  );
 
-  for (final rockInFront in [false, true]) {
-    test(
-        'overlapping split and whole decors paint in authored order '
-        'with rockInFront=$rockInFront', () async {
-      final map = MapData.fromJson(MapData(
-        id: 'mixed-order',
-        name: 'Mixed order',
-        size: const GridSize(width: 1, height: 2),
-        layers: const [
+  test('fixed rank never moves upper decor behind actor pass', () async {
+    final bundle = surfaceTestBundle(
+      map: const MapData(
+        id: 'phase',
+        name: 'Phase',
+        size: GridSize(width: 1, height: 2),
+        layers: [
           TileLayer(id: 'decor', name: 'Decor', cells: [0, 0]),
         ],
         placedElements: [
@@ -225,19 +224,12 @@ void main() {
             id: 'tree',
             layerId: 'decor',
             elementId: 'tree',
-            pos: const GridPos(x: 0, y: 0),
-            visualOrder: rockInFront ? 0 : 1,
-          ),
-          MapPlacedElement(
-            id: 'rock',
-            layerId: 'decor',
-            elementId: 'rock',
-            pos: const GridPos(x: 0, y: 0),
-            visualOrder: rockInFront ? 1 : 0,
+            pos: GridPos(x: 0, y: 0),
+            visualOrder: -100,
           ),
         ],
-      ).toJson());
-      final bundle = surfaceTestBundle(map: map, elements: const [
+      ),
+      elements: const [
         ProjectElementEntry(
           id: 'tree',
           name: 'Tree',
@@ -252,14 +244,99 @@ void main() {
             cells: [GridPos(x: 0, y: 1)],
           ),
         ),
-        ProjectElementEntry(
-          id: 'rock',
-          name: 'Rock',
-          tilesetId: 'rock',
-          categoryId: 'test',
-          frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
-        ),
-      ]);
+      ],
+    );
+    final pixels = await _paint(
+      (canvas) => canvas.drawRect(
+        const Rect.fromLTWH(0, 0, 32, 64),
+        Paint()..color = const Color(0xffff0000),
+      ),
+      height: 64,
+    );
+    final image = RuntimeTilesetImage(
+      images: [pixels],
+      chunks: const [RuntimeTilesetChunk(top: 0, height: 64, width: 32)],
+      width: 32,
+      height: 64,
+    );
+    addTearDown(image.dispose);
+    final background = MapLayersComponent(
+      bundle: bundle,
+      tileImagesByTilesetId: {'tree': image},
+    )..update(0);
+    final foreground = MapLayersComponent(
+      bundle: bundle,
+      tileImagesByTilesetId: {'tree': image},
+      renderPass: MapLayerRenderPass.foreground,
+    )..update(0);
+    final rendered = await _paint((canvas) {
+      background.render(canvas);
+      canvas.drawRect(
+        const Rect.fromLTWH(0, 0, 32, 64),
+        Paint()..color = const Color(0xff00ff00),
+      );
+      foreground.render(canvas);
+    }, height: 64);
+    addTearDown(rendered.dispose);
+    expect(await pixelAt(rendered, 16, 16), rgba(255, 0, 0, 255));
+    expect(await pixelAt(rendered, 16, 48), rgba(0, 255, 0, 255));
+  });
+
+  for (final rockInFront in [false, true]) {
+    test('overlapping split and whole decors paint in authored order '
+        'with rockInFront=$rockInFront', () async {
+      final map = MapData.fromJson(
+        MapData(
+          id: 'mixed-order',
+          name: 'Mixed order',
+          size: const GridSize(width: 1, height: 2),
+          layers: const [
+            TileLayer(id: 'decor', name: 'Decor', cells: [0, 0]),
+          ],
+          placedElements: [
+            MapPlacedElement(
+              id: 'tree',
+              layerId: 'decor',
+              elementId: 'tree',
+              pos: const GridPos(x: 0, y: 0),
+              visualOrder: rockInFront ? 0 : 1,
+            ),
+            MapPlacedElement(
+              id: 'rock',
+              layerId: 'decor',
+              elementId: 'rock',
+              pos: const GridPos(x: 0, y: 0),
+              visualOrder: rockInFront ? 1 : 0,
+            ),
+          ],
+        ).toJson(),
+      );
+      final bundle = surfaceTestBundle(
+        map: map,
+        elements: const [
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'tree',
+            categoryId: 'test',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+              ),
+            ],
+            collisionProfile: ElementCollisionProfile(
+              cells: [GridPos(x: 0, y: 1)],
+            ),
+          ),
+          ProjectElementEntry(
+            id: 'rock',
+            name: 'Rock',
+            tilesetId: 'rock',
+            categoryId: 'test',
+            frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+          ),
+        ],
+      );
       final treePixels = await _paint(
         (canvas) => canvas.drawRect(
           const Rect.fromLTWH(0, 0, 32, 64),
@@ -278,12 +355,26 @@ void main() {
       addTearDown(rockImage.dispose);
       final images = {'tree': treeImage, 'rock': rockImage};
 
-      final studio = RuntimeAuthoringMapRenderer(bundle: bundle, images: images)
-        ..update(0);
+      final studio = RuntimeAuthoringMapRenderer(
+        bundle: bundle,
+        images: images,
+        includeCharacters: true,
+      )..update(0);
       final studioImage = await _paint(studio.paint, height: 64);
       addTearDown(studioImage.dispose);
       expect(
         await pixelAt(studioImage, 16, 16),
+        rockInFront ? rgba(0, 0, 255, 255) : rgba(255, 0, 0, 255),
+      );
+      studio.setEditorState(MapEditorState(hiddenElements: {'decor:rock'}));
+      final hiddenRock = await _paint(studio.paint, height: 64);
+      addTearDown(hiddenRock.dispose);
+      expect(await pixelAt(hiddenRock, 16, 16), rgba(255, 0, 0, 255));
+      studio.setEditorState(MapEditorState());
+      final restoredRock = await _paint(studio.paint, height: 64);
+      addTearDown(restoredRock.dispose);
+      expect(
+        await pixelAt(restoredRock, 16, 16),
         rockInFront ? rgba(0, 0, 255, 255) : rgba(255, 0, 0, 255),
       );
 
@@ -314,10 +405,12 @@ void main() {
       if (rockInFront) {
         final translucentRock = RuntimeAuthoringMapRenderer(
           bundle: bundle.copyWith(
-            map: map.copyWith(placedElements: [
-              map.placedElements.first,
-              map.placedElements.last.copyWith(opacity: 0.5),
-            ]),
+            map: map.copyWith(
+              placedElements: [
+                map.placedElements.first,
+                map.placedElements.last.copyWith(opacity: 0.5),
+              ],
+            ),
           ),
           images: images,
         )..update(0);
@@ -330,9 +423,9 @@ void main() {
         expect(blended[0], inInclusiveRange(120, 136));
         expect(blended[2], inInclusiveRange(120, 136));
 
-        final transparentRock = await runtimeTilesetImage(
-          const [Color(0x00000000)],
-        );
+        final transparentRock = await runtimeTilesetImage(const [
+          Color(0x00000000),
+        ]);
         addTearDown(transparentRock.dispose);
         final fadedImages = {'tree': treeImage, 'rock': transparentRock};
         final fadedTree = map.placedElements.first.copyWith(opacity: 0.5);
@@ -344,8 +437,9 @@ void main() {
         )..update(0);
         final withTransparentRock = RuntimeAuthoringMapRenderer(
           bundle: bundle.copyWith(
-            map: map
-                .copyWith(placedElements: [fadedTree, map.placedElements.last]),
+            map: map.copyWith(
+              placedElements: [fadedTree, map.placedElements.last],
+            ),
           ),
           images: fadedImages,
         )..update(0);
@@ -364,48 +458,52 @@ void main() {
     });
   }
 
-  test('unprepared border does not hide placed elements in authoring preview',
-      () async {
-    final map = MapData(
-      id: 'border-preview',
-      name: 'Border preview',
-      size: const GridSize(width: 1, height: 1),
-      layers: [
-        _borderLayer(),
-        const TileLayer(id: 'decor', name: 'Decor', cells: [0]),
-      ],
-      placedElements: const [
-        MapPlacedElement(
-          id: 'tree',
-          layerId: 'decor',
-          elementId: 'tree',
-          pos: GridPos(x: 0, y: 0),
-        ),
-      ],
-    );
-    final bundle = surfaceTestBundle(map: map, elements: const [
-      ProjectElementEntry(
-        id: 'tree',
-        name: 'Tree',
-        tilesetId: 'tree',
-        categoryId: 'test',
-        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
-      ),
-    ]);
-    final image = await runtimeTilesetImage(const [Color(0xffff0000)]);
-    addTearDown(image.dispose);
-    final renderer = RuntimeAuthoringMapRenderer(
-      bundle: bundle,
-      images: {'tree': image},
-    )..update(0);
+  test(
+    'unprepared border does not hide placed elements in authoring preview',
+    () async {
+      final map = MapData(
+        id: 'border-preview',
+        name: 'Border preview',
+        size: const GridSize(width: 1, height: 1),
+        layers: [
+          _borderLayer(),
+          const TileLayer(id: 'decor', name: 'Decor', cells: [0]),
+        ],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'tree',
+            layerId: 'decor',
+            elementId: 'tree',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      final bundle = surfaceTestBundle(
+        map: map,
+        elements: const [
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'tree',
+            categoryId: 'test',
+            frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+          ),
+        ],
+      );
+      final image = await runtimeTilesetImage(const [Color(0xffff0000)]);
+      addTearDown(image.dispose);
+      final renderer = RuntimeAuthoringMapRenderer(
+        bundle: bundle,
+        images: {'tree': image},
+      )..update(0);
 
-    final painted = await _paint((canvas) => renderer.paint(canvas));
-    addTearDown(painted.dispose);
-    expect(await pixelAt(painted, 16, 16), rgba(255, 0, 0, 255));
-  });
+      final painted = await _paint((canvas) => renderer.paint(canvas));
+      addTearDown(painted.dispose);
+      expect(await pixelAt(painted, 16, 16), rgba(255, 0, 0, 255));
+    },
+  );
 
-  test('prepared border paints the same saved pixels in Studio and Player',
-      () async {
+  test('prepared border paints the same saved pixels in Studio and Player', () async {
     final bundle = surfaceTestBundle(
       map: MapData(
         id: 'prepared-border',
@@ -418,21 +516,31 @@ void main() {
     addTearDown(image.dispose);
     const snapshotId =
         'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-    final assets = BorderRuntimeAssetBundle(snapshots: [
-      BorderRuntimeLoadedSnapshot(snapshotId: snapshotId, frames: [
-        BorderRuntimeLoadedFrame(
-          request: BorderRuntimeFrameRequest(
-            snapshotId: snapshotId,
-            frameIndex: 0,
-            relativeAssetPath: 'unused.png',
-            sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 32, height: 32),
-            durationMs: 100,
-            transparentColorArgb: null,
-          ),
-          image: image,
+    final assets = BorderRuntimeAssetBundle(
+      snapshots: [
+        BorderRuntimeLoadedSnapshot(
+          snapshotId: snapshotId,
+          frames: [
+            BorderRuntimeLoadedFrame(
+              request: BorderRuntimeFrameRequest(
+                snapshotId: snapshotId,
+                frameIndex: 0,
+                relativeAssetPath: 'unused.png',
+                sourceRectPx: BorderPixelRect(
+                  x: 0,
+                  y: 0,
+                  width: 32,
+                  height: 32,
+                ),
+                durationMs: 100,
+                transparentColorArgb: null,
+              ),
+              image: image,
+            ),
+          ],
         ),
-      ]),
-    ]);
+      ],
+    );
     final studio = RuntimeAuthoringMapRenderer(
       bundle: bundle,
       images: const {},
@@ -449,6 +557,45 @@ void main() {
     addTearDown(playerImage.dispose);
     expect(await pixelAt(studioImage, 16, 16), rgba(35, 135, 224, 255));
     expect(await pixelAt(playerImage, 16, 16), rgba(35, 135, 224, 255));
+    studio.setEditorState(MapEditorState(hiddenElements: {'layer:border'}));
+    final hidden = await _paint(studio.paint);
+    addTearDown(hidden.dispose);
+    expect(await pixelAt(hidden, 16, 16), rgba(0, 0, 0, 0));
+    studio.setEditorState(MapEditorState());
+    final restored = await _paint(studio.paint);
+    addTearDown(restored.dispose);
+    expect(await pixelAt(restored, 16, 16), rgba(35, 135, 224, 255));
+  });
+
+  test('editor hiding a smart-tile path reveals retained terrain without changing runtime', () async {
+    final map = surfaceTestMap(
+      layers: [runtimeTestPathLayer(), runtimeTestBaseLayer()],
+    );
+    final bundle = surfaceTestBundle(map: map);
+    final images = {
+      'surface-water': await runtimeTilesetImage(const [Color(0xff00ff00)]),
+      'surface-path': await runtimeTilesetImage(const [Color(0xffff0000)]),
+    };
+    addTearDown(() {
+      for (final image in images.values) {
+        image.dispose();
+      }
+    });
+    final studio = RuntimeAuthoringMapRenderer(bundle: bundle, images: images)
+      ..update(0);
+    addTearDown(studio.dispose);
+    final visible = await _paint(studio.paint);
+    addTearDown(visible.dispose);
+    expect(await pixelAt(visible, 16, 16), rgba(255, 0, 0, 255));
+    studio.setEditorState(MapEditorState(hiddenElements: {'layer:path-layer'}));
+    final hidden = await _paint(studio.paint);
+    addTearDown(hidden.dispose);
+    expect(await pixelAt(hidden, 16, 16), rgba(0, 255, 0, 255));
+    studio.setEditorState(MapEditorState());
+    final restored = await _paint(studio.paint);
+    addTearDown(restored.dispose);
+    expect(await pixelAt(restored, 16, 16), rgba(255, 0, 0, 255));
+    expect(identical(bundle.map, map), isTrue);
   });
 }
 
@@ -458,48 +605,45 @@ BorderLayer _borderLayer() {
   return BorderLayer(
     id: 'border',
     name: 'Border',
-    content: BorderLayerContent(features: [
-      BorderFeature(
-        id: 'feature',
-        name: 'Feature',
-        blueprintId: 'blueprint',
-        seed: BorderSignedInt64.zero,
-        geometry: BorderRegionGeometry(
-          width: 1,
-          height: 1,
-          cells: [true],
-        ),
-        overrides: const [],
-        keepOutRegions: const [],
-        materialization: BorderMaterialization(
-          receipt: BorderResolutionReceipt(
-            resolverVersion: 1,
-            blueprintRevision: 1,
-            components: BorderInputFingerprints(
-              blueprint: hash,
-              geometryAndSeed: hash,
-              parameters: hash,
-              overrides: hash,
-              keepOutRegions: hash,
-              mapContext: hash,
-              visualSnapshots: hash,
+    content: BorderLayerContent(
+      features: [
+        BorderFeature(
+          id: 'feature',
+          name: 'Feature',
+          blueprintId: 'blueprint',
+          seed: BorderSignedInt64.zero,
+          geometry: BorderRegionGeometry(width: 1, height: 1, cells: [true]),
+          overrides: const [],
+          keepOutRegions: const [],
+          materialization: BorderMaterialization(
+            receipt: BorderResolutionReceipt(
+              resolverVersion: 1,
+              blueprintRevision: 1,
+              components: BorderInputFingerprints(
+                blueprint: hash,
+                geometryAndSeed: hash,
+                parameters: hash,
+                overrides: hash,
+                keepOutRegions: hash,
+                mapContext: hash,
+                visualSnapshots: hash,
+              ),
+              inputFingerprint: hash,
+              outputFingerprint: hash,
             ),
-            inputFingerprint: hash,
-            outputFingerprint: hash,
+            ground: [
+              BorderResolvedGroundCell(
+                x: 0,
+                y: 0,
+                visualSnapshotId: 'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                resolvedRole: BorderGroundVariantRole.isolated,
+              ),
+            ],
+            placements: const [],
           ),
-          ground: [
-            BorderResolvedGroundCell(
-              x: 0,
-              y: 0,
-              visualSnapshotId:
-                  'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-              resolvedRole: BorderGroundVariantRole.isolated,
-            ),
-          ],
-          placements: const [],
         ),
-      ),
-    ]),
+      ],
+    ),
   );
 }
 

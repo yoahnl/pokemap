@@ -39,6 +39,8 @@ class SpatialRenderContext extends RenderContext3D
   @override
   double atmosphereNight = 0;
   bool pointLightShadowsEnabled = true;
+  bool shadowAntialiasingEnabled = true;
+  bool preferMultisampledShadows = true;
   @override
   SpatialPresentationProfile presentationProfile =
       SpatialPresentationProfile.disabled;
@@ -46,7 +48,7 @@ class SpatialRenderContext extends RenderContext3D
   bool depthFogEnabled = false;
   @override
   Color depthFogColor = spatialDepthFogColor(0);
-  Iterable<Object3D> pointShadowCasters = const [];
+  Iterable<Object3D> shadowCasters = const [];
   String? sourceInstanceId;
   String? sourceShadowId;
   SpatialShadowStats shadowStats = const SpatialShadowStats();
@@ -54,8 +56,8 @@ class SpatialRenderContext extends RenderContext3D
   bool _collecting = false;
   int _hiddenDrawCount = 0;
   final _captured = <_TransparentSurface>[];
-  final _pointCaptured = <_TransparentSurface>[];
-  bool _capturingPointCasters = false;
+  final _casterSurfaces = <_TransparentSurface>[];
+  bool _capturingShadowCasters = false;
 
   final _transparent = <_TransparentSurface>[];
 
@@ -73,11 +75,13 @@ class SpatialRenderContext extends RenderContext3D
             material.sourceMaterialName,
           ) ==
           true) {
-        if (!_capturingPointCasters) _hiddenDrawCount++;
+        if (!_capturingShadowCasters) _hiddenDrawCount++;
         return;
       }
-      if (_capturingPointCasters) {
-        _pointCaptured.add(_snapshot(surface, material, _pointCaptured.length));
+      if (_capturingShadowCasters) {
+        _casterSurfaces.add(
+          _snapshot(surface, material, _casterSurfaces.length),
+        );
         return;
       }
       if (_collecting) {
@@ -130,80 +134,48 @@ class SpatialRenderContext extends RenderContext3D
       _collecting = shadow != null || hasPointShadows;
       super.flush();
       _collecting = false;
+      if ((shadow != null || hasPointShadows) && shadowCasters.isNotEmpty) {
+        final previousModel = model.clone();
+        final previousJoints = jointsInfo.jointTransforms;
+        try {
+          _capturingShadowCasters = true;
+          for (final caster in shadowCasters) {
+            caster.draw(this);
+          }
+        } finally {
+          _capturingShadowCasters = false;
+          model.setFrom(previousModel);
+          jointsInfo.jointTransforms = previousJoints;
+        }
+      }
+      final casterSurfaces = shadowCasters.isEmpty
+          ? _captured
+          : _casterSurfaces;
       var casterDrawCount = 0;
       var pointCasterDrawCount = 0;
       if (shadow != null) {
+        final worldToLight = spatialShadowProjection(
+          shadow,
+          lighting.sunDirection,
+        ).viewProjection;
         final map = _shadowMap ??= SpatialShadowMap(
           device.backend,
           ownsFrame: false,
         );
-        shadowFrame = map.render(shadow, lighting.sunDirection, (
-          context,
-          depthMaterial,
-        ) {
-          for (final entry in _captured) {
-            if (!(shadow.casterInstanceIds.contains(entry.instanceId) ||
-                    shadow.casterInstanceIds.contains(entry.shadowId)) ||
-                entry.material.alphaMode == Model3dAlphaMode.blend ||
-                entry.material.lightingRole != SpatialPixelLightingRole.surface)
-              continue;
-            _withPose(entry, () {
-              context.model.setFrom(entry.model);
-              context.jointsInfo.jointTransforms = entry.joints;
-              final material = depthMaterial(entry.material)
-                ..cullMode = entry.pose.cullMode;
-              context.device.clearBindings();
-              context.applyMaterial(material);
-              context.device.bindGeometry(entry.surface);
-              casterDrawCount++;
-            });
-          }
-        });
-      }
-      if (hasPointShadows) {
-        final previousModel = model.clone();
-        final previousJoints = jointsInfo.jointTransforms;
-        try {
-          _capturingPointCasters = true;
-          for (final caster in pointShadowCasters) {
-            caster.draw(this);
-          }
-        } finally {
-          _capturingPointCasters = false;
-          model.setFrom(previousModel);
-          jointsInfo.jointTransforms = previousJoints;
-        }
-        final candidates =
-            (pointShadowCasters.isEmpty ? _captured : _pointCaptured)
-                .where(
-                  (entry) =>
-                      (lighting.pointShadowCasterInstanceIds.contains(
-                            entry.instanceId,
-                          ) ||
-                          lighting.pointShadowCasterInstanceIds.contains(
-                            entry.shadowId,
-                          )) &&
-                      entry.material.alphaMode != Model3dAlphaMode.blend &&
-                      entry.material.lightingRole ==
-                          SpatialPixelLightingRole.surface,
-                )
-                .toList();
-        if (candidates.any(
-          (entry) => lighting.pointLights.any(
-            (light) => spatialPointShadowIntersects(light, entry.worldBounds),
-          ),
-        )) {
-          final map = _shadowMap ??= SpatialShadowMap(
-            device.backend,
-            ownsFrame: false,
-          );
-          pointShadowFrame = map.renderPointLights(lighting.pointLights, (
-            context,
-            depthMaterial,
-            light,
-          ) {
-            for (final entry in candidates) {
-              if (!spatialPointShadowIntersects(light, entry.worldBounds))
+        shadowFrame = map.render(
+          shadow,
+          lighting.sunDirection,
+          (context, depthMaterial) {
+            for (final entry in casterSurfaces) {
+              if (!(shadow.casterInstanceIds.contains(entry.instanceId) ||
+                      shadow.casterInstanceIds.contains(entry.shadowId)) ||
+                  entry.material.alphaMode == Model3dAlphaMode.blend ||
+                  entry.material.lightingRole !=
+                      SpatialPixelLightingRole.surface ||
+                  !spatialShadowIntersectsBounds(
+                    worldToLight,
+                    entry.worldBounds,
+                  ))
                 continue;
               _withPose(entry, () {
                 context.model.setFrom(entry.model);
@@ -213,10 +185,59 @@ class SpatialRenderContext extends RenderContext3D
                 context.device.clearBindings();
                 context.applyMaterial(material);
                 context.device.bindGeometry(entry.surface);
-                pointCasterDrawCount++;
+                casterDrawCount++;
               });
             }
-          });
+          },
+          antialiasing: shadowAntialiasingEnabled,
+          preferMultisampling: preferMultisampledShadows,
+        );
+      }
+      if (hasPointShadows) {
+        final candidates = casterSurfaces
+            .where(
+              (entry) =>
+                  (lighting.pointShadowCasterInstanceIds.contains(
+                        entry.instanceId,
+                      ) ||
+                      lighting.pointShadowCasterInstanceIds.contains(
+                        entry.shadowId,
+                      )) &&
+                  entry.material.alphaMode != Model3dAlphaMode.blend &&
+                  entry.material.lightingRole ==
+                      SpatialPixelLightingRole.surface,
+            )
+            .toList();
+        if (candidates.any(
+          (entry) => lighting.pointLights.any(
+            (light) => spatialPointShadowIntersects(light, entry.worldBounds),
+          ),
+        )) {
+          final map = _shadowMap ??= SpatialShadowMap(
+            device.backend,
+            ownsFrame: false,
+          );
+          pointShadowFrame = map.renderPointLights(
+            lighting.pointLights,
+            (context, depthMaterial, light) {
+              for (final entry in candidates) {
+                if (!spatialPointShadowIntersects(light, entry.worldBounds))
+                  continue;
+                _withPose(entry, () {
+                  context.model.setFrom(entry.model);
+                  context.jointsInfo.jointTransforms = entry.joints;
+                  final material = depthMaterial(entry.material)
+                    ..cullMode = entry.pose.cullMode;
+                  context.device.clearBindings();
+                  context.applyMaterial(material);
+                  context.device.bindGeometry(entry.surface);
+                  pointCasterDrawCount++;
+                });
+              }
+            },
+            antialiasing: shadowAntialiasingEnabled,
+            preferMultisampling: preferMultisampledShadows,
+          );
         }
       }
       for (final entry in _captured) {
@@ -278,9 +299,9 @@ class SpatialRenderContext extends RenderContext3D
       }
     } finally {
       _collecting = false;
-      _capturingPointCasters = false;
+      _capturingShadowCasters = false;
       _captured.clear();
-      _pointCaptured.clear();
+      _casterSurfaces.clear();
       _transparent.clear();
     }
   }

@@ -75,7 +75,8 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
           )
           .firstOrNull;
       if (entry != null &&
-          widget.document.isElementLocked(entry.kind, entry.id)) {
+          (widget.document.isElementLocked(entry.kind, entry.id) ||
+              widget.document.isElementHidden(entry.kind, entry.id))) {
         view.clearSelection(widget.document);
       }
     }
@@ -86,7 +87,7 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
   Future<void> _lock(Iterable<MapElementListEntry> entries, bool locked) async {
     try {
       final editor = widget.document.editor;
-      if (editor == null) return;
+      if (editor == null || !editor.canWrite) return;
       if (!locked &&
           entries.any(
             (entry) =>
@@ -110,8 +111,37 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     }
   }
 
+  Future<void> _hide(Iterable<MapElementListEntry> entries, bool hidden) async {
+    try {
+      final editor = widget.document.editor;
+      if (editor == null || !editor.canWrite) return;
+      if (!hidden &&
+          entries.any(
+            (entry) =>
+                widget.document.isElementHiddenInherited(entry.kind, entry.id),
+          )) {
+        widget.document.error = 'Des éléments sont masqués par leur calque ou leur famille. Réaffichez le calque ou utilisez Tout afficher.';
+        _changed();
+        return;
+      }
+      final save = editor.setGroupHidden(
+        entries.map((entry) => (entry.kind, entry.id)),
+        hidden,
+      );
+      _changed();
+      await save;
+      if (mounted) setState(() {});
+    } on Object catch (error) {
+      widget.document.error = '$error';
+      _changed();
+    }
+  }
+
   void _select(MapElementListEntry entry) {
-    if (widget.document.isElementLocked(entry.kind, entry.id)) return;
+    if (widget.document.isElementLocked(entry.kind, entry.id) ||
+        widget.document.isElementHidden(entry.kind, entry.id)) {
+      return;
+    }
     final family = switch (entry.kind) {
       'decor' || 'model' => MapSelectionFamily.decor,
       'entity' =>
@@ -131,6 +161,11 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
 
   Widget _entry(MapElementListEntry entry, {int? index}) {
     final locked = widget.document.isElementLocked(entry.kind, entry.id);
+    final hidden = widget.document.isElementHidden(entry.kind, entry.id);
+    final hiddenInherited = widget.document.isElementHiddenInherited(
+      entry.kind,
+      entry.id,
+    );
     final inherited =
         locked &&
         !widget.document.editorState.lockedElements.contains(entry.key);
@@ -153,9 +188,11 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     return StudioChoice(
       key: ValueKey('map-element-${entry.kind}-${entry.id}'),
       label: entry.label,
-      subtitle: entry.detail,
+      subtitle: hidden ? '${entry.detail} · Masqué' : entry.detail,
       selected: selected,
-      onTap: locked || entry.kind == 'layer' ? null : () => _select(entry),
+      onTap: locked || hidden || entry.kind == 'layer'
+          ? null
+          : () => _select(entry),
       leading: index == null
           ? Icon(switch (entry.kind) {
               'layer' => Icons.layers_outlined,
@@ -168,7 +205,10 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
             }, size: 20)
           : ReorderableDragStartListener(
               index: index,
-              enabled: !locked && !_ordering,
+              enabled:
+                  !locked &&
+                  !_ordering &&
+                  widget.document.editor?.canWrite == true,
               child: const Tooltip(
                 message: 'Glisser vers le haut pour passer devant',
                 child: Icon(Icons.drag_indicator, size: 20),
@@ -184,6 +224,22 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
               onPressed: widget.onInspect,
             ),
           StudioTool(
+            key: ValueKey('map-element-hide-${entry.kind}-${entry.id}'),
+            label: hiddenInherited
+                ? 'Masqué par son calque ou sa famille. Réaffichez le calque ou utilisez Tout afficher.'
+                : hidden
+                ? 'Afficher ${entry.label}'
+                : 'Masquer ${entry.label}',
+            icon: hidden
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+            selected: hidden,
+            onPressed:
+                widget.document.editor?.canWrite != true || hiddenInherited
+                ? null
+                : () => unawaited(_hide([entry], !hidden)),
+          ),
+          StudioTool(
             key: ValueKey('map-element-lock-${entry.kind}-${entry.id}'),
             label: inherited
                 ? 'Verrouillé par son calque ou sa famille. Déverrouillez le calque ou utilisez Tout déverrouiller.'
@@ -192,7 +248,7 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                 : 'Verrouiller ${entry.label}',
             icon: locked ? Icons.lock_outline : Icons.lock_open_outlined,
             selected: locked,
-            onPressed: widget.document.editor == null || inherited
+            onPressed: widget.document.editor?.canWrite != true || inherited
                 ? null
                 : () => unawaited(_lock([entry], !locked)),
           ),
@@ -212,6 +268,15 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
           (entry) =>
               !widget.document.editorState.lockedElements.contains(entry.key),
         );
+    final hidden = entries.every(
+      (entry) => widget.document.isElementHidden(entry.kind, entry.id),
+    );
+    final hiddenInherited =
+        hidden &&
+        entries.any(
+          (entry) =>
+              widget.document.isElementHiddenInherited(entry.kind, entry.id),
+        );
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
       child: Row(
@@ -229,11 +294,26 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
             ),
           ),
           StudioTool(
+            key: ValueKey('map-family-hide-$name'),
+            label: hiddenInherited
+                ? 'Ce groupe est masqué par son calque ou sa famille. Réaffichez le calque ou utilisez Tout afficher.'
+                : hidden
+                ? 'Afficher $name'
+                : 'Masquer $name',
+            icon: hidden
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
+            selected: hidden,
+            onPressed: editor?.canWrite != true || hiddenInherited
+                ? null
+                : () => unawaited(_hide(entries, !hidden)),
+          ),
+          StudioTool(
             label: inheritedOnly
                 ? 'Ce groupe est verrouillé par son calque ou sa famille. Déverrouillez le calque ou utilisez Tout déverrouiller.'
                 : 'Verrouiller ou déverrouiller $name',
             icon: locked ? Icons.lock_outline : Icons.lock_open_outlined,
-            onPressed: editor == null || inheritedOnly
+            onPressed: editor?.canWrite != true || inheritedOnly
                 ? null
                 : () => unawaited(_lock(entries, !locked)),
           ),
@@ -247,7 +327,10 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     int from,
     int to,
   ) async {
-    if (widget.onReorder == null || _ordering || _search.text.isNotEmpty) {
+    if (widget.onReorder == null ||
+        widget.document.editor?.canWrite != true ||
+        _ordering ||
+        _search.text.isNotEmpty) {
       return;
     }
     final source = entries[from];
@@ -322,17 +405,17 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                       Expanded(
                         child: Text(
                           editor.saving
-                              ? 'Enregistrement des cadenas…'
+                              ? 'Enregistrement de l’affichage et des cadenas…'
                               : editor.dirty
-                              ? 'Cadenas non enregistrés'
-                              : 'Cadenas enregistrés',
+                              ? 'Affichage et cadenas non enregistrés'
+                              : 'Affichage et cadenas enregistrés',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),
                       StudioTool(
-                        label: 'Annuler le verrouillage',
+                        label: 'Annuler l’affichage ou le verrouillage',
                         icon: Icons.undo,
-                        onPressed: editor.canUndo
+                        onPressed: editor.canWrite && editor.canUndo
                             ? () {
                                 unawaited(editor.undo());
                                 _changed();
@@ -340,9 +423,9 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                             : null,
                       ),
                       StudioTool(
-                        label: 'Rétablir le verrouillage',
+                        label: 'Rétablir l’affichage ou le verrouillage',
                         icon: Icons.redo,
-                        onPressed: editor.canRedo
+                        onPressed: editor.canWrite && editor.canRedo
                             ? () {
                                 unawaited(editor.redo());
                                 _changed();
@@ -352,16 +435,33 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                     ],
                   ),
                 if (editor != null &&
+                    (editor.current.hiddenElements.isNotEmpty ||
+                        editor.current.hiddenFamilies.isNotEmpty))
+                  StudioButton(
+                    key: const ValueKey('map-elements-show-all'),
+                    label: 'Tout afficher',
+                    icon: Icons.visibility_outlined,
+                    secondary: true,
+                    onPressed: editor.canWrite
+                        ? () {
+                            unawaited(editor.showAll());
+                            _changed();
+                          }
+                        : null,
+                  ),
+                if (editor != null &&
                     (editor.current.lockedElements.isNotEmpty ||
                         editor.current.lockedFamilies.isNotEmpty))
                   StudioButton(
                     label: 'Tout déverrouiller',
                     icon: Icons.lock_open_outlined,
                     secondary: true,
-                    onPressed: () {
-                      unawaited(editor.unlockAll());
-                      _changed();
-                    },
+                    onPressed: editor.canWrite
+                        ? () {
+                            unawaited(editor.unlockAll());
+                            _changed();
+                          }
+                        : null,
                   ),
                 if (_stacking)
                   const Text(
@@ -377,14 +477,20 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                   ),
                 if (editor == null)
                   const StudioNotice(
-                    'Le verrouillage persistant est indisponible dans cette session.',
+                    'La visibilité et le verrouillage persistants sont indisponibles dans cette session.',
+                  ),
+                if (editor != null && !editor.canWrite)
+                  const StudioNotice(
+                    'Ce projet est en lecture seule. Créez une copie de travail pour modifier son affichage et ses cadenas.',
                   ),
                 if (editor?.error != null) ...[
                   StudioNotice(editor!.error!, isError: true),
                   StudioButton(
                     label: 'Réessayer l’enregistrement',
                     icon: Icons.refresh,
-                    onPressed: () => unawaited(editor.save()),
+                    onPressed: editor.canWrite
+                        ? () => unawaited(editor.save())
+                        : null,
                   ),
                 ],
                 if (widget.document.error != null)
@@ -413,6 +519,7 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                       if (_stacking &&
                           query.isEmpty &&
                           widget.onReorder != null &&
+                          editor?.canWrite == true &&
                           !widget.document.dirty &&
                           !_ordering)
                         SliverReorderableList(

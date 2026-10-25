@@ -18,7 +18,10 @@ void main() {
       final source = File('${setup.root.path}/maps/source.editor.json');
       await source.writeAsString(jsonEncode(MapEditorDocument(
           mapId: 'source',
-          state: MapEditorState(lockedElements: {'layer:base'})).toJson()));
+          state: MapEditorState(
+              lockedElements: {'layer:base'},
+              hiddenElements: {'layer:base', 'model:wind'},
+              hiddenFamilies: {'effect'})).toJson()));
       final deletion = await setup.mutations.plan(
           setup.projectHandle,
           await setup.requestAsync(
@@ -51,7 +54,7 @@ void main() {
       final orphan = File('${setup.root.path}/maps/orphan.editor.json');
       await orphan.parent.create(recursive: true);
       await orphan
-          .writeAsString('{"schemaVersion":2,"mapId":"orphan","future":true}');
+          .writeAsString('{"schemaVersion":3,"mapId":"orphan","future":true}');
       final before = await orphan.readAsBytes();
       await expectLater(
           setup.mutations.plan(
@@ -100,54 +103,77 @@ void main() {
             isFalse);
       });
     }
-    for (final action in ['map.duplicate', 'map.rename', 'map.delete_apply']) {
-      test('$action carries editor in the same transaction and undo', () async {
-        final setup = await _Setup.create(
-            maps: [catalogMap('source')], enableSnapshotCache: true);
-        addTearDown(setup.dispose);
-        final source = File('${setup.root.path}/maps/source.editor.json');
-        final settings = MapEditorState(
-            lockedElements: {'layer:base'}, lockedFamilies: {'model'});
-        await source.writeAsString(jsonEncode(
-            MapEditorDocument(mapId: 'source', state: settings).toJson()));
-        final before = await source.readAsBytes();
-        final parameters = <String, Object?>{
-          if (action == 'map.duplicate') ...{
-            'sourceMapId': 'source',
-            'targetMapId': 'target'
-          } else ...{
-            'mapId': 'source'
-          },
-          if (action == 'map.rename') 'newMapId': 'target',
-        };
-        final plan = await setup.mutations.plan(setup.projectHandle,
-            await setup.requestAsync(actionId: action, parameters: parameters));
-        final confirmation = action == 'map.delete_apply'
-            ? await setup.mutations
-                .confirm(setup.projectHandle, planId: plan['planId']! as String)
-            : null;
-        final applied = await setup.mutations.apply(setup.projectHandle,
-            planId: plan['planId']! as String,
-            operationId: 'editor_lifecycle',
-            confirmationToken: confirmation?['confirmationToken'] as String?);
-        if (action != 'map.delete_apply') {
-          final target = File('${setup.root.path}/maps/target.editor.json');
-          expect(await target.exists(), isTrue);
-          final document = MapEditorDocument.fromJson(
-              jsonDecode(await target.readAsString()));
-          expect(document.mapId, 'target');
-          expect(document.state, settings);
-        }
-        expect(await source.exists(), action == 'map.duplicate');
-        final receipt = applied['receipt']! as Map<String, Object?>;
-        await setup.mutations.undo(setup.projectHandle,
-            entryId: receipt['receiptId']! as String,
-            idempotencyKey: 'undo_editor_lifecycle');
-        expect(await source.readAsBytes(), before);
-        expect(
-            await File('${setup.root.path}/maps/target.editor.json').exists(),
-            isFalse);
-      });
+    for (final version in [1, 2]) {
+      for (final action in [
+        'map.duplicate',
+        'map.rename',
+        'map.delete_apply'
+      ]) {
+        test(
+            '$action carries editor version $version in the same transaction and undo',
+            () async {
+          final setup = await _Setup.create(
+              maps: [catalogMap('source')], enableSnapshotCache: true);
+          addTearDown(setup.dispose);
+          final source = File('${setup.root.path}/maps/source.editor.json');
+          final settings = MapEditorState(
+              lockedElements: {'layer:base'},
+              lockedFamilies: {'model'},
+              hiddenElements: version == 2 ? {'layer:base', 'model:wind'} : {},
+              hiddenFamilies: version == 2 ? {'effect'} : {});
+          final stored =
+              MapEditorDocument(mapId: 'source', state: settings).toJson();
+          if (version == 1) {
+            stored['schemaVersion'] = 1;
+            stored['state'] = {
+              'lockedElements': settings.lockedElements.toList(),
+              'lockedFamilies': settings.lockedFamilies.toList()
+            };
+          }
+          await source.writeAsString(jsonEncode(stored));
+          final before = await source.readAsBytes();
+          final parameters = <String, Object?>{
+            if (action == 'map.duplicate') ...{
+              'sourceMapId': 'source',
+              'targetMapId': 'target'
+            } else ...{
+              'mapId': 'source'
+            },
+            if (action == 'map.rename') 'newMapId': 'target',
+          };
+          final plan = await setup.mutations.plan(
+              setup.projectHandle,
+              await setup.requestAsync(
+                  actionId: action, parameters: parameters));
+          final confirmation = action == 'map.delete_apply'
+              ? await setup.mutations.confirm(setup.projectHandle,
+                  planId: plan['planId']! as String)
+              : null;
+          final applied = await setup.mutations.apply(setup.projectHandle,
+              planId: plan['planId']! as String,
+              operationId: 'editor_lifecycle',
+              confirmationToken: confirmation?['confirmationToken'] as String?);
+          if (action != 'map.delete_apply') {
+            final target = File('${setup.root.path}/maps/target.editor.json');
+            expect(await target.exists(), isTrue);
+            final raw =
+                jsonDecode(await target.readAsString()) as Map<String, dynamic>;
+            final document = MapEditorDocument.fromJson(raw);
+            expect(raw['schemaVersion'], 2);
+            expect(document.mapId, 'target');
+            expect(document.state, settings);
+          }
+          expect(await source.exists(), action == 'map.duplicate');
+          final receipt = applied['receipt']! as Map<String, Object?>;
+          await setup.mutations.undo(setup.projectHandle,
+              entryId: receipt['receiptId']! as String,
+              idempotencyKey: 'undo_editor_lifecycle');
+          expect(await source.readAsBytes(), before);
+          expect(
+              await File('${setup.root.path}/maps/target.editor.json').exists(),
+              isFalse);
+        });
+      }
     }
     for (final action in ['map.duplicate', 'map.rename', 'map.delete_apply']) {
       test('$action carries atmosphere in the same transaction and undo',

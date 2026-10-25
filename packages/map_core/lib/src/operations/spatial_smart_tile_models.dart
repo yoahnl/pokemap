@@ -55,7 +55,22 @@ typedef SpatialSmartTileModelProjection = ({
   List<SpatialModelInstance> instances,
   Map<String, Set<(int, int)>> groundReplacements,
   Map<String, ({String layerId, GridPos cell})> cellOrigins,
+  Set<String> paintHeightInstanceIds,
 });
+
+const spatialSmartTileLayerPaintStep = .001;
+
+Map<String, int> spatialSmartTileLayerPaintRanks(MapData map) {
+  final paintedLayers =
+      (mapPaintsFirstLayerInFront(map) ? map.layers.reversed : map.layers)
+          .whereType<SmartTileLayer>()
+          .where((layer) => layer.isVisible && layer.opacity > 0)
+          .toList();
+  return Map.unmodifiable({
+    for (var index = 0; index < paintedLayers.length; index++)
+      paintedLayers[index].id: index,
+  });
+}
 
 SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
   required MapData map,
@@ -70,6 +85,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
       instances: const [],
       groundReplacements: const {},
       cellOrigins: const {},
+      paintHeightInstanceIds: const {},
     );
   }
   if (sourceCellWidth <= 0 || sourceCellHeight <= 0) {
@@ -82,15 +98,8 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
   final result = <SpatialModelInstance>[];
   final groundReplacements = <String, Set<(int, int)>>{};
   final cellOrigins = <String, ({String layerId, GridPos cell})>{};
-  final paintedLayers =
-      (mapPaintsFirstLayerInFront(map) ? map.layers.reversed : map.layers)
-          .whereType<SmartTileLayer>()
-          .where((layer) => layer.isVisible && layer.opacity > 0)
-          .toList();
-  final layerRanks = {
-    for (var index = 0; index < paintedLayers.length; index++)
-      paintedLayers[index].id: index,
-  };
+  final paintHeightInstanceIds = <String>{};
+  final layerRanks = spatialSmartTileLayerPaintRanks(map);
   for (final layer in map.layers.whereType<SmartTileLayer>()) {
     if (!layer.isVisible || layer.opacity <= 0) continue;
     final preset = presets[layer.presetId];
@@ -176,6 +185,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
               result,
               groundReplacements: groundReplacements,
               cellOrigins: cellOrigins,
+            paintHeightInstanceIds: paintHeightInstanceIds,
               map: map,
               layer: layer,
               part: part,
@@ -210,6 +220,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
           result,
           groundReplacements: groundReplacements,
           cellOrigins: cellOrigins,
+          paintHeightInstanceIds: paintHeightInstanceIds,
           map: map,
           layer: layer,
           part: part,
@@ -231,6 +242,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
         entry.key: Set<(int, int)>.unmodifiable(entry.value),
     }),
     cellOrigins: Map.unmodifiable(cellOrigins),
+    paintHeightInstanceIds: Set.unmodifiable(paintHeightInstanceIds),
   );
 }
 
@@ -242,7 +254,7 @@ List<double> _partPaintHeights(List<SmartTileVisualPart> parts, int layerRank) {
     });
   final heights = List<double>.filled(parts.length, 0);
   for (var rank = 0; rank < ordered.length; rank++) {
-    heights[ordered[rank]] = .001 * (layerRank + 1 + rank / ordered.length);
+    heights[ordered[rank]] = spatialSmartTileLayerPaintStep * (layerRank + 1 + rank / ordered.length);
   }
   return heights;
 }
@@ -251,6 +263,7 @@ void _addModel(
   List<SpatialModelInstance> result, {
   required Map<String, Set<(int, int)>> groundReplacements,
   required Map<String, ({String layerId, GridPos cell})> cellOrigins,
+  required Set<String> paintHeightInstanceIds,
   required MapData map,
   required SmartTileLayer layer,
   required SmartTileVisualPart part,
@@ -348,6 +361,10 @@ void _addModel(
   );
   final instanceId = 'smt_$digest';
   cellOrigins[instanceId] = (layerId: layer.id, cell: GridPos(x: x, y: z));
+  final receivesPaintHeight = source.followTerrain &&
+      !source.replacesGround &&
+      (part.channel == SmartTileRenderChannel.ground || part.channel == SmartTileRenderChannel.understory);
+  if (receivesPaintHeight) paintHeightInstanceIds.add(instanceId);
   result.add(
     SpatialModelInstance(
       id: instanceId,
@@ -360,12 +377,7 @@ void _addModel(
                 ? scene.worldHeightAt(supportX, supportZ)
                 : 0) +
             source.offsetY +
-            (source.followTerrain &&
-                    !source.replacesGround &&
-                    (part.channel == SmartTileRenderChannel.ground ||
-                        part.channel == SmartTileRenderChannel.understory)
-                ? paintHeight
-                : 0),
+            (receivesPaintHeight ? paintHeight : 0),
       ),
       rotationDegrees: -(transform.quarterTurns % 4) * 90.0,
       scale: source.scale,

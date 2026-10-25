@@ -13,9 +13,194 @@ import 'package:map_render_3d/src/spatial_actor_visual.dart';
 import 'package:map_render_3d/src/adaptive_camera.dart';
 import 'package:map_render_3d/src/spatial_scene_neighbor.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
+import 'package:map_render_3d/src/spatial_render_context.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('hidden layers preserve canonical paint heights before and after an order change', () async {
+    final h = await _Harness.create(generated: true, materialized: true);
+    addTearDown(h.dispose);
+    final ground = h.game.grounds.single;
+    final initialRed = ground.visuals
+        .firstWhere((v) => v.visual.sourceRect.x == 0)
+        .height;
+    final hidden = SpatialSceneVisibility(hiddenLayers: ['blue']);
+    final configuration = h.configuration(h.map, visibility: hidden);
+    h.game.configuration = configuration;
+    h.game.renderedConfiguration = configuration;
+    h.game.syncVisibility();
+    expect(
+      ground.visuals.firstWhere((v) => v.visual.sourceRect.x == 0).height,
+      initialRed,
+    );
+    final reordered = h.map.copyWith(layers: h.map.layers.reversed.toList());
+    h.game.configuration = h.configuration(reordered, visibility: hidden);
+    await h.game.refresh();
+    final canonical = ground.sourcePlan
+        .resolve(0)
+        .firstWhere((v) => v.visual.sourceRect.x == 0)
+        .height;
+    expect(
+      ground.visuals.firstWhere((v) => v.visual.sourceRect.x == 0).height,
+      canonical,
+    );
+    final generated = h.game.modelComponents.entries.singleWhere(
+      (entry) => entry.key.startsWith('smt_'),
+    );
+    expect(generated.value.component.presentationVisible, isTrue);
+    expect(
+      generated.value.component.position.y,
+      closeTo(
+        h.game.runtimeModelIndex.instance('active', generated.key)!.position.y,
+        .0000001,
+      ),
+    );
+    final shown = h.configuration(reordered);
+    h.game.configuration = shown;
+    h.game.renderedConfiguration = shown;
+    h.game.syncVisibility();
+    expect(
+      ground.visuals.firstWhere((v) => v.visual.sourceRect.x == 0).height,
+      canonical,
+    );
+  });
+
+  test('visibility changed during an in-flight refresh applies before the completed frame', () async {
+    final h = await _Harness.create();
+    addTearDown(h.dispose);
+    final pending = h.game.refresh();
+    expect(h.game.refreshing, isTrue);
+    final hidden = h.configuration(
+      h.map,
+      visibility: SpatialSceneVisibility(
+        hiddenContent: [(SpatialSceneContentKind.model, 'lamp')],
+      ),
+    );
+    h.game.configuration = hidden;
+    await pending;
+    expect(h.game.visibleConfiguration, same(hidden));
+    expect(
+      h.game.modelComponents['lamp']!.component.presentationVisible,
+      isFalse,
+    );
+  });
+
+  test('first and repeated layer visibility changes reuse prepared catalog dependencies', () async {
+    final h = await _Harness.create(guardCatalog: true);
+    addTearDown(h.dispose);
+    final project = h.project as _GuardedCatalogProject;
+    expect(project.catalogReads, greaterThan(0));
+    project.rejectCatalogReads = true;
+    final reads = h.reads;
+    final generations = h.game.generation;
+    for (final layers in [
+      <String>['red'],
+      <String>[],
+      <String>['red', 'blue'],
+      <String>[],
+    ]) {
+      final configuration = h.configuration(
+        h.map,
+        visibility: SpatialSceneVisibility(hiddenLayers: layers),
+      );
+      h.game.configuration = configuration;
+      h.game.renderedConfiguration = configuration;
+      h.game.syncVisibility();
+      expect(h.game.generation, generations);
+      expect(h.reads, reads);
+    }
+  });
+
+  test('hide and show retain active models, actors, clocks and neighboring identities', () async {
+    final h = await _Harness.create(neighborSameId: true, dayLights: true);
+    addTearDown(h.dispose);
+    final game = h.game;
+    final model = game.modelComponents['lamp']!.component;
+    final neighbor = game.animationModels[('neighbor', 'lamp')]!;
+    final actor = game.actors['hero']!.mesh;
+    model.playback.clock = .375;
+    final lighting = game.pointLightBindings;
+    final generation = game.generation;
+    final reads = h.reads;
+    final raster = game.grounds.single.components;
+    expect(
+      (game.context as SpatialRenderContext).lighting.pointLights,
+      hasLength(2),
+    );
+    final hidden = h.configuration(
+      h.map,
+      visibility: SpatialSceneVisibility(
+        hiddenContent: [
+          (SpatialSceneContentKind.model, 'lamp'),
+          (SpatialSceneContentKind.actor, 'hero'),
+        ],
+      ),
+    );
+    game.configuration = hidden;
+    game.renderedConfiguration = hidden;
+    game.syncVisibility();
+    expect(model.presentationVisible, isFalse);
+    expect(actor.isVisible(game.camera), isFalse);
+    expect(neighbor.presentationVisible, isTrue);
+    expect(
+      (game.context as SpatialRenderContext).lighting.pointLights,
+      hasLength(1),
+    );
+    expect(model.playback.clock, .375);
+    expect(game.modelComponents['lamp']!.component, same(model));
+    expect(game.actors['hero']!.mesh, same(actor));
+    expect(game.grounds.single.components, same(raster));
+    expect(game.generation, generation);
+    expect(game.visibilityGroundRebuilds, 0);
+    expect(h.reads, reads);
+    final shown = h.configuration(h.map);
+    game.configuration = shown;
+    game.renderedConfiguration = shown;
+    game.syncVisibility();
+    expect(model.presentationVisible, isTrue);
+    expect(actor.isVisible(game.camera), isTrue);
+    expect(model.playback.clock, .375);
+    expect(game.pointLightBindings, same(lighting));
+    expect(game.animationModels[('neighbor', 'lamp')], same(neighbor));
+    expect(game.generation, generation);
+    expect(h.reads, reads);
+  });
+
+  test('hidden source layer removes raster and generated models without scene reload', () async {
+    final h = await _Harness.create(generated: true, materialized: true);
+    addTearDown(h.dispose);
+    final game = h.game;
+    final generated = h.map.spatialScene!.instances.singleWhere(
+      (instance) => instance.id.startsWith('smt_'),
+    );
+    final component = game.modelComponents[generated.id]!.component;
+    final ground = game.grounds.single;
+    final original = ground.visuals.map((v) => v.visual.sourceRect.x).toList();
+    final reads = h.reads;
+    final generation = game.generation;
+    final hidden = h.configuration(
+      h.map,
+      visibility: SpatialSceneVisibility(hiddenLayers: ['red']),
+    );
+    game.configuration = hidden;
+    game.renderedConfiguration = hidden;
+    game.syncVisibility();
+    expect(component.presentationVisible, isFalse);
+    expect(ground.visuals.map((v) => v.visual.sourceRect.x), everyElement(32));
+    expect(game.visibilityGroundRebuilds, 1);
+    expect(game.generation, generation);
+    expect(h.reads, reads);
+    final shown = h.configuration(h.map);
+    game.configuration = shown;
+    game.renderedConfiguration = shown;
+    game.syncVisibility();
+    expect(component.presentationVisible, isTrue);
+    expect(ground.visuals.map((v) => v.visual.sourceRect.x), original);
+    expect(game.modelComponents[generated.id]!.component, same(component));
+    expect(game.generation, generation);
+    expect(h.reads, reads);
+  });
 
   test(
     'visual order changes replace active raster only and retain scene state',
@@ -204,6 +389,9 @@ final class _Harness {
   static Future<_Harness> create({
     bool generated = false,
     bool materialized = false,
+    bool neighborSameId = false,
+    bool dayLights = false,
+    bool guardCatalog = false,
   }) async {
     _UnusedBackend();
     final h = _Harness();
@@ -213,7 +401,10 @@ final class _Harness {
       sourceAssetId: 'lamp',
       castsShadowsByDefault: generated,
       relativePath: 'assets/models3d/lamp.glb',
-      light: Model3dPointLight(localPosition: Model3dVector3(x: 0, y: 1, z: 0)),
+      light: Model3dPointLight(
+        localPosition: Model3dVector3(x: 0, y: 1, z: 0),
+        nightOnly: !dayLights,
+      ),
       inspection: Model3dInspection(
         bounds: Model3dBounds(
           min: Model3dVector3.zero,
@@ -289,6 +480,7 @@ final class _Harness {
         ],
       ),
     );
+    if (guardCatalog) h.project = _GuardedCatalogProject(h.project);
     h.map = MapData(
       id: 'active',
       name: 'Active',
@@ -350,7 +542,7 @@ final class _Harness {
             depth: 1,
             instances: [
               SpatialModelInstance(
-                id: 'lamp-next',
+                id: neighborSameId ? 'lamp' : 'lamp-next',
                 modelId: 'lamp',
                 position: Model3dVector3.zero,
               ),
@@ -407,7 +599,9 @@ final class _Harness {
   SpatialSceneView configuration(
     MapData value, {
     bool Function(String)? canSelectLayer,
+    SpatialSceneVisibility? visibility,
   }) => SpatialSceneView(
+    visibility: visibility,
     canSelectLayer: canSelectLayer,
     scene: value.spatialScene!,
     groundMap: value,
@@ -428,6 +622,32 @@ final class _Harness {
     game.onRemove();
     controller.dispose();
   }
+}
+
+final class _GuardedCatalogProject implements ProjectManifest {
+  _GuardedCatalogProject(this.source);
+  final ProjectManifest source;
+  var catalogReads = 0;
+  var rejectCatalogReads = false;
+  @override
+  ProjectSmartTileCatalog get smartTileCatalog {
+    if (rejectCatalogReads)
+      throw StateError('Visibility accessed the project catalog.');
+    catalogReads++;
+    return source.smartTileCatalog;
+  }
+
+  @override
+  get settings => source.settings;
+  @override
+  get models3d => source.models3d;
+  @override
+  get tilesets => source.tilesets;
+  @override
+  get borderCatalog => source.borderCatalog;
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError(invocation.memberName.toString());
 }
 
 final class _UnusedBackend extends GpuBackend {

@@ -35,9 +35,16 @@ final class SpatialActorOcclusionVisual {
 }
 
 final class SpatialActorOcclusionPlan {
-  SpatialActorOcclusionPlan(this.map, ProjectManifest project) {
+  SpatialActorOcclusionPlan(
+    this.map,
+    ProjectManifest project, {
+    bool Function(String layerId)? includeLayer,
+  }) {
     for (final layer in map.layers.whereType<SmartTileLayer>()) {
-      if (!layer.isVisible || layer.opacity <= 0) continue;
+      if (!layer.isVisible ||
+          layer.opacity <= 0 ||
+          includeLayer?.call(layer.id) == false)
+        continue;
       final preset = project.smartTileCatalog.presets
           .where((p) => p.id == layer.presetId)
           .firstOrNull;
@@ -61,6 +68,7 @@ final class SpatialActorOcclusionPlan {
             ),
           );
       if (!hasParts) continue;
+      _layerIds.add(layer.id);
       _plans.add((
         layer: layer,
         plan: buildSmartTileLayerVisualPlan(
@@ -78,6 +86,28 @@ final class SpatialActorOcclusionPlan {
   }
   final MapData map;
   final _plans = <({SmartTileLayer layer, SmartTileLayerVisualPlan plan})>[];
+  final _layerIds = <String>{};
+
+  SpatialActorOcclusionPlan._visible(
+    SpatialActorOcclusionPlan source,
+    bool Function(String) includeLayer,
+  ) : map = source.map {
+    _plans.addAll(source._plans.where((entry) => includeLayer(entry.layer.id)));
+    _layerIds.addAll(source._layerIds.where(includeLayer));
+  }
+
+  SpatialActorOcclusionPlan withLayerVisibility(
+    bool Function(String) includeLayer,
+  ) => _plans.every((entry) => includeLayer(entry.layer.id))
+      ? this
+      : SpatialActorOcclusionPlan._visible(this, includeLayer);
+
+  bool layersMatchVisibility(
+    SpatialActorOcclusionPlan other,
+    bool Function(String) includeLayer,
+  ) =>
+      identical(map, other.map) &&
+      _layerIds.every((id) => includeLayer(id) == other._layerIds.contains(id));
 
   List<SpatialActorOcclusionVisual> resolve(
     int elapsedMs, {

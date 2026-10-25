@@ -59,7 +59,7 @@ class WarpEditingCommands {
   }
 
   void move(String id, GridPos position) {
-    if (document.isElementLocked('warp', id)) return;
+    if (document.isElementUnavailable('warp', id)) return;
     document.commit(
       updateWarpOnMap(document.current, warpId: id, pos: position),
     );
@@ -108,7 +108,7 @@ class WarpEditingCommands {
       );
 
   void delete(String id) {
-    if (document.isElementLocked('warp', id)) return;
+    if (document.isElementUnavailable('warp', id)) return;
     document.commit(removeWarpFromMap(document.current, warpId: id));
   }
 }

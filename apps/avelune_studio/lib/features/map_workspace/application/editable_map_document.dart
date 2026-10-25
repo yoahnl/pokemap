@@ -17,24 +17,37 @@ class EditableMapDocument {
   MapEditorState get editorState => editor?.current ?? _unlockedEditorState;
   MapData? _indexedLockMap;
   final _lockParents = <String, Set<String>>{};
+  final _layerElements = <(String, String), Set<String>>{};
 
   void _refreshLockParents() {
     final indexed = _indexedLockMap;
-    if (indexed != null && mapSharesElementOwnershipStorage(indexed, current)) return;
+    if (indexed != null && mapSharesElementOwnershipStorage(indexed, current)) {
+      return;
+    }
     _indexedLockMap = current;
     _lockParents.clear();
+    _layerElements.clear();
     for (final item in current.placedElements) {
       _lockParents.putIfAbsent('decor:${item.id}', () => {}).add(item.layerId);
+      _layerElements
+          .putIfAbsent(('decor', item.layerId), () => {})
+          .add(item.id);
     }
     for (final layer in current.layers) {
       final generated = switch (layer) {
-        BorderLayer() => layer.content.features.expand((feature) => feature.generatedPlacementIds),
-        EnvironmentLayer() => layer.content.areas.expand((area) => area.generatedPlacementIds),
+        BorderLayer() => layer.content.features.expand(
+          (feature) => feature.generatedPlacementIds,
+        ),
+        EnvironmentLayer() => layer.content.areas.expand(
+          (area) => area.generatedPlacementIds,
+        ),
         _ => const <String>[],
       };
       for (final id in generated) {
         _lockParents.putIfAbsent('decor:$id', () => {}).add(layer.id);
         _lockParents.putIfAbsent('model:$id', () => {}).add(layer.id);
+        _layerElements.putIfAbsent(('decor', layer.id), () => {}).add(id);
+        _layerElements.putIfAbsent(('model', layer.id), () => {}).add(id);
       }
     }
   }
@@ -42,8 +55,32 @@ class EditableMapDocument {
   bool isElementLocked(String kind, String id) {
     final state = editorState;
     if (state.isLocked(kind, id)) return true;
-    return _lockParents['$kind:$id']?.any((layerId) => state.isLocked('layer', layerId)) ?? false;
+    return _lockParents['$kind:$id']?.any(
+          (layerId) => state.isLocked('layer', layerId),
+        ) ??
+        false;
   }
+
+  bool isElementHidden(String kind, String id) {
+    final state = editorState;
+    if (state.isHidden(kind, id)) return true;
+    return isElementHiddenInherited(kind, id);
+  }
+
+  bool isElementHiddenInherited(String kind, String id) {
+    final state = editorState;
+    if (state.hiddenFamilies.contains(kind)) return true;
+    return _lockParents['$kind:$id']?.any(
+          (layerId) => state.isHidden('layer', layerId),
+        ) ??
+        false;
+  }
+
+  bool isElementUnavailable(String kind, String id) =>
+      isElementLocked(kind, id) || isElementHidden(kind, id);
+
+  Iterable<String> elementIdsInLayer(String kind, String layerId) =>
+      _layerElements[(kind, layerId)] ?? const <String>{};
   MapWorkspaceDocument base;
   MapData current;
   MapData saved;
@@ -78,6 +115,7 @@ class EditableMapDocument {
       _repairSelection();
     };
   }
+
   MapPlacedElement? get selected => current.placedElements
       .where((element) => element.id == selectedId)
       .firstOrNull;

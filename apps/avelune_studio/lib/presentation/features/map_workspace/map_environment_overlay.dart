@@ -1,6 +1,8 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/environment_editing_commands.dart';
 
@@ -24,6 +26,9 @@ class MapEnvironmentOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (document.isElementHidden('layer', session.layerId)) {
+      return const SizedBox.shrink();
+    }
     final area = EnvironmentEditingCommands(document, project).area(session);
     if (area == null) return const SizedBox.shrink();
     final cells = <GridPos>{

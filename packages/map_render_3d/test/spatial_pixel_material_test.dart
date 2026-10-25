@@ -32,33 +32,177 @@ void main() {
     material.fragmentShader.resource;
   });
 
-  test('depth fog binds only presentation uniforms and clears when disabled', () {
-    final spatial = SpatialRenderContext(device);
-    material.apply(spatial);
-    material.fragmentShader.bind(device);
-    final base = device.uniforms['Material']!.toList();
-    final vertex = material.vertexShader, fragment = material.fragmentShader;
-    expect(device.uniforms['Presentation']![3], 0);
-    spatial
-      ..presentationProfile = SpatialPresentationProfile(fogStart: 40, fogEnd: 55, fogOpacity: .2)
-      ..depthFogEnabled = true;
-    material.apply(spatial);
-    material.fragmentShader.bind(device);
-    expect(device.uniforms['Presentation']![3], closeTo(.2, 1e-6));
-    expect(device.uniforms['Presentation']!.sublist(4, 6), [40, 55]);
-    expect(device.uniforms['Material'], base);
-    expect(material.vertexShader, same(vertex));
-    expect(material.fragmentShader, same(fragment));
-    spatial.depthFogEnabled = false;
-    material.apply(spatial);
-    material.fragmentShader.bind(device);
-    expect(device.uniforms['Presentation']![3], 0);
+  test('an offscreen solar caster keeps casting into visible ground', () {
+    final wall = _OffscreenPointCaster(material);
+    final spatial = SpatialRenderContext(device)
+      ..shadowCasters = [wall]
+      ..lighting = SpatialLightingProfile.stylized(
+        shadow: SpatialShadowProfile(casterInstanceIds: {'town:wall'}),
+      );
+    spatial.flush();
+    expect(spatial.shadowStats.casterDrawCount, 1);
+    expect(spatial.shadowStats.targetAllocations, 1);
+    spatial.flush();
+    expect(spatial.shadowStats.casterDrawCount, 1);
+    expect(spatial.shadowStats.targetAllocations, 1);
   });
+
+  test('distant solar casters upload local coordinates', () {
+    final spatial = SpatialRenderContext(device)
+      ..shadowCasters = [_OffscreenPointCaster(material, offset: 10000)]
+      ..lighting = SpatialLightingProfile.stylized(
+        shadow: SpatialShadowProfile(
+          casterInstanceIds: {'town:wall'},
+          center: (x: 10000, y: 0, z: 0),
+        ),
+      );
+    spatial.flush();
+    expect(spatial.shadowStats.casterDrawCount, 1);
+    expect(backend.shadowVertexSnapshots.single[12], closeTo(0, 1e-6));
+  });
+
+  test('solar receivers bind a relative projection and clear its origin', () {
+    final ground = SpatialPixelMaterial(
+      material.albedoTexture,
+      lightingRole: SpatialPixelLightingRole.ground,
+    );
+    ground.vertexShader.resource;
+    ground.fragmentShader.resource;
+    final profile = SpatialShadowProfile(casterInstanceIds: {'block'});
+    final relative = Matrix4.diagonal3Values(2, 3, 4);
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(shadow: profile)
+      ..shadowFrame = SpatialShadowFrame(
+        material.albedoTexture,
+        Matrix4.identity(),
+        profile,
+        origin: (x: 10000, y: 2, z: 10000),
+        relativeWorldToLight: relative,
+      );
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']!.take(16), relative.storage);
+    expect(device.uniforms['Shadow']!.sublist(28, 32), [10000, 2, 10000, 0]);
+    spatial.shadowFrame = SpatialShadowFrame(
+      material.albedoTexture,
+      Matrix4.identity(),
+      profile,
+    );
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']!.take(16), Matrix4.identity().storage);
+    expect(device.uniforms['Shadow']!.sublist(28, 32), [0, 0, 0, 0]);
+    spatial.shadowFrame = null;
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']!.sublist(28, 32), [0, 0, 0, 0]);
+  });
+
+  test('solar casters outside the light volume do not submit GPU draws', () {
+    final spatial = SpatialRenderContext(device)
+      ..shadowCasters = [_OffscreenPointCaster(material, offset: 10000)]
+      ..lighting = SpatialLightingProfile.stylized(
+        shadow: SpatialShadowProfile(casterInstanceIds: {'town:wall'}),
+      );
+    spatial.flush();
+    expect(spatial.shadowStats.casterDrawCount, 0);
+  });
+
+  test('sampled depth modes bind independently and return to packed depth', () {
+    final ground = SpatialPixelMaterial(
+      material.albedoTexture,
+      lightingRole: SpatialPixelLightingRole.ground,
+    );
+    ground.vertexShader.resource;
+    ground.fragmentShader.resource;
+    final profile = SpatialShadowProfile(casterInstanceIds: {'block'});
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(shadow: profile)
+      ..shadowFrame = SpatialShadowFrame(
+        material.albedoTexture,
+        Matrix4.identity(),
+        profile,
+        samples: 4,
+      )
+      ..pointShadowFrame = SpatialPointShadowFrame(
+        material.albedoTexture,
+        1,
+        samples: 4,
+      );
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']![16], 2);
+    expect(device.uniforms['PointShadows']![0], 2);
+    spatial.shadowFrame = SpatialShadowFrame(
+      material.albedoTexture,
+      Matrix4.identity(),
+      profile,
+      samples: 4,
+      supersampled: true,
+    );
+    spatial.pointShadowFrame = SpatialPointShadowFrame(
+      material.albedoTexture,
+      1,
+      samples: 4,
+      supersampled: true,
+    );
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']![16], 3);
+    expect(device.uniforms['PointShadows']![0], 3);
+    spatial.shadowFrame = SpatialShadowFrame(
+      material.albedoTexture,
+      Matrix4.identity(),
+      profile,
+    );
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['Shadow']![16], 1);
+    expect(device.uniforms['PointShadows']![0], 3);
+    spatial.pointShadowFrame = SpatialPointShadowFrame(
+      material.albedoTexture,
+      1,
+    );
+    ground.apply(spatial);
+    ground.fragmentShader.bind(device);
+    expect(device.uniforms['PointShadows']![0], 1);
+  });
+
+  test(
+    'depth fog binds only presentation uniforms and clears when disabled',
+    () {
+      final spatial = SpatialRenderContext(device);
+      material.apply(spatial);
+      material.fragmentShader.bind(device);
+      final base = device.uniforms['Material']!.toList();
+      final vertex = material.vertexShader, fragment = material.fragmentShader;
+      expect(device.uniforms['Presentation']![3], 0);
+      spatial
+        ..presentationProfile = SpatialPresentationProfile(
+          fogStart: 40,
+          fogEnd: 55,
+          fogOpacity: .2,
+        )
+        ..depthFogEnabled = true;
+      material.apply(spatial);
+      material.fragmentShader.bind(device);
+      expect(device.uniforms['Presentation']![3], closeTo(.2, 1e-6));
+      expect(device.uniforms['Presentation']!.sublist(4, 6), [40, 55]);
+      expect(device.uniforms['Material'], base);
+      expect(material.vertexShader, same(vertex));
+      expect(material.fragmentShader, same(fragment));
+      spatial.depthFogEnabled = false;
+      material.apply(spatial);
+      material.fragmentShader.bind(device);
+      expect(device.uniforms['Presentation']![3], 0);
+    },
+  );
   test('unchanged presentation never rewrites uniforms for repeated draws', () {
     final shader = _CountingFragmentShader();
     shader.resource;
     material.fragmentShader = shader;
-    final spatial = SpatialRenderContext(device)..depthFogEnabled = true
+    final spatial = SpatialRenderContext(device)
+      ..depthFogEnabled = true
       ..presentationProfile = SpatialPresentationProfile();
     material.apply(spatial);
     final writes = shader.presentationWrites;
@@ -152,7 +296,7 @@ void main() {
       alphaCutoff: .5,
     )..uvRect.setValues(.1, .2, .3, .4);
     final spatial = SpatialRenderContext(device)
-      ..pointShadowCasters = [_OffscreenPointCaster(mask)];
+      ..shadowCasters = [_OffscreenPointCaster(mask)];
     final light = SpatialPointLight(position: (x: 0, y: 2, z: 0), radius: 5);
     spatial.lighting = SpatialLightingProfile.stylized(
       surfaceStrength: 0,
@@ -216,7 +360,7 @@ void main() {
     final contact = SpatialActorContactShadow();
     final caster = _OffscreenPointCaster(contact.material);
     final spatial = SpatialRenderContext(device)
-      ..pointShadowCasters = [caster]
+      ..shadowCasters = [caster]
       ..lighting = SpatialLightingProfile.stylized(
         shadow: SpatialShadowProfile(casterInstanceIds: {'town:wall'}),
         pointLights: [
@@ -356,16 +500,16 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 14);
+    expect(shader.pixelWrites, 15);
 
     for (var frame = 0; frame < 120; frame++) {
       material.apply(context);
     }
 
-    expect(shader.pixelWrites, 14);
+    expect(shader.pixelWrites, 15);
     material.uvRect.x = .25;
     material.apply(context);
-    expect(shader.pixelWrites, 21);
+    expect(shader.pixelWrites, 22);
     material.fragmentShader.bind(device);
     expect(device.uniforms['Material']!.sublist(4, 8), [.25, 0, 1, 1]);
   });
@@ -439,9 +583,9 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 14);
+    expect(shader.pixelWrites, 15);
     material.apply(context);
-    expect(shader.pixelWrites, 14);
+    expect(shader.pixelWrites, 15);
   });
 
   test('skeletal surfaces retain their actual joint transforms', () {
@@ -577,12 +721,12 @@ void main() {
       final litContext = SpatialRenderContext(device)
         ..lighting = SpatialLightingProfile.stylized(sunStrength: .2);
       material.apply(litContext);
-      expect(shader.pixelWrites, 14);
+      expect(shader.pixelWrites, 15);
       material.apply(litContext);
-      expect(shader.pixelWrites, 14);
+      expect(shader.pixelWrites, 15);
       litContext.lighting = SpatialLightingProfile.stylized(sunStrength: .5);
       material.apply(litContext);
-      expect(shader.pixelWrites, 18);
+      expect(shader.pixelWrites, 19);
       material.fragmentShader.bind(device);
       expect(device.uniforms['Material']![28], closeTo(.5, 1e-6));
     },
@@ -766,6 +910,7 @@ final class _ShaderBackend extends GpuBackend {
   final _shaders = <String, GpuShader>{};
   int pointPasses = 0, pointFrameEnds = 0;
   final pointMaterialSnapshots = <List<double>>[];
+  final shadowVertexSnapshots = <List<double>>[];
 
   @override
   GpuRenderTarget createRenderTarget({
@@ -841,11 +986,12 @@ final class _Shader implements GpuShader {
       'lightingDirection': 128,
       'lightingOptions': 144,
     }),
-    'Shadow' => _UniformSlot(slot, 112, {
+    'Shadow' => _UniformSlot(slot, 128, {
       'worldToLight': 0,
       'options': 64,
       'receiverHeight': 80,
       'samplePosition': 96,
+      'origin': 112,
     }),
     'Environment' => _UniformSlot(slot, 176, {
       'tint': 0,
@@ -870,7 +1016,7 @@ final class _Shader implements GpuShader {
 }
 
 final class _OffscreenPointCaster extends Object3D {
-  _OffscreenPointCaster(SpatialPixelMaterial material)
+  _OffscreenPointCaster(SpatialPixelMaterial material, {this.offset = 0})
     : surface = Surface(
         vertices: [
           Vertex(position: Vector3(-1, 0, -1), texCoord: Vector2(0, 0)),
@@ -881,6 +1027,7 @@ final class _OffscreenPointCaster extends Object3D {
         material: material,
       );
   final Surface surface;
+  final double offset;
   @override
   void draw(covariant RenderContext3D context) {
     final spatial = context as SpatialRenderContext;
@@ -888,6 +1035,7 @@ final class _OffscreenPointCaster extends Object3D {
     try {
       spatial.sourceShadowId = 'town:wall';
       context.model.setIdentity();
+      context.model.setTranslationRaw(offset, 0, 0);
       context.drawSurface(surface);
     } finally {
       spatial.sourceShadowId = previous;
@@ -937,7 +1085,15 @@ final class _PointPass implements GpuRenderPass {
   final _ShaderBackend backend;
   @override
   void bindUniform(GpuUniformSlot slot, ByteData data) {
-    if ((slot as _UniformSlot).name == 'Material')
+    final name = (slot as _UniformSlot).name;
+    if (name == 'VertexInfo') {
+      backend.shadowVertexSnapshots.add(
+        data.buffer
+            .asFloat32List(data.offsetInBytes, data.lengthInBytes ~/ 4)
+            .toList(),
+      );
+    }
+    if (name == 'Material')
       backend.pointMaterialSnapshots.add(
         data.buffer
             .asFloat32List(data.offsetInBytes, data.lengthInBytes ~/ 4)

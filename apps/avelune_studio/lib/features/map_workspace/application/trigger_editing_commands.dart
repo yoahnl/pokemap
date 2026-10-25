@@ -33,22 +33,22 @@ class TriggerEditingCommands {
   );
 
   void move(String id, GridPos pos) {
-    if (document.isElementLocked('trigger', id)) return;
+    if (document.isElementUnavailable('trigger', id)) return;
     document.commit(
       moveTriggerOnMap(document.current, triggerId: id, pos: pos),
     );
   }
 
   void resize(String id, GridSize size) {
-    if (document.isElementLocked('trigger', id)) return;
+    if (document.isElementUnavailable('trigger', id)) return;
     document.commit(
       resizeTriggerOnMap(document.current, triggerId: id, size: size),
     );
   }
 
   String? deletionProblem(String id) {
-    if (document.isElementLocked('trigger', id)) {
-      return 'Cet élément est verrouillé. Déverrouillez-le dans Éléments.';
+    if (document.isElementUnavailable('trigger', id)) {
+      return 'Cet élément est verrouillé ou masqué. Déverrouillez-le ou affichez-le dans Éléments.';
     }
     final usages =
         buildNarrativeDependencyIndex(

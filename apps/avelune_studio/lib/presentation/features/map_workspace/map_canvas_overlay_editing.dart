@@ -27,7 +27,11 @@ MapCanvasOverlay buildEditingOverlay({
   required double cellHeight,
 }) {
   final colors = Theme.of(context).colorScheme;
+  final hiddenBorder =
+      view.borderFeature != null &&
+      document.isElementHidden('layer', view.borderFeature!.layerId);
   return MapCanvasOverlay(
+    isHidden: document.isElementHidden,
     map: stroke?.collision == true ? stroke!.preview : map,
     project: project,
     selected: view.tool == StudioMapTool.select ? null : document.selected,
@@ -44,7 +48,13 @@ MapCanvasOverlay buildEditingOverlay({
     selectedMarkerId: view.selectedFor(map.id, MapSelectionFamily.marker),
     selectedZoneId: view.selectedFor(map.id, MapSelectionFamily.zone),
     markerPreview: gesture?.entity == null ? null : gesture?.destination,
-    zone: gesture?.movesArea == true
+    zone:
+        document.isElementHidden(
+          'trigger',
+          view.selectedFor(map.id, MapSelectionFamily.trigger) ?? '',
+        )
+        ? null
+        : gesture?.movesArea == true
         ? gesture!.armedArea
         : gesture?.zone == true
         ? gesture!.rectangle
@@ -69,8 +79,12 @@ MapCanvasOverlay buildEditingOverlay({
             view.tool == StudioMapTool.collisionErase
         ? colors.error
         : null,
-    strokeCells: [...?stroke?.cells, ...?encounterStroke?.cells, ...borderStrokeCells],
-    borderDraft: borderDraft,
-    borderCursor: borderCursor,
+    strokeCells: [
+      ...?stroke?.cells,
+      ...?encounterStroke?.cells,
+      if (!hiddenBorder) ...borderStrokeCells,
+    ],
+    borderDraft: hiddenBorder ? null : borderDraft,
+    borderCursor: hiddenBorder ? null : borderCursor,
   );
 }

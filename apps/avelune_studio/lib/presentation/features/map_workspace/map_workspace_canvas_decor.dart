@@ -2,7 +2,7 @@ part of 'map_workspace_canvas.dart';
 
 extension _MapWorkspaceCanvasDecor on _MapWorkspaceCanvasState {
   bool _canTransform(MapPlacedElement instance) {
-    if (widget.view.isLocked(
+    if (widget.view.isUnavailable(
       widget.document,
       MapSelectionFamily.decor,
       instance.id,

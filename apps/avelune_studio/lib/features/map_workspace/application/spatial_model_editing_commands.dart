@@ -14,7 +14,14 @@ class SpatialModelEditingCommands {
   static const generatedBorderMessage =
       'Cette pièce appartient à une bordure générée. Choisissez Bordures et son tracé pour la régénérer ou le supprimer.';
   void _requireIndependent(String id) {
-    if (document.isElementLocked('model', id)) throw StateError('Ce décor est verrouillé. Déverrouillez-le dans Éléments.');
+    if (document.isElementHidden('model', id)) {
+      throw StateError('Ce décor est masqué. Affichez-le dans Éléments.');
+    }
+    if (document.isElementLocked('model', id)) {
+      throw StateError(
+        'Ce décor est verrouillé. Déverrouillez-le dans Éléments.',
+      );
+    }
     if (id.startsWith('smt_')) throw StateError(paintedTerrainMessage);
     if (borderOwner(id) != null) throw StateError(generatedBorderMessage);
   }

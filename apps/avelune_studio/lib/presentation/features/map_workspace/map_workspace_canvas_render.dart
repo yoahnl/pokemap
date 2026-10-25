@@ -71,7 +71,8 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                 if (!focused && _gestureSource != null) _mutateGesture(_cancel);
               },
               onKeyEvent: (node, event) {
-                if (_borderErase != null && event is KeyDownEvent &&
+                if (_borderErase != null &&
+                    event is KeyDownEvent &&
                     event.logicalKey == LogicalKeyboardKey.escape) {
                   _mutateGesture(_cancel);
                   widget.onChanged();
@@ -115,20 +116,27 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                     child: Stack(
                       children: [
                         Positioned.fill(
-                          child: widget.visuals.canvas(
-                            renderedMap,
-                            placedElementPreview: _decorDraft?.candidate,
-                            collisionColor:
-                                widget.view.tool == StudioMapTool.select &&
-                                    widget.view.showDecorCollision
-                                ? Theme.of(context).colorScheme.error
-                                : null,
+                          child: MapEditorVisibilityScope(
+                            state: widget.document.editorState,
+                            child: widget.visuals.canvas(
+                              renderedMap,
+                              placedElementPreview: _decorDraft?.candidate,
+                              collisionColor:
+                                  widget.view.tool == StudioMapTool.select &&
+                                      widget.view.showDecorCollision
+                                  ? Theme.of(context).colorScheme.error
+                                  : null,
+                            ),
                           ),
                         ),
                         Positioned.fill(
                           child: MapCanvasSurfaceBounds(map: renderedMap),
                         ),
-                        if (terrainHighlight != null)
+                        if (terrainHighlight != null &&
+                            !widget.document.isElementHidden(
+                              'layer',
+                              terrainHighlight.layer.id,
+                            ))
                           Positioned.fill(
                             child: IgnorePointer(
                               child: CustomPaint(
@@ -136,14 +144,13 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                                 painter: MapTerrainHighlightPainter(
                                   highlight: terrainHighlight,
                                   tile: Size(_width, _height),
-                                  color: StudioColors.of(
-                                    context,
-                                  ).canvasSelection,
+                                  color: StudioColors.of(context)
+                                      .canvasSelection,
                                   addition: StudioColors.of(context).success,
                                   removal: Theme.of(context).colorScheme.error,
-                                  background: Theme.of(
-                                    context,
-                                  ).colorScheme.surface,
+                                  background: Theme.of(context)
+                                      .colorScheme
+                                      .surface,
                                   dimOthers: widget.view.dimOtherTerrains,
                                   transform: widget.view.transform,
                                 ),
@@ -212,6 +219,10 @@ extension _MapWorkspaceCanvasRender on _MapWorkspaceCanvasState {
                           ),
                         ),
                         if (selected != null &&
+                            !widget.document.isElementHidden(
+                              'decor',
+                              selected.id,
+                            ) &&
                             selectedElement != null &&
                             widget.view.tool == StudioMapTool.select)
                           Positioned.fill(

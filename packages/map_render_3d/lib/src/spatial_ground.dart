@@ -18,31 +18,51 @@ typedef SpatialGroundVisual = ({
 });
 
 final class SpatialGroundPlan {
-  SpatialGroundPlan(MapData map, ProjectManifest project)
-    : scene = map.spatialScene {
+  SpatialGroundPlan(
+    MapData map,
+    ProjectManifest project, {
+    bool Function(String layerId)? includeLayer,
+  }) : scene = map.spatialScene {
     final catalog = project.smartTileCatalog;
+    _borderMaskLayers.addAll(
+      resolveSpatialBorderGroundMaskCellsByLayer(
+        manifest: project,
+        map: map,
+        includeLayer: includeLayer,
+      ),
+    );
+    _borderReplacementLayers.addAll(
+      resolveSpatialBorderGroundReplacementsByLayer(
+        manifest: project,
+        map: map,
+        includeLayer: includeLayer,
+      ),
+    );
     borderGroundReplacements = scene == null
         ? const {}
         : indexSpatialBorderGroundReplacements(
             scene: scene!,
-            replacements: resolveSpatialBorderGroundReplacements(
-              manifest: project,
-              map: map,
-            ),
+            replacements: _borderReplacementLayers.values
+                .expand((value) => value)
+                .toList(),
           );
     final materials = {
       for (final material in catalog.materials) material.id: material,
     };
-    final replacements = resolveSpatialSmartTileModelProjection(
+    final allReplacements = resolveSpatialSmartTileModelProjection(
       map: map,
       catalog: catalog,
       sourceCellWidth: project.settings.tileWidth,
       sourceCellHeight: project.settings.tileHeight,
     ).groundReplacements;
-    final borderMaskCells = resolveSpatialBorderGroundMaskCells(
-      manifest: project,
-      map: map,
-    );
+    final replacements = {
+      for (final entry in allReplacements.entries)
+        if (includeLayer?.call(entry.key) != false) entry.key: entry.value,
+    };
+    _modelReplacementLayers.addAll(replacements);
+    final borderMaskCells = {
+      for (final cells in _borderMaskLayers.values) ...cells,
+    };
     groundReplacementCells = Set.unmodifiable({
       ...borderMaskCells,
       for (final cells in replacements.values) ...cells,
@@ -65,7 +85,10 @@ final class SpatialGroundPlan {
         ? map.layers.reversed
         : map.layers;
     for (final layer in ordered.whereType<SmartTileLayer>().where(
-      (layer) => layer.isVisible && layer.opacity > 0,
+      (layer) =>
+          layer.isVisible &&
+          layer.opacity > 0 &&
+          includeLayer?.call(layer.id) != false,
     )) {
       final preset = catalog.presets
           .where((preset) => preset.id == layer.presetId)
@@ -84,6 +107,8 @@ final class SpatialGroundPlan {
                   y: z,
                 )];
             if (material == null || material.isEmpty) continue;
+            _bridgeUpdates.putIfAbsent(layer.id, () => {})[(x, z)] =
+                material.pathSurfaceKind == PathSurfaceKind.bridge;
             if (material.pathSurfaceKind == PathSurfaceKind.bridge) {
               bridgeCells.add((x, z));
             } else {
@@ -104,6 +129,7 @@ final class SpatialGroundPlan {
       );
       _opacities.add(layer.opacity);
       _layerIds.add(layer.id);
+      _planRanks.add(_plans.length);
       for (final rule in preset.rules) {
         for (final candidate in rule.candidates) {
           for (final part in candidate.parts) {
@@ -124,24 +150,122 @@ final class SpatialGroundPlan {
         }
       }
     }
-    _addBorderSurfaces(map, project);
+    _addBorderSurfaces(map, project, includeLayer: includeLayer);
     this.bridgeCells = Set.unmodifiable(bridgeCells);
     final covered = <(int, int)>{...borderMaskCells};
     for (var index = _layerIds.length - 1; index >= 0; index--) {
       covered.addAll(replacements[_layerIds[index]] ?? const {});
       _layerExclusions.insert(0, Set<(int, int)>.unmodifiable(covered));
     }
+    _visibleLayerIds.addAll({
+      ..._layerIds,
+      ..._flatPlans.map((entry) => entry.layerId),
+      ..._modelReplacementLayers.keys,
+      ..._borderMaskLayers.keys,
+      ..._borderReplacementLayers.keys,
+    });
+  }
+
+  SpatialGroundPlan._visible(
+    SpatialGroundPlan source,
+    bool Function(String) includeLayer,
+  ) : scene = source.scene {
+    _source = source;
+    _visibleLayerIds.addAll(source._visibleLayerIds.where(includeLayer));
+    _modelReplacementLayers.addAll(source._modelReplacementLayers);
+    _borderMaskLayers.addAll(source._borderMaskLayers);
+    _borderReplacementLayers.addAll(source._borderReplacementLayers);
+    _bridgeUpdates.addAll(source._bridgeUpdates);
+    for (var i = 0; i < source._layerIds.length; i++) {
+      final id = source._layerIds[i];
+      if (!includeLayer(id)) continue;
+      _layerIds.add(id);
+      _plans.add(source._plans[i]);
+      _opacities.add(source._opacities[i]);
+      _planRanks.add(source._planRanks[i]);
+    }
+    for (var i = 0; i < source._flatPlans.length; i++) {
+      if (!includeLayer(source._flatPlans[i].layerId)) continue;
+      _flatPlans.add(source._flatPlans[i]);
+      _flatRanks.add(source._flatRanks[i]);
+    }
+    cliff = source.cliff;
+    animated = source.animated;
+    _animationLookaheadMs = source._animationLookaheadMs;
+    imageIds.addAll(source.imageIds);
+    final borderMasks = {
+      for (final entry in _borderMaskLayers.entries)
+        if (includeLayer(entry.key)) ...entry.value,
+    };
+    final replacements = {
+      for (final entry in _modelReplacementLayers.entries)
+        if (includeLayer(entry.key)) entry.key: entry.value,
+    };
+    groundReplacementCells = Set.unmodifiable({
+      ...borderMasks,
+      for (final cells in replacements.values) ...cells,
+    });
+    borderGroundReplacements = scene == null
+        ? const {}
+        : indexSpatialBorderGroundReplacements(
+            scene: scene!,
+            replacements: [
+              for (final entry in _borderReplacementLayers.entries)
+                if (includeLayer(entry.key)) ...entry.value,
+            ],
+          );
+    final bridges = <(int, int)>{};
+    for (final id in _layerIds) {
+      for (final update
+          in (_bridgeUpdates[id] ?? const <(int, int), bool>{}).entries) {
+        update.value ? bridges.add(update.key) : bridges.remove(update.key);
+      }
+    }
+    bridgeCells = Set.unmodifiable(bridges);
+    final covered = <(int, int)>{...borderMasks};
+    for (var index = _layerIds.length - 1; index >= 0; index--) {
+      covered.addAll(replacements[_layerIds[index]] ?? const {});
+      _layerExclusions.insert(0, Set<(int, int)>.unmodifiable(covered));
+    }
+  }
+
+  SpatialGroundPlan withLayerVisibility(bool Function(String) includeLayer) {
+    final source = _source ?? this;
+    return source._visibleLayerIds.every(includeLayer)
+        ? source
+        : SpatialGroundPlan._visible(source, includeLayer);
+  }
+
+  bool layersMatchVisibility(
+    SpatialGroundPlan other,
+    bool Function(String) includeLayer,
+  ) {
+    final source = _source ?? this;
+    return identical(source, other._source ?? other) &&
+        source._visibleLayerIds.every(
+          (id) => includeLayer(id) == other._visibleLayerIds.contains(id),
+        );
   }
 
   final MapSpatialScene? scene;
+  SpatialGroundPlan? _source;
+  final _visibleLayerIds = <String>{};
+  final _modelReplacementLayers = <String, Set<(int, int)>>{};
+  final _borderMaskLayers = <String, Set<(int, int)>>{};
+  final _borderReplacementLayers =
+      <String, List<SpatialBorderGroundReplacement>>{};
+  final _bridgeUpdates = <String, Map<(int, int), bool>>{};
   late final SpatialBorderGroundReplacementIndex borderGroundReplacements;
   late final Set<(int, int)> bridgeCells;
   late final Set<(int, int)> groundReplacementCells;
   ({String tilesetId, SmartTileSourceRect sourceRect})? cliff;
   final _plans = <SmartTileLayerVisualPlan>[];
+  final _planRanks = <int>[];
+  final _flatRanks = <int>[];
   final _flatPlans =
       <
         ({
+          String layerId,
           SmartTileLayerVisualPlan plan,
           Map<(int, int), SpatialFlatGroundSurface> surfaces,
           double opacity,
@@ -269,7 +393,11 @@ final class SpatialGroundPlan {
   SpatialFlatGroundSurface? flatSurfaceFor(SmartTileLayerVisual visual) =>
       _flatVisualSurfaces[visual];
 
-  void _addBorderSurfaces(MapData map, ProjectManifest project) {
+  void _addBorderSurfaces(
+    MapData map,
+    ProjectManifest project, {
+    bool Function(String layerId)? includeLayer,
+  }) {
     if (scene == null) return;
     final planes =
         <
@@ -286,6 +414,7 @@ final class SpatialGroundPlan {
     for (final surface in resolveSpatialBorderGroundSurfaces(
       manifest: project,
       map: map,
+      includeLayer: includeLayer,
     )) {
       final groups = planes.putIfAbsent((
         surface.layerId,
@@ -316,6 +445,7 @@ final class SpatialGroundPlan {
             group.opacity,
             plane.key.$3,
             plane.key.$4,
+            plane.key.$1,
           ), group.footprints),
     ]) {
       final key = entry.key;
@@ -360,6 +490,7 @@ final class SpatialGroundPlan {
         field: SmartTileField.cell(semanticCells: cells),
       ) as SmartTileLayer;
       _flatPlans.add((
+        layerId: key.$7,
         plan: buildSmartTileLayerVisualPlan(
           map: map,
           layer: layer,
@@ -379,6 +510,7 @@ final class SpatialGroundPlan {
         },
         opacity: key.$4,
       ));
+      _flatRanks.add(_flatPlans.length);
       final preset = project.smartTileCatalog.presets.singleWhere(
         (p) => p.id == key.$1,
       );
@@ -478,8 +610,8 @@ final class SpatialGroundPlan {
           visual: visual,
           height:
               .0001 *
-              (index + 1 + ranks[part] / (maximum + 1)) /
-              (_flatPlans.length + 1),
+              (_flatRanks[index] + ranks[part] / (maximum + 1)) /
+              ((_source?._flatPlans.length ?? _flatPlans.length) + 1),
           opacity: group.opacity,
         ));
       }
@@ -492,7 +624,7 @@ final class SpatialGroundPlan {
         _visualExclusions[visuals[part]] = _layerExclusions[index];
         result.add((
           visual: visuals[part],
-          height: .001 * (index + 1 + ranks[part] / (maximum + 1)),
+          height: .001 * (_planRanks[index] + ranks[part] / (maximum + 1)),
           opacity: _opacities[index],
         ));
       }
@@ -824,10 +956,15 @@ Future<Texture> loadSpatialGroundTexture(
     }
     lease.resize(residentBytes: 0, transientBytes: bytes.length * 2);
     final residentLimit = controller.profile.maximumResidentBytes ~/ 2;
-    final transientLimit = (controller.profile.maximumTransientBytes - bytes.length * 2) ~/
+    final transientLimit =
+        (controller.profile.maximumTransientBytes - bytes.length * 2) ~/
         (transparentColor == null ? 1 : 3);
-    final rgbaBytes = await spatialImageRgbaBytes(bytes,
-        maximumBytes: residentLimit < transientLimit ? residentLimit : transientLimit);
+    final rgbaBytes = await spatialImageRgbaBytes(
+      bytes,
+      maximumBytes: residentLimit < transientLimit
+          ? residentLimit
+          : transientLimit,
+    );
     lease.resize(
       residentBytes: rgbaBytes * 2,
       transientBytes:
@@ -876,6 +1013,7 @@ Future<Texture> loadSpatialGroundTexture(
     codec?.dispose();
   }
 }
+
 Future<Texture> loadSpatialGroundTextureFromSource(
   Future<Uint8List> Function() read, {
   required RuntimeResourceBudget budget,

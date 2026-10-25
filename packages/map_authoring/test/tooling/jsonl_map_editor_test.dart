@@ -7,7 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('JSONL and typed API edit locks without admitting project content',
+  test('JSONL and typed API edit locks and visibility without project content',
       () async {
     final root = await Directory.systemTemp.createTemp('map-editor-jsonl-');
     addTearDown(() => root.delete(recursive: true));
@@ -58,7 +58,17 @@ void main() {
     }
 
     final description = await call('describe', {});
-    expect((description['mapEditorAuthoring'] as Map)['id'], 'map.editor.set');
+    final editorContract = description['mapEditorAuthoring'] as Map;
+    expect(editorContract['id'], 'map.editor.set');
+    final editorExtensions = editorContract['extensions'] as Map;
+    expect(editorExtensions['documentSchemaVersions'], [1, 2]);
+    expect(editorExtensions['stateFields'], [
+      'lockedElements',
+      'lockedFamilies',
+      'hiddenElements',
+      'hiddenFamilies',
+    ]);
+    expect(editorExtensions['visibilityScope'], 'editorPreview2DAnd3D');
     final lifecycleIds = {
       'map.create',
       'map.duplicate',
@@ -80,10 +90,12 @@ void main() {
     final initial = await mutations.inspectMapEditor(
         projectRoot: root.path, mapId: 'bourg');
     expect(initial.state.lockedElements, isEmpty);
-    final state = MapEditorState(
-      lockedElements: {'decor:back-particles'},
-      lockedFamilies: {'decor'},
-    );
+    final state = MapEditorState.fromJson({
+      'lockedElements': ['decor:back-particles'],
+      'lockedFamilies': ['decor'],
+      'hiddenElements': ['layer:paths', 'model:background-mist'],
+      'hiddenFamilies': ['effect'],
+    });
     final input = <String, Object?>{
       'projectRoot': root.path,
       'mapId': 'bourg',
@@ -97,6 +109,39 @@ void main() {
     final reread = await mutations.inspectMapEditor(
         projectRoot: root.path, mapId: 'bourg');
     expect(reread.state, state);
+    final editorFile = File('${root.path}/maps/bourg.editor.json');
+    final protectedBytes = await editorFile.readAsBytes();
+    for (final omitted in [
+      ['hiddenElements'],
+      ['hiddenFamilies'],
+      ['hiddenElements', 'hiddenFamilies'],
+    ]) {
+      final incomplete = state.toJson();
+      for (final key in omitted) {
+        incomplete.remove(key);
+      }
+      final rejected = await call(
+          'map_editor_set',
+          {
+            ...input,
+            'expectedRevision': reread.revision,
+            'operationId': 'editor-incomplete-${omitted.join('-')}',
+            'state': incomplete,
+          },
+          failure: true);
+      expect(rejected.toString(), contains('map_editor_inspect'));
+      expect(await editorFile.readAsBytes(), protectedBytes);
+    }
+    await call(
+        'map_editor_set',
+        {
+          ...input,
+          'expectedRevision': reread.revision,
+          'operationId': 'editor-null-visibility',
+          'state': {...state.toJson(), 'hiddenElements': null},
+        },
+        failure: true);
+    expect(await editorFile.readAsBytes(), protectedBytes);
     final replay = await call('map_editor_set', input);
     expect((replay['receipt'] as Map)['receiptId'], receiptId);
     await call('map_editor_set', {...input, 'operationId': 'editor-stale'},
@@ -123,6 +168,66 @@ void main() {
       'mapId': 'bourg',
     });
     expect(observed['state'], MapEditorState().toJson());
+    final direct = await mutations.setMapEditor(
+      projectRoot: root.path,
+      mapId: 'bourg',
+      expectedRevision: observed['revision'] as String,
+      state: state,
+      operationId: 'editor-api-visibility',
+    );
+    final directObserved = await call('map_editor_inspect', {
+      'projectRoot': root.path,
+      'mapId': 'bourg',
+    });
+    expect(directObserved['state'], state.toJson());
+    final explicitClear = await call('map_editor_set', {
+      'projectRoot': root.path,
+      'mapId': 'bourg',
+      'expectedRevision': direct.afterRevision,
+      'state': MapEditorState().toJson(),
+      'operationId': 'editor-jsonl-explicit-clear',
+    });
+    expect(explicitClear['afterState'], MapEditorState().toJson());
+    final clearUndo = await call('map_editor_undo', {
+      'projectRoot': root.path,
+      'mapId': 'bourg',
+      'expectedRevision': explicitClear['afterRevision'],
+      'receiptId': (explicitClear['receipt'] as Map)['receiptId'],
+      'operationId': 'editor-jsonl-clear-undo',
+    });
+    expect(clearUndo['afterState'], state.toJson());
+    final directUndo = await call('map_editor_undo', {
+      'projectRoot': root.path,
+      'mapId': 'bourg',
+      'expectedRevision': clearUndo['afterRevision'],
+      'receiptId': direct.receipt.receiptId,
+      'operationId': 'editor-jsonl-visibility-undo',
+    });
+    expect(directUndo['afterState'], MapEditorState().toJson());
+    final legacyInput = {
+      'projectRoot': root.path,
+      'mapId': 'bourg',
+      'expectedRevision': directUndo['afterRevision'],
+      'state': {
+        'lockedElements': ['model:tree'],
+        'lockedFamilies': <String>[],
+      },
+      'operationId': 'editor-jsonl-legacy-visible',
+    };
+    final legacy = await call('map_editor_set', legacyInput);
+    expect((legacy['afterState'] as Map)['hiddenElements'], isEmpty);
+    await mutations.setMapEditor(
+      projectRoot: root.path,
+      mapId: 'bourg',
+      expectedRevision: legacy['afterRevision'] as String,
+      state: state,
+      operationId: 'editor-api-hide-after-legacy',
+    );
+    final afterHide = await editorFile.readAsBytes();
+    final legacyReplay = await call('map_editor_set', legacyInput);
+    expect((legacyReplay['receipt'] as Map)['receiptId'],
+        (legacy['receipt'] as Map)['receiptId']);
+    expect(await editorFile.readAsBytes(), afterHide);
     expect(await project.readAsString(), 'undecodable project');
     expect(await map.readAsString(), 'undecodable map');
     final mapData = MapData(

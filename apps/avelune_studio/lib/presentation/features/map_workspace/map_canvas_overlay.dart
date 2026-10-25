@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+
 import 'map_painted_encounter_overlay.dart';
 
 part 'map_canvas_zone_paint.dart';
@@ -32,6 +33,7 @@ class MapCanvasOverlay extends CustomPainter {
     this.labelBackground,
     this.labelForeground,
     this.collisionColor,
+    this.isHidden,
   }) : super(repaint: transform);
   final MapData map;
   final ProjectManifest project;
@@ -55,6 +57,7 @@ class MapCanvasOverlay extends CustomPainter {
   final MapRect? zone;
   final Color? labelBackground, labelForeground;
   final Color? collisionColor;
+  final bool Function(String kind, String id)? isHidden;
   bool get _showLabels =>
       cellWidth * (transform?.value.entry(0, 0).abs() ?? 1) >= 28;
 
@@ -65,6 +68,7 @@ class MapCanvasOverlay extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     for (final trigger in map.triggers) {
+      if (isHidden?.call('trigger', trigger.id) ?? false) continue;
       if (trigger.type != TriggerType.event) continue;
       final area = trigger.area;
       final rect = Rect.fromLTWH(
@@ -148,6 +152,7 @@ class MapCanvasOverlay extends CustomPainter {
   void _paintMarkers(Canvas canvas) {
     final clip = canvas.getLocalClipBounds();
     for (final entity in map.entities) {
+      if (isHidden?.call('entity', entity.id) ?? false) continue;
       if (entity.kind != MapEntityKind.spawn &&
           entity.kind != MapEntityKind.sign) {
         continue;
@@ -179,6 +184,7 @@ class MapCanvasOverlay extends CustomPainter {
     if (map.warps.isEmpty) return;
     final clip = canvas.getLocalClipBounds();
     for (final warp in map.warps) {
+      if (isHidden?.call('warp', warp.id) ?? false) continue;
       final chosen = warp.id == selectedWarpId;
       final pos = chosen ? (warpPreview ?? warp.pos) : warp.pos;
       final rect = Rect.fromLTWH(
@@ -243,10 +249,14 @@ class MapCanvasOverlay extends CustomPainter {
         paint,
       );
     }
-    final instance = selected;
+    final instance =
+        selected == null || (isHidden?.call('decor', selected!.id) ?? false)
+        ? null
+        : selected;
     final area =
         zone ??
-        (selectedEntity == null
+        (selectedEntity == null ||
+                (isHidden?.call('entity', selectedEntity!.id) ?? false)
             ? null
             : MapRect(
                 pos: entityPreview ?? selectedEntity!.pos,

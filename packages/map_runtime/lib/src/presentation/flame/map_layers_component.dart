@@ -410,6 +410,12 @@ class MapLayersComponent extends PositionComponent {
   /// Si non null, les entités projet rejetées ne sont pas peintes. Ce filtre
   /// couvre aussi les objets et props pilotés par les World Rules.
   MapEntityPresencePredicate? mapEntityPresencePredicate;
+  bool Function(String layerId)? layerVisibilityPredicate;
+  bool Function(MapPlacedElement instance)? placedElementVisibilityPredicate;
+
+  bool _isPlacedElementVisible(MapPlacedElement instance) =>
+      (layerVisibilityPredicate?.call(instance.layerId) ?? true) &&
+      (placedElementVisibilityPredicate?.call(instance) ?? true);
   final BorderRuntimeAssetBundle? borderAssets;
   final bool renderBorders;
   final BorderRuntimeRenderer borderRenderer;
@@ -687,6 +693,10 @@ class MapLayersComponent extends PositionComponent {
     Canvas canvas,
     MapVisualCompositionStep step,
   ) {
+    final layer = step.layer;
+    if (layer != null && !(layerVisibilityPredicate?.call(layer.id) ?? true)) {
+      return;
+    }
     switch (step.kind) {
       case MapVisualCompositionStepKind.smartTileLayer:
         _paintSmartTileLayer(canvas, step.layer! as SmartTileLayer);
@@ -727,6 +737,7 @@ class MapLayersComponent extends PositionComponent {
         if (renderPass == MapLayerRenderPass.foreground) {
           for (final layer
               in _runtimeLayerPaintOrder.visibleTileLayersInPaintOrder) {
+            if (!(layerVisibilityPredicate?.call(layer.id) ?? true)) continue;
             _paintTileLayerAndElements(canvas, layer);
           }
         }
@@ -791,6 +802,7 @@ class MapLayersComponent extends PositionComponent {
     Iterable<CollisionLayer> layers,
   ) {
     for (final layer in layers) {
+      if (!(layerVisibilityPredicate?.call(layer.id) ?? true)) continue;
       _paintCollisionLayer(canvas, layer.collisions, layer.opacity);
     }
     _paintPlacedElementsCollisionOverlay(canvas);
@@ -1351,6 +1363,7 @@ class MapLayersComponent extends PositionComponent {
     if (layer == null || !layer.isVisible) return null;
     return (canvas) {
       final current = _effective(_orderedPlacedElements[index]);
+      if (!_isPlacedElementVisible(current)) return;
       final bounds = displayedPlacedElementRect(current);
       if (bounds == null) return;
       final masks = _placedCandidates(bounds)
@@ -1403,7 +1416,8 @@ class MapLayersComponent extends PositionComponent {
   }
 
   bool _hasActiveOcclusionPath(MapPlacedElement instance) {
-    if (!_occlusionPaths.containsKey(instance.id) || instance.opacity <= 0) {
+    if (!_isPlacedElementVisible(instance) ||
+        !_occlusionPaths.containsKey(instance.id) || instance.opacity <= 0) {
       return false;
     }
     final frame = displayedPlacedElementFrame(instance);
@@ -1464,7 +1478,8 @@ class MapLayersComponent extends PositionComponent {
     BlendMode? blendMode,
     bool binaryAlphaMask = false,
   }) {
-    if (bundle.map.placedElements.isEmpty || opacity <= 0) {
+    if (bundle.map.placedElements.isEmpty || opacity <= 0 ||
+        !(layerVisibilityPredicate?.call(layerId) ?? true)) {
       return;
     }
     final explicitForeground = _isExplicitForegroundTileLayer(
@@ -1490,6 +1505,7 @@ class MapLayersComponent extends PositionComponent {
     _activeRenderCounter?.placedElementCandidateVisits +=
         placedCandidates.length;
     for (final instance in placedCandidates) {
+      if (!_isPlacedElementVisible(instance)) continue;
       if (instance.layerId.trim() != layerId) {
         continue;
       }
@@ -1615,7 +1631,7 @@ class MapLayersComponent extends PositionComponent {
                       (_placedElementOrderById[candidate.id] ?? -1) >
                           (_placedElementOrderById[instance.id] ?? -1))
                   .toList(growable: false),
-            )
+            ).where(_isPlacedElementVisible).toList(growable: false)
           : const <MapPlacedElement>[];
       final sourcePixelSize = GridSize(
         width: source.width * tw,
@@ -2107,6 +2123,11 @@ class MapLayersComponent extends PositionComponent {
     required double dstHeight,
     required Paint paint,
   }) {
+    final instanceIndex = _placedElementOrderById[animatedCell.instanceId];
+    if (instanceIndex != null &&
+        !_isPlacedElementVisible(_effective(_orderedPlacedElements[instanceIndex]))) {
+      return true;
+    }
     final oneShot = _activeOneShotByInstanceId[animatedCell.instanceId];
     int frameIndex;
     if (oneShot != null) {
@@ -2216,6 +2237,7 @@ class MapLayersComponent extends PositionComponent {
         if (_visibleLocalRect == null || _collisionBounds(instance).overlaps(_visibleLocalRect!)) instance,
     ];
     for (final instance in candidates) {
+      if (!_isPlacedElementVisible(instance)) continue;
       final element = _elementById[instance.elementId];
       if (element == null || !instance.applyCollision) continue;
       final prepared = _collisionRects.putIfAbsent(element, () {

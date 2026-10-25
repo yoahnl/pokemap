@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/characters/application/character_editing_commands.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_editing_commands.dart';
@@ -95,7 +97,8 @@ class MapCharacterGesture {
     if (view.tool == StudioMapTool.fieldObstacle) {
       final brush = view.brush;
       if (brush == null) {
-        document.error = 'Choisissez le visuel de cet obstacle dans la barre d’outils.';
+        document.error =
+            'Choisissez le visuel de cet obstacle dans la barre d’outils.';
         return holding(null);
       }
       final entity = MapEntityEditingCommands(document, project)
@@ -139,16 +142,22 @@ class MapCharacterGesture {
     final hits = commands
         .at(origin)
         .where(
-          (entry) =>
-              !view.isLocked(document, MapSelectionFamily.character, entry.id),
+          (entry) => !view.isUnavailable(
+            document,
+            MapSelectionFamily.character,
+            entry.id,
+          ),
         )
         .toList();
     if (hits.isEmpty) {
       final placements = MapEntityEditingCommands(document, project)
           .at(origin)
           .where(
-            (entry) =>
-                !view.isLocked(document, MapSelectionFamily.marker, entry.id),
+            (entry) => !view.isUnavailable(
+              document,
+              MapSelectionFamily.marker,
+              entry.id,
+            ),
           )
           .toList();
       final marker =
@@ -170,8 +179,11 @@ class MapCharacterGesture {
       final warps = WarpEditingCommands(document, project)
           .at(origin)
           .where(
-            (entry) =>
-                !view.isLocked(document, MapSelectionFamily.warp, entry.id),
+            (entry) => !view.isUnavailable(
+              document,
+              MapSelectionFamily.warp,
+              entry.id,
+            ),
           )
           .toList();
       final chosen =
@@ -279,7 +291,8 @@ class MapCharacterGesture {
 
   bool get isLocked {
     final target = armed;
-    if (target != null && view.isLocked(document, target.family, target.id)) {
+    if (target != null &&
+        view.isUnavailable(document, target.family, target.id)) {
       return true;
     }
     if (entity != null && document.isElementLocked('entity', entity!.id)) {

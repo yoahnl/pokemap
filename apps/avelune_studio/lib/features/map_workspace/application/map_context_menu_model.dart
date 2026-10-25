@@ -64,94 +64,102 @@ List<MapContextTarget> mapContextTargetsAt(
   final map = document.current;
   final mapId = map.id;
   return [
-    for (final entity in CharacterEditingCommands(
-      document,
-      project,
-    ).at(position))
-      MapContextTarget(
-        mapId: mapId,
-        family: MapContextFamily.character,
-        id: entity.id,
-        label: entity.inspectorHeadline,
-        kindLabel: 'Personnage',
-      ),
-    for (final entity in MapEntityEditingCommands(
-      document,
-      project,
-    ).at(position))
-      MapContextTarget(
-        mapId: mapId,
-        family: MapContextFamily.marker,
-        id: entity.id,
-        label: entity.name.isEmpty ? 'Repère' : entity.name,
-        kindLabel: entity.spawn != null ? 'Point d’apparition' : 'Panneau',
-      ),
-    for (final warp in WarpEditingCommands(document, project).at(position))
-      MapContextTarget(
-        mapId: mapId,
-        family: MapContextFamily.warp,
-        id: warp.id,
-        label: _warpLabel(project, warp),
-        kindLabel: 'Passage',
-      ),
-    for (final instance
-        in map.spatialScene?.instances ?? <SpatialModelInstance>[])
-      if (instance.position.x.floor() == position.x &&
-          instance.position.z.floor() == position.y)
-        MapContextTarget(
-          mapId: mapId,
-          family: MapContextFamily.decor,
-          id: instance.id,
-          label:
-              project.models3d
-                  .where((model) => model.id == instance.modelId)
-                  .firstOrNull
-                  ?.name ??
-              'Ressource manquante',
-          kindLabel: 'Décor',
-        ),
-    for (final decor in MapEditingCommands(
-      document,
-      project,
-    ).contextStack(position))
-      MapContextTarget(
-        mapId: mapId,
-        family: MapContextFamily.decor,
-        id: decor.id,
-        label: _decorLabel(project, decor),
-        kindLabel: 'Décor',
-      ),
-    for (final zone in GameplayZoneEditingCommands(
-      document,
-      project,
-    ).at(position))
-      MapContextTarget(
-        mapId: mapId,
-        family: MapContextFamily.zone,
-        id: zone.id,
-        label: zone.name.isEmpty ? 'Zone de jeu' : zone.name,
-        kindLabel: 'Zone de jeu',
-      ),
-    for (final trigger in TriggerEditingCommands(
-      document,
-      project,
-    ).at(position))
-      if (trigger.type == TriggerType.event)
-        MapContextTarget(
-          mapId: mapId,
-          family: MapContextFamily.trigger,
-          id: trigger.id,
-          label: trigger.name.isEmpty ? 'Zone d’histoire' : trigger.name,
-          kindLabel: 'Zone d’histoire',
-        ),
-  ].where((target) => !document.isElementLocked(switch (target.family) {
-    MapContextFamily.decor => map.spatialScene?.instances.any((item) => item.id == target.id) == true ? 'model' : 'decor',
-    MapContextFamily.character || MapContextFamily.marker => 'entity',
-    MapContextFamily.warp => 'warp',
-    MapContextFamily.zone => 'zone',
-    MapContextFamily.trigger => 'trigger',
-    MapContextFamily.cell => 'layer',
-  }, target.id)).toList();
+        for (final entity in CharacterEditingCommands(
+          document,
+          project,
+        ).at(position))
+          MapContextTarget(
+            mapId: mapId,
+            family: MapContextFamily.character,
+            id: entity.id,
+            label: entity.inspectorHeadline,
+            kindLabel: 'Personnage',
+          ),
+        for (final entity in MapEntityEditingCommands(
+          document,
+          project,
+        ).at(position))
+          MapContextTarget(
+            mapId: mapId,
+            family: MapContextFamily.marker,
+            id: entity.id,
+            label: entity.name.isEmpty ? 'Repère' : entity.name,
+            kindLabel: entity.spawn != null ? 'Point d’apparition' : 'Panneau',
+          ),
+        for (final warp in WarpEditingCommands(document, project).at(position))
+          MapContextTarget(
+            mapId: mapId,
+            family: MapContextFamily.warp,
+            id: warp.id,
+            label: _warpLabel(project, warp),
+            kindLabel: 'Passage',
+          ),
+        for (final instance
+            in map.spatialScene?.instances ?? <SpatialModelInstance>[])
+          if (instance.position.x.floor() == position.x &&
+              instance.position.z.floor() == position.y)
+            MapContextTarget(
+              mapId: mapId,
+              family: MapContextFamily.decor,
+              id: instance.id,
+              label:
+                  project.models3d
+                      .where((model) => model.id == instance.modelId)
+                      .firstOrNull
+                      ?.name ??
+                  'Ressource manquante',
+              kindLabel: 'Décor',
+            ),
+        for (final decor in MapEditingCommands(
+          document,
+          project,
+        ).contextStack(position))
+          MapContextTarget(
+            mapId: mapId,
+            family: MapContextFamily.decor,
+            id: decor.id,
+            label: _decorLabel(project, decor),
+            kindLabel: 'Décor',
+          ),
+        for (final zone in GameplayZoneEditingCommands(
+          document,
+          project,
+        ).at(position))
+          MapContextTarget(
+            mapId: mapId,
+            family: MapContextFamily.zone,
+            id: zone.id,
+            label: zone.name.isEmpty ? 'Zone de jeu' : zone.name,
+            kindLabel: 'Zone de jeu',
+          ),
+        for (final trigger in TriggerEditingCommands(
+          document,
+          project,
+        ).at(position))
+          if (trigger.type == TriggerType.event)
+            MapContextTarget(
+              mapId: mapId,
+              family: MapContextFamily.trigger,
+              id: trigger.id,
+              label: trigger.name.isEmpty ? 'Zone d’histoire' : trigger.name,
+              kindLabel: 'Zone d’histoire',
+            ),
+      ]
+      .where(
+        (target) => !document.isElementUnavailable(switch (target.family) {
+          MapContextFamily.decor =>
+            map.spatialScene?.instances.any((item) => item.id == target.id) ==
+                    true
+                ? 'model'
+                : 'decor',
+          MapContextFamily.character || MapContextFamily.marker => 'entity',
+          MapContextFamily.warp => 'warp',
+          MapContextFamily.zone => 'zone',
+          MapContextFamily.trigger => 'trigger',
+          MapContextFamily.cell => 'layer',
+        }, target.id),
+      )
+      .toList();
 }
 
 typedef MapContextPlacement = ({MapContextTarget target, GridPos at});

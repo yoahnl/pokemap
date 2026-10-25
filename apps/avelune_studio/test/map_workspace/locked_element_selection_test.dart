@@ -18,6 +18,10 @@ import 'package:map_core/map_core.dart';
 import '../support/map_selection_harness.dart';
 import '../characters/character_editing_test.dart' show guide;
 import '../support/map_workspace_fixture.dart';
+import '../support/spatial_border_fixture.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 
 void main() {
   late MapSelectionHarness h;
@@ -40,7 +44,103 @@ void main() {
     editor.dispose();
   });
 
+  test('border and environment layer visibility follows canonical generated ownership', () async {
+    h.project = spatialBorderProject();
+    h.document.commit(spatialBorderMap());
+    final draft = MapBorderDrawingDraft.start(
+      mapId: h.document.current.id,
+      mapSize: h.document.current.size,
+      blueprintId: 'fence',
+      origin: const GridPos(x: 2, y: 5),
+      sourceMap: h.document.current,
+      sourceProject: h.project,
+      featureId: 'test-border',
+      seed: BorderSignedInt64.fromInt(17),
+    ).addAngle(const GridPos(x: 5, y: 5)).addAngle(const GridPos(x: 5, y: 7));
+    MapBorderEditingCommands(h.document, h.project).finish(draft);
+    final border = h.document.current.layers.whereType<BorderLayer>().single;
+    final borderId = border.content.features.single.generatedPlacementIds.first;
+    final map = h.document.current;
+    h.document.commit(
+      map.copyWith(
+        layers: [
+          ...map.layers,
+          MapLayer.environment(
+            id: 'forest',
+            name: 'Forêt',
+            content: EnvironmentLayerContent(
+              targetsSpatialTerrain: true,
+              areas: [
+                EnvironmentArea(
+                  id: 'trees',
+                  name: 'Arbres',
+                  presetId: 'woodland',
+                  mask: EnvironmentAreaMask(
+                    width: 12,
+                    height: 10,
+                    cells: List.filled(120, true),
+                  ),
+                  seed: 1,
+                  generatedPlacementIds: ['forest-tree'],
+                ),
+              ],
+            ),
+          ),
+        ],
+        spatialScene: map.spatialScene!.copyWith(
+          instances: [
+            ...map.spatialScene!.instances,
+            SpatialModelInstance(
+              id: 'forest-tree',
+              modelId: 'oak',
+              position: Model3dVector3.zero,
+            ),
+          ],
+        ),
+      ),
+    );
+    final before = h.document.current;
+    await editor.setHidden('layer', border.id, true);
+    expect(h.document.isElementHidden('model', borderId), isTrue);
+    expect(h.document.isElementHidden('model', 'forest-tree'), isFalse);
+    expect(
+      h.document.elementIdsInLayer('model', border.id),
+      contains(borderId),
+    );
+    await editor.setHidden('layer', 'forest', true);
+    expect(h.document.isElementHidden('model', 'forest-tree'), isTrue);
+    expect(h.document.elementIdsInLayer('model', 'forest'), ['forest-tree']);
+    expect(h.document.current, same(before));
+    await editor.showAll();
+    expect(h.document.isElementHidden('model', borderId), isFalse);
+    expect(h.document.isElementHidden('model', 'forest-tree'), isFalse);
+  });
+
   for (final type in ['character', 'marker', 'warp', 'zone', 'trigger']) {
+    test(
+      'hidden $type rejects stale commands and resumes after showing',
+      () async {
+        final target = _guardCase(h, type);
+        final before = h.document.current;
+        final history = h.document.undoCount;
+        await editor.setHidden(target.kind, target.id, true);
+        target.move();
+        target.resize?.call();
+        if (type == 'character' || type == 'marker' || type == 'trigger') {
+          expect(target.delete, throwsStateError);
+        } else {
+          target.delete();
+        }
+        expect(h.document.current, same(before));
+        expect(h.document.undoCount, history);
+        expect(target.exists(), isTrue);
+        await editor.setHidden(target.kind, target.id, false);
+        target.move();
+        expect(h.document.current, isNot(same(before)));
+        target.delete();
+        expect(target.exists(), isFalse);
+      },
+    );
     test(
       'stale $type commands preserve a lock and resume after unlocking',
       () async {
@@ -74,6 +174,47 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'hidden decor and its hidden layer are excluded from real taps and stale moves',
+    (tester) async {
+      final commands = MapEditingCommands(h.document, h.project);
+      final back = commands.place(workspaceElement, const GridPos(x: 4, y: 4))!;
+      final front = commands.place(
+        workspaceElement,
+        const GridPos(x: 4, y: 4),
+      )!;
+      await h.pump(tester);
+      await h.tapCell(tester, 4, 4);
+      expect(h.document.selectedId, front);
+      final before = h.document.current;
+      await editor.setHidden('decor', front, true);
+      h.redraw();
+      await tester.pumpAndSettle();
+      expect(h.document.selectedId, isNull);
+      await h.tapCell(tester, 4, 4);
+      expect(h.document.selectedId, back);
+      commands.move(front, const GridPos(x: 7, y: 7));
+      expect(h.document.current, same(before));
+      await editor.showAll();
+      h.view.clearSelection(h.document);
+      h.redraw();
+      await tester.pumpAndSettle();
+      await h.tapCell(tester, 4, 4);
+      expect(h.document.selectedId, front);
+      final layer = h.document.current.placedElements
+          .singleWhere((entry) => entry.id == front)
+          .layerId;
+      await editor.setHidden('layer', layer, true);
+      h.redraw();
+      await tester.pumpAndSettle();
+      expect(h.document.isElementHidden('decor', front), isTrue);
+      expect(h.document.isElementHidden('decor', back), isTrue);
+      await h.tapCell(tester, 4, 4);
+      expect(h.document.selectedId, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'locked front decor lets real taps and drags reach the decor behind',

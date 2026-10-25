@@ -31,13 +31,29 @@ void registerStudioShadowProbe({required bool Function() isCopyActive}) {
       'noSolar',
       'noLighting',
       'hideWind',
+      'freezeLighting',
+      'antialiasing',
+      'multisampling',
     }.contains(action)) {
       throw ArgumentError.value(action, 'action');
     }
     final active = games.where((game) => !game.isPaused).toList();
     for (final game in active) {
       if (action == 'inspect') continue;
+      if (action == 'antialiasing') {
+        (game.context as SpatialRenderContext).shadowAntialiasingEnabled =
+            params['enabled'] != 'false';
+        continue;
+      }
+      if (action == 'multisampling') {
+        (game.context as SpatialRenderContext).preferMultisampledShadows =
+            params['enabled'] != 'false';
+        continue;
+      }
       if (action == 'restore') {
+        (game.context as SpatialRenderContext)
+          ..shadowAntialiasingEnabled = true
+          ..preferMultisampledShadows = true;
         game.previewLighting = lightingSnapshots.remove(game);
       } else {
         lightingSnapshots.putIfAbsent(game, () => game.previewLighting);
@@ -79,12 +95,14 @@ void registerStudioShadowProbe({required bool Function() isCopyActive}) {
             {
               'identity': identityHashCode(game),
               'paused': game.isPaused,
-          'ready': game.sceneReady,
-          'refreshing': game.refreshing,
-          'cameraView': game.configuration.controller.view.name,
-          'cameraZoom': game.configuration.controller.zoom,
-          'cameraMagnification': game.configuration.cameraMagnification?.call(),
-          'dayNightMinute': game.configuration.controller.dayNightMinuteOfDay,
+              'ready': game.sceneReady,
+              'refreshing': game.refreshing,
+              'cameraView': game.configuration.controller.view.name,
+              'cameraZoom': game.configuration.controller.zoom,
+              'cameraMagnification': game.configuration.cameraMagnification
+                  ?.call(),
+              'dayNightMinute':
+                  game.configuration.controller.dayNightMinuteOfDay,
               'mapId': game.configuration.groundMap?.id,
               'neighbors': [
                 for (final neighbor in game.configuration.neighbors)
@@ -92,6 +110,19 @@ void registerStudioShadowProbe({required bool Function() isCopyActive}) {
               ],
               'minute': game.configuration.controller.previewMinuteOfDay,
               'lighting': {
+                'antialiasing': (game.context as SpatialRenderContext)
+                    .shadowAntialiasingEnabled,
+                'solarSamples':
+                    (game.context as SpatialRenderContext).shadowFrame?.samples,
+                'supersampledSolar': (game.context as SpatialRenderContext)
+                    .shadowFrame
+                    ?.supersampled,
+                'supersampledPoint': (game.context as SpatialRenderContext)
+                    .pointShadowFrame
+                    ?.supersampled,
+                'pointSamples': (game.context as SpatialRenderContext)
+                    .pointShadowFrame
+                    ?.samples,
                 'sun': (game.context as SpatialRenderContext)
                     .lighting
                     .sunDirection

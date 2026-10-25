@@ -66,7 +66,8 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   MapBorderEraseDraft? _borderErase;
   MapData? _borderErasePreview;
   Matrix4? _borderEraseTransform;
-  bool get _ownsBorderEraseGesture => _borderErase != null &&
+  bool get _ownsBorderEraseGesture =>
+      _borderErase != null &&
       _borderErase!.validFor(widget.document.current, widget.project) &&
       widget.view.tool == StudioMapTool.border &&
       widget.view.borderEditingMode == BorderStrokeEditingMode.erase &&
@@ -139,7 +140,7 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
                 !_stroke!.matches(widget.view))) ||
         (_characterGesture?.isLocked == true) ||
         (_moving != null &&
-            widget.view.isLocked(
+            widget.view.isUnavailable(
               widget.document,
               MapSelectionFamily.decor,
               _moving!.id,

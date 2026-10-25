@@ -81,6 +81,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
   GpuShader? _shadowResource;
   final _shadowOptions = Vector4.zero(), _shadowHeight = Vector4.zero();
   final _shadowSample = Vector4.zero();
+  final _shadowOrigin = Vector4.zero();
   final _boundShadowSample = Vector3.zero();
   bool _boundUsesShadowSample = false;
   bool _environmentUniformsBound = false;
@@ -414,7 +415,13 @@ class SpatialPixelMaterial extends UnlitMaterial {
         identical(_pointShadowResource, resource))
       return;
     _pointShadowOptions.setValues(
-      frame == null ? 0 : 1,
+      frame == null
+          ? 0
+          : (frame.supersampled
+                ? 3
+                : frame.samples > 1
+                ? 2
+                : 1),
       frame?.faceResolution.toDouble() ?? 1,
       frame?.lightCount.toDouble() ?? 1,
       .02,
@@ -508,7 +515,13 @@ class SpatialPixelMaterial extends UnlitMaterial {
       return;
     final profile = frame?.profile;
     _shadowOptions.setValues(
-      frame == null ? 0 : 1,
+      frame == null
+          ? 0
+          : (frame.supersampled
+                ? 3
+                : frame.samples > 1
+                ? 2
+                : 1),
       profile?.bias ?? 0,
       profile?.resolution.toDouble() ?? 1,
       profile?.opacity ?? 0,
@@ -527,10 +540,22 @@ class SpatialPixelMaterial extends UnlitMaterial {
     );
     shader
       ..setTexture('shadowTexture', frame?.texture ?? Texture.standard)
-      ..setMatrix4('Shadow.worldToLight', frame?.worldToLight ?? _identityJoint)
+      ..setMatrix4(
+        'Shadow.worldToLight',
+        frame?.relativeWorldToLight ?? frame?.worldToLight ?? _identityJoint,
+      )
       ..setVector4('Shadow.options', _shadowOptions)
       ..setVector4('Shadow.receiverHeight', _shadowHeight)
-      ..setVector4('Shadow.samplePosition', _shadowSample);
+      ..setVector4('Shadow.samplePosition', _shadowSample)
+      ..setVector4(
+        'Shadow.origin',
+        _shadowOrigin..setValues(
+          frame?.origin.x ?? 0,
+          frame?.origin.y ?? 0,
+          frame?.origin.z ?? 0,
+          0,
+        ),
+      );
     _boundShadowFrame = frame;
     _shadowShader = shader;
     _shadowResource = resource;

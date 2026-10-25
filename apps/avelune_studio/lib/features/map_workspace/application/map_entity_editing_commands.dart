@@ -6,12 +6,11 @@ import 'package:avelune_studio/features/map_workspace/application/map_draft_refe
 
 const studioEntityKinds = [MapEntityKind.spawn, MapEntityKind.sign];
 
-typedef MapReferenceGuard =
-    String? Function({
-      required String mapId,
-      required String entityId,
-      MapDraftReferenceKind kind,
-    });
+typedef MapReferenceGuard = String? Function({
+  required String mapId,
+  required String entityId,
+  MapDraftReferenceKind kind,
+});
 
 class MapEntityEditingCommands {
   MapEntityEditingCommands(this.document, this.project, {this.draftGuard});
@@ -107,15 +106,15 @@ class MapEntityEditingCommands {
   }
 
   void move(String id, GridPos position) {
-    if (document.isElementLocked('entity', id)) return;
+    if (document.isElementUnavailable('entity', id)) return;
     document.commit(
       moveEntityOnMap(document.current, entityId: id, pos: position),
     );
   }
 
   String? deletionProblem(String id) {
-    if (document.isElementLocked('entity', id)) {
-      return 'Cet élément est verrouillé. Déverrouillez-le dans Éléments.';
+    if (document.isElementUnavailable('entity', id)) {
+      return 'Cet élément est verrouillé ou masqué. Déverrouillez-le ou affichez-le dans Éléments.';
     }
     if (selected(id) == null) {
       return 'Cet élément n’appartient plus à cette carte.';
@@ -191,16 +190,37 @@ class MapEntityEditingCommands {
         ),
       );
 
-  void setInteractiveEncounter(String id, MapEntityInteractiveEncounterData? payload) =>
-    document.commit(const EntityActions().setInteractiveEncounter(document.current, project: project, entityId: id, interactiveEncounter: payload));
+  void setInteractiveEncounter(
+    String id,
+    MapEntityInteractiveEncounterData? payload,
+  ) => document.commit(
+    const EntityActions().setInteractiveEncounter(
+      document.current,
+      project: project,
+      entityId: id,
+      interactiveEncounter: payload,
+    ),
+  );
 
   void setHealingDisplay(String id, MapEntityHealingDisplayData? display) =>
-      document.commit(const EntityActions().setHealingDisplay(
-        document.current, project: project, entityId: id, healingDisplay: display));
+      document.commit(
+        const EntityActions().setHealingDisplay(
+          document.current,
+          project: project,
+          entityId: id,
+          healingDisplay: display,
+        ),
+      );
 
   void setPresentation(String id, MapEntityPresentation? presentation) =>
-    document.commit(const EntityActions().setPresentation(document.current,
-      project: project, entityId: id, presentation: presentation));
+      document.commit(
+        const EntityActions().setPresentation(
+          document.current,
+          project: project,
+          entityId: id,
+          presentation: presentation,
+        ),
+      );
 
   void setBlocking(String id, {required bool blocks}) => document.commit(
     updateEntityOnMap(document.current, entityId: id, blocksMovement: blocks),

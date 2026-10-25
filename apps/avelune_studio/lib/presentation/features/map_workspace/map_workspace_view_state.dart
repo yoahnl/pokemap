@@ -528,7 +528,7 @@ class MapWorkspaceViewState {
 
   bool hasSelectionIn(String mapId) => _target?.mapId == mapId;
 
-  bool isLocked(
+  bool isUnavailable(
     EditableMapDocument document,
     MapSelectionFamily family,
     String id,
@@ -546,20 +546,20 @@ class MapWorkspaceViewState {
       MapSelectionFamily.zone => 'zone',
       MapSelectionFamily.trigger => 'trigger',
     };
-    return document.isElementLocked(kind, id);
+    return document.isElementUnavailable(kind, id);
   }
 
   void reconcileLocks(EditableMapDocument document) {
     final target = _target;
     if (target != null &&
         target.mapId == document.current.id &&
-        isLocked(document, target.family, target.id)) {
+        isUnavailable(document, target.family, target.id)) {
       clearSelection(document);
     }
     final armed = pendingMove;
     if (armed != null &&
         armed.mapId == document.current.id &&
-        isLocked(document, armed.family, armed.id)) {
+        isUnavailable(document, armed.family, armed.id)) {
       pendingMove = null;
     }
   }
@@ -569,7 +569,7 @@ class MapWorkspaceViewState {
     MapSelectionFamily family,
     String id,
   ) {
-    if (isLocked(document, family, id)) return;
+    if (isUnavailable(document, family, id)) return;
     _target = MapSelectionTarget(
       mapId: document.current.id,
       family: family,

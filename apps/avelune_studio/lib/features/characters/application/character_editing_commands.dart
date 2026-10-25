@@ -52,7 +52,7 @@ class CharacterEditingCommands {
   }
 
   void move(String id, GridPos position) {
-    if (document.isElementLocked('entity', id)) return;
+    if (document.isElementUnavailable('entity', id)) return;
     document.commit(
       moveEntityOnMap(document.current, entityId: id, pos: position),
     );
@@ -71,8 +71,8 @@ class CharacterEditingCommands {
   }
 
   String? deletionProblem(String id) {
-    if (document.isElementLocked('entity', id)) {
-      return 'Cet élément est verrouillé. Déverrouillez-le dans Éléments.';
+    if (document.isElementUnavailable('entity', id)) {
+      return 'Cet élément est verrouillé ou masqué. Déverrouillez-le ou affichez-le dans Éléments.';
     }
     final usages =
         buildNarrativeDependencyIndex(
@@ -148,8 +148,12 @@ class CharacterEditingCommands {
         entityId: id,
         npc: entity!.npc!.copyWith(
           trainerId: trainerId,
-          trainerBattleReadyWhen: trainerId == null ? null : entity.npc!.trainerBattleReadyWhen,
-          trainerBattleNotReadyDialogue: trainerId == null ? null : entity.npc!.trainerBattleNotReadyDialogue,
+          trainerBattleReadyWhen: trainerId == null
+              ? null
+              : entity.npc!.trainerBattleReadyWhen,
+          trainerBattleNotReadyDialogue: trainerId == null
+              ? null
+              : entity.npc!.trainerBattleNotReadyDialogue,
           trainerBattleWhen: trainerId == null
               ? null
               : entity.npc!.trainerBattleWhen,
@@ -167,9 +171,18 @@ class CharacterEditingCommands {
         ),
       );
 
-  void setTrainerBattleReadiness(String id, MapEntityRuntimePredicate? condition, DialogueRef? refusal) =>
-      document.commit(const EntityActions().setTrainerBattleReadiness(document.current,
-        entityId: id, trainerBattleReadyWhen: condition, trainerBattleNotReadyDialogue: refusal));
+  void setTrainerBattleReadiness(
+    String id,
+    MapEntityRuntimePredicate? condition,
+    DialogueRef? refusal,
+  ) => document.commit(
+    const EntityActions().setTrainerBattleReadiness(
+      document.current,
+      entityId: id,
+      trainerBattleReadyWhen: condition,
+      trainerBattleNotReadyDialogue: refusal,
+    ),
+  );
 
   void setTrainerBattleRule(String id, MapEntityRuntimePredicate? rule) =>
       document.commit(

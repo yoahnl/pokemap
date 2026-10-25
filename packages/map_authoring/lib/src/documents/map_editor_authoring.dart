@@ -71,6 +71,14 @@ final class MapEditorMutation {
       };
 }
 
+final class MapEditorIncompleteStateException extends FormatException {
+  const MapEditorIncompleteStateException()
+      : super(
+            'Reprenez l’état complet de map_editor_inspect avec hiddenElements et hiddenFamilies pour conserver ou effacer explicitement le masquage.');
+
+  static const code = 'map.editor_incomplete_state';
+}
+
 final class LocalMapEditorAuthoring {
   LocalMapEditorAuthoring(
       {required WorkspacePolicy policy,
@@ -97,7 +105,7 @@ final class LocalMapEditorAuthoring {
   static final descriptor = AuthoringActionDescriptor(
       id: 'map.editor.set',
       version: 1,
-      summary: 'Save selection and movement locks for one map',
+      summary: 'Save editor visibility and selection locks for one map',
       inputSchemaId: 'pokemap.authoring.map.editor.set.input.v1',
       outputSchemaId: 'pokemap.authoring.map.editor.set.output.v1',
       riskLevel: AuthoringRiskLevel.low,
@@ -114,8 +122,20 @@ final class LocalMapEditorAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
-        'documentSchemaVersions': [1],
-        'stateFields': ['lockedElements', 'lockedFamilies'],
+        'documentSchemaVersions': [1, 2],
+        'writeDocumentSchemaVersion': 2,
+        'stateFields': [
+          'lockedElements',
+          'lockedFamilies',
+          'hiddenElements',
+          'hiddenFamilies'
+        ],
+        'maximumElementKeysPerCollection': 4096,
+        'maximumFamilyKeysPerCollection': 128,
+        'visibilityScope': 'editorPreview2DAnd3D',
+        'defaultVisibility': 'visible',
+        'hiddenElementsSelectable': false,
+        'incompleteVisibilityState': 'rejectOmittedNonEmptyCollections',
         'revisionScope': 'mapEditorDocument',
         'storagePattern': 'maps/<mapId>.editor.json',
         'maximumDocumentBytes': MapEditorDocument.maxBytes,
@@ -135,6 +155,8 @@ final class LocalMapEditorAuthoring {
       required String expectedRevision,
       required MapEditorState state,
       required String operationId,
+      bool hiddenElementsProvided = true,
+      bool hiddenFamiliesProvided = true,
       FutureOr<void> Function()? precondition}) {
     if (runInWorker) {
       if (precondition != null) {
@@ -148,6 +170,8 @@ final class LocalMapEditorAuthoring {
         expectedRevision: expectedRevision,
         state: state,
         operationId: operationId,
+        hiddenElementsProvided: hiddenElementsProvided,
+        hiddenFamiliesProvided: hiddenFamiliesProvided,
       );
     }
     return _set(
@@ -157,6 +181,8 @@ final class LocalMapEditorAuthoring {
         expectedRevision: expectedRevision,
         state: state,
         operationId: operationId,
+        hiddenElementsProvided: hiddenElementsProvided,
+        hiddenFamiliesProvided: hiddenFamiliesProvided,
         precondition: precondition);
   }
 
@@ -168,6 +194,8 @@ final class LocalMapEditorAuthoring {
     MapEditorState? state,
     String? receiptId,
     required String operationId,
+    bool hiddenElementsProvided = true,
+    bool hiddenFamiliesProvided = true,
   }) async {
     if (_reader is! LocalProjectFileReader || _faultInjector != null) {
       throw ArgumentError(
@@ -180,6 +208,8 @@ final class LocalMapEditorAuthoring {
       mapRelativePath: mapRelativePath,
       expectedRevision: expectedRevision,
       state: state?.toJson(),
+      hiddenElementsProvided: hiddenElementsProvided,
+      hiddenFamiliesProvided: hiddenFamiliesProvided,
       receiptId: receiptId,
       operationId: operationId,
       actorId: _actor.actorId,
@@ -197,6 +227,8 @@ final class LocalMapEditorAuthoring {
       required String expectedRevision,
       required MapEditorState state,
       required String operationId,
+      bool hiddenElementsProvided = true,
+      bool hiddenFamiliesProvided = true,
       FutureOr<void> Function()? precondition,
       AuthoringHistoryContext? historyContext,
       bool removeDocument = false}) async {
@@ -212,6 +244,9 @@ final class LocalMapEditorAuthoring {
     if ((afterBytes?.length ?? 0) > MapEditorDocument.maxBytes) {
       throw const FormatException('Editor document exceeds its byte limit.');
     }
+    final intent = state.toJson();
+    if (state.hiddenElements.isEmpty) intent.remove('hiddenElements');
+    if (state.hiddenFamilies.isEmpty) intent.remove('hiddenFamilies');
     final request = AuthoringRequest(
         requestId: operationId,
         actionId: descriptor.id,
@@ -220,7 +255,7 @@ final class LocalMapEditorAuthoring {
         parameters: {
           'mapId': mapId,
           'mapRelativePath': context.mapPath,
-          'state': state.toJson(),
+          'state': intent,
           'documentPresent': !removeDocument
         },
         expectedRevision: expectedRevision,
@@ -287,6 +322,10 @@ final class LocalMapEditorAuthoring {
     if (before.revision != expectedRevision) {
       throw const FormatException(
           'map.editor_revision_conflict: Editor changed before this edit.');
+    }
+    if ((!hiddenElementsProvided && before.state.hiddenElements.isNotEmpty) ||
+        (!hiddenFamiliesProvided && before.state.hiddenFamilies.isNotEmpty)) {
+      throw const MapEditorIncompleteStateException();
     }
     final beforeBytes = await context.gateway.readResource(context.storageKey);
     final beforeRevision = beforeBytes == null
@@ -564,6 +603,8 @@ final class _MapEditorWorkerRequest {
       required this.mapRelativePath,
       required this.expectedRevision,
       required this.state,
+      required this.hiddenElementsProvided,
+      required this.hiddenFamiliesProvided,
       required this.receiptId,
       required this.operationId,
       required this.actorId,
@@ -572,6 +613,7 @@ final class _MapEditorWorkerRequest {
   final String root, mapId, expectedRevision, operationId, actorId;
   final String? mapRelativePath, receiptId;
   final Map<String, dynamic>? state;
+  final bool hiddenElementsProvided, hiddenFamiliesProvided;
   final List<AuthoringPermissionScope> permissions;
   final SendPort? diagnosticsPort;
 }
@@ -619,5 +661,7 @@ Future<MapEditorMutation> _runMapEditorWorkerDirect(
       mapRelativePath: request.mapRelativePath,
       expectedRevision: request.expectedRevision,
       state: MapEditorState.fromJson(request.state!),
+      hiddenElementsProvided: request.hiddenElementsProvided,
+      hiddenFamiliesProvided: request.hiddenFamiliesProvided,
       operationId: request.operationId);
 }

@@ -235,7 +235,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   bool get contentGestureValid =>
       !locked &&
       (modelGesture == null ||
-          !widget.document.isElementLocked('model', modelGesture!)) &&
+          !widget.document.isElementUnavailable('model', modelGesture!)) &&
       gesture?.isLocked != true &&
       widget.view.tool == StudioMapTool.select &&
       gestureFreeView == widget.view.spatialFreeView &&
@@ -413,7 +413,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   bool canSelectContent(SpatialSceneContentKind kind, String id) {
-    return !widget.document.isElementLocked(
+    return !widget.document.isElementUnavailable(
       switch (kind) {
         SpatialSceneContentKind.model => 'model',
         SpatialSceneContentKind.actor ||
@@ -423,6 +423,58 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       kind == SpatialSceneContentKind.actor && id.startsWith('npc:')
           ? id.substring(4)
           : id,
+    );
+  }
+
+  SpatialSceneVisibility get sceneVisibility {
+    final document = widget.document;
+    final state = document.editorState;
+    final content = <(SpatialSceneContentKind, String)>{};
+    final layers = <String>{};
+    final kinds = <SpatialSceneContentKind>{};
+    for (final family in state.hiddenFamilies) {
+      switch (family) {
+        case 'model':
+          kinds.add(SpatialSceneContentKind.model);
+        case 'entity':
+          kinds.addAll([
+            SpatialSceneContentKind.actor,
+            SpatialSceneContentKind.marker,
+          ]);
+        case 'warp':
+          kinds.add(SpatialSceneContentKind.warp);
+      }
+    }
+    for (final key in state.hiddenElements) {
+      final separator = key.indexOf(':');
+      final kind = key.substring(0, separator);
+      final id = key.substring(separator + 1);
+      switch (kind) {
+        case 'model':
+          content.add((SpatialSceneContentKind.model, id));
+        case 'entity':
+          content.add((SpatialSceneContentKind.actor, 'npc:$id'));
+          content.add((SpatialSceneContentKind.marker, id));
+        case 'warp':
+          content.add((SpatialSceneContentKind.warp, id));
+        case 'layer':
+          layers.add(id);
+      }
+    }
+    final allLayers = state.hiddenFamilies.contains('layer');
+    for (final layerId
+        in allLayers
+            ? document.current.layers.map((layer) => layer.id)
+            : layers) {
+      for (final id in document.elementIdsInLayer('model', layerId)) {
+        content.add((SpatialSceneContentKind.model, id));
+      }
+    }
+    return SpatialSceneVisibility(
+      hiddenContent: content,
+      hiddenKinds: kinds,
+      hiddenLayers: layers,
+      allLayersHidden: allLayers,
     );
   }
 
@@ -552,11 +604,11 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                   (item) =>
                       item.position.x.floor() == x &&
                       item.position.z.floor() == z &&
-                      !document.isElementLocked('model', item.id),
+                      !document.isElementUnavailable('model', item.id),
                 )
                 .lastOrNull;
       if (instance != null &&
-          !document.isElementLocked('model', instance.id) &&
+          !document.isElementUnavailable('model', instance.id) &&
           {
             StudioMapTool.select,
             StudioMapTool.erase,
@@ -865,7 +917,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       );
       if (id != null &&
           commands.selected(id) != null &&
-          !widget.document.isElementLocked('model', id)) {
+          !widget.document.isElementUnavailable('model', id)) {
         if (!locked) {
           discardGesture();
           try {
@@ -1075,9 +1127,10 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         children: [
           Positioned.fill(
             child: SpatialSceneView(
+              visibility: sceneVisibility,
               canSelectContent: canSelectContent,
               canSelectLayer: (id) =>
-                  !widget.document.isElementLocked('layer', id),
+                  !widget.document.isElementUnavailable('layer', id),
               animationPreview: widget.view.spatialAnimations,
               onHover: showsHover ? updateHover : null,
               onSurfaceTap: surfaceTap,

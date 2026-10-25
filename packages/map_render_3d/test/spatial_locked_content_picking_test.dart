@@ -56,26 +56,30 @@ void main() {
         return _triangle();
       }
 
-      SpatialSceneView configuration(Set<String> locked, {String? selected}) =>
-          SpatialSceneView(
-            scene: scene,
-            selectedContent: selected == null
-                ? null
-                : SpatialSceneContentHit(
-                    kind: SpatialSceneContentKind.model,
-                    id: selected,
-                    cell: (4, 4),
-                  ),
-            models: models,
-            loadModel: load,
-            controller: controller,
-            canSelectContent: (kind, id) => !locked.contains(id),
-            onCell: (_, _) {},
-            background: const Color(0xff000000),
-            ground: const Color(0xff000000),
-            edge: const Color(0xff000000),
-            errorBuilder: (_, _) => const SizedBox(),
-          );
+      SpatialSceneView configuration(
+        Set<String> locked, {
+        String? selected,
+        SpatialSceneVisibility? visibility,
+      }) => SpatialSceneView(
+        visibility: visibility,
+        scene: scene,
+        selectedContent: selected == null
+            ? null
+            : SpatialSceneContentHit(
+                kind: SpatialSceneContentKind.model,
+                id: selected,
+                cell: (4, 4),
+              ),
+        models: models,
+        loadModel: load,
+        controller: controller,
+        canSelectContent: (kind, id) => !locked.contains(id),
+        onCell: (_, _) {},
+        background: const Color(0xff000000),
+        ground: const Color(0xff000000),
+        edge: const Color(0xff000000),
+        errorBuilder: (_, _) => const SizedBox(),
+      );
       final initial = configuration({});
       final game = SpatialSceneGame(
         initial,
@@ -102,6 +106,15 @@ void main() {
       expect(game.pickContent(pointer), isNull);
       game.configuration = initial;
       expect(game.pickContent(pointer)?.id, 'front-particles');
+      final hidden = configuration(
+        {},
+        visibility: SpatialSceneVisibility(
+          hiddenContent: [(SpatialSceneContentKind.model, 'front-particles')],
+        ),
+      );
+      game.configuration = hidden;
+      expect(game.pickContent(pointer)?.id, 'back');
+      game.configuration = initial;
       game.sceneReady = true;
       await game.refresh();
       addTearDown(game.onRemove);
@@ -127,6 +140,17 @@ void main() {
         game.modelComponents['front-particles']!.component,
         same(frontComponent),
       );
+      expect(game.generation, beforeGeneration);
+      expect(reads, beforeReads);
+      game.configuration = hidden;
+      game.renderedConfiguration = hidden;
+      game.syncVisibility();
+      expect(frontComponent.presentationVisible, isFalse);
+      expect(game.pickContent(pointer)?.id, 'back');
+      game.configuration = initial;
+      game.renderedConfiguration = initial;
+      game.syncVisibility();
+      expect(frontComponent.presentationVisible, isTrue);
       expect(game.generation, beforeGeneration);
       expect(reads, beforeReads);
     },

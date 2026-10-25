@@ -18,24 +18,26 @@ export function registerMapEditorTools(server: McpServer, authoring: AuthoringGa
   const state = z.object({
     lockedElements: z.array(z.string().min(3).max(384)).max(4096).optional(),
     lockedFamilies: z.array(z.enum(["layer", "decor", "model", "entity", "warp", "zone", "trigger", "effect"])).max(8).optional(),
+    hiddenElements: z.array(z.string().min(3).max(384)).max(4096).optional(),
+    hiddenFamilies: z.array(z.enum(["layer", "decor", "model", "entity", "warp", "zone", "trigger", "effect"])).max(8).optional(),
   }).strict();
   server.registerTool("pokemap_map_editor_inspect", {
-    title: "Inspect map editor locks",
-    description: "Read selection and movement locks for one map. Absent editor documents mean unlocked elements. Returns the exact revision required by set. Reads only the bounded maps/<mapId>.editor.json document and map metadata, without loading the project, map content, assets or history. Locks affect editing in both 2D and 3D and do not change gameplay.",
+    title: "Inspect map editor visibility and locks",
+    description: "Read editor visibility and selection/movement locks for one map. Absent editor documents mean visible, unlocked elements. Version 1 documents retain their locks and default to visible elements; new documents use version 2. Returns the exact revision required by set. Reads only the bounded maps/<mapId>.editor.json document and map metadata, without loading the project, map content, assets or history. These settings affect editing in both 2D and 3D and do not change gameplay.",
     inputSchema: z.object(identity).strict(),
     outputSchema: toolEnvelopeSchema,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async args => authoringResult(() => authoring.request("map_editor_inspect", args)));
   server.registerTool("pokemap_map_editor_set", {
-    title: "Save map editor locks",
-    description: "Set selection and movement locks through the canonical map.editor.set transaction. Supply the entire current state from inspect with edited lockedElements and lockedFamilies, the exact revision and a unique operationId. Element keys use kind:id with kind layer, decor, model, entity, warp, zone, trigger or effect. lockedFamilies accepts only those canonical kinds and locks every element of that kind. Studio's category groups, such as particles, persist an explicit batch of lockedElements keys rather than a category name. Locked elements remain visible but are excluded from selection and movement in 2D and 3D. Writes only the editor sidecar and scoped transaction/history metadata; never loads or rewrites project content. Retry identical arguments and operationId after an unknown outcome.",
+    title: "Save map editor visibility and locks",
+    description: "Set editor visibility and selection/movement locks through canonical map.editor.set. Supply the entire current state from inspect with edited lockedElements, lockedFamilies, hiddenElements and hiddenFamilies, the exact revision and a unique operationId. Element keys use kind:id with kind layer, decor, model, entity, warp, zone, trigger or effect. Families accept only those canonical kinds and affect every element of that kind. Studio category groups, such as particles, persist explicit element keys rather than category names. Locked elements stay visible unless hidden, and cannot be selected or moved. Hidden elements and hidden layer contents, including paths and borders, are excluded from editor previews and picking in both 2D and 3D. Visibility never changes gameplay or exported map content. Each element-key collection accepts at most 4096 entries; the whole editor document remains limited to 65536 bytes. Writes only the version 2 editor sidecar and scoped transaction/history metadata, preserving legacy locks; never loads or rewrites project content. Retry identical arguments and operationId after an unknown outcome.",
     inputSchema: z.object({ ...mutation, state }).strict(),
     outputSchema: toolEnvelopeSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async args => authoringResult(() => authoring.request("map_editor_set", args)));
   server.registerTool("pokemap_map_editor_undo", {
-    title: "Undo map editor locks",
-    description: "Restore one current map editor lock receipt. Requires receiptId from set and the current revision from inspect. Preserves concurrent edits and records a scoped undo receipt without replaying project history.",
+    title: "Undo map editor visibility and locks",
+    description: "Restore the visibility and locks from one current map editor receipt. Requires receiptId from set and the current revision from inspect. Preserves concurrent edits and records a scoped undo receipt without replaying project history.",
     inputSchema: z.object({ ...mutation, receiptId: z.string().regex(/^receipt_document_[a-f0-9]{32}$/) }).strict(),
     outputSchema: toolEnvelopeSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },

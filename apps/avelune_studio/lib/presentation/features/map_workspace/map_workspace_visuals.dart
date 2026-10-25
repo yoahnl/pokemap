@@ -1,11 +1,34 @@
 import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show setEquals;
+
 import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+
 import 'workspace_resource_diagnostic.dart';
+
+class MapEditorVisibilityScope extends InheritedWidget {
+  const MapEditorVisibilityScope({
+    super.key,
+    required this.state,
+    required super.child,
+  });
+
+  final MapEditorState state;
+
+  static MapEditorState? maybeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<MapEditorVisibilityScope>()
+      ?.state;
+
+  @override
+  bool updateShouldNotify(MapEditorVisibilityScope oldWidget) =>
+      !setEquals(state.hiddenElements, oldWidget.state.hiddenElements) ||
+      !setEquals(state.hiddenFamilies, oldWidget.state.hiddenFamilies);
+}
 
 abstract interface class MapWorkspaceVisuals implements Listenable {
   Widget canvas(
@@ -35,11 +58,10 @@ abstract interface class SpatialWorkspaceVisuals {
   Future<SpatialNpcPreview> spatialPreview(MapData map);
 }
 
-typedef LoadWorkspaceVisuals =
-    Future<MapWorkspaceVisuals> Function(
-      ProjectSession session,
-      ProjectManifest manifest,
-    );
+typedef LoadWorkspaceVisuals = Future<MapWorkspaceVisuals> Function(
+  ProjectSession session,
+  ProjectManifest manifest,
+);
 
 abstract interface class ResourceWorkspaceVisuals {
   void setTerrainBrush(ProjectSmartTilePreset? preset);

@@ -5,6 +5,7 @@ extension _MapCanvasZonePaint on MapCanvasOverlay {
     if (map.gameplayZones.isEmpty) return;
     final clip = canvas.getLocalClipBounds();
     for (final zone in map.gameplayZones) {
+      if (isHidden?.call('zone', zone.id) ?? false) continue;
       final rect = Rect.fromLTWH(
         zone.area.pos.x * cellWidth,
         zone.area.pos.y * cellHeight,

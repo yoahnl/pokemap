@@ -6,6 +6,7 @@ import 'dart:isolate';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editor_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/platform/rendering/studio_map_visual_widgets.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
@@ -25,6 +26,7 @@ import 'save_disk_trace.dart';
   EditableMapDocument? document,
   MapEditorController? editor,
   MapWorkspaceController? workspace,
+  StudioMapVisual? visual2d,
   Map<String, Object?> state,
 })
 readMapElementsState() {
@@ -32,8 +34,12 @@ readMapElementsState() {
   MapElementsPanel? panel;
   SpatialMapEditor? spatial;
   SpatialSceneController? renderer;
+  StudioMapVisual? visual2d;
+  Object? renderer2d;
+  String? renderer2dDiagnosticError;
   dynamic sceneGame;
   void visit(Element element) {
+    if (element.widget case Offstage(offstage: true)) return;
     switch (element.widget) {
       case MapWorkspaceScreen():
         workspace = element.widget as MapWorkspaceScreen;
@@ -43,6 +49,15 @@ readMapElementsState() {
         spatial = element.widget as SpatialMapEditor;
       case SpatialSceneView(:final controller):
         renderer = controller;
+      case StudioMapVisual(preview: false):
+        if (element is StatefulElement && element.state.mounted) {
+          try {
+            renderer2d = (element.state as dynamic).renderer as Object?;
+            visual2d = element.widget as StudioMapVisual;
+          } on Object catch (error) {
+            renderer2dDiagnosticError = error.runtimeType.toString();
+          }
+        }
       case GameWidget(:final game):
         if (game.runtimeType.toString() == 'SpatialSceneGame') sceneGame = game;
       default:
@@ -55,10 +70,14 @@ readMapElementsState() {
   final document =
       panel?.document ?? workspace?.controller.active ?? spatial?.document;
   final editor = document?.editor;
+  final visibility3d = sceneGame == null
+      ? null
+      : sceneGame!.configuration.visibility as SpatialSceneVisibility;
   return (
     document: document,
     editor: editor,
     workspace: workspace?.controller,
+    visual2d: visual2d,
     state: {
       'pid': pid,
       'profile': kProfileMode,
@@ -79,6 +98,23 @@ readMapElementsState() {
           ? null
           : identityHashCode(document!.current.spatialScene!),
       'rendererIdentity': renderer == null ? null : identityHashCode(renderer!),
+      'renderer2dIdentity': renderer2d == null
+          ? null
+          : identityHashCode(renderer2d!),
+      'renderer2dResourcesIdentity': visual2d == null
+          ? null
+          : identityHashCode(visual2d!.resources),
+      'renderer2dImagesIdentity': visual2d == null
+          ? null
+          : identityHashCode(visual2d!.resources.images),
+      'renderer2dImageIdentities': visual2d == null
+          ? null
+          : {
+              for (final entry in visual2d!.resources.images.entries)
+                entry.key: identityHashCode(entry.value),
+            },
+      'renderer2dDecodedBytes': visual2d?.resources.decodedBytes,
+      'renderer2dDiagnosticError': renderer2dDiagnosticError,
       'saving': editor?.saving,
       'dirty': editor?.dirty,
       'error': editor?.error,
@@ -89,6 +125,26 @@ readMapElementsState() {
       'rendererGeneration': sceneGame?.generation,
       'visualOrderUpdates': sceneGame?.visualOrderUpdates,
       'visualGroundRebuilds': sceneGame?.visualGroundRebuilds,
+      'visibilityUpdates': sceneGame?.visibilityUpdates,
+      'visibilityGroundRebuilds': sceneGame?.visibilityGroundRebuilds,
+      'visibility3d': visibility3d == null
+          ? null
+          : {
+              'hiddenContent': [
+                for (final (kind, id) in visibility3d.hiddenContent)
+                  '${kind.name}:$id',
+              ]..sort(),
+              'hiddenKinds': [
+                for (final kind in visibility3d.hiddenKinds) kind.name,
+              ]..sort(),
+              'hiddenLayers': visibility3d.hiddenLayers.toList()..sort(),
+            },
+      'modelPresentationVisible': sceneGame == null
+          ? null
+          : {
+              for (final entry in sceneGame!.modelComponents.entries)
+                entry.key: entry.value.component.presentationVisible,
+            },
       'modelComponentIdentities': sceneGame == null
           ? null
           : {
@@ -106,6 +162,12 @@ readMapElementsState() {
           : {
               for (final entry in sceneGame!.actors.entries)
                 entry.key: identityHashCode(entry.value.mesh),
+            },
+      'actorPresentationVisible': sceneGame == null
+          ? null
+          : {
+              for (final entry in sceneGame!.actors.entries)
+                entry.key: entry.value.mesh.isVisible(sceneGame!.camera),
             },
       'pointLightBindingsIdentity': sceneGame == null
           ? null
@@ -152,12 +214,26 @@ Future<void> main() async {
       jsonEncode(readMapElementsState().state),
     ),
   );
+  developer.registerExtension('ext.flutter.avelune.mapElementsAwaitResources', (
+    method,
+    parameters,
+  ) async {
+    final view = readMapElementsState();
+    await view.visual2d?.resources.settled;
+    return developer.ServiceExtensionResponse.result(
+      jsonEncode({
+        'waitedFor2dResources': view.visual2d != null,
+        'state': readMapElementsState().state,
+      }),
+    );
+  });
   developer.registerExtension('ext.flutter.avelune.mapElementsUi', (
     method,
     parameters,
   ) async {
     final found = <String, List<({Element element, Rect bounds})>>{};
     void visit(Element element) {
+      if (element.widget case Offstage(offstage: true)) return;
       final key = element.widget.key;
       if (key is ValueKey<String>) {
         final render = element.findRenderObject();

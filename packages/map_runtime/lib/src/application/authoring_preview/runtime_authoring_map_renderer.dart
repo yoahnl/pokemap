@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:map_core/map_core.dart';
 
 import '../../infrastructure/runtime_tileset_image.dart';
@@ -16,24 +17,44 @@ final class RuntimeAuthoringMapRenderer {
     required Map<String, RuntimeTilesetImage> images,
     BorderRuntimeAssetBundle? borderAssets,
     bool includeCharacters = false,
-  })  : _bundle = bundle,
-        _images = images,
-        _includeCharacters = includeCharacters,
-        _background = MapLayersComponent(
-          bundle: bundle,
-          separatePlacedElementOcclusion: includeCharacters,
-          tileImagesByTilesetId: images,
-          borderAssets: borderAssets,
-          renderBorders: borderAssets != null,
+  }) : _bundle = bundle,
+       _images = images,
+       _includeCharacters = includeCharacters,
+       _background = MapLayersComponent(
+         bundle: bundle,
+         separatePlacedElementOcclusion: includeCharacters,
+         tileImagesByTilesetId: images,
+         borderAssets: borderAssets,
+         renderBorders: borderAssets != null,
+       ),
+       _foreground = MapLayersComponent(
+         bundle: bundle,
+         separatePlacedElementOcclusion: includeCharacters,
+         tileImagesByTilesetId: images,
+         renderPass: MapLayerRenderPass.foreground,
+         borderAssets: borderAssets,
+         renderBorders: borderAssets != null,
+       ) {
+    for (final component in [_background, _foreground]) {
+      component.layerVisibilityPredicate = _isLayerVisible;
+      component.placedElementVisibilityPredicate = isPlacedElementVisible;
+      component.mapEntityPresencePredicate = (_, entity) =>
+          !(_editorState?.isHidden('entity', entity.id) ?? false);
+    }
+    for (final layer in bundle.map.layers) {
+      final generated = switch (layer) {
+        BorderLayer() => layer.content.features.expand(
+          (feature) => feature.generatedPlacementIds,
         ),
-        _foreground = MapLayersComponent(
-          bundle: bundle,
-          separatePlacedElementOcclusion: includeCharacters,
-          tileImagesByTilesetId: images,
-          renderPass: MapLayerRenderPass.foreground,
-          borderAssets: borderAssets,
-          renderBorders: borderAssets != null,
-        ) {
+        EnvironmentLayer() => layer.content.areas.expand(
+          (area) => area.generatedPlacementIds,
+        ),
+        _ => const <String>[],
+      };
+      for (final id in generated) {
+        _generatedParents.putIfAbsent(id, () => {}).add(layer.id);
+      }
+    }
     _refreshPatches(bundle.map.placedElements);
     _previousImages = Map.of(images);
   }
@@ -49,18 +70,35 @@ final class RuntimeAuthoringMapRenderer {
   final Map<String, PlacedElementOcclusionPatchComponent> _patches = {};
   final _maskValidity = <ElementCollisionPixelMask, bool>{};
   Rect? _viewport;
+  MapEditorState? _editorState;
+  final Map<String, Set<String>> _generatedParents = {};
+
+  void setEditorState(MapEditorState? state) => _editorState = state;
+
+  bool _isLayerVisible(String layerId) =>
+      !(_editorState?.isHidden('layer', layerId) ?? false);
+
+  bool isPlacedElementVisible(MapPlacedElement instance) =>
+      _isLayerVisible(instance.layerId) &&
+      !(_editorState?.isHidden('decor', instance.id) ?? false) &&
+      !(_generatedParents[instance.id]?.any(
+            (layerId) => !_isLayerVisible(layerId),
+          ) ??
+          false);
 
   void _refreshPatches(Iterable<MapPlacedElement> instances) {
     if (!_includeCharacters) return;
     final instructions = resolveStaticPlacedElementOcclusionPatchInstructions(
-        bundle: _bundle,
-        originCellX: 0,
-        originCellY: 0,
-        instances: instances,
-        maskValidityCache: _maskValidity);
+      bundle: _bundle,
+      originCellX: 0,
+      originCellY: 0,
+      instances: instances,
+      maskValidityCache: _maskValidity,
+    );
     for (final instruction in instructions) {
-      if (!_background
-          .usesPlacedElementOcclusionPatch(instruction.placedElementId)) {
+      if (!_background.usesPlacedElementOcclusionPatch(
+        instruction.placedElementId,
+      )) {
         continue;
       }
       final image = _images[instruction.tilesetId];
@@ -72,46 +110,52 @@ final class RuntimeAuthoringMapRenderer {
         existing?.onRemove();
         _patches[instruction.placedElementId] =
             PlacedElementOcclusionPatchComponent(
-                instruction: instruction,
-                tilesetImage: image,
-                overlayReplacesPatch: true,
-                visibleWorldRectProvider: () => _viewport ?? Rect.largest,
-                visualWorldRectProvider: () =>
-                    _background.displayedPlacedElementRect(
-                        _preview?.id == instruction.placedElementId
-                            ? _preview!
-                            : _instancesById[instruction.placedElementId]!),
-                frameProvider: () {
-                  final instance = _preview?.id == instruction.placedElementId
-                      ? _preview!
-                      : _instancesById[instruction.placedElementId]!;
-                  final frame =
-                      _background.displayedPlacedElementFrame(instance);
-                  if (frame == null) return null;
-                  final tilesetId = frame.tilesetId.trim().isEmpty
-                      ? instruction.tilesetId
-                      : frame.tilesetId.trim();
-                  final image = _images[tilesetId];
-                  if (image == null) return null;
-                  final settings = _bundle.manifest.settings;
-                  return (
-                    image: image,
-                    sourceRect: Rect.fromLTWH(
-                        (frame.source.x * settings.tileWidth).toDouble(),
-                        (frame.source.y * settings.tileHeight).toDouble(),
-                        (frame.source.width * settings.tileWidth).toDouble(),
-                        (frame.source.height * settings.tileHeight).toDouble())
-                  );
-                },
-                overlayPainter:
-                    _background.placedElementOcclusionOverlayPainter(
-                        instruction.placedElementId));
+              instruction: instruction,
+              tilesetImage: image,
+              overlayReplacesPatch: true,
+              visibleWorldRectProvider: () => _viewport ?? Rect.largest,
+              visualWorldRectProvider: () =>
+                  _background.displayedPlacedElementRect(
+                    _preview?.id == instruction.placedElementId
+                        ? _preview!
+                        : _instancesById[instruction.placedElementId]!,
+                  ),
+              frameProvider: () {
+                final instance = _preview?.id == instruction.placedElementId
+                    ? _preview!
+                    : _instancesById[instruction.placedElementId]!;
+                final frame = _background.displayedPlacedElementFrame(instance);
+                if (frame == null) return null;
+                final tilesetId = frame.tilesetId.trim().isEmpty
+                    ? instruction.tilesetId
+                    : frame.tilesetId.trim();
+                final image = _images[tilesetId];
+                if (image == null) return null;
+                final settings = _bundle.manifest.settings;
+                return (
+                  image: image,
+                  sourceRect: Rect.fromLTWH(
+                    (frame.source.x * settings.tileWidth).toDouble(),
+                    (frame.source.y * settings.tileHeight).toDouble(),
+                    (frame.source.width * settings.tileWidth).toDouble(),
+                    (frame.source.height * settings.tileHeight).toDouble(),
+                  ),
+                );
+              },
+              overlayPainter: _background.placedElementOcclusionOverlayPainter(
+                instruction.placedElementId,
+              ),
+            );
       }
       final path = _patches[instruction.placedElementId]!.localOcclusionPath;
       _background.setPlacedElementOcclusionPath(
-          instruction.placedElementId, path);
+        instruction.placedElementId,
+        path,
+      );
       _foreground.setPlacedElementOcclusionPath(
-          instruction.placedElementId, path);
+        instruction.placedElementId,
+        path,
+      );
     }
   }
 
@@ -120,30 +164,41 @@ final class RuntimeAuthoringMapRenderer {
       character.id: character,
   };
   late final _instancesById = {
-    for (final instance in _bundle.map.placedElements) instance.id: instance
+    for (final instance in _bundle.map.placedElements) instance.id: instance,
   };
-  late final _entities = _bundle.map.entities
-      .where((entity) => entity.kind == MapEntityKind.npc)
-      .toList()
-    ..sort(
-        (a, b) => (a.pos.y + a.size.height).compareTo(b.pos.y + b.size.height));
+  late final _entities =
+      _bundle.map.entities
+          .where((entity) => entity.kind == MapEntityKind.npc)
+          .toList()
+        ..sort(
+          (a, b) =>
+              (a.pos.y + a.size.height).compareTo(b.pos.y + b.size.height),
+        );
 
   void _refreshImages() {
     if (!_includeCharacters) return;
     if (_images.length != _previousImages.length ||
         _images.entries.any(
-            (entry) => !identical(entry.value, _previousImages[entry.key]))) {
+          (entry) => !identical(entry.value, _previousImages[entry.key]),
+        )) {
       _characters.clear();
       for (final patch in _patches.values) {
         _background.setPlacedElementOcclusionPath(
-            patch.instruction.placedElementId, null);
+          patch.instruction.placedElementId,
+          null,
+        );
         _foreground.setPlacedElementOcclusionPath(
-            patch.instruction.placedElementId, null);
+          patch.instruction.placedElementId,
+          null,
+        );
         patch.onRemove();
       }
       _patches.clear();
-      _refreshPatches(_bundle.map.placedElements
-          .map((e) => _preview?.id == e.id ? _preview! : e));
+      _refreshPatches(
+        _bundle.map.placedElements.map(
+          (e) => _preview?.id == e.id ? _preview! : e,
+        ),
+      );
       _previousImages = Map.of(_images);
     }
   }
@@ -154,10 +209,13 @@ final class RuntimeAuthoringMapRenderer {
       patch.update(0);
     }
     final patches = _patches.values.toList()
-      ..sort((a, b) =>
-          (a.position.y + a.height).compareTo(b.position.y + b.height));
+      ..sort(
+        (a, b) => (a.position.y + a.height).compareTo(b.position.y + b.height),
+      );
     var patchIndex = 0;
     void paintPatch(PlacedElementOcclusionPatchComponent patch) {
+      final instance = _instancesById[patch.instruction.placedElementId];
+      if (instance == null || !isPlacedElementVisible(instance)) return;
       canvas.save();
       canvas.translate(patch.position.x, patch.position.y);
       patch.render(canvas);
@@ -170,17 +228,19 @@ final class RuntimeAuthoringMapRenderer {
           patches[patchIndex].position.y + patches[patchIndex].height < depth) {
         paintPatch(patches[patchIndex++]);
       }
+      if (_editorState?.isHidden('entity', entity.id) ?? false) continue;
       final character =
           _definitions[resolveNpcCharacterId(entity, _bundle.manifest)];
       if (character == null) continue;
       final renderer = _characters.putIfAbsent(
-          entity.id,
-          () => RuntimeAuthoringCharacterRenderer(
-                character: character,
-                settings: _bundle.manifest.settings,
-                images: _images,
-                facing: entity.npc?.facing ?? EntityFacing.south,
-              ));
+        entity.id,
+        () => RuntimeAuthoringCharacterRenderer(
+          character: character,
+          settings: _bundle.manifest.settings,
+          images: _images,
+          facing: entity.npc?.facing ?? EntityFacing.south,
+        ),
+      );
       renderer.paintInstance(canvas, entity);
     }
     while (patchIndex < patches.length) {
@@ -209,7 +269,8 @@ final class RuntimeAuthoringMapRenderer {
     if (_preview?.id != instance.id) {
       if (_preview != null) {
         _refreshPatches(
-            _bundle.map.placedElements.where((e) => e.id == _preview!.id));
+          _bundle.map.placedElements.where((e) => e.id == _preview!.id),
+        );
       }
     }
     _preview = instance;
@@ -221,7 +282,8 @@ final class RuntimeAuthoringMapRenderer {
     _foreground.setPlacedElementPreview(null);
     if (_preview != null) {
       _refreshPatches(
-          _bundle.map.placedElements.where((e) => e.id == _preview!.id));
+        _bundle.map.placedElements.where((e) => e.id == _preview!.id),
+      );
     }
     _preview = null;
   }

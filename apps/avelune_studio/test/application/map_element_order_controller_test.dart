@@ -13,6 +13,33 @@ import 'package:map_core/map_core.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  test(
+    'portable sessions cannot preview or publish a stacking mutation',
+    () async {
+      final port = _OrderPort();
+      const session = ProjectSession(
+        sessionId: 'portable',
+        name: 'Lecture seule',
+        directoryPath: '/fixture',
+        storage: ProjectSessionStorage.portableCatalog,
+      );
+      final workspace = MapWorkspaceController(session, port);
+      addTearDown(workspace.dispose);
+      await workspace.initialize();
+      final document = workspace.active!;
+      final before = document.current;
+      expect(workspace.canReorderElements, isFalse);
+      expect(
+        await workspace.reorderElements('layers', ['back', 'ground'], null),
+        isFalse,
+      );
+      expect(document.current, same(before));
+      expect(document.dirty, isFalse);
+      expect(document.canUndo, isFalse);
+      expect(port.calls, 0);
+    },
+  );
+
   test('targeted native reorder persists front-first and undo/redo without saving the project', () async {
     final root = await Directory.systemTemp.createTemp('studio-order-');
     addTearDown(() => root.delete(recursive: true));
@@ -290,6 +317,7 @@ Future<void> _wait(MapWorkspaceController workspace) async {
 
 class _OrderPort extends WorkspaceMemoryPort implements MapElementOrderPort {
   final gate = Completer<MapElementOrderWorkspaceReceipt>();
+  int calls = 0;
   @override
   Future<MapWorkspaceDocument> loadMap(
     ProjectSession session,
@@ -315,7 +343,11 @@ class _OrderPort extends WorkspaceMemoryPort implements MapElementOrderPort {
     String kind,
     List<String> frontFirstIds,
     String? layerId,
-  ) => gate.future;
+  ) {
+    calls++;
+    return gate.future;
+  }
+
   @override
   Future<MapElementOrderWorkspaceReceipt> undoMapElementOrder(
     ProjectSession session,

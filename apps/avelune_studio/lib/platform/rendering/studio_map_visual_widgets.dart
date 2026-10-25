@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 
 import 'studio_border_preview.dart';
 
@@ -547,6 +549,8 @@ class _StudioMapVisualState extends State<StudioMapVisual>
   @override
   Widget build(BuildContext context) {
     final settings = widget.resources.manifest.settings;
+    final editorState = MapEditorVisibilityScope.maybeOf(context);
+    renderer.setEditorState(editorState);
     renderer.setCollisionOverlay(
       visible: widget.collisionColor != null,
       color: widget.collisionColor ?? Theme.of(context).colorScheme.error,
@@ -563,12 +567,15 @@ class _StudioMapVisualState extends State<StudioMapVisual>
         widget.collisionColor,
         _animationRepaint,
         _painted,
+        editorState,
       ),
       foregroundPainter: _MissingResourcePainter(
         widget.map,
         widget.resources,
         Theme.of(context).colorScheme.error,
         widget.placedElementPreview,
+        editorState,
+        renderer,
       ),
     );
     return paint;
@@ -576,12 +583,20 @@ class _StudioMapVisualState extends State<StudioMapVisual>
 }
 
 class _MissingResourcePainter extends CustomPainter {
-  _MissingResourcePainter(this.map, this.resources, this.color, this.preview)
-    : super(repaint: resources);
+  _MissingResourcePainter(
+    this.map,
+    this.resources,
+    this.color,
+    this.preview,
+    this.editorState,
+    this.renderer,
+  ) : super(repaint: resources);
   final MapData map;
   final StudioMapResources resources;
   final Color color;
   final MapPlacedElement? preview;
+  final MapEditorState? editorState;
+  final RuntimeAuthoringMapRenderer renderer;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -595,6 +610,7 @@ class _MissingResourcePainter extends CustomPainter {
       ..strokeWidth = 2;
     final clip = canvas.getLocalClipBounds();
     for (final original in map.placedElements) {
+      if (!renderer.isPlacedElementVisible(original)) continue;
       final instance = preview?.id == original.id ? preview! : original;
       final element = elements[instance.elementId];
       final frame = element?.frames.firstOrNull;
@@ -635,6 +651,14 @@ class _MissingResourcePainter extends CustomPainter {
       map != oldDelegate.map ||
       resources != oldDelegate.resources ||
       preview != oldDelegate.preview ||
+      !setEquals(
+        editorState?.hiddenElements,
+        oldDelegate.editorState?.hiddenElements,
+      ) ||
+      !setEquals(
+        editorState?.hiddenFamilies,
+        oldDelegate.editorState?.hiddenFamilies,
+      ) ||
       color != oldDelegate.color;
 }
 
@@ -646,11 +670,13 @@ class _MapPainter extends CustomPainter {
     this.collisionColor,
     Listenable animationRepaint,
     this.painted,
+    this.editorState,
   ) : super(repaint: Listenable.merge([resources, animationRepaint]));
   final RuntimeAuthoringMapRenderer renderer;
   final MapPlacedElement? preview;
   final Color? collisionColor;
   final void Function(Rect viewport) painted;
+  final MapEditorState? editorState;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -665,5 +691,13 @@ class _MapPainter extends CustomPainter {
   bool shouldRepaint(_MapPainter oldDelegate) =>
       renderer != oldDelegate.renderer ||
       preview != oldDelegate.preview ||
+      !setEquals(
+        editorState?.hiddenElements,
+        oldDelegate.editorState?.hiddenElements,
+      ) ||
+      !setEquals(
+        editorState?.hiddenFamilies,
+        oldDelegate.editorState?.hiddenFamilies,
+      ) ||
       collisionColor != oldDelegate.collisionColor;
 }

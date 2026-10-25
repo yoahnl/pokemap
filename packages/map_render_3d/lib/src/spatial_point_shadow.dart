@@ -137,7 +137,10 @@ final class SpatialPointShadowFrame {
     this.texture,
     this.lightCount, {
     this.faceResolution = spatialPointShadowFaceResolution,
+    this.samples = 1,
+    this.supersampled = false,
   });
   final Texture texture;
-  final int lightCount, faceResolution;
+  final int lightCount, faceResolution, samples;
+  final bool supersampled;
 }

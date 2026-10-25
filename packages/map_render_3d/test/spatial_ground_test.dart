@@ -120,6 +120,12 @@ void main() {
     }
 
     expect(bridges(map), {(0, 0), (0, 1), (1, 1)});
+    final prepared = SpatialGroundPlan(map, project);
+    expect(prepared.withLayerVisibility((id) => id != 'bridge').bridgeCells, {
+      (0, 1),
+    });
+    expect(prepared.withLayerVisibility((_) => false).bridgeCells, isEmpty);
+    expect(prepared.withLayerVisibility((_) => true), same(prepared));
     expect(bridges(map.copyWith(layers: [bridgeLayer, roadLayer])), {
       (0, 0),
       (1, 0),

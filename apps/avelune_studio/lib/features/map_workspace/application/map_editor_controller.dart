@@ -31,6 +31,7 @@ final class MapEditorController extends ChangeNotifier {
   bool get saving => _pending != null;
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
+  bool get canWrite => session.storage != ProjectSessionStorage.portableCatalog;
 
   static Future<MapEditorController> open(
     ProjectSession session,
@@ -50,7 +51,7 @@ final class MapEditorController extends ChangeNotifier {
     Iterable<(String, String)> elements,
     bool locked,
   ) {
-    if (_disposed) return Future.value(false);
+    if (_disposed || !canWrite) return Future.value(false);
     final keys = current.lockedElements.toSet();
     for (final (kind, id) in elements) {
       if (!locked && current.lockedFamilies.contains(kind)) {
@@ -77,8 +78,54 @@ final class MapEditorController extends ChangeNotifier {
   }
 
   Future<bool> unlockAll() {
-    if (_disposed) return Future.value(false);
-    final next = MapEditorState();
+    if (_disposed || !canWrite) return Future.value(false);
+    final next = current.copyWith(lockedElements: {}, lockedFamilies: {});
+    if (current != next) {
+      _undo.add(current);
+      _redo.clear();
+      current = next;
+      error = null;
+      notifyListeners();
+    }
+    return save();
+  }
+
+  Future<bool> setHidden(String kind, String id, bool hidden) =>
+      setGroupHidden([(kind, id)], hidden);
+
+  Future<bool> setGroupHidden(
+    Iterable<(String, String)> elements,
+    bool hidden,
+  ) {
+    if (_disposed || !canWrite) return Future.value(false);
+    final keys = current.hiddenElements.toSet();
+    for (final (kind, id) in elements) {
+      if (!hidden && current.hiddenFamilies.contains(kind)) {
+        throw StateError(
+          'Cette famille est masquée globalement. Utilisez Tout afficher pour la réafficher.',
+        );
+      }
+      final key = '$kind:$id';
+      if (hidden) {
+        keys.add(key);
+      } else {
+        keys.remove(key);
+      }
+    }
+    final next = current.copyWith(hiddenElements: keys);
+    if (next != current) {
+      _undo.add(current);
+      _redo.clear();
+      current = next;
+      error = null;
+      notifyListeners();
+    }
+    return save();
+  }
+
+  Future<bool> showAll() {
+    if (_disposed || !canWrite) return Future.value(false);
+    final next = current.copyWith(hiddenElements: {}, hiddenFamilies: {});
     if (current != next) {
       _undo.add(current);
       _redo.clear();
@@ -90,7 +137,7 @@ final class MapEditorController extends ChangeNotifier {
   }
 
   Future<bool> undo() {
-    if (_disposed || _undo.isEmpty) return Future.value(false);
+    if (_disposed || !canWrite || _undo.isEmpty) return Future.value(false);
     _redo.add(current);
     current = _undo.removeLast();
     error = null;
@@ -99,7 +146,7 @@ final class MapEditorController extends ChangeNotifier {
   }
 
   Future<bool> redo() {
-    if (_disposed || _redo.isEmpty) return Future.value(false);
+    if (_disposed || !canWrite || _redo.isEmpty) return Future.value(false);
     _undo.add(current);
     current = _redo.removeLast();
     error = null;
@@ -108,7 +155,7 @@ final class MapEditorController extends ChangeNotifier {
   }
 
   Future<bool> save() {
-    if (_disposed) return Future.value(false);
+    if (_disposed || !canWrite) return Future.value(false);
     final pending = _pending;
     if (pending != null) return pending;
     if (!dirty) return Future.value(true);

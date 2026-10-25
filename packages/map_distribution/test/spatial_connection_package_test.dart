@@ -38,6 +38,78 @@ Map<String, List<int>> connectedFiles(
 
 void main() {
   for (final direction in MapConnectionDirection.values) {
+    test('closed connected border permits different heights ${direction.name}',
+        () {
+      final files = connectedFiles(direction, 0);
+      final source = switch (direction) {
+        MapConnectionDirection.north => const GridPos(x: 0, y: 0),
+        MapConnectionDirection.south => const GridPos(x: 0, y: 7),
+        MapConnectionDirection.east => const GridPos(x: 7, y: 0),
+        MapConnectionDirection.west => const GridPos(x: 0, y: 0),
+      };
+      final target = switch (direction) {
+        MapConnectionDirection.north => const GridPos(x: 0, y: 7),
+        MapConnectionDirection.south => const GridPos(x: 0, y: 0),
+        MapConnectionDirection.east => const GridPos(x: 0, y: 0),
+        MapConnectionDirection.west => const GridPos(x: 7, y: 0),
+      };
+      for (final entry in [('map', source), ('room', target)]) {
+        editMap(files, entry.$1, (map) {
+          final scene = map.spatialScene!;
+          final levels = [...scene.heightLevels];
+          if (entry.$1 == 'room') levels[entry.$2.y * 8 + entry.$2.x] = 2;
+          return map.copyWith(
+              spatialScene: scene.copyWith(
+                  heightLevels: levels,
+                  navigation: scene.navigation.copyWith(blockedAreas: [
+                    ...scene.navigation.blockedAreas,
+                    SpatialBlockedArea(
+                        x: entry.$2.x.toDouble(),
+                        z: entry.$2.y.toDouble(),
+                        width: 1,
+                        depth: 1)
+                  ])));
+        });
+      }
+      final built = const GamePackageBuilder()
+          .build(manifest: spatialManifest(), payloadFiles: files);
+      expect(const GamePackageInspector().inspect(built.packageBytes).payloadPaths,
+          contains('project/maps/room.json'));
+    });
+  }
+  for (final blocking in ['source only', 'target only', 'partial both']) {
+    test('unequal connected heights remain rejected with $blocking', () {
+      final files = connectedFiles(MapConnectionDirection.east, 0);
+      for (final id in ['map', 'room']) {
+        editMap(files, id, (map) {
+          final scene = map.spatialScene!;
+          final levels = [...scene.heightLevels];
+          if (id == 'room') levels[0] = 2;
+          final block = blocking == 'partial both' ||
+              blocking == 'source only' && id == 'map' ||
+              blocking == 'target only' && id == 'room';
+          return map.copyWith(
+              spatialScene: scene.copyWith(
+                  heightLevels: levels,
+                  navigation: scene.navigation.copyWith(blockedAreas: [
+                    ...scene.navigation.blockedAreas,
+                    if (block)
+                      SpatialBlockedArea(
+                          x: id == 'map' ? 7 : 0,
+                          z: 0,
+                          width: blocking == 'partial both' ? .75 : 1,
+                          depth: 1)
+                  ])));
+        });
+      }
+      expect(
+          () => const GamePackageBuilder()
+              .build(manifest: spatialManifest(), payloadFiles: files),
+          throwsA(isA<GamePackageFormatException>().having((error) => error.code,
+              'code', 'runtime3d.connection_height_mismatch')));
+    });
+  }
+  for (final direction in MapConnectionDirection.values) {
     for (final offset in [-2, 2]) {
       test(
           '${direction.name} connections offset $offset survive archive roundtrip',

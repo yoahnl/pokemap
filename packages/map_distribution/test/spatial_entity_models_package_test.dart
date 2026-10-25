@@ -6,6 +6,46 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('hidden pickups need no visible 3D model', () {
+    final payload = spatialPayload();
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(payload['project/maps/map.json']!))
+            as Map<String, dynamic>);
+    final owner = MapEntity(
+        id: 'hidden-object',
+        kind: MapEntityKind.item,
+        pos: const GridPos(x: 0, y: 0),
+        item: const MapEntityItemData(
+            gameItemId: 'resource', visibility: MapEntityItemVisibility.hidden));
+    payload['project/maps/map.json'] = utf8.encode(
+        jsonEncode(map.copyWith(entities: [owner]).toJson()));
+    final built = const GamePackageBuilder().build(
+        manifest: spatialManifest(
+            capabilities: ['map3d@1', 'map3d.gameplay@1']),
+        payloadFiles: payload);
+    expect(const GamePackageInspector().inspect(built.packageBytes).payloadPaths,
+        contains('project/maps/map.json'));
+  });
+  test('visible pickups still require a linked 3D model', () {
+    final payload = spatialPayload();
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(payload['project/maps/map.json']!))
+            as Map<String, dynamic>);
+    final owner = MapEntity(
+        id: 'visible-object',
+        kind: MapEntityKind.item,
+        pos: const GridPos(x: 0, y: 0),
+        item: const MapEntityItemData(gameItemId: 'resource'));
+    payload['project/maps/map.json'] = utf8.encode(
+        jsonEncode(map.copyWith(entities: [owner]).toJson()));
+    expect(
+        () => const GamePackageBuilder().build(
+            manifest: spatialManifest(
+                capabilities: ['map3d@1', 'map3d.gameplay@1']),
+            payloadFiles: payload),
+        throwsA(isA<GamePackageFormatException>().having((error) => error.code,
+            'code', 'runtime3d.gameplay_unsupported')));
+  });
   test('entity-linked 3D objects fail closed without capability and on older players',
       () {
     final payload = spatialPayload();

@@ -52,6 +52,49 @@ enum SpatialEditorView { orbit, top, game }
 
 enum SpatialSceneContentKind { actor, model, marker, warp }
 
+final class SpatialSceneVisibility {
+  SpatialSceneVisibility({
+    Iterable<(SpatialSceneContentKind, String)> hiddenContent = const [],
+    Iterable<SpatialSceneContentKind> hiddenKinds = const [],
+    Iterable<String> hiddenLayers = const [],
+    this.allLayersHidden = false,
+  }) : hiddenContent = Set.unmodifiable(hiddenContent),
+       hiddenKinds = Set.unmodifiable(hiddenKinds),
+       hiddenLayers = Set.unmodifiable(hiddenLayers);
+
+  static final all = SpatialSceneVisibility();
+  final Set<(SpatialSceneContentKind, String)> hiddenContent;
+  final Set<SpatialSceneContentKind> hiddenKinds;
+  final Set<String> hiddenLayers;
+  final bool allLayersHidden;
+
+  bool contentVisible(SpatialSceneContentKind kind, String id) =>
+      !hiddenKinds.contains(kind) && !hiddenContent.contains((kind, id));
+
+  bool layerVisible(String id) =>
+      !allLayersHidden && !hiddenLayers.contains(id);
+
+  bool layersMatch(SpatialSceneVisibility other) =>
+      allLayersHidden == other.allLayersHidden &&
+      setEquals(hiddenLayers, other.hiddenLayers);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SpatialSceneVisibility &&
+          layersMatch(other) &&
+          setEquals(hiddenContent, other.hiddenContent) &&
+          setEquals(hiddenKinds, other.hiddenKinds);
+
+  @override
+  int get hashCode => Object.hash(
+    allLayersHidden,
+    Object.hashAllUnordered(hiddenLayers),
+    Object.hashAllUnordered(hiddenContent),
+    Object.hashAllUnordered(hiddenKinds),
+  );
+}
+
 final class SpatialSceneContentHit {
   const SpatialSceneContentHit({
     required this.kind,
@@ -318,6 +361,7 @@ class SpatialSceneView extends StatefulWidget {
     this.selectContent = true,
     this.canSelectContent,
     this.canSelectLayer,
+    this.visibility,
     this.onZoom,
     this.onContextMenu,
     this.onDragStart,
@@ -367,6 +411,7 @@ class SpatialSceneView extends StatefulWidget {
   final bool Function(SpatialSceneContentKind kind, String id)?
   canSelectContent;
   final bool Function(String layerId)? canSelectLayer;
+  final SpatialSceneVisibility? visibility;
   final ValueChanged<double>? onZoom;
   final void Function(GridPos, Offset)? onContextMenu;
   final bool Function(int, int, SpatialSceneContentHit?)? onDragStart;
@@ -703,6 +748,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       refresh();
     } else if (!game.refreshing) {
       game.renderedConfiguration = widget;
+      game.syncVisibility();
       game.syncContentSelection(oldWidget, widget);
       if (!identical(oldWidget.contentPreview, widget.contentPreview)) {
         game.syncContentPreview();
@@ -940,6 +986,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       return;
     }
     final configuration = visibleConfiguration;
+    final shadowCasters = _visibleShadowCasters ?? authoredShadowCasters;
     final cycle = configuration.scene.dayNightCycle;
     final minute = cycle == null
         ? null
@@ -952,8 +999,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final sunDirection = frame == null
         ? authoredLighting.sunDirection
         : spatialDayNightSunDirection(authoredLighting.sunDirection, frame);
-    final receiverBounds =
-        authoredShadowCasters.isEmpty || size.x <= 0 || size.y <= 0
+    final receiverBounds = shadowCasters.isEmpty || size.x <= 0 || size.y <= 0
         ? null
         : spatialShadowReceiverBounds(
             camera.viewProjectionMatrix,
@@ -967,7 +1013,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final solarLighting = !movingSun && !focusedReceivers
         ? authoredLighting
         : spatialAuthoredShadowLighting(
-            authoredShadowCasters,
+            shadowCasters,
             receiverMinY: authoredReceiverMinY,
             receiverMaxY: authoredReceiverMaxY,
             receiverBounds: receiverBounds,
@@ -1033,6 +1079,14 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   int generation = 0;
   int visualOrderUpdates = 0;
   int visualGroundRebuilds = 0;
+  int visibilityUpdates = 0;
+  int visibilityGroundRebuilds = 0;
+  SpatialSceneVisibility _appliedVisibility = SpatialSceneVisibility.all;
+  List<SpatialAuthoredShadowCaster>? _visibleShadowCasters;
+  Set<String> _hiddenShadowIds = {};
+  Set<String> _casterShadowIds = {};
+  bool _actorsVisibilityFiltered = false;
+  final _visibilityRetainedGroundImages = <String>{};
   Completer<bool>? _pendingVisualOrder;
   final actors =
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
@@ -1202,6 +1256,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       for (final ground in grounds) ...ground.nextImageIds,
       for (final ground in grounds) ...ground.renderedImageIds,
       ...?_destinationPreparation?.preparedGroundImageIds,
+      ..._visibilityRetainedGroundImages,
     };
     for (final id in groundTextureCache.keys.toList()) {
       if (_wantedGroundImages.contains(id)) continue;
@@ -1356,6 +1411,204 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       renderedConfiguration != null &&
       _visualOrderChange(renderedConfiguration!, configuration) != null;
 
+  bool _modelVisible(String mapId, String id) {
+    final current = visibleConfiguration;
+    if (current.visibility == null) return true;
+    if (mapId != (current.groundMap?.id ?? '__scene__')) return true;
+    final visibility = current.visibility ?? SpatialSceneVisibility.all;
+    final origin = sceneChunks[mapId]?.cellOrigins[id];
+    return visibility.contentVisible(SpatialSceneContentKind.model, id) &&
+        (origin == null || visibility.layerVisible(origin.layerId));
+  }
+
+  void syncVisibility() {
+    if (!sceneReady || closed || refreshing) return;
+    final current = visibleConfiguration;
+    final next = current.visibility ?? SpatialSceneVisibility.all;
+    final before = _appliedVisibility;
+    if (before == next) return;
+    _appliedVisibility = next;
+    _actorsVisibilityFiltered =
+        next.hiddenKinds.contains(SpatialSceneContentKind.actor) ||
+        next.hiddenContent.any(
+          (entry) => entry.$1 == SpatialSceneContentKind.actor,
+        );
+    final mapId = current.groundMap?.id ?? '__scene__';
+    final chunk = sceneChunks[mapId];
+    final modelIds = <String>{
+      for (final entry in {...before.hiddenContent, ...next.hiddenContent})
+        if (entry.$1 == SpatialSceneContentKind.model &&
+            before.hiddenContent.contains(entry) !=
+                next.hiddenContent.contains(entry))
+          entry.$2,
+      if (before.hiddenKinds.contains(SpatialSceneContentKind.model) !=
+          next.hiddenKinds.contains(SpatialSceneContentKind.model))
+        ...modelComponents.keys,
+    };
+    if (!before.layersMatch(next) && chunk != null) {
+      if (before.allLayersHidden != next.allLayersHidden) {
+        modelIds.addAll(chunk.cellOrigins.keys);
+      } else {
+        for (final layer in {...before.hiddenLayers, ...next.hiddenLayers}) {
+          if (before.hiddenLayers.contains(layer) ==
+              next.hiddenLayers.contains(layer))
+            continue;
+          modelIds.addAll(chunk.modelIdsByLayer[layer] ?? const <String>{});
+        }
+      }
+      _syncVisibleGround(chunk, next);
+    }
+    var shadowsChanged = false;
+    var lightsChanged = false;
+    for (final id in modelIds) {
+      final component = modelComponents[id]?.component;
+      if (component == null) continue;
+      component.presentationVisible =
+          _modelVisible(mapId, id) &&
+          (current.modelPresence?.call(mapId, id) ?? true);
+      if (component.definition.light != null) lightsChanged = true;
+      if (_casterShadowIds.contains(component.shadowId)) {
+        shadowsChanged = true;
+        _modelVisible(mapId, id)
+            ? _hiddenShadowIds.remove(component.shadowId)
+            : _hiddenShadowIds.add(component.shadowId);
+      }
+      if (!component.presentationVisible) {
+        final selection = modelSelections.remove(id);
+        if (selection != null) component.removeAll(selection);
+      }
+    }
+    if (shadowsChanged) {
+      _refreshVisibilityLighting();
+    }
+    final actorIds = <String>{
+      for (final entry in {...before.hiddenContent, ...next.hiddenContent})
+        if (entry.$1 == SpatialSceneContentKind.actor &&
+            before.hiddenContent.contains(entry) !=
+                next.hiddenContent.contains(entry))
+          entry.$2,
+      if (before.hiddenKinds.contains(SpatialSceneContentKind.actor) !=
+          next.hiddenKinds.contains(SpatialSceneContentKind.actor))
+        ...actors.keys,
+    };
+    for (final id in actorIds) {
+      final actor = actors[id]?.mesh;
+      if (actor is! _SceneActorComponent) continue;
+      actor.presentationVisible = next.contentVisible(
+        SpatialSceneContentKind.actor,
+        id,
+      );
+      if (!actor.presentationVisible) {
+        final selection = actorSelections.remove(id);
+        if (selection != null) actor.removeAll(selection);
+      }
+    }
+    if (actorIds.isNotEmpty) syncActorContactShadows();
+    if (current.cellOverlays.any((overlay) {
+      final kind = switch (overlay.kind) {
+        SpatialCellOverlayKind.spawn => SpatialSceneContentKind.marker,
+        SpatialCellOverlayKind.warp => SpatialSceneContentKind.warp,
+        _ => null,
+      };
+      return kind != null &&
+          before.contentVisible(kind, overlay.id) !=
+              next.contentVisible(kind, overlay.id);
+    }))
+      syncCellOverlays();
+    if (shadowsChanged || lightsChanged) syncLighting();
+    visibilityUpdates++;
+    if (current.onHover != null) onSurfaceChanged();
+  }
+
+  void _refreshVisibilityLighting() {
+    _visibleShadowCasters = _hiddenShadowIds.isEmpty
+        ? null
+        : List.unmodifiable(
+            authoredShadowCasters.where(
+              (caster) => !_hiddenShadowIds.contains(caster.id),
+            ),
+          );
+    authoredLighting = spatialAuthoredShadowLighting(
+      _visibleShadowCasters ?? authoredShadowCasters,
+      receiverMinY: authoredReceiverMinY,
+      receiverMaxY: authoredReceiverMaxY,
+    );
+  }
+
+  void _syncVisibleGround(
+    _SceneChunk chunk,
+    SpatialSceneVisibility visibility,
+  ) {
+    final current = visibleConfiguration;
+    final ground = chunk.ground;
+    final map = chunk.signature.$1;
+    final project = current.groundProject;
+    if (ground == null || map == null || project == null) return;
+    if (ground.sourcePlan.layersMatchVisibility(
+          ground.plan,
+          visibility.layerVisible,
+        ) &&
+        ground.sourceOcclusionPlan.layersMatchVisibility(
+          ground.occlusionPlan,
+          visibility.layerVisible,
+        ))
+      return;
+    _visibilityRetainedGroundImages.addAll({
+      ...ground.currentImageIds,
+      ...ground.nextImageIds,
+      ...ground.renderedImageIds,
+    });
+    final plan = ground.sourcePlan.withLayerVisibility(visibility.layerVisible);
+    final previous = <Object3D>[...ground.components, ...chunk.terrain];
+    ground.plan = plan;
+    ground.occlusionPlan = ground.sourceOcclusionPlan.withLayerVisibility(
+      visibility.layerVisible,
+    );
+    ground.resolve(
+      ground._sampledElapsed ?? (groundElapsed * 1000).round(),
+      animationElapsedMsForCell: current.rasterAnimationElapsedMsForCell,
+      forceGeometry: true,
+    );
+    chunk.terrain
+      ..clear()
+      ..addAll([
+        for (final mesh in terrainMeshes(
+          plan.scene!,
+          current.ground,
+          current.edge,
+          selectedCell: current.selectedCell,
+          includeGround: false,
+          receiveShadows: ground.receiveShadows,
+          replacedGroundCells: plan.groundReplacementCells,
+          borderGroundReplacements: plan.borderGroundReplacements,
+          bridgeCells: plan.bridgeCells,
+          cliffTexture: plan.cliff == null
+              ? null
+              : (
+                  texture: ground.textures[plan.cliff!.tilesetId]!,
+                  sourceRect: plan.cliff!.sourceRect,
+                ),
+        ))
+          MeshComponent(
+            mesh: mesh,
+            position: Vector3(ground.offset.dx, 0, ground.offset.dy),
+          ),
+      ]);
+    final replacement = <Object3D>[...ground.components, ...chunk.terrain];
+    sceneComponents.replaceSubset(
+      previous,
+      replacement,
+      groupKey: ground.mapId,
+    );
+    chunk.components.removeWhere(previous.contains);
+    chunk.components.addAll(replacement);
+    if (!visibility.allLayersHidden && visibility.hiddenLayers.isEmpty) {
+      _visibilityRetainedGroundImages.clear();
+    }
+    syncActorOcclusions([ground]);
+    visibilityGroundRebuilds++;
+  }
+
   bool _syncVisualOrder() {
     final before = renderedConfiguration;
     if (before == null) return false;
@@ -1451,10 +1704,18 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final ground = chunk.ground;
     if (change == _VisualOrderChange.layers && ground != null) {
       final oldPlan = ground.plan;
-      final plan = SpatialGroundPlan(projected, configuration.groundProject!);
-      final occlusionPlan = SpatialActorOcclusionPlan(
+      final sourcePlan = SpatialGroundPlan(
         projected,
         configuration.groundProject!,
+      );
+      final sourceOcclusionPlan = SpatialActorOcclusionPlan(
+        projected,
+        configuration.groundProject!,
+      );
+      final visibility = configuration.visibility ?? SpatialSceneVisibility.all;
+      final plan = sourcePlan.withLayerVisibility(visibility.layerVisible);
+      final occlusionPlan = sourceOcclusionPlan.withLayerVisibility(
+        visibility.layerVisible,
       );
       final terrainChanged =
           !setEquals(oldPlan.bridgeCells, plan.bridgeCells) ||
@@ -1477,7 +1738,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         if (terrainChanged) ...chunk.terrain,
       ];
       ground.plan = plan;
+      ground.sourcePlan = sourcePlan;
       ground.occlusionPlan = occlusionPlan;
+      ground.sourceOcclusionPlan = sourceOcclusionPlan;
       ground.resolve(
         ground._sampledElapsed ?? (groundElapsed * 1000).round(),
         animationElapsedMsForCell:
@@ -1543,16 +1806,13 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       signature.$8,
     );
     renderedConfiguration = configuration;
+    syncVisibility();
     if (changedCasters.isNotEmpty) {
       authoredShadowCasters = List.unmodifiable([
         for (final caster in authoredShadowCasters)
           changedCasters[caster.id] ?? caster,
       ]);
-      authoredLighting = spatialAuthoredShadowLighting(
-        authoredShadowCasters,
-        receiverMinY: authoredReceiverMinY,
-        receiverMaxY: authoredReceiverMaxY,
-      );
+      _refreshVisibilityLighting();
       syncLighting();
     }
     syncContentSelection(before, configuration);
@@ -1958,6 +2218,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           actorSelections.clear();
           grounds = nextGrounds;
           sceneChunks = nextChunks;
+          _visibilityRetainedGroundImages.clear();
           _pruneGroundTextures();
           final modelIds = {
             ...activeModelIds,
@@ -1992,23 +2253,37 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           syncContentSelection(null, snapshot);
           authoredLighting = nextAuthoredLighting;
           authoredShadowCasters = List.unmodifiable(nextShadowCasters);
+          _casterShadowIds = nextShadowCasters
+              .map((caster) => caster.id)
+              .toSet();
+          _visibleShadowCasters = null;
+          _hiddenShadowIds = {};
+          _appliedVisibility = SpatialSceneVisibility.all;
+          _actorsVisibilityFiltered = false;
           authoredReceiverMinY = receiverMinimumY;
           authoredReceiverMaxY = receiverMaximumY;
-          (context as SpatialRenderContext).pointShadowCasters =
-              nextAnimationModels.values
-                  .where(
-                    (component) =>
-                        nextAuthoredLighting.shadow?.casterInstanceIds.contains(
-                          component.shadowId,
-                        ) ==
-                        true,
-                  )
-                  .toList();
+          (context as SpatialRenderContext).shadowCasters = nextAnimationModels
+              .values
+              .where(
+                (component) =>
+                    nextAuthoredLighting.shadow?.casterInstanceIds.contains(
+                      component.shadowId,
+                    ) ==
+                    true,
+              )
+              .toList();
           pointLightBindings = nextPointLights;
           syncLighting();
           actorVisual = null;
           cellOverlayComponents = nextCellOverlays;
           refreshing = false;
+          if (identical(snapshot.scene, configuration.scene) &&
+              identical(snapshot.groundMap, configuration.groundMap) &&
+              snapshot.visibility != configuration.visibility) {
+            renderedConfiguration = configuration;
+            syncContentSelection(snapshot, configuration);
+          }
+          syncVisibility();
           syncAnimations();
           syncContentPreview();
           syncPlacementPreview();
@@ -2130,7 +2405,16 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   List<MeshComponent> buildCellOverlays(SpatialSceneView configuration) => [
     for (final mesh in spatialCellOverlayMeshes(
       configuration.scene,
-      configuration.cellOverlays,
+      configuration.cellOverlays.where((overlay) {
+        final kind = switch (overlay.kind) {
+          SpatialCellOverlayKind.spawn => SpatialSceneContentKind.marker,
+          SpatialCellOverlayKind.warp => SpatialSceneContentKind.warp,
+          _ => null,
+        };
+        return kind == null ||
+            (configuration.visibility ?? SpatialSceneVisibility.all)
+                .contentVisible(kind, overlay.id);
+      }).toList(),
     ))
       MeshComponent(
         mesh: mesh,
@@ -2352,11 +2636,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     for (final entry in animationModels.entries) {
       final component = entry.value;
       component.presentationVisible =
-          visibleConfiguration.modelPresence?.call(
-            entry.key.$1,
-            entry.key.$2,
-          ) ??
-          true;
+          _modelVisible(entry.key.$1, entry.key.$2) &&
+          (visibleConfiguration.modelPresence?.call(
+                entry.key.$1,
+                entry.key.$2,
+              ) ??
+              true);
       final state = provider?.call(entry.key.$1, entry.key.$2);
       final instance = runtimeModelIndex.instance(entry.key.$1, entry.key.$2);
       if (instance == null) continue;
@@ -2419,11 +2704,18 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
               material: actorMaterial,
             ),
           );
-        actor = (mesh: MeshComponent(mesh: mesh), material: actorMaterial);
+        actor = (
+          mesh: _SceneActorComponent(mesh: mesh),
+          material: actorMaterial,
+        );
         actors[entry.key] = actor;
         world.add(actor.mesh);
       }
       final preview = configuration.contentPreview;
+      final actorVisible =
+          (configuration.visibility ?? SpatialSceneVisibility.all)
+              .contentVisible(SpatialSceneContentKind.actor, entry.key);
+      (actor.mesh as _SceneActorComponent).presentationVisible = actorVisible;
       final position =
           preview?.kind == SpatialSceneContentKind.actor &&
               preview?.id == entry.key
@@ -2465,6 +2757,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       actor.mesh.scale.x *= frame.resolvedWidth / 1.92;
       actor.mesh.scale.y *= frame.height / 1.92;
       final selected =
+          actorVisible &&
           configuration.selectedContent?.kind ==
               SpatialSceneContentKind.actor &&
           configuration.selectedContent?.id == entry.key;
@@ -2541,7 +2834,14 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final configuration = visibleConfiguration;
     final preview = configuration.contentPreview;
     actorContactShadows.sync(
-      actorFrames,
+      _actorsVisibilityFiltered
+          ? {
+              for (final entry in actorFrames.entries)
+                if ((configuration.visibility ?? SpatialSceneVisibility.all)
+                    .contentVisible(SpatialSceneContentKind.actor, entry.key))
+                  entry.key: entry.value,
+            }
+          : actorFrames,
       sceneOffset: configuration.sceneOffset,
       lighting: (context as SpatialRenderContext).lighting,
       previewActorId: preview?.kind == SpatialSceneContentKind.actor
@@ -2560,6 +2860,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     String? result;
     var nearest = double.infinity;
     for (final entry in actors.entries) {
+      if (!(configuration.visibility ?? SpatialSceneVisibility.all)
+          .contentVisible(SpatialSceneContentKind.actor, entry.key))
+        continue;
       if (configuration.canSelectContent?.call(
             SpatialSceneContentKind.actor,
             entry.key,
@@ -2619,6 +2922,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       final kind = overlay.kind == SpatialCellOverlayKind.spawn
           ? SpatialSceneContentKind.marker
           : SpatialSceneContentKind.warp;
+      if (!(configuration.visibility ?? SpatialSceneVisibility.all)
+          .contentVisible(kind, overlay.id))
+        continue;
       if (configuration.canSelectContent?.call(kind, overlay.id) == false)
         continue;
       if (overlay.cell == cell &&
@@ -2666,6 +2972,11 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     SpatialModelInstance? selected;
     var nearest = double.infinity;
     for (final instance in configuration.scene.instances) {
+      if (!_modelVisible(
+        configuration.groundMap?.id ?? '__scene__',
+        instance.id,
+      ))
+        continue;
       final layerId = configuration.groundMap == null
           ? null
           : sceneChunks[configuration.groundMap!.id]
@@ -2906,15 +3217,27 @@ final class _SceneChunk {
     required this.ground,
     required this.models,
     required this.terrain,
-    required this.cellOrigins,
-  });
+    required Map<String, ({String layerId, GridPos cell})> cellOrigins,
+  }) {
+    this.cellOrigins = cellOrigins;
+  }
 
   _SceneChunkSignature signature;
   final List<Object3D> components;
   final _SceneGround? ground;
   final Map<String, _ScenePlacedModel> models;
   final List<Object3D> terrain;
-  Map<String, ({String layerId, GridPos cell})> cellOrigins;
+  Map<String, ({String layerId, GridPos cell})> _cellOrigins = const {};
+  Map<String, Set<String>> modelIdsByLayer = const {};
+  Map<String, ({String layerId, GridPos cell})> get cellOrigins => _cellOrigins;
+  set cellOrigins(Map<String, ({String layerId, GridPos cell})> value) {
+    _cellOrigins = value;
+    final byLayer = <String, Set<String>>{};
+    for (final entry in value.entries) {
+      byLayer.putIfAbsent(entry.value.layerId, () => {}).add(entry.key);
+    }
+    modelIdsByLayer = byLayer;
+  }
 }
 
 final class _SceneGround {
@@ -2933,11 +3256,14 @@ final class _SceneGround {
     required this.selectedCell,
     required this.receiveShadows,
     required this.occlusionPlan,
-  });
+  }) : sourcePlan = plan,
+       sourceOcclusionPlan = occlusionPlan;
 
   SpatialActorOcclusionPlan occlusionPlan;
+  SpatialActorOcclusionPlan sourceOcclusionPlan;
   final occlusions = SpatialActorOcclusionBillboards();
   SpatialGroundPlan plan;
+  SpatialGroundPlan sourcePlan;
   final Map<String, Texture> textures;
   final Offset offset;
   final String mapId;
@@ -3077,6 +3403,21 @@ final class _SceneGround {
     components = [..._meshBatches.components, ...underlays];
     return true;
   }
+}
+
+class _SceneActorComponent extends MeshComponent {
+  _SceneActorComponent({required super.mesh});
+
+  bool presentationVisible = true;
+
+  @override
+  void draw(RenderContext3D context) {
+    if (presentationVisible) super.draw(context);
+  }
+
+  @override
+  bool isVisible(CameraComponent3D camera) =>
+      presentationVisible && super.isVisible(camera);
 }
 
 class _SceneModelComponent extends AnimatedModelComponent {

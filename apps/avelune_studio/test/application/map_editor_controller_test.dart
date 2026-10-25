@@ -10,6 +10,140 @@ import 'package:map_core/map_core.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  test('portable sessions cannot mutate an optimistic editor draft', () async {
+    final port = _Port()
+      ..state = MapEditorState(
+        lockedElements: {'decor:mist'},
+        hiddenElements: {'layer:path'},
+      );
+    const session = ProjectSession(
+      sessionId: 'portable',
+      name: 'Lecture seule',
+      directoryPath: '/fixture',
+      storage: ProjectSessionStorage.portableCatalog,
+    );
+    final editor = await MapEditorController.open(session, 'a', port);
+    addTearDown(editor.dispose);
+    final before = editor.current;
+    expect(await editor.setHidden('decor', 'tree', true), isFalse);
+    expect(await editor.setLocked('decor', 'tree', true), isFalse);
+    expect(await editor.showAll(), isFalse);
+    expect(await editor.unlockAll(), isFalse);
+    expect(await editor.undo(), isFalse);
+    expect(await editor.redo(), isFalse);
+    expect(await editor.save(), isFalse);
+    expect(editor.current, same(before));
+    expect(editor.dirty, isFalse);
+    expect(port.editorWrites, 0);
+  });
+
+  test(
+    'visibility persists separately and supports undo and reopening',
+    () async {
+      final port = _Port();
+      final workspace = MapWorkspaceController(workspaceSession, port);
+      addTearDown(workspace.dispose);
+      await workspace.initialize();
+      final document = workspace.active!;
+      final editor = document.editor!;
+      final map = document.current;
+
+      expect(await editor.setHidden('model', 'mist', true), isTrue);
+      expect(editor.current.isHidden('model', 'mist'), isTrue);
+      expect(document.current, same(map));
+      expect(document.dirty, isFalse);
+      expect(port.writes, 0);
+      expect(port.reads, 1);
+      expect(port.catalogs, 1);
+
+      final reopened = await MapEditorController.open(
+        workspaceSession,
+        'a',
+        port,
+      );
+      addTearDown(reopened.dispose);
+      expect(reopened.current.isHidden('model', 'mist'), isTrue);
+      expect(await editor.undo(), isTrue);
+      expect(editor.current.isHidden('model', 'mist'), isFalse);
+      expect(await editor.redo(), isTrue);
+      expect(editor.current.isHidden('model', 'mist'), isTrue);
+    },
+  );
+
+  test('show all and unlock all preserve the other editor settings', () async {
+    final port = _Port();
+    final editor = await MapEditorController.open(workspaceSession, 'a', port);
+    addTearDown(editor.dispose);
+    await editor.setLocked('model', 'mist', true);
+    await editor.setGroupHidden([('model', 'mist'), ('layer', 'path')], true);
+
+    expect(await editor.showAll(), isTrue);
+    expect(editor.current.isLocked('model', 'mist'), isTrue);
+    expect(editor.current.hiddenElements, isEmpty);
+    await editor.setHidden('layer', 'path', true);
+    expect(await editor.unlockAll(), isTrue);
+    expect(editor.current.lockedElements, isEmpty);
+    expect(editor.current.isHidden('layer', 'path'), isTrue);
+    await editor.undo();
+    expect(editor.current.isLocked('model', 'mist'), isTrue);
+    expect(editor.current.isHidden('layer', 'path'), isTrue);
+  });
+
+  test(
+    'mixed in-flight lock and visibility changes persist the latest state',
+    () async {
+      final port = _Port()..pending = Completer<void>();
+      final editor = await MapEditorController.open(
+        workspaceSession,
+        'a',
+        port,
+      );
+      addTearDown(editor.dispose);
+      final first = editor.setHidden('decor', 'mist', true);
+      await Future<void>.delayed(Duration.zero);
+      final second = editor.setLocked('entity', 'npc', true);
+      final third = editor.setHidden('decor', 'mist', false);
+      port.pending!.complete();
+      expect(await first, isTrue);
+      expect(await second, isTrue);
+      expect(await third, isTrue);
+      expect(port.state.isHidden('decor', 'mist'), isFalse);
+      expect(port.state.isLocked('entity', 'npc'), isTrue);
+      expect(port.editorWrites, 2);
+      expect(port.editorLoads, 1);
+      expect(editor.dirty, isFalse);
+    },
+  );
+
+  test(
+    'visibility failure retains a retryable draft and explicit family hiding',
+    () async {
+      final port = _Port()
+        ..state = MapEditorState(
+          lockedElements: {'model:mist'},
+          hiddenFamilies: {'decor'},
+        )
+        ..failEditorSave = true;
+      final editor = await MapEditorController.open(
+        workspaceSession,
+        'a',
+        port,
+      );
+      addTearDown(editor.dispose);
+      expect(() => editor.setHidden('decor', 'a', false), throwsStateError);
+      expect(await editor.setHidden('layer', 'border', true), isFalse);
+      expect(editor.current.isHidden('layer', 'border'), isTrue);
+      expect(port.state.isHidden('layer', 'border'), isFalse);
+      expect(editor.dirty, isTrue);
+      port.failEditorSave = false;
+      expect(await editor.save(), isTrue);
+      expect(await editor.showAll(), isTrue);
+      expect(editor.current.hiddenElements, isEmpty);
+      expect(editor.current.hiddenFamilies, isEmpty);
+      expect(editor.current.isLocked('model', 'mist'), isTrue);
+    },
+  );
+
   test(
     'locks persist independently of map data and survive reopening',
     () async {

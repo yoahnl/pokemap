@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-import 'dart:ui' show Color;
 
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/core.dart';
@@ -10,6 +9,7 @@ import 'spatial_pixel_material.dart';
 import 'spatial_shadow_profile.dart';
 import 'spatial_point_light.dart';
 import 'spatial_point_shadow.dart';
+import 'spatial_shadow_target.dart';
 
 final class SpatialShadowMap {
   SpatialShadowMap(GpuBackend backend, {bool ownsFrame = true})
@@ -17,12 +17,16 @@ final class SpatialShadowMap {
 
   final _ShadowGraphicsDevice _device;
   final _materials = Expando<_ShadowDepthMaterial>();
-  GpuRenderTarget? _target;
+  final _sampledMaterials = Expando<_ShadowDepthMaterial>();
+  SpatialShadowTarget? _target;
   Texture? _texture;
   int _resolution = 0;
   int targetAllocations = 0;
+  bool _antialiasing = true, _pointAntialiasing = true;
+  bool _preferMultisampling = true, _pointPreferMultisampling = true;
   final _pointMaterials = Expando<_PointShadowDepthMaterial>();
-  GpuRenderTarget? _pointTarget;
+  final _sampledPointMaterials = Expando<_PointShadowDepthMaterial>();
+  SpatialShadowTarget? _pointTarget;
   Texture? _pointTexture;
   int _pointLightCount = 0;
   int pointTargetAllocations = 0;
@@ -34,27 +38,42 @@ final class SpatialShadowMap {
       Material Function(SpatialPixelMaterial) depthMaterial,
       SpatialPointLight light,
     )
-    draw,
-  ) {
+    draw, {
+    bool antialiasing = true,
+    bool preferMultisampling = true,
+  }) {
     if (lights.isEmpty) return null;
     if (lights.length > 4)
       throw ArgumentError('At most four point shadow lights are supported.');
-    if (_pointTarget == null || _pointLightCount != lights.length) {
+    if (_pointTarget == null ||
+        _pointLightCount != lights.length ||
+        _pointAntialiasing != antialiasing ||
+        _pointPreferMultisampling != preferMultisampling) {
+      _pointAntialiasing = antialiasing;
+      _pointPreferMultisampling = preferMultisampling;
       _pointLightCount = lights.length;
-      _pointTarget = _device.backend.createRenderTarget(
+      _pointTarget = SpatialShadowTarget(
+        _device.backend,
         width: spatialPointShadowFaceResolution * 3,
         height: spatialPointShadowFaceResolution * 2 * lights.length,
-        clearValue: const Color(0xffffffff),
+        antialiasing: antialiasing,
+        preferMultisampling: preferMultisampling,
       );
       _pointTexture = _ShadowTexture(
-        _pointTarget!.colorTexture,
-        spatialPointShadowFaceResolution * 3,
-        height: spatialPointShadowFaceResolution * 2 * lights.length,
+        _pointTarget!.texture,
+        spatialPointShadowFaceResolution *
+            3 *
+            (_pointTarget!.supersampled ? 2 : 1),
+        height:
+            spatialPointShadowFaceResolution *
+            2 *
+            lights.length *
+            (_pointTarget!.supersampled ? 2 : 1),
       );
       pointTargetAllocations++;
     }
     final context = RenderContext3D(_device);
-    _device.beginShadow(_pointTarget!);
+    _device.beginShadow(_pointTarget!.target);
     try {
       for (var lightIndex = 0; lightIndex < lights.length; lightIndex++) {
         final light = lights[lightIndex];
@@ -62,8 +81,13 @@ final class SpatialShadowMap {
           final projection = spatialPointShadowProjection(light, face);
           context.setCamera(projection.view, projection.projection);
           draw(context, (source) {
-            final material = _pointMaterials[source] ??=
-                _PointShadowDepthMaterial(source);
+            final materials = _pointTarget!.multisampled
+                ? _sampledPointMaterials
+                : _pointMaterials;
+            final material = materials[source] ??= _PointShadowDepthMaterial(
+              source,
+              multisampled: _pointTarget!.multisampled,
+            );
             material
               ..light = light
               ..face = face
@@ -76,7 +100,12 @@ final class SpatialShadowMap {
     } finally {
       _device.endShadow();
     }
-    return SpatialPointShadowFrame(_pointTexture!, lights.length);
+    return SpatialPointShadowFrame(
+      _pointTexture!,
+      lights.length,
+      samples: _pointTarget!.samples,
+      supersampled: _pointTarget!.supersampled,
+    );
   }
 
   SpatialShadowFrame render(
@@ -86,31 +115,67 @@ final class SpatialShadowMap {
       RenderContext3D context,
       Material Function(SpatialPixelMaterial) depthMaterial,
     )
-    draw,
-  ) {
-    if (_target == null || _resolution != profile.resolution) {
+    draw, {
+    bool antialiasing = true,
+    bool preferMultisampling = true,
+  }) {
+    if (_target == null ||
+        _resolution != profile.resolution ||
+        _antialiasing != antialiasing ||
+        _preferMultisampling != preferMultisampling) {
+      _antialiasing = antialiasing;
+      _preferMultisampling = preferMultisampling;
       _resolution = profile.resolution;
-      _target = _device.backend.createRenderTarget(
+      _target = SpatialShadowTarget(
+        _device.backend,
         width: _resolution,
         height: _resolution,
-        clearValue: const Color(0xffffffff),
+        antialiasing: antialiasing,
+        preferMultisampling: preferMultisampling,
       );
-      _texture = _ShadowTexture(_target!.colorTexture, _resolution);
+      _texture = _ShadowTexture(
+        _target!.texture,
+        _resolution * (_target!.supersampled ? 2 : 1),
+      );
       targetAllocations++;
     }
     final projection = spatialShadowProjection(profile, direction);
+    final relativeProjection = spatialShadowProjection(
+      profile,
+      direction,
+      origin: profile.center,
+    );
     final context = RenderContext3D(_device)
-      ..setCamera(projection.view, projection.projection);
-    _device.beginShadow(_target!);
+      ..setCamera(relativeProjection.view, relativeProjection.projection);
+    _device.beginShadow(_target!.target);
     try {
-      draw(
-        context,
-        (source) => _materials[source] ??= _ShadowDepthMaterial(source),
-      );
+      draw(context, (source) {
+        final material =
+            (_target!.multisampled
+            ? _sampledMaterials
+            : _materials)[source] ??= _ShadowDepthMaterial(
+              source,
+              multisampled: _target!.multisampled,
+            );
+        material.origin.setValues(
+          profile.center.x,
+          profile.center.y,
+          profile.center.z,
+        );
+        return material;
+      });
     } finally {
       _device.endShadow();
     }
-    return SpatialShadowFrame(_texture!, projection.viewProjection, profile);
+    return SpatialShadowFrame(
+      _texture!,
+      projection.viewProjection,
+      profile,
+      samples: _target!.samples,
+      supersampled: _target!.supersampled,
+      origin: profile.center,
+      relativeWorldToLight: relativeProjection.viewProjection,
+    );
   }
 }
 
@@ -179,7 +244,7 @@ final class _ShadowGraphicsDevice extends GraphicsDevice {
 }
 
 final class _ShadowDepthMaterial extends UnlitMaterial {
-  _ShadowDepthMaterial(this.source) {
+  _ShadowDepthMaterial(this.source, {this.multisampled = false}) {
     vertexShader = VertexShader.fromAsset(
       _bundle,
       entryPoint: 'TextureVertex',
@@ -187,21 +252,40 @@ final class _ShadowDepthMaterial extends UnlitMaterial {
     );
     fragmentShader = FragmentShader.fromAsset(
       _bundle,
-      entryPoint: 'ShadowDepthFragment',
-      slots: ['albedoTexture', 'Material'],
+      entryPoint: multisampled
+          ? 'ShadowDepthMsaaFragment'
+          : 'ShadowDepthFragment',
+      slots: ['albedoTexture', 'Material', if (multisampled) 'DepthSamples'],
     );
   }
   static const _bundle =
       'packages/map_render_3d/assets/shaders/pixel_material.shaderbundle';
   static final _identity = Matrix4.identity();
   final SpatialPixelMaterial source;
+  final bool multisampled;
+  final origin = Vector3.zero();
+  final _relativeModel = Matrix4.identity();
+  static final _sampleOptions = Vector4(1, 0, 0, 0);
 
   @override
   void apply(covariant RenderContext3D context) {
+    if (multisampled)
+      fragmentShader.setVector4('DepthSamples.options', _sampleOptions);
     albedoColor = source.albedoColor;
     albedoTexture = source.albedoTexture;
     cullMode = source.cullMode;
     super.apply(context);
+    if (origin.length2 > 0) {
+      _relativeModel.setFrom(context.model);
+      for (var axis = 0; axis < 3; axis++) {
+        _relativeModel.setEntry(
+          axis,
+          3,
+          context.model.entry(axis, 3) - origin[axis],
+        );
+      }
+      vertexShader.setMatrix4('VertexInfo.model', _relativeModel);
+    }
     if (context.jointsInfo.jointTransforms.isEmpty) {
       vertexShader.setMatrix4('JointMatrices.joints[0]', _identity);
     }
@@ -231,7 +315,8 @@ final class _ShadowDepthMaterial extends UnlitMaterial {
 }
 
 final class _PointShadowDepthMaterial extends _ShadowDepthMaterial {
-  _PointShadowDepthMaterial(super.source) {
+  _PointShadowDepthMaterial(super.source, {bool multisampled = false})
+    : super(multisampled: multisampled) {
     vertexShader = VertexShader.fromAsset(
       _ShadowDepthMaterial._bundle,
       entryPoint: 'PointShadowVertex',
@@ -239,8 +324,15 @@ final class _PointShadowDepthMaterial extends _ShadowDepthMaterial {
     );
     fragmentShader = FragmentShader.fromAsset(
       _ShadowDepthMaterial._bundle,
-      entryPoint: 'PointShadowDepthFragment',
-      slots: ['albedoTexture', 'Material', 'PointDepth'],
+      entryPoint: multisampled
+          ? 'PointShadowDepthMsaaFragment'
+          : 'PointShadowDepthFragment',
+      slots: [
+        'albedoTexture',
+        'Material',
+        'PointDepth',
+        if (multisampled) 'DepthSamples',
+      ],
     );
   }
   late SpatialPointLight light;

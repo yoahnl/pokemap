@@ -117,10 +117,8 @@ SpatialLightingProfile spatialAuthoredShadowLighting(
     throw ArgumentError.value(sunDirection, 'sunDirection');
   }
   sun.normalize();
-  final right = (sun.y.abs() > .99 ? Vector3(0, 0, 1) : Vector3(0, 1, 0)).cross(
-    sun,
-  )..normalize();
-  final up = sun.cross(right)..normalize();
+  final basis = spatialShadowBasis(sunDirection);
+  final right = basis.right, up = basis.up;
   final corners = [for (final caster in casters) ...caster.worldCorners];
   final minimumY = math.min(
     receiverMinY,

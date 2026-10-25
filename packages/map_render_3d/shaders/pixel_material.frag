@@ -23,6 +23,7 @@ uniform Shadow {
     vec4 options;
     vec4 receiverHeight;
     vec4 samplePosition;
+    vec4 origin;
 } shadow;
 
 uniform Environment {
@@ -44,6 +45,27 @@ uniform Presentation {
     vec4 depthRange;
 } presentation;
 
+float sampledShadowVisibility(vec4 packed, float reference, bool multisampled) {
+    if (multisampled) {
+        vec4 depths = packed * 4.0;
+        vec4 covered = step(vec4(0.0000005), depths);
+        return dot(mix(vec4(1.0), step(vec4(reference), depths), covered), vec4(0.25));
+    }
+    float stored = dot(packed, vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
+    return reference <= stored ? 1.0 : 0.0;
+}
+
+float pointShadowComparison(vec2 pixel, vec2 tile, float resolution, float rows, int face, vec3 delta, vec3 receiverNormal, float radius, float bias) {
+    vec2 faceUv = (pixel + 0.5) / resolution;
+    vec2 sampleUv = (tile + faceUv) / vec2(3.0, rows);
+    vec3 ray = pointShadowRay(faceUv, face);
+    float denominator = dot(receiverNormal, ray);
+    float planeDistance = abs(denominator) > 0.000001 ? dot(receiverNormal, delta) / denominator : -1.0;
+    float expected = planeDistance > 0.0 ? min(radius, planeDistance) : length(delta);
+    float reference = max(0.0, expected - bias) / radius;
+    return sampledShadowVisibility(texture(pointShadowTexture, sampleUv), reference, point_shadows.options.x > 1.5 && point_shadows.options.x < 2.5);
+}
+
 float pointVisibility(vec3 delta, vec3 receiverNormal, int lightIndex, float radius) {
     if (point_shadows.options.x < 0.5 || dot(delta, delta) < 0.000001) return 1.0;
     int face = pointShadowFace(delta);
@@ -55,22 +77,21 @@ float pointVisibility(vec3 delta, vec3 receiverNormal, int lightIndex, float rad
     float cosine = clamp(abs(dot(receiverNormal, delta / distance)), 0.0, 1.0);
     float footprint = 2.0 * distance / resolution;
     float bias = min(min(point_shadows.options.w, radius * 0.005), 0.001 + footprint * (0.1 + 0.1 * (1.0 - cosine)));
-    float planeOffset = dot(receiverNormal, delta);
     float visibility = 0.0;
     for (int y = -1; y <= 1; y++) {
         for (int x = -1; x <= 1; x++) {
             vec2 pixel = clamp(floor(uv * resolution) + vec2(x, y), vec2(0.0), vec2(resolution - 1.0));
-            vec2 faceUv = (pixel + 0.5) / resolution;
-            vec2 sampleUv = (tile + faceUv) / vec2(3.0, rows);
-            vec3 ray = pointShadowRay(faceUv, face);
-            float denominator = dot(receiverNormal, ray);
-            float planeDistance = abs(denominator) > 0.000001 ? planeOffset / denominator : -1.0;
-            float expected = planeDistance > 0.0 ? min(radius, planeDistance) : distance;
-            float reference = max(0.0, expected - bias) / radius;
-            vec4 packed = texture(pointShadowTexture, sampleUv);
-            float stored = dot(packed, vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
             float weight = float((x == 0 ? 2 : 1) * (y == 0 ? 2 : 1));
-            visibility += (reference <= stored ? 1.0 : 0.0) * weight;
+            if (point_shadows.options.x > 2.5) {
+                for (int sy = 0; sy < 2; sy++) {
+                    for (int sx = 0; sx < 2; sx++) {
+                        vec2 subPixel = pixel + vec2(float(sx), float(sy)) * 0.5 - 0.25;
+                        visibility += pointShadowComparison(subPixel, tile, resolution, rows, face, delta, receiverNormal, radius, bias) * weight * 0.25;
+                    }
+                }
+            } else {
+                visibility += pointShadowComparison(pixel, tile, resolution, rows, face, delta, receiverNormal, radius, bias) * weight;
+            }
         }
     }
     return visibility / 16.0;
@@ -79,9 +100,19 @@ float pointVisibility(vec3 delta, vec3 receiverNormal, int lightIndex, float rad
 float shadowComparison(vec2 pixel, float reference, vec2 receiverPixel, vec2 depthGradient) {
     float resolution = shadow.options.z;
     if (any(lessThan(pixel, vec2(0.0))) || any(greaterThanEqual(pixel, vec2(resolution)))) return 1.0;
+    if (shadow.options.x > 2.5) {
+        float visibility = 0.0;
+        for (int y = 0; y < 2; y++) {
+            for (int x = 0; x < 2; x++) {
+                vec2 subPixel = pixel + vec2(float(x), float(y)) * 0.5 - 0.25;
+                vec4 packed = texture(shadowTexture, (subPixel + 0.5) / resolution);
+                visibility += sampledShadowVisibility(packed, reference + dot(subPixel - receiverPixel, depthGradient), false);
+            }
+        }
+        return visibility * 0.25;
+    }
     vec4 packed = texture(shadowTexture, (pixel + 0.5) / resolution);
-    float stored = dot(packed, vec4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
-    return reference + dot(pixel - receiverPixel, depthGradient) <= stored ? 1.0 : 0.0;
+    return sampledShadowVisibility(packed, reference + dot(pixel - receiverPixel, depthGradient), shadow.options.x > 1.5);
 }
 
 float interpolatedShadowComparison(vec2 pixel, float reference, vec2 receiverPixel, vec2 depthGradient) {
@@ -95,7 +126,7 @@ float interpolatedShadowComparison(vec2 pixel, float reference, vec2 receiverPix
 }
 
 float shadowVisibility(vec3 samplePosition, vec3 receiverNormal) {
-    vec4 projected = shadow.worldToLight * vec4(samplePosition, 1.0);
+    vec4 projected = shadow.worldToLight * vec4(samplePosition - shadow.origin.xyz, 1.0);
     vec3 coord = projected.xyz / projected.w;
     vec2 uv = vec2(coord.x * 0.5 + 0.5, 0.5 - coord.y * 0.5);
     if (coord.z < 0.0 || coord.z > 1.0 || any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) return 1.0;

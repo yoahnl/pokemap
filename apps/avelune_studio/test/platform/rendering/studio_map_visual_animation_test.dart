@@ -6,6 +6,7 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_visual_widgets.dart';
 import 'package:avelune_studio/platform/rendering/studio_resource_decoder.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -115,6 +116,7 @@ Widget _host(
   bool ticking = true,
   bool offstage = false,
   _PaintCounter? paintCounter,
+  MapEditorState? editorState,
 }) => MaterialApp(
   home: Align(
     alignment: Alignment.topLeft,
@@ -129,7 +131,12 @@ Widget _host(
             child: SizedBox(
               width: map.size.width * 8,
               height: 8,
-              child: StudioMapVisual(map: map, resources: resources),
+              child: editorState == null
+                  ? StudioMapVisual(map: map, resources: resources)
+                  : MapEditorVisibilityScope(
+                      state: editorState,
+                      child: StudioMapVisual(map: map, resources: resources),
+                    ),
             ),
           ),
         ),
@@ -195,6 +202,79 @@ Future<void> _settleResources(
 }
 
 void main() {
+  testWidgets(
+    'editor visibility keeps the renderer, decoded images and animation clock',
+    (tester) async {
+      final map = _map();
+      var decodes = 0;
+      final (directory, resources) = await _resources(
+        tester,
+        map,
+        decode: (bytes, {transparentColor}) {
+          decodes++;
+          return decodeRuntimeTilesetImage(
+            bytes,
+            transparentColor: transparentColor,
+          );
+        },
+      );
+      final boundary = GlobalKey();
+      final counter = _PaintCounter();
+      await tester.pumpWidget(
+        _host(
+          map,
+          resources,
+          boundary,
+          editorState: MapEditorState(),
+          paintCounter: counter,
+        ),
+      );
+      await tester.pump();
+      final dynamic state = tester.state(find.byType(StudioMapVisual));
+      final renderer = state.renderer;
+      final image = resources.images['atlas'];
+      expect(await _pixel(tester, boundary), _red);
+      final initialDecodes = decodes;
+      await tester.pumpWidget(
+        _host(
+          map,
+          resources,
+          boundary,
+          editorState: MapEditorState(hiddenElements: {'layer:tiles'}),
+          paintCounter: counter,
+        ),
+      );
+      expect(await _pixel(tester, boundary), [0, 0, 0, 0]);
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pumpWidget(
+        _host(
+          map,
+          resources,
+          boundary,
+          editorState: MapEditorState(),
+          paintCounter: counter,
+        ),
+      );
+      expect(await _pixel(tester, boundary), _green);
+      expect(tester.state(find.byType(StudioMapVisual)), same(state));
+      expect(state.renderer, same(renderer));
+      expect(resources.images['atlas'], same(image));
+      expect(decodes, initialDecodes);
+      final beforeLock = counter.count;
+      await tester.pumpWidget(
+        _host(
+          map,
+          resources,
+          boundary,
+          editorState: MapEditorState(lockedFamilies: {'layer'}),
+          paintCounter: counter,
+        ),
+      );
+      expect(counter.count, beforeLock);
+      await _close(tester, directory, resources);
+    },
+  );
+
   testWidgets(
     'non-binary millisecond boundaries cannot leave the painted frame behind the clock',
     (tester) async {

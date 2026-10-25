@@ -39,7 +39,10 @@ void main() {
                 .toJson())),
         'maps/source.editor.json': utf8.encode(jsonEncode(MapEditorDocument(
             mapId: 'source',
-            state: MapEditorState(lockedElements: {'layer:base'})).toJson())),
+            state: MapEditorState(
+                lockedElements: {'layer:base'},
+                hiddenElements: {'layer:base', 'model:wind'},
+                hiddenFamilies: {'effect'})).toJson())),
         for (var i = 0; i < unrelated; i++)
           'maps/unrelated_$i.atmosphere.json':
               utf8.encode('invalid and unrelated'),
@@ -77,6 +80,14 @@ void main() {
           result.changeSet.changes
               .where((change) => change.resource.kind == 'mapEditor'),
           hasLength(1));
+      final editor = result.changeSet.changes
+          .singleWhere((change) => change.resource.kind == 'mapEditor');
+      final copied = MapEditorDocument.fromJson(
+          jsonDecode(utf8.decode(editor.afterBytes!)) as Map<String, dynamic>);
+      expect(copied.mapId, 'target');
+      expect(copied.state.isHidden('layer', 'base'), isTrue);
+      expect(copied.state.isHidden('model', 'wind'), isTrue);
+      expect(copied.state.isHidden('effect', 'fireflies'), isTrue);
       expect(
           result.changeSet.diff.entries.expand((entry) =>
               (entry.extensions[mapAtmosphereGuardsKey] as List?) ?? []),

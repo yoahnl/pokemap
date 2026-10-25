@@ -103,6 +103,20 @@ typedef SpatialBorderGroundReplacementIndex =
 Set<(int, int)> resolveSpatialBorderGroundMaskCells({
   required ProjectManifest manifest,
   required MapData map,
+  bool Function(String layerId)? includeLayer,
+}) => Set.unmodifiable({
+  for (final cells in resolveSpatialBorderGroundMaskCellsByLayer(
+    manifest: manifest,
+    map: map,
+    includeLayer: includeLayer,
+  ).values)
+    ...cells,
+});
+
+Map<String, Set<(int, int)>> resolveSpatialBorderGroundMaskCellsByLayer({
+  required ProjectManifest manifest,
+  required MapData map,
+  bool Function(String layerId)? includeLayer,
 }) {
   final scene = map.spatialScene;
   if (scene == null) return const {};
@@ -110,9 +124,13 @@ Set<(int, int)> resolveSpatialBorderGroundMaskCells({
     for (final instance in scene.instances) instance.id: instance,
   };
   final models = {for (final model in manifest.models3d) model.id: model};
-  final result = <(int, int)>{};
+  final result = <String, Set<(int, int)>>{};
   for (final layer in map.layers.whereType<BorderLayer>()) {
-    if (!layer.isVisible || layer.opacity <= 0) continue;
+    if (!layer.isVisible ||
+        layer.opacity <= 0 ||
+        includeLayer?.call(layer.id) == false) {
+      continue;
+    }
     for (final feature in layer.content.features) {
       final publication = manifest.borderCatalog
           .recordById(feature.blueprintId)
@@ -156,12 +174,15 @@ Set<(int, int)> resolveSpatialBorderGroundMaskCells({
             (instance.position.z - math.sin(angle) * dx + math.cos(angle) * dz)
                 .floor();
         if (x >= 0 && z >= 0 && x < scene.width && z < scene.depth) {
-          result.add((x, z));
+          result.putIfAbsent(layer.id, () => {}).add((x, z));
         }
       }
     }
   }
-  return Set.unmodifiable(result);
+  return Map.unmodifiable({
+    for (final entry in result.entries)
+      entry.key: Set<(int, int)>.unmodifiable(entry.value),
+  });
 }
 
 SpatialBorderGroundReplacementIndex indexSpatialBorderGroundReplacements({
@@ -189,16 +210,34 @@ SpatialBorderGroundReplacementIndex indexSpatialBorderGroundReplacements({
 List<SpatialBorderGroundReplacement> resolveSpatialBorderGroundReplacements({
   required ProjectManifest manifest,
   required MapData map,
+  bool Function(String layerId)? includeLayer,
+}) => List.unmodifiable(
+  resolveSpatialBorderGroundReplacementsByLayer(
+    manifest: manifest,
+    map: map,
+    includeLayer: includeLayer,
+  ).values.expand((entries) => entries),
+);
+
+Map<String, List<SpatialBorderGroundReplacement>>
+resolveSpatialBorderGroundReplacementsByLayer({
+  required ProjectManifest manifest,
+  required MapData map,
+  bool Function(String layerId)? includeLayer,
 }) {
   final scene = map.spatialScene;
-  if (scene == null) return const [];
+  if (scene == null) return const {};
   final instances = {
     for (final instance in scene.instances) instance.id: instance,
   };
   final models = {for (final model in manifest.models3d) model.id: model};
-  final result = <SpatialBorderGroundReplacement>[];
+  final result = <String, List<SpatialBorderGroundReplacement>>{};
   for (final layer in map.layers.whereType<BorderLayer>()) {
-    if (!layer.isVisible || layer.opacity <= 0) continue;
+    if (!layer.isVisible ||
+        layer.opacity <= 0 ||
+        includeLayer?.call(layer.id) == false) {
+      continue;
+    }
     for (final feature in layer.content.features) {
       final publication = manifest.borderCatalog
           .recordById(feature.blueprintId)
@@ -264,27 +303,33 @@ List<SpatialBorderGroundReplacement> resolveSpatialBorderGroundReplacements({
               ],
             ),
         ];
-        result.add(
-          SpatialBorderGroundReplacement(
-            left: left,
-            top: top,
-            right: right,
-            bottom: bottom,
-            footprints: List.unmodifiable(footprints),
-            lowerHeight:
-                instance.position.y +
-                (bounds.min.y +
-                        publication.definition.groundBaseOffset -
-                        model.pivot.y) *
-                    scale,
-            upperHeight:
-                instance.position.y + (bounds.max.y - model.pivot.y) * scale,
-          ),
-        );
+        result
+            .putIfAbsent(layer.id, () => [])
+            .add(
+              SpatialBorderGroundReplacement(
+                left: left,
+                top: top,
+                right: right,
+                bottom: bottom,
+                footprints: List.unmodifiable(footprints),
+                lowerHeight:
+                    instance.position.y +
+                    (bounds.min.y +
+                            publication.definition.groundBaseOffset -
+                            model.pivot.y) *
+                        scale,
+                upperHeight:
+                    instance.position.y +
+                    (bounds.max.y - model.pivot.y) * scale,
+              ),
+            );
       }
     }
   }
-  return List.unmodifiable(result);
+  return Map.unmodifiable({
+    for (final entry in result.entries)
+      entry.key: List<SpatialBorderGroundReplacement>.unmodifiable(entry.value),
+  });
 }
 
 final class SpatialBorderGroundSurface {
@@ -314,6 +359,7 @@ final class SpatialBorderGroundSurface {
 List<SpatialBorderGroundSurface> resolveSpatialBorderGroundSurfaces({
   required ProjectManifest manifest,
   required MapData map,
+  bool Function(String layerId)? includeLayer,
 }) {
   final scene = map.spatialScene;
   if (scene == null) return const [];
@@ -326,7 +372,11 @@ List<SpatialBorderGroundSurface> resolveSpatialBorderGroundSurfaces({
       ? map.layers.reversed
       : map.layers;
   for (final layer in ordered.whereType<BorderLayer>()) {
-    if (!layer.isVisible || layer.opacity <= 0) continue;
+    if (!layer.isVisible ||
+        layer.opacity <= 0 ||
+        includeLayer?.call(layer.id) == false) {
+      continue;
+    }
     for (final feature in layer.content.features) {
       final published = manifest.borderCatalog
           .recordById(feature.blueprintId)

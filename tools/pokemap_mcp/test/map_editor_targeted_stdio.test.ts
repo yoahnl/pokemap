@@ -12,7 +12,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("map editor locks remain scoped across MCP restart, replay, conflict and undo", { timeout: 150_000 }, async () => {
+test("map editor locks and visibility remain scoped across MCP restart, replay, conflict and undo", { timeout: 150_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "editor-mcp-"));
   const outside = await mkdtemp(join(tmpdir(), "editor-outside-"));
   const args = [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"];
@@ -29,8 +29,15 @@ test("map editor locks remain scoped across MCP restart, replay, conflict and un
     }
     try {
       await client.connect(transport);
-      const names = (await client.listTools()).tools.map(t => t.name);
+      const tools = (await client.listTools()).tools;
+      const names = tools.map(t => t.name);
       for (const operation of ["inspect", "set", "undo"]) assert.ok(names.includes(`pokemap_map_editor_${operation}`));
+      const setTool = tools.find(t => t.name === "pokemap_map_editor_set")!;
+      const stateSchema = record(record(setTool.inputSchema.properties).state);
+      const fields = record(stateSchema.properties);
+      assert.deepEqual(Object.keys(fields).sort(), ["hiddenElements", "hiddenFamilies", "lockedElements", "lockedFamilies"]);
+      assert.equal(record(fields.hiddenElements).maxItems, 4096);
+      assert.equal(stateSchema.additionalProperties, false);
       await run(call);
     } catch (error) {
       throw new Error(`${String(error)}; worker diagnostics: ${diagnostics}`, { cause: error });
@@ -46,7 +53,8 @@ test("map editor locks remain scoped across MCP restart, replay, conflict and un
     const sidecar = join(root, "maps", "bourg.editor.json");
     await writeFile(map, "undecodable map");
     await writeFile(project, "undecodable project");
-    const state = { lockedElements: ["decor:back-particles", "model:tree"], lockedFamilies: ["decor"] };
+    const emptyState = { lockedElements: [], lockedFamilies: [], hiddenElements: [], hiddenFamilies: [] };
+    const state = { lockedElements: ["decor:back-particles", "model:tree"], lockedFamilies: ["decor"], hiddenElements: ["layer:paths", "model:background-mist"], hiddenFamilies: ["effect"] };
     let originalRevision: unknown;
     let afterRevision: unknown;
     let receiptId: unknown;
@@ -54,24 +62,37 @@ test("map editor locks remain scoped across MCP restart, replay, conflict and un
       const catalog = await call("pokemap_describe");
       assert.equal(record(catalog.mapEditorAuthoring).id, "map.editor.set");
       assert.deepEqual(record(catalog.mapEditorAuthoring).resourceKinds, ["mapEditor"]);
+      const extensions = record(record(catalog.mapEditorAuthoring).extensions);
+      assert.deepEqual(extensions.documentSchemaVersions, [1, 2]);
+      assert.deepEqual(extensions.stateFields, ["lockedElements", "lockedFamilies", "hiddenElements", "hiddenFamilies"]);
+      assert.equal(extensions.visibilityScope, "editorPreview2DAnd3D");
       assert.ok((catalog.scopedResourceKinds as JsonRecord[]).some(kind => kind.id === "mapEditor"));
       assert.ok((catalog.scopedMutationActions as JsonRecord[]).some(action => action.id === "map.editor.set"));
       assert.ok((catalog.commands as JsonRecord[]).some(c => c.id === "map_editor_set"));
       const initial = await call("pokemap_map_editor_inspect", { projectRoot: root, mapId: "bourg" });
-      assert.deepEqual(initial.state, { lockedElements: [], lockedFamilies: [] });
+      assert.deepEqual(initial.state, emptyState);
       originalRevision = initial.revision;
       const input = { projectRoot: root, mapId: "bourg", expectedRevision: initial.revision, state, operationId: "lock-particles" };
       const changed = await call("pokemap_map_editor_set", input);
       assert.deepEqual(changed.afterState, state);
+      assert.equal(record(JSON.parse((await readFile(sidecar)).toString())).schemaVersion, 2);
       afterRevision = changed.afterRevision;
       receiptId = record(changed.receipt).receiptId;
       const beforeReplay = await readFile(sidecar);
       const replay = await call("pokemap_map_editor_set", input);
       assert.equal(record(replay.receipt).receiptId, receiptId);
       assert.deepEqual(await readFile(sidecar), beforeReplay);
+      for (const omitted of [["hiddenElements"], ["hiddenFamilies"], ["hiddenElements", "hiddenFamilies"]]) {
+        const incomplete: JsonRecord = { ...state };
+        for (const key of omitted) delete incomplete[key];
+        const rejected = await call("pokemap_map_editor_set", { ...input, expectedRevision: afterRevision, state: incomplete, operationId: `incomplete-${omitted.join("-")}` }, true);
+        assert.match(JSON.stringify(rejected), /map_editor_inspect/);
+        assert.deepEqual(await readFile(sidecar), beforeReplay);
+      }
       await call("pokemap_map_editor_set", { ...input, state: { lockedElements: [], lockedFamilies: [] } }, true);
       await call("pokemap_map_editor_set", { ...input, operationId: "stale-edit" }, true);
       await call("pokemap_map_editor_set", { ...input, expectedRevision: afterRevision, state: { lockedElements: ["invalid:particle"] }, operationId: "invalid-kind" }, true);
+      await call("pokemap_map_editor_set", { ...input, expectedRevision: afterRevision, state: { ...state, hiddenElements: ["invalid:particle"] }, operationId: "invalid-hidden-kind" }, true);
     });
     await session(async call => {
       const persisted = await call("pokemap_map_editor_inspect", { projectRoot: root, mapId: "bourg" });
@@ -79,10 +100,20 @@ test("map editor locks remain scoped across MCP restart, replay, conflict and un
       assert.equal(persisted.revision, afterRevision);
       const undoInput = { projectRoot: root, mapId: "bourg", receiptId, expectedRevision: afterRevision, operationId: "unlock-particles" };
       const undone = await call("pokemap_map_editor_undo", undoInput);
-      assert.deepEqual(undone.afterState, { lockedElements: [], lockedFamilies: [] });
+      assert.deepEqual(undone.afterState, emptyState);
       assert.equal(undone.afterRevision, originalRevision);
       const replay = await call("pokemap_map_editor_undo", undoInput);
       assert.equal(record(replay.receipt).receiptId, record(undone.receipt).receiptId);
+      const legacyInput = { projectRoot: root, mapId: "bourg", expectedRevision: undone.afterRevision, state: { lockedElements: ["model:tree"], lockedFamilies: [] }, operationId: "legacy-visible-client" };
+      const legacy = await call("pokemap_map_editor_set", legacyInput);
+      assert.deepEqual(record(legacy.afterState).hiddenElements, []);
+      const hidden = await call("pokemap_map_editor_set", { projectRoot: root, mapId: "bourg", expectedRevision: legacy.afterRevision, state, operationId: "hide-after-legacy" });
+      const hiddenBytes = await readFile(sidecar);
+      const oldReplay = await call("pokemap_map_editor_set", legacyInput);
+      assert.equal(record(oldReplay.receipt).receiptId, record(legacy.receipt).receiptId);
+      assert.deepEqual(await readFile(sidecar), hiddenBytes);
+      const explicitClear = await call("pokemap_map_editor_set", { projectRoot: root, mapId: "bourg", expectedRevision: hidden.afterRevision, state: emptyState, operationId: "explicit-clear-complete-state" });
+      assert.deepEqual(explicitClear.afterState, emptyState);
       await call("pokemap_map_editor_inspect", { projectRoot: outside, mapId: "bourg" }, true);
       await call("pokemap_map_editor_inspect", { projectRoot: root, mapId: "bourg", mapRelativePath: "../escape.json" }, true);
     });

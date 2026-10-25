@@ -190,21 +190,21 @@ class GameplayZoneEditingCommands {
   );
 
   void move(String id, GridPos pos) {
-    if (document.isElementLocked('zone', id)) return;
+    if (document.isElementUnavailable('zone', id)) return;
     document.commit(
       moveGameplayZoneOnMap(document.current, zoneId: id, pos: pos),
     );
   }
 
   void resize(String id, GridSize size) {
-    if (document.isElementLocked('zone', id)) return;
+    if (document.isElementUnavailable('zone', id)) return;
     document.commit(
       resizeGameplayZoneOnMap(document.current, zoneId: id, size: size),
     );
   }
 
   void delete(String id) {
-    if (document.isElementLocked('zone', id)) return;
+    if (document.isElementUnavailable('zone', id)) return;
     document.commit(removeGameplayZoneFromMap(document.current, zoneId: id));
   }
 

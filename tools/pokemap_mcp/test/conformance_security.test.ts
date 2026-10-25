@@ -111,6 +111,50 @@ test("all tools publish strict schemas, outputs and annotations", async () => {
   }
 });
 
+test("map editor visibility preserves the full state and rejects malformed fields before the gateway", async () => {
+  const calls: Array<{ command: string; args: JsonRecord | undefined }> = [];
+  const gateway: AuthoringGateway = {
+    async request(command, args) {
+      calls.push({ command, args });
+      return { requestId: "visibility", data: {}, artifacts: [] };
+    },
+    async close() {},
+  };
+  const fixture = await connect(gateway);
+  const state = {
+    lockedElements: ["model:particles"],
+    lockedFamilies: ["warp"],
+    hiddenElements: ["layer:paths", "layer:borders"],
+    hiddenFamilies: ["effect"],
+  };
+  const arguments_ = { projectRoot: "/allowed/project", mapId: "bourg", expectedRevision: "revision", operationId: "visibility", state };
+  try {
+    const accepted = await fixture.client.callTool({ name: "pokemap_map_editor_set", arguments: arguments_ });
+    assert.equal(accepted.isError, undefined);
+    assert.deepEqual(calls, [{ command: "map_editor_set", args: arguments_ }]);
+    const malformed = [
+      { ...state, hiddenElements: true },
+      { ...state, hiddenFamilies: ["particles"] },
+      { ...state, hiddenElements: Array.from({ length: 4097 }, (_, index) => `model:${index}`) },
+      { ...state, visible: false },
+    ];
+    for (const invalid of malformed) {
+      let rejected = false;
+      try {
+        const result = await fixture.client.callTool({ name: "pokemap_map_editor_set", arguments: { ...arguments_, state: invalid } });
+        rejected = result.isError === true;
+      } catch (error) {
+        rejected = error instanceof Error;
+      }
+      assert.equal(rejected, true);
+    }
+    assert.equal(calls.length, 1);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+  }
+});
+
 test("project bootstrap maps inspect and confirmed repair to canonical commands", async () => {
   const calls: Array<{ command: string; args: JsonRecord | undefined }> = [];
   const gateway: AuthoringGateway = {

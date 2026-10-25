@@ -1,7 +1,9 @@
 part of 'map_workspace_controller.dart';
 
 extension MapWorkspaceElementOrder on MapWorkspaceController {
-  bool get canReorderElements => port is MapElementOrderPort;
+  bool get canReorderElements =>
+      port is MapElementOrderPort &&
+      session.storage != ProjectSessionStorage.portableCatalog;
 
   Future<bool> reorderElements(
     String kind,
@@ -10,7 +12,8 @@ extension MapWorkspaceElementOrder on MapWorkspaceController {
   ) async {
     final document = active;
     final source = port;
-    if (document == null ||
+    if (!canReorderElements ||
+        document == null ||
         source is! MapElementOrderPort ||
         document.saving ||
         catalogLocks(document.base.mapId)) {
@@ -70,7 +73,11 @@ extension MapWorkspaceElementOrder on MapWorkspaceController {
     required bool redo,
   }) async {
     final source = port;
-    if (source is! MapElementOrderPort || document.saving) return;
+    if (!canReorderElements ||
+        source is! MapElementOrderPort ||
+        document.saving) {
+      return;
+    }
     final token = redo ? document.redoToken : document.undoToken;
     final rollback = document.preserveDraft();
     try {

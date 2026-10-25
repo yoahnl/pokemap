@@ -15,7 +15,7 @@ class MapEditingCommands {
       _placeElement(element, position);
 
   void move(String id, GridPos position) {
-    if (document.isElementLocked('decor', id)) return;
+    if (document.isElementUnavailable('decor', id)) return;
     final instance = document.current.placedElements
         .where((element) => element.id == id)
         .firstOrNull;
@@ -38,13 +38,19 @@ class MapEditingCommands {
       return;
     }
     try {
-      document.commit(const MovingPropEditing().reconcilePlacementChanges(
-        before: document.current, project: project, after: upsertMapPlacedElement(
-        document.current,
-        instance: instance.copyWith(pos: position),
-      )));
+      document.commit(
+        const MovingPropEditing().reconcilePlacementChanges(
+          before: document.current,
+          project: project,
+          after: upsertMapPlacedElement(
+            document.current,
+            instance: instance.copyWith(pos: position),
+          ),
+        ),
+      );
     } on FormatException {
-      document.error = 'Le décor mobile ou son rail dépasse les limites de la carte.';
+      document.error =
+          'Le décor mobile ou son rail dépasse les limites de la carte.';
       return;
     }
     document.stackPosition = position;
@@ -54,9 +60,12 @@ class MapEditingCommands {
   void deleteSelected() {
     final id = document.selectedId;
     if (id == null) return;
-    if (document.isElementLocked('decor', id)) return;
-    if (document.current.movingProps.any((prop) => prop.placedElementId == id)) {
-      document.error = 'Retirez le déplacement du décor avant de supprimer son visuel.';
+    if (document.isElementUnavailable('decor', id)) return;
+    if (document.current.movingProps.any(
+      (prop) => prop.placedElementId == id,
+    )) {
+      document.error =
+          'Retirez le déplacement du décor avant de supprimer son visuel.';
       return;
     }
     document.commit(removeMapPlacedElement(document.current, instanceId: id));
@@ -68,24 +77,28 @@ class MapEditingCommands {
     required int y,
     required PixelSize? size,
   }) {
-    if (document.isElementLocked('decor', id)) return false;
+    if (document.isElementUnavailable('decor', id)) return false;
     try {
       document.commit(
-        const MovingPropEditing().reconcilePlacementChanges(before: document.current, project: project,
+        const MovingPropEditing().reconcilePlacementChanges(
+          before: document.current,
+          project: project,
           after: setMapPlacedElementGeometry(
-          document.current,
-          manifest: project,
-          instanceId: id,
-          pixelX: x,
-          pixelY: y,
-          pixelSize: size,
-        )),
+            document.current,
+            manifest: project,
+            instanceId: id,
+            pixelX: x,
+            pixelY: y,
+            pixelSize: size,
+          ),
+        ),
       );
       document.stackPosition = document.selected?.pos;
       document.stackPixelPosition = PixelPosition(leftPx: x, topPx: y);
       return true;
     } on FormatException {
-      document.error = 'Le décor mobile ou son rail dépasse les limites de la carte.';
+      document.error =
+          'Le décor mobile ou son rail dépasse les limites de la carte.';
       return false;
     } on ValidationException {
       document.error =
@@ -109,7 +122,7 @@ class MapEditingCommands {
 
   void reorder({required bool forward}) {
     final id = document.selectedId;
-    if (id != null && document.isElementLocked('decor', id)) return;
+    if (id != null && document.isElementUnavailable('decor', id)) return;
     document.commit(_reordered(forward: forward));
   }
 
@@ -179,7 +192,9 @@ class MapEditingCommands {
     required GridPos at,
     required bool forward,
   }) {
-    if (document.isElementLocked('decor', instanceId)) return document.current;
+    if (document.isElementUnavailable('decor', instanceId)) {
+      return document.current;
+    }
     try {
       return moveMapPlacedElementVisualOrder(
         document.current,
@@ -201,7 +216,7 @@ class MapEditingCommands {
   MapData _reordered({required bool forward}) {
     final id = document.selectedId;
     if (id == null) return document.current;
-    if (document.isElementLocked('decor', id)) return document.current;
+    if (document.isElementUnavailable('decor', id)) return document.current;
     try {
       return moveMapPlacedElementVisualOrder(
         document.current,
@@ -216,18 +231,15 @@ class MapEditingCommands {
     }
   }
 
-  List<MapPlacedElement> stack(GridPos position) => mapPlacedElementsAt(
-    document.current,
-    project,
-    position,
-  ).reversed.where((item) => !document.isElementLocked('decor', item.id)).toList();
+  List<MapPlacedElement> stack(GridPos position) =>
+      mapPlacedElementsAt(document.current, project, position).reversed
+          .where((item) => !document.isElementUnavailable('decor', item.id))
+          .toList();
 
   List<MapPlacedElement> stackAtPixel(PixelPosition position) =>
-      mapPlacedElementsAtPixel(
-        document.current,
-        project,
-        position,
-      ).reversed.where((item) => !document.isElementLocked('decor', item.id)).toList();
+      mapPlacedElementsAtPixel(document.current, project, position).reversed
+          .where((item) => !document.isElementUnavailable('decor', item.id))
+          .toList();
 
   List<MapPlacedElement> contextStack(GridPos position) =>
       document.stackPosition == position && document.stackPixelPosition != null
@@ -259,11 +271,10 @@ class MapEditingCommands {
       id = 'studio-decors-${suffix++}';
     }
     return MapLayer.tile(
-          id: id,
-          name: 'Décors',
-          cells: List.filled(map.size.width * map.size.height, 0),
-        )
-        as TileLayer;
+      id: id,
+      name: 'Décors',
+      cells: List.filled(map.size.width * map.size.height, 0),
+    ) as TileLayer;
   }
 
   bool _fits(MapPlacedElement instance, ProjectElementEntry entry) {

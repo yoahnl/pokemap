@@ -4,6 +4,66 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_render_3d/src/spatial_shadow_profile.dart';
 
 void main() {
+  test('light axes do not change when the scene is far from the origin', () {
+    const direction = (x: -.61, y: .78, z: .15);
+    final local = spatialShadowProjection(
+      SpatialShadowProfile(casterInstanceIds: {'block'}),
+      direction,
+    ).view;
+    final distant = spatialShadowProjection(
+      SpatialShadowProfile(
+        casterInstanceIds: {'block'},
+        center: (x: 10000, y: 0, z: 10000),
+      ),
+      direction,
+    ).view;
+    for (var row = 0; row < 3; row++) {
+      for (var column = 0; column < 3; column++) {
+        expect(
+          distant.entry(row, column),
+          closeTo(local.entry(row, column), 1e-7),
+        );
+      }
+    }
+  });
+
+  test('shadow bases remain orthonormal for arbitrary light directions', () {
+    for (final direction in [
+      (x: 0.0, y: 1.0, z: 0.0),
+      (x: .4, y: .0001, z: -.7),
+      (x: 0.0, y: -1.0, z: 0.0),
+      (x: -.7, y: .8, z: .2),
+    ]) {
+      final basis = spatialShadowBasis(direction);
+      expect(basis.right.length, closeTo(1, 1e-6));
+      expect(basis.up.length, closeTo(1, 1e-6));
+      expect(basis.forward.length, closeTo(1, 1e-6));
+      expect(basis.right.dot(basis.up), closeTo(0, 1e-6));
+      expect(basis.right.dot(basis.forward), closeTo(0, 1e-6));
+      expect(basis.up.dot(basis.forward), closeTo(0, 1e-6));
+    }
+  });
+
+  test(
+    'solar projection stays continuous when sunlight approaches vertical',
+    () {
+      final profile = SpatialShadowProfile(casterInstanceIds: {'block'});
+      final before = spatialShadowProjection(profile, (
+        x: .141,
+        y: 1,
+        z: 0,
+      )).viewProjection;
+      final after = spatialShadowProjection(profile, (
+        x: .144,
+        y: 1,
+        z: 0,
+      )).viewProjection;
+      for (var i = 0; i < 16; i++) {
+        expect(after.storage[i], closeTo(before.storage[i], .002));
+      }
+    },
+  );
+
   test('softness and actor receivers opt in with bounded filter radii', () {
     final original = SpatialShadowProfile(casterInstanceIds: {'house'});
     expect(original.filterRadius, 1);

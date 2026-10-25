@@ -8,6 +8,25 @@ import 'package:map_render_3d/src/spatial_shadow_profile.dart';
 import 'package:map_render_3d/src/spatial_point_light.dart';
 
 void main() {
+  test('a rejected supersampled target falls back once without retrying every frame', () {
+    final backend = _Backend(maximumSize: 64);
+    final map = SpatialShadowMap(backend);
+    final profile = SpatialShadowProfile(
+      casterInstanceIds: {'block'},
+      resolution: 64,
+    );
+    final frame = map.render(profile, (x: 0, y: 1, z: 0), (_, _) {});
+    expect(frame.samples, 1);
+    expect(frame.supersampled, isFalse);
+    expect(frame.texture.width, 64);
+    final allocations = backend.targets.length;
+    for (var i = 0; i < 10; i++) {
+      map.render(profile, (x: 0, y: 1, z: 0), (_, _) {});
+    }
+    expect(backend.targets, hasLength(allocations));
+    expect(map.targetAllocations, 1);
+  });
+
   test('point maps render all six faces per light into one reused GPU atlas without ending caller frame', () {
     final backend = _Backend();
     final map = SpatialShadowMap(backend, ownsFrame: false);
@@ -21,13 +40,17 @@ void main() {
     });
     expect(draws, 12);
     expect(first!.lightCount, 2);
-    expect(first.texture.width, 768);
-    expect(first.texture.height, 1024);
+    expect(first.texture.width, 1536);
+    expect(first.texture.height, 2048);
+    expect(first.faceResolution, 256);
+    expect(first.samples, 4);
+    expect(first.supersampled, isTrue);
     expect(backend.events.where((event) => event == 'submit'), hasLength(1));
     expect(backend.events, isNot(contains('end')));
     final second = map.renderPointLights(lights, (_, _, _) {});
     expect(second!.texture, same(first.texture));
     expect(map.pointTargetAllocations, 1);
+    expect(backend.targets, hasLength(2));
     final before = backend.events.length;
     expect(map.renderPointLights([], (_, _, _) {}), isNull);
     expect(backend.events, hasLength(before));
@@ -47,6 +70,7 @@ void main() {
     });
     expect(backend.events, [
       'allocate',
+      'allocate',
       'frame',
       'opaque-depth',
       'casters',
@@ -56,7 +80,9 @@ void main() {
     final second = map.render(profile, (x: -.65, y: .8, z: -.45), (_, _) {});
     expect(first.texture, same(second.texture));
     expect(map.targetAllocations, 1);
-    expect(first.texture.resource, same(backend.targets.first.colorTexture));
+    expect(first.texture.resource, same(backend.targets.last.colorTexture));
+    expect(first.supersampled, isTrue);
+    expect(first.texture.width, 128);
     map.render(
       SpatialShadowProfile(casterInstanceIds: {'house'}, resolution: 128),
       (x: -.65, y: .8, z: -.45),
@@ -77,6 +103,8 @@ void main() {
 }
 
 final class _Backend extends GpuBackend {
+  _Backend({this.maximumSize});
+  final int? maximumSize;
   final events = <String>[];
   final targets = <_Target>[];
   @override
@@ -85,6 +113,8 @@ final class _Backend extends GpuBackend {
     required int height,
     required Color clearValue,
   }) {
+    if (maximumSize != null && (width > maximumSize! || height > maximumSize!))
+      throw Exception('Texture limit');
     events.add('allocate');
     expect(clearValue, const Color(0xffffffff));
     final target = _Target();

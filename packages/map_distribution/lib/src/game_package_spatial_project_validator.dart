@@ -21,6 +21,13 @@ final class GamePackageSpatialProjectValidator {
   final GamePackageSecurityPolicy policy;
   final bool gameplay;
 
+  bool _connectionCellIsClosed(MapData map, GridPos position) =>
+      map.spatialScene!.navigation.blockedAreas.any((area) =>
+          area.x <= position.x &&
+          area.z <= position.y &&
+          area.x + area.width >= position.x + 1 &&
+          area.z + area.depth >= position.y + 1);
+
   void _validateGameplay(ProjectManifest project) {
     final cinematicIds = project.cinematics.map((asset) => asset.id).toSet();
     final presentationIds =
@@ -528,6 +535,10 @@ final class GamePackageSpatialProjectValidator {
               MapConnectionDirection.west =>
                 GridPos(x: target.size.width - 1, y: targetIndex),
             };
+            if (_connectionCellIsClosed(map, sourcePos) &&
+                _connectionCellIsClosed(target, targetPos)) {
+              continue;
+            }
             final sourceHeight = map.spatialScene!
                 .worldHeightAt(sourcePos.x + .5, sourcePos.y + .5);
             final targetHeight = target.spatialScene!
@@ -644,7 +655,9 @@ final class GamePackageSpatialProjectValidator {
                 item.respawnPolicy != ItemRespawnPolicy.none ||
                 entity.properties.isNotEmpty || entity.npc != null ||
                 entity.sign != null || entity.spawn != null ||
-                !map.spatialScene!.instances.any((instance) => instance.entityId == entity.id)) {
+                item.visibility != MapEntityItemVisibility.hidden &&
+                    !map.spatialScene!.instances
+                        .any((instance) => instance.entityId == entity.id)) {
               _unsupported('maps.${map.id}.entities.${entity.id}');
             }
             continue;

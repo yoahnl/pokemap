@@ -138,7 +138,11 @@ Future<void> main() async {
     );
   });
   registerStudioShadowProbe(
-    isCopyActive: () => readState().state['projectPath'] == root,
+    isCopyActive: () {
+      final state = readState().state;
+      final runtime = state['runtime'] as Map<String, Object?>?;
+      return state['projectPath'] == root || runtime?['projectPath'] == root;
+    },
   );
   Map<String, Object?> feedback = {};
   MapAtmosphereController? observed;

@@ -12,6 +12,7 @@ import 'package:map_authoring/map_authoring_local.dart'
         LocalCharacterContactShadowAuthoring,
         LocalMapAtmosphereAuthoring,
         LocalMapEditorAuthoring,
+        MapEditorIncompleteStateException,
         LocalMapElementOrderAuthoring;
 
 import '../api/authoring_mutation_api.dart';
@@ -215,6 +216,16 @@ final class JsonlWorker {
         code: AuthoringErrorCode.invalidRequest,
         domainCode: error.code,
         message: error.message,
+      );
+    } on MapEditorIncompleteStateException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.invalidRequest,
+        domainCode: MapEditorIncompleteStateException.code,
+        message: error.message,
+        remediation: const [
+          'Reprendre l’état complet de map_editor_inspect avant de réessayer.'
+        ],
       );
     } on FormatException {
       result = _failure(
@@ -912,6 +923,12 @@ final class JsonlWorker {
         if (state is! Map<String, dynamic>) {
           throw const FormatException('state must be a map editor object.');
         }
+        for (final key in ['hiddenElements', 'hiddenFamilies']) {
+          if (state.containsKey(key) && state[key] is! List) {
+            throw FormatException(
+                '$key must be an array from map_editor_inspect.');
+          }
+        }
         return (await service.set(
           projectRoot: root,
           mapId: mapId,
@@ -919,6 +936,8 @@ final class JsonlWorker {
           expectedRevision: requireContractString(
               args['expectedRevision'], 'args.expectedRevision'),
           state: MapEditorState.fromJson(state),
+          hiddenElementsProvided: state.containsKey('hiddenElements'),
+          hiddenFamiliesProvided: state.containsKey('hiddenFamilies'),
           operationId:
               requireContractString(args['operationId'], 'args.operationId'),
         ))
@@ -1412,7 +1431,7 @@ final class JsonlWorker {
             'actionId': 'map.editor.set',
             'readOnly': operation == 'inspect',
             'summary':
-                'Inspect or save bounded editor selection and movement locks for one map.',
+                'Inspect or save bounded editor visibility and selection locks for one map.',
             'resourceKind': 'mapEditor',
             'storagePattern': 'maps/<mapId>.editor.json',
             'maximumDocumentBytes': MapEditorDocument.maxBytes,
@@ -1499,15 +1518,22 @@ final class JsonlWorker {
           {
             'id': 'mapEditor',
             'version': 1,
-            'displayName': 'Map editor locks',
+            'displayName': 'Map editor visibility and locks',
             'summary':
-                'Editor-only selection and movement locks, scoped to one map.',
+                'Editor-only visibility, selection and movement locks in 2D and 3D, scoped to one map.',
             'extensions': {
               'readCommand': 'map_editor_inspect',
               'writeCommand': 'map_editor_set',
               'undoCommand': 'map_editor_undo',
               'storagePattern': 'maps/<mapId>.editor.json',
               'maximumDocumentBytes': MapEditorDocument.maxBytes,
+              'stateFields': [
+                'lockedElements',
+                'lockedFamilies',
+                'hiddenElements',
+                'hiddenFamilies'
+              ],
+              'visibilityScope': 'editorPreview2DAnd3D',
               'runtime': false,
             },
           },
