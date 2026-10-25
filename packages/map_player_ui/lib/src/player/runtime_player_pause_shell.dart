@@ -5,6 +5,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_menu_icon.dart';
 import '../foundation/player_image.dart';
 import '../foundation/player_input_scope.dart';
 import '../foundation/player_menu_components.dart';
@@ -380,48 +381,55 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           (constraints.maxHeight < 300 ||
               constraints.maxHeight < 500 &&
                   MediaQuery.textScalerOf(context).scale(1) >= 1.5);
-      Widget buildReturnAction({
-        bool iconOnly = false,
-      }) => PlayerMenuSelectableRow(
-        id: 'pause-frame-return',
-        label: returnLabel,
-        labelStyle: isRoot
-            ? tokens.actionLabel.copyWith(
-                fontSize:
-                    constraints.maxWidth > constraints.maxHeight &&
-                        !PlayerCompanionScope.of(context)
-                    ? 13
-                    : null,
-              )
-            : null,
-        labelMaxLines: 1,
-        iconOnly: iconOnly,
-        reserveFocusMarker: false,
-        leading: Icon(isRoot ? Icons.play_arrow_outlined : Icons.arrow_back),
-        integrated: false,
-        selected:
-            isRoot && _focusController.logicalSelectionId == null ||
-            isRoot && _focusController.logicalSelectionId == 'pause.resume',
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        showFocusHighlight: _focusController.showFocusHighlight,
-        focusNode: isRoot
-            ? _focusController.nodeFor(
-                'pause.resume',
-                debugLabel: 'Player action: $returnLabel',
-              )
-            : _detailReturnFocus,
-        disabledReason: isRoot ? resume.disabledReason : null,
-        onPressed: isRoot && !resume.isEnabled
-            ? null
-            : () {
-                if (isRoot) {
-                  _focusController.select('pause.resume');
-                  widget.onSelected(PlayerPauseAction.resume);
-                } else {
-                  widget.onBackToRoot();
-                }
-              },
-      );
+      Widget buildReturnAction({bool iconOnly = false}) =>
+          PlayerMenuSelectableRow(
+            id: 'pause-frame-return',
+            button: true,
+            contentGap: 5,
+            label: returnLabel,
+            labelStyle: isRoot
+                ? tokens.actionLabel.copyWith(
+                    fontSize:
+                        constraints.maxWidth > constraints.maxHeight &&
+                            !PlayerCompanionScope.of(context)
+                        ? 13
+                        : null,
+                  )
+                : null,
+            labelMaxLines: 1,
+            iconOnly: iconOnly,
+            reserveFocusMarker: false,
+            leading: PlayerMenuIcon(
+              isRoot ? PlayerMenuGlyph.play : PlayerMenuGlyph.back,
+              size: 18,
+            ),
+            integrated: false,
+            selected:
+                isRoot && _focusController.logicalSelectionId == null ||
+                isRoot && _focusController.logicalSelectionId == 'pause.resume',
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 4,
+              vertical: 10,
+            ),
+            showFocusHighlight: _focusController.showFocusHighlight,
+            focusNode: isRoot
+                ? _focusController.nodeFor(
+                    'pause.resume',
+                    debugLabel: 'Player action: $returnLabel',
+                  )
+                : _detailReturnFocus,
+            disabledReason: isRoot ? resume.disabledReason : null,
+            onPressed: isRoot && !resume.isEnabled
+                ? null
+                : () {
+                    if (isRoot) {
+                      _focusController.select('pause.resume');
+                      widget.onSelected(PlayerPauseAction.resume);
+                    } else {
+                      widget.onBackToRoot();
+                    }
+                  },
+          );
       final footer = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -579,6 +587,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     return PlayerMenuSelectableRow(
       key: const ValueKey('pause.save'),
       id: 'pause.save',
+      button: true,
+      contentGap: 5,
       reserveFocusMarker: false,
       iconOnly: iconOnly,
       label: _presentation.label(PlayerPauseAction.save, context.playerL10n),
@@ -590,7 +600,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             : null,
       ),
       labelMaxLines: 1,
-      leading: const Icon(Icons.save_outlined),
+      leading: const PlayerMenuIcon(PlayerMenuGlyph.save, size: 18),
       integrated: false,
       minimumHeight: 48,
       contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -621,10 +631,11 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       child: PlayerMenuSelectableRow(
         key: const ValueKey('pause.returnToTitle'),
         id: 'pause.returnToTitle',
+        button: true,
         label: label,
         iconOnly: true,
         reserveFocusMarker: false,
-        leading: const Icon(Icons.logout_rounded),
+        leading: const PlayerMenuIcon(PlayerMenuGlyph.exit, size: 18),
         minimumHeight: 48,
         contentPadding: const EdgeInsets.all(8),
         showFocusHighlight: _focusController.showFocusHighlight,

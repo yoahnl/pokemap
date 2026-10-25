@@ -71,6 +71,8 @@ final class _TraceFile implements File {
   @override
   String get path => file.path;
   @override
+  bool get isAbsolute => p.isAbsolute(path);
+  @override
   Uri get uri => file.uri;
   @override
   File get absolute => File(p.absolute(path));
@@ -293,6 +295,8 @@ final class _TraceDirectory implements Directory {
   final SaveDiskTrace trace;
   @override
   String get path => directory.path;
+  @override
+  bool get isAbsolute => p.isAbsolute(path);
   @override
   Uri get uri => directory.uri;
   @override

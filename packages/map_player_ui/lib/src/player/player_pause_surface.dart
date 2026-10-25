@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
+import '../foundation/player_menu_icon.dart';
 import '../foundation/player_menu_components.dart';
 import '../foundation/player_paged_layout.dart';
 import '../theme/pokemap_player_menu_theme.dart';
@@ -65,9 +66,10 @@ final class PlayerPauseMenuLabels {
         PlayerPauseAction.bag => bag ?? l10n.bag,
         PlayerPauseAction.pokedex => pokedex ?? l10n.pokedex,
         PlayerPauseAction.map => map ?? l10n.map,
-        PlayerPauseAction.quests => quests ?? l10n.quests,
+        PlayerPauseAction.quests =>
+          quests ?? (l10n.locale.languageCode == 'fr' ? 'Journal' : 'Journal'),
         PlayerPauseAction.contacts =>
-          l10n.locale.languageCode == 'fr' ? 'Téléphone' : 'Phone',
+          l10n.locale.languageCode == 'fr' ? 'Contacts' : 'Contacts',
         PlayerPauseAction.profile => profile ?? l10n.profile,
         PlayerPauseAction.save => save ?? l10n.save,
         PlayerPauseAction.options => options ?? l10n.options,
@@ -183,9 +185,21 @@ final class PlayerPausePresentation {
 
   List<PlayerPauseAction> get visibleActions =>
       List<PlayerPauseAction>.unmodifiable(
-        (actionOrder ?? PlayerPauseAction.values).where(
-          (action) => !hiddenActions.contains(action),
-        ),
+        (actionOrder ??
+                const [
+                  PlayerPauseAction.resume,
+                  PlayerPauseAction.party,
+                  PlayerPauseAction.bag,
+                  PlayerPauseAction.pokedex,
+                  PlayerPauseAction.map,
+                  PlayerPauseAction.quests,
+                  PlayerPauseAction.contacts,
+                  PlayerPauseAction.profile,
+                  PlayerPauseAction.save,
+                  PlayerPauseAction.options,
+                  PlayerPauseAction.returnToTitle,
+                ])
+            .where((action) => !hiddenActions.contains(action)),
       );
 
   String resolvedTitle(PokeMapPlayerLocalizations l10n) => title ?? l10n.pause;
@@ -624,7 +638,10 @@ class PlayerPauseNavigation extends StatelessWidget {
     final controller = focusController;
     if (illustrated || fillViewport) {
       final theme = context.playerMenuTheme;
-      final selected = controller?.logicalSelectionId == logicalId;
+      final selected =
+          controller?.logicalSelectionId == logicalId ||
+          (controller?.showFocusHighlight != true &&
+              action == firstEnabledAction);
       final color = selected
           ? theme.selectionText
           : switch (action) {
@@ -650,7 +667,7 @@ class PlayerPauseNavigation extends StatelessWidget {
             : null,
         reserveFocusMarker: !mobileGrid && !fillViewport,
         trailing: mobileGrid || fillViewport
-            ? const Icon(Icons.chevron_right_rounded, size: 16)
+            ? const PlayerMenuIcon(PlayerMenuGlyph.chevron, size: 16)
             : null,
         trailingWidth: mobileGrid || fillViewport ? 16 : null,
         labelMaxLines: mobileGrid || fillViewport ? 1 : null,
@@ -661,13 +678,31 @@ class PlayerPauseNavigation extends StatelessWidget {
               : mobileTiles
               ? 20
               : 48,
-          child: Icon(
-            presentation.icon(action),
-            size: mobileTiles ? 20 : 32,
-            color: mobileGrid || fillViewport
-                ? (selected ? theme.selectionText : theme.text)
-                : color,
-          ),
+          child: presentation.actionIcons.containsKey(action)
+              ? Icon(
+                  presentation.icon(action),
+                  size: mobileTiles ? 20 : 32,
+                  color: mobileGrid || fillViewport
+                      ? (selected ? theme.selectionText : theme.text)
+                      : color,
+                )
+              : PlayerMenuIcon(
+                  switch (action) {
+                    PlayerPauseAction.resume => PlayerMenuGlyph.play,
+                    PlayerPauseAction.party => PlayerMenuGlyph.party,
+                    PlayerPauseAction.bag => PlayerMenuGlyph.bag,
+                    PlayerPauseAction.pokedex => PlayerMenuGlyph.dex,
+                    PlayerPauseAction.map => PlayerMenuGlyph.map,
+                    PlayerPauseAction.quests => PlayerMenuGlyph.journal,
+                    PlayerPauseAction.contacts => PlayerMenuGlyph.phone,
+                    PlayerPauseAction.profile => PlayerMenuGlyph.profile,
+                    PlayerPauseAction.save => PlayerMenuGlyph.save,
+                    PlayerPauseAction.options => PlayerMenuGlyph.options,
+                    PlayerPauseAction.returnToTitle => PlayerMenuGlyph.exit,
+                  },
+                  size: mobileTiles ? 20 : 32,
+                  color: selected ? theme.selectionText : theme.text,
+                ),
         ),
         integrated: !mobileTiles && !fillViewport,
         tile: false,

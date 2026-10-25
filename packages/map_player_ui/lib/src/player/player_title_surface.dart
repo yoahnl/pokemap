@@ -13,6 +13,8 @@ import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
+import '../theme/pokemap_player_menu_theme.dart';
+import '../theme/pokemap_player_window_theme.dart';
 import 'runtime_player_focus_controller.dart';
 
 enum PlayerTitleMenuAction {
@@ -273,6 +275,21 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
   );
 
   Widget _build(BuildContext context) {
+    final usesDefaultComposition =
+        context.playerLayoutTheme == null &&
+        context.playerWindowTheme == null &&
+        switch (data.layoutVariant) {
+          PlayerTitleLayoutVariant.standard ||
+          PlayerTitleLayoutVariant.runtimeStartup ||
+          PlayerTitleLayoutVariant.runtimeStartupCinematic => true,
+          _ => false,
+        };
+    if (usesDefaultComposition) {
+      return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.title,
+        child: Builder(builder: _buildLigueTitle),
+      );
+    }
     if (data.layoutVariant == PlayerTitleLayoutVariant.runtimeStartup ||
         data.layoutVariant ==
             PlayerTitleLayoutVariant.runtimeStartupCinematic) {
@@ -493,6 +510,300 @@ class _PlayerTitleSurfaceState extends State<PlayerTitleSurface> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLigueTitle(BuildContext context) {
+    final theme = context.playerMenuTheme;
+    final firstEnabled = data.actions.keys
+        .where((action) => _availability(context, action).isEnabled)
+        .firstOrNull;
+    final initial = data.initialSelection;
+    final firstSelection =
+        initial != null && _availability(context, initial).isEnabled
+        ? initial
+        : firstEnabled;
+    return Scaffold(
+      body: _PlayerTitleBackground(
+        background: data.background,
+        backgroundContent: data.backgroundContent,
+        backgroundColor: theme.base,
+        scrimColor: theme.shadow,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final landscape = constraints.maxWidth > constraints.maxHeight;
+              final companion = PlayerCompanionScope.of(context);
+              final horizontal = landscape && !companion ? 52.0 : 24.0;
+              final vertical = landscape ? 24.0 : 28.0;
+              final showHints = PlayerInputScope.usesController(context);
+              final hintHeight = companion ? 32.0 : 48.0;
+              final hintGap = companion ? 8.0 : 32.0;
+              final availableHeight =
+                  constraints.maxHeight -
+                  vertical * 2 -
+                  (showHints ? hintHeight + hintGap : 0);
+              final actions = data.actions.keys.toList(growable: false);
+              final paired =
+                  actions.length >= 2 &&
+                  actions[actions.length - 2] ==
+                      PlayerTitleMenuAction.creditsAbout &&
+                  actions.last == PlayerTitleMenuAction.returnToHub;
+              Widget action(
+                PlayerTitleMenuAction action, {
+                bool pairedAction = false,
+              }) {
+                final selected = _isStartupHighlighted(action, firstSelection);
+                final availability = _availability(context, action);
+                final selection = theme.rowPresentation([
+                  data.accentColor ?? theme.selectionTop,
+                ], preferredForeground: theme.selectionText);
+                return PlayerActionButton(
+                  key: ValueKey(_logicalId(action)),
+                  label: _label(context, action),
+                  icon: _icon(action),
+                  expandContent: true,
+                  labelMaxLines: pairedAction ? 2 : 1,
+                  autofocus: action == firstSelection,
+                  focusNode: _focusNode(action),
+                  showFocusHighlight: focusController.showFocusHighlight,
+                  selected: selected,
+                  secondary: !selected,
+                  backgroundColor: selected
+                      ? selection.backgrounds.first
+                      : theme.panel,
+                  foregroundColor: selected ? selection.foreground : theme.text,
+                  disabledReason: availability.disabledReason,
+                  onPressed: availability.isEnabled
+                      ? () => _select(action)
+                      : null,
+                );
+              }
+
+              final rows = <Widget>[
+                for (final entry in actions.take(
+                  paired ? actions.length - 2 : actions.length,
+                ))
+                  action(entry),
+                if (paired)
+                  Row(
+                    key: const ValueKey('title.finalActions'),
+                    children: [
+                      Expanded(
+                        child: action(
+                          actions[actions.length - 2],
+                          pairedAction: true,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: action(actions.last, pairedAction: true)),
+                    ],
+                  ),
+              ];
+              final selectedId = _pageSelectionId(firstSelection);
+              final revealId =
+                  paired &&
+                      (selectedId ==
+                              _logicalId(PlayerTitleMenuAction.creditsAbout) ||
+                          selectedId ==
+                              _logicalId(PlayerTitleMenuAction.returnToHub))
+                  ? 'title.finalActions'
+                  : selectedId;
+              final menu = FocusTraversalGroup(
+                policy: OrderedTraversalPolicy(),
+                child: PlayerPagedList(
+                  onPageReady: () => _pageReady(firstSelection),
+                  revealChildKey: ValueKey<String>(revealId ?? ''),
+                  spacing: 8,
+                  children: rows,
+                ),
+              );
+              final branding = _ligueBranding(context, landscape: landscape);
+              final scaledLine = MediaQuery.textScalerOf(context).scale(16);
+              final rowHeight = math.max(48.0, scaledLine * 1.5 + 20);
+              final menuHeight =
+                  rows.length * rowHeight +
+                  (paired
+                      ? math.max(0, scaledLine * 2.5 + 20 - rowHeight)
+                      : 0) +
+                  math.max(0, rows.length - 1) * 8;
+              final composition = landscape && !companion
+                  ? Row(
+                      key: const ValueKey('player-title-startup-expanded'),
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(child: branding),
+                        const SizedBox(width: 32),
+                        SizedBox(
+                          key: const ValueKey('player-title-startup-menu'),
+                          width: math.min(310, constraints.maxWidth * .44),
+                          height: math.min(menuHeight, availableHeight),
+                          child: menu,
+                        ),
+                      ],
+                    )
+                  : Column(
+                      key: const ValueKey('player-title-startup-compact'),
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomLeft,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.bottomLeft,
+                              child: SizedBox(
+                                width: math.max(
+                                  0,
+                                  constraints.maxWidth - horizontal * 2,
+                                ),
+                                child: branding,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          key: const ValueKey('player-title-startup-menu'),
+                          height: math.min(
+                            menuHeight,
+                            math.max(
+                              48,
+                              availableHeight - (companion ? 0 : 120),
+                            ),
+                          ),
+                          child: menu,
+                        ),
+                      ],
+                    );
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontal,
+                  vertical: vertical,
+                ),
+                child: showHints
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: composition),
+                          SizedBox(height: hintGap),
+                          SizedBox(
+                            height: hintHeight,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: PlayerInputScope.usesKeyboard(context)
+                                  ? _startupPremiumControls(context)
+                                  : Row(
+                                      children: [
+                                        _startupPremiumKey(
+                                          context,
+                                          width: 24,
+                                          child: Text(
+                                            'A',
+                                            style: theme.meta.copyWith(
+                                              color: theme.text,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          context.playerL10n.choose,
+                                          style: theme.meta.copyWith(
+                                            color: theme.secondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : composition,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _ligueBranding(BuildContext context, {required bool landscape}) {
+    final theme = context.playerMenuTheme;
+    return Column(
+      key: const ValueKey('player-title-ligue-branding'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (data.author.isNotEmpty) ...[
+          Text(
+            data.author,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.meta.copyWith(
+              color: theme.secondary,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (data.logo != null)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 100),
+            child: PlayerProvidedImage(
+              image: data.logo!,
+              fit: BoxFit.contain,
+              semanticLabel: data.gameTitle,
+            ),
+          )
+        else
+          SizedBox(
+            key: const ValueKey('player-title-premium-title'),
+            height: landscape ? 104 : 94,
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                data.gameTitle,
+                softWrap: false,
+                style: context.playerTypography.displayStyle(
+                  TextStyle(
+                    color: theme.text,
+                    fontSize: landscape ? 46 : 40,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -2,
+                    height: 1.05,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (data.description case final description?) ...[
+          Text(
+            description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.meta.copyWith(color: theme.secondary),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (data.continueSave != null)
+          Container(
+            key: const ValueKey('player-title-continue-save'),
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: theme.panel,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: theme.border),
+            ),
+            child: _continueSaveMetadata(
+              context,
+              color: theme.text,
+              fontSize: 14,
+            ),
+          ),
+      ],
     );
   }
 

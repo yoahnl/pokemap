@@ -60,7 +60,9 @@ class _RuntimePlayerContactsState extends State<RuntimePlayerContacts> {
             leading: contact.portraitFilePath == null
                 ? const Icon(Icons.phone_outlined, size: 24)
                 : PlayerImageBuilder(
+                    key: ValueKey('contact-portrait-source-${contact.id}'),
                     path: contact.portraitFilePath!,
+                    fallback: const Icon(Icons.person_outline, size: 40),
                     builder: (context, image) => RawImage(
                       key: ValueKey('contact-portrait-${contact.id}'),
                       image: image,

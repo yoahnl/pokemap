@@ -97,81 +97,91 @@ class _RuntimePlayerJournalState extends State<RuntimePlayerJournal> {
       onKeyEvent: _onKey,
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final rows = <Widget>[
+            for (final entry in widget.detail.entries)
+              PlayerMenuSelectableRow(
+                key: ValueKey('journal-entry-${entry.id}'),
+                id: 'journal-entry-${entry.id}',
+                label: [entry.title, ?entry.subtitle].join(' · '),
+                labelStyle: theme.label.copyWith(
+                  fontSize: companion ? 12 : 14,
+                  height: 1.35,
+                ),
+                minimumHeight: companion ? 64 : 56,
+                contentPadding: EdgeInsets.all(companion ? 8 : 12),
+                selected: entry.id == selected?.id,
+                focusNode: _focusNode(entry.id),
+                onFocusChanged: (focused) {
+                  if (focused) _select(entry.id);
+                },
+                onPressed: () => _select(entry.id, requestFocus: true),
+              ),
+          ];
           final list = PlayerPagedList(
             key: const ValueKey('journal-list'),
             revealChildKey: selected == null
                 ? null
                 : ValueKey('journal-entry-${selected.id}'),
-            children: [
-              for (final entry in widget.detail.entries)
-                PlayerMenuSelectableRow(
-                  key: ValueKey('journal-entry-${entry.id}'),
-                  id: 'journal-entry-${entry.id}',
-                  label: [
-                    entry.title,
-                    if (entry.subtitle case final subtitle?) subtitle,
-                  ].join(' · '),
-                  labelStyle: theme.label.copyWith(
-                    fontSize: companion ? 12 : 14,
-                    height: 1.35,
+            children: rows,
+          );
+          final detailItems = <Widget>[
+            if (selected != null) ...[
+              Text(
+                selected.title,
+                key: const ValueKey('journal-selected-title'),
+                style: theme.title.copyWith(
+                  fontSize: companion ? 16 : 20,
+                  height: 1.3,
+                ),
+              ),
+              if (selected.subtitle case final subtitle?)
+                Text(
+                  subtitle,
+                  key: const ValueKey('journal-selected-subtitle'),
+                  style: theme.body.copyWith(
+                    fontSize: companion ? 13 : 16,
+                    height: 1.4,
                   ),
-                  minimumHeight: companion ? 64 : 56,
-                  contentPadding: EdgeInsets.all(companion ? 8 : 12),
-                  selected: entry.id == selected?.id,
-                  focusNode: _focusNode(entry.id),
-                  onFocusChanged: (focused) {
-                    if (focused) _select(entry.id);
-                  },
-                  onPressed: () => _select(entry.id, requestFocus: true),
+                ),
+              if (selected.trailingLabel case final trailing?)
+                Text(
+                  trailing,
+                  key: const ValueKey('journal-selected-status'),
+                  style: theme.meta.copyWith(color: theme.secondary),
+                ),
+              if (selected.progress case final progress?)
+                LinearProgressIndicator(
+                  key: const ValueKey('journal-selected-progress'),
+                  value: progress,
+                  color: theme.accent,
+                  backgroundColor: theme.recessed,
                 ),
             ],
-          );
+            if (widget.detail.message case final message?)
+              Text(message, style: theme.body),
+          ];
           final detail = PlayerMenuPanel(
             key: const ValueKey('journal-detail'),
             padding: EdgeInsets.all(companion ? 12 : 16),
             child: PlayerPagedList(
               key: ValueKey('journal-detail-${selected?.id}'),
-              children: [
-                if (selected != null) ...[
-                  Text(
-                    selected.title,
-                    key: const ValueKey('journal-selected-title'),
-                    style: theme.title.copyWith(
-                      fontSize: companion ? 16 : 20,
-                      height: 1.3,
-                    ),
-                  ),
-                  if (selected.subtitle case final subtitle?)
-                    Text(
-                      subtitle,
-                      key: const ValueKey('journal-selected-subtitle'),
-                      style: theme.body.copyWith(
-                        fontSize: companion ? 13 : 16,
-                        height: 1.4,
-                      ),
-                    ),
-                  if (selected.trailingLabel case final trailing?)
-                    Text(
-                      trailing,
-                      key: const ValueKey('journal-selected-status'),
-                      style: theme.meta.copyWith(color: theme.secondary),
-                    ),
-                  if (selected.progress case final progress?)
-                    LinearProgressIndicator(
-                      key: const ValueKey('journal-selected-progress'),
-                      value: progress,
-                      color: theme.accent,
-                      backgroundColor: theme.recessed,
-                    ),
-                ],
-                if (widget.detail.message case final message?)
-                  Text(message, style: theme.body),
-              ],
+              children: detailItems,
             ),
           );
           return SizedBox.expand(
             key: const ValueKey('runtime-player-detail-quests'),
-            child: wide
+            child: scale >= 1.8
+                ? PlayerPagedList(
+                    children: [
+                      ...rows,
+                      for (final item in detailItems)
+                        PlayerMenuPanel(
+                          padding: const EdgeInsets.all(12),
+                          child: item,
+                        ),
+                    ],
+                  )
+                : wide
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

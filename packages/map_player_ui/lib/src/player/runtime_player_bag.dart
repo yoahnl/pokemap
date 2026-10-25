@@ -739,6 +739,11 @@ class _RuntimePlayerBagState extends State<RuntimePlayerBag> {
                 for (final child in children) IntrinsicWidth(child: child),
               ],
             )
+          : children.isEmpty
+          ? Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(width: 88, child: returnAction),
+            )
           : PlayerMenuActionGroup(children: [...children, returnAction]),
     );
   }

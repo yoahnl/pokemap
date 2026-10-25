@@ -12,7 +12,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 /// gives it. Asserting that instead of a line count means the test says which
 /// word overflows and by how much.
 void main() {
-  testWidgets('startup sidebar fits the complete long title in 392 pixels', (
+  testWidgets('startup title fits complete long words beside its action menu', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1000, 700);
@@ -38,7 +38,7 @@ void main() {
       ),
     );
     final sidebar = find.byKey(const ValueKey('player-title-startup-menu'));
-    expect(tester.getSize(sidebar).width, 392);
+    expect(tester.getSize(sidebar).width, 310);
     final titleBox = find.byKey(const ValueKey('player-title-premium-title'));
     final richText = find.descendant(
       of: titleBox,
@@ -108,7 +108,8 @@ void main() {
         expect(
           painter.width,
           lessThanOrEqualTo(available),
-          reason: '"$word" needs ${painter.width.toStringAsFixed(1)}pt but the '
+          reason:
+              '"$word" needs ${painter.width.toStringAsFixed(1)}pt but the '
               'title box offers ${available.toStringAsFixed(1)}pt, so Flutter '
               'breaks inside the word',
         );

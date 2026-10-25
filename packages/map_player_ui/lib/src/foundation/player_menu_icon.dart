@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 enum PlayerMenuGlyph {
   party,
@@ -22,15 +24,37 @@ class PlayerMenuIcon extends StatelessWidget {
   final PlayerMenuGlyph glyph;
   final double size;
   final Color? color;
+  static bool _licenseRegistered = false;
+  static void _registerLicense() {
+    if (_licenseRegistered) return;
+    _licenseRegistered = true;
+    LicenseRegistry.addLicense(() async* {
+      yield LicenseEntryWithLineBreaks(
+        ['Lucide'],
+        await rootBundle.loadString(
+          'packages/map_player_ui/assets/icons/lucide-LICENSE.txt',
+        ),
+      );
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-    child: SizedBox.square(
-      dimension: size,
-      child: CustomPaint(
-        painter: _MenuIconPainter(glyph, color ?? IconTheme.of(context).color!),
+  Widget build(BuildContext context) {
+    _registerLicense();
+    return ExcludeSemantics(
+      child: SizedBox.square(
+        dimension: size,
+        child: CustomPaint(
+          painter: _MenuIconPainter(
+            glyph,
+            color ??
+                IconTheme.of(context).color ??
+                Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _MenuIconPainter extends CustomPainter {

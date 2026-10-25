@@ -7,6 +7,73 @@ import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
   testWidgets(
+    'confirmation is centered and selection shows four choices without pagination',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(844, 390));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final results = <SceneInteractionResult>[];
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.confirmation(
+            requestId: 'ligue-confirmation',
+            revision: 1,
+            prompt: _prompt('Continuer ?'),
+          ),
+          results: results,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final modal = tester.getRect(
+        find.byKey(const ValueKey('scene-interaction-panel')),
+      );
+      expect(modal.width, 500);
+      expect(modal.center, const Offset(422, 195));
+      await tester.tap(
+        find.byKey(const ValueKey('scene-interaction-confirm-no')),
+      );
+      expect(
+        (results.single as SceneConfirmedInteractionResult).value,
+        isFalse,
+      );
+      await tester.pumpWidget(
+        _app(
+          request: SceneInteractionRequest.selection(
+            requestId: 'ligue-selection',
+            revision: 2,
+            prompt: _prompt('Choisissez vos compagnons'),
+            options: [
+              for (final id in ['a', 'b', 'c', 'd'])
+                _option(id, 'Compagnon $id'),
+            ],
+            constraints: SceneSelectionConstraints(
+              minSelections: 1,
+              maxSelections: 2,
+            ),
+          ),
+          results: results,
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final id in ['a', 'b', 'c', 'd']) {
+        expect(
+          find.byKey(ValueKey('scene-interaction-option-$id')).hitTestable(),
+          findsOneWidget,
+        );
+      }
+      expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      final a = tester.getRect(
+        find.byKey(const ValueKey('scene-interaction-option-a')),
+      );
+      final b = tester.getRect(
+        find.byKey(const ValueKey('scene-interaction-option-b')),
+      );
+      expect(a.top, b.top);
+      expect(b.left - a.right, greaterThanOrEqualTo(8));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'landscape choices share one row at the bottom and cancellation remains readable',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(844, 390));
@@ -41,12 +108,14 @@ void main() {
       );
       expect(panel.bottom, 374);
       expect(panel.height, lessThan(180));
-      final cancel = find.descendant(
-        of: find.byKey(const ValueKey('scene-interaction-cancel')),
-        matching: find.text('Annuler'),
+      final cancel = tester.widget<IconButton>(
+        find.byKey(const ValueKey('scene-interaction-cancel')),
       );
-      final paragraph = tester.renderObject<RenderParagraph>(cancel);
-      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(cancel.tooltip, 'Annuler');
+      expect(
+        tester.getSize(find.byKey(const ValueKey('scene-interaction-cancel'))),
+        const Size(48, 48),
+      );
       await tester.tap(find.byKey(const ValueKey('scene-interaction-cancel')));
       expect(results.single, isA<SceneCancelledInteractionResult>());
       expect(tester.takeException(), isNull);
@@ -991,18 +1060,15 @@ void main() {
     await tester.pump();
 
     final prompt = tester.widget<Text>(find.text('Quel est ton prénom ?'));
-    final cancel = tester.widget<Text>(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('scene-interaction-cancel')),
-        matching: find.text('Annuler'),
-      ),
+    final cancel = tester.widget<IconButton>(
+      find.byKey(const ValueKey('scene-interaction-cancel')),
     );
     final fieldContext = tester.element(
       find.byKey(const ValueKey<String>('scene-interaction-text-field')),
     );
 
     expect(prompt.style?.color, semantic.textPrimary);
-    expect(cancel.style?.color, semantic.textPrimary);
+    expect(cancel.style?.foregroundColor?.resolve({}), semantic.textPrimary);
     expect(
       Theme.of(fieldContext).colorScheme.onSurfaceVariant,
       semantic.textSecondary,

@@ -298,8 +298,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
           style: theme.meta.copyWith(fontSize: 10),
         ),
       ),
-      for (final statistic in statistics)
-        _statistics([statistic], stacked: false),
+      if (statistics.isNotEmpty) _statistics(statistics, stacked: false),
       if (profile.badges.isNotEmpty) ...[
         Semantics(
           header: true,

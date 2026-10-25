@@ -863,7 +863,7 @@ abstract final class PokeMapPlayerTheme {
       brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: colors.background,
-      fontFamily: 'Avenir Next',
+      fontFamily: 'packages/map_player_ui/PokeMapSplashDMSans',
       visualDensity: VisualDensity.standard,
     );
     final textTheme = base.textTheme.copyWith(

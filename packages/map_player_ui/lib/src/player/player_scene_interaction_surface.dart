@@ -175,16 +175,22 @@ class _PlayerSceneInteractionSurfaceState
     if (request is SceneMessageInteractionRequest) {
       return _buildMessageDialogue(context, request);
     }
+    final selection = request is SceneSelectionInteractionRequest;
+    final centered =
+        request is SceneConfirmationInteractionRequest ||
+        request is SceneTextInteractionRequest ||
+        request is SceneIntegerInteractionRequest;
+    final panelWidth = selection
+        ? constraints.maxWidth
+        : centered
+        ? 500.0
+        : 680.0;
     _contentWidth = math.max(
       1.0,
-      math.min(
-            constraints.maxWidth - 32,
-            constraints.maxWidth < 600 ? 520.0 : 680.0,
-          ) -
-          32,
+      math.min(constraints.maxWidth - 32, panelWidth) - 32,
     );
     _choiceColumns =
-        request is SceneChoiceInteractionRequest &&
+        (request is SceneChoiceInteractionRequest || selection) &&
             constraints.maxWidth > constraints.maxHeight &&
             _contentWidth >= 480 &&
             MediaQuery.textScalerOf(context).scale(1) < 1.5
@@ -215,18 +221,7 @@ class _PlayerSceneInteractionSurfaceState
       );
     }
     final strings = PlayerSceneInteractionStrings.of(context);
-    final cancelLabel = TextPainter(
-      text: TextSpan(
-        text: strings.cancel,
-        style: context.playerTypography.bodyStyle(
-          Theme.of(context).textTheme.labelLarge ?? const TextStyle(),
-        ),
-      ),
-      textScaler: MediaQuery.textScalerOf(context),
-      textDirection: Directionality.of(context),
-    )..layout();
-    final cancelWidth = math.max(96.0, cancelLabel.width + 40);
-    cancelLabel.dispose();
+    const cancelWidth = 48.0;
     final canCancel =
         widget.allowCancellation &&
         (request is! SceneIntegerInteractionRequest || request.allowCancel);
@@ -263,136 +258,155 @@ class _PlayerSceneInteractionSurfaceState
               PlayerSpacing.sm +
               requestHeight +
               (validationMessage == null ? 0 : PlayerSpacing.sm + errorHeight);
-    return Actions(
-      key: const ValueKey<String>('scene-interaction-actions'),
-      actions: <Type, Action<Intent>>{
-        RuntimePlayerLogicalIntent: CallbackAction<RuntimePlayerLogicalIntent>(
-          onInvoke: _handleLogicalIntent,
-        ),
-      },
-      child: CallbackShortcuts(
-        bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(LogicalKeyboardKey.escape): _cancel,
+    return ColoredBox(
+      color: context.playerMenuTheme.shadow.withValues(
+        alpha: centered || selection ? .5 : 0,
+      ),
+      child: Actions(
+        key: const ValueKey<String>('scene-interaction-actions'),
+        actions: <Type, Action<Intent>>{
+          RuntimePlayerLogicalIntent:
+              CallbackAction<RuntimePlayerLogicalIntent>(
+                onInvoke: _handleLogicalIntent,
+              ),
         },
-        child: AnimatedPadding(
-          duration: context.playerMotion.fast,
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.maybeOf(context)?.viewInsets.bottom ?? 0,
-          ),
-          child: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) => Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(PlayerSpacing.md),
-                  child: SizedBox(
-                    key: const ValueKey<String>('scene-interaction-panel'),
-                    width: constraints.maxWidth < 600 ? 520 : 680,
-                    height: math.max(
-                      0,
-                      math.min(
-                        math.min(620, naturalHeight ?? 620),
-                        constraints.maxHeight - PlayerSpacing.md * 2,
+        child: CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.escape): _cancel,
+          },
+          child: AnimatedPadding(
+            duration: context.playerMotion.fast,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.maybeOf(context)?.viewInsets.bottom ?? 0,
+            ),
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) => Align(
+                  alignment: centered || selection
+                      ? Alignment.center
+                      : Alignment.bottomCenter,
+                  child: Padding(
+                    padding: selection
+                        ? EdgeInsets.zero
+                        : const EdgeInsets.all(PlayerSpacing.md),
+                    child: SizedBox(
+                      key: const ValueKey<String>('scene-interaction-panel'),
+                      width: panelWidth,
+                      height: math.max(
+                        0,
+                        math.min(
+                          selection
+                              ? constraints.maxHeight
+                              : math.min(620, naturalHeight ?? 620),
+                          constraints.maxHeight -
+                              (selection ? 0 : PlayerSpacing.md * 2),
+                        ),
                       ),
-                    ),
-                    child: PlayerSurfacePaletteScope(
-                      role: ProjectPresentationSurfaceRole.dialogue,
-                      child: PlayerPanel(
-                        role: PlayerPanelRole.dialogue,
-                        elevated: true,
-                        padding: const EdgeInsets.all(PlayerSpacing.md),
-                        surfaceColorOverride: context.playerMenuTheme.base,
-                        textColorOverride: context.playerMenuTheme.text,
-                        borderColorOverride: context.playerMenuTheme.border,
-                        child: Semantics(
-                          scopesRoute: true,
-                          namesRoute: true,
-                          explicitChildNodes: true,
-                          label: prompt,
-                          child: FocusTraversalGroup(
-                            key: ValueKey<String>(
-                              'scene-interaction-${request.requestId}-${request.revision}',
-                            ),
-                            policy: OrderedTraversalPolicy(),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _measure(
-                                  headerId,
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          prompt,
-                                          maxLines: 3,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium,
-                                        ),
-                                      ),
-                                      if (widget.allowCancellation &&
-                                          (request
-                                                  is! SceneIntegerInteractionRequest ||
-                                              request.allowCancel))
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            left: PlayerSpacing.xs,
+                      child: PlayerSurfacePaletteScope(
+                        role: ProjectPresentationSurfaceRole.dialogue,
+                        child: PlayerPanel(
+                          role: PlayerPanelRole.dialogue,
+                          elevated: true,
+                          padding: const EdgeInsets.all(PlayerSpacing.md),
+                          surfaceColorOverride: context.playerMenuTheme.base,
+                          textColorOverride: context.playerMenuTheme.text,
+                          borderColorOverride: context.playerMenuTheme.border,
+                          child: Semantics(
+                            scopesRoute: true,
+                            namesRoute: true,
+                            explicitChildNodes: true,
+                            label: prompt,
+                            child: FocusTraversalGroup(
+                              key: ValueKey<String>(
+                                'scene-interaction-${request.requestId}-${request.revision}',
+                              ),
+                              policy: OrderedTraversalPolicy(),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _measure(
+                                    headerId,
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            prompt,
+                                            maxLines: 3,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: context
+                                                .playerMenuTheme
+                                                .subtitle,
                                           ),
-                                          child: SizedBox(
-                                            width: cancelWidth,
-                                            child: PlayerActionButton(
-                                              key: const ValueKey(
-                                                'scene-interaction-cancel',
+                                        ),
+                                        if (widget.allowCancellation &&
+                                            (request
+                                                    is! SceneIntegerInteractionRequest ||
+                                                request.allowCancel))
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: PlayerSpacing.xs,
+                                            ),
+                                            child: SizedBox(
+                                              width: cancelWidth,
+                                              child: IconButton(
+                                                key: const ValueKey(
+                                                  'scene-interaction-cancel',
+                                                ),
+                                                tooltip: strings.cancel,
+                                                icon: const Icon(Icons.close),
+                                                style: IconButton.styleFrom(
+                                                  minimumSize: const Size(
+                                                    48,
+                                                    48,
+                                                  ),
+                                                  foregroundColor: context
+                                                      .playerMenuTheme
+                                                      .text,
+                                                  backgroundColor: context
+                                                      .playerMenuTheme
+                                                      .recessed,
+                                                ),
+                                                onPressed: _terminal
+                                                    ? null
+                                                    : _cancel,
                                               ),
-                                              label: strings.cancel,
-                                              icon: null,
-                                              secondary: true,
-                                              quiet: true,
-                                              backgroundColor: context
-                                                  .playerMenuTheme
-                                                  .recessed,
-                                              foregroundColor:
-                                                  context.playerMenuTheme.text,
-                                              onPressed: _terminal
-                                                  ? null
-                                                  : _cancel,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: PlayerSpacing.sm),
+                                  Expanded(
+                                    child: _buildRequest(
+                                      context,
+                                      request,
+                                      strings,
+                                    ),
+                                  ),
+                                  if (validationMessage case final message?)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: PlayerSpacing.sm,
+                                      ),
+                                      child: _measure(
+                                        errorId,
+                                        Semantics(
+                                          key: const ValueKey(
+                                            'scene-interaction-error',
+                                          ),
+                                          liveRegion: true,
+                                          child: Text(
+                                            message,
+                                            style: TextStyle(
+                                              color:
+                                                  context.playerColors.danger,
                                             ),
                                           ),
                                         ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: PlayerSpacing.sm),
-                                Expanded(
-                                  child: _buildRequest(
-                                    context,
-                                    request,
-                                    strings,
-                                  ),
-                                ),
-                                if (validationMessage case final message?)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: PlayerSpacing.sm,
-                                    ),
-                                    child: _measure(
-                                      errorId,
-                                      Semantics(
-                                        key: const ValueKey(
-                                          'scene-interaction-error',
-                                        ),
-                                        liveRegion: true,
-                                        child: Text(
-                                          message,
-                                          style: TextStyle(
-                                            color: context.playerColors.danger,
-                                          ),
-                                        ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -697,11 +711,39 @@ class _PlayerSceneInteractionSurfaceState
           child: PlayerPagedList(
             onContentHeightChanged: (height) =>
                 _rememberHeight('options', height),
-            revealChildKey: _firstOptionKey(options),
+            revealChildKey: _choiceRowKey(options),
             onPageReady: () => _focusOptions(request, options),
             children: [
-              for (var index = 0; index < options.length; index++)
-                _selectionButton(request, options[index], index, strings),
+              for (
+                var index = 0;
+                index < options.length;
+                index += _choiceColumns
+              )
+                IntrinsicHeight(
+                  key: ValueKey('scene-choice-row-${options[index].id}'),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (
+                        var column = 0;
+                        column < _choiceColumns;
+                        column++
+                      ) ...[
+                        if (column > 0) const SizedBox(width: 8),
+                        Expanded(
+                          child: index + column < options.length
+                              ? _selectionButton(
+                                  request,
+                                  options[index + column],
+                                  index + column,
+                                  strings,
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -753,17 +795,6 @@ class _PlayerSceneInteractionSurfaceState
         : ValueKey(
             'scene-choice-row-${options[index ~/ _choiceColumns * _choiceColumns].id}',
           );
-  }
-
-  Key? _firstOptionKey(List<SceneInteractionOption> options) {
-    final first =
-        options
-            .where((option) => option.enabled && option.id == _returnOptionId)
-            .firstOrNull ??
-        options.where((option) => option.enabled).firstOrNull;
-    return first == null
-        ? null
-        : ValueKey('scene-interaction-option-${first.id}');
   }
 
   void _focusOptions(

@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../theme/pokemap_player_layout_theme.dart';
 import 'player_paged_layout.dart';
+import 'player_menu_icon.dart';
 import 'player_input_scope.dart';
 import '../theme/pokemap_player_menu_theme.dart';
 import '../theme/pokemap_player_theme.dart';
@@ -374,7 +375,7 @@ class PlayerMenuBackButton extends StatelessWidget {
     return IconButton(
       tooltip: MaterialLocalizations.of(context).backButtonTooltip,
       onPressed: onPressed,
-      icon: const Icon(Icons.arrow_back_rounded, size: 22),
+      icon: const PlayerMenuIcon(PlayerMenuGlyph.back, size: 20),
       style: IconButton.styleFrom(
         minimumSize: const Size(48, 48),
         maximumSize: const Size(48, 48),
@@ -626,6 +627,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
     this.focusNode,
     this.integrated = false,
     this.tab = false,
+    this.button = false,
     this.iconOnly = false,
     this.tile = false,
     this.fitTileContent = false,
@@ -662,6 +664,7 @@ class PlayerMenuSelectableRow extends StatefulWidget {
   final FocusNode? focusNode;
   final bool integrated;
   final bool tab;
+  final bool button;
   final bool iconOnly;
   final bool tile;
   final bool fitTileContent;
@@ -701,6 +704,8 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
         ? Color.alphaBlend(theme.shadow.withValues(alpha: .08), theme.panel)
         : hovered && _enabled
         ? theme.recessed
+        : widget.button
+        ? theme.recessed
         : theme.panel;
     final decoration = BoxDecoration(
       gradient: LinearGradient(
@@ -711,8 +716,12 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
                 widget.tab || integrated ? theme.base : unselected,
               ),
       ),
-      borderRadius: BorderRadius.circular(PokeMapPlayerMenuTheme.rowRadius),
-      border: widget.tab
+      borderRadius: BorderRadius.circular(
+        widget.button ? 4 : PokeMapPlayerMenuTheme.rowRadius,
+      ),
+      border: widget.button
+          ? null
+          : widget.tab
           ? Border(
               bottom: BorderSide(
                 color: highlighted ? theme.accent : theme.border,
@@ -721,6 +730,8 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
             )
           : highlighted
           ? Border(left: BorderSide(color: theme.accent, width: 4))
+          : widget.button
+          ? null
           : Border(
               bottom: BorderSide(
                 color: theme.border,
@@ -772,6 +783,13 @@ class _PlayerMenuSelectableRowState extends State<PlayerMenuSelectableRow> {
           padding: actionScope == null
               ? widget.contentPadding
               : const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          foregroundDecoration: widget.button && highlighted
+              ? BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: theme.accent, width: 4),
+                  ),
+                )
+              : null,
           decoration: painted.copyWith(
             gradient: LinearGradient(
               begin: gradient.begin,

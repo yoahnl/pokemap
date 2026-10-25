@@ -143,11 +143,7 @@ void main() {
     await (FontLoader(
       'MaterialIcons',
     )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
-    for (final family in [
-      'packages/map_player_ui/PokeMapSplashDMSans',
-      'Aube Display',
-      'Avenir Next',
-    ]) {
+    for (final family in ['packages/map_player_ui/PokeMapSplashDMSans']) {
       await (FontLoader(family)..addFont(Future.value(font))).load();
     }
   });
@@ -390,7 +386,13 @@ void main() {
                       description: 'Une aventure à votre rythme',
                       backgroundContent: _image('world'),
                       actions: {
-                        for (final action in PlayerTitleMenuAction.values)
+                        for (final action in const [
+                          PlayerTitleMenuAction.continueGame,
+                          PlayerTitleMenuAction.newGame,
+                          PlayerTitleMenuAction.options,
+                          PlayerTitleMenuAction.creditsAbout,
+                          PlayerTitleMenuAction.returnToHub,
+                        ])
                           action: PlayerActionAvailability.enabled,
                       },
                     ),
@@ -795,6 +797,7 @@ final class _Harness {
           accessibility: GameSessionAccessibilityOptions(),
         ),
         favoriteItemIds: const {'item0'},
+        bagFavoritesAvailable: true,
         actions: [
           for (final action in RuntimePlayerAction.values)
             RuntimePlayerActionAvailability.enabled(action),

@@ -114,7 +114,7 @@ class PlayerPauseIllustratedRoot extends StatelessWidget {
           children: [
             ExcludeSemantics(child: background),
             ExcludeSemantics(
-              child: ColoredBox(color: theme.backdrop.withValues(alpha: .58)),
+              child: ColoredBox(color: theme.shadow.withValues(alpha: .5)),
             ),
             Align(
               alignment: tall ? Alignment.bottomCenter : Alignment.centerRight,
