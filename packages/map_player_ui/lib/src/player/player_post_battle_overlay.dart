@@ -21,7 +21,9 @@ class PlayerPostBattleOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kind = snapshot.choices.isEmpty && snapshot.summaryMessages.isNotEmpty
+    final kind = snapshot.hasFailure
+        ? RuntimePostBattleMessageKind.error
+        : snapshot.choices.isEmpty && snapshot.summaryMessages.isNotEmpty
         ? snapshot.summaryMessages.first.kind
         : snapshot.messageKind;
     return PlayerMenuThemeScope(
@@ -187,7 +189,7 @@ class PlayerPostBattleOverlay extends StatelessWidget {
                                   : PlayerPagedList(
                                       spacing: 8,
                                       children: [
-                                        if (hasDecision)
+                                        if (hasDecision || snapshot.hasFailure)
                                           Padding(
                                             key: const ValueKey(
                                               'post-battle-decision-prompt',

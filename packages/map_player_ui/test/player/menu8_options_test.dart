@@ -50,6 +50,65 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('companion audio separates text and thumbs inside 48px targets', (
+    tester,
+  ) async {
+    await _pumpIntegrated(tester, const Size(496, 432));
+    await _category(tester, 'audio');
+    final body = tester.getRect(find.byKey(const ValueKey('options-settings')));
+    final targets = <Rect>[];
+    for (final channel in ['master', 'music', 'effects']) {
+      final slider = find.byKey(ValueKey('options-$channel-slider'));
+      final setting = find.byKey(ValueKey('options-$channel-slider-setting'));
+      expect(slider.hitTestable(), findsOneWidget, reason: '$channel in $body');
+      final target = tester.getRect(slider);
+      final bounds = tester.getRect(setting);
+      targets.add(target);
+      expect(target.height, 48);
+      expect(bounds.height, 64);
+      expect(target.top, greaterThanOrEqualTo(bounds.top));
+      expect(target.bottom, lessThanOrEqualTo(bounds.bottom + .1));
+      final thumb = SliderTheme.of(tester.element(slider)).thumbShape!
+          .getPreferredSize(true, true);
+      final thumbTop = target.center.dy - thumb.height / 2;
+      final texts = find.descendant(of: setting, matching: find.byType(Text));
+      expect(texts, findsNWidgets(2));
+      for (final element in texts.evaluate()) {
+        final text = element.widget as Text;
+        final finder = find.byElementPredicate(
+          (candidate) => identical(candidate, element),
+        );
+        final rect = tester.getRect(finder);
+        final painter = TextPainter(
+          text: TextSpan(
+            text: text.data,
+            style: DefaultTextStyle.of(element).style.merge(text.style),
+          ),
+          textDirection: Directionality.of(element),
+          textScaler: MediaQuery.textScalerOf(element),
+          maxLines: text.maxLines,
+        )..layout(maxWidth: rect.width);
+        expect(painter.height, lessThanOrEqualTo(rect.height + .1));
+        expect(painter.didExceedMaxLines, isFalse);
+        expect(rect.bottom, lessThanOrEqualTo(thumbTop - 4));
+        painter.dispose();
+      }
+    }
+    for (var index = 1; index < targets.length; index++) {
+      expect(
+        targets[index].top - targets[index - 1].bottom,
+        greaterThanOrEqualTo(8),
+      );
+    }
+    final reset = tester.getRect(
+      find.byKey(const ValueKey('options-defaults')),
+    );
+    expect(reset.top - targets.last.bottom, greaterThanOrEqualTo(8));
+    expect(reset.bottom, lessThanOrEqualTo(body.bottom + .1));
+    expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('landscape touch controls show the four preferences together', (
     tester,
   ) async {

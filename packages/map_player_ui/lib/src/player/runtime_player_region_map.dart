@@ -424,7 +424,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                     key: const ValueKey('region-map-region'),
                     id: 'region-map-region',
                     label: region.label,
-                    labelMaxLines: 2,
+                    labelMaxLines: 1,
                     labelStyle: context.playerMenuTheme.label.copyWith(
                       fontSize: 12,
                     ),
@@ -448,9 +448,13 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
             padding: EdgeInsets.all(portrait ? 12 : 8),
             child: _detail(),
           );
+          final detailHeight = math.max(
+            120.0,
+            MediaQuery.textScalerOf(context).scale(64),
+          );
           final mapHeight = math.min(
             268.0,
-            math.max(32.0, (constraints.maxHeight - 64) * .55),
+            math.max(32.0, constraints.maxHeight - 132 - detailHeight),
           );
           final content = portrait
               ? Column(
@@ -604,7 +608,27 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final theme = context.playerMenuTheme;
+        final companion = PlayerCompanionScope.of(context);
+        final titleStyle = theme.subtitle.copyWith(
+          fontSize: companion ? 15 : 17,
+          height: 1.2,
+        );
+        final bodyStyle = theme.body.copyWith(
+          fontSize: companion ? 12 : 13,
+          height: 1.4,
+        );
         final pageHeight = math.max(32.0, constraints.maxHeight - 64);
+        double textHeight(String value, TextStyle style) {
+          final measure = TextPainter(
+            text: TextSpan(text: value, style: style),
+            textDirection: Directionality.of(context),
+            textScaler: MediaQuery.textScalerOf(context),
+          )..layout(maxWidth: constraints.maxWidth);
+          final height = measure.height;
+          measure.dispose();
+          return height;
+        }
+
         final description = !_known(point)
             ? _text(
                 'Ce lieu n’a pas encore été découvert.',
@@ -620,13 +644,7 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
           var chunk = '';
           for (final word in value.split(RegExp(r'\s+'))) {
             final candidate = chunk.isEmpty ? word : '$chunk $word';
-            final measure = TextPainter(
-              text: TextSpan(text: candidate, style: style),
-              textDirection: Directionality.of(context),
-              textScaler: MediaQuery.textScalerOf(context),
-            )..layout(maxWidth: constraints.maxWidth);
-            final overflow = measure.height > pageHeight;
-            measure.dispose();
+            final overflow = textHeight(candidate, style) > pageHeight;
             if (overflow && chunk.isNotEmpty) {
               chunks.add(chunk);
               chunk = word;
@@ -638,7 +656,20 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
           return chunks;
         }
 
-        final chunks = split(description, theme.body);
+        final chunks = split(description, bodyStyle);
+        final title = _label(point);
+        final groupedCopy =
+            textHeight(title, titleStyle) +
+                8 +
+                textHeight(description, bodyStyle) <=
+            constraints.maxHeight -
+                (point.thumbnailFilePath != null || !point.isLocated ? 64 : 0);
+        Widget heading(String value) => Semantics(
+          header: true,
+          label: '$title, ${_status(point)}',
+          excludeSemantics: true,
+          child: Text(value, style: titleStyle),
+        );
         return KeyedSubtree(
           key: ValueKey('region-detail-${point.id}'),
           child: PlayerPagedList(
@@ -648,10 +679,23 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
               MediaQuery.textScalerOf(context).scale(1),
             )),
             children: [
-              for (final part in split(_label(point), theme.subtitle))
-                Text(part, style: theme.subtitle),
-              for (final part in split(_status(point), theme.meta))
-                Text(part, style: theme.meta),
+              if (groupedCopy)
+                Column(
+                  key: const ValueKey('region-detail-copy'),
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    heading(title),
+                    const SizedBox(height: 8),
+                    Text(
+                      description,
+                      key: const ValueKey('region-description-0'),
+                      style: bodyStyle,
+                    ),
+                  ],
+                )
+              else
+                for (final part in split(title, titleStyle)) heading(part),
               if (_known(point) && point.thumbnailFilePath != null)
                 PlayerFileImage(
                   path: point.thumbnailFilePath!,
@@ -660,12 +704,13 @@ class _RuntimePlayerRegionMapState extends State<RuntimePlayerRegionMap> {
                   excludeFromSemantics: true,
                   fallback: const SizedBox.shrink(),
                 ),
-              for (var index = 0; index < chunks.length; index++)
-                Text(
-                  chunks[index],
-                  key: ValueKey('region-description-$index'),
-                  style: theme.body,
-                ),
+              if (!groupedCopy)
+                for (var index = 0; index < chunks.length; index++)
+                  Text(
+                    chunks[index],
+                    key: ValueKey('region-description-$index'),
+                    style: bodyStyle,
+                  ),
               if (!point.isLocated)
                 Text(
                   _text('Position non renseignée.', 'Position not provided.'),
@@ -869,6 +914,7 @@ class _RegionImageState extends State<_RegionImage> {
                 final geometry = RegionMapGeometry(
                   viewport: constraints.biggest,
                   imageSize: size,
+                  fit: BoxFit.cover,
                   scale: widget.navigation.scale,
                   center: widget.navigation.center,
                 );

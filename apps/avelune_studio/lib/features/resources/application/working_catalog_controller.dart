@@ -34,6 +34,7 @@ final class WorkingCatalogController extends ChangeNotifier {
   int _queryGeneration = 0;
   int _detailGeneration = 0;
   bool _disposed = false;
+  bool _paginationNeedsRefresh = false;
 
   bool get dirty =>
       draft != null &&
@@ -52,6 +53,7 @@ final class WorkingCatalogController extends ChangeNotifier {
     nextCursor = null;
     _currentCursor = null;
     _previousCursors.clear();
+    _paginationNeedsRefresh = false;
     loading = true;
     error = null;
     notifyListeners();
@@ -101,6 +103,10 @@ final class WorkingCatalogController extends ChangeNotifier {
   Future<void> loadMore() async {
     final cursor = nextCursor;
     if (_disposed || loading || cursor == null) return;
+    if (_paginationNeedsRefresh) {
+      await _refreshPagination();
+      return;
+    }
     final generation = _queryGeneration;
     loading = true;
     error = null;
@@ -133,6 +139,10 @@ final class WorkingCatalogController extends ChangeNotifier {
 
   Future<void> previousPage() async {
     if (_disposed || loading || _previousCursors.isEmpty) return;
+    if (_paginationNeedsRefresh) {
+      await _refreshPagination();
+      return;
+    }
     final cursor = _previousCursors.last;
     final generation = _queryGeneration;
     loading = true;
@@ -161,6 +171,14 @@ final class WorkingCatalogController extends ChangeNotifier {
         loading = false;
         notifyListeners();
       }
+    }
+  }
+
+  Future<void> _refreshPagination() async {
+    await search(query);
+    if (!_disposed && error == null) {
+      error = 'Bibliothèque actualisée après modification. Choisissez la page.';
+      notifyListeners();
     }
   }
 
@@ -200,6 +218,7 @@ final class WorkingCatalogController extends ChangeNotifier {
     String? description,
     Iterable<String>? tags,
     String? placementContext,
+    Object? contactShadow = _unchanged,
   }) {
     if (_disposed || draft == null) return;
     draft = draft!.copyWith(
@@ -207,6 +226,9 @@ final class WorkingCatalogController extends ChangeNotifier {
       description: description,
       tags: tags,
       placementContext: placementContext,
+      contactShadow: identical(contactShadow, _unchanged)
+          ? draft!.contactShadow
+          : contactShadow,
     );
     notifyListeners();
   }
@@ -232,6 +254,10 @@ final class WorkingCatalogController extends ChangeNotifier {
     }
     if (!dirty) return true;
     saving = true;
+    final shadowOnly =
+        entry.kind == 'character' &&
+        snapshot.contactShadow != current.entry.contactShadow &&
+        snapshot.sameMetadata(WorkingCatalogDraft.fromEntry(current.entry));
     error = null;
     notifyListeners();
     try {
@@ -245,7 +271,15 @@ final class WorkingCatalogController extends ChangeNotifier {
       detail = result;
       selected = result.entry;
       if (unchanged) draft = WorkingCatalogDraft.fromEntry(result.entry);
-      await search(query);
+      if (shadowOnly) {
+        items = List.unmodifiable([
+          for (final item in items)
+            item.identity == result.entry.identity ? result.entry : item,
+        ]);
+        _paginationNeedsRefresh = true;
+      } else {
+        await search(query);
+      }
       return true;
     } catch (failure) {
       if (!_disposed) error = '$failure';
@@ -268,3 +302,5 @@ final class WorkingCatalogController extends ChangeNotifier {
     super.dispose();
   }
 }
+
+const _unchanged = Object();

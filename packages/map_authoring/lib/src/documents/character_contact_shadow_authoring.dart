@@ -4,12 +4,15 @@ import 'dart:math';
 
 import 'package:map_core/map_core.dart';
 
+import '../catalog_storage/catalog_editing_session.dart';
+import '../catalog_storage/catalog_storage_store.dart';
 import '../contracts/action_descriptor.dart';
 import '../contracts/authoring_diff.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/resource_ref.dart';
 import '../history/content_blob_store.dart';
+import '../history/authoring_history.dart';
 import '../history/file_history_store.dart';
 import '../history/history_store.dart';
 import '../ports/idempotency_store.dart';
@@ -31,6 +34,8 @@ import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/transaction_journal.dart';
 import '../workspace/workspace_policy.dart';
+
+part 'catalog_character_contact_shadow.dart';
 
 final class CharacterContactShadowMutation {
   const CharacterContactShadowMutation(
@@ -54,7 +59,8 @@ final class CharacterContactShadowMutation {
       };
 
   factory CharacterContactShadowMutation.fromReceipt(AuthoringReceipt receipt) {
-    final diff = receipt.diff.entries.single;
+    final diff = receipt.diff.entries
+        .singleWhere((entry) => entry.path.endsWith('/contactShadow'));
     return CharacterContactShadowMutation(
         beforeRevision: diff.extensions['documentBeforeRevision']! as String,
         afterRevision: diff.extensions['documentAfterRevision']! as String,
@@ -84,6 +90,39 @@ final class LocalCharacterContactShadowAuthoring {
   final ProjectFileReader _reader;
   final AuthoringActor _actor;
   final AuthoringTransactionFaultInjector? _faultInjector;
+  final Map<String, _ContactCatalogSession> _catalogs = {};
+  final Map<String, Future<void>> _catalogPreparations = {};
+  bool _closed = false;
+
+  Future<void> prepareCatalog({required String projectRoot}) async {
+    _requireRead();
+    final root = await _policy.authorizeProjectRoot(projectRoot);
+    if (_catalogs.containsKey(root)) return;
+    final preparing = _catalogPreparations[root] ??= _prepareCatalog(root);
+    try {
+      await preparing;
+    } finally {
+      if (identical(_catalogPreparations[root], preparing)) {
+        _catalogPreparations.remove(root);
+      }
+    }
+  }
+
+  Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
+    await Future.wait(_catalogPreparations.values.map((future) async {
+      try {
+        await future;
+      } on Object {
+        return;
+      }
+    }));
+    for (final session in _catalogs.values) {
+      await session.editing.close();
+    }
+    _catalogs.clear();
+  }
 
   static final descriptor = AuthoringActionDescriptor(
       id: 'characterStudio.contactShadow.set',
@@ -108,8 +147,9 @@ final class LocalCharacterContactShadowAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
-        'revisionScope': 'projectDocument',
-        'storageKeys': ['project.json'],
+        'revisionScope': 'projectDocumentOrCatalogRoot',
+        'storageKeys': ['project.json', 'catalog/HEAD.json'],
+        'catalogPreparation': 'inspect admits the index before local saves',
         'inputSchema': {
           'type': 'object',
           'additionalProperties': false,
@@ -129,6 +169,10 @@ final class LocalCharacterContactShadowAuthoring {
     final root = await _policy.authorizeProjectRoot(projectRoot);
     final bytes = await _reader.readBytes(
         projectRoot: root, relativePath: 'project.json');
+    if (_catalogDescriptor(bytes) != null) {
+      await prepareCatalog(projectRoot: root);
+      return _inspectCatalog(root, characterId);
+    }
     final raw = _decode(bytes);
     final character = _character(raw, characterId);
     final value = _value(character);
@@ -137,6 +181,8 @@ final class LocalCharacterContactShadowAuthoring {
       'revision': narrativeEventBytesFingerprint(bytes),
       'characterId': characterId,
       'contactShadow': value,
+      'projectDefault':
+          settings is Map && settings['actorContactShadowsByDefault'] == true,
       'effectiveContactShadow': value ??
           (settings is Map && settings['actorContactShadowsByDefault'] == true)
     };
@@ -155,6 +201,12 @@ final class LocalCharacterContactShadowAuthoring {
     }
     safeAuthoringSecurityIdentifier(operationId, 'operationId');
     final root = await _policy.authorizeProjectRoot(projectRoot);
+    final descriptorBytes = await _reader.readBytes(
+        projectRoot: root, relativePath: 'project.json');
+    if (_catalogDescriptor(descriptorBytes) != null) {
+      return _setCatalog(root, descriptorBytes, expectedRevision, characterId,
+          enabled, operationId, precondition);
+    }
     final projectId =
         'local_project_${computeAuthoringJsonFingerprint(root, logicalName: 'local-project-root.json').substring(7)}';
     final request = AuthoringRequest(
@@ -174,7 +226,8 @@ final class LocalCharacterContactShadowAuthoring {
     final store = await FileIdempotencyStore.forScope(
         filePath: '$root/.pokemap/authoring/idempotency.jsonl', scope: scope);
     final ledger = AuthoringIdempotencyLedger(store: store);
-    final gateway = await LocalTransactionFileGateway.open(projectRoot: root, expectedProjectRoot: root);
+    final gateway = await LocalTransactionFileGateway.open(
+        projectRoot: root, expectedProjectRoot: root);
     final history = await FileAuthoringHistoryStore.open(
         projectRoot: root, incrementalWrites: true);
     final recorder = AuthoringHistoryRecorder(
@@ -191,8 +244,9 @@ final class LocalCharacterContactShadowAuthoring {
                 'This operation already owns a different character mutation.');
       }
       if (existing.status == AuthoringIdempotencyStatus.completed) {
-        return _finishReplay(root, projectId, request, scope, ledger, gateway,
-            existing.receipt!, recovered: false);
+        return _finishReplay(
+            root, projectId, request, scope, ledger, gateway, existing.receipt!,
+            recovered: false);
       }
       if (!_actor.allows(AuthoringPermissionScope.recoveryApply)) {
         throw const FormatException('recovery.apply permission is required.');
@@ -203,8 +257,9 @@ final class LocalCharacterContactShadowAuthoring {
               clock: DateTime.now,
               commitHook: recorder)
           .resume(operationId);
-      return _finishReplay(root, projectId, request, scope, ledger, gateway,
-          recovered, recovered: true);
+      return _finishReplay(
+          root, projectId, request, scope, ledger, gateway, recovered,
+          recovered: true);
     }
     final bytes = await _reader.readBytes(
         projectRoot: root, relativePath: 'project.json');
@@ -312,23 +367,41 @@ final class LocalCharacterContactShadowAuthoring {
         receipt.extensions['operationId'] != request.requestId ||
         planId is! String ||
         !RegExp(r'^plan_document_[a-f0-9]{32}$').hasMatch(planId) ||
-        !RegExp(r'^receipt_document_[a-f0-9]{32}$').hasMatch(receipt.receiptId) ||
-        receipt.diff.entries.length != 1) {
-      throw const FormatException('The replay receipt does not match its mutation intent.');
+        !RegExp(r'^receipt_document_[a-f0-9]{32}$')
+            .hasMatch(receipt.receiptId) ||
+        (receipt.diff.entries.length != 1 &&
+            receipt.diff.entries.length != 2)) {
+      throw const FormatException(
+          'The replay receipt does not match its mutation intent.');
     }
-    final diff = receipt.diff.entries.single;
+    final isCatalog = receipt.diff.entries.length == 2 &&
+        receipt.diff.entries.any((entry) =>
+            entry.resource.kind == 'catalogHead' &&
+            entry.resource.id == 'catalog');
+    if (receipt.diff.entries.length != 1 && !isCatalog) {
+      throw const FormatException('The replay contains unrelated changes.');
+    }
+    final diff = receipt.diff.entries
+        .singleWhere((entry) => entry.path.endsWith('/contactShadow'));
     final afterRevision = diff.extensions['documentAfterRevision'];
-    if (diff.resource.kind != 'project' ||
-        diff.resource.id != projectId ||
+    if ((!isCatalog &&
+            (diff.resource.kind != 'project' ||
+                diff.resource.id != projectId)) ||
+        (isCatalog &&
+            (diff.resource.kind != 'catalogHead' ||
+                diff.resource.id != 'catalog')) ||
         diff.operation != AuthoringDiffOperation.replace ||
-        diff.path != '/characters/${request.parameters['characterId']}/contactShadow' ||
-        !diff.hasBefore || !diff.hasAfter ||
+        diff.path !=
+            '/characters/${request.parameters['characterId']}/contactShadow' ||
+        !diff.hasBefore ||
+        !diff.hasAfter ||
         (diff.before != null && diff.before is! bool) ||
         diff.after != request.parameters['enabled'] ||
         diff.extensions['documentBeforeRevision'] != request.expectedRevision ||
         afterRevision is! String ||
         !RegExp(r'^sha256:[a-f0-9]{64}$').hasMatch(afterRevision)) {
-      throw const FormatException('The replay document change does not match its mutation intent.');
+      throw const FormatException(
+          'The replay document change does not match its mutation intent.');
     }
     final audit = await FileAuthoringAuditLog.open(
         projectRoot: root, incrementalWrites: true);
@@ -336,7 +409,9 @@ final class LocalCharacterContactShadowAuthoring {
         auditId: _identity('audit_document_'),
         actorId: _actor.actorId,
         projectId: projectId,
-        operation: recovered ? AuthoringSecurityOperation.recover : AuthoringSecurityOperation.apply,
+        operation: recovered
+            ? AuthoringSecurityOperation.recover
+            : AuthoringSecurityOperation.apply,
         decision: AuthoringAuditDecision.succeeded,
         requestId: request.requestId,
         actionId: descriptor.id,
@@ -348,14 +423,22 @@ final class LocalCharacterContactShadowAuthoring {
         timestamp: DateTime.now(),
         details: {'idempotentReplay': !recovered, 'recovery': recovered}));
     await JournaledAuthoringTransaction(
-        plans: AuthoringPlanStore(), gateway: gateway, idempotency: ledger,
-        clock: DateTime.now).cleanupCompletedReplay(
-            scope: scope, planId: planId, operationId: request.requestId,
+            plans: AuthoringPlanStore(),
+            gateway: gateway,
+            idempotency: ledger,
+            clock: DateTime.now)
+        .cleanupCompletedReplay(
+            scope: scope,
+            planId: planId,
+            operationId: request.requestId,
             receipt: receipt);
     return CharacterContactShadowMutation.fromReceipt(receipt);
   }
 
   void _requireRead() {
+    if (_closed) {
+      throw StateError('The character shadow authoring service is closed.');
+    }
     if (!_actor.allows(AuthoringPermissionScope.projectRead)) {
       throw const FormatException('project.read permission is required.');
     }

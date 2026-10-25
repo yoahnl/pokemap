@@ -39,7 +39,7 @@ void main() {
   });
 
   testWidgets(
-    'wide layout uses the reference split and pins use the contained image',
+    'wide layout uses the reference split and pins use the covering image',
     (tester) async {
       final navigation = RuntimePlayerRegionMapNavigation();
       addTearDown(navigation.dispose);
@@ -58,7 +58,10 @@ void main() {
       expect(canvas.left - sidebar.right, 16);
       expect(find.byKey(const PageStorageKey('region-map-list')), findsNothing);
       expect(pin.size, const Size(48, 48));
-      expect(pin.center.dx, closeTo(canvas.left + canvas.width * .25, .01));
+      final imageWidth = canvas.height * 2 > canvas.width
+          ? canvas.height * 2
+          : canvas.width;
+      expect(pin.center.dx, closeTo(canvas.center.dx - imageWidth * .25, .01));
       expect(pin.center.dy, closeTo(canvas.center.dy, .01));
       expect(navigation.selectedPointId, 'hanazuki');
       expect(tester.takeException(), isNull);
@@ -123,6 +126,93 @@ void main() {
     },
   );
 
+  testWidgets('cropped points remain reachable through optional locations', (
+    tester,
+  ) async {
+    final navigation = RuntimePlayerRegionMapNavigation();
+    addTearDown(navigation.dispose);
+    await _pump(
+      tester,
+      _detail(),
+      navigation: navigation,
+      size: const Size(496, 432),
+      companion: true,
+    );
+    final canvas = tester.getRect(
+      find.byKey(const ValueKey('region-map-canvas')),
+    );
+    final pin = find.byKey(const ValueKey('region-pin-hanazuki'));
+    expect(tester.getCenter(pin).dx, lessThan(canvas.left));
+    await _openLocations(tester);
+    await tester.tap(find.byKey(const ValueKey('region-row-hanazuki')));
+    await tester.pumpAndSettle();
+    expect(navigation.selectedPointId, 'hanazuki');
+    expect(canvas.contains(tester.getCenter(pin)), isTrue);
+    await tester.tapAt(tester.getCenter(pin));
+    await tester.pumpAndSettle();
+    expect(navigation.selectedPointId, 'hanazuki');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('short map detail keeps title and description on one page', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester, _detail(), size: const Size(844, 390));
+    final detail = find.byKey(const ValueKey('region-detail-hanazuki'));
+    expect(find.text('Hanazuki'), findsOneWidget);
+    expect(find.text('Le départ du train.'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: detail,
+        matching: find.byKey(const ValueKey('player-page-next')),
+      ),
+      findsNothing,
+    );
+    expect(find.bySemanticsLabel('Hanazuki, Vous êtes ici'), findsOneWidget);
+    expect(tester.widget<Text>(find.text('Hanazuki')).style?.fontSize, 17);
+    expect(
+      tester.widget<Text>(find.text('Le départ du train.')).style?.fontSize,
+      13,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('long map descriptions stay paginated at double text size', (
+    tester,
+  ) async {
+    final description = List.generate(80, (index) => 'Étape$index').join(' ');
+    await _pump(
+      tester,
+      _detail(description: description),
+      size: const Size(800, 360),
+      textScale: 2,
+    );
+    final detail = find.byKey(const ValueKey('region-detail-hanazuki'));
+    final seen = <String>{};
+    for (var page = 0; page < 80; page++) {
+      for (final text in tester.widgetList<Text>(
+        find.descendant(of: detail, matching: find.byType(Text)),
+      )) {
+        final value = text.data ?? '';
+        if (value.contains('Étape')) seen.add(value);
+      }
+      final next = find.descendant(
+        of: detail,
+        matching: find.byKey(const ValueKey('player-page-next')),
+      );
+      if (next.evaluate().isEmpty ||
+          tester.widget<IconButton>(next).onPressed == null) {
+        break;
+      }
+      await tester.tap(next);
+      await tester.pumpAndSettle();
+    }
+    expect(seen.join(' '), description);
+    expect(seen.length, greaterThan(1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('unknown details cannot leak labels images or descriptions', (
     tester,
   ) async {
@@ -152,6 +242,7 @@ void main() {
     await _pump(tester, _detail(), navigation: navigation);
     await _openLocations(tester);
     await tester.tap(find.byKey(const ValueKey('region-row-aohara')));
+    await tester.pumpAndSettle();
     for (var i = 0; i < 12; i++) {
       await tester.tap(find.byKey(const ValueKey('region-map-zoom-in')));
       await tester.pump();
@@ -458,6 +549,7 @@ RuntimePlayerPauseDetailSnapshot _detail({
   int extraPoints = 0,
   bool currentAohara = false,
   bool secondRegion = false,
+  String description = 'Le départ du train.',
 }) => RuntimePlayerPauseDetailSnapshot(
   section: RuntimePlayerPauseSection.map,
   title: 'Carte',
@@ -476,7 +568,7 @@ RuntimePlayerPauseDetailSnapshot _detail({
                 : RuntimePlayerMapPointStatus.current,
             u: .25,
             v: .5,
-            description: 'Le départ du train.',
+            description: description,
           ),
           if (!removeAohara)
             RuntimePlayerMapPointSnapshot(
@@ -570,7 +662,10 @@ Future<void> _pump(
     ),
   );
   await tester.runAsync(
-    () async => await Future<void>.delayed(const Duration(milliseconds: 30)),
+    () => precacheImage(
+      MemoryImage(_image),
+      tester.element(find.byType(RuntimePlayerRegionMap)),
+    ),
   );
   await tester.pumpAndSettle();
 }

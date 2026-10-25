@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../contracts/authoring_receipt.dart';
 import '../history/authoring_history.dart';
 import '../ports/idempotency_store.dart';
@@ -95,15 +97,17 @@ final class AuthoringRecoveryService {
   }) =>
       _gateway.withExclusiveWriteLock(() async {
         final journal = await _gateway.readJournal(operationId);
-      if (journal == null || journal.scope.storageKey != scope.storageKey) {
-        return null;
-      }
+        if (journal == null || journal.scope.storageKey != scope.storageKey) {
+          return null;
+        }
         return _inspectJournal(journal);
       });
 
-  Future<AuthoringReceipt> resume(String operationId) {
+  Future<AuthoringReceipt> resume(String operationId,
+      {FutureOr<void> Function()? precondition}) {
     return _gateway.withExclusiveWriteLock(() async {
       _requireMutationAllowed();
+      await precondition?.call();
       var journal = await _requireJournal(operationId);
       final record = await _requireRecoveryRecord(journal);
       if (record.status == AuthoringIdempotencyStatus.completed) {
@@ -219,9 +223,11 @@ final class AuthoringRecoveryService {
     });
   }
 
-  Future<AuthoringReceipt> compensate(String operationId) {
+  Future<AuthoringReceipt> compensate(String operationId,
+      {FutureOr<void> Function()? precondition}) {
     return _gateway.withExclusiveWriteLock(() async {
       _requireMutationAllowed();
+      await precondition?.call();
       var journal = await _requireJournal(operationId);
       final record = await _requireRecoveryRecord(journal);
       if (record.status == AuthoringIdempotencyStatus.completed) {

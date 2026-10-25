@@ -19,6 +19,9 @@ class RuntimePlayerProfile extends StatefulWidget {
 
 class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
   final _focusNode = FocusNode(debugLabel: 'Player profile');
+  (double, double, double, bool)? _panelLayout;
+  double? _identityHeight;
+  double? _progressionHeight;
 
   bool get _french => Localizations.localeOf(context).languageCode == 'fr';
   String _text(String french, String english) => _french ? french : english;
@@ -53,23 +56,70 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
         final columnWidth = wide
             ? (constraints.maxWidth - gap) / 2
             : constraints.maxWidth;
-        final identity = PlayerMenuPanel(
-          key: const ValueKey('profile-identity'),
-          padding: EdgeInsets.all(companion ? 8 : 12),
-          child: PlayerPagedList(children: _identityItems(portraitHeight)),
+        final boundedColumns = wide && !largeText;
+        final layout = (
+          columnWidth,
+          constraints.maxHeight,
+          MediaQuery.textScalerOf(context).scale(1),
+          companion,
         );
-        final progression = PlayerMenuPanel(
-          key: const ValueKey('profile-progression'),
-          padding: EdgeInsets.all(companion ? 8 : 12),
-          child: PlayerPagedList(
-            children: _progressionItems(columnWidth - (companion ? 16 : 24)),
-          ),
+        if (_panelLayout != layout) {
+          _panelLayout = layout;
+          _identityHeight = null;
+          _progressionHeight = null;
+        }
+        final padding = companion ? 8.0 : 12.0;
+        Widget panel({
+          required String id,
+          required List<Widget> children,
+          required double? contentHeight,
+          required ValueChanged<double> onMeasured,
+        }) {
+          final child = PlayerMenuPanel(
+            key: ValueKey(id),
+            padding: EdgeInsets.all(padding),
+            child: PlayerPagedList(
+              onContentHeightChanged: boundedColumns ? onMeasured : null,
+              children: children,
+            ),
+          );
+          return boundedColumns
+              ? SizedBox(
+                  height: contentHeight == null
+                      ? constraints.maxHeight
+                      : (contentHeight + padding * 2)
+                            .clamp(0, constraints.maxHeight)
+                            .toDouble(),
+                  child: child,
+                )
+              : child;
+        }
+
+        final identity = panel(
+          id: 'profile-identity',
+          children: _identityItems(portraitHeight),
+          contentHeight: _identityHeight,
+          onMeasured: (height) {
+            if (_identityHeight != height) {
+              setState(() => _identityHeight = height);
+            }
+          },
+        );
+        final progression = panel(
+          id: 'profile-progression',
+          children: _progressionItems(columnWidth - padding * 2),
+          contentHeight: _progressionHeight,
+          onMeasured: (height) {
+            if (_progressionHeight != height) {
+              setState(() => _progressionHeight = height);
+            }
+          },
         );
         return SizedBox.expand(
           key: const ValueKey('runtime-player-detail-profile'),
-          child: wide && !largeText
+          child: boundedColumns
               ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(child: identity),
                     SizedBox(width: gap),
@@ -124,6 +174,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
             width: portraitHeight,
             height: portraitHeight,
             child: PlayerMenuPortrait(
+              circular: true,
               semanticLabel: _text('Portrait de $name', '$name’s portrait'),
               child: _portrait(),
             ),
@@ -160,6 +211,34 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
           ),
         ],
       ),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _statistics([
+              (
+                id: 'badges',
+                label: context.playerL10n.badges,
+                value: profile.badgeTotal == null
+                    ? material.formatDecimal(profile.badgeIds.length)
+                    : '${material.formatDecimal(profile.badgeIds.length)} / ${material.formatDecimal(profile.badgeTotal!)}',
+              ),
+            ], stacked: true),
+          ),
+          if (profile.pokedex case final pokedex?) ...[
+            const SizedBox(width: 16),
+            Expanded(
+              child: _statistics([
+                (
+                  id: 'pokedex-total',
+                  label: _text('Total du Pokédex', 'Pokédex total'),
+                  value: material.formatDecimal(pokedex.total),
+                ),
+              ], stacked: true),
+            ),
+          ],
+        ],
+      ),
     ];
   }
 
@@ -189,20 +268,10 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
 
   List<Widget> _progressionItems(double width) {
     final profile = widget.profile;
-    final l10n = context.playerL10n;
     final theme = context.playerMenuTheme;
     final material = MaterialLocalizations.of(context);
     final pokedex = profile.pokedex;
-    final badgeCount = material.formatDecimal(profile.badgeIds.length);
-    final total = profile.badgeTotal;
     final statistics = <({String id, String label, String value})>[
-      (
-        id: 'badges',
-        label: l10n.badges,
-        value: total == null
-            ? badgeCount
-            : '$badgeCount / ${material.formatDecimal(total)}',
-      ),
       if (pokedex != null) ...[
         (
           id: 'pokedex-seen',
@@ -213,11 +282,6 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
           id: 'pokedex-caught',
           label: _text('Pokémon capturés', 'Pokémon caught'),
           value: material.formatDecimal(pokedex.caught),
-        ),
-        (
-          id: 'pokedex-total',
-          label: _text('Total du Pokédex', 'Pokédex total'),
-          value: material.formatDecimal(pokedex.total),
         ),
       ],
     ];
@@ -306,7 +370,7 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
             value: statistic.value,
             excludeSemantics: true,
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: EdgeInsets.symmetric(vertical: stacked ? 0 : 6),
               child: stacked
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -348,10 +412,8 @@ class _RuntimePlayerProfileState extends State<RuntimePlayerProfile> {
                             statistic.value,
                             textAlign: TextAlign.right,
                             style: theme.numbers.copyWith(
-                              fontSize: PlayerCompanionScope.of(context)
-                                  ? 15
-                                  : 17,
-                              height: 1.2,
+                              fontSize: 12,
+                              height: 1.3,
                             ),
                           ),
                         ),

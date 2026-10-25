@@ -71,6 +71,126 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'companion profile keeps eight earned badges in two rows of four',
+    (tester) async {
+      final ids = List.generate(8, (index) => 'earned$index');
+      await _pump(
+        tester,
+        RuntimePlayerProfileSnapshot(
+          playerName: 'Joueur',
+          currentMapId: 'current-map',
+          money: 42,
+          badgeIds: ids,
+          badgeTotal: 8,
+          badges: [
+            for (var index = 0; index < ids.length; index++)
+              RuntimePlayerProfileBadgeSnapshot(
+                id: ids[index],
+                label: 'Badge ${index + 1}',
+              ),
+          ],
+        ),
+        size: const Size(496, 432),
+        companion: true,
+      );
+      final panel = tester.getRect(
+        find.byKey(const ValueKey('profile-progression')),
+      );
+      final badges = [
+        for (final id in ids)
+          tester.getRect(find.byKey(ValueKey('profile-badge-$id'))),
+      ];
+      for (var index = 0; index < badges.length; index++) {
+        expect(badges[index].size, const Size(24, 24));
+        expect(badges[index].top, closeTo(badges[index < 4 ? 0 : 4].top, .1));
+        expect(badges[index].bottom, lessThanOrEqualTo(panel.bottom + .1));
+        if (index % 4 != 0) {
+          expect(badges[index].left - badges[index - 1].right, 8);
+        }
+      }
+      expect(badges[4].top - badges[0].bottom, 8);
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final format in [
+    (size: Size(1440, 900), companion: false),
+    (size: Size(1024, 768), companion: false),
+    (size: Size(768, 1024), companion: false),
+    (size: Size(844, 390), companion: false),
+    (size: Size(390, 844), companion: false),
+    (size: Size(496, 432), companion: true),
+  ]) {
+    testWidgets('profile short facts share one view at $format', (
+      tester,
+    ) async {
+      final landscape = format.size.aspectRatio > 1 && !format.companion;
+      await _pump(
+        tester,
+        RuntimePlayerProfileSnapshot(
+          playerName: 'Yoahn',
+          currentMapId: 'private-map',
+          money: 3250,
+          locationName: 'Clairière des Sources',
+          playtimeSeconds: 9240,
+          badgeTotal: 8,
+          badgeIds: const ['forest', 'stone'],
+          badges: const [
+            RuntimePlayerProfileBadgeSnapshot(
+              id: 'forest',
+              label: 'Badge Forêt',
+            ),
+            RuntimePlayerProfileBadgeSnapshot(
+              id: 'stone',
+              label: 'Badge Pierre',
+            ),
+          ],
+          pokedex: const RuntimePlayerPokedexProgressSnapshot(
+            seen: 24,
+            caught: 12,
+            total: 151,
+          ),
+        ),
+        size: format.size,
+        companion: format.companion,
+        safeInsets: landscape
+            ? const EdgeInsets.fromLTRB(44, 12, 44, 20)
+            : EdgeInsets.zero,
+      );
+      final body = tester.getRect(
+        find.byKey(const ValueKey('runtime-player-detail-profile')),
+      );
+      for (final id in [
+        'name',
+        'stat-playtime',
+        'stat-money',
+        'stat-badges',
+        'stat-pokedex-total',
+        'stat-pokedex-seen',
+        'stat-pokedex-caught',
+        'badge-forest',
+        'badge-stone',
+        'location',
+      ]) {
+        final finder = find.byKey(ValueKey('profile-$id'));
+        expect(finder, findsOneWidget, reason: id);
+        final rect = tester.getRect(finder);
+        expect(body.contains(rect.topLeft), isTrue, reason: id);
+        expect(rect.bottom, lessThanOrEqualTo(body.bottom + .1), reason: id);
+      }
+      expect(find.byKey(const ValueKey('player-page-next')), findsNothing);
+      final portrait = find.descendant(
+        of: find.byKey(const ValueKey('profile-portrait')),
+        matching: find.byType(ClipOval),
+      );
+      expect(portrait, findsOneWidget);
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('statistics use public session values and localized numbers', (
     tester,
   ) async {
@@ -375,6 +495,8 @@ Future<void> _pump(
   RuntimePlayerProfileSnapshot profile, {
   Size size = const Size(1440, 900),
   double scale = 1,
+  bool companion = false,
+  EdgeInsets safeInsets = EdgeInsets.zero,
   VoidCallback? onBack,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -387,9 +509,12 @@ Future<void> _pump(
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: PokeMapPlayerTheme.dark(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(textScaler: TextScaler.linear(scale)),
-        child: child!,
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(scale),
+          padding: safeInsets,
+          viewPadding: safeInsets,
+        ),
+        child: companion ? PlayerCompanionScope(child: child!) : child!,
       ),
       home: PlayerMenuThemeScope(
         child: Scaffold(

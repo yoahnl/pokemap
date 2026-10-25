@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../features/project_session/domain/project_session.dart';
 import '../../../features/resources/application/working_catalog_controller.dart';
 import '../../../features/resources/domain/working_catalog_port.dart';
+import '../characters/character_contact_shadow_controls.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/dialogs/studio_review_dialog.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
@@ -57,6 +58,27 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
   String? navigationNotice;
   String? tagsIdentity;
   String tagsText = '';
+  WorkingCatalogDetail? previewDetail;
+  Widget? preview;
+
+  Widget resourcePreview(WorkingCatalogDetail detail) {
+    if (preview == null ||
+        previewDetail?.entry.identity != detail.entry.identity ||
+        !identical(previewDetail?.definitions, detail.definitions)) {
+      previewDetail = detail;
+      preview = widget.previewBuilder!(detail);
+    }
+    return preview!;
+  }
+
+  @override
+  void didUpdateWidget(covariant WorkingCatalogWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.previewBuilder != widget.previewBuilder) {
+      previewDetail = null;
+      preview = null;
+    }
+  }
 
   @override
   void initState() {
@@ -489,7 +511,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
           if (widget.previewBuilder != null) ...[
             SizedBox(
               height: 180,
-              child: Center(child: widget.previewBuilder!(selected)),
+              child: Center(child: resourcePreview(selected)),
             ),
             const SizedBox(height: 12),
           ],
@@ -548,6 +570,15 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                 ? (value) => catalog.edit(placementContext: value)
                 : null,
           ),
+          if (selected.entry.kind == 'character') ...[
+            const SizedBox(height: 16),
+            CharacterContactShadowControls(
+              projectDefault: selected.contactShadowProjectDefault,
+              value: draft.contactShadow,
+              onChanged: (value) => catalog.edit(contactShadow: value),
+              busy: !editable,
+            ),
+          ],
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,

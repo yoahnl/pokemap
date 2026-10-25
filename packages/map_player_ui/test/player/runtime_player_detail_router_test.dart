@@ -836,6 +836,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(Scrollable), findsNothing);
+      await _tapBagControl(tester, 'region-map-locations');
       final row = tester.widget<PlayerMenuSelectableRow>(
         find.byKey(const ValueKey('region-row-route')),
       );

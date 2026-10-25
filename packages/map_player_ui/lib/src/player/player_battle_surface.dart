@@ -2701,8 +2701,9 @@ class _LigueBattleEntry extends StatelessWidget {
         : enabled
         ? chrome.moveMuted
         : chrome.moveDisabledText.withValues(alpha: .8);
+    final inheritedStyle = DefaultTextStyle.of(context).style;
     final nameStyle = context.playerTypography
-        .combatStyle(const TextStyle())
+        .combatStyle(inheritedStyle)
         .copyWith(
           color: ink,
           fontSize: 15,
@@ -2746,9 +2747,11 @@ class _LigueBattleEntry extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minHeight: 48),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 6,
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    6,
+                    entry.moveTypeId == null ? 20 : 12,
+                    6,
                   ),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -2834,12 +2837,14 @@ class _LigueBattleEntry extends StatelessWidget {
                       );
                       final name = Text(
                         entry.primaryLabel,
+                        key: ValueKey('battle-move-name-${entry.index}'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: nameStyle.copyWith(fontSize: tall ? 14 : 14.8),
                       );
                       final detail = Text(
                         entry.statusLabel ?? entry.tertiaryLabel ?? '',
+                        key: ValueKey('battle-move-detail-${entry.index}'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: nameStyle.copyWith(
@@ -2860,7 +2865,10 @@ class _LigueBattleEntry extends StatelessWidget {
                           .copyWith(fontSize: tall ? 14 : 14.8);
                       double measure(String value, TextStyle style) {
                         final painter = TextPainter(
-                          text: TextSpan(text: value, style: style),
+                          text: TextSpan(
+                            text: value,
+                            style: inheritedStyle.merge(style),
+                          ),
                           textDirection: Directionality.of(context),
                           textScaler: MediaQuery.textScalerOf(context),
                         )..layout();

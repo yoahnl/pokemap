@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../project_session/domain/project_session.dart';
@@ -48,6 +48,8 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
         snapshotLoader: snapshots,
       ),
       opened: opened,
+      policy: policy,
+      shadows: LocalCharacterContactShadowAuthoring(policy: policy),
     );
   }
 
@@ -114,11 +116,32 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
           ProjectCatalogSelection(catalog)
               .resolve([CatalogDefinitionKey(kind, entry.id)]),
     );
-    return WorkingCatalogDetail(
-      entry: _entry(entry.kind, page.items.single),
+    final shadow =
+        entry.kind == 'character' &&
+            session.storage == ProjectSessionStorage.workingCatalog
+        ? await active.shadows.inspect(
+            projectRoot: session.directoryPath,
+            characterId: entry.id,
+          )
+        : null;
+    final detail = WorkingCatalogDetail(
+      entry: _entry(entry.kind, {
+        ...page.items.single,
+        if (shadow != null) 'contactShadow': shadow['contactShadow'],
+      }),
       revision: page.snapshotRevision,
       definitions: projection,
+      contactShadowProjectDefault:
+          shadow?['projectDefault'] as bool? ??
+          projection.settings.actorContactShadowsByDefault,
     );
+    if (shadow != null && shadow['revision'] != detail.revision) {
+      throw StateError(
+        'La bibliothèque a changé pendant l’ouverture. Réessayez.',
+      );
+    }
+    active.detail = detail;
+    return detail;
   }
 
   @override
@@ -132,6 +155,50 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
     }
     if (!draft.valid) throw StateError('Vérifiez le nom et la description.');
     final active = await _session();
+    final current = active.detail;
+    if (current == null ||
+        current.entry.identity != entry.identity ||
+        current.revision != revision) {
+      throw StateError('Rouvrez la ressource avant de l’enregistrer.');
+    }
+    if (draft.contactShadow != current.entry.contactShadow) {
+      if (entry.kind != 'character' ||
+          !draft.sameMetadata(WorkingCatalogDraft.fromEntry(current.entry))) {
+        throw StateError(
+          'Enregistrez les informations et le réglage d’ombre séparément.',
+        );
+      }
+      final result = await active.shadows.set(
+        projectRoot: session.directoryPath,
+        expectedRevision: revision,
+        characterId: entry.id,
+        enabled: draft.contactShadow,
+        operationId:
+            'studio_shadow_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}',
+      );
+      final updated = WorkingCatalogDetail(
+        entry: WorkingCatalogEntry(
+          id: current.entry.id,
+          kind: current.entry.kind,
+          name: current.entry.name,
+          description: current.entry.description,
+          tags: current.entry.tags,
+          placementContext: current.entry.placementContext,
+          familyId: current.entry.familyId,
+          contactShadow: result.afterValue,
+        ),
+        revision: result.afterRevision,
+        definitions: current.definitions,
+        contactShadowProjectDefault: current.contactShadowProjectDefault,
+      );
+      active.detail = updated;
+      active.metadataNeedsRefresh = true;
+      return updated;
+    }
+    if (active.attached && active.metadataNeedsRefresh) {
+      await active.mutations.detachWorkspace(active.opened.workspaceHandle);
+      active.attached = false;
+    }
     if (!active.attached) {
       await active.mutations.attachProject(
         projectRootPath: session.directoryPath,
@@ -139,6 +206,7 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
         projectHandle: active.opened.projectHandle,
       );
       active.attached = true;
+      active.metadataNeedsRefresh = false;
     }
     final id =
         'studio_catalog_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
@@ -187,6 +255,10 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
       }
     }
     try {
+      await active.shadows.close();
+      active.shadows = LocalCharacterContactShadowAuthoring(
+        policy: active.policy,
+      );
       return await open(entry);
     } catch (failure) {
       throw StateError(
@@ -212,7 +284,11 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
         await active.mutations.detachWorkspace(active.opened.workspaceHandle);
       }
     } finally {
-      await active.reads.closeWorkspace(active.opened.workspaceHandle);
+      try {
+        await active.shadows.close();
+      } finally {
+        await active.reads.closeWorkspace(active.opened.workspaceHandle);
+      }
     }
   }
 
@@ -245,6 +321,7 @@ WorkingCatalogEntry _entry(String kind, Map<String, Object?> item) =>
           const [],
       placementContext: item['placementContext'] as String? ?? '',
       familyId: item['familyId'] as String? ?? '',
+      contactShadow: item['contactShadow'] as bool?,
     );
 
 final class _CatalogSession {
@@ -253,10 +330,16 @@ final class _CatalogSession {
     required this.reads,
     required this.mutations,
     required this.opened,
+    required this.shadows,
+    required this.policy,
   });
   final ProjectOpenService service;
   final AuthoringReadApi reads;
   final LocalMapAuthoringMutationApi mutations;
   final OpenedProject opened;
+  final WorkspacePolicy policy;
+  LocalCharacterContactShadowAuthoring shadows;
+  WorkingCatalogDetail? detail;
   bool attached = false;
+  bool metadataNeedsRefresh = false;
 }

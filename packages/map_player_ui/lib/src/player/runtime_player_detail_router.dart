@@ -16,6 +16,7 @@ import 'runtime_player_pokedex.dart';
 import 'runtime_player_region_map.dart';
 import 'runtime_player_profile.dart';
 import 'runtime_player_contacts.dart';
+import 'runtime_player_journal.dart';
 import 'player_session_surfaces.dart';
 
 /// Maps runtime-owned pause detail snapshots to simple player surfaces.
@@ -108,6 +109,14 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       return RuntimePlayerContacts(
         snapshot: snapshot,
         onPauseCommand: onPauseCommand,
+      );
+    }
+    if (section == RuntimePlayerPauseSection.quests &&
+        detail != null &&
+        detail.entries.isNotEmpty) {
+      return PlayerMenuThemeScope(
+        role: ProjectPresentationSurfaceRole.pauseMenu,
+        child: RuntimePlayerJournal(detail: detail),
       );
     }
     if (section == RuntimePlayerPauseSection.party && detail != null) {

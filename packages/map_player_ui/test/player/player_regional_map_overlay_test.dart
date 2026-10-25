@@ -124,6 +124,8 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('region-map-locations')));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('region-row-townA')));
         await tester.pumpAndSettle();
         final oldRevision = controller.worldServiceSnapshot!.revision;
@@ -172,7 +174,7 @@ void main() {
           );
         } else {
           expect(
-            find.byKey(const ValueKey('region-row-townB')),
+            find.byKey(const ValueKey('region-detail-townB')),
             findsOneWidget,
           );
           prepareB.complete();
@@ -302,6 +304,15 @@ void main() {
         expect(find.text('Kanto'), findsWidgets);
         await _revealMapList(tester, find.text('Route 10'));
         expect(find.text('Route 10'), findsWidgets);
+        if (find
+            .byKey(const PageStorageKey('region-map-list'))
+            .evaluate()
+            .isNotEmpty) {
+          await tester.tap(
+            find.byKey(const ValueKey('region-map-locations-close')),
+          );
+          await tester.pumpAndSettle();
+        }
         await tester.tap(
           find.byKey(const ValueKey('regional-map-fly-confirm')),
         );
@@ -324,6 +335,11 @@ void main() {
 }
 
 Future<void> _revealMapList(WidgetTester tester, Finder target) async {
+  if (target.evaluate().isEmpty &&
+      find.byKey(const PageStorageKey('region-map-list')).evaluate().isEmpty) {
+    await tester.tap(find.byKey(const ValueKey('region-map-locations')));
+    await tester.pumpAndSettle();
+  }
   for (final key in ['player-page-previous', 'player-page-next']) {
     for (var page = 0; page < 30 && target.evaluate().isEmpty; page++) {
       final control = find

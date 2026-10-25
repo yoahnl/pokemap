@@ -263,6 +263,31 @@ void main() {
     expect(condition(), isTrue);
   }
 
+  test('story projection preserves native door walking frames', () async {
+    final runtime = await host();
+    final session = runtime.session!;
+    final initialZ = session.movement.z;
+    final operation = session.enterWarp(session.bundle.map.warps.single);
+    var walked = false;
+    try {
+      for (var i = 0; i < 120 && !walked; i++) {
+        final frames = session.frames(1 / 120);
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+        final hero = frames['hero'];
+        if (session.nativeDoorTraversalActive && hero != null &&
+            session.movement.z != initialZ) {
+          walked = true;
+          expect(hero.x, session.movement.x);
+          expect(hero.z, session.movement.z);
+        }
+      }
+      expect(walked, isTrue);
+    } finally {
+      session.cancelPendingTransition();
+      await operation;
+    }
+  });
+
   for (final startX in [3.0, 3.8125]) {
     test(
       'fractional door approach at $startX aligns outside the walls',

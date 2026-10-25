@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -304,6 +307,47 @@ void main() {
     });
   }
 
+  testWidgets(
+    'reference move names and details fit alongside type and PP using the rendered font',
+    (tester) async {
+      final font = ByteData.sublistView(
+        await File('assets/fonts/DMSans-Variable.ttf').readAsBytes(),
+      );
+      await (FontLoader('Avenir Next')..addFont(Future.value(font))).load();
+      await _pump(
+        tester,
+        viewport: const Size(844, 390),
+        moves: true,
+        referenceMoves: true,
+        source: PlayerInputSource.controller,
+      );
+      for (var index = 0; index < 4; index++) {
+        for (final part in ['name', 'detail']) {
+          final finder = find.byKey(ValueKey('battle-move-$part-$index'));
+          final text = tester.widget<Text>(finder);
+          final context = tester.element(finder);
+          final style = DefaultTextStyle.of(context).style.merge(text.style);
+          final painter = TextPainter(
+            text: TextSpan(text: text.data, style: style),
+            textDirection: TextDirection.ltr,
+            textScaler: MediaQuery.textScalerOf(context),
+          )..layout();
+          expect(
+            tester.getSize(finder).width,
+            greaterThanOrEqualTo(painter.width - .1),
+            reason:
+                '${text.data} must fit at its actual font metrics alongside its type and PP',
+          );
+          painter.dispose();
+        }
+      }
+      expect(find.text('Fouet Lianes'), findsOneWidget);
+      expect(find.text('Vampigraine'), findsOneWidget);
+      expect(find.text('Poudre Dodo'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('reduced motion removes HUD entrance movement', (tester) async {
     await _pump(tester, viewport: const Size(844, 390), reducedMotion: true);
     final slides = tester.widgetList<AnimatedSlide>(find.byType(AnimatedSlide));
@@ -331,6 +375,7 @@ Future<void> _pump(
   WidgetTester tester, {
   required Size viewport,
   bool moves = false,
+  bool referenceMoves = false,
   ProjectBattlePresentationProfile? profile,
   bool busy = false,
   bool reducedMotion = false,
@@ -410,13 +455,25 @@ Future<void> _pump(
                   PlayerBattleCommandViewData(
                     isBagItem: bagCount > 0,
                     index: index,
-                    primaryLabel: bagCount > 0
+                    primaryLabel: referenceMoves
+                        ? const [
+                            'Fouet Lianes',
+                            'Charge',
+                            'Vampigraine',
+                            'Poudre Dodo',
+                          ][index]
+                        : bagCount > 0
                         ? 'Objet ${index + 1}'
                         : moves
                         ? 'Capacité ${index + 1}'
                         : const ['Combattre', 'Sac', 'Équipe', 'Fuite'][index],
                     secondaryLabel: moves ? 'normal' : '',
-                    moveTypeId: moves ? 'normal' : null,
+                    moveTypeId: moves
+                        ? (referenceMoves && index != 1 ? 'grass' : 'normal')
+                        : null,
+                    statusLabel: referenceMoves
+                        ? const ['Peu efficace', '', 'Statut', 'Épuisée'][index]
+                        : null,
                     trailingLabel: moves
                         ? 'PP ${index == 0 ? 0 : 12}/20'
                         : null,

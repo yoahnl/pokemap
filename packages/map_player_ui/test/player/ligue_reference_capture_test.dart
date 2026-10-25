@@ -584,7 +584,7 @@ Future<void> _mount(
       home: Scaffold(
         body: RepaintBoundary(
           key: const ValueKey('ligue-capture'),
-          child: body,
+          child: SizedBox.expand(child: body),
         ),
       ),
     ),

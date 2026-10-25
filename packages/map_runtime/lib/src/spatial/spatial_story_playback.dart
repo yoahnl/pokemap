@@ -82,15 +82,13 @@ final class SpatialStoryPlayback {
                         .firstOrNull
                         ?.value
                         .x ??
-                    _poses['player']?.x ??
-                    session.movement.x,
+                    _playerPose().x,
                 z: poses.entries
                         .where((entry) => entry.key.kind == CinematicActorBindingKind.player)
                         .firstOrNull
                         ?.value
                         .z ??
-                    _poses['player']?.z ??
-                    session.movement.z),
+                    _playerPose().z),
             collideWithPlayer: actor.kind == CinematicActorBindingKind.mapEntity && !crossingActors.any((binding) => binding.kind == CinematicActorBindingKind.player)),
         setInputLocked: (locked) {
           session.storyInputLocked = locked;
@@ -101,7 +99,16 @@ final class SpatialStoryPlayback {
       ),
     );
     session.worldStateProvider = () => models.worldState;
-    session.heroStoryPose = () => cinematics.isPlaying ? _poses['player'] : null;
+    session.heroStoryPose = () {
+      if (session.nativeDoorTraversalActive) return null;
+      final animated = _poses['player'];
+      if (cinematics.isPlaying && animated != null) return animated;
+      final pose = _playerPose();
+      return pose.x != session.movement.x || pose.z != session.movement.z ||
+              pose.facing != session.movement.facing
+          ? pose
+          : null;
+    };
     session.npcStoryPose = (entity) => cinematics.isPlaying ? _poses['entity:${entity.id}'] : null;
     session.npcAutonomousPose = (entity) => autonomousNpcs.poseFor(entity.id);
     session.onBeforeMapChange = () {
@@ -135,10 +142,7 @@ final class SpatialStoryPlayback {
     final override = _poses[_key(actor)];
     if (override != null) return override;
     if (actor.kind == CinematicActorBindingKind.player) {
-      return SpatialCinematicActorPose(
-          x: session.movement.x,
-          z: session.movement.z,
-          facing: session.movement.facing);
+      return _playerPose();
     }
     final entity = session.bundle.map.entities
         .where((value) => value.id == actor.mapEntityId && value.npc != null)
@@ -158,11 +162,24 @@ final class SpatialStoryPlayback {
         facing: saved?.facing ?? session.npcFacing[entity.id] ?? entity.npc!.facing);
   }
 
+  SpatialCinematicActorPose _playerPose() {
+    final animated = _poses['player'];
+    if (animated != null) return animated;
+    final state = session.presentationStateProvider?.call() ?? readGameState();
+    final position = state.currentMapId == session.bundle.map.id
+        ? state.playerSpatialPosition
+        : null;
+    return SpatialCinematicActorPose(
+        x: position?.x ?? session.movement.x,
+        z: position?.z ?? session.movement.z,
+        facing: position == null ? session.movement.facing : state.playerFacing);
+  }
+
   bool _canClose(SpatialModelInstance instance) {
     if (session.movement.wouldModelBlockActor(
         instance.id,
-        _poses['player']?.x ?? session.movement.x,
-        _poses['player']?.z ?? session.movement.z)) {
+        _playerPose().x,
+        _playerPose().z)) {
       return false;
     }
     for (final entity

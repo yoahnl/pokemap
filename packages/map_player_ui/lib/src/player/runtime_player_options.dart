@@ -605,7 +605,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                         padding: EdgeInsets.only(
                           top:
                               companion &&
-                                  _category == PlayerOptionsCategory.audio
+                                  _category == PlayerOptionsCategory.audio &&
+                                  scale <= 1.3
                               ? 0
                               : 8,
                         ),
@@ -862,7 +863,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     bool compact, {
     int labelFlex = 6,
     String? valueLabel,
+    Key? key,
   }) => _OptionSettingRow(
+    key: key,
     label: label,
     control: control,
     compact: compact,
@@ -933,6 +936,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     int divisions = 20,
   }) {
     final draft = _drafts[key] ?? value;
+    final compactCompanion =
+        PlayerCompanionScope.of(context) &&
+        MediaQuery.textScalerOf(context).scale(1) <= 1.3;
     void step(int direction) {
       if (!_enabled) return;
       final next = (draft + direction * (max - min) / divisions).clamp(
@@ -982,37 +988,52 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: context.playerMenuTheme.accent,
-                  thumbColor: context.playerMenuTheme.text,
-                  inactiveTrackColor: context.playerMenuTheme.border,
-                  showValueIndicator: ShowValueIndicator.never,
-                ),
-                child: Slider(
-                  key: ValueKey(key),
-                  focusNode: _sliderFocus.putIfAbsent(
-                    key,
-                    () => FocusNode(debugLabel: label),
+              SizedBox(
+                height: compactCompanion ? 48 : null,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    thumbShape: compactCompanion
+                        ? const RoundSliderThumbShape(
+                            enabledThumbRadius: 8,
+                            disabledThumbRadius: 8,
+                          )
+                        : SliderTheme.of(context).thumbShape,
+                    overlayShape: compactCompanion
+                        ? const RoundSliderOverlayShape(overlayRadius: 16)
+                        : SliderTheme.of(context).overlayShape,
+                    trackHeight: compactCompanion
+                        ? 4
+                        : SliderTheme.of(context).trackHeight,
+                    activeTrackColor: context.playerMenuTheme.accent,
+                    thumbColor: context.playerMenuTheme.text,
+                    inactiveTrackColor: context.playerMenuTheme.border,
+                    showValueIndicator: ShowValueIndicator.never,
                   ),
-                  onChangeStart: _enabled
-                      ? (_) {
-                          RuntimePlayerLocalActionNotification().dispatch(
-                            context,
-                          );
-                          _sliderFocus[key]!.requestFocus();
-                        }
-                      : null,
-                  value: draft.clamp(min, max),
-                  min: min,
-                  max: max,
-                  divisions: divisions,
-                  semanticFormatterCallback: (value) =>
-                      '${(value * 100).round()} %',
-                  onChanged: _enabled
-                      ? (value) => setState(() => _drafts[key] = value)
-                      : null,
-                  onChangeEnd: _enabled ? onChanged : null,
+                  child: Slider(
+                    key: ValueKey(key),
+                    focusNode: _sliderFocus.putIfAbsent(
+                      key,
+                      () => FocusNode(debugLabel: label),
+                    ),
+                    onChangeStart: _enabled
+                        ? (_) {
+                            RuntimePlayerLocalActionNotification().dispatch(
+                              context,
+                            );
+                            _sliderFocus[key]!.requestFocus();
+                          }
+                        : null,
+                    value: draft.clamp(min, max),
+                    min: min,
+                    max: max,
+                    divisions: divisions,
+                    semanticFormatterCallback: (value) =>
+                        '${(value * 100).round()} %',
+                    onChanged: _enabled
+                        ? (value) => setState(() => _drafts[key] = value)
+                        : null,
+                    onChangeEnd: _enabled ? onChanged : null,
+                  ),
                 ),
               ),
             ],
@@ -1022,6 +1043,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       true,
       labelFlex: 7,
       valueLabel: '${(draft * 100).round()} %',
+      key: ValueKey('$key-setting'),
     );
   }
 
@@ -1332,6 +1354,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
 class _OptionSettingRow extends StatelessWidget {
   const _OptionSettingRow({
+    super.key,
     required this.label,
     required this.control,
     required this.compact,
@@ -1381,37 +1404,67 @@ class _OptionSettingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ConstrainedBox(
     constraints: BoxConstraints(
-      minHeight: valueLabel != null && PlayerCompanionScope.of(context)
-          ? 68
+      minHeight:
+          valueLabel != null &&
+              PlayerCompanionScope.of(context) &&
+              MediaQuery.textScalerOf(context).scale(1) <= 1.3
+          ? 64
           : 72,
     ),
     child: valueLabel != null
         ? LayoutBuilder(
             builder: (context, constraints) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              final compactCompanion =
+                  PlayerCompanionScope.of(context) &&
+                  MediaQuery.textScalerOf(context).scale(1) <= 1.3;
+              final heading = Row(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          label,
-                          style: context.playerMenuTheme.label.copyWith(
-                            fontSize: dense ? 14 : null,
-                          ),
-                        ),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: context.playerMenuTheme.label.copyWith(
+                        fontSize: compactCompanion
+                            ? 15
+                            : dense
+                            ? 14
+                            : null,
+                        height: compactCompanion ? 1.3 : null,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        valueLabel!,
-                        style: context.playerMenuTheme.numbers.copyWith(
-                          fontSize: dense ? 14 : null,
-                        ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    valueLabel!,
+                    style: context.playerMenuTheme.numbers.copyWith(
+                      fontSize: compactCompanion
+                          ? 18
+                          : dense
+                          ? 14
+                          : null,
+                      height: compactCompanion ? 1.2 : null,
+                    ),
+                  ),
+                ],
+              );
+              if (compactCompanion) {
+                return SizedBox(
+                  height: 64,
+                  child: Stack(
+                    children: [
+                      heading,
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        child: SizedBox(height: 48, child: control),
                       ),
                     ],
                   ),
-                  control,
-                ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [heading, control],
               );
             },
           )

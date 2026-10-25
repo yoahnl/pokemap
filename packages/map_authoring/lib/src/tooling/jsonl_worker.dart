@@ -130,6 +130,7 @@ final class JsonlWorker {
 
   Future<void> _closeWorkspaces() async {
     _nativeProjectCreation?.close();
+    await _characterContactShadows?.close();
     for (final workspace in _openedWorkspaces.toList()) {
       await _resourcePacks?.closeTransferWorkspace(workspace);
       await _mutations?.detachWorkspace(workspace);
@@ -1094,10 +1095,12 @@ final class JsonlWorker {
                 'actionId': 'characterStudio.contactShadow.set',
                 'readOnly': operation == 'inspect',
                 'summary':
-                    'Read or update one character contact shadow using only its project manifest and scoped transaction records.',
+                    'Inspect and admit an existing working catalog, then update one character definition through the same worker session; never partitions a project implicitly.',
                 'expectedRevision': operation == 'set'
-                    ? 'project.json revision from inspect'
+                    ? 'document or catalog generation revision from inspect in this worker session'
                     : null,
+                'initialAdmission': operation == 'inspect',
+                'partitionsProject': false,
               },
           if (_resourcePacks != null)
             const {

@@ -15,8 +15,7 @@ void main() {
       final session = await _mount(tester);
       expect(_focusedInside(PlayerRegionalMapOverlay), isTrue);
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-      await tester.pumpAndSettle();
+      await _choosePreviousLocation(tester);
       expect(session.prepared, ['clairbois']);
       expect(session.content.selectedPointId, isNull);
       session.preparation.complete();
@@ -57,8 +56,7 @@ void main() {
     tester,
   ) async {
     final session = await _mount(tester);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-    await tester.pumpAndSettle();
+    await _choosePreviousLocation(tester);
     session.preparation.complete();
     await tester.pumpAndSettle();
 
@@ -79,7 +77,12 @@ void main() {
       expect(_focusedInside(PlayerRegionalMapOverlay), isTrue);
     }
 
-    for (var count = 0; count < 2; count++) {
+    for (
+      var count = 0;
+      count < 20 &&
+          !_focusedInsideKey(const ValueKey('regional-map-fly-confirm'));
+      count++
+    ) {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.pumpAndSettle();
     }
@@ -106,8 +109,7 @@ void main() {
     'unavailable Fly reason keeps keyboard back in the regional map',
     (tester) async {
       final session = await _mount(tester, denied: true);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-      await tester.pumpAndSettle();
+      await _choosePreviousLocation(tester);
       session.preparation.complete();
       await tester.pumpAndSettle();
       expect(session.content.selectedPointId, isNull);
@@ -144,6 +146,17 @@ bool _focusedInside(Type type) {
     return !found;
   });
   return found;
+}
+
+Future<void> _choosePreviousLocation(WidgetTester tester) async {
+  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+  await tester.pumpAndSettle();
+  expect(find.byKey(const PageStorageKey('region-map-list')), findsOneWidget);
+  await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+  await tester.pumpAndSettle();
+  await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+  await tester.pumpAndSettle();
+  expect(find.byKey(const PageStorageKey('region-map-list')), findsNothing);
 }
 
 bool _focusedInsideKey(Key key) {

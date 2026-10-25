@@ -8,6 +8,70 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   testWidgets(
+    'character shadow controls preserve the sprite preview when saved',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1400, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final port = _Port()
+        ..entry = const WorkingCatalogEntry(
+          id: 'guide',
+          kind: 'character',
+          name: 'Guide',
+        );
+      final controller = WorkingCatalogController(port);
+      addTearDown(controller.dispose);
+      var previews = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkingCatalogWorkspace(
+            session: const ProjectSession(
+              sessionId: 'shadow',
+              name: 'Projet',
+              directoryPath: '/project',
+              storage: ProjectSessionStorage.workingCatalog,
+            ),
+            controller: controller,
+            onClose: () async {},
+            registerExitGuard: (_) {},
+            previewBuilder: (_) {
+              previews++;
+              return const Text('Sprite conservé');
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await controller.select(port.entry);
+      await tester.pumpAndSettle();
+      expect(previews, 1);
+      expect(find.text('Ombre sous les pieds'), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('character-contact-shadow')),
+      );
+      await tester.tap(find.byKey(const ValueKey('character-contact-shadow')));
+      await tester.pumpAndSettle();
+      expect(controller.draft!.contactShadow, isTrue);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('working-resource-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('working-resource-save')));
+      await tester.pumpAndSettle();
+      expect(port.saved!.contactShadow, isTrue);
+      expect(previews, 1);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('character-contact-shadow-inherit')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('character-contact-shadow-inherit')),
+      );
+      await tester.pumpAndSettle();
+      expect(controller.draft!.contactShadow, isNull);
+      expect(previews, 1);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'map workspace is opened explicitly and its exit guard protects the library',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1400, 1000));
@@ -323,6 +387,7 @@ class _Port implements WorkingCatalogPort {
       description: draft.description,
       tags: draft.tags,
       placementContext: draft.placementContext,
+      contactShadow: draft.contactShadow,
     );
     return open(entry);
   }

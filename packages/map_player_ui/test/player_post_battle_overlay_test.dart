@@ -192,6 +192,33 @@ void main() {
     },
   );
 
+  testWidgets(
+    'failure keeps confirmed facts and the current error visible together',
+    (tester) async {
+      await _pump(
+        tester,
+        _snapshot(
+          hasFailure: true,
+          choices: const [],
+          summaryMessages: const [
+            RuntimePostBattleMessage(
+              kind: RuntimePostBattleMessageKind.money,
+              text: '120 pièces confirmées.',
+            ),
+          ],
+        ),
+      );
+      expect(find.text('120 pièces confirmées.'), findsOneWidget);
+      expect(
+        find.text('La progression ne peut pas être appliquée.'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('post-battle-advance')), findsOneWidget);
+      expect(find.byType(Scrollable), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('error result is announced and acknowledged', (tester) async {
     PostBattlePresentationCommand? command;
     await tester.pumpWidget(

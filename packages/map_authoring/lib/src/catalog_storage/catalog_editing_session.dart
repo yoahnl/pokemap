@@ -154,11 +154,14 @@ final class CatalogEditingSession {
   }
 
   Future<AuthoringReceipt?> reconcile(String operationId,
-          {bool compensate = false}) =>
-      _serialize(() => _reconcile(operationId, compensate: compensate));
+          {bool compensate = false,
+          AuthoringTransactionPrecondition? precondition}) =>
+      _serialize(() => _reconcile(operationId,
+          compensate: compensate, precondition: precondition));
 
   Future<AuthoringReceipt?> _reconcile(String operationId,
-      {required bool compensate}) async {
+      {required bool compensate,
+      AuthoringTransactionPrecondition? precondition}) async {
     _requireOpen();
     final journal = await store.gateway.readJournal(operationId);
     if (journal == null ||
@@ -176,8 +179,8 @@ final class CatalogEditingSession {
       await recovery.discardUnreserved(operationId);
     } else {
       receipt = compensate
-          ? await recovery.compensate(operationId)
-          : await recovery.resume(operationId);
+          ? await recovery.compensate(operationId, precondition: precondition)
+          : await recovery.resume(operationId, precondition: precondition);
       await _transaction.cleanupCompletedReplay(
           scope: journal.scope,
           planId: journal.planId,

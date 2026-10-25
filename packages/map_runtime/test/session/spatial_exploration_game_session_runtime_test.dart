@@ -894,6 +894,55 @@ void main() {
     expect(runtime.inputAuthority.value.context, RuntimeInputContext.overworld);
   });
 
+  for (final bindPlayer in [true, false]) {
+    test('consecutive cinematics retain the projected player pose with ${bindPlayer ? 'player' : 'guide-only'} binding', () async {
+      bundle = playerContinuityBundle(bundle, bindPlayer: bindPlayer);
+      await runtime.load((_) {});
+      await waitForStory(runtime);
+      runtime.session!.frames(.25);
+      await waitForValue(runtime.dialoguePresentationListenable, (value) => value != null);
+      final between = runtime.session!.frames(0)['hero']!;
+      expect(between.x, 3);
+      expect(between.z, 4);
+      expect(runtime.gameStateSnapshot.playerSpatialPosition, PlayerSpatialPosition(x: 4, z: 4));
+      for (var i = 0; i < 4 && runtime.dialoguePresentationListenable.value != null; i++) {
+        final line = runtime.dialoguePresentationListenable.value!;
+        runtime.dispatchDialoguePresentationCommand(DialogueAdvanceCommand(snapshotRevision: line.revision));
+        await Future<void>.delayed(Duration.zero);
+      }
+      await waitForStory(runtime);
+      expect(runtime.session!.frames(.1)['hero']!.x, 3);
+      runtime.session!.frames(.15);
+      await runtime.gameplayReady;
+      expect(runtime.session!.interactionError.value, isNull);
+      expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
+      expect(runtime.gameStateSnapshot.playerSpatialPosition, PlayerSpatialPosition(x: 3, z: bindPlayer ? 5 : 4));
+      expect(runtime.session!.frames(0)['hero']!.x, 3);
+    });
+  }
+
+  test('cancelling a later cinematic restores the original player pose', () async {
+    bundle = playerContinuityBundle(bundle, bindPlayer: true);
+    await runtime.load((_) {});
+    await waitForStory(runtime);
+    runtime.session!.frames(.25);
+    await waitForValue(runtime.dialoguePresentationListenable, (value) => value != null);
+    for (var i = 0; i < 4 && runtime.dialoguePresentationListenable.value != null; i++) {
+      final line = runtime.dialoguePresentationListenable.value!;
+      runtime.dispatchDialoguePresentationCommand(DialogueAdvanceCommand(snapshotRevision: line.revision));
+      await Future<void>.delayed(Duration.zero);
+    }
+    await waitForStory(runtime);
+    runtime.session!.frames(.1);
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    await runtime.gameplayReady;
+    expect(runtime.session!.frames(0)['hero']!.x, 4);
+    expect(runtime.session!.frames(0)['hero']!.z, 4);
+    expect(runtime.gameStateSnapshot.playerSpatialPosition, PlayerSpatialPosition(x: 4, z: 4));
+    expect(runtime.gameStateSnapshot.trainerProfile.money, 0);
+    expect(runtime.session!.interactionError.value, isNull);
+  });
+
   test('cinematic frames move and persist a NPC while pause freezes its clock',
       () async {
     bundle = npcCinematicBundle(bundle);
@@ -3090,6 +3139,41 @@ Future<RuntimeMapBundle> spatialWarpBundle(
     ),
   );
   return bundle.copyWith(map: source, manifest: manifest);
+}
+
+RuntimeMapBundle playerContinuityBundle(RuntimeMapBundle bundle, {required bool bindPlayer}) {
+  CinematicAsset clip(String id, String actor, double x, double z, {bool relative = false}) => CinematicAsset.fromJson({
+    'id': id, 'title': id, 'mapId': 'field', 'actorCompletionPolicy': 'keepFinal',
+    'requiredActors': [{'actorId': actor}],
+    'movementTargets': [{'targetId': 'end', 'label': 'End'}],
+    'stageContext': {
+      'actorBindings': [{'actorId': actor, 'kind': actor == 'hero' ? 'player' : 'mapEntity', if (actor != 'hero') 'mapEntityId': 'npc'}],
+      'stagePoints': [{'id': 'end', 'label': 'End', 'x': x, 'y': z, if (relative) 'relativeToActorId': actor}],
+      'movementTargetBindings': [{'targetId': 'end', 'kind': 'stagePoint', 'sourceId': 'end'}],
+    },
+    'timeline': {'steps': [{'id': 'move', 'kind': 'actorMove', 'actorId': actor, 'targetId': 'end', 'durationMs': 250,
+      'metadata': {'actor.movementMode': 'walk', 'actor.pathMode': 'direct'}}]},
+  });
+  final first = clip('align', 'hero', 3, 4);
+  final second = bindPlayer ? clip('follow', 'hero', 0, 1, relative: true) : clip('follow', 'guide', 4, 4);
+  final reward = spatialScene('continuity', [SceneConsequence.giveMoney(amount: 25)]);
+  final graph = SceneGraph(startNodeId: 'start', nodes: [
+    reward.graph.nodes.first,
+    SceneNode(id: 'align', kind: SceneNodeKind.cinematic, payload: SceneCinematicPayload(cinematicId: first.id)),
+    SceneNode(id: 'talk', kind: SceneNodeKind.yarnDialogue, payload: SceneYarnDialoguePayload(dialogueId: 'hello')),
+    SceneNode(id: 'follow', kind: SceneNodeKind.cinematic, payload: SceneCinematicPayload(cinematicId: second.id)),
+    ...reward.graph.nodes.skip(1),
+  ], edges: [
+    SceneEdge(id: 'a', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'align', kind: SceneEdgeKind.defaultFlow),
+    SceneEdge(id: 'b', fromNodeId: 'align', fromPortId: 'completed', toNodeId: 'talk', kind: SceneEdgeKind.cinematicCompleted),
+    SceneEdge(id: 'c', fromNodeId: 'talk', fromPortId: 'completed', toNodeId: 'follow', kind: SceneEdgeKind.defaultFlow),
+    SceneEdge(id: 'd', fromNodeId: 'follow', fromPortId: 'completed', toNodeId: 'action_0', kind: SceneEdgeKind.cinematicCompleted),
+    ...reward.graph.edges.skip(1),
+  ]);
+  return bundle.copyWith(manifest: bundle.manifest.copyWith(cinematics: [first, second],
+    scenes: [SceneAsset(id: reward.id, name: reward.name, graph: graph)],
+    eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+      records: [spatialEvent(NarrativeEventSourceRef.mapEnter('field'), reward.id)], legacyClaims: const [])));
 }
 
 RuntimeMapBundle npcCinematicBundle(RuntimeMapBundle bundle) {

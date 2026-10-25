@@ -4,12 +4,17 @@ final class RegionMapGeometry {
   factory RegionMapGeometry({
     required Size viewport,
     required Size imageSize,
+    BoxFit fit = BoxFit.contain,
     double scale = 1,
     Offset center = const Offset(.5, .5),
   }) {
-    final fitted = applyBoxFit(BoxFit.contain, imageSize, viewport);
+    assert(fit == BoxFit.contain || fit == BoxFit.cover);
+    final fitted = applyBoxFit(fit, imageSize, viewport);
+    final fittedSize = fit == BoxFit.cover
+        ? imageSize * (fitted.destination.width / fitted.source.width)
+        : fitted.destination;
     final imageRect = Alignment.center.inscribe(
-      fitted.destination,
+      fittedSize,
       Offset.zero & viewport,
     );
     final zoom = scale.clamp(1.0, 3.0);
@@ -64,26 +69,34 @@ final class RegionMapGeometry {
   Offset get center => unproject(viewport.center(Offset.zero));
 
   Rect get transformedImageRect => Rect.fromLTWH(
-        translation.dx + imageRect.left * scale,
-        translation.dy + imageRect.top * scale,
-        imageRect.width * scale,
-        imageRect.height * scale,
-      );
+    translation.dx + imageRect.left * scale,
+    translation.dy + imageRect.top * scale,
+    imageRect.width * scale,
+    imageRect.height * scale,
+  );
 
   Offset project(Offset normalized) =>
       translation +
-      Offset(imageRect.left + normalized.dx * imageRect.width,
-              imageRect.top + normalized.dy * imageRect.height) *
+      Offset(
+            imageRect.left + normalized.dx * imageRect.width,
+            imageRect.top + normalized.dy * imageRect.height,
+          ) *
           scale;
 
   Offset unproject(Offset position) {
     final scene = (position - translation) / scale;
-    return Offset((scene.dx - imageRect.left) / imageRect.width,
-        (scene.dy - imageRect.top) / imageRect.height);
+    return Offset(
+      (scene.dx - imageRect.left) / imageRect.width,
+      (scene.dy - imageRect.top) / imageRect.height,
+    );
   }
 
   RegionMapGeometry pan(Offset delta) => RegionMapGeometry._bounded(
-      viewport, imageRect, scale, translation + delta);
+    viewport,
+    imageRect,
+    scale,
+    translation + delta,
+  );
 
   RegionMapGeometry zoom(double value, Offset focalPoint) {
     final nextScale = value.clamp(1.0, 3.0);

@@ -43,6 +43,48 @@ void main() {
     }
   });
 
+  test('controller opaque budgets follow normalized Ligue proportions with bounded overlap', () {
+    for (final viewport in const [
+      Size(844, 390),
+      Size(760, 351),
+      Size(1280, 720),
+    ]) {
+      final layout = BattleSceneLayout.forViewport(
+        viewportSize: viewport,
+        commandPanelPlacement: BattleCommandPanelPlacement.end,
+      );
+      final scale = (viewport.width / 844)
+          .clamp(0.0, viewport.height / 390)
+          .clamp(0.0, 1.0);
+      expect(layout.playerSpriteRect.left, closeTo(169 * scale, .01));
+      expect(layout.playerSpriteRect.width, closeTo(148 * scale, .01));
+      expect(layout.playerSpriteRect.height, closeTo(134 * scale, .01));
+      expect(
+        viewport.height - layout.playerSpriteRect.bottom,
+        closeTo(77 * scale, .01),
+      );
+      expect(
+        layout.enemySpriteRect.right,
+        closeTo(
+          (viewport.width - 343.5 * scale).clamp(
+            0.0,
+            layout.commandPanelRect.left - 4,
+          ),
+          .01,
+        ),
+      );
+      expect(
+        viewport.height - layout.enemySpriteRect.bottom,
+        closeTo(159 * scale, .01),
+      );
+      expect(
+        layout.playerHudRect.intersect(layout.playerSpriteRect).height,
+        lessThanOrEqualTo(layout.playerSpriteRect.height * .083),
+      );
+      expect(layout.playerHudRect.overlaps(layout.playerPlatformRect), isFalse);
+    }
+  });
+
   double intersectionRatio(Rect rect, Rect container) {
     final intersection = rect.intersect(container);
     if (intersection.isEmpty) {
@@ -100,7 +142,23 @@ void main() {
                   isTrue,
                 );
                 expect(rectInside(geometry.hudRect, layout.sceneRect), isTrue);
-                expect(geometry.hudRect.overlaps(geometry.spriteRect), isFalse);
+                if (placement == BattleCommandPanelPlacement.end &&
+                    !doubleBattle &&
+                    side == BattleSideId.player) {
+                  expect(
+                    geometry.hudRect.intersect(geometry.spriteRect).height,
+                    lessThanOrEqualTo(geometry.spriteRect.height * .083),
+                  );
+                  expect(
+                    geometry.hudRect.contains(geometry.footAnchor),
+                    isFalse,
+                  );
+                } else {
+                  expect(
+                    geometry.hudRect.overlaps(geometry.spriteRect),
+                    isFalse,
+                  );
+                }
                 if (!layout.commandPanelRect.isEmpty) {
                   expect(
                     geometry.spriteRect.overlaps(layout.commandPanelRect),
@@ -142,12 +200,25 @@ void main() {
             expect(rectInside(hud, layout.sceneRect), isTrue);
             expect(hud.overlaps(layout.commandPanelRect), isFalse);
             for (final actor in geometry) {
-              expect(
-                hud.overlaps(actor.spriteRect),
-                isFalse,
-                reason:
-                    '$placement scale $scale doubles $doubles HUD $hud sprite ${actor.spriteRect}',
-              );
+              final referencePlayerOverlap =
+                  placement == BattleCommandPanelPlacement.end &&
+                  !doubles &&
+                  hud == layout.playerHudRect &&
+                  actor.spriteRect == layout.playerSpriteRect;
+              if (referencePlayerOverlap) {
+                expect(
+                  hud.intersect(actor.spriteRect).height,
+                  lessThanOrEqualTo(actor.spriteRect.height * .083),
+                );
+                expect(hud.contains(actor.footAnchor), isFalse);
+              } else {
+                expect(
+                  hud.overlaps(actor.spriteRect),
+                  isFalse,
+                  reason:
+                      '$placement scale $scale doubles $doubles HUD $hud sprite ${actor.spriteRect}',
+                );
+              }
               expect(
                 hud.overlaps(actor.platformRect),
                 isFalse,
