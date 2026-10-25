@@ -14,9 +14,141 @@ import 'package:map_render_3d/src/adaptive_camera.dart';
 import 'package:map_render_3d/src/spatial_scene_neighbor.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
+import 'package:map_render_3d/src/spatial_ground.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final source in [
+    ('ground', SmartTileRenderChannel.ground, true, false),
+    ('understory', SmartTileRenderChannel.understory, true, false),
+    ('canopy', SmartTileRenderChannel.canopy, true, false),
+    ('floating', SmartTileRenderChannel.ground, false, false),
+    ('replacement', SmartTileRenderChannel.ground, true, true),
+  ]) {
+    for (final legacy in [false, true]) {
+      for (final unrelated in [0, 1000]) {
+        test(
+          'hide order show reuses prepared dependencies for ${source.$1} with $unrelated unrelated presets, legacy=$legacy',
+          () async {
+            final h = await _Harness.create(
+              generated: true,
+              materialized: true,
+              guardCatalog: true,
+              unrelatedPresets: unrelated,
+              generatedChannel: source.$2,
+              generatedFollowTerrain: source.$3,
+              generatedReplacesGround: source.$4,
+              mixedLayers: true,
+              legacyOrder: legacy,
+              generatedPivotY: .37123456789,
+            );
+            addTearDown(h.dispose);
+            final project = h.project as _GuardedCatalogProject;
+            final catalog = project.smartTileCatalog;
+            final reordered = h.map.copyWith(
+              layers: h.map.layers.reversed.toList(),
+            );
+            final oracle = projectSpatialSmartTileModels(
+              map: reordered,
+              catalog: catalog,
+            );
+            final expected = {
+              for (final instance in oracle.spatialScene!.instances)
+                instance.id: instance,
+            };
+            final oracleGround = SpatialGroundPlan(oracle, project)
+                .resolve(0)
+                .map(
+                  (part) => (
+                    part.visual.tilesetId,
+                    part.visual.sourceRect,
+                    part.height,
+                    part.opacity,
+                  ),
+                )
+                .toList();
+            final components = Map.of(h.game.modelComponents);
+            final generated = components.entries.singleWhere(
+              (entry) => entry.key.startsWith('smt_'),
+            );
+            final initialY = generated.value.component.position.y;
+            final initialAnchorY = generated.value.anchor.y;
+            final generation = h.game.generation;
+            final reads = h.reads;
+            generated.value.component.playback.clock = .625;
+            project.rejectCatalogReads = true;
+            expect(() => catalog.presets.first.id, throwsStateError);
+            final hidden = SpatialSceneVisibility(hiddenLayers: ['blue']);
+            final initial = h.configuration(h.map, visibility: hidden);
+            h.game.configuration = initial;
+            h.game.renderedConfiguration = initial;
+            h.game.syncVisibility();
+            h.game.configuration = h.configuration(
+              reordered,
+              visibility: hidden,
+            );
+            expect(await h.game.refresh(), isTrue);
+            expect(h.game.modelComponents.keys.toSet(), expected.keys.toSet());
+            for (final entry in expected.entries) {
+              final actual = h.game.runtimeModelIndex.instance(
+                'active',
+                entry.key,
+              )!;
+              expect(
+                actual.copyWith(position: entry.value.position),
+                entry.value,
+              );
+              expect(actual.position.x, entry.value.position.x);
+              expect(actual.position.z, entry.value.position.z);
+              expect(actual.position.y, closeTo(entry.value.position.y, 1e-12));
+              expect(
+                h.game.modelComponents[entry.key]!.component,
+                same(components[entry.key]!.component),
+              );
+            }
+            expect(
+              generated.value.component.position.y,
+              Float32List.fromList([
+                initialY +
+                    (expected[generated.key]!.position.y - initialAnchorY),
+              ]).single,
+            );
+            final shown = h.configuration(reordered);
+            h.game.configuration = shown;
+            h.game.renderedConfiguration = shown;
+            h.game.syncVisibility();
+            expect(
+              h.game.grounds.single.visuals
+                  .map(
+                    (part) => (
+                      part.visual.tilesetId,
+                      part.visual.sourceRect,
+                      part.height,
+                      part.opacity,
+                    ),
+                  )
+                  .toList(),
+              oracleGround,
+            );
+            for (var i = 0; i < 20; i++) {
+              h.game.configuration = h.configuration(h.map);
+              expect(await h.game.refresh(), isTrue);
+              expect(generated.value.component.position.y, initialY);
+              h.game.configuration = h.configuration(reordered);
+              expect(await h.game.refresh(), isTrue);
+            }
+            h.game.configuration = h.configuration(h.map);
+            expect(await h.game.refresh(), isTrue);
+            expect(generated.value.component.position.y, initialY);
+            expect(generated.value.component.playback.clock, .625);
+            expect(h.game.generation, generation);
+            expect(h.reads, reads);
+          },
+        );
+      }
+    }
+  }
 
   test('hidden layers preserve canonical paint heights before and after an order change', () async {
     final h = await _Harness.create(generated: true, materialized: true);
@@ -392,12 +524,20 @@ final class _Harness {
     bool neighborSameId = false,
     bool dayLights = false,
     bool guardCatalog = false,
+    int unrelatedPresets = 0,
+    SmartTileRenderChannel generatedChannel = SmartTileRenderChannel.ground,
+    bool generatedFollowTerrain = true,
+    bool generatedReplacesGround = false,
+    bool mixedLayers = false,
+    bool legacyOrder = false,
+    double generatedPivotY = 0,
   }) async {
     _UnusedBackend();
     final h = _Harness();
     final model = ProjectModel3dEntry(
       id: 'lamp',
       name: 'Lamp',
+      pivot: Model3dVector3(x: 0, y: generatedPivotY, z: 0),
       sourceAssetId: 'lamp',
       castsShadowsByDefault: generated,
       relativePath: 'assets/models3d/lamp.glb',
@@ -457,9 +597,12 @@ final class _Harness {
                       id: 'fill',
                       parts: [
                         if (generated && entry.$1 == 0)
-                          const SmartTileVisualPart(
+                          SmartTileVisualPart(
+                            channel: generatedChannel,
                             source: SmartTileVisualSource.model3d(
                               modelId: 'lamp',
+                              followTerrain: generatedFollowTerrain,
+                              replacesGround: generatedReplacesGround,
                             ),
                           ),
                         SmartTileVisualPart(
@@ -480,10 +623,17 @@ final class _Harness {
         ],
       ),
     );
-    if (guardCatalog) h.project = _GuardedCatalogProject(h.project);
+    if (guardCatalog)
+      h.project = _GuardedCatalogProject(
+        h.project,
+        unrelatedPresets: unrelatedPresets,
+      );
     h.map = MapData(
       id: 'active',
       name: 'Active',
+      properties: legacyOrder
+          ? const {'tileLayerOrder': 'bottom_to_top'}
+          : const {},
       size: const GridSize(width: 1, height: 1),
       spatialScene: MapSpatialScene(
         width: 1,
@@ -516,6 +666,18 @@ final class _Harness {
         ),
       ],
     );
+    if (mixedLayers) {
+      final smart = h.map.layers.whereType<SmartTileLayer>().first;
+      h.map = h.map.copyWith(
+        layers: [
+          h.map.layers.first,
+          const MapLayer.tile(id: 'flat', name: 'Flat'),
+          smart.copyWith(id: 'authored-hidden', isVisible: false),
+          smart.copyWith(id: 'authored-transparent', opacity: 0),
+          h.map.layers.last,
+        ],
+      );
+    }
     if (materialized) {
       h.map = h.map.copyWith(
         spatialScene: h.map.spatialScene!.copyWith(
@@ -625,8 +787,26 @@ final class _Harness {
 }
 
 final class _GuardedCatalogProject implements ProjectManifest {
-  _GuardedCatalogProject(this.source);
+  _GuardedCatalogProject(this.source, {int unrelatedPresets = 0}) {
+    final catalog = source.smartTileCatalog;
+    _catalog = ProjectSmartTileCatalog(
+      atlases: catalog.atlases,
+      materials: catalog.materials,
+      animations: catalog.animations,
+      patterns: catalog.patterns,
+      categories: catalog.categories,
+      presets: [
+        for (final preset in catalog.presets) _GuardedPreset(preset, this),
+        for (var i = 0; i < unrelatedPresets; i++)
+          _GuardedPreset(
+            catalog.presets.first.copyWith(id: 'unrelated-$i'),
+            this,
+          ),
+      ],
+    );
+  }
   final ProjectManifest source;
+  late final ProjectSmartTileCatalog _catalog;
   var catalogReads = 0;
   var rejectCatalogReads = false;
   @override
@@ -634,7 +814,7 @@ final class _GuardedCatalogProject implements ProjectManifest {
     if (rejectCatalogReads)
       throw StateError('Visibility accessed the project catalog.');
     catalogReads++;
-    return source.smartTileCatalog;
+    return _catalog;
   }
 
   @override
@@ -645,6 +825,56 @@ final class _GuardedCatalogProject implements ProjectManifest {
   get tilesets => source.tilesets;
   @override
   get borderCatalog => source.borderCatalog;
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError(invocation.memberName.toString());
+}
+
+final class _GuardedPreset implements ProjectSmartTilePreset {
+  _GuardedPreset(this.source, this.project);
+  final ProjectSmartTilePreset source;
+  final _GuardedCatalogProject project;
+  @override
+  String get id {
+    if (project.rejectCatalogReads)
+      throw StateError('Local mutation traversed the prepared catalog.');
+    return source.id;
+  }
+
+  @override
+  get name => source.name;
+  @override
+  get categoryId => source.categoryId;
+  @override
+  get usage => source.usage;
+  @override
+  get topology => source.topology;
+  @override
+  get templateHint => source.templateHint;
+  @override
+  get boundaryPolicy => source.boundaryPolicy;
+  @override
+  get status => source.status;
+  @override
+  get coveragePolicy => source.coveragePolicy;
+  @override
+  get coverageProfile => source.coverageProfile;
+  @override
+  get transformPolicy => source.transformPolicy;
+  @override
+  get defaultMaterialId => source.defaultMaterialId;
+  @override
+  get allowedMaterialIds => source.allowedMaterialIds;
+  @override
+  get rules => source.rules;
+  @override
+  get tags => source.tags;
+  @override
+  get sortOrder => source.sortOrder;
+  @override
+  get seedSalt => source.seedSalt;
+  @override
+  get fallbackRuleId => source.fallbackRuleId;
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnsupportedError(invocation.memberName.toString());

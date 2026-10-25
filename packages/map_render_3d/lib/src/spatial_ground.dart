@@ -84,6 +84,7 @@ final class SpatialGroundPlan {
     final ordered = mapPaintsFirstLayerInFront(map)
         ? map.layers.reversed
         : map.layers;
+    final layerRanks = spatialSmartTileLayerPaintRanks(map);
     for (final layer in ordered.whereType<SmartTileLayer>().where(
       (layer) =>
           layer.isVisible &&
@@ -129,7 +130,7 @@ final class SpatialGroundPlan {
       );
       _opacities.add(layer.opacity);
       _layerIds.add(layer.id);
-      _planRanks.add(_plans.length);
+      _planRanks.add(layerRanks[layer.id]! + 1);
       for (final rule in preset.rules) {
         for (final candidate in rule.candidates) {
           for (final part in candidate.parts) {
@@ -166,28 +167,63 @@ final class SpatialGroundPlan {
     });
   }
 
-  SpatialGroundPlan._visible(
+  SpatialGroundPlan._prepared(
     SpatialGroundPlan source,
-    bool Function(String) includeLayer,
-  ) : scene = source.scene {
-    _source = source;
+    bool Function(String) includeLayer, {
+    MapData? reorderedMap,
+  }) : scene = reorderedMap?.spatialScene ?? source.scene {
+    _source = reorderedMap == null ? source : null;
     _visibleLayerIds.addAll(source._visibleLayerIds.where(includeLayer));
     _modelReplacementLayers.addAll(source._modelReplacementLayers);
     _borderMaskLayers.addAll(source._borderMaskLayers);
-    _borderReplacementLayers.addAll(source._borderReplacementLayers);
+    if (reorderedMap == null) {
+      _borderReplacementLayers.addAll(source._borderReplacementLayers);
+    } else {
+      for (final layer in reorderedMap.layers) {
+        final replacements = source._borderReplacementLayers[layer.id];
+        if (replacements != null)
+          _borderReplacementLayers[layer.id] = replacements;
+      }
+    }
     _bridgeUpdates.addAll(source._bridgeUpdates);
-    for (var i = 0; i < source._layerIds.length; i++) {
-      final id = source._layerIds[i];
+    final byId = {for (final (i, id) in source._layerIds.indexed) id: i};
+    final orderedIds = reorderedMap == null
+        ? source._layerIds
+        : (mapPaintsFirstLayerInFront(reorderedMap)
+                  ? reorderedMap.layers.reversed
+                  : reorderedMap.layers)
+              .map((layer) => layer.id);
+    final ranks = reorderedMap == null
+        ? null
+        : spatialSmartTileLayerPaintRanks(reorderedMap);
+    for (final id in orderedIds) {
+      final i = byId[id];
+      if (i == null) continue;
       if (!includeLayer(id)) continue;
       _layerIds.add(id);
       _plans.add(source._plans[i]);
       _opacities.add(source._opacities[i]);
-      _planRanks.add(source._planRanks[i]);
+      _planRanks.add(ranks == null ? source._planRanks[i] : ranks[id]! + 1);
     }
-    for (var i = 0; i < source._flatPlans.length; i++) {
+    final flatIndices = List.generate(
+      source._flatPlans.length,
+      (index) => index,
+    );
+    if (reorderedMap != null) {
+      final order = {for (final (rank, id) in orderedIds.indexed) id: rank};
+      flatIndices.sort((a, b) {
+        final delta = order[source._flatPlans[a].layerId]!.compareTo(
+          order[source._flatPlans[b].layerId]!,
+        );
+        return delta == 0 ? a.compareTo(b) : delta;
+      });
+    }
+    for (final i in flatIndices) {
       if (!includeLayer(source._flatPlans[i].layerId)) continue;
       _flatPlans.add(source._flatPlans[i]);
-      _flatRanks.add(source._flatRanks[i]);
+      _flatRanks.add(
+        reorderedMap == null ? source._flatRanks[i] : _flatPlans.length,
+      );
     }
     cliff = source.cliff;
     animated = source.animated;
@@ -233,8 +269,14 @@ final class SpatialGroundPlan {
     final source = _source ?? this;
     return source._visibleLayerIds.every(includeLayer)
         ? source
-        : SpatialGroundPlan._visible(source, includeLayer);
+        : SpatialGroundPlan._prepared(source, includeLayer);
   }
+
+  SpatialGroundPlan reordered(MapData map) => SpatialGroundPlan._prepared(
+    _source ?? this,
+    (_) => true,
+    reorderedMap: map,
+  );
 
   bool layersMatchVisibility(
     SpatialGroundPlan other,
@@ -624,7 +666,9 @@ final class SpatialGroundPlan {
         _visualExclusions[visuals[part]] = _layerExclusions[index];
         result.add((
           visual: visuals[part],
-          height: .001 * (_planRanks[index] + ranks[part] / (maximum + 1)),
+          height:
+              spatialSmartTileLayerPaintStep *
+              (_planRanks[index] + ranks[part] / (maximum + 1)),
           opacity: _opacities[index],
         ));
       }

@@ -1337,6 +1337,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           MapData map,
           bool hasGeneratedModels,
           Map<String, ({String layerId, GridPos cell})> cellOrigins,
+          Map<String, ({double height, int layerRank})> paintHeightAnchors,
         })
       >.identity();
 
@@ -1356,6 +1357,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       sourceCellHeight: project.settings.tileHeight,
     );
     final projected = _mapWithSmartTileProjection(map, projection);
+    final ranks = spatialSmartTileLayerPaintRanks(map);
     if (_smartTileProjectionCache.length >= 8) {
       _smartTileProjectionCache.remove(_smartTileProjectionCache.keys.first);
     }
@@ -1366,6 +1368,14 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       map: projected,
       hasGeneratedModels: projection.instances.isNotEmpty,
       cellOrigins: projection.cellOrigins,
+      paintHeightAnchors: Map.unmodifiable({
+        for (final instance in projection.instances)
+          if (projection.paintHeightInstanceIds.contains(instance.id))
+            instance.id: (
+              height: instance.position.y,
+              layerRank: ranks[projection.cellOrigins[instance.id]!.layerId]!,
+            ),
+      }),
     );
     return projected;
   }
@@ -1619,21 +1629,39 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final chunk = sceneChunks[map.id];
     final cached = _smartTileProjectionCache[previousMap];
     if (chunk == null || cached == null) return false;
-    final projection =
+    final ranks =
         change == _VisualOrderChange.layers && cached.hasGeneratedModels
-        ? resolveSpatialSmartTileModelProjection(
-            map: map,
-            catalog: cached.catalog,
-            sourceCellWidth: cached.width,
-            sourceCellHeight: cached.height,
+        ? spatialSmartTileLayerPaintRanks(map)
+        : const <String, int>{};
+    final projectedScene =
+        change == _VisualOrderChange.layers && cached.hasGeneratedModels
+        ? cached.map.spatialScene!.copyWith(
+            instances: [
+              for (final instance in cached.map.spatialScene!.instances)
+                if (cached.paintHeightAnchors[instance.id] case final anchor?)
+                  instance.copyWith(
+                    position: Model3dVector3(
+                      x: instance.position.x,
+                      y:
+                          anchor.height +
+                          spatialSmartTileLayerPaintStep *
+                              (ranks[cached
+                                      .cellOrigins[instance.id]!
+                                      .layerId]! -
+                                  anchor.layerRank),
+                      z: instance.position.z,
+                    ),
+                  )
+                else
+                  instance,
+            ],
           )
-        : null;
-    final projected = projection == null
-        ? cached.map.copyWith(
-            layers: map.layers,
-            placedElements: map.placedElements,
-          )
-        : _mapWithSmartTileProjection(map, projection);
+        : cached.map.spatialScene;
+    final projected = cached.map.copyWith(
+      layers: map.layers,
+      placedElements: map.placedElements,
+      spatialScene: projectedScene,
+    );
     final changedCasters = <String, SpatialAuthoredShadowCaster>{};
     if (change == _VisualOrderChange.layers && cached.hasGeneratedModels) {
       final generated = projected.spatialScene!.instances
@@ -1680,10 +1708,13 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         runtimeModelIndex.replaceInstance(map.id, instance);
         final previous = chunk.models[instance.id];
         if (previous == null || previous.anchor == instance.position) continue;
-        final delta = instance.position.y - previous.anchor.y;
         final component = previous.component;
-        component.position.y += delta;
-        final position = previous.position.clone()..y += delta;
+        final previewOffset = component.position.y - previous.position.y;
+        final height =
+            component.initialPositionY +
+            (instance.position.y - component.initialAnchorY);
+        component.position.y = height + previewOffset;
+        final position = previous.position.clone()..y = height;
         final updated = (
           component: component,
           position: position,
@@ -1704,13 +1735,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final ground = chunk.ground;
     if (change == _VisualOrderChange.layers && ground != null) {
       final oldPlan = ground.plan;
-      final sourcePlan = SpatialGroundPlan(
+      final sourcePlan = ground.sourcePlan.reordered(projected);
+      final sourceOcclusionPlan = ground.sourceOcclusionPlan.reordered(
         projected,
-        configuration.groundProject!,
-      );
-      final sourceOcclusionPlan = SpatialActorOcclusionPlan(
-        projected,
-        configuration.groundProject!,
       );
       final visibility = configuration.visibility ?? SpatialSceneVisibility.all;
       final plan = sourcePlan.withLayerVisibility(visibility.layerVisible);
@@ -1789,11 +1816,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       height: cached.height,
       map: projected,
       hasGeneratedModels: cached.hasGeneratedModels,
-      cellOrigins: projection?.cellOrigins ?? cached.cellOrigins,
+      cellOrigins: cached.cellOrigins,
+      paintHeightAnchors: cached.paintHeightAnchors,
     );
     if (_smartTileProjectionCache.length > 8)
       _smartTileProjectionCache.remove(_smartTileProjectionCache.keys.first);
-    chunk.cellOrigins = projection?.cellOrigins ?? cached.cellOrigins;
+    chunk.cellOrigins = cached.cellOrigins;
     final signature = chunk.signature;
     chunk.signature = (
       projected,
@@ -2143,6 +2171,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           final previous = animationModels[animationKey];
           final component = _SceneModelComponent(
             instanceId: instance.id,
+            initialAnchorY: instance.position.y,
             shadowId: spatialShadowInstanceId(mapId, instance.id),
             model: model,
             visibleBounds: visibleBounds,
@@ -3423,6 +3452,7 @@ class _SceneActorComponent extends MeshComponent {
 class _SceneModelComponent extends AnimatedModelComponent {
   _SceneModelComponent({
     required this.instanceId,
+    required this.initialAnchorY,
     required this.shadowId,
     required super.model,
     required this.visibleBounds,
@@ -3432,10 +3462,14 @@ class _SceneModelComponent extends AnimatedModelComponent {
     super.scale,
     super.playback,
     super.runtimePoseBefore,
-  });
+  }) {
+    initialPositionY = position.y;
+  }
   final Model3dBounds visibleBounds;
   final ProjectModel3dEntry definition;
   final String instanceId;
+  final double initialAnchorY;
+  late final double initialPositionY;
   final String shadowId;
   bool presentationVisible = true;
   @override

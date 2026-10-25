@@ -96,6 +96,22 @@ final class SpatialActorOcclusionPlan {
     _layerIds.addAll(source._layerIds.where(includeLayer));
   }
 
+  SpatialActorOcclusionPlan._reordered(
+    SpatialActorOcclusionPlan source,
+    this.map,
+  ) {
+    final byId = {for (final entry in source._plans) entry.layer.id: entry};
+    for (final layer in map.layers) {
+      final entry = byId[layer.id];
+      if (entry == null) continue;
+      _plans.add(entry);
+      _layerIds.add(layer.id);
+    }
+  }
+
+  SpatialActorOcclusionPlan reordered(MapData map) =>
+      SpatialActorOcclusionPlan._reordered(this, map);
+
   SpatialActorOcclusionPlan withLayerVisibility(
     bool Function(String) includeLayer,
   ) => _plans.every((entry) => includeLayer(entry.layer.id))

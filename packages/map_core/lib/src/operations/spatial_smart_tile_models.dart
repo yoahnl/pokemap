@@ -185,7 +185,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
               result,
               groundReplacements: groundReplacements,
               cellOrigins: cellOrigins,
-            paintHeightInstanceIds: paintHeightInstanceIds,
+              paintHeightInstanceIds: paintHeightInstanceIds,
               map: map,
               layer: layer,
               part: part,
@@ -254,7 +254,9 @@ List<double> _partPaintHeights(List<SmartTileVisualPart> parts, int layerRank) {
     });
   final heights = List<double>.filled(parts.length, 0);
   for (var rank = 0; rank < ordered.length; rank++) {
-    heights[ordered[rank]] = spatialSmartTileLayerPaintStep * (layerRank + 1 + rank / ordered.length);
+    heights[ordered[rank]] =
+        spatialSmartTileLayerPaintStep *
+        (layerRank + 1 + rank / ordered.length);
   }
   return heights;
 }
@@ -361,9 +363,11 @@ void _addModel(
   );
   final instanceId = 'smt_$digest';
   cellOrigins[instanceId] = (layerId: layer.id, cell: GridPos(x: x, y: z));
-  final receivesPaintHeight = source.followTerrain &&
+  final receivesPaintHeight =
+      source.followTerrain &&
       !source.replacesGround &&
-      (part.channel == SmartTileRenderChannel.ground || part.channel == SmartTileRenderChannel.understory);
+      (part.channel == SmartTileRenderChannel.ground ||
+          part.channel == SmartTileRenderChannel.understory);
   if (receivesPaintHeight) paintHeightInstanceIds.add(instanceId);
   result.add(
     SpatialModelInstance(
