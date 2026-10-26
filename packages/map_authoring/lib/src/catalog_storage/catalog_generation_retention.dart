@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 
 import '../history/content_blob_store.dart';
 import '../history/history_store.dart';
+import '../history/file_history_store.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/project_file_reader.dart';
 import '../ports/transaction_file_gateway.dart';
@@ -264,9 +265,18 @@ final class CatalogGenerationRetention {
     required AuthoringContentBlobStore blobs,
     bool dryRun = false,
     CatalogObjectReader? readObject,
+    Iterable<CatalogObjectReference> additionalRoots = const [],
   }) async {
     await bindProjectUnderLock(projectId);
-    final roots = <CatalogObjectReference>{};
+    final roots = <CatalogObjectReference>{...additionalRoots};
+    if (history is FileAuthoringHistoryStore) {
+      final window = await history.localWindow(projectId);
+      for (final row in window?.catalogConversions.values ??
+          const <AuthoringHistoryCatalogConversion>[]) {
+        await store.requireHistoryConversion(row.conversion);
+        roots.addAll([row.conversion.source, row.conversion.target]);
+      }
+    }
     final head = await store.readHead();
     if (head != null) roots.add(head);
     final journals = await store.gateway.listJournals();

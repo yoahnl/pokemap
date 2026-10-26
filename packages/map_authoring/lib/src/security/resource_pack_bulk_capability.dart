@@ -1,4 +1,5 @@
 import '../catalog_storage/catalog_revert_merge.dart';
+import '../catalog_storage/catalog_history_transition.dart';
 import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../support/authoring_fingerprint.dart';
@@ -20,6 +21,7 @@ final class ResourcePackBulkCapability {
     required this.logicalOutputLimit,
     this.originEntryId,
     this.catalogRevert,
+    this.catalogHistory,
   }) {
     for (final value in [actorId, projectId, planId, operationId]) {
       safeAuthoringSecurityIdentifier(value, 'bulk identity');
@@ -43,6 +45,11 @@ final class ResourcePackBulkCapability {
       throw ArgumentError(
           'A catalog merge attestation belongs only to revert.');
     }
+    if (catalogHistory != null &&
+        (catalogRevert != null ||
+            !const {'history.undo', 'history.redo'}.contains(actionId))) {
+      throw ArgumentError('A catalog conversion belongs only to undo or redo.');
+    }
     final paths = <String>{};
     final resources = <String>{};
     String? previous;
@@ -62,6 +69,23 @@ final class ResourcePackBulkCapability {
           heads.single.afterRevision != catalogRevert!.resultHeadRevision) {
         throw ArgumentError(
             'The catalog merge attestation differs from its inventory.');
+      }
+    }
+    if (catalogHistory != null) {
+      final heads =
+          inventory.where((item) => item.storageKey == 'catalog/HEAD.json');
+      final undo = actionId == 'history.undo';
+      if (heads.length != 1 ||
+          heads.single.beforeRevision !=
+              (undo
+                  ? catalogHistory!.effectiveAfterRevision
+                  : catalogHistory!.effectiveBeforeRevision) ||
+          heads.single.afterRevision !=
+              (undo
+                  ? catalogHistory!.effectiveBeforeRevision
+                  : catalogHistory!.effectiveAfterRevision)) {
+        throw ArgumentError(
+            'The catalog conversion differs from its inventory.');
       }
     }
     if (inventory.isEmpty ||
@@ -90,6 +114,7 @@ final class ResourcePackBulkCapability {
   final int actionVersion;
   final String? originEntryId;
   final CatalogRevertMergeAttestation? catalogRevert;
+  final CatalogHistoryTransitionAttestation? catalogHistory;
   final List<ResourcePackBulkInventoryEntry> inventory;
   final String diffFingerprint;
   final int logicalOutputLimit;
@@ -163,7 +188,7 @@ final class ResourcePackBulkCapability {
   }
 
   Map<String, Object?> toJson() => {
-        'schemaVersion': 3,
+        'schemaVersion': catalogHistory == null ? 3 : 4,
         'logicalOutputLimit': logicalOutputLimit,
         'actorId': actorId,
         'projectId': projectId,
@@ -174,6 +199,7 @@ final class ResourcePackBulkCapability {
         'actionVersion': actionVersion,
         if (originEntryId != null) 'originEntryId': originEntryId,
         if (catalogRevert != null) 'catalogRevert': catalogRevert!.toJson(),
+        if (catalogHistory != null) 'catalogHistory': catalogHistory!.toJson(),
         'inventory': [for (final item in inventory) item.toJson()],
         'diffFingerprint': diffFingerprint,
         'inventoryFingerprint': inventoryFingerprint,
@@ -186,7 +212,8 @@ final class ResourcePackBulkCapability {
   factory ResourcePackBulkCapability.fromJournalJson(
       Map<String, dynamic> json) {
     try {
-      if (json['schemaVersion'] != 3 || json['inventory'] is! List) {
+      if (!const {3, 4}.contains(json['schemaVersion']) ||
+          json['inventory'] is! List) {
         throw const FormatException();
       }
       final capability = ResourcePackBulkCapability._(
@@ -204,6 +231,10 @@ final class ResourcePackBulkCapability {
               ? null
               : CatalogRevertMergeAttestation.fromJournalJson(
                   Map<String, dynamic>.from(json['catalogRevert'] as Map)),
+          catalogHistory: json['catalogHistory'] == null
+              ? null
+              : CatalogHistoryTransitionAttestation.fromJournalJson(
+                  Map<String, dynamic>.from(json['catalogHistory'] as Map)),
           inventory: List.unmodifiable((json['inventory'] as List).map((item) =>
               ResourcePackBulkInventoryEntry.fromJson(
                   Map<String, dynamic>.from(item as Map)))));
@@ -354,7 +385,8 @@ final class ResourcePackBulkAuthority {
       required String originEntryId,
       required ResourcePackBulkCapability origin,
       required Iterable<ResourcePackBulkInventoryEntry> verifiedInventory,
-      CatalogRevertMergeAttestation? catalogRevert}) {
+      CatalogRevertMergeAttestation? catalogRevert,
+      CatalogHistoryTransitionAttestation? catalogHistory}) {
     if (origin.projectId != projectId ||
         !const {'history.undo', 'history.redo', 'history.revert'}
             .contains(plan.request.actionId)) {
@@ -363,6 +395,18 @@ final class ResourcePackBulkAuthority {
     if (catalogRevert != null && !catalogRevert.verified) {
       throw ArgumentError(
           'A catalog merge must be verified before certification.');
+    }
+    if (catalogHistory != null) {
+      final heads = origin.inventory
+          .where((item) => item.storageKey == 'catalog/HEAD.json');
+      if (!catalogHistory.verified ||
+          heads.length != 1 ||
+          heads.single.beforeRevision !=
+              catalogHistory.originalBeforeRevision ||
+          heads.single.afterRevision != catalogHistory.originalAfterRevision) {
+        throw ArgumentError(
+            'The catalog conversion differs from its certified origin.');
+      }
     }
     if (catalogRevert != null) {
       final heads = origin.inventory
@@ -387,6 +431,7 @@ final class ResourcePackBulkAuthority {
         actionVersion: plan.request.actionVersion,
         originEntryId: originEntryId,
         catalogRevert: catalogRevert,
+        catalogHistory: catalogHistory,
         inventory: List.unmodifiable(inventory),
         logicalOutputLimit: origin.logicalOutputLimit,
         diffFingerprint: bulkDiffFingerprint(plan.changeSet.diff));

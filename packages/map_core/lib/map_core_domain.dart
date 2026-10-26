@@ -455,6 +455,7 @@ export 'src/operations/spatial_scene_lighting_capabilities.dart';
 
 export 'src/models/spatial_visual_profile.dart';
 export 'src/models/spatial_weather_settings.dart';
+export 'src/models/spatial_storm_timeline.dart';
 export 'src/validation/spatial_weather_capabilities.dart';
 export 'src/models/spatial_atmosphere_settings.dart';
 

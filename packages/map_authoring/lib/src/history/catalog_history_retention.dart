@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:map_core/map_core.dart';
 
 import '../catalog_storage/catalog_generation_retention.dart';
+import '../catalog_storage/catalog_history_compatibility.dart';
 import '../catalog_storage/catalog_storage_store.dart';
 import '../security/authoring_permission.dart';
 import '../support/authoring_fingerprint.dart';
@@ -25,6 +26,8 @@ final class CatalogHistoryRetentionPreview {
     required this.retainedLogicalBytes,
     required this.fingerprint,
     required this.operationCosts,
+    this.catalogConversions = const {},
+    this.metadataOnlyExpiredEntryIds = const [],
     this.blockedReason,
     this.legacyBarrierEntryId,
     List<_ValidatedHistoricalGeneration> validatedAdmissions = const [],
@@ -43,6 +46,8 @@ final class CatalogHistoryRetentionPreview {
   final String? legacyBarrierEntryId;
   final Map<String, Map<String, Object?>> operationCosts;
   final List<_ValidatedHistoricalGeneration> _validatedAdmissions;
+  final Map<String, AuthoringHistoryCatalogConversion> catalogConversions;
+  final List<String> metadataOnlyExpiredEntryIds;
 
   List<String> get retainedEntryIds =>
       retainedEntries.map((entry) => entry.entryId).toList(growable: false);
@@ -61,6 +66,11 @@ final class CatalogHistoryRetentionPreview {
         'reservedLogicalBytes': retainedLogicalBytes,
         'budgetAccounting': 'sum_of_operation_reservations',
         'fingerprint': fingerprint,
+        'catalogConversions': {
+          for (final row in catalogConversions.entries)
+            row.key: row.value.toJson()
+        },
+        'metadataOnlyExpiredEntryIds': metadataOnlyExpiredEntryIds,
         if (blockedReason != null) 'blockedReason': blockedReason,
         if (legacyBarrierEntryId != null)
           'legacyBarrierEntryId': legacyBarrierEntryId,
@@ -76,6 +86,7 @@ final class CatalogHistoryRetentionResult {
     this.preparedHistoricalGenerations = 0,
     this.historicalGenerationsRequiringPreparation = const [],
     this.validatedHistoricalGenerations = 0,
+    this.convertedHistoricalGenerations = 0,
   });
 
   final CatalogHistoryRetentionPreview preview;
@@ -84,6 +95,7 @@ final class CatalogHistoryRetentionResult {
   final int deletedHistoryBlobBytes;
   final int preparedHistoricalGenerations;
   final int validatedHistoricalGenerations;
+  final int convertedHistoricalGenerations;
   final List<String> historicalGenerationsRequiringPreparation;
   List<String> get expiredEntryIds => preview.expiredEntryIds;
 
@@ -96,6 +108,7 @@ final class CatalogHistoryRetentionResult {
         'deletedHistoryBlobs': deletedHistoryBlobs,
         'deletedHistoryBlobBytes': deletedHistoryBlobBytes,
         'validatedHistoricalGenerations': validatedHistoricalGenerations,
+        'convertedHistoricalGenerations': convertedHistoricalGenerations,
         'preparedHistoricalGenerations': preparedHistoricalGenerations,
         'historicalGenerationsRequiringPreparation':
             historicalGenerationsRequiringPreparation,
@@ -142,8 +155,7 @@ final class CatalogHistoryRetention {
             expectedRootSha256: expectedRootSha256,
             maxOperations: maxOperations,
             maxBytes: maxBytes,
-            readObject: readObject,
-            prepareHistoricalAdmissions: true);
+            readObject: readObject);
         if (preview.fingerprint != expectedFingerprint) {
           throw const AuthoringHistoryException('history.retention_stale',
               'The project or history changed after the maintenance preview.');
@@ -152,6 +164,19 @@ final class CatalogHistoryRetention {
           throw AuthoringHistoryException(preview.blockedReason!,
               'The nearest operation exceeds the undo budget. No history was expired.');
         }
+        final preparedObjects = <String, List<int>>{
+          for (final admission in preview._validatedAdmissions)
+            ...?admission.conversion?.objects,
+        };
+        Future<List<int>> maintenanceRead(
+                CatalogObjectReference reference) async =>
+            preparedObjects[reference.sha256] ?? await readObject(reference);
+        final conversionRoots = [
+          for (final row in preview.catalogConversions.values) ...[
+            row.conversion.source,
+            row.conversion.target,
+          ],
+        ];
         final view = _RetentionHistoryView(preview.retainedEntries);
         final collector = CatalogGenerationRetention(store: store);
         await collector.collectUnderLock(
@@ -159,10 +184,18 @@ final class CatalogHistoryRetention {
             history: view,
             blobs: blobs,
             dryRun: true,
-            readObject: readObject);
+            readObject: maintenanceRead,
+            additionalRoots: conversionRoots);
         var preparedHistoricalGenerations = 0;
+        var convertedHistoricalGenerations = 0;
         final requiringPreparation = <String>[];
         for (final admission in preview._validatedAdmissions) {
+          if (admission.conversion != null) {
+            await admission.conversion!.publishUnderLock(store);
+            convertedHistoricalGenerations++;
+            preparedHistoricalGenerations++;
+            continue;
+          }
           if (!admission.metadataPrepared) {
             requiringPreparation.add(admission.snapshot.root.sha256);
             continue;
@@ -197,13 +230,15 @@ final class CatalogHistoryRetention {
             maxOperations: maxOperations,
             maxBytes: maxBytes,
             cursor: preview.undoCursor,
+            catalogConversions: preview.catalogConversions,
             retainedCosts:
                 _flattenCosts(preview.retainedEntries, preview.operationCosts));
         final collection = await collector.collectUnderLock(
             projectId: projectId,
             history: view,
             blobs: blobs,
-            readObject: readObject);
+            readObject: maintenanceRead,
+            additionalRoots: conversionRoots);
         final deletedHistoryBlobs = await blobs.prune(retainIds: retainedBlobs);
         return CatalogHistoryRetentionResult(
             preview: preview,
@@ -211,6 +246,7 @@ final class CatalogHistoryRetention {
             deletedHistoryBlobs: deletedHistoryBlobs,
             deletedHistoryBlobBytes: deletedHistoryBlobBytes,
             validatedHistoricalGenerations: preview._validatedAdmissions.length,
+            convertedHistoricalGenerations: convertedHistoricalGenerations,
             preparedHistoricalGenerations: preparedHistoricalGenerations,
             historicalGenerationsRequiringPreparation:
                 List.unmodifiable(requiringPreparation));
@@ -222,7 +258,6 @@ final class CatalogHistoryRetention {
     required int maxOperations,
     required int maxBytes,
     required CatalogObjectReader readObject,
-    bool prepareHistoricalAdmissions = false,
   }) async {
     safeAuthoringSecurityIdentifier(projectId, 'projectId');
     if (maxOperations < 1 ||
@@ -267,29 +302,59 @@ final class CatalogHistoryRetention {
             cursor: window.cursor,
             barrierEntryId: null,
           );
-    var end = (logical.cursor + maxOperations).clamp(0, logical.entries.length);
-    var start = (end - maxOperations).clamp(0, logical.cursor);
+    final end =
+        (logical.cursor + maxOperations).clamp(0, logical.entries.length);
+    final start = (end - maxOperations).clamp(0, logical.cursor);
     final cache = _RetentionInventory(store, blobs, readObject,
-        prepareHistoricalAdmissions: prepareHistoricalAdmissions);
+        existingConversions: window?.catalogConversions ?? const {});
     var selected = logical.entries.sublist(start, end);
+    await cache.budget(selected);
+    var selectedCursor = logical.cursor - start;
+    final metadataOnlyExpiredEntryIds = <String>[];
+    final useful = <AuthoringHistoryEntry>[];
+    for (var index = 0; index < selected.length; index++) {
+      final entry = selected[index];
+      if (await cache.metadataOnlyNoop(entry)) {
+        metadataOnlyExpiredEntryIds.add(entry.entryId);
+        if (index < logical.cursor - start) selectedCursor--;
+      } else {
+        useful.add(entry);
+      }
+    }
+    selected = useful;
     Future<
         ({
           int bytes,
+          int originalBytes,
           int recordBytes,
-          Map<String, Map<String, Object?>> operationCosts
+          Map<String, Map<String, Object?>> operationCosts,
+          Map<String, AuthoringHistoryCatalogConversion> conversions
         })> selectedBudget() async {
       final inventory = await cache.budget(selected);
+      final conversions = cache.conversionsFor(selected);
+      final costs = _flattenCosts(selected, inventory.operationCosts);
       final metrics = await history.retentionWindowMetrics(
           projectId: projectId,
           entryIds: selected.map((entry) => entry.entryId).toList(),
-          cursor: logical.cursor - start,
+          cursor: selectedCursor,
           maxOperations: maxOperations,
           maxBytes: maxBytes,
-          costs: _flattenCosts(selected, inventory.operationCosts));
+          costs: costs,
+          catalogConversions: conversions);
+      final originalMetrics = await history.retentionWindowMetrics(
+          projectId: projectId,
+          entryIds: selected.map((entry) => entry.entryId).toList(),
+          cursor: selectedCursor,
+          maxOperations: maxOperations,
+          maxBytes: maxBytes,
+          costs: costs,
+          catalogConversions: const {});
       return (
         bytes: metrics.logicalBytes,
+        originalBytes: originalMetrics.logicalBytes,
         recordBytes: metrics.recordBytes,
-        operationCosts: inventory.operationCosts
+        operationCosts: inventory.operationCosts,
+        conversions: conversions
       );
     }
 
@@ -299,16 +364,20 @@ final class CatalogHistoryRetention {
             budget.recordBytes >
                 FileAuthoringHistoryStore.maxRetentionRecordBytes) &&
         selected.isNotEmpty) {
+      if (budget.conversions.isNotEmpty && budget.originalBytes <= maxBytes) {
+        blockedReason = 'history.conversion_exceeds_budget';
+        break;
+      }
       if (selected.length == 1) {
         blockedReason = 'history.operation_exceeds_budget';
         break;
       }
-      if (start < logical.cursor) {
-        start++;
+      if (selectedCursor > 0) {
+        selected.removeAt(0);
+        selectedCursor--;
       } else {
-        end--;
+        selected.removeLast();
       }
-      selected = logical.entries.sublist(start, end);
       budget = await selectedBudget();
     }
     if (selected.isEmpty &&
@@ -337,7 +406,12 @@ final class CatalogHistoryRetention {
           }
       ],
       'retained': retainedIds.toList(),
-      'cursor': logical.cursor - start,
+      'cursor': selectedCursor,
+      'catalogConversions': {
+        for (final row in budget.conversions.entries)
+          row.key: row.value.toJson()
+      },
+      'metadataOnlyExpiredEntryIds': metadataOnlyExpiredEntryIds,
       'retainedLogicalBytes': budget.bytes,
     }, logicalName: 'authoring-history-retention-preview.json');
     return CatalogHistoryRetentionPreview._(
@@ -347,7 +421,10 @@ final class CatalogHistoryRetention {
         byteLimit: maxBytes,
         retainedEntries: List.unmodifiable(selected),
         expiredEntries: List.unmodifiable(expired),
-        undoCursor: logical.cursor - start,
+        undoCursor: selectedCursor,
+        catalogConversions: budget.conversions,
+        metadataOnlyExpiredEntryIds:
+            List.unmodifiable(metadataOnlyExpiredEntryIds),
         retainedLogicalBytes: budget.bytes,
         fingerprint: fingerprint,
         operationCosts: Map.unmodifiable(budget.operationCosts),
@@ -435,9 +512,11 @@ Map<String, Map<String, int>> _flattenCosts(List<AuthoringHistoryEntry> entries,
 }
 
 final class _ValidatedHistoricalGeneration {
-  const _ValidatedHistoricalGeneration(this.snapshot, this.metadataPrepared);
+  const _ValidatedHistoricalGeneration(
+      this.snapshot, this.metadataPrepared, this.conversion);
   final CatalogSnapshot snapshot;
   final bool metadataPrepared;
+  final CatalogPreparedHistoryConversion? conversion;
 }
 
 bool _metadataPrepared(List<CatalogDefinitionUnit> units) {
@@ -488,11 +567,11 @@ final class _MaintenanceObjectReads {
 
 final class _RetentionInventory {
   _RetentionInventory(this.store, this.blobs, this.readObject,
-      {required this.prepareHistoricalAdmissions});
+      {required this.existingConversions});
   final CatalogStorageStore store;
   final AuthoringContentBlobStore blobs;
   final CatalogObjectReader readObject;
-  final bool prepareHistoricalAdmissions;
+  final Map<String, AuthoringHistoryCatalogConversion> existingConversions;
   final _admissions = <String, _ValidatedHistoricalGeneration>{};
   final Map<String, Map<String, int>> _objects = {};
   final Map<String, int> _blobBytes = {};
@@ -526,6 +605,11 @@ final class _RetentionInventory {
         }
       }
       final variable = <String, int>{};
+      if (operationRoots.isNotEmpty && operationRoots.length != 2) {
+        throw const AuthoringHistoryException(
+            'history.retention_inventory_invalid',
+            'A retained catalog operation must have exactly one complete HEAD transition.');
+      }
       if (operationRoots.length == 2) {
         final before = await _graph(operationRoots[0]);
         final after = await _graph(operationRoots[1]);
@@ -561,22 +645,77 @@ final class _RetentionInventory {
     final snapshot =
         (await store.openRoot(root, readObject: readObject)).snapshot;
     final metadata = <CatalogDefinitionUnit>[];
-    final references = await snapshot.objectReferences(
-        onUnit: prepareHistoricalAdmissions
-            ? (unit) {
-                if (unit.key.kind == CatalogDefinitionKind.catalogMetadata ||
-                    unit.key.kind == CatalogDefinitionKind.workspaceState) {
-                  metadata.add(unit);
-                }
-              }
-            : null);
-    if (prepareHistoricalAdmissions) {
-      _admissions[root.sha256] =
-          _ValidatedHistoricalGeneration(snapshot, _metadataPrepared(metadata));
+    final references = await snapshot.objectReferences(onUnit: (unit) {
+      if (unit.key.kind == CatalogDefinitionKind.catalogMetadata ||
+          unit.key.kind == CatalogDefinitionKind.workspaceState) {
+        metadata.add(unit);
+      }
+    });
+    final ready = _metadataPrepared(metadata);
+    final conversion = ready
+        ? null
+        : await CatalogHistoryCompatibility.prepare(
+            store: store, source: snapshot, metadataUnits: metadata);
+    final existing = existingConversions[root.sha256];
+    if (existing != null &&
+        (conversion == null ||
+            canonicalAuthoringJson(existing.conversion.toJson()) !=
+                canonicalAuthoringJson(conversion.conversion.toJson()))) {
+      throw const AuthoringHistoryException('history.retention_stale',
+          'The retained catalog conversion differs from its canonical source.');
     }
+    _admissions[root.sha256] =
+        _ValidatedHistoricalGeneration(snapshot, ready, conversion);
     final graph = {for (final ref in references) ref.sha256: ref.byteLength};
     _objects[root.sha256] = graph;
     return graph;
+  }
+
+  CatalogObjectReference effectiveRoot(CatalogObjectReference root) =>
+      _admissions[root.sha256]?.conversion?.conversion.target ?? root;
+
+  Future<bool> metadataOnlyNoop(AuthoringHistoryEntry entry) async {
+    if (entry.changes.length != 1) return false;
+    final change = entry.changes.single;
+    if (change.storageKey != CatalogStorageStore.headStorageKey ||
+        change.beforeBlobId == null ||
+        change.afterBlobId == null ||
+        change.beforeRevision == null ||
+        change.afterRevision == null) {
+      return false;
+    }
+    final before = await _head(change.beforeBlobId!, change.beforeRevision!);
+    final after = await _head(change.afterBlobId!, change.afterRevision!);
+    return effectiveRoot(before) == effectiveRoot(after);
+  }
+
+  Map<String, AuthoringHistoryCatalogConversion> conversionsFor(
+      List<AuthoringHistoryEntry> entries) {
+    final converted = <String, CatalogHistoryRootConversion>{};
+    final links = <String, Set<String>>{};
+    for (final entry in entries) {
+      for (final change in entry.changes) {
+        if (change.storageKey != CatalogStorageStore.headStorageKey) continue;
+        for (final retained in [
+          (change.beforeBlobId, change.beforeRevision),
+          (change.afterBlobId, change.afterRevision)
+        ]) {
+          final root = _heads['${retained.$1}:${retained.$2}'];
+          final conversion = _admissions[root?.sha256]?.conversion?.conversion;
+          if (conversion != null) {
+            converted[conversion.source.sha256] = conversion;
+            links
+                .putIfAbsent(conversion.source.sha256, () => {})
+                .add(entry.entryId);
+          }
+        }
+      }
+    }
+    return Map.unmodifiable({
+      for (final item in converted.entries)
+        item.key: AuthoringHistoryCatalogConversion(
+            conversion: item.value, entryIds: links[item.key]!)
+    });
   }
 
   List<_ValidatedHistoricalGeneration> admissionsFor(

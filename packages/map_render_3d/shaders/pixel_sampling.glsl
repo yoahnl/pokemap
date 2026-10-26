@@ -20,10 +20,14 @@ float wrapCoordinate(float uv, float mode) {
     return fract(uv);
 }
 
-vec4 samplePixelColor() {
+vec2 samplePixelUv() {
     vec2 uv = material.uvRect.xy + fragTexCoord * material.uvRect.zw;
     uv = vec2(dot(material.uvTransformU.xyz, vec3(uv, 1.0)), dot(material.uvTransformV.xyz, vec3(uv, 1.0)));
-    uv = vec2(wrapCoordinate(uv.x, material.wrapModes.x), wrapCoordinate(uv.y, material.wrapModes.y));
+    return vec2(wrapCoordinate(uv.x, material.wrapModes.x), wrapCoordinate(uv.y, material.wrapModes.y));
+}
+
+vec4 samplePixelColor() {
+    vec2 uv = samplePixelUv();
     vec2 pixel = clamp(floor(uv * material.textureDimensions), vec2(0.0), material.textureDimensions - 1.0);
     return texture(albedoTexture, (pixel + 0.5) / material.textureDimensions);
 }

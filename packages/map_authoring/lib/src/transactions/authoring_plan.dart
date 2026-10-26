@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../catalog_storage/catalog_storage_store.dart';
+import '../catalog_storage/catalog_history_transition.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
@@ -92,6 +93,44 @@ final class AuthoringPlan {
 
   CatalogSnapshotDelta? _catalogDelta;
   CatalogSnapshotDelta? get catalogDelta => _catalogDelta;
+
+  CatalogHistoryTransitionAttestation? _catalogHistory;
+  CatalogHistoryTransitionAttestation? get catalogHistory => _catalogHistory;
+
+  void bindCatalogHistory(CatalogHistoryTransitionAttestation attestation) {
+    if (_catalogHistory != null || !attestation.verified) {
+      throw StateError('A verified catalog history transition is required.');
+    }
+    _catalogHistory = attestation;
+    try {
+      requireCatalogHistory();
+    } on Object {
+      _catalogHistory = null;
+      rethrow;
+    }
+  }
+
+  void requireCatalogHistory() {
+    final attestation = _catalogHistory;
+    if (attestation == null) return;
+    final undo = request.actionId == 'history.undo';
+    final heads = changeSet.changes.where(
+        (change) => change.storageKey == CatalogStorageStore.headStorageKey);
+    if (!const {'history.undo', 'history.redo'}.contains(request.actionId) ||
+        !attestation.verified ||
+        heads.length != 1 ||
+        heads.single.beforeRevision !=
+            (undo
+                ? attestation.effectiveAfterRevision
+                : attestation.effectiveBeforeRevision) ||
+        heads.single.afterRevision !=
+            (undo
+                ? attestation.effectiveBeforeRevision
+                : attestation.effectiveAfterRevision)) {
+      throw StateError(
+          'The catalog history transition differs from its frozen plan.');
+    }
+  }
 
   void bindCatalogDelta(CatalogSnapshotDelta delta) {
     if (_catalogDelta != null) {
@@ -214,6 +253,7 @@ final class AuthoringPlan {
     }
     _changeSet = null;
     _catalogDelta = null;
+    _catalogHistory = null;
     return release;
   }
 

@@ -4,6 +4,10 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:map_core/map_core.dart';
+
+import '../catalog_storage/catalog_history_compatibility.dart';
+import '../catalog_storage/catalog_storage_store.dart';
 import '../security/authoring_permission.dart';
 import '../support/authoring_file_snapshot.dart';
 import '../support/authoring_fingerprint.dart';
@@ -21,6 +25,58 @@ final class AuthoringHistoryStoreException implements Exception {
   String toString() => 'AuthoringHistoryStoreException($code): $message';
 }
 
+final class AuthoringHistoryCatalogConversion {
+  AuthoringHistoryCatalogConversion(
+      {required this.conversion, required Iterable<String> entryIds})
+      : entryIds = Set.unmodifiable(entryIds);
+
+  final CatalogHistoryRootConversion conversion;
+  final Set<String> entryIds;
+
+  Map<String, Object?> toJson() => {
+        'conversion': conversion.toJson(),
+        'entryIds': entryIds.toList()..sort(),
+      };
+
+  factory AuthoringHistoryCatalogConversion.fromJson(
+      Map<String, Object?> json) {
+    if (json.length != 2 ||
+        json['conversion'] is! Map ||
+        json['entryIds'] is! List) {
+      throw const FormatException(
+          'history.retention: invalid catalog conversion');
+    }
+    final ids = (json['entryIds'] as List).cast<String>();
+    if (ids.isEmpty || ids.length > 50 || ids.toSet().length != ids.length) {
+      throw const FormatException(
+          'history.retention: invalid conversion entries');
+    }
+    for (final id in ids) {
+      safeAuthoringSecurityIdentifier(id, 'entryId');
+    }
+    return AuthoringHistoryCatalogConversion(
+      conversion: CatalogHistoryRootConversion.fromJson(
+          Map<String, Object?>.from(json['conversion'] as Map)),
+      entryIds: ids,
+    );
+  }
+}
+
+Map<String, AuthoringHistoryCatalogConversion> _retainedCatalogConversions(
+    Map<String, AuthoringHistoryCatalogConversion> conversions,
+    Iterable<String> entries) {
+  final retained = entries.toSet();
+  final result = <String, AuthoringHistoryCatalogConversion>{};
+  for (final item in conversions.entries) {
+    final ids = item.value.entryIds.intersection(retained);
+    if (ids.isNotEmpty) {
+      result[item.key] = AuthoringHistoryCatalogConversion(
+          conversion: item.value.conversion, entryIds: ids);
+    }
+  }
+  return Map.unmodifiable(result);
+}
+
 final class AuthoringHistoryWindow {
   AuthoringHistoryWindow(
       {required this.projectId,
@@ -33,7 +89,8 @@ final class AuthoringHistoryWindow {
       required this.costs,
       required this.entryProjects,
       this.headEntryId,
-      this.headProjectId});
+      this.headProjectId,
+      this.catalogConversions = const {}});
 
   final String projectId;
   final int generation;
@@ -46,6 +103,7 @@ final class AuthoringHistoryWindow {
   final Map<String, String> entryProjects;
   final String? headEntryId;
   final String? headProjectId;
+  final Map<String, AuthoringHistoryCatalogConversion> catalogConversions;
 
   int get objectBytes {
     return costs.values.fold(
@@ -61,10 +119,13 @@ final class AuthoringHistoryWindow {
       }))
       .length;
 
-  int get logicalBytes => objectBytes + recordBytes;
+  int get conversionBytes => catalogConversions.values
+      .fold<int>(0, (sum, row) => sum + row.conversion.additionalBytes);
+
+  int get logicalBytes => objectBytes + conversionBytes + recordBytes;
 
   Map<String, Object?> toJson() => {
-        'schemaVersion': 1,
+        'schemaVersion': catalogConversions.isEmpty ? 1 : 2,
         'projectId': projectId,
         'generation': generation,
         'legacySnapshot': legacySnapshot,
@@ -75,10 +136,24 @@ final class AuthoringHistoryWindow {
         'costs': costs,
         'entryProjects': entryProjects,
         'headEntryId': headEntryId,
-        'headProjectId': headProjectId
+        'headProjectId': headProjectId,
+        if (catalogConversions.isNotEmpty)
+          'catalogConversions': {
+            for (final row in catalogConversions.entries)
+              row.key: row.value.toJson(),
+          }
       };
 
   factory AuthoringHistoryWindow.fromJson(Map<String, Object?> json) {
+    final version = json['schemaVersion'];
+    if ((version != 1 && version != 2) ||
+        (version == 1 && json.containsKey('catalogConversions')) ||
+        (version == 2 &&
+            (json['catalogConversions'] is! Map ||
+                (json['catalogConversions'] as Map).isEmpty))) {
+      throw const FormatException(
+          'history.retention: unsupported window version');
+    }
     final ids = (json['entryIds'] as List).cast<String>();
     final costs = <String, Map<String, int>>{};
     for (final item in (json['costs'] as Map).entries) {
@@ -96,7 +171,13 @@ final class AuthoringHistoryWindow {
         entryProjects: Map.unmodifiable(
             Map<String, String>.from(json['entryProjects'] as Map)),
         headEntryId: json['headEntryId'] as String?,
-        headProjectId: json['headProjectId'] as String?);
+        headProjectId: json['headProjectId'] as String?,
+        catalogConversions: Map.unmodifiable({
+          for (final item
+              in (json['catalogConversions'] as Map? ?? const {}).entries)
+            item.key as String: AuthoringHistoryCatalogConversion.fromJson(
+                Map<String, Object?>.from(item.value as Map)),
+        }));
     safeAuthoringSecurityIdentifier(window.projectId, 'projectId');
     if ((window.headEntryId == null) != (window.headProjectId == null)) {
       throw const FormatException('history.retention: invalid root head');
@@ -124,6 +205,30 @@ final class AuthoringHistoryWindow {
       safeAuthoringSecurityIdentifier(id, 'entryId');
       safeAuthoringSecurityIdentifier(window.entryProjects[id]!, 'projectId');
     }
+    if (window.catalogConversions.length > 101) {
+      throw const FormatException(
+          'history.retention: too many catalog conversions');
+    }
+    final retainedIds = ids.toSet();
+    final linksPerEntry = <String, int>{};
+    for (final item in window.catalogConversions.entries) {
+      for (final id in item.value.entryIds) {
+        final links =
+            linksPerEntry.update(id, (value) => value + 1, ifAbsent: () => 1);
+        if (links > 2) {
+          throw const FormatException(
+              'history.retention: excessive conversion links');
+        }
+      }
+      if (item.key != item.value.conversion.source.sha256 ||
+          item.value.conversion.additionalBytes > window.maxBytes ||
+          window.catalogConversions
+              .containsKey(item.value.conversion.target.sha256) ||
+          !retainedIds.containsAll(item.value.entryIds)) {
+        throw const FormatException(
+            'history.retention: invalid conversion binding');
+      }
+    }
     for (final inventory in costs.values) {
       if (inventory.length != 1 ||
           !inventory.keys.single.startsWith('entry:')) {
@@ -133,7 +238,8 @@ final class AuthoringHistoryWindow {
       for (final item in inventory.entries) {
         if (!RegExp(r'^(catalog|blob|entry):[a-f0-9]{64}$')
                 .hasMatch(item.key) ||
-            item.value < 0) {
+            item.value < 0 ||
+            item.value > window.maxBytes) {
           throw const FormatException('history.retention: invalid inventory');
         }
       }
@@ -366,7 +472,9 @@ final class FileAuthoringHistoryStore
           required int cursor,
           required int maxOperations,
           required int maxBytes,
-          required Map<String, Map<String, int>> costs}) =>
+          required Map<String, Map<String, int>> costs,
+          Map<String, AuthoringHistoryCatalogConversion>?
+              catalogConversions}) =>
       _guard(() => _withLock(() async {
             final state = await _maintenanceState();
             final candidate = _maintenanceWindow(
@@ -376,6 +484,9 @@ final class FileAuthoringHistoryStore
                 maxOperations: maxOperations,
                 maxBytes: maxBytes,
                 costs: costs,
+                catalogConversions: catalogConversions ??
+                    (await _readWindow())?.catalogConversions ??
+                    const {},
                 entries: state.entries,
                 head: state.head,
                 generation: state.generation,
@@ -393,6 +504,8 @@ final class FileAuthoringHistoryStore
       required int maxOperations,
       required int maxBytes,
       required Map<String, Map<String, int>> costs,
+      required Map<String, AuthoringHistoryCatalogConversion>
+          catalogConversions,
       required Map<String, AuthoringHistoryEntry> entries,
       required AuthoringHistoryEntry? head,
       required int generation,
@@ -401,6 +514,23 @@ final class FileAuthoringHistoryStore
     if (entryIds.any((id) => !entries.containsKey(id))) {
       throw const AuthoringHistoryException('history.retention_stale',
           'A selected retained operation is unavailable.');
+    }
+    final retainedConversions =
+        _retainedCatalogConversions(catalogConversions, entryIds);
+    for (final row in retainedConversions.values) {
+      final sourceRevision = computeAuthoringBytesFingerprint(
+          CatalogStorageStore.encodeHead(row.conversion.source),
+          logicalName: 'catalog/HEAD.json');
+      for (final id in row.entryIds) {
+        if (!entries[id]!.changes.any((change) =>
+            change.storageKey == 'catalog/HEAD.json' &&
+            (change.beforeRevision == sourceRevision ||
+                change.afterRevision == sourceRevision))) {
+          throw const AuthoringHistoryException(
+              'history.retention_inventory_invalid',
+              'A converted generation is not bound to its retained operation.');
+        }
+      }
     }
     return AuthoringHistoryWindow(
         projectId: projectId,
@@ -417,7 +547,8 @@ final class FileAuthoringHistoryStore
         entryProjects: Map.unmodifiable(
             {for (final id in entryIds) id: entries[id]!.projectId}),
         headEntryId: head?.entryId,
-        headProjectId: head?.projectId);
+        headProjectId: head?.projectId,
+        catalogConversions: retainedConversions);
   }
 
   Future<void> checkRetentionEntry(AuthoringHistoryEntry entry,
@@ -447,6 +578,19 @@ final class FileAuthoringHistoryStore
             return window;
           }));
 
+  Future<CatalogHistoryRootConversion?> historyConversion(
+      {required String projectId,
+      required CatalogObjectReference source}) async {
+    final row =
+        (await localWindow(projectId))?.catalogConversions[source.sha256];
+    if (row == null) return null;
+    if (row.conversion.source != source) {
+      throw const FormatException(
+          'history.retention: conversion source mismatch');
+    }
+    return row.conversion;
+  }
+
   Future<void> checkRetentionCosts(
           {required String projectId, required Map<String, int> costs}) =>
       _guard(() => _withLock(() async {
@@ -464,6 +608,7 @@ final class FileAuthoringHistoryStore
           int maxOperations = 50,
           int maxBytes = 200 * 1024 * 1024,
           Map<String, Map<String, int>>? retainedCosts,
+          Map<String, AuthoringHistoryCatalogConversion>? catalogConversions,
           int? cursor}) =>
       _guard(() => _withLock(() async {
             if (reason != 'history.retention_expired') {
@@ -509,6 +654,9 @@ final class FileAuthoringHistoryStore
                 maxOperations: maxOperations,
                 maxBytes: maxBytes,
                 costs: costs,
+                catalogConversions: catalogConversions ??
+                    (await _readWindow())?.catalogConversions ??
+                    const {},
                 entries: state.entries,
                 head: state.head,
                 generation: state.generation,
@@ -564,21 +712,26 @@ final class FileAuthoringHistoryStore
     if (await file.length() > maxRetentionRecordBytes) {
       throw const FormatException('history.retention: record limit');
     }
-    final record =
-        await _readRecord(file, 'authoring-history-retention.json', const {
-      'schemaVersion',
-      'projectId',
-      'generation',
-      'legacySnapshot',
-      'entryIds',
-      'cursor',
-      'maxOperations',
-      'maxBytes',
-      'costs',
-      'entryProjects',
-      'headEntryId',
-      'headProjectId'
-    });
+    final record = await _readRecord(
+        file,
+        'authoring-history-retention.json',
+        const {
+          'schemaVersion',
+          'projectId',
+          'generation',
+          'legacySnapshot',
+          'entryIds',
+          'cursor',
+          'maxOperations',
+          'maxBytes',
+          'costs',
+          'entryProjects',
+          'headEntryId',
+          'headProjectId'
+        },
+        optionalKeys: const {'catalogConversions'},
+        schemaVersions: const {1, 2},
+        unsupportedVersionCode: 'history.version_unsupported');
     final window = AuthoringHistoryWindow.fromJson(record);
     if (canonicalAuthoringJson(window.legacySnapshot) !=
         canonicalAuthoringJson(await _legacyHistorySnapshot())) {
@@ -725,7 +878,9 @@ final class FileAuthoringHistoryStore
         costs: Map.unmodifiable(inventories),
         entryProjects: Map.unmodifiable(projects),
         headEntryId: entry.entryId,
-        headProjectId: entry.projectId);
+        headProjectId: entry.projectId,
+        catalogConversions:
+            _retainedCatalogConversions(window.catalogConversions, ids));
     var next = candidate();
     while (!_windowFits(next)) {
       if (ids.length <= 1) {
@@ -1582,14 +1737,23 @@ final class FileAuthoringHistoryStore
   }
 
   Future<Map<String, Object?>> _readRecord(
-      File file, String logicalName, Set<String> keys) async {
+      File file, String logicalName, Set<String> keys,
+      {Set<String> optionalKeys = const {},
+      Set<int> schemaVersions = const {1},
+      String? unsupportedVersionCode}) async {
     final raw = jsonDecode(await file.readAsString());
     if (raw is! Map) throw const FormatException();
     final record = Map<String, Object?>.from(raw);
     final digest = record.remove('digest');
-    if (record['schemaVersion'] != 1 ||
-        record.length != keys.length ||
-        record.keys.any((key) => !keys.contains(key)) ||
+    if (!schemaVersions.contains(record['schemaVersion']) &&
+        unsupportedVersionCode != null) {
+      throw AuthoringHistoryStoreException(unsupportedVersionCode,
+          'This history window requires a compatible application version. Its original bytes were preserved.');
+    }
+    if (!schemaVersions.contains(record['schemaVersion']) ||
+        !record.keys.toSet().containsAll(keys) ||
+        record.keys
+            .any((key) => !keys.contains(key) && !optionalKeys.contains(key)) ||
         digest !=
             computeAuthoringJsonFingerprint(record, logicalName: logicalName)) {
       throw const FormatException();

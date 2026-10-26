@@ -35,6 +35,19 @@ final class SpatialGroundMeshBatches {
       for (var item = range.start; !changed && item < range.end; item++) {
         changed = !_sameVisual(_visuals[item], visuals[item]);
       }
+      if (changed && !invalidateGeometry && !topologyChanged) {
+        var sameGeometry = true;
+        for (var item = range.start; sameGeometry && item < range.end; item++) {
+          sameGeometry = _sameGeometry(_visuals[item], visuals[item]);
+        }
+        if (sameGeometry &&
+            updateSpatialGroundMeshFrames(
+              _batches[index].map((component) => component.mesh),
+              visuals.sublist(range.start, range.end),
+            )) {
+          changed = false;
+        }
+      }
       batches.add(
         changed
             ? build(visuals.sublist(range.start, range.end))
@@ -52,12 +65,19 @@ final class SpatialGroundMeshBatches {
 }
 
 bool _sameVisual(SpatialGroundVisual before, SpatialGroundVisual after) {
-  if (before.height != after.height || before.opacity != after.opacity)
-    return false;
   final a = before.visual, b = after.visual;
-  if (identical(a, b)) return true;
-  return a.tilesetId == b.tilesetId &&
-      a.sourceRect == b.sourceRect &&
+  return before.height == after.height &&
+      before.opacity == after.opacity &&
+      (identical(a, b) ||
+          a.tilesetId == b.tilesetId &&
+              a.sourceRect == b.sourceRect &&
+              _sameGeometry(before, after));
+}
+
+bool _sameGeometry(SpatialGroundVisual before, SpatialGroundVisual after) {
+  final a = before.visual, b = after.visual;
+  return before.height == after.height &&
+      before.opacity == after.opacity &&
       a.transform == b.transform &&
       a.geometry.destinationRect == b.geometry.destinationRect &&
       a.geometry.visualBounds == b.geometry.visualBounds &&

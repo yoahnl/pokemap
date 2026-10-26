@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flame_3d/core.dart';
+import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
@@ -741,8 +742,11 @@ List<Vertex> _spatialGroundVertices(
   ({SmartTileSourceRect sourceRect, Texture texture})? atlasFrame,
   Set<(int, int)> excludedCells = const {},
   SpatialBorderGroundReplacementIndex groundReplacements = const {},
+  List<double>? localTextureCoordinates,
 }) {
   Vector2 textureUv(Vector2 uv) {
+    localTextureCoordinates?.add(uv.x);
+    localTextureCoordinates?.add(uv.y);
     final frame = atlasFrame;
     if (frame == null) return uv;
     return Vector2(
@@ -875,25 +879,36 @@ Iterable<Mesh> spatialGroundMeshes(
   flatSurfaceFor,
   SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
-  var mesh = Mesh();
+  final animated = visuals.any((item) => item.visual.isAnimated);
+  var mesh = _SpatialGroundMesh(textures);
   (String, double)? previous;
   List<Vertex> vertices = [];
   List<int> indices = [];
   SpatialPixelMaterial? material;
   var vertexCount = 0;
+  var frames = <_GroundVisualFrame>[];
   void flushSurface() {
     if (material != null && vertices.isNotEmpty) {
-      mesh.addSurface(
-        Surface(vertices: vertices, indices: indices, material: material!),
-      );
+      final surface =
+          frames.any((frame) => visuals[frame.index].visual.isAnimated)
+          ? _AnimatedGroundSurface(vertices, indices, material!, frames)
+          : Surface(vertices: vertices, indices: indices, material: material!);
+      mesh.addSurface(surface);
+      mesh.frames.add((
+        surface: surface,
+        width: material!.albedoTexture.width,
+        height: material!.albedoTexture.height,
+        visuals: frames,
+      ));
     }
+    frames = [];
     vertices = [];
     indices = [];
     material = null;
     previous = null;
   }
 
-  for (final item in visuals) {
+  for (final (visualIndex, item) in visuals.indexed) {
     final visual = item.visual;
     final texture = textures[visual.tilesetId];
     if (texture == null)
@@ -920,6 +935,7 @@ Iterable<Mesh> spatialGroundMeshes(
         lightingRole: SpatialPixelLightingRole.ground,
       )..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
     }
+    final localUvs = animated ? <double>[] : null;
     final quads = _spatialGroundVertices(
       visual.geometry,
       height: scene == null ? item.height : visual.spatialHeightOffset,
@@ -930,10 +946,18 @@ Iterable<Mesh> spatialGroundMeshes(
       atlasFrame: (sourceRect: rect, texture: texture),
       excludedCells: excludedCellsFor?.call(visual) ?? const {},
       groundReplacements: groundReplacements,
+      localTextureCoordinates: localUvs,
     );
     for (var offset = 0; offset < quads.length; offset += 4) {
+      if (frames.isEmpty || frames.last.index != visualIndex) {
+        frames.add(_GroundVisualFrame(visualIndex, rect, vertices.length));
+      }
       final base = vertices.length;
       for (var corner = offset; corner < offset + 4; corner++) {
+        if (localUvs != null) {
+          frames.last.localUvs.add(localUvs[corner * 2]);
+          frames.last.localUvs.add(localUvs[corner * 2 + 1]);
+        }
         vertices.add(
           scene == null
               ? quads[corner]
@@ -951,7 +975,7 @@ Iterable<Mesh> spatialGroundMeshes(
       if (vertexCount >= 60000) {
         flushSurface();
         yield mesh;
-        mesh = Mesh();
+        mesh = _SpatialGroundMesh(textures);
         vertexCount = 0;
         previous = key;
         material = SpatialPixelMaterial(
@@ -967,6 +991,234 @@ Iterable<Mesh> spatialGroundMeshes(
     flushSurface();
     yield mesh;
   }
+}
+
+typedef _GroundUvTransform = ({
+  double scaleU,
+  double scaleV,
+  double offsetU,
+  double offsetV,
+});
+typedef _GroundFrameUpdate = ({
+  Surface surface,
+  Texture texture,
+  String tilesetId,
+  _GroundUvTransform? transform,
+});
+
+final class _GroundVisualFrame {
+  _GroundVisualFrame(this.index, this.rect, this.vertexStart);
+
+  final int index;
+  final SmartTileSourceRect rect;
+  final int vertexStart;
+  final localUvs = <double>[];
+}
+
+final class _AnimatedGroundSurface extends Surface {
+  factory _AnimatedGroundSurface(
+    List<Vertex> vertices,
+    List<int> indices,
+    SpatialPixelMaterial material,
+    List<_GroundVisualFrame> frames,
+  ) {
+    if (vertices.any((vertex) => vertex.normal == null)) {
+      final normals = Vertex.calculateVertexNormals(
+        vertices.map((vertex) => vertex.position.mutable).toList(),
+        indices,
+      );
+      vertices = [
+        for (final (index, vertex) in vertices.indexed)
+          vertex.copyWith(normal: vertex.normal?.mutable ?? normals[index]),
+      ];
+    }
+    return _AnimatedGroundSurface._(vertices, indices, material, frames);
+  }
+
+  _AnimatedGroundSurface._(
+    List<Vertex> vertices,
+    List<int> indices,
+    SpatialPixelMaterial material,
+    this.frames,
+  ) : vertexData = Float32List(vertices.length * 20),
+      super(
+        vertices: vertices,
+        indices: indices,
+        material: material,
+        calculateNormals: false,
+      ) {
+    for (final (index, vertex) in vertices.indexed) {
+      vertexData.setRange(index * 20, index * 20 + 20, vertex.storage);
+    }
+  }
+
+  final Float32List vertexData;
+  final List<_GroundVisualFrame> frames;
+  bool perVertexFrames = false;
+  bool _dirty = false;
+
+  @override
+  bool get recreateResource => _dirty || super.recreateResource;
+
+  @override
+  GpuBuffer createResource() {
+    resourceSizeInByes = verticesBytes + indicesBytes;
+    _dirty = false;
+    return GpuBackend.instance.createBuffer(
+        storageMode: GpuStorageMode.hostVisible,
+        sizeInBytes: verticesBytes + indicesBytes,
+      )
+      ..write(vertexData.buffer.asByteData())
+      ..write(
+        indices.buffer.asByteData(),
+        destinationOffsetInBytes: verticesBytes,
+      );
+  }
+
+  void updateFrames(List<SpatialGroundVisual> visuals, Texture texture) {
+    for (final frame in frames) {
+      final rect = visuals[frame.index].visual.sourceRect;
+      for (var index = 0; index < frame.localUvs.length; index += 2) {
+        final vertex = (frame.vertexStart + index ~/ 2) * 20;
+        vertexData[vertex + 3] =
+            (rect.x + frame.localUvs[index] * rect.width) / texture.width;
+        vertexData[vertex + 4] =
+            (rect.y + frame.localUvs[index + 1] * rect.height) / texture.height;
+      }
+    }
+    perVertexFrames = true;
+    _dirty = true;
+  }
+}
+
+final class _SpatialGroundMesh extends Mesh {
+  _SpatialGroundMesh(this.textures);
+
+  final Map<String, Texture> textures;
+  final frames =
+      <
+        ({
+          Surface surface,
+          int width,
+          int height,
+          List<_GroundVisualFrame> visuals,
+        })
+      >[];
+
+  List<_GroundFrameUpdate>? frameUpdates(List<SpatialGroundVisual> visuals) {
+    final updates = <_GroundFrameUpdate>[];
+    for (final frame in frames) {
+      _GroundUvTransform? transform;
+      Texture? texture;
+      String? tilesetId;
+      var uniform = true;
+      for (final originalFrame in frame.visuals) {
+        final original = originalFrame.rect;
+        final visual = visuals[originalFrame.index].visual;
+        final currentTexture = textures[visual.tilesetId];
+        if (currentTexture == null) return null;
+        final rect = visual.sourceRect;
+        if (rect.x < 0 ||
+            rect.y < 0 ||
+            rect.width <= 0 ||
+            rect.height <= 0 ||
+            rect.x + rect.width > currentTexture.width ||
+            rect.y + rect.height > currentTexture.height)
+          return null;
+        final scaleU =
+            rect.width * frame.width / (original.width * currentTexture.width);
+        final scaleV =
+            rect.height *
+            frame.height /
+            (original.height * currentTexture.height);
+        final next = (
+          scaleU: scaleU,
+          scaleV: scaleV,
+          offsetU:
+              rect.x / currentTexture.width - scaleU * original.x / frame.width,
+          offsetV:
+              rect.y / currentTexture.height -
+              scaleV * original.y / frame.height,
+        );
+        if (transform != null &&
+            (tilesetId != visual.tilesetId ||
+                !identical(texture, currentTexture)))
+          return null;
+        if (transform != null && transform != next) uniform = false;
+        transform = next;
+        texture = currentTexture;
+        tilesetId = visual.tilesetId;
+      }
+      if (!uniform && frame.surface is! _AnimatedGroundSurface) return null;
+      updates.add((
+        surface: frame.surface,
+        texture: texture!,
+        tilesetId: tilesetId!,
+        transform: uniform ? transform! : null,
+      ));
+    }
+    return updates;
+  }
+}
+
+bool updateSpatialGroundMeshFrames(
+  Iterable<Mesh> meshes,
+  List<SpatialGroundVisual> visuals,
+) {
+  final meshList = meshes.toList();
+  if (meshList.isEmpty) return false;
+  final first = meshList.first;
+  if (first is! _SpatialGroundMesh) return false;
+  final textures = first.textures;
+  for (final mesh in meshList) {
+    if (mesh is! _SpatialGroundMesh || !identical(mesh.textures, textures))
+      return false;
+  }
+  for (final item in visuals) {
+    final visual = item.visual;
+    final texture = textures[visual.tilesetId];
+    final rect = visual.sourceRect;
+    if (texture == null ||
+        rect.x < 0 ||
+        rect.y < 0 ||
+        rect.width <= 0 ||
+        rect.height <= 0 ||
+        rect.x + rect.width > texture.width ||
+        rect.y + rect.height > texture.height)
+      return false;
+  }
+  final updates = <_GroundFrameUpdate>[];
+  for (final mesh in meshList) {
+    if (mesh is! _SpatialGroundMesh) return false;
+    final next = mesh.frameUpdates(visuals);
+    if (next == null) return false;
+    updates.addAll(next);
+  }
+  for (final update in updates) {
+    var material = update.surface.material as SpatialPixelMaterial;
+    final name = 'ground:${update.tilesetId}';
+    if (material.sourceMaterialName != name) {
+      material = SpatialPixelMaterial(
+        update.texture,
+        sourceMaterialName: name,
+        groundDepthOnly: material.groundDepthOnly,
+        lightingRole: material.lightingRole,
+      )..albedoColor = material.albedoColor;
+      update.surface.material = material;
+    } else {
+      material.albedoTexture = update.texture;
+    }
+    var transform = update.transform;
+    final surface = update.surface;
+    if (surface is _AnimatedGroundSurface &&
+        (transform == null || surface.perVertexFrames)) {
+      surface.updateFrames(visuals, update.texture);
+      transform = (scaleU: 1.0, scaleV: 1.0, offsetU: 0.0, offsetV: 0.0);
+    }
+    material.uvTransformU.setValues(transform!.scaleU, 0, transform.offsetU, 0);
+    material.uvTransformV.setValues(0, transform.scaleV, transform.offsetV, 0);
+  }
+  return true;
 }
 
 void applySpatialGroundColorKey(Uint8List rgba, TilesetTransparentColor color) {

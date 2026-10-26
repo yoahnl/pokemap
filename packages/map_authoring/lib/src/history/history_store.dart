@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../catalog_storage/catalog_revert_merge.dart';
+import '../catalog_storage/catalog_history_transition.dart';
 import '../catalog_storage/catalog_storage_store.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_diff.dart';
@@ -257,18 +258,23 @@ final class AuthoringHistoryRecorder
           'The canonical bulk origin is unavailable.');
     }
     final attestation = capability.catalogRevert;
-    if (attestation != null && _catalogStore == null) {
+    final transition = capability.catalogHistory;
+    if ((attestation != null || transition != null) && _catalogStore == null) {
       throw const AuthoringHistoryException('history.bulk_origin_invalid',
           'Catalog merge recovery requires the canonical catalog store.');
     }
     final verified =
         attestation == null ? null : await attestation.reverify(_catalogStore!);
+    final verifiedTransition = transition == null
+        ? null
+        : await transition.reverify(_catalogStore!, allowPreparation: true);
     verifyBulkHistoryMutation(
         origin: origin,
         actionId: capability.actionId,
         inventory: capability.inventory,
         diff: intendedReceipt.diff,
-        catalogRevert: verified);
+        catalogRevert: verified,
+        catalogHistory: verifiedTransition);
   }
 
   @override
@@ -280,14 +286,17 @@ final class AuthoringHistoryRecorder
       intendedReceipt.extensions,
     );
     final expectedHead = context.expectedHeadEntryId;
+    final conversionRecord = intendedReceipt.extensions['catalogHistory'];
+    if (conversionRecord != null && expectedHead == null) {
+      throw const AuthoringHistoryException('history.conversion_unbound',
+          'A converted history transition requires its expected history head.');
+    }
     if (expectedHead == null) return;
     final head = await readAuthoringHistoryHead(_store, scope.projectId);
-    if (head?.entryId == intendedReceipt.receiptId &&
+    final alreadyRecorded = head?.entryId == intendedReceipt.receiptId &&
         canonicalAuthoringJson(head!.receipt.toJson()) ==
-            canonicalAuthoringJson(intendedReceipt.toJson())) {
-      return;
-    }
-    if (head?.entryId != expectedHead) {
+            canonicalAuthoringJson(intendedReceipt.toJson());
+    if (!alreadyRecorded && head?.entryId != expectedHead) {
       final isRedo = context.kind == AuthoringHistoryKind.redo;
       throw AuthoringHistoryException(
         isRedo ? 'history.redo_branch_diverged' : 'history.head_stale',
@@ -295,6 +304,37 @@ final class AuthoringHistoryRecorder
             ? 'Redo is unsafe because the project history has diverged.'
             : 'The current history head differs from the expected head.',
       );
+    }
+    if (conversionRecord != null) {
+      final catalogStore = _catalogStore;
+      if (catalogStore == null ||
+          conversionRecord is! Map ||
+          !const {AuthoringHistoryKind.undo, AuthoringHistoryKind.redo}
+              .contains(context.kind) ||
+          intendedReceipt.actionId != 'history.${context.kind.wireName}') {
+        throw const AuthoringHistoryException('history.conversion_unbound',
+            'The converted history transition has no canonical origin.');
+      }
+      final transition = CatalogHistoryTransitionAttestation.fromJournalJson(
+          Map<String, dynamic>.from(conversionRecord));
+      final origin = await _store.get(
+          projectId: scope.projectId, entryId: context.targetEntryId!);
+      final heads = origin?.changes.where(
+          (change) => change.storageKey == CatalogStorageStore.headStorageKey);
+      if (origin == null ||
+          heads!.length != 1 ||
+          heads.single.beforeRevision != transition.originalBeforeRevision ||
+          heads.single.afterRevision != transition.originalAfterRevision ||
+          canonicalAuthoringJson(intendedReceipt.diff.toJson()) !=
+              canonicalAuthoringJson(catalogHistoryTransitionDiff(
+                      origin.receipt.diff,
+                      redo: context.kind == AuthoringHistoryKind.redo,
+                      attestation: transition)
+                  .toJson())) {
+        throw const AuthoringHistoryException('history.conversion_unbound',
+            'The converted history transition differs from its origin.');
+      }
+      await transition.reverify(catalogStore, allowPreparation: true);
     }
   }
 }
@@ -354,7 +394,8 @@ Future<void> bindCanonicalBulkHistoryPlan(
     required String actorId,
     required String projectId,
     required String operationId,
-    CatalogRevertMergeAttestation? catalogRevert}) async {
+    CatalogRevertMergeAttestation? catalogRevert,
+    CatalogHistoryTransitionAttestation? catalogHistory}) async {
   final context =
       AuthoringHistoryContext.fromExtensions(plan.request.extensions);
   if (context.targetEntryId == null) return;
@@ -372,7 +413,8 @@ Future<void> bindCanonicalBulkHistoryPlan(
       actionId: plan.request.actionId,
       inventory: inventory,
       diff: plan.changeSet.diff,
-      catalogRevert: catalogRevert);
+      catalogRevert: catalogRevert,
+      catalogHistory: catalogHistory);
   plan.bindBulkCapability(ResourcePackBulkAuthority.certifyHistory(
       plan: plan,
       actorId: actorId,
@@ -381,7 +423,8 @@ Future<void> bindCanonicalBulkHistoryPlan(
       originEntryId: origin.entryId,
       origin: certificate,
       verifiedInventory: inventory,
-      catalogRevert: catalogRevert));
+      catalogRevert: catalogRevert,
+      catalogHistory: catalogHistory));
 }
 
 void verifyBulkHistoryMutation(
@@ -389,7 +432,8 @@ void verifyBulkHistoryMutation(
     required String actionId,
     required Iterable<ResourcePackBulkInventoryEntry> inventory,
     required AuthoringDiff diff,
-    CatalogRevertMergeAttestation? catalogRevert}) {
+    CatalogRevertMergeAttestation? catalogRevert,
+    CatalogHistoryTransitionAttestation? catalogHistory}) {
   final certificate = origin.bulkCapability;
   final actual = inventory.toList();
   if (certificate == null ||
@@ -411,6 +455,16 @@ void verifyBulkHistoryMutation(
     throw const AuthoringHistoryException('history.bulk_origin_invalid',
         'The catalog merge is not bound to its canonical history origin.');
   }
+  if (catalogHistory != null &&
+      (!catalogHistory.verified ||
+          catalogRevert != null ||
+          !const {'history.undo', 'history.redo'}.contains(actionId) ||
+          sourceHead == null ||
+          sourceHead.beforeRevision != catalogHistory.originalBeforeRevision ||
+          sourceHead.afterRevision != catalogHistory.originalAfterRevision)) {
+    throw const AuthoringHistoryException('history.bulk_origin_invalid',
+        'The catalog conversion is not bound to its canonical history origin.');
+  }
   final byStorage = {
     for (final change in origin.changes) change.storageKey: change
   };
@@ -422,16 +476,27 @@ void verifyBulkHistoryMutation(
         item.resource.kind != source.resource.kind ||
         item.resource.id != source.resource.id ||
         item.role != certificate.roleFor(item.storageKey) ||
-        (actionId == 'history.undo'
-            ? item.beforeRevision != source.afterRevision ||
-                item.afterRevision != source.beforeRevision
-            : item.storageKey == CatalogStorageStore.headStorageKey &&
-                    catalogRevert != null
-                ? item.beforeRevision != catalogRevert.currentHeadRevision ||
-                    item.afterRevision != catalogRevert.resultHeadRevision
-                : item.afterRevision != source.afterRevision ||
-                    (actionId == 'history.redo' &&
-                        item.beforeRevision != source.beforeRevision))) {
+        (item.storageKey == CatalogStorageStore.headStorageKey &&
+                catalogHistory != null
+            ? item.beforeRevision !=
+                    (actionId == 'history.undo'
+                        ? catalogHistory.effectiveAfterRevision
+                        : catalogHistory.effectiveBeforeRevision) ||
+                item.afterRevision !=
+                    (actionId == 'history.undo'
+                        ? catalogHistory.effectiveBeforeRevision
+                        : catalogHistory.effectiveAfterRevision)
+            : actionId == 'history.undo'
+                ? item.beforeRevision != source.afterRevision ||
+                    item.afterRevision != source.beforeRevision
+                : item.storageKey == CatalogStorageStore.headStorageKey &&
+                        catalogRevert != null
+                    ? item.beforeRevision !=
+                            catalogRevert.currentHeadRevision ||
+                        item.afterRevision != catalogRevert.resultHeadRevision
+                    : item.afterRevision != source.afterRevision ||
+                        (actionId == 'history.redo' &&
+                            item.beforeRevision != source.beforeRevision))) {
       throw const AuthoringHistoryException('history.bulk_origin_invalid',
           'The history mutation differs from its canonical origin.');
     }
@@ -440,21 +505,42 @@ void verifyBulkHistoryMutation(
     throw const AuthoringHistoryException('history.bulk_origin_invalid',
         'The history mutation omits canonical resources.');
   }
-  final expectedDiff = actionId == 'history.undo'
-      ? invertAuthoringHistoryDiff(origin.receipt.diff)
-      : actionId == 'history.redo'
-          ? origin.receipt.diff
-          : AuthoringDiff([
-              for (final item in actual)
-                revisionHistoryDiff(item.resource,
-                    beforeRevision: item.beforeRevision,
-                    afterRevision: item.afterRevision)
-            ]);
+  final expectedDiff = const {'history.undo', 'history.redo'}.contains(actionId)
+      ? catalogHistoryTransitionDiff(origin.receipt.diff,
+          redo: actionId == 'history.redo', attestation: catalogHistory)
+      : AuthoringDiff([
+          for (final item in actual)
+            revisionHistoryDiff(item.resource,
+                beforeRevision: item.beforeRevision,
+                afterRevision: item.afterRevision)
+        ]);
   if (canonicalAuthoringJson(expectedDiff.toJson()) !=
       canonicalAuthoringJson(diff.toJson())) {
     throw const AuthoringHistoryException('history.bulk_origin_invalid',
         'The history diff differs from its canonical origin.');
   }
+}
+
+AuthoringDiff catalogHistoryTransitionDiff(AuthoringDiff origin,
+    {required bool redo, CatalogHistoryTransitionAttestation? attestation}) {
+  final diff = redo ? origin : invertAuthoringHistoryDiff(origin);
+  if (attestation == null) return diff;
+  final before = redo
+      ? attestation.effectiveBeforeRevision
+      : attestation.effectiveAfterRevision;
+  final after = redo
+      ? attestation.effectiveAfterRevision
+      : attestation.effectiveBeforeRevision;
+  return AuthoringDiff([
+    for (final entry in diff.entries)
+      if (entry.resource.kind == 'catalogHead' &&
+          entry.resource.id == 'catalog' &&
+          entry.path == r'$')
+        revisionHistoryDiff(entry.resource,
+            beforeRevision: before, afterRevision: after)
+      else
+        entry,
+  ]);
 }
 
 AuthoringDiff invertAuthoringHistoryDiff(AuthoringDiff diff) => AuthoringDiff([

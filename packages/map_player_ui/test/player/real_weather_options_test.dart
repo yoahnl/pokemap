@@ -7,6 +7,22 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('weather options show the actual received condition instead of assuming the city climate', (tester) async {
+    final service = RealWeatherService(provider: _Provider(), cache: _Cache());
+    addTearDown(service.dispose);
+    RealWeatherStatus status(String kind) => RealWeatherStatus(snapshot: RealWeatherSnapshot(
+      location: RealWeatherLocation(latitude: 60, longitude: 0, label: 'City'),
+      conditions: SpatialVisualPatch.fromJson({'weatherKind': kind}), fetchedAt: DateTime.utc(2026)));
+    service.value = status('snow');
+    await tester.pumpWidget(MaterialApp(locale: const Locale('fr'),
+      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+      theme: PokeMapPlayerTheme.dark(), home: Scaffold(body: PlayerMenuThemeScope(child:
+        RuntimeRealWeatherOptions(preferences: const RealWeatherPreferences(enabled: true), service: service, onChanged: (_) async {})))));
+    expect(find.text('Météo reçue : Neige'), findsOneWidget);
+    service.value = status('cloudy'); await tester.pump();
+    expect(find.text('Météo reçue : Couvert'), findsOneWidget);
+  });
   test('legacy player settings remain offline and new choices persist through both codecs', () {
     final legacy = const PlayerPreferences().toJson();
     expect(legacy, isNot(contains('realWeather')));

@@ -10,6 +10,7 @@ import '../ports/project_file_reader.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/local_transaction_file_gateway.dart';
+import 'catalog_history_compatibility.dart';
 import 'trusted_catalog_admissions.dart';
 
 final class CatalogStorageException implements Exception {
@@ -107,6 +108,17 @@ final class CatalogStorageStore {
   Future<void> publishMetadataIndexAdmissionUnderLock(
           CatalogSnapshot snapshot) =>
       _admissions.publishMetadataIndex(snapshot);
+
+  Future<void> publishHistoryConversionUnderLock(
+      CatalogPreparedHistoryConversion prepared) async {
+    prepared.requireOwner(this);
+    await requireMetadataIndexAdmission(prepared.targetSnapshot);
+    await _admissions.publishHistoryConversion(prepared);
+  }
+
+  Future<void> requireHistoryConversion(
+          CatalogHistoryRootConversion conversion) =>
+      _admissions.requireHistoryConversion(conversion, limits);
 
   Future<bool> prepareLocalEditing() =>
       _gateway.withExclusiveWriteLock(() async {

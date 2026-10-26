@@ -19,6 +19,39 @@
       "sourceSha256": "4be146095d636942e23dd2c02db70154c23f7e09278bc851e54893badde1f032",
       "outputSha256": "9b13f6c858a23503d8777bc0b58015db90acab6e23eb676bdaa73ef5acc1e7f7",
       "durationSeconds": 15.35002267573696
+    },
+    "thunder-0": {
+      "model": "elevenlabs-sfx",
+      "jobId": "8a4dc474-d25d-4fbd-95f2-076bb4ffe33b",
+      "prompt": "One isolated natural distant thunder rumble for a realistic HD-2D outdoor village game. Soft low rolling rumble starts immediately, swells gently, travels across the sky and decays naturally into silence. Dry isolated sound effect, no rain, no wind, no music, no voices, no sharp gunshot or explosion, no silence at the beginning. One event only, not a loop.",
+      "url": "https://gcdn.picsart.com/editing-temp/6c2452d5-7363-4633-997c-2496924f78c6.mp3",
+      "sourceSha256": "e7cbc43db6f21f88c6d0307f6479d1f2ed40876a9208be96b57bb6b70065f914",
+      "outputSha256": "c82c0eb773d92f43af54061b0fe0de2320389dbbd2aa4c003aecede37f301329",
+      "durationSeconds": 7.0,
+      "loop": false,
+      "normalizationGain": 0.9691342774626814
+    },
+    "thunder-1": {
+      "model": "elevenlabs-sfx",
+      "jobId": "9693cbc3-6de9-4def-8243-9d424e49d89e",
+      "prompt": "One isolated realistic thunderclap followed by a broad rolling thunder tail for an outdoor village game. A rounded organic crack starts immediately and spreads into deep rumbling, with natural distance and a smooth decay into silence. No rain, no wind, no music, no voices, no gunshot or explosive cinematic boom, no silence at the beginning. One event only, not a loop.",
+      "url": "https://gcdn.picsart.com/editing-temp/7c0c7068-28ca-4ce0-a301-76837904bc7e.mp3",
+      "sourceSha256": "7a34e1e7545561676d3d40c8c85707b950e49b03c796edcc1170146aa23bfe2f",
+      "outputSha256": "d3b96b4c77a45737986dba479bd4ddb67ad678e24eefb73e917e8330b6ba6ed1",
+      "durationSeconds": 7.0,
+      "loop": false,
+      "normalizationGain": 0.8499740600585938
+    },
+    "thunder-2": {
+      "model": "elevenlabs-sfx",
+      "jobId": "7deb4892-ca20-4f82-a050-72e9916a9ab3",
+      "prompt": "One isolated natural thunder peal, powerful but comfortably rounded, followed by a long low rumble with irregular rolling texture and realistic atmospheric distance. Starts immediately, gradually decays to silence. No rain, no wind, no music, no voices, no clipping, no artificial bass hit, no sharp jump scare, no silence at the beginning. Single outdoor weather sound effect, not a loop.",
+      "url": "https://gcdn.picsart.com/editing-temp/943a1275-4350-4b12-8fdc-3bce604fe327.mp3",
+      "sourceSha256": "5ed7ae10b1fc8e15885c95e60fb60d7ff630a7383335cf464f317fdc3a7902ae",
+      "outputSha256": "e86939739267901bbb1272a648f2affa378484c7e75d269b3b640d6aef1bd1ec",
+      "durationSeconds": 8.0,
+      "loop": false,
+      "normalizationGain": 4.131110946306734
     }
   }
 }

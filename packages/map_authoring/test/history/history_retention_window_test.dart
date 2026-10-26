@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_authoring/src/catalog_storage/catalog_history_compatibility.dart';
+import 'package:map_authoring/src/catalog_storage/catalog_storage_store.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_authoring/src/contracts/authoring_diff.dart';
 import 'package:map_authoring/src/contracts/authoring_receipt.dart';
 import 'package:map_authoring/src/contracts/resource_ref.dart';
@@ -24,6 +27,189 @@ void main() {
 
   tearDown(() async {
     if (await directory.exists()) await directory.delete(recursive: true);
+  });
+
+  test(
+      'conversion reservations survive reopen and prune with their last original receipt',
+      () async {
+    final a = CatalogObjectReference(sha256: 'a' * 64, byteLength: 10);
+    final b = CatalogObjectReference(sha256: 'b' * 64, byteLength: 20);
+    final c = CatalogObjectReference(sha256: 'c' * 64, byteLength: 30);
+    final d = CatalogObjectReference(sha256: 'd' * 64, byteLength: 40);
+    final e = CatalogObjectReference(sha256: 'e' * 64, byteLength: 50);
+    final f = CatalogObjectReference(sha256: 'f' * 64, byteLength: 60);
+    final first = _catalogEntry(1, a, b);
+    final second = _catalogEntry(2, b, c);
+    await store.append(first);
+    await store.append(second);
+    final row = AuthoringHistoryCatalogConversion(
+        conversion: CatalogHistoryRootConversion(
+            source: b, target: d, additionalBytes: 73),
+        entryIds: [first.entryId, second.entryId]);
+    await store.expireEntries(
+        projectId: 'project',
+        entryFingerprints: {},
+        maxOperations: 2,
+        catalogConversions: {b.sha256: row});
+    final original = await store.localWindow('project');
+    expect(original!.toJson()['schemaVersion'], 2);
+    expect(original.conversionBytes, 73);
+    expect(original.logicalBytes,
+        original.objectBytes + 73 + original.recordBytes);
+    store = await FileAuthoringHistoryStore.open(
+        projectRoot: directory.path,
+        incrementalWrites: true,
+        onFullRead: () =>
+            fail('Full history replay for converted rolling window'));
+    expect(
+        (await store.historyConversion(projectId: 'project', source: b))!
+            .target,
+        d);
+    final third = _catalogEntry(3, c, e);
+    await store.appendWithRetention(third, costs: {'blob:${'1' * 64}': 1});
+    expect(
+        (await store.localWindow('project'))!
+            .catalogConversions[b.sha256]!
+            .entryIds,
+        {second.entryId});
+    await store.appendWithRetention(_catalogEntry(4, e, f),
+        costs: {'blob:${'2' * 64}': 1});
+    expect((await store.localWindow('project'))!.catalogConversions, isEmpty);
+    expect(
+        await store.historyConversion(projectId: 'project', source: b), isNull);
+    expect(
+        (await store.get(projectId: 'project', entryId: first.entryId))!
+            .receipt
+            .toJson(),
+        first.receipt.toJson());
+  });
+
+  test(
+      'interrupted conversion publication keeps the previous window and retries exactly',
+      () async {
+    final a = CatalogObjectReference(sha256: 'a' * 64, byteLength: 10);
+    final b = CatalogObjectReference(sha256: 'b' * 64, byteLength: 20);
+    final c = CatalogObjectReference(sha256: 'c' * 64, byteLength: 30);
+    final entry = _catalogEntry(1, a, b);
+    await store.append(entry);
+    await store.expireEntries(projectId: 'project', entryFingerprints: {});
+    final file =
+        File('${directory.path}/.pokemap/authoring/history-retention.json');
+    final original = await file.readAsBytes();
+    final conversions = {
+      a.sha256: AuthoringHistoryCatalogConversion(
+          conversion: CatalogHistoryRootConversion(
+              source: a, target: c, additionalBytes: 42),
+          entryIds: [entry.entryId])
+    };
+    final fault = _WindowPublishFault();
+    await expectLater(
+        IOOverrides.runWithIOOverrides(
+            () => store.expireEntries(
+                projectId: 'project',
+                entryFingerprints: {},
+                catalogConversions: conversions),
+            fault),
+        throwsA(anything));
+    expect(fault.failed, isTrue);
+    expect(await file.readAsBytes(), original);
+    expect((await store.localWindow('project'))!.catalogConversions, isEmpty);
+    await store.expireEntries(
+        projectId: 'project',
+        entryFingerprints: {},
+        catalogConversions: conversions);
+    final reopened = await FileAuthoringHistoryStore.open(
+        projectRoot: directory.path, incrementalWrites: true);
+    expect(
+        (await reopened.historyConversion(projectId: 'project', source: a))!
+            .target,
+        c);
+    expect(
+        (await reopened.get(projectId: 'project', entryId: entry.entryId))!
+            .receipt
+            .toJson(),
+        entry.receipt.toJson());
+  });
+
+  test('conversion links reject an unrelated original HEAD before publication',
+      () async {
+    final a = CatalogObjectReference(sha256: 'a' * 64, byteLength: 10);
+    final b = CatalogObjectReference(sha256: 'b' * 64, byteLength: 20);
+    final c = CatalogObjectReference(sha256: 'c' * 64, byteLength: 30);
+    final d = CatalogObjectReference(sha256: 'd' * 64, byteLength: 40);
+    final entry = _catalogEntry(1, a, b);
+    await store.append(entry);
+    await expectLater(
+        store.expireEntries(
+            projectId: 'project',
+            entryFingerprints: {},
+            catalogConversions: {
+              c.sha256: AuthoringHistoryCatalogConversion(
+                  conversion: CatalogHistoryRootConversion(
+                      source: c, target: d, additionalBytes: 10),
+                  entryIds: [entry.entryId])
+            }),
+        throwsA(isA<AuthoringHistoryException>().having((error) => error.code,
+            'code', 'history.retention_inventory_invalid')));
+    expect(await store.localWindow('project'), isNull);
+    expect(
+        (await store.get(projectId: 'project', entryId: entry.entryId))!
+            .nonUndoableReason,
+        isNull);
+  });
+
+  test(
+      'old window JSON stays readable and unknown conversion bindings fail closed',
+      () async {
+    final first = _entry(1);
+    await store.append(first);
+    await store.expireEntries(projectId: 'project', entryFingerprints: {});
+    final old = (await store.localWindow('project'))!.toJson();
+    expect(old.containsKey('catalogConversions'), isFalse);
+    expect(AuthoringHistoryWindow.fromJson(old).catalogConversions, isEmpty);
+    final source = CatalogObjectReference(sha256: 'a' * 64, byteLength: 10);
+    final target = CatalogObjectReference(sha256: 'b' * 64, byteLength: 20);
+    final malformed = {
+      ...old,
+      'catalogConversions': {
+        source.sha256: AuthoringHistoryCatalogConversion(
+            conversion: CatalogHistoryRootConversion(
+                source: source, target: target, additionalBytes: 1),
+            entryIds: ['missing']).toJson()
+      }
+    };
+    expect(() => AuthoringHistoryWindow.fromJson(malformed),
+        throwsFormatException);
+  });
+
+  test('unknown future windows refuse append without changing durable bytes',
+      () async {
+    final first = _entry(1);
+    await store.append(first);
+    await store.expireEntries(projectId: 'project', entryFingerprints: {});
+    final file =
+        File('${directory.path}/.pokemap/authoring/history-retention.json');
+    final record =
+        Map<String, Object?>.from(jsonDecode(await file.readAsString()) as Map)
+          ..remove('digest');
+    record['schemaVersion'] = 3;
+    await file.writeAsString(
+        jsonEncode({
+          ...record,
+          'digest': computeAuthoringJsonFingerprint(record,
+              logicalName: 'authoring-history-retention.json')
+        }),
+        flush: true);
+    final original = await file.readAsBytes();
+    final sequence = File(
+        '${directory.path}/.pokemap/authoring/history-entries.sequence.json');
+    final originalSequence = await sequence.readAsBytes();
+    await expectLater(
+        store.appendWithRetention(_entry(2), costs: {'blob:${'a' * 64}': 1}),
+        throwsA(isA<AuthoringHistoryStoreException>().having(
+            (error) => error.code, 'code', 'history.version_unsupported')));
+    expect(await file.readAsBytes(), original);
+    expect(await sequence.readAsBytes(), originalSequence);
   });
 
   test(
@@ -492,4 +678,19 @@ AuthoringHistoryEntry _entry(int index) {
             beforeBlobId: fingerprint(index + 10),
             afterBlobId: fingerprint(index + 11))
       ]);
+}
+
+AuthoringHistoryEntry _catalogEntry(
+    int index, CatalogObjectReference before, CatalogObjectReference after) {
+  final json = _entry(index).toJson();
+  final change = (json['changes'] as List).single as Map;
+  String revision(CatalogObjectReference root) =>
+      computeAuthoringBytesFingerprint(CatalogStorageStore.encodeHead(root),
+          logicalName: CatalogStorageStore.headStorageKey);
+  change['storageKey'] = CatalogStorageStore.headStorageKey;
+  change['beforeRevision'] = revision(before);
+  change['afterRevision'] = revision(after);
+  change['beforeBlobId'] = revision(before);
+  change['afterBlobId'] = revision(after);
+  return AuthoringHistoryEntry.fromJson(Map<String, dynamic>.from(json));
 }

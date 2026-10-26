@@ -103,7 +103,7 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
       Uri.https('api.open-meteo.com', '/v1/forecast', {
         'latitude': '${location.latitude}',
         'longitude': '${location.longitude}',
-        'current': 'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation',
+        'current': 'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation,rain,showers,snowfall',
         'wind_speed_unit': 'kmh',
         'timezone': 'auto',
         'forecast_days': '1',
@@ -125,7 +125,7 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
 
     final code = current['weather_code'];
     if (code is! int) throw const FormatException('Invalid weather code.');
-    final kind = switch (code) {
+    var kind = switch (code) {
       0 => SpatialWeatherKind.clear,
       1 || 2 || 3 => SpatialWeatherKind.cloudy,
       45 || 48 => SpatialWeatherKind.fog,
@@ -141,6 +141,34 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
     final wind = number('wind_speed_10m', 0, 500);
     final direction = number('wind_direction_10m', 0, 360);
     final rain = number('precipitation', 0, 1000);
+    final interval = current['interval'] ?? 900;
+    if (interval is! num || !interval.isFinite || interval <= 0 || interval > 3600) {
+      throw const FormatException('Invalid weather observation interval.');
+    }
+    final snowfall = current['snowfall'] == null ? 0.0 : number('snowfall', 0, 100);
+    final rainfall = (current['rain'] == null ? 0.0 : number('rain', 0, 1000)) +
+        (current['showers'] == null ? 0.0 : number('showers', 0, 1000));
+    final rainRate = rain * 3600 / interval;
+    final snowRate = snowfall * 3600 / interval;
+    if (code < 95 && snowfall > 0) {
+      kind = SpatialWeatherKind.snow;
+    } else if (code < 50 && rainfall > 0) {
+      kind = rainRate >= 7.5 ? SpatialWeatherKind.downpour : rainRate < .5 ? SpatialWeatherKind.drizzle : SpatialWeatherKind.rain;
+    }
+    if (kind == SpatialWeatherKind.snow && wind >= 35 && (code == 75 || code == 86 || snowRate >= 1)) {
+      kind = SpatialWeatherKind.blizzard;
+    }
+    final minimum = switch (code) {
+      65 || 75 || 82 || 99 => .95,
+      55 || 57 || 63 || 73 || 81 || 86 || 95 || 96 || 97 => .7,
+      _ => .4,
+    };
+    final intensity = switch (kind) {
+      SpatialWeatherKind.clear || SpatialWeatherKind.cloudy || SpatialWeatherKind.fog => 1.0,
+      SpatialWeatherKind.snow => (minimum + snowRate / 2).clamp(.4, 1.0),
+      SpatialWeatherKind.blizzard => 1.0,
+      _ => (minimum + rainRate / 16).clamp(.3, 1.0),
+    };
     return RealWeatherSnapshot(
       location: location,
       fetchedAt: now,
@@ -148,12 +176,7 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
       timeZone: zone,
       conditions: SpatialVisualPatch.fromJson({
         'weatherKind': kind.name,
-        'weatherIntensity':
-            kind == SpatialWeatherKind.clear ||
-                kind == SpatialWeatherKind.cloudy ||
-                kind == SpatialWeatherKind.fog
-            ? 1
-            : (.3 + rain / 8).clamp(.3, 1),
+        'weatherIntensity': intensity,
         'weatherCloudCover': cloud,
         'weatherWindStrength': (wind / 40).clamp(0, 2),
         'weatherWindDirection': ((-direction + 180) % 360) - 180,

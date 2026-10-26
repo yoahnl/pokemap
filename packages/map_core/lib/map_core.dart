@@ -59,6 +59,7 @@ export 'src/models/map_editor_state.dart';
 
 export 'src/models/spatial_visual_profile.dart';
 export 'src/models/spatial_weather_settings.dart';
+export 'src/models/spatial_storm_timeline.dart';
 export 'src/validation/spatial_weather_capabilities.dart';
 
 export 'src/projection/spatial_visual_rule_resolver.dart';

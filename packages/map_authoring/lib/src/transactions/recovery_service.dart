@@ -150,9 +150,9 @@ final class AuthoringRecoveryService {
       if (record.status == AuthoringIdempotencyStatus.completed) {
         return record.receipt!;
       }
-      await _requireBulkOrigin(journal);
       await _requireStages(journal);
       if (journal.status == AuthoringTransactionStatus.compensated) {
+        await _requireBulkOrigin(journal);
         return _mutate(
           () => _idempotency.completeRecovered(
             scope: journal.scope,
@@ -164,6 +164,15 @@ final class AuthoringRecoveryService {
 
       final states = await _states(journal);
       _requireOnlyBeforeOrAfter(states);
+      final commitHook = _commitHook;
+      if (commitHook is AuthoringTransactionRecoveryGuard) {
+        await (commitHook as AuthoringTransactionRecoveryGuard)
+            .requireRecoveryAllowed(
+          intendedReceipt: journal.intendedReceipt,
+          scope: journal.scope,
+        );
+      }
+      await _requireBulkOrigin(journal);
       if (journal.status == AuthoringTransactionStatus.committed) {
         if (!states.every((state) => state.isAfter)) {
           throw const AuthoringRecoveryException(
@@ -192,14 +201,6 @@ final class AuthoringRecoveryService {
         );
       }
 
-      final commitHook = _commitHook;
-      if (commitHook is AuthoringTransactionRecoveryGuard) {
-        await (commitHook as AuthoringTransactionRecoveryGuard)
-            .requireRecoveryAllowed(
-          intendedReceipt: journal.intendedReceipt,
-          scope: journal.scope,
-        );
-      }
       journal = journal.copyWith(
         status: AuthoringTransactionStatus.promoting,
         updatedAt: _clock().toUtc(),

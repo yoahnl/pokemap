@@ -826,6 +826,27 @@ final class CatalogAuthoringSession {
         catalogOnly: catalogOnly);
   }
 
+  Future<AuthoringMutationResult> redo(
+      {required String entryId, required String idempotencyKey}) async {
+    requireRead();
+    if (reader.readOnly) _authorize(AuthoringSecurityOperation.apply);
+    final editing = await _editing();
+    final entry = await editing.history
+        .get(projectId: reader.projectId, entryId: entryId);
+    final catalogOnly =
+        entry != null && await _isCatalogOnlyReceipt(entry.receipt);
+    final revision = catalogOnly
+        ? await _catalogRevisionForReceipt(entry.receipt)
+        : (await loadProject()).revision;
+    return projectHistory(
+        operation: 'redo',
+        entryId: entryId,
+        operationId: idempotencyKey,
+        expectedRevision: revision,
+        requireBulkOrigin: false,
+        catalogOnly: catalogOnly);
+  }
+
   Future<AuthoringMutationResult> projectHistory(
       {required String operation,
       required String entryId,

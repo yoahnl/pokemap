@@ -8,6 +8,74 @@ import 'package:map_runtime/src/player/runtime_weather_audio_controller.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 
 void main() {
+  test('thunder uses the shared strike timeline once and stops for indoor weather', () async {
+    final drivers = <_Driver>[];
+    final weather = RuntimeWeatherAudioController(mixer: RuntimeAudioMixer(), driverFactory: () {
+      final driver = _Driver(); drivers.add(driver); return driver;
+    });
+    final settings = SpatialWeatherSettings(enabled: true, soundEnabled: true, lightning: true, kind: SpatialWeatherKind.storm);
+    final strike = spatialStormEventAt(0);
+    await weather.update(settings, seconds: strike.strikeSeconds - .1);
+    await weather.update(settings, seconds: strike.thunderSeconds - .01);
+    expect(drivers[2].plays, isEmpty);
+    await weather.update(settings, seconds: strike.thunderSeconds + .01);
+    expect(drivers[2].plays.single, contains('thunder-'));
+    expect(drivers[2].loops, [false]);
+    for (var i = 0; i < 60; i++) {
+      await weather.update(settings, seconds: strike.thunderSeconds + .02 + i / 60);
+    }
+    expect(drivers[2].plays, hasLength(1));
+    await weather.setSuspended(true);
+    expect(drivers[2].paused, isTrue);
+    await weather.setSuspended(false);
+    expect(drivers[2].paused, isFalse);
+    await weather.update(settings, seconds: strike.thunderSeconds + 2, indoors: true);
+    expect(drivers[2].stops, 1);
+    await weather.dispose();
+  });
+  test('a delayed thunder start is cancelled by disabling weather', () async {
+    final gate = Completer<void>();
+    final drivers = <_Driver>[];
+    final weather = RuntimeWeatherAudioController(mixer: RuntimeAudioMixer(), driverFactory: () {
+      final driver = _Driver();
+      if (drivers.length == 2) driver.startGate = gate.future;
+      drivers.add(driver);
+      return driver;
+    });
+    final settings = SpatialWeatherSettings(enabled: true, soundEnabled: true, lightning: true, kind: SpatialWeatherKind.storm);
+    final event = spatialStormEventAt(0);
+    await weather.update(settings, seconds: event.strikeSeconds);
+    final starting = weather.update(settings, seconds: event.thunderSeconds + .01);
+    await Future<void>.delayed(Duration.zero);
+    expect(drivers[2].plays, hasLength(1));
+    final stopping = weather.update(settings.copyWith(enabled: false), seconds: event.thunderSeconds + .02);
+    gate.complete();
+    await Future.wait([starting, stopping]);
+    expect(drivers[2].stops, 1);
+    expect(weather.diagnostics['thunderPlaying'], isFalse);
+    await weather.dispose();
+  });
+  test('late frames do not replay thunder and effects mute reaches thunder', () async {
+    final mixer = RuntimeAudioMixer();
+    final drivers = <_Driver>[];
+    final weather = RuntimeWeatherAudioController(mixer: mixer, driverFactory: () {
+      final driver = _Driver(); drivers.add(driver); return driver;
+    });
+    final settings = SpatialWeatherSettings(enabled: true, soundEnabled: true, lightning: true, kind: SpatialWeatherKind.hail);
+    final first = spatialStormEventAt(0);
+    await weather.update(settings, seconds: first.strikeSeconds);
+    await weather.update(settings, seconds: first.thunderSeconds + 2);
+    expect(drivers[2].plays, isEmpty);
+    final second = spatialStormEventAt(65);
+    await weather.update(settings, seconds: second.strikeSeconds);
+    await weather.update(settings, seconds: second.thunderSeconds + .01);
+    expect(drivers[2].plays, hasLength(1));
+    expect(drivers[2].volume, greaterThan(0));
+    await mixer.transitionTo(const RuntimeAudioMix(effectsVolume: 0));
+    expect(drivers[2].volume, 0);
+    await weather.dispose();
+    expect(drivers[2].stops, 1);
+  });
   test('rain and wind stay independent of music and unchanged frames do no audio work', () async {
     final mixer = RuntimeAudioMixer();
     final rain = _Driver();
@@ -100,12 +168,12 @@ void main() {
         SpatialWeatherSettings(enabled: true, soundEnabled: true),
       );
       expect(
-        drivers.every((driver) => driver.paused && driver.volume == 0),
+        drivers.where((driver) => driver.plays.isNotEmpty).every((driver) => driver.paused && driver.volume == 0),
         isTrue,
       );
       await weather.setSuspended(false);
       expect(
-        drivers.every(
+        drivers.where((driver) => driver.plays.isNotEmpty).every(
           (driver) =>
               !driver.paused && driver.volume > 0 && driver.plays.length == 1,
         ),
@@ -143,6 +211,7 @@ void main() {
 final class _Driver
     implements FlameCinematicAudioDriver, FlameCinematicAudioPausableDriver {
   final plays = <String>[];
+  final loops = <bool>[];
   Future<void>? startGate;
   double volume = 0;
   int volumeChanges = 0, stops = 0;
@@ -153,7 +222,7 @@ final class _Driver
     required double volume,
     required bool loop,
   }) async {
-    expect(loop, isTrue);
+    loops.add(loop);
     plays.add(path);
     this.volume = volume;
     await startGate;

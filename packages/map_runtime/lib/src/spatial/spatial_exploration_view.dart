@@ -60,12 +60,14 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       realWeatherUtcOffsetSeconds: observed?.utcOffsetSeconds,
       realWeatherKind: external == null ? null : SpatialWeatherKind.parse(external.conditions.choice(SpatialVisualParameter.weatherKind)));
     camera.worldEnvironment = environment;
+    camera.weatherTimelineSeconds = widget.session.environmentClock.elapsedSeconds;
     camera.visualProfile = profile;
     var weather = profile.applyAtmosphere(activeBundle.spatialAtmosphereSettings).weather;
     if (environment.weatherKind case final kind? when kind != weather.kind) {
       weather = weather.copyWith(kind: kind);
     }
-    unawaited(weatherAudio.update(weather, indoors: activeBundle.map.mapMetadata.isIndoor));
+    unawaited(weatherAudio.update(weather, indoors: activeBundle.map.mapMetadata.isIndoor,
+      seconds: widget.session.environmentClock.elapsedSeconds));
   }
 
   final keys = <LogicalKeyboardKey>{};

@@ -120,6 +120,26 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
       const SizedBox(height: 8),
       ValueListenableBuilder<RealWeatherStatus>(
         valueListenable: weather,
+        builder: (context, status, _) {
+          final kind = status.snapshot?.conditions.choice(SpatialVisualParameter.weatherKind);
+          if (kind == null) return const SizedBox.shrink();
+          final names = <String, (String, String)>{
+            'clear': ('Ciel dégagé', 'Clear sky'), 'cloudy': ('Couvert', 'Cloudy'),
+            'drizzle': ('Bruine', 'Drizzle'), 'rain': ('Pluie', 'Rain'),
+            'downpour': ('Averse', 'Downpour'), 'storm': ('Orage', 'Thunderstorm'),
+            'snow': ('Neige', 'Snow'), 'blizzard': ('Blizzard', 'Blizzard'),
+            'hail': ('Grêle', 'Hail'), 'mist': ('Brume légère', 'Mist'),
+            'fog': ('Brouillard', 'Fog'), 'dust': ('Poussières', 'Dust'),
+            'sandstorm': ('Tempête de sable', 'Sandstorm'), 'petals': ('Pétales', 'Petals'),
+            'autumnLeaves': ('Feuilles d’automne', 'Autumn leaves'),
+          };
+          final name = names[kind];
+          return Text('${text('Météo reçue', 'Received weather')} : ${name == null ? kind : french ? name.$1 : name.$2}',
+            key: const ValueKey('real-weather-observation'), style: context.playerMenuTheme.body);
+        },
+      ),
+      ValueListenableBuilder<RealWeatherStatus>(
+        valueListenable: weather,
         builder: (context, status, _) => Text(
           '${text('Ville', 'City')} : ${preferences.location?.label ?? status.snapshot?.location.label ?? text('Détection IP à l’ouverture du jeu', 'Detected by IP when gameplay starts')}',
           key: const ValueKey('real-weather-status'),

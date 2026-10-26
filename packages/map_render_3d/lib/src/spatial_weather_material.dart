@@ -46,7 +46,7 @@ final class SpatialWeatherMaterial extends Material {
   }) {
     _cameraDistance = cameraDistance;
     _lightningVisibility = frame.lightningVisibility;
-    _lightningCycle = (seconds / 24).floorToDouble();
+    _lightningCycle = frame.lightningId.toDouble();
     visible =
         count > 0 &&
         (frame.opacity * weight > .001 || _lightningVisibility * weight > .001);

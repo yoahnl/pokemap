@@ -92,9 +92,8 @@ final class AuthoringRevisionRevertService {
       ),
     );
 
-    final headPage = await _history.list(projectId: projectId, limit: 1);
-    if (headPage.entries.isEmpty ||
-        headPage.entries.single.entryId != expectedHeadEntryId) {
+    final head = await readAuthoringHistoryHead(_history, projectId);
+    if (head?.entryId != expectedHeadEntryId) {
       throw const AuthoringHistoryException(
         'history.head_stale',
         'The current history head differs from the expected head.',

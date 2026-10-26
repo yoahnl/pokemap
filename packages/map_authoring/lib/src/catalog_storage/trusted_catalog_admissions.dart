@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/authoring_fingerprint.dart';
+import 'catalog_history_compatibility.dart';
 import 'catalog_storage_store.dart';
 
 final class TrustedCatalogAdmissions {
@@ -91,6 +92,45 @@ final class TrustedCatalogAdmissions {
         await _file(record), utf8.encode(canonicalAuthoringJson(record)));
   }
 
+  Future<void> publishHistoryConversion(
+      CatalogPreparedHistoryConversion prepared) async {
+    if (prepared.sourceSnapshot.admittedStoredBytes == null ||
+        prepared.targetSnapshot.admittedStoredBytes == null) {
+      throw StateError('The catalog conversion has no validated evidence.');
+    }
+    final record = await _historyConversionRecord(
+        prepared.conversion, prepared.sourceSnapshot.limits);
+    await _publishRecord(
+        await _file(record), utf8.encode(canonicalAuthoringJson(record)));
+  }
+
+  Future<void> requireHistoryConversion(CatalogHistoryRootConversion conversion,
+      CatalogStorageLimits limits) async {
+    final record = await _historyConversionRecord(conversion, limits);
+    final file = await _file(record);
+    if (await FileSystemEntity.type(file.path, followLinks: false) ==
+        FileSystemEntityType.notFound) {
+      throw const CatalogStorageException('catalog.preparation_required',
+          'Prepare this historical conversion explicitly in the current local authority.');
+    }
+    await _requireFile(file);
+    if (await file.length() > 8192 ||
+        await file.readAsString() != canonicalAuthoringJson(record)) {
+      throw const FormatException(
+          'catalog.admission: invalid history conversion admission');
+    }
+  }
+
+  Future<Map<String, Object?>> _historyConversionRecord(
+          CatalogHistoryRootConversion conversion,
+          CatalogStorageLimits limits) async =>
+      {
+        'schemaVersion': 1,
+        'projectRoot': await Directory(projectRoot).resolveSymbolicLinks(),
+        'historyConversion': conversion.toJson(),
+        'limits': _limitValues(limits),
+      };
+
   Future<void> _publishRecord(File file, List<int> bytes) async {
     final type = await FileSystemEntity.type(file.path, followLinks: false);
     if (type != FileSystemEntityType.notFound) {
@@ -122,20 +162,22 @@ final class TrustedCatalogAdmissions {
         'schemaVersion': 1,
         'projectRoot': await Directory(projectRoot).resolveSymbolicLinks(),
         'root': snapshot.root.toJson(),
-        'limits': [
-          snapshot.limits.maxUnitBytes,
-          snapshot.limits.maxIndexBytes,
-          snapshot.limits.indexPageSize,
-          snapshot.limits.maxDefinitions,
-          snapshot.limits.maxJsonDepth,
-          snapshot.limits.maxJsonValues,
-          snapshot.limits.maxReferencesPerUnit,
-          snapshot.limits.maxIndexDepth,
-          snapshot.limits.maxClosureNodes,
-          snapshot.limits.maxClosureDepth,
-          snapshot.limits.maxStoredBytes,
-        ],
+        'limits': _limitValues(snapshot.limits),
       };
+
+  static List<int> _limitValues(CatalogStorageLimits limits) => [
+        limits.maxUnitBytes,
+        limits.maxIndexBytes,
+        limits.indexPageSize,
+        limits.maxDefinitions,
+        limits.maxJsonDepth,
+        limits.maxJsonValues,
+        limits.maxReferencesPerUnit,
+        limits.maxIndexDepth,
+        limits.maxClosureNodes,
+        limits.maxClosureDepth,
+        limits.maxStoredBytes,
+      ];
 
   Future<File> _file(Map<String, Object?> record) async {
     final requested = _directory.absolute;

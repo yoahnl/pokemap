@@ -1,5 +1,8 @@
+import '../catalog_storage/catalog_history_transition.dart';
+import '../catalog_storage/catalog_storage_store.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/resource_ref.dart';
+import '../history/authoring_history.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/project_file_reader.dart';
 import '../support/authoring_fingerprint.dart';
@@ -132,6 +135,7 @@ final class AuthoringTransactionJournal {
     if (this.entries.isEmpty) {
       throw ArgumentError.value(entries, 'entries', 'must not be empty');
     }
+    _requireCatalogHistoryBinding();
     final nativeCapability = nativeCreationCapability;
     if (nativeCapability != null) {
       if (bulkCapability != null) {
@@ -261,6 +265,51 @@ final class AuthoringTransactionJournal {
           'The final receipt revision must match the final journal state.',
         );
       }
+    }
+  }
+
+  void _requireCatalogHistoryBinding() {
+    final record = intendedReceipt.extensions['catalogHistory'];
+    final bulkHistory = bulkCapability?.catalogHistory;
+    if (record == null && bulkHistory == null) return;
+    if (record is! Map ||
+        (bulkCapability != null &&
+            canonicalAuthoringJson(record) !=
+                canonicalAuthoringJson(bulkHistory?.toJson())) ||
+        (finalReceipt != null &&
+            canonicalAuthoringJson(record) !=
+                canonicalAuthoringJson(
+                    finalReceipt!.extensions['catalogHistory']))) {
+      throw const FormatException(
+          'catalog.history: journal conversion proofs differ');
+    }
+    final transition = CatalogHistoryTransitionAttestation.fromJournalJson(
+        Map<String, dynamic>.from(record));
+    final context =
+        AuthoringHistoryContext.fromExtensions(intendedReceipt.extensions);
+    final undo = context.kind == AuthoringHistoryKind.undo;
+    final heads = entries.where(
+        (entry) => entry.storageKey == CatalogStorageStore.headStorageKey);
+    if (!const {AuthoringHistoryKind.undo, AuthoringHistoryKind.redo}
+            .contains(context.kind) ||
+        context.expectedHeadEntryId == null ||
+        (bulkCapability != null &&
+            context.targetEntryId != bulkCapability!.originEntryId) ||
+        intendedReceipt.actionId != 'history.${context.kind.wireName}' ||
+        scope.actionId != intendedReceipt.actionId ||
+        heads.length != 1 ||
+        heads.single.resource.kind != 'catalogHead' ||
+        heads.single.resource.id != 'catalog' ||
+        heads.single.beforeRevision !=
+            (undo
+                ? transition.effectiveAfterRevision
+                : transition.effectiveBeforeRevision) ||
+        heads.single.afterRevision !=
+            (undo
+                ? transition.effectiveBeforeRevision
+                : transition.effectiveAfterRevision)) {
+      throw const FormatException(
+          'catalog.history: journal HEAD differs from its conversion proof');
     }
   }
 

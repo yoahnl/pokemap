@@ -1267,6 +1267,28 @@ final class JsonlWorker {
             'args.idempotencyKey',
           ),
         );
+      case 'redo':
+        rejectUnknownContractKeys(
+          args,
+          const {'projectHandle', 'entryId', 'idempotencyKey'},
+        );
+        final redoApi = _mutationApi();
+        if (redoApi is! AuthoringRedoMutationApi) {
+          throw const _UnsupportedWorkerCommand();
+        }
+        await _requireSynchronousOperationAllowed(
+          _projectHandle(args),
+          operation: 'redo',
+          entryId: requireContractString(args['entryId'], 'args.entryId'),
+        );
+        return (redoApi as AuthoringRedoMutationApi).redo(
+          _projectHandle(args),
+          entryId: requireContractString(args['entryId'], 'args.entryId'),
+          idempotencyKey: requireContractString(
+            args['idempotencyKey'],
+            'args.idempotencyKey',
+          ),
+        );
       case 'history':
         rejectUnknownContractKeys(
           args,

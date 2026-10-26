@@ -54,6 +54,7 @@ final class SpatialExplorationSession {
   final Object _avatarAssetOwner = Object();
   Set<String> _imageIds = {};
   final _preparedMaps = <String, _PreparedSpatialMap>{};
+  final _modelPresenceIndices = Expando<_SpatialModelPresenceIndex>();
   final _preparingMaps = <String, Future<_PreparedSpatialMap>>{};
   final _mapOrigins = <String, ui.Offset>{};
   Set<String> _visibleMaps = {};
@@ -328,14 +329,11 @@ final class SpatialExplorationSession {
         ? bundle
         : _preparedMaps[mapId]?.bundle;
     if (source == null) return false;
-    final instance = source.map.spatialScene!.instances
-        .where((value) => value.id == instanceId)
-        .firstOrNull;
-    final entityId = instance?.entityId;
+    final index = _modelPresenceIndices[source.map] ??=
+        _SpatialModelPresenceIndex(source.map);
+    final entityId = index.entityIdsByInstanceId[instanceId];
     if (entityId == null) return true;
-    final entity = source.map.entities
-        .where((value) => value.id == entityId)
-        .firstOrNull;
+    final entity = index.entitiesById[entityId];
     return entity != null && (entityIsPresent?.call(mapId, entity) ?? true);
   }
 
@@ -2141,6 +2139,20 @@ final class SpatialExplorationSession {
       z: movement.z,
     );
   }
+}
+
+final class _SpatialModelPresenceIndex {
+  _SpatialModelPresenceIndex(MapData map) {
+    for (final instance in map.spatialScene!.instances) {
+      entityIdsByInstanceId.putIfAbsent(instance.id, () => instance.entityId);
+    }
+    for (final entity in map.entities) {
+      entitiesById.putIfAbsent(entity.id, () => entity);
+    }
+  }
+
+  final entityIdsByInstanceId = <String, String?>{};
+  final entitiesById = <String, MapEntity>{};
 }
 
 final class _PreparedSpatialMap {

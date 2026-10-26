@@ -27,6 +27,8 @@ import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import 'catalog_generation_retention.dart';
+import 'catalog_history_compatibility.dart';
+import 'catalog_history_transition.dart';
 import 'catalog_revert_merge.dart';
 import 'catalog_storage_store.dart';
 
@@ -829,38 +831,68 @@ final class CatalogEditingSession {
       }
       final change = entry.changes.singleWhere(
           (change) => change.storageKey == CatalogStorageStore.headStorageKey);
-      final expected = redo ? change.beforeRevision : change.afterRevision;
-      if (await store.gateway
-              .readResourceRevision(CatalogStorageStore.headStorageKey) !=
-          expected) {
+      if (change.beforeBlobId == null ||
+          change.afterBlobId == null ||
+          change.beforeRevision == null ||
+          change.afterRevision == null) {
+        throw const AuthoringHistoryException('history.blob_missing',
+            'The retained catalog heads are unavailable.');
+      }
+      final originalBefore =
+          await _historyRoot(change.beforeBlobId!, change.beforeRevision!);
+      final originalAfter =
+          await _historyRoot(change.afterBlobId!, change.afterRevision!);
+      final conversions = <CatalogHistoryRootConversion>[];
+      Future<CatalogObjectReference> resolve(
+          CatalogObjectReference root) async {
+        final conversion = window?.catalogConversions[root.sha256]?.conversion;
+        if (conversion == null) return root;
+        if (conversion.source != root) {
+          throw const FormatException(
+              'catalog.history: conversion source differs');
+        }
+        await store.requireHistoryConversion(conversion);
+        conversions.add(conversion);
+        return conversion.target;
+      }
+
+      final convertedBefore = await resolve(originalBefore);
+      final convertedAfter = await resolve(originalAfter);
+      final expected = redo ? convertedBefore : convertedAfter;
+      final originalExpected = redo ? originalBefore : originalAfter;
+      final currentRoot = snapshot.root;
+      final currentHeadRevision = computeAuthoringBytesFingerprint(
+          CatalogStorageStore.encodeHead(currentRoot),
+          logicalName: CatalogStorageStore.headStorageKey);
+      if (currentRoot != expected && currentRoot != originalExpected) {
         throw const AuthoringHistoryException('history.resource_changed',
             'The catalog changed after the selected history entry.');
       }
-      final blobId = redo ? change.afterBlobId : change.beforeBlobId;
-      final payload = blobId == null ? null : await blobs.get(blobId);
-      if (payload == null ||
-          payload.byteLength > CatalogStorageStore.maximumHeadBytes) {
-        throw const AuthoringHistoryException('history.blob_missing',
-            'The retained catalog head is unavailable.');
+      if (await store.gateway
+              .readResourceRevision(CatalogStorageStore.headStorageKey) !=
+          currentHeadRevision) {
+        throw const AuthoringHistoryException('history.resource_changed',
+            'The catalog changed after the selected history entry.');
       }
-      final bytes = <int>[];
-      await for (final chunk in payload.openRead()) {
-        bytes.addAll(chunk);
-        if (bytes.length > CatalogStorageStore.maximumHeadBytes) {
-          throw const AuthoringHistoryException(
-              'history.blob_revision_mismatch',
-              'The retained catalog head exceeds its budget.');
-        }
-      }
-      final targetRevision =
-          redo ? change.afterRevision : change.beforeRevision;
-      if (computeAuthoringBytesFingerprint(bytes,
-              logicalName: CatalogStorageStore.headStorageKey) !=
-          targetRevision) {
-        throw const AuthoringHistoryException('history.blob_revision_mismatch',
-            'The retained catalog head does not match history.');
-      }
-      final target = _decodeHead(bytes);
+      final target = redo ? convertedAfter : convertedBefore;
+      final effectiveBefore = redo ? currentRoot : target;
+      final effectiveAfter = redo ? target : currentRoot;
+      final usedConversions = conversions
+          .where((conversion) =>
+              conversion.source == originalBefore &&
+                  effectiveBefore != originalBefore ||
+              conversion.source == originalAfter &&
+                  effectiveAfter != originalAfter)
+          .toSet();
+      final transition = usedConversions.isEmpty
+          ? null
+          : await CatalogHistoryTransitionAttestation.verify(
+              store: store,
+              originalBeforeRoot: originalBefore,
+              originalAfterRoot: originalAfter,
+              effectiveBeforeRoot: effectiveBefore,
+              effectiveAfterRoot: effectiveAfter,
+              conversions: usedConversions);
       final next = (await store.openRoot(target)).snapshot;
       await _admitHistoricalSnapshot(next);
       final additional = <AuthoringResourceChange>[];
@@ -945,16 +977,19 @@ final class CatalogEditingSession {
                   targetEntryId: entryId,
                   expectedHeadEntryId:
                       redo || window != null ? latest!.entryId : null),
-              diff: redo
-                  ? entry.receipt.diff
-                  : invertAuthoringHistoryDiff(entry.receipt.diff));
+              diff: catalogHistoryTransitionDiff(entry.receipt.diff,
+                  redo: redo, attestation: transition));
           try {
+            if (transition != null) {
+              prepared.plan.bindCatalogHistory(transition);
+            }
             await bindCanonicalBulkHistoryPlan(
                 history: history,
                 plan: prepared.plan,
                 actorId: actorId,
                 projectId: projectId,
-                operationId: selectedOperation);
+                operationId: selectedOperation,
+                catalogHistory: transition);
             return prepared;
           } on Object {
             prepared._invalidated = true;

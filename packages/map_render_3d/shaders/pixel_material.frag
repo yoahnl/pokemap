@@ -226,10 +226,11 @@ void main() {
     }
     if (atmosphere.windowColor.w > 0.0) {
         float mask = 0.0;
+        vec2 windowUv = samplePixelUv();
         for (int i = 0; i < 8; i++) {
             if (float(i) >= atmosphere.options.w) break;
             vec4 rect = atmosphere.windowRects[i];
-            mask = max(mask, step(rect.x, fragTexCoord.x) * step(rect.y, fragTexCoord.y) * step(fragTexCoord.x, rect.z) * step(fragTexCoord.y, rect.w));
+            mask = max(mask, step(rect.x, windowUv.x) * step(rect.y, windowUv.y) * step(windowUv.x, rect.z) * step(windowUv.y, rect.w));
         }
         vec3 litGlass = atmosphere.windowColor.rgb * (0.72 + 0.28 * color.rgb);
         outColor.rgb = mix(outColor.rgb, litGlass, clamp(mask * atmosphere.windowColor.w, 0.0, 1.0));

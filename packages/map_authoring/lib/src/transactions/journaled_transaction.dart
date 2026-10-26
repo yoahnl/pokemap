@@ -137,6 +137,7 @@ final class JournaledAuthoringTransaction {
       );
       _requireRequestMatchesPlan(request, plan);
       plan.requireCatalogDelta();
+      plan.requireCatalogHistory();
       plan.bulkCapability?.requirePlan(plan,
           actorId: scope.actorId,
           projectId: scope.projectId,
@@ -188,6 +189,8 @@ final class JournaledAuthoringTransaction {
           'operationId': operationId,
           'multiFileGuarantee': 'recoverable',
           'history': historyContext.toJson(),
+          if (plan.catalogHistory != null)
+            'catalogHistory': plan.catalogHistory!.toJson(),
         },
       );
       final commitHook = _commitHook;

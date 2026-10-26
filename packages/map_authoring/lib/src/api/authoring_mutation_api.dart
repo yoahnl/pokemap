@@ -74,6 +74,11 @@ abstract interface class AuthoringHistoryMaintenancePort {
       int maxBytes = 200 * 1024 * 1024});
 }
 
+abstract interface class AuthoringRedoMutationApi {
+  Future<Map<String, Object?>> redo(ProjectHandle projectHandle,
+      {required String entryId, required String idempotencyKey});
+}
+
 abstract interface class AuthoringArtifactStagingPort {
   Future<Map<String, Object?>> stageArtifact({
     required String sourcePath,

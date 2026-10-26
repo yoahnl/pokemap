@@ -196,9 +196,9 @@ export function registerMutationTools(
   server.registerTool(
     "pokemap_history",
     {
-      title: "Inspect, undo or maintain PokeMap history",
+      title: "Inspect, undo, redo or maintain PokeMap history",
       description:
-        "Lists committed receipts, requests a revision-safe undo, or explicitly maintains managed project undo history. Maintenance previews by default; applying requires the exact preview fingerprint and current revision. Review expiredEntryIds and any legacyBarrierEntryId before applying: older independent undo may limit the safe retained sequence. Defaults: 50 user operations and 200 MiB logical undo data. Pending recovery and live readers remain protected. Maintenance may inspect retained data and never runs as part of a save.",
+        "Lists committed receipts, requests a revision-safe undo or redo, or explicitly maintains managed project undo history. Maintenance previews by default; applying requires the exact preview fingerprint and current revision. Review expiredEntryIds and any legacyBarrierEntryId before applying: older independent undo may limit the safe retained sequence. Defaults: 50 user operations and 200 MiB logical undo data. Pending recovery and live readers remain protected. Maintenance may inspect retained data and never runs as part of a save.",
       inputSchema: z.discriminatedUnion("operation", [
         z
           .object({
@@ -210,7 +210,7 @@ export function registerMutationTools(
           .strict(),
         z
           .object({
-            operation: z.literal("undo"),
+            operation: z.enum(["undo", "redo"]),
             projectHandle: z.string().min(1),
             entryId: z.string().min(1),
             idempotencyKey: z.string().min(1),
@@ -252,7 +252,7 @@ export function registerMutationTools(
             }),
           )
         : authoringResult(() =>
-            authoring.request("undo", {
+            authoring.request(input.operation, {
               projectHandle: input.projectHandle,
               entryId: input.entryId,
               idempotencyKey: input.idempotencyKey,

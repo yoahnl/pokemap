@@ -20,8 +20,13 @@ void main() {
   final sessions = <CatalogEditingSession>[];
 
   setUp(() async {
-    directory = await Directory.systemTemp.createTemp('catalog-retention-');
-    store = await CatalogStorageStore.open(projectRoot: directory.path);
+    final task = Directory('/Users/karim/Library/Caches/AveluneQA/'
+        'studio-project-lifecycle/collector-tests');
+    await task.create(recursive: true);
+    directory = await task.createTemp('fixture-');
+    store = await CatalogStorageStore.open(
+        projectRoot: directory.path,
+        trustedAdmissionDirectory: Directory('${directory.path}-admissions'));
     retention = CatalogGenerationRetention(store: store);
     history = await FileAuthoringHistoryStore.open(projectRoot: directory.path);
     blobs =
@@ -39,6 +44,8 @@ void main() {
     }
     readers.clear();
     await directory.delete(recursive: true);
+    final admissions = Directory('${directory.path}-admissions');
+    if (await admissions.exists()) await admissions.delete(recursive: true);
   });
 
   Future<CatalogCollectionResult> collect() =>
@@ -58,12 +65,13 @@ void main() {
 
   test('concurrent projects isolate identical edit identities and collection',
       () async {
-    final otherDirectory =
-        await Directory.systemTemp.createTemp('catalog-other-project-');
+    final otherDirectory = await directory.parent.createTemp('other-');
     CatalogEditingSession? other;
     try {
-      final otherStore =
-          await CatalogStorageStore.open(projectRoot: otherDirectory.path);
+      final otherStore = await CatalogStorageStore.open(
+          projectRoot: otherDirectory.path,
+          trustedAdmissionDirectory:
+              Directory('${otherDirectory.path}-admissions'));
       await otherStore.publish(_build('old'), expectedRootRevision: null);
       final local = await CatalogEditingSession.open(
           store: store, projectId: 'game', actorId: 'author');
@@ -88,6 +96,8 @@ void main() {
     } finally {
       await other?.close();
       await otherDirectory.delete(recursive: true);
+      final admissions = Directory('${otherDirectory.path}-admissions');
+      if (await admissions.exists()) await admissions.delete(recursive: true);
     }
   });
 
@@ -191,7 +201,7 @@ void main() {
 
   test('symlinks in the object inventory are never followed or removed',
       () async {
-    final outside = await Directory.systemTemp.createTemp('catalog-outside-');
+    final outside = await directory.parent.createTemp('outside-');
     try {
       final target = File('${outside.path}/proof');
       await target.writeAsString('preserve');

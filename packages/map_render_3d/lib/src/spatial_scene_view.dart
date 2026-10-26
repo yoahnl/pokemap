@@ -128,6 +128,7 @@ class SpatialSceneController extends ModelPreviewController {
   SpatialSceneController({DateTime Function()? now}) : _now = now ?? DateTime.now;
   final DateTime Function() _now;
   WorldEnvironmentFrame? worldEnvironment;
+  double? weatherTimelineSeconds;
   WorldEnvironmentFrame _previewEnvironment = const WorldEnvironmentFrame();
   double _environmentElapsed = 0;
   SpatialWeatherSettings? _resolvedWeather;
@@ -2877,7 +2878,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       settings: control.weatherSettings,
       context: renderContext,
       dt: dt,
-      seconds: elapsed,
+      seconds: control.weatherTimelineSeconds ?? elapsed,
       night: night,
       indoors: configuration.groundMap?.mapMetadata.isIndoor ?? false,
       anchor: weatherAnchor,

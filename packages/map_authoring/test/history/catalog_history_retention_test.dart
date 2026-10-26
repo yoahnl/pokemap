@@ -11,6 +11,7 @@ import 'package:map_authoring/src/ports/project_file_reader.dart';
 import 'package:map_authoring/src/ports/transaction_file_gateway.dart';
 import 'package:map_authoring/src/transactions/file_idempotency_store.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_documents.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -64,6 +65,185 @@ void main() {
         upserts: [_unit(name)], idempotencyKey: 'edit-${sequence++}');
     return (await session.apply(plan)).receiptId;
   }
+
+  Future<
+      ({
+        CatalogStorageStore store,
+        FileAuthoringHistoryStore history,
+        FileAuthoringContentBlobStore blobs,
+        CatalogEditingSession session,
+        List<String> businessIds,
+        String preparationId
+      })> legacyFixture() async {
+    final root = Directory('${directory.path}/legacy-conversion');
+    await root.create();
+    final legacyStore = await CatalogStorageStore.open(
+        projectRoot: root.path,
+        trustedAdmissionDirectory:
+            Directory('${directory.path}-admissions/legacy'));
+    final source = [_unit('legacy-initial')];
+    await legacyStore.publish(
+        CatalogStorageBuilder().build([
+          ...source,
+          ...CatalogMetadataDocuments.initialize(source).where(
+              (unit) => unit.key != CatalogNarrativeEventDocuments.indexKey),
+        ]),
+        expectedRootRevision: null);
+    final legacyHistory = await FileAuthoringHistoryStore.open(
+        projectRoot: root.path, incrementalWrites: true);
+    final legacyBlobs =
+        await FileAuthoringContentBlobStore.open(projectRoot: root.path);
+    final legacySession = await CatalogEditingSession.open(
+        store: legacyStore,
+        projectId: 'legacy-game',
+        actorId: 'author',
+        history: legacyHistory,
+        blobs: legacyBlobs,
+        incrementalHistory: true);
+    addTearDown(legacySession.close);
+    final ids = <String>[];
+    for (final name in ['legacy-one', 'legacy-two']) {
+      final plan = await legacySession
+          .planPatch(upserts: [_unit(name)], idempotencyKey: name);
+      ids.add((await legacySession.apply(plan)).receiptId);
+    }
+    await legacySession.prepareMetadataDocuments(force: true);
+    final preparationId =
+        (await legacyHistory.latestLocalEntry(projectId: 'legacy-game'))!
+            .entryId;
+    return (
+      store: legacyStore,
+      history: legacyHistory,
+      blobs: legacyBlobs,
+      session: legacySession,
+      businessIds: ids,
+      preparationId: preparationId
+    );
+  }
+
+  test(
+      'maintenance converts retained legacy roots and expires normalized metadata noops',
+      () async {
+    final fixture = await legacyFixture();
+    final service = CatalogHistoryRetention(
+        store: fixture.store, history: fixture.history, blobs: fixture.blobs);
+    final before = await fixture.store.readHead();
+    final originalReceipt = (await fixture.history
+            .get(projectId: 'legacy-game', entryId: fixture.businessIds.first))!
+        .receipt
+        .toJson();
+    final objects = await _objects(Directory(fixture.store.projectRoot));
+    final preview = await service.preview(projectId: 'legacy-game');
+    expect(preview.retainedEntryIds, fixture.businessIds);
+    expect(preview.metadataOnlyExpiredEntryIds, [fixture.preparationId]);
+    expect(preview.expiredEntryIds, contains(fixture.preparationId));
+    expect(preview.undoCursor, 2);
+    expect(preview.catalogConversions, isNotEmpty);
+    expect(await _objects(Directory(fixture.store.projectRoot)), objects);
+    final applied = await service.apply(
+        projectId: 'legacy-game', expectedFingerprint: preview.fingerprint);
+    expect(applied.convertedHistoricalGenerations,
+        preview.catalogConversions.length);
+    expect(applied.historicalGenerationsRequiringPreparation, isEmpty);
+    expect(await fixture.store.readHead(), before);
+    final window = (await fixture.history.localWindow('legacy-game'))!;
+    expect(window.entryIds, fixture.businessIds);
+    expect(window.cursor, 2);
+    expect(window.catalogConversions.keys, preview.catalogConversions.keys);
+    await CatalogGenerationRetention(store: fixture.store).collect(
+        projectId: 'legacy-game',
+        history: fixture.history,
+        blobs: fixture.blobs);
+    for (final row in window.catalogConversions.values) {
+      await fixture.store.requireHistoryConversion(row.conversion);
+      final source =
+          (await fixture.store.openRoot(row.conversion.source)).snapshot;
+      final target =
+          (await fixture.store.openRoot(row.conversion.target)).snapshot;
+      expect((await source.indexEntry(_key))!.reference,
+          (await target.indexEntry(_key))!.reference);
+      expect(await fixture.store.metadataIndexPrepared(source), isFalse);
+      expect(await fixture.store.metadataIndexPrepared(target), isTrue);
+      await source.objectReferences();
+      await target.objectReferences();
+    }
+    expect(
+        (await fixture.history.get(
+                projectId: 'legacy-game', entryId: fixture.businessIds.first))!
+            .receipt
+            .toJson(),
+        originalReceipt);
+    final nextPreview = await service.preview(projectId: 'legacy-game');
+    expect(nextPreview.expiredEntryIds, isEmpty);
+    final second = await service.apply(
+        projectId: 'legacy-game', expectedFingerprint: nextPreview.fingerprint);
+    expect(second.collection.deletedObjects, 0);
+    expect(second.deletedHistoryBlobs, 0);
+    expect((await fixture.history.localWindow('legacy-game'))!.entryIds,
+        fixture.businessIds);
+  });
+
+  test(
+      'rolling converted history releases source roots only after their last linked receipt expires',
+      () async {
+    final fixture = await legacyFixture();
+    final service = CatalogHistoryRetention(
+        store: fixture.store, history: fixture.history, blobs: fixture.blobs);
+    final preview = await service.preview(projectId: 'legacy-game');
+    await service.apply(
+        projectId: 'legacy-game', expectedFingerprint: preview.fingerprint);
+    final window = (await fixture.history.localWindow('legacy-game'))!;
+    final source = window.catalogConversions.values.first.conversion.source;
+    final sourceFile = File(
+        '${fixture.store.projectRoot}/catalog/objects/${source.sha256}.json');
+    expect(await sourceFile.exists(), isTrue);
+    await fixture.history.expireEntries(
+        projectId: 'legacy-game',
+        entryFingerprints: {},
+        maxOperations: 2,
+        retainedCosts: window.costs,
+        catalogConversions: window.catalogConversions);
+    for (final name in ['current-one', 'current-two']) {
+      final plan = await fixture.session
+          .planPatch(upserts: [_unit(name)], idempotencyKey: name);
+      await fixture.session.apply(plan);
+    }
+    expect(
+        (await fixture.history.localWindow('legacy-game'))!.catalogConversions,
+        isEmpty);
+    final next = await service.preview(projectId: 'legacy-game');
+    final collected = await service.apply(
+        projectId: 'legacy-game', expectedFingerprint: next.fingerprint);
+    expect(collected.collection.deletedObjects, greaterThan(0));
+    expect(await sourceFile.exists(), isFalse);
+    expect((await fixture.session.snapshot.lookup(_key))!.payload['name'],
+        'current-two');
+  });
+
+  test(
+      'conversion budget overflow refuses before expiration or object publication',
+      () async {
+    final fixture = await legacyFixture();
+    final service = CatalogHistoryRetention(
+        store: fixture.store, history: fixture.history, blobs: fixture.blobs);
+    final full = await service.preview(projectId: 'legacy-game');
+    final objects = await _objects(Directory(fixture.store.projectRoot));
+    final before = await fixture.store.readHead();
+    final preview = await service.preview(
+        projectId: 'legacy-game', maxBytes: full.retainedLogicalBytes - 256);
+    expect(preview.blockedReason, 'history.conversion_exceeds_budget');
+    await expectLater(
+        service.apply(
+            projectId: 'legacy-game',
+            expectedFingerprint: preview.fingerprint,
+            maxBytes: full.retainedLogicalBytes - 256),
+        throwsA(isA<AuthoringHistoryException>().having((error) => error.code,
+            'code', 'history.conversion_exceeds_budget')));
+    expect(await fixture.store.readHead(), before);
+    expect(await _objects(Directory(fixture.store.projectRoot)), objects);
+    expect((await fixture.history.localWindow('legacy-game'))!.entryIds,
+        [...fixture.businessIds, fixture.preparationId]);
+  });
 
   test('preview does not expire or delete and counts a coherent suffix',
       () async {

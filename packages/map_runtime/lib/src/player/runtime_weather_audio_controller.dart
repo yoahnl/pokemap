@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import 'runtime_audio_mixer.dart';
 import 'runtime_music_service.dart';
+import 'runtime_storm_audio_controller.dart';
 
 final class RuntimeWeatherAudioController {
   RuntimeWeatherAudioController({
@@ -18,15 +19,29 @@ final class RuntimeWeatherAudioController {
        _wind = RuntimeMusicService(
          mixer: mixer,
          driver: (driverFactory ?? _assetDriver)(),
+       ),
+       _storm = RuntimeStormAudioController(
+         mixer: mixer,
+         driver: (driverFactory ?? _assetDriver)(),
        );
 
   static const _prefix = 'packages/map_runtime/assets/audio/weather/';
   final RuntimeMusicService _rain, _wind;
+  final RuntimeStormAudioController _storm;
   (double, double)? _gains;
   bool _disposed = false;
   Future<void> _pending = Future<void>.value();
+  Future<void>? _stormPending;
 
-  Object? get lastFailure => _rain.lastFailure ?? _wind.lastFailure;
+  Object? get lastFailure => _rain.lastFailure ?? _wind.lastFailure ?? _storm.lastFailure;
+  Map<String, Object?> get diagnostics => {
+    'rainPlaying': _rain.isPlaying, 'windPlaying': _wind.isPlaying,
+    'rainGain': _gains?.$1, 'windGain': _gains?.$2,
+    'thunderPlaying': _storm.isPlaying, 'thunderCount': _storm.playedCount,
+    'lastThunderSeconds': _storm.lastPlayedAtSeconds,
+    'lastThunderVariant': _storm.lastVariant,
+    'failure': lastFailure?.toString(),
+  };
 
   static FlameCinematicAudioDriver _assetDriver() =>
       FlameAudioCinematicRuntimeDriver(
@@ -34,7 +49,7 @@ final class RuntimeWeatherAudioController {
         sourceFactory: AssetSource.new,
       );
 
-  Future<void> update(SpatialWeatherSettings settings, {bool indoors = false}) {
+  Future<void> update(SpatialWeatherSettings settings, {bool indoors = false, double seconds = 0}) {
     if (_disposed) return _pending;
     final audible =
         settings.active &&
@@ -55,9 +70,16 @@ final class RuntimeWeatherAudioController {
                 settings.windVolume
           : 0.0,
     );
-    if (_gains == next) return _pending;
+    final storm = _storm.update(settings, seconds: seconds, indoors: indoors);
+    final sameStorm = identical(storm, _stormPending);
+    _stormPending = storm;
+    if (_gains == next) {
+      if (sameStorm) return _pending;
+      return _pending = Future.wait([_pending, storm]);
+    }
     _gains = next;
     return _pending = Future.wait([
+      storm,
       _rain.update(
         route: RuntimeAudioRoute.ambience,
         path: next.$1 > 0 ? '${_prefix}rain-loop.wav' : null,
@@ -76,12 +98,13 @@ final class RuntimeWeatherAudioController {
     return Future.wait([
       _rain.setSuspended(suspended),
       _wind.setSuspended(suspended),
+      _storm.setSuspended(suspended),
     ]);
   }
 
   Future<void> dispose() {
     if (_disposed) return _pending;
     _disposed = true;
-    return _pending = Future.wait([_rain.dispose(), _wind.dispose()]);
+    return _pending = Future.wait([_rain.dispose(), _wind.dispose(), _storm.dispose()]);
   }
 }

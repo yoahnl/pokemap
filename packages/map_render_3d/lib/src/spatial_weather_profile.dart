@@ -22,6 +22,7 @@ final class SpatialWeatherFrame {
     this.lightFactor = 1,
     this.flash = 0,
     this.lightningVisibility = 0,
+    this.lightningId = 0,
     this.color = const Color(0xffd6e6f4),
     this.fogColor = const Color(0xffb8c6d1),
   });
@@ -30,6 +31,7 @@ final class SpatialWeatherFrame {
   final double fallSpeed, streakLength, size, opacity, windX, windZ;
   final double fogOpacity, lightFactor, flash;
   final double lightningVisibility;
+  final int lightningId;
   final double fogDensity;
   final double impactStrength, impactSpeed;
   final Color color, fogColor;
@@ -55,17 +57,18 @@ SpatialWeatherFrame spatialWeatherFrame(
   final darkness = night.clamp(0.0, 1.0);
   var flash = 0.0;
   var lightningVisibility = 0.0;
-  if (settings.kind == SpatialWeatherKind.storm && settings.lightning) {
-    final phase = seconds % 24;
+  final strike = spatialStormEventAt(seconds);
+  if ((settings.kind == SpatialWeatherKind.storm || settings.kind == SpatialWeatherKind.hail) && settings.lightning) {
+    final phase = seconds - strike.strikeSeconds;
     lightningVisibility =
-        amount *
-        _smooth((phase - 6.1) / .14) *
-        (1 - _smooth((phase - 6.45) / .3));
+        amount * strike.strength *
+        _smooth(phase / .14) *
+        (1 - _smooth((phase - .35) / .3));
     flash =
-        .09 *
+        .09 * strike.strength *
         amount *
-        _smooth((phase - 6) / .6) *
-        (1 - _smooth((phase - 6.6) / 1.2));
+        _smooth((phase + .1) / .6) *
+        (1 - _smooth((phase - .5) / 1.2));
   }
   final light =
       (1 -
@@ -104,6 +107,7 @@ SpatialWeatherFrame spatialWeatherFrame(
     lightFactor: light,
     flash: flash,
     lightningVisibility: lightningVisibility,
+    lightningId: strike.id,
     color: color,
     fogColor: Color.lerp(
       style.fogColor,

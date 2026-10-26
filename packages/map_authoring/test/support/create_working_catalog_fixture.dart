@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_documents.dart';
 import 'package:map_core/map_core.dart';
 
 import '../domains/maps/healing_display_fixture.dart';
 
 Future<void> main(List<String> arguments) async {
   final root = arguments.first;
+  final legacyHistory = arguments.contains('--legacy-history');
   final healing = arguments.contains('--story-map') ? healingProject() : null;
   final project = ProjectManifest(
       name: 'Transport catalog',
@@ -43,6 +46,14 @@ Future<void> main(List<String> arguments) async {
           element.copyWith(id: 'alternate-${element.id}')
       ],
       elementCategories: healing?.elementCategories ?? const [],
+      facts: legacyHistory
+          ? [
+              NarrativeFactDefinition(
+                  id: 'fixture_fact',
+                  label: 'Fixture fact',
+                  legacyFlagName: 'fixture_alias')
+            ]
+          : const [],
       models3d: [
         if (arguments.contains('--light-workshop'))
           ProjectModel3dEntry(
@@ -83,8 +94,64 @@ Future<void> main(List<String> arguments) async {
   }
   final store = await CatalogStorageStore.open(projectRoot: root);
   final built = PortableCatalogPublication.encodeProject(project);
-  await store.publish(built.storage, expectedRootRevision: null);
+  var storage = built.storage;
+  if (legacyHistory) {
+    final units = CatalogSnapshot.readAllSync(
+        root: storage.root,
+        readObject: (reference) => storage.objects[reference.sha256]!).units;
+    final metadata = <CatalogDefinitionUnit>[];
+    for (final unit in CatalogMetadataDocuments.initialize(units)) {
+      if (unit.key == CatalogNarrativeEventDocuments.indexKey ||
+          unit.key.id.startsWith('["narrativeEventDocument') ||
+          unit.key.id.startsWith('["factRuntimeIdentity",')) {
+        continue;
+      }
+      metadata.add(unit.key == CatalogMetadataDocuments.fieldKey('facts')
+          ? CatalogDefinitionUnit(
+              key: unit.key,
+              payload: {...unit.payload}
+                ..remove('factRuntimeIdentitiesVersion'))
+          : unit);
+    }
+    storage = CatalogStorageBuilder().build([...units, ...metadata]);
+  }
+  await store.publish(storage, expectedRootRevision: null);
   await File('$root/project.json').writeAsString(jsonEncode(
       WorkingProjectCatalogDescriptor(projectId: 'transport-fixture')
           .toJson()));
+  if (legacyHistory) {
+    final session = await CatalogEditingSession.open(
+        store: store,
+        projectId: 'transport-fixture',
+        actorId: 'local_cli',
+        incrementalHistory: true);
+    try {
+      final receipts = <AuthoringReceipt>[];
+      for (final name in ['Legacy first', 'Legacy second']) {
+        final key =
+            CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'tile-204');
+        final unit = (await session.snapshot.lookup(key))!;
+        final value = Map<String, Object?>.from(unit.payload['value'] as Map)
+          ..['name'] = name;
+        final plan = await session.planPatch(upserts: [
+          CatalogDefinitionUnit(
+              key: key,
+              payload: {...unit.payload, 'value': value},
+              references: unit.references)
+        ], idempotencyKey: name.replaceAll(' ', '-'));
+        receipts.add(await session.apply(plan));
+      }
+      await session.prepareMetadataDocuments(force: true);
+      stdout.writeln(jsonEncode({
+        'first': receipts[0].receiptId,
+        'second': receipts[1].receiptId,
+        'helperPid': pid,
+        'originalReceipts': {
+          for (final receipt in receipts) receipt.receiptId: receipt.toJson()
+        }
+      }));
+    } finally {
+      await session.close();
+    }
+  }
 }

@@ -229,7 +229,7 @@ void main() {
       'position': 0,
       'value': {
         'field': 'facts',
-        'definition': {'id': 'fact-a', 'name': 'Fact A'}
+        'definition': {'id': 'fact-a', 'name': 'Fact A', 'label': 'Fact A'}
       },
     });
     final initialized = CatalogMetadataDocuments.initialize([definition]);

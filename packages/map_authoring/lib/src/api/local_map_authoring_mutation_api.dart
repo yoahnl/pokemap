@@ -79,6 +79,7 @@ final class LocalMapAuthoringMutationApi
         AuthoringMutationApiPort,
         AuthoringWorkshopPort,
         AuthoringHistoryMaintenancePort,
+        AuthoringRedoMutationApi,
         AuthoringMapEditorStatePort,
         AuthoringMapElementOrderPort,
         AuthoringArtifactStagingPort,
@@ -443,6 +444,10 @@ final class LocalMapAuthoringMutationApi
           AuthoringMutationCommandDescriptor(
             id: 'undo',
             summary: 'Undo one committed history entry.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'redo',
+            summary: 'Redo one retained undone history entry.',
           ),
         ],
         actions: _dispatcher.descriptors,
@@ -972,6 +977,25 @@ final class LocalMapAuthoringMutationApi
         entryId: entryId,
         idempotencyKey: idempotencyKey,
       ))
+          .toJson();
+
+  Future<AuthoringMutationResult> redoMutation(
+    ProjectHandle projectHandle, {
+    required String entryId,
+    required String idempotencyKey,
+  }) async {
+    final catalog = _catalogSession(projectHandle);
+    return catalog != null
+        ? catalog.redo(entryId: entryId, idempotencyKey: idempotencyKey)
+        : _session(projectHandle)
+            .redoMutation(entryId: entryId, idempotencyKey: idempotencyKey);
+  }
+
+  @override
+  Future<Map<String, Object?>> redo(ProjectHandle projectHandle,
+          {required String entryId, required String idempotencyKey}) async =>
+      (await redoMutation(projectHandle,
+              entryId: entryId, idempotencyKey: idempotencyKey))
           .toJson();
 
   @override
@@ -1845,7 +1869,7 @@ final class _LocalMapAuthoringSession {
     String? entryId,
   }) async {
     requireProjectionRead();
-    if (operation == 'undo') {
+    if (operation == 'undo' || operation == 'redo') {
       final entry = await _history.get(
         projectId: projectId,
         entryId: _safeIdentity(entryId!, 'entryId'),
@@ -2008,6 +2032,29 @@ final class _LocalMapAuthoringSession {
     await _requireReconciled();
     final snapshot = await _snapshotLoader.loadHistorySnapshot(projectHandle);
     final prepared = await _undoService.planUndo(
+      actor: _actor,
+      projectId: projectId,
+      entryId: _safeIdentity(entryId, 'entryId'),
+      snapshot: snapshot,
+      workspaceHandle: workspaceHandle.value,
+      idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
+    );
+    final receipt = await _undoService.apply(prepared);
+    try {
+      await prepared.plan.releaseAppliedPayload();
+    } on Object {
+      _snapshotLoader.invalidate(projectHandle);
+    }
+    return _mutationResult(receipt, refreshUnavailable: true);
+  }
+
+  Future<AuthoringMutationResult> redoMutation({
+    required String entryId,
+    required String idempotencyKey,
+  }) async {
+    await _requireReconciled();
+    final snapshot = await _snapshotLoader.loadHistorySnapshot(projectHandle);
+    final prepared = await _undoService.planRedo(
       actor: _actor,
       projectId: projectId,
       entryId: _safeIdentity(entryId, 'entryId'),
