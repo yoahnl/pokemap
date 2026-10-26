@@ -506,6 +506,8 @@ jobs:
     env:
       RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
       RELEASE_BUILD_NUMBER: ${{ needs.validate-release.outputs.build_number }}
+      FLUTTER_VERSION: 3.47.5
+      FLUTTER_REVISION: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -517,6 +519,13 @@ jobs:
           git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
           test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Verify and download corrected macOS release engine
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
+            -s tools/scripts -p 'test_install_studio_release_engine.py'
+          ENGINE_URL="$(python3 -c 'import json; print(json.load(open("tools/flutter_engine_patches/macos_release_engine.json"))["archiveUrl"])')"
+          curl --fail --location --retry 3 "$ENGINE_URL" \
+            --output "$RUNNER_TEMP/avelune-macos-release-engine.tar.gz"
       - name: Import ephemeral Developer ID identity
         env:
           DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
@@ -550,12 +559,19 @@ jobs:
           )"
           test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
           flutter pub get
+          dart run ../../packages/map_render_3d/tool/build_shaders.dart
           flutter test test/release
           flutter analyze
           flutter build macos --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
           APP_PATH="build/macos/Build/Products/Release/Avelune Studio.app"
+          python3 ../../tools/scripts/install_studio_release_engine.py \
+            --app "$APP_PATH" \
+            --archive "$RUNNER_TEMP/avelune-macos-release-engine.tar.gz" \
+            --manifest ../../tools/flutter_engine_patches/macos_release_engine.json \
+            --producer-flutter-sdk "$RUNNER_TEMP/flutter" \
+            --receipt "$RUNNER_TEMP/studio-engine-receipt.json"
           test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
@@ -570,6 +586,15 @@ jobs:
             --app "$APP_PATH" \
             --identity "$DEVELOPER_ID_APPLICATION" \
             --entitlements macos/Runner/Release.entitlements
+      - name: Preserve corrected engine provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: studio-macos-engine-provenance-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            tools/flutter_engine_patches/macos_release_engine.json
+            ${{ runner.temp }}/studio-engine-receipt.json
       - name: Notarize, staple and assess Avelune Studio
         working-directory: apps/avelune_studio
         env:

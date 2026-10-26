@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "mode": "release",
+  "flutterRevision": "6a19cca56475dbfba1478ee68d7bd0c2ef891da1",
+  "dartRevision": "b530c21f7de367b94fb04787bfed9d8e989d75e8",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "patchSha256": "d22f733ba12e4839ba389a642df098f0b45c6f1c31273e69fb4e84fb2cac56b8",
+  "frameworkTreeSha256": "fae4748f79e31e130e713d9ef25ce826a23a8c578252d8a608d4adeeabf07411",
+  "archiveSha256": "9124cbfeb60db1b246d572a9de298ef9d46ac2347816e2c327e3af8fd10cdfeb",
+  "archiveUrl": "https://github.com/yoahnl/pokemap/releases/download/avelune-engine-macos-3.47.5-fence1/avelune-macos-release-engine-3.47.5-fence1.tar.gz"
+}
