@@ -136,6 +136,8 @@ final class SpatialPresentationEffects {
     required double cameraYaw,
     double windowStrength = 1,
     Model3dVector3? Function(SpatialHaloSource source)? locate,
+    Color? Function(String instanceId)? colorForInstance,
+    double Function(String instanceId)? strengthForInstance,
   }) {
     if (!identical(_profile, profile)) {
       clear();
@@ -148,11 +150,14 @@ final class SpatialPresentationEffects {
       }
     }
     for (final halo in _halos) {
+      final id = halo.source.instanceId;
+      final strength = id == null ? 1.0 : strengthForInstance?.call(id) ?? 1;
       final position = halo.source.instanceId == null
           ? halo.source.position
           : locate?.call(halo.source);
       halo.visible =
           enabled &&
+          strength > .001 &&
           position != null &&
           night > .001 &&
           (!halo.source.window || windowsLit);
@@ -164,14 +169,19 @@ final class SpatialPresentationEffects {
         profile.haloSpread,
       );
       halo.rotation.setEuler(cameraYaw, -cameraPitch, 0);
-      halo.material.albedoColor = halo.source.color.withValues(
-        alpha:
-            (halo.source.opacity *
-                    profile.haloStrength *
-                    (halo.source.window ? windowStrength : 1) *
-                    night.clamp(0.0, 1.0))
-                .clamp(0.0, 1.0),
-      );
+      halo.material.albedoColor =
+          (id == null
+                  ? halo.source.color
+                  : colorForInstance?.call(id) ?? halo.source.color)
+              .withValues(
+                alpha:
+                    (strength *
+                            halo.source.opacity *
+                            profile.haloStrength *
+                            (halo.source.window ? windowStrength : 1) *
+                            night.clamp(0.0, 1.0))
+                        .clamp(0.0, 1.0),
+              );
     }
   }
 

@@ -11,6 +11,62 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   testWidgets(
+    'model light save keeps the native preview and avoids a catalog query',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1400, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final port = _LightPort();
+      final controller = WorkingCatalogController(port);
+      addTearDown(controller.dispose);
+      var previews = 0, synchronized = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WorkingCatalogWorkspace(
+            session: const ProjectSession(
+              sessionId: 'light',
+              name: 'Projet',
+              directoryPath: '/project',
+              storage: ProjectSessionStorage.workingCatalog,
+            ),
+            controller: controller,
+            onClose: () async {},
+            registerExitGuard: (_) {},
+            onModelLightSaved: (_, before, after) async {
+              synchronized++;
+            },
+            previewBuilder: (_) {
+              previews++;
+              return const Text('Aperçu conservé');
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await controller.select(port.entry);
+      await tester.pumpAndSettle();
+      final queries = port.queries;
+      expect(controller.error, isNull);
+      expect(previews, 1);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('model-light-enabled')),
+      );
+      await tester.tap(find.byKey(const ValueKey('model-light-enabled')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('model-light-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('model-light-save')));
+      await tester.pumpAndSettle();
+      expect(port.light, isNull);
+      expect(synchronized, 1);
+      expect(port.queries, queries);
+      expect(previews, 1);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'character shadow controls preserve the sprite preview when saved',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1400, 1000));
@@ -397,4 +453,69 @@ class _Port implements WorkingCatalogPort {
   Future<void> close() async {}
   @override
   Future<void> recover(String operationId) async {}
+}
+
+class _LightPort extends _Port implements WorkingCatalogModelLightPort {
+  _LightPort() {
+    entry = const WorkingCatalogEntry(
+      id: 'lamp',
+      kind: 'model3d',
+      name: 'Lampe',
+    );
+  }
+  final identity = Object();
+  int queries = 0, saves = 0;
+  Model3dPointLight? light = Model3dPointLight(
+    localPosition: Model3dVector3(x: 0, y: 2, z: 0),
+  );
+  @override
+  Future<WorkingCatalogPage> query({
+    required String kind,
+    required String text,
+    String? cursor,
+    String? placementContext,
+  }) async {
+    queries++;
+    return WorkingCatalogPage(revision: 'r$saves', items: [entry], total: 1);
+  }
+
+  @override
+  Future<WorkingCatalogDetail> open(WorkingCatalogEntry selected) async =>
+      WorkingCatalogDetail(
+        entry: entry,
+        revision: 'r$saves',
+        previewIdentity: identity,
+        definitions: ProjectManifest(
+          name: 'Projection',
+          maps: const [],
+          tilesets: const [],
+          models3d: [
+            ProjectModel3dEntry(
+              id: 'lamp',
+              name: 'Lampe',
+              sourceAssetId: 'model3d_lamp',
+              relativePath: 'assets/models3d/lamp.glb',
+              light: light,
+              inspection: Model3dInspection(
+                bounds: Model3dBounds(
+                  min: Model3dVector3.zero,
+                  max: Model3dVector3(x: 1, y: 3, z: 1),
+                ),
+                meshCount: 1,
+                triangleCount: 4,
+              ),
+            ),
+          ],
+        ),
+      );
+  @override
+  Future<WorkingCatalogDetail> configureLight(
+    WorkingCatalogEntry selected,
+    Model3dPointLight? value, {
+    required String revision,
+  }) async {
+    light = value;
+    saves++;
+    return open(selected);
+  }
 }

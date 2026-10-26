@@ -27,7 +27,14 @@ enum SpatialVisualParameter {
   windowsLit.boolean(),
   windowStrength(0, 2),
   fireflies.boolean(),
-  fireflyDensity(0, 2);
+  fireflyDensity(0, 2),
+  fireflyLighting.boolean(),
+  fireflyYellowAmount(0, 1),
+  fireflyGreenAmount(0, 1),
+  fireflyBlueAmount(0, 1),
+  fireflyPinkAmount(0, 1),
+  fireflyLightStrength(0, 1),
+  fireflyLightRadius(.25, 2.5);
 
   const SpatialVisualParameter(this.minimum, this.maximum) : isBoolean = false;
   const SpatialVisualParameter.boolean()
@@ -40,6 +47,7 @@ enum SpatialVisualParameter {
   bool get isClock =>
       index >= dayNightEnabled.index && index <= minuteOfDay.index;
   bool get isAtmosphere => !isCamera && !isClock;
+  bool get isLightWorkshop => index >= fireflyLighting.index;
 
   Object normalize(Object? value) {
     if (isBoolean) {
@@ -67,6 +75,7 @@ final class SpatialVisualPatch {
   }
   final Map<SpatialVisualParameter, Object> values;
   bool get isEmpty => values.isEmpty;
+  bool get requiresLightWorkshop => values.keys.any((p) => p.isLightWorkshop);
   Object? value(SpatialVisualParameter parameter) => values[parameter];
   double? number(SpatialVisualParameter parameter) =>
       values[parameter] as double?;
@@ -85,6 +94,14 @@ final class SpatialVisualPatch {
     'dayNightEnabled': cycle != null,
     'dayDurationSeconds': cycle?.durationSeconds ?? 1200,
     'minuteOfDay': cycle?.startMinuteOfDay ?? 720,
+    'fireflyLighting': atmosphere.fireflyLighting,
+    'fireflyYellowAmount': atmosphere.fireflyYellowAmount,
+    'fireflyGreenAmount': atmosphere.fireflyGreenAmount,
+    'fireflyBlueAmount': atmosphere.fireflyBlueAmount,
+    'fireflyPinkAmount': atmosphere.fireflyPinkAmount,
+    'fireflyLightStrength': atmosphere.fireflyLightStrength,
+    'fireflyLightRadius': atmosphere.fireflyLightRadius,
+
     for (final e in atmosphere.toJson().entries)
       if (SpatialVisualParameter.values.any(
         (p) => p.isAtmosphere && p.name == e.key,
@@ -165,6 +182,14 @@ final class SpatialVisualPatch {
       windowsLit: enabled(SpatialVisualParameter.windowsLit),
       windowStrength: number(SpatialVisualParameter.windowStrength),
       fireflies: enabled(SpatialVisualParameter.fireflies),
+      fireflyLighting: enabled(SpatialVisualParameter.fireflyLighting),
+      fireflyYellowAmount: number(SpatialVisualParameter.fireflyYellowAmount),
+      fireflyGreenAmount: number(SpatialVisualParameter.fireflyGreenAmount),
+      fireflyBlueAmount: number(SpatialVisualParameter.fireflyBlueAmount),
+      fireflyPinkAmount: number(SpatialVisualParameter.fireflyPinkAmount),
+      fireflyLightStrength: number(SpatialVisualParameter.fireflyLightStrength),
+      fireflyLightRadius: number(SpatialVisualParameter.fireflyLightRadius),
+
       fireflyDensity: number(SpatialVisualParameter.fireflyDensity),
     );
   }
@@ -227,6 +252,7 @@ final class SpatialVisualDocument {
   }
   static const capabilityId = 'map3d.visual-profile@1';
   static const schemaVersion = 1;
+  static const lightWorkshopSchemaVersion = 2;
   static const maxBytes = 32768;
   static const projectRelativePath = 'project.visual.json';
   final String? mapId;
@@ -248,7 +274,10 @@ final class SpatialVisualDocument {
   }
 
   factory SpatialVisualDocument.fromJson(Map<String, dynamic> json) {
-    if (json['schemaVersion'] != schemaVersion ||
+    if (!{
+          schemaVersion,
+          lightWorkshopSchemaVersion,
+        }.contains(json['schemaVersion']) ||
         json.keys.any(
           (key) => !{'schemaVersion', 'mapId', 'profile'}.contains(key),
         ) ||
@@ -258,15 +287,24 @@ final class SpatialVisualDocument {
         'Invalid or unsupported visual settings document.',
       );
     }
+    final profile = SpatialVisualPatch.fromJson(
+      json['profile'] as Map<String, dynamic>,
+    );
+    if (json['schemaVersion'] == schemaVersion &&
+        profile.requiresLightWorkshop) {
+      throw const FormatException(
+        'Extended lighting requires visual schema 2.',
+      );
+    }
     return SpatialVisualDocument(
       mapId: json['mapId'] as String?,
-      profile: SpatialVisualPatch.fromJson(
-        json['profile'] as Map<String, dynamic>,
-      ),
+      profile: profile,
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': schemaVersion,
+    'schemaVersion': profile.requiresLightWorkshop
+        ? lightWorkshopSchemaVersion
+        : schemaVersion,
     if (mapId != null) 'mapId': mapId,
     'profile': profile.toJson(),
   };

@@ -45,12 +45,18 @@ final class WorkingCatalogDetail {
     required this.revision,
     required this.definitions,
     this.contactShadowProjectDefault = false,
+    this.previewIdentity,
+    this.previousDocumentRevision,
+    this.documentRevision,
   });
 
   final WorkingCatalogEntry entry;
   final String revision;
   final ProjectManifest definitions;
   final bool contactShadowProjectDefault;
+  final Object? previewIdentity;
+  final String? previousDocumentRevision, documentRevision;
+  Object get visualIdentity => previewIdentity ?? definitions;
 }
 
 final class WorkingCatalogDraft {
@@ -126,4 +132,12 @@ abstract interface class WorkingCatalogPort {
 
   Future<void> close();
   Future<void> recover(String operationId);
+}
+
+abstract interface class WorkingCatalogModelLightPort {
+  Future<WorkingCatalogDetail> configureLight(
+    WorkingCatalogEntry entry,
+    Model3dPointLight? light, {
+    required String revision,
+  });
 }

@@ -1,7 +1,11 @@
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
+
 import '../../project_visuals/domain/project_visuals_port.dart';
 import 'map_atmosphere_controller.dart';
 import 'map_editor_controller.dart';
+
 import 'dart:async';
+
 import '../domain/map_editor_port.dart';
 import '../domain/map_atmosphere_port.dart';
 
@@ -33,7 +37,8 @@ class MapWorkspaceController {
   final Map<String, Future<EditableMapDocument>> _loading = {};
   final Map<String, Future<MapData?>> _previews = {};
   final Map<String, EditableMapDocument> retiredDocuments = {};
-  final _elementOrderReceipts = <String, Map<Object, MapElementOrderWorkspaceReceipt>>{};
+  final _elementOrderReceipts =
+      <String, Map<Object, MapElementOrderWorkspaceReceipt>>{};
   bool catalogBusy = false;
   MapCatalogReceipt? pendingCatalogReceipt;
   String? _catalogTargetId;
@@ -67,14 +72,21 @@ class MapWorkspaceController {
   SpatialVisualPatch? _projectVisualProfile;
   final _mapVisualProfiles = <String, SpatialVisualPatch>{};
   void acceptVisualProfile(SpatialVisualPatch profile, {String? mapId}) {
-    if (mapId == null) { _projectVisualProfile = profile; }
-    else { _mapVisualProfiles[mapId] = profile; }
+    if (mapId == null) {
+      _projectVisualProfile = profile;
+    } else {
+      _mapVisualProfiles[mapId] = profile;
+    }
     final document = active;
     if (document != null && (mapId == null || document.base.mapId == mapId)) {
-      document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch()).overriddenBy(_mapVisualProfiles[document.base.mapId] ?? SpatialVisualPatch());
+      document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch())
+          .overriddenBy(
+            _mapVisualProfiles[document.base.mapId] ?? SpatialVisualPatch(),
+          );
       notify();
     }
   }
+
   bool loading = false;
   String? error;
   String? Function(MapData before, MapData after)? historyGuard;
@@ -332,7 +344,8 @@ class MapWorkspaceController {
       documents[entry.id] = document;
       if (generation == _generation) {
         active = document;
-        document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch()).overriddenBy(_mapVisualProfiles[entry.id] ?? SpatialVisualPatch());
+        document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch())
+            .overriddenBy(_mapVisualProfiles[entry.id] ?? SpatialVisualPatch());
         final selection = _selections[entry.id];
         if (!hasCompleteProject && selection != null) {
           project = _withWorkshops(selection.definitions);
@@ -389,8 +402,13 @@ class MapWorkspaceController {
     if (document.current.spatialScene != null && port is ProjectVisualsPort) {
       final visuals = port as ProjectVisualsPort;
       _projectVisualProfile ??= (await visuals.loadVisuals(session)).profile;
-      _mapVisualProfiles[entry.id] = (await visuals.loadVisuals(session, map: entry)).profile;
-      document.visualProfile = _projectVisualProfile!.overriddenBy(_mapVisualProfiles[entry.id]!);
+      _mapVisualProfiles[entry.id] = (await visuals.loadVisuals(
+        session,
+        map: entry,
+      )).profile;
+      document.visualProfile = _projectVisualProfile!.overriddenBy(
+        _mapVisualProfiles[entry.id]!,
+      );
     }
     return document;
   }
@@ -513,7 +531,9 @@ class MapWorkspaceController {
     }
     final token = redo ? document.redoToken : document.undoToken;
     final order = _elementOrderReceipts[document.base.mapId]?[token];
-    if (order != null && !document.dirty && document.base.revision == order.document.revision) {
+    if (order != null &&
+        !document.dirty &&
+        document.base.revision == order.document.revision) {
       unawaited(_restoreElementOrder(document, order, redo: redo));
       return;
     }
@@ -565,6 +585,44 @@ class MapWorkspaceController {
       },
     );
     notify();
+  }
+
+  Future<void> acceptModelLight(
+    ProjectModel3dEntry model,
+    String beforeRevision,
+    String afterRevision,
+  ) async {
+    if (_disposed) return;
+    final source = port;
+    if (source is MapWorkspaceModelLightPort) {
+      await (source as MapWorkspaceModelLightPort).acceptModelLight(
+        session,
+        model,
+        beforeRevision,
+        afterRevision,
+      );
+    }
+    if (_disposed) return;
+    _selections.removeWhere(
+      (_, selection) =>
+          selection.definitions.models3d.any((value) => value.id == model.id),
+    );
+    final current = project;
+    if (current == null) return;
+    acceptResources(
+      current,
+      current.copyWith(
+        models3d: [
+          for (final value in current.models3d)
+            value.id == model.id
+                ? value.copyWith(
+                    light: model.light,
+                    clearLight: model.light == null,
+                  )
+                : value,
+        ],
+      ),
+    );
   }
 
   void acceptResources(ProjectManifest before, ProjectManifest updated) {

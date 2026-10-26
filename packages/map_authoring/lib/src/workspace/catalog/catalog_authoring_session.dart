@@ -184,7 +184,7 @@ final class CatalogAuthoringSession {
     if (request.actionId == 'map.save') return _planMap(request);
     if (CatalogSpatialMapSelection.supports(request.actionId, parameters: request.parameters)) return _planSpatialMap(request);
     if (request.actionId != catalogDefinitionUpdateDescriptor.id) {
-      return request.extensions['workshopScope'] == true || CatalogWorkshopSelection.supports(request.actionId)
+      return request.extensions['workshopScope'] == true || CatalogWorkshopSelection.supports(request.actionId,parameters:request.parameters)
           ? _planWorkshop(request) : _planProject(request);
     }
     if (request.actionVersion != 1) {

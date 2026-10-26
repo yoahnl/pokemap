@@ -31,6 +31,7 @@ final class LocalMapWorkspaceAdapter
         MapWorkspacePort,
         MapWorkspaceWorkshopPort,
         MapWorkspaceResourceKindPort,
+        MapWorkspaceModelLightPort,
         MapAtmospherePort,
         ProjectVisualsPort,
         MapEditorPort,
@@ -55,6 +56,29 @@ final class LocalMapWorkspaceAdapter
     ProjectSession session,
     String canonicalKind,
   ) => _loadResourceKind(session, canonicalKind);
+
+  @override
+  Future<void> acceptModelLight(ProjectSession session, ProjectModel3dEntry model,
+      String beforeRevision, String afterRevision) async {
+    final current = _projects[session.sessionId];
+    if (current == null) return;
+    if ((current.revision != beforeRevision && current.revision != afterRevision) ||
+        await resourceRevision(session) != afterRevision) {
+      throw const MapWorkspaceFailure(MapWorkspaceProblem.conflict,
+          'La lumière est enregistrée, mais le catalogue ouvert a changé.');
+    }
+    ProjectManifest update(ProjectManifest value) => value.copyWith(models3d: [
+      for (final item in value.models3d)
+        item.id == model.id ? item.copyWith(light: model.light, clearLight: model.light == null) : item,
+    ]);
+    _projects[session.sessionId] = _ProjectDocument(current.root,
+        update(current.manifest), afterRevision,
+        complete: current.complete, metadataFields: current.metadataFields);
+    for (final cache in [_resourceSelections, _activeMapDefinitions, _workshopCharacterDefinitions]) {
+      final value = cache[session.sessionId];
+      if (value != null) cache[session.sessionId] = update(value);
+    }
+  }
 
   final ProjectFileReader _reader;
   final AtomicMapDocumentPersistence _persistence;

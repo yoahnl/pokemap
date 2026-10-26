@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 import 'model3d_ramp_profile.dart';
+import 'model_light_behavior.dart';
 
 final class Model3dVector3 {
   Model3dVector3({required num x, required num y, required num z})
@@ -267,6 +268,8 @@ final class Model3dPointLight {
     this.intensity = 1,
     this.colorRgb = 0xffd59a,
     this.nightOnly = true,
+    this.colorCycle,
+    this.proximity,
   }) {
     if (!radius.isFinite ||
         radius < .25 ||
@@ -284,6 +287,8 @@ final class Model3dPointLight {
   final double radius, intensity;
   final int colorRgb;
   final bool nightOnly;
+  final ModelLightColorCycle? colorCycle;
+  final ModelLightProximity? proximity;
 
   Model3dPointLight copyWith({
     Model3dVector3? localPosition,
@@ -291,17 +296,25 @@ final class Model3dPointLight {
     double? intensity,
     int? colorRgb,
     bool? nightOnly,
+    ModelLightColorCycle? colorCycle,
+    ModelLightProximity? proximity,
+    bool clearColorCycle = false,
+    bool clearProximity = false,
   }) => Model3dPointLight(
     localPosition: localPosition ?? this.localPosition,
     radius: radius ?? this.radius,
     intensity: intensity ?? this.intensity,
     colorRgb: colorRgb ?? this.colorRgb,
     nightOnly: nightOnly ?? this.nightOnly,
+    colorCycle: clearColorCycle ? null : colorCycle ?? this.colorCycle,
+    proximity: clearProximity ? null : proximity ?? this.proximity,
   );
 
   factory Model3dPointLight.fromJson(Map<String, dynamic> json) {
     _keys(json, {
       'localPosition',
+      if (json.containsKey('colorCycle')) 'colorCycle',
+      if (json.containsKey('proximity')) 'proximity',
       for (final field in ['radius', 'intensity', 'colorRgb', 'nightOnly'])
         if (json.containsKey(field)) field,
     });
@@ -320,6 +333,12 @@ final class Model3dPointLight {
           ? _integer(json['colorRgb'])
           : 0xffd59a,
       nightOnly: json['nightOnly'] as bool? ?? true,
+      colorCycle: json['colorCycle'] == null
+          ? null
+          : ModelLightColorCycle.fromJson(_object(json['colorCycle'])),
+      proximity: json['proximity'] == null
+          ? null
+          : ModelLightProximity.fromJson(_object(json['proximity'])),
     );
   }
 
@@ -329,6 +348,8 @@ final class Model3dPointLight {
     'intensity': intensity,
     'colorRgb': colorRgb,
     'nightOnly': nightOnly,
+    if (colorCycle != null) 'colorCycle': colorCycle!.toJson(),
+    if (proximity != null) 'proximity': proximity!.toJson(),
   };
   @override
   bool operator ==(Object other) =>
@@ -337,10 +358,19 @@ final class Model3dPointLight {
       radius == other.radius &&
       intensity == other.intensity &&
       colorRgb == other.colorRgb &&
-      nightOnly == other.nightOnly;
+      nightOnly == other.nightOnly &&
+      colorCycle == other.colorCycle &&
+      proximity == other.proximity;
   @override
-  int get hashCode =>
-      Object.hash(localPosition, radius, intensity, colorRgb, nightOnly);
+  int get hashCode => Object.hash(
+    localPosition,
+    radius,
+    intensity,
+    colorRgb,
+    nightOnly,
+    colorCycle,
+    proximity,
+  );
 }
 
 final class ProjectModel3dEntry {

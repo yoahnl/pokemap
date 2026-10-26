@@ -11,6 +11,8 @@ extension _LocalProjectVisualsAdapter on LocalMapWorkspaceAdapter {
         fileReader: _reader,
       ),
       reader: _reader,
+      runInWorker: _reader is LocalProjectFileReader,
+      diagnosticsPort: MapAuthoringWorkerDiagnostics.port,
     ),
   );
 

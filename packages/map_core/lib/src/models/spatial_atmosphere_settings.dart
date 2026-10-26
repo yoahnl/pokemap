@@ -8,6 +8,7 @@ final class SpatialAtmosphereDocument {
   final String mapId;
   final SpatialAtmosphereSettings settings;
   static const schemaVersion = 2;
+  static const lightWorkshopSchemaVersion = 3;
   static const presentationOnly = true;
   static const absentDefaultsDisabled = true;
   static const maxBytes = 65536;
@@ -16,7 +17,11 @@ final class SpatialAtmosphereDocument {
   factory SpatialAtmosphereDocument.fromJson(Map<String, dynamic> json) {
     _keys(json, {'schemaVersion', 'mapId', 'settings'});
     if (json['schemaVersion'] is! int ||
-        !{1, schemaVersion}.contains(json['schemaVersion'])) {
+        !{
+          1,
+          schemaVersion,
+          lightWorkshopSchemaVersion,
+        }.contains(json['schemaVersion'])) {
       throw const FormatException('Unsupported atmosphere schema version.');
     }
     final settings = _object(json['settings']);
@@ -28,13 +33,23 @@ final class SpatialAtmosphereDocument {
         'Presentation extensions require atmosphere schema 2.',
       );
     }
+    if ((json['schemaVersion'] as int) < lightWorkshopSchemaVersion &&
+        settings.keys.any(
+          SpatialAtmosphereSettings.fireflyStyleKeys.contains,
+        )) {
+      throw const FormatException(
+        'Firefly lighting requires atmosphere schema 3.',
+      );
+    }
     return SpatialAtmosphereDocument(
       mapId: _string(json['mapId']),
       settings: SpatialAtmosphereSettings.fromJson(settings),
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': schemaVersion,
+    'schemaVersion': settings.hasFireflyStyle
+        ? lightWorkshopSchemaVersion
+        : schemaVersion,
     'mapId': mapId,
     'settings': settings.toJson(),
   };
@@ -244,10 +259,27 @@ final class SpatialAtmosphereSettings {
     'fogStart',
     'fogEnd',
   };
+  static const fireflyStyleKeys = {
+    'fireflyLighting',
+    'fireflyYellowAmount',
+    'fireflyGreenAmount',
+    'fireflyBlueAmount',
+    'fireflyPinkAmount',
+    'fireflyLightStrength',
+    'fireflyLightRadius',
+  };
   SpatialAtmosphereSettings({
     this.waterAnimated = false,
     this.windowsLit = false,
     this.fireflies = false,
+    this.fireflyLighting = false,
+    num fireflyYellowAmount = 1,
+    num fireflyGreenAmount = 0,
+    num fireflyBlueAmount = 0,
+    num fireflyPinkAmount = 0,
+    num fireflyLightStrength = 0.18,
+    num fireflyLightRadius = 1.2,
+
     this.halosEnabled = false,
     this.depthFogEnabled = false,
     this.depthOfFieldEnabled = false,
@@ -266,7 +298,13 @@ final class SpatialAtmosphereSettings {
     List<SpatialAtmosphereMaterialTarget> waterTargets = const [],
     List<SpatialAtmosphereWindow> windows = const [],
     List<SpatialAtmosphereFireflyZone> fireflyZones = const [],
-  }) : depthOfFieldStrength = _range(depthOfFieldStrength, 0, 1),
+  }) : fireflyYellowAmount = _range(fireflyYellowAmount, 0, 1),
+       fireflyGreenAmount = _range(fireflyGreenAmount, 0, 1),
+       fireflyBlueAmount = _range(fireflyBlueAmount, 0, 1),
+       fireflyPinkAmount = _range(fireflyPinkAmount, 0, 1),
+       fireflyLightStrength = _range(fireflyLightStrength, 0, 1),
+       fireflyLightRadius = _range(fireflyLightRadius, .25, 2.5),
+       depthOfFieldStrength = _range(depthOfFieldStrength, 0, 1),
        depthOfFieldFocusRange = _range(depthOfFieldFocusRange, 2, 40),
        haloStrength = _range(haloStrength, 0, 2),
        haloSpread = _range(haloSpread, .1, 3),
@@ -292,6 +330,21 @@ final class SpatialAtmosphereSettings {
       );
     }
   }
+  final bool fireflyLighting;
+  final double fireflyYellowAmount,
+      fireflyGreenAmount,
+      fireflyBlueAmount,
+      fireflyPinkAmount,
+      fireflyLightStrength,
+      fireflyLightRadius;
+  bool get hasFireflyStyle =>
+      fireflyLighting ||
+      fireflyYellowAmount != 1 ||
+      fireflyGreenAmount != 0 ||
+      fireflyBlueAmount != 0 ||
+      fireflyPinkAmount != 0 ||
+      fireflyLightStrength != 0.18 ||
+      fireflyLightRadius != 1.2;
   final bool waterAnimated, windowsLit, fireflies;
   final bool halosEnabled, depthFogEnabled, depthOfFieldEnabled;
   final double depthOfFieldStrength, depthOfFieldFocusRange;
@@ -304,6 +357,7 @@ final class SpatialAtmosphereSettings {
   factory SpatialAtmosphereSettings.fromJson(Map<String, dynamic> json) {
     _keys(json, {
       ...presentationKeys,
+      ...fireflyStyleKeys,
       'waterAnimated',
       'windowsLit',
       'fireflies',
@@ -316,6 +370,13 @@ final class SpatialAtmosphereSettings {
       'fireflyZones',
     });
     return SpatialAtmosphereSettings(
+      fireflyLighting: _boolean(json['fireflyLighting'], false),
+      fireflyYellowAmount: _number(json['fireflyYellowAmount'] ?? 1),
+      fireflyGreenAmount: _number(json['fireflyGreenAmount'] ?? 0),
+      fireflyBlueAmount: _number(json['fireflyBlueAmount'] ?? 0),
+      fireflyPinkAmount: _number(json['fireflyPinkAmount'] ?? 0),
+      fireflyLightStrength: _number(json['fireflyLightStrength'] ?? 0.18),
+      fireflyLightRadius: _number(json['fireflyLightRadius'] ?? 1.2),
       halosEnabled: _boolean(json['halosEnabled'], false),
       depthFogEnabled: _boolean(json['depthFogEnabled'], false),
       depthOfFieldEnabled: _boolean(json['depthOfFieldEnabled'], false),
@@ -351,6 +412,14 @@ final class SpatialAtmosphereSettings {
     );
   }
   SpatialAtmosphereSettings copyWith({
+    bool? fireflyLighting,
+    num? fireflyYellowAmount,
+    num? fireflyGreenAmount,
+    num? fireflyBlueAmount,
+    num? fireflyPinkAmount,
+    num? fireflyLightStrength,
+    num? fireflyLightRadius,
+
     bool? halosEnabled,
     bool? depthFogEnabled,
     bool? depthOfFieldEnabled,
@@ -373,6 +442,13 @@ final class SpatialAtmosphereSettings {
     List<SpatialAtmosphereWindow>? windows,
     List<SpatialAtmosphereFireflyZone>? fireflyZones,
   }) => SpatialAtmosphereSettings(
+    fireflyLighting: fireflyLighting ?? this.fireflyLighting,
+    fireflyYellowAmount: fireflyYellowAmount ?? this.fireflyYellowAmount,
+    fireflyGreenAmount: fireflyGreenAmount ?? this.fireflyGreenAmount,
+    fireflyBlueAmount: fireflyBlueAmount ?? this.fireflyBlueAmount,
+    fireflyPinkAmount: fireflyPinkAmount ?? this.fireflyPinkAmount,
+    fireflyLightStrength: fireflyLightStrength ?? this.fireflyLightStrength,
+    fireflyLightRadius: fireflyLightRadius ?? this.fireflyLightRadius,
     halosEnabled: halosEnabled ?? this.halosEnabled,
     depthFogEnabled: depthFogEnabled ?? this.depthFogEnabled,
     depthOfFieldEnabled: depthOfFieldEnabled ?? this.depthOfFieldEnabled,
@@ -397,6 +473,15 @@ final class SpatialAtmosphereSettings {
     fireflyZones: fireflyZones ?? this.fireflyZones,
   );
   Map<String, dynamic> toJson() => {
+    if (hasFireflyStyle) ...{
+      'fireflyLighting': fireflyLighting,
+      'fireflyYellowAmount': fireflyYellowAmount,
+      'fireflyGreenAmount': fireflyGreenAmount,
+      'fireflyBlueAmount': fireflyBlueAmount,
+      'fireflyPinkAmount': fireflyPinkAmount,
+      'fireflyLightStrength': fireflyLightStrength,
+      'fireflyLightRadius': fireflyLightRadius,
+    },
     'halosEnabled': halosEnabled,
     'depthFogEnabled': depthFogEnabled,
     'depthOfFieldEnabled': depthOfFieldEnabled,

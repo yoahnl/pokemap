@@ -10,6 +10,8 @@ import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
+import 'spatial_point_light.dart';
+import 'spatial_firefly_lighting.dart';
 
 final class SpatialAtmosphereTarget {
   const SpatialAtmosphereTarget({
@@ -80,6 +82,14 @@ final class SpatialAtmosphereProfile {
     this.windowStrength = 1,
     this.fireflyDensity = 1,
     this.fireflyCapacityScale = 1,
+    this.fireflyLighting = false,
+    this.fireflyYellowAmount = 1,
+    this.fireflyGreenAmount = 0,
+    this.fireflyBlueAmount = 0,
+    this.fireflyPinkAmount = 0,
+    this.fireflyLightStrength = 0.18,
+    this.fireflyLightRadius = 1.2,
+
     List<SpatialAtmosphereTarget> waterTargets = const [],
     List<SpatialWindowGlow> windows = const [],
     List<SpatialFireflyZone> fireflyZones = const [],
@@ -117,6 +127,14 @@ final class SpatialAtmosphereProfile {
     waterSpeed: settings.waterSpeed,
     windowStrength: settings.windowStrength,
     fireflyDensity: settings.fireflyDensity,
+    fireflyLighting: settings.fireflyLighting,
+    fireflyYellowAmount: settings.fireflyYellowAmount,
+    fireflyGreenAmount: settings.fireflyGreenAmount,
+    fireflyBlueAmount: settings.fireflyBlueAmount,
+    fireflyPinkAmount: settings.fireflyPinkAmount,
+    fireflyLightStrength: settings.fireflyLightStrength,
+    fireflyLightRadius: settings.fireflyLightRadius,
+
     fireflyCapacityScale: 2,
     waterTargets: [
       for (final t in settings.waterTargets)
@@ -147,6 +165,13 @@ final class SpatialAtmosphereProfile {
   );
   static final disabled = SpatialAtmosphereProfile();
   double waterStrength, waterSpeed, windowStrength, fireflyDensity;
+  bool fireflyLighting;
+  double fireflyYellowAmount,
+      fireflyGreenAmount,
+      fireflyBlueAmount,
+      fireflyPinkAmount,
+      fireflyLightStrength,
+      fireflyLightRadius;
   final int fireflyCapacityScale;
   final List<SpatialAtmosphereTarget> waterTargets;
   final List<SpatialWindowGlow> windows;
@@ -207,6 +232,37 @@ final class SpatialAtmosphereEffects {
   final World3D world;
   SpatialAtmosphereProfile? _profile;
   final List<_Firefly> _components = [];
+  final _lightBudget = SpatialFireflyLightBudget();
+  double _elapsed = 0;
+  (double, double, double, double)? _paletteKey;
+  List<SpatialPointLight> lights(Vector3 anchor) {
+    final profile = _profile;
+    return _lightBudget.sample(
+      profile?.fireflyLighting != true
+          ? []
+          : [
+              for (final (i, particle) in _components.indexed)
+                if (particle.visible)
+                  (
+                    i,
+                    SpatialPointLight(
+                      position: (
+                        x: particle.position.x,
+                        y: particle.position.y,
+                        z: particle.position.z,
+                      ),
+                      radius: profile!.fireflyLightRadius,
+                      color: particle.lightColor,
+                      intensity:
+                          particle.lightStrength * profile.fireflyLightStrength,
+                    ),
+                  ),
+            ],
+      anchor,
+      _elapsed,
+    );
+  }
+
   Iterable<MeshComponent> get components => _components;
   int get visibleCount =>
       _components.where((particle) => particle.visible).length;
@@ -218,6 +274,7 @@ final class SpatialAtmosphereEffects {
     required double cameraPitch,
     required double cameraYaw,
   }) {
+    _elapsed = elapsedSeconds;
     if (!identical(_profile, profile)) {
       clear();
       _profile = profile;
@@ -233,8 +290,31 @@ final class SpatialAtmosphereEffects {
         }
       }
     }
+    final key = (
+      profile.fireflyYellowAmount,
+      profile.fireflyGreenAmount,
+      profile.fireflyBlueAmount,
+      profile.fireflyPinkAmount,
+    );
+    final changedPalette = key != _paletteKey;
+    _paletteKey = key;
     for (final particle in _components) {
+      if (changedPalette) {
+        particle.paletteColor = spatialFireflyColor(
+          seed: particle.zone.seed,
+          index: particle.index,
+          yellow: key.$1,
+          green: key.$2,
+          blue: key.$3,
+          pink: key.$4,
+        );
+        if (particle.paletteColor case final color?) {
+          particle.lightColor = Color(0xff000000 | color.rgb);
+        }
+      }
+      final color = particle.paletteColor;
       particle.visible =
+          color != null &&
           enabled &&
           night > .001 &&
           particle.index <
@@ -252,11 +332,9 @@ final class SpatialAtmosphereEffects {
         sample.position.z,
       );
       particle.rotation.setEuler(cameraYaw, -cameraPitch, 0);
-      particle.material.albedoColor = Color.fromRGBO(
-        255,
-        239,
-        150,
-        sample.opacity,
+      particle.lightStrength = sample.opacity;
+      particle.material.albedoColor = particle.lightColor.withValues(
+        alpha: sample.opacity,
       );
     }
   }
@@ -266,6 +344,8 @@ final class SpatialAtmosphereEffects {
       particle.removeFromParent();
     }
     _components.clear();
+    _lightBudget.reset();
+    _paletteKey = null;
     _profile = null;
   }
 }
@@ -326,6 +406,9 @@ final class _Firefly extends MeshComponent {
   final int index;
   final SpatialPixelMaterial material;
   bool visible = false;
+  SpatialFireflyColor? paletteColor;
+  Color lightColor = const Color(0xffffef96);
+  double lightStrength = 0;
   @override
   void draw(RenderContext3D context) {
     if (visible) super.draw(context);

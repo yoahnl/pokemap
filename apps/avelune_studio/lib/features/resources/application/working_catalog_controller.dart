@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart';
 
 import '../domain/working_catalog_port.dart';
 
@@ -284,6 +285,39 @@ final class WorkingCatalogController extends ChangeNotifier {
     } catch (failure) {
       if (!_disposed) error = '$failure';
       return false;
+    } finally {
+      if (!_disposed) {
+        saving = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> configureLight(Model3dPointLight? light) async {
+    final current = detail, gateway = port;
+    if (_disposed ||
+        saving ||
+        current == null ||
+        gateway is! WorkingCatalogModelLightPort) {
+      throw StateError('Éclairage indisponible.');
+    }
+    if (dirty) {
+      throw StateError('Enregistrez d’abord les informations de la ressource.');
+    }
+    saving = true;
+    error = null;
+    notifyListeners();
+    try {
+      final updated = await (gateway as WorkingCatalogModelLightPort)
+          .configureLight(current.entry, light, revision: current.revision);
+      if (!_disposed) {
+        detail = updated;
+        selected = updated.entry;
+        revision = updated.revision;
+      }
+    } catch (failure) {
+      if (!_disposed) error = '$failure';
+      rethrow;
     } finally {
       if (!_disposed) {
         saving = false;

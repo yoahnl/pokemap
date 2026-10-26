@@ -34,6 +34,7 @@ abstract final class AveluneRuntimeCompatibility {
           SpatialGameplayCapabilities.companionCapabilityId,
           SpatialCameraProfile.orthographicCapabilityId,
           SpatialVisualDocument.capabilityId,
+          SpatialLightWorkshopCapabilities.capabilityId,
           ProjectContactDeviceConfig.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,

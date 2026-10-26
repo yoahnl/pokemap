@@ -17,7 +17,7 @@ void main() {
     final settings = SpatialAtmosphereSettings(
         waterAnimated: true,
         windowsLit: true,
-        fireflies: true,
+        fireflies: true, fireflyLighting: true, fireflyPinkAmount: .5,
         depthOfFieldEnabled: true, depthOfFieldStrength: .65, depthOfFieldFocusRange: 18, halosEnabled: true, depthFogEnabled: true, haloStrength: 1.4, haloSpread: 1.25,
         fogOpacity: .32, fogStart: 39, fogEnd: 49,
         halos: [SpatialAtmosphereHalo(instanceId: 'model', localPosition: Model3dVector3(x: 0, y: 2, z: 0))],
@@ -43,6 +43,7 @@ void main() {
             supportedLocales: ['fr']),
         mode: GamePackageExportMode.localTest);
     expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialVisualDocument.capabilityId));
+    expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialLightWorkshopCapabilities.capabilityId));
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
     for (final path in ['project/project.visual.json', 'project/maps/map.visual.json']) {
       expect(archive.findFile(path)?.content, files[path]);

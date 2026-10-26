@@ -108,7 +108,7 @@ final class LocalMapAtmosphereAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
-        'documentSchemaVersions': [1, 2],
+        'documentSchemaVersions': [1, 2, 3],
         'effects': ['waterAnimated', 'windowsLit', 'fireflies', 'halosEnabled', 'depthFogEnabled', 'depthOfFieldEnabled'],
         'depthOfFieldStrength': {'minimum': 0, 'maximum': 1},
         'depthOfFieldFocusRange': {'minimum': 2, 'maximum': 40, 'unit': 'worldCells', 'meaning': 'fullSharpZoneDepthExtent'},

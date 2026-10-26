@@ -1,6 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
+
+import 'model_light_controls.dart';
+import 'model_light_preview_scope.dart';
 
 import '../../../features/project_session/domain/project_session.dart';
 import '../../../features/resources/application/working_catalog_controller.dart';
@@ -31,6 +35,7 @@ class WorkingCatalogWorkspace extends StatefulWidget {
     this.onSaved,
     this.onOpenTools,
     this.onRecovered,
+    this.onModelLightSaved,
   });
 
   final ProjectSession session;
@@ -43,6 +48,12 @@ class WorkingCatalogWorkspace extends StatefulWidget {
   final Future<void> Function()? onSaved;
   final VoidCallback? onOpenTools;
   final Future<void> Function()? onRecovered;
+  final Future<void> Function(
+    ProjectModel3dEntry model,
+    String beforeRevision,
+    String afterRevision,
+  )?
+  onModelLightSaved;
 
   @override
   State<WorkingCatalogWorkspace> createState() =>
@@ -63,7 +74,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
   Widget resourcePreview(WorkingCatalogDetail detail) {
     if (preview == null ||
         previewDetail?.entry.identity != detail.entry.identity ||
-        !identical(previewDetail?.definitions, detail.definitions)) {
+        !identical(previewDetail?.visualIdentity, detail.visualIdentity)) {
       previewDetail = detail;
       preview = widget.previewBuilder!(detail);
     }
@@ -468,115 +479,151 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
       tagsIdentity = selected.entry.identity;
       tagsText = draft.tags.join(', ');
     }
-    return SingleChildScrollView(
-      key: ValueKey('working-catalog-detail-${selected.entry.identity}'),
-      padding: const EdgeInsets.fromLTRB(0, 12, 16, 16),
-      child: StudioPanel(
-        title: selected.entry.name,
-        children: [
-          if (widget.previewBuilder != null) ...[
-            SizedBox(
-              height: 180,
-              child: Center(child: resourcePreview(selected)),
+    final model = selected.entry.kind == 'model3d'
+        ? selected.definitions.models3d
+              .where((m) => m.id == selected.entry.id)
+              .firstOrNull
+        : null;
+    final content = Column(
+      children: [
+        if (widget.previewBuilder != null)
+          SizedBox(
+            height: model == null ? 180 : 300,
+            child: Center(child: resourcePreview(selected)),
+          ),
+        Expanded(
+          child: SingleChildScrollView(
+            key: ValueKey('working-catalog-detail-${selected.entry.identity}'),
+            padding: const EdgeInsets.fromLTRB(0, 12, 16, 16),
+            child: StudioPanel(
+              title: selected.entry.name,
+              children: [
+                if (model != null &&
+                    catalog.port is WorkingCatalogModelLightPort) ...[
+                  ModelLightControls(
+                    key: ValueKey('working-model-light-${model.id}'),
+                    model: model,
+                    busy: !editable,
+                    onSave: (light) async {
+                      await catalog.configureLight(light);
+                      final updated = catalog.detail!.definitions.models3d
+                          .singleWhere((m) => m.id == model.id);
+                      await widget.onModelLightSaved?.call(
+                        updated,
+                        catalog.detail!.previousDocumentRevision ?? selected.revision,
+                        catalog.detail!.documentRevision ?? catalog.detail!.revision,
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                StudioDraftField(
+                  key: const ValueKey('working-resource-name'),
+                  label: 'Nom',
+                  value: draft.name,
+                  enabled: editable,
+                  onChanged: (value) => catalog.edit(name: value),
+                  errorText: draft.name.trim().isEmpty
+                      ? 'Donnez un nom à cette ressource.'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                StudioDraftField(
+                  key: const ValueKey('working-resource-description'),
+                  label: 'Description',
+                  lines: 3,
+                  value: draft.description,
+                  enabled: editable,
+                  onChanged: (value) => catalog.edit(description: value),
+                  errorText: draft.description.length > 2000
+                      ? 'La description ne doit pas dépasser 2000 caractères.'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                if (selected.entry.supportsTags)
+                  StudioDraftField(
+                    key: const ValueKey('working-resource-tags'),
+                    label: 'Mots-clés',
+                    helperText: 'Séparez les mots-clés par des virgules.',
+                    value: tagsText,
+                    enabled: editable,
+                    onChanged: (value) {
+                      tagsText = value;
+                      catalog.edit(
+                        tags: value
+                            .split(',')
+                            .map((tag) => tag.trim())
+                            .where((tag) => tag.isNotEmpty)
+                            .toSet(),
+                      );
+                    },
+                  ),
+                const SizedBox(height: 12),
+                StudioSelect(
+                  label: 'Contexte d’usage',
+                  value: draft.placementContext,
+                  options: const {
+                    '': 'Non renseigné',
+                    'interior': 'Intérieur',
+                    'exterior': 'Extérieur',
+                    'both': 'Intérieur et extérieur',
+                  },
+                  onChanged: editable
+                      ? (value) => catalog.edit(placementContext: value)
+                      : null,
+                ),
+                if (selected.entry.kind == 'character') ...[
+                  const SizedBox(height: 16),
+                  CharacterContactShadowControls(
+                    projectDefault: selected.contactShadowProjectDefault,
+                    value: draft.contactShadow,
+                    onChanged: (value) => catalog.edit(contactShadow: value),
+                    busy: !editable,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    StudioButton(
+                      key: const ValueKey('working-resource-save'),
+                      label: catalog.saving ? 'Enregistrement…' : 'Enregistrer',
+                      onPressed: editable && catalog.dirty && draft.valid
+                          ? save
+                          : null,
+                    ),
+                    StudioButton(
+                      label: 'Annuler les modifications',
+                      secondary: true,
+                      onPressed: editable && catalog.dirty
+                          ? () {
+                              tagsIdentity = null;
+                              catalog.discard();
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                StudioNotice(
+                  widget.session.storage ==
+                          ProjectSessionStorage.portableCatalog
+                      ? 'Ce projet publié est disponible en lecture seule.'
+                      : 'Enregistrez les informations de cette ressource depuis ce panneau. Les ateliers de composition, le déplacement entre familles et la suppression ne sont pas encore disponibles dans cette bibliothèque.',
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-          ],
-          StudioDraftField(
-            key: const ValueKey('working-resource-name'),
-            label: 'Nom',
-            value: draft.name,
-            enabled: editable,
-            onChanged: (value) => catalog.edit(name: value),
-            errorText: draft.name.trim().isEmpty
-                ? 'Donnez un nom à cette ressource.'
-                : null,
           ),
-          const SizedBox(height: 12),
-          StudioDraftField(
-            key: const ValueKey('working-resource-description'),
-            label: 'Description',
-            lines: 3,
-            value: draft.description,
-            enabled: editable,
-            onChanged: (value) => catalog.edit(description: value),
-            errorText: draft.description.length > 2000
-                ? 'La description ne doit pas dépasser 2000 caractères.'
-                : null,
-          ),
-          const SizedBox(height: 12),
-          if (selected.entry.supportsTags)
-            StudioDraftField(
-              key: const ValueKey('working-resource-tags'),
-              label: 'Mots-clés',
-              helperText: 'Séparez les mots-clés par des virgules.',
-              value: tagsText,
-              enabled: editable,
-              onChanged: (value) {
-                tagsText = value;
-                catalog.edit(
-                  tags: value
-                      .split(',')
-                      .map((tag) => tag.trim())
-                      .where((tag) => tag.isNotEmpty)
-                      .toSet(),
-                );
-              },
-            ),
-          const SizedBox(height: 12),
-          StudioSelect(
-            label: 'Contexte d’usage',
-            value: draft.placementContext,
-            options: const {
-              '': 'Non renseigné',
-              'interior': 'Intérieur',
-              'exterior': 'Extérieur',
-              'both': 'Intérieur et extérieur',
-            },
-            onChanged: editable
-                ? (value) => catalog.edit(placementContext: value)
-                : null,
-          ),
-          if (selected.entry.kind == 'character') ...[
-            const SizedBox(height: 16),
-            CharacterContactShadowControls(
-              projectDefault: selected.contactShadowProjectDefault,
-              value: draft.contactShadow,
-              onChanged: (value) => catalog.edit(contactShadow: value),
-              busy: !editable,
-            ),
-          ],
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              StudioButton(
-                key: const ValueKey('working-resource-save'),
-                label: catalog.saving ? 'Enregistrement…' : 'Enregistrer',
-                onPressed: editable && catalog.dirty && draft.valid
-                    ? save
-                    : null,
-              ),
-              StudioButton(
-                label: 'Annuler les modifications',
-                secondary: true,
-                onPressed: editable && catalog.dirty
-                    ? () {
-                        tagsIdentity = null;
-                        catalog.discard();
-                      }
-                    : null,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          StudioNotice(
-            widget.session.storage == ProjectSessionStorage.portableCatalog
-                ? 'Ce projet publié est disponible en lecture seule.'
-                : 'Enregistrez les informations de cette ressource depuis ce panneau. Les ateliers de composition, le déplacement entre familles et la suppression ne sont pas encore disponibles dans cette bibliothèque.',
-          ),
-        ],
-      ),
+        ),
+      ],
     );
+    return model == null
+        ? content
+        : ModelLightPreviewScope(
+            key: ValueKey('working-model-preview-${model.id}'),
+            model: model,
+            child: content,
+          );
   }
 }

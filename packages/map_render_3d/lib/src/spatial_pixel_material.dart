@@ -85,6 +85,8 @@ class SpatialPixelMaterial extends UnlitMaterial {
   final _shadowCoverage = Vector4.zero();
   final _boundShadowSample = Vector3.zero();
   bool _boundUsesShadowSample = false;
+  final _fireflyPositionRadius = List.generate(2, (_) => Vector4.zero());
+  final _fireflyColorIntensity = List.generate(2, (_) => Vector4.zero());
   bool _environmentUniformsBound = false;
   SpatialLightingProfile? _boundEnvironmentLighting;
   Shader? _environmentShader;
@@ -458,7 +460,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     _environmentOptions.setValues(
       lighting.enabled ? 1 : 0,
       lighting.pointLights.length.toDouble(),
-      0,
+      lighting.fireflyLights.length.toDouble(),
       0,
     );
     shader
@@ -491,6 +493,33 @@ class SpatialPixelMaterial extends UnlitMaterial {
         ..setVector4(
           'Environment.pointColorIntensity[$index]',
           _pointColorIntensity[index],
+        );
+    }
+    for (var index = 0; index < 2; index++) {
+      final light = index < lighting.fireflyLights.length
+          ? lighting.fireflyLights[index]
+          : null;
+      final position = light?.position, color = light?.color;
+      _fireflyPositionRadius[index].setValues(
+        position?.x ?? 0,
+        position?.y ?? 0,
+        position?.z ?? 0,
+        light?.radius ?? 1,
+      );
+      _fireflyColorIntensity[index].setValues(
+        color?.r ?? 0,
+        color?.g ?? 0,
+        color?.b ?? 0,
+        light?.intensity ?? 0,
+      );
+      shader
+        ..setVector4(
+          'Environment.fireflyPositionRadius[$index]',
+          _fireflyPositionRadius[index],
+        )
+        ..setVector4(
+          'Environment.fireflyColorIntensity[$index]',
+          _fireflyColorIntensity[index],
         );
     }
     _boundEnvironmentLighting = lighting;

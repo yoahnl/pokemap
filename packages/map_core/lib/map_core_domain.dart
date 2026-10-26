@@ -459,3 +459,6 @@ export 'src/models/spatial_atmosphere_settings.dart';
 export 'src/projection/spatial_visual_rule_resolver.dart';
 
 export 'src/projection/cinematic_visual_profile.dart';
+export 'src/models/model_light_behavior.dart';
+export 'src/models/spatial_firefly_palette.dart';
+export 'src/validation/spatial_light_workshop_capabilities.dart';

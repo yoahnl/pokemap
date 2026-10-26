@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring_local.dart';
@@ -22,6 +23,83 @@ void main() {
         fileReader: const LocalProjectFileReader());
   });
   tearDown(() => root.delete(recursive: true));
+
+  test(
+      'cold worker saves keep bounded IO with unrelated files and preserve undo',
+      () async {
+    final counts = <List<Map<String, int>>>[];
+    for (final unrelated in [0, 9]) {
+      final directory =
+          await Directory('${root.path}/worker_$unrelated').create();
+      await File('${directory.path}/project.json')
+          .writeAsString('opaque project');
+      for (var i = 0; i < unrelated; i++) {
+        await File('${directory.path}/foreign_$i.json')
+            .writeAsString('x' * 32768);
+      }
+      final workerPolicy = await WorkspacePolicy.create(
+          allowedRootPaths: [directory.path],
+          fileReader: const LocalProjectFileReader());
+      final port = ReceivePort();
+      final traces = StreamIterator<dynamic>(port);
+      final measurements = <Map<String, int>>[];
+      try {
+        final observer = LocalVisualSettingsAuthoring(policy: workerPolicy);
+        VisualSettingsMutation? last;
+        for (final (i, enabled) in <bool?>[true, false, null].indexed) {
+          final snapshot = await observer.inspect(projectRoot: directory.path);
+          final settings = SpatialVisualPatch.fromJson(
+              {if (enabled != null) 'fireflyLighting': enabled});
+          final worker = LocalVisualSettingsAuthoring(
+              policy: workerPolicy,
+              runInWorker: true,
+              diagnosticsPort: port.sendPort);
+          last = await worker.set(
+              projectRoot: directory.path,
+              expectedRevision: snapshot.revision,
+              settings: settings,
+              operationId: 'worker_$i');
+          expect((await observer.inspect(projectRoot: directory.path)).settings,
+              settings);
+          expect(await traces.moveNext(), isTrue);
+          final rows = (traces.current as Map)['rows'] as List;
+          expect(rows.where((raw) {
+            final path = (raw as Map)['path'] as String;
+            return (path == 'project.json' && (raw['bytes'] as int) > 0) ||
+                path.startsWith('foreign_') ||
+                path.startsWith('assets/') ||
+                path.startsWith('maps/');
+          }), isEmpty);
+          final operations = <String, int>{};
+          var bytesWritten = 0;
+          for (final row in rows.cast<Map>()) {
+            final operation = row['operation'] as String;
+            operations[operation] =
+                (operations[operation] ?? 0) + (row['calls'] as int);
+            if (operation == 'write') bytesWritten += row['bytes'] as int;
+          }
+          expect(bytesWritten, lessThan(100000));
+          measurements.add(operations);
+        }
+        await LocalVisualSettingsAuthoring(
+                policy: workerPolicy, runInWorker: true)
+            .undo(
+                projectRoot: directory.path,
+                mutation: last!,
+                operationId: 'worker_undo');
+        expect(
+            (await observer.inspect(projectRoot: directory.path))
+                .settings
+                .values[SpatialVisualParameter.fireflyLighting],
+            false);
+      } finally {
+        await traces.cancel();
+        port.close();
+      }
+      counts.add(measurements);
+    }
+    expect(counts[1], counts[0]);
+  });
 
   test('cold project and map saves ignore large unrelated content and history',
       () async {
@@ -119,8 +197,9 @@ void main() {
         policy: policy,
         faultInjector: (context) {
           if (context.checkpoint ==
-              AuthoringTransactionCheckpoint.afterResourcePromoted)
+              AuthoringTransactionCheckpoint.afterResourcePromoted) {
             throw const AuthoringTransactionSimulatedCrash();
+          }
         });
     await expectLater(
         interrupted.set(

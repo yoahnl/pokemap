@@ -269,7 +269,9 @@ final class Model3dActions {
     if (current == null) throw const FormatException('Unknown model identity.');
     if (action == 'model3d.configure') {
       final next = _configuredModel(current, context.request.parameters);
-      _requireClippedSource(context, next);
+      if (!context.request.parameters.keys.every((key)=>{'modelId','light'}.contains(key))) {
+        _requireClippedSource(context, next);
+      }
       return _compose(
           context,
           context.snapshot.manifest.copyWith(models3d: [
@@ -910,6 +912,18 @@ Map<String, Object?> _configurationProperties() => {
           'intensity': {'type': 'number', 'minimum': 0, 'maximum': 4, 'default': 1},
           'colorRgb': {'type': 'integer', 'minimum': 0, 'maximum': 16777215, 'default': 16766362},
           'nightOnly': {'type': 'boolean', 'default': true},
+          'colorCycle': {'type':['object','null'], 'additionalProperties':false,
+            'required':['colors'], 'properties': {
+              'colors': {'type':'array','minItems':2,'maxItems':8,'items':{'type':'integer','minimum':0,'maximum':16777215}},
+              'periodSeconds': {'type':'number','minimum':2,'maximum':300,'default':10},
+            }},
+          'proximity': {'type':['object','null'],'additionalProperties':false,
+            'required':['mode'],'properties': {
+              'mode': {'type':'string','enum':['near','far']},
+              'enterDistance': {'type':'number','minimum':.25,'maximum':64,'default':3},
+              'exitDistance': {'type':'number','minimum':.26,'maximum':128,'default':4},
+              'fadeSeconds': {'type':'number','minimum':.05,'maximum':5,'default':.35},
+            }},
         },
       },
       'castsShadowsByDefault': {

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:isolate';
+import '../support/map_authoring_worker_trace.dart';
 import 'package:map_core/map_core.dart';
 import '../contracts/action_descriptor.dart';
 import '../contracts/authoring_diff.dart';
@@ -76,7 +78,9 @@ final class LocalVisualSettingsAuthoring {
       {required WorkspacePolicy policy,
       ProjectFileReader? reader,
       AuthoringActor? actor,
-      AuthoringTransactionFaultInjector? faultInjector})
+      AuthoringTransactionFaultInjector? faultInjector,
+      this.runInWorker = false,
+      this.diagnosticsPort})
       : _policy = policy,
         _reader = reader ?? const LocalProjectFileReader(),
         _actor = actor ??
@@ -86,6 +90,8 @@ final class LocalVisualSettingsAuthoring {
               AuthoringPermissionScope.recoveryApply
             ]),
         _faultInjector = faultInjector;
+  final bool runInWorker;
+  final SendPort? diagnosticsPort;
   final WorkspacePolicy _policy;
   final ProjectFileReader _reader;
   final AuthoringActor _actor;
@@ -110,7 +116,7 @@ final class LocalVisualSettingsAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: {
-        'documentSchemaVersions': [1],
+        'documentSchemaVersions': [1, 2],
         'effects': [
           'waterAnimated',
           'windowsLit',
@@ -135,6 +141,9 @@ final class LocalVisualSettingsAuthoring {
         'maximumDocumentBytes': SpatialVisualDocument.maxBytes,
         'loadsProject': false,
         'capability': SpatialVisualDocument.capabilityId,
+        'extendedLightingCapability':
+            SpatialLightWorkshopCapabilities.capabilityId,
+        'fireflyPalette': 'normalizedWithinDensityBudget',
         'missingDocument': 'inheritExistingBehavior',
         'olderHost': 'requiresVisualProfileCapability'
       });
@@ -144,21 +153,64 @@ final class LocalVisualSettingsAuthoring {
           String? mapRelativePath}) async =>
       _read(await _context(projectRoot, mapId, mapRelativePath), mapId);
   Future<VisualSettingsMutation> set(
-          {required String projectRoot,
-          String mapId = _projectVisualScope,
-          String? mapRelativePath,
-          required String expectedRevision,
-          required SpatialVisualPatch settings,
-          required String operationId,
-          FutureOr<void> Function()? precondition}) =>
-      _set(
+      {required String projectRoot,
+      String mapId = _projectVisualScope,
+      String? mapRelativePath,
+      required String expectedRevision,
+      required SpatialVisualPatch settings,
+      required String operationId,
+      FutureOr<void> Function()? precondition}) {
+    if (runInWorker) {
+      if (precondition != null) {
+        throw ArgumentError('Worker edits require local data preconditions.');
+      }
+      return _runWorker(
           projectRoot: projectRoot,
           mapId: mapId,
           mapRelativePath: mapRelativePath,
           expectedRevision: expectedRevision,
           settings: settings,
-          operationId: operationId,
-          precondition: precondition);
+          operationId: operationId);
+    }
+    return _set(
+        projectRoot: projectRoot,
+        mapId: mapId,
+        mapRelativePath: mapRelativePath,
+        expectedRevision: expectedRevision,
+        settings: settings,
+        operationId: operationId,
+        precondition: precondition);
+  }
+
+  Future<VisualSettingsMutation> _runWorker(
+      {required String projectRoot,
+      required String mapId,
+      String? mapRelativePath,
+      required String expectedRevision,
+      SpatialVisualPatch? settings,
+      String? receiptId,
+      required String operationId}) async {
+    if (_reader is! LocalProjectFileReader || _faultInjector != null) {
+      throw ArgumentError(
+          'Worker edits require the local reader without fault injection.');
+    }
+    final root = await _policy.authorizeProjectRoot(projectRoot);
+    final request = (
+      root: root,
+      mapId: mapId,
+      mapRelativePath: mapRelativePath,
+      expectedRevision: expectedRevision,
+      settings: settings?.toJson(),
+      receiptId: receiptId,
+      operationId: operationId,
+      actorId: _actor.actorId,
+      permissions: _actor.permissions,
+      diagnosticsPort: diagnosticsPort
+    );
+    return withLocalProjectWriteQueue(
+        root, () => Isolate.run(() => _runVisualSettingsWorker(request)));
+  }
+
   Future<VisualSettingsMutation> _set(
       {required String projectRoot,
       String mapId = _projectVisualScope,
@@ -374,6 +426,15 @@ final class LocalVisualSettingsAuthoring {
       required String receiptId,
       required String expectedRevision,
       required String operationId}) async {
+    if (runInWorker) {
+      return _runWorker(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          expectedRevision: expectedRevision,
+          receiptId: receiptId,
+          operationId: operationId);
+    }
     final context = await _context(projectRoot, mapId, mapRelativePath);
     final history = await FileAuthoringHistoryStore.open(
         projectRoot: context.root, incrementalWrites: true);
@@ -530,3 +591,58 @@ String? _visualMapId(String scope) =>
 String _visualStorageKey(String scope) => scope == _projectVisualScope
     ? SpatialVisualDocument.projectRelativePath
     : SpatialVisualDocument.relativePathForMap(scope);
+
+typedef _VisualSettingsWorkerRequest = ({
+  String root,
+  String mapId,
+  String? mapRelativePath,
+  String expectedRevision,
+  Map<String, dynamic>? settings,
+  String? receiptId,
+  String operationId,
+  String actorId,
+  List<AuthoringPermissionScope> permissions,
+  SendPort? diagnosticsPort
+});
+
+Future<VisualSettingsMutation> _runVisualSettingsWorker(
+    _VisualSettingsWorkerRequest request) async {
+  final port = request.diagnosticsPort;
+  if (port == null) return _runVisualSettingsWorkerDirect(request);
+  final trace = MapAuthoringWorkerTrace(request.root);
+  try {
+    return await trace.run(() => _runVisualSettingsWorkerDirect(request));
+  } finally {
+    port.send(trace.snapshot());
+  }
+}
+
+Future<VisualSettingsMutation> _runVisualSettingsWorkerDirect(
+    _VisualSettingsWorkerRequest request) async {
+  const reader = LocalProjectFileReader();
+  if (await reader.canonicalizeDirectory(request.root) != request.root) {
+    throw const FormatException('The authorized visual settings root changed.');
+  }
+  final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [request.root], fileReader: reader);
+  final service = LocalVisualSettingsAuthoring(
+      policy: policy,
+      actor: AuthoringActor(
+          actorId: request.actorId, permissions: request.permissions));
+  if (request.receiptId case final receiptId?) {
+    return service.undoReceipt(
+        projectRoot: request.root,
+        mapId: request.mapId,
+        mapRelativePath: request.mapRelativePath,
+        receiptId: receiptId,
+        expectedRevision: request.expectedRevision,
+        operationId: request.operationId);
+  }
+  return service.set(
+      projectRoot: request.root,
+      mapId: request.mapId,
+      mapRelativePath: request.mapRelativePath,
+      expectedRevision: request.expectedRevision,
+      settings: SpatialVisualPatch.fromJson(request.settings!),
+      operationId: request.operationId);
+}

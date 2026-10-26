@@ -36,7 +36,10 @@ class _WorkingCatalogPreviewState extends State<WorkingCatalogPreview> {
   @override
   void didUpdateWidget(WorkingCatalogPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.detail != widget.detail ||
+    if (!identical(
+          oldWidget.detail.visualIdentity,
+          widget.detail.visualIdentity,
+        ) ||
         oldWidget.session != widget.session) {
       unawaited(load());
     }
@@ -95,7 +98,7 @@ class _WorkingCatalogPreviewState extends State<WorkingCatalogPreview> {
       item,
       widget.detail.definitions,
       current,
-      size: 170,
+      size: widget.detail.entry.kind == 'model3d' ? 300 : 170,
       terrainPattern: true,
     );
   }

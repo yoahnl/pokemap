@@ -1,3 +1,6 @@
+import 'spatial_point_light.dart';
+import 'spatial_light_behavior.dart';
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -127,10 +130,15 @@ class SpatialSceneController extends ModelPreviewController {
     _applyAtmosphereSettings(value.applyAtmosphere(_baseAtmosphere));
     super.notifyListeners();
   }
+
   SpatialAtmosphereSettings _baseAtmosphere = SpatialAtmosphereSettings();
-  SpatialCameraProfile effectiveCamera(SpatialCameraProfile base) => _visualProfile.applyCamera(base);
-  SpatialDayNightCycle? effectiveCycle(SpatialDayNightCycle? base) => _visualProfile.applyCycle(base);
-  bool get lockVerticalFraming => _visualProfile.enabled(SpatialVisualParameter.lockVerticalFraming) ?? false;
+  SpatialCameraProfile effectiveCamera(SpatialCameraProfile base) =>
+      _visualProfile.applyCamera(base);
+  SpatialDayNightCycle? effectiveCycle(SpatialDayNightCycle? base) =>
+      _visualProfile.applyCycle(base);
+  bool get lockVerticalFraming =>
+      _visualProfile.enabled(SpatialVisualParameter.lockVerticalFraming) ??
+      false;
 
   SpatialDepthOfFieldProfile _depthOfFieldProfile =
       SpatialDepthOfFieldProfile();
@@ -202,6 +210,7 @@ class SpatialSceneController extends ModelPreviewController {
     _baseAtmosphere = settings;
     _applyAtmosphereSettings(_visualProfile.applyAtmosphere(settings));
   }
+
   void _applyAtmosphereSettings(SpatialAtmosphereSettings settings) {
     if (_authoredAtmosphere == settings) return;
     final previous = _authoredAtmosphere;
@@ -226,6 +235,13 @@ class SpatialSceneController extends ModelPreviewController {
               waterSpeed: settings.waterSpeed,
               windowStrength: settings.windowStrength,
               fireflyDensity: settings.fireflyDensity,
+              fireflyLighting: settings.fireflyLighting,
+              fireflyYellowAmount: settings.fireflyYellowAmount,
+              fireflyGreenAmount: settings.fireflyGreenAmount,
+              fireflyBlueAmount: settings.fireflyBlueAmount,
+              fireflyPinkAmount: settings.fireflyPinkAmount,
+              fireflyLightStrength: settings.fireflyLightStrength,
+              fireflyLightRadius: settings.fireflyLightRadius,
             ) !=
             settings;
     if (geometryChanged) {
@@ -235,7 +251,14 @@ class SpatialSceneController extends ModelPreviewController {
         ..waterStrength = settings.waterStrength
         ..waterSpeed = settings.waterSpeed
         ..windowStrength = settings.windowStrength
-        ..fireflyDensity = settings.fireflyDensity;
+        ..fireflyDensity = settings.fireflyDensity
+        ..fireflyLighting = settings.fireflyLighting
+        ..fireflyYellowAmount = settings.fireflyYellowAmount
+        ..fireflyGreenAmount = settings.fireflyGreenAmount
+        ..fireflyBlueAmount = settings.fireflyBlueAmount
+        ..fireflyPinkAmount = settings.fireflyPinkAmount
+        ..fireflyLightStrength = settings.fireflyLightStrength
+        ..fireflyLightRadius = settings.fireflyLightRadius;
     }
     if (previous == null ||
         previous.copyWith(halos: settings.halos) != previous) {
@@ -325,7 +348,8 @@ class SpatialSceneController extends ModelPreviewController {
   ) {
     _dayNightClock.advance(dt);
     final minute = cycle == null
-        ? previewMinuteOfDay ?? visualProfile.number(SpatialVisualParameter.minuteOfDay)
+        ? previewMinuteOfDay ??
+              visualProfile.number(SpatialVisualParameter.minuteOfDay)
         : _dayNightClock.minute(cycle, externalElapsedSeconds: externalElapsed);
     final before = _dayNightMinute;
     if (minute != before) {
@@ -1055,6 +1079,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   double authoredReceiverMaxY = 0;
   List<({Model3dPointLight definition, _SceneModelComponent component})>
   pointLightBindings = [];
+  final _lightProximity = Expando<SpatialLightProximityState>();
+  final _lightEmission = Expando<(Color, double)>();
   void syncLighting() {
     (context as SpatialRenderContext).pointLightShadowsEnabled =
         this.configuration.controller.previewPointLightShadowsEnabled;
@@ -1065,9 +1091,14 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     }
     final configuration = visibleConfiguration;
     final shadowCasters = _visibleShadowCasters ?? authoredShadowCasters;
-    final cycle = configuration.controller.effectiveCycle(configuration.scene.dayNightCycle);
+    final cycle = configuration.controller.effectiveCycle(
+      configuration.scene.dayNightCycle,
+    );
     final minute = cycle == null
-        ? configuration.controller.previewMinuteOfDay ?? configuration.controller.visualProfile.number(SpatialVisualParameter.minuteOfDay)
+        ? configuration.controller.previewMinuteOfDay ??
+              configuration.controller.visualProfile.number(
+                SpatialVisualParameter.minuteOfDay,
+              )
         : configuration.controller._dayNightClock.minute(
             cycle,
             externalElapsedSeconds: configuration.presentationElapsedSeconds
@@ -1097,7 +1128,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             receiverBounds: receiverBounds,
             sunDirection: sunDirection,
           );
-    if (cycle == null && pointLightBindings.isEmpty) {
+    if (frame == null &&
+        pointLightBindings.isEmpty &&
+        !configuration.controller.atmosphereProfile.fireflyLighting) {
       (context as SpatialRenderContext).lighting = solarLighting;
       return;
     }
@@ -1120,18 +1153,54 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final lights = spatialVisiblePointLights([
       for (final binding in pointLightBindings)
         if (binding.component.presentationVisible)
-          spatialPlacedPointLight(
+          _placedLight(
             binding.definition,
-            binding.component.worldTransformMatrix,
-            daylight: frame?.daylight ?? 1,
+            binding.component,
+            anchor,
+            frame?.daylight ?? 1,
           ),
     ], anchor);
     (context as SpatialRenderContext).lighting = spatialEnvironmentLighting(
       solarLighting,
       frame: frame,
       lights: lights,
+      fireflyLights: atmosphereEffects.lights(anchor),
       sunDirection: sunDirection,
     );
+  }
+
+  SpatialPointLight _placedLight(
+    Model3dPointLight definition,
+    _SceneModelComponent component,
+    Vector3 anchor,
+    double daylight,
+  ) {
+    final configuration = visibleConfiguration;
+    final elapsed =
+        configuration.presentationElapsedSeconds?.call() ?? atmosphereElapsed;
+    final origin = component.worldTransformMatrix.transform3(Vector3.zero());
+    final strength =
+        (_lightProximity[component] ??= SpatialLightProximityState()).sample(
+          rule: definition.proximity,
+          elapsedSeconds: elapsed,
+          distanceSquared:
+              (origin.x - anchor.x) * (origin.x - anchor.x) +
+              (origin.z - anchor.z) * (origin.z - anchor.z),
+        );
+    final light = spatialPlacedPointLight(
+      definition,
+      component.worldTransformMatrix,
+      daylight: daylight,
+      elapsedSeconds: elapsed,
+      proximityStrength: strength,
+    );
+    _lightEmission[component] = (light.color, strength);
+    return light;
+  }
+
+  (Color, double)? _haloEmission(String instanceId) {
+    final component = modelComponents[instanceId]?.component;
+    return component == null ? null : _lightEmission[component];
   }
 
   final ValueChanged<Object?> onPreviewStatus;
@@ -2629,8 +2698,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       center,
       pitch: pitch,
       yaw: yaw,
-      distance: control.lockVerticalFraming && control.view == SpatialEditorView.game
-          ? distance * math.min(1.0, aspect) : distance,
+      distance:
+          control.lockVerticalFraming && control.view == SpatialEditorView.game
+          ? distance * math.min(1.0, aspect)
+          : distance,
       viewportAspectRatio: aspect,
     );
   }
@@ -2682,10 +2753,11 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final configuration = visibleConfiguration;
     configuration.controller._advanceDayNight(
       configuration.presentationPaused?.call() == true ? 0 : dt,
-      configuration.controller.effectiveCycle(configuration.scene.dayNightCycle),
+      configuration.controller.effectiveCycle(
+        configuration.scene.dayNightCycle,
+      ),
       configuration.presentationElapsedSeconds?.call(),
     );
-    syncLighting();
     if (configuration.presentationPaused?.call() != true &&
         dt.isFinite &&
         dt > 0)
@@ -2693,7 +2765,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final control = configuration.controller;
     final elapsed =
         configuration.presentationElapsedSeconds?.call() ?? atmosphereElapsed;
-    final minute = control.dayNightMinuteOfDay ?? control.previewMinuteOfDay ?? control.visualProfile.number(SpatialVisualParameter.minuteOfDay);
+    final minute =
+        control.dayNightMinuteOfDay ??
+        control.previewMinuteOfDay ??
+        control.visualProfile.number(SpatialVisualParameter.minuteOfDay);
     final night = minute == null
         ? 0.0
         : 1 - spatialDayNightFrame(minute).daylight;
@@ -2715,6 +2790,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       cameraPitch: billboardPitch,
       cameraYaw: billboardYaw,
     );
+    syncLighting();
     presentationEffects.sync(
       profile: control.presentationProfile,
       enabled: control.halosEnabled,
@@ -2724,6 +2800,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       cameraYaw: billboardYaw,
       windowStrength: control.atmosphereProfile.windowStrength,
       locate: _haloPosition,
+      colorForInstance: (id) => _haloEmission(id)?.$1,
+      strengthForInstance: (id) => _haloEmission(id)?.$2 ?? 1,
     );
     control._haloAllocations = presentationEffects.allocations;
     control._haloCount = presentationEffects.visibleCount;

@@ -14,6 +14,7 @@ import 'resource_catalog.dart';
 import 'resource_item_actions.dart';
 import 'model_shadow_controls.dart';
 import 'model_light_controls.dart';
+import 'model_light_preview_scope.dart';
 
 class ResourceDetailPanel extends StatelessWidget {
   const ResourceDetailPanel({
@@ -83,7 +84,7 @@ class ResourceDetailPanel extends StatelessWidget {
         mapAvailable &&
         compatible &&
         prepared;
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
@@ -215,6 +216,18 @@ class ResourceDetailPanel extends StatelessWidget {
         ),
       ],
     );
+    final model = entry.model3d;
+    return model == null
+        ? content
+        : ModelLightPreviewScope(
+            key: ValueKey('model-light-preview-${model.id}'),
+            model:
+                project.models3d
+                    .where((value) => value.id == model.id)
+                    .firstOrNull ??
+                model,
+            child: content,
+          );
   }
 
   List<Widget> _metadata(BuildContext context, ResourceItem entry) {

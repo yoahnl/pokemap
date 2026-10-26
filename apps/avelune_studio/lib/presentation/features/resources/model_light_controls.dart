@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_render_3d/map_render_3d.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
+import '../../shared/widgets/inputs/studio_slider.dart';
+import '../../shared/widgets/inputs/studio_color_picker.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import 'model_light_preview_scope.dart';
 
 class ModelLightControls extends StatefulWidget {
   const ModelLightControls({
@@ -14,22 +18,26 @@ class ModelLightControls extends StatefulWidget {
     required this.model,
     required this.onSave,
     this.busy = false,
+    this.previewController,
   });
   final ProjectModel3dEntry model;
   final Future<void> Function(Model3dPointLight?) onSave;
   final bool busy;
-
+  final ModelPreviewController? previewController;
   @override
   State<ModelLightControls> createState() => _ModelLightControlsState();
 }
 
 class _ModelLightControlsState extends State<ModelLightControls> {
-  late bool enabled, nightOnly;
+  late bool enabled, nightOnly, cycle;
   late int color;
   late List<String> values;
+  late List<int> colors;
+  late double period, enter, exit, fade;
+  String proximity = 'always';
   bool saving = false;
   String? error;
-
+  ModelPreviewController? preview;
   @override
   void initState() {
     super.initState();
@@ -37,17 +45,37 @@ class _ModelLightControlsState extends State<ModelLightControls> {
   }
 
   @override
-  void didUpdateWidget(ModelLightControls oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.model.id != widget.model.id ||
-        oldWidget.model.light != widget.model.light) {
-      reset();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final next =
+        widget.previewController ?? ModelLightPreviewScope.maybeOf(context);
+    if (!identical(next, preview)) {
+      preview?.removeListener(moved);
+      preview = next;
+      preview?.addListener(moved);
     }
   }
 
+  @override
+  void didUpdateWidget(ModelLightControls old) {
+    super.didUpdateWidget(old);
+    if (old.model.id != widget.model.id ||
+        old.model.light != widget.model.light) {
+      reset();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) preview?.setLight(buildLight());
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    preview?.removeListener(moved);
+    super.dispose();
+  }
+
   void reset() {
-    final light = widget.model.light;
-    final bounds = widget.model.inspection.bounds;
+    final light = widget.model.light, bounds = widget.model.inspection.bounds;
     enabled = light != null;
     nightOnly = light?.nightOnly ?? true;
     color = light?.colorRgb ?? 0xffd59a;
@@ -58,7 +86,76 @@ class _ModelLightControlsState extends State<ModelLightControls> {
       light?.radius ?? 4,
       light?.intensity ?? 1,
     ].map((v) => '$v').toList();
+    cycle = light?.colorCycle != null;
+    colors =
+        light?.colorCycle?.colors.toList() ??
+        [
+          color,
+          color == SpatialFireflyColor.blue.rgb
+              ? SpatialFireflyColor.pink.rgb
+              : SpatialFireflyColor.blue.rgb,
+        ];
+    period = light?.colorCycle?.periodSeconds ?? 10;
+    proximity = light?.proximity?.mode.name ?? 'always';
+    enter = light?.proximity?.enterDistance ?? 3;
+    exit = light?.proximity?.exitDistance ?? 4;
+    fade = light?.proximity?.fadeSeconds ?? .35;
     error = null;
+  }
+
+  Model3dPointLight? buildLight() {
+    if (!enabled) return null;
+    final n = values
+        .map((v) => double.tryParse(v.replaceAll(',', '.')))
+        .toList();
+    if (n.any((v) => v == null || !v.isFinite)) {
+      throw const FormatException('Saisissez des nombres valides.');
+    }
+    return Model3dPointLight(
+      localPosition: Model3dVector3(x: n[0]!, y: n[1]!, z: n[2]!),
+      radius: n[3]!,
+      intensity: n[4]!,
+      colorRgb: color,
+      nightOnly: nightOnly,
+      colorCycle: cycle
+          ? ModelLightColorCycle(colors: colors, periodSeconds: period)
+          : null,
+      proximity: proximity == 'always'
+          ? null
+          : ModelLightProximity(
+              mode: ModelLightProximityMode.values.byName(proximity),
+              enterDistance: enter,
+              exitDistance: exit,
+              fadeSeconds: fade,
+            ),
+    );
+  }
+
+  void change(VoidCallback edit) {
+    setState(edit);
+    try {
+      preview?.setLight(buildLight());
+      error = null;
+    } on FormatException catch (failure) {
+      setState(() => error = failure.message);
+    }
+  }
+
+  void moved() {
+    final p = preview?.light?.localPosition;
+    if (p == null || !mounted) return;
+    final next = [p.x, p.y, p.z].map((v) => v.toStringAsFixed(4)).toList();
+    if (List.generate(
+      3,
+      (i) => double.tryParse(values[i]) == [p.x, p.y, p.z][i],
+    ).every((v) => v)) {
+      return;
+    }
+    setState(() {
+      for (var i = 0; i < 3; i++) {
+        values[i] = next[i];
+      }
+    });
   }
 
   Future<void> save() async {
@@ -68,29 +165,7 @@ class _ModelLightControlsState extends State<ModelLightControls> {
       error = null;
     });
     try {
-      Model3dPointLight? light;
-      if (enabled) {
-        final numbers = values
-            .map((v) => double.tryParse(v.replaceAll(',', '.')))
-            .toList();
-        if (numbers.any((v) => v == null || !v.isFinite)) {
-          throw const FormatException('Saisissez des nombres valides.');
-        }
-        final n = numbers.cast<double>();
-        if (n[3] < .25 || n[3] > 64 || n[4] < 0 || n[4] > 4) {
-          throw const FormatException(
-            'La portée doit être comprise entre 0,25 et 64 cases, l’intensité entre 0 et 4.',
-          );
-        }
-        light = Model3dPointLight(
-          localPosition: Model3dVector3(x: n[0], y: n[1], z: n[2]),
-          radius: n[3],
-          intensity: n[4],
-          colorRgb: color,
-          nightOnly: nightOnly,
-        );
-      }
-      await widget.onSave(light);
+      await widget.onSave(buildLight());
     } on Object catch (failure) {
       if (mounted) {
         setState(() => error = 'Éclairage non enregistré : $failure');
@@ -100,9 +175,27 @@ class _ModelLightControlsState extends State<ModelLightControls> {
     }
   }
 
+  Widget slider(
+    String key,
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> update,
+  ) => StudioSlider(
+    key: ValueKey(key),
+    label: label,
+    value: value,
+    min: min,
+    max: max,
+    valueLabel:
+        '${value.toStringAsFixed(2)}${key.endsWith('seconds') ? ' s' : ''}',
+    onChanged: saving || widget.busy ? null : (v) => change(() => update(v)),
+  );
   @override
   Widget build(BuildContext context) => StudioPanel(
     title: 'Éclairage',
+    icon: Icons.lightbulb_outline,
     children: [
       StudioToggleRow(
         key: const ValueKey('model-light-enabled'),
@@ -110,65 +203,181 @@ class _ModelLightControlsState extends State<ModelLightControls> {
         value: enabled,
         onChanged: saving || widget.busy
             ? null
-            : (value) => setState(() => enabled = value),
+            : (v) => change(() => enabled = v),
       ),
       if (enabled) ...[
+        if (preview != null) ...[
+          StudioToggleRow(
+            key: const ValueKey('model-light-edit-bulb'),
+            label: 'Déplacer l’ampoule dans l’aperçu',
+            value: preview!.editLight,
+            onChanged: (v) =>
+                setState(() => preview!.configureLightEditor(editing: v)),
+          ),
+          StudioToggleRow(
+            key: const ValueKey('model-light-preview-night'),
+            label: 'Aperçu de nuit',
+            value: preview!.nightPreview,
+            onChanged: (v) =>
+                setState(() => preview!.configureLightEditor(night: v)),
+          ),
+          const Text(
+            'Glissez l’ampoule sur le plan horizontal ; utilisez X, Y et Z pour déplacer un seul axe.',
+          ),
+        ],
         const SizedBox(height: 8),
-        const Text(
-          'Placez la source dans le modèle. Sa position suit l’origine, l’échelle et la rotation du décor.',
-        ),
         for (final (i, label) in [
           'Position X',
           'Hauteur de la source',
           'Position Z',
-          'Portée en cases',
-          'Intensité',
         ].indexed)
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(bottom: 8),
             child: StudioDraftField(
-              key: ValueKey(
-                'model-light-${['x', 'y', 'z', 'radius', 'intensity'][i]}',
-              ),
+              key: ValueKey('model-light-${['x', 'y', 'z'][i]}'),
               label: label,
               value: values[i],
               enabled: !saving && !widget.busy,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: true,
-              ),
-              onChanged: (value) => setState(() => values[i] = value),
+              onChanged: (v) => change(() => values[i] = v),
             ),
           ),
-        const SizedBox(height: 12),
-        StudioSelect(
-          label: 'Teinte de la lumière',
-          value: '$color',
-          options: {
-            '${0xffd59a}': 'Chaud · lampadaire',
-            '${0xffffff}': 'Blanc neutre',
-            '${0xb8d9ff}': 'Bleu pâle',
-            if (![0xffd59a, 0xffffff, 0xb8d9ff].contains(color))
-              '$color': 'Couleur actuelle',
-          },
+        slider(
+          'model-light-radius',
+          'Portée en cases',
+          double.tryParse(values[3]) ?? 4,
+          .25,
+          16,
+          (v) => values[3] = '$v',
+        ),
+        slider(
+          'model-light-intensity',
+          'Intensité',
+          double.tryParse(values[4]) ?? 1,
+          0,
+          4,
+          (v) => values[4] = '$v',
+        ),
+        StudioColorPicker(
+          label: 'Couleur',
+          colorRgb: color,
+          presets: SpatialFireflyColor.values.map((v) => v.rgb).toList(),
           onChanged: saving || widget.busy
               ? null
-              : (value) => setState(() => color = int.parse(value)),
+              : (v) => change(() => color = v),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         StudioToggleRow(
           key: const ValueKey('model-light-night-only'),
           label: 'Allumer seulement la nuit',
-          description: 'L’allumage est progressif au crépuscule. Sans cycle, une lumière nocturne reste éteinte.',
+          description: 'Allumage progressif au crépuscule. Désactivez cette option pour éclairer aussi en journée.',
           value: nightOnly,
           onChanged: saving || widget.busy
               ? null
-              : (value) => setState(() => nightOnly = value),
+              : (v) => change(() => nightOnly = v),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'La portée reste exprimée en cases de la carte, quelle que soit l’échelle du décor.',
+        StudioSelect(
+          label: 'Animation de la lumière',
+          value: cycle ? 'cycle' : 'fixed',
+          options: const {
+            'fixed': 'Couleur fixe',
+            'cycle': 'Cycle de couleurs',
+          },
+          onChanged: saving || widget.busy
+              ? null
+              : (v) => change(() => cycle = v == 'cycle'),
         ),
+        if (cycle) ...[
+          slider(
+            'model-light-cycle-seconds',
+            'Durée du cycle',
+            period,
+            2,
+            120,
+            (v) => period = v,
+          ),
+          for (var i = 0; i < colors.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: StudioColorPicker(
+                      label: 'Couleur ${i + 1}',
+                      colorRgb: colors[i],
+                      presets: SpatialFireflyColor.values
+                          .map((v) => v.rgb)
+                          .toList(),
+                      onChanged: saving || widget.busy
+                          ? null
+                          : (v) => change(() => colors[i] = v),
+                    ),
+                  ),
+                  if (colors.length > 2)
+                    StudioButton(
+                      label: 'Retirer',
+                      secondary: true,
+                      onPressed: saving || widget.busy
+                          ? null
+                          : () => change(() => colors.removeAt(i)),
+                    ),
+                ],
+              ),
+            ),
+          if (colors.length < 8)
+            StudioButton(
+              label: 'Ajouter une couleur',
+              secondary: true,
+              onPressed: saving || widget.busy
+                  ? null
+                  : () =>
+                        change(() => colors.add(SpatialFireflyColor.pink.rgb)),
+            ),
+        ],
+        const SizedBox(height: 12),
+        StudioSelect(
+          label: 'Réagir à la proximité du joueur',
+          value: proximity,
+          options: const {
+            'always': 'Aucune condition de distance',
+            'near': 'S’allumer à l’approche',
+            'far': 'S’éteindre à l’approche',
+          },
+          onChanged: saving || widget.busy
+              ? null
+              : (v) => change(() => proximity = v),
+        ),
+        if (proximity != 'always') ...[
+          slider(
+            'model-light-approach',
+            'Distance d’approche en cases',
+            enter,
+            .25,
+            32,
+            (v) {
+              enter = v;
+              if (exit <= enter) exit = enter + .5;
+            },
+          ),
+          slider(
+            'model-light-leave',
+            'Distance d’éloignement en cases',
+            exit,
+            enter + .01,
+            64,
+            (v) => exit = v,
+          ),
+          slider(
+            'model-light-fade-seconds',
+            'Transition douce',
+            fade,
+            .05,
+            5,
+            (v) => fade = v,
+          ),
+          const Text(
+            'Deux distances évitent les allumages répétés quand le joueur reste à la limite.',
+          ),
+        ],
       ],
       if (error != null) StudioNotice(error!, isError: true),
       const SizedBox(height: 12),

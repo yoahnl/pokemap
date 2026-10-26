@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
 import 'map_workspace_workshop.dart';
 export 'map_workspace_workshop.dart';
@@ -93,4 +94,13 @@ class MapWorkspaceFailure implements Exception {
 
   @override
   String toString() => message;
+}
+
+abstract interface class MapWorkspaceModelLightPort {
+  Future<void> acceptModelLight(
+    ProjectSession session,
+    ProjectModel3dEntry model,
+    String beforeRevision,
+    String afterRevision,
+  );
 }

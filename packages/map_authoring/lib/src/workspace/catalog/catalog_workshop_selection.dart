@@ -20,6 +20,7 @@ import '../../domains/narrative/standard_event_template.dart';
 
 part 'catalog_gameplay_workshop_selection.dart';
 part 'catalog_guided_workshop_selection.dart';
+part 'catalog_model_light_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
@@ -58,7 +59,11 @@ final class CatalogWorkshopSelection {
     'characterStudioCatalog',
   };
 
-  static bool supports(String action) =>
+  static bool supports(String action, {Map<String, Object?>? parameters}) =>
+      (action == 'model3d.configure' &&
+          parameters != null &&
+          parameters.containsKey('light') &&
+          parameters.keys.every((key) => {'modelId', 'light'}.contains(key))) ||
       _guidedActions.contains(action) ||
       _gameplayActions.contains(action) ||
       const {
@@ -128,7 +133,15 @@ final class CatalogWorkshopSelection {
     Map<String, Object?> parameters = const {},
     Map<String, String> readDependencies = const {},
   }) async {
-    if (!supports(actionId)) unsupported(actionId);
+    if (!supports(actionId, parameters: parameters)) unsupported(actionId);
+    if (actionId == 'model3d.configure') {
+      if (readDependencies.isNotEmpty) {
+        unsupported(
+            actionId, 'no external dependencies for a light configuration');
+      }
+      return _readModelLightWorkshop(
+          reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
     if (_guidedActions.contains(actionId)) {
       return _readGuidedWorkshop(
           reader: reader,

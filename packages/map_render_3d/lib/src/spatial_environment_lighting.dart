@@ -107,14 +107,23 @@ SpatialPointLight spatialPlacedPointLight(
   Model3dPointLight definition,
   Matrix4 transform, {
   required double daylight,
+  double elapsedSeconds = 0,
+  double proximityStrength = 1,
 }) {
   final local = definition.localPosition;
   final position = transform.transform3(Vector3(local.x, local.y, local.z));
   return SpatialPointLight(
     position: (x: position.x, y: position.y, z: position.z),
     radius: definition.radius,
-    color: Color(0xff000000 | definition.colorRgb),
-    intensity: definition.intensity * (definition.nightOnly ? 1 - daylight : 1),
+    color: Color(
+      0xff000000 |
+          (definition.colorCycle?.sample(elapsedSeconds) ??
+              definition.colorRgb),
+    ),
+    intensity:
+        definition.intensity *
+        proximityStrength *
+        (definition.nightOnly ? 1 - daylight : 1),
   );
 }
 
@@ -137,9 +146,10 @@ SpatialLightingProfile spatialEnvironmentLighting(
   SpatialLightingProfile base, {
   SpatialDayNightFrame? frame,
   List<SpatialPointLight> lights = const [],
+  List<SpatialPointLight> fireflyLights = const [],
   ({double x, double y, double z})? sunDirection,
 }) {
-  if (frame == null && lights.isEmpty) return base;
+  if (frame == null && lights.isEmpty && fireflyLights.isEmpty) return base;
   final daylight = frame?.daylight ?? 1;
   return SpatialLightingProfile.stylized(
     ambientColor: base.ambientColor,
@@ -159,6 +169,7 @@ SpatialLightingProfile spatialEnvironmentLighting(
     shadow: daylight > .001 ? base.shadow : null,
     sceneTint: frame?.tint ?? const Color(0xffffffff),
     pointLights: lights,
+    fireflyLights: fireflyLights,
     pointShadowCasterInstanceIds:
         base.shadow?.casterInstanceIds ?? base.pointShadowCasterInstanceIds,
   );

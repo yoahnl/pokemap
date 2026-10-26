@@ -74,6 +74,27 @@ final class CatalogScopedWorkingMutation {
     final nextShell = Map<String, Object?>.from(oldShell);
     final upserts = <CatalogDefinitionUnit>[];
     final removals = <CatalogDefinitionKey>[];
+    if (changedFields.contains('models3d') &&
+        publicPlan.request.actionId == 'model3d.configure') {
+      final previous = before.models3d.single;
+      final next = projected.models3d.single;
+      final expected = previous.copyWith(
+        light: next.light,
+        clearLight: next.light == null,
+      );
+      if (!_same(expected.toJson(), next.toJson())) {
+        throw const FormatException('catalog.light: geometry changes are outside scope');
+      }
+      final key = CatalogDefinitionKey(CatalogDefinitionKind.model3d, previous.id);
+      final original = (await catalog.lookup(key))!;
+      upserts.add(CatalogDefinitionUnit(
+        key: key,
+        payload: {...original.payload, 'value': _preserveUntouched(
+          original.payload['value'], previous.toJson(), next.toJson())},
+        references: original.references,
+      ));
+      changedFields.remove('models3d');
+    }
     final indexed = selection.metadataDocuments;
     if (indexed != null) {
       for (final field in changedFields.toList()) {

@@ -11,6 +11,8 @@ import '../map_workspace/map_workspace_visuals.dart';
 import '../characters/character_workspace_visuals.dart';
 import 'resource_catalog.dart';
 import 'resource_terrain_preview.dart';
+import 'model_light_preview_scope.dart';
+import 'model_light_gizmo.dart';
 
 Widget resourcePreview(
   ResourceItem item,
@@ -197,7 +199,11 @@ class _ModelResourcePreviewState extends State<_ModelResourcePreview> {
   @override
   void didUpdateWidget(_ModelResourcePreview old) {
     super.didUpdateWidget(old);
-    if (old.model != widget.model || old.visuals != widget.visuals) load();
+    if (old.model.id != widget.model.id || old.model.relativePath != widget.model.relativePath ||
+        old.model.sourceAssetId != widget.model.sourceAssetId || !identical(old.model.inspection,widget.model.inspection) ||
+        old.visuals != widget.visuals) {
+      load();
+    }
   }
 
   void load() {
@@ -226,7 +232,10 @@ class _ModelResourcePreviewState extends State<_ModelResourcePreview> {
       final bounds = widget.model.inspection.bounds;
       return ModelPreview(
         bytes: snapshot.data!,
-        controller: controls,
+        controller: ModelLightPreviewScope.maybeOf(context) ?? controls,
+        lightOverlayBuilder: ModelLightPreviewScope.maybeOf(context) == null
+            ? null
+            : (context, controller) => ModelLightGizmo(controller: controller),
         minimum: [bounds.min.x, bounds.min.y, bounds.min.z],
         maximum: [bounds.max.x, bounds.max.y, bounds.max.z],
         background: Theme.of(context).colorScheme.surfaceContainerLowest,

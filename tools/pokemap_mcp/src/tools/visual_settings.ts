@@ -31,6 +31,14 @@ export function registerVisualSettingsTools(server: McpServer, authoring: Author
     windowStrength: z.number().min(0).max(2).optional(),
     fireflies: z.boolean().optional(),
     fireflyDensity: z.number().min(0).max(2).optional(),
+    fireflyLighting:z.boolean().optional(),
+    fireflyYellowAmount:z.number().min(0).max(1).optional(),
+    fireflyGreenAmount:z.number().min(0).max(1).optional(),
+    fireflyBlueAmount:z.number().min(0).max(1).optional(),
+    fireflyPinkAmount:z.number().min(0).max(1).optional(),
+    fireflyLightStrength:z.number().min(0).max(1).optional(),
+    fireflyLightRadius:z.number().min(0.25).max(2.5).optional(),
+
   }).strict().refine(value => value.fogStart === undefined || value.fogEnd === undefined || value.fogStart < value.fogEnd, "Fog must end after its start");
   const identity = {
     projectRoot: z.string().min(1).refine(isAbsolute, "projectRoot must be absolute"),

@@ -19,7 +19,7 @@ test("visual defaults and map inheritance use bounded canonical documents across
  }
  try{
   await mkdir(join(root,"maps"));await writeFile(join(root,"project.json"),"unreadable unrelated project");await writeFile(join(root,"maps","shore.json"),"unreadable map");
-  for(const [i,settings] of [{depthOfFieldEnabled:true,pitchDegrees:34},{depthOfFieldEnabled:false},{}].entries()){
+  for(const [i,settings] of [{depthOfFieldEnabled:true,pitchDegrees:34},{depthOfFieldEnabled:false},{},{fireflyLighting:true,fireflyGreenAmount:.5,fireflyBlueAmount:.8,fireflyLightRadius:1.25}].entries()){
    await session(async call=>{
     const catalog=await call("pokemap_describe");assert.equal(record(catalog.visualSettingsAuthoring).id,"visual.settings.set");
     const initial=await call("pokemap_visual_settings_inspect",{projectRoot:root});

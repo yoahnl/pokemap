@@ -17,7 +17,7 @@ void main() {
     final resident = controller.atmosphereProfile;
     var changes = 0;
     controller.sceneChanges.addListener(() => changes++);
-    final patch = SpatialVisualPatch.fromJson({'pitchDegrees':34,'fieldOfViewDegrees':20,'depthOfFieldEnabled':true,'depthOfFieldStrength':.65,'waterStrength':1.2});
+    final patch = SpatialVisualPatch.fromJson({'pitchDegrees':34,'fieldOfViewDegrees':20,'depthOfFieldEnabled':true,'depthOfFieldStrength':.65,'waterStrength':1.2,'fireflyLighting':true,'fireflyGreenAmount':.5});
     controller.visualProfile = patch;
     expect(controller.effectiveCamera(SpatialCameraProfile()).pitchDegrees, 34);
     expect(controller.depthOfFieldProfile.strength, .65);

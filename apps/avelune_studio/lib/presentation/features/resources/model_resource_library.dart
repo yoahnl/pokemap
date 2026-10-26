@@ -19,6 +19,7 @@ import 'model_collision_controls.dart';
 import 'model_ramp_controls.dart';
 import 'model_shadow_controls.dart';
 import 'model_light_controls.dart';
+import 'model_light_gizmo.dart';
 
 String modelDiagnosticLabel(String code) => switch (code) {
   'renderer.missing_material_magenta' => 'Ce modèle n’a pas de matériau. Les surfaces concernées sont affichées en rose.',
@@ -116,6 +117,7 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
     selectedId = model.id;
     controls.play(null);
     controls.reset();
+    controls.setLight(model.light);
     source = (widget.navigation.port as ModelResourcePort).readModel(model.id);
   }
 
@@ -274,6 +276,8 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                       key: ValueKey(model.id),
                       bytes: snapshot.data!,
                       controller: controls,
+                      lightOverlayBuilder: (context, controller) =>
+                          ModelLightGizmo(controller: controller),
                       minimum: [box.min.x, box.min.y, box.min.z],
                       maximum: [box.max.x, box.max.y, box.max.z],
                       background: Theme.of(context)
@@ -382,6 +386,7 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
               const SizedBox(height: 16),
               ModelLightControls(
                 key: ValueKey('model-light-${model.id}'),
+                previewController: controls,
                 model: model,
                 busy: n.busy,
                 onSave: (light) async {

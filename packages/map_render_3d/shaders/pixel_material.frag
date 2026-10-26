@@ -33,6 +33,8 @@ uniform Environment {
     vec4 samplePosition;
     vec4 pointPositionRadius[4];
     vec4 pointColorIntensity[4];
+    vec4 fireflyPositionRadius[2];
+    vec4 fireflyColorIntensity[2];
 } environment;
 
 uniform Atmosphere {
@@ -199,6 +201,12 @@ void main() {
             attenuation *= attenuation;
             float visibility = attenuation > 0.0 ? pointVisibility(delta, receiverNormal, index, radius) : 1.0;
             localLight += environment.pointColorIntensity[index].rgb * environment.pointColorIntensity[index].w * attenuation * visibility;
+        }
+        for (int index = 0; index < int(environment.options.z); index++) {
+            vec3 delta = samplePosition - environment.fireflyPositionRadius[index].xyz;
+            float radius = environment.fireflyPositionRadius[index].w;
+            float attenuation = max(0.0, 1.0 - dot(delta, delta) / (radius * radius));
+            localLight += environment.fireflyColorIntensity[index].rgb * environment.fireflyColorIntensity[index].w * attenuation * attenuation;
         }
         vec3 baseColor = color.rgb * material.albedoColor.rgb * (material.alphaMode == 4.0 ? vec3(1.0) : fragColor.rgb);
         outColor.rgb = outColor.rgb * environment.tint.rgb + baseColor * localLight;

@@ -6,6 +6,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../theme/studio_tokens.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_slider.dart';
+import '../../shared/widgets/inputs/studio_color_picker.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 
@@ -318,6 +319,59 @@ class SpatialVisualControls extends StatelessWidget {
             StudioAccent.firefly,
           ),
           slider(p[24], 'Densité', 0, 2),
+          const Text(
+            'Répartition des couleurs pastel. La densité totale reste plafonnée.',
+          ),
+          for (final entry in [
+            (
+              SpatialVisualParameter.fireflyYellowAmount,
+              SpatialFireflyColor.yellow,
+              'Jaune pâle',
+            ),
+            (
+              SpatialVisualParameter.fireflyGreenAmount,
+              SpatialFireflyColor.green,
+              'Vert menthe',
+            ),
+            (
+              SpatialVisualParameter.fireflyBlueAmount,
+              SpatialFireflyColor.blue,
+              'Bleu doux',
+            ),
+            (
+              SpatialVisualParameter.fireflyPinkAmount,
+              SpatialFireflyColor.pink,
+              'Rose tendre',
+            ),
+          ])
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, right: 10),
+                  child: StudioColorSwatch(colorRgb: entry.$2.rgb),
+                ),
+                Expanded(child: slider(entry.$1, entry.$3, 0, 1)),
+              ],
+            ),
+          toggle(
+            SpatialVisualParameter.fireflyLighting,
+            'Éclairer légèrement les alentours',
+            Icons.lightbulb_outline,
+            StudioAccent.firefly,
+          ),
+          slider(
+            SpatialVisualParameter.fireflyLightStrength,
+            'Intensité de la lueur',
+            0,
+            1,
+          ),
+          slider(
+            SpatialVisualParameter.fireflyLightRadius,
+            'Portée en cases',
+            .25,
+            2.5,
+          ),
         ]),
         const Text(
           'L’eau, les fenêtres et les lucioles utilisent les sources placées sur chaque carte. Les ombres restent réglables sur les ressources et sur chaque élément 3D.',

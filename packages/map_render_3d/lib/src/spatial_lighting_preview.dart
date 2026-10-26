@@ -23,6 +23,7 @@ final class SpatialLightingProfile {
     required this.shadow,
     required this.sceneTint,
     required this.pointLights,
+    required this.fireflyLights,
     required this.pointShadowCasterInstanceIds,
   });
 
@@ -41,6 +42,7 @@ final class SpatialLightingProfile {
     shadow: null,
     sceneTint: Color(0xffffffff),
     pointLights: [],
+    fireflyLights: [],
     pointShadowCasterInstanceIds: {},
   );
 
@@ -58,10 +60,14 @@ final class SpatialLightingProfile {
     SpatialShadowProfile? shadow,
     Color sceneTint = const Color(0xffffffff),
     List<SpatialPointLight> pointLights = const [],
+    List<SpatialPointLight> fireflyLights = const [],
     Set<String> pointShadowCasterInstanceIds = const {},
   }) {
     final (x: x, y: y, z: z) = sunDirection;
     final length = math.sqrt(x * x + y * y + z * z);
+    if (fireflyLights.length > 2) {
+      throw ArgumentError('At most two firefly lights are supported.');
+    }
     if (pointLights.length > 4)
       throw ArgumentError('At most four spatial point lights are supported.');
     if (!length.isFinite ||
@@ -103,6 +109,7 @@ final class SpatialLightingProfile {
       shadow: shadow,
       sceneTint: sceneTint,
       pointLights: List.unmodifiable(pointLights),
+      fireflyLights: List.unmodifiable(fireflyLights),
       pointShadowCasterInstanceIds: Set.unmodifiable(
         pointShadowCasterInstanceIds,
       ),
@@ -121,7 +128,7 @@ final class SpatialLightingProfile {
   final Map<String, Set<String>> hiddenMaterialsByInstance;
   final SpatialShadowProfile? shadow;
   final Color sceneTint;
-  final List<SpatialPointLight> pointLights;
+  final List<SpatialPointLight> pointLights, fireflyLights;
   final Set<String> pointShadowCasterInstanceIds;
 }
 

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -70,6 +72,7 @@ test("live MCP configures fifty existing models with one recoverable manifest ch
     async function apply(planned: JsonRecord, operationId: string) {
       return call("pokemap_apply", { operation: "apply", projectHandle, planId: planned.planId, operationId });
     }
+    await call("pokemap_workshop",{operation:"prepare",projectHandle});
     const bytes = triangleGlb(), sourcePath = join(root, "source.glb");
     await writeFile(sourcePath, bytes);
     const staged = await call("pokemap_artifact_stage", { sourcePath, declaredMediaType: "model/gltf-binary" });
@@ -128,8 +131,68 @@ test("live MCP configures fifty existing models with one recoverable manifest ch
       entryId: record((history.entries as JsonRecord[])[0]).entryId, idempotencyKey: "undo-configuration-batch" });
     assert.deepEqual(await readFile(manifestPath), before);
     assert.deepEqual(await readFile(sourceCatalogPath), beforeCatalog);
+    const light = {localPosition:{x:0,y:2,z:0}, radius:4, intensity:1.2, colorRgb:0xbddfff, nightOnly:true,
+      colorCycle:{colors:[0xbddfff,0xf2c8e5],periodSeconds:12},
+      proximity:{mode:"near",enterDistance:3,exitDistance:4,fadeSeconds:.35}};
+    const configuredLight = await plan("model3d.configure",{modelId:ids[0],light});
+    await apply(configuredLight,"configure-light-behavior");
+    const withLight=record(JSON.parse((await readFile(manifestPath)).toString())).models3d as JsonRecord[];
+    assert.deepEqual(record(withLight[0]).light,light);
+    const beforeInvalid=await readFile(manifestPath);
+    await plan("model3d.configure",{modelId:ids[0],light:{...light,proximity:{mode:"near",enterDistance:5,exitDistance:3}}},true);
+    assert.deepEqual(await readFile(manifestPath),beforeInvalid);
+    assert.deepEqual(await readFile(sourceCatalogPath),beforeCatalog);
     await call("pokemap_workspace", { operation: "close", workspaceHandle });
   } finally {
     await client.close(); await transport.close(); await rm(root, { recursive: true, force: true });
   }
+});
+
+
+test("native catalog light workshop is bounded, discoverable and durable over MCP", { timeout: 90_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "catalog-light-mcp-"));
+  const dart = process.env.POKEMAP_TEST_DART ?? "dart";
+  const packageRoot = resolve("../../packages/map_authoring");
+  await promisify(execFile)(dart, [`--packages=${join(packageRoot, ".dart_tool/package_config.json")}`,
+    join(packageRoot, "test/support/create_working_catalog_fixture.dart"), root, "--light-workshop"], { timeout: 60_000 });
+  const transport = new StdioClientTransport({command: process.execPath, args: [resolve("dist/src/index.js"),
+    "--root", root, "--dart", dart, "--authoring-timeout-ms", "60000"], cwd: process.cwd(), stderr: "pipe"});
+  const client = new Client({name: "light-catalog-proof", version: "1"});
+  async function call(name: string, input: JsonRecord = {}) {
+    const response = record((await client.callTool({name, arguments: input})).structuredContent);
+    assert.equal(response.ok, true, JSON.stringify(response)); return record(response.data);
+  }
+  try {
+    const descriptor = await readFile(join(root, "project.json"));
+    await client.connect(transport);
+    const described = await call("pokemap_describe");
+    const action = (described.mutationActions as JsonRecord[]).find(v => v.id === "model3d.configure");
+    const schema = record(record(record(action!.extensions).inputSchema).properties);
+    assert.ok(record(record(schema.light).properties).colorCycle);
+    const opened = await call("pokemap_workspace", {operation: "open", projectRoot: root});
+    await call("pokemap_workshop", {operation: "prepare", projectHandle: opened.projectHandle});
+    const light = {localPosition: {x: .2, y: 2.1, z: -.1}, radius: 5, intensity: .8, colorRgb: 0xbddfff,
+      nightOnly: true, colorCycle: {colors: [0xbddfff,0xf2c8e5], periodSeconds: 8},
+      proximity: {mode: "near", enterDistance: 3, exitDistance: 4, fadeSeconds: .35}};
+    for (const [index, value] of [light, null, light].entries()) {
+      const parameters = {modelId: "lamp", light: value};
+      const snapshot = await call("pokemap_workshop", {operation: "read", projectHandle: opened.projectHandle,
+        actionId: "model3d.configure", parameters});
+      assert.deepEqual(snapshot.maps, []);
+      assert.equal((record(snapshot.project).models3d as unknown[]).length, 1);
+      assert.deepEqual(record(snapshot.project).tilesets, []);
+      const id = `light-${index}`;
+      const planned = await call("pokemap_plan", {projectHandle: opened.projectHandle, request: {
+        requestId: id, actionId: "model3d.configure", actionVersion: 1, workspaceHandle: opened.workspaceHandle,
+        expectedRevision: snapshot.snapshotRevision, idempotencyKey: id, parameters}});
+      await call("pokemap_apply", {operation: "apply", projectHandle: opened.projectHandle,
+        planId: planned.planId, operationId: id});
+      const after = await call("pokemap_workshop", {operation: "read", projectHandle: opened.projectHandle,
+        actionId: "model3d.configure", parameters});
+      const stored = (record(after.project).models3d as JsonRecord[])[0]!;
+      assert.deepEqual(stored.light ?? null, value);
+      assert.deepEqual(await readFile(join(root,"project.json")),descriptor);
+    }
+    await call("pokemap_workspace", {operation: "close", workspaceHandle: opened.workspaceHandle});
+  } finally {await client.close();await transport.close();await rm(root,{recursive:true,force:true});}
 });

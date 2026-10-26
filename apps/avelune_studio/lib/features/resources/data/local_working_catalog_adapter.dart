@@ -1,4 +1,7 @@
 import 'dart:math';
+import 'dart:convert';
+
+import '../../project_session/data/studio_project_document_revision.dart';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
@@ -6,7 +9,8 @@ import 'package:map_core/map_core.dart';
 import '../../project_session/domain/project_session.dart';
 import '../domain/working_catalog_port.dart';
 
-final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
+final class LocalWorkingCatalogAdapter
+    implements WorkingCatalogPort, WorkingCatalogModelLightPort {
   LocalWorkingCatalogAdapter(this.session);
 
   final ProjectSession session;
@@ -100,6 +104,22 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
   @override
   Future<WorkingCatalogDetail> open(WorkingCatalogEntry entry) async {
     final active = await _session();
+    if (entry.kind == 'model3d' &&
+        session.storage == ProjectSessionStorage.workingCatalog &&
+        !active.lightEditingPrepared) {
+      if (!active.attached) {
+        await active.mutations.attachProject(
+          projectRootPath: session.directoryPath,
+          workspaceHandle: active.opened.workspaceHandle,
+          projectHandle: active.opened.projectHandle,
+        );
+        active.attached = true;
+      }
+      await active.mutations.prepareWorkshopCatalog(
+        active.opened.projectHandle,
+      );
+      active.lightEditingPrepared = true;
+    }
     final page = await active.reads.queryProject(
       active.opened.projectHandle,
       AuthoringQueryRequest(
@@ -282,6 +302,130 @@ final class LocalWorkingCatalogAdapter implements WorkingCatalogPort {
     }
   }
 
+  Future<({String documentRevision, String catalogRevision})>
+  _lightRevision() async {
+    const reader = LocalProjectFileReader();
+    final descriptor = await reader.readBytes(
+      projectRoot: session.directoryPath,
+      relativePath: 'project.json',
+    );
+    final head = await reader.readBytes(
+      projectRoot: session.directoryPath,
+      relativePath: CatalogStorageStore.headStorageKey,
+    );
+    final root = (jsonDecode(utf8.decode(head)) as Map)['root'] as Map;
+    return (
+      documentRevision: studioProjectDocumentRevision(
+        descriptorBytes: descriptor,
+        headBytes: head,
+      ),
+      catalogRevision: 'sha256:${root['sha256']}',
+    );
+  }
+
+  @override
+  Future<WorkingCatalogDetail> configureLight(
+    WorkingCatalogEntry entry,
+    Model3dPointLight? light, {
+    required String revision,
+  }) async {
+    if (session.storage != ProjectSessionStorage.workingCatalog ||
+        entry.kind != 'model3d') {
+      throw StateError(
+        'Cette ressource ne permet pas de modifier son éclairage.',
+      );
+    }
+    final active = await _session();
+    final current = active.detail;
+    if (current == null ||
+        current.entry.identity != entry.identity ||
+        current.revision != revision ||
+        !active.lightEditingPrepared) {
+      throw StateError('Rouvrez le modèle avant de modifier son éclairage.');
+    }
+    if (current.definitions.models3d
+            .singleWhere((model) => model.id == entry.id)
+            .light ==
+        light) {
+      return current;
+    }
+    final beforeRevision = await _lightRevision();
+    if (beforeRevision.catalogRevision != revision) {
+      throw StateError('La ressource a changé. Rouvrez le modèle.');
+    }
+    final parameters = <String, Object?>{
+      'modelId': entry.id,
+      'light': light?.toJson(),
+    };
+    final id =
+        'studio_light_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
+    final plan = await active.mutations.planMutation(
+      active.opened.projectHandle,
+      AuthoringRequest(
+        requestId: id,
+        actionId: 'model3d.configure',
+        actionVersion: 1,
+        workspaceHandle: active.opened.workspaceHandle.value,
+        expectedRevision: revision,
+        idempotencyKey: id,
+        parameters: parameters,
+        extensions: const {'workshopScope': true},
+      ),
+    );
+    late final AuthoringMutationResult result;
+    try {
+      result = await active.mutations.applyMutation(
+        active.opened.projectHandle,
+        planId: plan.planId,
+        operationId: id,
+      );
+    } catch (failure, stack) {
+      try {
+        result = await active.mutations.recoverMutation(
+          active.opened.projectHandle,
+          operationId: id,
+        );
+        if (result.receipt.status.name != 'applied' &&
+            result.receipt.extensions['recoveryOutcome'] != 'resumed') {
+          Error.throwWithStackTrace(failure, stack);
+        }
+      } catch (_) {
+        Error.throwWithStackTrace(failure, stack);
+      }
+    }
+    final afterRevision = await _lightRevision();
+    if (afterRevision.catalogRevision != result.snapshotRevision) {
+      throw StateError(
+        'Éclairage enregistré. Rouvrez le modèle avant de poursuivre.',
+      );
+    }
+    final model = current.definitions.models3d.singleWhere(
+      (model) => model.id == entry.id,
+    );
+    final updated = WorkingCatalogDetail(
+      entry: current.entry,
+      revision:
+          result.snapshotRevision ??
+          (throw StateError(
+            'Éclairage enregistré. Rouvrez le modèle avant de poursuivre.',
+          )),
+      definitions: current.definitions.copyWith(
+        models3d: [
+          for (final value in current.definitions.models3d)
+            value.id == entry.id
+                ? model.copyWith(light: light, clearLight: light == null)
+                : value,
+        ],
+      ),
+      previewIdentity: current.visualIdentity,
+      previousDocumentRevision: beforeRevision.documentRevision,
+      documentRevision: afterRevision.documentRevision,
+      contactShadowProjectDefault: current.contactShadowProjectDefault,
+    );
+    active.detail = updated;
+    return updated;
+  }
+
   @override
   Future<void> close() async {
     if (_closed) return;
@@ -356,5 +500,6 @@ final class _CatalogSession {
   LocalCharacterContactShadowAuthoring shadows;
   WorkingCatalogDetail? detail;
   bool attached = false;
+  bool lightEditingPrepared = false;
   bool metadataNeedsRefresh = false;
 }
