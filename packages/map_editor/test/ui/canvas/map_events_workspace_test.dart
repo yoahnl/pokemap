@@ -8,6 +8,23 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 const _eventId = 'evt_20000000-0000-7000-8000-000000000001';
 
 void main() {
+  testWidgets('atmosphere world rules keep their map target and guided label', (tester) async {
+    final openedRules = <String>[];
+    await _pump(tester, MapEventsWorkspace(
+      readModel: _model(includeAtmosphere: true),
+      onOpenWorldRule: openedRules.add,
+    ));
+    await tester.tap(find.byKey(const ValueKey('map-events-view-rules')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('map-events-rule-rule_atmosphere')));
+    await tester.pump();
+    expect(find.text('Changer l’ambiance 3D'), findsWidgets);
+    expect(find.text('Présente sur Port des Brisants'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('map-events-open-rule-rule_atmosphere')));
+    expect(openedRules, ['rule_atmosphere']);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('lists physical sources and synchronizes their linked Event',
       (tester) async {
     final openedSources = <String>[];
@@ -151,7 +168,7 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
   await tester.pump();
 }
 
-NarrativeMapEventsReadModel _model() {
+NarrativeMapEventsReadModel _model({bool includeAtmosphere = false}) {
   final source = NarrativeEventSourceRef.entityInteract('map_port', 'npc_lysa');
   final event = NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
@@ -186,6 +203,14 @@ NarrativeMapEventsReadModel _model() {
     ],
     scenes: [_scene()],
     worldRules: [
+      if (includeAtmosphere)
+        WorldRuleDefinition(
+          id: 'rule_atmosphere',
+          label: 'Brume du port',
+          source: const WorldRuleSource(kind: WorldRuleSourceKind.fact, sourceId: 'fact_port_open', predicate: WorldRuleSourcePredicate.isTrue),
+          target: const WorldRuleTarget(kind: WorldRuleTargetKind.atmosphere, mapId: 'map_port'),
+          effect: WorldRuleEffect(kind: WorldRuleEffectKind.atmosphere, visualSettings: SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true})),
+        ),
       WorldRuleDefinition(
         id: 'rule_hide_lysa',
         label: 'Lysa disparaît',

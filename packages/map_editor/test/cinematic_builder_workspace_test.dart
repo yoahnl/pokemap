@@ -31,6 +31,37 @@ const _defaultBuilderSurfaceSize = Size(1280, 860);
 const _referenceTimelineSurfaceSize = Size(1663, 926);
 
 void main() {
+  testWidgets('atmosphere timeline keeps its visual label icon and tone', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _actorMovementCinematic().copyWith(
+      timeline: CinematicTimeline(steps: [
+        CinematicTimelineStep(
+          id: 'atmosphere',
+          kind: CinematicTimelineStepKind.atmosphere,
+          label: 'Brume du port',
+          durationMs: 1000,
+          visualSettings: SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true}),
+        ),
+      ]),
+    );
+    await _pumpBuilderHarness(tester, _project(cinematics: [asset]), asset.id,
+      surfaceSize: _referenceTimelineSurfaceSize);
+    final block = find.byKey(const ValueKey('cinematic-builder-time-visual-bar-atmosphere'));
+    expect(block, findsOneWidget);
+    expect(find.descendant(of: block, matching: find.byIcon(CupertinoIcons.cloud_sun)), findsOneWidget);
+    final card = tester.widget<PokeMapCard>(find.byKey(const ValueKey('cinematic-builder-step-card-atmosphere')));
+    final context = tester.element(block);
+    expect(card.backgroundColor, PokeMapTone.warning.resolve(context).soft);
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(tester.getCenter(block));
+    await tester.pumpAndSettle();
+    expect(find.text('Type : Ambiance 3D'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('parallel audio rows preserve separate selectable clips', (tester) async {
     _setLargeSurface(tester);
     final asset = _actorMovementCinematic().copyWith(timeline: CinematicTimeline(steps: [

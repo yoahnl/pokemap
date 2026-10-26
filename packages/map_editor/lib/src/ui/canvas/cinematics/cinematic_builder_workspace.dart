@@ -13891,6 +13891,7 @@ String _timelineStepKindLabel(CinematicTimelineStepKind kind) {
     CinematicTimelineStepKind.fade => 'Fondu',
     CinematicTimelineStepKind.shake => 'Tremblement',
     CinematicTimelineStepKind.fx => 'FX',
+    CinematicTimelineStepKind.atmosphere => 'Ambiance 3D',
     CinematicTimelineStepKind.wait => 'Attente',
     CinematicTimelineStepKind.marker => 'Marqueur',
   };
@@ -14551,6 +14552,7 @@ IconData _stepIcon(CinematicTimelineStepKind kind) {
     CinematicTimelineStepKind.fade => CupertinoIcons.layers_alt,
     CinematicTimelineStepKind.shake => CupertinoIcons.waveform_path,
     CinematicTimelineStepKind.fx => CupertinoIcons.sparkles,
+    CinematicTimelineStepKind.atmosphere => CupertinoIcons.cloud_sun,
     CinematicTimelineStepKind.wait => CupertinoIcons.timer,
     CinematicTimelineStepKind.marker => CupertinoIcons.flag,
   };
@@ -14611,6 +14613,7 @@ PokeMapTone _blockTone(CinematicTimelineStepKind kind) {
       PokeMapTone.narrative,
     CinematicTimelineStepKind.dialogueLine => PokeMapTone.dialogue,
     CinematicTimelineStepKind.fx ||
+    CinematicTimelineStepKind.atmosphere ||
     CinematicTimelineStepKind.shake =>
       PokeMapTone.warning,
     CinematicTimelineStepKind.sound ||

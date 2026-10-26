@@ -361,6 +361,7 @@ class _WorldRuleTargetSectionState extends State<WorldRuleTargetSection> {
       WorldRuleEffectKind.entityVisible => 'Entité visible',
       WorldRuleEffectKind.entityHidden => 'Entité cachée',
       WorldRuleEffectKind.npcDialogueOverride => 'Dialogue PNJ remplacé',
+      WorldRuleEffectKind.atmosphere => 'Ambiance 3D modifiée',
     };
   }
 

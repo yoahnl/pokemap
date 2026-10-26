@@ -1121,6 +1121,7 @@ String _ruleEffectLabel(WorldRuleEffectKind kind) => switch (kind) {
       WorldRuleEffectKind.eventEnabled => 'Activer l’Event',
       WorldRuleEffectKind.eventDisabled => 'Désactiver l’Event',
       WorldRuleEffectKind.eventHidden => 'Masquer l’Event',
+      WorldRuleEffectKind.atmosphere => 'Changer l’ambiance 3D',
     };
 
 String _conditionLabel(NarrativeEventProjectSummary summary, String factId) {

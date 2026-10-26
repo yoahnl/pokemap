@@ -189,9 +189,15 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
       final view = widget.view, model = widget.model;
       final playing = widget.transport.previewActive;
       final profile = _preview?.visualProfile;
-      if (profile != null) _camera.visualProfile = playing
-          ? sampleCinematicVisualProfile(cinematic: model.asset, base: profile, elapsedMs: widget.transport.timeMs)
-          : profile;
+      if (profile != null) {
+        _camera.visualProfile = playing
+            ? sampleCinematicVisualProfile(
+                cinematic: model.asset,
+                base: profile,
+                elapsedMs: widget.transport.timeMs,
+              )
+            : profile;
+      }
       final viewportFrame = _viewportFrame();
       final color = Theme.of(context).colorScheme.primary;
       final actor = model.actors.actorById(view.actorId ?? '');
