@@ -22,14 +22,14 @@ void main() {
       opacity: 0,
     );
     expect(
-      spatialWeatherFrame(settings, seconds: 6.35).particleCount,
+      spatialWeatherFrame(settings, seconds: 4.35).particleCount,
       0,
     );
-    expect(spatialWeatherFrame(settings, seconds: 6.35).flash, greaterThan(0));
+    expect(spatialWeatherFrame(settings, seconds: 4.35).flash, greaterThan(0));
     expect(
       spatialWeatherFrame(
         settings.copyWith(lightning: false),
-        seconds: 6.35,
+        seconds: 4.35,
       ).particleCount,
       0,
     );
@@ -174,7 +174,7 @@ void main() {
       settings.copyWith(density: .25),
       seconds: 10,
     );
-    expect(full.particleCount, spatialWeatherMaximumParticles);
+    expect(full.particleCount, spatialWeatherStyle(SpatialWeatherKind.downpour).count);
     expect(light.particleCount, lessThan(full.particleCount));
     expect(full.windX, greaterThan(0));
     expect(full.windZ.abs(), lessThan(.000001));

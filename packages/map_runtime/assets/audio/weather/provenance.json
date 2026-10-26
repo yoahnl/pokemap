@@ -136,6 +136,57 @@
       "loop": false,
       "peak": 0.779571533203125,
       "rms": 0.1675926887354878
+    },
+    "thunder-recorded-2": {
+      "model": "field-recording",
+      "jobId": null,
+      "prompt": null,
+      "url": "https://cdn.freesound.org/previews/577/577315_97550-hq.mp3",
+      "sourceSha256": "bb57416359cdf6218acc2b6afd323a1033cf0d8d1f4caf21e1a3f705ca6b4aa1",
+      "outputSha256": "72106cdceb8af709e044c02e6fa054a6e1d37f3844101cec5c924cdf0e804690",
+      "durationSeconds": 12.0,
+      "loop": false,
+      "normalizationGain": 1.9229460093896713,
+      "author": "TRP",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sourcePage": "https://freesound.org/people/TRP/sounds/577315/",
+      "recorded": true,
+      "trimStartSeconds": 1.45
+    },
+    "thunder-recorded-1": {
+      "model": "field-recording",
+      "jobId": null,
+      "prompt": null,
+      "url": "https://cdn.freesound.org/previews/194/194364_1985044-hq.mp3",
+      "sourceSha256": "eccec72a7155f7002a62d6926393eeb600337efb5c738be7ac9c0c11d6296c0f",
+      "outputSha256": "d5f066616dee1fa1518713fd128695fde3f3ba136e377149723d9db6617f5cb5",
+      "durationSeconds": 12.0,
+      "loop": false,
+      "normalizationGain": 0.8595750262329486,
+      "author": "Dave Welsh",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sourcePage": "https://freesound.org/people/Dave%20Welsh/sounds/194364/",
+      "recorded": true,
+      "trimStartSeconds": 14.0
+    },
+    "thunder-recorded-0": {
+      "model": "field-recording",
+      "jobId": null,
+      "prompt": null,
+      "url": "https://cdn.freesound.org/previews/458/458015_3366749-hq.mp3",
+      "sourceSha256": "a3641e7c7a00edf79658c60de035fb845f8d81c104543382e8f91bdc7cb23fc3",
+      "outputSha256": "a8ffa8b99f4c902c172cf635f235f613cdc9ddcf17fb1624787149a1873b9b03",
+      "durationSeconds": 10.817777777777778,
+      "loop": false,
+      "normalizationGain": 0.9059017726459587,
+      "author": "seth-m",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "sourcePage": "https://freesound.org/people/seth-m/sounds/458015/",
+      "recorded": true,
+      "trimStartSeconds": 0.6
     }
   }
 }

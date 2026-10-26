@@ -24,7 +24,7 @@ void main() {
     await weather.update(settings, seconds: strike.thunderSeconds + .01);
     expect(drivers[2].plays.single, contains('thunder-'));
     expect(drivers[2].loops, [false]);
-    expect(musicVolume, closeTo(.44, .0001));
+    expect(musicVolume, .8);
     for (var i = 0; i < 60; i++) {
       await weather.update(settings, seconds: strike.thunderSeconds + .02 + i / 60);
     }

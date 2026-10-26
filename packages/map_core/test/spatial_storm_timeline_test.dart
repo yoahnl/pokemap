@@ -6,7 +6,7 @@ void main() {
     'storm events are deterministic, irregular and have delayed thunder',
     () {
       final events = [
-        for (var i = 0; i < 15; i++) spatialStormEventAt(i * 40 + 39),
+        for (var i = 0; i < 15; i++) spatialStormEventAt(i * 24 + 23),
       ];
       final intervals = <int>{};
       final variants = <int>{};
@@ -15,7 +15,7 @@ void main() {
         expect(event.id, i);
         expect(
           event.thunderSeconds - event.strikeSeconds,
-          inInclusiveRange(.8, 3.5),
+          inInclusiveRange(.45, 3.5),
         );
         expect(spatialStormEventAt(event.strikeSeconds + .01).id, event.id);
         expect(event.strength, inInclusiveRange(.65, 1));

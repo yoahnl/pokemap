@@ -94,7 +94,7 @@ final class RuntimeStormAudioController {
     _lastIntensity = intensity;
     final volume = (.75 + .25 * intensity) * event.strength;
     final handle = await driver.play(
-      'packages/map_runtime/assets/audio/weather/thunder-roll-${event.soundVariant}.wav',
+      'packages/map_runtime/assets/audio/weather/thunder-recorded-${event.soundVariant}.wav',
       volume: _suspended
           ? 0
           : mixer.mix.volumeFor(
@@ -117,7 +117,6 @@ final class RuntimeStormAudioController {
     if (_suspended && driver is FlameCinematicAudioPausableDriver) {
       await (driver as FlameCinematicAudioPausableDriver).pause(handle);
     }
-    if (!_suspended) await mixer.setDucking(owner: this, bus: RuntimeAudioBus.music, gain: .55);
     playedCount++;
     lastPlayedAtSeconds = seconds;
     lastVariant = event.soundVariant;
@@ -141,7 +140,6 @@ final class RuntimeStormAudioController {
     await _completion?.cancel();
     _completion = null;
     mixer.unregister(this);
-    await mixer.clearDucking(this);
     if (handle != null) await driver.stop(handle);
   }
 
@@ -158,11 +156,6 @@ final class RuntimeStormAudioController {
         } else {
           await pausable.resume(handle);
         }
-      }
-      if (value) {
-        await mixer.clearDucking(this);
-      } else {
-        await mixer.setDucking(owner: this, bus: RuntimeAudioBus.music, gain: .55);
       }
       final event = spatialStormEventAt(lastPlayedAtSeconds!);
       await driver.setVolume(

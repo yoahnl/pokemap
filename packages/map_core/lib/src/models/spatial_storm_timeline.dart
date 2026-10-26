@@ -14,7 +14,7 @@ SpatialStormEvent spatialStormEventAt(double seconds) {
   if (!seconds.isFinite || seconds < 0) {
     throw ArgumentError.value(seconds, 'seconds');
   }
-  var window = (seconds / 40).floor();
+  var window = (seconds / 24).floor();
   var event = _event(window);
   if (window > 0 && seconds < event.strikeSeconds) event = _event(--window);
   return event;
@@ -22,13 +22,16 @@ SpatialStormEvent spatialStormEventAt(double seconds) {
 
 SpatialStormEvent _event(int window) {
   final strike =
-      window * 40 + (window == 0 ? 6.1 : 6.1 + _random(window, 1) * 16);
+      window * 24 + (window == 0 ? 4.1 : 4.1 + _random(window, 1) * 8);
+  final variant = (_random(window, 4) * 3).floor();
+  final distance = _random(window, 2);
+  final delay = switch (variant) {0 => .45 + distance * .5, 1 => .9 + distance, _ => 1.8 + distance * 1.7};
   return SpatialStormEvent(
     id: window,
     strikeSeconds: strike,
-    thunderSeconds: strike + .8 + _random(window, 2) * 2.7,
+    thunderSeconds: strike + delay,
     strength: .65 + _random(window, 3) * .35,
-    soundVariant: (_random(window, 4) * 3).floor(),
+    soundVariant: variant,
   );
 }
 

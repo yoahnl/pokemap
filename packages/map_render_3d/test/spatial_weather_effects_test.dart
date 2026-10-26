@@ -12,6 +12,19 @@ import 'package:map_render_3d/src/spatial_weather_material.dart';
 import 'package:map_render_3d/src/spatial_weather_profile.dart';
 
 void main() {
+  test('sky illumination needs no rain geometry and clears immediately indoors', () {
+    final effects = SpatialWeatherEffects(World3D());
+    final context = SpatialRenderContext(_Device());
+    final settings = SpatialWeatherSettings(enabled: true, kind: SpatialWeatherKind.tempest, lightning: true, density: 0, opacity: 0, transitionSeconds: 0);
+    void sync(bool indoors) => effects.sync(settings: settings, context: context, dt: .1, seconds: 4.35, night: 1, indoors: indoors, anchor: Vector3.zero(), bounds: const Rect.fromLTWH(0, 0, 35, 35), cameraDistance: 30);
+    sync(false);
+    expect(context.weatherSkyFlash, greaterThan(0));
+    expect(effects.particleCount, 0);
+    expect(context.weatherVeilOpacity, greaterThan(0));
+    sync(true);
+    expect(context.weatherSkyFlash, 0);
+    expect(context.weatherVeilOpacity, 0);
+  });
   test('rain impacts preserve independent manual fog distances', () {
     final effects = SpatialWeatherEffects(World3D());
     final base = SpatialPresentationProfile(

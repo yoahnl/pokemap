@@ -1128,7 +1128,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         _weatherFlashSize = viewport;
         _weatherFlashPaint.shader = ui.Gradient.linear(
           Offset.zero, Offset(0, viewport.height),
-          [const Color(0xffe5edff).withValues(alpha: flash * 5.5), const Color(0xffe5edff).withValues(alpha: flash * 2.5)],
+          [const Color(0xffe5edff).withValues(alpha: flash * 9), const Color(0xffe5edff).withValues(alpha: flash * 5)],
         );
       }
       canvas.drawRect(Offset.zero & viewport, _weatherFlashPaint);

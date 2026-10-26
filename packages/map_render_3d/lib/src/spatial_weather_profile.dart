@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:map_core/map_core.dart';
 
-const spatialWeatherMaximumParticles = 384;
+const spatialWeatherMaximumParticles = 1536;
 
 final class SpatialWeatherFrame {
   const SpatialWeatherFrame({
@@ -57,8 +57,13 @@ SpatialWeatherFrame spatialWeatherFrame(
   final strike = spatialStormEventAt(seconds);
   if ((settings.kind == SpatialWeatherKind.storm || settings.kind == SpatialWeatherKind.tempest || settings.kind == SpatialWeatherKind.hail) && settings.lightning) {
     final phase = seconds - strike.strikeSeconds;
-    flash = .09 * strike.strength * amount *
-        _smooth(phase / .18) * (1 - _smooth((phase - .3) / 1.0));
+    double pulse(double at, double hold, double tail) => _smooth(at / .18) * (1 - _smooth((at - hold) / tail));
+    final shape = switch (strike.soundVariant) {
+      0 => pulse(phase, .25, 1.5),
+      1 => math.max(pulse(phase, .18, .4), .7 * pulse(phase - .65, .18, .65)),
+      _ => pulse(phase, .55, .9),
+    };
+    flash = .09 * strike.strength * amount * shape;
 
   }
   final light =
@@ -135,7 +140,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
       SpatialWeatherKind.windy => const SpatialWeatherStyle(count: 96, shape: 3, fall: .12, size: .055, opacity: .4, wind: 10, cloud: .18, fog: .2),
       SpatialWeatherKind.heavySnow => const SpatialWeatherStyle(count: 384, shape: 1, fall: 1.4, streak: .1, size: .1, opacity: 1, wind: 2, cloud: .22, fog: .7, color: Color(0xfff1f5ff), fogColor: Color(0xffd9e2ed)),
       SpatialWeatherKind.sleet => const SpatialWeatherStyle(count: 352, shape: 7, fall: 10, streak: .8, size: .08, opacity: .95, wind: 5, cloud: .36, fog: .42, impact: .65),
-      SpatialWeatherKind.tempest => const SpatialWeatherStyle(count: 384, shape: 0, fall: 25, streak: .95, size: .022, opacity: 1, wind: 13, cloud: .9, fog: 2, impact: 1.8, color: Color(0xffb8cfe3), fogColor: Color(0xff8397ab)),
+      SpatialWeatherKind.tempest => const SpatialWeatherStyle(count: 1536, shape: 0, fall: 25, streak: .95, size: .022, opacity: 1, wind: 13, cloud: .9, fog: 2, impact: 1.8, color: Color(0xffb8cfe3), fogColor: Color(0xff8397ab)),
       SpatialWeatherKind.cloudy => const SpatialWeatherStyle(
         cloud: .24,
         fog: .05,
@@ -165,7 +170,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
         impact: .5,
       ),
       SpatialWeatherKind.downpour => const SpatialWeatherStyle(
-        count: 384,
+        count: 768,
         shape: 0,
         fall: 14,
         streak: .65,
@@ -177,7 +182,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
         impact: .8,
       ),
       SpatialWeatherKind.storm => const SpatialWeatherStyle(
-        count: 384,
+        count: 1024,
         shape: 0,
         fall: 17,
         streak: .8,

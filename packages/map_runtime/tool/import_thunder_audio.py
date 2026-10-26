@@ -30,15 +30,24 @@ for item in source_metadata['items']:
             samples = array.array('h', audio.readframes(audio.getnframes()))
     if sys.byteorder != 'little':
         samples.byteswap()
+    source_start = 0
+    if item.get('recorded'):
+        step = rate * channels // 20
+        levels = [sum(float(v) ** 2 for v in samples[at:at+step]) / len(samples[at:at+step]) for at in range(0, len(samples), step)]
+        threshold = max(levels) * .025
+        onset = next(at for at, level in enumerate(levels) if level >= threshold)
+        source_start = max(0, onset * step - rate * channels // 10)
+        samples = samples[source_start:source_start + rate * channels * 12]
     peak = max(abs(value) for value in samples)
     rms = math.sqrt(sum(value * value for value in samples) / len(samples))
     gain = min(.16 * 32767 / max(rms, 1), .85 * 32767 / max(peak, 1))
     for frame in range(len(samples) // channels):
-        envelope = min(1, frame / (rate * .008), (len(samples) // channels - frame - 1) / (rate * .08))
+        envelope = min(1, frame / (rate * .008), (len(samples) // channels - frame - 1) / (rate * (.8 if item.get('recorded') else .08)))
         for channel in range(channels):
             at = frame * channels + channel
             samples[at] = round(samples[at] * gain * max(0, envelope))
-    target = destination / f'thunder-{index}.wav'
+    variant = (2, 1, 0)[index] if item.get('recorded') else index
+    target = destination / f"thunder-{'recorded-' if item.get('recorded') else ''}{variant}.wav"
     encoded = samples.tobytes()
     if sys.byteorder != 'little':
         samples.byteswap()
@@ -48,12 +57,15 @@ for item in source_metadata['items']:
         output.setsampwidth(2)
         output.setframerate(rate)
         output.writeframes(encoded)
-    provenance['sources'][f'thunder-{index}'] = {
-        'model': source_metadata['model'], 'jobId': item['jobId'], 'prompt': item['prompt'], 'url': item['url'],
+    provenance['sources'][target.stem] = {
+        'model': source_metadata['model'], 'jobId': item.get('jobId'), 'prompt': item.get('prompt'), 'url': item['url'],
         'sourceSha256': hashlib.sha256(source.read_bytes()).hexdigest(),
         'outputSha256': hashlib.sha256(target.read_bytes()).hexdigest(),
         'durationSeconds': len(samples) / channels / rate, 'loop': False,
         'normalizationGain': gain,
+        'author': item.get('author'), 'license': item.get('license'), 'licenseUrl': item.get('licenseUrl'),
+        'sourcePage': item.get('sourcePage'), 'recorded': item.get('recorded', False),
+        'trimStartSeconds': source_start / channels / rate,
     }
     print(json.dumps({'file': target.name, 'durationSeconds': len(samples) / channels / rate, 'peak': max(abs(value) for value in samples) / 32768}))
 provenance_path.write_text(json.dumps(provenance, indent=2) + '\n')

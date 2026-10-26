@@ -66,7 +66,7 @@ final class RuntimeWeatherAudioController {
       SpatialWeatherKind.sleet => .65,
       _ => 0.0,
     };
-    final envelope = _storm.isPlaying ? .38 : .85;
+    const envelope = .65;
     final next = (
       audible ? rainLevel * settings.intensity * settings.rainVolume * envelope : 0.0,
       audible
