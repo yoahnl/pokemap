@@ -6,6 +6,7 @@ import 'package:flame_3d/graphics.dart';
 import 'package:flutter/widgets.dart' show SizedBox;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_render_3d/src/spatial_depth_of_field.dart';
 import 'package:map_render_3d/src/spatial_environment_lighting.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 import 'package:map_render_3d/src/spatial_point_light.dart';
@@ -15,6 +16,68 @@ import 'package:map_render_3d/src/spatial_scene_view.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(_UnusedBackend.new);
+
+  for (final metadata in [
+    const MapMetadata(isIndoor: true),
+    const MapMetadata(mapType: MapType.building),
+    const MapMetadata(mapType: MapType.interior),
+    const MapMetadata(mapType: MapType.facility),
+    const MapMetadata(mapType: MapType.cave),
+  ]) {
+    final label = metadata.isIndoor ? 'indoor flag' : metadata.mapType.name;
+    test('depth of field is bypassed indoors for $label', () {
+      final fixture = _Fixture(metadata);
+      final profile = SpatialDepthOfFieldProfile(
+        enabled: true,
+        strength: 1,
+        focusRange: 2,
+      );
+      fixture.controller.depthOfFieldProfile = profile;
+
+      fixture.game.syncDepthOfField();
+
+      expect(fixture.context.depthOfField, isNull);
+      expect(fixture.game.device.postProcess, isNull);
+      expect(fixture.controller.depthOfFieldProfile, same(profile));
+      expect(fixture.game.depthOfFieldFrame['targetAllocations'], 0);
+    });
+  }
+
+  test(
+    'depth of field follows the visible map and resumes its exterior profile',
+    () {
+      final fixture = _Fixture(const MapMetadata());
+      final profile = SpatialDepthOfFieldProfile(
+        enabled: true,
+        strength: .6,
+        focusRange: 5,
+      );
+      fixture.controller.depthOfFieldProfile = profile;
+      final exterior = fixture.game.configuration;
+      final interior = fixture.view(const MapMetadata(isIndoor: true));
+      fixture.game.syncDepthOfField();
+      final effect = fixture.context.depthOfField;
+      expect(effect, isNotNull);
+      expect(effect!.profile, same(profile));
+
+      fixture.game.renderedConfiguration = exterior;
+      fixture.game.configuration = interior;
+      fixture.game.syncDepthOfField();
+      expect(fixture.context.depthOfField, same(effect));
+
+      fixture.game.renderedConfiguration = interior;
+      fixture.game.syncDepthOfField();
+      expect(fixture.context.depthOfField, isNull);
+      expect(fixture.game.device.postProcess, isNull);
+      expect(fixture.controller.depthOfFieldProfile, same(profile));
+
+      fixture.game.renderedConfiguration = exterior;
+      fixture.game.syncDepthOfField();
+      expect(fixture.context.depthOfField, same(effect));
+      expect(effect.profile, same(profile));
+      expect(fixture.game.device.postProcess, isNotNull);
+    },
+  );
 
   test(
     'indoor lighting retains its authored appearance throughout the day',

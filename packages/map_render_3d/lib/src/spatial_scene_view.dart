@@ -1106,7 +1106,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   void syncDepthOfField() {
     final renderContext = context as SpatialRenderContext;
     final profile = visibleConfiguration.controller.depthOfFieldProfile;
-    if (profile.active) {
+    if (profile.active && !_isIndoor) {
       final focus = _depthOfField ??= SpatialDepthOfField(device.backend);
       focus
         ..profile = profile
@@ -1138,7 +1138,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final _lightProximity = Expando<SpatialLightProximityState>();
   final _lightEmission = Expando<(Color, double)>();
 
-  bool get _usesIndoorLighting {
+  bool get _isIndoor {
     final metadata = visibleConfiguration.groundMap?.mapMetadata;
     return metadata?.isIndoor == true ||
         switch (metadata?.mapType) {
@@ -1173,7 +1173,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             externalElapsedSeconds: configuration.presentationElapsedSeconds
                 ?.call(),
           ));
-    final frame = _usesIndoorLighting || minute == null
+    final frame = _isIndoor || minute == null
         ? null
         : spatialDayNightFrame(minute);
     final sunDirection = frame == null
@@ -1262,7 +1262,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       definition,
       component.worldTransformMatrix,
       daylight: daylight,
-      indoors: _usesIndoorLighting,
+      indoors: _isIndoor,
       elapsedSeconds: elapsed,
       proximityStrength: strength,
     );
@@ -2843,7 +2843,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         control.dayNightMinuteOfDay ??
         control.previewMinuteOfDay ??
         control.visualProfile.number(SpatialVisualParameter.minuteOfDay);
-    final night = _usesIndoorLighting || minute == null
+    final night = _isIndoor || minute == null
         ? 0.0
         : 1 - spatialDayNightFrame(minute).daylight;
     final renderContext = context as SpatialRenderContext;
