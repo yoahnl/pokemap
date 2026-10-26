@@ -5,6 +5,63 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('item feedback renders and releases the real service input lock',
+      (tester) async {
+    final locks = <bool>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => const GameState(saveId: 'pickup', currentMapId: 'field'),
+      commitAndSave: (_) async {},
+      setInputLocked: locks.add,
+      loadRecoveryCaps: (_) async =>
+          const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {}),
+    );
+    addTearDown(controller.dispose);
+    final request = SceneMessageInteractionRequest(
+      requestId: 'item-potion',
+      revision: 0,
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'overworld.item.received',
+        fallbackText: 'Obtenu : Potion × 1 !',
+      ),
+    );
+    final pending = controller.openSceneTextInteraction(
+      request: OpenSceneTextInteractionService(
+        interactionId: 'pickup-feedback',
+        interaction: request,
+      ),
+    );
+    expect(locks, [true]);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: Scaffold(
+          body: PlayerTextInputOverlay(
+            snapshot: controller.worldServiceSnapshot!,
+            onCommand: controller.dispatchWorldService,
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('scene-interaction-message-dialogue')), findsOneWidget);
+    expect(tester.widget<PlayerDialogueSurface>(find.byType(PlayerDialogueSurface)).data.fullText,
+        'Obtenu : Potion × 1 !');
+    final tap = find.byKey(const ValueKey('dialogue-tap-zone')).first;
+    await tester.tap(tap);
+    await tester.pumpAndSettle();
+    if (controller.worldServiceSnapshot != null) {
+      await tester.tap(tap);
+      await tester.pumpAndSettle();
+    }
+    final result = await pending;
+    expect(result, isA<SceneAcknowledgedInteractionResult>());
+    expect(controller.worldServiceSnapshot, isNull);
+    expect(locks, [true, false]);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('a failed save shows its reason beside the retained text',
       (tester) async {
     final request = SceneTextInteractionRequest(
