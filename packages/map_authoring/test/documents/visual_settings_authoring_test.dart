@@ -49,7 +49,7 @@ void main() {
         for (final (i, enabled) in <bool?>[true, false, null].indexed) {
           final snapshot = await observer.inspect(projectRoot: directory.path);
           final settings = SpatialVisualPatch.fromJson(
-              {if (enabled != null) 'fireflyLighting': enabled});
+              {if (enabled != null) ...{'weatherEnabled': enabled, 'weatherKind': 'snow'}});
           final worker = LocalVisualSettingsAuthoring(
               policy: workerPolicy,
               runInWorker: true,
@@ -90,7 +90,7 @@ void main() {
         expect(
             (await observer.inspect(projectRoot: directory.path))
                 .settings
-                .values[SpatialVisualParameter.fireflyLighting],
+                .values[SpatialVisualParameter.weatherEnabled],
             false);
       } finally {
         await traces.cancel();

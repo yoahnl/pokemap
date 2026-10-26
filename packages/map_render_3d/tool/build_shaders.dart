@@ -23,6 +23,14 @@ Future<void> main() async {
       ),
   ].firstWhere((file) => file.existsSync());
   final bundle = {
+    'WeatherVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/weather.vert',
+    },
+    'WeatherFragment': {
+      'type': 'fragment',
+      'file': '${package.path}/shaders/weather.frag',
+    },
     'CameraDepthFragment': {
       'type': 'fragment',
       'file': '${package.path}/shaders/camera_depth.frag',

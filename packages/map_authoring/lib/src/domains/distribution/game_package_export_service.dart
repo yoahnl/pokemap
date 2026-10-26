@@ -251,8 +251,19 @@ final class CanonicalGamePackageExportService {
           }
           return false;
         });
+      final weather = SpatialWeatherCapabilities.requiresProject(projection.project) ||
+        projection.payloadFiles.entries.any((entry) {
+          if (entry.key.endsWith('.visual.json')) {
+            return SpatialVisualDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresWeather;
+          }
+          if (entry.key.endsWith('.atmosphere.json')) {
+            return SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).settings.weather.hasSettings;
+          }
+          return false;
+        });
       final requiredCapabilities = <String>{
         if (lightWorkshop) SpatialLightWorkshopCapabilities.capabilityId,
+        if (weather) SpatialWeatherCapabilities.capabilityId,
         ...profile.requiredCapabilities,
         if (projection.payloadFiles.keys.any((path) => path == 'project/project.visual.json' || path.endsWith('.visual.json')) ||
             projection.project.worldRules.any((rule) => rule.effect.kind == WorldRuleEffectKind.atmosphere) ||

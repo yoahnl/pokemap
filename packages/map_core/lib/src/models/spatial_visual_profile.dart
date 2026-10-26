@@ -1,6 +1,7 @@
 import 'map_spatial_scene.dart';
 import 'spatial_atmosphere_settings.dart';
 import 'spatial_day_night_cycle.dart';
+import 'spatial_weather_settings.dart';
 
 enum SpatialVisualParameter {
   pitchDegrees(1, 89),
@@ -34,22 +35,53 @@ enum SpatialVisualParameter {
   fireflyBlueAmount(0, 1),
   fireflyPinkAmount(0, 1),
   fireflyLightStrength(0, 1),
-  fireflyLightRadius(.25, 2.5);
+  fireflyLightRadius(.25, 2.5),
+  weatherEnabled.boolean(),
+  weatherKind.weatherChoice(),
+  weatherIntensity(0, 1),
+  weatherDensity(0, 1),
+  weatherSpeed(.1, 3),
+  weatherWindStrength(0, 2),
+  weatherWindDirection(-180, 180),
+  weatherParticleSize(.25, 2),
+  weatherOpacity(0, 1),
+  weatherCloudCover(0, 1),
+  weatherFogStrength(0, 1),
+  weatherTransitionSeconds(0, 5),
+  weatherLightning.boolean(),
+  weatherIndoors.boolean();
 
-  const SpatialVisualParameter(this.minimum, this.maximum) : isBoolean = false;
+  const SpatialVisualParameter(this.minimum, this.maximum)
+    : isBoolean = false,
+      isChoice = false;
   const SpatialVisualParameter.boolean()
     : minimum = 0,
       maximum = 1,
-      isBoolean = true;
+      isBoolean = true,
+      isChoice = false;
+  const SpatialVisualParameter.weatherChoice()
+    : minimum = 0,
+      maximum = 0,
+      isBoolean = false,
+      isChoice = true;
   final double minimum, maximum;
   final bool isBoolean;
+  final bool isChoice;
+  List<String> get choices => isChoice
+      ? [for (final kind in SpatialWeatherKind.values) kind.name]
+      : const [];
   bool get isCamera => index <= lockVerticalFraming.index;
   bool get isClock =>
       index >= dayNightEnabled.index && index <= minuteOfDay.index;
   bool get isAtmosphere => !isCamera && !isClock;
-  bool get isLightWorkshop => index >= fireflyLighting.index;
+  bool get isLightWorkshop =>
+      index >= fireflyLighting.index && index <= fireflyLightRadius.index;
+  bool get isWeather => index >= weatherEnabled.index;
 
   Object normalize(Object? value) {
+    if (isChoice) {
+      return SpatialWeatherKind.parse(value).name;
+    }
     if (isBoolean) {
       if (value is bool) return value;
     } else if (value is num &&
@@ -76,10 +108,13 @@ final class SpatialVisualPatch {
   final Map<SpatialVisualParameter, Object> values;
   bool get isEmpty => values.isEmpty;
   bool get requiresLightWorkshop => values.keys.any((p) => p.isLightWorkshop);
+  bool get requiresWeather => values.keys.any((p) => p.isWeather);
   Object? value(SpatialVisualParameter parameter) => values[parameter];
   double? number(SpatialVisualParameter parameter) =>
       values[parameter] as double?;
   bool? enabled(SpatialVisualParameter parameter) => values[parameter] as bool?;
+  String? choice(SpatialVisualParameter parameter) =>
+      values[parameter] as String?;
 
   factory SpatialVisualPatch.fromScene({
     required SpatialCameraProfile camera,
@@ -94,6 +129,20 @@ final class SpatialVisualPatch {
     'dayNightEnabled': cycle != null,
     'dayDurationSeconds': cycle?.durationSeconds ?? 1200,
     'minuteOfDay': cycle?.startMinuteOfDay ?? 720,
+    'weatherEnabled': atmosphere.weather.enabled,
+    'weatherKind': atmosphere.weather.kind.name,
+    'weatherIntensity': atmosphere.weather.intensity,
+    'weatherDensity': atmosphere.weather.density,
+    'weatherSpeed': atmosphere.weather.speed,
+    'weatherWindStrength': atmosphere.weather.windStrength,
+    'weatherWindDirection': atmosphere.weather.windDirection,
+    'weatherParticleSize': atmosphere.weather.particleSize,
+    'weatherOpacity': atmosphere.weather.opacity,
+    'weatherCloudCover': atmosphere.weather.cloudCover,
+    'weatherFogStrength': atmosphere.weather.fogStrength,
+    'weatherTransitionSeconds': atmosphere.weather.transitionSeconds,
+    'weatherLightning': atmosphere.weather.lightning,
+    'weatherIndoors': atmosphere.weather.indoors,
     'fireflyLighting': atmosphere.fireflyLighting,
     'fireflyYellowAmount': atmosphere.fireflyYellowAmount,
     'fireflyGreenAmount': atmosphere.fireflyGreenAmount,
@@ -164,6 +213,28 @@ final class SpatialVisualPatch {
       SpatialVisualParameter.fogEnd: base.fogEnd,
     }).overriddenBy(this);
     return base.copyWith(
+      weather: base.weather.copyWith(
+        enabled: enabled(SpatialVisualParameter.weatherEnabled),
+        kind: choice(SpatialVisualParameter.weatherKind) == null
+            ? null
+            : SpatialWeatherKind.parse(
+                choice(SpatialVisualParameter.weatherKind),
+              ),
+        intensity: number(SpatialVisualParameter.weatherIntensity),
+        density: number(SpatialVisualParameter.weatherDensity),
+        speed: number(SpatialVisualParameter.weatherSpeed),
+        windStrength: number(SpatialVisualParameter.weatherWindStrength),
+        windDirection: number(SpatialVisualParameter.weatherWindDirection),
+        particleSize: number(SpatialVisualParameter.weatherParticleSize),
+        opacity: number(SpatialVisualParameter.weatherOpacity),
+        cloudCover: number(SpatialVisualParameter.weatherCloudCover),
+        fogStrength: number(SpatialVisualParameter.weatherFogStrength),
+        transitionSeconds: number(
+          SpatialVisualParameter.weatherTransitionSeconds,
+        ),
+        lightning: enabled(SpatialVisualParameter.weatherLightning),
+        indoors: enabled(SpatialVisualParameter.weatherIndoors),
+      ),
       depthOfFieldEnabled: enabled(SpatialVisualParameter.depthOfFieldEnabled),
       depthOfFieldStrength: number(SpatialVisualParameter.depthOfFieldStrength),
       depthOfFieldFocusRange: number(
@@ -253,6 +324,7 @@ final class SpatialVisualDocument {
   static const capabilityId = 'map3d.visual-profile@1';
   static const schemaVersion = 1;
   static const lightWorkshopSchemaVersion = 2;
+  static const weatherSchemaVersion = 3;
   static const maxBytes = 32768;
   static const projectRelativePath = 'project.visual.json';
   final String? mapId;
@@ -277,6 +349,7 @@ final class SpatialVisualDocument {
     if (!{
           schemaVersion,
           lightWorkshopSchemaVersion,
+          weatherSchemaVersion,
         }.contains(json['schemaVersion']) ||
         json.keys.any(
           (key) => !{'schemaVersion', 'mapId', 'profile'}.contains(key),
@@ -290,6 +363,10 @@ final class SpatialVisualDocument {
     final profile = SpatialVisualPatch.fromJson(
       json['profile'] as Map<String, dynamic>,
     );
+    if ((json['schemaVersion'] as int) < weatherSchemaVersion &&
+        profile.requiresWeather) {
+      throw const FormatException('Weather requires visual schema 3.');
+    }
     if (json['schemaVersion'] == schemaVersion &&
         profile.requiresLightWorkshop) {
       throw const FormatException(
@@ -302,7 +379,9 @@ final class SpatialVisualDocument {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': profile.requiresLightWorkshop
+    'schemaVersion': profile.requiresWeather
+        ? weatherSchemaVersion
+        : profile.requiresLightWorkshop
         ? lightWorkshopSchemaVersion
         : schemaVersion,
     if (mapId != null) 'mapId': mapId,

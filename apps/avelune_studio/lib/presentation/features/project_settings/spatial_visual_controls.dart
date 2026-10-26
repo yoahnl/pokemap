@@ -145,6 +145,24 @@ class SpatialVisualControls extends StatelessWidget {
       children: children,
     ),
   );
+  static const weatherPresets = [
+    (SpatialWeatherKind.clear, 'Ciel dégagé', Icons.wb_sunny_outlined),
+    (SpatialWeatherKind.cloudy, 'Couvert', Icons.cloud_outlined),
+    (SpatialWeatherKind.drizzle, 'Bruine', Icons.grain),
+    (SpatialWeatherKind.rain, 'Pluie', Icons.water_drop_outlined),
+    (SpatialWeatherKind.downpour, 'Averse', Icons.water_drop),
+    (SpatialWeatherKind.storm, 'Orage', Icons.thunderstorm_outlined),
+    (SpatialWeatherKind.snow, 'Neige', Icons.ac_unit),
+    (SpatialWeatherKind.blizzard, 'Blizzard', Icons.severe_cold_outlined),
+    (SpatialWeatherKind.hail, 'Grêle', Icons.blur_on),
+    (SpatialWeatherKind.mist, 'Brume légère', Icons.cloud_queue),
+    (SpatialWeatherKind.fog, 'Brouillard', Icons.foggy),
+    (SpatialWeatherKind.dust, 'Poussières', Icons.air),
+    (SpatialWeatherKind.sandstorm, 'Tempête de sable', Icons.tornado),
+    (SpatialWeatherKind.petals, 'Pétales', Icons.local_florist_outlined),
+    (SpatialWeatherKind.leaves, 'Feuilles d’automne', Icons.eco_outlined),
+  ];
+
   @override
   Widget build(BuildContext context) {
     const p = SpatialVisualParameter.values;
@@ -248,6 +266,113 @@ class SpatialVisualControls extends StatelessWidget {
               ),
             ],
           ),
+        group('Météo et saisons', Icons.cloud_outlined, StudioAccent.water, [
+          toggle(
+            SpatialVisualParameter.weatherEnabled,
+            'Activer la météo',
+            Icons.cloud_outlined,
+            StudioAccent.water,
+          ),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final preset in weatherPresets)
+                StudioButton(
+                  key: ValueKey('weather-preset-${preset.$1.name}'),
+                  label: preset.$2,
+                  icon: preset.$3,
+                  secondary:
+                      effective.choice(SpatialVisualParameter.weatherKind) !=
+                      preset.$1.name,
+                  onPressed: onChanged == null
+                      ? null
+                      : () => onChanged!(
+                          patch
+                              .set(
+                                SpatialVisualParameter.weatherKind,
+                                preset.$1.name,
+                              )
+                              .set(
+                                SpatialVisualParameter.weatherEnabled,
+                                preset.$1 != SpatialWeatherKind.clear,
+                              ),
+                        ),
+                ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: inherit(SpatialVisualParameter.weatherKind),
+          ),
+          slider(SpatialVisualParameter.weatherIntensity, 'Intensité', 0, 1),
+          slider(
+            SpatialVisualParameter.weatherDensity,
+            'Quantité de particules',
+            0,
+            1,
+          ),
+          slider(SpatialVisualParameter.weatherSpeed, 'Vitesse', .1, 3),
+          slider(
+            SpatialVisualParameter.weatherWindStrength,
+            'Force du vent',
+            0,
+            2,
+          ),
+          slider(
+            SpatialVisualParameter.weatherWindDirection,
+            'Direction du vent',
+            -180,
+            180,
+            format: (v) => '${v.round()}°',
+          ),
+          slider(
+            SpatialVisualParameter.weatherParticleSize,
+            'Taille des particules',
+            .25,
+            2,
+          ),
+          slider(
+            SpatialVisualParameter.weatherOpacity,
+            'Visibilité des particules',
+            0,
+            1,
+          ),
+          slider(
+            SpatialVisualParameter.weatherCloudCover,
+            'Assombrissement du ciel',
+            0,
+            1,
+          ),
+          slider(
+            SpatialVisualParameter.weatherFogStrength,
+            'Voile atmosphérique',
+            0,
+            1,
+          ),
+          slider(
+            SpatialVisualParameter.weatherTransitionSeconds,
+            'Transition',
+            0,
+            5,
+            format: (v) => '${v.toStringAsFixed(1)} s',
+          ),
+          toggle(
+            SpatialVisualParameter.weatherLightning,
+            'Lueur lente des éclairs · orage',
+            Icons.bolt_outlined,
+            StudioAccent.daylight,
+          ),
+          toggle(
+            SpatialVisualParameter.weatherIndoors,
+            'Autoriser dans les intérieurs',
+            Icons.home_outlined,
+            StudioAccent.fog,
+          ),
+          const Text(
+            'La météo reste locale à la scène et suit le joueur. Les intérieurs sont protégés par défaut. Les éclairs sont désactivés par défaut.',
+          ),
+        ]),
         group('Profondeur de champ', Icons.camera, StudioAccent.fog, [
           toggle(p[8], 'Activer le flou', Icons.camera, StudioAccent.fog),
           slider(

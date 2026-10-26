@@ -19,9 +19,10 @@ test("visual defaults and map inheritance use bounded canonical documents across
  }
  try{
   await mkdir(join(root,"maps"));await writeFile(join(root,"project.json"),"unreadable unrelated project");await writeFile(join(root,"maps","shore.json"),"unreadable map");
-  for(const [i,settings] of [{depthOfFieldEnabled:true,pitchDegrees:34},{depthOfFieldEnabled:false},{},{fireflyLighting:true,fireflyGreenAmount:.5,fireflyBlueAmount:.8,fireflyLightRadius:1.25}].entries()){
+  for(const [i,settings] of [{depthOfFieldEnabled:true,pitchDegrees:34},{depthOfFieldEnabled:false},{},{fireflyLighting:true,fireflyGreenAmount:.5,fireflyBlueAmount:.8,fireflyLightRadius:1.25},{weatherEnabled:true,weatherKind:"snow",weatherIntensity:.8},{weatherEnabled:false,weatherKind:"snow"},{}].entries()){
    await session(async call=>{
     const catalog=await call("pokemap_describe");assert.equal(record(catalog.visualSettingsAuthoring).id,"visual.settings.set");
+    assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("weatherKind"));
     const initial=await call("pokemap_visual_settings_inspect",{projectRoot:root});
     const input={projectRoot:root,expectedRevision:initial.revision,settings,operationId:`visual-${i}`};
     const changed=await call("pokemap_visual_settings_set",input);assert.deepEqual(changed.afterSettings,settings);

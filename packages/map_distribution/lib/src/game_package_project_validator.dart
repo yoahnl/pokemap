@@ -69,6 +69,7 @@ final class GamePackageProjectValidator {
               entry.id,
       };
       var visualProfiles = false;
+      var weather = SpatialWeatherCapabilities.requiresProject(project);
       var lightWorkshop = SpatialLightWorkshopCapabilities.requiresProject(project);
       for (final entry in visualPaths.entries) {
         if (!payloadPaths.contains(entry.key)) continue;
@@ -81,6 +82,7 @@ final class GamePackageProjectValidator {
             Map<String, dynamic>.from(
                 decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         lightWorkshop |= document.profile.requiresLightWorkshop;
+        weather |= document.profile.requiresWeather;
         if (document.mapId != entry.value) {
           _fail('Visual settings identity mismatch.');
         }
@@ -156,10 +158,14 @@ final class GamePackageProjectValidator {
         if (bytes == null || bytes.length > SpatialAtmosphereDocument.maxBytes) _fail('Atmosphere sidecar is missing or exceeds its byte limit.');
         final document = SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         lightWorkshop |= document.settings.hasFireflyStyle;
+        weather |= document.settings.weather.hasSettings;
         if (document.mapId != mapId) _fail('Atmosphere map identity mismatch.');
       }
       if (lightWorkshop && !packageManifest.compatibility.requiredCapabilities.contains(SpatialLightWorkshopCapabilities.capabilityId)) {
         _fail('Extended lights require map3d.light-workshop@1.');
+      }
+      if (weather && !packageManifest.compatibility.requiredCapabilities.contains(SpatialWeatherCapabilities.capabilityId)) {
+        _fail('Weather requires map3d.weather@1.');
       }
       final spatial = project.settings.dimension == ProjectDimension.threeD;
       final gameplay = packageManifest.compatibility.requiredCapabilities

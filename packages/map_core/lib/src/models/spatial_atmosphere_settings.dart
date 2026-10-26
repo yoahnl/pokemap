@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 import 'project_model3d.dart';
+import 'spatial_weather_settings.dart';
 
 final class SpatialAtmosphereDocument {
   SpatialAtmosphereDocument({required String mapId, required this.settings})
@@ -9,6 +10,7 @@ final class SpatialAtmosphereDocument {
   final SpatialAtmosphereSettings settings;
   static const schemaVersion = 2;
   static const lightWorkshopSchemaVersion = 3;
+  static const weatherSchemaVersion = 4;
   static const presentationOnly = true;
   static const absentDefaultsDisabled = true;
   static const maxBytes = 65536;
@@ -21,10 +23,15 @@ final class SpatialAtmosphereDocument {
           1,
           schemaVersion,
           lightWorkshopSchemaVersion,
+          weatherSchemaVersion,
         }.contains(json['schemaVersion'])) {
       throw const FormatException('Unsupported atmosphere schema version.');
     }
     final settings = _object(json['settings']);
+    if ((json['schemaVersion'] as int) < weatherSchemaVersion &&
+        settings.containsKey('weather')) {
+      throw const FormatException('Weather requires atmosphere schema 4.');
+    }
     if (json['schemaVersion'] == 1 &&
         settings.keys.any(
           SpatialAtmosphereSettings.presentationKeys.contains,
@@ -47,7 +54,9 @@ final class SpatialAtmosphereDocument {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': settings.hasFireflyStyle
+    'schemaVersion': settings.weather.hasSettings
+        ? weatherSchemaVersion
+        : settings.hasFireflyStyle
         ? lightWorkshopSchemaVersion
         : schemaVersion,
     'mapId': mapId,
@@ -269,6 +278,7 @@ final class SpatialAtmosphereSettings {
     'fireflyLightRadius',
   };
   SpatialAtmosphereSettings({
+    SpatialWeatherSettings? weather,
     this.waterAnimated = false,
     this.windowsLit = false,
     this.fireflies = false,
@@ -298,7 +308,8 @@ final class SpatialAtmosphereSettings {
     List<SpatialAtmosphereMaterialTarget> waterTargets = const [],
     List<SpatialAtmosphereWindow> windows = const [],
     List<SpatialAtmosphereFireflyZone> fireflyZones = const [],
-  }) : fireflyYellowAmount = _range(fireflyYellowAmount, 0, 1),
+  }) : weather = weather ?? SpatialWeatherSettings(),
+       fireflyYellowAmount = _range(fireflyYellowAmount, 0, 1),
        fireflyGreenAmount = _range(fireflyGreenAmount, 0, 1),
        fireflyBlueAmount = _range(fireflyBlueAmount, 0, 1),
        fireflyPinkAmount = _range(fireflyPinkAmount, 0, 1),
@@ -331,6 +342,7 @@ final class SpatialAtmosphereSettings {
     }
   }
   final bool fireflyLighting;
+  final SpatialWeatherSettings weather;
   final double fireflyYellowAmount,
       fireflyGreenAmount,
       fireflyBlueAmount,
@@ -358,6 +370,7 @@ final class SpatialAtmosphereSettings {
     _keys(json, {
       ...presentationKeys,
       ...fireflyStyleKeys,
+      'weather',
       'waterAnimated',
       'windowsLit',
       'fireflies',
@@ -370,6 +383,9 @@ final class SpatialAtmosphereSettings {
       'fireflyZones',
     });
     return SpatialAtmosphereSettings(
+      weather: json['weather'] == null
+          ? null
+          : SpatialWeatherSettings.fromJson(_object(json['weather'])),
       fireflyLighting: _boolean(json['fireflyLighting'], false),
       fireflyYellowAmount: _number(json['fireflyYellowAmount'] ?? 1),
       fireflyGreenAmount: _number(json['fireflyGreenAmount'] ?? 0),
@@ -412,6 +428,7 @@ final class SpatialAtmosphereSettings {
     );
   }
   SpatialAtmosphereSettings copyWith({
+    SpatialWeatherSettings? weather,
     bool? fireflyLighting,
     num? fireflyYellowAmount,
     num? fireflyGreenAmount,
@@ -442,6 +459,7 @@ final class SpatialAtmosphereSettings {
     List<SpatialAtmosphereWindow>? windows,
     List<SpatialAtmosphereFireflyZone>? fireflyZones,
   }) => SpatialAtmosphereSettings(
+    weather: weather ?? this.weather,
     fireflyLighting: fireflyLighting ?? this.fireflyLighting,
     fireflyYellowAmount: fireflyYellowAmount ?? this.fireflyYellowAmount,
     fireflyGreenAmount: fireflyGreenAmount ?? this.fireflyGreenAmount,
@@ -473,6 +491,7 @@ final class SpatialAtmosphereSettings {
     fireflyZones: fireflyZones ?? this.fireflyZones,
   );
   Map<String, dynamic> toJson() => {
+    if (weather.hasSettings) 'weather': weather.toJson(),
     if (hasFireflyStyle) ...{
       'fireflyLighting': fireflyLighting,
       'fireflyYellowAmount': fireflyYellowAmount,

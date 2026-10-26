@@ -49,6 +49,7 @@ import 'spatial_environment_lighting.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
 import 'spatial_depth_of_field.dart';
+import 'spatial_weather_effects.dart';
 
 Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
 
@@ -205,6 +206,8 @@ class SpatialSceneController extends ModelPreviewController {
     super.notifyListeners();
   }
 
+  SpatialWeatherSettings get weatherSettings =>
+      (_authoredAtmosphere ?? _baseAtmosphere).weather;
   SpatialAtmosphereSettings? _authoredAtmosphere;
   void applyAtmosphereSettings(SpatialAtmosphereSettings settings) {
     _baseAtmosphere = settings;
@@ -217,6 +220,7 @@ class SpatialSceneController extends ModelPreviewController {
     final geometryChanged =
         previous == null ||
         previous.copyWith(
+              weather: settings.weather,
               halosEnabled: settings.halosEnabled,
               depthFogEnabled: settings.depthFogEnabled,
               depthOfFieldEnabled: settings.depthOfFieldEnabled,
@@ -1238,6 +1242,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final actors =
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
   late final actorContactShadows = SpatialActorContactShadows(world);
+  late final weatherEffects = SpatialWeatherEffects(world);
   late final atmosphereEffects = SpatialAtmosphereEffects(world);
   late final presentationEffects = SpatialPresentationEffects(world);
   double atmosphereElapsed = 0;
@@ -1553,6 +1558,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   Future<void> onLoad() async {
     await super.onLoad();
     if (closed) return;
+    weatherEffects.prepare();
     sceneReady = true;
     configuration.controller.sceneChanges.addListener(syncCamera);
     configuration.animationPreview?.addListener(syncAnimations);
@@ -2791,6 +2797,30 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       cameraYaw: billboardYaw,
     );
     syncLighting();
+    final hero = actorVisual;
+    final weatherAnchor = hero == null
+        ? camera.target.clone()
+        : Vector3(
+            hero.x + configuration.sceneOffset.dx,
+            hero.y,
+            hero.z + configuration.sceneOffset.dy,
+          );
+    weatherEffects.sync(
+      settings: control.weatherSettings,
+      context: renderContext,
+      dt: dt,
+      seconds: elapsed,
+      night: night,
+      indoors: configuration.groundMap?.mapMetadata.isIndoor ?? false,
+      anchor: weatherAnchor,
+      bounds: Rect.fromLTWH(
+        configuration.sceneOffset.dx,
+        configuration.sceneOffset.dy,
+        configuration.scene.width.toDouble(),
+        configuration.scene.depth.toDouble(),
+      ),
+      cameraDistance: (camera.position - camera.target).length,
+    );
     presentationEffects.sync(
       profile: control.presentationProfile,
       enabled: control.halosEnabled,
@@ -3305,6 +3335,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     _pendingVisualOrder = null;
     generation++;
     atmosphereEffects.clear();
+    weatherEffects.clear();
     presentationEffects.clear();
     sceneComponents.dispose();
     placementRenderer.dispose();

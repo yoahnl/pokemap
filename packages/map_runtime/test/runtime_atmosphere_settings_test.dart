@@ -22,8 +22,10 @@ void main() {
       mapId: fixture.map.id,
     );
     expect(legacy.spatialAtmosphereSettings.waterAnimated, isFalse);
+    expect(legacy.spatialAtmosphereSettings.weather.active, isFalse);
     expect(legacy.spatialAtmosphereSettings.depthOfFieldEnabled, isFalse);
     final settings = SpatialAtmosphereSettings(
+      weather: SpatialWeatherSettings(enabled: true, kind: SpatialWeatherKind.snow),
       waterAnimated: true,
       windowsLit: true,
       fireflies: true,
@@ -60,7 +62,7 @@ void main() {
     expect(await file.readAsBytes(), protectedBytes);
     final before = await file.readAsBytes();
     await file.writeAsString(
-      jsonEncode({'schemaVersion': 3, 'mapId': fixture.map.id, 'settings': {}}),
+      jsonEncode({'schemaVersion': 5, 'mapId': fixture.map.id, 'settings': {}}),
     );
     final unsupported = await file.readAsBytes();
     await expectLater(

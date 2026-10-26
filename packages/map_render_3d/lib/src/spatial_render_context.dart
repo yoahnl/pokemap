@@ -15,6 +15,7 @@ import 'spatial_point_shadow.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
 import 'spatial_depth_of_field.dart';
+import 'spatial_weather_material.dart';
 import 'flutter_frame_graphics_device.dart';
 
 class SpatialRenderContext extends RenderContext3D
@@ -64,6 +65,8 @@ class SpatialRenderContext extends RenderContext3D
   final _casterSurfaces = <_TransparentSurface>[];
   bool _capturingShadowCasters = false;
 
+  int weatherDrawCount = 0;
+  final _weather = <Surface>[];
   final _transparent = <_TransparentSurface>[];
   final _unlitDepth = <_TransparentSurface>[];
   final _depthProxies = Expando<SpatialPixelMaterial>();
@@ -88,6 +91,10 @@ class SpatialRenderContext extends RenderContext3D
   @override
   void drawSurface(Surface surface) {
     final material = surface.material;
+    if (material is SpatialWeatherMaterial) {
+      if (!_capturingShadowCasters) _weather.add(surface);
+      return;
+    }
     if (_collecting &&
         material is UnlitMaterial &&
         material is! SpatialPixelMaterial &&
@@ -162,6 +169,7 @@ class SpatialRenderContext extends RenderContext3D
     shadowFrame = null;
     pointShadowFrame = null;
     _hiddenDrawCount = 0;
+    weatherDrawCount = 0;
     try {
       final focus = depthOfField;
       final focusDevice = device;
@@ -340,7 +348,10 @@ class SpatialRenderContext extends RenderContext3D
         pointTargetAllocations: _shadowMap?.pointTargetAllocations ?? 0,
         pointShadowLightCount: pointShadowFrame?.lightCount ?? 0,
       );
-      if (_transparent.isEmpty) return;
+      if (_transparent.isEmpty) {
+        _drawWeather();
+        return;
+      }
       final previousModel = model.clone();
       final previousJoints = jointsInfo.jointTransforms;
       try {
@@ -372,13 +383,22 @@ class SpatialRenderContext extends RenderContext3D
         model.setFrom(previousModel);
         jointsInfo.jointTransforms = previousJoints;
       }
+      _drawWeather();
     } finally {
+      _weather.clear();
       _collecting = false;
       _capturingShadowCasters = false;
       _captured.clear();
       _casterSurfaces.clear();
       _transparent.clear();
       _unlitDepth.clear();
+    }
+  }
+
+  void _drawWeather() {
+    for (final surface in _weather) {
+      super.drawSurface(surface);
+      weatherDrawCount++;
     }
   }
 

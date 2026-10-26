@@ -15,6 +15,7 @@ void main() {
     final files = spatialPayload();
     final sidecar = SpatialAtmosphereDocument.relativePathForMap('map');
     final settings = SpatialAtmosphereSettings(
+        weather: SpatialWeatherSettings(enabled: true, kind: SpatialWeatherKind.rain),
         waterAnimated: true,
         windowsLit: true,
         fireflies: true, fireflyLighting: true, fireflyPinkAmount: .5,
@@ -22,7 +23,7 @@ void main() {
         fogOpacity: .32, fogStart: 39, fogEnd: 49,
         halos: [SpatialAtmosphereHalo(instanceId: 'model', localPosition: Model3dVector3(x: 0, y: 2, z: 0))],
         waterStrength: .6);
-    final visual = SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'pitchDegrees':34,'depthOfFieldEnabled':true}));
+    final visual = SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'pitchDegrees':34,'depthOfFieldEnabled':true,'weatherKind':'snow'}));
     files['project/project.visual.json'] = utf8.encode(jsonEncode(visual.toJson()));
     files['project/maps/map.visual.json'] = utf8.encode(jsonEncode(SpatialVisualDocument(mapId: 'map', profile: SpatialVisualPatch.fromJson({'fogOpacity': .3})).toJson()));
     files['project/$sidecar'] = utf8.encode(jsonEncode(
@@ -44,6 +45,7 @@ void main() {
         mode: GamePackageExportMode.localTest);
     expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialVisualDocument.capabilityId));
     expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialLightWorkshopCapabilities.capabilityId));
+    expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialWeatherCapabilities.capabilityId));
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
     for (final path in ['project/project.visual.json', 'project/maps/map.visual.json']) {
       expect(archive.findFile(path)?.content, files[path]);

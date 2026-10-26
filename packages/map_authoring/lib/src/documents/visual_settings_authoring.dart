@@ -116,7 +116,7 @@ final class LocalVisualSettingsAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: {
-        'documentSchemaVersions': [1, 2],
+        'documentSchemaVersions': [1, 2, 3],
         'effects': [
           'waterAnimated',
           'windowsLit',
@@ -143,6 +143,16 @@ final class LocalVisualSettingsAuthoring {
         'capability': SpatialVisualDocument.capabilityId,
         'extendedLightingCapability':
             SpatialLightWorkshopCapabilities.capabilityId,
+        'weatherCapability': SpatialWeatherCapabilities.capabilityId,
+        'weatherKinds': [for (final kind in SpatialWeatherKind.values) kind.name],
+        'parameterTypes': {
+          for (final parameter in SpatialVisualParameter.values)
+            parameter.name: parameter.isChoice
+                ? {'type': 'string', 'enum': parameter.choices}
+                : parameter.isBoolean
+                ? {'type': 'boolean'}
+                : {'type': 'number', 'minimum': parameter.minimum, 'maximum': parameter.maximum},
+        },
         'fireflyPalette': 'normalizedWithinDensityBudget',
         'missingDocument': 'inheritExistingBehavior',
         'olderHost': 'requiresVisualProfileCapability'
