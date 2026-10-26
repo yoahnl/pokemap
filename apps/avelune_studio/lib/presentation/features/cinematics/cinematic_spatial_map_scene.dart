@@ -85,6 +85,7 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
       setState(() {
         _preview?.dispose();
         _preview = preview;
+        _camera.applyAtmosphereSettings(preview.atmosphere ?? SpatialAtmosphereSettings());
       });
     } catch (error) {
       if (mounted && request == _request) {
@@ -187,6 +188,10 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
     builder: (context, _) {
       final view = widget.view, model = widget.model;
       final playing = widget.transport.previewActive;
+      final profile = _preview?.visualProfile;
+      if (profile != null) _camera.visualProfile = playing
+          ? sampleCinematicVisualProfile(cinematic: model.asset, base: profile, elapsedMs: widget.transport.timeMs)
+          : profile;
       final viewportFrame = _viewportFrame();
       final color = Theme.of(context).colorScheme.primary;
       final actor = model.actors.actorById(view.actorId ?? '');

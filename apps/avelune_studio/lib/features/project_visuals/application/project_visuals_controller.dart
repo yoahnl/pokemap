@@ -19,7 +19,10 @@ final class ProjectVisualsController extends ChangeNotifier {
   int _generation = 0;
   bool _disposed = false;
   SpatialVisualPatch? _gestureStart;
-  void beginGesture() { _gestureStart ??= preview.value; }
+  void beginGesture() {
+    _gestureStart ??= preview.value;
+  }
+
   void endGesture() {
     final start = _gestureStart;
     _gestureStart = null;
@@ -29,6 +32,7 @@ final class ProjectVisualsController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   bool get dirty => saved != null && saved!.profile != preview.value;
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;

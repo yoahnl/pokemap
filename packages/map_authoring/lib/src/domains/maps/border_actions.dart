@@ -1594,13 +1594,6 @@ MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
   try {
     if (spatial) {
       final baseMap = upsertBorderFeature(map, layerId: layerId, feature: baseFeature);
-      final base = resolveSpatialBorderFeature(manifest: manifest, map: baseMap,
-          layerId: layerId, featureId: featureId);
-      if (!base.result.canApply) {
-        throw semanticFailure('border.slot_generation_failed',
-            'The spatial Border base slots cannot be resolved.',
-            details: {'diagnostics': base.result.diagnostics.map((issue) => issue.code).toList()});
-      }
       slots = resolveSpatialBorderFeatureBaseSlotKeys(
           manifest: manifest, map: baseMap,
           layerId: layerId, featureId: featureId);

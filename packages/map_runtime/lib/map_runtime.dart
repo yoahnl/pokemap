@@ -305,6 +305,8 @@ export 'src/application/load_runtime_map_bundle.dart'
         RuntimeMapBundleLoadProgressSink,
         RuntimeMapBundleLoadStage,
         loadRuntimeMapBundle,
+        loadSpatialAtmosphereSettings,
+        loadSpatialVisualProfile,
         loadProjectManifestFromFile,
         loadMapDataFiles,
         loadMapDataFromFile;

@@ -60,3 +60,5 @@ export 'src/models/map_editor_state.dart';
 export 'src/models/spatial_visual_profile.dart';
 
 export 'src/projection/spatial_visual_rule_resolver.dart';
+
+export 'src/projection/cinematic_visual_profile.dart';

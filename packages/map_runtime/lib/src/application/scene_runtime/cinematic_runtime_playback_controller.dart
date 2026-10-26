@@ -474,6 +474,7 @@ final class _CinematicRuntimeActiveStep {
 }
 
 const _supportedKinds = <CinematicTimelineStepKind>{
+  CinematicTimelineStepKind.atmosphere,
   CinematicTimelineStepKind.wait,
   CinematicTimelineStepKind.camera,
   CinematicTimelineStepKind.actorMove,

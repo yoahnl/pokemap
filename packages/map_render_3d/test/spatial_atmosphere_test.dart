@@ -10,6 +10,26 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_render_3d/src/spatial_atmosphere.dart';
 
 void main() {
+  test('visual defaults update scalars and camera without rebuilding resident sources', () {
+    final controller = SpatialSceneController();
+    final base = SpatialAtmosphereSettings(waterTargets: [SpatialAtmosphereMaterialTarget.groundTileset('water')]);
+    controller.applyAtmosphereSettings(base);
+    final resident = controller.atmosphereProfile;
+    var changes = 0;
+    controller.sceneChanges.addListener(() => changes++);
+    final patch = SpatialVisualPatch.fromJson({'pitchDegrees':34,'fieldOfViewDegrees':20,'depthOfFieldEnabled':true,'depthOfFieldStrength':.65,'waterStrength':1.2});
+    controller.visualProfile = patch;
+    expect(controller.effectiveCamera(SpatialCameraProfile()).pitchDegrees, 34);
+    expect(controller.depthOfFieldProfile.strength, .65);
+    expect(controller.atmosphereProfile, same(resident));
+    expect(changes, 0);
+    controller.visualProfile = SpatialVisualPatch();
+    expect(controller.depthOfFieldEnabled, isFalse);
+    expect(controller.atmosphereProfile, same(resident));
+    expect(changes, 0);
+    controller.dispose();
+  });
+
   final target = SpatialAtmosphereTarget(
     instanceId: 'house',
     materialName: 'glass',

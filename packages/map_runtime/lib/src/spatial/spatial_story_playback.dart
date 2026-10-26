@@ -140,8 +140,11 @@ final class SpatialStoryPlayback {
     return SpatialVisualPatch.fromScene(camera: scene.camera, atmosphere: bundle.spatialAtmosphereSettings, cycle: scene.dayNightCycle)
         .overriddenBy(bundle.visualProfile).overriddenBy(session.worldVisualProfile?.call() ?? SpatialVisualPatch());
   }
-  Future<String> playVisual(SceneInteractiveCommand command, {Object? owner}) => command is SceneWorldPresentationInteractiveCommand
-      ? visuals.execute(command, owner: owner) : Future.value('blocked');
+  Future<String> playVisual(SceneInteractiveCommand command, {Object? owner}) async {
+    if (command is! SceneWorldPresentationInteractiveCommand) return 'blocked';
+    final result = await visuals.execute(command, owner: owner);
+    return result == 'completed' ? 'completed' : 'blocked';
+  }
   final GameState Function() readGameState;
   final void Function(GameState) writeGameState;
   late final SpatialModelAnimationController models;

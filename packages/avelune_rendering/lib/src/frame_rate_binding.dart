@@ -1,17 +1,15 @@
-import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 
 import 'frame_pacer.dart';
 import 'frame_rate.dart';
 
 mixin AveluneFrameRateBinding on WidgetsBinding {
-  final _framePacingStopwatch = Stopwatch()..start();
   AveluneFramePacer? _framePacer;
-  Timer? _pendingFrameTimer;
-
-  @protected
-  Duration get framePacingElapsed => _framePacingStopwatch.elapsed;
+  Duration? _vsyncEpoch;
+  Duration? _lastVsync;
+  bool _skipDraw = false;
+  bool _awaitingFrame = false;
+  bool _forceFrame = false;
 
   @override
   void initInstances() {
@@ -22,47 +20,69 @@ mixin AveluneFrameRateBinding on WidgetsBinding {
 
   void _frameRateChanged() {
     _framePacer?.setLimit(AveluneFrameRate.limit);
-    if (_pendingFrameTimer == null) return;
-    _pendingFrameTimer!.cancel();
-    _pendingFrameTimer = null;
-    scheduleFrame();
   }
 
   @override
-  void scheduleFrame() {
-    if (hasScheduledFrame || !framesEnabled || _pendingFrameTimer != null) {
-      return;
-    }
-    final wait = _framePacer?.delay(framePacingElapsed) ?? Duration.zero;
-    if (wait == Duration.zero) {
-      super.scheduleFrame();
-    } else {
-      _pendingFrameTimer = Timer(wait, () {
-        _pendingFrameTimer = null;
-        scheduleFrame();
-      });
-    }
+  void scheduleForcedFrame() {
+    _forceFrame = true;
+    super.scheduleForcedFrame();
   }
 
   @override
   void handleBeginFrame(Duration? rawTimeStamp) {
-    _pendingFrameTimer?.cancel();
-    _pendingFrameTimer = null;
-    if (rawTimeStamp != null) _framePacer?.frameStarted(framePacingElapsed);
+    if (rawTimeStamp != null) {
+      final previous = _lastVsync;
+      if (previous != null && rawTimeStamp < previous) {
+        resetEpoch();
+        _framePacer?.reset();
+        _vsyncEpoch = rawTimeStamp;
+      }
+      _lastVsync = rawTimeStamp;
+    }
+    final pacingTime = rawTimeStamp == null ? null : _pacingTime(rawTimeStamp);
+    final forced = _forceFrame;
+    _forceFrame = false;
+    if (rawTimeStamp != null &&
+        framesEnabled &&
+        !forced &&
+        (_framePacer?.delay(pacingTime!) ?? Duration.zero) > Duration.zero) {
+      _skipDraw = true;
+      _awaitingFrame = true;
+      return;
+    }
+    _skipDraw = false;
+    _awaitingFrame = false;
+    if (rawTimeStamp != null && framesEnabled) {
+      _framePacer?.frameStarted(pacingTime!);
+    }
     super.handleBeginFrame(rawTimeStamp);
   }
 
   @override
-  void handleAppLifecycleStateChanged(AppLifecycleState state) {
-    if (state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      _pendingFrameTimer?.cancel();
-      _pendingFrameTimer = null;
-      _framePacer?.reset();
+  void handleDrawFrame() {
+    if (!_skipDraw) {
+      super.handleDrawFrame();
+      return;
     }
-    super.handleAppLifecycleStateChanged(state);
+    _skipDraw = false;
+    platformDispatcher.scheduleFrame();
   }
+
+  @override
+  void handleAppLifecycleStateChanged(AppLifecycleState state) {
+    final previouslyEnabled = framesEnabled;
+    super.handleAppLifecycleStateChanged(state);
+    if (!framesEnabled) {
+      _framePacer?.reset();
+      _lastVsync = null;
+      _vsyncEpoch = null;
+    } else if (!previouslyEnabled && _awaitingFrame && hasScheduledFrame) {
+      platformDispatcher.scheduleFrame();
+    }
+  }
+
+  Duration _pacingTime(Duration timestamp) =>
+      timestamp - (_vsyncEpoch ??= timestamp);
 }
 
 class AveluneWidgetsFlutterBinding extends WidgetsFlutterBinding

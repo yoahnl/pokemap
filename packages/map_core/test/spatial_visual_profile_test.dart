@@ -2,6 +2,16 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('a partial fog override keeps inherited ranges valid across different maps', () {
+    final patch = SpatialVisualPatch.fromJson({'fogStart':50});
+    final result = patch.applyAtmosphere(SpatialAtmosphereSettings(fogStart:10,fogEnd:40));
+    expect(result.fogStart,50);expect(result.fogEnd,greaterThan(50));
+    final inherited = SpatialVisualPatch.fromJson({'fogStart':50,'fogEnd':60});
+    final resolved = inherited.overriddenBy(SpatialVisualPatch.fromJson({'fogEnd':30}));
+    expect(resolved.number(SpatialVisualParameter.fogStart),lessThan(30));
+    expect(() => SpatialVisualPatch.fromJson({'fogStart':50,'fogEnd':30}),throwsFormatException);
+  });
+
   test('empty patches preserve baseline camera and local bindings', () {
     final camera = SpatialCameraProfile();
     final atmosphere = SpatialAtmosphereSettings(waterAnimated: true);

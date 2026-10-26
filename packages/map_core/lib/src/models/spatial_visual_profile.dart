@@ -1,5 +1,3 @@
-import 'package:collection/collection.dart';
-
 import 'map_spatial_scene.dart';
 import 'spatial_atmosphere_settings.dart';
 import 'spatial_day_night_cycle.dart';
@@ -21,7 +19,7 @@ enum SpatialVisualParameter {
   haloSpread(.1, 3),
   depthFogEnabled.boolean(),
   fogOpacity(0, .5),
-  fogStart(0, 100000),
+  fogStart(0, 99999.99),
   fogEnd(.01, 100000),
   waterAnimated.boolean(),
   waterStrength(0, 2),
@@ -88,7 +86,10 @@ final class SpatialVisualPatch {
     'dayDurationSeconds': cycle?.durationSeconds ?? 1200,
     'minuteOfDay': cycle?.startMinuteOfDay ?? 720,
     for (final e in atmosphere.toJson().entries)
-      if (SpatialVisualParameter.values.any((p) => p.isAtmosphere && p.name == e.key)) e.key: e.value,
+      if (SpatialVisualParameter.values.any(
+        (p) => p.isAtmosphere && p.name == e.key,
+      ))
+        e.key: e.value,
   });
 
   factory SpatialVisualPatch.fromJson(Map<String, dynamic> json) {
@@ -97,8 +98,9 @@ final class SpatialVisualPatch {
       final parameter = SpatialVisualParameter.values
           .where((p) => p.name == e.key)
           .firstOrNull;
-      if (parameter == null)
+      if (parameter == null) {
         throw FormatException('Unknown visual parameter ${e.key}.');
+      }
       result[parameter] = parameter.normalize(e.value);
     }
     return SpatialVisualPatch(result);
@@ -112,10 +114,21 @@ final class SpatialVisualPatch {
         {...values, if (value != null) parameter: parameter.normalize(value)}
           ..removeWhere((key, _) => key == parameter && value == null),
       );
-  SpatialVisualPatch overriddenBy(SpatialVisualPatch override) =>
-      override.isEmpty
-      ? this
-      : SpatialVisualPatch({...values, ...override.values});
+  SpatialVisualPatch overriddenBy(SpatialVisualPatch override) {
+    if (override.isEmpty) return this;
+    final merged = {...values, ...override.values};
+    final start = merged[SpatialVisualParameter.fogStart] as double?;
+    final end = merged[SpatialVisualParameter.fogEnd] as double?;
+    if (start != null && end != null && start >= end) {
+      if (override.value(SpatialVisualParameter.fogStart) != null) {
+        merged[SpatialVisualParameter.fogEnd] = start + .01;
+      } else {
+        merged[SpatialVisualParameter.fogStart] = (end - .01).clamp(0, end);
+      }
+    }
+    return SpatialVisualPatch(merged);
+  }
+
   SpatialCameraProfile applyCamera(SpatialCameraProfile base) =>
       values.keys.any(
         (p) => p.isCamera && p != SpatialVisualParameter.lockVerticalFraming,
@@ -127,19 +140,42 @@ final class SpatialVisualPatch {
           distance: number(SpatialVisualParameter.cameraDistance),
         )
       : base;
-  SpatialAtmosphereSettings applyAtmosphere(SpatialAtmosphereSettings base) =>
-      values.keys.any((p) => p.isAtmosphere)
-      ? SpatialAtmosphereSettings.fromJson({
-          ...base.toJson(),
-          for (final e in values.entries)
-            if (e.key.isAtmosphere) e.key.name: e.value,
-        })
-      : base;
+  SpatialAtmosphereSettings applyAtmosphere(SpatialAtmosphereSettings base) {
+    if (!values.keys.any((p) => p.isAtmosphere)) return base;
+    final fog = SpatialVisualPatch({
+      SpatialVisualParameter.fogStart: base.fogStart,
+      SpatialVisualParameter.fogEnd: base.fogEnd,
+    }).overriddenBy(this);
+    return base.copyWith(
+      depthOfFieldEnabled: enabled(SpatialVisualParameter.depthOfFieldEnabled),
+      depthOfFieldStrength: number(SpatialVisualParameter.depthOfFieldStrength),
+      depthOfFieldFocusRange: number(
+        SpatialVisualParameter.depthOfFieldFocusRange,
+      ),
+      halosEnabled: enabled(SpatialVisualParameter.halosEnabled),
+      haloStrength: number(SpatialVisualParameter.haloStrength),
+      haloSpread: number(SpatialVisualParameter.haloSpread),
+      depthFogEnabled: enabled(SpatialVisualParameter.depthFogEnabled),
+      fogOpacity: number(SpatialVisualParameter.fogOpacity),
+      fogStart: fog.number(SpatialVisualParameter.fogStart),
+      fogEnd: fog.number(SpatialVisualParameter.fogEnd),
+      waterAnimated: enabled(SpatialVisualParameter.waterAnimated),
+      waterStrength: number(SpatialVisualParameter.waterStrength),
+      waterSpeed: number(SpatialVisualParameter.waterSpeed),
+      windowsLit: enabled(SpatialVisualParameter.windowsLit),
+      windowStrength: number(SpatialVisualParameter.windowStrength),
+      fireflies: enabled(SpatialVisualParameter.fireflies),
+      fireflyDensity: number(SpatialVisualParameter.fireflyDensity),
+    );
+  }
+
   SpatialDayNightCycle? applyCycle(SpatialDayNightCycle? base) {
     if (!values.keys.any((p) => p.isClock)) return base;
     if (enabled(SpatialVisualParameter.dayNightEnabled) == false) return null;
-    if (base == null && enabled(SpatialVisualParameter.dayNightEnabled) != true)
+    if (base == null &&
+        enabled(SpatialVisualParameter.dayNightEnabled) != true) {
       return null;
+    }
     return SpatialDayNightCycle(
       durationSeconds:
           number(SpatialVisualParameter.dayDurationSeconds) ??
@@ -157,13 +193,15 @@ final class SpatialVisualPatch {
     SpatialVisualPatch to,
     double progress,
   ) {
-    if (!progress.isFinite)
+    if (!progress.isFinite) {
       throw const FormatException('Invalid visual transition progress.');
+    }
     final t = progress.clamp(0.0, 1.0);
     return SpatialVisualPatch({
       for (final p in from.values.keys.toSet().union(to.values.keys.toSet()))
         p: switch ((from.values[p], to.values[p])) {
           (final double a, final double b) => a + (b - a) * t,
+          (final bool a, final bool b) => b || t >= 1 ? b : a,
           (_, final bool b) => b,
           (_, final Object b) => b,
           (final Object a, null) => a,
@@ -175,13 +213,12 @@ final class SpatialVisualPatch {
   @override
   bool operator ==(Object other) =>
       other is SpatialVisualPatch &&
-      const MapEquality<SpatialVisualParameter, Object>().equals(
-        values,
-        other.values,
-      );
+      values.length == other.values.length &&
+      values.entries.every((entry) => other.values[entry.key] == entry.value);
   @override
-  int get hashCode =>
-      const MapEquality<SpatialVisualParameter, Object>().hash(values);
+  int get hashCode => Object.hashAllUnordered(
+    values.entries.map((entry) => Object.hash(entry.key, entry.value)),
+  );
 }
 
 final class SpatialVisualDocument {

@@ -65,7 +65,7 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
     final chosen = await _choose<WorldRuleSourcePickerOption>(
       'Choisir la condition',
       [
-        for (final option in controller.model.sourceOptions)
+        for (final option in controller.catalog.sourceOptions)
           (option, option.label, option.subtitle),
       ],
     );
@@ -107,7 +107,7 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
     final chosen = await _choose<WorldRuleTargetPickerOption>(
       'Choisir la cible',
       [
-        for (final option in controller.model.targetOptions)
+        for (final option in controller.catalog.targetOptions)
           if (option.mapId == mapId) (option, option.label, option.subtitle),
       ],
     );
@@ -162,7 +162,7 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
       dialogueId = await _choose<String>(
         'Choisir le dialogue de remplacement',
         [
-          for (final option in controller.model.dialogueOptions)
+          for (final option in controller.catalog.dialogueOptions)
             (option.dialogueId, option.label, option.subtitle),
         ],
       );

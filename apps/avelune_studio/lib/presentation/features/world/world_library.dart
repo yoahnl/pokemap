@@ -12,7 +12,7 @@ extension _WorldLibrary on _WorldWorkspacePageState {
 
   List<Widget> _factLibrary() {
     final query = view.factSearch.text.toLowerCase().trim();
-    final entries = controller.model.facts
+    final entries = controller.catalog.facts
         .where(
           (entry) =>
               (entry.fact.label.toLowerCase().contains(query) ||
@@ -29,13 +29,13 @@ extension _WorldLibrary on _WorldWorkspacePageState {
         onChanged: (_) => refresh(),
       ),
       const SizedBox(height: 8),
-      if (controller.model.factCategories.isNotEmpty)
+      if (controller.catalog.factCategories.isNotEmpty)
         StudioSelect(
           label: 'Catégorie',
           value: view.factCategory,
           options: {
             '': 'Toutes les catégories',
-            for (final category in controller.model.factCategories)
+            for (final category in controller.catalog.factCategories)
               category: category,
           },
           onChanged: (value) {
@@ -90,7 +90,7 @@ extension _WorldLibrary on _WorldWorkspacePageState {
     final drafts = controller.pendingRules.values
         .where((draft) => draft.complete == null)
         .where((draft) => draft.label.toLowerCase().contains(query));
-    final entries = controller.model.worldRules.where(
+    final entries = controller.catalog.worldRules.where(
       (entry) =>
           entry.rule.label.toLowerCase().contains(query) ||
           entry.humanSummary.toLowerCase().contains(query),

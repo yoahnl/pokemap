@@ -1,16 +1,66 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_authoring/map_authoring.dart' show AuthoringHistoryEntry;
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'support/ui12_world_harness.dart';
 
 void main() {
+  test('visual sliders retain structural catalogues and keep canonical drafts current', () async {
+    final (h, port) = await _harness();
+    addTearDown(h.dispose);
+    final factId = _draftFact(h, 'Brume');
+    final id = h.world.createRule(factId: factId);
+    h.world.editRule(id, (draft) {
+      draft.target = WorldRuleTarget(
+        kind: WorldRuleTargetKind.atmosphere,
+        mapId: h.world.project.maps.first.id,
+      );
+      draft.effect = WorldRuleEffect(
+        kind: WorldRuleEffectKind.atmosphere,
+        visualSettings: SpatialVisualPatch.fromJson({'fogOpacity': .1}),
+      );
+    });
+    final catalog = h.world.catalog;
+    final before = await _projectBytes(h);
+    for (var i = 0; i < 100; i++) {
+      h.world.editRule(id, (draft) {
+        draft.effect = WorldRuleEffect(
+          kind: WorldRuleEffectKind.atmosphere,
+          visualSettings: SpatialVisualPatch.fromJson({'fogOpacity': i / 200}),
+        );
+      });
+      expect(h.world.catalog, same(catalog));
+      expect(
+        h.world
+            .rule(id)!
+            .effect
+            .visualSettings!
+            .number(SpatialVisualParameter.fogOpacity),
+        i / 200,
+      );
+    }
+    expect(await _projectBytes(h), before);
+    expect(port.batches, isEmpty);
+    h.world.undoRule(id);
+    expect(h.world.catalog, same(catalog));
+    expect(
+      h.world
+          .rule(id)!
+          .effect
+          .visualSettings!
+          .number(SpatialVisualParameter.fogOpacity),
+      .49,
+    );
+    expect(h.world.model, isNot(same(catalog)));
+    h.world.editRule(id, (draft) => draft.label = 'Autre libellé');
+    expect(h.world.catalog.worldRules.single.rule.label, 'Autre libellé');
+  });
+
   test('save all without rule drafts performs no publication', () async {
     final (h, port) = await _harness();
     addTearDown(h.dispose);
@@ -448,18 +498,34 @@ Future<List<String>> _journals(Ui12WorldHarness h) async {
 }
 
 Future<List<AuthoringHistoryEntry>> _history(Ui12WorldHarness h) async {
-  final file = File('${h.directory.path}/.pokemap/authoring/history.jsonl');
-  if (!await file.exists()) return [];
-  return (await file.readAsLines())
-      .where((line) => line.trim().isNotEmpty)
-      .map((line) => jsonDecode(line) as Map)
-      .where((event) => event['type'] == 'append')
-      .map(
-        (event) => AuthoringHistoryEntry.fromJson(
-          Map<String, dynamic>.from((event['payload'] as Map)['entry'] as Map),
-        ),
-      )
-      .toList();
+  const reader = LocalProjectFileReader();
+  final policy = await WorkspacePolicy.create(
+    allowedRootPaths: [h.directory.path],
+    fileReader: reader,
+  );
+  final handles = WorkspaceHandleStore();
+  final opened = await ProjectOpenService(
+    policy: policy,
+    fileReader: reader,
+    handles: handles,
+  ).openProject(h.directory.path);
+  final api = LocalMapAuthoringMutationApi(
+    policy: policy,
+    snapshotLoader: ProjectSnapshotLoader(handles: handles),
+  );
+  await api.attachProject(
+    projectRootPath: h.directory.path,
+    workspaceHandle: opened.workspaceHandle,
+    projectHandle: opened.projectHandle,
+  );
+  try {
+    return (await api.listMutationHistory(
+      opened.projectHandle,
+      limit: 100,
+    )).entries;
+  } finally {
+    await api.detachWorkspace(opened.workspaceHandle);
+  }
 }
 
 class _BatchWorldPort implements WorldPort {

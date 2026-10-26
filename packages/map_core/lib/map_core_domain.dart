@@ -457,3 +457,5 @@ export 'src/models/spatial_visual_profile.dart';
 export 'src/models/spatial_atmosphere_settings.dart';
 
 export 'src/projection/spatial_visual_rule_resolver.dart';
+
+export 'src/projection/cinematic_visual_profile.dart';

@@ -190,7 +190,7 @@ extension _WorldContextPanel on _WorldWorkspacePageState {
   /// Readers and writers stay apart: knowing who changes a state is not the
   /// same question as knowing who reads it.
   Widget _usages(String factId) {
-    final entry = controller.model.facts
+    final entry = controller.catalog.facts
         .where((item) => item.fact.id == factId)
         .firstOrNull;
     if (entry == null) {

@@ -40,9 +40,12 @@ final class SceneWorldPresentationInteractiveCommand
     this.durationMs = 0,
     this.waitForCompletion = false,
   }) {
-    if ((operation == SceneWorldPresentationOperation.atmosphere) != (visualSettings != null) ||
+    if ((operation == SceneWorldPresentationOperation.atmosphere) !=
+            (visualSettings != null) ||
         (visualSettings?.isEmpty ?? false)) {
-      throw ArgumentError('Atmosphere requires a nonempty visual settings patch.');
+      throw ArgumentError(
+        'Atmosphere requires a nonempty visual settings patch.',
+      );
     }
     if (durationMs < 0 || durationMs > 60000) {
       throw ArgumentError.value(
@@ -154,7 +157,8 @@ final class SceneWorldPresentationInteractiveCommand
         'scope',
         'durationMs',
         'waitForCompletion',
-        if (operation == SceneWorldPresentationOperation.atmosphere) 'visualSettings',
+        if (operation == SceneWorldPresentationOperation.atmosphere)
+          'visualSettings',
         if (picture ||
             operation == SceneWorldPresentationOperation.erasePicture)
           'slotId',
@@ -195,7 +199,11 @@ final class SceneWorldPresentationInteractiveCommand
       }
       return SceneWorldPresentationInteractiveCommand(
         operation: operation,
-        visualSettings: json['visualSettings'] == null ? null : SpatialVisualPatch.fromJson(Map<String, dynamic>.from(json['visualSettings'] as Map)),
+        visualSettings: json['visualSettings'] == null
+            ? null
+            : SpatialVisualPatch.fromJson(
+                Map<String, dynamic>.from(json['visualSettings'] as Map),
+              ),
         scope: json.containsKey('scope')
             ? _requiredEnum(json, 'scope', SceneVisualScope.values)
             : SceneVisualScope.map,
@@ -290,9 +298,17 @@ final class SceneWorldPresentationInteractiveCommand
     final own = toJson();
     final theirs = other.toJson();
     return own.length == theirs.length &&
-        own.entries.every((entry) => (entry.key == 'visualSettings' ? other.visualSettings == visualSettings : theirs[entry.key] == entry.value));
+        own.entries.every(
+          (entry) => (entry.key == 'visualSettings'
+              ? other.visualSettings == visualSettings
+              : theirs[entry.key] == entry.value),
+        );
   }
 
   @override
-  int get hashCode => Object.hashAll(toJson().entries.map((e) => e.key == 'visualSettings' ? visualSettings : e.value));
+  int get hashCode => Object.hashAll(
+    toJson().entries.map(
+      (e) => e.key == 'visualSettings' ? visualSettings : e.value,
+    ),
+  );
 }

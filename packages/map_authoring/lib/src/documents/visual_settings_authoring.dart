@@ -134,9 +134,9 @@ final class LocalVisualSettingsAuthoring {
         'storagePattern': ['project.visual.json', 'maps/<mapId>.visual.json'],
         'maximumDocumentBytes': SpatialVisualDocument.maxBytes,
         'loadsProject': false,
-        'optionalPresentation': true,
+        'capability': SpatialVisualDocument.capabilityId,
         'missingDocument': 'inheritExistingBehavior',
-        'olderHost': 'mayIgnorePresentationWithoutGameplayOrSaveChange'
+        'olderHost': 'requiresVisualProfileCapability'
       });
   Future<VisualSettingsSnapshot> inspect(
           {required String projectRoot,

@@ -12,11 +12,7 @@ import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
 import '../operations/narrative_fact_runtime.dart';
 
-enum WorldRuleDiagnosticSeverity {
-  error,
-  warning,
-  info,
-}
+enum WorldRuleDiagnosticSeverity { error, warning, info }
 
 enum WorldRuleDiagnosticCode {
   worldRuleSourceMissing,
@@ -72,21 +68,20 @@ final class WorldRuleDiagnostic {
 
   @override
   int get hashCode => Object.hash(
-        code,
-        severity,
-        message,
-        ruleId,
-        sourceId,
-        targetId,
-        mapId,
-        suggestedFixLabel,
-      );
+    code,
+    severity,
+    message,
+    ruleId,
+    sourceId,
+    targetId,
+    mapId,
+    suggestedFixLabel,
+  );
 }
 
 final class WorldRuleDiagnosticsReport {
-  WorldRuleDiagnosticsReport({
-    required List<WorldRuleDiagnostic> diagnostics,
-  }) : _diagnostics = List<WorldRuleDiagnostic>.unmodifiable(diagnostics);
+  WorldRuleDiagnosticsReport({required List<WorldRuleDiagnostic> diagnostics})
+    : _diagnostics = List<WorldRuleDiagnostic>.unmodifiable(diagnostics);
 
   final List<WorldRuleDiagnostic> _diagnostics;
 
@@ -95,18 +90,23 @@ final class WorldRuleDiagnosticsReport {
   int get count => _diagnostics.length;
 
   int get errorCount => _diagnostics
-      .where((diagnostic) =>
-          diagnostic.severity == WorldRuleDiagnosticSeverity.error)
+      .where(
+        (diagnostic) =>
+            diagnostic.severity == WorldRuleDiagnosticSeverity.error,
+      )
       .length;
 
   int get warningCount => _diagnostics
-      .where((diagnostic) =>
-          diagnostic.severity == WorldRuleDiagnosticSeverity.warning)
+      .where(
+        (diagnostic) =>
+            diagnostic.severity == WorldRuleDiagnosticSeverity.warning,
+      )
       .length;
 
   int get infoCount => _diagnostics
-      .where((diagnostic) =>
-          diagnostic.severity == WorldRuleDiagnosticSeverity.info)
+      .where(
+        (diagnostic) => diagnostic.severity == WorldRuleDiagnosticSeverity.info,
+      )
       .length;
 
   bool get hasDiagnostics => _diagnostics.isNotEmpty;
@@ -147,7 +147,10 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
           factId,
     for (final scene in project.scenes)
       for (final node in scene.graph.nodes)
-        if (node.payload case SceneActionPayload(consequence: SceneCalculateIntegerFactsConsequence(:final factIds))) ...factIds,
+        if (node.payload case SceneActionPayload(
+          consequence: SceneCalculateIntegerFactsConsequence(:final factIds),
+        ))
+          ...factIds,
   };
   final producibleStoryStepIds = _producibleStoryStepIds(project);
 
@@ -178,11 +181,7 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
       projectMapIds: projectMapIds,
       mapsById: mapsById,
     );
-    _diagnoseEffect(
-      rule,
-      diagnostics,
-      dialogueIds: dialogueIds,
-    );
+    _diagnoseEffect(rule, diagnostics, dialogueIds: dialogueIds);
     _diagnoseLabels(rule, diagnostics);
   }
   _diagnoseConflicts(project.worldRules, diagnostics);
@@ -264,7 +263,7 @@ void _diagnoseSource(
             ),
           );
         case NarrativeFactRuntimeAmbiguousFact() ||
-              NarrativeFactRuntimeInvalidRuntimeKey():
+            NarrativeFactRuntimeInvalidRuntimeKey():
           diagnostics.add(
             WorldRuleDiagnostic(
               code: WorldRuleDiagnosticCode.worldRuleFactRuntimeCollision,
@@ -406,10 +405,18 @@ void _diagnoseEffect(
   List<WorldRuleDiagnostic> diagnostics, {
   required Set<String> dialogueIds,
 }) {
-  if ((rule.effect.kind == WorldRuleEffectKind.atmosphere) != (rule.effect.visualSettings != null) || (rule.effect.visualSettings?.isEmpty ?? false)) {
-    diagnostics.add(WorldRuleDiagnostic(code: WorldRuleDiagnosticCode.worldRuleEffectTargetMismatch,
-      severity: WorldRuleDiagnosticSeverity.error, message: 'L’ambiance nécessite au moins un réglage visuel.', ruleId: rule.id,
-      suggestedFixLabel: 'Choisir les paramètres d’ambiance.'));
+  if ((rule.effect.kind == WorldRuleEffectKind.atmosphere) !=
+          (rule.effect.visualSettings != null) ||
+      (rule.effect.visualSettings?.isEmpty ?? false)) {
+    diagnostics.add(
+      WorldRuleDiagnostic(
+        code: WorldRuleDiagnosticCode.worldRuleEffectTargetMismatch,
+        severity: WorldRuleDiagnosticSeverity.error,
+        message: 'L’ambiance nécessite au moins un réglage visuel.',
+        ruleId: rule.id,
+        suggestedFixLabel: 'Choisir les paramètres d’ambiance.',
+      ),
+    );
   }
   if (!isWorldRuleEffectCompatibleWithTarget(
     rule.target.kind,
@@ -499,21 +506,34 @@ void _diagnoseConflicts(
         diagnostic.ruleId,
   };
   final enabled = rules
-      .where(
-        (rule) => rule.enabled && !alreadyInvalidRuleIds.contains(rule.id),
-      )
+      .where((rule) => rule.enabled && !alreadyInvalidRuleIds.contains(rule.id))
       .toList(growable: false);
   final emitted = <String>{};
   for (var leftIndex = 0; leftIndex < enabled.length; leftIndex++) {
     final left = enabled[leftIndex];
-    for (var rightIndex = leftIndex + 1;
-        rightIndex < enabled.length;
-        rightIndex++) {
+    for (
+      var rightIndex = leftIndex + 1;
+      rightIndex < enabled.length;
+      rightIndex++
+    ) {
       final right = enabled[rightIndex];
       if (left.priority != right.priority ||
           _targetIdentity(left.target) != _targetIdentity(right.target) ||
           _sourcesMutuallyExclusive(left.source, right.source)) {
         continue;
+      }
+      if (left.effect.kind == WorldRuleEffectKind.atmosphere &&
+          right.effect.kind == WorldRuleEffectKind.atmosphere &&
+          left.effect.visualSettings != right.effect.visualSettings) {
+        final leftValues = left.effect.visualSettings!.values;
+        final rightValues = right.effect.visualSettings!.values;
+        if (!leftValues.entries.any(
+          (entry) =>
+              rightValues.containsKey(entry.key) &&
+              rightValues[entry.key] != entry.value,
+        )) {
+          continue;
+        }
       }
       final sameEffect = _sameResolvedEffect(left.effect, right.effect);
       if (sameEffect) {
@@ -565,7 +585,9 @@ WorldRuleDiagnostic _conflictDiagnostic(
 }
 
 bool _sameResolvedEffect(WorldRuleEffect left, WorldRuleEffect right) {
-  return left.kind == right.kind && left.dialogueId == right.dialogueId;
+  return left.kind == right.kind &&
+      left.dialogueId == right.dialogueId &&
+      left.visualSettings == right.visualSettings;
 }
 
 bool _sourcesMutuallyExclusive(WorldRuleSource left, WorldRuleSource right) {
@@ -577,15 +599,17 @@ bool _sourcesMutuallyExclusive(WorldRuleSource left, WorldRuleSource right) {
     (WorldRuleSourcePredicate.isFalse, WorldRuleSourcePredicate.isTrue) ||
     (
       WorldRuleSourcePredicate.completed,
-      WorldRuleSourcePredicate.notCompleted
+      WorldRuleSourcePredicate.notCompleted,
     ) ||
     (
       WorldRuleSourcePredicate.notCompleted,
-      WorldRuleSourcePredicate.completed
+      WorldRuleSourcePredicate.completed,
     ) ||
     (WorldRuleSourcePredicate.consumed, WorldRuleSourcePredicate.notConsumed) ||
-    (WorldRuleSourcePredicate.notConsumed, WorldRuleSourcePredicate.consumed) =>
-      true,
+    (
+      WorldRuleSourcePredicate.notConsumed,
+      WorldRuleSourcePredicate.consumed,
+    ) => true,
     _ => false,
   };
 }
@@ -663,7 +687,8 @@ Map<String, Set<NarrativeValue>> _producibleFactValues(
   for (final entry in project.newGame.resolvedInitialFactValues.entries) {
     values.putIfAbsent(entry.key, () => <NarrativeValue>{}).add(entry.value);
   }
-  for (final avatar in project.newGame.initialFactValuesByAvatarCharacterId.values) {
+  for (final avatar
+      in project.newGame.initialFactValuesByAvatarCharacterId.values) {
     for (final entry in avatar.entries) {
       values.putIfAbsent(entry.key, () => <NarrativeValue>{}).add(entry.value);
     }

@@ -7,9 +7,9 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import '../../../features/map_workspace/domain/map_atmosphere_port.dart';
 import '../../../features/project_visuals/application/project_visuals_controller.dart';
-import '../../../features/project_visuals/domain/project_visuals_port.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'spatial_visual_controls.dart';
 
@@ -23,7 +23,8 @@ typedef StudioVisualTestBuilder = Widget Function(
 class ProjectSettingsPage extends StatefulWidget {
   const ProjectSettingsPage({
     super.key,
-    required this.workspace, required this.owner,
+    required this.workspace,
+    required this.owner,
     this.testBuilder,
   });
   final MapWorkspaceController workspace;
@@ -67,7 +68,10 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
     final saved = owner.saved;
     if (saved != null && _applied != (owner.scope?.id, saved.revision)) {
       _applied = (owner.scope?.id, saved.revision);
-      widget.workspace.acceptVisualProfile(saved.profile, mapId: owner.scope?.id);
+      widget.workspace.acceptVisualProfile(
+        saved.profile,
+        mapId: owner.scope?.id,
+      );
     }
     rendered.value = localScope
         ? inherited.overriddenBy(owner.preview.value)
@@ -95,8 +99,9 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
                 entry.id,
               )).settings
             : SpatialAtmosphereSettings();
-        if (scene == null)
+        if (scene == null) {
           throw StateError('Choisissez une carte 3D pour tester les effets.');
+        }
         base = SpatialVisualPatch.fromScene(
           camera: scene.camera,
           atmosphere: atmosphere,
@@ -133,8 +138,9 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
   Future<void> startTest() async {
     final entry = selected;
     final builder = widget.testBuilder;
-    if (entry == null || builder == null || widget.workspace.active == null)
+    if (entry == null || builder == null || widget.workspace.active == null) {
       return;
+    }
     if (widget.workspace.active!.dirty) {
       setState(
         () => error = 'Enregistrez d’abord les modifications de la carte dans l’éditeur. Les curseurs d’ambiance peuvent rester en aperçu.',
@@ -260,32 +266,54 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
             patch: owner.preview.value,
             inherited: inherited,
             onEditStart: owner.beginGesture,
-        onEditEnd: owner.endGesture,
-        onChanged: owner.saving || owner.saved == null ? null : owner.edit,
+            onEditEnd: owner.endGesture,
+            onChanged: owner.saving || owner.saved == null ? null : owner.edit,
           ),
       ],
     );
-    return LayoutBuilder(
-      builder: (context, bounds) {
-        final controls = SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: settings,
-        );
-        if (test == null) return controls;
-        if (bounds.maxWidth < 850)
-          return Column(
-            children: [
-              Expanded(child: test!),
-              SizedBox(height: bounds.maxHeight * .45, child: controls),
-            ],
-          );
-        return Row(
-          children: [
-            Expanded(child: test!),
-            SizedBox(width: 370, child: controls),
-          ],
-        );
-      },
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: StudioTabs<String>(
+            items: const {'settings': 'Réglages', 'test': 'Test en jeu'},
+            selected: test == null ? 'settings' : 'test',
+            onChanged: (value) {
+              if (opening) return;
+              if (value == 'test' && test == null) {
+                unawaited(startTest());
+              } else if (value == 'settings') {
+                setState(() => test = null);
+              }
+            },
+          ),
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, bounds) {
+              final controls = SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: settings,
+              );
+              if (test == null) return controls;
+              if (bounds.maxWidth < 850) {
+                return Column(
+                  children: [
+                    Expanded(child: test!),
+                    SizedBox(height: bounds.maxHeight * .45, child: controls),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: test!),
+                  SizedBox(width: 370, child: controls),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

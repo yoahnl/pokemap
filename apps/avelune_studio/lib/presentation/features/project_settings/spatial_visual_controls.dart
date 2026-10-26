@@ -17,7 +17,8 @@ class SpatialVisualControls extends StatelessWidget {
     required this.onChanged,
     this.camera = true,
     this.clock = true,
-    this.onEditStart, this.onEditEnd,
+    this.onEditStart,
+    this.onEditEnd,
   });
   final SpatialVisualPatch patch, inherited;
   final ValueChanged<SpatialVisualPatch>? onChanged;
@@ -27,8 +28,13 @@ class SpatialVisualControls extends StatelessWidget {
   double number(SpatialVisualParameter p) => effective.number(p) ?? p.minimum;
   bool flag(SpatialVisualParameter p) => effective.enabled(p) ?? false;
   void change(SpatialVisualParameter p, Object value) {
-    var next = (p == SpatialVisualParameter.fogStart || p == SpatialVisualParameter.fogEnd)
-        ? patch.set(SpatialVisualParameter.fogStart, null).set(SpatialVisualParameter.fogEnd, null).set(p, value)
+    var next =
+        (p == SpatialVisualParameter.fogStart ||
+            p == SpatialVisualParameter.fogEnd)
+        ? patch
+              .set(SpatialVisualParameter.fogStart, null)
+              .set(SpatialVisualParameter.fogEnd, null)
+              .set(p, value)
         : patch.set(p, value);
     if (p == SpatialVisualParameter.fieldOfViewDegrees) {
       final before = number(p) * math.pi / 360;
@@ -49,8 +55,22 @@ class SpatialVisualControls extends StatelessWidget {
         (value as double) <= number(SpatialVisualParameter.fogStart)) {
       next = next.set(SpatialVisualParameter.fogStart, math.max(0, value - 1));
     }
-    if (p == SpatialVisualParameter.fogStart && next.value(SpatialVisualParameter.fogEnd) == null && patch.value(SpatialVisualParameter.fogEnd) != null) next = next.set(SpatialVisualParameter.fogEnd, patch.value(SpatialVisualParameter.fogEnd));
-    if (p == SpatialVisualParameter.fogEnd && next.value(SpatialVisualParameter.fogStart) == null && patch.value(SpatialVisualParameter.fogStart) != null) next = next.set(SpatialVisualParameter.fogStart, patch.value(SpatialVisualParameter.fogStart));
+    if (p == SpatialVisualParameter.fogStart &&
+        next.value(SpatialVisualParameter.fogEnd) == null &&
+        patch.value(SpatialVisualParameter.fogEnd) != null) {
+      next = next.set(
+        SpatialVisualParameter.fogEnd,
+        patch.value(SpatialVisualParameter.fogEnd),
+      );
+    }
+    if (p == SpatialVisualParameter.fogEnd &&
+        next.value(SpatialVisualParameter.fogStart) == null &&
+        patch.value(SpatialVisualParameter.fogStart) != null) {
+      next = next.set(
+        SpatialVisualParameter.fogStart,
+        patch.value(SpatialVisualParameter.fogStart),
+      );
+    }
     onChanged?.call(next);
   }
 

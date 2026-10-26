@@ -36,6 +36,8 @@ class WorldWorkspaceController {
   final _mapLoads = <String, Future<bool>>{};
   FactsWorldRulesManagerReadModel? _model;
   String? _modelKey;
+  FactsWorldRulesManagerReadModel? _visualCatalog;
+  ProjectManifest? _visualCatalogProject;
   NarrativeWorldStateSimulationReport? report;
   String? selectedFactId, selectedRuleId, error;
   bool loading = false, initialized = false, _closed = false;
@@ -111,6 +113,11 @@ class WorldWorkspaceController {
     return _model!;
   }
 
+  FactsWorldRulesManagerReadModel get catalog =>
+      identical(project, _visualCatalogProject) && _visualCatalog != null
+      ? _visualCatalog!
+      : model;
+
   String _projectionKey() => [
     project.facts.length,
     project.worldRules.length,
@@ -121,7 +128,14 @@ class WorldWorkspaceController {
     for (final rule in project.worldRules) rule.id,
   ].join('|');
 
-  void invalidate() {
+  void invalidate({bool visualValuesOnly = false}) {
+    if (visualValuesOnly) {
+      _visualCatalog ??= _model;
+      _visualCatalogProject = project;
+    } else {
+      _visualCatalog = null;
+      _visualCatalogProject = null;
+    }
     _modelKey = null;
     report = null;
   }

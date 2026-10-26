@@ -22,7 +22,7 @@ export function registerVisualSettingsTools(server: McpServer, authoring: Author
     haloSpread: z.number().min(.1).max(3).optional(),
     depthFogEnabled: z.boolean().optional(),
     fogOpacity: z.number().min(0).max(.5).optional(),
-    fogStart: z.number().min(0).max(100000).optional(),
+    fogStart: z.number().min(0).max(99999.99).optional(),
     fogEnd: z.number().min(.01).max(100000).optional(),
     waterAnimated: z.boolean().optional(),
     waterStrength: z.number().min(0).max(2).optional(),

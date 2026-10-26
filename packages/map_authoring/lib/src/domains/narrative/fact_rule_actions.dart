@@ -74,6 +74,7 @@ final class FactRuleActions {
                       'semantics': 'createOrUpdate',
                       'atomic': true,
                     },
+                    'atmosphere': {'targetKind': 'atmosphere', 'effectKind': 'atmosphere', 'payloadField': 'effect.visualSettings', 'capability': SpatialVisualDocument.capabilityId},
                     'rules': {
                       'type': 'array',
                       'minItems': 1,
@@ -81,7 +82,11 @@ final class FactRuleActions {
                       'uniqueBy': 'id',
                     },
                   }
-                : const {},
+                : entry.$1.startsWith('world_rule.') ? const {
+                    'atmosphere': {'targetKind': 'atmosphere', 'effectKind': 'atmosphere', 'mapId': 'required',
+                      'payloadField': 'effect.visualSettings', 'condition': 'canonicalWorldRuleSource',
+                      'merge': 'perFieldPriorityThenRuleId', 'capability': SpatialVisualDocument.capabilityId}
+                  } : const {},
         risk: entry.$1.endsWith('.delete')
             ? AuthoringRiskLevel.high
             : AuthoringRiskLevel.medium,

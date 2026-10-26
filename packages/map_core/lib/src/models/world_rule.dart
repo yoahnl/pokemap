@@ -3,11 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import 'narrative_value.dart';
 import 'spatial_visual_profile.dart';
 
-enum WorldRuleSourceKind {
-  fact,
-  storyStepCompletion,
-  consumedEvent,
-}
+enum WorldRuleSourceKind { fact, storyStepCompletion, consumedEvent }
 
 enum WorldRuleSourcePredicate {
   isTrue,
@@ -132,15 +128,15 @@ final class WorldRuleSource {
       NarrativeValue.boolean(predicate == WorldRuleSourcePredicate.isTrue);
 
   Map<String, dynamic> toJson() => _withoutNulls({
-        'kind': kind.name,
-        'sourceId': sourceId,
-        'predicate': predicate.name,
-        'label': label,
-        'debugTechnicalLabel': debugTechnicalLabel,
-        'factOperator': factOperator?.name,
-        'factValueType': expectedFactValue?.kind.wireName,
-        'expectedValue': expectedFactValue?.toJson(),
-      });
+    'kind': kind.name,
+    'sourceId': sourceId,
+    'predicate': predicate.name,
+    'label': label,
+    'debugTechnicalLabel': debugTechnicalLabel,
+    'factOperator': factOperator?.name,
+    'factValueType': expectedFactValue?.kind.wireName,
+    'expectedValue': expectedFactValue?.toJson(),
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -156,14 +152,14 @@ final class WorldRuleSource {
 
   @override
   int get hashCode => Object.hash(
-        kind,
-        sourceId,
-        predicate,
-        label,
-        debugTechnicalLabel,
-        factOperator,
-        expectedFactValue,
-      );
+    kind,
+    sourceId,
+    predicate,
+    label,
+    debugTechnicalLabel,
+    factOperator,
+    expectedFactValue,
+  );
 }
 
 @immutable
@@ -193,12 +189,12 @@ final class WorldRuleTarget {
   final String? label;
 
   Map<String, dynamic> toJson() => _withoutNulls({
-        'kind': kind.name,
-        'mapId': mapId,
-        'entityId': entityId,
-        'eventId': eventId,
-        'label': label,
-      });
+    'kind': kind.name,
+    'mapId': mapId,
+    'entityId': entityId,
+    'eventId': eventId,
+    'label': label,
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -227,7 +223,11 @@ final class WorldRuleEffect {
     return WorldRuleEffect(
       kind: _readEnum(WorldRuleEffectKind.values, json['kind'], 'kind'),
       dialogueId: _readOptionalString(json, 'dialogueId'),
-      visualSettings: json['visualSettings'] == null ? null : SpatialVisualPatch.fromJson(Map<String, dynamic>.from(json['visualSettings'] as Map)),
+      visualSettings: json['visualSettings'] == null
+          ? null
+          : SpatialVisualPatch.fromJson(
+              Map<String, dynamic>.from(json['visualSettings'] as Map),
+            ),
       label: _readOptionalString(json, 'label'),
     );
   }
@@ -238,11 +238,11 @@ final class WorldRuleEffect {
   final String? label;
 
   Map<String, dynamic> toJson() => _withoutNulls({
-        'kind': kind.name,
-        'dialogueId': dialogueId,
-        'visualSettings': visualSettings?.toJson(),
-        'label': label,
-      });
+    'kind': kind.name,
+    'dialogueId': dialogueId,
+    'visualSettings': visualSettings?.toJson(),
+    'label': label,
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -270,11 +270,11 @@ final class WorldRuleDefinition {
     this.priority = 0,
     List<String> tags = const <String>[],
     String? debugTechnicalLabel,
-  })  : id = _requireTrimmed(id, 'WorldRuleDefinition.id'),
-        label = _requireTrimmed(label, 'WorldRuleDefinition.label'),
-        description = description.trim(),
-        tags = _stableTags(tags),
-        debugTechnicalLabel = _trimOptional(debugTechnicalLabel);
+  }) : id = _requireTrimmed(id, 'WorldRuleDefinition.id'),
+       label = _requireTrimmed(label, 'WorldRuleDefinition.label'),
+       description = description.trim(),
+       tags = _stableTags(tags),
+       debugTechnicalLabel = _trimOptional(debugTechnicalLabel);
 
   factory WorldRuleDefinition.fromJson(Map<String, dynamic> json) {
     return WorldRuleDefinition(
@@ -303,17 +303,17 @@ final class WorldRuleDefinition {
   final String? debugTechnicalLabel;
 
   Map<String, dynamic> toJson() => _withoutNulls({
-        'id': id,
-        'label': label,
-        'description': description,
-        'enabled': enabled,
-        'source': source.toJson(),
-        'target': target.toJson(),
-        'effect': effect.toJson(),
-        'priority': priority,
-        'tags': tags,
-        'debugTechnicalLabel': debugTechnicalLabel,
-      });
+    'id': id,
+    'label': label,
+    'description': description,
+    'enabled': enabled,
+    'source': source.toJson(),
+    'target': target.toJson(),
+    'effect': effect.toJson(),
+    'priority': priority,
+    'tags': tags,
+    'debugTechnicalLabel': debugTechnicalLabel,
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -332,17 +332,17 @@ final class WorldRuleDefinition {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        label,
-        description,
-        enabled,
-        source,
-        target,
-        effect,
-        priority,
-        Object.hashAll(tags),
-        debugTechnicalLabel,
-      );
+    id,
+    label,
+    description,
+    enabled,
+    source,
+    target,
+    effect,
+    priority,
+    Object.hashAll(tags),
+    debugTechnicalLabel,
+  );
 }
 
 bool isWorldRuleSourcePredicateCompatible(
@@ -350,8 +350,9 @@ bool isWorldRuleSourcePredicateCompatible(
   WorldRuleSourcePredicate predicate,
 ) {
   return switch (kind) {
-    WorldRuleSourceKind.fact => predicate == WorldRuleSourcePredicate.isTrue ||
-        predicate == WorldRuleSourcePredicate.isFalse,
+    WorldRuleSourceKind.fact =>
+      predicate == WorldRuleSourcePredicate.isTrue ||
+          predicate == WorldRuleSourcePredicate.isFalse,
     WorldRuleSourceKind.storyStepCompletion =>
       predicate == WorldRuleSourcePredicate.completed ||
           predicate == WorldRuleSourcePredicate.notCompleted,
@@ -366,14 +367,14 @@ bool isWorldRuleEffectCompatibleWithTarget(
   WorldRuleEffectKind effectKind,
 ) {
   return switch (targetKind) {
-    WorldRuleTargetKind.atmosphere => effectKind == WorldRuleEffectKind.atmosphere,
+    WorldRuleTargetKind.atmosphere =>
+      effectKind == WorldRuleEffectKind.atmosphere,
     WorldRuleTargetKind.mapEntity =>
       effectKind == WorldRuleEffectKind.entityVisible ||
           effectKind == WorldRuleEffectKind.entityHidden,
     WorldRuleTargetKind.npcDialogue =>
       effectKind == WorldRuleEffectKind.npcDialogueOverride,
-    WorldRuleTargetKind.mapEvent ||
-    WorldRuleTargetKind.narrativeEvent =>
+    WorldRuleTargetKind.mapEvent || WorldRuleTargetKind.narrativeEvent =>
       effectKind == WorldRuleEffectKind.eventEnabled ||
           effectKind == WorldRuleEffectKind.eventDisabled ||
           effectKind == WorldRuleEffectKind.eventHidden,

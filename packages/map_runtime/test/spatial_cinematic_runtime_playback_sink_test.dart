@@ -15,6 +15,7 @@ void main() {
         durationMs: 1000, visualSettings: SpatialVisualPatch.fromJson({'haloStrength': 1.7}))]));
       final controller = host.controller();
       final done = controller.play(asset);
+      if (!controller.isPlaying) fail((await done).message ?? 'Rejected atmosphere');
       controller.update(const Duration(milliseconds: 500));
       expect(host.visual.number(SpatialVisualParameter.haloStrength), closeTo(1.2, .0001));
       if (cancelled) {controller.cancel();} else {controller.update(const Duration(milliseconds: 500));}

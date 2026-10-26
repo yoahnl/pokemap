@@ -134,20 +134,35 @@ extension WorldWorkspaceRules on WorldWorkspaceController {
     (_ruleHistory[id] ??= []).add(current);
     pendingRules[id] = next;
     error = null;
-    invalidate();
+    invalidate(visualValuesOnly: _onlyVisualValuesChanged(current, next));
     changed();
+  }
+
+  bool _onlyVisualValuesChanged(WorldRuleDraft before, WorldRuleDraft after) {
+    if (before.effect?.kind != WorldRuleEffectKind.atmosphere ||
+        after.effect?.kind != WorldRuleEffectKind.atmosphere) {
+      return false;
+    }
+    final structural = after.copy()..effect = before.effect;
+    return structural.signature == before.signature;
   }
 
   void undoRule(String id) {
     final history = _ruleHistory[id];
     if (history == null || history.isEmpty) return;
+    final current = ruleDraft(id);
     final previous = history.removeLast();
     if (previous == null) {
       pendingRules.remove(id);
     } else {
       pendingRules[id] = previous;
     }
-    invalidate();
+    invalidate(
+      visualValuesOnly:
+          current != null &&
+          previous != null &&
+          _onlyVisualValuesChanged(current, previous),
+    );
     changed();
   }
 
@@ -155,7 +170,7 @@ extension WorldWorkspaceRules on WorldWorkspaceController {
   List<WorldRuleEffectPickerOption> effectsFor(String id) {
     final kind = ruleDraft(id)?.target?.kind;
     if (kind == null) return const [];
-    return model.effectOptions
+    return catalog.effectOptions
         .where(
           (option) =>
               option.compatibleTargetKind == kind &&

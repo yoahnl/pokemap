@@ -9,11 +9,24 @@ import 'world_rule_projection.dart';
 final class SpatialVisualRuleResolver {
   SpatialVisualRuleResolver(ProjectManifest project)
     : _facts = NarrativeFactRuntimeResolver.fromFacts(project.facts) {
-    final candidates = project.worldRules.where((rule) => rule.enabled && rule.target.kind == WorldRuleTargetKind.atmosphere).toList();
-    final invalid = {for (final item in diagnoseWorldRules(project.copyWith(worldRules: candidates)).diagnostics)
-      if (item.severity == WorldRuleDiagnosticSeverity.error) item.ruleId};
+    final candidates = project.worldRules
+        .where(
+          (rule) =>
+              rule.enabled &&
+              rule.target.kind == WorldRuleTargetKind.atmosphere,
+        )
+        .toList();
+    final invalid = {
+      for (final item in diagnoseWorldRules(
+        project.copyWith(worldRules: candidates),
+      ).diagnostics)
+        if (item.severity == WorldRuleDiagnosticSeverity.error) item.ruleId,
+    };
     _rules = candidates.where((rule) => !invalid.contains(rule.id)).toList()
-      ..sort((a, b) {final priority = a.priority.compareTo(b.priority); return priority == 0 ? a.id.compareTo(b.id) : priority;});
+      ..sort((a, b) {
+        final priority = a.priority.compareTo(b.priority);
+        return priority == 0 ? a.id.compareTo(b.id) : priority;
+      });
   }
   final NarrativeFactRuntimeResolver _facts;
   late final List<WorldRuleDefinition> _rules;
@@ -24,7 +37,8 @@ final class SpatialVisualRuleResolver {
     if (identical(state, _lastState) && mapId == _lastMap) return _last;
     var result = SpatialVisualPatch();
     for (final rule in _rules) {
-      if (rule.target.mapId == mapId && worldRuleSourceMatches(rule.source, state, _facts)) {
+      if (rule.target.mapId == mapId &&
+          worldRuleSourceMatches(rule.source, state, _facts)) {
         result = result.overriddenBy(rule.effect.visualSettings!);
       }
     }

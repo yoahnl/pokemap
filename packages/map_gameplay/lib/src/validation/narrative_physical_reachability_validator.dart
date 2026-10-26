@@ -516,7 +516,8 @@ _StateExploration _exploreSymbolicState({
         visibilityByEntity['${effect.target.mapId}/$entityId'] = false;
       case WorldRuleEffectKind.entityVisible:
         visibilityByEntity['${effect.target.mapId}/$entityId'] = true;
-      case WorldRuleEffectKind.npcDialogueOverride ||
+      case WorldRuleEffectKind.atmosphere ||
+            WorldRuleEffectKind.npcDialogueOverride ||
             WorldRuleEffectKind.eventEnabled ||
             WorldRuleEffectKind.eventDisabled ||
             WorldRuleEffectKind.eventHidden:

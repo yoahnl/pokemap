@@ -25,7 +25,9 @@ abstract interface class CinematicSpatialWorkspaceVisuals {
 }
 
 final class CinematicSpatialPreview {
-  const CinematicSpatialPreview(this.frames, this.dispose);
+  const CinematicSpatialPreview(this.frames, this.dispose, {this.visualProfile, this.atmosphere});
+  final SpatialVisualPatch? visualProfile;
+  final SpatialAtmosphereSettings? atmosphere;
   final Map<String, SpatialActorVisual> Function(
     CinematicAsset asset,
     CinematicPreviewPlaybackPlan? plan,

@@ -58,7 +58,7 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
       return;
     }
     final workshop = switch (space) {
-      WorkspaceSpace.map || WorkspaceSpace.interaction => null,
+      WorkspaceSpace.map || WorkspaceSpace.interaction || WorkspaceSpace.projectSettings => null,
       WorkspaceSpace.resources
           when widget.resourceLibraryBuilder != null &&
               !_controller.hasWorkshop(MapWorkspaceWorkshop.resources) =>

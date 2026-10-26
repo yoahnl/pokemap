@@ -3414,3 +3414,11 @@ propose des sélecteurs d’avatar et de Fact avec édition typée. Le remplacem
 d’un personnage conserve les lignes compatibles et refuse les valeurs
 contradictoires avant écriture. Le solveur conserve les valeurs d’une même ligne
 ensemble, sous son budget habituel, sans créer de combinaisons entre avatars.
+
+## Visual defaults and atmosphere inheritance
+
+`visual.settings.set` owns bounded typed visual defaults. Direct local API: `LocalVisualSettingsAuthoring.inspect/set/undoReceipt`; JSONL: `visual_settings_inspect`, `visual_settings_set`, `visual_settings_undo`; MCP: `pokemap_visual_settings_inspect`, `pokemap_visual_settings_set`, `pokemap_visual_settings_undo`. Omitting `mapId` selects `project.visual.json`; a map selects `maps/{mapId}.visual.json`. Documents are limited to 32768 bytes, use their own revisions, scoped idempotency/history and atomic recovery. Missing scalar fields inherit; an empty patch restores inheritance. A settings write does not load project assets, maps or global history.
+
+Typed fields cover camera inclination/orientation/FOV/distance and vertical framing, visual day/night timing, depth of field strength/focus range, halo strength/spread, depth fog opacity/start/end, water strength/speed, window intensity and firefly density, plus individual enables. Water/material/window/light/zone bindings remain in each map atmosphere document. Rendering resolves legacy map values, project defaults, map overrides, matching World Rules, scene overrides, cinematic overrides and an explicit test preview in that order.
+
+Existing semantic `world_rule.create/update/upsert_batch` accept target/effect kind `atmosphere`, a selected map and typed `effect.visualSettings`; canonical Fact/Story/Event conditions and priorities remain authoritative. `cinematic.upsert` exposes `atmosphere` steps with typed `visualSettings` and simulation duration; parallel atmosphere writers conflict and the runtime restores its original overlay on completion/cancellation. `worldPresentation` supports `atmosphere` and `restoreAtmosphere`, scene/map lifetime and optional awaited interpolation. New exported profiles/commands declare `map3d.visual-profile@1`; absent profiles preserve existing game/save behavior.

@@ -132,6 +132,8 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
       }
     }
     switch (destination) {
+      case 'projectSettings':
+        _show(WorkspaceSpace.projectSettings);
       case 'createMap':
         _openMap();
         unawaited(_createMap());

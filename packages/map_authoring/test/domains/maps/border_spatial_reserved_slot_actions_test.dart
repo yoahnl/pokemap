@@ -92,6 +92,56 @@ const target = {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence'};
   return (project: project, map: map, slots: slots);
 }
 
+({ProjectManifest project, MapData map, Map<String, String> slots})
+    compactFixture() {
+  final base = fixture();
+  final raw = encodeBorderBlueprintRecordJson(
+      base.project.borderCatalog.records.single,
+      formatVersion: 13);
+  for (final key in ['draft', 'latestPublished']) {
+    final primitives =
+        ((raw[key] as Map)['definition'] as Map)['primitives'] as List;
+    final corner = Map<String, Object?>.from(
+        primitives.singleWhere((value) => value['id'] == 'corner-left') as Map);
+    for (final primitive in primitives
+        .cast<Map>()
+        .where((value) => value['role'] == 'lineCorner')) {
+      primitive['cornerJoinCells'] = 1;
+    }
+    primitives.add({
+      ...corner,
+      'id': 'z-compact-left',
+      'cornerJoinCells': 0,
+    });
+  }
+  final project = base.project.copyWith(
+      borderCatalog: ProjectBorderCatalog(
+          formatVersion: 13,
+          records: [decodeBorderBlueprintRecordJson(raw, formatVersion: 13)]));
+  final defaultResult = resolveSpatialBorderFeature(
+      manifest: project, map: base.map, layerId: 'border', featureId: 'fence');
+  expect(defaultResult.result.canApply, false);
+  expect(defaultResult.result.diagnostics.map((issue) => issue.code),
+      contains('border.spatial.corner_join_conflict'));
+  var map = updateBorderFeatureOverrides(base.map,
+      layerId: 'border',
+      featureId: 'fence',
+      overrides: [
+        BorderSlotOverride(
+            slotKey: base.slots['3,3']!,
+            variationSalt: BorderSignedInt64.zero,
+            suppressed: false,
+            locked: false,
+            replacementPrimitiveId: 'z-compact-left')
+      ]);
+  final corrected = resolveSpatialBorderFeature(
+      manifest: project, map: map, layerId: 'border', featureId: 'fence');
+  expect(corrected.result.canApply, true);
+  map = applySpatialBorderFeaturePreview(map,
+      manifest: project, proposedResult: corrected);
+  return (project: project, map: map, slots: base.slots);
+}
+
 Future<MapData> mutate(ProjectManifest project, MapData map, String suffix,
     Map<String, Object?> parameters) async {
   final result = await MapMutationDispatcher.canonical().build(context(
@@ -106,6 +156,57 @@ BorderFeature currentFeature(MapData map) =>
     map.layers.whereType<BorderLayer>().single.content.features.single;
 
 void main() {
+  for (final correction in [
+    'feature_set_replacement',
+    'feature_set_transform'
+  ]) {
+    test('$correction accepts a valid compact feature with invalid defaults',
+        () async {
+      final f = compactFixture();
+      final slot = f.slots['4,3']!;
+      final before = f.map.spatialScene;
+      var map = await mutate(f.project, f.map, correction, {
+        'slotKey': slot,
+        if (correction == 'feature_set_replacement')
+          'primitiveId': 'lineStraight',
+        if (correction == 'feature_set_transform')
+          'transformOverride': {'quarterTurns': 1, 'flipX': false},
+      });
+      expect(map.spatialScene, before);
+      final added = currentFeature(map)
+          .overrides
+          .singleWhere((override) => override.slotKey == slot);
+      expect(currentFeature(map).overrides, hasLength(2));
+      if (correction == 'feature_set_replacement') {
+        expect(added.replacementPrimitiveId, 'lineStraight');
+      } else {
+        expect(added.transformOverride?.quarterTurns, 1);
+      }
+      map = await mutate(f.project, map, 'materialize_apply', {});
+      expect(
+          resolveSpatialBorderFeature(
+                  manifest: f.project,
+                  map: map,
+                  layerId: 'border',
+                  featureId: 'fence')
+              .result
+              .canApply,
+          true);
+      final snapshot = jsonEncode(map.toJson());
+      await expectLater(
+          mutate(f.project, map, 'feature_clear_slot_override',
+              {'slotKey': f.slots['3,3']}),
+          throwsA(isA<MapAuthoringException>().having((error) => error.code,
+              'code', 'border.spatial.corner_join_override_conflict')));
+      expect(jsonEncode(map.toJson()), snapshot);
+      await expectLater(
+          mutate(f.project, map, 'feature_set_replacement',
+              {'slotKey': 'invented-slot', 'primitiveId': 'lineStraight'}),
+          throwsA(isA<MapAuthoringException>()
+              .having((error) => error.code, 'code', 'border.slot_missing')));
+    });
+  }
+
   test('suppresses logical neighbors released by a suppressed wide corner',
       () async {
     final f = fixture();
