@@ -16,10 +16,12 @@ final class GamePackageSpatialProjectValidator {
   const GamePackageSpatialProjectValidator({
     this.policy = const GamePackageSecurityPolicy(),
     this.gameplay = false,
+    this.trainerSpotting = false,
   });
 
   final GamePackageSecurityPolicy policy;
   final bool gameplay;
+  final bool trainerSpotting;
 
   bool _connectionCellIsClosed(MapData map, GridPos position) =>
       map.spatialScene!.navigation.blockedAreas.any((area) =>
@@ -753,7 +755,8 @@ final class GamePackageSpatialProjectValidator {
                       MapEntityNpcMovementMode.fixedRoute,
                     }.contains(npc.movement.mode)
                   : npc.movement != const MapEntityNpcMovementConfig()) ||
-              npc.lineOfSightRange != 0 ||
+              (npc.lineOfSightRange != 0 &&
+                  (!gameplay || !trainerSpotting || npc.trainerId == null || npc.lineOfSightRange < 0)) ||
               !gameplay &&
                   (npc.trainerId != null ||
                       npc.defeatDialogueRef != null ||

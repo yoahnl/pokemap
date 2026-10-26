@@ -1,4 +1,6 @@
 library map_gameplay;
+
+export 'src/spatial_trainer_spotting.dart';
 export 'src/contact_device_access.dart';
 
 export 'src/game_completion_party_recording.dart';

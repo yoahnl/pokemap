@@ -14,6 +14,38 @@ import '../domains/maps/healing_display_fixture.dart';
 
 void main() {
   for (final unrelated in [0, 80]) {
+    test('battle audio configuration stays scoped with $unrelated unrelated records', () async {
+      final fixture = await _Fixture.open(unrelated);
+      addTearDown(fixture.close);
+      final artifact = await fixture.api.artifacts.put(_storyWav(), declaredMediaType: 'audio/wav');
+      await fixture.apply('scene.dialogue.audioMedia.import', {
+        'artifactHandle': artifact.reference.handle, 'assetId': 'eye', 'mediaId': 'eye',
+        'label': 'Eye', 'logicalPath': 'assets/music/eye.wav', 'mediaKind': 'music',
+      }, 'import-eye');
+      final reads = <int>[];
+      final times = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final watch = Stopwatch()..start();
+        await fixture.apply('project.battle_audio.update', {'encounterMusicPath': repeat == 0 ? 'assets/music/eye.wav' : null}, 'change-eye-$repeat');
+        times.add(watch.elapsedMilliseconds);
+        final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'project.battle_audio.update', parameters: {'encounterMusicPath': null});
+        expect(selected.maps, isEmpty);
+        expect(selected.manifest.battleAudio?.encounterMusicPath, repeat == 0 ? 'assets/music/eye.wav' : null);
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/')), isEmpty);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        reads.add(fixture.reader.paths.length);
+      }
+      expect(reads.last, lessThanOrEqualTo(reads.first));
+      print(jsonEncode({'battleAudioUnrelated': unrelated, 'reads': reads, 'firstRepeatedMs': times}));
+      await fixture.reopen();
+      final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+        actionId: 'project.battle_audio.update', parameters: {'encounterMusicPath': null});
+      expect(selected.manifest.battleAudio, isNull);
+    });
+  }
+  for (final unrelated in [0, 80]) {
     test('story entities and triggers stay local with $unrelated foreign maps',
         () async {
       final base = spatialEnvironmentFixture();

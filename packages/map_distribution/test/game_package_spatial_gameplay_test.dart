@@ -282,6 +282,26 @@ void main() {
     }
   });
 
+  test('automatic trainer sight requires its declared capability and retains old packages', () {
+    for (final sight in [0, 3]) {
+      for (final grant in [false, true]) {
+        final files = _payload();
+        final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+        files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(entities: [
+          MapEntity(id: 'npc', kind: MapEntityKind.npc, pos: const GridPos(x: 2, y: 2),
+            npc: MapEntityNpcData(characterId: 'hero', trainerId: 'guard', lineOfSightRange: sight))
+        ]).toJson()));
+        _write(files, _project(files).copyWith(trainers: [
+          const ProjectTrainerEntry(id: 'guard', name: 'Guard', trainerClass: 'Scout')
+        ]));
+        final build = () => const GamePackageBuilder().build(manifest: spatialManifest(capabilities: [
+          'map3d@1', 'map3d.gameplay@1',
+          if (grant) SpatialGameplayCapabilities.trainerSpottingCapabilityId]), payloadFiles: files);
+        expect(build, sight == 0 || grant ? returnsNormally : throwsA(isA<GamePackageFormatException>()));
+      }
+    }
+  });
+
   test('moving NPCs and automatic sight battles remain unsupported', () {
     for (final sight in [0, 2]) {
       final files = _payload();

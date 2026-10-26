@@ -313,6 +313,8 @@ final class CanonicalGamePackageExportService {
         if (actorOcclusion) SpatialActorOcclusionCapabilities.capabilityId,
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
+        if (SpatialGameplayCapabilities.requiresTrainerSpotting(projection.project, maps: spatialMaps))
+          SpatialGameplayCapabilities.trainerSpottingCapabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
         if (SpatialGameplayCapabilities.requiresConnectedCinematics(
             projection.project, maps: spatialMaps))

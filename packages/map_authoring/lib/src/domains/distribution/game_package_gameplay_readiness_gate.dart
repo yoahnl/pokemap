@@ -46,7 +46,8 @@ final class GamePackageGameplayReadinessGate {
                 const RuntimeDialogueDocumentCodec().decodeUtf8(
                     projection.payloadFiles['project/${entry.relativePath}']!)
             ]);
-        GamePackageSpatialProjectValidator(gameplay: gameplay)
+        GamePackageSpatialProjectValidator(gameplay: gameplay,
+          trainerSpotting: SpatialGameplayCapabilities.requiresTrainerSpotting(project, maps: maps))
             .validate(project, (path) => projection.payloadFiles[path],
                 payloadPaths: projection.payloadFiles.keys);
         if (gameplay) {

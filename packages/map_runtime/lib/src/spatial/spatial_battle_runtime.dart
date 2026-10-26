@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:path/path.dart' as p;
+
 import 'package:flame/components.dart' hide Timer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show EdgeInsets;
@@ -28,6 +30,8 @@ import '../application/runtime_trainer_battle_image.dart';
 import '../application/runtime_trainer_ball_items.dart';
 import '../infrastructure/battle_transition_image_loader.dart';
 import '../presentation/flame/battle_background_resolver.dart';
+import '../presentation/flame/battle_sfx_player.dart';
+import '../player/runtime_audio_mixer.dart';
 import '../presentation/flame/battle_bag_item_icon_resolver.dart';
 import '../presentation/flame/battle_bag_menu_model.dart';
 import '../presentation/flame/battle_combatant_ball_resolver.dart';
@@ -52,12 +56,18 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     required this.commitGameState,
     this.onCompleted,
     this.onError,
+    this.audioMixer,
+    this.onOutcomePresented,
   });
 
   final GameState Function() readGameState;
   final bool Function(GameState expected, GameState next) commitGameState;
   final FutureOr<void> Function(BattleOutcome outcome)? onCompleted;
   final void Function(Object error)? onError;
+  final RuntimeAudioMixer? audioMixer;
+  final void Function(BattleOutcome outcome)? onOutcomePresented;
+  FlameAudioBattleSfxPlayer? _sounds;
+  BattlePokemonSpriteResolver? _media;
   SpatialBattlePhase phase = SpatialBattlePhase.idle;
   static final _externalPause = Object();
   final _pauseOwners = <Object>{};
@@ -367,9 +377,19 @@ final class SpatialBattleRuntime extends ChangeNotifier {
           manifest: bundle.manifest,
         ),
       );
+      final media = _media = BattlePokemonSpriteResolver(
+        manifest: bundle.manifest, projectRootDirectory: bundle.projectRootDirectory);
+      final sounds = _sounds ??= FlameAudioBattleSfxPlayer(mixer: audioMixer);
+      final startSound = bundle.manifest.battleAudio?.battleStartSePath;
+      if (startSound != null && startSound.trim().isNotEmpty) {
+        sounds.playProjectFile(p.join(bundle.projectRootDirectory, startSound));
+      }
       late final BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
         resourceBudget: bundle.resourceBudget,
+        playSfx: sounds.play,
+        playCry: _playCry,
+        onOutcomePresented: (outcome) => onOutcomePresented?.call(outcome),
         session: displaySession!,
         presentation: _engine!.presentation,
         gameState: _overlayGameState,
@@ -381,10 +401,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
           request: request,
           bundle: bundle,
         ),
-        spriteResolver: BattlePokemonSpriteResolver(
-          manifest: bundle.manifest,
-          projectRootDirectory: bundle.projectRootDirectory,
-        ),
+        spriteResolver: media,
         visualAssetCache: _images,
         fxBundleCache: _effects,
         bagItemIconResolver: BattleBagItemIconResolver(
@@ -984,6 +1001,17 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     _end(false);
   }
 
+  void _playCry(String speciesId) {
+    final generation = _generation;
+    final media = _media;
+    if (media == null) return;
+    unawaited(media.resolveCry(speciesId).then((path) {
+      if (_current(generation) && path != null) _sounds?.playProjectFile(path);
+    }).catchError((Object error) {
+      debugPrint('[battle-sfx] cry resolution failed for "$speciesId": $error');
+    }));
+  }
+
   void _end(bool success) {
     ++_generation;
     final completion = _completion;
@@ -1005,6 +1033,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     postBattleOverlay = null;
     entryTransition = null;
     exitTransition = null;
+    final sounds = _sounds;
+    _sounds = null;
+    _media = null;
+    if (sounds != null) unawaited(sounds.dispose());
     _images?.dispose();
     _effects?.dispose();
     _images = null;

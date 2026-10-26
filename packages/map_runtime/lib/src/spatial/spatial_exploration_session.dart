@@ -496,6 +496,9 @@ final class SpatialExplorationSession {
     await _openDialogue(ref, entity: entity);
   }
 
+  Future<void> prepareTransientCinematic(CinematicAsset asset) =>
+      _assets.emotes.prepare([asset]);
+
   Future<SceneDialogueRuntimeAwaitableResult> showDialogue(DialogueRef ref,
       {MapEntity? entity, String Function(String)? transformText,
       List<SceneDialogueChoicePolicy> choicePolicies = const [],

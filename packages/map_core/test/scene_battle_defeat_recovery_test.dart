@@ -129,7 +129,7 @@ void main() {
         report.diagnostics.any(
           (d) => d.code.name == 'battleRecoveryUnsupportedDimension',
         ),
-        dimension != ProjectDimension.twoD,
+        isFalse,
       );
     });
   }

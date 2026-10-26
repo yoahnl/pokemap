@@ -147,6 +147,23 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BattlePokemonSpriteResolver', () {
+    test('resolves authored cries and shares the media read with sprites', () async {
+      final root = await Directory.systemTemp.createTemp('battle-cry-');
+      addTearDown(() => root.delete(recursive: true));
+      final file = File('${root.path}/data/pokemon/media/rattata.json');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode({'defaultFormId': 'base', 'variants': {'base': {
+        'cry': 'assets/audio/pokemon/rattata/cry.wav', 'frontStatic': 'assets/front.png',
+      }}}));
+      final resolver = BattlePokemonSpriteResolver(manifest: _manifest(), projectRootDirectory: root.path);
+      expect(await resolver.resolveCry('rattata'), '${root.path}/assets/audio/pokemon/rattata/cry.wav');
+      await resolver.resolve(speciesId: 'rattata', isPlayerSide: false);
+      expect(resolver.debugActualMediaReadCount, 1);
+      await file.writeAsString(jsonEncode({'defaultFormId': 'base', 'variants': {'base': {'cry': '../outside.wav'}}}));
+      final unsafe = BattlePokemonSpriteResolver(manifest: _manifest(), projectRootDirectory: root.path);
+      expect(await unsafe.resolveCry('rattata'), isNull);
+      expect(await unsafe.resolveCry('../rattata'), isNull);
+    });
     test('chooses front for enemy and back for player', () async {
       final projectRoot = await Directory.systemTemp.createTemp(
         'battle_sprite_resolver_',

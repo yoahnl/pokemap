@@ -66,6 +66,7 @@ final class CatalogWorkshopSelection {
           parameters.containsKey('light') &&
           parameters.keys.every((key) => {'modelId', 'light'}.contains(key))) ||
       action == 'scene.dialogue.audioMedia.import' ||
+      action == 'project.battle_audio.update' ||
       _guidedActions.contains(action) ||
       _gameplayActions.contains(action) ||
       const {
@@ -144,8 +145,9 @@ final class CatalogWorkshopSelection {
       return _readModelLightWorkshop(
           reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
-    if (actionId == 'scene.dialogue.audioMedia.import') {
+    if (actionId == 'scene.dialogue.audioMedia.import' || actionId == 'project.battle_audio.update') {
       return _readAudioMediaWorkshop(
+          actionId: actionId,
           reader: reader,
           projectHandle: projectHandle,
           parameters: parameters,

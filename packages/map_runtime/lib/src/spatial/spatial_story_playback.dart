@@ -334,6 +334,28 @@ final class SpatialStoryPlayback {
     }
   }
 
+  Future<bool> playTransient(CinematicAsset asset) async {
+    if (_disposed || models.isPlaying || cinematics.isPlaying || _sceneFadeOwner != null) {
+      return false;
+    }
+    autonomousNpcs.update(0, paused: true);
+    await session.prepareTransientCinematic(asset);
+    if (_disposed) return false;
+    wasCancelled = false;
+    session.interactionError.value = null;
+    _poses.clear();
+    models.synchronize(readGameState().spatialWorldState);
+    final future = cinematics.play(asset);
+    _publishActivity();
+    try {
+      final result = await future;
+      return result.success;
+    } finally {
+      if (!cinematics.isPlaying) _poses.clear();
+      _publishActivity();
+    }
+  }
+
   void update(double dt, bool paused) {
     if (_disposed) return;
     autonomousNpcs.update(dt, paused: paused || session.movement.paused || models.isPlaying || cinematics.isPlaying ||

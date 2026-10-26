@@ -75,6 +75,19 @@ final class BattlePokemonSpriteResolver {
     );
   }
 
+  Future<String?> resolveCry(String speciesId) async {
+    final id = speciesId.trim().toLowerCase();
+    if (id.isEmpty || id.contains('/') || id.contains(r'\') || id == '..') return null;
+    final media = await _mediaCache.putIfAbsent(id, () => _readMedia(id));
+    final relativePath = media?.cry;
+    if (relativePath != null) return p.normalize(p.join(projectRootDirectory, relativePath));
+    for (final extension in const ['.ogg', '.mp3', '.wav']) {
+      final path = p.join(projectRootDirectory, 'assets', 'pokemon', 'cries', '$id$extension');
+      if (await File(path).exists()) return path;
+    }
+    return null;
+  }
+
   Future<_BattlePokemonMediaRecord?> _readMedia(String speciesId) async {
     final mediaFile = File(
       p.join(projectRootDirectory, manifest.pokemon.mediaDir, '$speciesId.json'),
@@ -117,6 +130,7 @@ final class BattlePokemonSpriteResolver {
       backStatic: _normalizeProjectRelativePath(
         candidateVariant['backStatic'] as String?,
       ),
+      cry: _normalizeProjectRelativePath(candidateVariant['cry'] as String?),
     );
   }
 
@@ -144,8 +158,10 @@ final class _BattlePokemonMediaRecord {
   const _BattlePokemonMediaRecord({
     required this.frontStatic,
     required this.backStatic,
+    required this.cry,
   });
 
   final String? frontStatic;
   final String? backStatic;
+  final String? cry;
 }

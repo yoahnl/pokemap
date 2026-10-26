@@ -1,20 +1,23 @@
 part of 'catalog_workshop_selection.dart';
 
 Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
+  required String actionId,
   required CatalogProjectReader reader,
   required ProjectHandle projectHandle,
   required Map<String, Object?> parameters,
   required Map<String, String> readDependencies,
 }) async {
+  final configuring = actionId == 'project.battle_audio.update';
+  final sections = configuring ? const {'battleAudio'} : const {'cinematicMediaAssets'};
   final mediaId = parameters['mediaId'];
-  if (mediaId is! String || mediaId.isEmpty || mediaId.trim() != mediaId) {
+  if (!configuring && (mediaId is! String || mediaId.isEmpty || mediaId.trim() != mediaId)) {
     throw const FormatException('catalog.audio: mediaId required');
   }
-  final selected = await reader.withMetadataFields({});
+  final selected = await reader.withMetadataFields(configuring ? {'battleAudio'} : {});
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
     final ids = {
-      'cinematicMediaAssets': {mediaId},
+      if (!configuring) 'cinematicMediaAssets': {mediaId as String},
     };
     final documents = await CatalogMetadataDocuments.readDocuments(
       snapshot: catalog.snapshot,
@@ -67,7 +70,7 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
           CatalogWorkshopSelection.fingerprint(selected.revision, revisions),
       manifest: documents.project,
       maps: const [],
-      availableProjectSections: const {'cinematicMediaAssets'},
+      availableProjectSections: sections,
       availableProjectDocuments: ids,
       resourceBytes: {...bytes, 'project': projectBytes},
       resourceStorageKeys: {...paths, 'project': 'project.json'},
@@ -80,7 +83,7 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
     final result = CatalogWorkshopSelection._(
       selected,
       snapshot,
-      const {'cinematicMediaAssets'},
+      sections,
       revisions,
       metadataDocuments: documents,
     );

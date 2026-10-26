@@ -238,7 +238,9 @@ final class GamePackageProjectValidator {
             .contains(SpatialGameplayCapabilities.companionCapabilityId)) {
           _fail('A 3D party companion requires ${SpatialGameplayCapabilities.companionCapabilityId}.');
         }
-        GamePackageSpatialProjectValidator(policy: policy, gameplay: gameplay)
+        GamePackageSpatialProjectValidator(policy: policy, gameplay: gameplay,
+          trainerSpotting: packageManifest.compatibility.requiredCapabilities
+            .contains(SpatialGameplayCapabilities.trainerSpottingCapabilityId))
             .validate(project, readPayload, payloadPaths: payloadPaths);
         if (SpatialGameplayCapabilities.requiresStory(project) &&
             !packageManifest.compatibility.requiredCapabilities

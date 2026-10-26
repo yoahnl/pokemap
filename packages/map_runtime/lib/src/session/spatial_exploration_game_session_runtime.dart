@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_battle/map_battle.dart' show BattleOutcome;
+import 'package:map_battle/map_battle.dart' show BattleOutcome, BattleOutcomeType;
 import 'package:path/path.dart' as p;
 
 import '../application/load_runtime_map_bundle.dart';
@@ -41,6 +41,7 @@ import '../spatial/spatial_battle_runtime.dart';
 import '../spatial/spatial_gameplay_events.dart';
 import '../spatial/spatial_scene_callbacks.dart';
 import '../spatial/spatial_story_playback.dart';
+import '../spatial/spatial_trainer_spot_cinematic.dart';
 import '../spatial/spatial_scene_audio_runtime.dart';
 import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import '../player/contact_device_pause.dart';
@@ -102,6 +103,8 @@ final class SpatialExplorationGameSessionRuntime
   final FlameCinematicAudioDriver Function()? _sceneAudioDriverFactory;
   SpatialSceneAudioRuntime? _sceneAudio;
   RuntimeSceneMusicSelection? _battleMusic;
+  RuntimeSceneMusicSelection? _trainerEncounterMusic;
+  BattleMusicSelection? _battleAudioSelection;
   String? _audioMapId;
   final SessionProjectFilePathLoader _projectFilePath;
   final SpatialExplorationSessionMount _mountSession, _unmountSession;
@@ -369,6 +372,54 @@ final class SpatialExplorationGameSessionRuntime
       }
     }
     _publishInteractions();
+    _trySpotTrainer();
+  }
+
+  String? _trainerSpotLatch;
+
+  void _trySpotTrainer() {
+    final session = _session, gameplay = _gameplay, story = _story;
+    if (session == null || gameplay == null || story == null ||
+        !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.trainerSpottingCapabilityId) ||
+        _gameplayOperations > 0 || _materializingState || gameplay.isBusy ||
+        !inputAuthority.value.acceptsOverworldInput || session.presentationPaused ||
+        session.transitioning.value || session.nativeDoorTraversalActive ||
+        session.movement.isJumping || session.storyActive.value) {
+      return;
+    }
+    final spot = findSpatialTrainerSpot(entities: session.bundle.map.entities,
+      playerX: session.movement.x, playerZ: session.movement.z,
+      eligible: gameplay.canSpotTrainer, actorState: session.actorRuntimeState,
+      canTraverse: (entity, x, z, nextX, nextZ) => session.movement.canTraverseActor(
+        x, z, nextX, nextZ, ignoredEntityId: entity.id, collideWithPlayer: true));
+    if (spot == null) {
+      _trainerSpotLatch = null;
+      return;
+    }
+    final identity = '${session.bundle.map.id}:${spot.entity.id}';
+    if (_trainerSpotLatch == identity) {
+      return;
+    }
+    _trainerSpotLatch = identity;
+    unawaited(_runGameplay(() async {
+      final encounterPath = const BattleMusicResolver().resolveEncounterMusicAbsolutePath(
+        bundle: session.bundle, playerPos: GridPos(x: session.movement.x.floor(), y: session.movement.z.floor()));
+      if (encounterPath != null) {
+        _trainerEncounterMusic = (route: RuntimeAudioRoute.overworld, path: encounterPath, volume: .8);
+      }
+      try {
+        await _applyMusicSelection();
+        story.autonomousNpcs.flush();
+        final completed = await story.playTransient(spatialTrainerSpotCinematic(session.bundle.map.id, spot));
+        if (!completed || _disposed || _stopped || !identical(session, _session)) return;
+        await _materializeState(_gameState!);
+        if (!gameplay.canSpotTrainer(spot.entity) || gameplay.interactionTarget?.id != spot.entity.id) return;
+        await session.withEntityInteraction(spot.entity, () => gameplay.interact());
+      } finally {
+        _trainerEncounterMusic = null;
+        await _applyMusicSelection();
+      }
+    }));
   }
 
   ValueListenable<DialoguePresentationSnapshot?>
@@ -422,6 +473,8 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     _battle = SpatialBattleRuntime(
+        audioMixer: _audioMixer,
+        onOutcomePresented: _battleOutcomePresented,
         readGameState: _readMutableState,
         commitGameState: (expected, next) {
           if (_disposed || _stopped || _readMutableState() != expected) {
@@ -696,8 +749,10 @@ final class SpatialExplorationGameSessionRuntime
     _ensureGameplayActive();
     _sceneBattleOutcome = null;
     final bundle = _session!.bundle;
+    _trainerEncounterMusic = null;
+    _battleAudioSelection = const BattleMusicResolver().resolve(request: request, bundle: bundle);
     _battleMusic = (route: RuntimeAudioRoute.battle,
-      path: const BattleMusicResolver().resolve(request: request, bundle: bundle).battleMusicAbsolutePath,
+      path: _battleAudioSelection!.battleMusicAbsolutePath,
       volume: .8);
     try {
       await _applyMusicSelection();
@@ -713,8 +768,17 @@ final class SpatialExplorationGameSessionRuntime
       return outcome;
     } finally {
       _battleMusic = null;
+      _battleAudioSelection = null;
       await _applyMusicSelection();
     }
+  }
+
+  void _battleOutcomePresented(BattleOutcome outcome) {
+    if (_disposed || _stopped || _battleMusic == null ||
+        (outcome.type != BattleOutcomeType.victory && outcome.type != BattleOutcomeType.captured)) return;
+    _battleMusic = (route: RuntimeAudioRoute.battle,
+      path: _battleAudioSelection?.victoryMusicAbsolutePath, volume: .8);
+    _observeMusic(_applyMusicSelection());
   }
 
   void _battleCompleted(BattleOutcome outcome) {
@@ -873,7 +937,7 @@ final class SpatialExplorationGameSessionRuntime
 
   Future<void> _applyMusicSelection() async {
     if (_disposed || _stopped || _session == null) return;
-    final selected = _battleMusic ?? _sceneAudio?.musicSelection ?? _mapMusicSelection();
+    final selected = _battleMusic ?? _trainerEncounterMusic ?? _sceneAudio?.musicSelection ?? _mapMusicSelection();
     await _music.update(route: selected.route, path: selected.path, volume: selected.volume);
     if (_music.lastFailure case final failure?) throw failure;
   }

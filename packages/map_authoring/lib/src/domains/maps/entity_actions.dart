@@ -43,7 +43,17 @@ final class EntityActions {
       ('npc.waypoint_remove', 'Remove an NPC patrol waypoint'),
       ('npc.waypoint_clear', 'Clear NPC patrol waypoints'),
     ])
-      semanticActionDescriptor(entry.$1, entry.$2),
+      semanticActionDescriptor(entry.$1, entry.$2, extensions: {
+        if (const {'entity.set_npc_payload', 'npc.set_trainer'}.contains(entry.$1))
+          'spatialTrainerSpotting': {
+            'capability': SpatialGameplayCapabilities.trainerSpottingCapabilityId,
+            'parameters': ['trainerId', 'facing', 'lineOfSightRange'],
+            'requires': ['entityInteractEventV2', 'matchingTrainerBattleInScene'],
+            'obstacles': 'currentTerrainAndActors',
+            'approach': 'oneCellBeforeCurrentPlayer',
+            'defeated': 'noAutomaticChallengeUnlessRematchAllowed',
+          },
+      }),
     AuthoringActionDescriptor(
       id: 'entity.create_batch',
       version: 1,

@@ -2,28 +2,123 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('connected cinematic capability follows authored coordinates and dynamic origins', () {
-    const map = MapData(id: 'map', name: 'Map', size: GridSize(width: 8, height: 8));
-    final neighbor = map.copyWith(id: 'neighbor', connections: [
-      const MapConnection(direction: MapConnectionDirection.west, targetMapId: 'map'),
-    ]);
-    bool requires(double x, double y, {String? origin, bool connected = true}) =>
-        SpatialGameplayCapabilities.requiresConnectedCinematics(
-          ProjectManifest(name: 'Game', maps: [], tilesets: [], cinematics: [
-            CinematicAsset(id: 'movie', title: 'Movie', mapId: 'map',
+  test(
+    'trainer spotting capability is limited to configured spatial NPC sight',
+    () {
+      final project = ProjectManifest(
+        name: 'Game',
+        maps: [],
+        tilesets: [],
+        settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+      );
+      const map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: GridSize(width: 8, height: 8),
+      );
+      final npc = MapEntity(
+        id: 'npc',
+        kind: MapEntityKind.npc,
+        pos: const GridPos(x: 2, y: 2),
+        npc: const MapEntityNpcData(trainerId: 'guard', lineOfSightRange: 4),
+      );
+      expect(
+        SpatialGameplayCapabilities.requiresTrainerSpotting(
+          project,
+          maps: [map],
+        ),
+        isFalse,
+      );
+      expect(
+        SpatialGameplayCapabilities.requiresTrainerSpotting(
+          project,
+          maps: [
+            map.copyWith(entities: [npc]),
+          ],
+        ),
+        isTrue,
+      );
+      expect(
+        SpatialGameplayCapabilities.requiresTrainerSpotting(
+          project.copyWith(settings: const ProjectSettings()),
+          maps: [
+            map.copyWith(entities: [npc]),
+          ],
+        ),
+        isFalse,
+      );
+      expect(
+        SpatialGameplayCapabilities.requiresTrainerSpotting(
+          project,
+          maps: [
+            map.copyWith(
+              entities: [
+                npc.copyWith(npc: npc.npc!.copyWith(lineOfSightRange: 0)),
+              ],
+            ),
+          ],
+        ),
+        isFalse,
+      );
+    },
+  );
+  test(
+    'connected cinematic capability follows authored coordinates and dynamic origins',
+    () {
+      const map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: GridSize(width: 8, height: 8),
+      );
+      final neighbor = map.copyWith(
+        id: 'neighbor',
+        connections: [
+          const MapConnection(
+            direction: MapConnectionDirection.west,
+            targetMapId: 'map',
+          ),
+        ],
+      );
+      bool requires(
+        double x,
+        double y, {
+        String? origin,
+        bool connected = true,
+      }) => SpatialGameplayCapabilities.requiresConnectedCinematics(
+        ProjectManifest(
+          name: 'Game',
+          maps: [],
+          tilesets: [],
+          cinematics: [
+            CinematicAsset(
+              id: 'movie',
+              title: 'Movie',
+              mapId: 'map',
               timeline: CinematicTimeline(),
-              stageContext: CinematicStageContext(stagePoints: [
-                CinematicStagePoint(id: 'point', label: 'Point', x: x, y: y,
-                    relativeToActorId: origin),
-              ])),
-          ]), maps: [map, if (connected) neighbor]);
-    expect(requires(4.5, 4.5), isFalse);
-    expect(requires(8.5, 4.5), isTrue);
-    expect(requires(-.5, 4.5), isTrue);
-    expect(requires(0, 0, origin: 'guide'), isFalse);
-    expect(requires(-1, 0, origin: 'guide'), isTrue);
-    expect(requires(-1, 0, origin: 'guide', connected: false), isFalse);
-  });
+              stageContext: CinematicStageContext(
+                stagePoints: [
+                  CinematicStagePoint(
+                    id: 'point',
+                    label: 'Point',
+                    x: x,
+                    y: y,
+                    relativeToActorId: origin,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        maps: [map, if (connected) neighbor],
+      );
+      expect(requires(4.5, 4.5), isFalse);
+      expect(requires(8.5, 4.5), isTrue);
+      expect(requires(-.5, 4.5), isTrue);
+      expect(requires(0, 0, origin: 'guide'), isFalse);
+      expect(requires(-1, 0, origin: 'guide'), isTrue);
+      expect(requires(-1, 0, origin: 'guide', connected: false), isFalse);
+    },
+  );
 
   test('presentation cinematics use the pre-session profile in 3D', () {
     final node = SceneNode(
@@ -33,10 +128,20 @@ void main() {
         presentationCinematicId: 'welcome',
       ),
     );
-    expect(SpatialGameplayCapabilities.supportsSceneNode(
-        SceneExecutionProfile.preSession, node), isTrue);
-    expect(SpatialGameplayCapabilities.supportsSceneNode(
-        SceneExecutionProfile.world, node), isFalse);
+    expect(
+      SpatialGameplayCapabilities.supportsSceneNode(
+        SceneExecutionProfile.preSession,
+        node,
+      ),
+      isTrue,
+    );
+    expect(
+      SpatialGameplayCapabilities.supportsSceneNode(
+        SceneExecutionProfile.world,
+        node,
+      ),
+      isFalse,
+    );
   });
 
   test('spatial profile accepts existing facing and emote contracts', () {
@@ -88,8 +193,12 @@ void main() {
         (kind) => kind != SceneConditionSourceKind.newGameDraft,
       )) {
         final source = switch (kind) {
-          SceneConditionSourceKind.integerComparison => SceneConditionSource.integerComparison(
-            left: SceneIntegerOperand.literal(1), right: SceneIntegerOperand.literal(1), comparison: NarrativeFactOperator.equals),
+          SceneConditionSourceKind.integerComparison =>
+            SceneConditionSource.integerComparison(
+              left: SceneIntegerOperand.literal(1),
+              right: SceneIntegerOperand.literal(1),
+              comparison: NarrativeFactOperator.equals,
+            ),
           SceneConditionSourceKind.partyState =>
             SceneConditionSource.partyCanReceivePokemon(),
           SceneConditionSourceKind.playerFacing => SceneConditionSource(

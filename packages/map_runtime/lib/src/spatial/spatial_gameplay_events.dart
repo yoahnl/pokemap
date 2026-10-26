@@ -16,6 +16,7 @@ import '../application/narrative_runtime_activity_port.dart';
 import '../application/narrative_scene_runtime_execution.dart';
 import '../application/narrative_spatial_production_dispatch_bridge.dart';
 import '../application/npc_runtime_presence.dart';
+import '../application/story_flags_manager.dart';
 import '../application/scene_runtime/scene_consequence_runtime_writer.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/step_studio_world_presence_runtime.dart';
@@ -514,6 +515,42 @@ final class SpatialGameplayEvents {
       await _settle();
       return result;
     });
+  }
+
+  bool canSpotTrainer(MapEntity entity) {
+    if (!_inputAllowed || !entityIsPresent(_map.id, entity)) {
+      return false;
+    }
+    final trainerId = entity.npc?.trainerId;
+    final trainer = project.trainers.where((value) => value.id == trainerId).firstOrNull;
+    if (trainer == null) {
+      return false;
+    }
+    final state = _readGameState();
+    if (trainer.rematchPolicy != ProjectTrainerRematchPolicy.allowed &&
+        const StoryFlagsManager().isTrainerDefeated(state, trainer.id)) {
+      return false;
+    }
+    final now = _now();
+    final evaluator = MapEntityRuntimePredicateEvaluator(gameState: state,
+      chapterIndex: _chapterIndex, localMinuteOfDay: now.hour * 60 + now.minute);
+    for (final predicate in [entity.npc?.trainerBattleWhen, entity.npc?.trainerBattleReadyWhen]) {
+      if (predicate != null && !evaluator.evaluatePredicate(predicate)) {
+        return false;
+      }
+    }
+    final authority = _prepareAuthority(NarrativeEventOccurrence(
+      source: NarrativeEventSourceRef.entityInteract(_map.id, entity.id)));
+    if (authority is! NarrativeEventDispatchAuthorityReady) {
+      return false;
+    }
+    final decision = authority.plan(gameState: state);
+    if (decision is! NarrativeEventDispatchHandled) {
+      return false;
+    }
+    final scene = project.scenes.where((scene) => scene.id == decision.sceneId).firstOrNull;
+    return scene?.graph.nodes.any((node) => node.payload is SceneBattlePayload &&
+      (node.payload as SceneBattlePayload).trainerId == trainerId) ?? false;
   }
 
   Future<GameplayEncounterCheckResult?> playerEnteredCell({

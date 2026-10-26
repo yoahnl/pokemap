@@ -27,9 +27,24 @@ import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/load_flame_component.dart';
+import 'source_converted_gym_reward_journey_test.dart' show installConvertedQaHeadlessAudio;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
+  testWidgets('3D battle connects effects, cries and victory presentation', (tester) async {
+    final fixture = (await tester.runAsync(_fixture))!;
+    final runtime = SpatialBattleRuntime(readGameState: () => fixture.state, commitGameState: (_, _) => true);
+    addTearDown(runtime.dispose);
+    await tester.runAsync(() async {
+      unawaited(runtime.start(bundle: fixture.bundle, request: _wild('audio')));
+      await _ready(runtime);
+    });
+    expect(runtime.battleOverlay!.playSfx, isNotNull);
+    expect(runtime.battleOverlay!.playCry, isNotNull);
+    expect(runtime.battleOverlay!.onOutcomePresented, isNotNull);
+    runtime.cancel();
+  });
   for (final scenario in [(false, false), (true, false), (false, true)]) {
     final (pausedByLifecycle, disposeRuntime) = scenario;
     testWidgets(

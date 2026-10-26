@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
 import '../../contracts/authoring_diff.dart';
+import '../../contracts/resource_ref.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
@@ -143,13 +144,20 @@ final class RuntimeAudioActions {
       final next = data.values.every((value) => value == null)
           ? null
           : ProjectBattleAudioConfig.fromJson(data);
-      return buildVisualManifestDraft(
-        context.snapshot,
-        manifest.copyWith(battleAudio: next),
-        operation: projectActionId,
-        path: '/battleAudio',
-        before: previous?.toJson(),
-        after: next?.toJson(),
+      if (previous == next) {
+        return AuthoringMutationDraft(changeSet: AuthoringChangeSet.noChanges(),
+          preview: {'operation': projectActionId, 'noOp': true});
+      }
+      final resource = AuthoringResourceRef(kind: 'project', id: 'project',
+        revision: context.snapshot.resourceFingerprints['project']);
+      return AuthoringMutationDraft(
+        changeSet: AuthoringChangeSet(changes: [AuthoringResourceChange(
+          resource: resource, storageKey: 'project.json',
+          beforeBytes: context.snapshot.resourceBytes('project'),
+          afterBytes: encodeProjectAuthoringDocument(context.snapshot, manifest.copyWith(battleAudio: next)),
+        )], diff: AuthoringDiff([AuthoringDiffEntry(operation: AuthoringDiffOperation.replace,
+          resource: resource, path: '/battleAudio', before: previous?.toJson(), after: next?.toJson())])),
+        preview: {'operation': projectActionId, 'path': '/battleAudio'},
       );
     }
 

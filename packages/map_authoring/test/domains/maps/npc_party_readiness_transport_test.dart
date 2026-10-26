@@ -8,6 +8,15 @@ import 'package:test/test.dart';
 import 'map_catalog_fixture.dart';
 
 void main() {
+  test('NPC authoring discovers the spatial trainer spotting contract', () {
+    for (final action in ['entity.set_npc_payload', 'npc.set_trainer']) {
+      final descriptor = EntityActions.descriptors.singleWhere((value) => value.id == action);
+      final spotting = descriptor.extensions['spatialTrainerSpotting'] as Map;
+      expect(spotting['capability'], SpatialGameplayCapabilities.trainerSpottingCapabilityId);
+      expect(spotting['requires'], ['entityInteractEventV2', 'matchingTrainerBattleInScene']);
+      expect(spotting['approach'], 'oneCellBeforeCurrentPlayer');
+    }
+  });
   for (final jsonl in [false, true]) {
     test(
         'NPC readiness condition and refusal survive ${jsonl ? 'JSONL' : 'direct API'} plan/apply',

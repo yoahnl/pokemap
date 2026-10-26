@@ -386,8 +386,9 @@ final class SemanticParameters {
 
 AuthoringActionDescriptor semanticActionDescriptor(
   String id,
-  String summary,
-) =>
+  String summary, {
+  Map<String, Object?> extensions = const {},
+}) =>
     AuthoringActionDescriptor(
       id: id,
       version: 1,
@@ -403,9 +404,10 @@ AuthoringActionDescriptor semanticActionDescriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const {
+      extensions: {
         'semanticIds': true,
         'rawTilesetRequired': false,
+        ...extensions,
       },
     );
 

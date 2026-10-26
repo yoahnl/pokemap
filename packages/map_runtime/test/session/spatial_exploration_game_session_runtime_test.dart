@@ -119,6 +119,136 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  void configureTrainer({MapEntityNpcData? npcData, bool authoredEvent = true}) {
+    final npc = bundle.map.entities.single.copyWith(
+      pos: const GridPos(x: 4, y: 1),
+      npc: (npcData ?? bundle.map.entities.single.npc!).copyWith(trainerId: 'guard',
+        facing: EntityFacing.south, lineOfSightRange: 4));
+    final scene = SceneAsset(id: 'challenge', name: 'Challenge',
+      graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'talk', kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(dialogueId: 'hello')),
+        SceneNode(id: 'battle', kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(battleKind: 'trainer', trainerId: 'guard', npcEntityId: 'npc', declaredOutcomes: const ['victory', 'defeat'])),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [
+        SceneEdge(id: 'open', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'talk', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'fight', fromNodeId: 'talk', fromPortId: 'completed', toNodeId: 'battle', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'won', fromNodeId: 'battle', fromPortId: 'victory', toNodeId: 'end', kind: SceneEdgeKind.battleVictory),
+        SceneEdge(id: 'lost', fromNodeId: 'battle', fromPortId: 'defeat', toNodeId: 'end', kind: SceneEdgeKind.battleDefeat),
+      ]));
+    bundle = bundle.copyWith(map: bundle.map.copyWith(entities: [npc]),
+      manifest: bundle.manifest.copyWith(scenes: [scene],
+        trainers: [ProjectTrainerEntry(id: 'guard', name: 'Guard', trainerClass: 'Scout',
+          team: [ProjectTrainerPokemonEntry(speciesId: 'rattata', level: 4)])],
+        eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only,
+          records: [if (authoredEvent) spatialEvent(NarrativeEventSourceRef.entityInteract('field', 'npc'), 'challenge')], legacyClaims: [])));
+  }
+
+  test('spatial trainer spotting approaches without teleporting the player and opens its authored scene', () async {
+    configureTrainer();
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final initial = runtime.gameStateSnapshot.playerSpatialPosition;
+    for (var i = 0; i < 500 && runtime.dialoguePresentationListenable.value == null; i++) {
+      runtime.session!.frames(.016);
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+    }
+    expect(runtime.session!.interactionError.value, isNull);
+    expect(runtime.dialoguePresentationListenable.value?.fullText, 'Salut !', reason: jsonEncode({
+      'story': runtime.session!.storyActive.value, 'locked': runtime.session!.storyInputLocked,
+      'actor': runtime.gameStateSnapshot.spatialWorldState.actorState('field', 'npc')?.toJson(),
+      'hero': runtime.gameStateSnapshot.playerSpatialPosition?.toJson(),
+      'input': runtime.inputAuthority.value.context.name}));
+    expect(runtime.gameStateSnapshot.playerSpatialPosition, initial);
+    final pose = runtime.gameStateSnapshot.spatialWorldState.actorState('field', 'npc');
+    expect(pose?.x, initial!.x);
+    expect(pose?.z, initial.z - 1);
+    expect(runtime.session!.storyActive.value, isFalse);
+  });
+
+  test('spatial trainer spotting cancellation unlocks input without committing actor motion', () async {
+    configureTrainer();
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final initial = runtime.gameStateSnapshot.playerSpatialPosition;
+    for (var i = 0; i < 10; i++) {
+      runtime.session!.frames(.016);
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+    }
+    expect(runtime.session!.storyActive.value, true);
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.secondary));
+    for (var i = 0; i < 100; i++) {
+      runtime.session!.frames(.016);
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+    }
+    expect(runtime.session!.storyActive.value, false);
+    expect(runtime.inputAuthority.value.acceptsOverworldInput, true);
+    expect(runtime.gameStateSnapshot.playerSpatialPosition, initial);
+    expect(runtime.gameStateSnapshot.spatialWorldState.actorState('field', 'npc'), isNull);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(runtime.session!.interactionError.value, isNull);
+  });
+
+  test('trainer encounter music starts on spotting and restores on cancellation', () async {
+    configureTrainer();
+    await runtime.dispose();
+    final driver = _SceneAudioDriver();
+    late RuntimeMusicService music;
+    bundle = bundle.copyWith(
+      map: bundle.map.copyWith(mapMetadata: bundle.map.mapMetadata.copyWith(musicPath: 'map.ogg')),
+      manifest: bundle.manifest.copyWith(battleAudio: const ProjectBattleAudioConfig(encounterMusicPath: 'eye.ogg')),
+    );
+    runtime = SpatialExplorationGameSessionRuntime(
+      descriptor: descriptor(), projectFilePath: () async => '${root.path}/project.json',
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      musicServiceFactory: (mixer) => music = RuntimeMusicService(mixer: mixer, driver: driver, fadeDelay: (_) async {}),
+      mountSession: (_) async {}, unmountSession: (_) async {},
+    );
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    expect(music.playingPath, '${root.path}/map.ogg');
+    for (var i = 0; i < 10; i++) {
+      runtime.session!.frames(.016);
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+    }
+    expect(music.playingPath, '${root.path}/eye.ogg');
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.secondary));
+    for (var i = 0; i < 100; i++) {
+      runtime.session!.frames(.016);
+      await Future<void>.delayed(const Duration(milliseconds: 2));
+    }
+    expect(music.playingPath, '${root.path}/map.ogg');
+    expect(runtime.session!.interactionError.value, isNull);
+  });
+
+  for (final reason in ['missing-event', 'unavailable-time', 'unready-party']) {
+    test('spatial trainer spotting respects $reason', () async {
+      configureTrainer(authoredEvent: reason != 'missing-event',
+        npcData: bundle.map.entities.single.npc!.copyWith(
+          trainerBattleWhen: reason == 'unavailable-time'
+            ? const MapEntityRuntimePredicate(kind: MapEntityRuntimePredicateKind.localTimeWindow,
+              timeWindow: LocalTimeWindow(startMinute: 0, endMinute: 1)) : null,
+          trainerBattleReadyWhen: reason == 'unready-party'
+            ? const MapEntityRuntimePredicate(kind: MapEntityRuntimePredicateKind.partyUsableCountAtLeast,
+              minimumCount: 2) : null));
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      final initial = runtime.gameStateSnapshot.playerSpatialPosition;
+      for (var i = 0; i < 100; i++) {
+        runtime.session!.frames(.016);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(runtime.session!.storyActive.value, isFalse);
+      expect(runtime.dialoguePresentationListenable.value, isNull);
+      expect(runtime.gameStateSnapshot.playerSpatialPosition, initial);
+      expect(runtime.session!.interactionError.value, isNull);
+    });
+  }
+
   test('real weather waits for player consent and never requests from simulation frames', () async {
     await runtime.dispose();
     final provider = _WeatherProvider();
@@ -3071,7 +3201,7 @@ GameSessionDescriptor descriptor(
                         name: 'Yoahn', avatarCharacterId: 'hero')),
         installedVersionHandle: 'installed',
         runtimeApiVersion: '1.4.0',
-        grantedCapabilities: {'map3d@1', 'map3d.story@1', ...additionalCapabilities},
+        grantedCapabilities: {'map3d@1', 'map3d.story@1', SpatialGameplayCapabilities.trainerSpottingCapabilityId, ...additionalCapabilities},
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions());
 

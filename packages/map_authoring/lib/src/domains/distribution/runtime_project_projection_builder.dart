@@ -928,18 +928,20 @@ final class RuntimeProjectProjectionBuilder {
     );
 
     if (projectedProject.settings.dimension == ProjectDimension.threeD) {
-      final gameplay =
-          SpatialGameplayCapabilities.requiresGameplay(projectedProject, maps: [
+      final maps = [
         for (final entry in projectedProject.maps)
           MapData.fromJson(
               jsonDecode(utf8.decode(payload['project/${entry.relativePath}']!))
                   as Map<String, dynamic>)
-      ], dialogues: [
+      ];
+      final gameplay =
+          SpatialGameplayCapabilities.requiresGameplay(projectedProject, maps: maps, dialogues: [
         for (final entry in projectedProject.dialogues)
           const RuntimeDialogueDocumentCodec()
               .decodeUtf8(payload['project/${entry.relativePath}']!)
       ]);
-      GamePackageSpatialProjectValidator(gameplay: gameplay).validate(
+      GamePackageSpatialProjectValidator(gameplay: gameplay,
+        trainerSpotting: SpatialGameplayCapabilities.requiresTrainerSpotting(projectedProject, maps: maps)).validate(
           projectedProject, (path) => payload[path],
           payloadPaths: payload.keys);
     }

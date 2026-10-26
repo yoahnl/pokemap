@@ -1,3 +1,4 @@
+import '../models/map_spatial_scene.dart' show ProjectDimension;
 import '../models/scene_asset.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/narrative_event_source_ref.dart';
@@ -20,6 +21,21 @@ abstract final class SpatialGameplayCapabilities {
   static const sceneMusicCapabilityId = 'map3d.scene-music@1';
   static const cinematicFadeCapabilityId = 'map3d.cinematic-fade@1';
   static const cinematicConnectedCapabilityId = 'map3d.cinematic-connected@1';
+
+  static const trainerSpottingCapabilityId = 'map3d.trainer-spotting@1';
+
+  static bool requiresTrainerSpotting(
+    ProjectManifest project, {
+    required Iterable<MapData> maps,
+  }) =>
+      project.settings.dimension == ProjectDimension.threeD &&
+      maps.any(
+        (map) => map.entities.any(
+          (entity) =>
+              entity.npc?.trainerId != null &&
+              (entity.npc?.lineOfSightRange ?? 0) > 0,
+        ),
+      );
 
   static bool requiresConnectedCinematics(ProjectManifest project,
       {required Iterable<MapData> maps}) {
