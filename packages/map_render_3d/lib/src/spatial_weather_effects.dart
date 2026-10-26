@@ -65,6 +65,8 @@ final class SpatialWeatherEffects {
       night: night,
     );
     final after = spatialWeatherFrame(next, seconds: seconds, night: night);
+    context.weatherVeilOpacity = before.veilOpacity * (1 - weight) + after.veilOpacity * weight;
+    context.weatherSkyFlash = before.flash * (1 - weight) + after.flash * weight;
     final oldCount = (before.particleCount * (1 - weight)).round();
     final newCount = math.min(
       (after.particleCount * weight).round(),

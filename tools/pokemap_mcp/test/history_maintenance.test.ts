@@ -26,6 +26,7 @@ async function removeFixtureAdmissions(canonicalRoot: string): Promise<number> {
     if (bytes === undefined) continue;
     let value: JsonRecord;
     try { value = JSON.parse(bytes) as JsonRecord; } catch { continue; }
+    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     if (value.projectRoot === canonicalRoot || (value.admission as JsonRecord | undefined)?.projectRoot === canonicalRoot) {
       await rm(path);
       removed++;
@@ -169,6 +170,8 @@ test("MCP legacy history converts then survives undo and redo across reopenings"
     }
     assert.deepEqual(await readFile(join(root, "catalog/HEAD.json")), headBefore);
     assert.deepEqual(await readFile(join(root, "project.json")), descriptorBefore);
+    assert.equal(await readFile(join(root, "maps/foreign.json"), "utf8"), "foreign map must remain unread");
+    state.unrelatedInvalidMapPreserved = true;
     const history = await call("pokemap_history", { operation: "list", projectHandle: opened!.projectHandle, limit: 20 });
     for (const [index, id] of ids.entries()) {
       const original = (history.entries as JsonRecord[]).find(entry => entry.entryId === id);

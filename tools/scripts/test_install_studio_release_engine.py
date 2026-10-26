@@ -124,6 +124,23 @@ class InstallStudioReleaseEngineTests(unittest.TestCase):
             self.install()
         self.assert_unchanged(before)
 
+    def test_qa_can_install_universal_engine_in_arm_app(self):
+        def runner(command, **kwargs):
+            if command[0] == 'git':
+                output = 'b' * 40
+            elif 'Contents/MacOS' in str(command[-1]):
+                output = 'arm64'
+            else:
+                output = 'arm64 x86_64'
+            return subprocess.CompletedProcess(command, 0, output, '')
+        receipt = installer.install_engine(
+            app=self.app, archive=self.archive, manifest=self.manifest,
+            producer_flutter_sdk=self.sdk, runner=runner,
+            require_universal_app=False,
+        )
+        self.assertEqual(receipt['mode'], 'release')
+        self.assertEqual((self.framework / 'FlutterMacOS').read_bytes(), b'fixed engine')
+
     def test_framework_tampering_does_not_change_app(self):
         before = packaging.tree_digest(self.app)
         self.provenance['frameworkTreeSha256'] = '0' * 64

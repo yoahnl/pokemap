@@ -2,6 +2,7 @@ import 'spatial_point_light.dart';
 import 'spatial_light_behavior.dart';
 
 import 'dart:async';
+import 'dart:ui' as ui show Gradient;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -1097,10 +1098,41 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     'targetAllocations': _depthOfField?.targetAllocations ?? 0,
   };
 
+  final Paint _weatherFlashPaint = Paint()..blendMode = BlendMode.screen;
+  final Paint _weatherVeilPaint = Paint();
+  double _weatherVeil = -1;
+  Size _weatherVeilSize = Size.zero;
+  double _weatherFlash = -1;
+  Size _weatherFlashSize = Size.zero;
+
   @override
   void render(Canvas canvas) => device.guardFrame(() {
     syncDepthOfField();
     super.render(canvas);
+    final weather = context as SpatialRenderContext;
+    final veil = (weather.weatherVeilOpacity * 200).round() / 200;
+    if (veil > 0) {
+      final viewport = Size(size.x, size.y);
+      if (veil != _weatherVeil || viewport != _weatherVeilSize) {
+        _weatherVeil = veil;
+        _weatherVeilSize = viewport;
+        _weatherVeilPaint.shader = ui.Gradient.linear(Offset.zero, Offset(viewport.width * .3, viewport.height), [const Color(0xff637c98).withValues(alpha: veil), const Color(0xff637c98).withValues(alpha: veil * .3)]);
+      }
+      canvas.drawRect(Offset.zero & viewport, _weatherVeilPaint);
+    }
+    final flash = weather.weatherSkyFlash;
+    if (flash > .0001) {
+      final viewport = Size(size.x, size.y);
+      if (flash != _weatherFlash || viewport != _weatherFlashSize) {
+        _weatherFlash = flash;
+        _weatherFlashSize = viewport;
+        _weatherFlashPaint.shader = ui.Gradient.linear(
+          Offset.zero, Offset(0, viewport.height),
+          [const Color(0xffe5edff).withValues(alpha: flash * 5.5), const Color(0xffe5edff).withValues(alpha: flash * 2.5)],
+        );
+      }
+      canvas.drawRect(Offset.zero & viewport, _weatherFlashPaint);
+    }
     renderedFrameCount++;
   });
 

@@ -244,9 +244,10 @@ final class AuthoringHistoryWindow {
         }
       }
     }
-    if (window.logicalBytes > window.maxBytes ||
-        window.recordBytes >
-            FileAuthoringHistoryStore.maxRetentionRecordBytes) {
+    final recordBytes = window.recordBytes;
+    if (window.objectBytes + window.conversionBytes + recordBytes >
+            window.maxBytes ||
+        recordBytes > FileAuthoringHistoryStore.maxRetentionRecordBytes) {
       throw const FormatException('history.retention: budget exceeded');
     }
     return window;

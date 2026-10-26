@@ -57,7 +57,7 @@ enum SpatialVisualParameter {
   timeMode.choice(),
   weatherMode.choice(),
   weatherIntervalSeconds(10, 86400),
-  weatherSequence(1, 15);
+  weatherSequence(1, 20);
 
   const SpatialVisualParameter(this.minimum, this.maximum)
     : isBoolean = false,
@@ -100,8 +100,8 @@ enum SpatialVisualParameter {
 
   Object normalize(Object? value) {
     if (isSequence) {
-      if (value is! List || value.isEmpty || value.length > 15) {
-        throw const FormatException('Choose between one and fifteen weather styles.');
+      if (value is! List || value.isEmpty || value.length > 20) {
+        throw const FormatException('Choose between one and twenty weather styles.');
       }
       final kinds = [for (final kind in value) SpatialWeatherKind.parse(kind).name];
       if (kinds.toSet().length != kinds.length) {
@@ -139,6 +139,10 @@ final class SpatialVisualPatch {
   final Map<SpatialVisualParameter, Object> values;
   bool get isEmpty => values.isEmpty;
   bool get requiresLightWorkshop => values.keys.any((p) => p.isLightWorkshop);
+  bool get requiresExtendedWeather =>
+      (choice(SpatialVisualParameter.weatherKind) != null && SpatialWeatherKind.parse(choice(SpatialVisualParameter.weatherKind)).isExtended) ||
+      ((value(SpatialVisualParameter.weatherSequence) as List<String>?) ?? const <String>[]).any((kind) => SpatialWeatherKind.parse(kind).isExtended);
+
   bool get requiresWeather => values.keys.any((p) => p.isWeather);
   bool get requiresWeatherSound => values.keys.any((p) => p.isWeatherSound);
   bool get requiresRealWeather => choice(SpatialVisualParameter.weatherMode) == WorldWeatherMode.real.name;
@@ -374,6 +378,7 @@ final class SpatialVisualDocument {
   static const weatherSoundSchemaVersion = 4;
   static const worldEnvironmentSchemaVersion = 5;
   static const realWeatherSchemaVersion = 6;
+  static const extendedWeatherSchemaVersion = 7;
   static const maxBytes = 32768;
   static const projectRelativePath = 'project.visual.json';
   final String? mapId;
@@ -402,6 +407,7 @@ final class SpatialVisualDocument {
           weatherSoundSchemaVersion,
           worldEnvironmentSchemaVersion,
           realWeatherSchemaVersion,
+          extendedWeatherSchemaVersion,
         }.contains(json['schemaVersion']) ||
         json.keys.any(
           (key) => !{'schemaVersion', 'mapId', 'profile'}.contains(key),
@@ -415,6 +421,9 @@ final class SpatialVisualDocument {
     final profile = SpatialVisualPatch.fromJson(
       json['profile'] as Map<String, dynamic>,
     );
+    if ((json['schemaVersion'] as int) < extendedWeatherSchemaVersion && profile.requiresExtendedWeather) {
+      throw const FormatException('Extended weather requires visual schema 7.');
+    }
     if ((json['schemaVersion'] as int) < realWeatherSchemaVersion && profile.requiresRealWeather) {
       throw const FormatException('Real weather requires visual schema 6.');
     }
@@ -441,7 +450,7 @@ final class SpatialVisualDocument {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': profile.requiresRealWeather ? realWeatherSchemaVersion : profile.requiresWorldEnvironment
+    'schemaVersion': profile.requiresExtendedWeather ? extendedWeatherSchemaVersion : profile.requiresRealWeather ? realWeatherSchemaVersion : profile.requiresWorldEnvironment
         ? worldEnvironmentSchemaVersion
         : profile.requiresWeatherSound
         ? weatherSoundSchemaVersion

@@ -108,7 +108,8 @@ final class LocalMapAtmosphereAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
-        'documentSchemaVersions': [1, 2, 3, 4, 5],
+        'documentSchemaVersions': [1, 2, 3, 4, 5, 6],
+        'extendedWeatherCapability': SpatialWeatherCapabilities.extendedCapabilityId,
         'weatherCapability': SpatialWeatherCapabilities.capabilityId,
         'weatherSoundCapability': SpatialWeatherCapabilities.soundCapabilityId,
         'weatherFields': [...SpatialWeatherSettings.keys],

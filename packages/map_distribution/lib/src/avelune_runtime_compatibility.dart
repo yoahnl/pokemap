@@ -36,6 +36,7 @@ abstract final class AveluneRuntimeCompatibility {
           SpatialVisualDocument.capabilityId,
           SpatialLightWorkshopCapabilities.capabilityId,
           SpatialWeatherCapabilities.capabilityId,
+          SpatialWeatherCapabilities.extendedCapabilityId,
           SpatialWeatherCapabilities.soundCapabilityId,
           WorldEnvironmentCapabilities.capabilityId,
           WorldEnvironmentCapabilities.realWeatherCapabilityId,

@@ -46,8 +46,8 @@ void main() {
     float alpha = 0.0;
     vec3 color = fragTint.rgb;
     if (fragShape < 0.5) {
-        alpha = (1.0 - smoothstep(0.15, 1.0, abs(uv.x)))
-              * (1.0 - smoothstep(0.45, 1.0, abs(uv.y)));
+        alpha = (1.0 - smoothstep(0.05, 1.0, abs(uv.x)))
+              * (1.0 - smoothstep(0.35, 1.0, abs(uv.y)));
     } else if (fragShape < 1.5) {
         float arms = 0.84 + 0.16 * cos(atan(uv.y, uv.x) * 6.0);
         alpha = 1.0 - smoothstep(0.38, arms, radius);
@@ -70,20 +70,6 @@ void main() {
         color = pigment * max(fragTint.r, fragTint.g);
         color *= 0.88 + 0.12 * (uv.y * 0.5 + 0.5);
         color = mix(color, color * 0.55, leaf.y * 0.45);
-    } else {
-        float t = clamp((uv.y + 1.0) * 0.5, 0.0, 0.9999) * 9.0;
-        float segment = floor(t);
-        float a = sin((segment + fragVariation * 11.0) * 17.31) * 0.37;
-        float b = sin((segment + 1.0 + fragVariation * 11.0) * 17.31) * 0.37;
-        float line = mix(a, b, fract(t));
-        float distance = abs(uv.x - line);
-        float branch = abs(uv.x - (0.15 + (uv.y + 0.1) * 0.7));
-        if (uv.y > -0.6 && uv.y < 0.2) distance = min(distance, branch);
-        float edge = max(0.005, fwidth(distance));
-        float core = 1.0 - smoothstep(0.014, 0.014 + edge, distance);
-        float glow = exp(-distance * 19.0) * 0.5;
-        alpha = max(core, glow) * (1.0 - smoothstep(0.9, 1.0, abs(uv.y)));
-        color = mix(color, vec3(1.0), core * 0.92);
     }
     alpha *= fragTint.a;
     if (alpha < 0.005) discard;

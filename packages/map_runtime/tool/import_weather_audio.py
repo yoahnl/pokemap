@@ -15,10 +15,11 @@ args = parser.parse_args()
 destination = Path(__file__).resolve().parent.parent / 'assets/audio/weather'
 destination.mkdir(parents=True, exist_ok=True)
 provenance = json.loads((args.source_directory.parent / 'provenance.json').read_text())
-receipt = {'model': provenance['model'], 'sampleRate': 22050, 'channels': 2, 'crossfadeSeconds': .65, 'sources': {}}
+receipt_path = destination / 'provenance.json'
+receipt = {'model': provenance['model'], 'sampleRate': 22050, 'channels': 2, 'crossfadeSeconds': .65, 'sources': json.loads(receipt_path.read_text()).get('sources', {}) if receipt_path.exists() else {}}
 for kind in ['rain', 'wind']:
     source = args.source_directory / (kind + '-source.mp3')
-    with tempfile.TemporaryDirectory(prefix='avelune-weather-audio-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='avelune-weather-audio-', dir=args.source_directory) as temporary:
         decoded = Path(temporary) / 'decoded.wav'
         subprocess.run(['ffmpeg', '-v', 'error', '-i', str(source), '-ar', '22050', '-ac', '2', '-c:a', 'pcm_s16le', str(decoded)], check=True)
         with wave.open(str(decoded), 'rb') as audio:
@@ -56,3 +57,5 @@ for kind in ['rain', 'wind']:
     }
 (destination / 'provenance.json').write_text(json.dumps(receipt, indent=2) + '\n')
 print(json.dumps(receipt, indent=2))
+
+subprocess.run([sys.executable, str(Path(__file__).with_name('derive_storm_audio.py'))], check=True)

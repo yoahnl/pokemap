@@ -25,6 +25,8 @@ test("visual defaults and map inheritance use bounded canonical documents across
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("weatherSoundEnabled"));
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("timeMode"));
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("weatherSequence"));
+    assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("tempest"));
+    assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("map3d.weather-states@1"));
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("map3d.real-weather@1"));
     const initial=await call("pokemap_visual_settings_inspect",{projectRoot:root});
     const input={projectRoot:root,expectedRevision:initial.revision,settings,operationId:`visual-${i}`};
@@ -34,6 +36,17 @@ test("visual defaults and map inheritance use bounded canonical documents across
    });
   }
   await session(async call=>{
+   const kinds=["clear","cloudy","drizzle","rain","downpour","storm","snow","blizzard","hail","mist","fog","dust","sandstorm","petals","leaves","partlyCloudy","windy","heavySnow","sleet","tempest"];
+   for (const weatherKind of kinds.slice(15)) {
+    const before=await call("pokemap_visual_settings_inspect",{projectRoot:root});
+    const settings={weatherKind,weatherSequence:kinds};
+    const changed=await call("pokemap_visual_settings_set",{projectRoot:root,expectedRevision:before.revision,settings,operationId:`extended-${weatherKind}`});
+    assert.deepEqual(changed.afterSettings,settings);
+   }
+  });
+  await session(async call=>{
+   const reopened=await call("pokemap_visual_settings_inspect",{projectRoot:root});
+   assert.equal(record(reopened.settings).weatherKind,"tempest");
    const first=await call("pokemap_visual_settings_inspect",{projectRoot:root,mapId:"shore"});
    const changed=await call("pokemap_visual_settings_set",{projectRoot:root,mapId:"shore",expectedRevision:first.revision,settings:{haloStrength:1.2},operationId:"map-visual"});
    await call("pokemap_visual_settings_set",{projectRoot:root,mapId:"shore",expectedRevision:first.revision,settings:{haloStrength:1.4},operationId:"stale-map"},true);

@@ -70,6 +70,7 @@ final class GamePackageProjectValidator {
       };
       var visualProfiles = false;
       var weather = SpatialWeatherCapabilities.requiresProject(project);
+      var extendedWeather = SpatialWeatherCapabilities.requiresExtendedProject(project);
       var weatherSound = SpatialWeatherCapabilities.requiresSoundProject(project);
       var worldEnvironment = WorldEnvironmentCapabilities.requiresProject(project);
       var realWeather = WorldEnvironmentCapabilities.requiresRealProject(project);
@@ -86,6 +87,7 @@ final class GamePackageProjectValidator {
                 decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         lightWorkshop |= document.profile.requiresLightWorkshop;
         weather |= document.profile.requiresWeather;
+        extendedWeather |= document.profile.requiresExtendedWeather;
         weatherSound |= document.profile.requiresWeatherSound;
         worldEnvironment |= document.profile.requiresWorldEnvironment;
         realWeather |= document.profile.requiresRealWeather;
@@ -165,6 +167,7 @@ final class GamePackageProjectValidator {
         final document = SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         lightWorkshop |= document.settings.hasFireflyStyle;
         weather |= document.settings.weather.hasSettings;
+        extendedWeather |= document.settings.weather.kind.isExtended;
         weatherSound |= document.settings.weather.hasSoundSettings;
         if (document.mapId != mapId) _fail('Atmosphere map identity mismatch.');
       }
@@ -173,6 +176,9 @@ final class GamePackageProjectValidator {
       }
       if (weather && !packageManifest.compatibility.requiredCapabilities.contains(SpatialWeatherCapabilities.capabilityId)) {
         _fail('Weather requires map3d.weather@1.');
+      }
+      if (extendedWeather && !packageManifest.compatibility.requiredCapabilities.contains(SpatialWeatherCapabilities.extendedCapabilityId)) {
+        _fail('Extended weather requires map3d.weather-states@1.');
       }
       if (weatherSound && !packageManifest.compatibility.requiredCapabilities.contains(SpatialWeatherCapabilities.soundCapabilityId)) {
         _fail('Weather audio requires map3d.weather-audio@1.');

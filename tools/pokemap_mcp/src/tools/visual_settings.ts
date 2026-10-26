@@ -39,7 +39,7 @@ export function registerVisualSettingsTools(server: McpServer, authoring: Author
     fireflyLightStrength:z.number().min(0).max(1).optional(),
     fireflyLightRadius:z.number().min(0.25).max(2.5).optional(),
     weatherEnabled:z.boolean().optional(),
-    weatherKind:z.enum(["clear","cloudy","drizzle","rain","downpour","storm","snow","blizzard","hail","mist","fog","dust","sandstorm","petals","leaves"]).optional(),
+    weatherKind:z.enum(["clear","cloudy","drizzle","rain","downpour","storm","snow","blizzard","hail","mist","fog","dust","sandstorm","petals","leaves","partlyCloudy","windy","heavySnow","sleet","tempest"]).optional(),
     weatherIntensity:z.number().min(0).max(1).optional(),
     weatherDensity:z.number().min(0).max(1).optional(),
     weatherSpeed:z.number().min(.1).max(3).optional(),
@@ -58,7 +58,7 @@ export function registerVisualSettingsTools(server: McpServer, authoring: Author
     timeMode:z.enum(['cycle','real','fixed']).optional(),
     weatherMode:z.enum(['fixed','automatic','real']).optional(),
     weatherIntervalSeconds:z.number().min(10).max(86400).optional(),
-    weatherSequence:z.array(z.enum(['clear','cloudy','drizzle','rain','downpour','storm','snow','blizzard','hail','mist','fog','dust','sandstorm','petals','leaves'])).min(1).max(15).refine(values=>new Set(values).size===values.length).optional(),
+    weatherSequence:z.array(z.enum(['clear','cloudy','drizzle','rain','downpour','storm','snow','blizzard','hail','mist','fog','dust','sandstorm','petals','leaves', 'partlyCloudy', 'windy', 'heavySnow', 'sleet', 'tempest'])).min(1).max(20).refine(values=>new Set(values).size===values.length).optional(),
 
   }).strict().refine(value => value.fogStart === undefined || value.fogEnd === undefined || value.fogStart < value.fogEnd, "Fog must end after its start");
   const identity = {

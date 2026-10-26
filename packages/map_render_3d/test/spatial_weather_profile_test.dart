@@ -3,6 +3,16 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_weather_profile.dart';
 
 void main() {
+  test('intensity levels progress continuously within the same fixed budget', () {
+    for (final kind in SpatialWeatherKind.values.where((kind) => kind != SpatialWeatherKind.clear)) {
+      var previous = 0;
+      for (final intensity in [.15, .35, .55, .8, 1.0]) {
+        final frame = spatialWeatherFrame(SpatialWeatherSettings(enabled: true, kind: kind, intensity: intensity), seconds: 3);
+        expect(frame.particleCount, inInclusiveRange(previous, spatialWeatherMaximumParticles));
+        previous = frame.particleCount;
+      }
+    }
+  });
   test('storm lightning remains visible even with rain particles disabled', () {
     final settings = SpatialWeatherSettings(
       enabled: true,
@@ -13,8 +23,9 @@ void main() {
     );
     expect(
       spatialWeatherFrame(settings, seconds: 6.35).particleCount,
-      greaterThan(0),
+      0,
     );
+    expect(spatialWeatherFrame(settings, seconds: 6.35).flash, greaterThan(0));
     expect(
       spatialWeatherFrame(
         settings.copyWith(lightning: false),

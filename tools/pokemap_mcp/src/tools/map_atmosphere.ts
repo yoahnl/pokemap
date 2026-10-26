@@ -11,7 +11,7 @@ export function registerMapAtmosphereTools(server: McpServer, authoring: Authori
   const halo = z.object({instanceId:z.string().min(1).max(256),localPosition:vector,radiusX:z.number().min(.01).max(3).optional(),radiusY:z.number().min(.01).max(3).optional(),opacity:z.number().min(0).max(.5).optional(),colorRgb:z.number().int().min(0).max(0xffffff).optional(),window:z.boolean().optional()}).strict();
   const weather = z.object({
     enabled:z.boolean().optional(),
-    kind:z.enum(["clear","cloudy","drizzle","rain","downpour","storm","snow","blizzard","hail","mist","fog","dust","sandstorm","petals","leaves"]).optional(),
+    kind:z.enum(["clear","cloudy","drizzle","rain","downpour","storm","snow","blizzard","hail","mist","fog","dust","sandstorm","petals","leaves","partlyCloudy","windy","heavySnow","sleet","tempest"]).optional(),
     intensity:z.number().min(0).max(1).optional(), density:z.number().min(0).max(1).optional(),
     speed:z.number().min(.1).max(3).optional(), windStrength:z.number().min(0).max(2).optional(),
     windDirection:z.number().min(-180).max(180).optional(), particleSize:z.number().min(.25).max(2).optional(),

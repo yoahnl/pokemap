@@ -236,16 +236,16 @@ void main() {
         outColor.rgb = mix(outColor.rgb, litGlass, clamp(mask * atmosphere.windowColor.w, 0.0, 1.0));
     }
     if (presentation.weatherImpacts.x > 0.0 && abs(receiverNormal.y) > 0.7) {
-        vec2 cell = floor(fragPosition.xz * 1.8);
+        vec2 cell = floor(fragPosition.xz * 4.5);
         float seed = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
         float phase = fract(presentation.weatherImpacts.z * presentation.weatherImpacts.y + seed);
         vec2 center = vec2(fract(seed * 13.17), fract(seed * 39.43)) * 0.6 + 0.2;
-        float radius = length(fract(fragPosition.xz * 1.8) - center);
-        float ring = 1.0 - smoothstep(0.015, 0.055, abs(radius - phase * 0.38));
+        float radius = length(fract(fragPosition.xz * 4.5) - center);
+        float ring = 1.0 - smoothstep(0.015, 0.055, abs(radius - phase * 0.18));
         float ripple = ring * (1.0 - phase) * smoothstep(0.0, 0.08, phase);
         ripple *= step(seed, presentation.weatherImpacts.x) * presentation.weatherImpacts.x;
         outColor.rgb = mix(outColor.rgb, outColor.rgb * 0.75 + vec3(0.18, 0.23, 0.26) * environment.tint.rgb,
-                           ripple * 0.65);
+                           min(ripple, 1.0) * 0.24);
     }
     if (presentation.fogColor.w > 0.0 || presentation.manualFog.z > 0.0) {
         float haze = smoothstep(presentation.depthRange.x, presentation.depthRange.y, fragViewDepth) * presentation.fogColor.w;

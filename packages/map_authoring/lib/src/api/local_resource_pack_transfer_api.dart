@@ -58,7 +58,7 @@ final class LocalResourcePackTransferApi
         details: {
           'verb': operation == 'apply'
               ? 'start_apply'
-              : operation == 'undo'
+              : operation == 'undo' || operation == 'redo'
               ? 'start_history'
               : 'start_recovery',
         },

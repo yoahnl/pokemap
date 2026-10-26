@@ -20,7 +20,8 @@ from package_studio_macos_engine import (
 )
 
 
-def install_engine(*, app, archive, manifest, producer_flutter_sdk, runner=subprocess.run):
+def install_engine(*, app, archive, manifest, producer_flutter_sdk, runner=subprocess.run,
+                   require_universal_app=True):
     app = canonical_directory(app, 'Release app')
     sdk = canonical_directory(producer_flutter_sdk, 'Producer Flutter SDK')
     archive = Path(archive)
@@ -50,8 +51,10 @@ def install_engine(*, app, archive, manifest, producer_flutter_sdk, runner=subpr
     if not executable or Path(executable).name != executable:
         raise PackagingError('Invalid app executable')
     app_architectures = architectures(app / 'Contents/MacOS' / executable, commands, runner)
-    if app_architectures != required_architectures:
+    if require_universal_app and app_architectures != required_architectures:
         raise PackagingError('Release app architectures must include arm64 and x86_64')
+    if not app_architectures or not app_architectures <= required_architectures:
+        raise PackagingError('Release engine does not cover app architectures')
     destination = app / 'Contents/Frameworks/FlutterMacOS.framework'
     if not destination.is_dir() or destination.is_symlink():
         raise PackagingError('Missing original FlutterMacOS.framework')

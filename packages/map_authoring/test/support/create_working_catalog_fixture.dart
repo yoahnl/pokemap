@@ -24,7 +24,14 @@ Future<void> main(List<String> arguments) async {
                   name: 'Foreign',
                   relativePath: 'maps/foreign.json'),
             ]
-          : const [],
+          : legacyHistory
+              ? const [
+                  ProjectMapEntry(
+                      id: 'foreign',
+                      name: 'Foreign',
+                      relativePath: 'maps/foreign.json')
+                ]
+              : const [],
       eventRegistry: arguments.contains('--story-map')
           ? NarrativeEventRegistry(
               schemaVersion: 1,
@@ -84,6 +91,11 @@ Future<void> main(List<String> arguments) async {
       size: GridSize(width: 8, height: 6),
       version: ProjectVersion.v8,
     ).toJson()));
+    await File('$root/maps/foreign.json')
+        .writeAsString('foreign map must remain unread');
+  }
+  if (legacyHistory && !arguments.contains('--story-map')) {
+    await Directory('$root/maps').create(recursive: true);
     await File('$root/maps/foreign.json')
         .writeAsString('foreign map must remain unread');
   }

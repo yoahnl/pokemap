@@ -65,6 +65,8 @@ class SpatialRenderContext extends RenderContext3D
   final _casterSurfaces = <_TransparentSurface>[];
   bool _capturingShadowCasters = false;
 
+  double weatherSkyFlash = 0;
+  double weatherVeilOpacity = 0;
   int weatherDrawCount = 0;
   final _weather = <Surface>[];
   final _transparent = <_TransparentSurface>[];

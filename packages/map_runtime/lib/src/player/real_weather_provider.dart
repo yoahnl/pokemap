@@ -127,7 +127,8 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
     if (code is! int) throw const FormatException('Invalid weather code.');
     var kind = switch (code) {
       0 => SpatialWeatherKind.clear,
-      1 || 2 || 3 => SpatialWeatherKind.cloudy,
+      1 || 2 => SpatialWeatherKind.partlyCloudy,
+      3 => SpatialWeatherKind.cloudy,
       45 || 48 => SpatialWeatherKind.fog,
       51 || 53 || 55 || 56 || 57 => SpatialWeatherKind.drizzle,
       61 || 63 || 66 || 67 || 80 || 81 => SpatialWeatherKind.rain,
@@ -151,13 +152,16 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
     final rainRate = rain * 3600 / interval;
     final snowRate = snowfall * 3600 / interval;
     if (code < 95 && snowfall > 0) {
-      kind = SpatialWeatherKind.snow;
+      kind = rainfall > 0 ? SpatialWeatherKind.sleet : SpatialWeatherKind.snow;
     } else if (code < 50 && rainfall > 0) {
       kind = rainRate >= 7.5 ? SpatialWeatherKind.downpour : rainRate < .5 ? SpatialWeatherKind.drizzle : SpatialWeatherKind.rain;
     }
     if (kind == SpatialWeatherKind.snow && wind >= 35 && (code == 75 || code == 86 || snowRate >= 1)) {
       kind = SpatialWeatherKind.blizzard;
     }
+    if (kind == SpatialWeatherKind.snow && (code == 75 || code == 86 || snowRate >= 1)) kind = SpatialWeatherKind.heavySnow;
+    if (kind == SpatialWeatherKind.storm && (wind >= 45 || rainRate >= 15)) kind = SpatialWeatherKind.tempest;
+    if ((kind == SpatialWeatherKind.clear || kind == SpatialWeatherKind.cloudy || kind == SpatialWeatherKind.partlyCloudy) && wind >= 25) kind = SpatialWeatherKind.windy;
     final minimum = switch (code) {
       65 || 75 || 82 || 99 => .95,
       55 || 57 || 63 || 73 || 81 || 86 || 95 || 96 || 97 => .7,

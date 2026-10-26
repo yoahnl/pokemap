@@ -113,6 +113,21 @@ void main() {
     await tester.pump();
     expect(patch.choice(SpatialVisualParameter.weatherKind), 'snow');
     expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
+    for (final level in [.15, .35, .55, .8, 1.0]) {
+      final button = find.byKey(ValueKey('weather-intensity-$level'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+      expect(patch.number(SpatialVisualParameter.weatherIntensity), level);
+      expect(patch.number(SpatialVisualParameter.haloStrength), 1.2);
+    }
+    for (final kind in SpatialWeatherKind.values.where((kind) => kind.isExtended)) {
+      final button = find.byKey(ValueKey('weather-preset-${kind.name}'));
+      await tester.ensureVisible(button);
+      await tester.tap(button);
+      await tester.pump();
+      expect(patch.choice(SpatialVisualParameter.weatherKind), kind.name);
+    }
     final control = find.descendant(
       of: find.byKey(const ValueKey('visual-weatherIntensity')),
       matching: find.byType(Slider),

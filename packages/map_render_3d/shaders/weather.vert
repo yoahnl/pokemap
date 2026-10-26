@@ -34,29 +34,16 @@ void main() {
         return;
     }
     float time = weather.anchorTime.w;
-    if (seed.x < 0.5 && weather.volume.z > 0.001) {
-        vec3 right = vec3(weather.view[0][0], weather.view[1][0], weather.view[2][0]);
-        vec3 up = vec3(weather.view[0][1], weather.view[1][1], weather.view[2][1]);
-        vec3 back = vec3(weather.view[0][2], 0.0, weather.view[2][2]);
-        back /= max(length(back), 0.001);
-        float variation = fract(sin(weather.volume.w * 17.31 + 4.19) * 43758.5453);
-        vec3 world = weather.anchorTime.xyz + vec3(0.0, 7.0, 0.0)
-                   - back * weather.volume.x * 0.22
-                   + right * (variation - 0.5) * weather.volume.x * 0.35;
-        world += right * fragUv.x * 1.2 + up * fragUv.y * 4.5;
-        fragShape = 6.0;
-        fragVariation = variation;
-        fragTint = vec4(0.72, 0.84, 1.0, weather.volume.z * weather.tint.a);
-        gl_Position = weather.projection * weather.view * vec4(world, 1.0);
-        return;
-    }
+    float shape = weather.motion.w;
+    if (shape == 7.0) shape = mod(seed.x, 3.0) < 1.0 ? 1.0 : 0.0;
+    fragShape = shape;
+    float fall = weather.motion.y * (weather.motion.w == 7.0 && shape == 1.0 ? 0.15 : 1.0);
     vec2 wind = weather.motion.xz;
     float span = weather.volume.x;
     vec2 relative = fract(vec2(seed.y, seed.z) + (time * wind - weather.anchorTime.xz) / span) - 0.5;
     vec2 center = relative * span + weather.anchorTime.xz;
-    float phase = fract(vertexNormal.x + time * max(weather.motion.y, 0.05) / weather.volume.y);
+    float phase = fract(vertexNormal.x + time * max(fall, 0.05) / weather.volume.y);
     float height = weather.volume.y * (1.0 - phase);
-    float shape = weather.motion.w;
     if (shape > 0.5) {
         center += vec2(sin(time * 1.3 + vertexNormal.x * 30.0),
                        cos(time * 0.8 + vertexNormal.z * 30.0)) * (shape == 1.0 ? 0.5 : 0.2);
@@ -70,9 +57,10 @@ void main() {
     vec2 corner = fragUv;
     float scale = mix(0.7, 1.3, vertexNormal.z);
     if (shape < 0.5) {
-        vec3 along = normalize(vec3(-wind.x, max(weather.motion.y, 0.05), -wind.y));
-        world += right * corner.x * weather.particle.y * 0.5;
-        world += along * corner.y * weather.particle.z * 0.5;
+        vec3 along = normalize(vec3(-wind.x, max(fall, 0.05), -wind.y));
+        float rainWidth = weather.motion.w == 7.0 ? weather.particle.y * 0.3 : weather.particle.y;
+        world += right * corner.x * rainWidth * scale * 0.5;
+        world += along * corner.y * weather.particle.z * scale * 0.5;
     } else {
         float rotation = time * (0.3 + vertexNormal.x) + vertexNormal.z * 6.2831853;
         if (shape >= 4.0) rotation += sin(time * 2.1 + vertexNormal.x * 20.0);

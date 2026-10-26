@@ -13,7 +13,14 @@ enum SpatialWeatherKind {
   dust,
   sandstorm,
   petals,
-  leaves;
+  leaves,
+  partlyCloudy,
+  windy,
+  heavySnow,
+  sleet,
+  tempest;
+
+  bool get isExtended => index >= partlyCloudy.index;
 
   static SpatialWeatherKind parse(Object? value) {
     for (final kind in values) {

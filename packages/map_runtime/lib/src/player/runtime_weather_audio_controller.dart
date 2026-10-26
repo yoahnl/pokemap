@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import 'runtime_audio_mixer.dart';
 import 'runtime_music_service.dart';
+import 'runtime_weather_loop_driver.dart';
 import 'runtime_storm_audio_controller.dart';
 
 final class RuntimeWeatherAudioController {
@@ -22,13 +23,14 @@ final class RuntimeWeatherAudioController {
        ),
        _storm = RuntimeStormAudioController(
          mixer: mixer,
-         driver: (driverFactory ?? _assetDriver)(),
+         driver: (driverFactory ?? _nativeDriver)(),
        );
 
   static const _prefix = 'packages/map_runtime/assets/audio/weather/';
   final RuntimeMusicService _rain, _wind;
   final RuntimeStormAudioController _storm;
   (double, double)? _gains;
+  String? _rainPath, _windPath;
   bool _disposed = false;
   Future<void> _pending = Future<void>.value();
   Future<void>? _stormPending;
@@ -43,8 +45,9 @@ final class RuntimeWeatherAudioController {
     'failure': lastFailure?.toString(),
   };
 
-  static FlameCinematicAudioDriver _assetDriver() =>
-      FlameAudioCinematicRuntimeDriver(
+  static FlameCinematicAudioDriver _assetDriver() => RuntimeWeatherLoopDriver(_nativeDriver());
+
+  static FlameCinematicAudioDriver _nativeDriver() => FlameAudioCinematicRuntimeDriver(
         playerFactory: () => AudioPlayer()..audioCache = AudioCache(prefix: ''),
         sourceFactory: AssetSource.new,
       );
@@ -59,35 +62,42 @@ final class RuntimeWeatherAudioController {
       SpatialWeatherKind.drizzle => .25,
       SpatialWeatherKind.rain => .65,
       SpatialWeatherKind.downpour => .9,
-      SpatialWeatherKind.storm => 1.0,
+      SpatialWeatherKind.storm || SpatialWeatherKind.tempest => 1.0,
+      SpatialWeatherKind.sleet => .65,
       _ => 0.0,
     };
+    final envelope = _storm.isPlaying ? .38 : .85;
     final next = (
-      audible ? rainLevel * settings.intensity * settings.rainVolume : 0.0,
+      audible ? rainLevel * settings.intensity * settings.rainVolume * envelope : 0.0,
       audible
-          ? (settings.windStrength / 2).clamp(0.0, 1.0) *
+          ? (settings.windStrength / 2 + (settings.kind == SpatialWeatherKind.tempest ? .6 : settings.kind == SpatialWeatherKind.storm ? .35 : settings.kind == SpatialWeatherKind.blizzard || settings.kind == SpatialWeatherKind.windy ? .3 : 0)).clamp(0.0, 1.0) *
                 settings.intensity *
-                settings.windVolume
+                settings.windVolume * envelope
           : 0.0,
     );
+    final severe = settings.kind == SpatialWeatherKind.storm || settings.kind == SpatialWeatherKind.tempest;
+    final rainPath = '$_prefix${severe || settings.kind == SpatialWeatherKind.downpour ? 'storm-rain' : 'rain'}-loop.wav';
+    final windPath = '$_prefix${severe || settings.kind == SpatialWeatherKind.blizzard || settings.kind == SpatialWeatherKind.windy || settings.kind == SpatialWeatherKind.sandstorm ? 'storm-wind' : 'wind'}-loop.wav';
     final storm = _storm.update(settings, seconds: seconds, indoors: indoors);
     final sameStorm = identical(storm, _stormPending);
     _stormPending = storm;
-    if (_gains == next) {
+    if (_gains == next && _rainPath == rainPath && _windPath == windPath) {
       if (sameStorm) return _pending;
       return _pending = Future.wait([_pending, storm]);
     }
     _gains = next;
+    _rainPath = rainPath;
+    _windPath = windPath;
     return _pending = Future.wait([
       storm,
       _rain.update(
         route: RuntimeAudioRoute.ambience,
-        path: next.$1 > 0 ? '${_prefix}rain-loop.wav' : null,
+        path: next.$1 > 0 ? rainPath : null,
         volume: next.$1,
       ),
       _wind.update(
         route: RuntimeAudioRoute.ambience,
-        path: next.$2 > 0 ? '${_prefix}wind-loop.wav' : null,
+        path: next.$2 > 0 ? windPath : null,
         volume: next.$2,
       ),
     ]);

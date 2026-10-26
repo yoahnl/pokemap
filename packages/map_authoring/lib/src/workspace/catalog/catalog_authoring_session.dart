@@ -591,7 +591,15 @@ final class CatalogAuthoringSession {
     }
   }
 
-  Future<bool> _isCatalogOnlyReceipt(AuthoringReceipt receipt) async {
+  bool _onlyCatalogHeadChanges(AuthoringHistoryEntry entry) =>
+      entry.changes.isNotEmpty && entry.changes.every((change) =>
+          change.storageKey == CatalogStorageStore.headStorageKey);
+
+  Future<bool> _isCatalogOnlyReceipt(AuthoringReceipt receipt,
+      {AuthoringHistoryEntry? historyEntry}) async {
+    if (historyEntry != null && _onlyCatalogHeadChanges(historyEntry)) {
+      return true;
+    }
     if (receipt.diff.entries.any((entry) =>
         (entry.resource.extensions.containsKey('workshopResourcePaths') || entry.resource.extensions.containsKey('nativeMapResourcePath')))) {
       return true;
@@ -608,10 +616,12 @@ final class CatalogAuthoringSession {
             .history
             .get(projectId: reader.projectId, entryId: target);
         return entry != null &&
-            await _isCatalogOnlyReceipt(entry.receipt);
+            await _isCatalogOnlyReceipt(entry.receipt, historyEntry: entry);
       }
     }
-    return false;
+    final stored = historyEntry ?? await (await _editing()).history.get(
+        projectId: reader.projectId, entryId: receipt.receiptId);
+    return stored != null && _onlyCatalogHeadChanges(stored);
   }
 
   Future<String> _catalogRevisionForReceipt(AuthoringReceipt receipt) async {
@@ -813,7 +823,7 @@ final class CatalogAuthoringSession {
     final entry = await editing.history
         .get(projectId: reader.projectId, entryId: entryId);
     final catalogOnly =
-        entry != null && await _isCatalogOnlyReceipt(entry.receipt);
+        entry != null && await _isCatalogOnlyReceipt(entry.receipt, historyEntry: entry);
     final revision = catalogOnly
         ? await _catalogRevisionForReceipt(entry.receipt)
         : (await loadProject()).revision;
@@ -834,7 +844,7 @@ final class CatalogAuthoringSession {
     final entry = await editing.history
         .get(projectId: reader.projectId, entryId: entryId);
     final catalogOnly =
-        entry != null && await _isCatalogOnlyReceipt(entry.receipt);
+        entry != null && await _isCatalogOnlyReceipt(entry.receipt, historyEntry: entry);
     final revision = catalogOnly
         ? await _catalogRevisionForReceipt(entry.receipt)
         : (await loadProject()).revision;

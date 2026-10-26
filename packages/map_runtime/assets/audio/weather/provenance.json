@@ -52,6 +52,90 @@
       "durationSeconds": 8.0,
       "loop": false,
       "normalizationGain": 4.131110946306734
+    },
+    "storm-rain": {
+      "derivedFrom": "rain-loop.wav",
+      "sourceSha256": "68a884c61f7abf89d8e3b761d594172c1d058ca9cde91f0a68df3ac6d65d0786",
+      "outputSha256": "86fe3a2abb367ef1feb3a2b9578ccc6f9ba3f3267db1c0159607105e3b596661",
+      "method": "Three decorrelated, pitch-shifted layers with soft saturation; runtime equal-power overlap",
+      "layers": [
+        [
+          1,
+          0,
+          0.75
+        ],
+        [
+          0.81,
+          0.31,
+          0.6
+        ],
+        [
+          0.63,
+          0.67,
+          0.4
+        ]
+      ],
+      "durationSeconds": 15.35002267573696,
+      "peak": 0.894683837890625,
+      "rms": 0.18796032369633597,
+      "loop": true
+    },
+    "storm-wind": {
+      "derivedFrom": "wind-loop.wav",
+      "sourceSha256": "9b13f6c858a23503d8777bc0b58015db90acab6e23eb676bdaa73ef5acc1e7f7",
+      "outputSha256": "61526b694ffe0b32ce4317b6dddcb3c87d47609160bce51e4c81e8ac6f6b2a34",
+      "method": "Three decorrelated, pitch-shifted layers with soft saturation; runtime equal-power overlap",
+      "layers": [
+        [
+          1,
+          0,
+          0.75
+        ],
+        [
+          0.81,
+          0.31,
+          0.6
+        ],
+        [
+          0.63,
+          0.67,
+          0.4
+        ]
+      ],
+      "durationSeconds": 15.35002267573696,
+      "peak": 0.7650146484375,
+      "rms": 0.18788868453765797,
+      "loop": true
+    },
+    "thunder-roll-0": {
+      "derivedFrom": "thunder-0.wav",
+      "sourceSha256": "c82c0eb773d92f43af54061b0fe0de2320389dbbd2aa4c003aecede37f301329",
+      "outputSha256": "0a04ea7026d30af5f2e153d21d5635ec7b0670c0ea9416a61ad81fcc258b3b17",
+      "method": "Pitch-stretched rolling layers, high-pass 35 Hz, low-pass 1400 Hz, soft saturation, soft onset and two-second decay",
+      "durationSeconds": 10,
+      "loop": false,
+      "peak": 0.71435546875,
+      "rms": 0.17076704881827826
+    },
+    "thunder-roll-1": {
+      "derivedFrom": "thunder-2.wav",
+      "sourceSha256": "e86939739267901bbb1272a648f2affa378484c7e75d269b3b640d6aef1bd1ec",
+      "outputSha256": "a058a32861106da26cc5598edad107b43a31bd110c69ae3870ff0e614d1e02c4",
+      "method": "Pitch-stretched rolling layers, high-pass 35 Hz, low-pass 1400 Hz, soft saturation, soft onset and two-second decay",
+      "durationSeconds": 11,
+      "loop": false,
+      "peak": 0.73175048828125,
+      "rms": 0.16765379923493062
+    },
+    "thunder-roll-2": {
+      "derivedFrom": "thunder-0.wav",
+      "sourceSha256": "c82c0eb773d92f43af54061b0fe0de2320389dbbd2aa4c003aecede37f301329",
+      "outputSha256": "2c326f4bdf4389f21c1ccb9820f6d733ae74ed007b57627ee7a968fc2e3e80a2",
+      "method": "Pitch-stretched rolling layers, high-pass 35 Hz, low-pass 1400 Hz, soft saturation, soft onset and two-second decay",
+      "durationSeconds": 12,
+      "loop": false,
+      "peak": 0.779571533203125,
+      "rms": 0.1675926887354878
     }
   }
 }

@@ -10,7 +10,10 @@ import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playbac
 void main() {
   test('thunder uses the shared strike timeline once and stops for indoor weather', () async {
     final drivers = <_Driver>[];
-    final weather = RuntimeWeatherAudioController(mixer: RuntimeAudioMixer(), driverFactory: () {
+    final mixer = RuntimeAudioMixer();
+    var musicVolume = .8;
+    await mixer.register(channel: 'music-proof', route: RuntimeAudioRoute.overworld, sourceVolume: .8, setVolume: (value) async => musicVolume = value);
+    final weather = RuntimeWeatherAudioController(mixer: mixer, driverFactory: () {
       final driver = _Driver(); drivers.add(driver); return driver;
     });
     final settings = SpatialWeatherSettings(enabled: true, soundEnabled: true, lightning: true, kind: SpatialWeatherKind.storm);
@@ -21,6 +24,7 @@ void main() {
     await weather.update(settings, seconds: strike.thunderSeconds + .01);
     expect(drivers[2].plays.single, contains('thunder-'));
     expect(drivers[2].loops, [false]);
+    expect(musicVolume, closeTo(.44, .0001));
     for (var i = 0; i < 60; i++) {
       await weather.update(settings, seconds: strike.thunderSeconds + .02 + i / 60);
     }
@@ -31,6 +35,7 @@ void main() {
     expect(drivers[2].paused, isFalse);
     await weather.update(settings, seconds: strike.thunderSeconds + 2, indoors: true);
     expect(drivers[2].stops, 1);
+    expect(musicVolume, .8);
     await weather.dispose();
   });
   test('a delayed thunder start is cancelled by disabling weather', () async {

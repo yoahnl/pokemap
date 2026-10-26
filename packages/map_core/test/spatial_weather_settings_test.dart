@@ -2,6 +2,23 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('extended weather uses explicit schemas while existing exports keep their schemas', () {
+    for (final kind in SpatialWeatherKind.values) {
+      final patch = SpatialVisualPatch.fromJson({'weatherKind': kind.name});
+      final visual = SpatialVisualDocument(profile: patch).toJson();
+      expect(visual['schemaVersion'], kind.isExtended ? 7 : 3);
+      expect(SpatialVisualDocument.fromJson(visual).profile, patch);
+      final atmosphere = SpatialAtmosphereDocument(mapId: 'town', settings: SpatialAtmosphereSettings(weather: SpatialWeatherSettings(kind: kind))).toJson();
+      expect(SpatialAtmosphereDocument.fromJson(atmosphere).settings.weather.kind, kind);
+      if (kind.isExtended) {
+        expect(() => SpatialVisualDocument.fromJson({...visual, 'schemaVersion': 6}), throwsFormatException);
+        expect(() => SpatialAtmosphereDocument.fromJson({...atmosphere, 'schemaVersion': 5}), throwsFormatException);
+      }
+    }
+    final sequence = SpatialVisualPatch.fromJson({'weatherSequence': SpatialWeatherKind.values.map((kind) => kind.name).toList()});
+    expect(sequence.requiresExtendedWeather, isTrue);
+    expect(SpatialVisualDocument.fromJson(SpatialVisualDocument(profile: sequence).toJson()).profile, sequence);
+  });
   test('weather sound is explicit and survives a targeted visual document', () {
     final weather = SpatialWeatherSettings.fromJson({
       'enabled': true,
@@ -122,7 +139,7 @@ void main() {
         mapId: 'town',
         settings: settings,
       );
-      expect(document.toJson()['schemaVersion'], 4);
+      expect(document.toJson()['schemaVersion'], kind.isExtended ? 6 : 4);
       expect(
         SpatialAtmosphereDocument.fromJson(document.toJson()).settings,
         settings,

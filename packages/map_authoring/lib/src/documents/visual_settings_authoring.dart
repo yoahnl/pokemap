@@ -116,7 +116,7 @@ final class LocalVisualSettingsAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: {
-        'documentSchemaVersions': [1, 2, 3, 4, 5, 6],
+        'documentSchemaVersions': [1, 2, 3, 4, 5, 6, 7],
         'effects': [
           'waterAnimated',
           'windowsLit',
@@ -140,6 +140,7 @@ final class LocalVisualSettingsAuthoring {
         'storagePattern': ['project.visual.json', 'maps/<mapId>.visual.json'],
         'maximumDocumentBytes': SpatialVisualDocument.maxBytes,
         'loadsProject': false,
+        'extendedWeatherCapability': SpatialWeatherCapabilities.extendedCapabilityId,
         'capability': SpatialVisualDocument.capabilityId,
         'extendedLightingCapability':
             SpatialLightWorkshopCapabilities.capabilityId,
@@ -150,7 +151,7 @@ final class LocalVisualSettingsAuthoring {
         'weatherKinds': [for (final kind in SpatialWeatherKind.values) kind.name],
         'parameterTypes': {
           for (final parameter in SpatialVisualParameter.values)
-            parameter.name: parameter.isSequence ? {'type': 'array', 'items': {'type': 'string', 'enum': [for (final kind in SpatialWeatherKind.values) kind.name]}, 'minItems': 1, 'maxItems': 15, 'uniqueItems': true} : parameter.isChoice
+            parameter.name: parameter.isSequence ? {'type': 'array', 'items': {'type': 'string', 'enum': [for (final kind in SpatialWeatherKind.values) kind.name]}, 'minItems': 1, 'maxItems': 20, 'uniqueItems': true} : parameter.isChoice
                 ? {'type': 'string', 'enum': parameter.choices}
                 : parameter.isBoolean
                 ? {'type': 'boolean'}

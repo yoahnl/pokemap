@@ -265,7 +265,13 @@ final class CanonicalGamePackageExportService {
         });
       final worldEnvironment = WorldEnvironmentCapabilities.requiresProject(projection.project) || projection.payloadFiles.entries.any((entry) => entry.key.endsWith('.visual.json') && SpatialVisualDocument.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresWorldEnvironment);
       final realWeather = WorldEnvironmentCapabilities.requiresRealProject(projection.project) || projection.payloadFiles.entries.any((entry) => entry.key.endsWith('.visual.json') && SpatialVisualDocument.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresRealWeather);
+      final extendedWeather = SpatialWeatherCapabilities.requiresExtendedProject(projection.project) || projection.payloadFiles.entries.any((entry) {
+        if (entry.key.endsWith('.visual.json')) return SpatialVisualDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresExtendedWeather;
+        if (entry.key.endsWith('.atmosphere.json')) return SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).settings.weather.kind.isExtended;
+        return false;
+      });
       final requiredCapabilities = <String>{
+        if (extendedWeather) SpatialWeatherCapabilities.extendedCapabilityId,
         if (realWeather) WorldEnvironmentCapabilities.realWeatherCapabilityId,
         if (worldEnvironment) WorldEnvironmentCapabilities.capabilityId,
         if (SpatialWeatherCapabilities.requiresSoundProject(projection.project) || projection.payloadFiles.entries.any((entry) {

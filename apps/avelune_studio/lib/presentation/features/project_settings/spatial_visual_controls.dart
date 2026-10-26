@@ -172,6 +172,11 @@ class SpatialVisualControls extends StatelessWidget {
   );
   static const weatherPresets = [
     (SpatialWeatherKind.clear, 'Ciel dégagé', Icons.wb_sunny_outlined),
+    (SpatialWeatherKind.partlyCloudy, 'Éclaircies', Icons.wb_cloudy_outlined),
+    (SpatialWeatherKind.windy, 'Vent soutenu', Icons.air),
+    (SpatialWeatherKind.heavySnow, 'Forte neige', Icons.ac_unit),
+    (SpatialWeatherKind.sleet, 'Pluie et neige', Icons.cloudy_snowing),
+    (SpatialWeatherKind.tempest, 'Tempête violente', Icons.thunderstorm),
     (SpatialWeatherKind.cloudy, 'Couvert', Icons.cloud_outlined),
     (SpatialWeatherKind.drizzle, 'Bruine', Icons.grain),
     (SpatialWeatherKind.rain, 'Pluie', Icons.water_drop_outlined),
@@ -338,6 +343,15 @@ class SpatialVisualControls extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: inherit(SpatialVisualParameter.weatherKind),
           ),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final level in const [('Très léger', .15), ('Léger', .35), ('Marqué', .55), ('Fort', .8), ('Extrême', 1.0)])
+              StudioButton(
+                key: ValueKey('weather-intensity-${level.$2}'),
+                label: level.$1,
+                secondary: effective.number(SpatialVisualParameter.weatherIntensity) != level.$2,
+                onPressed: onChanged == null ? null : () => change(SpatialVisualParameter.weatherIntensity, level.$2),
+              ),
+          ]),
           slider(SpatialVisualParameter.weatherIntensity, 'Intensité', 0, 1),
           slider(
             SpatialVisualParameter.weatherDensity,
@@ -392,7 +406,7 @@ class SpatialVisualControls extends StatelessWidget {
           ),
           toggle(
             SpatialVisualParameter.weatherLightning,
-            'Éclairs · orage',
+            'Éclairs dans le ciel',
             Icons.bolt_outlined,
             StudioAccent.daylight,
           ),

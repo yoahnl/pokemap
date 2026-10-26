@@ -5,6 +5,14 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('new weather states require a separately advertised capability', () {
+    final files = spatialPayload();
+    files['project/project.visual.json'] = utf8.encode(jsonEncode(SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'weatherKind': 'tempest'})).toJson()));
+    final caps = ['map3d@1', SpatialVisualDocument.capabilityId, SpatialWeatherCapabilities.capabilityId];
+    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(capabilities: caps), payloadFiles: files), throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'capability', contains(SpatialWeatherCapabilities.extendedCapabilityId))));
+    final built = const GamePackageBuilder().build(manifest: spatialManifest(capabilities: [...caps, SpatialWeatherCapabilities.extendedCapabilityId]), payloadFiles: files);
+    expect(const GamePackageInspector().inspect(built.packageBytes).manifest.compatibility.requiredCapabilities, contains(SpatialWeatherCapabilities.extendedCapabilityId));
+  });
   for (final sound in [false, true]) {
   for (final sidecar in [false, true]) {
     test(

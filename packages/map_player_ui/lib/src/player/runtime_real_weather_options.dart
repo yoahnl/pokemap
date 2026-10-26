@@ -131,7 +131,12 @@ class RuntimeRealWeatherOptions extends StatelessWidget {
             'hail': ('Grêle', 'Hail'), 'mist': ('Brume légère', 'Mist'),
             'fog': ('Brouillard', 'Fog'), 'dust': ('Poussières', 'Dust'),
             'sandstorm': ('Tempête de sable', 'Sandstorm'), 'petals': ('Pétales', 'Petals'),
-            'autumnLeaves': ('Feuilles d’automne', 'Autumn leaves'),
+            'partlyCloudy': ('Éclaircies', 'Partly cloudy'),
+            'windy': ('Vent soutenu', 'Windy'),
+            'heavySnow': ('Forte neige', 'Heavy snow'),
+            'sleet': ('Pluie et neige', 'Sleet'),
+            'tempest': ('Tempête violente', 'Severe thunderstorm'),
+            'leaves': ('Feuilles d’automne', 'Autumn leaves'),
           };
           final name = names[kind];
           return Text('${text('Météo reçue', 'Received weather')} : ${name == null ? kind : french ? name.$1 : name.$2}',

@@ -46,12 +46,14 @@ void main() {
     () async {
       final families = <String, List<int>>{
         'clear': [0],
-        'cloudy': [1, 2, 3],
+        'partlyCloudy': [1, 2],
+        'cloudy': [3],
         'fog': [45, 48],
         'drizzle': [51, 53, 55, 56, 57],
         'rain': [61, 63, 66, 67, 80, 81],
         'downpour': [65, 82],
-        'snow': [71, 73, 75, 77, 85, 86],
+        'snow': [71, 73, 77, 85],
+        'heavySnow': [75, 86],
         'storm': [95],
         'hail': [96, 99],
       };
@@ -73,13 +75,18 @@ void main() {
       }
     },
   );
+  test('mixed precipitation, severe storms and dry wind remain distinct', () async {
+    for (final item in [(await observation(73, snowfall: .2, rain: .2), 'sleet'), (await observation(95, wind: 60, rain: 5), 'tempest'), (await observation(3, wind: 40), 'windy')]) {
+      expect(item.$1.conditions.choice(SpatialVisualParameter.weatherKind), item.$2);
+    }
+  });
   test(
     'snowfall and heavy wind remain visible even with a contradictory sky code',
     () async {
       final snow = await observation(3, snowfall: .3);
       expect(
         snow.conditions.choice(SpatialVisualParameter.weatherKind),
-        'snow',
+        'heavySnow',
       );
       final blizzard = await observation(75, snowfall: .4, wind: 45);
       expect(
