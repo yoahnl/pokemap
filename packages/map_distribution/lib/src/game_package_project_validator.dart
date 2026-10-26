@@ -245,6 +245,12 @@ final class GamePackageProjectValidator {
               as Map<String, dynamic>);
           return map;
         });
+        if (SpatialGameplayCapabilities.requiresConnectedCinematics(project,
+                maps: maps) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(
+                SpatialGameplayCapabilities.cinematicConnectedCapabilityId)) {
+          _fail('Connected spatial cinematics require map3d.cinematic-connected@1.');
+        }
         if (SpatialGameplayCapabilities.requiresModelAnimation(project,
                 maps: maps) &&
             !packageManifest.compatibility.requiredCapabilities

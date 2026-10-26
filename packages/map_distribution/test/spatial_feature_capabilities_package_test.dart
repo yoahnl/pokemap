@@ -9,7 +9,20 @@ import 'support/spatial_feature_capabilities_fixture.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('local cinematic in connected maps keeps its previous requirements', () {
+    final files = spatialFeaturePayload('cinematicConnected');
+    final json = jsonDecode(utf8.decode(files['project/project.json']!)) as Map<String, dynamic>;
+    json['cinematics'][0]['stageContext']['stagePoints'][0]['x'] = 4.5;
+    files['project/project.json'] = utf8.encode(jsonEncode(json));
+    final built = const GamePackageBuilder().build(
+        manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.gameplay@1']),
+        payloadFiles: files);
+    expect(const GamePackageInspector().inspect(built.packageBytes).manifest
+        .compatibility.requiredCapabilities, isNot(contains('map3d.cinematic-connected@1')));
+  });
+
   final features = {
+    'cinematicConnected': 'map3d.cinematic-connected@1',
     'camera': SpatialCameraProfile.orthographicCapabilityId,
     'companion': SpatialGameplayCapabilities.companionCapabilityId,
     'contact': ProjectContactDeviceConfig.capabilityId,

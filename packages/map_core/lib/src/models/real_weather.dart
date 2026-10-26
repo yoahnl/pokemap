@@ -64,7 +64,8 @@ final class RealWeatherPreferences {
   factory RealWeatherPreferences.fromJson(Map<String, dynamic> json) {
     if (json.keys.any((key) => !{'enabled', 'location'}.contains(key)) ||
         json['enabled'] is! bool ||
-        (json['location'] != null && json['location'] is! Map<String, dynamic>)) {
+        (json['location'] != null &&
+            json['location'] is! Map<String, dynamic>)) {
       throw const FormatException('Invalid real weather preferences.');
     }
     return RealWeatherPreferences(
@@ -95,7 +96,16 @@ final class RealWeatherSnapshot {
     required this.conditions,
     required DateTime fetchedAt,
     this.fromIp = true,
+    this.utcOffsetSeconds,
+    this.timeZone,
   }) : fetchedAt = fetchedAt.toUtc() {
+    if ((utcOffsetSeconds != null &&
+            (utcOffsetSeconds! < -43200 || utcOffsetSeconds! > 50400)) ||
+        (timeZone != null &&
+            (utcOffsetSeconds == null ||
+                !RegExp(r'^[A-Za-z0-9_+/-]{1,128}$').hasMatch(timeZone!)))) {
+      throw const FormatException('Invalid weather time zone.');
+    }
     if (conditions.values.keys.any((key) => !allowedConditions.contains(key)) ||
         conditions.choice(SpatialVisualParameter.weatherKind) == null) {
       throw const FormatException('Invalid real weather conditions.');
@@ -113,11 +123,13 @@ final class RealWeatherSnapshot {
   final SpatialVisualPatch conditions;
   final DateTime fetchedAt;
   final bool fromIp;
+  final int? utcOffsetSeconds;
+  final String? timeZone;
   bool usableAt(DateTime now) =>
       now.difference(fetchedAt) >= const Duration(minutes: -5) &&
       now.difference(fetchedAt) <= const Duration(hours: 24);
   factory RealWeatherSnapshot.fromJson(Map<String, dynamic> json) {
-    if (json['schemaVersion'] != 1 ||
+    if (!const {1, 2}.contains(json['schemaVersion']) ||
         json.keys.any(
           (key) => !{
             'schemaVersion',
@@ -125,9 +137,17 @@ final class RealWeatherSnapshot {
             'conditions',
             'fetchedAt',
             'fromIp',
+            'utcOffsetSeconds',
+            'timeZone',
           }.contains(key),
         ) ||
         (json['fromIp'] != null && json['fromIp'] is! bool) ||
+        (json['schemaVersion'] == 1 &&
+            (json['utcOffsetSeconds'] != null || json['timeZone'] != null)) ||
+        (json['schemaVersion'] == 2 && json['utcOffsetSeconds'] is! int) ||
+        (json['utcOffsetSeconds'] != null &&
+            json['utcOffsetSeconds'] is! int) ||
+        (json['timeZone'] != null && json['timeZone'] is! String) ||
         json['fetchedAt'] is! String ||
         json['location'] is! Map<String, dynamic> ||
         json['conditions'] is! Map<String, dynamic>) {
@@ -142,10 +162,14 @@ final class RealWeatherSnapshot {
       ),
       fetchedAt: DateTime.parse(json['fetchedAt'] as String),
       fromIp: json['fromIp'] as bool? ?? true,
+      utcOffsetSeconds: json['utcOffsetSeconds'] as int?,
+      timeZone: json['timeZone'] as String?,
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': 1,
+    'schemaVersion': utcOffsetSeconds == null ? 1 : 2,
+    if (utcOffsetSeconds != null) 'utcOffsetSeconds': utcOffsetSeconds,
+    if (timeZone != null) 'timeZone': timeZone,
     'fromIp': fromIp,
     'location': location.toJson(),
     'conditions': conditions.toJson(),

@@ -199,6 +199,7 @@ final class CanonicalGamePackageExportService {
       var entityModels = false;
       var actorOcclusion = false;
       var modelClips = SpatialModelClipCapabilities.requiresCapability(projection.project);
+      final spatialMaps = <MapData>[];
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
         spatialStory =
@@ -218,6 +219,7 @@ final class CanonicalGamePackageExportService {
               relativePath: entry.relativePath);
           final map = MapData.fromJson(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
+          spatialMaps.add(map);
           actorOcclusion |= SpatialActorOcclusionCapabilities.requiresCapability(
               projection.project, maps: [map]);
           dayNight |= SpatialSceneLightingCapabilities.requiresDayNight(projection.project, maps: [map]);
@@ -306,6 +308,9 @@ final class CanonicalGamePackageExportService {
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
+        if (SpatialGameplayCapabilities.requiresConnectedCinematics(
+            projection.project, maps: spatialMaps))
+          SpatialGameplayCapabilities.cinematicConnectedCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD &&
             SpatialGameplayCapabilities.requiresCinematicFade(projection.project))
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,

@@ -51,10 +51,13 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
         .overriddenBy(widget.session.cinematicVisualOverrides)
         .overriddenBy(widget.previewVisuals?.value ?? SpatialVisualPatch());
     final authored = activeBundle.visualProfile.overriddenBy(overrides);
-    final external = widget.session.realWeatherAllowed && resolveWorldWeatherMode(authored, overrides: overrides) == WorldWeatherMode.real.name
+    final observed = widget.session.realWeatherAllowed
         ? widget.session.realWeather?.value.snapshot : null;
+    final external = resolveWorldWeatherMode(authored, overrides: overrides) == WorldWeatherMode.real.name
+        ? observed : null;
     final profile = activeBundle.visualProfile.overriddenBy(external?.conditions ?? SpatialVisualPatch()).overriddenBy(overrides);
     final environment = widget.session.environmentClock.resolve(profile, overrides: overrides,
+      realWeatherUtcOffsetSeconds: observed?.utcOffsetSeconds,
       realWeatherKind: external == null ? null : SpatialWeatherKind.parse(external.conditions.choice(SpatialVisualParameter.weatherKind)));
     camera.worldEnvironment = environment;
     camera.visualProfile = profile;

@@ -3,6 +3,24 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+      'real time follows weather city offset while narrative time remains authoritative',
+      () {
+    final clock =
+        WorldEnvironmentClock(now: () => DateTime.utc(2026, 10, 26, 17, 45));
+    final real = SpatialVisualPatch.fromJson({'timeMode': 'real'});
+    expect(clock.resolve(real, realWeatherUtcOffsetSeconds: -18000).minuteOfDay,
+        765);
+    expect(clock.resolve(real, realWeatherUtcOffsetSeconds: 19800).minuteOfDay,
+        1395);
+    final story = SpatialVisualPatch.fromJson({'minuteOfDay': 360});
+    expect(
+        clock
+            .resolve(real.overriddenBy(story),
+                overrides: story, realWeatherUtcOffsetSeconds: -18000)
+            .minuteOfDay,
+        360);
+  });
   final base = SpatialVisualPatch.fromJson({
     'timeMode': 'cycle',
     'dayNightEnabled': true,

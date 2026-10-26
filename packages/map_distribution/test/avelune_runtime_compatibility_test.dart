@@ -25,6 +25,7 @@ void main() {
           'map3d.animation@1',
           'map3d.actor-occlusion@1',
           'map3d.camera-orthographic@1',
+          'map3d.cinematic-connected@1',
           'map3d.day-night@1',
           'map3d.directional-ledges@1',
           'map3d.entity-models@1',

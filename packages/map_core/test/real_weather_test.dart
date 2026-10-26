@@ -3,6 +3,37 @@ import 'package:test/test.dart';
 
 void main() {
   test(
+    'weather cache retains city time offset and accepts older observations',
+    () {
+      final value = RealWeatherSnapshot(
+        location: RealWeatherLocation(
+          latitude: 6.25,
+          longitude: -75.56,
+          label: 'Medellín',
+        ),
+        conditions: SpatialVisualPatch.fromJson({'weatherKind': 'storm'}),
+        fetchedAt: DateTime.utc(2026),
+        utcOffsetSeconds: -18000,
+        timeZone: 'America/Bogota',
+      );
+      final restored = RealWeatherSnapshot.fromJson(value.toJson());
+      expect(restored.utcOffsetSeconds, -18000);
+      expect(restored.timeZone, 'America/Bogota');
+      final legacy = {...value.toJson()}
+        ..remove('utcOffsetSeconds')
+        ..remove('timeZone');
+      legacy['schemaVersion'] = 1;
+      expect(RealWeatherSnapshot.fromJson(legacy).utcOffsetSeconds, isNull);
+      expect(
+        () => RealWeatherSnapshot.fromJson({
+          ...value.toJson(),
+          'utcOffsetSeconds': 999999,
+        }),
+        throwsFormatException,
+      );
+    },
+  );
+  test(
     'real weather is explicit, versioned and old modes retain their versions',
     () {
       final patch = SpatialVisualPatch.fromJson({'weatherMode': 'real'});

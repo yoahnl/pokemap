@@ -105,12 +105,14 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
         'longitude': '${location.longitude}',
         'current': 'weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,precipitation',
         'wind_speed_unit': 'kmh',
-        'timezone': 'UTC',
+        'timezone': 'auto',
         'forecast_days': '1',
       }),
     );
     final current = json['current'];
-    if (current is! Map) {
+    final offset = json['utc_offset_seconds'];
+    final zone = json['timezone'];
+    if (current is! Map || offset is! int || zone is! String) {
       throw const FormatException('Current weather unavailable.');
     }
     double number(String key, double min, double max) {
@@ -142,6 +144,8 @@ final class OpenMeteoRealWeatherProvider implements RealWeatherProvider {
     return RealWeatherSnapshot(
       location: location,
       fetchedAt: now,
+      utcOffsetSeconds: offset,
+      timeZone: zone,
       conditions: SpatialVisualPatch.fromJson({
         'weatherKind': kind.name,
         'weatherIntensity':

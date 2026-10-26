@@ -22,7 +22,9 @@ final class WorldEnvironmentClock {
   }
 
   WorldEnvironmentFrame resolve(SpatialVisualPatch settings,
-      {SpatialVisualPatch? overrides, SpatialWeatherKind? realWeatherKind}) {
+      {SpatialVisualPatch? overrides,
+      SpatialWeatherKind? realWeatherKind,
+      int? realWeatherUtcOffsetSeconds}) {
     _used |= settings.requiresWorldEnvironment;
     return resolveWorldEnvironment(
       settings: settings,
@@ -31,7 +33,11 @@ final class WorldEnvironmentClock {
       realWeatherKind: realWeatherKind,
       localTime: settings.choice(SpatialVisualParameter.timeMode) ==
               WorldTimeMode.real.name
-          ? _now()
+          ? realWeatherUtcOffsetSeconds == null
+              ? _now()
+              : _now()
+                  .toUtc()
+                  .add(Duration(seconds: realWeatherUtcOffsetSeconds))
           : null,
     );
   }

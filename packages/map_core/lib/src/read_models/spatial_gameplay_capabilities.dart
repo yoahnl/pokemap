@@ -19,6 +19,30 @@ abstract final class SpatialGameplayCapabilities {
   static const audioCapabilityId = 'map3d.scene-audio@1';
   static const sceneMusicCapabilityId = 'map3d.scene-music@1';
   static const cinematicFadeCapabilityId = 'map3d.cinematic-fade@1';
+  static const cinematicConnectedCapabilityId = 'map3d.cinematic-connected@1';
+
+  static bool requiresConnectedCinematics(ProjectManifest project,
+      {required Iterable<MapData> maps}) {
+    final mapsById = {for (final map in maps) map.id: map};
+    for (final asset in project.cinematics) {
+      final map = mapsById[asset.mapId];
+      if (map == null) continue;
+      for (final point in asset.stageContext?.stagePoints ??
+          const <CinematicStagePoint>[]) {
+        if (point.relativeToActorId == null) {
+          if (point.x < 0 || point.y < 0 ||
+              point.x >= map.size.width || point.y >= map.size.height) {
+            return true;
+          }
+        } else if ((point.x != 0 || point.y != 0) &&
+            (map.connections.isNotEmpty || mapsById.values.any((source) =>
+                source.connections.any((connection) => connection.targetMapId == map.id)))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   static bool requiresCinematicFade(ProjectManifest project) =>
       project.cinematics.any((asset) => asset.timeline.steps.any(

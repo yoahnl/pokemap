@@ -379,6 +379,11 @@ void main() {
                 .readAsBytes()));
     const path = 'data/pokemon/assets/items/poke_ball/animation.png';
     final original = await File(p.join(projectRoot.path, path)).readAsBytes();
+    final provenanceFile = (await Directory(p.join(projectRoot.path,
+        'data/pokemon/assets/items')).list().toList()).whereType<File>().singleWhere(
+        (file) => p.basename(file.path).startsWith('capture-source-') &&
+            file.path.endsWith('.json'));
+    final provenanceBytes = await provenanceFile.readAsBytes();
     await isolatedSource.delete(recursive: true);
     final artifact = await CanonicalGamePackageExportService(
             pokemonValidator: _acceptPokemonProjection)
@@ -390,11 +395,12 @@ void main() {
         .findFile('project/data/pokemon/catalogs/items.json')!
         .content)));
     expect(catalog.entries.single.capture!.animationSpritePath, path);
-    final provenance = archive.files.singleWhere((file) =>
+    expect(archive.files.where((file) =>
         file.name
             .startsWith('project/data/pokemon/assets/items/capture-source-') &&
-        file.name.endsWith('.json'));
-    final provenanceJson = jsonDecode(utf8.decode(provenance.content));
+        file.name.endsWith('.json')), isEmpty);
+    expect(await provenanceFile.readAsBytes(), provenanceBytes);
+    final provenanceJson = jsonDecode(utf8.decode(provenanceBytes));
     expect(provenanceJson['sprites'][0]['projectItemId'], 'poke_ball');
     expect(provenanceJson['sprites'][0]['sourceItem']['sourcePath'],
         'Data/Studio/items/poke_ball.json');

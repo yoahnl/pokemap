@@ -258,7 +258,7 @@ class SpatialVisualControls extends StatelessWidget {
                 onChanged: onChanged == null ? null : (value) => change(SpatialVisualParameter.timeMode, value),
               ),
               inherit(SpatialVisualParameter.timeMode),
-              if (timeMode == 'real') const Text('Suit l’heure locale de l’appareil. Les scènes et les faits du monde peuvent imposer temporairement une autre heure.'),
+              if (timeMode == 'real') const Text('Suit l’heure de l’appareil, ou celle de la ville météo lorsque la météo réelle est active. Les scènes et les faits du monde peuvent imposer temporairement une autre heure.'),
               if (timeMode == 'cycle')
               slider(
                 p[6],

@@ -1720,6 +1720,7 @@ final class RuntimePlayerCoordinator {
     PlayerPreferencesSnapshot after,
   ) =>
       before == null ||
+      before.realWeather != after.realWeather ||
       before.locale != after.locale ||
       before.accessibility.reducedMotion != after.accessibility.reducedMotion ||
       before.accessibility.textScale != after.accessibility.textScale ||

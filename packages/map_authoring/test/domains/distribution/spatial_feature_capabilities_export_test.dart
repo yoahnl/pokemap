@@ -9,6 +9,31 @@ import '../../../../map_distribution/test/support/spatial_feature_capabilities_f
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('local cinematic in connected maps does not require a newer Player', () async {
+    final root = await Directory.systemTemp.createTemp('connected-local-export-');
+    addTearDown(() => root.delete(recursive: true));
+    final files = spatialFeaturePayload('cinematicConnected');
+    final json = jsonDecode(utf8.decode(files['project/project.json']!)) as Map<String, dynamic>;
+    json['cinematics'][0]['stageContext']['stagePoints'][0]['x'] = 4.5;
+    files['project/project.json'] = utf8.encode(jsonEncode(json));
+    for (final entry in files.entries) {
+      final file = File('${root.path}/${entry.key.substring('project/'.length)}');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(entry.value);
+    }
+    final result = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: GamePackageExportProfile(gameId: 'games.example.local',
+          gameVersion: '0.1.0', title: 'Local', authorName: 'Yoahn',
+          defaultLocale: 'fr', supportedLocales: ['fr']),
+        mode: GamePackageExportMode.localTest);
+    expect(result.manifest.compatibility.requiredCapabilities,
+        isNot(contains('map3d.cinematic-connected@1')));
+    for (final entry in files.entries) {
+      expect(await File('${root.path}/${entry.key.substring('project/'.length)}').readAsBytes(), entry.value);
+    }
+  });
+
   test('point shadow export combines a lamp and caster placed in separate maps', () async {
     final root = await Directory.systemTemp.createTemp('cross-map-point-shadow-export-');
     addTearDown(() => root.delete(recursive: true));
@@ -146,6 +171,7 @@ void main() {
     });
   }
   final features = {
+    'cinematicConnected': 'map3d.cinematic-connected@1',
     'camera': SpatialCameraProfile.orthographicCapabilityId,
     'companion': SpatialGameplayCapabilities.companionCapabilityId,
     'contact': ProjectContactDeviceConfig.capabilityId,

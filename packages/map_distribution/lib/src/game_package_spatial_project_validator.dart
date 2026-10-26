@@ -141,13 +141,58 @@ final class GamePackageSpatialProjectValidator {
       }
       void invalid(String field, String message) =>
           _fail('runtime3d.cinematic_invalid', '$path.$field', message);
-      bool inside(double x, double z) =>
-          x.isFinite &&
-          z.isFinite &&
-          x >= 0 &&
-          z >= 0 &&
-          x < map.size.width &&
-          z < map.size.height;
+      final connections = [...map.connections];
+      final occupied = {
+        for (final connection in connections)
+          (connection.direction, connection.targetMapId),
+      };
+      for (final source in mapsById.values) {
+        for (final connection in source.connections) {
+          final direction = connection.direction.opposite;
+          if (connection.targetMapId == map.id &&
+              occupied.add((direction, source.id))) {
+            connections.add(MapConnection(
+                direction: direction,
+                targetMapId: source.id,
+                offset: -connection.offset));
+          }
+        }
+      }
+      final directions = <MapConnectionDirection>{};
+      if (connections.any((connection) => !directions.add(connection.direction))) {
+        invalid('mapId', 'The cinematic map has ambiguous connected neighbors on the same edge.');
+      }
+      bool insideMap(MapData map, double x, double z) =>
+          x >= 0 && z >= 0 && x < map.size.width && z < map.size.height;
+      bool inside(double x, double z) {
+        if (!x.isFinite || !z.isFinite) return false;
+        if (insideMap(map, x, z)) return true;
+        for (final connection in connections) {
+          final neighbor = mapsById[connection.targetMapId];
+          if (neighbor == null || neighbor.spatialScene == null) continue;
+          final offset = switch (connection.direction) {
+            MapConnectionDirection.east => (
+                x: map.size.width.toDouble(),
+                z: connection.offset.toDouble()
+              ),
+            MapConnectionDirection.west => (
+                x: -neighbor.size.width.toDouble(),
+                z: connection.offset.toDouble()
+              ),
+            MapConnectionDirection.north => (
+                x: connection.offset.toDouble(),
+                z: -neighbor.size.height.toDouble()
+              ),
+            MapConnectionDirection.south => (
+                x: connection.offset.toDouble(),
+                z: map.size.height.toDouble()
+              ),
+          };
+          if (insideMap(neighbor, x - offset.x, z - offset.z)) return true;
+        }
+        return false;
+      }
+
       final entities = {for (final entity in map.entities) entity.id: entity};
       final actorIds = <String>{};
       final identities = <String>{};
@@ -165,9 +210,12 @@ final class GamePackageSpatialProjectValidator {
       }
       final points = <String, CinematicStagePoint>{};
       for (final point in context?.stagePoints ?? const []) {
-        if (points.containsKey(point.id) || !inside(point.x, point.y)) {
+        if (points.containsKey(point.id) ||
+            !point.x.isFinite ||
+            !point.y.isFinite ||
+            point.relativeToActorId == null && !inside(point.x, point.y)) {
           invalid('stagePoints.${point.id}',
-              'Stage points require unique identities and coordinates inside the map cells.');
+              'Stage points require unique identities, finite coordinates and absolute positions inside the map or its direct neighbors.');
         }
         points[point.id] = point;
       }
@@ -249,21 +297,29 @@ final class GamePackageSpatialProjectValidator {
     final context = asset.stageContext;
     if (context == null) return;
     final entities = {for (final entity in map.entities) entity.id: entity};
-    final points = {
-      for (final point in context.stagePoints)
-        point.id: (x: point.x, z: point.y)
+    final bindings = {
+      for (final binding in context.actorBindings) binding.actorId: binding,
     };
-    final positions = <String, ({double x, double z})?>{
+    final points = <String, ({double x, double z, bool absolute})?>{
+      for (final point in context.stagePoints)
+        point.id: point.relativeToActorId == null ||
+                bindings[point.relativeToActorId]?.kind ==
+                    CinematicActorBindingKind.player
+            ? (x: point.x, z: point.y, absolute: point.relativeToActorId == null)
+            : null,
+    };
+    final positions = <String, ({double x, double z, bool absolute})?>{
       for (final binding in context.actorBindings)
         binding.actorId: binding.kind == CinematicActorBindingKind.player
             ? null
             : (
                 x: entities[binding.mapEntityId]!.pos.x + .5,
-                z: entities[binding.mapEntityId]!.pos.y + .5
+                z: entities[binding.mapEntityId]!.pos.y + .5,
+                absolute: true,
               ),
     };
     final origins = <String, String>{};
-    ({double x, double z})? target(String? targetId) {
+    ({double x, double z, bool absolute})? target(String? targetId) {
       final binding = context.movementTargetBindings
           .where((binding) => binding.targetId == targetId)
           .first;
@@ -277,7 +333,7 @@ final class GamePackageSpatialProjectValidator {
         }
       }
       final entity = entities[binding.sourceId]!;
-      return (x: entity.pos.x + .5, z: entity.pos.y + .5);
+      return (x: entity.pos.x + .5, z: entity.pos.y + .5, absolute: true);
     }
 
     for (final placement in context.initialPlacements) {
@@ -303,6 +359,13 @@ final class GamePackageSpatialProjectValidator {
       if (binding.kind != CinematicActorBindingKind.player) continue;
       final point = positions[binding.actorId];
       if (point == null) continue;
+      if (point.absolute &&
+          !(point.x >= 0 && point.z >= 0 &&
+              point.x < map.size.width && point.z < map.size.height)) {
+        _fail('runtime3d.cinematic_invalid',
+            '$path.${origins[binding.actorId]}',
+            'The player terminal position must remain inside the active map.');
+      }
       final x = point.x * 16, z = point.z * 16;
       if ((x - x.roundToDouble()).abs() > 1e-7 ||
           (z - z.roundToDouble()).abs() > 1e-7) {

@@ -29,8 +29,13 @@ void main() {
     ]);
     final decoded = _project(files);
     expect(buildSceneRuntimePlan(decoded.scenes.single).canBuild, isTrue);
-    expect(decoded.cinematics.single.timeline.steps.map((s) => s.kind),
-        SpatialGameplayCapabilities.cinematicStepKinds);
+    expect(decoded.cinematics.single.timeline.steps.map((s) => s.kind), [
+      CinematicTimelineStepKind.wait,
+      CinematicTimelineStepKind.camera,
+      CinematicTimelineStepKind.actorMove,
+      CinematicTimelineStepKind.actorFace,
+      CinematicTimelineStepKind.marker,
+    ]);
     final command =
         (decoded.scenes.single.graph.nodes[2].payload as SceneActionPayload)
             .interactiveCommand as ScenePlayModelAnimationInteractiveCommand;
@@ -155,6 +160,209 @@ void main() {
         throwsA(isA<GamePackageFormatException>()
             .having((e) => e.code, 'code', 'runtime3d.cinematic_missing')));
   });
+
+  for (final direction in MapConnectionDirection.values) {
+    for (final inverse in [false, true]) {
+      for (final offset in [-2, 2]) {
+        test(
+            'exports ${inverse ? 'inverse' : 'direct'} ${direction.name} cinematic neighbor offset $offset',
+            () {
+          final files = _connectedPayload(direction, offset, inverse: inverse);
+          final point = switch (direction) {
+            MapConnectionDirection.east => (x: 8.5, y: offset + 2.5),
+            MapConnectionDirection.west => (x: -7.5, y: offset + 2.5),
+            MapConnectionDirection.north => (x: offset + 2.5, y: -7.5),
+            MapConnectionDirection.south => (x: offset + 2.5, y: 8.5),
+          };
+          _editCinematic(files, (json) {
+            json['stageContext']['stagePoints'][0]
+                .addAll({'x': point.x, 'y': point.y});
+            json['stageContext']['initialPlacements'][0] = {
+              'actorId': 'guide',
+              'kind': 'stagePoint',
+              'stagePointId': 'point',
+            };
+          });
+          final built = const GamePackageBuilder()
+              .build(manifest: _storyManifest(connected: true), payloadFiles: files);
+          expect(
+              const GamePackageInspector()
+                  .inspect(built.packageBytes)
+                  .payloadPaths,
+              contains('project/maps/neighbor.json'));
+          expect(
+              _project(files)
+                  .cinematics
+                  .single
+                  .stageContext!
+                  .stagePoints
+                  .single
+                  .x,
+              point.x);
+        });
+      }
+    }
+  }
+
+  for (final point in [(x: 16.0, y: 2.5), (x: 8.5, y: -0.5)]) {
+    test('rejects cinematic outside directly connected cells $point', () {
+      final files = _connectedPayload(MapConnectionDirection.east, 0);
+      _editCinematic(
+          files,
+          (json) => json['stageContext']['stagePoints'][0]
+              .addAll({'x': point.x, 'y': point.y}));
+      expect(
+          () => _validate(files),
+          throwsA(isA<GamePackageFormatException>()
+              .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+    });
+  }
+
+  test('unconnected map does not extend the cinematic coordinate domain', () {
+    final files = _connectedPayload(MapConnectionDirection.east, 0);
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+    files['project/maps/map.json'] =
+        utf8.encode(jsonEncode(map.copyWith(connections: []).toJson()));
+    _editCinematic(
+        files, (json) => json['stageContext']['stagePoints'][0]['x'] = 8.5);
+    expect(
+        () => _validate(files),
+        throwsA(isA<GamePackageFormatException>()
+            .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+  });
+
+  test('player cannot finish in a connected neighbor', () {
+    final files = _connectedPayload(MapConnectionDirection.east, 0);
+    _editCinematic(files, (json) {
+      json['stageContext']['actorBindings'][0] = {'actorId': 'guide', 'kind': 'player'};
+      json['stageContext']['stagePoints'][0]['x'] = 8.5;
+    });
+    expect(() => _validate(files), throwsA(isA<GamePackageFormatException>()
+        .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+  });
+
+  test('player can cross a direct neighbor before returning to its active map', () {
+    final files = _connectedPayload(MapConnectionDirection.east, 0);
+    _editCinematic(files, (json) {
+      json['stageContext']['actorBindings'][0] = {'actorId': 'guide', 'kind': 'player'};
+      json['stageContext']['stagePoints'].add(
+          {'id': 'outside', 'label': 'Outside', 'x': 8.5, 'y': 4.5});
+      json['stageContext']['manualPaths'] = [{
+        'id': 'route', 'label': 'Route', 'ownerActorMoveStepId': 'move',
+        'waypointStagePointIds': ['outside'],
+      }];
+      json['timeline']['steps'][2]['metadata']
+          [cinematicTimelineActorPathModeMetadataKey] = 'manual';
+    });
+    final built = const GamePackageBuilder().build(
+        manifest: _storyManifest(connected: true), payloadFiles: files);
+    expect(() => const GamePackageInspector().inspect(built.packageBytes), returnsNormally);
+  });
+
+  test('duplicate stage point identities remain invalid', () {
+    final files = _payload();
+    _editCinematic(files, (json) {
+      json['stageContext']['stagePoints'].add(
+          Map<String, dynamic>.from(json['stageContext']['stagePoints'][0]));
+    });
+    expect(
+        () => _validate(files),
+        throwsA(isA<GamePackageFormatException>()
+            .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+  });
+
+  test('rejects ambiguous neighbors introduced by an inverse connection', () {
+    final files = _connectedPayload(MapConnectionDirection.east, 0);
+    final neighbor = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/neighbor.json']!)));
+    files['project/maps/other.json'] = utf8.encode(jsonEncode(neighbor.copyWith(
+      id: 'other', connections: [
+        const MapConnection(direction: MapConnectionDirection.west, targetMapId: 'map'),
+      ],
+    ).toJson()));
+    final project = _project(files);
+    _write(files, project.copyWith(maps: [...project.maps,
+      const ProjectMapEntry(id: 'other', name: 'Other', relativePath: 'maps/other.json'),
+    ]));
+    _editCinematic(files, (json) => json['stageContext']['stagePoints'][0]['x'] = 8.5);
+    expect(() => _validate(files), throwsA(isA<GamePackageFormatException>()
+        .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+  });
+
+  test('exports finite negative actor-relative offsets unchanged', () {
+    final files = _payload();
+    _editCinematic(
+        files,
+        (json) => json['stageContext']['stagePoints'][0]
+            .addAll({'x': -1.0, 'y': -0.5, 'relativeToActorId': 'guide'}));
+    final built = const GamePackageBuilder()
+        .build(manifest: _storyManifest(), payloadFiles: files);
+    expect(
+        const GamePackageInspector()
+            .inspect(built.packageBytes)
+            .manifest
+            .compatibility
+            .requiredCapabilities,
+        contains('map3d.story@1'));
+    final point =
+        _project(files).cinematics.single.stageContext!.stagePoints.single;
+    expect((point.x, point.y, point.relativeToActorId), (-1.0, -0.5, 'guide'));
+  });
+
+  test('rejects actor-relative point without a bound origin', () {
+    final files = _payload();
+    _editCinematic(
+        files,
+        (json) => json['stageContext']['stagePoints'][0]
+            .addAll({'x': -1.0, 'relativeToActorId': 'missing'}));
+    expect(
+        () => _validate(files),
+        throwsA(isA<GamePackageFormatException>()
+            .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+  });
+
+  for (final relative in [false, true]) {
+    test('rejects nonfinite ${relative ? 'relative' : 'absolute'} point', () {
+      final files = _payload();
+      if (relative) {
+        _editCinematic(
+            files,
+            (json) => json['stageContext']['stagePoints'][0]
+                ['relativeToActorId'] = 'guide');
+      }
+      files['project/project.json'] = utf8.encode(utf8
+          .decode(files['project/project.json']!)
+          .replaceFirst('"x":4.5', '"x":1e999'));
+      expect(
+          () => _validate(files),
+          throwsA(isA<GamePackageFormatException>()
+              .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+    });
+  }
+
+  for (final offset in [-1.2, -1.1875]) {
+    test('relative player terminal offset $offset retains movement precision',
+        () {
+      final files = _payload();
+      _editCinematic(files, (json) {
+        json['stageContext']['actorBindings']
+            [0] = {'actorId': 'guide', 'kind': 'player'};
+        json['stageContext']['stagePoints'][0]
+            .addAll({'x': offset, 'y': -0.5, 'relativeToActorId': 'guide'});
+      });
+      if (offset == -1.2) {
+        expect(
+            () => _validate(files),
+            throwsA(isA<GamePackageFormatException>()
+                .having((e) => e.code, 'code', 'runtime3d.cinematic_invalid')));
+      } else {
+        final built = const GamePackageBuilder()
+            .build(manifest: _storyManifest(), payloadFiles: files);
+        expect(() => const GamePackageInspector().inspect(built.packageBytes),
+            returnsNormally);
+      }
+    });
+  }
 
   for (final endpoint in [3.2, 3.1875]) {
     test('player terminal $endpoint preserves the movement lattice contract',
@@ -285,6 +493,61 @@ void main() {
               (e) => e.code, 'code', 'runtime3d.model_animation_invalid')));
     }
   });
+}
+
+GamePackageManifest _storyManifest({bool connected = false}) => spatialManifest(capabilities: [
+      if (connected) 'map3d.cinematic-connected@1',
+      'map3d@1',
+      'map3d.gameplay@1',
+      'map3d.story@1',
+      'map3d.animation@1',
+    ]);
+
+void _editCinematic(
+    Map<String, List<int>> files, void Function(Map<String, dynamic>) edit) {
+  final project = _project(files);
+  final json = jsonDecode(jsonEncode(project.cinematics.single.toJson()))
+      as Map<String, dynamic>;
+  edit(json);
+  _write(files, project.copyWith(cinematics: [CinematicAsset.fromJson(json)]));
+}
+
+Map<String, List<int>> _connectedPayload(
+    MapConnectionDirection direction, int offset,
+    {bool inverse = false}) {
+  final files = _payload();
+  final map = MapData.fromJson(
+      jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+  final connection = MapConnection(
+      direction: direction, targetMapId: 'neighbor', offset: offset);
+  files['project/maps/map.json'] = utf8.encode(jsonEncode(
+      map.copyWith(connections: inverse ? [] : [connection]).toJson()));
+  files['project/maps/neighbor.json'] = utf8.encode(jsonEncode(map
+      .copyWith(
+          id: 'neighbor',
+          name: 'Neighbor',
+          entities: [],
+          connections: inverse
+              ? [
+                  MapConnection(
+                      direction: direction.opposite,
+                      targetMapId: 'map',
+                      offset: -offset)
+                ]
+              : [],
+          spatialScene: map.spatialScene!.copyWith(instances: []))
+      .toJson()));
+  final project = _project(files);
+  _write(
+      files,
+      project.copyWith(maps: [
+        ...project.maps,
+        const ProjectMapEntry(
+            id: 'neighbor',
+            name: 'Neighbor',
+            relativePath: 'maps/neighbor.json'),
+      ]));
+  return files;
 }
 
 void _validate(Map<String, List<int>> files) =>

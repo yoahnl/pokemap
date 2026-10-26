@@ -185,6 +185,7 @@ final class StudioSpatialPlaytest {
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
+          SpatialGameplayCapabilities.cinematicConnectedCapabilityId,
           'map3d.animation@1',
           SpatialModelShadowCapabilities.capabilityId,
           SpatialActorContactShadowCapabilities.capabilityId,

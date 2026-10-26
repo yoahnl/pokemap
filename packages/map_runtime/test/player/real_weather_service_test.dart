@@ -11,17 +11,26 @@ import 'package:map_runtime/src/player/real_weather_provider.dart';
 
 void main() {
   test('bounded private file cache survives a fresh reader and rejects corrupt data', () async {
-    final directory = await Directory.systemTemp.createTemp('avelune-weather-cache-');
+    final directory = await Directory.systemTemp.createTemp(
+      'avelune-weather-cache-',
+    );
     addTearDown(() => directory.delete(recursive: true));
     final file = File('${directory.path}/weather.json');
-    final snapshot = RealWeatherSnapshot(location: RealWeatherLocation(latitude: 48, longitude: 2, label: 'City'), conditions: SpatialVisualPatch.fromJson({'weatherKind': 'rain'}), fetchedAt: DateTime.utc(2026));
+    final snapshot = RealWeatherSnapshot(
+      location: RealWeatherLocation(latitude: 48, longitude: 2, label: 'City'),
+      conditions: SpatialVisualPatch.fromJson({'weatherKind': 'rain'}),
+      fetchedAt: DateTime.utc(2026),
+    );
     await FileRealWeatherCache(file: () async => file).write(snapshot);
     final reopened = await FileRealWeatherCache(file: () async => file).read();
     expect(reopened!.toJson(), snapshot.toJson());
     expect(await file.length(), lessThan(1024));
     expect(await directory.list().length, 1);
     await file.writeAsString('x' * 32769);
-    await expectLater(FileRealWeatherCache(file: () async => file).read(), throwsFormatException);
+    await expectLater(
+      FileRealWeatherCache(file: () async => file).read(),
+      throwsFormatException,
+    );
   });
 
   test(
@@ -44,6 +53,8 @@ void main() {
             );
           return http.Response(
             jsonEncode({
+              'utc_offset_seconds': -18000,
+              'timezone': 'America/Bogota',
               'current': {
                 'weather_code': 63,
                 'cloud_cover': 90,
@@ -60,6 +71,9 @@ void main() {
       final weather = await provider.fetch(location, DateTime.utc(2026));
       expect(uris.first.toString(), 'https://get.geojs.io/v1/ip/geo.json');
       expect(uris.last.queryParameters['wind_speed_unit'], 'kmh');
+      expect(uris.last.queryParameters['timezone'], 'auto');
+      expect(weather.utcOffsetSeconds, -18000);
+      expect(weather.timeZone, 'America/Bogota');
       expect(
         weather.conditions.choice(SpatialVisualParameter.weatherKind),
         'rain',
@@ -157,6 +171,8 @@ void main() {
     await Future.wait([first, same]);
     expect(provider.locations, 1);
     expect(provider.forecasts, 1);
+    expect(service.value.snapshot!.utcOffsetSeconds, -18000);
+    expect(cache.value!.timeZone, 'America/Bogota');
     await service.refresh(enabled);
     expect(provider.forecasts, 1);
     now = now.add(const Duration(minutes: 21));
@@ -205,6 +221,8 @@ class _Provider implements RealWeatherProvider {
       location: location,
       conditions: SpatialVisualPatch.fromJson({'weatherKind': 'rain'}),
       fetchedAt: now,
+      utcOffsetSeconds: -18000,
+      timeZone: 'America/Bogota',
     );
   }
 }

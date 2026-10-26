@@ -2,6 +2,29 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('connected cinematic capability follows authored coordinates and dynamic origins', () {
+    const map = MapData(id: 'map', name: 'Map', size: GridSize(width: 8, height: 8));
+    final neighbor = map.copyWith(id: 'neighbor', connections: [
+      const MapConnection(direction: MapConnectionDirection.west, targetMapId: 'map'),
+    ]);
+    bool requires(double x, double y, {String? origin, bool connected = true}) =>
+        SpatialGameplayCapabilities.requiresConnectedCinematics(
+          ProjectManifest(name: 'Game', maps: [], tilesets: [], cinematics: [
+            CinematicAsset(id: 'movie', title: 'Movie', mapId: 'map',
+              timeline: CinematicTimeline(),
+              stageContext: CinematicStageContext(stagePoints: [
+                CinematicStagePoint(id: 'point', label: 'Point', x: x, y: y,
+                    relativeToActorId: origin),
+              ])),
+          ]), maps: [map, if (connected) neighbor]);
+    expect(requires(4.5, 4.5), isFalse);
+    expect(requires(8.5, 4.5), isTrue);
+    expect(requires(-.5, 4.5), isTrue);
+    expect(requires(0, 0, origin: 'guide'), isFalse);
+    expect(requires(-1, 0, origin: 'guide'), isTrue);
+    expect(requires(-1, 0, origin: 'guide', connected: false), isFalse);
+  });
+
   test('presentation cinematics use the pre-session profile in 3D', () {
     final node = SceneNode(
       id: 'opening',

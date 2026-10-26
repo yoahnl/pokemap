@@ -59,7 +59,9 @@ final class RealWeatherService extends ValueNotifier<RealWeatherStatus> {
     _preferences = preferences;
     _lastAttempt = now();
     final generation = ++_generation;
-    return _pending = Future<void>.microtask(() => _refresh(preferences, generation, force));
+    return _pending = Future<void>.microtask(
+      () => _refresh(preferences, generation, force),
+    );
   }
 
   bool _current(int generation) => !_closed && generation == _generation;
@@ -99,6 +101,8 @@ final class RealWeatherService extends ValueNotifier<RealWeatherStatus> {
         conditions: fetched.conditions,
         fetchedAt: fetched.fetchedAt,
         fromIp: prefs.location == null,
+        utcOffsetSeconds: fetched.utcOffsetSeconds,
+        timeZone: fetched.timeZone,
       );
       if (!_current(generation)) return;
       value = RealWeatherStatus(snapshot: snapshot);

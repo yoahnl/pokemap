@@ -8,7 +8,27 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
   final files = spatialPayload();
   var project = ProjectManifest.fromJson(
       jsonDecode(utf8.decode(files['project/project.json']!)));
-  if (feature == 'cinematicFade') {
+  if (feature == 'cinematicConnected') {
+    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(connections: [
+      const MapConnection(direction: MapConnectionDirection.east, targetMapId: 'neighbor'),
+    ]).toJson()));
+    files['project/maps/neighbor.json'] = utf8.encode(jsonEncode(map.copyWith(
+      id: 'neighbor', name: 'Neighbor',
+      spatialScene: map.spatialScene!.copyWith(instances: []),
+    ).toJson()));
+    project = project.copyWith(maps: [...project.maps,
+      const ProjectMapEntry(id: 'neighbor', name: 'Neighbor', relativePath: 'maps/neighbor.json'),
+    ], cinematics: [
+      CinematicAsset(id: 'connected', title: 'Connected', mapId: 'map',
+        stageContext: CinematicStageContext(stagePoints: [
+          CinematicStagePoint(id: 'outside', label: 'Outside', x: 8.5, y: 2.5),
+        ]),
+        timeline: CinematicTimeline(steps: [
+          CinematicTimelineStep(id: 'wait', kind: CinematicTimelineStepKind.wait, durationMs: 20),
+        ])),
+    ]);
+  } else if (feature == 'cinematicFade') {
     project = project.copyWith(cinematics: [
       CinematicAsset(id: 'fade', title: 'Fade', mapId: 'map',
         timeline: CinematicTimeline(steps: [

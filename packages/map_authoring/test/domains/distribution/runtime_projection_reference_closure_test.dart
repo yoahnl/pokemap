@@ -10,6 +10,92 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('Pokemon media excludes unused provenance and preserves author bytes', () async {
+    final root = await _fixture();
+    final record = await _catalogJson(root, 'source-proof',
+        'data/pokemon/assets/items/source.json', {'romPath': '/author/source/game.nds'});
+    final proof = await File('${root.path}/${assetBlobStorageKey(record.artifact)}').readAsBytes();
+    await _write(root, record.logicalPath, proof);
+    final catalogBefore = await File('${root.path}/$assetCatalogStorageKey').readAsBytes();
+    final result = await const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest);
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    expect(archive.findFile('project/${record.logicalPath}'), isNull);
+    expect(archive.findFile('project/${assetBlobStorageKey(record.artifact)}'), isNull);
+    final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+        archive.findFile('project/$assetCatalogStorageKey')!.content)));
+    expect(catalog.find(record.id), isNull);
+    expect(await File('${root.path}/$assetCatalogStorageKey').readAsBytes(), catalogBefore);
+    expect(await File('${root.path}/${record.logicalPath}').readAsBytes(), proof);
+    expect(await File('${root.path}/${assetBlobStorageKey(record.artifact)}').readAsBytes(), proof);
+  });
+
+  test('Pokemon media keeps referenced JSON while excluding its orphan sibling', () async {
+    final root = await _fixture();
+    final retained = await _catalogJson(root, 'runtime-options',
+        'data/pokemon/assets/items/options.json', {'value': 1});
+    final orphan = await _catalogJson(root, 'orphan-proof',
+        'data/pokemon/assets/items/proof.json', {'romPath': '/author/source/game.nds'});
+    await _runtimeReference(root, retained.logicalPath);
+    final projection = await _build(root);
+    final catalog = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+        projection.payloadFiles['project/$assetCatalogStorageKey']!)));
+    expect(projection.payloadFiles, contains('project/${retained.logicalPath}'));
+    expect(catalog.require(retained.id).toJson(), retained.toJson());
+    expect(projection.payloadFiles, isNot(contains('project/${orphan.logicalPath}')));
+    expect(catalog.find(orphan.id), isNull);
+  });
+
+  test('Pokemon media referenced JSON still rejects absolute source paths', () async {
+    final root = await _fixture();
+    final record = await _catalogJson(root, 'runtime-options',
+        'data/pokemon/assets/items/options.json', {'romPath': '/author/source/game.nds'});
+    await _runtimeReference(root, record.logicalPath);
+    final before = await File('${root.path}/${assetBlobStorageKey(record.artifact)}').readAsBytes();
+    await expectLater(const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest),
+        throwsA(isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'referenceEscapesRoot')));
+    expect(await File('${root.path}/${assetBlobStorageKey(record.artifact)}').readAsBytes(), before);
+  });
+
+  test('Pokemon media keeps PNG images and their portable catalog records', () async {
+    final root = await _fixture();
+    final file = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(jsonDecode(await file.readAsString()));
+    final record = AssetRecord(id: 'item-icon',
+        logicalPath: 'data/pokemon/assets/items/icon.png',
+        artifact: catalog.require('hero-source').artifact);
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    final pixels = await File('${root.path}/assets/hero.png').readAsBytes();
+    await _write(root, record.logicalPath, pixels);
+    final result = await const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest);
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    expect(archive.findFile('project/${record.logicalPath}')!.content, pixels);
+    final portable = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+        archive.findFile('project/$assetCatalogStorageKey')!.content)));
+    expect(portable.require(record.id).toJson(), record.toJson());
+    expect(await File('${root.path}/${record.logicalPath}').readAsBytes(), pixels);
+  });
+
+  test('Pokemon media filtering preserves ID addressed gameplay JSON', () async {
+    final root = await _fixture();
+    final paths = ['data/pokemon/catalogs/items.json',
+      'data/pokemon/species/native.json', 'data/pokemon/learnsets/native.json'];
+    for (final path in paths) {
+      await _write(root, path, {'entries': [], 'id': 'native'});
+    }
+    final before = {for (final path in paths)
+      path: await File('${root.path}/$path').readAsBytes()};
+    final result = await _build(root);
+    for (final path in paths) {
+      expect(result.payloadFiles, contains('project/$path'));
+      expect(await File('${root.path}/$path').readAsBytes(), before[path]);
+    }
+  });
+
   test('unused presentation media cannot remove a distinct character portrait',
       () async {
     final root = await _fixture();

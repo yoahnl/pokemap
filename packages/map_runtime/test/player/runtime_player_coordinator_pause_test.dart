@@ -8,6 +8,50 @@ import 'support/runtime_player_test_harness.dart';
 
 void main() {
   test(
+    'weather city changes reach the active session without restarting it',
+    () async {
+      final harness = RuntimePlayerTestHarness();
+      addTearDown(harness.dispose);
+      await launchHarnessToPlaying(harness);
+      await _openMenu(harness);
+      await harness.coordinator.dispatch(
+        RuntimePlayerCommand(
+          action: RuntimePlayerAction.openOptions,
+          snapshotRevision: harness.coordinator.snapshot.revision,
+        ),
+      );
+      final sessionId = harness.sessions.snapshot.descriptor?.sessionId;
+      final choices = [
+        const RealWeatherPreferences(enabled: true),
+        RealWeatherPreferences(
+          enabled: true,
+          location: RealWeatherLocation(
+            latitude: 6.25,
+            longitude: -75.56,
+            label: 'Medellín',
+            countryCode: 'CO',
+          ),
+        ),
+        const RealWeatherPreferences(enabled: true),
+        const RealWeatherPreferences(),
+      ];
+      for (final choice in choices) {
+        final previous = harness.adapter.appliedPreferences.length;
+        final result = await harness.coordinator.dispatch(
+          RuntimePlayerCommand(
+            action: RuntimePlayerAction.updatePreferences,
+            snapshotRevision: harness.coordinator.snapshot.revision,
+            payload: harness.preferences.current.copyWith(realWeather: choice),
+          ),
+        );
+        expect(result.status, RuntimePlayerCommandStatus.accepted);
+        expect(harness.adapter.appliedPreferences.length, previous + 1);
+        expect(harness.adapter.appliedPreferences.last.realWeather, choice);
+        expect(harness.sessions.snapshot.descriptor?.sessionId, sessionId);
+      }
+    },
+  );
+  test(
       'pause projection failure replaces loading and supports resume and retry',
       () async {
     final harness = RuntimePlayerTestHarness();

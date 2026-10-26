@@ -716,7 +716,9 @@ final class RuntimeProjectProjectionBuilder {
       }
       final extension = p.extension(relative).toLowerCase();
       if (extension == '.json') {
-        if (relative.startsWith('data/') ||
+        if (relative.startsWith('data/') &&
+                _isRuntimeProjectFile(relative, extension,
+                    hasCanonicalAssetCatalog: authorFiles.catalog.records.isNotEmpty) ||
             pokemonCatalogPaths.contains(relative)) {
           jsonRoots.add(relative);
         }
@@ -1608,7 +1610,8 @@ final class RuntimeProjectProjectionBuilder {
       // and deferred specs. Those carry author-workspace relative paths that
       // legitimately escape the package, so shipping them made the project
       // unexportable for a reason no author could act on.
-      return firstSegment != 'assets';
+      return firstSegment != 'assets' &&
+          !path.startsWith('data/pokemon/assets/');
     }
     return (firstSegment == 'assets' || firstSegment == 'data') &&
         _projectMediaExtensions.contains(extension);
