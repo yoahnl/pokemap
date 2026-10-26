@@ -52,6 +52,13 @@ export function registerVisualSettingsTools(server: McpServer, authoring: Author
     weatherTransitionSeconds:z.number().min(0).max(5).optional(),
     weatherLightning:z.boolean().optional(),
     weatherIndoors:z.boolean().optional(),
+    weatherSoundEnabled:z.boolean().optional(),
+    weatherRainVolume:z.number().min(0).max(1).optional(),
+    weatherWindVolume:z.number().min(0).max(1).optional(),
+    timeMode:z.enum(['cycle','real','fixed']).optional(),
+    weatherMode:z.enum(['fixed','automatic','real']).optional(),
+    weatherIntervalSeconds:z.number().min(10).max(86400).optional(),
+    weatherSequence:z.array(z.enum(['clear','cloudy','drizzle','rain','downpour','storm','snow','blizzard','hail','mist','fog','dust','sandstorm','petals','leaves'])).min(1).max(15).refine(values=>new Set(values).size===values.length).optional(),
 
   }).strict().refine(value => value.fogStart === undefined || value.fogEnd === undefined || value.fogStart < value.fogEnd, "Fog must end after its start");
   const identity = {

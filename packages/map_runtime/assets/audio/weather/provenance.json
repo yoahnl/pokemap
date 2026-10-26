@@ -1,0 +1,24 @@
+{
+  "model": "elevenlabs-sfx",
+  "sampleRate": 22050,
+  "channels": 2,
+  "crossfadeSeconds": 0.65,
+  "sources": {
+    "rain": {
+      "jobId": "cb8c5e67-5414-4747-a650-63c97eb70e1a",
+      "prompt": "Natural continuous rain ambience for a cozy HD-2D village game. Steady soft rain falling onto earth, leaves and roof tiles, delicate individual droplets over a smooth broad rain bed. No speech, no music, no thunder, no wind, no birds. Even level, no fade-in or fade-out, seamless loop-friendly background sound, no dramatic events.",
+      "url": "https://gcdn.picsart.com/editing-temp/125b2353-f2da-4297-89fc-b0ff698709c7.mp3",
+      "sourceSha256": "d7cb0f9e2056ff4354840659b010ec6dcf0a6d19e3f23963746e684f57ce9168",
+      "outputSha256": "68a884c61f7abf89d8e3b761d594172c1d058ca9cde91f0a68df3ac6d65d0786",
+      "durationSeconds": 15.35002267573696
+    },
+    "wind": {
+      "jobId": "945ac82d-5ae0-4164-9f56-6580c0667847",
+      "prompt": "Natural wind ambience for an HD-2D village game. Soft air moving through foliage with gentle broad gusts, warm low rustling and airy swells, restrained and pleasant. No speech, no music, no rain, no thunder, no birds, no whistling tones. Even average level, no fade-in or fade-out, seamless loop-friendly isolated wind.",
+      "url": "https://gcdn.picsart.com/editing-temp/1f4e6750-2b92-4c58-919b-6ff1e5ffef68.mp3",
+      "sourceSha256": "4be146095d636942e23dd2c02db70154c23f7e09278bc851e54893badde1f032",
+      "outputSha256": "9b13f6c858a23503d8777bc0b58015db90acab6e23eb676bdaa73ef5acc1e7f7",
+      "durationSeconds": 15.35002267573696
+    }
+  }
+}

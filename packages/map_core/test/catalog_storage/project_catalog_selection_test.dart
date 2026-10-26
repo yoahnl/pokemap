@@ -6,6 +6,27 @@ import '../resource_pack_publication_test.dart'
     show borderFixture, modelFixture, presetFixture;
 
 void main() {
+  test('multiple map closures share dependencies and exclude foreign payloads', () async {
+    final project = ProjectManifest(name: 'Map union', maps: const [],
+      tilesets: const [ProjectTilesetEntry(id: 'sheet', name: 'Sheet', relativePath: 'sheet.png')],
+      characters: [for (final id in ['one', 'two', 'extra', 'foreign'])
+        ProjectCharacterEntry(id: id, name: id, tilesetId: 'sheet')]);
+    final build = PortableCatalogPublication.encodeProject(project);
+    final objects = {...build.storage.objects};
+    final catalog = await PortableProjectCatalog.open(build.descriptor,
+      readObject: (reference) async => objects[reference.sha256]!, metadataFields: {});
+    final foreign = (await catalog.snapshot.indexEntry(
+      CatalogDefinitionKey(CatalogDefinitionKind.character, 'foreign')))!;
+    objects[foreign.reference.sha256] = utf8.encode('foreign character must remain unread');
+    final selected = await ProjectCatalogSelection(catalog).forMaps([
+      for (final id in ['one', 'two']) MapData(id: id, name: id,
+        size: const GridSize(width: 2, height: 2), entities: [MapEntity(id: 'npc', kind: MapEntityKind.npc,
+          pos: const GridPos(x: 0, y: 0), npc: MapEntityNpcData(characterId: id))]),
+    ], additionalRoots: [CatalogDefinitionKey(CatalogDefinitionKind.character, 'extra')]);
+    expect(selected.characters.map((character) => character.id), unorderedEquals(['one', 'two', 'extra']));
+    expect(selected.tilesets.map((tileset) => tileset.id), ['sheet']);
+  });
+
   test('map catalogue closure includes a skin referenced only by a reachable route', () async {
     final project = ProjectManifest(name: 'Route appearance closure', maps: [],
       tilesets: const [ProjectTilesetEntry(id: 'costume', name: 'Costume', relativePath: 'costume.png')],

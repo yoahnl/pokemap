@@ -9,6 +9,7 @@ import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/storyline_asset.dart';
+import '../models/spatial_visual_profile.dart';
 import '../models/world_rule.dart';
 import '../operations/narrative_fact_runtime.dart';
 
@@ -530,7 +531,8 @@ void _diagnoseConflicts(
         if (!leftValues.entries.any(
           (entry) =>
               rightValues.containsKey(entry.key) &&
-              rightValues[entry.key] != entry.value,
+              SpatialVisualPatch({entry.key: rightValues[entry.key]!}) !=
+                  SpatialVisualPatch({entry.key: entry.value}),
         )) {
           continue;
         }

@@ -1,6 +1,7 @@
 part of 'project_snapshot_loader.dart';
 
 const _nativeWorkshopActions = {
+  'campaign.battle_savings.update',
   'pokemon.ruleset.set',
   'campaign.encounter_table.upsert',
   'campaign.trainer.upsert',
@@ -13,7 +14,7 @@ const _nativeWorkshopActions = {
 };
 
 const _nativeWorkshopReferences = {
-  'facts': {'factId', 'existingPartyFactId'},
+  'facts': {'factId', 'existingPartyFactId', 'enabledFactId', 'balanceFactId'},
   'maps': {'mapId', 'destinationMapId', 'targetMapId', 'sourceMapId'},
   'dialogues': {
     'dialogueId',
@@ -248,6 +249,11 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
               if (rawSettings.containsKey(key)) key: rawSettings[key],
           };
   }
+  if (actionId == 'campaign.battle_savings.update') {
+    sections.add('battleSavings');
+    if (raw.containsKey('battleSavings')) projected['battleSavings'] = raw['battleSavings'];
+    candidates.add(raw['battleSavings']);
+  }
   if (actionId == 'bag.capacity.set') {
     sections.add('bagCapacity');
     if (raw.containsKey('bagCapacity')) {
@@ -401,6 +407,20 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     previousCount = ids.values
         .fold<int>(eventRecords.length, (n, values) => n + values.length);
     collect();
+    if (actionId == 'campaign.battle_savings.update') {
+      final identities = <String>{
+        ...?ids['facts'],
+        for (final fact in selected['facts']?.values ?? <Map<String, dynamic>>[])
+          if (fact['legacyFlagName'] case final String alias) alias,
+      };
+      for (final rows in index('facts').values) {
+        for (final fact in rows) {
+          if (identities.contains(fact['id']) || identities.contains(fact['legacyFlagName'])) {
+            add('facts', [fact['id'] as String]);
+          }
+        }
+      }
+    }
     if (guided) {
       for (final stepId in _nativeReferenceIds(candidates, const {'stepId'})) {
         add('storylines', storyStepOwners[stepId] ?? const {});

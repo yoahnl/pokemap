@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
+import 'world_environment.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
@@ -823,6 +824,7 @@ abstract class SaveData with _$SaveData {
     PixelOffset? playerPixelPosition,
     PlayerSpatialPosition? playerSpatialPosition,
     @Default(SpatialWorldState.empty()) SpatialWorldState spatialWorldState,
+    @JsonKey(includeIfNull: false) WorldEnvironmentState? environmentState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
     @Default(MovingPropWorldState.empty()) MovingPropWorldState movingPropWorldState,
     @JsonKey(readValue: readMapInstanceWorldStateJson)

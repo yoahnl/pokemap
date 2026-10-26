@@ -6,6 +6,32 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimePostBattleDecisionCoordinator', () {
+    test('savings commit once with battle rewards and survive save restoration', () async {
+      final bundle = _bundle();
+      final savingsBundle = bundle.copyWith(manifest: bundle.manifest.copyWith(
+        battleSavings: const ProjectBattleSavingsConfig(enabledFactId: 'saving', balanceFactId: 'reserve', percentage: 25, maximumBalance: 999999),
+        facts: [
+          NarrativeFactDefinition(id: 'saving', label: 'Save rewards', defaultValue: true),
+          NarrativeFactDefinition(id: 'reserve', label: 'Reserve', initialValue: NarrativeValue.integer(0)),
+        ],
+      ));
+      final base = _state();
+      final coordinator = RuntimePostBattleDecisionCoordinator(resolveReward: _multiLevelAutomaticMoveResolution);
+      final result = await coordinator.begin(transactionBaseState: base, bundle: savingsBundle,
+        runtimeContext: _context(_trainerRequest()), outcome: _outcome(), itemCatalog: _itemCatalog());
+      expect(result.isSuccess, isTrue);
+      final finalState = result.transaction!.finalState!;
+      expect(finalState.trainerProfile.money, 360);
+      expect(finalState.narrativeFactRuntimeState.valueFor('reserve')!.intValue, 120);
+      expect(base.narrativeFactRuntimeState.valueFor('reserve'), isNull);
+      final restored = gameStateFromStrictSaveJson(strictGameStateSaveJson(finalState));
+      final duplicate = await coordinator.begin(transactionBaseState: restored, bundle: savingsBundle,
+        runtimeContext: _context(_trainerRequest()), outcome: _outcome(), itemCatalog: _itemCatalog());
+      expect(duplicate.failure!.code, RuntimePostBattleCoordinatorFailureCode.alreadyApplied);
+      expect(restored.trainerProfile.money, 360);
+      expect(restored.narrativeFactRuntimeState.valueFor('reserve')!.intValue, 120);
+    });
+
     test('full bag rolls back victory and remains retryable after making space',
         () async {
       final base = _state().copyWith(

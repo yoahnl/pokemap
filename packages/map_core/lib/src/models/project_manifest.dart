@@ -16,6 +16,7 @@ import 'rail_journey.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
 import 'project_defeat_recovery_config.dart';
+import 'project_battle_savings_config.dart';
 import 'pokemon_ruleset_profile.dart';
 import 'project_bag_capacity.dart';
 import 'project_party_companion_config.dart';
@@ -534,6 +535,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     @JsonKey(includeIfNull: false) ProjectContactDeviceConfig? contactDevice,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
     @JsonKey(includeIfNull: false) ProjectDefeatRecoveryConfig? defeatRecovery,
+    @JsonKey(includeIfNull: false) ProjectBattleSavingsConfig? battleSavings,
     @Default(ProjectBagCapacity.unlimited())
     @JsonKey(
       readValue: _readProjectBagCapacity,

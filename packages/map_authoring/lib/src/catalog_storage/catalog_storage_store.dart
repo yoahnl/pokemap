@@ -147,8 +147,9 @@ final class CatalogStorageStore {
   Future<List<int>> readObject(CatalogObjectReference reference) =>
       _readBounded(_objectPath(reference.sha256), reference.byteLength);
 
-  Future<PublishedCatalogSnapshot> openRoot(CatalogObjectReference root) =>
-      _openRoot(root);
+  Future<PublishedCatalogSnapshot> openRoot(CatalogObjectReference root,
+          {CatalogObjectReader? readObject}) =>
+      _openRoot(root, readObject: readObject);
 
   Future<void> publishObjectsUnderLock(Map<String, List<int>> objects) async {
     for (final entry in objects.entries) {
@@ -293,14 +294,15 @@ final class CatalogStorageStore {
     });
   }
 
-  Future<PublishedCatalogSnapshot> _openRoot(
-          CatalogObjectReference root) async =>
+  Future<PublishedCatalogSnapshot> _openRoot(CatalogObjectReference root,
+          {CatalogObjectReader? readObject}) async =>
       PublishedCatalogSnapshot(
         rootRevision: root.sha256,
         snapshot: await CatalogSnapshot.open(
           root: root,
-          readObject: (reference) =>
-              _readBounded(_objectPath(reference.sha256), reference.byteLength),
+          readObject: readObject ??
+              (reference) => _readBounded(
+                  _objectPath(reference.sha256), reference.byteLength),
           limits: _limits,
         ),
       );

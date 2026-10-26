@@ -1514,6 +1514,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 SpatialExplorationView(
                   key: ObjectKey(spatial),
                   session: spatial.session!,
+                  audioMixer: spatial.audioMixer,
                   keyboardInputEnabled: false,
                   onReady: () {
                     final ready = _spatialReady;

@@ -460,6 +460,63 @@ If a suite hangs, suspect a leaked harness before suspecting the test. And check
 `flutter_tester`, which accepts a `.js` or script path and then hangs forever
 instead of failing — spawn `node` (or the real interpreter) by name.
 
+### Always remove temporary QA artifacts (mandatory)
+
+Every task owns the complete lifecycle of its temporary test artifacts,
+wherever it creates them: inside this repository, in sibling project folders,
+under `~/Project`, on the Desktop, in application containers, caches or temporary
+directories. Moving artifacts outside the repository does not discharge this
+obligation. Cleanup is part of completing the task, including failed runs and
+resumed interrupted work; it must not depend on Yoahn requesting another purge.
+
+- All disposable Avelune/PokeMap QA artifacts must live under the single
+  canonical root `/Users/karim/Library/Caches/AveluneQA/`, with at most one
+  reusable child directory per active task. This is mandatory: do not invent
+  another test root, dated sibling project or standalone application folder
+  under `~/Project`, on the Desktop or elsewhere. FPS, GPU, camera,
+  visual-settings and release checks follow the same rule.
+- Before creating a QA environment, record its purpose, exact owned paths,
+  processes and concrete removal condition in the task state or an existing
+  concise receipt. Reuse the canonical task directory across retries and
+  resumed turns; do not create a new copy for each run. If a platform or tool
+  strictly requires a different build, sandbox or temporary path, record that
+  narrow exception and remove its disposable outputs in the same task. Tool
+  convenience is not a reason to scatter project or application copies.
+- Reuse the environment when possible. Copy only the sources, assets and
+  fixtures needed for the check; exclude unrelated builds, `.dart_tool`,
+  `node_modules`, caches and project histories. Do not duplicate a complete
+  workspace merely to run a focused test.
+- After each run, remove superseded outputs and failed attempts immediately;
+  cleanup is continuous, not a deferred bulk purge. Do not retain old app
+  bundles merely because they have a different name or build date. Before closing
+  the task, stop its owned QA apps, servers and harnesses using the ownership
+  checks above, then remove disposable project copies, source snapshots, app
+  bundles, builds, dependency caches, exports, recordings and repeated captures
+  created for that task. Check for open files and active consumers first;
+  never interrupt another session or delete its working environment.
+- Preserve original projects, source repositories, assets, saves, user-requested
+  deliverables, maintained tests and fixtures, and useful unique changes. A
+  folder name containing `test` or `QA` is not proof that its contents are
+  disposable; a package library or real project is never implicitly a cache.
+  Verify the original still exists and retain any useful unique data before
+  removing a copy. Do not bypass Git safety or compatibility guarantees.
+- Retain only the evidence needed to support the result: concise receipts,
+  relevant logs or diffs and selected final captures. Prefer the existing
+  canonical evidence location; a small verified archive is acceptable when
+  needed. Do not keep gigabytes of environments or frame dumps as evidence,
+  replace deleted clutter with another complete backup, or create extra
+  Markdown files merely to track cleanup.
+- Routine removal of verified disposable artifacts owned by the task is
+  authorized as part of the task; do not ask for repeated confirmation. If
+  ownership, a unique datum or an active consumer prevents safe cleanup, report
+  the exact path, measured size, reason and required decision instead of
+  silently retaining it or broadening the deletion scope.
+- Verify the removed paths are gone and retained evidence is readable. Report
+  the cleanup result and every retained temporary environment with its size,
+  owner and concrete removal condition. Measure directory size and SSD free
+  space separately; shared APFS storage and concurrent writes can make their
+  changes differ. A task with unexplained temporary leftovers is not complete.
+
 ---
 
 ## 9. Code Generation

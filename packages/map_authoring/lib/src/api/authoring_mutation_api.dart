@@ -65,6 +65,15 @@ abstract interface class AuthoringWorkshopPort {
       ProjectHandle projectHandle);
 }
 
+abstract interface class AuthoringHistoryMaintenancePort {
+  Future<Map<String, Object?>> maintainHistory(ProjectHandle projectHandle,
+      {required String expectedRevision,
+      bool apply = false,
+      String? expectedFingerprint,
+      int maxOperations = 50,
+      int maxBytes = 200 * 1024 * 1024});
+}
+
 abstract interface class AuthoringArtifactStagingPort {
   Future<Map<String, Object?>> stageArtifact({
     required String sourcePath,

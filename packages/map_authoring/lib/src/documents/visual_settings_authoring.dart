@@ -116,7 +116,7 @@ final class LocalVisualSettingsAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: {
-        'documentSchemaVersions': [1, 2, 3],
+        'documentSchemaVersions': [1, 2, 3, 4, 5, 6],
         'effects': [
           'waterAnimated',
           'windowsLit',
@@ -144,10 +144,13 @@ final class LocalVisualSettingsAuthoring {
         'extendedLightingCapability':
             SpatialLightWorkshopCapabilities.capabilityId,
         'weatherCapability': SpatialWeatherCapabilities.capabilityId,
+        'weatherSoundCapability': SpatialWeatherCapabilities.soundCapabilityId,
+        'worldEnvironmentCapability': WorldEnvironmentCapabilities.capabilityId,
+        'realWeatherCapability': WorldEnvironmentCapabilities.realWeatherCapabilityId,
         'weatherKinds': [for (final kind in SpatialWeatherKind.values) kind.name],
         'parameterTypes': {
           for (final parameter in SpatialVisualParameter.values)
-            parameter.name: parameter.isChoice
+            parameter.name: parameter.isSequence ? {'type': 'array', 'items': {'type': 'string', 'enum': [for (final kind in SpatialWeatherKind.values) kind.name]}, 'minItems': 1, 'maxItems': 15, 'uniqueItems': true} : parameter.isChoice
                 ? {'type': 'string', 'enum': parameter.choices}
                 : parameter.isBoolean
                 ? {'type': 'boolean'}

@@ -21,6 +21,109 @@ void walk(SpatialMovementController movement, int x, int z) {
 }
 
 void main() {
+  test('connected actors require continuous coverage of their entire footprint', () {
+    final source = player();
+    final neighbors = [SpatialMovementNeighbor(controller: player(), offsetX: 8, offsetZ: 0)];
+    bool traverse(double x, double z) => source.canTraverseActor(x, z, x, z,
+      allowConnectedMaps: true, connectedMaps: neighbors);
+    expect(traverse(15.625, 4), isTrue);
+    expect(traverse(15.65, 4), isFalse);
+    expect(traverse(8, 4), isTrue);
+    final partial = [SpatialMovementNeighbor(controller: player(), offsetX: 8, offsetZ: 4)];
+    expect(source.canTraverseActor(7.65, 3.9, 7.65, 3.9,
+      allowConnectedMaps: true, connectedMaps: partial), isFalse);
+  });
+
+  test('scripted actors traverse only linked direct neighbors with offsets',
+      () {
+    final source = player();
+    final target = player();
+    bool traverse(double ax, double az, double bx, double bz) =>
+        source.canTraverseActor(ax, az, bx, bz, allowConnectedMaps: true);
+    expect(traverse(10, 4, 7, 4), isFalse);
+    source.setConnectedNeighbors({
+      MapConnectionDirection.east:
+          SpatialMovementNeighbor(controller: target, offsetX: 8, offsetZ: 2)
+    });
+    expect(traverse(10, 4, 7, 4), isTrue);
+    expect(source.canTraverseActor(10, 4, 7, 4), isFalse);
+    expect(traverse(10, 1, 10, 1), isFalse);
+    expect(traverse(17, 4, 17, 4), isFalse);
+    expect(traverse(9, 11, 9, 11), isFalse);
+    expect(source.x, 4.5);
+    expect(source.connectionArrival, isNull);
+  });
+
+  test('explicit cinematic neighbors preserve player connection readiness', () {
+    final source = player();
+    final neighbors = [SpatialMovementNeighbor(controller: player(), offsetX: 8, offsetZ: 2)];
+    expect(source.canTraverseActor(10, 4, 7, 4, allowConnectedMaps: true,
+      connectedMaps: neighbors), isTrue);
+    expect(source.canTraverseActor(10, 4, 7, 4, allowConnectedMaps: true), isFalse);
+    expect(source.connectionArrival, isNull);
+    expect(source.x, 4.5);
+  });
+
+  test('connected actors retain source collision identities beyond the seam', () {
+    final source = SpatialMovementController(scene: MapSpatialScene(width: 8, depth: 8), models: [],
+      entities: [for (final id in ['moving', 'blocker']) MapEntity(id: id,
+        kind: MapEntityKind.npc, pos: const GridPos(x: 3, y: 3), blocksMovement: true,
+        npc: const MapEntityNpcData(characterId: 'hero'))]);
+    source.setConnectedNeighbors({MapConnectionDirection.east:
+      SpatialMovementNeighbor(controller: player(), offsetX: 8, offsetZ: 0)});
+    SpatialActorRuntimeState? pose(String id) => SpatialActorRuntimeState(
+      x: id == 'moving' ? 10 : 9, z: 4, facing: EntityFacing.west);
+    expect(source.canTraverseActor(10, 4, 10, 4, allowConnectedMaps: true,
+      ignoredEntityId: 'moving', actorStateProvider: pose), isTrue);
+    expect(source.canTraverseActor(10, 4, 8.5, 4, allowConnectedMaps: true,
+      ignoredEntityId: 'moving', actorStateProvider: pose), isFalse);
+    expect(source.canTraverseActor(10, 4, 8.5, 4, allowConnectedMaps: true,
+      ignoredEntityId: 'moving', ignoredEntityIds: {'blocker'}, actorStateProvider: pose), isTrue);
+  });
+
+  for (final obstacle in ['paint', 'npc', 'height', 'navigation']) {
+    test('scripted actor honors connected $obstacle collision', () {
+      final source = player();
+      final target = SpatialMovementController.fromMap(
+          map: MapData(
+              id: 'target',
+              name: 'Target',
+              size: const GridSize(width: 8, height: 8),
+              spatialScene: MapSpatialScene(
+                  width: 8,
+                  depth: 8,
+                  heightLevels: List.filled(64, obstacle == 'height' ? 2 : 0),
+                  navigation: SpatialNavigationProfile(
+                      spawn: SpatialSpawn(x: 4.5, z: 4.5),
+                      blockedAreas: [
+                        if (obstacle == 'navigation')
+                          SpatialBlockedArea(x: 1, z: 2, width: 1, depth: 1)
+                      ])),
+              layers: [
+                CollisionLayer(id: 'solid', name: 'Solid', collisions: [
+                  for (var i = 0; i < 64; i++) obstacle == 'paint' && i == 17
+                ])
+              ],
+              entities: [
+                if (obstacle == 'npc')
+                  const MapEntity(
+                      id: 'guard',
+                      kind: MapEntityKind.npc,
+                      pos: GridPos(x: 1, y: 2),
+                      blocksMovement: true,
+                      npc: MapEntityNpcData(characterId: 'hero'))
+              ]),
+          models: []);
+      source.setConnectedNeighbors({
+        MapConnectionDirection.east:
+            SpatialMovementNeighbor(controller: target, offsetX: 8, offsetZ: 2)
+      });
+      expect(
+          source.canTraverseActor(10.5, 4.5, 7, 4.5, allowConnectedMaps: true),
+          isFalse);
+    });
+  }
+
   test('configured connections wait at an unprepared edge without losing input',
       () {
     final source = player();

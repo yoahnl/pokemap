@@ -21,6 +21,132 @@ final class AuthoringHistoryStoreException implements Exception {
   String toString() => 'AuthoringHistoryStoreException($code): $message';
 }
 
+final class AuthoringHistoryWindow {
+  AuthoringHistoryWindow(
+      {required this.projectId,
+      required this.generation,
+      required this.legacySnapshot,
+      required this.entryIds,
+      required this.cursor,
+      required this.maxOperations,
+      required this.maxBytes,
+      required this.costs,
+      required this.entryProjects,
+      this.headEntryId,
+      this.headProjectId});
+
+  final String projectId;
+  final int generation;
+  final Object? legacySnapshot;
+  final List<String> entryIds;
+  final int cursor;
+  final int maxOperations;
+  final int maxBytes;
+  final Map<String, Map<String, int>> costs;
+  final Map<String, String> entryProjects;
+  final String? headEntryId;
+  final String? headProjectId;
+
+  int get objectBytes {
+    return costs.values.fold(
+        0,
+        (sum, inventory) =>
+            sum + inventory.values.fold<int>(0, (total, size) => total + size));
+  }
+
+  int get recordBytes => utf8
+      .encode(jsonEncode({
+        ...toJson(),
+        'digest': 'sha256:${'0' * 64}',
+      }))
+      .length;
+
+  int get logicalBytes => objectBytes + recordBytes;
+
+  Map<String, Object?> toJson() => {
+        'schemaVersion': 1,
+        'projectId': projectId,
+        'generation': generation,
+        'legacySnapshot': legacySnapshot,
+        'entryIds': entryIds,
+        'cursor': cursor,
+        'maxOperations': maxOperations,
+        'maxBytes': maxBytes,
+        'costs': costs,
+        'entryProjects': entryProjects,
+        'headEntryId': headEntryId,
+        'headProjectId': headProjectId
+      };
+
+  factory AuthoringHistoryWindow.fromJson(Map<String, Object?> json) {
+    final ids = (json['entryIds'] as List).cast<String>();
+    final costs = <String, Map<String, int>>{};
+    for (final item in (json['costs'] as Map).entries) {
+      costs[item.key as String] = Map<String, int>.from(item.value as Map);
+    }
+    final window = AuthoringHistoryWindow(
+        projectId: json['projectId'] as String,
+        generation: json['generation'] as int,
+        legacySnapshot: json['legacySnapshot'],
+        entryIds: List.unmodifiable(ids),
+        cursor: json['cursor'] as int,
+        maxOperations: json['maxOperations'] as int,
+        maxBytes: json['maxBytes'] as int,
+        costs: Map.unmodifiable(costs),
+        entryProjects: Map.unmodifiable(
+            Map<String, String>.from(json['entryProjects'] as Map)),
+        headEntryId: json['headEntryId'] as String?,
+        headProjectId: json['headProjectId'] as String?);
+    safeAuthoringSecurityIdentifier(window.projectId, 'projectId');
+    if ((window.headEntryId == null) != (window.headProjectId == null)) {
+      throw const FormatException('history.retention: invalid root head');
+    }
+    if (window.headEntryId != null) {
+      safeAuthoringSecurityIdentifier(window.headEntryId!, 'entryId');
+      safeAuthoringSecurityIdentifier(window.headProjectId!, 'projectId');
+    }
+    if (window.generation < 0 ||
+        window.maxOperations < 1 ||
+        window.maxOperations > 50 ||
+        window.maxBytes < 1 ||
+        window.maxBytes > 200 * 1024 * 1024 ||
+        ids.length > window.maxOperations ||
+        ids.toSet().length != ids.length ||
+        window.cursor < 0 ||
+        window.cursor > ids.length ||
+        costs.length != ids.length ||
+        !costs.keys.toSet().containsAll(ids) ||
+        window.entryProjects.length != ids.length ||
+        !window.entryProjects.keys.toSet().containsAll(ids)) {
+      throw const FormatException('history.retention: invalid window');
+    }
+    for (final id in ids) {
+      safeAuthoringSecurityIdentifier(id, 'entryId');
+      safeAuthoringSecurityIdentifier(window.entryProjects[id]!, 'projectId');
+    }
+    for (final inventory in costs.values) {
+      if (inventory.length != 1 ||
+          !inventory.keys.single.startsWith('entry:')) {
+        throw const FormatException(
+            'history.retention: compact reservation required');
+      }
+      for (final item in inventory.entries) {
+        if (!RegExp(r'^(catalog|blob|entry):[a-f0-9]{64}$')
+                .hasMatch(item.key) ||
+            item.value < 0) {
+          throw const FormatException('history.retention: invalid inventory');
+        }
+      }
+    }
+    if (window.logicalBytes > window.maxBytes ||
+        window.recordBytes >
+            FileAuthoringHistoryStore.maxRetentionRecordBytes) {
+      throw const FormatException('history.retention: budget exceeded');
+    }
+    return window;
+  }
+}
+
 typedef FileAuthoringHistoryDecodeWorkerRunner = Future<T> Function<T>(
   T Function() operation,
 );
@@ -138,19 +264,515 @@ final class FileAuthoringHistoryStore
   AuthoringFileSnapshot? _cachedSnapshot;
 
   static final Map<String, Future<void>> _inProcessLocks = {};
+  static const maxRetentionRecordBytes = 16 * 1024 * 1024;
+  Map<String, AuthoringHistoryEntry>? _maintenanceEntries;
+  int? _maintenanceGeneration;
+  Object? _maintenanceLegacySnapshot;
+  AuthoringHistoryEntry? _maintenanceHead;
+  AuthoringHistoryEntry? _lastMergedGlobalHead;
+
+  Future<List<AuthoringHistoryEntry>> entriesForMaintenance() =>
+      _guard(() => _withLock(() async =>
+          List.unmodifiable((await _maintenanceState()).entries.values)));
+
+  Future<
+      ({
+        Map<String, AuthoringHistoryEntry> entries,
+        AuthoringHistoryEntry? head,
+        int generation,
+        Object? legacySnapshot
+      })> _maintenanceState() async {
+    final sequence = await _readIncrementalHead();
+    _requirePublishedHead(sequence);
+    final legacy = await _legacyHistorySnapshot();
+    final window = await _readWindow();
+    if (window != null) {
+      _requireWindowGeneration(window, sequence);
+      final entries = <String, AuthoringHistoryEntry>{};
+      for (final id in {
+        ...window.entryIds,
+        if (window.headEntryId != null) window.headEntryId!
+      }) {
+        final entry =
+            await _readIndexedReceipt(id, sequence.publishedGeneration);
+        final project = window.entryProjects[id] ??
+            (id == window.headEntryId ? window.headProjectId : null);
+        if (entry == null || entry.projectId != project) {
+          throw const AuthoringHistoryException('history.branch_unavailable',
+              'A retained operation is unavailable.');
+        }
+        entries[id] = _markFromWindow(entry, window);
+      }
+      return (
+        entries: entries,
+        head: window.headEntryId == null ? null : entries[window.headEntryId],
+        generation: sequence.publishedGeneration,
+        legacySnapshot: legacy
+      );
+    }
+    if (_maintenanceEntries == null ||
+        _maintenanceGeneration != sequence.publishedGeneration ||
+        canonicalAuthoringJson(_maintenanceLegacySnapshot) !=
+            canonicalAuthoringJson(legacy)) {
+      final state = await _readMergedState();
+      final entries = <String, AuthoringHistoryEntry>{};
+      for (final stored in state.entries.values) {
+        if (entries.containsKey(stored.entry.entryId)) {
+          throw const AuthoringHistoryException('history.identity_conflict',
+              'Historical scopes contain conflicting operation identities.');
+        }
+        entries[stored.entry.entryId] = stored.entry;
+      }
+      _maintenanceEntries = entries;
+      _maintenanceGeneration = sequence.publishedGeneration;
+      _maintenanceLegacySnapshot = legacy;
+      _maintenanceHead = _lastMergedGlobalHead;
+    }
+    return (
+      entries: _maintenanceEntries!,
+      head: _maintenanceHead,
+      generation: sequence.publishedGeneration,
+      legacySnapshot: legacy
+    );
+  }
+
+  Future<bool> ensureRetentionWindowIfEmpty(String projectId) =>
+      _guard(() => _withLock(() async {
+            safeAuthoringSecurityIdentifier(projectId, 'projectId');
+            if (await _readWindow() != null) return true;
+            final sequence = await _readIncrementalHead();
+            _requirePublishedHead(sequence);
+            final legacy = await _legacyHistorySnapshot();
+            if (sequence.publishedGeneration != 0 ||
+                (legacy is List && legacy.first != 0)) {
+              return false;
+            }
+            await _writeWindow(AuthoringHistoryWindow(
+                projectId: projectId,
+                generation: 0,
+                legacySnapshot: legacy,
+                entryIds: const [],
+                cursor: 0,
+                maxOperations: 50,
+                maxBytes: 200 * 1024 * 1024,
+                costs: const {},
+                entryProjects: const {}));
+            return true;
+          }));
+
+  Future<({int logicalBytes, int recordBytes})> retentionWindowMetrics(
+          {required String projectId,
+          required List<String> entryIds,
+          required int cursor,
+          required int maxOperations,
+          required int maxBytes,
+          required Map<String, Map<String, int>> costs}) =>
+      _guard(() => _withLock(() async {
+            final state = await _maintenanceState();
+            final candidate = _maintenanceWindow(
+                projectId: projectId,
+                entryIds: entryIds,
+                cursor: cursor,
+                maxOperations: maxOperations,
+                maxBytes: maxBytes,
+                costs: costs,
+                entries: state.entries,
+                head: state.head,
+                generation: state.generation,
+                legacySnapshot: state.legacySnapshot);
+            return (
+              logicalBytes: candidate.logicalBytes,
+              recordBytes: candidate.recordBytes
+            );
+          }));
+
+  AuthoringHistoryWindow _maintenanceWindow(
+      {required String projectId,
+      required List<String> entryIds,
+      required int cursor,
+      required int maxOperations,
+      required int maxBytes,
+      required Map<String, Map<String, int>> costs,
+      required Map<String, AuthoringHistoryEntry> entries,
+      required AuthoringHistoryEntry? head,
+      required int generation,
+      required Object? legacySnapshot}) {
+    safeAuthoringSecurityIdentifier(projectId, 'projectId');
+    if (entryIds.any((id) => !entries.containsKey(id))) {
+      throw const AuthoringHistoryException('history.retention_stale',
+          'A selected retained operation is unavailable.');
+    }
+    return AuthoringHistoryWindow(
+        projectId: projectId,
+        generation: generation,
+        legacySnapshot: legacySnapshot,
+        entryIds: List.unmodifiable(entryIds),
+        cursor: cursor,
+        maxOperations: maxOperations,
+        maxBytes: maxBytes,
+        costs: Map.unmodifiable({
+          for (final id in entryIds)
+            id: _compactCosts(_entryFingerprint(entries[id]!), costs[id]!)
+        }),
+        entryProjects: Map.unmodifiable(
+            {for (final id in entryIds) id: entries[id]!.projectId}),
+        headEntryId: head?.entryId,
+        headProjectId: head?.projectId);
+  }
+
+  Future<void> checkRetentionEntry(AuthoringHistoryEntry entry,
+          {required Map<String, int> costs}) =>
+      _guard(() => _withLock(() async {
+            final window = await _readWindow();
+            if (window == null) return;
+            final sequence = await _readIncrementalHead();
+            _requireWindowGeneration(window, sequence);
+            final existing = await _readIndexedReceipt(
+                entry.entryId, sequence.publishedGeneration);
+            if (existing != null) {
+              _requireSameEntry(existing, entry, ignoreMark: true);
+              return;
+            }
+            _nextWindow(window, entry, sequence.publishedGeneration + 1, costs);
+          }));
+
+  Future<AuthoringHistoryWindow?> localWindow(String projectId,
+          {bool allowPending = false}) =>
+      _guard(() => _withLock(() async {
+            safeAuthoringSecurityIdentifier(projectId, 'projectId');
+            final window = await _readWindow();
+            if (window != null && !allowPending) {
+              _requireWindowGeneration(window, await _readIncrementalHead());
+            }
+            return window;
+          }));
+
+  Future<void> checkRetentionCosts(
+          {required String projectId, required Map<String, int> costs}) =>
+      _guard(() => _withLock(() async {
+            safeAuthoringSecurityIdentifier(projectId, 'projectId');
+            final window = await _readWindow();
+            if (window == null) return;
+            _requireWindowGeneration(window, await _readIncrementalHead());
+            _checkOperationCosts(window, costs);
+          }));
+
+  Future<void> expireEntries(
+          {required String projectId,
+          required Map<String, String> entryFingerprints,
+          String reason = 'history.retention_expired',
+          int maxOperations = 50,
+          int maxBytes = 200 * 1024 * 1024,
+          Map<String, Map<String, int>>? retainedCosts,
+          int? cursor}) =>
+      _guard(() => _withLock(() async {
+            if (reason != 'history.retention_expired') {
+              throw ArgumentError.value(reason, 'reason');
+            }
+            final state = await _maintenanceState();
+            for (final item in entryFingerprints.entries) {
+              final entry = state.entries[item.key];
+              if (entry == null || _entryFingerprint(entry) != item.value) {
+                throw const AuthoringHistoryException('history.retention_stale',
+                    'The history changed before maintenance. Preview it again.');
+              }
+            }
+            final retained = state.entries.values
+                .where((entry) =>
+                    entry.nonUndoableReason == null &&
+                    !entryFingerprints.containsKey(entry.entryId))
+                .toList();
+            if (await _readWindow() == null) {
+              retained.sort((a, b) => _compareHistoryKey(
+                  a.committedAt, a.entryId, b.committedAt, b.entryId));
+            }
+            final ids = retained.map((entry) => entry.entryId).toList();
+            if (retainedCosts != null &&
+                (retainedCosts.length != ids.length ||
+                    !retainedCosts.keys.toSet().containsAll(ids))) {
+              throw const AuthoringHistoryException('history.retention_stale',
+                  'The retained operation inventory changed before maintenance.');
+            }
+            final costs = {
+              for (final entry in retained)
+                entry.entryId: retainedCosts?[entry.entryId] ??
+                    {
+                      'entry:${_entryFingerprint(entry).substring(7)}': utf8
+                          .encode(canonicalAuthoringJson(entry.toJson()))
+                          .length
+                    }
+            };
+            final window = _maintenanceWindow(
+                projectId: projectId,
+                entryIds: ids,
+                cursor: cursor ?? ids.length,
+                maxOperations: maxOperations,
+                maxBytes: maxBytes,
+                costs: costs,
+                entries: state.entries,
+                head: state.head,
+                generation: state.generation,
+                legacySnapshot: state.legacySnapshot);
+            AuthoringHistoryWindow.fromJson(window.toJson());
+            if (await _readWindow() == null) {
+              for (final entry in state.entries.values) {
+                if (await _readIncremental(entry.entryId) != null) continue;
+                await _writeRecord(
+                    await _localHistoryFile(
+                        'history-receipt-lookup', entry.entryId),
+                    {
+                      'schemaVersion': 1,
+                      'entry': entry.toJson(),
+                      'legacySnapshot': state.legacySnapshot
+                    },
+                    'authoring-history-local-entry.json');
+              }
+            }
+            await _writeWindow(window);
+            _maintenanceEntries = null;
+          }));
+
+  Future<AuthoringHistoryEntry?> _readIndexedReceipt(
+      String entryId, int generation) async {
+    final incremental = await _readIncremental(entryId);
+    if (incremental != null) {
+      if (incremental.generation > generation) {
+        throw const AuthoringHistoryException('history.recovery_required',
+            'Retry the pending history publication.');
+      }
+      return incremental.entry;
+    }
+    final file = await _localHistoryFile('history-receipt-lookup', entryId);
+    if (!await file.exists()) return null;
+    final record = await _readRecord(file, 'authoring-history-local-entry.json',
+        const {'schemaVersion', 'entry', 'legacySnapshot'});
+    if (canonicalAuthoringJson(record['legacySnapshot']) !=
+        canonicalAuthoringJson(await _legacyHistorySnapshot())) {
+      throw const AuthoringHistoryException('history.preparation_required',
+          'The retained legacy history changed.');
+    }
+    final entry = AuthoringHistoryEntry.fromJson(
+        Map<String, dynamic>.from(record['entry'] as Map));
+    if (entry.entryId != entryId) throw const FormatException();
+    return entry;
+  }
+
+  Future<AuthoringHistoryWindow?> _readWindow() async {
+    final file =
+        await _checkedFile(await _authoringRoot(), 'history-retention.json');
+    if (!await file.exists()) return null;
+    if (await file.length() > maxRetentionRecordBytes) {
+      throw const FormatException('history.retention: record limit');
+    }
+    final record =
+        await _readRecord(file, 'authoring-history-retention.json', const {
+      'schemaVersion',
+      'projectId',
+      'generation',
+      'legacySnapshot',
+      'entryIds',
+      'cursor',
+      'maxOperations',
+      'maxBytes',
+      'costs',
+      'entryProjects',
+      'headEntryId',
+      'headProjectId'
+    });
+    final window = AuthoringHistoryWindow.fromJson(record);
+    if (canonicalAuthoringJson(window.legacySnapshot) !=
+        canonicalAuthoringJson(await _legacyHistorySnapshot())) {
+      throw const AuthoringHistoryException('history.preparation_required',
+          'The legacy history changed after maintenance. Reconcile it explicitly.');
+    }
+    return window;
+  }
+
+  Future<void> _writeWindow(AuthoringHistoryWindow window) async {
+    AuthoringHistoryWindow.fromJson(window.toJson());
+    await _writeRecord(
+        await _checkedFile(await _authoringRoot(), 'history-retention.json'),
+        window.toJson(),
+        'authoring-history-retention.json');
+  }
+
+  void _requireWindowGeneration(
+      AuthoringHistoryWindow window, _IncrementalHistoryHead head) {
+    _requirePublishedHead(head);
+    if (window.generation != head.publishedGeneration) {
+      throw const AuthoringHistoryException('history.recovery_required',
+          'Retry the pending history publication before continuing.');
+    }
+  }
+
+  bool _windowFits(AuthoringHistoryWindow window) =>
+      window.entryIds.length <= window.maxOperations &&
+      window.logicalBytes <= window.maxBytes &&
+      window.recordBytes <= maxRetentionRecordBytes;
+
+  void _checkOperationCosts(
+      AuthoringHistoryWindow window, Map<String, int> costs) {
+    final reservation = _compactCosts(
+        computeAuthoringJsonFingerprint('candidate',
+            logicalName: 'history-retention-candidate.json'),
+        costs);
+    final candidate = AuthoringHistoryWindow(
+        projectId: window.projectId,
+        generation: window.generation + 1,
+        legacySnapshot: window.legacySnapshot,
+        entryIds: const ['candidate'],
+        cursor: 1,
+        maxOperations: window.maxOperations,
+        maxBytes: window.maxBytes,
+        costs: {'candidate': reservation},
+        entryProjects: {'candidate': window.projectId},
+        headEntryId: window.headEntryId,
+        headProjectId: window.headProjectId);
+    if (!_windowFits(candidate)) {
+      throw const AuthoringHistoryException('history.operation_exceeds_budget',
+          'This operation exceeds the persistent undo or metadata budget. No change was applied.');
+    }
+  }
+
+  Map<String, int> _compactCosts(
+      String entryFingerprint, Map<String, int> costs) {
+    var bytes = 0;
+    final keyPattern = RegExp(r'^(catalog|blob|entry):[a-f0-9]{64}$');
+    for (final item in costs.entries) {
+      if (!keyPattern.hasMatch(item.key) || item.value < 0) {
+        throw const AuthoringHistoryException(
+            'history.retention_inventory_invalid',
+            'The operation retention inventory is invalid.');
+      }
+      bytes += item.value;
+    }
+    return Map.unmodifiable({'entry:${entryFingerprint.substring(7)}': bytes});
+  }
+
+  AuthoringHistoryEntry _markFromWindow(
+      AuthoringHistoryEntry entry, AuthoringHistoryWindow? window,
+      {int generation = 0}) {
+    if (window == null ||
+        generation > window.generation ||
+        window.entryIds.contains(entry.entryId) ||
+        entry.nonUndoableReason != null) {
+      return entry;
+    }
+    return entry.markNonUndoable('history.retention_expired');
+  }
+
+  Future<AuthoringHistoryEntry> _applyRetentionMark(AuthoringHistoryEntry entry,
+          {int generation = 0}) async =>
+      _markFromWindow(entry, await _readWindow(), generation: generation);
+
+  AuthoringHistoryWindow _nextWindow(AuthoringHistoryWindow window,
+      AuthoringHistoryEntry entry, int generation, Map<String, int>? costs) {
+    final context =
+        AuthoringHistoryContext.fromExtensions(entry.receipt.extensions);
+    if (context.expectedHeadEntryId != null &&
+        context.expectedHeadEntryId != window.headEntryId) {
+      throw const AuthoringHistoryException('history.head_stale',
+          'The root history head changed before this operation.');
+    }
+    final ids = window.entryIds.toList();
+    final inventories = Map<String, Map<String, int>>.of(window.costs);
+    final projects = Map<String, String>.of(window.entryProjects);
+    var cursor = window.cursor;
+    final historyMove = entry.kind == AuthoringHistoryKind.undo ||
+        entry.kind == AuthoringHistoryKind.redo;
+    if (entry.nonUndoableReason != null) {
+      ids.clear();
+      inventories.clear();
+      projects.clear();
+      cursor = 0;
+    } else if (historyMove) {
+      final index =
+          entry.kind == AuthoringHistoryKind.undo ? cursor - 1 : cursor;
+      if (index < 0 ||
+          index >= ids.length ||
+          ids[index] != entry.targetEntryId ||
+          projects[ids[index]] != entry.projectId) {
+        throw const AuthoringHistoryException('history.redo_branch_diverged',
+            'The persistent undo branch changed.');
+      }
+      cursor += entry.kind == AuthoringHistoryKind.undo ? -1 : 1;
+    } else {
+      if (costs == null) {
+        throw const AuthoringHistoryException(
+            'history.retention_inventory_required',
+            'The canonical operation must provide its undo inventory.');
+      }
+      _checkOperationCosts(window, costs);
+      for (final id in ids.skip(cursor).toList()) {
+        inventories.remove(id);
+        projects.remove(id);
+      }
+      ids.removeRange(cursor, ids.length);
+      ids.add(entry.entryId);
+      inventories[entry.entryId] =
+          _compactCosts(_entryFingerprint(entry), costs);
+      projects[entry.entryId] = entry.projectId;
+      cursor = ids.length;
+    }
+    AuthoringHistoryWindow candidate() => AuthoringHistoryWindow(
+        projectId: window.projectId,
+        generation: generation,
+        legacySnapshot: window.legacySnapshot,
+        entryIds: List.unmodifiable(ids),
+        cursor: cursor,
+        maxOperations: window.maxOperations,
+        maxBytes: window.maxBytes,
+        costs: Map.unmodifiable(inventories),
+        entryProjects: Map.unmodifiable(projects),
+        headEntryId: entry.entryId,
+        headProjectId: entry.projectId);
+    var next = candidate();
+    while (!_windowFits(next)) {
+      if (ids.length <= 1) {
+        throw const AuthoringHistoryException(
+            'history.operation_exceeds_budget',
+            'This operation exceeds the persistent undo or metadata budget. No change was applied.');
+      }
+      final removed = cursor > 0 ? ids.removeAt(0) : ids.removeLast();
+      if (cursor > 0) cursor--;
+      inventories.remove(removed);
+      projects.remove(removed);
+      next = candidate();
+    }
+    return AuthoringHistoryWindow.fromJson(next.toJson());
+  }
+
+  Future<void> _advanceWindow(AuthoringHistoryEntry entry, int generation,
+      Map<String, int>? costs) async {
+    final window = await _readWindow();
+    if (window == null || generation <= window.generation) return;
+    if (generation != window.generation + 1) {
+      throw const AuthoringHistoryException('history.recovery_required',
+          'Reconcile the pending history publication.');
+    }
+    await _writeWindow(_nextWindow(window, entry, generation, costs));
+  }
 
   @override
-  Future<void> append(AuthoringHistoryEntry entry) {
+  Future<void> append(AuthoringHistoryEntry entry) => _append(entry);
+
+  Future<void> appendWithRetention(AuthoringHistoryEntry entry,
+          {required Map<String, int> costs}) =>
+      _append(entry, costs: costs);
+
+  Future<void> _append(AuthoringHistoryEntry entry, {Map<String, int>? costs}) {
     return _guard(() async {
       await _withLock(() async {
-        if (_incrementalWrites) {
-          if (!entry.entryId.startsWith('receipt_document_')) {
+        final window = await _readWindow();
+        if (_incrementalWrites || window != null) {
+          if (window == null &&
+              !entry.entryId.startsWith('receipt_document_')) {
             throw const AuthoringHistoryException(
               'history.incremental_identity_required',
               'Incremental history requires a document receipt identity.',
             );
           }
-          await _appendIncremental(entry);
+          await _appendIncremental(entry, costs: costs);
           return;
         }
         _requirePublishedHead(await _readIncrementalHead());
@@ -200,7 +822,8 @@ final class FileAuthoringHistoryStore
             await _authoringRoot(), 'history-local-preparation.json');
         if (await checkpoint.exists() ||
             _incrementalWrites ||
-            await preparation.exists()) {
+            await preparation.exists() ||
+            await _readWindow() != null) {
           return _getLocalEntry(safeProject, safeEntry);
         }
         if (RegExp(r'^receipt_document_[a-f0-9]{32}$').hasMatch(safeEntry)) {
@@ -210,7 +833,8 @@ final class FileAuthoringHistoryStore
           if (stored != null &&
               stored.entry.projectId == safeProject &&
               stored.generation <= head.publishedGeneration) {
-            return _applyIncrementalMark(stored.entry);
+            return _applyIncrementalMark(stored.entry,
+                generation: stored.generation);
           }
         }
         final state = await _readMergedState();
@@ -237,7 +861,8 @@ final class FileAuthoringHistoryStore
               stored.generation > head.publishedGeneration) {
             return null;
           }
-          return _applyIncrementalMark(stored.entry);
+          return _applyIncrementalMark(stored.entry,
+              generation: stored.generation);
         }));
   }
 
@@ -245,6 +870,25 @@ final class FileAuthoringHistoryStore
   Future<AuthoringHistoryEntry?> latestLocalEntry(
       {required String projectId}) async {
     final safeProject = safeAuthoringSecurityIdentifier(projectId, 'projectId');
+    final globalHead = await _guard(() => _withLock(() async {
+          final window = await _readWindow();
+          if (window == null) {
+            return (configured: false, entry: null as AuthoringHistoryEntry?);
+          }
+          final sequence = await _readIncrementalHead();
+          _requireWindowGeneration(window, sequence);
+          if (window.headEntryId == null) {
+            return (configured: true, entry: null as AuthoringHistoryEntry?);
+          }
+          final entry = await _readIndexedReceipt(
+              window.headEntryId!, sequence.publishedGeneration);
+          if (entry == null || entry.projectId != window.headProjectId) {
+            throw const AuthoringHistoryException('history.branch_unavailable',
+                'The root history head is unavailable.');
+          }
+          return (configured: true, entry: _markFromWindow(entry, window));
+        }));
+    if (globalHead.configured) return globalHead.entry;
     if (!_incrementalWrites) {
       final sequence = await _readIncrementalHead();
       final preparedHead =
@@ -314,7 +958,14 @@ final class FileAuthoringHistoryStore
           incremental.generation > sequence.publishedGeneration) {
         return null;
       }
-      return _applyIncrementalMark(incremental.entry);
+      return _applyIncrementalMark(incremental.entry,
+          generation: incremental.generation);
+    }
+    final retained =
+        await _readIndexedReceipt(entryId, sequence.publishedGeneration);
+    if (retained != null) {
+      if (retained.projectId != projectId) return null;
+      return _applyRetentionMark(retained);
     }
     final file =
         await _localHistoryFile('history-local-entries', '$projectId/$entryId');
@@ -340,7 +991,7 @@ final class FileAuthoringHistoryStore
     if (entry.projectId != projectId || entry.entryId != entryId) {
       throw const FormatException();
     }
-    return entry;
+    return _applyRetentionMark(entry);
   }
 
   Future<bool> _localHistoryPrepared() async {
@@ -499,7 +1150,8 @@ final class FileAuthoringHistoryStore
         final page = eligible.take(limit).toList(growable: false);
         final hasMore = eligible.length > page.length;
         return AuthoringHistoryPage(
-          entries: List.unmodifiable(page.map((stored) => stored.entry)),
+          entries: List.unmodifiable(await Future.wait(
+              page.map((stored) => _applyRetentionMark(stored.entry)))),
           nextCursor: hasMore
               ? _encodeCursor(
                   projectId: safeProject,
@@ -573,7 +1225,8 @@ final class FileAuthoringHistoryStore
     });
   }
 
-  Future<void> _appendIncremental(AuthoringHistoryEntry entry) async {
+  Future<void> _appendIncremental(AuthoringHistoryEntry entry,
+      {Map<String, int>? costs}) async {
     final head = await _readIncrementalHead();
     final pending = head.pending;
     final fingerprint = _entryFingerprint(entry);
@@ -591,6 +1244,7 @@ final class FileAuthoringHistoryStore
         throw const FormatException();
       }
       if (pending == null) {
+        await _advanceWindow(entry, existing.generation, costs);
         if (existing.generation == head.publishedGeneration) {
           await _publishLocalHead(entry, head.publishedGeneration);
         }
@@ -601,6 +1255,19 @@ final class FileAuthoringHistoryStore
       }
     }
     final generation = pending?.generation ?? head.publishedGeneration + 1;
+    if (existing == null && pending == null) {
+      final retained =
+          await _readIndexedReceipt(entry.entryId, head.publishedGeneration);
+      if (retained != null) {
+        _requireSameEntry(retained, entry, ignoreMark: true);
+        return;
+      }
+      final window = await _readWindow();
+      if (window != null) {
+        _requireWindowGeneration(window, head);
+        _nextWindow(window, entry, generation, costs);
+      }
+    }
     if (pending == null) {
       await _writeIncrementalHead(_IncrementalHistoryHead(
         head.publishedGeneration,
@@ -620,6 +1287,7 @@ final class FileAuthoringHistoryStore
           'authoring-history-immutable-entry.json');
     }
     await _writeIncrementalHead(_IncrementalHistoryHead(generation, null));
+    await _advanceWindow(entry, generation, costs);
     await _publishLocalHead(entry, generation);
   }
 
@@ -655,7 +1323,6 @@ final class FileAuthoringHistoryStore
     }
     final entryId = safeAuthoringSecurityIdentifier(
         rawPending['entryId'] as String, 'entryId');
-    if (!entryId.startsWith('receipt_document_')) throw const FormatException();
     return _IncrementalHistoryHead(
         published,
         _PendingIncrementalHistoryEntry(
@@ -704,8 +1371,7 @@ final class FileAuthoringHistoryStore
     }
     final entry = AuthoringHistoryEntry.fromJson(
         Map<String, dynamic>.from(record['entry']! as Map));
-    if (entry.entryId != safeEntry ||
-        !entry.entryId.startsWith('receipt_document_')) {
+    if (entry.entryId != safeEntry) {
       throw const FormatException();
     }
     return _IncrementalHistoryEntry(entry, generation);
@@ -735,18 +1401,23 @@ final class FileAuthoringHistoryStore
         throw const FormatException();
       }
       entries.add(_IncrementalHistoryEntry(
-          await _applyIncrementalMark(entry.entry), entry.generation));
+          await _applyIncrementalMark(entry.entry,
+              generation: entry.generation),
+          entry.generation));
     }
     if (generations.length != maximum) throw const FormatException();
     return entries;
   }
 
   Future<AuthoringHistoryEntry> _applyIncrementalMark(
-      AuthoringHistoryEntry entry) async {
+      AuthoringHistoryEntry entry,
+      {int generation = 0}) async {
     final root = await _incrementalDirectory('history-entry-marks');
-    if (root == null) return entry;
+    if (root == null) return _applyRetentionMark(entry, generation: generation);
     final file = await _checkedFile(root, '${entry.entryId}.json');
-    if (!await file.exists()) return entry;
+    if (!await file.exists()) {
+      return _applyRetentionMark(entry, generation: generation);
+    }
     final record = await _readRecord(file, 'authoring-history-entry-mark.json',
         const {'schemaVersion', 'entryFingerprint', 'reason'});
     final reason = record['reason'];
@@ -755,13 +1426,32 @@ final class FileAuthoringHistoryStore
         !RegExp(r'^[a-z][a-z0-9_.-]*$').hasMatch(reason)) {
       throw const FormatException();
     }
-    return entry.markNonUndoable(reason);
+    return _applyRetentionMark(entry.markNonUndoable(reason),
+        generation: generation);
   }
 
   Future<_HistoryState> _readMergedState() async {
     final legacy = await _readState(await _historyFile());
-    final entries = Map<String, _StoredHistoryEntry>.of(legacy.entries);
+    final entries = <String, _StoredHistoryEntry>{
+      for (final item in legacy.entries.entries)
+        item.key: _StoredHistoryEntry(
+            entry: await _applyRetentionMark(item.value.entry),
+            sequence: item.value.sequence)
+    };
+    _lastMergedGlobalHead = null;
+    var legacyHeadSequence = -1;
+    for (final stored in legacy.entries.values) {
+      if (stored.sequence > legacyHeadSequence) {
+        legacyHeadSequence = stored.sequence;
+        _lastMergedGlobalHead = stored.entry;
+      }
+    }
+    var incrementalHeadGeneration = 0;
     for (final incremental in await _readIncrementalEntries()) {
+      if (incremental.generation > incrementalHeadGeneration) {
+        incrementalHeadGeneration = incremental.generation;
+        _lastMergedGlobalHead = incremental.entry;
+      }
       final key =
           _entryKey(incremental.entry.projectId, incremental.entry.entryId);
       final existing = entries[key];
@@ -832,7 +1522,13 @@ final class FileAuthoringHistoryStore
           right.committedAt, right.entryId, left.committedAt, left.entryId));
     final page = ordered.take(limit).toList(growable: false);
     return AuthoringHistoryPage(
-        entries: List.unmodifiable(page),
+        entries: List.unmodifiable(await Future.wait(page.map((entry) =>
+            _applyRetentionMark(entry,
+                generation: incremental
+                        .where((item) => item.entry.entryId == entry.entryId)
+                        .firstOrNull
+                        ?.generation ??
+                    0)))),
         nextCursor: ordered.length > page.length
             ? _encodeMixedCursor(
                 projectId, legacyMaximum, generationMaximum, page.last)

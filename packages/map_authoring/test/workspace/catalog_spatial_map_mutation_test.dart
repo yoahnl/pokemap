@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -9,8 +10,541 @@ import '../domains/maps/border_spatial_actions_test.dart'
     show spatialBorderAuthoringFixture;
 import '../domains/maps/environment_spatial_actions_test.dart'
     show spatialEnvironmentFixture;
+import '../domains/maps/healing_display_fixture.dart';
 
 void main() {
+  for (final unrelated in [0, 80]) {
+    test('story entities and triggers stay local with $unrelated foreign maps',
+        () async {
+      final base = spatialEnvironmentFixture();
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(
+          characters: const [
+            ProjectCharacterEntry(
+                id: 'guide', name: 'Guide', tilesetId: 'actor')
+          ],
+          tilesets: const [
+            ProjectTilesetEntry(
+                id: 'actor', name: 'Actor', relativePath: 'assets/actor.png')
+          ],
+        ),
+        map: base.map.copyWith(properties: {'keep': 'preserved'}),
+      ));
+      addTearDown(fixture.close);
+      final readCounts = <int>[];
+      final timings = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final timer = Stopwatch()..start();
+        await fixture.apply(
+            'entity.upsert',
+            {
+              'mapId': 'map',
+              'entity': const MapEntity(
+                id: 'story-npc',
+                kind: MapEntityKind.npc,
+                pos: GridPos(x: 2, y: 2),
+                npc: MapEntityNpcData(
+                    displayName: 'Guide', characterId: 'guide'),
+              ).copyWith(name: 'Guide $repeat').toJson(),
+            },
+            'story-npc-$repeat');
+        await fixture.apply(
+            'trigger.create',
+            {
+              'mapId': 'map',
+              'trigger': {
+                'id': 'story-trigger-$repeat',
+                'name': 'Story trigger $repeat',
+                'type': 'event',
+                'area': {
+                  'pos': {'x': 1 + repeat, 'y': 1},
+                  'size': {'width': 1, 'height': 1},
+                },
+              },
+            },
+            'story-trigger-$repeat');
+        timings.add(timer.elapsedMilliseconds);
+        readCounts.add(fixture.reader.paths.length);
+        expect(
+            fixture.reader.paths
+                .where((p) => p.startsWith('maps/') && p != 'maps/map.json'),
+            isEmpty);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains),
+            isEmpty);
+        expect(fixture.reader.paths.length, lessThan(480));
+      }
+      final after = MapData.fromJson(
+          jsonDecode(await fixture.mapFile.readAsString())
+              as Map<String, dynamic>);
+      expect(after.entities.single.name, 'Guide 1');
+      expect(after.triggers, hasLength(2));
+      expect(after.properties, {'keep': 'preserved'});
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(),
+          fixture.descriptor);
+      await fixture.reopen();
+      final selected = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'entity.upsert',
+          parameters: {
+            'mapId': 'map',
+            'entity': after.entities.single.toJson()
+          });
+      expect(selected.maps.single, after);
+      expect(selected.manifest.characters.map((value) => value.id), ['guide']);
+      print(jsonEncode({
+        'storyUnrelated': unrelated,
+        'reads': readCounts,
+        'elapsedMs': timings
+      }));
+    });
+  }
+
+  test('story map scope preserves failed validation and rejects stale writes',
+      () async {
+    final fixture = await _Fixture.open(0);
+    addTearDown(fixture.close);
+    final entity = const MapEntity(
+        id: 'npc',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 1, y: 1),
+        npc: MapEntityNpcData(displayName: 'Guide'));
+    final parameters = {'mapId': 'map', 'entity': entity.toJson()};
+    await fixture.apply('entity.upsert', parameters, 'create');
+    final before = await fixture.mapFile.readAsBytes();
+    await expectLater(
+        fixture.apply(
+            'entity.upsert',
+            {
+              'mapId': 'map',
+              'entity': entity
+                  .copyWith(kind: MapEntityKind.custom, npc: null)
+                  .toJson(),
+            },
+            'change-kind'),
+        throwsA(isA<AuthoringPlanException>()
+            .having((e) => e.code, 'code', 'catalog.mutation_scope_required')));
+    await expectLater(
+        fixture.apply(
+            'entity.upsert',
+            {
+              'mapId': 'map',
+              'entity': entity
+                  .copyWith(npc: entity.npc!.copyWith(characterId: 'missing'))
+                  .toJson(),
+            },
+            'missing-character'),
+        throwsA(isA<Exception>()));
+    expect(await fixture.mapFile.readAsBytes(), before);
+    final selected = await fixture.api.readWorkshopSnapshot(
+        fixture.opened.projectHandle,
+        actionId: 'entity.upsert',
+        parameters: parameters);
+    final plan = await fixture.api.planMutation(
+        fixture.opened.projectHandle,
+        AuthoringRequest(
+            requestId: 'stale-story',
+            actionId: 'entity.upsert',
+            actionVersion: 1,
+            workspaceHandle: fixture.opened.workspaceHandle.value,
+            expectedRevision: selected.revision,
+            idempotencyKey: 'stale-story',
+            parameters: {
+              'mapId': 'map',
+              'entity': entity.copyWith(name: 'Changed').toJson()
+            }));
+    final external = utf8.encode(jsonEncode(selected.maps.single
+        .copyWith(properties: {'external': 'keep'}).toJson()));
+    await fixture.mapFile.writeAsBytes(external);
+    await expectLater(
+        fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: plan.planId, operationId: 'stale-story'),
+        throwsA(isA<Exception>()));
+    expect(await fixture.mapFile.readAsBytes(), external);
+  });
+
+  test('JSONL story trigger creation undo and reopen preserve the original map',
+      () async {
+    final fixture = await _Fixture.open(0);
+    addTearDown(fixture.close);
+    final before = await fixture.mapFile.readAsBytes();
+    final parameters = <String, Object?>{
+      'mapId': 'map',
+      'trigger': {
+        'id': 'event',
+        'name': 'Event',
+        'type': 'event',
+        'area': {
+          'pos': {'x': 1, 'y': 1},
+          'size': {'width': 1, 'height': 1}
+        },
+      }
+    };
+    final snapshot = await fixture.api.readWorkshopSnapshot(
+        fixture.opened.projectHandle,
+        actionId: 'trigger.create',
+        parameters: parameters);
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [fixture.root.path], fileReader: fixture.reader);
+    final worker = JsonlWorker(
+        api: AuthoringReadApi(
+            openService: ProjectOpenService(
+                policy: policy,
+                fileReader: fixture.reader,
+                handles: fixture.handles,
+                catalogMetadataFields: {}),
+            snapshotLoader: ProjectSnapshotLoader(handles: fixture.handles)),
+        mutations: fixture.api);
+    Future<AuthoringResult> command(
+            String name, Map<String, Object?> args) async =>
+        AuthoringResult.fromJson(jsonDecode(await worker.processLine(
+            jsonEncode({'id': name, 'command': name, 'args': args}))));
+    final planned = await command('plan', {
+      'projectHandle': fixture.opened.projectHandle.value,
+      'request': AuthoringRequest(
+              requestId: 'jsonl-story',
+              actionId: 'trigger.create',
+              actionVersion: 1,
+              workspaceHandle: fixture.opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: 'jsonl-story',
+              parameters: parameters)
+          .toJson()
+    });
+    expect(planned.status, AuthoringResultStatus.success,
+        reason: planned.toJson().toString());
+    final applied = await command('apply', {
+      'projectHandle': fixture.opened.projectHandle.value,
+      'planId': planned.data['planId'],
+      'operationId': 'jsonl-story'
+    });
+    expect(applied.status, AuthoringResultStatus.success,
+        reason: applied.toJson().toString());
+    final receipt = applied.data['receipt'] as Map;
+    final undone = await command('undo', {
+      'projectHandle': fixture.opened.projectHandle.value,
+      'entryId': receipt['receiptId'],
+      'idempotencyKey': 'jsonl-story-undo'
+    });
+    expect(undone.status, AuthoringResultStatus.success,
+        reason: undone.toJson().toString());
+    expect(await fixture.mapFile.readAsBytes(), before);
+    await fixture.reopen();
+    final reopened = await fixture.api.readWorkshopSnapshot(
+        fixture.opened.projectHandle,
+        actionId: 'trigger.create',
+        parameters: parameters);
+    expect(reopened.maps.single.triggers, isEmpty);
+  });
+
+  for (final unrelated in [0, 80]) {
+    test(
+        'audio imports use only their media row with $unrelated unrelated records',
+        () async {
+      final base = spatialEnvironmentFixture();
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(cinematicMediaAssets: [
+          for (var i = 0; i < unrelated; i++)
+            CinematicMediaAsset(
+                id: 'foreign-media-$i',
+                label: 'Foreign $i',
+                kind: CinematicMediaAssetKind.music,
+                relativePath: 'assets/foreign-$i.wav'),
+        ]),
+        map: base.map,
+      ));
+      addTearDown(fixture.close);
+      final bytes = _storyWav();
+      final artifact = await fixture.api.artifacts
+          .put(bytes, declaredMediaType: 'audio/wav');
+      final counts = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final parameters = <String, Object?>{
+          'artifactHandle': artifact.reference.handle,
+          'assetId': 'music-$repeat',
+          'mediaId': 'music-$repeat',
+          'label': 'Story music $repeat',
+          'logicalPath': 'assets/music/story-$repeat.wav',
+          'mediaKind': 'music',
+        };
+        final imported = await fixture.apply('scene.dialogue.audioMedia.import',
+            parameters, 'import-music-$repeat');
+        final selected = await fixture.api.readWorkshopSnapshot(
+            fixture.opened.projectHandle,
+            actionId: 'scene.dialogue.audioMedia.import',
+            parameters: parameters);
+        expect(selected.maps, isEmpty);
+        expect(
+            selected.manifest.cinematicMediaAssets.single.id, 'music-$repeat');
+        expect(selected.manifest.cinematicMediaAssets.single.loopByDefault,
+            isTrue);
+        expect(
+            await File('${fixture.root.path}/assets/music/story-$repeat.wav')
+                .readAsBytes(),
+            bytes);
+        expect(
+            fixture.reader.paths.where((p) => p.startsWith('maps/')), isEmpty);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains),
+            isEmpty);
+        expect(fixture.reader.paths.length, lessThan(160));
+        counts.add(fixture.reader.paths.length);
+        if (repeat == 1) {
+          await fixture.api.undoMutation(fixture.opened.projectHandle,
+              entryId: imported.receipt.receiptId,
+              idempotencyKey: 'undo-second-music');
+          expect(
+              await File('${fixture.root.path}/assets/music/story-1.wav')
+                  .exists(),
+              isFalse);
+          await fixture.apply('scene.dialogue.audioMedia.import', parameters,
+              'reimport-second-music');
+        }
+      }
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(),
+          fixture.descriptor);
+      await fixture.reopen();
+      for (var repeat = 0; repeat < 2; repeat++) {
+        final selected = await fixture.api.readWorkshopSnapshot(
+            fixture.opened.projectHandle,
+            actionId: 'scene.dialogue.audioMedia.import',
+            parameters: {'mediaId': 'music-$repeat'});
+        expect(selected.manifest.cinematicMediaAssets.single.durationMs, 1000);
+      }
+      print(jsonEncode(
+          {'audioUnrelated': unrelated, 'firstRepeatedReads': counts}));
+    });
+  }
+
+  test(
+      'audio import rejects concurrent asset catalog changes without writing media',
+      () async {
+    final fixture = await _Fixture.open(0);
+    addTearDown(fixture.close);
+    final artifact = await fixture.api.artifacts
+        .put(_storyWav(), declaredMediaType: 'audio/wav');
+    final parameters = <String, Object?>{
+      'artifactHandle': artifact.reference.handle,
+      'assetId': 'music',
+      'mediaId': 'music',
+      'label': 'Music',
+      'logicalPath': 'assets/music/story.wav',
+      'mediaKind': 'music',
+    };
+    final snapshot = await fixture.api.readWorkshopSnapshot(
+        fixture.opened.projectHandle,
+        actionId: 'scene.dialogue.audioMedia.import',
+        parameters: parameters);
+    final plan = await fixture.api.planMutation(
+        fixture.opened.projectHandle,
+        AuthoringRequest(
+            requestId: 'audio-concurrent',
+            actionId: 'scene.dialogue.audioMedia.import',
+            actionVersion: 1,
+            workspaceHandle: fixture.opened.workspaceHandle.value,
+            expectedRevision: snapshot.revision,
+            idempotencyKey: 'audio-concurrent',
+            parameters: parameters));
+    final external = File('${fixture.root.path}/assets/.pokemap-assets.json');
+    await external.parent.create(recursive: true);
+    await external.writeAsString('concurrent catalog bytes');
+    await expectLater(
+        fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: plan.planId, operationId: 'audio-concurrent'),
+        throwsA(isA<Exception>()));
+    expect(await external.readAsString(), 'concurrent catalog bytes');
+    expect(await File('${fixture.root.path}/assets/music/story.wav').exists(),
+        isFalse);
+    expect(await File('${fixture.root.path}/project.json').readAsBytes(),
+        fixture.descriptor);
+  });
+
+  test(
+      'entity upsert resolves new and replacement healing variant element closures',
+      () async {
+    final base = spatialEnvironmentFixture();
+    final healing = healingProject();
+    final fixture = await _Fixture.open(80, content: (
+      project: healing.copyWith(
+          maps: base.project.maps,
+          models3d: base.project.models3d,
+          elements: [
+            ...healing.elements,
+            for (final element in healing.elements)
+              element.copyWith(id: 'alternate-${element.id}')
+          ]),
+      map: const MapData(
+          id: 'map',
+          name: 'Map',
+          version: ProjectVersion.v8,
+          size: GridSize(width: 6, height: 4)),
+    ));
+    addTearDown(fixture.close);
+    var entity = MapEntity(
+        id: 'balls',
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 2, y: 1),
+        blocksMovement: false,
+        healingDisplay: healingPayload());
+    for (var repeat = 0; repeat < 2; repeat++) {
+      if (repeat == 1) {
+        entity = entity.copyWith(
+            healingDisplay: MapEntityHealingDisplayData(variantElementIds: [
+          for (final id in healingPayload().variantElementIds) 'alternate-$id'
+        ]));
+      }
+      fixture.reader.paths.clear();
+      await fixture.apply('entity.upsert',
+          {'mapId': 'map', 'entity': entity.toJson()}, 'healing-$repeat');
+      final saved = MapData.fromJson(
+          jsonDecode(await fixture.mapFile.readAsString())
+              as Map<String, dynamic>);
+      expect(saved.entities.single.healingDisplay, entity.healingDisplay);
+      expect(
+          fixture.reader.paths.where(
+              (path) => path.startsWith('maps/') && path != 'maps/map.json'),
+          isEmpty);
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains),
+          isEmpty);
+    }
+    final before = await fixture.mapFile.readAsBytes();
+    await expectLater(
+        fixture.apply(
+            'entity.upsert',
+            {
+              'mapId': 'map',
+              'entity': entity
+                  .copyWith(
+                      healingDisplay: MapEntityHealingDisplayData(
+                          variantElementIds: [
+                        'missing',
+                        ...entity.healingDisplay!.variantElementIds.skip(1)
+                      ]))
+                  .toJson()
+            },
+            'healing-missing'),
+        throwsA(isA<Exception>()));
+    expect(await fixture.mapFile.readAsBytes(), before);
+  });
+
+  for (final existing in [false, true]) {
+    test(
+        'event condition closure resolves selected records for existing=$existing presentation',
+        () async {
+      final base = spatialEnvironmentFixture();
+      const selectedId = 'evt_018f0f8c-7b8a-7def-8000-000000000001';
+      MapEntity presented(String eventId) => MapEntity(
+          id: 'presented',
+          kind: MapEntityKind.custom,
+          pos: const GridPos(x: 1, y: 1),
+          presentation: MapEntityPresentation(variants: [
+            MapEntityPresentationVariant(
+                id: 'visible',
+                condition: NarrativeEventConditionExpression.leaf(
+                    NarrativeEventCondition.narrativeEventConsumed(
+                        eventId, true)),
+                blocksMovement: false),
+          ]));
+      final fixture = await _Fixture.open(80, content: (
+        project: base.project.copyWith(
+            eventRegistry: NarrativeEventRegistry(
+                schemaVersion: 1,
+                mode: EventSystemMode.v2Only,
+                legacyClaims: const [],
+                records: [
+              for (var i = 1; i <= 81; i++)
+                NarrativeEventRecord.draft(NarrativeEventDraft(
+                    id: 'evt_018f0f8c-7b8a-7def-8000-${i.toString().padLeft(12, '0')}',
+                    name: 'Event $i',
+                    conditions: const [],
+                    priority: 0,
+                    order: i)),
+            ])),
+        map: base.map
+            .copyWith(entities: existing ? [presented(selectedId)] : const []),
+      ));
+      addTearDown(fixture.close);
+      fixture.reader.paths.clear();
+      final action = existing ? 'trigger.create' : 'entity.upsert';
+      final parameters = <String, Object?>{
+        'mapId': 'map',
+        if (existing)
+          'trigger': {
+            'id': 'new-event',
+            'name': 'Event',
+            'type': 'event',
+            'area': {
+              'pos': {'x': 2, 'y': 2},
+              'size': {'width': 1, 'height': 1}
+            },
+          }
+        else
+          'entity': presented(selectedId).toJson()
+      };
+      final selected = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: action,
+          parameters: parameters);
+      expect(selected.manifest.eventRegistry, isNotNull);
+      expect(
+          selected.manifest.eventRegistry!.records.map((record) => record.id),
+          [selectedId]);
+      await fixture.apply(action, parameters, 'event-condition-$existing',
+          revision: selected.revision);
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains),
+          isEmpty);
+      final before = await fixture.mapFile.readAsBytes();
+      await expectLater(
+          fixture.apply(
+              'entity.upsert',
+              {
+                'mapId': 'map',
+                'entity': presented('evt_018f0f8c-7b8a-7def-8000-999999999999')
+                    .copyWith(id: 'unknown')
+                    .toJson()
+              },
+              'event-missing'),
+          throwsA(isA<Exception>()));
+      expect(await fixture.mapFile.readAsBytes(), before);
+    });
+  }
+
+  test('guided narrative publication retains native Border dependencies and map CAS', () async {
+    final source = spatialBorderAuthoringFixture(published: true);
+    final fixture = await _Fixture.open(80, content: source);
+    addTearDown(fixture.close);
+    final before = await fixture.mapFile.readAsBytes();
+    final map = MapData.fromJson(jsonDecode(utf8.decode(before)) as Map<String, dynamic>);
+    final parameters = <String, Object?>{
+      'map': map.copyWith(properties: {'narrative': 'updated'}).toJson(),
+      'mapRevision': narrativeEventBytesFingerprint(before),
+      'dialogues': [], 'facts': [], 'scenes': [], 'cinematics': [], 'storylines': [], 'events': [],
+    };
+    fixture.reader.paths.clear();
+    final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+      actionId: 'narrative.publish_document', parameters: parameters);
+    expect(selected.manifest.borderCatalog.records.map((record) => record.id), ['fence']);
+    await fixture.apply('narrative.publish_document', parameters, 'guided-border', revision: selected.revision);
+    expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+    expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json'), isEmpty);
+    final saved = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()) as Map<String, dynamic>);
+    expect(saved.layers, map.layers);
+    expect(saved.spatialScene, map.spatialScene);
+    final next = <String, Object?>{...parameters, 'map': saved.copyWith(properties: {'narrative': 'second'}).toJson(),
+      'mapRevision': narrativeEventBytesFingerprint(await fixture.mapFile.readAsBytes())};
+    final read = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+      actionId: 'narrative.publish_document', parameters: next);
+    final plan = await fixture.api.planMutation(fixture.opened.projectHandle, AuthoringRequest(
+      requestId: 'guided-stale', actionId: 'narrative.publish_document', actionVersion: 1,
+      workspaceHandle: fixture.opened.workspaceHandle.value, expectedRevision: read.revision,
+      idempotencyKey: 'guided-stale', parameters: next));
+    final external = utf8.encode(jsonEncode(saved.copyWith(properties: {'external': 'preserve'}).toJson()));
+    await fixture.mapFile.writeAsBytes(external);
+    await expectLater(fixture.api.applyMutation(fixture.opened.projectHandle,
+      planId: plan.planId, operationId: 'guided-stale'), throwsA(isA<Exception>()));
+    expect(await fixture.mapFile.readAsBytes(), external);
+  });
+
   final navigationReadCounts = <int, List<int>>{};
   for (final unrelated in [0, 80]) {
     test(
@@ -881,7 +1415,9 @@ final class _Fixture {
 
   static Future<_Fixture> open(int unrelated,
       {({ProjectManifest project, MapData map})? content}) async {
-    final root = await Directory.systemTemp.createTemp('scoped-spatial-');
+    final root = Directory(
+        '${Platform.environment['HOME']}/Library/Caches/AveluneQA/targeted-story-authoring/dart');
+    await root.create(recursive: true);
     final base = content ?? spatialEnvironmentFixture();
     final model = base.project.models3d.single;
     final project = base.project.copyWith(maps: [
@@ -915,6 +1451,34 @@ final class _Fixture {
       final foreign = File('${root.path}/maps/other-$i.json');
       await foreign.parent.create(recursive: true);
       await foreign.writeAsString('unrelated map must not be decoded');
+    }
+    for (var i = 0; i < base.project.cinematicMediaAssets.length; i++) {
+      final key = CatalogDefinitionKey(CatalogDefinitionKind.catalogMetadata,
+          jsonEncode(['projectDefinition', 'cinematicMediaAssets', i]));
+      final entry = (await working.catalog.snapshot.indexEntry(key))!;
+      final path = 'catalog/objects/${entry.reference.sha256}.json';
+      unrelatedObjects.add(path);
+      await File('${root.path}/$path')
+          .writeAsString('foreign media must remain unread');
+    }
+    final registry = base.project.eventRegistry;
+    if (registry != null) {
+      for (final record in registry.records.skip(1)) {
+        final key = CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
+            jsonEncode(['narrativeEventDocument', record.id]));
+        final entry = (await working.catalog.snapshot.indexEntry(key))!;
+        final path = 'catalog/objects/${entry.reference.sha256}.json';
+        unrelatedObjects.add(path);
+        await File('${root.path}/$path')
+            .writeAsString('foreign registry record must remain unread');
+      }
+      for (var i = 0;; i++) {
+        final key = CatalogDefinitionKey(CatalogDefinitionKind.catalogMetadata,
+            jsonEncode(['projectAggregateChunk', 'eventRegistry', i]));
+        final entry = await working.catalog.snapshot.indexEntry(key);
+        if (entry == null) break;
+        unrelatedObjects.add('catalog/objects/${entry.reference.sha256}.json');
+      }
     }
     final instance = SpatialModelInstance(
         id: 'old-tree',
@@ -1099,3 +1663,22 @@ ProjectSmartTileCatalog _groundCatalog() =>
         }
       ]
     })) as Map<String, dynamic>);
+
+List<int> _storyWav() {
+  final bytes = Uint8List(8044);
+  final data = ByteData.sublistView(bytes);
+  bytes.setRange(0, 4, utf8.encode('RIFF'));
+  data.setUint32(4, bytes.length - 8, Endian.little);
+  bytes.setRange(8, 16, utf8.encode('WAVEfmt '));
+  data.setUint32(16, 16, Endian.little);
+  data.setUint16(20, 1, Endian.little);
+  data.setUint16(22, 1, Endian.little);
+  data.setUint32(24, 8000, Endian.little);
+  data.setUint32(28, 8000, Endian.little);
+  data.setUint16(32, 1, Endian.little);
+  data.setUint16(34, 8, Endian.little);
+  bytes.setRange(36, 40, utf8.encode('data'));
+  data.setUint32(40, 8000, Endian.little);
+  bytes.fillRange(44, bytes.length, 128);
+  return bytes;
+}

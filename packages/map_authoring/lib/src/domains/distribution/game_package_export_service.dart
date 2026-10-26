@@ -261,7 +261,20 @@ final class CanonicalGamePackageExportService {
           }
           return false;
         });
+      final worldEnvironment = WorldEnvironmentCapabilities.requiresProject(projection.project) || projection.payloadFiles.entries.any((entry) => entry.key.endsWith('.visual.json') && SpatialVisualDocument.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresWorldEnvironment);
+      final realWeather = WorldEnvironmentCapabilities.requiresRealProject(projection.project) || projection.payloadFiles.entries.any((entry) => entry.key.endsWith('.visual.json') && SpatialVisualDocument.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresRealWeather);
       final requiredCapabilities = <String>{
+        if (realWeather) WorldEnvironmentCapabilities.realWeatherCapabilityId,
+        if (worldEnvironment) WorldEnvironmentCapabilities.capabilityId,
+        if (SpatialWeatherCapabilities.requiresSoundProject(projection.project) || projection.payloadFiles.entries.any((entry) {
+          if (entry.key.endsWith('.visual.json')) {
+            return SpatialVisualDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresWeatherSound;
+          }
+          if (entry.key.endsWith('.atmosphere.json')) {
+            return SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).settings.weather.hasSoundSettings;
+          }
+          return false;
+        })) SpatialWeatherCapabilities.soundCapabilityId,
         if (lightWorkshop) SpatialLightWorkshopCapabilities.capabilityId,
         if (weather) SpatialWeatherCapabilities.capabilityId,
         ...profile.requiredCapabilities,
@@ -298,6 +311,7 @@ final class CanonicalGamePackageExportService {
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
+        if (projection.project.battleSavings != null) ProjectBattleSavingsConfig.capabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresAudio(projection.project)) SpatialGameplayCapabilities.audioCapabilityId,
         if (projection.project.partyCompanion.enabled) SpatialGameplayCapabilities.companionCapabilityId,

@@ -6,6 +6,16 @@ import 'package:map_runtime/src/spatial/spatial_visual_playback.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 
 void main() {
+  test('restoring newly introduced clock and weather fields needs no legacy default', () async {
+    var current = SpatialVisualPatch();
+    final playback = SpatialVisualPlayback(readBase: () => SpatialVisualPatch(), publish: (value) => current = value);
+    await playback.execute(SceneWorldPresentationInteractiveCommand(operation: SceneWorldPresentationOperation.atmosphere,
+      visualSettings: SpatialVisualPatch.fromJson({'timeMode': 'fixed', 'minuteOfDay': 1320, 'weatherMode': 'automatic', 'weatherSequence': ['snow']})));
+    final restored = playback.execute(SceneWorldPresentationInteractiveCommand(operation: SceneWorldPresentationOperation.restoreAtmosphere, durationMs: 200, waitForCompletion: true));
+    playback.advance(.2);
+    expect(await restored, 'completed');
+    expect(current.isEmpty, isTrue);
+  });
   test('scene transitions advance on simulation time and restore lower layers', () async {
     var current = SpatialVisualPatch();
     final base = SpatialVisualPatch.fromScene(camera: SpatialCameraProfile(), atmosphere: SpatialAtmosphereSettings(haloStrength: .8));

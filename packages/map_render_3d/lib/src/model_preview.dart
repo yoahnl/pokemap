@@ -21,6 +21,7 @@ import 'package:map_core/map_core.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_environment_lighting.dart';
+import 'spatial_renderer_initialization.dart';
 
 class ModelPreviewController extends ChangeNotifier {
   Model3dPointLight? _light;
@@ -240,7 +241,6 @@ class _ModelPreviewState extends State<ModelPreview> {
 }
 
 class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
-  static Future<void>? _initialization;
   @override
   late final GraphicsDevice device = FlutterFrameGraphicsDevice();
 
@@ -284,7 +284,7 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   @override
   Future<void> onLoad() async {
-    await (_initialization ??= GpuBackend.initialize());
+    await initializeSpatialRenderer();
     if (closed) return;
     await super.onLoad();
     if (closed) return;

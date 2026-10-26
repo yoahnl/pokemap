@@ -1031,6 +1031,8 @@ class GameStateMutations {
     required BattleReward reward,
     ItemCatalogSnapshot? itemCatalog,
     ProjectBagCapacity bagCapacity = const ProjectBagCapacity.unlimited(),
+    ProjectBattleSavingsConfig? battleSavings,
+    Iterable<NarrativeFactDefinition> facts = const [],
   }) {
     validateBattleRewardItems(
       reward: reward,
@@ -1054,6 +1056,9 @@ class GameStateMutations {
       nextBag = given.bag;
     }
     var nextState = addMoney(state, reward.money);
+    if (battleSavings != null && reward.money > 0) {
+      nextState = _reserveBattleSavings(state, nextState, battleSavings, facts);
+    }
     if (!identical(nextBag, state.bag)) {
       nextState = nextState.copyWith(bag: nextBag);
     }
@@ -1077,6 +1082,55 @@ class GameStateMutations {
       nextState = unlockFieldAbility(nextState, fieldAbility);
     }
     return nextState;
+  }
+
+  GameState _reserveBattleSavings(
+    GameState original,
+    GameState rewarded,
+    ProjectBattleSavingsConfig policy,
+    Iterable<NarrativeFactDefinition> facts,
+  ) {
+    policy.validate(facts);
+    final resolver = NarrativeFactRuntimeResolver.fromFacts(facts);
+    NarrativeValue value(String id) {
+      final result = resolver.resolve(
+        factId: id,
+        runtimeState: original.narrativeFactRuntimeState,
+        storyFlags: original.storyFlags,
+      );
+      if (result is! NarrativeFactRuntimeResolved) {
+        throw StateError('Invalid battle savings Fact: $id');
+      }
+      return result.narrativeValue;
+    }
+
+    if (!value(policy.enabledFactId).boolValue) return rewarded;
+    final balance = value(policy.balanceFactId).intValue;
+    if (balance < 0) throw StateError('Battle savings balance is negative.');
+    if (balance >= policy.maximumBalance) return rewarded;
+    final gain = rewarded.trainerProfile.money - original.trainerProfile.money;
+    if (gain <= 0) return rewarded;
+    final requested = (BigInt.from(gain) * BigInt.from(policy.percentage) ~/
+            BigInt.from(100))
+        .toInt();
+    final room = policy.maximumBalance - balance;
+    final deposited = requested < room ? requested : room;
+    if (deposited == 0) return rewarded;
+    final written = NarrativeFactRuntimeWriter(resolver).setFactValue(
+      gameState: rewarded,
+      factId: policy.balanceFactId,
+      value: NarrativeValue.integer(balance + deposited),
+    );
+    if (written is! NarrativeFactRuntimeWriteApplied) {
+      throw StateError(
+        'Battle savings could not be persisted in the reward transaction.',
+      );
+    }
+    return written.gameState.copyWith(
+      trainerProfile: rewarded.trainerProfile.copyWith(
+        money: rewarded.trainerProfile.money - deposited,
+      ),
+    );
   }
 
   void validateBattleRewardItems({

@@ -373,6 +373,8 @@ final class SpatialMovementController {
       {String? ignoredEntityId,
       Set<String> ignoredEntityIds = const {},
       bool collideWithPlayer = false,
+      bool allowConnectedMaps = false,
+      Iterable<SpatialMovementNeighbor>? connectedMaps,
       PlayerSpatialPosition? playerPosition,
       SpatialActorRuntimeState? Function(String entityId)?
           actorStateProvider}) {
@@ -383,7 +385,18 @@ final class SpatialMovementController {
         z >= 0 &&
         x < scene.width &&
         z < scene.depth;
-    if (!inside(fromX, fromZ) || !inside(toX, toZ)) return false;
+    if (!fromX.isFinite || !fromZ.isFinite || !toX.isFinite || !toZ.isFinite) {
+      return false;
+    }
+    final neighbors = connectedMaps ?? _connectedNeighbors.values;
+    if (allowConnectedMaps) {
+      if (_connectedMapAt(fromX, fromZ, neighbors: neighbors) == null ||
+          _connectedMapAt(toX, toZ, neighbors: neighbors) == null) {
+        return false;
+      }
+    } else if (!inside(fromX, fromZ) || !inside(toX, toZ)) {
+      return false;
+    }
     final count = math.max(
         1,
         (math.sqrt(math.pow(toX - fromX, 2) + math.pow(toZ - fromZ, 2)) *
@@ -394,18 +407,28 @@ final class SpatialMovementController {
       final x = fromX + (toX - fromX) * i / count;
       final z = fromZ + (toZ - fromZ) * i / count;
       final footprint = _actorFootprint(x, z);
-      if (_collides(footprint.rect,
-              offsetX: footprint.offsetX,
-              offsetZ: footprint.offsetZ,
-              ignoredEntityId: ignoredEntityId,
-              ignoredEntityIds: ignoredEntityIds,
-              actorStateProvider: actorStateProvider) ||
+      if ((allowConnectedMaps
+              ? _connectedActorCollides(footprint.rect,
+                  neighbors: neighbors,
+                  offsetX: footprint.offsetX,
+                  offsetZ: footprint.offsetZ,
+                  ignoredEntityId: ignoredEntityId,
+                  ignoredEntityIds: ignoredEntityIds,
+                  actorStateProvider: actorStateProvider)
+              : _collides(footprint.rect,
+                  offsetX: footprint.offsetX,
+                  offsetZ: footprint.offsetZ,
+                  ignoredEntityId: ignoredEntityId,
+                  ignoredEntityIds: ignoredEntityIds,
+                  actorStateProvider: actorStateProvider)) ||
           collideWithPlayer &&
               _overlapsPlayer(footprint.rect,
                   offsetX: footprint.offsetX,
                   offsetZ: footprint.offsetZ,
                   playerPosition: playerPosition) ||
-          !canTraverseSpatialTerrainStep(scene, previousX, previousZ, x, z)) {
+          !(allowConnectedMaps
+              ? _canTraverseConnectedTerrain(previousX, previousZ, x, z, neighbors: neighbors)
+              : canTraverseSpatialTerrainStep(scene, previousX, previousZ, x, z))) {
         return false;
       }
       previousX = x;
@@ -745,11 +768,12 @@ final class SpatialMovementController {
     }
   }
 
-  SpatialMovementNeighbor? _connectedMapAt(double x, double z) {
+  SpatialMovementNeighbor? _connectedMapAt(double x, double z,
+      {Iterable<SpatialMovementNeighbor>? neighbors}) {
     if (x >= 0 && z >= 0 && x < scene.width && z < scene.depth) {
       return _localMap;
     }
-    for (final neighbor in _connectedNeighbors.values) {
+    for (final neighbor in neighbors ?? _connectedNeighbors.values) {
       final localX = x - neighbor.offsetX, localZ = z - neighbor.offsetZ;
       if (localX >= 0 &&
           localZ >= 0 &&
@@ -762,8 +786,10 @@ final class SpatialMovementController {
   }
 
   bool _canTraverseConnectedTerrain(
-      double ax, double az, double bx, double bz) {
-    final a = _connectedMapAt(ax, az), b = _connectedMapAt(bx, bz);
+      double ax, double az, double bx, double bz,
+      {Iterable<SpatialMovementNeighbor>? neighbors}) {
+    final a = _connectedMapAt(ax, az, neighbors: neighbors),
+        b = _connectedMapAt(bx, bz, neighbors: neighbors);
     if (a == null || b == null) return false;
     if (identical(a.controller, b.controller)) {
       return canTraverseSpatialTerrainStep(a.controller.scene, ax - a.offsetX,
@@ -774,6 +800,129 @@ final class SpatialMovementController {
                     .worldHeightAt(bx - b.offsetX, bz - b.offsetZ))
             .abs() <=
         .25;
+  }
+
+  bool _connectedFootprintCovered(PixelRect rect, {
+    required Iterable<SpatialMovementNeighbor> neighbors,
+    required double offsetX,
+    required double offsetZ,
+  }) {
+    var uncovered = [(left: rect.leftPx / pixelsPerCell + offsetX,
+      top: rect.topPx / pixelsPerCell + offsetZ,
+      right: (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX,
+      bottom: (rect.topPx + rect.heightPx) / pixelsPerCell + offsetZ)];
+    for (final owner in [_localMap, ...neighbors]) {
+      final remaining = <({double left, double top, double right, double bottom})>[];
+      for (final area in uncovered) {
+        final left = math.max(area.left, owner.offsetX);
+        final top = math.max(area.top, owner.offsetZ);
+        final right = math.min(area.right, owner.offsetX + owner.controller.scene.width);
+        final bottom = math.min(area.bottom, owner.offsetZ + owner.controller.scene.depth);
+        if (left >= right || top >= bottom) {
+          remaining.add(area);
+          continue;
+        }
+        if (area.left < left) {
+          remaining.add((left: area.left, top: area.top, right: left, bottom: area.bottom));
+        }
+        if (right < area.right) {
+          remaining.add((left: right, top: area.top, right: area.right, bottom: area.bottom));
+        }
+        if (area.top < top) {
+          remaining.add((left: left, top: area.top, right: right, bottom: top));
+        }
+        if (bottom < area.bottom) {
+          remaining.add((left: left, top: bottom, right: right, bottom: area.bottom));
+        }
+      }
+      if (remaining.isEmpty) {
+        return true;
+      }
+      uncovered = remaining;
+    }
+    return false;
+  }
+
+  bool _connectedActorCollides(
+    PixelRect rect, {
+    required Iterable<SpatialMovementNeighbor> neighbors,
+    required double offsetX,
+    required double offsetZ,
+    String? ignoredEntityId,
+    Set<String> ignoredEntityIds = const {},
+    SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+  }) {
+    if (!_connectedFootprintCovered(rect, neighbors: neighbors,
+        offsetX: offsetX, offsetZ: offsetZ)) {
+      return true;
+    }
+    final right = rect.leftPx + rect.widthPx;
+    final bottom = rect.topPx + rect.heightPx;
+    for (var pz = rect.topPx; pz < bottom; pz++) {
+      for (var px = rect.leftPx; px < right; px++) {
+        final x = px / pixelsPerCell + offsetX;
+        final z = pz / pixelsPerCell + offsetZ;
+        if (_connectedMapAt(x, z, neighbors: neighbors) == null ||
+            px + 1 < right &&
+                !_canTraverseConnectedTerrain(x, z, x + 1 / pixelsPerCell, z, neighbors: neighbors) ||
+            pz + 1 < bottom &&
+                !_canTraverseConnectedTerrain(x, z, x, z + 1 / pixelsPerCell, neighbors: neighbors)) {
+          return true;
+        }
+      }
+    }
+    for (final neighbor in [_localMap, ...neighbors]) {
+      final ox = (neighbor.offsetX * pixelsPerCell).round();
+      final oz = (neighbor.offsetZ * pixelsPerCell).round();
+      final localLeft =
+          math.max((-offsetX * pixelsPerCell).ceil(), rect.leftPx - ox);
+      final localTop =
+          math.max((-offsetZ * pixelsPerCell).ceil(), rect.topPx - oz);
+      final localRight = math.min(
+          (neighbor.controller.scene.width * pixelsPerCell -
+                  offsetX * pixelsPerCell)
+              .ceil(),
+          right - ox);
+      final localBottom = math.min(
+          (neighbor.controller.scene.depth * pixelsPerCell -
+                  offsetZ * pixelsPerCell)
+              .ceil(),
+          bottom - oz);
+      if (localLeft >= localRight || localTop >= localBottom) continue;
+      final local = identical(neighbor.controller, this);
+      if (neighbor.controller._collides(
+          PixelRect(
+              leftPx: localLeft,
+              topPx: localTop,
+              widthPx: localRight - localLeft,
+              heightPx: localBottom - localTop),
+          ignoreBounds: true,
+          offsetX: offsetX,
+          offsetZ: offsetZ,
+          ignoredEntityId: local ? ignoredEntityId : null,
+          ignoredEntityIds: local ? ignoredEntityIds : const {},
+          actorStateProvider: local ? actorStateProvider : null)) {
+        return true;
+      }
+    }
+    for (final source in entities) {
+      final entity =
+          entityProjection == null ? source : entityProjection!(source);
+      if (entity == null ||
+          !entity.blocksMovement ||
+          entity.id == ignoredEntityId ||
+          ignoredEntityIds.contains(entity.id) ||
+          !(_entityPresencePredicate?.call(entity) ?? true)) {
+        continue;
+      }
+      if (_entityCollides(rect, entity,
+          offsetX: offsetX,
+          offsetZ: offsetZ,
+          actorStateProvider: actorStateProvider)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   bool _connectedCollides(PixelRect rect) {

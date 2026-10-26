@@ -131,6 +131,7 @@ final class PlayerPreferencesSnapshot {
     this.showInputHints = true,
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
+    this.realWeather = const RealWeatherPreferences(),
     this.targetFramesPerSecond = AveluneFrameRate.defaultLimit,
   })  : assert(locale != ''),
         assert(
@@ -157,6 +158,7 @@ final class PlayerPreferencesSnapshot {
   final RuntimeDialogueTextSpeed dialogueTextSpeed;
   final RuntimePlayerMenuEffects menuEffects;
   final int targetFramesPerSecond;
+  final RealWeatherPreferences realWeather;
 
   PlayerPreferencesSnapshot copyWith({
     String? locale,
@@ -170,9 +172,11 @@ final class PlayerPreferencesSnapshot {
     RuntimeDialogueTextSpeed? dialogueTextSpeed,
     RuntimePlayerMenuEffects? menuEffects,
     int? targetFramesPerSecond,
+    RealWeatherPreferences? realWeather,
   }) =>
       PlayerPreferencesSnapshot(
         locale: locale ?? this.locale,
+        realWeather: realWeather ?? this.realWeather,
         accessibility: accessibility ?? this.accessibility,
         touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
         leftHandedTouchControls:

@@ -179,6 +179,7 @@ class _StudioGamePlaytestViewState extends State<StudioGamePlaytestView>
             SpatialExplorationView(
               key: ObjectKey(spatial),
               session: spatial.session!,
+              audioMixer: spatial.audioMixer,
               keyboardInputEnabled: false,
               onReady: () {
                 if (identical(spatial, _spatial) &&

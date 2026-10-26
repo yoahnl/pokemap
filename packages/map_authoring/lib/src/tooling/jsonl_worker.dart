@@ -1284,6 +1284,37 @@ final class JsonlWorker {
             'args.cursor',
           ),
         );
+      case 'history_maintenance':
+        rejectUnknownContractKeys(args, const {
+          'projectHandle',
+          'expectedRevision',
+          'apply',
+          'expectedFingerprint',
+          'maxOperations',
+          'maxBytes',
+        });
+        final maintenance = _mutationApi();
+        if (maintenance is! AuthoringHistoryMaintenancePort) {
+          throw const _UnsupportedWorkerCommand();
+        }
+        final apply = args.containsKey('apply') ? args['apply'] : false;
+        final maxOperations =
+            args.containsKey('maxOperations') ? args['maxOperations'] : 50;
+        final maxBytes = args.containsKey('maxBytes')
+            ? args['maxBytes']
+            : 200 * 1024 * 1024;
+        if (apply is! bool || maxOperations is! int || maxBytes is! int) {
+          throw const FormatException('history.maintenance: invalid parameters');
+        }
+        return (maintenance as AuthoringHistoryMaintenancePort).maintainHistory(
+            _projectHandle(args),
+            expectedRevision: requireContractString(
+                args['expectedRevision'], 'args.expectedRevision'),
+            apply: apply,
+            expectedFingerprint: readOptionalContractString(
+                args['expectedFingerprint'], 'args.expectedFingerprint'),
+            maxOperations: maxOperations,
+            maxBytes: maxBytes);
       case 'discard_preparation':
         rejectUnknownContractKeys(args, const {'projectHandle', 'operationId'});
         final mutations = _mutationApi();

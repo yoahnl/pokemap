@@ -9,6 +9,63 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('guided publication selects typed condition Facts and scene music only', () async {
+    final fixture = await _Fixture.open(savings: true, guidedMusic: true, unrelatedRecords: 80);
+    addTearDown(fixture.close);
+    final map = MapData(id: 'map-0', name: 'Map', size: const GridSize(width: 8, height: 8));
+    final mapFile = File('${fixture.root.path}/maps/0.json');
+    await mapFile.parent.create(recursive: true);
+    await mapFile.writeAsString(jsonEncode(map.toJson()));
+    final scene = SceneAsset.fromJson({
+      'id': 'typed-condition-music', 'name': 'Typed condition and music',
+      'graph': {'startNodeId': 'start', 'nodes': [
+        {'id': 'start', 'kind': 'start'},
+        {'id': 'condition', 'kind': 'condition', 'payload': {
+          'kind': 'condition', 'conditionSource': {
+            'sourceKind': 'fact', 'sourceId': 'enabled', 'operator': 'equals', 'factOperator': 'equals',
+            'factValueType': 'bool', 'factValue': true}}},
+        {'id': 'music', 'kind': 'action', 'payload': {'kind': 'action',
+          'interactiveCommand': {'kind': 'sceneMusic', 'operation': 'play',
+            'mediaAssetId': 'selected-music', 'volume': 0.8}}},
+        {'id': 'end', 'kind': 'end'}], 'edges': [
+        {'id': 'start-edge', 'fromNodeId': 'start', 'fromPortId': 'completed', 'toNodeId': 'condition', 'kind': 'defaultFlow'},
+        {'id': 'yes-edge', 'fromNodeId': 'condition', 'fromPortId': 'true', 'toNodeId': 'music', 'kind': 'conditionTrue'},
+        {'id': 'no-edge', 'fromNodeId': 'condition', 'fromPortId': 'false', 'toNodeId': 'end', 'kind': 'conditionFalse'},
+        {'id': 'music-edge', 'fromNodeId': 'music', 'fromPortId': 'completed', 'toNodeId': 'end', 'kind': 'actionCompleted'}]}});
+    final snapshot = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+      actionId: 'narrative.publish_document', parameters: {
+        'map': map.toJson(), 'scenes': [scene.toJson()]});
+    expect(snapshot.manifest.facts.map((fact) => fact.id), ['enabled']);
+    expect(snapshot.manifest.cinematicMediaAssets.map((media) => media.id), ['selected-music']);
+    expect(snapshot.maps.map((map) => map.id), ['map-0']);
+    expect(snapshot.manifest.trainers, isEmpty);
+  });
+  test('savings catalog scope refuses conflicting aliases before any write', () async {
+    final fixture = await _Fixture.open(savings: true, ambiguousSavingsFacts: true);
+    addTearDown(fixture.close);
+    const config = ProjectBattleSavingsConfig(enabledFactId: 'enabled', balanceFactId: 'balance', percentage: 25, maximumBalance: 999999);
+    final head = await fixture.store.readHead();
+    final before = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: 'campaign.battle_savings.update', parameters: {'battleSavings': config.toJson()});
+    expect(before.manifest.facts.map((fact) => fact.id), unorderedEquals(['enabled', 'balance', 'conflicting']));
+    await expectLater(_applyScoped(fixture, 'campaign.battle_savings.update', {'battleSavings': config.toJson()}, 'alias-conflict'), throwsA(isA<ValidationException>()));
+    expect(await fixture.store.readHead(), head);
+  });
+  test('savings scoped apply preserves unread maps and typed Facts on first and repeated write', () async {
+    final fixture = await _Fixture.open(savings: true, unrelatedRecords: 100);
+    addTearDown(fixture.close);
+    for (var i = 0; i < 2; i++) {
+      final config = {'enabledFactId': 'enabled', 'balanceFactId': 'balance', 'percentage': 25 + i, 'maximumBalance': 999999};
+      await _applyScoped(fixture, 'campaign.battle_savings.update', {'battleSavings': config}, 'saving_$i');
+      final snapshot = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+        actionId: 'campaign.battle_savings.update', parameters: {'battleSavings': config});
+      expect(snapshot.manifest.battleSavings!.percentage, 25 + i);
+      expect(snapshot.manifest.facts.map((f) => f.id), unorderedEquals(['enabled', 'balance']));
+      expect(snapshot.maps, isEmpty);
+      expect(snapshot.manifest.trainers, isEmpty);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptorBytes);
+    }
+  });
+
   test('trainer append retains unknown fields in the existing team members',
       () async {
     final fixture = await _Fixture.open();
@@ -772,14 +829,25 @@ final class _Fixture {
   static Future<_Fixture> open(
       {AuthoringTransactionFaultInjector? faultInjector,
       bool playerCharacters = false,
+      bool savings = false,
+      bool guidedMusic = false,
+      bool ambiguousSavingsFacts = false,
       int unrelatedRecords = 0}) async {
-    final root = await Directory.systemTemp.createTemp('scoped-workshops-');
+    final qaRoot = Directory('/Users/karim/Library/Caches/AveluneQA/battle-savings');
+    if (savings) await qaRoot.create(recursive: true);
+    final root = savings ? await qaRoot.createTemp('catalog-') : await Directory.systemTemp.createTemp('scoped-workshops-');
     final store = await CatalogStorageStore.open(projectRoot: root.path);
     final working = await WorkingProjectCatalog.create(
       store: store,
       projectId: 'scoped-workshops',
       project: ProjectManifest(
         name: 'Scoped workshops',
+        facts: savings ? [
+          NarrativeFactDefinition(id: 'enabled', label: 'Enabled', legacyFlagName: ambiguousSavingsFacts ? 'shared' : null),
+          if (ambiguousSavingsFacts) NarrativeFactDefinition(id: 'conflicting', label: 'Conflict', legacyFlagName: 'shared'),
+          NarrativeFactDefinition(id: 'balance', label: 'Balance', initialValue: NarrativeValue.integer(0)),
+        ] : [],
+        cinematicMediaAssets: [if (guidedMusic) CinematicMediaAsset(id: 'selected-music', label: 'Music', kind: CinematicMediaAssetKind.music, relativePath: 'assets/music.wav', loopByDefault: true)],
         trainers: [
           const ProjectTrainerEntry(
               id: 'selected', name: 'Selected', trainerClass: 'Trainer'),

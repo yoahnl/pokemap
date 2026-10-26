@@ -42,6 +42,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.adjustMoney,
     NarrativeCommandIds.tryPayMoney,
     NarrativeCommandIds.inputIntegerToFact,
+    NarrativeCommandIds.inputTextToFact,
     NarrativeCommandIds.markEventConsumed,
     NarrativeCommandIds.completeStoryStep,
     NarrativeCommandIds.giveItem,

@@ -7,7 +7,6 @@ class AppDelegate: FlutterAppDelegate {
     DispatchQueue.main.async { [weak self] in
       self?.migrateInstalledBundleNameIfNeeded()
     }
-    super.applicationDidFinishLaunching(notification)
   }
 
   @IBAction func checkForUpdates(_ sender: Any?) {

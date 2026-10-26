@@ -196,9 +196,9 @@ export function registerMutationTools(
   server.registerTool(
     "pokemap_history",
     {
-      title: "Inspect or undo PokeMap history",
+      title: "Inspect, undo or maintain PokeMap history",
       description:
-        "Lists committed receipts with stable pagination or requests a revision-safe undo.",
+        "Lists committed receipts, requests a revision-safe undo, or explicitly maintains managed project undo history. Maintenance previews by default; applying requires the exact preview fingerprint and current revision. Review expiredEntryIds and any legacyBarrierEntryId before applying: older independent undo may limit the safe retained sequence. Defaults: 50 user operations and 200 MiB logical undo data. Pending recovery and live readers remain protected. Maintenance may inspect retained data and never runs as part of a save.",
       inputSchema: z.discriminatedUnion("operation", [
         z
           .object({
@@ -216,12 +216,34 @@ export function registerMutationTools(
             idempotencyKey: z.string().min(1),
           })
           .strict(),
+        z.object({
+          operation: z.literal("maintain"),
+          projectHandle: z.string().min(1),
+          expectedRevision: revisionSchema,
+          apply: z.boolean().default(false),
+          expectedFingerprint: z.string().min(1).optional(),
+          maxOperations: z.number().int().min(1).max(50).default(50),
+          maxBytes: z.number().int().min(1).max(200 * 1024 * 1024).default(200 * 1024 * 1024),
+        }).strict().refine(input => !input.apply || input.expectedFingerprint !== undefined, {
+          message: "Applying maintenance requires the exact preview fingerprint.",
+          path: ["expectedFingerprint"],
+        }),
       ]),
       outputSchema: toolEnvelopeSchema,
       annotations: mutationAnnotations,
     },
-    async (input) =>
-      input.operation === "list"
+    async (input) => {
+      if (input.operation === "maintain") {
+        return authoringResult(() => authoring.request("history_maintenance", {
+          projectHandle: input.projectHandle,
+          expectedRevision: input.expectedRevision,
+          apply: input.apply,
+          ...(input.expectedFingerprint ? { expectedFingerprint: input.expectedFingerprint } : {}),
+          maxOperations: input.maxOperations,
+          maxBytes: input.maxBytes,
+        }));
+      }
+      return input.operation === "list"
         ? authoringResult(() =>
             authoring.request("history", {
               projectHandle: input.projectHandle,
@@ -235,7 +257,8 @@ export function registerMutationTools(
               entryId: input.entryId,
               idempotencyKey: input.idempotencyKey,
             }),
-          ),
+          );
+    },
   );
 
   server.registerTool(

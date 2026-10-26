@@ -11,6 +11,8 @@ import 'package:test/test.dart';
 void main() {
   test('semantic atmosphere catalog declares bounded depth of field', () {
     final extensions = LocalMapAtmosphereAuthoring.descriptor.extensions;
+    expect(extensions['weatherFields'], containsAll(['soundEnabled', 'rainVolume', 'windVolume']));
+    expect(extensions['documentSchemaVersions'], contains(5));
     expect(extensions['effects'], contains('depthOfFieldEnabled'));
     expect(extensions['settingsFields'], containsAll(['depthOfFieldStrength', 'depthOfFieldFocusRange']));
     expect(extensions['depthOfFieldFocusRange'], {'minimum': 2, 'maximum': 40, 'unit': 'worldCells', 'meaning': 'fullSharpZoneDepthExtent'});
@@ -93,6 +95,7 @@ Future<void> main(List<String> args) async {
     var operation = 0;
     for (final settings in [
       SpatialAtmosphereSettings.fromJson({'depthOfFieldEnabled': true, 'depthOfFieldStrength': .65, 'depthOfFieldFocusRange': 18}),
+      SpatialAtmosphereSettings(weather: SpatialWeatherSettings(enabled: true, soundEnabled: true, rainVolume: .8, windVolume: .4)),
       SpatialAtmosphereSettings(waterAnimated: true),
       SpatialAtmosphereSettings(windowsLit: true),
       SpatialAtmosphereSettings(fireflies: true),

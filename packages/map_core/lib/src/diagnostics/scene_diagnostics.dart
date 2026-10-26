@@ -1448,7 +1448,6 @@ void _diagnoseActionConsequenceAgainstProject(
     ));
   }
   if ((interactiveCommand is SceneWaitInteractiveCommand ||
-          interactiveCommand is SceneInputTextToFactInteractiveCommand ||
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
           interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||

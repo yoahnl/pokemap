@@ -39,6 +39,9 @@ final class SpatialWeatherSettings {
     num transitionSeconds = .6,
     this.lightning = false,
     this.indoors = false,
+    this.soundEnabled = false,
+    num rainVolume = .5,
+    num windVolume = .35,
   }) : intensity = _range(intensity, 0, 1),
        density = _range(density, 0, 1),
        speed = _range(speed, .1, 3),
@@ -48,9 +51,14 @@ final class SpatialWeatherSettings {
        opacity = _range(opacity, 0, 1),
        cloudCover = _range(cloudCover, 0, 1),
        fogStrength = _range(fogStrength, 0, 1),
-       transitionSeconds = _range(transitionSeconds, 0, 5);
+       transitionSeconds = _range(transitionSeconds, 0, 5),
+       rainVolume = _range(rainVolume, 0, 1),
+       windVolume = _range(windVolume, 0, 1);
 
-  final bool enabled, lightning, indoors;
+  final bool enabled, lightning, indoors, soundEnabled;
+  final double rainVolume, windVolume;
+  bool get hasSoundSettings =>
+      soundEnabled || rainVolume != .5 || windVolume != .35;
   final SpatialWeatherKind kind;
   final double intensity, density, speed, windStrength, windDirection;
   final double particleSize,
@@ -83,6 +91,9 @@ final class SpatialWeatherSettings {
       transitionSeconds: _number(json['transitionSeconds'], .6),
       lightning: _boolean(json['lightning'], false),
       indoors: _boolean(json['indoors'], false),
+      soundEnabled: _boolean(json['soundEnabled'], false),
+      rainVolume: _number(json['rainVolume'], .5),
+      windVolume: _number(json['windVolume'], .35),
     );
   }
 
@@ -101,7 +112,9 @@ final class SpatialWeatherSettings {
     'transitionSeconds',
     'lightning',
     'indoors',
+    ...soundKeys,
   };
+  static const soundKeys = {'soundEnabled', 'rainVolume', 'windVolume'};
 
   SpatialWeatherSettings copyWith({
     bool? enabled,
@@ -118,6 +131,9 @@ final class SpatialWeatherSettings {
     num? transitionSeconds,
     bool? lightning,
     bool? indoors,
+    bool? soundEnabled,
+    num? rainVolume,
+    num? windVolume,
   }) => SpatialWeatherSettings(
     enabled: enabled ?? this.enabled,
     kind: kind ?? this.kind,
@@ -133,6 +149,9 @@ final class SpatialWeatherSettings {
     transitionSeconds: transitionSeconds ?? this.transitionSeconds,
     lightning: lightning ?? this.lightning,
     indoors: indoors ?? this.indoors,
+    soundEnabled: soundEnabled ?? this.soundEnabled,
+    rainVolume: rainVolume ?? this.rainVolume,
+    windVolume: windVolume ?? this.windVolume,
   );
 
   Map<String, dynamic> toJson() => {
@@ -150,6 +169,11 @@ final class SpatialWeatherSettings {
     'transitionSeconds': transitionSeconds,
     'lightning': lightning,
     'indoors': indoors,
+    if (hasSoundSettings) ...{
+      'soundEnabled': soundEnabled,
+      'rainVolume': rainVolume,
+      'windVolume': windVolume,
+    },
   };
 
   @override
@@ -168,7 +192,10 @@ final class SpatialWeatherSettings {
       fogStrength == other.fogStrength &&
       transitionSeconds == other.transitionSeconds &&
       lightning == other.lightning &&
-      indoors == other.indoors;
+      indoors == other.indoors &&
+      soundEnabled == other.soundEnabled &&
+      rainVolume == other.rainVolume &&
+      windVolume == other.windVolume;
 
   @override
   int get hashCode => Object.hash(
@@ -186,6 +213,9 @@ final class SpatialWeatherSettings {
     transitionSeconds,
     lightning,
     indoors,
+    soundEnabled,
+    rainVolume,
+    windVolume,
   );
 }
 

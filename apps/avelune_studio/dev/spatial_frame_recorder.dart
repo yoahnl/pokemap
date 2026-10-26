@@ -29,7 +29,18 @@ Future<Directory> requireStudioCaptureRoot(String configuredPath) async {
       p.dirname(configuredPath) == temporaryCaptureParent &&
       RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$')
           .hasMatch(p.basename(configuredPath));
-  final expectedMarker = temporaryRun
+  const qaRoots = {
+    '/Users/karim/Library/Caches/AveluneQA',
+    '/Users/karim/Library/Containers/com.yoahnl.pokemap.editor/Data/Library/Caches/AveluneQA',
+  };
+  final qaRun =
+      p.isAbsolute(configuredPath) &&
+      p.normalize(configuredPath) == configuredPath &&
+      p.basename(configuredPath) == 'captures' &&
+      qaRoots.contains(p.dirname(p.dirname(configuredPath))) &&
+      RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$')
+          .hasMatch(p.basename(p.dirname(configuredPath)));
+  final expectedMarker = temporaryRun || qaRun
       ? 'avelune-studio-capture@1'
       : ownedRoots[configuredPath];
   if (expectedMarker == null ||
@@ -39,13 +50,15 @@ Future<Directory> requireStudioCaptureRoot(String configuredPath) async {
           configuredPath) {
     throw StateError(
       'MARIONETTE_CAPTURE_ROOT must be a canonical owned run under '
-      '$temporaryCaptureParent/<runid>, or an existing owned legacy capture root.',
+      '$temporaryCaptureParent/<runid>, '
+      '${qaRoots.map((root) => '$root/<task>/captures').join(', ')}, '
+      'or an existing owned legacy capture root.',
     );
   }
   final marker = File(p.join(configuredPath, '.avelune-studio-capture-owner'));
   if (await FileSystemEntity.type(marker.path, followLinks: false) !=
           FileSystemEntityType.file ||
-      (temporaryRun
+      (temporaryRun || qaRun
               ? await marker.readAsString()
               : (await marker.readAsString()).trim()) !=
           expectedMarker) {

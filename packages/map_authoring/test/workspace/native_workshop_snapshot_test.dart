@@ -8,7 +8,44 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('savings native scope includes conflicting Fact runtime identities only', () async {
+    final f = _Fixture(unrelated: 900);
+    f.raw['facts'] = [
+      NarrativeFactDefinition(id: 'enabled', label: 'Enabled', legacyFlagName: 'shared').toJson(),
+      NarrativeFactDefinition(id: 'balance', label: 'Balance', initialValue: NarrativeValue.integer(0)).toJson(),
+      NarrativeFactDefinition(id: 'conflict', label: 'Conflict', legacyFlagName: 'shared').toJson(),
+      {'id': 'unrelated', 'label': 37},
+    ];
+    f.updateProject();
+    const config = ProjectBattleSavingsConfig(enabledFactId: 'enabled', balanceFactId: 'balance', percentage: 25, maximumBalance: 999999);
+    final snapshot = await f.loader.loadWorkshop(f.handle, actionId: 'campaign.battle_savings.update', parameters: {'battleSavings': config.toJson()});
+    expect(snapshot.manifest.facts.map((fact) => fact.id), unorderedEquals(['enabled', 'balance', 'conflict']));
+    expect(() => config.validate(snapshot.manifest.facts), throwsA(isA<ValidationException>()));
+    expect(snapshot.maps, isEmpty);
+    expect(f.reads, ['project.json', 'project.json']);
+  });
   for (final unrelated in [0, 900]) {
+    test('savings first and repeated scope ignores $unrelated foreign definitions', () async {
+      final f = _Fixture(unrelated: unrelated);
+      f.raw['facts'] = [
+        NarrativeFactDefinition(id: 'enabled', label: 'Enabled').toJson(),
+        NarrativeFactDefinition(id: 'balance', label: 'Balance', initialValue: NarrativeValue.integer(0)).toJson(),
+        for (var i = 0; i < unrelated; i++) {'id': 'bad_$i', 'label': 37},
+      ];
+      f.updateProject();
+      for (var attempt = 0; attempt < 2; attempt++) {
+        f.reads.clear();
+        final snapshot = await f.loader.loadWorkshop(f.handle,
+          actionId: 'campaign.battle_savings.update', parameters: const {'battleSavings': {
+            'enabledFactId': 'enabled', 'balanceFactId': 'balance', 'percentage': 25, 'maximumBalance': 999999}});
+        expect(snapshot.maps, isEmpty);
+        expect(snapshot.manifest.characters, isEmpty);
+        expect(snapshot.manifest.facts.map((f) => f.id), unorderedEquals(['enabled', 'balance']));
+        expect(snapshot.availableProjectSections, contains('battleSavings'));
+        expect(f.reads, ['project.json', 'project.json']);
+      }
+    });
+
     test(
         'native gameplay first and repeated loads ignore $unrelated unrelated definitions',
         () async {

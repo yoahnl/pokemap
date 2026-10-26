@@ -1319,6 +1319,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         'dialogueTextSpeed': value.dialogueTextSpeed.name,
         'menuEffects': value.menuEffects.name,
         'targetFramesPerSecond': value.targetFramesPerSecond,
+        if (value.realWeather != const RealWeatherPreferences()) 'realWeather': value.realWeather.toJson(),
       };
   static PlayerPreferencesSnapshot decodePlayerPreferencesSnapshot(
           Map<String, dynamic> data) =>
@@ -1338,6 +1339,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         menuEffects: RuntimePlayerMenuEffects.values
             .byName(data['menuEffects'] as String),
         targetFramesPerSecond: _decodeTargetFramesPerSecond(data),
+        realWeather: data['realWeather'] == null ? const RealWeatherPreferences() : RealWeatherPreferences.fromJson(_map(data['realWeather'])),
       );
 
   static int _decodeTargetFramesPerSecond(Map<String, dynamic> data) {

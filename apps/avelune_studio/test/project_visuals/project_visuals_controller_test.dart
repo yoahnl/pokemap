@@ -12,7 +12,10 @@ void main() {
     for (final value in [true, false, null]) {
       final owner = ProjectVisualsController(session: session, port: port);
       await owner.open();
-      final patch = owner.preview.value.set(SpatialVisualParameter.depthOfFieldEnabled, value);
+      final patch = owner.preview.value.set(SpatialVisualParameter.depthOfFieldEnabled, value)
+        .set(SpatialVisualParameter.timeMode, value == null ? null : value ? 'real' : 'cycle')
+        .set(SpatialVisualParameter.weatherMode, value == null ? null : value ? 'automatic' : 'fixed')
+        .set(SpatialVisualParameter.weatherSequence, value == null ? null : ['clear', 'rain']);
       owner.edit(patch);
       expect(owner.preview.value, patch);
       expect(port.reads, port.writes + 1);

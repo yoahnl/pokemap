@@ -106,8 +106,13 @@ void main() {
           .exportProject();
 
   setUp(() async {
-    directory = await Directory.systemTemp.createTemp('catalog-revert-');
-    store = await CatalogStorageStore.open(projectRoot: directory.path);
+    final task = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/studio-project-lifecycle/catalog-revert-tests');
+    await task.create(recursive: true);
+    directory = await task.createTemp('fixture-');
+    store = await CatalogStorageStore.open(
+        projectRoot: directory.path,
+        trustedAdmissionDirectory: Directory('${directory.path}-admissions'));
     await WorkingProjectCatalog.create(
         store: store,
         projectId: 'game',
@@ -127,6 +132,50 @@ void main() {
   tearDown(() async {
     await session.close();
     await directory.delete(recursive: true);
+    final admissions = Directory('${directory.path}-admissions');
+    if (await admissions.exists()) await admissions.delete(recursive: true);
+  });
+
+  test('oversized revert is rejected before publishing any catalog objects',
+      () async {
+    final target = await edit('a', 'Target', mapValue: 'target-map');
+    await edit('a', 'Later');
+    final head = await edit('b', 'Independent');
+    final history = session.history as FileAuthoringHistoryStore;
+    final window = (await history.localWindow('game'))!;
+    await history.expireEntries(
+        projectId: 'game',
+        entryFingerprints: {},
+        retainedCosts: window.costs,
+        maxBytes: 100000);
+    final retentionBefore = (await history.localWindow('game'))!.toJson();
+    final external = 'x' * 300000;
+    await map.writeAsString(external);
+    final root = await store.readHead();
+    final objects = await Directory('${directory.path}/catalog/objects')
+        .list()
+        .map((entry) => entry.path)
+        .toList();
+    await expectLater(
+        session.planRevert(
+            entryId: target.receiptId,
+            expectedHeadEntryId: head.receiptId,
+            idempotencyKey: 'oversized-revert',
+            publicBaseRevision: await revision(),
+            currentProjectRevision: revision,
+            validateProjection: validate),
+        throwsA(isA<AuthoringHistoryException>().having((error) => error.code,
+            'code', 'history.operation_exceeds_budget')));
+    expect(await store.readHead(), root);
+    expect(await map.readAsString(), external);
+    expect(
+        await Directory('${directory.path}/catalog/objects')
+            .list()
+            .map((entry) => entry.path)
+            .toList(),
+        unorderedEquals(objects));
+    expect(await store.gateway.listJournals(), isEmpty);
+    expect((await history.localWindow('game'))!.toJson(), retentionBefore);
   });
 
   test(

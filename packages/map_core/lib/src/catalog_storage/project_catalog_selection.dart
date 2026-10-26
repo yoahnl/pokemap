@@ -13,9 +13,22 @@ final class ProjectCatalogSelection {
   Future<ProjectManifest> forMap(
     MapData map, {
     Iterable<CatalogDefinitionKey> additionalRoots = const [],
+  }) => forMaps([map], additionalRoots: additionalRoots);
+
+  Future<ProjectManifest> forMaps(
+    Iterable<MapData> maps, {
+    Iterable<CatalogDefinitionKey> additionalRoots = const [],
   }) async {
-    final metadata = catalog.projectMetadata;
     final roots = <CatalogDefinitionKey>{...additionalRoots};
+    for (final map in maps) {
+      roots.addAll(await _rootsForMap(map));
+    }
+    return resolve(roots);
+  }
+
+  Future<Set<CatalogDefinitionKey>> _rootsForMap(MapData map) async {
+    final metadata = catalog.projectMetadata;
+    final roots = <CatalogDefinitionKey>{};
     void add(CatalogDefinitionKind kind, String? id) {
       if (id != null && id.isNotEmpty) {
         roots.add(CatalogDefinitionKey(kind, id));
@@ -197,7 +210,7 @@ final class ProjectCatalogSelection {
         }
       }
     }
-    return resolve(roots);
+    return roots;
   }
 
   Future<ProjectManifest> resolve(Iterable<CatalogDefinitionKey> roots) async {

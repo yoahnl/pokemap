@@ -16,6 +16,10 @@ class StudioHomeTools extends StatelessWidget {
     this.onOptimizeLibrary,
     this.optimizingLibrary = false,
     this.libraryOptimizationError,
+    this.onMaintainHistory,
+    this.historyMaintenanceLabel = 'Entretenir l’historique',
+    this.historyMaintenanceMessage,
+    this.historyMaintenanceFailed = false,
   });
   final ValueChanged<String> onDestination;
   final bool hasProject, canTest, busy;
@@ -23,6 +27,10 @@ class StudioHomeTools extends StatelessWidget {
   final VoidCallback? onOptimizeLibrary;
   final bool optimizingLibrary;
   final String? libraryOptimizationError;
+  final VoidCallback? onMaintainHistory;
+  final String historyMaintenanceLabel;
+  final String? historyMaintenanceMessage;
+  final bool historyMaintenanceFailed;
 
   @override
   Widget build(BuildContext context) {
@@ -99,10 +107,20 @@ class StudioHomeTools extends StatelessWidget {
             secondary: true,
             onPressed: busy || optimizingLibrary ? null : onOptimizeLibrary,
           ),
+        if (onMaintainHistory != null)
+          StudioButton(
+            key: const ValueKey('project-history-maintenance'),
+            label: historyMaintenanceLabel,
+            icon: Icons.history,
+            secondary: true,
+            onPressed: busy ? null : onMaintainHistory,
+          ),
       ],
       compact: true,
       children: [
         if (libraryOptimizationError case final error?) StudioNotice(error),
+        if (historyMaintenanceMessage case final message?)
+          StudioNotice(message, isError: historyMaintenanceFailed),
         Text(
           'Tout ce dont vous avez besoin, au même endroit.',
           style: TextStyle(color: colors.onSurfaceVariant),

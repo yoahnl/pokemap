@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import '../contracts/authoring_receipt.dart';
 import '../contracts/resource_ref.dart';
 import '../ports/idempotency_store.dart';
@@ -58,7 +60,9 @@ final class AuthoringHistoryContext {
     }
     final requiresHead = kind == AuthoringHistoryKind.redo ||
         kind == AuthoringHistoryKind.revert;
-    if (requiresHead != (this.expectedHeadEntryId != null)) {
+    if ((requiresHead && this.expectedHeadEntryId == null) ||
+        (kind == AuthoringHistoryKind.mutation &&
+            this.expectedHeadEntryId != null)) {
       throw ArgumentError(
         'Redo and revert history require an expected current head.',
       );
@@ -374,6 +378,7 @@ final class AuthoringCommittedMutation {
     required String operationId,
     required this.receipt,
     this.bulkCapability,
+    this.catalogDelta,
     required Iterable<AuthoringResourceChange> changes,
   })  : planId = safeAuthoringSecurityIdentifier(planId, 'planId'),
         operationId = safeAuthoringSecurityIdentifier(
@@ -393,10 +398,15 @@ final class AuthoringCommittedMutation {
   final AuthoringReceipt receipt;
   final List<AuthoringResourceChange> changes;
   final ResourcePackBulkCapability? bulkCapability;
+  final CatalogSnapshotDelta? catalogDelta;
 }
 
 abstract interface class AuthoringTransactionCommitHook {
   Future<void> record(AuthoringCommittedMutation mutation);
+}
+
+abstract interface class AuthoringTransactionPreflightGuard {
+  Future<void> requireCommitAllowed(AuthoringCommittedMutation mutation);
 }
 
 /// Optional durable guard consulted before a pending transaction is resumed.

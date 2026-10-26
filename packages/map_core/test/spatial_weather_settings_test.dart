@@ -2,6 +2,91 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('weather sound is explicit and survives a targeted visual document', () {
+    final weather = SpatialWeatherSettings.fromJson({
+      'enabled': true,
+      'kind': 'rain',
+      'soundEnabled': true,
+      'rainVolume': .8,
+      'windVolume': .4,
+    });
+    expect(weather.toJson()['soundEnabled'], isTrue);
+    final profile = SpatialVisualPatch.fromJson({
+      'weatherSoundEnabled': true,
+      'weatherRainVolume': .8,
+      'weatherWindVolume': .4,
+    });
+    final document = SpatialVisualDocument(profile: profile);
+    expect(SpatialVisualDocument.fromJson(document.toJson()).profile, profile);
+    expect(
+      SpatialWeatherSettings.fromJson({
+        'enabled': true,
+        'kind': 'rain',
+      }).toJson(),
+      isNot(contains('soundEnabled')),
+    );
+  });
+
+  test(
+    'audio settings require their own schemas and reject malformed gains',
+    () {
+      final weather = SpatialWeatherSettings(
+        soundEnabled: true,
+        rainVolume: .8,
+        windVolume: .4,
+      );
+      final atmosphere = SpatialAtmosphereDocument(
+        mapId: 'town',
+        settings: SpatialAtmosphereSettings(weather: weather),
+      );
+      expect(atmosphere.toJson()['schemaVersion'], 5);
+      expect(
+        SpatialAtmosphereDocument.fromJson(
+          atmosphere.toJson(),
+        ).settings.weather,
+        weather,
+      );
+      for (final version in [1, 2, 3, 4]) {
+        expect(
+          () => SpatialAtmosphereDocument.fromJson({
+            ...atmosphere.toJson(),
+            'schemaVersion': version,
+          }),
+          throwsFormatException,
+        );
+      }
+      final patch = SpatialVisualPatch.fromJson({'weatherSoundEnabled': true});
+      final visual = SpatialVisualDocument(profile: patch);
+      expect(visual.toJson()['schemaVersion'], 4);
+      for (final version in [1, 2, 3]) {
+        expect(
+          () => SpatialVisualDocument.fromJson({
+            ...visual.toJson(),
+            'schemaVersion': version,
+          }),
+          throwsFormatException,
+        );
+      }
+      for (final value in [-.1, 1.1, double.nan, double.infinity, 'loud']) {
+        expect(
+          () => SpatialWeatherSettings.fromJson({'rainVolume': value}),
+          throwsFormatException,
+        );
+        expect(
+          () => SpatialWeatherSettings.fromJson({'windVolume': value}),
+          throwsFormatException,
+        );
+      }
+      expect(
+        SpatialVisualPatch.fromScene(
+          camera: SpatialCameraProfile(),
+          atmosphere: atmosphere.settings,
+        ).applyAtmosphere(SpatialAtmosphereSettings()).weather,
+        weather,
+      );
+    },
+  );
+
   test('legacy atmosphere remains weather-free without new schema fields', () {
     final settings = SpatialAtmosphereSettings.fromJson({});
     expect(settings.weather.enabled, isFalse);

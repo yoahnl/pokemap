@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:map_core/map_core.dart';
+
 import '../catalog_storage/catalog_revert_merge.dart';
 import '../catalog_storage/catalog_storage_store.dart';
 import '../contracts/authoring_receipt.dart';
@@ -5,11 +9,13 @@ import '../contracts/authoring_diff.dart';
 import '../contracts/resource_ref.dart';
 import '../security/resource_pack_bulk_capability.dart';
 import '../transactions/authoring_plan.dart';
+import '../transactions/authoring_payload.dart';
 import '../transactions/transaction_journal.dart';
 import '../support/authoring_fingerprint.dart';
 import '../ports/idempotency_store.dart';
 import 'authoring_history.dart';
 import 'content_blob_store.dart';
+import 'file_history_store.dart';
 
 final class AuthoringHistoryCursor {
   AuthoringHistoryCursor._(this.wireValue);
@@ -80,6 +86,7 @@ Future<AuthoringHistoryEntry?> readAuthoringHistoryHead(
 final class AuthoringHistoryRecorder
     implements
         AuthoringTransactionCommitHook,
+        AuthoringTransactionPreflightGuard,
         AuthoringTransactionRecoveryGuard,
         AuthoringBulkHistoryRecoveryGuard {
   const AuthoringHistoryRecorder({
@@ -96,14 +103,50 @@ final class AuthoringHistoryRecorder
 
   @override
   Future<void> record(AuthoringCommittedMutation mutation) async {
+    final prepared = await _prepareEntry(mutation, persist: true);
+    final history = _store;
+    if (history is FileAuthoringHistoryStore &&
+        await history.localWindow(mutation.scope.projectId,
+                allowPending: true) !=
+            null) {
+      await history.appendWithRetention(prepared.entry, costs: prepared.costs);
+    } else {
+      await _store.append(prepared.entry);
+    }
+  }
+
+  @override
+  Future<void> requireCommitAllowed(AuthoringCommittedMutation mutation) async {
+    final history = _store;
+    if (history is! FileAuthoringHistoryStore) return;
+    await history.ensureRetentionWindowIfEmpty(mutation.scope.projectId);
+    if (await history.localWindow(mutation.scope.projectId) == null) return;
+    final prepared = await _prepareEntry(mutation, persist: false);
+    await history.checkRetentionEntry(prepared.entry, costs: prepared.costs);
+  }
+
+  Future<({AuthoringHistoryEntry entry, Map<String, int> costs})> _prepareEntry(
+      AuthoringCommittedMutation mutation,
+      {required bool persist}) async {
     final retained = <AuthoringHistoryResourceChange>[];
+    final costs = <String, int>{};
+    Future<AuthoringContentBlobRef?> retain(AuthoringPayload? payload) async {
+      if (payload == null) return null;
+      if (persist) return _blobs.putPayload(payload);
+      final inspection = await inspectAuthoringPayload(payload.openRead(),
+          storageKey: 'authoring-history-blob', byteLength: payload.byteLength);
+      return AuthoringContentBlobRef(
+          id: inspection.resourceRevision, byteLength: payload.byteLength);
+    }
+
     for (final change in mutation.changes) {
-      final before = change.beforePayload == null
-          ? null
-          : await _blobs.putPayload(change.beforePayload!);
-      final after = change.afterPayload == null
-          ? null
-          : await _blobs.putPayload(change.afterPayload!);
+      final before = await retain(change.beforePayload);
+      final after = await retain(change.afterPayload);
+      for (final blob in [before, after]) {
+        if (blob != null) {
+          costs['blob:${blob.id.substring(7)}'] = blob.byteLength;
+        }
+      }
       retained.add(
         AuthoringHistoryResourceChange(
           resource: change.resource,
@@ -118,25 +161,84 @@ final class AuthoringHistoryRecorder
     final context = AuthoringHistoryContext.fromExtensions(
       mutation.receipt.extensions,
     );
-    await _store.append(
-      AuthoringHistoryEntry(
-        entryId: mutation.receipt.receiptId,
-        projectId: mutation.scope.projectId,
-        actorId: mutation.scope.actorId,
-        planId: mutation.planId,
-        operationId: mutation.operationId,
-        kind: context.kind,
-        targetEntryId: context.targetEntryId,
-        receipt: mutation.receipt,
-        committedAt: DateTime.parse(mutation.receipt.createdAtUtc).toUtc(),
-        changes: retained,
-        bulkCapability: mutation.bulkCapability,
-        nonUndoableReason:
-            mutation.receipt.actionId == 'project.catalog.partition'
-                ? 'catalog.partition_not_undoable'
-                : null,
-      ),
+    final entry = AuthoringHistoryEntry(
+      entryId: mutation.receipt.receiptId,
+      projectId: mutation.scope.projectId,
+      actorId: mutation.scope.actorId,
+      planId: mutation.planId,
+      operationId: mutation.operationId,
+      kind: context.kind,
+      targetEntryId: context.targetEntryId,
+      receipt: mutation.receipt,
+      committedAt: DateTime.parse(mutation.receipt.createdAtUtc).toUtc(),
+      changes: retained,
+      bulkCapability: mutation.bulkCapability,
+      nonUndoableReason:
+          mutation.receipt.actionId == 'project.catalog.partition'
+              ? 'catalog.partition_not_undoable'
+              : null,
     );
+    final history = _store;
+    if (history is FileAuthoringHistoryStore &&
+        await history.localWindow(mutation.scope.projectId,
+                allowPending: true) !=
+            null) {
+      final catalogStore = _catalogStore;
+      final head = mutation.changes
+          .where((change) =>
+              change.storageKey == CatalogStorageStore.headStorageKey)
+          .firstOrNull;
+      if (head != null) {
+        if (catalogStore == null ||
+            head.beforePayload == null ||
+            head.afterPayload == null) {
+          throw const AuthoringHistoryException(
+              'history.retention_inventory_required',
+              'Catalog undo requires its canonical object inventory.');
+        }
+        Future<CatalogSnapshot> snapshot(AuthoringPayload payload) async {
+          final bytes = <int>[];
+          await for (final chunk in payload.openRead()) {
+            bytes.addAll(chunk);
+            if (bytes.length > CatalogStorageStore.maximumHeadBytes) {
+              throw const FormatException('history.retention: oversized head');
+            }
+          }
+          final value = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+          return (await catalogStore.openRoot(CatalogObjectReference.fromJson(
+                  Map<String, dynamic>.from(value['root'] as Map))))
+              .snapshot;
+        }
+
+        var delta = mutation.catalogDelta;
+        if (delta != null &&
+            (computeAuthoringBytesFingerprint(
+                        CatalogStorageStore.encodeHead(delta.beforeRoot),
+                        logicalName: CatalogStorageStore.headStorageKey) !=
+                    head.beforeRevision ||
+                computeAuthoringBytesFingerprint(
+                        CatalogStorageStore.encodeHead(delta.root),
+                        logicalName: CatalogStorageStore.headStorageKey) !=
+                    head.afterRevision)) {
+          throw const AuthoringHistoryException(
+              'history.retention_inventory_mismatch',
+              'The verified catalog inventory does not match the frozen transaction.');
+        }
+        if (delta == null || !identical(delta.limits, catalogStore.limits)) {
+          final before = await snapshot(head.beforePayload!);
+          await catalogStore.restoreIndexAdmission(before);
+          final after = await snapshot(head.afterPayload!);
+          delta = await after.deltaFrom(before);
+        }
+        for (final object in [...delta.addedObjects, ...delta.removedObjects]) {
+          costs['catalog:${object.sha256}'] = object.byteLength;
+        }
+      }
+      final bytes = utf8.encode(canonicalAuthoringJson(entry.toJson()));
+      costs['entry:${computeAuthoringJsonFingerprint(entry.toJson(), logicalName: 'authoring-history-entry.json').substring(7)}'] =
+          bytes.length;
+    }
+    return (entry: entry, costs: costs);
   }
 
   @override
@@ -237,7 +339,8 @@ Future<void> requireFinalizedJournalHistory({
           'The retained transaction and history inventories differ. Preserve the recovery files.');
     }
   }
-  for (final blobId in entry.changes.expand((change) => change.retainedBlobIds).toSet()) {
+  for (final blobId
+      in entry.changes.expand((change) => change.retainedBlobIds).toSet()) {
     if (!await blobs.contains(blobId)) {
       throw const AuthoringHistoryException('history.preparation_blob_required',
           'A retained history payload is unavailable. Preserve the transaction recovery files and repair history explicitly.');

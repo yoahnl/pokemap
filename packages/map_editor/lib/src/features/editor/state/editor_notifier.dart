@@ -1029,6 +1029,28 @@ class EditorNotifier extends _$EditorNotifier
           );
   }
 
+  bool acceptCanonicalBattleSavingsConfiguration(
+    ProjectBattleSavingsConfig? configuration, {
+    required String projectRootPath,
+    required ProjectBattleSavingsConfig? previousConfiguration,
+  }) {
+    final project = state.project;
+    if (project == null || state.projectRootPath != projectRootPath) {
+      return false;
+    }
+    if (project.battleSavings != previousConfiguration &&
+        project.battleSavings != configuration) {
+      state = state.copyWith(errorMessage:
+          'L’épargne a été enregistrée, mais son brouillon a changé pendant l’enregistrement.');
+      return false;
+    }
+    state = state.copyWith(
+      project: project.copyWith(battleSavings: configuration),
+      statusMessage: 'Épargne sauvegardée.',
+    );
+    return true;
+  }
+
   /// Accepte un snapshot déjà appliqué par l’API Authoring canonique.
   ///
   /// Contrairement à [applyInMemoryProjectManifest], cette projection ne crée

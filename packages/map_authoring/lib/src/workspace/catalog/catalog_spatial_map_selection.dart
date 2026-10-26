@@ -16,6 +16,7 @@ import '../../transactions/plan_store.dart';
 import '../project_snapshot.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_metadata_documents.dart';
+import 'catalog_narrative_event_documents.dart';
 import 'catalog_project_reader.dart';
 
 final class CatalogSpatialMapSelection {
@@ -42,6 +43,8 @@ final class CatalogSpatialMapSelection {
     }
     return const {
       'warp.update',
+      'entity.upsert',
+      'trigger.create',
       'map3d.navigation.configure',
       'environment.attach_to_spatial_terrain',
       'environment.area_create',
@@ -138,6 +141,8 @@ final class CatalogSpatialMapSelection {
         final map = MapData.fromJson(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(mapBytes)) as Map));
         final supportsTwoDimensions = actionId == 'map.apply_operations' ||
+            actionId == 'entity.upsert' ||
+            actionId == 'trigger.create' ||
             actionId.startsWith('environment.') ||
             actionId.startsWith('border_layer.') ||
             actionId.startsWith('smart_tile.');
@@ -145,6 +150,19 @@ final class CatalogSpatialMapSelection {
             (map.spatialScene == null && !supportsTwoDimensions)) {
           throw const FormatException(
               'catalog.spatial: map identity or dimension mismatch');
+        }
+        if (actionId == 'entity.upsert' && parameters['entity'] is Map) {
+          final entity = MapEntity.fromJson(
+              Map<String, dynamic>.from(parameters['entity'] as Map));
+          final before = map.entities
+              .where((existing) => existing.id == entity.id)
+              .firstOrNull;
+          if (before != null && before.kind != entity.kind) {
+            throw AuthoringPlanException(
+                code: 'catalog.mutation_scope_required',
+                message:
+                    'Changing an existing entity kind requires an incoming narrative reference index.');
+          }
         }
         final ids = <String, Set<String>>{
           'maps': {mapId}
@@ -222,6 +240,18 @@ final class CatalogSpatialMapSelection {
             break;
           }
         }
+        final consumedEventIds = _consumedNarrativeEvents(candidates);
+        final dependencyCount = consumedEventIds.length +
+            ids.values.fold<int>(0, (count, values) => count + values.length);
+        if (dependencyCount > catalog.snapshot.limits.maxClosureNodes) {
+          throw const FormatException(
+              'catalog.spatial: dependency budget exceeded');
+        }
+        if (consumedEventIds.isNotEmpty) {
+          metadata = metadata.copyWith(
+              eventRegistry: await CatalogNarrativeEventDocuments.read(
+                  catalog.snapshot, consumedEventIds));
+        }
         final roots = <CatalogDefinitionKey>{};
         for (final field in const {
           CatalogDefinitionKind.environmentPreset: {'presetId'},
@@ -242,7 +272,8 @@ final class CatalogSpatialMapSelection {
           CatalogDefinitionKind.element: {
             'elementId',
             'portraitElementId',
-            'illustrationElementId'
+            'illustrationElementId',
+            'variantElementIds'
           },
         }.entries) {
           for (final id in _references(candidates, field.value)) {
@@ -261,6 +292,9 @@ final class CatalogSpatialMapSelection {
         final metadataJson = metadata.toJson();
         for (final field in ids.keys) {
           encoded[field] = metadataJson[field];
+        }
+        if (consumedEventIds.isNotEmpty) {
+          encoded['eventRegistry'] = metadata.eventRegistry?.toJson();
         }
         definitions = ProjectManifest.fromJson(encoded);
         MapValidator.validate(map, projectDialogueContext: definitions);
@@ -600,6 +634,26 @@ Set<String> _references(Object? value, Set<String> keys) {
     }
   }
 
+  visit(value);
+  return result;
+}
+
+Set<String> _consumedNarrativeEvents(Object? value) {
+  final result = <String>{};
+  void visit(Object? node) {
+    if (node is Map) {
+      if (node['kind'] == 'narrativeEventConsumed' && node['eventId'] is String) {
+        result.add(node['eventId'] as String);
+      }
+      for (final child in node.values) {
+        visit(child);
+      }
+    } else if (node is List) {
+      for (final child in node) {
+        visit(child);
+      }
+    }
+  }
   visit(value);
   return result;
 }

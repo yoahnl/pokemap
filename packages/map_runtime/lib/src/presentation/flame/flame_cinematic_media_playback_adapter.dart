@@ -43,10 +43,14 @@ final class FlameAudioCinematicRuntimeDriver
         FlameCinematicAudioDriver,
         FlameCinematicAudioLoopDriver,
         FlameCinematicAudioPausableDriver {
-  FlameAudioCinematicRuntimeDriver({AudioPlayer Function()? playerFactory})
-    : _playerFactory = playerFactory ?? AudioPlayer.new;
+  FlameAudioCinematicRuntimeDriver({
+    AudioPlayer Function()? playerFactory,
+    Source Function(String)? sourceFactory,
+  }) : _playerFactory = playerFactory ?? AudioPlayer.new,
+       _sourceFactory = sourceFactory ?? DeviceFileSource.new;
 
   final AudioPlayer Function() _playerFactory;
+  final Source Function(String) _sourceFactory;
   final Map<AudioPlayer, _FlameAudioCompletionRelay> _completions = {};
 
   @override
@@ -64,7 +68,7 @@ final class FlameAudioCinematicRuntimeDriver
         player.onPlayerComplete,
       );
       await player.setReleaseMode(loop ? ReleaseMode.loop : ReleaseMode.stop);
-      await player.play(DeviceFileSource(path), volume: volume);
+      await player.play(_sourceFactory(path), volume: volume);
       return player;
     } on Object catch (error, stackTrace) {
       try {

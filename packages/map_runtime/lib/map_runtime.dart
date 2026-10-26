@@ -55,6 +55,7 @@ export 'src/player/runtime_project_typography_loader.dart'
         RuntimeProjectFontRequest,
         RuntimeProjectTypographyLoader;
 export 'src/player/runtime_music_service.dart' show RuntimeMusicService;
+export 'src/player/runtime_weather_audio_controller.dart' show RuntimeWeatherAudioController;
 export 'src/player/runtime_title_music_controller.dart'
     show RuntimeTitleMusicController;
 export 'src/player/runtime_splash_jingle_controller.dart'
@@ -703,3 +704,6 @@ export 'src/presentation/flame/warp_presentation_overlay_component.dart';
 export 'src/application/narrative_event_runtime_snapshot.dart';
 
 export 'src/presentation/map_warp_transition_overlay.dart';
+
+export 'src/player/real_weather_service.dart';
+export 'src/player/real_weather_provider.dart';

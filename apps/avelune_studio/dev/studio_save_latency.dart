@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:avelune_studio/presentation/features/characters/character_studio_page.dart';
 import 'package:avelune_studio/presentation/features/resources/working_catalog_workspace.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
 import 'marionette_main.dart' as studio;
@@ -71,7 +72,11 @@ Future<void> main() async {
   const root = String.fromEnvironment('MARIONETTE_PROJECT_PATH');
   final disk = SaveDiskTrace(root);
   final opening = Stopwatch()..start();
+  disk.arm();
   await disk.run(studio.main);
+  final projectOpeningMicroseconds = opening.elapsedMicroseconds;
+  final openingDisk = disk.snapshot();
+  disk.armed = false;
   developer.registerExtension('ext.flutter.avelune.saveUiState', (
     method,
     parameters,
@@ -83,6 +88,8 @@ Future<void> main() async {
       jsonEncode({
         ..._SaveView.find().state(),
         'elapsedSinceLaunchMicroseconds': opening.elapsedMicroseconds,
+        'projectOpeningMicroseconds': projectOpeningMicroseconds,
+        'projectOpeningDisk': openingDisk,
       }),
     );
   });
@@ -97,6 +104,16 @@ Future<void> main() async {
     if (parameters['command'] == 'arm') {
       final view = _SaveView.find();
       final before = view.state()['draftValue'];
+      final pointerWatch = Stopwatch();
+      void pointerRoute(PointerEvent event) {
+        if (event is PointerDownEvent) {
+          pointerWatch
+            ..reset()
+            ..start();
+        }
+      }
+
+      GestureBinding.instance.pointerRouter.addGlobalRoute(pointerRoute);
       feedback = {'status': 'armed', 'before': before};
       late final VoidCallback onChange;
       onChange = () {
@@ -105,11 +122,15 @@ Future<void> main() async {
         view.changes.removeListener(onChange);
         final timer = Stopwatch()..start();
         WidgetsBinding.instance.endOfFrame.then((_) {
+          GestureBinding.instance.pointerRouter.removeGlobalRoute(pointerRoute);
           feedback = {
             'status': 'complete',
             'before': before,
             'after': after,
             'stateChangeToFrameMicroseconds': timer.elapsedMicroseconds,
+            'pointerDownToFrameMicroseconds': pointerWatch.isRunning
+                ? pointerWatch.elapsedMicroseconds
+                : null,
           };
         });
       };

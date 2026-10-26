@@ -51,8 +51,9 @@ import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
 import 'spatial_depth_of_field.dart';
 import 'spatial_weather_effects.dart';
+import 'spatial_renderer_initialization.dart';
 
-Future<void> initializeSpatialRenderer() => GpuBackend.initialize();
+export 'spatial_renderer_initialization.dart' show initializeSpatialRenderer;
 
 enum SpatialEditorView { orbit, top, game }
 
@@ -124,6 +125,13 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
+  SpatialSceneController({DateTime Function()? now}) : _now = now ?? DateTime.now;
+  final DateTime Function() _now;
+  WorldEnvironmentFrame? worldEnvironment;
+  WorldEnvironmentFrame _previewEnvironment = const WorldEnvironmentFrame();
+  double _environmentElapsed = 0;
+  SpatialWeatherSettings? _resolvedWeather;
+  SpatialWeatherSettings? _resolvedWeatherBase;
   SpatialVisualPatch _visualProfile = SpatialVisualPatch();
   SpatialVisualPatch get visualProfile => _visualProfile;
   set visualProfile(SpatialVisualPatch value) {
@@ -207,8 +215,16 @@ class SpatialSceneController extends ModelPreviewController {
     super.notifyListeners();
   }
 
-  SpatialWeatherSettings get weatherSettings =>
-      (_authoredAtmosphere ?? _baseAtmosphere).weather;
+  SpatialWeatherSettings get weatherSettings {
+    final base = (_authoredAtmosphere ?? _baseAtmosphere).weather;
+    final kind = (worldEnvironment ?? _previewEnvironment).weatherKind;
+    if (kind == null || kind == base.kind) return base;
+    if (_resolvedWeatherBase != base || _resolvedWeather?.kind != kind) {
+      _resolvedWeatherBase = base;
+      _resolvedWeather = base.copyWith(kind: kind);
+    }
+    return _resolvedWeather!;
+  }
   SpatialAtmosphereSettings? _authoredAtmosphere;
   void applyAtmosphereSettings(SpatialAtmosphereSettings settings) {
     _baseAtmosphere = settings;
@@ -346,16 +362,32 @@ class SpatialSceneController extends ModelPreviewController {
 
   double? get dayNightMinuteOfDay => _dayNightMinute;
 
-  void _advanceDayNight(
+  void advanceEnvironment(
     double dt,
     SpatialDayNightCycle? cycle,
     double? externalElapsed,
   ) {
     _dayNightClock.advance(dt);
-    final minute = cycle == null
-        ? previewMinuteOfDay ??
-              visualProfile.number(SpatialVisualParameter.minuteOfDay)
-        : _dayNightClock.minute(cycle, externalElapsedSeconds: externalElapsed);
+    if (dt.isFinite && dt > 0) _environmentElapsed += dt;
+    if (worldEnvironment == null && _visualProfile.requiresWorldEnvironment) {
+      _previewEnvironment = resolveWorldEnvironment(
+        settings: _visualProfile,
+        elapsedSeconds: externalElapsed ?? _environmentElapsed,
+        localTime: _visualProfile.choice(SpatialVisualParameter.timeMode) == WorldTimeMode.real.name ? _now() : null,
+      );
+    } else if (!_visualProfile.requiresWorldEnvironment) {
+      _previewEnvironment = const WorldEnvironmentFrame();
+    }
+    final environment = worldEnvironment ?? _previewEnvironment;
+    final preview = previewMinuteOfDay;
+    final minute = preview != null
+        ? (cycle == null ? preview : _dayNightClock.minute(cycle))
+        : worldEnvironment?.minuteOfDay ??
+          (_visualProfile.choice(SpatialVisualParameter.timeMode) == WorldTimeMode.cycle.name && cycle != null
+              ? _dayNightClock.minute(cycle, externalElapsedSeconds: externalElapsed)
+              : environment.minuteOfDay) ?? (cycle == null
+            ? visualProfile.number(SpatialVisualParameter.minuteOfDay)
+            : _dayNightClock.minute(cycle, externalElapsedSeconds: externalElapsed));
     final before = _dayNightMinute;
     if (minute != before) {
       _dayNightMinute = minute;
@@ -1105,6 +1137,19 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   pointLightBindings = [];
   final _lightProximity = Expando<SpatialLightProximityState>();
   final _lightEmission = Expando<(Color, double)>();
+
+  bool get _usesIndoorLighting {
+    final metadata = visibleConfiguration.groundMap?.mapMetadata;
+    return metadata?.isIndoor == true ||
+        switch (metadata?.mapType) {
+          MapType.building ||
+          MapType.interior ||
+          MapType.facility ||
+          MapType.cave => true,
+          _ => false,
+        };
+  }
+
   void syncLighting() {
     (context as SpatialRenderContext).pointLightShadowsEnabled =
         this.configuration.controller.previewPointLightShadowsEnabled;
@@ -1118,7 +1163,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final cycle = configuration.controller.effectiveCycle(
       configuration.scene.dayNightCycle,
     );
-    final minute = cycle == null
+    final minute = configuration.controller.dayNightMinuteOfDay ?? configuration.controller.worldEnvironment?.minuteOfDay ?? (cycle == null
         ? configuration.controller.previewMinuteOfDay ??
               configuration.controller.visualProfile.number(
                 SpatialVisualParameter.minuteOfDay,
@@ -1127,8 +1172,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             cycle,
             externalElapsedSeconds: configuration.presentationElapsedSeconds
                 ?.call(),
-          );
-    final frame = minute == null ? null : spatialDayNightFrame(minute);
+          ));
+    final frame = _usesIndoorLighting || minute == null
+        ? null
+        : spatialDayNightFrame(minute);
     final sunDirection = frame == null
         ? authoredLighting.sunDirection
         : spatialDayNightSunDirection(authoredLighting.sunDirection, frame);
@@ -1215,6 +1262,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       definition,
       component.worldTransformMatrix,
       daylight: daylight,
+      indoors: _usesIndoorLighting,
       elapsedSeconds: elapsed,
       proximityStrength: strength,
     );
@@ -2777,7 +2825,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     if (!refreshing) _pruneGroundTextures(sample: false);
     syncRuntimeModels();
     final configuration = visibleConfiguration;
-    configuration.controller._advanceDayNight(
+    configuration.controller.advanceEnvironment(
       configuration.presentationPaused?.call() == true ? 0 : dt,
       configuration.controller.effectiveCycle(
         configuration.scene.dayNightCycle,
@@ -2795,7 +2843,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         control.dayNightMinuteOfDay ??
         control.previewMinuteOfDay ??
         control.visualProfile.number(SpatialVisualParameter.minuteOfDay);
-    final night = minute == null
+    final night = _usesIndoorLighting || minute == null
         ? 0.0
         : 1 - spatialDayNightFrame(minute).daylight;
     final renderContext = context as SpatialRenderContext;

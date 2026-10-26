@@ -464,3 +464,9 @@ export 'src/projection/cinematic_visual_profile.dart';
 export 'src/models/model_light_behavior.dart';
 export 'src/models/spatial_firefly_palette.dart';
 export 'src/validation/spatial_light_workshop_capabilities.dart';
+
+export 'src/models/world_environment.dart';
+export 'src/projection/world_environment_resolution.dart';
+export 'src/validation/world_environment_capabilities.dart';
+
+export 'src/models/real_weather.dart';

@@ -136,6 +136,7 @@ final class JournaledAuthoringTransaction {
         currentProjectRevision: currentProjectRevision,
       );
       _requireRequestMatchesPlan(request, plan);
+      plan.requireCatalogDelta();
       plan.bulkCapability?.requirePlan(plan,
           actorId: scope.actorId,
           projectId: scope.projectId,
@@ -160,7 +161,6 @@ final class JournaledAuthoringTransaction {
             'This operation identity already owns another durable intent.',
           );
         }
-        await _gateway.deleteTransaction(operationId);
       }
 
       final now = _clock().toUtc();
@@ -190,6 +190,21 @@ final class JournaledAuthoringTransaction {
           'history': historyContext.toJson(),
         },
       );
+      final commitHook = _commitHook;
+      if (commitHook is AuthoringTransactionPreflightGuard) {
+        await (commitHook as AuthoringTransactionPreflightGuard)
+            .requireCommitAllowed(AuthoringCommittedMutation(
+                scope: scope,
+                planId: plan.planId,
+                operationId: operationId,
+                receipt: intendedReceipt,
+                bulkCapability: plan.bulkCapability,
+                catalogDelta: plan.catalogDelta,
+                changes: plan.changeSet.changes));
+      }
+      if (existingJournal != null) {
+        await _gateway.deleteTransaction(operationId);
+      }
       var journal = AuthoringTransactionJournal(
         operationId: operationId,
         planId: plan.planId,
@@ -359,6 +374,7 @@ final class JournaledAuthoringTransaction {
                 operationId: operationId,
                 receipt: intendedReceipt,
                 bulkCapability: journal.bulkCapability,
+                catalogDelta: plan.catalogDelta,
                 changes:
                     await _stagedChanges(operationId, plan.changeSet.changes),
               ),

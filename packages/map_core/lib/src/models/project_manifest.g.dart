@@ -185,6 +185,11 @@ _ProjectManifest _$ProjectManifestFromJson(
       : ProjectDefeatRecoveryConfig.fromJson(
           json['defeatRecovery'] as Map<String, dynamic>,
         ),
+  battleSavings: json['battleSavings'] == null
+      ? null
+      : ProjectBattleSavingsConfig.fromJson(
+          json['battleSavings'] as Map<String, dynamic>,
+        ),
   bagCapacity: _readProjectBagCapacity(json, 'bagCapacity') == null
       ? const ProjectBagCapacity.unlimited()
       : _projectBagCapacityFromJson(
@@ -282,6 +287,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'contactDevice': ?instance.contactDevice?.toJson(),
   'newGame': instance.newGame.toJson(),
   'defeatRecovery': ?instance.defeatRecovery?.toJson(),
+  'battleSavings': ?instance.battleSavings?.toJson(),
   'bagCapacity': ?_projectBagCapacityToJson(instance.bagCapacity),
   'presentation': ?instance.presentation?.toJson(),
   'regionalMap': ?instance.regionalMap?.toJson(),

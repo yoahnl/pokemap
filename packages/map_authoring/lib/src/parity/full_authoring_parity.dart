@@ -631,6 +631,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/world_rule_batch_stdio.test.ts',
     };
   }
+  if (actionId == 'campaign.battle_savings.update') {
+    return const {
+      AuthoringTransport.directApi: 'test/tooling/jsonl_battle_savings_test.dart',
+      AuthoringTransport.cli: 'test/tooling/jsonl_battle_savings_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/battle_savings_configuration_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/battle_savings_stdio.test.ts',
+    };
+  }
   if (actionId == 'campaign.defeat_recovery.update') {
     return const {
       AuthoringTransport.directApi: 'test/tooling/jsonl_defeat_recovery_test.dart',
@@ -1859,6 +1867,9 @@ String _contractTestFor(String actionId) {
   }
   if (actionId == 'world_rule.upsert_batch') {
     return 'test/domains/narrative/world_rule_batch_transport_test.dart';
+  }
+  if (actionId == 'campaign.battle_savings.update') {
+    return 'test/tooling/jsonl_battle_savings_test.dart';
   }
   if (actionId == 'campaign.defeat_recovery.update') {
     return 'test/tooling/jsonl_defeat_recovery_test.dart';

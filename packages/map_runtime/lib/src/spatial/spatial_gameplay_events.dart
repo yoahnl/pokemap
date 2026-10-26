@@ -728,6 +728,7 @@ final class SpatialGameplayEvents {
     _occurrences.clear();
     _lastCell = null;
     _occupiedTriggers = null;
+    _sceneStateProjection = null;
   }
 
   void dispose() {
@@ -742,6 +743,7 @@ final class SpatialGameplayEvents {
     final completer = Completer<T?>();
     Future<void> execute() async {
       final previousGeneration = _operationGeneration;
+      final previousProjection = _sceneStateProjection;
       _operationGeneration = generation;
       try {
         _ensureCurrent();
@@ -755,6 +757,7 @@ final class SpatialGameplayEvents {
       } catch (error, stack) {
         completer.completeError(error, stack);
       } finally {
+        _sceneStateProjection = generation == _generation ? previousProjection : null;
         _operationGeneration = previousGeneration;
         _pendingOperations--;
         lease.close();
@@ -848,6 +851,7 @@ final class SpatialGameplayEvents {
     final outcomes = _sceneBattleOutcomes = <NarrativeOutcomeRef>[];
     final previousProjection = _sceneStateProjection;
     final readWorkingState = () => workingState;
+    var retainCompletedProjection = false;
     try {
       final callbacks = _createSceneCallbacks(readWorkingState, (state) {
         if (current()) workingState = state;
@@ -865,8 +869,9 @@ final class SpatialGameplayEvents {
         mapsById: mapsById,
         currentGameState: () => workingState,
         consequenceWriter: writer,
-        onSceneStateProjection: (projector) =>
-            _sceneStateProjection = projector,
+        onSceneStateProjection: (projector) {
+          if (current()) _sceneStateProjection = projector ?? readWorkingState;
+        },
         hostedBattleOutcomes: outcomes,
         callbacks: SceneRuntimeHostCallbacks(
           presentTextInput: callbacks.presentTextInput == null ? null : (request) async {
@@ -931,12 +936,18 @@ final class SpatialGameplayEvents {
           );
         }
       }
+      if (result is NarrativeSceneExecutionCompleted) {
+        _sceneStateProjection = () => result.updatedGameState;
+        retainCompletedProjection = true;
+      }
       return result;
     } finally {
       try {
         await _onSceneTerminated?.call(readWorkingState);
       } finally {
-        _sceneStateProjection = previousProjection;
+        if (!retainCompletedProjection || !current()) {
+          _sceneStateProjection = current() ? previousProjection : null;
+        }
         if (identical(_sceneBattleAttempts, attempts)) {
           _sceneBattleAttempts = null;
           _sceneBattleOutcomes = null;

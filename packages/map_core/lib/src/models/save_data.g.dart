@@ -290,6 +290,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
       : SpatialWorldState.fromJson(
           json['spatialWorldState'] as Map<String, dynamic>,
         ),
+  environmentState: json['environmentState'] == null
+      ? null
+      : WorldEnvironmentState.fromJson(
+          json['environmentState'] as Map<String, dynamic>,
+        ),
   movingPlatformWorldState: json['movingPlatformWorldState'] == null
       ? const MovingPlatformWorldState.empty()
       : MovingPlatformWorldState.fromJson(
@@ -395,6 +400,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'playerPixelPosition': instance.playerPixelPosition?.toJson(),
   'playerSpatialPosition': instance.playerSpatialPosition?.toJson(),
   'spatialWorldState': instance.spatialWorldState.toJson(),
+  'environmentState': ?instance.environmentState?.toJson(),
   'movingPlatformWorldState': instance.movingPlatformWorldState.toJson(),
   'movingPropWorldState': instance.movingPropWorldState.toJson(),
   'mapInstanceWorldState': instance.mapInstanceWorldState.toJson(),

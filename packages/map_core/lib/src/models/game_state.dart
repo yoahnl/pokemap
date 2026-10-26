@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'world_environment.dart';
 import 'enums.dart';
 import 'geometry.dart';
 import 'narrative_event_progress.dart';
@@ -92,6 +93,7 @@ abstract class GameState with _$GameState {
     PixelOffset? playerPixelPosition,
     PlayerSpatialPosition? playerSpatialPosition,
     @Default(SpatialWorldState.empty()) SpatialWorldState spatialWorldState,
+    @JsonKey(includeIfNull: false) WorldEnvironmentState? environmentState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
     @Default(MovingPropWorldState.empty()) MovingPropWorldState movingPropWorldState,
     @JsonKey(readValue: readMapInstanceWorldStateJson)

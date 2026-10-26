@@ -7,7 +7,8 @@ enum PlayerOptionsCategory {
   audio,
   controls,
   language,
-  accessibility
+  accessibility,
+  weather
 }
 
 final class PlayerOptionsStrings {
@@ -22,6 +23,7 @@ final class PlayerOptionsStrings {
   String text(String fr, String en) => french ? fr : en;
   String category(PlayerOptionsCategory value) => switch (value) {
         PlayerOptionsCategory.general => text('Général', 'General'),
+        PlayerOptionsCategory.weather => text('Météo', 'Weather'),
         PlayerOptionsCategory.display => text('Affichage', 'Display'),
         PlayerOptionsCategory.audio => text('Son', 'Sound'),
         PlayerOptionsCategory.controls => text('Commandes', 'Controls'),
@@ -44,6 +46,7 @@ final class PlayerOptionsStrings {
       };
 
   String help(PlayerOptionsCategory value) => switch (value) {
+        PlayerOptionsCategory.weather => text('Choisissez la source de la météo réelle. Les scènes du jeu gardent la priorité.', 'Choose the source for real weather. Story scenes keep priority.'),
         PlayerOptionsCategory.general => text(
             'Choisissez la vitesse d’affichage des dialogues.',
             'Choose how quickly dialogue text appears.'),

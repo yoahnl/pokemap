@@ -494,6 +494,8 @@ final class RuntimePostBattleDecisionCoordinator {
       reward: progression.appliedReward,
       itemCatalog: transaction._itemCatalog,
       bagCapacity: transaction.bundle.manifest.bagCapacity,
+      battleSavings: transaction.bundle.manifest.battleSavings,
+      facts: transaction.bundle.manifest.facts,
     );
     final rewardMessages = _rewardMessages(progression.appliedReward);
     final request = transaction.runtimeContext.request;

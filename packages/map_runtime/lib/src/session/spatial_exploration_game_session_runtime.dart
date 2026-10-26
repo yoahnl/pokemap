@@ -1,3 +1,4 @@
+import '../player/real_weather_service.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -73,6 +74,7 @@ final class SpatialExplorationGameSessionRuntime
     SessionPreloadedInitialMapLoader? preloadedInitialMap,
     GameSessionCheckpointCommitter? commitCheckpoint,
     PlayerServiceRecoveryCapsLoader? recoveryCapsLoader,
+    RealWeatherService? realWeatherService,
     DateTime Function()? now,
     RuntimeAudioMixer? audioMixer,
     @visibleForTesting FlameCinematicAudioDriver Function()? sceneAudioDriverFactory,
@@ -85,6 +87,7 @@ final class SpatialExplorationGameSessionRuntime
         _commitCheckpoint = commitCheckpoint,
         _recoveryCapsLoader = recoveryCapsLoader,
         _now = now ?? DateTime.now,
+        _realWeather = realWeatherService ?? RealWeatherService.shared,
         _audioMixer = audioMixer ?? RuntimeAudioMixer(),
         _ownsAudioMixer = audioMixer == null,
         _sceneAudioDriverFactory = sceneAudioDriverFactory {
@@ -93,6 +96,7 @@ final class SpatialExplorationGameSessionRuntime
 
   final GameSessionDescriptor descriptor;
   final RuntimeAudioMixer _audioMixer;
+  RuntimeAudioMixer get audioMixer => _audioMixer;
   final bool _ownsAudioMixer;
   late final RuntimeMusicService _music;
   final FlameCinematicAudioDriver Function()? _sceneAudioDriverFactory;
@@ -131,6 +135,27 @@ final class SpatialExplorationGameSessionRuntime
   final DateTime Function() _now;
   final _playWatch = Stopwatch();
   GameState? _gameState;
+  WorldEnvironmentClock? _environmentClock;
+  final RealWeatherService _realWeather;
+  Timer? _weatherTimer;
+  bool _realWeatherDeclared = false;
+  (RealWeatherPreferences, bool, bool)? _weatherConfiguration;
+  void _configureRealWeather() {
+    final session = _session;
+    if (session == null || _disposed || _stopped) return;
+    final preferences = _preferences?.realWeather ?? const RealWeatherPreferences();
+    final requested = _realWeatherDeclared || session.bundle.visualProfile.requiresRealWeather;
+    final configuration = (preferences, requested, session.presentationPaused);
+    if (_weatherConfiguration == configuration) return;
+    _weatherConfiguration = configuration;
+    _weatherTimer?.cancel();
+    session.realWeatherAllowed = preferences.enabled && requested;
+    if (!preferences.enabled) { unawaited(_realWeather.refresh(preferences)); return; }
+    if (!requested || session.presentationPaused) return;
+    unawaited(_realWeather.refresh(preferences));
+    _weatherTimer = Timer.periodic(const Duration(minutes: 20), (_) => unawaited(_realWeather.refresh(preferences)));
+  }
+
   DateTime? _createdAt;
   int _basePlayTimeSeconds = 0;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
@@ -161,6 +186,7 @@ final class SpatialExplorationGameSessionRuntime
     _preferences = preferences;
     if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
+    _configureRealWeather();
   }
 
   String get _mapActivationId =>
@@ -571,7 +597,8 @@ final class SpatialExplorationGameSessionRuntime
                 playerPos: state.playerPosition),
             _ => throw UnsupportedError('Unsupported spatial battle kind.'),
           };
-          final outcome = await _startBattle(battleRequest);
+          final outcome = await _startBattle(battleRequest,
+              defeatRecovery: request.defeatRecovery);
           return SceneBattleRuntimeOutcomeResult.completed(
               port: SceneBattleRuntimeOutcomePort.values.byName(outcome));
         }),
@@ -663,7 +690,9 @@ final class SpatialExplorationGameSessionRuntime
     }
   }
 
-  Future<String> _startBattle(BattleStartRequest request) async {
+  Future<String> _startBattle(BattleStartRequest request,
+      {SceneBattleDefeatRecovery defeatRecovery =
+          SceneBattleDefeatRecovery.returnToRecoveryPoint}) async {
     _ensureGameplayActive();
     _sceneBattleOutcome = null;
     final bundle = _session!.bundle;
@@ -673,7 +702,8 @@ final class SpatialExplorationGameSessionRuntime
     try {
       await _applyMusicSelection();
       _ensureGameplayActive();
-      final completed = await _battle!.start(bundle: bundle, request: request);
+      final completed = await _battle!.start(
+          bundle: bundle, request: request, defeatRecovery: defeatRecovery);
       _ensureGameplayActive();
       if (!completed || _sceneBattleOutcome == null) {
         throw StateError('The spatial battle did not complete.');
@@ -802,6 +832,7 @@ final class SpatialExplorationGameSessionRuntime
 
   void _onMapActivated() {
     if (_disposed || _stopped) return;
+    _configureRealWeather();
     if (_audioMapId != _session?.bundle.map.id) {
       _audioMapId = _session?.bundle.map.id;
       unawaited(_sceneAudio?.reset());
@@ -960,6 +991,8 @@ final class SpatialExplorationGameSessionRuntime
       reportProgress(const GameSessionLoadingProgress(
           stage: 'resources', current: 1, total: 3));
       _gameState = state;
+      _environmentClock = WorldEnvironmentClock(now: _now, initialState: state.environmentState);
+      _environmentClock!.resolve(bundle.visualProfile);
       if (bundle.map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic && !descriptor.grantedCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) throw StateError('The map requires ${SpatialCameraProfile.orthographicCapabilityId}.');
       if (SpatialActorOcclusionCapabilities.requiresCapability(manifest, maps: [bundle.map]) &&
           !descriptor.grantedCapabilities.contains(SpatialActorOcclusionCapabilities.capabilityId)) {
@@ -1001,6 +1034,9 @@ final class SpatialExplorationGameSessionRuntime
         loaded.dispose();
         throw StateError('Exploration closed while loading.');
       }
+      loaded.environmentClock = _environmentClock!;
+      loaded.realWeather = _realWeather;
+      _realWeatherDeclared = WorldEnvironmentCapabilities.requiresRealProject(bundle.manifest);
       _session = loaded;
       if (loaded.movement.spatialPosition != position) {
         _gameState = state.copyWith(playerPosition: GridPos(
@@ -1024,7 +1060,7 @@ final class SpatialExplorationGameSessionRuntime
       loaded.transitioning.addListener(_syncMovement);
       loaded.mapRevision.addListener(_onMapActivated);
       loaded.onFrame = _publishFrame;
-      loaded.onLifecyclePausedChanged = (_) => _syncMusicSuspension();
+      loaded.onLifecyclePausedChanged = (_) { _syncMusicSuspension(); _configureRealWeather(); };
       if (_preferences case final preferences?) {
         loaded.setTextSpeed(preferences.dialogueTextSpeed);
       }
@@ -1035,6 +1071,7 @@ final class SpatialExplorationGameSessionRuntime
       _ensureLoadActive(generation);
       _syncMapMusic();
       _syncMusicSuspension();
+      _configureRealWeather();
       if (!_paused) _playWatch.start();
       reportProgress(const GameSessionLoadingProgress(
           stage: 'ready', current: 3, total: 3));
@@ -1260,7 +1297,7 @@ final class SpatialExplorationGameSessionRuntime
         createdAt: _createdAt!,
         updatedAt: _now().toUtc(),
         playTimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
-        state: strictGameStateSaveJson(state));
+        state: strictGameStateSaveJson(state.copyWith(environmentState: _environmentClock?.checkpoint ?? state.environmentState)));
   }
 
   void _initializePlayerServices(RuntimeMapBundle bundle) {
@@ -1470,6 +1507,7 @@ final class SpatialExplorationGameSessionRuntime
     _story?.cancel();
     if (_disposed) return;
     _stopped = true;
+    _weatherTimer?.cancel();
     final sceneAudioStopped = _sceneAudio?.dispose();
     final musicStopped = _music.dispose();
     _loadGeneration++;
@@ -1539,6 +1577,7 @@ final class SpatialExplorationGameSessionRuntime
     _projectCatalog?.dispose();
     _projectCatalog = null;
     _stopped = true;
+    _weatherTimer?.cancel();
     _loadGeneration++;
     _playWatch.stop();
     _materializationResumed?.complete();
@@ -1570,6 +1609,7 @@ final class SpatialExplorationGameSessionRuntime
           _session?.transitioning.removeListener(_syncMovement);
           _session?.mapRevision.removeListener(_onMapActivated);
           if (_session case final session?) session.onLifecyclePausedChanged = null;
+          _weatherTimer?.cancel();
           _session?.dispose();
           _session = null;
           overworldInteractions.dispose();

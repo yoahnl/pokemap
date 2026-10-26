@@ -755,6 +755,68 @@ void main() {
     expect(host.state.trainerProfile.money, 100);
   });
 
+  test('scene projection keeps its final pose while termination effects finish', () async {
+    final map = _map(entities: const [
+      MapEntity(id: 'sign', kind: MapEntityKind.sign, pos: GridPos(x: 2, y: 3)),
+    ]);
+    final finishing = Completer<void>();
+    final release = Completer<void>();
+    final host = await _Host.create(_project(map, records: [
+      _event(1, NarrativeEventSourceRef.entityInteract(map.id, 'sign'), 'held_pose'),
+    ], scenes: [
+      _scene('held_pose', [SceneConsequence.giveMoney(amount: 30)], dialogue: true),
+    ]), map, createSceneCallbacks: (read, commit) => SceneRuntimeHostCallbacks(
+      evaluateCondition: (_) => 'true',
+      showDialogue: (_) async {
+        commit(read().copyWith(playerPosition: const GridPos(x: 4, y: 3),
+          playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 3.5)));
+        return 'completed';
+      },
+      startBattle: (_) => 'victory', playCinematic: (_) => 'completed',
+    ), onSceneTerminated: (_) async {
+      finishing.complete();
+      await release.future;
+    });
+    await host.events.activateMap(_activation('held_pose'));
+    final interaction = host.events.interact();
+    await finishing.future;
+    final projected = host.events.projectedSceneGameState;
+    release.complete();
+    await interaction;
+    expect(projected?.playerSpatialPosition, PlayerSpatialPosition(x: 4.5, z: 3.5));
+    expect(host.state.playerSpatialPosition, PlayerSpatialPosition(x: 4.5, z: 3.5));
+    expect(host.state.trainerProfile.money, 30);
+    expect(host.events.projectedSceneGameState, isNull);
+  });
+
+  test('invalidating a pending scene never revives its projection during termination', () async {
+    final map = _map(entities: const [
+      MapEntity(id: 'sign', kind: MapEntityKind.sign, pos: GridPos(x: 2, y: 3)),
+    ]);
+    final opened = Completer<void>();
+    final dialogue = Completer<String>();
+    final finishing = Completer<void>();
+    final release = Completer<void>();
+    final host = await _Host.create(_project(map, records: [
+      _event(1, NarrativeEventSourceRef.entityInteract(map.id, 'sign'), 'invalidated_pose'),
+    ], scenes: [_scene('invalidated_pose', [SceneConsequence.giveMoney(amount: 30)], dialogue: true)]), map,
+      dialogue: () { opened.complete(); return dialogue.future; },
+      onSceneTerminated: (_) async { finishing.complete(); await release.future; });
+    await host.events.activateMap(_activation('invalidated_pose'));
+    final interaction = host.events.interact();
+    await opened.future;
+    host.events.invalidate();
+    expect(host.events.projectedSceneGameState, isNull);
+    dialogue.complete('completed');
+    await finishing.future;
+    final projectedDuringTermination = host.events.projectedSceneGameState;
+    release.complete();
+    await interaction;
+    expect(projectedDuringTermination, isNull);
+    expect(host.events.projectedSceneGameState, isNull);
+    expect(host.state.trainerProfile.money, 0);
+  });
+
   test('committed scene relocation rearms cell entry at the cinematic arrival',
       () async {
     final map = _map(triggers: const [
@@ -1148,6 +1210,7 @@ final class _Host {
     SpatialSceneCallbackFactory? createSceneCallbacks,
     SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
     Future<void> Function(GameState)? afterStateCommitted,
+    Future<void> Function(Object)? onSceneTerminated,
     Future<void> Function(GameState)? persistItemPickup,
     Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
     presentItemPickup,
@@ -1183,6 +1246,7 @@ final class _Host {
       canProcessInput: () => host.canInput,
       runtimeIdFactory: (prefix) => _id(prefix, host.serial++),
       afterStateCommitted: afterStateCommitted,
+      onSceneTerminated: onSceneTerminated,
       persistItemPickup: persistItemPickup,
       presentItemPickup: presentItemPickup,
       buildSceneConsequenceWriter: buildSceneConsequenceWriter,

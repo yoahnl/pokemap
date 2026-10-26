@@ -11,6 +11,7 @@ final class SpatialAtmosphereDocument {
   static const schemaVersion = 2;
   static const lightWorkshopSchemaVersion = 3;
   static const weatherSchemaVersion = 4;
+  static const weatherSoundSchemaVersion = 5;
   static const presentationOnly = true;
   static const absentDefaultsDisabled = true;
   static const maxBytes = 65536;
@@ -24,10 +25,19 @@ final class SpatialAtmosphereDocument {
           schemaVersion,
           lightWorkshopSchemaVersion,
           weatherSchemaVersion,
+          weatherSoundSchemaVersion,
         }.contains(json['schemaVersion'])) {
       throw const FormatException('Unsupported atmosphere schema version.');
     }
     final settings = _object(json['settings']);
+    final weather = settings['weather'];
+    if ((json['schemaVersion'] as int) < weatherSoundSchemaVersion &&
+        weather is Map &&
+        weather.keys.any(SpatialWeatherSettings.soundKeys.contains)) {
+      throw const FormatException(
+        'Weather audio requires atmosphere schema 5.',
+      );
+    }
     if ((json['schemaVersion'] as int) < weatherSchemaVersion &&
         settings.containsKey('weather')) {
       throw const FormatException('Weather requires atmosphere schema 4.');
@@ -54,7 +64,9 @@ final class SpatialAtmosphereDocument {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': settings.weather.hasSettings
+    'schemaVersion': settings.weather.hasSoundSettings
+        ? weatherSoundSchemaVersion
+        : settings.weather.hasSettings
         ? weatherSchemaVersion
         : settings.hasFireflyStyle
         ? lightWorkshopSchemaVersion

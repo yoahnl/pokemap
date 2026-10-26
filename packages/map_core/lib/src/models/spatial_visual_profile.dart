@@ -2,6 +2,7 @@ import 'map_spatial_scene.dart';
 import 'spatial_atmosphere_settings.dart';
 import 'spatial_day_night_cycle.dart';
 import 'spatial_weather_settings.dart';
+import 'world_environment.dart';
 
 enum SpatialVisualParameter {
   pitchDegrees(1, 89),
@@ -37,7 +38,7 @@ enum SpatialVisualParameter {
   fireflyLightStrength(0, 1),
   fireflyLightRadius(.25, 2.5),
   weatherEnabled.boolean(),
-  weatherKind.weatherChoice(),
+  weatherKind.choice(),
   weatherIntensity(0, 1),
   weatherDensity(0, 1),
   weatherSpeed(.1, 3),
@@ -49,7 +50,14 @@ enum SpatialVisualParameter {
   weatherFogStrength(0, 1),
   weatherTransitionSeconds(0, 5),
   weatherLightning.boolean(),
-  weatherIndoors.boolean();
+  weatherIndoors.boolean(),
+  weatherSoundEnabled.boolean(),
+  weatherRainVolume(0, 1),
+  weatherWindVolume(0, 1),
+  timeMode.choice(),
+  weatherMode.choice(),
+  weatherIntervalSeconds(10, 86400),
+  weatherSequence(1, 15);
 
   const SpatialVisualParameter(this.minimum, this.maximum)
     : isBoolean = false,
@@ -59,7 +67,7 @@ enum SpatialVisualParameter {
       maximum = 1,
       isBoolean = true,
       isChoice = false;
-  const SpatialVisualParameter.weatherChoice()
+  const SpatialVisualParameter.choice()
     : minimum = 0,
       maximum = 0,
       isBoolean = false,
@@ -67,20 +75,43 @@ enum SpatialVisualParameter {
   final double minimum, maximum;
   final bool isBoolean;
   final bool isChoice;
-  List<String> get choices => isChoice
-      ? [for (final kind in SpatialWeatherKind.values) kind.name]
-      : const [];
+  List<String> get choices => switch (this) {
+    weatherKind => [for (final value in SpatialWeatherKind.values) value.name],
+    timeMode => [for (final value in WorldTimeMode.values) value.name],
+    weatherMode => [for (final value in WorldWeatherMode.values) value.name],
+    _ => const [],
+  };
+  bool get isSequence => this == weatherSequence;
   bool get isCamera => index <= lockVerticalFraming.index;
   bool get isClock =>
-      index >= dayNightEnabled.index && index <= minuteOfDay.index;
+      (index >= dayNightEnabled.index && index <= minuteOfDay.index) ||
+      this == timeMode;
   bool get isAtmosphere => !isCamera && !isClock;
   bool get isLightWorkshop =>
       index >= fireflyLighting.index && index <= fireflyLightRadius.index;
-  bool get isWeather => index >= weatherEnabled.index;
+  bool get isWeather =>
+      (index >= weatherEnabled.index && index <= weatherWindVolume.index) ||
+      this == weatherMode || this == weatherIntervalSeconds || isSequence;
+  bool get isWeatherSound =>
+      index >= weatherSoundEnabled.index && index <= weatherWindVolume.index;
+  bool get isWorldEnvironment =>
+      this == timeMode || this == weatherMode ||
+      this == weatherIntervalSeconds || isSequence;
 
   Object normalize(Object? value) {
+    if (isSequence) {
+      if (value is! List || value.isEmpty || value.length > 15) {
+        throw const FormatException('Choose between one and fifteen weather styles.');
+      }
+      final kinds = [for (final kind in value) SpatialWeatherKind.parse(kind).name];
+      if (kinds.toSet().length != kinds.length) {
+        throw const FormatException('Weather styles must be unique.');
+      }
+      return List<String>.unmodifiable(kinds);
+    }
     if (isChoice) {
-      return SpatialWeatherKind.parse(value).name;
+      if (value is String && choices.contains(value)) return value;
+      throw FormatException('Invalid choice for $name.');
     }
     if (isBoolean) {
       if (value is bool) return value;
@@ -109,6 +140,9 @@ final class SpatialVisualPatch {
   bool get isEmpty => values.isEmpty;
   bool get requiresLightWorkshop => values.keys.any((p) => p.isLightWorkshop);
   bool get requiresWeather => values.keys.any((p) => p.isWeather);
+  bool get requiresWeatherSound => values.keys.any((p) => p.isWeatherSound);
+  bool get requiresRealWeather => choice(SpatialVisualParameter.weatherMode) == WorldWeatherMode.real.name;
+  bool get requiresWorldEnvironment => values.keys.any((p) => p.isWorldEnvironment);
   Object? value(SpatialVisualParameter parameter) => values[parameter];
   double? number(SpatialVisualParameter parameter) =>
       values[parameter] as double?;
@@ -143,6 +177,9 @@ final class SpatialVisualPatch {
     'weatherTransitionSeconds': atmosphere.weather.transitionSeconds,
     'weatherLightning': atmosphere.weather.lightning,
     'weatherIndoors': atmosphere.weather.indoors,
+    'weatherSoundEnabled': atmosphere.weather.soundEnabled,
+    'weatherRainVolume': atmosphere.weather.rainVolume,
+    'weatherWindVolume': atmosphere.weather.windVolume,
     'fireflyLighting': atmosphere.fireflyLighting,
     'fireflyYellowAmount': atmosphere.fireflyYellowAmount,
     'fireflyGreenAmount': atmosphere.fireflyGreenAmount,
@@ -234,6 +271,9 @@ final class SpatialVisualPatch {
         ),
         lightning: enabled(SpatialVisualParameter.weatherLightning),
         indoors: enabled(SpatialVisualParameter.weatherIndoors),
+        soundEnabled: enabled(SpatialVisualParameter.weatherSoundEnabled),
+        rainVolume: number(SpatialVisualParameter.weatherRainVolume),
+        windVolume: number(SpatialVisualParameter.weatherWindVolume),
       ),
       depthOfFieldEnabled: enabled(SpatialVisualParameter.depthOfFieldEnabled),
       depthOfFieldStrength: number(SpatialVisualParameter.depthOfFieldStrength),
@@ -266,9 +306,15 @@ final class SpatialVisualPatch {
   }
 
   SpatialDayNightCycle? applyCycle(SpatialDayNightCycle? base) {
+    final mode = choice(SpatialVisualParameter.timeMode);
+    if (mode == WorldTimeMode.real.name || mode == WorldTimeMode.fixed.name) {
+      return null;
+    }
     if (!values.keys.any((p) => p.isClock)) return base;
-    if (enabled(SpatialVisualParameter.dayNightEnabled) == false) return null;
-    if (base == null &&
+    if (mode == null && enabled(SpatialVisualParameter.dayNightEnabled) == false) {
+      return null;
+    }
+    if (mode == null && base == null &&
         enabled(SpatialVisualParameter.dayNightEnabled) != true) {
       return null;
     }
@@ -310,10 +356,10 @@ final class SpatialVisualPatch {
   bool operator ==(Object other) =>
       other is SpatialVisualPatch &&
       values.length == other.values.length &&
-      values.entries.every((entry) => other.values[entry.key] == entry.value);
+      values.entries.every((entry) => _equalValue(other.values[entry.key], entry.value));
   @override
   int get hashCode => Object.hashAllUnordered(
-    values.entries.map((entry) => Object.hash(entry.key, entry.value)),
+    values.entries.map((entry) => Object.hash(entry.key, entry.value is List ? Object.hashAll(entry.value as List) : entry.value)),
   );
 }
 
@@ -325,6 +371,9 @@ final class SpatialVisualDocument {
   static const schemaVersion = 1;
   static const lightWorkshopSchemaVersion = 2;
   static const weatherSchemaVersion = 3;
+  static const weatherSoundSchemaVersion = 4;
+  static const worldEnvironmentSchemaVersion = 5;
+  static const realWeatherSchemaVersion = 6;
   static const maxBytes = 32768;
   static const projectRelativePath = 'project.visual.json';
   final String? mapId;
@@ -350,6 +399,9 @@ final class SpatialVisualDocument {
           schemaVersion,
           lightWorkshopSchemaVersion,
           weatherSchemaVersion,
+          weatherSoundSchemaVersion,
+          worldEnvironmentSchemaVersion,
+          realWeatherSchemaVersion,
         }.contains(json['schemaVersion']) ||
         json.keys.any(
           (key) => !{'schemaVersion', 'mapId', 'profile'}.contains(key),
@@ -363,6 +415,16 @@ final class SpatialVisualDocument {
     final profile = SpatialVisualPatch.fromJson(
       json['profile'] as Map<String, dynamic>,
     );
+    if ((json['schemaVersion'] as int) < realWeatherSchemaVersion && profile.requiresRealWeather) {
+      throw const FormatException('Real weather requires visual schema 6.');
+    }
+    if ((json['schemaVersion'] as int) < worldEnvironmentSchemaVersion && profile.requiresWorldEnvironment) {
+      throw const FormatException('World environment requires visual schema 5.');
+    }
+    if ((json['schemaVersion'] as int) < weatherSoundSchemaVersion &&
+        profile.requiresWeatherSound) {
+      throw const FormatException('Weather audio requires visual schema 4.');
+    }
     if ((json['schemaVersion'] as int) < weatherSchemaVersion &&
         profile.requiresWeather) {
       throw const FormatException('Weather requires visual schema 3.');
@@ -379,7 +441,11 @@ final class SpatialVisualDocument {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': profile.requiresWeather
+    'schemaVersion': profile.requiresRealWeather ? realWeatherSchemaVersion : profile.requiresWorldEnvironment
+        ? worldEnvironmentSchemaVersion
+        : profile.requiresWeatherSound
+        ? weatherSoundSchemaVersion
+        : profile.requiresWeather
         ? weatherSchemaVersion
         : profile.requiresLightWorkshop
         ? lightWorkshopSchemaVersion
@@ -387,4 +453,9 @@ final class SpatialVisualDocument {
     if (mapId != null) 'mapId': mapId,
     'profile': profile.toJson(),
   };
+}
+
+bool _equalValue(Object? first, Object second) {
+  if (first is List && second is List) return first.length == second.length && first.indexed.every((entry) => entry.$2 == second[entry.$1]);
+  return first == second;
 }

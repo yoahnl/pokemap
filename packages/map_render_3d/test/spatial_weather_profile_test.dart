@@ -3,6 +3,27 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_weather_profile.dart';
 
 void main() {
+  test('storm lightning remains visible even with rain particles disabled', () {
+    final settings = SpatialWeatherSettings(
+      enabled: true,
+      kind: SpatialWeatherKind.storm,
+      lightning: true,
+      density: 0,
+      opacity: 0,
+    );
+    expect(
+      spatialWeatherFrame(settings, seconds: 6.35).particleCount,
+      greaterThan(0),
+    );
+    expect(
+      spatialWeatherFrame(
+        settings.copyWith(lightning: false),
+        seconds: 6.35,
+      ).particleCount,
+      0,
+    );
+  });
+
   test('dense fog keeps its density beyond the shared opacity ceiling', () {
     final settings = SpatialWeatherSettings(
       enabled: true,

@@ -117,6 +117,35 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  test('session frames checkpoint and Continue share one environment timeline', () async {
+    bundle = bundle.copyWith(projectVisualProfile: SpatialVisualPatch.fromJson({
+      'timeMode': 'cycle', 'dayDurationSeconds': 1200, 'minuteOfDay': 360,
+      'weatherMode': 'automatic', 'weatherIntervalSeconds': 10, 'weatherSequence': ['clear', 'rain'],
+    }));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    for (var i = 0; i < 30; i++) { session.frames(.5); }
+    expect(session.environmentClock.elapsedSeconds, 15);
+    final frame = session.environmentClock.resolve(bundle.visualProfile);
+    expect(frame.minuteOfDay, 378);
+    expect(frame.weatherKind, SpatialWeatherKind.rain);
+    final saved = gameStateFromStrictSaveJson(Map<String, dynamic>.from((await runtime.captureCheckpoint())!.state));
+    expect(saved.environmentState!.elapsedSeconds, 15);
+    await runtime.dispose();
+    runtime = SpatialExplorationGameSessionRuntime(
+      descriptor: descriptor(continueGame: true),
+      projectFilePath: () async => '${root.path}/project.json',
+      initialSave: () async => spatialSave(saved),
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) async {}, unmountSession: (_) async {},
+    );
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    expect(runtime.session!.environmentClock.elapsedSeconds, 15);
+    expect(runtime.session!.environmentClock.resolve(bundle.visualProfile).weatherKind, SpatialWeatherKind.rain);
+  });
+
   for (final partitioned in [false, true]) {
     test(
       'current map Border definitions survive passage and Continue ${partitioned ? 'partitioned' : 'native'}',
@@ -1026,7 +1055,15 @@ void main() {
       await waitForStory(runtime);
       expect(runtime.session!.frames(.1)['hero']!.x, 3);
       runtime.session!.frames(.15);
+      var completed = false;
+      unawaited(runtime.gameplayReady.then((_) => completed = true));
+      final terminalFrames = <double>[];
+      for (var frame = 0; frame < 100 && !completed; frame++) {
+        terminalFrames.add(runtime.session!.frames(0)['hero']!.x);
+        await Future<void>.delayed(Duration.zero);
+      }
       await runtime.gameplayReady;
+      expect(terminalFrames, everyElement(3));
       expect(runtime.session!.interactionError.value, isNull);
       expect(runtime.gameStateSnapshot.trainerProfile.money, 25);
       expect(runtime.gameStateSnapshot.playerSpatialPosition, PlayerSpatialPosition(x: 3, z: bindPlayer ? 5 : 4));

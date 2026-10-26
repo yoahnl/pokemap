@@ -1,1 +1,0 @@
-{"status":"pass","bundle":"com.yoahnl.avelune.converter.ac11keychainqualification","checks":{"initialEmpty":true,"createRead":true,"updateRead":true,"deleteEmpty":true,"nativeInvalidSecretRejected":true,"nativeExtraArgumentsRejected":true},"realProviderCalls":0,"sourceBytesSent":0}

@@ -68,6 +68,7 @@ import '../ports/file_backed_payload_store.dart';
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
 const _nativeLocalWorkshopActions = {
+  'campaign.battle_savings.update',
   'pokemon.ruleset.set', 'campaign.encounter_table.upsert', 'campaign.trainer.upsert',
   'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update',
   'event_v2.template.apply', 'narrative.publish_document',
@@ -77,6 +78,7 @@ final class LocalMapAuthoringMutationApi
     implements
         AuthoringMutationApiPort,
         AuthoringWorkshopPort,
+        AuthoringHistoryMaintenancePort,
         AuthoringMapEditorStatePort,
         AuthoringMapElementOrderPort,
         AuthoringArtifactStagingPort,
@@ -333,6 +335,26 @@ final class LocalMapAuthoringMutationApi
                 entry.storageKey == CatalogStorageStore.headStorageKey));
   }
 
+  @override
+  Future<Map<String, Object?>> maintainHistory(ProjectHandle projectHandle,
+      {required String expectedRevision,
+      bool apply = false,
+      String? expectedFingerprint,
+      int maxOperations = 50,
+      int maxBytes = 200 * 1024 * 1024}) async {
+    final catalog = _catalogSession(projectHandle);
+    if (catalog == null) {
+      throw const AuthoringHistoryException('history.maintenance_unsupported',
+          'Explicit history maintenance requires a managed catalog project.');
+    }
+    return catalog.maintainHistory(
+        expectedRevision: expectedRevision,
+        apply: apply,
+        expectedFingerprint: expectedFingerprint,
+        maxOperations: maxOperations,
+        maxBytes: maxBytes);
+  }
+
   CatalogAuthoringSession? _catalogSession(ProjectHandle handle) {
     _snapshotLoader.requireActiveProject(handle);
     return _catalogSessions[handle];
@@ -380,6 +402,10 @@ final class LocalMapAuthoringMutationApi
             id: 'history',
             summary: 'List committed history entries.',
           ),
+          AuthoringMutationCommandDescriptor(
+              id: 'history_maintenance',
+              summary:
+                  'Preview managed catalog history retention without deleting data, then explicitly apply the exact fingerprint and current revision. Defaults: 50 user operations and 200 MiB logical undo data; pending recovery and live readers remain protected.'),
           AuthoringMutationCommandDescriptor(
               id: 'workshop_snapshot',
               summary:

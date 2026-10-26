@@ -8,6 +8,8 @@ import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/spatial/spatial_story_playback.dart';
+import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import 'session/spatial_exploration_game_session_runtime_test.dart' as fixture;
@@ -68,6 +70,105 @@ void main() {
     target = source.copyWith(map: source.map.copyWith(id: 'target'));
   });
   tearDown(() async => root.delete(recursive: true));
+
+  for (final mode in ['unloaded', 'clear', 'blocked', 'height']) {
+    test('story cinematic preserves connected world ownership: $mode', () async {
+      const connection = MapConnection(direction: MapConnectionDirection.east,
+        targetMapId: 'target', offset: 2);
+      source = source.copyWith(map: source.map.copyWith(connections: [connection],
+        entities: [const MapEntity(id: 'guide', kind: MapEntityKind.npc,
+          pos: GridPos(x: 3, y: 3), npc: MapEntityNpcData(characterId: 'hero'))]));
+      target = target.copyWith(map: target.map.copyWith(spatialScene:
+        MapSpatialScene(width: 8, depth: 8,
+          heightLevels: List.filled(64, mode == 'height' ? 2 : 0),
+          navigation: SpatialNavigationProfile(blockedAreas: [
+            if (mode == 'blocked') SpatialBlockedArea(x: 1, z: 2, width: 1, depth: 1)]))));
+      final session = await SpatialExplorationSession.load(source, loadMap: (_) async => target);
+      addTearDown(session.dispose);
+      if (mode != 'unloaded') {
+        await session.loadConnectionNeighbor(connection);
+      }
+      expect(session.movement.canTraverseActor(10, 4, 7, 4, allowConnectedMaps: true), isFalse);
+      var state = GameState(saveId: 'save', currentMapId: 'source',
+        playerPosition: const GridPos(x: 4, y: 4));
+      final story = SpatialStoryPlayback(session: session,
+        readGameState: () => state, writeGameState: (value) => state = value);
+      addTearDown(story.dispose);
+      final done = story.cinematics.play(CinematicAsset(id: 'walk', title: 'Walk', mapId: 'source',
+        requiredActors: [CinematicActorRef(actorId: 'guide')],
+        movementTargets: [CinematicMovementTargetRef(targetId: 'end', label: 'End')],
+        stageContext: CinematicStageContext(
+          actorBindings: [CinematicActorBinding(actorId: 'guide',
+            kind: CinematicActorBindingKind.mapEntity, mapEntityId: 'guide')],
+          movementTargetBindings: [CinematicMovementTargetBinding(targetId: 'end',
+            kind: CinematicMovementTargetBindingKind.stagePoint, sourceId: 'end')],
+          initialPlacements: [CinematicActorInitialPlacement(actorId: 'guide',
+            kind: CinematicActorInitialPlacementKind.stagePoint, stagePointId: 'start')],
+          stagePoints: [CinematicStagePoint(id: 'start', label: 'Start', x: 10, y: 4),
+            CinematicStagePoint(id: 'end', label: 'End', x: 7, y: 4)]),
+        timeline: CinematicTimeline(steps: [CinematicTimelineStep(id: 'move',
+          kind: CinematicTimelineStepKind.actorMove, actorId: 'guide', targetId: 'end',
+          durationMs: 1000, metadata: const {'actor.movementMode': 'walk', 'actor.pathMode': 'direct'})])));
+      if (mode == 'clear') {
+        expect(session.frames(0)['source:npc:guide']!.x, 10);
+        story.cinematics.update(const Duration(milliseconds: 500));
+        expect(session.frames(0)['source:npc:guide']!.x, closeTo(8.5, .00001));
+        story.cinematics.update(const Duration(milliseconds: 500));
+      }
+      final result = await done;
+      expect(result.success, mode == 'clear', reason: result.message);
+      expect(session.bundle.map.id, 'source');
+      expect(session.storyInputLocked, isFalse);
+      expect(state.spatialWorldState.actorState('source', 'guide')?.x,
+        mode == 'clear' ? 7 : null);
+    });
+  }
+
+  test(
+    'cinematic bounds resolve only loaded direct neighbors and their heights',
+    () async {
+      const connection = MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'target',
+        offset: 2,
+      );
+      source = source.copyWith(map: source.map.copyWith(connections: [connection], entities: [
+        const MapEntity(id: 'guide', kind: MapEntityKind.npc, pos: GridPos(x: 3, y: 3),
+          npc: MapEntityNpcData(characterId: 'hero'))]));
+      target = target.copyWith(
+        map: target.map.copyWith(
+          spatialScene: MapSpatialScene(
+            width: 8,
+            depth: 8,
+            heightLevels: List.filled(64, 2),
+          ),
+        ),
+      );
+      final session = await SpatialExplorationSession.load(
+        source,
+        loadMap: (_) async => target,
+      );
+      addTearDown(session.dispose);
+      expect(session.containsCinematicPoint(10, 4), isFalse);
+      await session.loadConnectionNeighbor(connection);
+      session.setVisibleMaps({'source', 'target'});
+      expect(session.containsCinematicPoint(10, 4), isTrue);
+      expect(session.containsCinematicPoint(10, 1), isFalse);
+      expect(session.containsCinematicPoint(17, 4), isFalse);
+      expect(session.containsCinematicPoint(9, 11), isFalse);
+      expect(
+        session.cinematicHeightAt(10, 4),
+        target.map.spatialScene!.worldHeightAt(2, 2),
+      );
+      expect(session.cinematicHeightAt(4, 4), 0);
+      session.npcStoryPose = (_) => const SpatialCinematicActorPose(x: 10, z: 4, facing: EntityFacing.west);
+      final visual = session.frames(0)['source:npc:guide']!;
+      expect(visual.x, 10);
+      expect(visual.groundY, session.cinematicHeightAt(10, 4));
+      expect(visual.y, visual.groundY);
+      expect(session.bundle.map.id, 'source');
+    },
+  );
 
   test('failed warp releases partial actor images before a smaller retry', () async {
     final budget = RuntimeResourceBudget(

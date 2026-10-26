@@ -11,6 +11,7 @@ import 'new_game/project_new_game_configuration_sheet.dart';
 import 'new_game/contact_device_configuration_sheet.dart';
 import 'new_game/party_companion_configuration_sheet.dart';
 import 'new_game/project_defeat_recovery_configuration_sheet.dart';
+import 'new_game/project_battle_savings_configuration_sheet.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 
@@ -59,6 +60,13 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
                   builder: (_) => const PartyCompanionConfigurationSheet()),
                 variant: PokeMapButtonVariant.secondary, size: PokeMapButtonSize.compact,
                 leading: const Icon(CupertinoIcons.paw), child: const Text('Compagnon')),
+              PokeMapButton(
+                key: const ValueKey('battle-savings-launcher'),
+                onPressed: () => showPokeMapDesktopSideSheet<void>(context: context,
+                  title: 'Épargne des gains', semanticLabel: 'Configuration de l’épargne des gains de combat', width: 560,
+                  builder: (_) => const ProjectBattleSavingsConfigurationSheet()),
+                variant: PokeMapButtonVariant.secondary, size: PokeMapButtonSize.compact,
+                leading: const Icon(CupertinoIcons.money_dollar_circle), child: const Text('Épargne')),
               PokeMapButton(
                 key: projectDefeatRecoveryLauncherKey,
                 onPressed: () => showPokeMapDesktopSideSheet<void>(

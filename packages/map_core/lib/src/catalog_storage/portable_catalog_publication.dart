@@ -406,6 +406,39 @@ final class PortableCatalogPublication {
   static const projectDynamicDependenciesKey =
       'aveluneCatalogDynamicDependencies';
 
+  static Map<String, Object?>? decodeProjectMetadataAggregate({
+    required String field,
+    required Object? shellValue,
+    required Iterable<CatalogDefinitionUnit> units,
+  }) {
+    if (!_projectAggregateFields.contains(field)) {
+      throw const FormatException('catalog.project: unknown aggregate field');
+    }
+    final selected = units.toList();
+    for (final unit in selected) {
+      final section = unit.payload['section'];
+      final type = section == r'$projectAggregateHeader'
+          ? 'projectAggregateHeader'
+          : section == r'$projectAggregateChunk'
+              ? 'projectAggregateChunk'
+              : null;
+      final position = unit.payload['position'];
+      if (type == null || position is! int || position < 0 ||
+          (type == 'projectAggregateHeader' && position != 0) ||
+          unit.key != _projectMetadataKey(type, field,
+              type == 'projectAggregateChunk' ? position : null) ||
+          unit.payload['id'] != unit.key.id ||
+          _map(unit.payload['value'])['field'] != field) {
+        throw const FormatException('catalog.project: invalid aggregate identity');
+      }
+    }
+    final root = <String, Object?>{field: shellValue};
+    _restoreProjectMetadata(root, selected);
+    _metadataSourceMetrics(jsonEncode(root));
+    final value = root[field];
+    return value == null ? null : _copy(_map(value));
+  }
+
   static void validateProjectMetadataJson(String source) {
     _metadataSourceMetrics(source);
   }
@@ -1041,6 +1074,7 @@ const _selectableProjectMetadataFields = {
   'partyCompanion',
   'contactDevice',
   'defeatRecovery',
+  'battleSavings',
   'bagCapacity',
   'smartTileCatalog',
   'borderCatalog',

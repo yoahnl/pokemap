@@ -6,6 +6,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../theme/studio_tokens.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_slider.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_color_picker.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -26,7 +27,25 @@ class SpatialVisualControls extends StatelessWidget {
   final bool camera, clock;
   final VoidCallback? onEditStart, onEditEnd;
   SpatialVisualPatch get effective => inherited.overriddenBy(patch);
-  double number(SpatialVisualParameter p) => effective.number(p) ?? p.minimum;
+  double number(SpatialVisualParameter p) => effective.number(p) ?? (p == SpatialVisualParameter.weatherIntervalSeconds ? 600 : p.minimum);
+  String get timeMode => effective.choice(SpatialVisualParameter.timeMode) ?? (flag(SpatialVisualParameter.dayNightEnabled) ? 'cycle' : 'fixed');
+  bool get automaticWeather => effective.choice(SpatialVisualParameter.weatherMode) == 'automatic';
+  List<String> get weatherSequence => effective.value(SpatialVisualParameter.weatherSequence) as List<String>? ?? const ['clear', 'cloudy', 'rain'];
+  void selectWeather(SpatialWeatherKind kind) {
+    if (onChanged == null) return;
+    if (automaticWeather) {
+      final sequence = [...weatherSequence];
+      if (sequence.contains(kind.name)) {
+        if (sequence.length == 1) return;
+        sequence.remove(kind.name);
+      } else {
+        sequence.add(kind.name);
+      }
+      onChanged!(patch.set(SpatialVisualParameter.weatherSequence, sequence));
+    } else {
+      onChanged!(patch.set(SpatialVisualParameter.weatherKind, kind.name).set(SpatialVisualParameter.weatherEnabled, kind != SpatialWeatherKind.clear));
+    }
+  }
   bool flag(SpatialVisualParameter p) => effective.enabled(p) ?? false;
   void change(SpatialVisualParameter p, Object value) {
     var next =
@@ -37,6 +56,12 @@ class SpatialVisualControls extends StatelessWidget {
               .set(SpatialVisualParameter.fogEnd, null)
               .set(p, value)
         : patch.set(p, value);
+    if (p.isClock && p != SpatialVisualParameter.timeMode && next.choice(SpatialVisualParameter.timeMode) == null) {
+      next = next.set(SpatialVisualParameter.timeMode, timeMode);
+    }
+    if (p == SpatialVisualParameter.weatherMode && (value == 'automatic' || value == 'real')) {
+      next = next.set(SpatialVisualParameter.weatherEnabled, true);
+    }
     if (p == SpatialVisualParameter.fieldOfViewDegrees) {
       final before = number(p) * math.pi / 360;
       final after = (value as double) * math.pi / 360;
@@ -225,28 +250,32 @@ class SpatialVisualControls extends StatelessWidget {
             Icons.wb_twilight_outlined,
             StudioAccent.daylight,
             [
-              toggle(
-                p[5],
-                'Animer le cycle',
-                Icons.timelapse,
-                StudioAccent.daylight,
+              StudioSelect(
+                key: const ValueKey('visual-timeMode'),
+                label: 'Source de l’heure',
+                value: timeMode,
+                options: const {'cycle': 'Cycle du jeu', 'real': 'Heure réelle de l’appareil', 'fixed': 'Heure fixe'},
+                onChanged: onChanged == null ? null : (value) => change(SpatialVisualParameter.timeMode, value),
               ),
+              inherit(SpatialVisualParameter.timeMode),
+              if (timeMode == 'real') const Text('Suit l’heure locale de l’appareil. Les scènes et les faits du monde peuvent imposer temporairement une autre heure.'),
+              if (timeMode == 'cycle')
               slider(
                 p[6],
                 'Durée d’une journée',
                 60,
-                7200,
+                math.max(7200, number(p[6])),
                 format: (v) => '${(v / 60).toStringAsFixed(1)} min',
               ),
-              slider(
+              if (timeMode != 'real') slider(
                 p[7],
-                'Heure de départ / heure fixe',
+                timeMode == 'cycle' ? 'Heure de départ du cycle' : 'Heure imposée',
                 0,
                 1439,
                 format: (v) =>
                     '${(v ~/ 60).toString().padLeft(2, '0')}:${(v.round() % 60).toString().padLeft(2, '0')}',
               ),
-              Wrap(
+              if (timeMode != 'real') Wrap(
                 spacing: 6,
                 children: [
                   for (final hour in <int, String>{
@@ -267,6 +296,20 @@ class SpatialVisualControls extends StatelessWidget {
             ],
           ),
         group('Météo et saisons', Icons.cloud_outlined, StudioAccent.water, [
+          StudioSelect(
+            key: const ValueKey('visual-weatherMode'),
+            label: 'Fonctionnement de la météo',
+            value: effective.choice(SpatialVisualParameter.weatherMode) ?? 'fixed',
+            options: const {'fixed': 'Météo fixe', 'automatic': 'Météo automatique', 'real': 'Météo réelle du joueur'},
+            onChanged: onChanged == null ? null : (value) => change(SpatialVisualParameter.weatherMode, value),
+          ),
+          inherit(SpatialVisualParameter.weatherMode),
+          if (effective.requiresRealWeather) const Text('Le joueur peut activer la localisation approximative par IP ou choisir une ville dans les options du Player. Sans réseau ou sans activation, le jeu utilise la météo de repli. Sources : Open-Meteo et GeoJS.'),
+          if (automaticWeather) ...[
+            slider(SpatialVisualParameter.weatherIntervalSeconds, 'Durée de chaque météo', 10, math.max(7200, number(SpatialVisualParameter.weatherIntervalSeconds)), format: (value) => '${(value / 60).toStringAsFixed(1)} min'),
+            const Text('Choisissez les temps autorisés. Le jeu les alterne dans la liste enregistrée et conserve sa progression entre les cartes.'),
+            inherit(SpatialVisualParameter.weatherSequence),
+          ],
           toggle(
             SpatialVisualParameter.weatherEnabled,
             'Activer la météo',
@@ -283,21 +326,11 @@ class SpatialVisualControls extends StatelessWidget {
                   label: preset.$2,
                   icon: preset.$3,
                   secondary:
-                      effective.choice(SpatialVisualParameter.weatherKind) !=
+                      automaticWeather ? !weatherSequence.contains(preset.$1.name) : effective.choice(SpatialVisualParameter.weatherKind) !=
                       preset.$1.name,
                   onPressed: onChanged == null
                       ? null
-                      : () => onChanged!(
-                          patch
-                              .set(
-                                SpatialVisualParameter.weatherKind,
-                                preset.$1.name,
-                              )
-                              .set(
-                                SpatialVisualParameter.weatherEnabled,
-                                preset.$1 != SpatialWeatherKind.clear,
-                              ),
-                        ),
+                      : () => selectWeather(preset.$1),
                 ),
             ],
           ),
@@ -359,10 +392,18 @@ class SpatialVisualControls extends StatelessWidget {
           ),
           toggle(
             SpatialVisualParameter.weatherLightning,
-            'Lueur lente des éclairs · orage',
+            'Éclairs · orage',
             Icons.bolt_outlined,
             StudioAccent.daylight,
           ),
+          toggle(
+            SpatialVisualParameter.weatherSoundEnabled,
+            'Ambiance sonore',
+            Icons.volume_up_outlined,
+            StudioAccent.water,
+          ),
+          slider(SpatialVisualParameter.weatherRainVolume, 'Volume de la pluie', 0, 1),
+          slider(SpatialVisualParameter.weatherWindVolume, 'Volume du vent', 0, 1),
           toggle(
             SpatialVisualParameter.weatherIndoors,
             'Autoriser dans les intérieurs',

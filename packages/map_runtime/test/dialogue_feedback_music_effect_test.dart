@@ -9,6 +9,20 @@ import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playbac
 import 'package:map_runtime/src/presentation/flame/flame_narrative_sound_playback_adapter.dart';
 
 void main() {
+  test('native audio source selection preserves files and supports bundled weather', () async {
+    for (final bundled in [false, true]) {
+      final voice = _NativeVoice();
+      final driver = FlameAudioCinematicRuntimeDriver(
+        playerFactory: () => voice,
+        sourceFactory: bundled ? AssetSource.new : null,
+      );
+      final handle = await driver.play('weather.wav', volume: .4, loop: true);
+      expect(voice.source, bundled ? isA<AssetSource>() : isA<DeviceFileSource>());
+      await driver.stop(handle);
+      expect(voice.disposeCalls, 1);
+    }
+  });
+
   test(
     'stop effects releases only the requested owner and leaves the ME alive',
     () async {
@@ -581,6 +595,7 @@ final class _NativeVoice implements AudioPlayer {
   Object? modeFailure;
   Object? playFailure;
   Object? disposeFailure;
+  Source? source;
   int playCalls = 0;
   int stopCalls = 0;
   int disposeCalls = 0;
@@ -595,6 +610,7 @@ final class _NativeVoice implements AudioPlayer {
           : Future<void>.error(failure);
     }
     if (invocation.memberName == #play) {
+      source = invocation.positionalArguments.first as Source;
       playCalls += 1;
       final failure = playFailure;
       if (failure != null) return Future<void>.error(failure);

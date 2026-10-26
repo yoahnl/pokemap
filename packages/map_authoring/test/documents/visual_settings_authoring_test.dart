@@ -49,7 +49,7 @@ void main() {
         for (final (i, enabled) in <bool?>[true, false, null].indexed) {
           final snapshot = await observer.inspect(projectRoot: directory.path);
           final settings = SpatialVisualPatch.fromJson(
-              {if (enabled != null) ...{'weatherEnabled': enabled, 'weatherKind': 'snow'}});
+              {if (enabled != null) ...{'weatherEnabled': enabled, 'weatherKind': 'rain', 'weatherSoundEnabled': enabled, 'weatherRainVolume': .8, 'weatherWindVolume': .4, 'timeMode': enabled ? 'real' : 'cycle', 'weatherMode': 'automatic', 'weatherSequence': ['clear', 'rain'], 'weatherIntervalSeconds': 600}});
           final worker = LocalVisualSettingsAuthoring(
               policy: workerPolicy,
               runInWorker: true,

@@ -101,6 +101,7 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                     SpatialExplorationView(
                       key: ObjectKey(runtime),
                       session: session,
+                      audioMixer: runtime.audioMixer,
                       previewVisuals: widget.previewVisuals,
                       keyboardInputEnabled: false,
                       onReady: widget.onReady,

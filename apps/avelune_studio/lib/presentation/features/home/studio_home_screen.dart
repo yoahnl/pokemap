@@ -26,6 +26,10 @@ class StudioHomeScreen extends StatefulWidget {
     this.onOptimizeLibrary,
     this.optimizingLibrary = false,
     this.libraryOptimizationError,
+    this.onMaintainHistory,
+    this.historyMaintenanceLabel = 'Entretenir l’historique',
+    this.historyMaintenanceMessage,
+    this.historyMaintenanceFailed = false,
     required this.onDestination,
     this.recentProjects = const [],
     required this.onRecent,
@@ -46,6 +50,10 @@ class StudioHomeScreen extends StatefulWidget {
   final VoidCallback? onOptimizeLibrary;
   final bool optimizingLibrary;
   final String? libraryOptimizationError;
+  final VoidCallback? onMaintainHistory;
+  final String historyMaintenanceLabel;
+  final String? historyMaintenanceMessage;
+  final bool historyMaintenanceFailed;
   final ValueChanged<String> onDestination, onMap;
   final List<RecentStudioProject> recentProjects;
   final ValueChanged<RecentStudioProject> onRecent, onRemoveRecent;
@@ -177,6 +185,10 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
         onOptimizeLibrary: widget.onOptimizeLibrary,
         optimizingLibrary: widget.optimizingLibrary,
         libraryOptimizationError: widget.libraryOptimizationError,
+        onMaintainHistory: widget.onMaintainHistory,
+        historyMaintenanceLabel: widget.historyMaintenanceLabel,
+        historyMaintenanceMessage: widget.historyMaintenanceMessage,
+        historyMaintenanceFailed: widget.historyMaintenanceFailed,
         onDestination: widget.onDestination,
         hasProject: widget.projectName != null,
         canTest: widget.canTest,

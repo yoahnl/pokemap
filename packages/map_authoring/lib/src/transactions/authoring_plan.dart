@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 
+import '../catalog_storage/catalog_storage_store.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
@@ -87,6 +88,43 @@ final class AuthoringPlan {
         projectId: capability.projectId,
         operationId: capability.operationId);
     _bulkCapability = capability;
+  }
+
+  CatalogSnapshotDelta? _catalogDelta;
+  CatalogSnapshotDelta? get catalogDelta => _catalogDelta;
+
+  void bindCatalogDelta(CatalogSnapshotDelta delta) {
+    if (_catalogDelta != null) {
+      throw StateError('The plan already has a catalog inventory.');
+    }
+    _catalogDelta = delta;
+    try {
+      requireCatalogDelta();
+    } on Object {
+      _catalogDelta = null;
+      rethrow;
+    }
+  }
+
+  void requireCatalogDelta() {
+    final delta = _catalogDelta;
+    if (delta == null) return;
+    final heads = changeSet.changes
+        .where(
+            (change) => change.storageKey == CatalogStorageStore.headStorageKey)
+        .toList();
+    if (heads.length != 1 ||
+        heads.single.beforeRevision !=
+            computeAuthoringBytesFingerprint(
+                CatalogStorageStore.encodeHead(delta.beforeRoot),
+                logicalName: CatalogStorageStore.headStorageKey) ||
+        heads.single.afterRevision !=
+            computeAuthoringBytesFingerprint(
+                CatalogStorageStore.encodeHead(delta.root),
+                logicalName: CatalogStorageStore.headStorageKey)) {
+      throw StateError(
+          'The catalog inventory differs from the frozen plan heads.');
+    }
   }
 
   AuthoringPayloadOwner _payloadOwner;
@@ -175,6 +213,7 @@ final class AuthoringPlan {
       );
     }
     _changeSet = null;
+    _catalogDelta = null;
     return release;
   }
 

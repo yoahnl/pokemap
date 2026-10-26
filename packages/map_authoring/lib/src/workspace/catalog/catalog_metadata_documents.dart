@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../support/authoring_fingerprint.dart';
+import 'catalog_narrative_event_documents.dart';
 
 typedef CatalogMetadataDocumentLookup = Future<CatalogDefinitionUnit?> Function(
     CatalogDefinitionKey key);
@@ -16,6 +17,9 @@ final class CatalogMetadataDocumentSelection {
 }
 
 abstract final class CatalogMetadataDocuments {
+  static Future<bool> narrativeEventIndexPrepared(CatalogSnapshot snapshot) =>
+      CatalogNarrativeEventDocuments.prepared(snapshot);
+
   static const fields = {
     'maps',
     'groups',
@@ -65,6 +69,29 @@ abstract final class CatalogMetadataDocuments {
       CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
           jsonEncode(['storylineStep', stepId]));
 
+  static CatalogDefinitionKey factRuntimeIdentityKey(String identity) =>
+      CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
+          jsonEncode(['factRuntimeIdentity', identity]));
+
+  static Future<Set<String>> readFactIdsForRuntimeIdentity({
+    required CatalogSnapshot snapshot,
+    required String runtimeIdentity,
+  }) async {
+    _requireId(runtimeIdentity);
+    final state = await snapshot.lookup(fieldKey('facts'));
+    final count = _count(state, 'facts');
+    if (state!.payload['factRuntimeIdentitiesVersion'] != 1) {
+      _invalid('preparation_required');
+    }
+    if (count > snapshot.limits.maxDefinitions ||
+        await snapshot.lookup(definitionKey('facts', count)) != null) {
+      _invalid('index_stale');
+    }
+    return Set.unmodifiable(_facetIds(
+        await snapshot.lookup(factRuntimeIdentityKey(runtimeIdentity)),
+        idsField: 'factIds'));
+  }
+
   static List<CatalogDefinitionUnit> initialize(
       Iterable<CatalogDefinitionUnit> units) {
     final byField = <String, Map<int, CatalogDefinitionUnit>>{};
@@ -78,6 +105,7 @@ abstract final class CatalogMetadataDocuments {
     }
     final result = <CatalogDefinitionUnit>[];
     final trainerFacets = <CatalogDefinitionKey, Set<String>>{};
+    final factFacets = <CatalogDefinitionKey, Set<String>>{};
     final sceneFacets = <CatalogDefinitionKey, Set<String>>{};
     final storylineFacets = <CatalogDefinitionKey, Set<String>>{};
     for (final field in fields) {
@@ -89,6 +117,11 @@ abstract final class CatalogMetadataDocuments {
         final id = _identity(_definition(unit, field, position), field);
         if (!ids.add(id)) _invalid('duplicate_identity');
         result.add(_row(field, id, position, unit));
+        if (field == 'facts') {
+          for (final facet in _factFacets(unit)) {
+            factFacets.putIfAbsent(facet, () => {}).add(id);
+          }
+        }
         if (field == 'trainers') {
           for (final facet in _trainerFacets(unit)) {
             trainerFacets.putIfAbsent(facet, () => {}).add(id);
@@ -107,6 +140,9 @@ abstract final class CatalogMetadataDocuments {
       }
       result.add(_state(field, positions.length));
     }
+    for (final entry in factFacets.entries) {
+      result.add(_facetRow(entry.key, entry.value, idsField: 'factIds'));
+    }
     for (final entry in trainerFacets.entries) {
       result.add(_facetRow(entry.key, entry.value));
     }
@@ -116,6 +152,7 @@ abstract final class CatalogMetadataDocuments {
     for (final entry in storylineFacets.entries) {
       result.add(_facetRow(entry.key, entry.value, idsField: 'storylineIds'));
     }
+    result.addAll(CatalogNarrativeEventDocuments.initialize(units));
     return result;
   }
 
@@ -238,6 +275,8 @@ abstract final class CatalogMetadataDocuments {
       final facetRemovals = <CatalogDefinitionKey, Set<String>>{};
       var valid = !invalidated.contains(field);
       var count = 0;
+      final factIdentitiesReady = field != 'facts' ||
+          (await lookup(fieldKey(field)))?.payload['factRuntimeIdentitiesVersion'] == 1;
       if (valid) {
         try {
           count = _count(await lookup(fieldKey(field)), field);
@@ -275,7 +314,7 @@ abstract final class CatalogMetadataDocuments {
           break;
         }
         pending.add(_row(field, id, position, unit));
-        if (const {'trainers', 'scenes', 'storylines'}.contains(field)) {
+        if (const {'trainers', 'scenes', 'storylines', 'facts'}.contains(field) && factIdentitiesReady) {
           final previousFacets = before == null
               ? <CatalogDefinitionKey>{}
               : _documentFacets(before, field);
@@ -292,6 +331,7 @@ abstract final class CatalogMetadataDocuments {
         result.addAll(pending);
         for (final facet in {...facetAdds.keys, ...facetRemovals.keys}) {
           final idsField = switch (field) {
+            'facts' => 'factIds',
             'scenes' => 'sceneIds',
             'storylines' => 'storylineIds',
             _ => 'trainerIds',
@@ -307,8 +347,10 @@ abstract final class CatalogMetadataDocuments {
           result.add(_facetRow(facet, ids, idsField: idsField));
         }
       }
-      result.add(_state(field, count, valid: valid));
+      result.add(_state(field, count, valid: valid, factIdentitiesReady: factIdentitiesReady));
     }
+    result.addAll(await CatalogNarrativeEventDocuments.maintain(
+        lookup: lookup, upserts: upserts, removals: removals));
     return result;
   }
 
@@ -410,7 +452,7 @@ abstract final class CatalogMetadataDocuments {
       );
 
   static CatalogDefinitionUnit _state(String field, int count,
-          {bool valid = true}) =>
+          {bool valid = true, bool factIdentitiesReady = true}) =>
       CatalogDefinitionUnit(
         key: fieldKey(field),
         payload: {
@@ -418,11 +460,22 @@ abstract final class CatalogMetadataDocuments {
           'field': field,
           'count': count,
           'valid': valid,
+          if (field == 'facts' && factIdentitiesReady) 'factRuntimeIdentitiesVersion': 1,
           if (field == 'trainers') 'trainerReferencesVersion': 1,
           if (field == 'scenes') 'sceneDialogueReferencesVersion': 1,
           if (field == 'storylines') 'stepReferencesVersion': 1,
         },
       );
+
+  static Set<CatalogDefinitionKey> _factFacets(CatalogDefinitionUnit unit) {
+    final position = unit.payload['position'] as int;
+    final fact = NarrativeFactDefinition.fromJson(
+        Map<String, dynamic>.from(_definition(unit, 'facts', position)));
+    return {
+      factRuntimeIdentityKey(fact.id),
+      if (fact.legacyFlagName case final String alias) factRuntimeIdentityKey(alias),
+    };
+  }
 
   static Set<CatalogDefinitionKey> _trainerFacets(CatalogDefinitionUnit unit) {
     final position = unit.payload['position'] as int;
@@ -439,6 +492,7 @@ abstract final class CatalogMetadataDocuments {
   static Set<CatalogDefinitionKey> _documentFacets(
           CatalogDefinitionUnit unit, String field) =>
       switch (field) {
+        'facts' => _factFacets(unit),
         'scenes' => _sceneFacets(unit),
         'storylines' => _storylineFacets(unit),
         _ => _trainerFacets(unit),

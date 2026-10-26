@@ -48,7 +48,7 @@ final class SpatialVisualPlayback {
       from: SpatialVisualPatch({
         for (final key in keys) key: before.value(key)!,
       }),
-      to: SpatialVisualPatch({for (final key in keys) key: after.value(key)!}),
+      to: SpatialVisualPatch({for (final key in keys) if (after.value(key) != null) key: after.value(key)!}),
       duration: command.durationMs / 1000,
       owner: owner,
       scope: command.scope,

@@ -167,6 +167,8 @@ final class CampaignContentActions {
       'campaign.trainer.upsert_batch',
       'Create or update a bounded atomic batch of trainer definitions',
     ),
+    _descriptor('campaign.battle_savings.update',
+      'Configure or clear persistent savings from positive battle money gains using typed Facts'),
     _descriptor(
       'campaign.defeat_recovery.update',
       'Configure or clear the boolean Fact set atomically by native defeat recovery',
@@ -184,6 +186,19 @@ final class CampaignContentActions {
     late final String path;
     Object? before;
     Object? after;
+    if (actionId == 'campaign.battle_savings.update') {
+      _rejectUnknown(parameters, const {'battleSavings'});
+      if (!parameters.containsKey('battleSavings')) {
+        throw const FormatException('battleSavings must be declared, or null to clear.');
+      }
+      final config = parameters['battleSavings'] == null ? null
+          : ProjectBattleSavingsConfig.fromJson(_object(parameters, 'battleSavings'));
+      final updated = updateBattleSavings(context.snapshot.manifest, config);
+      return _projectDraft(context.snapshot, updated,
+        operation: actionId, path: '/battleSavings',
+        before: context.snapshot.manifest.battleSavings?.toJson(), after: config?.toJson(),
+        preview: {'battleSavings': config?.toJson(), 'scope': 'project.jsonAndReferencedFacts'});
+    }
     if (actionId == 'campaign.trainer.upsert_batch') {
       final values = _decodeTrainerBatch(parameters);
       before = context.snapshot.manifest.trainers
@@ -250,6 +265,11 @@ final class CampaignContentActions {
       after: after,
       preview: const CampaignContentInspector().inspect(projected).toJson(),
     );
+  }
+
+  ProjectManifest updateBattleSavings(ProjectManifest project, ProjectBattleSavingsConfig? config) {
+    config?.validate(project.facts);
+    return project.copyWith(battleSavings: config);
   }
 
   ProjectManifest updateDefeatRecovery(
@@ -501,6 +521,14 @@ AuthoringActionDescriptor _descriptor(
                 'editor': 'notApplicableBulkTransport;StudioAuthorsIndividualTables',
               },
             }
+          : id == 'campaign.battle_savings.update'
+          ? const {'battleSavings': {
+              'field': 'battleSavings', 'optional': true, 'clearWithNull': true,
+              'enabledFactId': 'declaredBooleanFact', 'balanceFactId': 'declaredIntegerFact',
+              'percentage': 'integer:0..100', 'maximumBalance': 'integer:0..9007199254740991',
+              'atomicWith': 'battleRewardsAndCompletedRequest', 'rounding': 'floor',
+              'basis': 'positiveBattleWalletDelta', 'capDeduction': 'actualDepositOnly',
+            }}
           : id == 'campaign.defeat_recovery.update'
           ? const {
               'defeatRecovery': {

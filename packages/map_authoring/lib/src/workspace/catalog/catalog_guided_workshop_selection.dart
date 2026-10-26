@@ -222,6 +222,7 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
 
     final dependencyKeys = {
       'facts': {'factId', 'existingPartyFactId'},
+      'cinematicMediaAssets': {'mediaAssetId'},
       'maps': {'mapId', 'destinationMapId', 'targetMapId', 'sourceMapId'},
       'dialogues': {
         'dialogueId',
@@ -259,6 +260,7 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
         add(entry.key,
             CatalogWorkshopSelection._referenceIds(candidates, entry.value));
       }
+      add('facts', _guidedConditionFactIds(candidates));
       for (final stepId in CatalogWorkshopSelection._referenceIds(
           candidates, const {'stepId'}).difference(resolvedStepIds)) {
         resolvedStepIds.add(stepId);
@@ -298,12 +300,14 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
         if (await catalog.snapshot.indexEntry(key) != null) roots.add(key);
       }
     }
-    final assets = await ProjectCatalogSelection(catalog).resolve(roots);
-    var manifest = documents.project.copyWith(
-        tilesets: assets.tilesets,
-        elements: assets.elements,
-        characters: assets.characters,
-        models3d: assets.models3d);
+    final assets = await ProjectCatalogSelection(catalog)
+        .forMaps(maps.values, additionalRoots: roots);
+    final manifestJson = assets.toJson();
+    final metadataJson = documents.project.toJson();
+    for (final field in {...fields, ...ids.keys}) {
+      manifestJson[field] = metadataJson[field];
+    }
+    var manifest = ProjectManifest.fromJson(manifestJson);
     if (CatalogWorkshopSelection._referenceIds(
         candidates, const {'starterOptionId'}).isNotEmpty) {
       final context = await selected.readMetadata({'newGame'});
@@ -374,4 +378,23 @@ Future<CatalogWorkshopSelection> _readGuidedWorkshop({
     await result.requireCurrent();
     return result;
   });
+}
+
+Set<String> _guidedConditionFactIds(Object? value) {
+  final result = <String>{};
+  void visit(Object? item) {
+    if (item is Map) {
+      if (item['sourceKind'] == 'fact' && item['sourceId'] is String) {
+        final id = item['sourceId'] as String;
+        if (id.isNotEmpty) result.add(id);
+      }
+      for (final child in item.values) {
+        visit(child);
+      }
+    } else if (item is List) {
+      item.forEach(visit);
+    }
+  }
+  visit(value);
+  return result;
 }

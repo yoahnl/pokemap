@@ -5,6 +5,76 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+      'Fact identity indexes require explicit preparation and never self-certify on a local edit',
+      () async {
+    final fixture =
+        _Fixture.units([_definition(0, 'enabled', alias: 'shared')]);
+    final snapshot = await fixture.open();
+    final stateKey = CatalogMetadataDocuments.fieldKey('facts');
+    final payload = {...(await snapshot.lookup(stateKey))!.payload}
+      ..remove('factRuntimeIdentitiesVersion');
+    final patch = await snapshot.patch(
+        upserts: [CatalogDefinitionUnit(key: stateKey, payload: payload)]);
+    fixture.objects.addAll(patch.objects);
+    fixture.root = patch.root;
+    final reopened = await fixture.open();
+    fixture.readDefinitions.clear();
+    await expectLater(
+        CatalogMetadataDocuments.readFactIdsForRuntimeIdentity(
+            snapshot: reopened, runtimeIdentity: 'shared'),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', contains('preparation_required'))));
+    expect(fixture.readDefinitions, isEmpty);
+    final maintained = await CatalogMetadataDocuments.maintain(
+        lookup: reopened.lookup,
+        upserts: [_definition(0, 'enabled', alias: 'other')]);
+    final state = maintained.singleWhere((unit) => unit.key == stateKey);
+    expect(state.payload.containsKey('factRuntimeIdentitiesVersion'), isFalse);
+    expect(
+        maintained.any((unit) =>
+            unit.key ==
+            CatalogMetadataDocuments.factRuntimeIdentityKey('other')),
+        isFalse);
+  });
+  for (final unrelated in [0, 900]) {
+    test(
+        'Fact identity facets select and maintain aliases with $unrelated unrelated Facts',
+        () async {
+      final fixture = _Fixture.units([
+        _definition(0, 'enabled', alias: 'shared'),
+        _definition(1, 'conflict', alias: 'shared'),
+        for (var i = 0; i < unrelated; i++) _definition(i + 2, 'unused_$i'),
+      ]);
+      final snapshot = await fixture.open();
+      fixture.readDefinitions.clear();
+      fixture.readUnits.clear();
+      expect(
+          await CatalogMetadataDocuments.readFactIdsForRuntimeIdentity(
+              snapshot: snapshot, runtimeIdentity: 'shared'),
+          {'enabled', 'conflict'});
+      expect(fixture.readDefinitions, isEmpty);
+      expect(fixture.readUnits, [
+        CatalogMetadataDocuments.fieldKey('facts'),
+        CatalogMetadataDocuments.factRuntimeIdentityKey('shared')
+      ]);
+      final changes = [_definition(0, 'enabled', alias: 'other')];
+      final maintained = await CatalogMetadataDocuments.maintain(
+          lookup: snapshot.lookup, upserts: changes);
+      final patch = await snapshot.patch(upserts: [...changes, ...maintained]);
+      fixture.objects.addAll(patch.objects);
+      fixture.root = patch.root;
+      final reopened = await fixture.open();
+      expect(
+          await CatalogMetadataDocuments.readFactIdsForRuntimeIdentity(
+              snapshot: reopened, runtimeIdentity: 'shared'),
+          {'conflict'});
+      expect(
+          await CatalogMetadataDocuments.readFactIdsForRuntimeIdentity(
+              snapshot: reopened, runtimeIdentity: 'other'),
+          {'enabled'});
+    });
+  }
   for (final unrelated in [0, 900]) {
     test(
         'step owner facets remain targeted with $unrelated unrelated storylines',
@@ -464,7 +534,7 @@ CatalogDefinitionKey _definitionKey(String field, int position) =>
     );
 
 CatalogDefinitionUnit _definition(int position, String id,
-        {String? label, String? extra}) =>
+        {String? label, String? extra, String? alias}) =>
     CatalogDefinitionUnit(
       key: _definitionKey('facts', position),
       payload: {
@@ -474,8 +544,9 @@ CatalogDefinitionUnit _definition(int position, String id,
         if (extra != null) 'future': extra,
         'value': {
           'field': 'facts',
-          'definition':
-              NarrativeFactDefinition(id: id, label: label ?? id).toJson()
+          'definition': NarrativeFactDefinition(
+                  id: id, label: label ?? id, legacyFlagName: alias)
+              .toJson()
         },
       },
     );

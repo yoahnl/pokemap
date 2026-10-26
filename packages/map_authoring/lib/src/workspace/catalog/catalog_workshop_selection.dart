@@ -21,6 +21,7 @@ import '../../domains/narrative/standard_event_template.dart';
 part 'catalog_gameplay_workshop_selection.dart';
 part 'catalog_guided_workshop_selection.dart';
 part 'catalog_model_light_selection.dart';
+part 'catalog_audio_media_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
@@ -64,6 +65,7 @@ final class CatalogWorkshopSelection {
           parameters != null &&
           parameters.containsKey('light') &&
           parameters.keys.every((key) => {'modelId', 'light'}.contains(key))) ||
+      action == 'scene.dialogue.audioMedia.import' ||
       _guidedActions.contains(action) ||
       _gameplayActions.contains(action) ||
       const {
@@ -141,6 +143,13 @@ final class CatalogWorkshopSelection {
       }
       return _readModelLightWorkshop(
           reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
+    if (actionId == 'scene.dialogue.audioMedia.import') {
+      return _readAudioMediaWorkshop(
+          reader: reader,
+          projectHandle: projectHandle,
+          parameters: parameters,
+          readDependencies: readDependencies);
     }
     if (_guidedActions.contains(actionId)) {
       return _readGuidedWorkshop(

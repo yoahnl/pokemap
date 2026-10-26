@@ -513,6 +513,7 @@ final class _NarrativeDependencyIndexBuilder {
     _collectMaps();
     _collectNewGame();
     _collectDefeatRecovery();
+    _collectBattleSavings();
     _collectMapScriptReferences();
     _collectRailMapReferences();
     _collectEvents();
@@ -697,6 +698,19 @@ final class _NarrativeDependencyIndexBuilder {
         label,
         path: 'eventRegistry.records[${record.id}]',
         metadata: <String, String>{'publicationStatus': publicationStatus},
+      );
+    }
+  }
+
+  void _collectBattleSavings() {
+    final config = project.battleSavings;
+    if (config == null) return;
+    for (final entry in {'enabledFactId': config.enabledFactId, 'balanceFactId': config.balanceFactId}.entries) {
+      _usage(
+        target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, entry.value),
+        owner: const NarrativeDependencyKey(NarrativeDependencyTargetKind.sourceMap, 'battleSavings', scope: 'project', sourceKind: 'battleSavings'),
+        path: 'battleSavings.${entry.key}',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking,
       );
     }
   }

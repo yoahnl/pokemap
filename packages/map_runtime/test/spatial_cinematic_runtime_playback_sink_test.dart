@@ -6,6 +6,135 @@ import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtim
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
+  test('cinematic hour override keeps inherited clock mode out of its sparse overlay', () async {
+    final host = _Host();
+    host.baseVisual = SpatialVisualPatch.fromJson({'timeMode': 'real', 'weatherMode': 'automatic', 'weatherSequence': ['clear', 'rain']});
+    final controller = host.controller();
+    final done = controller.play(_asset().copyWith(timeline: CinematicTimeline(steps: [CinematicTimelineStep(id: 'night', kind: CinematicTimelineStepKind.atmosphere, durationMs: 1000,
+      visualSettings: SpatialVisualPatch.fromJson({'minuteOfDay': 1320, 'weatherKind': 'storm'}))])));
+    controller.update(const Duration(milliseconds: 500));
+    expect(host.visual.choice(SpatialVisualParameter.timeMode), isNull);
+    expect(host.visual.choice(SpatialVisualParameter.weatherMode), isNull);
+    final frame = resolveWorldEnvironment(settings: host.baseVisual.overriddenBy(host.visual), overrides: host.visual, elapsedSeconds: 0);
+    expect(frame.minuteOfDay, 1020);
+    controller.cancel();
+    expect((await done).success, isFalse);
+    expect(host.visual.isEmpty, isTrue);
+  });
+  test('player terminal precision snapping cannot leave the active map', () async {
+    final host = _Host();
+    host.containsPoint = (x, z) => x >= 0 && x < 16 && z >= 0 && z < 8;
+    final controller = host.controller();
+    final done = controller.play(_precisionAsset(kind: CinematicActorBindingKind.player,
+      x: 8 - 1e-9, initialPlacement: true));
+    if (controller.isPlaying) {
+      controller.update(const Duration(milliseconds: 1000));
+    }
+    expect((await done).success, isFalse);
+    expect(host.writes, 0);
+    expect(host.lockChanges, isEmpty);
+  });
+
+  for (final kind in ['actorMove', 'actorJump']) {
+  test('player may cross a connected neighbor before returning to the active map: $kind', () async {
+    final host = _Host();
+    host.containsPoint = (x, z) => x >= 0 && x < 16 && z >= 0 && z < 8;
+    final value = _asset().toJson();
+    final context = Map<String, dynamic>.from(value['stageContext'] as Map);
+    context['actorBindings'] = [{'actorId': 'guide', 'kind': 'player'}];
+    context['stagePoints'] = [
+      {'id': 'out', 'label': 'Neighbor', 'x': 10, 'y': 3},
+      {'id': 'end', 'label': 'Return', 'x': 4, 'y': 3}];
+    context['movementTargetBindings'] = [for (final id in ['out', 'end'])
+      {'targetId': id, 'kind': 'stagePoint', 'sourceId': id}];
+    value['stageContext'] = context;
+    value['movementTargets'] = [for (final id in ['out', 'end']) {'targetId': id, 'label': id}];
+    value['timeline'] = {'steps': [for (final id in ['out', 'end'])
+      {'id': id, 'kind': id == 'out' ? kind : 'actorMove', 'actorId': 'guide', 'targetId': id, 'durationMs': 500,
+        'metadata': {'actor.movementMode': 'walk', 'actor.pathMode': 'direct', 'actor.jumpHeightCells': '1'}}]};
+    final controller = host.controller();
+    final done = controller.play(CinematicAsset.fromJson(value));
+    controller.update(const Duration(milliseconds: 500));
+    expect(host.pose.x, 10);
+    controller.update(const Duration(milliseconds: 500));
+    expect((await done).success, isTrue);
+    expect(host.committed.single.x, 4);
+  });
+  }
+
+  for (final kind in CinematicActorBindingKind.values.where((kind) =>
+      kind == CinematicActorBindingKind.player || kind == CinematicActorBindingKind.mapEntity)) {
+    test('connected terminal coordinates preserve active player ownership: ${kind.name}', () async {
+      final host = _Host();
+      host.containsPoint = (x, z) => x >= 0 && x < 16 && z >= 0 && z < 8;
+      final asset = _precisionAsset(kind: kind, x: 10, initialPlacement: true);
+      final controller = host.controller();
+      final done = controller.play(asset);
+      if (controller.isPlaying) {
+        controller.update(const Duration(milliseconds: 1000));
+      }
+      final result = await done;
+      expect(result.success, kind != CinematicActorBindingKind.player);
+      if (kind == CinematicActorBindingKind.player) {
+        expect(host.writes, 0);
+        expect(host.lockChanges, isEmpty);
+        expect(host.committed, isEmpty);
+      } else {
+        expect(host.committed.single.x, 10);
+      }
+    });
+  }
+
+  test(
+    'loaded connected spatial bounds admit an outside actor and camera',
+    () async {
+      final host = _Host();
+      host.pose = const SpatialCinematicActorPose(
+        x: 10,
+        z: 3,
+        facing: EntityFacing.west,
+      );
+      host.containsPoint = (x, z) => x >= 0 && x < 16 && z >= 0 && z < 8;
+      host.heightAt = (x, z) => x >= 8 ? 2 : 0;
+      final base = _asset(withCamera: true);
+      final camera = CinematicTimelineStep(
+        id: 'camera', kind: CinematicTimelineStepKind.camera, durationMs: 1000,
+        metadata: const {
+          'camera.mode': 'focus',
+          'camera.targetKind': 'actor',
+          'camera.targetActorId': 'guide',
+          'camera.zoomPreset': 'close',
+        },
+      );
+      final asset = base.copyWith(
+        timeline: CinematicTimeline(steps: [camera, base.timeline.steps.last]),
+      );
+      final controller = host.controller();
+      final done = controller.play(asset);
+      controller.update(const Duration(milliseconds: 1000));
+      expect(host.camera?.x, 10);
+      expect(host.camera?.y, 2);
+      controller.update(const Duration(milliseconds: 1000));
+      expect((await done).success, isTrue);
+      expect(host.pose.x, 4);
+    },
+  );
+
+  test(
+    'outside actor without authorized loaded bounds rejects before writes',
+    () async {
+      final host = _Host();
+      host.pose = const SpatialCinematicActorPose(
+        x: 10,
+        z: 3,
+        facing: EntityFacing.west,
+      );
+      expect((await host.controller().play(_asset())).success, isFalse);
+      expect(host.writes, 0);
+      expect(host.lockChanges, isEmpty);
+    },
+  );
+
   test('stationary native movement animates from the exact captured actor pose', () async {
     for (final mode in ['walk', 'run']) {
       final host = _Host();
@@ -660,6 +789,7 @@ void main() {
 }
 
 final class _Host {
+  SpatialVisualPatch baseVisual = SpatialVisualPatch();
   SpatialVisualPatch visual = SpatialVisualPatch();
   double? fadeOpacity;
   final project = const ProjectManifest(
@@ -685,11 +815,16 @@ final class _Host {
   final committed = <SpatialCinematicActorPose>[];
   bool Function(double, double, double, double)? blocked;
 
+  bool Function(double, double)? containsPoint;
+  double Function(double, double)? heightAt;
+
   CinematicRuntimePlaybackController controller() =>
       CinematicRuntimePlaybackController(
           sink: SpatialCinematicRuntimePlaybackSink(
         project: project,
-        readVisuals: () => SpatialVisualPatch.fromScene(camera: map.spatialScene!.camera, atmosphere: SpatialAtmosphereSettings()).overriddenBy(visual),
+        containsPoint: containsPoint,
+          heightAt: heightAt,
+        readVisuals: () => SpatialVisualPatch.fromScene(camera: map.spatialScene!.camera, atmosphere: SpatialAtmosphereSettings()).overriddenBy(baseVisual).overriddenBy(visual),
         readVisualOverrides: () => visual,
         writeVisuals: (value) => visual = value,
         writeFadeOpacity: (value) => fadeOpacity = value,

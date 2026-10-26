@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'di/home_providers.dart';
 import 'di/rendering_providers.dart';
 import '../features/rendering/application/studio_rendering_preferences.dart';
+import '../features/project_session/data/local_project_history_maintenance_adapter.dart';
 import '../presentation/features/rendering/studio_display_preferences.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
@@ -39,6 +40,7 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   Future<bool> Function()? _exitGuard;
   String? _guardSession;
   bool _creatorVisible = false;
+  bool _historyMaintenanceBusy = false;
 
   @override
   void initState() {
@@ -62,7 +64,7 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   }
 
   Future<bool> _canRestartUpdate() async {
-    if (_creatorVisible) return false;
+    if (_creatorVisible || _historyMaintenanceBusy) return false;
     return _exitGuard == null || await _exitGuard!();
   }
 
@@ -94,6 +96,8 @@ class _StudioAppState extends ConsumerState<StudioApp> {
         chooseCreationParent: ref.watch(projectCreationPickerProvider),
         releaseCreationParent: ref.watch(projectCreationReleaseProvider),
         onCreatorVisibility: (visible) => _creatorVisible = visible,
+        historyMaintenance: LocalProjectHistoryMaintenanceAdapter(),
+        onMaintenanceBusy: (busy) => _historyMaintenanceBusy = busy,
         workspaceBuilder: widget.workspaceBuilder == null
             ? null
             : (session, close) =>

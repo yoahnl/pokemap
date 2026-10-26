@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:avelune_studio/app/studio_bootstrap.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
+import 'package:avelune_studio/platform/files/scoped_project_session_adapter.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/platform/playtest/studio_spatial_playtest_view.dart';
@@ -192,7 +193,9 @@ Future<void> main() async {
   if (root != configured) {
     throw StateError('The project path must be canonical: $root');
   }
-  final session = ProjectSessionController(LocalProjectSessionAdapter());
+  final session = ProjectSessionController(
+    ScopedProjectSessionAdapter(LocalProjectSessionAdapter()),
+  );
   await session.open(root);
   final active = session.state.project;
   if (active == null || active.directoryPath != root) {

@@ -5,9 +5,10 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  for (final sound in [false, true]) {
   for (final sidecar in [false, true]) {
     test(
-        'weather admission is capability gated for ${sidecar ? 'atmosphere' : 'visual'} documents',
+        'weather sound=$sound admission is capability gated for ${sidecar ? 'atmosphere' : 'visual'} documents',
         () {
       final files = spatialPayload();
       files[sidecar
@@ -18,13 +19,14 @@ void main() {
                       mapId: 'map',
                       settings: SpatialAtmosphereSettings(
                           weather: SpatialWeatherSettings(
-                              enabled: true, kind: SpatialWeatherKind.snow)))
+                              enabled: true, kind: SpatialWeatherKind.snow, soundEnabled: sound)))
                   .toJson()
               : SpatialVisualDocument(
                   profile: SpatialVisualPatch.fromJson({
                   'weatherEnabled': true,
                   'weatherKind': 'snow',
-                  'weatherIntensity': .8
+                  'weatherIntensity': .8,
+                  if (sound) 'weatherSoundEnabled': true
                 })).toJson()));
       final base = [
         'map3d@1',
@@ -38,9 +40,13 @@ void main() {
               (e) => e.message,
               'capability',
               contains(SpatialWeatherCapabilities.capabilityId))));
+      if (sound) {
+        expect(() => const GamePackageBuilder().build(manifest: spatialManifest(capabilities: [...base, SpatialWeatherCapabilities.capabilityId]), payloadFiles: files),
+          throwsA(isA<GamePackageFormatException>().having((e) => e.message, 'capability', contains(SpatialWeatherCapabilities.soundCapabilityId))));
+      }
       final built = const GamePackageBuilder().build(
           manifest: spatialManifest(
-              capabilities: [...base, SpatialWeatherCapabilities.capabilityId]),
+              capabilities: [...base, SpatialWeatherCapabilities.capabilityId, if (sound) SpatialWeatherCapabilities.soundCapabilityId]),
           payloadFiles: files);
       expect(
           const GamePackageInspector()
@@ -52,5 +58,6 @@ void main() {
       expect(AveluneRuntimeCompatibility.host().capabilities,
           contains(SpatialWeatherCapabilities.capabilityId));
     });
+  }
   }
 }

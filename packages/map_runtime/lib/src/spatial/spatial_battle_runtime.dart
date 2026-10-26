@@ -72,6 +72,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   RuntimePsdkBattleSessionAdapter? _engine;
   RuntimeMapBundle? _bundle;
   GameState? _base;
+  SceneBattleDefeatRecovery _defeatRecovery =
+      SceneBattleDefeatRecovery.returnToRecoveryPoint;
   GameState? _working;
   ItemCatalogSnapshot? _items;
   RuntimePostBattleDecisionCoordinator? _coordinator;
@@ -206,12 +208,15 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   Future<bool> start({
     required RuntimeMapBundle bundle,
     required BattleStartRequest request,
+    SceneBattleDefeatRecovery defeatRecovery =
+        SceneBattleDefeatRecovery.returnToRecoveryPoint,
   }) {
     if (_disposed || isActive) return Future.value(false);
     final completion = _completion = Completer<bool>();
     final generation = ++_generation;
     error = null;
     _base = readGameState();
+    _defeatRecovery = defeatRecovery;
     _bundle = bundle;
     phase = SpatialBattlePhase.loading;
     _setBattleSnapshot(null);
@@ -781,7 +786,20 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         throw StateError('Post battle decisions are incomplete.');
       }
       final outcome = displaySession!.state.outcome!;
-      if (outcome.isDefeat) {
+      if (outcome.isDefeat &&
+          _defeatRecovery == SceneBattleDefeatRecovery.continueScene) {
+        final battleContext = context!;
+        finalState = applyRuntimeDefeatRecoveryToGameState(
+          gameState: finalState,
+          playerPartyIndex: battleContext.playerPartyIndex,
+          activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
+          playerPartySlotIndicesByLineupIndex:
+              battleContext.playerPartySlotIndicesByLineupIndex,
+          playerIndividualId: battleContext.playerIndividualId,
+          playerIndividualIdsByLineupIndex:
+              battleContext.playerIndividualIdsByLineupIndex,
+        );
+      } else if (outcome.isDefeat) {
         final caps = await loadRuntimePlayerServiceRecoveryCaps(
           gameState: finalState,
           projectRootDirectory: _bundle!.projectRootDirectory,

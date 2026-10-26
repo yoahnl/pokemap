@@ -536,6 +536,31 @@ final class CatalogStoragePatch {
   }
 }
 
+final class CatalogSnapshotDelta {
+  CatalogSnapshotDelta._({
+    required this.beforeRoot,
+    required this.root,
+    required this.limits,
+    required Iterable<CatalogDefinitionUnit> upserts,
+    required Iterable<CatalogDefinitionKey> removals,
+    required Iterable<CatalogObjectReference> addedObjects,
+    required Iterable<CatalogObjectReference> removedObjects,
+    required this.storedBytes,
+  }) : upserts = List.unmodifiable(upserts),
+       removals = List.unmodifiable(removals),
+       addedObjects = List.unmodifiable(addedObjects),
+       removedObjects = List.unmodifiable(removedObjects);
+
+  final List<CatalogDefinitionUnit> upserts;
+  final CatalogObjectReference beforeRoot;
+  final CatalogObjectReference root;
+  final CatalogStorageLimits limits;
+  final List<CatalogDefinitionKey> removals;
+  final List<CatalogObjectReference> addedObjects;
+  final List<CatalogObjectReference> removedObjects;
+  final int storedBytes;
+}
+
 final class CatalogSnapshot {
   CatalogSnapshot._(
     this.root,
@@ -729,6 +754,20 @@ final class CatalogSnapshot {
       throw const FormatException('catalog.admission: invalid stored bytes');
     }
     _admittedStoredBytes = storedBytes;
+  }
+
+  Future<CatalogSnapshotDelta> deltaFrom(CatalogSnapshot admitted) =>
+      _CatalogSnapshotDeltaBuilder(admitted, this).build();
+
+  Future<CatalogSnapshotDelta> admitFrom(CatalogSnapshot admitted) async {
+    final delta = await deltaFrom(admitted);
+    if (delta.removals.isNotEmpty) {
+      throw const FormatException(
+        'catalog.delta: removal dependency proof required',
+      );
+    }
+    _admittedStoredBytes = delta.storedBytes;
+    return delta;
   }
 
   final _indexPages = <CatalogObjectReference, Future<_CatalogIndexPage>>{};
@@ -1084,8 +1123,9 @@ final class CatalogSnapshot {
     await _inspectObjectReferences(validateUnits: false);
   }
 
-  Future<List<CatalogObjectReference>> objectReferences() =>
-      _inspectObjectReferences(validateUnits: true);
+  Future<List<CatalogObjectReference>> objectReferences({
+    void Function(CatalogDefinitionUnit unit)? onUnit,
+  }) => _inspectObjectReferences(validateUnits: true, onUnit: onUnit);
 
   Future<List<CatalogDefinitionUnit>> readAllUnits() async {
     final units = <CatalogDefinitionUnit>[];
@@ -1243,6 +1283,192 @@ final class CatalogSnapshot {
       await visit(_index);
     }
     return found;
+  }
+}
+
+final class _CatalogSnapshotDeltaBuilder {
+  _CatalogSnapshotDeltaBuilder(this.before, this.after);
+
+  final CatalogSnapshot before;
+  final CatalogSnapshot after;
+  final _beforeObjects = <String, CatalogObjectReference>{};
+  final _afterObjects = <String, CatalogObjectReference>{};
+  final _beforeEntries = <CatalogDefinitionKey, CatalogIndexEntry>{};
+  final _afterEntries = <CatalogDefinitionKey, CatalogIndexEntry>{};
+
+  void _record(
+    Map<String, CatalogObjectReference> objects,
+    CatalogObjectReference reference,
+  ) {
+    final existing = objects[reference.sha256];
+    if (existing != null && existing != reference) {
+      throw const FormatException(
+        'catalog.delta: conflicting object reference',
+      );
+    }
+    objects[reference.sha256] = reference;
+  }
+
+  Future<void> _expand(
+    CatalogSnapshot snapshot,
+    List<_Node> pending,
+    Map<String, CatalogObjectReference> objects,
+    Map<CatalogDefinitionKey, CatalogIndexEntry> entries,
+  ) async {
+    final node = pending.removeLast();
+    _record(objects, node.reference);
+    final page = await snapshot._indexPage(node.reference, reuse: true);
+    if (node.height == 0) {
+      final values = page.entries;
+      if (values == null ||
+          values.isEmpty ||
+          values.length != node.count ||
+          values.first.key != node.first ||
+          values.last.key != node.last) {
+        throw const FormatException('catalog.delta: invalid leaf descriptor');
+      }
+      for (final entry in values) {
+        if (entries.containsKey(entry.key)) {
+          throw const FormatException('catalog.delta: repeated definition');
+        }
+        entries[entry.key] = entry;
+      }
+      return;
+    }
+    final children = page.children;
+    if (children == null ||
+        children.isEmpty ||
+        children.first.first != node.first ||
+        children.last.last != node.last ||
+        children.fold<int>(0, (sum, child) => sum + child.count) !=
+            node.count ||
+        children.any((child) => child.height != node.height - 1)) {
+      throw const FormatException('catalog.delta: invalid branch descriptor');
+    }
+    for (var index = 1; index < children.length; index++) {
+      if (children[index - 1].last.compareTo(children[index].first) >= 0) {
+        throw const FormatException('catalog.delta: unordered ranges');
+      }
+    }
+    pending.addAll(children.reversed);
+  }
+
+  Future<CatalogSnapshotDelta> build() async {
+    final admittedBytes = before.admittedStoredBytes;
+    if (admittedBytes == null) {
+      throw StateError('catalog.delta: admitted source required');
+    }
+    final a = before.limits;
+    final b = after.limits;
+    if (a.maxUnitBytes != b.maxUnitBytes ||
+        a.maxIndexBytes != b.maxIndexBytes ||
+        a.indexPageSize != b.indexPageSize ||
+        a.maxDefinitions != b.maxDefinitions ||
+        a.maxJsonDepth != b.maxJsonDepth ||
+        a.maxJsonValues != b.maxJsonValues ||
+        a.maxReferencesPerUnit != b.maxReferencesPerUnit ||
+        a.maxIndexDepth != b.maxIndexDepth ||
+        a.maxClosureNodes != b.maxClosureNodes ||
+        a.maxClosureDepth != b.maxClosureDepth ||
+        a.maxStoredBytes != b.maxStoredBytes) {
+      throw const FormatException('catalog.delta: limits differ');
+    }
+    _record(_beforeObjects, before.root);
+    _record(_afterObjects, after.root);
+    final oldPending = <_Node>[if (before._index != null) before._index!];
+    final newPending = <_Node>[if (after._index != null) after._index!];
+    while (oldPending.isNotEmpty || newPending.isNotEmpty) {
+      if (oldPending.isNotEmpty && newPending.isNotEmpty) {
+        final old = oldPending.last;
+        final next = newPending.last;
+        if (old.reference == next.reference) {
+          if (jsonEncode(old.toJson()) != jsonEncode(next.toJson())) {
+            throw const FormatException(
+              'catalog.delta: shared descriptor differs',
+            );
+          }
+          oldPending.removeLast();
+          newPending.removeLast();
+          continue;
+        }
+        if (old.last.compareTo(next.first) < 0) {
+          await _expand(before, oldPending, _beforeObjects, _beforeEntries);
+        } else if (next.last.compareTo(old.first) < 0) {
+          await _expand(after, newPending, _afterObjects, _afterEntries);
+        } else if (old.height >= next.height) {
+          await _expand(before, oldPending, _beforeObjects, _beforeEntries);
+        } else {
+          await _expand(after, newPending, _afterObjects, _afterEntries);
+        }
+      } else if (oldPending.isNotEmpty) {
+        await _expand(before, oldPending, _beforeObjects, _beforeEntries);
+      } else {
+        await _expand(after, newPending, _afterObjects, _afterEntries);
+      }
+    }
+    final keys = {..._beforeEntries.keys, ..._afterEntries.keys}.toList()
+      ..sort();
+    final upserts = <CatalogDefinitionUnit>[];
+    final removals = <CatalogDefinitionKey>[];
+    var expectedCount = before.definitionCount;
+    for (final key in keys) {
+      final old = _beforeEntries[key];
+      final next = _afterEntries[key];
+      if (old != null &&
+          next != null &&
+          old.reference == next.reference &&
+          jsonEncode(old.summary.toJson()) ==
+              jsonEncode(next.summary.toJson())) {
+        continue;
+      }
+      if (old != null) _record(_beforeObjects, old.reference);
+      if (next == null) {
+        removals.add(key);
+        expectedCount--;
+      } else {
+        _record(_afterObjects, next.reference);
+        upserts.add(await after._unit(next));
+        if (old == null) expectedCount++;
+      }
+    }
+    if (expectedCount != after.definitionCount) {
+      throw const FormatException('catalog.delta: definition count mismatch');
+    }
+    for (final unit in upserts) {
+      for (final reference in unit.references) {
+        if (await after.indexEntry(reference) == null) {
+          throw const FormatException('catalog.delta: missing dependency');
+        }
+      }
+    }
+    for (final digest in _beforeObjects.keys.toList()) {
+      final shared = _afterObjects[digest];
+      if (shared == null) continue;
+      if (_beforeObjects[digest] != shared) {
+        throw const FormatException(
+          'catalog.delta: conflicting object reference',
+        );
+      }
+      _beforeObjects.remove(digest);
+      _afterObjects.remove(digest);
+    }
+    final bytes =
+        admittedBytes -
+        _beforeObjects.values.fold<int>(0, (sum, ref) => sum + ref.byteLength) +
+        _afterObjects.values.fold<int>(0, (sum, ref) => sum + ref.byteLength);
+    if (bytes < after.root.byteLength || bytes > after.limits.maxStoredBytes) {
+      throw const FormatException('catalog.delta: stored byte budget');
+    }
+    return CatalogSnapshotDelta._(
+      beforeRoot: before.root,
+      root: after.root,
+      limits: after.limits,
+      upserts: upserts,
+      removals: removals,
+      addedObjects: _afterObjects.values,
+      removedObjects: _beforeObjects.values,
+      storedBytes: bytes,
+    );
   }
 }
 

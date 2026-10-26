@@ -9,6 +9,48 @@ import 'package:map_render_3d/src/spatial_point_light.dart';
 import 'package:map_render_3d/src/spatial_authored_shadows.dart';
 
 void main() {
+  test('real time and fixed time drive the same controller frame, cycle preview retains play and pause', () {
+    var now = DateTime(2026, 10, 26, 22);
+    final controller = SpatialSceneController(now: () => now);
+    addTearDown(controller.dispose);
+    controller.visualProfile = SpatialVisualPatch.fromJson({'timeMode': 'real'});
+    controller.advanceEnvironment(1, controller.effectiveCycle(null), null);
+    expect(controller.dayNightMinuteOfDay, 1320);
+    now = DateTime(2026, 10, 27, 6);
+    controller.advanceEnvironment(0, controller.effectiveCycle(null), null);
+    expect(controller.dayNightMinuteOfDay, 360);
+    controller.visualProfile = SpatialVisualPatch.fromJson({'timeMode': 'fixed', 'minuteOfDay': 720});
+    controller.advanceEnvironment(50, controller.effectiveCycle(null), null);
+    expect(controller.dayNightMinuteOfDay, 720);
+    controller.visualProfile = SpatialVisualPatch.fromJson({'timeMode': 'cycle', 'minuteOfDay': 360, 'dayDurationSeconds': 1200});
+    controller.advanceEnvironment(10, controller.effectiveCycle(null), null);
+    expect(controller.dayNightMinuteOfDay, 360);
+    controller.previewDayNightRunning = true;
+    controller.advanceEnvironment(10, controller.effectiveCycle(null), null);
+    expect(controller.dayNightMinuteOfDay, 372);
+    controller.previewDayNightRunning = false;
+    controller.advanceEnvironment(10, controller.effectiveCycle(null), null);
+    expect(controller.dayNightMinuteOfDay, 372);
+    controller.worldEnvironment = const WorldEnvironmentFrame(minuteOfDay: 1020);
+    controller.advanceEnvironment(0, controller.effectiveCycle(null), null);
+    expect(controller.dayNightMinuteOfDay, 1020);
+  });
+  test('resolved automatic weather updates the render controller without replacing local settings', () {
+    final controller = SpatialSceneController();
+    addTearDown(controller.dispose);
+    controller.visualProfile = SpatialVisualPatch.fromJson({'weatherEnabled': true, 'weatherKind': 'clear', 'weatherIntensity': .8});
+    final authored = controller.visualProfile;
+    controller.worldEnvironment = const WorldEnvironmentFrame(minuteOfDay: 1320, weatherKind: SpatialWeatherKind.rain);
+    final rain = controller.weatherSettings;
+    expect(rain.kind, SpatialWeatherKind.rain);
+    expect(rain.intensity, .8);
+    expect(controller.weatherSettings, same(rain));
+    controller.worldEnvironment = const WorldEnvironmentFrame(minuteOfDay: 360, weatherKind: SpatialWeatherKind.snow);
+    expect(controller.weatherSettings.kind, SpatialWeatherKind.snow);
+    expect(controller.visualProfile, same(authored));
+    controller.worldEnvironment = null;
+    expect(controller.weatherSettings.kind, SpatialWeatherKind.clear);
+  });
   test(
     'solar direction crosses the day with an exact noon and bounded horizon',
     () {

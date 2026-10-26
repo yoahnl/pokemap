@@ -24,6 +24,7 @@ import '../transactions/idempotency_ledger.dart';
 import '../transactions/journaled_transaction.dart';
 import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
+import '../transactions/revision_set.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import 'catalog_generation_retention.dart';
 import 'catalog_revert_merge.dart';
@@ -39,6 +40,8 @@ final class CatalogEditingPlan {
   String get operationId => _operationId;
   final CatalogObjectReference root;
   CatalogStoragePatch? _patch;
+  Map<String, int>? _retentionCosts;
+  List<AuthoringHistoryResourceChange>? _retentionChanges;
   final Object _owner;
   final Future<String> Function()? _currentProjectRevision;
   bool _settled = false;
@@ -105,15 +108,19 @@ final class CatalogEditingSession {
     final reader = await retention.openSnapshot();
     try {
       await store.restoreIndexAdmission(reader.snapshot);
+      final historyStore = history ??
+          await FileAuthoringHistoryStore.open(
+              projectRoot: store.projectRoot,
+              incrementalWrites: incrementalHistory);
+      if (historyStore is FileAuthoringHistoryStore) {
+        await historyStore.ensureRetentionWindowIfEmpty(projectId);
+      }
       return CatalogEditingSession._(
           store: store,
           projectId: projectId,
           actorId: actorId,
           incrementalHistory: incrementalHistory,
-          history: history ??
-              await FileAuthoringHistoryStore.open(
-                  projectRoot: store.projectRoot,
-                  incrementalWrites: incrementalHistory),
+          history: historyStore,
           blobs: blobs ??
               await FileAuthoringContentBlobStore.open(
                   projectRoot: store.projectRoot),
@@ -266,10 +273,11 @@ final class CatalogEditingSession {
   }
 
   Future<void> prepareFinalizedJournals() => _serialize(() async {
-    _requireOpen();
-    await _transaction.prepareFinalizedJournals(requireHistory: (journal) =>
-        requireFinalizedJournalHistory(journal: journal, history: history, blobs: blobs));
-  });
+        _requireOpen();
+        await _transaction.prepareFinalizedJournals(
+            requireHistory: (journal) => requireFinalizedJournalHistory(
+                journal: journal, history: history, blobs: blobs));
+      });
 
   Future<void> prepareMetadataDocuments({bool force = false}) =>
       _serialize(() async {
@@ -284,11 +292,17 @@ final class CatalogEditingSession {
                     marker?.payload['trainerReferencesVersion'] != 1) ||
                 (field == 'scenes' &&
                     marker?.payload['sceneDialogueReferencesVersion'] != 1) ||
-                (field == 'storylines' && marker?.payload['stepReferencesVersion'] != 1)) {
+                (field == 'storylines' &&
+                    marker?.payload['stepReferencesVersion'] != 1)) {
               prepared = false;
               break;
             }
           }
+        }
+        if (prepared &&
+            !await CatalogMetadataDocuments.narrativeEventIndexPrepared(
+                snapshot)) {
+          prepared = false;
         }
         if (prepared) return;
         final units = await snapshot.readAllUnits();
@@ -421,15 +435,13 @@ final class CatalogEditingSession {
           roots: [patch.beforeRoot, patch.root],
           ownerId: operationId,
           purpose: CatalogLeasePurpose.preparation);
+      CatalogEditingPlan? prepared;
       try {
-        await store.publishObjectsUnderLock(patch.objects);
-        final next = await patch.nextSnapshot(readObject: lease.readObject);
-        await store.publishIndexAdmissionUnderLock(next);
-        if (prepareMetadataDocuments ||
-            await store.metadataIndexPrepared(base)) {
-          await store.publishMetadataIndexAdmissionUnderLock(next);
-        }
-        return _prepare(
+        final next = await patch.nextSnapshot(
+            readObject: (reference) async =>
+                patch.objects[reference.sha256] ??
+                await lease.readObject(reference));
+        prepared = _prepare(
             before: base.root,
             next: next,
             operationId: operationId,
@@ -444,7 +456,20 @@ final class CatalogEditingSession {
             additionalChanges: additional,
             currentProjectRevision: currentProjectRevision,
             patch: patch);
+        await _checkRetentionCosts(prepared, projected: next);
+        await store.publishObjectsUnderLock(patch.objects);
+        await store.publishIndexAdmissionUnderLock(next);
+        if (prepareMetadataDocuments ||
+            await store.metadataIndexPrepared(base)) {
+          await store.publishMetadataIndexAdmissionUnderLock(next);
+        }
+        return prepared;
       } on Object {
+        if (prepared != null) {
+          prepared._invalidated = true;
+          _prepared.remove(prepared.plan.planId);
+          await _plans.discard(prepared.plan.planId);
+        }
         await retention.releaseUnderLock(lease.id);
         rethrow;
       }
@@ -519,6 +544,7 @@ final class CatalogEditingSession {
     final currentRevision = prepared._currentProjectRevision == null
         ? 'sha256:${snapshot.root.sha256}'
         : await prepared._currentProjectRevision();
+    await _checkRetentionCosts(prepared);
     final receipt = await _transaction.apply(
         planId: prepared.plan.planId,
         request: prepared.plan.request,
@@ -537,14 +563,15 @@ final class CatalogEditingSession {
           await _requireAdmission(before, ownOperationId: prepared.operationId);
           await _requireProjectRevision(
               prepared._currentProjectRevision, prepared.plan.baseRevision);
+          await _checkRetentionCosts(prepared);
           await precondition?.call();
           if (context.expectedHeadEntryId != null) {
             final head = await readAuthoringHistoryHead(history, projectId);
             if (head?.entryId != context.expectedHeadEntryId) {
               throw AuthoringHistoryException(
-                  context.kind == AuthoringHistoryKind.revert
-                      ? 'history.head_stale'
-                      : 'history.redo_branch_diverged',
+                  context.kind == AuthoringHistoryKind.redo
+                      ? 'history.redo_branch_diverged'
+                      : 'history.head_stale',
                   'The history branch changed after this plan was prepared.');
             }
           }
@@ -579,8 +606,101 @@ final class CatalogEditingSession {
     });
     prepared._settled = true;
     prepared._patch = null;
+    prepared._retentionCosts = null;
+    prepared._retentionChanges = null;
     _prepared.remove(prepared.plan.planId);
     await _plans.discard(prepared.plan.planId);
+  }
+
+  Future<void> _checkRetentionCosts(CatalogEditingPlan prepared,
+      {CatalogSnapshot? projected}) async {
+    final context = AuthoringHistoryContext.fromExtensions(
+        prepared.plan.request.extensions);
+    if (context.kind == AuthoringHistoryKind.undo ||
+        context.kind == AuthoringHistoryKind.redo) {
+      return;
+    }
+    final historyStore = history;
+    if (historyStore is! FileAuthoringHistoryStore ||
+        await historyStore.localWindow(projectId) == null) {
+      return;
+    }
+    if (prepared._retentionCosts == null) {
+      final next = projected ?? (await store.openRoot(prepared.root)).snapshot;
+      final delta = await next.deltaFrom(snapshot);
+      prepared.plan.bindCatalogDelta(delta);
+      final costs = <String, int>{
+        for (final reference in [
+          ...delta.addedObjects,
+          ...delta.removedObjects
+        ])
+          'catalog:${reference.sha256}': reference.byteLength
+      };
+      final changes = <AuthoringHistoryResourceChange>[];
+      for (final change in prepared.plan.changeSet.changes) {
+        Future<String?> blobId(AuthoringPayload? payload) async {
+          if (payload == null) return null;
+          final inspected = await inspectAuthoringPayload(payload.openRead(),
+              storageKey: 'authoring-history-blob',
+              byteLength: payload.byteLength);
+          costs['blob:${inspected.resourceRevision.substring(7)}'] =
+              inspected.byteLength;
+          return inspected.resourceRevision;
+        }
+
+        changes.add(AuthoringHistoryResourceChange(
+            resource: change.resource,
+            storageKey: change.storageKey,
+            beforeRevision: change.beforeRevision,
+            afterRevision: change.afterRevision,
+            beforeBlobId: await blobId(change.beforePayload),
+            afterBlobId: await blobId(change.afterPayload)));
+      }
+      prepared._retentionCosts = Map.unmodifiable(costs);
+      prepared._retentionChanges = List.unmodifiable(changes);
+    }
+    final plan = prepared.plan;
+    final now = _clock().toUtc();
+    final receipt = AuthoringReceipt(
+        receiptId: plan.receiptId,
+        requestId: plan.request.requestId,
+        actionId: plan.request.actionId,
+        actionVersion: plan.request.actionVersion,
+        status: AuthoringReceiptStatus.applied,
+        beforeRevision:
+            AuthoringRevisionSet.beforeChangeSet(plan.changeSet).fingerprint,
+        afterRevision:
+            AuthoringRevisionSet.afterChangeSet(plan.changeSet).fingerprint,
+        createdAtUtc: now.toIso8601String(),
+        diff: plan.changeSet.diff,
+        artifacts: plan.artifacts,
+        extensions: {
+          if (plan.nativeCreationCapability != null)
+            'inventoryFingerprint':
+                plan.nativeCreationCapability!.inventoryFingerprint,
+          'planId': plan.planId,
+          'operationId': prepared.operationId,
+          'multiFileGuarantee': 'recoverable',
+          'history': context.toJson(),
+        });
+    final entry = AuthoringHistoryEntry(
+        entryId: plan.receiptId,
+        projectId: projectId,
+        actorId: actorId,
+        planId: plan.planId,
+        operationId: prepared.operationId,
+        kind: context.kind,
+        targetEntryId: context.targetEntryId,
+        receipt: receipt,
+        committedAt: now,
+        changes: prepared._retentionChanges!,
+        bulkCapability: plan.bulkCapability);
+    final bytes = utf8.encode(canonicalAuthoringJson(entry.toJson()));
+    await historyStore.checkRetentionCosts(projectId: projectId, costs: {
+      ...prepared._retentionCosts!,
+      'entry:${computeAuthoringBytesFingerprint(bytes, logicalName: 'history-preflight-entry.json').substring(7)}':
+          bytes.length + 1024,
+    });
   }
 
   Future<CatalogEditingPlan> planUndo(
@@ -670,7 +790,7 @@ final class CatalogEditingSession {
                   .getLocalEntry(projectId: projectId, entryId: entryId)
               : await history.get(projectId: projectId, entryId: entryId);
       if (entry == null ||
-          entry.nonUndoableReason != null ||
+          (!redo && entry.nonUndoableReason != null) ||
           entry.changes
                   .where((change) =>
                       change.storageKey == CatalogStorageStore.headStorageKey)
@@ -680,11 +800,32 @@ final class CatalogEditingSession {
             'The selected entry is not an undoable catalog edit.');
       }
       final latest = await readAuthoringHistoryHead(history, projectId);
+      final window = history is FileAuthoringHistoryStore
+          ? await (history as FileAuthoringHistoryStore).localWindow(projectId)
+          : null;
+      final targetIndex = window == null
+          ? null
+          : redo
+              ? window.cursor
+              : window.cursor - 1;
+      if (window != null &&
+          (targetIndex! < 0 ||
+              targetIndex >= window.entryIds.length ||
+              window.entryIds[targetIndex] != entryId)) {
+        throw AuthoringHistoryException(
+            redo ? 'history.redo_branch_diverged' : 'history.head_stale',
+            'The selected operation is not at the current history cursor.');
+      }
       if (redo &&
+          window == null &&
           (latest?.kind != AuthoringHistoryKind.undo ||
               latest?.targetEntryId != entryId)) {
         throw const AuthoringHistoryException('history.redo_branch_diverged',
             'Redo is unsafe because the history branch changed.');
+      }
+      if (entry.nonUndoableReason != null) {
+        throw const AuthoringHistoryException('history.entry_missing',
+            'The selected entry is not an undoable catalog edit.');
       }
       final change = entry.changes.singleWhere(
           (change) => change.storageKey == CatalogStorageStore.headStorageKey);
@@ -721,7 +862,7 @@ final class CatalogEditingSession {
       }
       final target = _decodeHead(bytes);
       final next = (await store.openRoot(target)).snapshot;
-      await store.restoreIndexAdmission(next);
+      await _admitHistoricalSnapshot(next);
       final additional = <AuthoringResourceChange>[];
       final payloads = <AuthoringPayload>[];
       try {
@@ -802,7 +943,8 @@ final class CatalogEditingSession {
                       ? AuthoringHistoryKind.redo
                       : AuthoringHistoryKind.undo,
                   targetEntryId: entryId,
-                  expectedHeadEntryId: redo ? latest!.entryId : null),
+                  expectedHeadEntryId:
+                      redo || window != null ? latest!.entryId : null),
               diff: redo
                   ? entry.receipt.diff
                   : invertAuthoringHistoryDiff(entry.receipt.diff));
@@ -829,6 +971,47 @@ final class CatalogEditingSession {
         rethrow;
       }
     });
+  }
+
+  Future<void> _admitHistoricalSnapshot(CatalogSnapshot next) async {
+    try {
+      await store.restoreIndexAdmission(next);
+      return;
+    } on CatalogStorageException catch (error) {
+      if (error.code != 'catalog.preparation_required') rethrow;
+    }
+    final delta = await next.admitFrom(snapshot);
+    if (await store.metadataIndexPrepared(snapshot)) {
+      final expected = await CatalogMetadataDocuments.maintain(
+          lookup: snapshot.lookup,
+          upserts: delta.upserts,
+          removals: delta.removals);
+      final expectedByKey = {for (final unit in expected) unit.key: unit};
+      for (final unit in delta.upserts) {
+        if (unit.key.kind != CatalogDefinitionKind.workspaceState ||
+            unit.key.id == 'workspace') {
+          continue;
+        }
+        final canonical = expectedByKey[unit.key];
+        if (canonical == null ||
+            canonicalAuthoringJson(unit.toJson()) !=
+                canonicalAuthoringJson(canonical.toJson())) {
+          throw const CatalogStorageException('catalog.preparation_required',
+              'The selected historical document indexes need explicit preparation.');
+        }
+      }
+      for (final unit in expected) {
+        final actual = await next.lookup(unit.key);
+        if (actual == null ||
+            canonicalAuthoringJson(actual.toJson()) !=
+                canonicalAuthoringJson(unit.toJson())) {
+          throw const CatalogStorageException('catalog.preparation_required',
+              'The selected historical document indexes differ from their changes.');
+        }
+      }
+      await store.publishMetadataIndexAdmissionUnderLock(next);
+    }
+    await store.publishIndexAdmissionUnderLock(next);
   }
 
   Future<CatalogEditingPlan> planRevert({
@@ -973,9 +1156,10 @@ final class CatalogEditingSession {
             ownerId: selectedOperation,
             purpose: CatalogLeasePurpose.preparation);
         try {
-          await store.publishObjectsUnderLock(patch.objects);
-          final next = await patch.nextSnapshot(readObject: lease.readObject);
-          await store.publishIndexAdmissionUnderLock(next);
+          final next = await patch.nextSnapshot(
+              readObject: (reference) async =>
+                  patch.objects[reference.sha256] ??
+                  await lease.readObject(reference));
           final prepared = _prepare(
               before: snapshot.root,
               next: next,
@@ -1007,6 +1191,9 @@ final class CatalogEditingSession {
                 projectId: projectId,
                 operationId: selectedOperation,
                 catalogRevert: attestation);
+            await _checkRetentionCosts(prepared, projected: next);
+            await store.publishObjectsUnderLock(patch.objects);
+            await store.publishIndexAdmissionUnderLock(next);
             return prepared;
           } on Object {
             prepared._invalidated = true;

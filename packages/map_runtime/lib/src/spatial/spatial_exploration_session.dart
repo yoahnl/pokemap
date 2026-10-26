@@ -1,3 +1,4 @@
+import '../player/real_weather_service.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
@@ -40,6 +41,9 @@ final class SpatialExplorationSession {
       );
   SpatialSmartTileAnimationController _smartTileAnimations;
   RuntimeMapBundle bundle;
+  RealWeatherService? realWeather;
+  bool realWeatherAllowed = false;
+  WorldEnvironmentClock environmentClock = WorldEnvironmentClock(now: DateTime.now);
   ProjectCharacterEntry character;
   SpatialMovementController movement;
   final _SpatialActorAssets _assets;
@@ -57,6 +61,52 @@ final class SpatialExplorationSession {
   final Map<String, MapData> _knownMaps;
   final _viewConnectionsById = <String, List<MapConnection>>{};
   List<MapConnection> get viewConnections => _connectionsFor(bundle.map);
+
+  List<SpatialMovementNeighbor> get cinematicMovementNeighbors => [
+    for (final connection in viewConnections)
+      if (_preparedMaps[connection.targetMapId] case final prepared?)
+        SpatialMovementNeighbor(controller: prepared.movement,
+          offsetX: spatialConnectionOffset(bundle.map.size, prepared.bundle.map.size,
+            connection.direction, connection.offset).dx,
+          offsetZ: spatialConnectionOffset(bundle.map.size, prepared.bundle.map.size,
+            connection.direction, connection.offset).dy),
+  ];
+
+  ({MapData map, double x, double z})? _cinematicLocation(double x, double z) {
+    if (!x.isFinite || !z.isFinite) return null;
+    bool inside(MapData map, double localX, double localZ) =>
+        localX >= 0 &&
+        localZ >= 0 &&
+        localX < map.size.width &&
+        localZ < map.size.height;
+    if (inside(bundle.map, x, z)) return (map: bundle.map, x: x, z: z);
+    for (final connection in viewConnections) {
+      final neighbor = _preparedMaps[connection.targetMapId]?.bundle.map;
+      if (neighbor == null) continue;
+      final offset = spatialConnectionOffset(
+        bundle.map.size,
+        neighbor.size,
+        connection.direction,
+        connection.offset,
+      );
+      final localX = x - offset.dx, localZ = z - offset.dy;
+      if (inside(neighbor, localX, localZ)) {
+        return (map: neighbor, x: localX, z: localZ);
+      }
+    }
+    return null;
+  }
+
+  bool containsCinematicPoint(double x, double z) =>
+      _cinematicLocation(x, z) != null;
+
+  double cinematicHeightAt(double x, double z) {
+    final location = _cinematicLocation(x, z);
+    if (location == null) {
+      throw StateError('The cinematic point is outside loaded connected maps.');
+    }
+    return location.map.spatialScene!.worldHeightAt(location.x, location.z);
+  }
 
   List<MapConnection> _connectionsFor(MapData map) =>
       _viewConnectionsById.putIfAbsent(map.id, () {
@@ -196,7 +246,7 @@ final class SpatialExplorationSession {
         .firstOrNull;
     final previousCompanion = _companionTrail.position;
     final story = heroStoryPose?.call();
-    final groundY = story == null ? movement.groundY : bundle.map.spatialScene!.worldHeightAt(story.x, story.z);
+    final groundY = story == null ? movement.groundY : cinematicHeightAt(story.x, story.z);
     _companionTrail.observe(
       mapId: bundle.map.id,
       individualId: lead!.individualId,
@@ -1033,11 +1083,11 @@ final class SpatialExplorationSession {
     final resolved = _resolve(animation, selected);
     return SpatialActorVisual(
         x: story?.x ?? movement.x,
-        groundY: story == null ? movement.groundY : bundle.map.spatialScene!.worldHeightAt(story.x, story.z),
+        groundY: story == null ? movement.groundY : cinematicHeightAt(story.x, story.z),
         contactShadow: character.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault,
         y: story == null
             ? movement.y
-            : bundle.map.spatialScene!.worldHeightAt(story.x, story.z) + story.liftCells,
+            : cinematicHeightAt(story.x, story.z) + story.liftCells,
         z: story?.z ?? movement.z,
         texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
@@ -1073,6 +1123,9 @@ final class SpatialExplorationSession {
         cancelPendingTransition();
       }
       nativeDoorBlackout.value = _nativeDoor.blackoutOpacity;
+    }
+    if (dt.isFinite && dt >= 0) {
+      environmentClock.advance(dt, paused: presentationPaused || transitioning.value);
     }
     onPresentationFrame?.call(dt, presentationPaused || transitioning.value);
     if (dt.isFinite && dt > 0 && !presentationPaused && !transitioning.value) {
@@ -1231,11 +1284,14 @@ final class SpatialExplorationSession {
     final resolved = _resolve(animation, selected, actor: actor);
     final x = (saved?.x ?? entity.pos.x + .5) + (entity.size.width - 1) / 2;
     final z = (saved?.z ?? entity.pos.y + .5) + entity.size.height - 1;
+    final groundY = active && containsCinematicPoint(x, z)
+        ? cinematicHeightAt(x, z)
+        : source.map.spatialScene!.worldHeightAt(x, z);
     return SpatialActorVisual(
         x: x,
         z: z,
-        y: source.map.spatialScene!.worldHeightAt(x, z) + (pose?.liftCells ?? 0),
-        groundY: source.map.spatialScene!.worldHeightAt(x, z),
+        y: groundY + (pose?.liftCells ?? 0),
+        groundY: groundY,
         contactShadow: actor.contactShadow ?? source.manifest.settings.actorContactShadowsByDefault,
         texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,

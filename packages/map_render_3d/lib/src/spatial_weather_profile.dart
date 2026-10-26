@@ -21,6 +21,7 @@ final class SpatialWeatherFrame {
     this.impactSpeed = 0,
     this.lightFactor = 1,
     this.flash = 0,
+    this.lightningVisibility = 0,
     this.color = const Color(0xffd6e6f4),
     this.fogColor = const Color(0xffb8c6d1),
   });
@@ -28,6 +29,7 @@ final class SpatialWeatherFrame {
   final int particleCount, shape;
   final double fallSpeed, streakLength, size, opacity, windX, windZ;
   final double fogOpacity, lightFactor, flash;
+  final double lightningVisibility;
   final double fogDensity;
   final double impactStrength, impactSpeed;
   final Color color, fogColor;
@@ -52,8 +54,13 @@ SpatialWeatherFrame spatialWeatherFrame(
   final wind = settings.windStrength * style.wind;
   final darkness = night.clamp(0.0, 1.0);
   var flash = 0.0;
+  var lightningVisibility = 0.0;
   if (settings.kind == SpatialWeatherKind.storm && settings.lightning) {
     final phase = seconds % 24;
+    lightningVisibility =
+        amount *
+        _smooth((phase - 6.1) / .14) *
+        (1 - _smooth((phase - 6.45) / .3));
     flash =
         .09 *
         amount *
@@ -76,10 +83,12 @@ SpatialWeatherFrame spatialWeatherFrame(
     blue: style.color.b * math.min(1, tint + darkness * .12),
   );
   return SpatialWeatherFrame(
-    particleCount: (style.count * settings.density * amount).round().clamp(
-      0,
-      spatialWeatherMaximumParticles,
-    ),
+    particleCount: math
+        .max(
+          lightningVisibility > .001 ? 1 : 0,
+          (style.count * settings.density * amount).round(),
+        )
+        .clamp(0, spatialWeatherMaximumParticles),
     shape: style.shape,
     fallSpeed: style.fall * settings.speed,
     streakLength: style.streak * settings.particleSize,
@@ -94,6 +103,7 @@ SpatialWeatherFrame spatialWeatherFrame(
         settings.speed * (settings.kind == SpatialWeatherKind.drizzle ? 1 : 2),
     lightFactor: light,
     flash: flash,
+    lightningVisibility: lightningVisibility,
     color: color,
     fogColor: Color.lerp(
       style.fogColor,

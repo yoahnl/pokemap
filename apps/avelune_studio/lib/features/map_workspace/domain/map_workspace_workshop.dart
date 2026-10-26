@@ -287,6 +287,7 @@ ProjectManifest mergeProjectMetadataSections(
     defeatRecovery: fields.contains('defeatRecovery')
         ? loaded.defeatRecovery
         : current.defeatRecovery,
+    battleSavings: fields.contains('battleSavings') ? loaded.battleSavings : current.battleSavings,
     bagCapacity: fields.contains('bagCapacity')
         ? loaded.bagCapacity
         : current.bagCapacity,

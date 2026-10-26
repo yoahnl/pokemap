@@ -1,6 +1,7 @@
 part of 'catalog_workshop_selection.dart';
 
 const _gameplayActions = {
+  'campaign.battle_savings.update',
   'pokemon.ruleset.set',
   'campaign.encounter_table.upsert',
   'campaign.trainer.upsert',
@@ -19,6 +20,7 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
 }) async {
   final selected = await reader.withMetadataFields({
     'pokemon',
+    if (actionId == 'campaign.battle_savings.update') 'battleSavings',
     if (actionId == 'bag.capacity.set') 'newGame',
     if (actionId == 'bag.capacity.set') 'bagCapacity'
   });
@@ -61,6 +63,7 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
       }
     }
     if (actionId == 'bag.capacity.set') writable.add('bagCapacity');
+    if (actionId == 'campaign.battle_savings.update') writable.add('battleSavings');
     if (actionId == 'item.update' && parameters['itemId'] is String) {
       add(
           'trainers',
@@ -85,7 +88,7 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
       previous = ids.values.fold<int>(0, (n, values) => n + values.length);
       candidates.add(documents.project.toJson());
       for (final entry in const {
-        'facts': {'factId', 'existingPartyFactId'},
+        'facts': {'factId', 'existingPartyFactId', 'enabledFactId', 'balanceFactId'},
         'scenes': {'sceneId', 'preSessionSceneId'},
         'badges': {'badgeId', 'rewardBadgeId'},
         'dialogues': {
@@ -97,6 +100,17 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
       }.entries) {
         add(entry.key,
             CatalogWorkshopSelection._referenceIds(candidates, entry.value));
+      }
+      if (actionId == 'campaign.battle_savings.update') {
+        final identities = <String>{
+          ...?ids['facts'],
+          for (final fact in documents.project.facts)
+            if (fact.legacyFlagName case final String alias) alias,
+        };
+        for (final identity in identities) {
+          add('facts', await CatalogMetadataDocuments.readFactIdsForRuntimeIdentity(
+              snapshot: catalog.snapshot, runtimeIdentity: identity));
+        }
       }
       documents = await CatalogMetadataDocuments.readDocuments(
           snapshot: catalog.snapshot, project: base, ids: ids);

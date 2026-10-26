@@ -34,6 +34,22 @@ void main() {
         return;
     }
     float time = weather.anchorTime.w;
+    if (seed.x < 0.5 && weather.volume.z > 0.001) {
+        vec3 right = vec3(weather.view[0][0], weather.view[1][0], weather.view[2][0]);
+        vec3 up = vec3(weather.view[0][1], weather.view[1][1], weather.view[2][1]);
+        vec3 back = vec3(weather.view[0][2], 0.0, weather.view[2][2]);
+        back /= max(length(back), 0.001);
+        float variation = fract(sin(weather.volume.w * 17.31 + 4.19) * 43758.5453);
+        vec3 world = weather.anchorTime.xyz + vec3(0.0, 7.0, 0.0)
+                   - back * weather.volume.x * 0.22
+                   + right * (variation - 0.5) * weather.volume.x * 0.35;
+        world += right * fragUv.x * 1.2 + up * fragUv.y * 4.5;
+        fragShape = 6.0;
+        fragVariation = variation;
+        fragTint = vec4(0.72, 0.84, 1.0, weather.volume.z * weather.tint.a);
+        gl_Position = weather.projection * weather.view * vec4(world, 1.0);
+        return;
+    }
     vec2 wind = weather.motion.xz;
     float span = weather.volume.x;
     vec2 relative = fract(vec2(seed.y, seed.z) + (time * wind - weather.anchorTime.xz) / span) - 0.5;

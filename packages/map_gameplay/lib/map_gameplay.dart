@@ -406,3 +406,5 @@ export 'src/party_readiness.dart';
 export 'src/party_companion_trail.dart';
 
 export 'src/spatial_item_pickup.dart';
+
+export 'src/world_environment_clock.dart';

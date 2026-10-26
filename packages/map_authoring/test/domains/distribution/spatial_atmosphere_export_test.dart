@@ -7,15 +7,16 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  for (final withSound in [false, true]) {
   test(
-      'export preserves atmosphere sidecar and source bytes independently of map JSON',
+      'export preserves atmosphere sidecar and source bytes, with sound: $withSound',
       () async {
     final root = await Directory.systemTemp.createTemp('atmosphere-export-');
     addTearDown(() => root.delete(recursive: true));
     final files = spatialPayload();
     final sidecar = SpatialAtmosphereDocument.relativePathForMap('map');
     final settings = SpatialAtmosphereSettings(
-        weather: SpatialWeatherSettings(enabled: true, kind: SpatialWeatherKind.rain),
+        weather: SpatialWeatherSettings(enabled: true, kind: SpatialWeatherKind.rain, soundEnabled: withSound),
         waterAnimated: true,
         windowsLit: true,
         fireflies: true, fireflyLighting: true, fireflyPinkAmount: .5,
@@ -23,7 +24,7 @@ void main() {
         fogOpacity: .32, fogStart: 39, fogEnd: 49,
         halos: [SpatialAtmosphereHalo(instanceId: 'model', localPosition: Model3dVector3(x: 0, y: 2, z: 0))],
         waterStrength: .6);
-    final visual = SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'pitchDegrees':34,'depthOfFieldEnabled':true,'weatherKind':'snow'}));
+    final visual = SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'pitchDegrees':34,'depthOfFieldEnabled':true,'weatherKind':'snow', 'timeMode': 'real', 'weatherMode': 'automatic', 'weatherSequence': ['clear', 'rain']}));
     files['project/project.visual.json'] = utf8.encode(jsonEncode(visual.toJson()));
     files['project/maps/map.visual.json'] = utf8.encode(jsonEncode(SpatialVisualDocument(mapId: 'map', profile: SpatialVisualPatch.fromJson({'fogOpacity': .3})).toJson()));
     files['project/$sidecar'] = utf8.encode(jsonEncode(
@@ -44,8 +45,10 @@ void main() {
             supportedLocales: ['fr']),
         mode: GamePackageExportMode.localTest);
     expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialVisualDocument.capabilityId));
+    expect(artifact.manifest.compatibility.requiredCapabilities, contains(WorldEnvironmentCapabilities.capabilityId));
     expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialLightWorkshopCapabilities.capabilityId));
     expect(artifact.manifest.compatibility.requiredCapabilities, contains(SpatialWeatherCapabilities.capabilityId));
+    expect(artifact.manifest.compatibility.requiredCapabilities.contains(SpatialWeatherCapabilities.soundCapabilityId), withSound);
     final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
     for (final path in ['project/project.visual.json', 'project/maps/map.visual.json']) {
       expect(archive.findFile(path)?.content, files[path]);
@@ -62,4 +65,5 @@ void main() {
           e.value);
     }
   });
+  }
 }

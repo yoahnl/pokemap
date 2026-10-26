@@ -25,6 +25,7 @@ dependencies:
     path: ../avelune_rendering
   flame: 2.0.0-dev.1
   flame_audio: 2.13.0-dev.1
+  http: ^1.6.0
   image: ^4.2.0
   archive: ^4.0.9
   path: ^1.8.3
@@ -58,6 +59,7 @@ flutter:
     - assets/audio/
     - assets/audio/battle/se/
     - assets/audio/overworld/
+    - assets/audio/weather/
     - assets/transitions/
     - assets/battle/stats/
     - assets/battle_animations/

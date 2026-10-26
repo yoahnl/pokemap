@@ -1,3 +1,4 @@
+import 'runtime_real_weather_options.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -52,6 +53,7 @@ class RuntimePlayerOptions extends StatefulWidget {
     ),
     this.onChanged,
     this.navigation,
+    this.weatherService,
     this.onReturnToTitle,
     this.controlProfile,
     this.hardwareGamepadEnabled = true,
@@ -63,6 +65,7 @@ class RuntimePlayerOptions extends StatefulWidget {
   final PlayerPreferencesSnapshot defaultPreferences;
   final FutureOr<void> Function(PlayerPreferencesSnapshot)? onChanged;
   final RuntimePlayerOptionsNavigation? navigation;
+  final RealWeatherService? weatherService;
   final VoidCallback? onReturnToTitle;
   final PlayerControlProfile? controlProfile;
   final bool hardwareGamepadEnabled;
@@ -793,7 +796,12 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   List<Widget> _categorySettings(bool compact) {
     final preferences = _confirmed;
     return switch (_category) {
+      PlayerOptionsCategory.weather => [
+        RuntimeRealWeatherOptions(preferences: preferences.realWeather, service: widget.weatherService,
+          onChanged: !_enabled ? null : (weather) => _save(_confirmed.copyWith(realWeather: weather))),
+      ],
       PlayerOptionsCategory.general => [
+
         _choiceRow(
           _strings.textSpeed,
           _strings.speed(preferences.dialogueTextSpeed),
@@ -1468,6 +1476,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     final value = _confirmed;
     final defaults = widget.defaultPreferences;
     return switch (_category) {
+      PlayerOptionsCategory.weather => value.realWeather != defaults.realWeather,
       PlayerOptionsCategory.general =>
         value.dialogueTextSpeed != defaults.dialogueTextSpeed,
       PlayerOptionsCategory.display =>
@@ -1505,6 +1514,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     }
     final defaults = widget.defaultPreferences;
     await _save(switch (category) {
+      PlayerOptionsCategory.weather => _confirmed.copyWith(realWeather: defaults.realWeather),
       PlayerOptionsCategory.general => _confirmed.copyWith(
         dialogueTextSpeed: defaults.dialogueTextSpeed,
       ),
@@ -1537,6 +1547,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   IconData _icon(PlayerOptionsCategory category) => switch (category) {
     PlayerOptionsCategory.general => Icons.tune_rounded,
+    PlayerOptionsCategory.weather => Icons.cloud_outlined,
     PlayerOptionsCategory.display => Icons.desktop_windows_rounded,
     PlayerOptionsCategory.audio => Icons.volume_up_rounded,
     PlayerOptionsCategory.controls => Icons.sports_esports_rounded,

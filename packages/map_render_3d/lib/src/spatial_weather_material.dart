@@ -32,6 +32,7 @@ final class SpatialWeatherMaterial extends Material {
   final _bounds = Vector4.zero();
   final _volume = Vector4.zero();
   double _cameraDistance = 40;
+  double _lightningVisibility = 0, _lightningCycle = 0;
   bool visible = false;
 
   void configure({
@@ -44,7 +45,11 @@ final class SpatialWeatherMaterial extends Material {
     double cameraDistance = 40,
   }) {
     _cameraDistance = cameraDistance;
-    visible = count > 0 && frame.opacity * weight > .001;
+    _lightningVisibility = frame.lightningVisibility;
+    _lightningCycle = (seconds / 24).floorToDouble();
+    visible =
+        count > 0 &&
+        (frame.opacity * weight > .001 || _lightningVisibility * weight > .001);
     _anchorTime.setValues(anchor.x, anchor.y, anchor.z, seconds);
     _motion.setValues(
       frame.windX,
@@ -70,7 +75,7 @@ final class SpatialWeatherMaterial extends Material {
         : context.projection[5].abs();
     final span = (2 * _cameraDistance / projectionScale.clamp(.1, 100) + 8)
         .clamp(16.0, 80.0);
-    _volume.setValues(span, 10, 0, 0);
+    _volume.setValues(span, 10, _lightningVisibility, _lightningCycle);
     vertexShader
       ..setMatrix4('Weather.view', context.view)
       ..setMatrix4('Weather.projection', context.projection)

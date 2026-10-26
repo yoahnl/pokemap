@@ -109,6 +109,8 @@ final class SpatialCinematicRuntimePlaybackSink
     required this.setInputLocked,
     required this.onCompletedPoses,
     this.isReady,
+    this.containsPoint,
+    this.heightAt,
     this.readVisuals,
     this.readVisualOverrides,
     this.writeVisuals,
@@ -129,6 +131,8 @@ final class SpatialCinematicRuntimePlaybackSink
   final void Function(Map<CinematicActorBinding, SpatialCinematicActorPose>)
       onCompletedPoses;
   final bool Function()? isReady;
+  final bool Function(double x, double z)? containsPoint;
+  final double Function(double x, double z)? heightAt;
   final SpatialVisualPatch Function()? readVisuals, readVisualOverrides;
   final void Function(SpatialVisualPatch)? writeVisuals;
   final void Function(double?)? writeFadeOpacity;
@@ -279,7 +283,7 @@ final class SpatialCinematicRuntimePlaybackSink
             final binding = bindings[step.actorId]!;
             final route = _movementRoute(asset, map, step, before);
             final target = route.single;
-            _terminalPose(binding, before[binding]!.copyWith(x: target.x, z: target.y));
+            _terminalPose(binding, before[binding]!.copyWith(x: target.x, z: target.y), finalPosition: false);
             routes[step.id] = route;
             next[binding] = before[binding]!.copyWith(x: target.x, z: target.y);
           case CinematicTimelineStepKind.actorMove:
@@ -370,8 +374,11 @@ final class SpatialCinematicRuntimePlaybackSink
       case CinematicTimelineStepKind.atmosphere:
         final before = readVisuals!();
         final override = readVisualOverrides!().overriddenBy(step.visualSettings!);
-        _visualFrom[step.id] = before;
-        _visualTo[step.id] = before.overriddenBy(override);
+        _visualFrom[step.id] = SpatialVisualPatch({
+          for (final key in override.values.keys)
+            if (before.value(key) != null) key: before.value(key)!,
+        });
+        _visualTo[step.id] = override;
       case CinematicTimelineStepKind.actorJump:
         _jumpHeight = cinematicTimelineActorJumpHeightCellsOf(step)!;
         final binding = _stepActor = prepared.bindings[step.actorId]!;
@@ -644,7 +651,8 @@ final class SpatialCinematicRuntimePlaybackSink
       (throw StateError('Actor ${binding.actorId} disappeared.'));
 
   SpatialCinematicActorPose _terminalPose(
-      CinematicActorBinding binding, SpatialCinematicActorPose pose) {
+      CinematicActorBinding binding, SpatialCinematicActorPose pose,
+      {bool finalPosition = true}) {
     var x = pose.x, z = pose.z;
     if (binding.kind == CinematicActorBindingKind.player) {
       final pixelX = x * 16, pixelZ = z * 16;
@@ -655,6 +663,10 @@ final class SpatialCinematicRuntimePlaybackSink
       }
       x = pixelX.round() / 16;
       z = pixelZ.round() / 16;
+      final map = activeMap();
+      if (finalPosition && !(x >= 0 && z >= 0 && x < map.size.width && z < map.size.height)) {
+        throw StateError('The player terminal position must remain inside the active map.');
+      }
     }
     return pose.copyWith(
         x: x, z: z, motion: CharacterAnimationState.idle, animationSeconds: 0, liftCells: 0,
@@ -671,10 +683,8 @@ final class SpatialCinematicRuntimePlaybackSink
   bool _inside(MapData map, double x, double z) =>
       x.isFinite &&
       z.isFinite &&
-      x >= 0 &&
-      z >= 0 &&
-      x < map.size.width &&
-      z < map.size.height;
+      (containsPoint?.call(x, z) ??
+          (x >= 0 && z >= 0 && x < map.size.width && z < map.size.height));
 
   Map<CinematicActorBinding, SpatialCinematicActorPose> _groupPosesAt(
       Map<CinematicActorBinding, SpatialCinematicActorPose> start,
@@ -949,7 +959,8 @@ final class SpatialCinematicRuntimePlaybackSink
     final point = _focusPoint(prepared.asset, prepared.map, step, {});
     return SpatialCinematicCameraPose(
         x: point.x,
-        y: prepared.map.spatialScene!.worldHeightAt(point.x, point.y),
+        y: (heightAt?.call(point.x, point.y) ??
+          prepared.map.spatialScene!.worldHeightAt(point.x, point.y)),
         z: point.y,
         zoom: cinematicCameraZoomFactor(
             cinematicTimelineCameraFocusBindingOf(step)!.zoomPreset));
@@ -963,7 +974,8 @@ final class SpatialCinematicRuntimePlaybackSink
     final x = player?.x ?? prepared.map.size.width / 2,
         z = player?.z ?? prepared.map.size.height / 2;
     return SpatialCinematicCameraPose(
-        x: x, y: prepared.map.spatialScene!.worldHeightAt(x, z), z: z, zoom: 1);
+        x: x, y: (heightAt?.call(x, z) ??
+          prepared.map.spatialScene!.worldHeightAt(x, z)), z: z, zoom: 1);
   }
 
   EntityFacing _facing(CinematicTimelineActorFacingDirection direction) =>

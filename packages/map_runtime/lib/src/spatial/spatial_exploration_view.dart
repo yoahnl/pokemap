@@ -7,6 +7,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../application/runtime_map_bundle.dart';
+import '../player/runtime_audio_mixer.dart';
+import '../player/runtime_weather_audio_controller.dart';
 import '../presentation/map_warp_transition_overlay.dart';
 import 'spatial_exploration_session.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
@@ -20,8 +22,10 @@ class SpatialExplorationView extends StatefulWidget {
     this.previewVisuals,
     this.sceneController,
     this.onError,
+    this.audioMixer,
   });
   final SpatialExplorationSession session;
+  final RuntimeAudioMixer? audioMixer;
   final ValueListenable<SpatialVisualPatch>? previewVisuals;
   final SpatialSceneController? sceneController;
   final bool keyboardInputEnabled;
@@ -34,17 +38,31 @@ class SpatialExplorationView extends StatefulWidget {
 class _SpatialExplorationViewState extends State<SpatialExplorationView>
     with WidgetsBindingObserver {
   final focus = FocusNode();
+  late RuntimeWeatherAudioController weatherAudio =
+      RuntimeWeatherAudioController(
+        mixer: widget.audioMixer ?? RuntimeAudioMixer(),
+      );
   late final camera =
       widget.sceneController ??
       (SpatialSceneController()..setView(SpatialEditorView.game));
   void applyVisuals() {
-    camera.visualProfile = activeBundle.visualProfile
-        .overriddenBy(
-          widget.session.worldVisualProfile?.call() ?? SpatialVisualPatch(),
-        )
+    final overrides = (widget.session.worldVisualProfile?.call() ?? SpatialVisualPatch())
         .overriddenBy(widget.session.visualOverrides)
         .overriddenBy(widget.session.cinematicVisualOverrides)
         .overriddenBy(widget.previewVisuals?.value ?? SpatialVisualPatch());
+    final authored = activeBundle.visualProfile.overriddenBy(overrides);
+    final external = widget.session.realWeatherAllowed && resolveWorldWeatherMode(authored, overrides: overrides) == WorldWeatherMode.real.name
+        ? widget.session.realWeather?.value.snapshot : null;
+    final profile = activeBundle.visualProfile.overriddenBy(external?.conditions ?? SpatialVisualPatch()).overriddenBy(overrides);
+    final environment = widget.session.environmentClock.resolve(profile, overrides: overrides,
+      realWeatherKind: external == null ? null : SpatialWeatherKind.parse(external.conditions.choice(SpatialVisualParameter.weatherKind)));
+    camera.worldEnvironment = environment;
+    camera.visualProfile = profile;
+    var weather = profile.applyAtmosphere(activeBundle.spatialAtmosphereSettings).weather;
+    if (environment.weatherKind case final kind? when kind != weather.kind) {
+      weather = weather.copyWith(kind: kind);
+    }
+    unawaited(weatherAudio.update(weather, indoors: activeBundle.map.mapMetadata.isIndoor));
   }
 
   final keys = <LogicalKeyboardKey>{};
@@ -88,9 +106,16 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.previewVisuals?.addListener(applyVisuals);
+    widget.session.realWeather?.addListener(applyVisuals);
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     activeBundle = widget.session.bundle;
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    unawaited(
+      weatherAudio.setSuspended(
+        lifecycle != null && lifecycle != AppLifecycleState.resumed,
+      ),
+    );
     applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
@@ -229,6 +254,18 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   @override
   void didUpdateWidget(SpatialExplorationView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.audioMixer != widget.audioMixer) {
+      unawaited(weatherAudio.dispose());
+      weatherAudio = RuntimeWeatherAudioController(
+        mixer: widget.audioMixer ?? RuntimeAudioMixer(),
+      );
+      unawaited(
+        weatherAudio.setSuspended(
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed,
+        ),
+      );
+      applyVisuals();
+    }
     if (oldWidget.previewVisuals != widget.previewVisuals) {
       oldWidget.previewVisuals?.removeListener(applyVisuals);
       widget.previewVisuals?.addListener(applyVisuals);
@@ -237,11 +274,13 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     if (oldWidget.session == widget.session) return;
     renderedFramesMapId = null;
     renderedFrames = const {};
+    oldWidget.session.realWeather?.removeListener(applyVisuals);
     oldWidget.session.mapRevision.removeListener(mapChanged);
     oldWidget.session.transitioning.removeListener(release);
     oldWidget.session.waitForNativeDoorBlackoutFrame = null;
     oldWidget.session.prepareNativeDoorDestination = null;
     keys.clear();
+    widget.session.realWeather?.addListener(applyVisuals);
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
@@ -258,6 +297,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    unawaited(weatherAudio.setSuspended(state != AppLifecycleState.resumed));
     widget.session.setLifecyclePaused(state != AppLifecycleState.resumed);
     if (state != AppLifecycleState.resumed) release();
   }
@@ -343,8 +383,10 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
 
   @override
   void dispose() {
+    unawaited(weatherAudio.dispose());
     neighborGeneration++;
     release();
+    widget.session.realWeather?.removeListener(applyVisuals);
     widget.session.mapRevision.removeListener(mapChanged);
     widget.session.waitForNativeDoorBlackoutFrame = null;
     widget.session.prepareNativeDoorDestination = null;
@@ -383,17 +425,18 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
             Positioned.fill(
               child: SpatialSceneView(
                 resourceBudget: renderedBundle.resourceBudget,
-                resourceIdentity:
-                    renderedBundle.projectCatalog?.identity,
+                resourceIdentity: renderedBundle.projectCatalog?.identity,
                 key: ObjectKey(widget.session),
                 scene: renderedBundle.map.spatialScene!,
                 groundMap: renderedBundle.map,
                 groundProject: renderedBundle.manifest,
-                loadGroundImage: (id) => renderedSession.groundImageBytesForBundle(renderedBundle, id),
+                loadGroundImage: (id) => renderedSession
+                    .groundImageBytesForBundle(renderedBundle, id),
                 sceneOffset: sceneOffset,
                 neighbors: neighbors,
                 models: renderedBundle.manifest.models3d,
-                loadModel: (id) => renderedSession.modelBytesForBundle(renderedBundle, id),
+                loadModel: (id) =>
+                    renderedSession.modelBytesForBundle(renderedBundle, id),
                 controller: camera,
                 onCell: (_, _) {
                   if (widget.keyboardInputEnabled) focus.requestFocus();

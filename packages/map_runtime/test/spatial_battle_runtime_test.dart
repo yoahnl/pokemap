@@ -9,6 +9,11 @@ import 'package:flame/game.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:image/image.dart' as img;
+import 'package:map_runtime/map_runtime.dart' show
+    SpatialExplorationGameSessionRuntime, GameSessionDescriptor, GameIdentity,
+    GameSessionLaunchMode, GameSessionAccessibilityOptions,
+    RuntimeInitialMapPreloadResult;
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
@@ -1035,6 +1040,110 @@ void main() {
     expect(
         state.party.members.first.currentPpByMoveId!['tackle'], lessThan(35));
     expect(state.party.members.first.currentPpByMoveId!['vine_whip'], 25);
+  });
+  testWidgets(
+      'a scripted spatial defeat continues on its map without the ordinary recovery penalty',
+      (tester) async {
+    final fixture = (await tester.runAsync(_fixture))!;
+    final root = fixture.bundle.projectRootDirectory;
+    await tester.runAsync(() => File('$root/scene-hero.png').writeAsBytes(
+        img.encodePng(img.Image(width: 32, height: 32))));
+    final initial = fixture.state.copyWith(
+      party: fixture.state.party.copyWith(members: [
+        fixture.state.party.members.first.copyWith(currentHp: 1)
+      ]),
+      trainerProfile: fixture.state.trainerProfile.copyWith(
+          money: 100, avatarCharacterId: 'scene-hero'),
+    );
+    final scene = SceneAsset(id: 'scripted-loss', name: 'Scripted loss',
+      graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'battle', kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(battleKind: 'trainer',
+            trainerId: 'scene-opponent', npcEntityId: 'opponent',
+            defeatRecovery: SceneBattleDefeatRecovery.continueScene,
+            declaredOutcomes: const ['victory', 'defeat'])),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [
+        SceneEdge(id: 'start', fromNodeId: 'start', fromPortId: 'completed',
+          toNodeId: 'battle', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'win', fromNodeId: 'battle', fromPortId: 'victory',
+          toNodeId: 'end', kind: SceneEdgeKind.battleVictory),
+        SceneEdge(id: 'lose', fromNodeId: 'battle', fromPortId: 'defeat',
+          toNodeId: 'end', kind: SceneEdgeKind.battleDefeat),
+      ]));
+    final map = fixture.bundle.map.copyWith(entities: [
+      MapEntity(id: 'opponent', kind: MapEntityKind.npc,
+        pos: const GridPos(x: 2, y: 1),
+        npc: const MapEntityNpcData(characterId: 'scene-hero')),
+    ]);
+    final manifest = fixture.bundle.manifest.copyWith(
+      characters: [ProjectCharacterEntry(id: 'scene-hero', name: 'Hero',
+        tilesetId: 'unused', animations: [
+          for (final facing in EntityFacing.values)
+            CharacterAnimation(state: CharacterAnimationState.walk,
+              direction: facing, sourceAssetId: 'scene-hero-asset', frames: const [
+                CharacterAnimationFrame(source: TilesetSourceRect(
+                  x: 0, y: 0, width: 32, height: 32), durationMs: 100),
+              ]),
+        ])],
+      trainers: [ProjectTrainerEntry.fromJson({
+        'id': 'scene-opponent', 'name': 'Opponent', 'trainerClass': 'Trainer',
+        'battleFormat': 'singles', 'moneyReward': 0,
+        'team': [{'speciesId': 'sparkitten', 'level': 50, 'moves': ['tackle']}],
+      })],
+      scenes: [scene],
+      eventRegistry: NarrativeEventRegistry(schemaVersion: 1,
+        mode: EventSystemMode.v2Only, legacyClaims: const [], records: [
+          NarrativeEventRecord.configuredStructurallyUnchecked(
+            NarrativeEventDefinition(
+              id: 'evt_019abcde-0000-7000-8000-000000000002',
+              name: 'Scripted battle',
+              source: NarrativeEventSourceRef.mapEnter(map.id),
+              conditions: const [], sceneId: scene.id,
+              reusePolicy: NarrativeEventReusePolicy.oneShot,
+              priority: 0, order: 0,
+              resetPolicy: const NarrativeEventResetPolicy.never()),
+            enabled: true),
+        ]),
+    );
+    final scoped = fixture.bundle.copyWith(manifest: manifest, map: map,
+        characterAnimationAbsolutePathsByAssetId: {
+          'scene-hero-asset': '$root/scene-hero.png',
+        });
+    final sessionRuntime = SpatialExplorationGameSessionRuntime(
+      descriptor: GameSessionDescriptor(
+        sessionId: 'scripted-loss', sessionToken: 'token',
+        identity: GameIdentity(gameId: 'test.avelune.scripted-loss', gameVersion: '1.0.0',
+          projectFormat: ProjectFormat.v9, saveFormat: 1, compatibilityId: 'test'),
+        profileId: 'profile', slotId: 'slot',
+        launchMode: GameSessionLaunchMode.newGame,
+        initialGameState: initial, installedVersionHandle: 'test',
+        runtimeApiVersion: '1.4.0',
+        grantedCapabilities: {'map3d@1', 'map3d.story@1', 'map3d.gameplay@1'},
+        locale: 'fr', accessibility: const GameSessionAccessibilityOptions()),
+      projectFilePath: () async => '$root/project.json',
+      preloadedInitialMap: ({required projectFilePath, required descriptor,
+          required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: scoped),
+      mountSession: (_) async {}, unmountSession: (_) async {},
+    );
+    addTearDown(sessionRuntime.dispose);
+    await tester.runAsync(() => sessionRuntime.load((_) {}));
+    final battle = sessionRuntime.battle!;
+    for (var i = 0; i < 500 && !battle.isActive; i++) {
+      await _pumpPresentation(tester);
+    }
+    expect(battle.isActive, true, reason: '${sessionRuntime.session!.interactionError.value}');
+    await _readyInView(tester, battle);
+    await _fight(tester, battle);
+    expect(battle.displaySession!.state.outcome!.isDefeat, true);
+    await _acknowledge(tester, battle);
+    await tester.runAsync(() => sessionRuntime.gameplayReady);
+    final after = sessionRuntime.gameStateSnapshot;
+    expect(after.trainerProfile.money, 100);
+    expect(after.currentMapId, initial.currentMapId);
+    expect(after.playerSpatialPosition, initial.playerSpatialPosition);
+    expect(after.party.members.first.currentHp, 1);
   });
   testWidgets(
       'defeat uses the real pure recovery and preserves completed battle identity',

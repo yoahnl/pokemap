@@ -108,8 +108,10 @@ final class LocalMapAtmosphereAuthoring {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
-        'documentSchemaVersions': [1, 2, 3, 4],
+        'documentSchemaVersions': [1, 2, 3, 4, 5],
         'weatherCapability': SpatialWeatherCapabilities.capabilityId,
+        'weatherSoundCapability': SpatialWeatherCapabilities.soundCapabilityId,
+        'weatherFields': [...SpatialWeatherSettings.keys],
         'effects': ['weather', 'waterAnimated', 'windowsLit', 'fireflies', 'halosEnabled', 'depthFogEnabled', 'depthOfFieldEnabled'],
         'depthOfFieldStrength': {'minimum': 0, 'maximum': 1},
         'depthOfFieldFocusRange': {'minimum': 2, 'maximum': 40, 'unit': 'worldCells', 'meaning': 'fullSharpZoneDepthExtent'},

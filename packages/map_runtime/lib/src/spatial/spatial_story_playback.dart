@@ -60,6 +60,8 @@ final class SpatialStoryPlayback {
       sink: SpatialCinematicRuntimePlaybackSink(
         project: session.bundle.manifest,
         activeMap: () => session.bundle.map,
+        containsPoint: session.containsCinematicPoint,
+        heightAt: session.cinematicHeightAt,
         readActor: _readActor,
         writeActor: (actor, pose) => _poses[_key(actor)] = pose,
         readCamera: () => camera,
@@ -71,7 +73,9 @@ final class SpatialStoryPlayback {
         retainFadeOnCompletion: () => _sceneFadeOwner != null,
         writeCamera: (pose) => camera = pose,
         canTraverse: (actor, fromX, fromZ, toX, toZ, poses, crossingActors) => session.movement.canTraverseActor(
-            fromX, fromZ, toX, toZ, ignoredEntityId: actor.mapEntityId,
+            fromX, fromZ, toX, toZ, allowConnectedMaps: true,
+            connectedMaps: session.cinematicMovementNeighbors,
+            ignoredEntityId: actor.mapEntityId,
             ignoredEntityIds: {for (final binding in crossingActors) if (binding.mapEntityId != null) binding.mapEntityId!},
             actorStateProvider: (id) {
           final pose = poses.entries

@@ -19,6 +19,7 @@ import '../../contracts/authoring_request.dart';
 import '../../contracts/json_contract_support.dart';
 import '../../history/history_store.dart';
 import '../../history/file_history_store.dart';
+import '../../history/catalog_history_retention.dart';
 import '../../security/authoring_permission.dart';
 import '../../security/audit_record.dart';
 import '../../security/authorization_policy.dart';
@@ -346,19 +347,60 @@ final class CatalogAuthoringSession {
 
   Future<void> prepareWorkshopCatalog() async {
     _authorize(AuthoringSecurityOperation.plan);
-    final prepareRetainedGenerations = await reader.store.prepareLocalEditing();
+    final currentGenerationPrepared = await reader.store.prepareLocalEditing();
     await reader.store.gateway.withExclusiveWriteLock(() =>
         CatalogGenerationRetention(store: reader.store)
             .bindProjectUnderLock(reader.projectId));
     final editing = await _editing();
     final history = editing.history;
     if (history is FileAuthoringHistoryStore) {
-      await reader.store.gateway.withExclusiveWriteLock(() => history.prepareLocalHistory(
-          force: prepareRetainedGenerations,
-          prepareEntry: editing.prepareRetainedGenerationAdmissions));
+      await reader.store.gateway
+          .withExclusiveWriteLock(() => history.prepareLocalHistory());
     }
     await editing.prepareFinalizedJournals();
-    await editing.prepareMetadataDocuments(force: prepareRetainedGenerations);
+    await editing.prepareMetadataDocuments(force: currentGenerationPrepared);
+  }
+
+  Future<Map<String, Object?>> maintainHistory(
+      {required String expectedRevision,
+      bool apply = false,
+      String? expectedFingerprint,
+      int maxOperations = 50,
+      int maxBytes = 200 * 1024 * 1024}) async {
+    _authorize(apply
+        ? AuthoringSecurityOperation.apply
+        : AuthoringSecurityOperation.plan);
+    if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(expectedRevision) ||
+        maxOperations < 1 ||
+        maxOperations > 50 ||
+        maxBytes < 1 ||
+        maxBytes > 200 * 1024 * 1024 ||
+        (apply && (expectedFingerprint == null || expectedFingerprint.isEmpty))) {
+      throw const FormatException('history.maintenance: invalid parameters');
+    }
+    final editing = await _editing();
+    final history = editing.history;
+    if (history is! FileAuthoringHistoryStore) {
+      throw const AuthoringHistoryException('history.maintenance_unsupported',
+          'Explicit history maintenance requires canonical local history.');
+    }
+    final retention = CatalogHistoryRetention(
+        store: reader.store, history: history, blobs: editing.blobs);
+    if (apply) {
+      return (await retention.apply(
+              projectId: reader.projectId,
+              expectedRootSha256: expectedRevision.substring(7),
+              expectedFingerprint: expectedFingerprint!,
+              maxOperations: maxOperations,
+              maxBytes: maxBytes))
+          .toJson();
+    }
+    return (await retention.preview(
+            projectId: reader.projectId,
+            expectedRootSha256: expectedRevision.substring(7),
+            maxOperations: maxOperations,
+            maxBytes: maxBytes))
+        .toJson();
   }
 
   Future<AuthoringMutationPlanResult> _planWorkshop(AuthoringRequest request) async {

@@ -107,6 +107,7 @@ SpatialPointLight spatialPlacedPointLight(
   Model3dPointLight definition,
   Matrix4 transform, {
   required double daylight,
+  bool indoors = false,
   double elapsedSeconds = 0,
   double proximityStrength = 1,
 }) {
@@ -123,7 +124,7 @@ SpatialPointLight spatialPlacedPointLight(
     intensity:
         definition.intensity *
         proximityStrength *
-        (definition.nightOnly ? 1 - daylight : 1),
+        (definition.nightOnly && !indoors ? 1 - daylight : 1),
   );
 }
 
@@ -167,7 +168,7 @@ SpatialLightingProfile spatialEnvironmentLighting(
     unlitMaterialNames: base.unlitMaterialNames,
     hiddenMaterialsByInstance: base.hiddenMaterialsByInstance,
     shadow: daylight > .001 ? base.shadow : null,
-    sceneTint: frame?.tint ?? const Color(0xffffffff),
+    sceneTint: frame?.tint ?? base.sceneTint,
     pointLights: lights,
     fireflyLights: fireflyLights,
     pointShadowCasterInstanceIds:

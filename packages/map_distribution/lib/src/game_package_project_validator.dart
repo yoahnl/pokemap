@@ -70,6 +70,9 @@ final class GamePackageProjectValidator {
       };
       var visualProfiles = false;
       var weather = SpatialWeatherCapabilities.requiresProject(project);
+      var weatherSound = SpatialWeatherCapabilities.requiresSoundProject(project);
+      var worldEnvironment = WorldEnvironmentCapabilities.requiresProject(project);
+      var realWeather = WorldEnvironmentCapabilities.requiresRealProject(project);
       var lightWorkshop = SpatialLightWorkshopCapabilities.requiresProject(project);
       for (final entry in visualPaths.entries) {
         if (!payloadPaths.contains(entry.key)) continue;
@@ -83,6 +86,9 @@ final class GamePackageProjectValidator {
                 decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         lightWorkshop |= document.profile.requiresLightWorkshop;
         weather |= document.profile.requiresWeather;
+        weatherSound |= document.profile.requiresWeatherSound;
+        worldEnvironment |= document.profile.requiresWorldEnvironment;
+        realWeather |= document.profile.requiresRealWeather;
         if (document.mapId != entry.value) {
           _fail('Visual settings identity mismatch.');
         }
@@ -159,6 +165,7 @@ final class GamePackageProjectValidator {
         final document = SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(decodeNarrativeEventJsonStrict(utf8.decode(bytes)) as Map));
         lightWorkshop |= document.settings.hasFireflyStyle;
         weather |= document.settings.weather.hasSettings;
+        weatherSound |= document.settings.weather.hasSoundSettings;
         if (document.mapId != mapId) _fail('Atmosphere map identity mismatch.');
       }
       if (lightWorkshop && !packageManifest.compatibility.requiredCapabilities.contains(SpatialLightWorkshopCapabilities.capabilityId)) {
@@ -166,6 +173,15 @@ final class GamePackageProjectValidator {
       }
       if (weather && !packageManifest.compatibility.requiredCapabilities.contains(SpatialWeatherCapabilities.capabilityId)) {
         _fail('Weather requires map3d.weather@1.');
+      }
+      if (weatherSound && !packageManifest.compatibility.requiredCapabilities.contains(SpatialWeatherCapabilities.soundCapabilityId)) {
+        _fail('Weather audio requires map3d.weather-audio@1.');
+      }
+      if (worldEnvironment && !packageManifest.compatibility.requiredCapabilities.contains(WorldEnvironmentCapabilities.capabilityId)) {
+        _fail('World environment requires map3d.world-environment@1.');
+      }
+      if (realWeather && !packageManifest.compatibility.requiredCapabilities.contains(WorldEnvironmentCapabilities.realWeatherCapabilityId)) {
+        _fail('Real weather requires map3d.real-weather@1.');
       }
       final spatial = project.settings.dimension == ProjectDimension.threeD;
       final gameplay = packageManifest.compatibility.requiredCapabilities
@@ -192,6 +208,11 @@ final class GamePackageProjectValidator {
             guide.battleFormat != BattleFormat.singles || battle.defeatRecovery != SceneBattleDefeatRecovery.continueScene) {
           _fail('The battle demonstration requires an existing temporary singles team and wild encounter.');
         }
+      }
+      if (project.battleSavings != null &&
+          !packageManifest.compatibility.requiredCapabilities
+              .contains(ProjectBattleSavingsConfig.capabilityId)) {
+        _fail('Battle savings require ${ProjectBattleSavingsConfig.capabilityId}.');
       }
       if (project.contactDevice case final device?) {
         if (!spatial) _fail('Contact devices require a 3D project.');

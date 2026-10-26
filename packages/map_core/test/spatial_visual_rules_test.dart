@@ -39,10 +39,12 @@ void main() {
         ],
         facts: [NarrativeFactDefinition(id: 'storm', label: 'Storm')],
         worldRules: [
-          rule('base', 0, {'fogOpacity': .2, 'halosEnabled': true}),
+          rule('base', 0, {'fogOpacity': .2, 'halosEnabled': true, 'weatherSoundEnabled': true, 'weatherRainVolume': .8}),
           rule('higher', 2, {'fogOpacity': .4}),
         ],
       );
+      expect(SpatialWeatherCapabilities.requiresProject(project), isTrue);
+      expect(SpatialWeatherCapabilities.requiresSoundProject(project), isTrue);
       final resolver = SpatialVisualRuleResolver(project);
       final active = GameState(
         saveId: 'save',
@@ -109,6 +111,12 @@ void main() {
       ).resolve(active, 'village');
       expect(combined.number(SpatialVisualParameter.fogOpacity), .2);
       expect(combined.enabled(SpatialVisualParameter.halosEnabled), isTrue);
+      final compatibleSequences = project.copyWith(worldRules: [
+        rule('one', {'weatherSequence': ['clear', 'rain'], 'timeMode': 'real'}),
+        rule('two', {'weatherSequence': ['clear', 'rain'], 'weatherMode': 'automatic'}),
+      ]);
+      expect(diagnoseWorldRules(compatibleSequences).byCode(WorldRuleDiagnosticCode.worldRuleConflict), isEmpty);
+      expect(WorldEnvironmentCapabilities.requiresProject(compatibleSequences), isTrue);
       final opposed = project.copyWith(
         worldRules: [
           project.worldRules.first,
@@ -168,6 +176,13 @@ void main() {
       final patch = SpatialVisualPatch.fromJson({
         'depthOfFieldEnabled': true,
         'depthOfFieldStrength': .65,
+        'weatherSoundEnabled': true,
+        'weatherRainVolume': .8,
+        'weatherWindVolume': .4,
+        'timeMode': 'fixed',
+        'minuteOfDay': 1320,
+        'weatherMode': 'automatic',
+        'weatherSequence': ['clear', 'rain'],
       });
       final command = SceneInteractiveCommand.worldPresentation(
         operation: SceneWorldPresentationOperation.atmosphere,
@@ -200,7 +215,7 @@ void main() {
           'operation': 'atmosphere',
           'scope': 'scene',
           'waitForCompletion': 'true',
-          'visualSettings': '{"fogOpacity":0.3}',
+          'visualSettings': '{"timeMode":"fixed","minuteOfDay":1320,"weatherMode":"fixed","weatherKind":"storm"}',
           'durationMs': '500',
         },
       );
@@ -227,7 +242,7 @@ void main() {
         asset,
         kind: CinematicTimelineStepKind.atmosphere,
         durationMs: 1000,
-        visualSettings: SpatialVisualPatch.fromJson({'haloStrength': 1.4}),
+        visualSettings: SpatialVisualPatch.fromJson({'haloStrength': 1.4, 'timeMode': 'fixed', 'minuteOfDay': 1320, 'weatherMode': 'fixed', 'weatherKind': 'storm'}),
       );
       final edited = updateCinematicTimelineCommandStep(
         added.cinematic,

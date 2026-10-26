@@ -1,3 +1,4 @@
+import 'package:map_core/map_core.dart';
 import 'package:flutter/material.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -25,6 +26,7 @@ final class PlayerPreferences {
     this.launchMostRecentGameOnStartup = false,
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
+    this.realWeather = const RealWeatherPreferences(),
     this.targetFramesPerSecond = AveluneFrameRate.defaultLimit,
   }) : assert(
           targetFramesPerSecond == 30 ||
@@ -55,6 +57,7 @@ final class PlayerPreferences {
       'dialogueTextSpeed',
       'menuEffects',
       'targetFramesPerSecond',
+      'realWeather',
     };
     if (json.keys.toSet().difference(keys).isNotEmpty ||
         json['schemaVersion'] != 1) {
@@ -127,7 +130,9 @@ final class PlayerPreferences {
         touchControlsOpacity > 1) {
       throw const FormatException('Player preference value out of range.');
     }
+    if (json['realWeather'] != null && json['realWeather'] is! Map<String, Object?>) throw const FormatException('Invalid real weather preferences.');
     return PlayerPreferences(
+      realWeather: json['realWeather'] == null ? const RealWeatherPreferences() : RealWeatherPreferences.fromJson(Map<String, dynamic>.from(json['realWeather'] as Map)),
       language: language,
       theme: theme,
       dialogueTextSpeed: dialogueTextSpeed,
@@ -167,6 +172,7 @@ final class PlayerPreferences {
   final RuntimeDialogueTextSpeed dialogueTextSpeed;
   final RuntimePlayerMenuEffects menuEffects;
   final int targetFramesPerSecond;
+  final RealWeatherPreferences realWeather;
 
   Locale? get locale => switch (language) {
         PlayerLanguage.system => null,
@@ -200,6 +206,7 @@ final class PlayerPreferences {
         showInputHints: showInputHints,
         dialogueTextSpeed: dialogueTextSpeed,
         menuEffects: menuEffects,
+        realWeather: realWeather,
         targetFramesPerSecond: targetFramesPerSecond,
       );
 
@@ -223,6 +230,7 @@ final class PlayerPreferences {
         showInputHints: snapshot.showInputHints,
         dialogueTextSpeed: snapshot.dialogueTextSpeed,
         menuEffects: snapshot.menuEffects,
+        realWeather: snapshot.realWeather,
         targetFramesPerSecond: snapshot.targetFramesPerSecond,
       );
 
@@ -244,9 +252,11 @@ final class PlayerPreferences {
     RuntimeDialogueTextSpeed? dialogueTextSpeed,
     RuntimePlayerMenuEffects? menuEffects,
     int? targetFramesPerSecond,
+    RealWeatherPreferences? realWeather,
   }) =>
       PlayerPreferences(
         language: language ?? this.language,
+        realWeather: realWeather ?? this.realWeather,
         dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
         menuEffects: menuEffects ?? this.menuEffects,
         targetFramesPerSecond:
@@ -270,6 +280,7 @@ final class PlayerPreferences {
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
+        if (realWeather != const RealWeatherPreferences()) 'realWeather': realWeather.toJson(),
         'language': language.name,
         'dialogueTextSpeed': dialogueTextSpeed.name,
         'menuEffects': menuEffects.name,
@@ -292,6 +303,7 @@ final class PlayerPreferences {
   @override
   bool operator ==(Object other) =>
       other is PlayerPreferences &&
+      realWeather == other.realWeather &&
       schemaVersion == other.schemaVersion &&
       language == other.language &&
       dialogueTextSpeed == other.dialogueTextSpeed &&
@@ -313,6 +325,7 @@ final class PlayerPreferences {
 
   @override
   int get hashCode => Object.hash(
+        realWeather,
         schemaVersion,
         language,
         dialogueTextSpeed,

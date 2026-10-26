@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
@@ -176,9 +177,7 @@ void main() {
         workspaceHandle: 'workspace:history',
         idempotencyKey: 'idem-history-racing-redo',
       );
-      await harness.history.append(
-        _divergentEntry(harness.projectId, 'redo'),
-      );
+      await _recordDivergent(harness, 'redo');
 
       await expectLater(
         () => harness.undo.apply(redoPlan),
@@ -222,9 +221,7 @@ void main() {
         () => harness.undo.apply(redoPlan),
         throwsA(isA<AuthoringTransactionSimulatedCrash>()),
       );
-      await harness.history.append(
-        _divergentEntry(harness.projectId, 'recovery'),
-      );
+      await _recordDivergent(harness, 'recovery');
       final recovery = AuthoringRecoveryService(
         gateway: harness.base.gateway,
         idempotency: harness.base.ledger,
@@ -397,9 +394,7 @@ void main() {
         workspaceHandle: 'workspace:history',
         idempotencyKey: 'idem-history-racing-revert',
       );
-      await harness.history.append(
-        _divergentEntry(harness.projectId, 'revert'),
-      );
+      await _recordDivergent(harness, 'revert');
 
       await expectLater(
         () => harness.revert.apply(revertPlan),
@@ -408,6 +403,46 @@ void main() {
       await harness.expectBeforeState();
     });
   });
+}
+
+Future<void> _recordDivergent(_HistoryHarness harness, String suffix) async {
+  final resource = AuthoringResourceRef(kind: 'fixture', id: 'branch-$suffix');
+  final change = AuthoringResourceChange(
+      resource: resource,
+      storageKey: 'data/branch-$suffix.json',
+      beforeBytes: utf8.encode('{"value":0}'),
+      afterBytes: utf8.encode('{"value":1}'));
+  final scope = AuthoringIdempotencyScope(
+      actorId: 'actor-divergent',
+      projectId: harness.projectId,
+      actionId: 'fixture.branch',
+      actionVersion: 1,
+      key: 'branch-$suffix');
+  final receipt = AuthoringReceipt(
+      receiptId: 'receipt_document_divergent_$suffix',
+      requestId: 'request-divergent-$suffix',
+      actionId: 'fixture.branch',
+      actionVersion: 1,
+      status: AuthoringReceiptStatus.applied,
+      beforeRevision: change.beforeRevision,
+      afterRevision: change.afterRevision,
+      createdAtUtc: DateTime.utc(2026, 7, 31, 15).toIso8601String(),
+      diff: AuthoringDiff([
+        AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.replace,
+            resource: resource,
+            path: r'$.value',
+            before: 0,
+            after: 1)
+      ]));
+  final mutation = AuthoringCommittedMutation(
+      scope: scope,
+      planId: 'plan-divergent-$suffix',
+      operationId: 'operation-divergent-$suffix',
+      receipt: receipt,
+      changes: [change]);
+  await harness.recorder.requireCommitAllowed(mutation);
+  await harness.recorder.record(mutation);
 }
 
 AuthoringHistoryEntry _divergentEntry(String projectId, String suffix) {

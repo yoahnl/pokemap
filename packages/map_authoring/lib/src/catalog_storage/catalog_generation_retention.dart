@@ -212,156 +212,205 @@ final class CatalogGenerationRetention {
     }
   }
 
+  Future<void> requireNoPreparedGenerationsUnderLock() async {
+    for (final record in await _records()) {
+      if (record.purpose == CatalogLeasePurpose.preparation &&
+          await _active(record)) {
+        throw const CatalogStorageException('catalog.preparation_active',
+            'Finish or discard prepared catalog edits before history maintenance.');
+      }
+    }
+  }
+
+  Future<void> requireNoPendingTransactionsUnderLock() async {
+    final root = await _directory('.pokemap/authoring/transactions');
+    final pending = [root];
+    var inspected = 0;
+    while (pending.isNotEmpty) {
+      final directory = pending.removeLast();
+      await for (final entity in directory.list(followLinks: false)) {
+        if (++inspected > _maximumRecords) {
+          throw const CatalogStorageException('catalog.collection_limit',
+              'The transaction inventory exceeds the maintenance budget.');
+        }
+        if (entity is Directory) {
+          pending.add(entity);
+        } else if (entity is! File ||
+            directory.path != root.path ||
+            entity.uri.pathSegments.last != 'write.lock' ||
+            await entity.length() != 0) {
+          throw const CatalogStorageException('catalog.recovery_required',
+              'Finalize all project transaction namespaces before history maintenance.');
+        }
+      }
+    }
+  }
+
   Future<CatalogCollectionResult> collect({
     required String projectId,
     required AuthoringHistoryStore history,
     required AuthoringContentBlobStore blobs,
+    bool dryRun = false,
   }) =>
-      store.gateway.withExclusiveWriteLock(() async {
-        await bindProjectUnderLock(projectId);
-        final roots = <CatalogObjectReference>{};
-        final head = await store.readHead();
-        if (head != null) roots.add(head);
-        final journals = await store.gateway.listJournals();
-        final catalogOperations = {
-          for (final journal in journals)
-            if (journal.entries.any((entry) =>
-                entry.storageKey == CatalogStorageStore.headStorageKey))
-              journal.operationId,
-        };
-        final records = await _records();
-        final stale = <_LeaseRecord>[];
-        for (final record in records) {
-          final pending = record.purpose == CatalogLeasePurpose.preparation &&
-              catalogOperations.contains(record.ownerId);
-          if (pending || await _active(record)) {
-            roots.addAll(record.roots);
-          } else {
-            stale.add(record);
+      store.gateway.withExclusiveWriteLock(() => collectUnderLock(
+          projectId: projectId,
+          history: history,
+          blobs: blobs,
+          dryRun: dryRun));
+
+  Future<CatalogCollectionResult> collectUnderLock({
+    required String projectId,
+    required AuthoringHistoryStore history,
+    required AuthoringContentBlobStore blobs,
+    bool dryRun = false,
+    CatalogObjectReader? readObject,
+  }) async {
+    await bindProjectUnderLock(projectId);
+    final roots = <CatalogObjectReference>{};
+    final head = await store.readHead();
+    if (head != null) roots.add(head);
+    final journals = await store.gateway.listJournals();
+    final catalogOperations = {
+      for (final journal in journals)
+        if (journal.entries.any(
+            (entry) => entry.storageKey == CatalogStorageStore.headStorageKey))
+          journal.operationId,
+    };
+    final records = await _records();
+    final stale = <_LeaseRecord>[];
+    for (final record in records) {
+      final pending = record.purpose == CatalogLeasePurpose.preparation &&
+          catalogOperations.contains(record.ownerId);
+      if (pending || await _active(record)) {
+        roots.addAll(record.roots);
+      } else {
+        stale.add(record);
+      }
+    }
+    for (final operation in catalogOperations) {
+      if (!records.any((record) =>
+          record.purpose == CatalogLeasePurpose.preparation &&
+          record.ownerId == operation)) {
+        throw const CatalogStorageException('catalog.recovery_required',
+            'An unresolved catalog transaction has no generation pin.');
+      }
+    }
+    AuthoringHistoryCursor? cursor;
+    final cursors = <String>{};
+    var historyEntries = 0;
+    do {
+      final page =
+          await history.list(projectId: projectId, limit: 100, cursor: cursor);
+      historyEntries += page.entries.length;
+      if (historyEntries > _maximumRecords) {
+        throw const CatalogStorageException('catalog.collection_limit',
+            'The retained history exceeds the collection budget.');
+      }
+      for (final entry in page.entries) {
+        if (entry.nonUndoableReason != null) continue;
+        for (final change in entry.changes) {
+          if (change.storageKey != CatalogStorageStore.headStorageKey) {
+            continue;
           }
-        }
-        for (final operation in catalogOperations) {
-          if (!records.any((record) =>
-              record.purpose == CatalogLeasePurpose.preparation &&
-              record.ownerId == operation)) {
-            throw const CatalogStorageException('catalog.recovery_required',
-                'An unresolved catalog transaction has no generation pin.');
-          }
-        }
-        AuthoringHistoryCursor? cursor;
-        final cursors = <String>{};
-        var historyEntries = 0;
-        do {
-          final page = await history.list(
-              projectId: projectId, limit: 100, cursor: cursor);
-          historyEntries += page.entries.length;
-          if (historyEntries > _maximumRecords) {
-            throw const CatalogStorageException('catalog.collection_limit',
-                'The retained history exceeds the collection budget.');
-          }
-          for (final entry in page.entries) {
-            if (entry.nonUndoableReason != null) continue;
-            for (final change in entry.changes) {
-              if (change.storageKey != CatalogStorageStore.headStorageKey) {
-                continue;
+          for (final (id, revision) in [
+            (change.beforeBlobId, change.beforeRevision),
+            (change.afterBlobId, change.afterRevision),
+          ]) {
+            if (id == null) continue;
+            final payload = await blobs.get(id);
+            if (payload == null ||
+                payload.byteLength > CatalogStorageStore.maximumHeadBytes) {
+              throw const CatalogStorageException('catalog.history_unavailable',
+                  'A retained generation is unavailable.');
+            }
+            final bytes = BytesBuilder(copy: false);
+            await for (final chunk in payload.openRead()) {
+              if (bytes.length + chunk.length >
+                  CatalogStorageStore.maximumHeadBytes) {
+                throw const FormatException('catalog.history: oversized head');
               }
-              for (final (id, revision) in [
-                (change.beforeBlobId, change.beforeRevision),
-                (change.afterBlobId, change.afterRevision),
-              ]) {
-                if (id == null) continue;
-                final payload = await blobs.get(id);
-                if (payload == null ||
-                    payload.byteLength > CatalogStorageStore.maximumHeadBytes) {
-                  throw const CatalogStorageException(
-                      'catalog.history_unavailable',
-                      'A retained generation is unavailable.');
-                }
-                final bytes = BytesBuilder(copy: false);
-                await for (final chunk in payload.openRead()) {
-                  if (bytes.length + chunk.length >
-                      CatalogStorageStore.maximumHeadBytes) {
-                    throw const FormatException(
-                        'catalog.history: oversized head');
-                  }
-                  bytes.add(chunk);
-                }
-                final headBytes = bytes.takeBytes();
-                if (computeAuthoringBytesFingerprint(headBytes,
-                        logicalName: CatalogStorageStore.headStorageKey) !=
-                    revision) {
-                  throw const CatalogStorageException(
-                      'catalog.history_unavailable',
-                      'A retained generation does not match its history revision.');
-                }
-                roots.add(_decodeHead(headBytes));
-              }
+              bytes.add(chunk);
             }
-          }
-          cursor = page.nextCursor;
-          if (cursor != null && !cursors.add(cursor.wireValue)) {
-            throw const FormatException('catalog.history: repeated cursor');
-          }
-        } while (cursor != null);
-        if (roots.length > _maximumRecords) {
-          throw const FormatException('catalog.collection: too many roots');
-        }
-        final retained = <String>{};
-        var retainedBytes = 0;
-        for (final root in roots) {
-          final snapshot = await store.openRoot(root);
-          for (final reference in await snapshot.snapshot.objectReferences()) {
-            if (retained.add(reference.sha256)) {
-              retainedBytes += reference.byteLength;
+            final headBytes = bytes.takeBytes();
+            if (computeAuthoringBytesFingerprint(headBytes,
+                    logicalName: CatalogStorageStore.headStorageKey) !=
+                revision) {
+              throw const CatalogStorageException('catalog.history_unavailable',
+                  'A retained generation does not match its history revision.');
             }
-            if (retained.length > _maximumObjects ||
-                retainedBytes > _maximumBytes) {
-              throw const FormatException('catalog.collection: graph budget');
-            }
+            roots.add(_decodeHead(headBytes));
           }
         }
-        final directory = await _directory('catalog/objects');
-        final garbage = <(String, int)>[];
-        var inspectedBytes = 0;
-        var inspectedObjects = 0;
-        await for (final entity in directory.list(followLinks: false)) {
-          if (entity is! File ||
-              !RegExp(r'/[a-f0-9]{64}\.json$').hasMatch(entity.path)) {
-            throw const FormatException(
-                'catalog.collection: unsafe object entry');
-          }
-          if (++inspectedObjects > _maximumObjects) {
-            throw const FormatException('catalog.collection: object budget');
-          }
-          final digest = entity.path.split('/').last.substring(0, 64);
-          final size = await entity.length();
-          inspectedBytes += size;
-          if (size < 1 ||
-              size > store.limits.maxUnitBytes ||
-              inspectedBytes > _maximumBytes) {
-            throw const FormatException('catalog.collection: byte budget');
-          }
-          await store.readObject(
-              CatalogObjectReference(sha256: digest, byteLength: size));
-          if (!retained.contains(digest)) {
-            garbage.add(('catalog/objects/$digest.json', size));
-          }
+      }
+      cursor = page.nextCursor;
+      if (cursor != null && !cursors.add(cursor.wireValue)) {
+        throw const FormatException('catalog.history: repeated cursor');
+      }
+    } while (cursor != null);
+    if (roots.length > _maximumRecords) {
+      throw const FormatException('catalog.collection: too many roots');
+    }
+    final retained = <String>{};
+    var retainedBytes = 0;
+    for (final root in roots) {
+      final snapshot = await store.openRoot(root, readObject: readObject);
+      for (final reference in await snapshot.snapshot.objectReferences()) {
+        if (retained.add(reference.sha256)) {
+          retainedBytes += reference.byteLength;
         }
-        var deletedBytes = 0;
-        for (final (path, size) in garbage) {
-          await _replace(path, null);
-          deletedBytes += size;
+        if (retained.length > _maximumObjects ||
+            retainedBytes > _maximumBytes) {
+          throw const FormatException('catalog.collection: graph budget');
         }
-        for (final record in stale) {
-          await releaseUnderLock(record.id);
-        }
-        return CatalogCollectionResult(
-          retainedObjects: retained.length,
-          deletedObjects: garbage.length,
-          deletedBytes: deletedBytes,
-          reclaimedLeases: stale.length,
-        );
-      });
+      }
+    }
+    final directory = await _directory('catalog/objects');
+    final garbage = <(String, int)>[];
+    var inspectedBytes = 0;
+    var inspectedObjects = 0;
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is! File ||
+          !RegExp(r'/[a-f0-9]{64}\.json$').hasMatch(entity.path)) {
+        throw const FormatException('catalog.collection: unsafe object entry');
+      }
+      if (++inspectedObjects > _maximumObjects) {
+        throw const FormatException('catalog.collection: object budget');
+      }
+      final digest = entity.path.split('/').last.substring(0, 64);
+      final size = await entity.length();
+      inspectedBytes += size;
+      if (size < 1 ||
+          size > store.limits.maxUnitBytes ||
+          inspectedBytes > _maximumBytes) {
+        throw const FormatException('catalog.collection: byte budget');
+      }
+      final bytes = await store
+          .readObject(CatalogObjectReference(sha256: digest, byteLength: size));
+      if (bytes.length != size || sha256.convert(bytes).toString() != digest) {
+        throw const CatalogStorageException('catalog.object_corrupt',
+            'A catalog object failed verification before collection.');
+      }
+      if (!retained.contains(digest)) {
+        garbage.add(('catalog/objects/$digest.json', size));
+      }
+    }
+    var deletedBytes = 0;
+    for (final (path, size) in garbage) {
+      if (!dryRun) await _replace(path, null);
+      deletedBytes += size;
+    }
+    if (!dryRun) {
+      for (final record in stale) {
+        await releaseUnderLock(record.id);
+      }
+    }
+    return CatalogCollectionResult(
+      retainedObjects: retained.length,
+      deletedObjects: garbage.length,
+      deletedBytes: deletedBytes,
+      reclaimedLeases: stale.length,
+    );
+  }
 
   Future<bool> _active(_LeaseRecord record) async {
     if (record.ownerPid == pid) return true;
