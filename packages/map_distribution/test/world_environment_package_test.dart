@@ -28,7 +28,7 @@ void main() {
             (e) => e.message,
             'capability',
             contains(WorldEnvironmentCapabilities.capabilityId))));
-    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(capabilities: [...base, WorldEnvironmentCapabilities.capabilityId, WorldEnvironmentCapabilities.realWeatherCapabilityId]), payloadFiles: files), throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'capability', contains(WorldEnvironmentCapabilities.realWeatherCapabilityId))));
+    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(capabilities: [...base, WorldEnvironmentCapabilities.capabilityId]), payloadFiles: files), throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'capability', contains(WorldEnvironmentCapabilities.realWeatherCapabilityId))));
     final built = const GamePackageBuilder().build(
         manifest: spatialManifest(
             capabilities: [...base, WorldEnvironmentCapabilities.capabilityId, WorldEnvironmentCapabilities.realWeatherCapabilityId]),

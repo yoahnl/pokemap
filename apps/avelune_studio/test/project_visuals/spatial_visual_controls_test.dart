@@ -28,6 +28,8 @@ void main() {
     expect(find.byKey(const ValueKey('visual-dayDurationSeconds')), findsOneWidget);
     await choose('visual-timeMode', 'Heure fixe');
     expect(find.byKey(const ValueKey('visual-minuteOfDay')), findsOneWidget);
+    await choose('visual-weatherMode', 'Météo réelle du joueur');
+    expect(patch.choice(SpatialVisualParameter.weatherMode), 'real');
     await choose('visual-weatherMode', 'Météo automatique');
     expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
     final snow = find.byKey(const ValueKey('weather-preset-snow'));

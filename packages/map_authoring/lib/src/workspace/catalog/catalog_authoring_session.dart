@@ -378,6 +378,7 @@ final class CatalogAuthoringSession {
         (apply && (expectedFingerprint == null || expectedFingerprint.isEmpty))) {
       throw const FormatException('history.maintenance: invalid parameters');
     }
+    await reader.store.prepareLocalEditing();
     final editing = await _editing();
     final history = editing.history;
     if (history is! FileAuthoringHistoryStore) {

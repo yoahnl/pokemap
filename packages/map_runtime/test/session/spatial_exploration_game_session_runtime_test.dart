@@ -1,3 +1,5 @@
+import 'package:map_runtime/src/player/real_weather_service.dart';
+import 'package:map_runtime/src/player/real_weather_provider.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
@@ -117,6 +119,38 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  test('real weather waits for player consent and never requests from simulation frames', () async {
+    await runtime.dispose();
+    final provider = _WeatherProvider();
+    final cache = _WeatherCache();
+    final service = RealWeatherService(provider: provider, cache: cache, now: () => DateTime.utc(2026));
+    addTearDown(service.dispose);
+    bundle = bundle.copyWith(projectVisualProfile: SpatialVisualPatch.fromJson({'weatherMode': 'real'}));
+    runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(), projectFilePath: () async => '${root.path}/project.json',
+      realWeatherService: service,
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) async {}, unmountSession: (_) async {});
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    expect(provider.requests, 0);
+    final preferences = const PlayerPreferencesSnapshot(locale: 'fr', accessibility: GameSessionAccessibilityOptions(), realWeather: RealWeatherPreferences(enabled: true));
+    await runtime.pause();
+    runtime.applyPlayerPreferences(preferences);
+    await Future<void>.delayed(Duration.zero);
+    expect(provider.requests, 0);
+    await runtime.resume();
+    await Future<void>.delayed(Duration.zero);
+    expect(provider.requests, 1);
+    await service.refresh(preferences.realWeather);
+    expect(provider.requests, 1);
+    expect(runtime.session!.realWeatherAllowed, isTrue);
+    for (var i = 0; i < 30; i++) { runtime.session!.frames(.5); }
+    expect(provider.requests, 1);
+    runtime.applyPlayerPreferences(preferences.copyWith(realWeather: const RealWeatherPreferences()));
+    expect(runtime.session!.realWeatherAllowed, isFalse);
+    expect(service.value.snapshot, isNull);
+    expect(provider.requests, 1);
+  });
   test('session frames checkpoint and Continue share one environment timeline', () async {
     bundle = bundle.copyWith(projectVisualProfile: SpatialVisualPatch.fromJson({
       'timeMode': 'cycle', 'dayDurationSeconds': 1200, 'minuteOfDay': 360,
@@ -3765,4 +3799,24 @@ spatialBorderPassageFixture(RuntimeMapBundle bundle) {
     proposedResult: resolved,
   );
   return (manifest: manifest, source: source, destination: destination);
+}
+
+class _WeatherProvider implements RealWeatherProvider {
+  int requests = 0;
+  @override
+  Future<RealWeatherLocation> locate() async => RealWeatherLocation(latitude: 48, longitude: 2, label: 'Test city');
+  @override
+  Future<List<RealWeatherLocation>> search(String query) async => [];
+  @override
+  Future<RealWeatherSnapshot> fetch(RealWeatherLocation location, DateTime now) async {
+    requests++;
+    return RealWeatherSnapshot(location: location, conditions: SpatialVisualPatch.fromJson({'weatherKind': 'rain'}), fetchedAt: now);
+  }
+}
+class _WeatherCache implements RealWeatherCache {
+  RealWeatherSnapshot? saved;
+  @override
+  Future<RealWeatherSnapshot?> read() async => saved;
+  @override
+  Future<void> write(RealWeatherSnapshot snapshot) async { saved = snapshot; }
 }

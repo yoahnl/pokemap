@@ -797,8 +797,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     final preferences = _confirmed;
     return switch (_category) {
       PlayerOptionsCategory.weather => [
-        RuntimeRealWeatherOptions(preferences: preferences.realWeather, service: widget.weatherService,
-          onChanged: !_enabled ? null : (weather) => _save(_confirmed.copyWith(realWeather: weather))),
+        ...RuntimeRealWeatherOptions(preferences: preferences.realWeather, service: widget.weatherService,
+          onChanged: !_enabled ? null : (weather) => _save(_confirmed.copyWith(realWeather: weather))).sections(context),
       ],
       PlayerOptionsCategory.general => [
 

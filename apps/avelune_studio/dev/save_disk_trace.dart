@@ -29,10 +29,51 @@ final class SaveDiskTrace {
     row['bytes'] = (row['bytes']! as int) + bytes;
   }
 
+  Future<T> measure<T>(
+    String path,
+    String operation,
+    Future<T> Function() body,
+  ) async {
+    if (!armed || !path.startsWith('$root/')) return body();
+    final watch = Stopwatch()..start();
+    try {
+      return await body();
+    } finally {
+      recordElapsed(path, operation, watch.elapsedMicroseconds);
+    }
+  }
+
+  void recordElapsed(String path, String operation, int elapsedUs) {
+    if (!armed || !path.startsWith('$root/')) return;
+    final relative = path.substring(root.length + 1);
+    final row = _rows.putIfAbsent(
+      '$relative:$operation',
+      () => {'path': relative, 'operation': operation, 'calls': 0, 'bytes': 0},
+    );
+    row['timedCalls'] = (row['timedCalls'] as int? ?? 0) + 1;
+    row['elapsedUs'] = (row['elapsedUs'] as int? ?? 0) + elapsedUs;
+    final maximum = row['maxElapsedUs'] as int? ?? 0;
+    row['maxElapsedUs'] = elapsedUs > maximum ? elapsedUs : maximum;
+  }
+
+  Stream<T> measureStream<T>(String path, String operation, Stream<T> stream) {
+    if (!armed || !path.startsWith('$root/')) return stream;
+    final watch = Stopwatch()..start();
+    return stream.transform(
+      StreamTransformer<T, T>.fromHandlers(
+        handleDone: (sink) {
+          recordElapsed(path, operation, watch.elapsedMicroseconds);
+          sink.close();
+        },
+      ),
+    );
+  }
+
   Map<String, Object> snapshot() => {
     'root': root,
     'coverage': 'Dart File and Directory APIs in the UI isolate, including data reads, completed writes and directory listings',
     'byteSemantics': 'Completed content reads and writes; stream deliveries are separate from underlying reads. Not physical SSD traffic.',
+    'timingSemantics': 'Elapsed async wall time includes isolate scheduling; nested File and RandomAccessFile timings overlap and must not be summed as physical I/O time. timedCalls includes failed futures; stream timing runs from creation to completion, includes consumer pauses and excludes cancelled streams.',
     'rows': _rows.values.toList(),
   };
 
@@ -70,6 +111,8 @@ final class _TraceFile implements File {
   final SaveDiskTrace trace;
   void note(String operation, [int bytes = 0]) =>
       trace.record(p.absolute(file.path), operation, bytes);
+  Future<T> measure<T>(String operation, Future<T> Function() body) =>
+      trace.measure(p.absolute(file.path), operation, body);
   @override
   String get path => file.path;
   @override
@@ -83,19 +126,19 @@ final class _TraceFile implements File {
   @override
   Future<bool> exists() {
     note('exists');
-    return file.exists();
+    return measure('exists', file.exists);
   }
 
   @override
   Future<FileStat> stat() {
     note('stat');
-    return file.stat();
+    return measure('stat', file.stat);
   }
 
   @override
   Future<int> length() {
     note('length');
-    return file.length();
+    return measure('length', file.length);
   }
 
   @override
@@ -103,39 +146,48 @@ final class _TraceFile implements File {
   @override
   Future<File> create({bool recursive = false, bool exclusive = false}) async {
     note('create');
-    await file.create(recursive: recursive, exclusive: exclusive);
+    await measure(
+      'create',
+      () => file.create(recursive: recursive, exclusive: exclusive),
+    );
     return this;
   }
 
   @override
   Future<File> delete({bool recursive = false}) async {
     note('delete');
-    await file.delete(recursive: recursive);
+    await measure('delete', () => file.delete(recursive: recursive));
     return this;
   }
 
   @override
   Future<File> rename(String newPath) async {
     note('rename');
-    return _TraceFile(await file.rename(newPath), trace);
+    return _TraceFile(
+      await measure('rename', () => file.rename(newPath)),
+      trace,
+    );
   }
 
   @override
   Future<File> copy(String newPath) async {
     note('copy', await file.length());
-    return _TraceFile(await file.copy(newPath), trace);
+    return _TraceFile(await measure('copy', () => file.copy(newPath)), trace);
   }
 
   @override
   Future<Uint8List> readAsBytes() async {
-    final value = await file.readAsBytes();
+    final value = await measure('read', file.readAsBytes);
     note('read', value.length);
     return value;
   }
 
   @override
   Future<String> readAsString({Encoding encoding = utf8}) async {
-    final value = await file.readAsString(encoding: encoding);
+    final value = await measure(
+      'read',
+      () => file.readAsString(encoding: encoding),
+    );
     note('read', encoding.encode(value).length);
     return value;
   }
@@ -143,16 +195,25 @@ final class _TraceFile implements File {
   @override
   Stream<List<int>> openRead([int? start, int? end]) {
     note('openRead');
-    return file.openRead(start, end).map((chunk) {
-      note('streamDelivered', chunk.length);
-      return chunk;
-    });
+    return trace
+        .measureStream(
+          p.absolute(file.path),
+          'openRead',
+          file.openRead(start, end),
+        )
+        .map((chunk) {
+          note('streamDelivered', chunk.length);
+          return chunk;
+        });
   }
 
   @override
   Future<RandomAccessFile> open({FileMode mode = FileMode.read}) async {
     note('open:${mode.toString()}');
-    return _TraceRandomFile(await file.open(mode: mode), this);
+    return _TraceRandomFile(
+      await measure('open:${mode.toString()}', () => file.open(mode: mode)),
+      this,
+    );
   }
 
   @override
@@ -161,7 +222,10 @@ final class _TraceFile implements File {
     FileMode mode = FileMode.write,
     bool flush = false,
   }) async {
-    await file.writeAsBytes(bytes, mode: mode, flush: flush);
+    await measure(
+      'write',
+      () => file.writeAsBytes(bytes, mode: mode, flush: flush),
+    );
     note('write', bytes.length);
     return this;
   }
@@ -173,11 +237,14 @@ final class _TraceFile implements File {
     Encoding encoding = utf8,
     bool flush = false,
   }) async {
-    await file.writeAsString(
-      contents,
-      mode: mode,
-      encoding: encoding,
-      flush: flush,
+    await measure(
+      'write',
+      () => file.writeAsString(
+        contents,
+        mode: mode,
+        encoding: encoding,
+        flush: flush,
+      ),
     );
     note('write', encoding.encode(contents).length);
     return this;
@@ -195,10 +262,10 @@ final class _TraceRandomFile implements RandomAccessFile {
   @override
   String get path => file.path;
   @override
-  Future<void> close() => file.close();
+  Future<void> close() => owner.measure('close', file.close);
   @override
   Future<RandomAccessFile> flush() async {
-    await file.flush();
+    await owner.measure('flush', file.flush);
     owner.note('flush');
     return this;
   }
@@ -215,28 +282,31 @@ final class _TraceRandomFile implements RandomAccessFile {
 
   @override
   Future<RandomAccessFile> truncate(int length) async {
-    await file.truncate(length);
+    await owner.measure('truncate', () => file.truncate(length));
     owner.note('truncate', length);
     return this;
   }
 
   @override
   Future<Uint8List> read(int count) async {
-    final bytes = await file.read(count);
+    final bytes = await owner.measure('read', () => file.read(count));
     owner.note('read', bytes.length);
     return bytes;
   }
 
   @override
   Future<int> readInto(List<int> buffer, [int start = 0, int? end]) async {
-    final count = await file.readInto(buffer, start, end);
+    final count = await owner.measure(
+      'read',
+      () => file.readInto(buffer, start, end),
+    );
     owner.note('read', count);
     return count;
   }
 
   @override
   Future<int> readByte() async {
-    final byte = await file.readByte();
+    final byte = await owner.measure('read', file.readByte);
     owner.note('read', byte < 0 ? 0 : 1);
     return byte;
   }
@@ -247,7 +317,7 @@ final class _TraceRandomFile implements RandomAccessFile {
     int start = 0,
     int? end,
   ]) async {
-    await file.writeFrom(buffer, start, end);
+    await owner.measure('write', () => file.writeFrom(buffer, start, end));
     owner.note('write', (end ?? buffer.length) - start);
     return this;
   }
@@ -257,14 +327,17 @@ final class _TraceRandomFile implements RandomAccessFile {
     String string, {
     Encoding encoding = utf8,
   }) async {
-    await file.writeString(string, encoding: encoding);
+    await owner.measure(
+      'write',
+      () => file.writeString(string, encoding: encoding),
+    );
     owner.note('write', encoding.encode(string).length);
     return this;
   }
 
   @override
   Future<RandomAccessFile> writeByte(int value) async {
-    await file.writeByte(value);
+    await owner.measure('write', () => file.writeByte(value));
     owner.note('write', 1);
     return this;
   }
@@ -275,13 +348,13 @@ final class _TraceRandomFile implements RandomAccessFile {
     int start = 0,
     int end = -1,
   ]) async {
-    await file.lock(mode, start, end);
+    await owner.measure('lock', () => file.lock(mode, start, end));
     return this;
   }
 
   @override
   Future<RandomAccessFile> unlock([int start = 0, int end = -1]) async {
-    await file.unlock(start, end);
+    await owner.measure('unlock', () => file.unlock(start, end));
     return this;
   }
 
@@ -330,8 +403,12 @@ final class _TraceDirectory implements Directory {
     bool followLinks = true,
   }) {
     trace.record('$path/', recursive ? 'listRecursive' : 'list');
-    return directory
-        .list(recursive: recursive, followLinks: followLinks)
+    return trace
+        .measureStream(
+          '$path/',
+          recursive ? 'listRecursive' : 'list',
+          directory.list(recursive: recursive, followLinks: followLinks),
+        )
         .map(
           (entity) => switch (entity) {
             File file => _TraceFile(file, trace),

@@ -51,6 +51,35 @@ void main() {
     }
   });
 
+  test('history maintenance prepares current admission on a cold authority',
+      () async {
+    final fixture = await _Fixture.open(coldAuthority: true);
+    addTearDown(fixture.close);
+    final store =
+        await CatalogStorageStore.open(projectRoot: fixture.root.path);
+    final snapshot = (await store.openRoot((await store.readHead())!)).snapshot;
+    await expectLater(
+        store.restoreIndexAdmission(snapshot),
+        throwsA(isA<CatalogStorageException>().having(
+            (error) => error.code, 'code', 'catalog.preparation_required')));
+    expect(await store.metadataIndexPrepared(snapshot), isFalse);
+    final head =
+        await File('${fixture.root.path}/catalog/HEAD.json').readAsBytes();
+    final project =
+        await File('${fixture.root.path}/project.json').readAsBytes();
+    final result = await fixture.api.maintainHistory(fixture.projectHandle,
+        expectedRevision: fixture.revision);
+    expect(result['retainedEntryIds'], isEmpty);
+    await store.restoreIndexAdmission(snapshot);
+    expect(await store.metadataIndexPrepared(snapshot), isFalse);
+    expect(await File('${fixture.root.path}/catalog/HEAD.json').readAsBytes(),
+        head);
+    expect(
+        await File('${fixture.root.path}/project.json').readAsBytes(), project);
+    expect(
+        await File('${fixture.root.path}/maps/missing.json').exists(), isFalse);
+  });
+
   test('history maintenance refuses an obsolete current revision', () async {
     final fixture = await _Fixture.open();
     addTearDown(fixture.close);
@@ -241,15 +270,22 @@ final class _Fixture {
   final WorkspaceHandle workspaceHandle;
   final String revision;
 
-  static Future<_Fixture> open({bool readOnlyActor = false}) async {
+  static Future<_Fixture> open(
+      {bool readOnlyActor = false, bool coldAuthority = false}) async {
     final taskRoot = Directory(Platform.environment['AVELUNE_QA_ROOT'] ??
         '${Platform.environment['HOME']}/Library/Caches/AveluneQA/studio-project-lifecycle');
     await taskRoot.create(recursive: true);
     final root = await taskRoot.createTemp('maintenance-api-');
+    final bootstrapAdmissions =
+        coldAuthority ? Directory('${root.path}-bootstrap-admissions') : null;
     addTearDown(() async {
       if (await root.exists()) await root.delete(recursive: true);
+      if (bootstrapAdmissions != null && await bootstrapAdmissions.exists()) {
+        await bootstrapAdmissions.delete(recursive: true);
+      }
     });
-    final store = await CatalogStorageStore.open(projectRoot: root.path);
+    final store = await CatalogStorageStore.open(
+        projectRoot: root.path, trustedAdmissionDirectory: bootstrapAdmissions);
     await WorkingProjectCatalog.create(
         store: store,
         projectId: 'maintenance-api',

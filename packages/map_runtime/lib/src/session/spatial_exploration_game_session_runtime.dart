@@ -1186,6 +1186,7 @@ final class SpatialExplorationGameSessionRuntime
       _locks.remove(owner);
     }
     _syncMovement();
+    _configureRealWeather();
     if (owner == RuntimeExternalInputLock.lifecycle) _syncMusicSuspension();
   }
 
@@ -1247,6 +1248,7 @@ final class SpatialExplorationGameSessionRuntime
       _session!.cancelPendingTransition();
     }
     _syncMovement();
+    _configureRealWeather();
   }
 
   @override
@@ -1255,6 +1257,7 @@ final class SpatialExplorationGameSessionRuntime
     _paused = false;
     if (!_stopped && _session != null) _playWatch.start();
     _syncMovement();
+    _configureRealWeather();
     final contactId = _pendingContactId;
     _pendingContactId = null;
     if (contactId != null && !_stopped) {

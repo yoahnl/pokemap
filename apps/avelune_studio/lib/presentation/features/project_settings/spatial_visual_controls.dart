@@ -29,7 +29,7 @@ class SpatialVisualControls extends StatelessWidget {
   SpatialVisualPatch get effective => inherited.overriddenBy(patch);
   double number(SpatialVisualParameter p) => effective.number(p) ?? (p == SpatialVisualParameter.weatherIntervalSeconds ? 600 : p.minimum);
   String get timeMode => effective.choice(SpatialVisualParameter.timeMode) ?? (flag(SpatialVisualParameter.dayNightEnabled) ? 'cycle' : 'fixed');
-  bool get automaticWeather => effective.choice(SpatialVisualParameter.weatherMode) == 'automatic';
+  bool get automaticWeather => const ['automatic', 'real'].contains(effective.choice(SpatialVisualParameter.weatherMode));
   List<String> get weatherSequence => effective.value(SpatialVisualParameter.weatherSequence) as List<String>? ?? const ['clear', 'cloudy', 'rain'];
   void selectWeather(SpatialWeatherKind kind) {
     if (onChanged == null) return;
@@ -307,7 +307,7 @@ class SpatialVisualControls extends StatelessWidget {
           if (effective.requiresRealWeather) const Text('Le joueur peut activer la localisation approximative par IP ou choisir une ville dans les options du Player. Sans réseau ou sans activation, le jeu utilise la météo de repli. Sources : Open-Meteo et GeoJS.'),
           if (automaticWeather) ...[
             slider(SpatialVisualParameter.weatherIntervalSeconds, 'Durée de chaque météo', 10, math.max(7200, number(SpatialVisualParameter.weatherIntervalSeconds)), format: (value) => '${(value / 60).toStringAsFixed(1)} min'),
-            const Text('Choisissez les temps autorisés. Le jeu les alterne dans la liste enregistrée et conserve sa progression entre les cartes.'),
+            Text(effective.requiresRealWeather ? 'Choisissez les météos de repli utilisées si le joueur désactive le service ou si les données sont indisponibles.' : 'Choisissez les temps autorisés. Le jeu les alterne dans la liste enregistrée et conserve sa progression entre les cartes.'),
             inherit(SpatialVisualParameter.weatherSequence),
           ],
           toggle(
