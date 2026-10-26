@@ -110,7 +110,6 @@ final class SpatialExplorationGameSessionRuntime
   StreamSubscription<RuntimeWorldServiceSnapshot?>? _playerServiceSnapshots;
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
-  RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   bool _pauseCommandInFlight = false;
   String? _pendingContactId;
   GameState Function()? _sceneStateReader;
@@ -416,6 +415,7 @@ final class SpatialExplorationGameSessionRuntime
       ..addListener(_syncMovement);
     _gameplay = await SpatialGameplayEvents.create(
         project: project,
+        currentWorldProject: () => _session?.bundle.manifest ?? project,
         now: _now,
         interactionPositionBlocked: (x, z, ignoredEntityId) => _session == null || !_session!.movement.canTraverseActor(x, z, x, z, ignoredEntityId: ignoredEntityId),
         currentModelDefinitions: () =>
@@ -450,7 +450,7 @@ final class SpatialExplorationGameSessionRuntime
         narrativeSnapshot: narrativeSnapshot,
         afterStateCommitted: _materializeState,
         onSceneTerminated: (owner) async {
-          _story?.visuals.releaseScene(owner);
+          _story?.releaseScene(owner);
           await _sceneAudio?.releaseScene(owner);
         },
         buildSceneConsequenceWriter: (state, sceneId) async {
@@ -531,7 +531,7 @@ final class SpatialExplorationGameSessionRuntime
         runtimeSourceId: _mapActivationId,
         readGameState: read,
         playCinematic: (intent) => _withSceneState(read, commit,
-            () => _story!.playCinematic(intent, _mapActivationId)),
+            () => _story!.playCinematic(intent, _mapActivationId, sceneOwner: read)),
         show: (request) => _withSceneState(
             read,
             commit,
@@ -893,6 +893,7 @@ final class SpatialExplorationGameSessionRuntime
         if (manifest.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (SpatialGameplayCapabilities.requiresAudio(manifest)) SpatialGameplayCapabilities.audioCapabilityId,
+        if (SpatialGameplayCapabilities.requiresCinematicFade(manifest)) SpatialGameplayCapabilities.cinematicFadeCapabilityId,
       }) {
         if (!descriptor.grantedCapabilities.contains(requirement)) throw StateError('The project requires $requirement.');
       }
@@ -1377,14 +1378,13 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   RuntimeWorldServiceSnapshot? get worldServiceSnapshot =>
-      _worldServiceSnapshot;
+      _playerServices?.worldServiceSnapshot;
 
   @override
   Stream<RuntimeWorldServiceSnapshot?> get worldServiceSnapshots =>
       _worldServiceSnapshots.stream;
 
   void _publishWorldService(RuntimeWorldServiceSnapshot? snapshot) {
-    _worldServiceSnapshot = snapshot;
     if (!_worldServiceSnapshots.isClosed) _worldServiceSnapshots.add(snapshot);
   }
 

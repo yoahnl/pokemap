@@ -6,6 +6,76 @@ import 'package:map_runtime/src/application/scene_runtime/scene_cinematic_runtim
 import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 void main() {
+  test('stationary native movement animates from the exact captured actor pose', () async {
+    for (final mode in ['walk', 'run']) {
+      final host = _Host();
+      host.pose = SpatialCinematicActorPose(x: 1.237, z: 2.463, facing: EntityFacing.west);
+      final initial = host.pose;
+      final value = _asset().toJson();
+      final context = Map<String, dynamic>.from(value['stageContext'] as Map);
+      context['stagePoints'] = [{'id': 'end', 'label': 'Current position', 'x': 0, 'y': 0, 'relativeToActorId': 'guide'}];
+      value['stageContext'] = context;
+      value['timeline'] = {'steps': [
+        {'id': 'facing', 'kind': 'actorFace', 'actorId': 'guide', 'durationMs': 0, 'metadata': {'actor.direction': 'down'}},
+        {'id': 'walk', 'kind': 'actorMove', 'actorId': 'guide', 'targetId': 'end', 'durationMs': 300,
+          'metadata': {'actor.movementMode': mode, 'actor.facingMode': 'preserve', 'actor.pathMode': 'direct'}}
+      ]};
+      final controller = host.controller();
+      final result = controller.play(CinematicAsset.fromJson(value));
+      controller.update(const Duration(milliseconds: 150));
+      expect(host.pose.x, initial.x);
+      expect(host.pose.z, initial.z);
+      expect(host.pose.facing, EntityFacing.south);
+      expect(host.pose.motion.name, mode);
+      expect(host.pose.animationSeconds, closeTo(.15, .00001));
+      controller.update(const Duration(milliseconds: 150));
+      expect((await result).success, isTrue);
+      expect(host.pose.x, initial.x);
+      expect(host.pose.z, initial.z);
+      expect(host.pose.motion.name, 'idle');
+      expect(host.pose.animationSeconds, 0);
+      expect(host.locked, isFalse);
+    }
+  });
+
+  test('spatial cinematic accepts the canonical black fade contract', () async {
+    final host = _Host();
+    final controller = host.controller();
+    final asset = _asset().copyWith(
+      timeline: CinematicTimeline(steps: [
+        CinematicTimelineStep(
+          id: 'blackout',
+          kind: CinematicTimelineStepKind.fade,
+          durationMs: 200,
+          metadata: const {cinematicTimelineFadeModeMetadataKey: 'fadeOut'},
+        ),
+      ]),
+    );
+    final result = controller.play(asset);
+    controller.update(const Duration(milliseconds: 200));
+    expect((await result).success, isTrue);
+    expect(host.locked, isFalse);
+  });
+
+  test('invalid fade mode or duration rejects without changing presentation', () async {
+    for (final invalid in [
+      (mode: 'unknown', duration: 200),
+      (mode: 'fadeOut', duration: 0),
+      (mode: 'fadeOut', duration: -1),
+    ]) {
+      final host = _Host();
+      final asset = _asset().copyWith(timeline: CinematicTimeline(steps: [
+        CinematicTimelineStep(id: 'fade', kind: CinematicTimelineStepKind.fade,
+          durationMs: invalid.duration,
+          metadata: {cinematicTimelineFadeModeMetadataKey: invalid.mode}),
+      ]));
+      expect((await host.controller().play(asset)).success, isFalse);
+      expect(host.fadeOpacity, isNull);
+      expect(host.lockChanges, isEmpty);
+      expect(host.writes, 0);
+    }
+  });
+
   test('atmosphere interpolation restores the original overlay on completion and cancellation', () async {
     for (final cancelled in [false, true]) {
       final host = _Host();
@@ -591,6 +661,7 @@ void main() {
 
 final class _Host {
   SpatialVisualPatch visual = SpatialVisualPatch();
+  double? fadeOpacity;
   final project = const ProjectManifest(
       name: 'Spatial',
       maps: [],
@@ -621,6 +692,7 @@ final class _Host {
         readVisuals: () => SpatialVisualPatch.fromScene(camera: map.spatialScene!.camera, atmosphere: SpatialAtmosphereSettings()).overriddenBy(visual),
         readVisualOverrides: () => visual,
         writeVisuals: (value) => visual = value,
+        writeFadeOpacity: (value) => fadeOpacity = value,
         activeMap: () =>
             mapUnavailable ? throw StateError('Map disposed') : map,
         readActor: (_) => actorPresent ? pose : null,

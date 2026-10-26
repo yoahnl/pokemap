@@ -45,6 +45,7 @@ final class SpatialGameplayEvents {
   SpatialGameplayEvents._({
     required this.project,
     this.currentModelDefinitions,
+    this.currentWorldProject,
     this.interactionPositionBlocked,
     required this.mapsById,
     required NarrativeEventRuntimeSnapshot narrativeSnapshot,
@@ -132,6 +133,7 @@ final class SpatialGameplayEvents {
   static Future<SpatialGameplayEvents> create({
     required ProjectManifest project,
     Iterable<ProjectModel3dEntry> Function()? currentModelDefinitions,
+    ProjectManifest Function()? currentWorldProject,
     bool Function(double x, double z, String ignoredEntityId)? interactionPositionBlocked,
     required Map<String, MapData> mapsById,
     required GameState Function() readGameState,
@@ -179,6 +181,7 @@ final class SpatialGameplayEvents {
     return SpatialGameplayEvents._(
       project: snapshot.project,
       currentModelDefinitions: currentModelDefinitions,
+      currentWorldProject: currentWorldProject,
       interactionPositionBlocked: interactionPositionBlocked,
       mapsById: maps,
       narrativeSnapshot: snapshot,
@@ -205,6 +208,7 @@ final class SpatialGameplayEvents {
 
   final ProjectManifest project;
   final Iterable<ProjectModel3dEntry> Function()? currentModelDefinitions;
+  final ProjectManifest Function()? currentWorldProject;
   final bool Function(double x, double z, String ignoredEntityId)? interactionPositionBlocked;
   final Map<String, MapData> mapsById;
   final NarrativeRuntimeActivityGate activityGate;
@@ -587,7 +591,8 @@ final class SpatialGameplayEvents {
     }
     position.validateGridPosition(state.playerPosition);
     final map = _map;
-    final settings = project.settings;
+    final worldProject = currentWorldProject?.call() ?? project;
+    final settings = worldProject.settings;
     const width = PlayerCollisionConventionsV1.defaultSpriteWidthPx;
     const height = PlayerCollisionConventionsV1.defaultSpriteHeightPx;
     final player = GameplayPlayerState(
@@ -600,7 +605,7 @@ final class SpatialGameplayEvents {
     );
     return GameplayWorldState.initial(
       map: map,
-      project: project,
+      project: worldProject,
       gameState: state,
       playerPos: state.playerPosition,
       playerFacing: player.facing,

@@ -11,6 +11,99 @@ import '../domains/maps/environment_spatial_actions_test.dart'
     show spatialEnvironmentFixture;
 
 void main() {
+  final navigationReadCounts = <int, List<int>>{};
+  for (final unrelated in [0, 80]) {
+    test(
+        'navigation spawn stays local with $unrelated unrelated maps and preserves CAS',
+        () async {
+      final fixture = await _Fixture.open(unrelated);
+      addTearDown(fixture.close);
+      final beforeBytes = await fixture.mapFile.readAsBytes();
+      final before = MapData.fromJson(
+          jsonDecode(utf8.decode(beforeBytes)) as Map<String, dynamic>);
+      final counts = <int>[];
+      final totalCounts = <int>[];
+      Map<String, Object?> parameters(double x) => {
+            'mapId': 'map',
+            'navigation': {
+              ...before.spatialScene!.navigation.toJson(),
+              'spawn': {'x': x, 'z': 1.5}
+            }
+          };
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final value = parameters(2.5 + repeat);
+        final selected = await fixture.api.readWorkshopSnapshot(
+            fixture.opened.projectHandle,
+            actionId: 'map3d.navigation.configure',
+            parameters: value);
+        expect(selected.maps.map((map) => map.id), ['map']);
+        expect(selected.manifest.maps.map((map) => map.id), ['map']);
+        expect(selected.manifest.models3d.map((model) => model.id), ['tree']);
+        await fixture.apply('map3d.navigation.configure', value,
+            'navigation-$repeat', revision: selected.revision);
+        expect(
+            fixture.reader.paths.where(
+                (path) => path.startsWith('maps/') && path != 'maps/map.json'),
+            isEmpty);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains),
+            isEmpty);
+        counts.add(selected.maps.length);
+        totalCounts.add(fixture.reader.paths.length);
+        expect(totalCounts.last, lessThan(240));
+      }
+      print(jsonEncode({
+        'navigationUnrelatedMaps': unrelated,
+        'selectedMapCount': counts,
+        'totalScopedReads': totalCounts
+      }));
+      navigationReadCounts[unrelated] = counts;
+      if (unrelated == 80) {
+        expect(counts, navigationReadCounts[0]);
+      }
+      final afterBytes = await fixture.mapFile.readAsBytes();
+      final after = MapData.fromJson(
+          jsonDecode(utf8.decode(afterBytes)) as Map<String, dynamic>);
+      final expected = before.copyWith(
+          spatialScene: before.spatialScene!.copyWith(
+              navigation: before.spatialScene!.navigation
+                  .copyWith(spawn: SpatialSpawn(x: 3.5, z: 1.5))));
+      expect(after.toJson(), expected.toJson());
+      await expectLater(
+          fixture.apply('map3d.navigation.configure', parameters(6.5),
+              'invalid-spawn'),
+          throwsA(isA<MapAuthoringException>().having(
+              (error) => error.code, 'code', 'map3d.parameters_invalid')));
+      expect(await fixture.mapFile.readAsBytes(), afterBytes);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(),
+          fixture.descriptor);
+      await fixture.reopen();
+      final reopened = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'map3d.navigation.configure',
+          parameters: parameters(4.5));
+      expect(reopened.maps.single, after);
+      final plan = await fixture.api.planMutation(
+          fixture.opened.projectHandle,
+          AuthoringRequest(
+              requestId: 'stale-navigation',
+              actionId: 'map3d.navigation.configure',
+              actionVersion: 1,
+              workspaceHandle: fixture.opened.workspaceHandle.value,
+              expectedRevision: reopened.revision,
+              idempotencyKey: 'stale-navigation',
+              parameters: parameters(4.5)));
+      final externalBytes = utf8.encode(jsonEncode(
+          after.copyWith(properties: {'external': 'preserved'}).toJson()));
+      await fixture.mapFile.writeAsBytes(externalBytes);
+      await expectLater(
+          fixture.api.applyMutation(fixture.opened.projectHandle,
+              planId: plan.planId, operationId: 'stale-navigation'),
+          throwsA(isA<Exception>()));
+      expect(await fixture.mapFile.readAsBytes(), externalBytes);
+    });
+  }
+
   for (final unrelated in [0, 90]) {
     test(
         'native spatial map actions stay local with $unrelated unrelated maps and models',
@@ -330,6 +423,124 @@ void main() {
     expect(
         fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
   });
+
+  for (final unrelated in [0, 90]) {
+    test(
+        'materialized Border moves stay local and undo exactly with $unrelated unrelated maps',
+        () async {
+      final source = spatialBorderAuthoringFixture(published: true);
+      final fixture = await _Fixture.open(unrelated, content: source);
+      addTearDown(fixture.close);
+      await fixture.apply(
+          'border_layer.materialize_apply',
+          {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence'},
+          'materialize-before-move');
+      final beforeBytes = await fixture.mapFile.readAsBytes();
+      final before = MapData.fromJson(
+          jsonDecode(utf8.decode(beforeBytes)) as Map<String, dynamic>);
+      final instances = {
+        for (final instance in before.spatialScene!.instances)
+          instance.id: instance
+      };
+      expect(instances, isNotEmpty);
+      final parameters = <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'border',
+        'featureId': 'fence',
+        'dx': 1,
+        'dy': 0
+      };
+      fixture.reader.paths.clear();
+      final selected = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'border_layer.feature_move',
+          parameters: parameters);
+      expect(selected.maps.map((map) => map.id), ['map']);
+      expect(selected.manifest.models3d.map((model) => model.id), ['tree']);
+      expect(selected.manifest.borderCatalog.records.map((record) => record.id),
+          ['fence']);
+      final moved = await fixture.apply(
+          'border_layer.feature_move', parameters, 'move-border',
+          revision: selected.revision);
+      final regenerated = await fixture.apply(
+          'border_layer.materialize_apply',
+          {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence'},
+          'regenerate-moved-border');
+      final after = MapData.fromJson(
+          jsonDecode(await fixture.mapFile.readAsString())
+              as Map<String, dynamic>);
+      expect(after.spatialScene!.instances.length, instances.length);
+      final originalInstances = instances.values.toList()
+        ..sort((a, b) => a.position.x.compareTo(b.position.x));
+      final movedInstances = after.spatialScene!.instances.toList()
+        ..sort((a, b) => a.position.x.compareTo(b.position.x));
+      for (var index = 0; index < movedInstances.length; index++) {
+        final instance = movedInstances[index];
+        final original = originalInstances[index];
+        expect(
+            {...instance.toJson(), 'id': original.id},
+            original
+                .copyWith(
+                    position: Model3dVector3(
+                        x: original.position.x + 1,
+                        y: original.position.y,
+                        z: original.position.z))
+                .toJson());
+      }
+      final oldFeature =
+          (before.layers.single as BorderLayer).content.features.single;
+      final feature =
+          (after.layers.single as BorderLayer).content.features.single;
+      expect(feature.generatedPlacementIds.length,
+          oldFeature.generatedPlacementIds.length);
+      expect(feature.materialization, isNotNull);
+      final stroke = feature.geometry as BorderStrokeGeometry;
+      expect(stroke.strokes.single.points, const [
+        GridPos(x: 2, y: 1),
+        GridPos(x: 3, y: 1),
+        GridPos(x: 4, y: 1)
+      ]);
+      expect(
+          fixture.reader.paths.where(
+              (path) => path.startsWith('maps/') && path != 'maps/map.json'),
+          isEmpty);
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains),
+          isEmpty);
+      expect(fixture.reader.paths.length, lessThan(240));
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(),
+          fixture.descriptor);
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: regenerated.receipt.receiptId,
+          idempotencyKey: 'undo-regenerate');
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: moved.receipt.receiptId, idempotencyKey: 'undo-border');
+      expect(await fixture.mapFile.readAsBytes(), beforeBytes);
+      await fixture.reopen();
+      final reopened = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'border_layer.feature_move',
+          parameters: parameters);
+      expect(reopened.maps.single.toJson(), before.toJson());
+      final plan = await fixture.api.planMutation(
+          fixture.opened.projectHandle,
+          AuthoringRequest(
+              requestId: 'stale-move',
+              actionId: 'border_layer.feature_move',
+              actionVersion: 1,
+              workspaceHandle: fixture.opened.workspaceHandle.value,
+              expectedRevision: reopened.revision,
+              idempotencyKey: 'stale-move',
+              parameters: parameters));
+      final externalBytes = utf8.encode(jsonEncode(
+          before.copyWith(properties: {'external': 'preserved'}).toJson()));
+      await fixture.mapFile.writeAsBytes(externalBytes);
+      await expectLater(
+          fixture.api.applyMutation(fixture.opened.projectHandle,
+              planId: plan.planId, operationId: 'stale-move'),
+          throwsA(isA<Exception>()));
+      expect(await fixture.mapFile.readAsBytes(), externalBytes);
+    });
+  }
 
   test('native local selection retains legacy new-game fact dictionary keys',
       () async {

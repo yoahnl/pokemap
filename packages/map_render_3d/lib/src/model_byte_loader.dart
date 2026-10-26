@@ -66,7 +66,8 @@ final class ModelByteLoader {
       final reservation = await budget?.acquire(
         residentBytes: 1,
         transientBytes: budget.profile.maximumEncodedBytes,
-        isCurrent: isCurrent);
+        isCurrent: isCurrent,
+      );
       try {
         reservation?.ensureCurrent();
         final bytes = await read();
@@ -116,6 +117,16 @@ final class ModelByteLoader {
       );
       final model = await _loadAdmitted(bytes, lease, codecLoader);
       lease.ensureCurrent();
+      final retained = spatialRetainedModelResourceBytes(
+        model,
+        staticResidentBytes: estimate.retainedStaticResident,
+      );
+      lease.resize(
+        residentBytes: retained < estimate.resident
+            ? retained
+            : estimate.resident,
+        transientBytes: estimate.transient,
+      );
       lease.commit();
       if (onResident == null) {
         lease.release();

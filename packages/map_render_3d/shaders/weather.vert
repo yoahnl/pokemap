@@ -15,6 +15,7 @@ uniform Weather {
     vec4 particle;
     vec4 tint;
     vec4 bounds;
+    vec4 volume;
 } weather;
 
 out vec2 fragUv;
@@ -34,10 +35,11 @@ void main() {
     }
     float time = weather.anchorTime.w;
     vec2 wind = weather.motion.xz;
-    vec2 origin = floor(weather.anchorTime.xz / 8.0) * 8.0;
-    vec2 center = mod(vec2(seed.y, seed.z) * 36.0 + time * wind - origin, 36.0) - 18.0 + origin;
-    float phase = fract(vertexNormal.x + time * max(weather.motion.y, 0.05) / 14.0);
-    float height = 14.0 * (1.0 - phase);
+    float span = weather.volume.x;
+    vec2 relative = fract(vec2(seed.y, seed.z) + (time * wind - weather.anchorTime.xz) / span) - 0.5;
+    vec2 center = relative * span + weather.anchorTime.xz;
+    float phase = fract(vertexNormal.x + time * max(weather.motion.y, 0.05) / weather.volume.y);
+    float height = weather.volume.y * (1.0 - phase);
     float shape = weather.motion.w;
     if (shape > 0.5) {
         center += vec2(sin(time * 1.3 + vertexNormal.x * 30.0),
@@ -58,6 +60,7 @@ void main() {
     } else {
         float rotation = time * (0.3 + vertexNormal.x) + vertexNormal.z * 6.2831853;
         if (shape >= 4.0) rotation += sin(time * 2.1 + vertexNormal.x * 20.0);
+        if (shape >= 5.0) corner.x *= 0.45 + 0.55 * abs(cos(time * (0.7 + vertexNormal.z) + vertexNormal.x * 20.0));
         mat2 turn = mat2(cos(rotation), sin(rotation), -sin(rotation), cos(rotation));
         corner = turn * corner;
         world += (right * corner.x + up * corner.y) * weather.particle.y * scale;
@@ -65,6 +68,7 @@ void main() {
     float inside = step(weather.bounds.x, center.x) * step(center.x, weather.bounds.z)
                  * step(weather.bounds.y, center.y) * step(center.y, weather.bounds.w);
     float edge = smoothstep(0.0, 0.04, phase) * (1.0 - smoothstep(0.94, 1.0, phase));
+    edge *= 1.0 - smoothstep(0.4, 0.5, max(abs(relative.x), abs(relative.y)));
     fragTint = vec4(weather.tint.rgb * vertexColor.rgb,
                     weather.particle.w * weather.tint.a * inside * edge);
     gl_Position = weather.projection * weather.view * vec4(world, 1.0);

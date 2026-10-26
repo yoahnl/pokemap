@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -121,15 +120,19 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       neighbors = [
         SpatialSceneNeighbor(
           map: previous.map,
+          project: previous.manifest,
           offset: -translation,
           loadGroundImage: (id) => groundBytes(previous, id),
+          loadModel: (id) => widget.session.modelBytesForBundle(previous, id),
         ),
         for (final existing in neighbors)
           if (existing.map.id != activeBundle.map.id)
             SpatialSceneNeighbor(
               map: existing.map,
+              project: existing.project,
               offset: existing.offset - translation,
               loadGroundImage: existing.loadGroundImage,
+              loadModel: existing.loadModel,
             ),
       ];
     }
@@ -154,20 +157,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     loadGroundImage: (id) => groundBytes(bundle, id),
   );
 
-  Future<Uint8List> groundBytes(RuntimeMapBundle bundle, String id) async {
-    final path = bundle.runtimeImageAbsolutePathsById[id];
-    if (path == null) {
-      throw StateError('Image du terrain introuvable : $id');
-    }
-    final file = File(path);
-    if (await file.length() >
-        bundle.resourceBudget.profile.maximumEncodedBytes) {
-      throw const RuntimeResourceAdmissionException('encoded_bytes');
-    }
-    return file.readAsBytes();
-  }
-
-  Future<Uint8List> loadModel(String id) => widget.session.modelBytes(id);
+  Future<Uint8List> groundBytes(RuntimeMapBundle bundle, String id) =>
+      widget.session.groundImageBytesForBundle(bundle, id);
 
   Future<void> loadNeighbors({RuntimeMapBundle? previous}) async {
     final generation = ++neighborGeneration;
@@ -368,10 +359,12 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final renderedSession = widget.session;
+    final renderedBundle = renderedSession.bundle;
     final renderedOrigin = sceneOffset;
-    final renderedMapId = widget.session.bundle.map.id;
+    final renderedMapId = renderedBundle.map.id;
     final renderedMaps = {
-      widget.session.bundle.map.id,
+      renderedBundle.map.id,
       for (final neighbor in neighbors) neighbor.map.id,
     };
     return Focus(
@@ -389,18 +382,18 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           children: [
             Positioned.fill(
               child: SpatialSceneView(
-                resourceBudget: widget.session.bundle.resourceBudget,
+                resourceBudget: renderedBundle.resourceBudget,
                 resourceIdentity:
-                    widget.session.bundle.projectCatalog?.identity,
+                    renderedBundle.projectCatalog?.identity,
                 key: ObjectKey(widget.session),
-                scene: widget.session.bundle.map.spatialScene!,
-                groundMap: widget.session.bundle.map,
-                groundProject: widget.session.bundle.manifest,
-                loadGroundImage: widget.session.groundImageBytes,
+                scene: renderedBundle.map.spatialScene!,
+                groundMap: renderedBundle.map,
+                groundProject: renderedBundle.manifest,
+                loadGroundImage: (id) => renderedSession.groundImageBytesForBundle(renderedBundle, id),
                 sceneOffset: sceneOffset,
                 neighbors: neighbors,
-                models: widget.session.bundle.manifest.models3d,
-                loadModel: loadModel,
+                models: renderedBundle.manifest.models3d,
+                loadModel: (id) => renderedSession.modelBytesForBundle(renderedBundle, id),
                 controller: camera,
                 onCell: (_, _) {
                   if (widget.keyboardInputEnabled) focus.requestFocus();
@@ -454,6 +447,21 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                     child: Text('Erreur d’exploration 3D : $error'),
                   );
                 },
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ValueListenableBuilder<double>(
+                  valueListenable: widget.session.cinematicFadeOpacity,
+                  builder: (context, opacity, _) => opacity == 0
+                      ? const SizedBox.shrink()
+                      : MapWarpTransitionOverlay(
+                          key: const ValueKey('cinematic-blackout'),
+                          transition: const MapWarpTransition(),
+                          coverage: opacity,
+                          revealing: false,
+                        ),
+                ),
               ),
             ),
             Positioned.fill(

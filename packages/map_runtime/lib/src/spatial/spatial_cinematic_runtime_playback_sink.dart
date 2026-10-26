@@ -112,6 +112,9 @@ final class SpatialCinematicRuntimePlaybackSink
     this.readVisuals,
     this.readVisualOverrides,
     this.writeVisuals,
+    this.writeFadeOpacity,
+    this.retainFadeOnCompletion,
+    this.onRestored,
   });
 
   final ProjectManifest project;
@@ -128,6 +131,9 @@ final class SpatialCinematicRuntimePlaybackSink
   final bool Function()? isReady;
   final SpatialVisualPatch Function()? readVisuals, readVisualOverrides;
   final void Function(SpatialVisualPatch)? writeVisuals;
+  final void Function(double?)? writeFadeOpacity;
+  final bool Function()? retainFadeOnCompletion;
+  final void Function(bool keepFinal)? onRestored;
   SpatialVisualPatch? _savedVisuals;
   final _visualFrom = <String, SpatialVisualPatch>{};
   final _visualTo = <String, SpatialVisualPatch>{};
@@ -169,6 +175,7 @@ final class SpatialCinematicRuntimePlaybackSink
       for (final step in asset.timeline.steps) {
         if (!{
           CinematicTimelineStepKind.wait,
+          if (writeFadeOpacity != null) CinematicTimelineStepKind.fade,
           if (readVisuals != null && readVisualOverrides != null && writeVisuals != null) CinematicTimelineStepKind.atmosphere,
           CinematicTimelineStepKind.camera,
           CinematicTimelineStepKind.actorMove,
@@ -261,6 +268,13 @@ final class SpatialCinematicRuntimePlaybackSink
         for (final member in group.members) {
         final step = member.step;
         switch (step.kind) {
+          case CinematicTimelineStepKind.fade:
+            final mode = step.metadata[cinematicTimelineFadeModeMetadataKey];
+            if ((mode != CinematicTimelineFadeMode.fadeIn.name &&
+                    mode != CinematicTimelineFadeMode.fadeOut.name) ||
+                (step.durationMs ?? 0) <= 0) {
+              throw StateError('Fade ${step.id} requires a mode and duration.');
+            }
           case CinematicTimelineStepKind.actorJump:
             final binding = bindings[step.actorId]!;
             final route = _movementRoute(asset, map, step, before);
@@ -424,6 +438,13 @@ final class SpatialCinematicRuntimePlaybackSink
     if (context.step.kind == CinematicTimelineStepKind.atmosphere) {
       writeVisuals!(SpatialVisualPatch.interpolate(_visualFrom[context.step.id]!, _visualTo[context.step.id]!, progress));
     }
+    if (context.step.kind == CinematicTimelineStepKind.fade) {
+      writeFadeOpacity!(cinematicFadeOpacity(
+        fadeOut: context.step.metadata[cinematicTimelineFadeModeMetadataKey] ==
+            CinematicTimelineFadeMode.fadeOut.name,
+        progress: progress,
+      ));
+    }
     final route = _route, binding = _stepActor;
     if (context.step.kind == CinematicTimelineStepKind.actorEmote &&
         binding != null) {
@@ -556,6 +577,12 @@ final class SpatialCinematicRuntimePlaybackSink
     attempt(() => current = identical(activeMap(), snapshot.map));
     if (current) attempt(() => writeCamera(snapshot.camera));
     if (current && _savedVisuals != null) attempt(() => writeVisuals?.call(_savedVisuals!));
+    if (termination != CinematicRuntimeTermination.completed ||
+        !current ||
+        failure != null ||
+        !(retainFadeOnCompletion?.call() ?? false)) {
+      attempt(() => writeFadeOpacity?.call(null));
+    }
     _savedVisuals = null;
     _visualFrom.clear();
     _visualTo.clear();
@@ -576,7 +603,12 @@ final class SpatialCinematicRuntimePlaybackSink
         attempt(() => writeActor(entry.key, entry.value));
       }
     }
+    attempt(() => onRestored?.call(current &&
+        termination == CinematicRuntimeTermination.completed &&
+        snapshot.actorCompletionPolicy == CinematicActorCompletionPolicy.keepFinal &&
+        failure == null));
     _prepared = null;
+    if (failure != null) attempt(() => writeFadeOpacity?.call(null));
     if (failure != null) Error.throwWithStackTrace(failure!, stack!);
   }
 

@@ -154,6 +154,7 @@ final class SpatialExplorationSession {
   SpatialCinematicCameraPose? Function()? storyCamera;
   SpatialVisualPatch visualOverrides = SpatialVisualPatch();
   SpatialVisualPatch cinematicVisualOverrides = SpatialVisualPatch();
+  final cinematicFadeOpacity = ValueNotifier(0.0);
   SpatialVisualPatch Function()? worldVisualProfile;
   VoidCallback? onCancelStory, onSkipStory, onBeforeMapChange;
   final storyActive = ValueNotifier(false);
@@ -163,6 +164,16 @@ final class SpatialExplorationSession {
 
   PartyCompanionTrailPoint? get companionPosition => _companionTrail.position;
   String? get companionCharacterId => _companionCharacter?.id;
+
+  PartyCompanionTrail captureCompanionTrail() => _companionTrail.capture();
+
+  void restoreCompanionTrail(PartyCompanionTrail snapshot) {
+    final lead = presentationStateProvider?.call().party.members
+        .where((pokemon) => !pokemon.isFainted).firstOrNull;
+    if (snapshot.mapId == bundle.map.id && snapshot.individualId == lead?.individualId) {
+      _companionTrail.restore(snapshot);
+    }
+  }
 
   void _updateCompanion(double dt) {
     final config = bundle.manifest.partyCompanion;
@@ -175,8 +186,6 @@ final class SpatialExplorationSession {
         : config.resolve(lead.speciesId, lead.formId);
     if (!config.enabled ||
         visual == null ||
-        storyActive.value ||
-        storyInputLocked ||
         transitioning.value) {
       _companionTrail.clear();
       _companionCharacter = null;
@@ -186,14 +195,16 @@ final class SpatialExplorationSession {
         .where((actor) => actor.id == visual.characterId)
         .firstOrNull;
     final previousCompanion = _companionTrail.position;
+    final story = heroStoryPose?.call();
+    final groundY = story == null ? movement.groundY : bundle.map.spatialScene!.worldHeightAt(story.x, story.z);
     _companionTrail.observe(
       mapId: bundle.map.id,
       individualId: lead!.individualId,
-      x: movement.x,
-      z: movement.z,
-      y: movement.y,
-      groundY: movement.groundY,
-      airborne: movement.isJumping,
+      x: story?.x ?? movement.x,
+      z: story?.z ?? movement.z,
+      y: story == null ? movement.y : groundY + story.liftCells,
+      groundY: groundY,
+      airborne: story == null ? movement.isJumping : story.liftCells > .000001,
       traversalSpeed: movement.jumpSpeed,
       dt: dt,
       paused: presentationPaused || interactionActive.value,
@@ -365,11 +376,14 @@ final class SpatialExplorationSession {
   }
 
   int _revision = 0, _interactionGeneration = 0;
-  Future<Uint8List> groundImageBytes(String id) async {
-    final path = bundle.runtimeImageAbsolutePathsById[id];
+  Future<Uint8List> groundImageBytes(String id) =>
+      groundImageBytesForBundle(bundle, id);
+
+  Future<Uint8List> groundImageBytesForBundle(RuntimeMapBundle source, String id) async {
+    final path = source.runtimeImageAbsolutePathsById[id];
     if (path == null) throw StateError('Image du terrain introuvable : $id');
     final file = File(path);
-    if (await file.length() > bundle.resourceBudget.profile.maximumEncodedBytes) {
+    if (await file.length() > source.resourceBudget.profile.maximumEncodedBytes) {
       throw const RuntimeResourceAdmissionException('encoded_bytes');
     }
     return file.readAsBytes();
@@ -2014,6 +2028,7 @@ final class SpatialExplorationSession {
     _nativeDoorLease = null;
     _nativeDoor.clear();
     nativeDoorBlackout.dispose();
+    cinematicFadeOpacity.dispose();
     waitForNativeDoorBlackoutFrame = null;
     prepareNativeDoorDestination = null;
     _disposed = true;

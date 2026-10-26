@@ -3,6 +3,10 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:map_core/map_core.dart';
+import 'package:flame_3d/model.dart';
+
+import 'animated_render_model.dart';
+import 'spatial_pixel_material.dart';
 
 Future<int> spatialImageRgbaBytes(
   Uint8List bytes, {
@@ -23,7 +27,8 @@ Future<int> spatialImageRgbaBytes(
   }
 }
 
-Future<({int resident, int transient})> spatialModelResourceEstimate(
+Future<({int resident, int transient, int retainedStaticResident})>
+spatialModelResourceEstimate(
   Uint8List bytes,
   RuntimeResourceReservation reservation, {
   Object? Function(String source) decodeJson = jsonDecode,
@@ -142,6 +147,7 @@ Future<({int resident, int transient})> spatialModelResourceEstimate(
     );
   }
   return (
+    retainedStaticResident: _sum([geometryBytes, _product(pixels, 2)]),
     resident: _sum([
       geometryBytes,
       _product(bytes.length, 2),
@@ -155,6 +161,66 @@ Future<({int resident, int transient})> spatialModelResourceEstimate(
       _product(metadataBytes, 4),
     ]),
   );
+}
+
+int spatialRetainedModelResourceBytes(
+  Model model, {
+  required int staticResidentBytes,
+}) {
+  final values = <int>[staticResidentBytes, 1024];
+  final materials = <Object>{};
+  int nameBytes(String? name) => _sum([128, _product(name?.length ?? 0, 8)]);
+  for (final node in model.nodes.values) {
+    values.addAll([
+      512,
+      nameBytes(node.name),
+      _product(node.joints.length, 1024),
+    ]);
+    final surfaces = node.mesh?.surfaces;
+    if (surfaces == null) continue;
+    for (final surface in surfaces) {
+      values.add(256);
+      final material = surface.material;
+      if (materials.add(material)) {
+        values.add(16384);
+        if (material is SpatialPixelMaterial)
+          values.add(nameBytes(material.sourceMaterialName));
+      }
+    }
+  }
+  for (final clip in model.animations) {
+    values.addAll([1024, nameBytes(clip.name)]);
+    for (final node in clip.nodes.values) {
+      values.add(512);
+      for (final channel in node.channels) {
+        values.addAll([512, _product(channel.animation.values.length, 512)]);
+      }
+    }
+  }
+  if (model is AnimatedRenderModel) {
+    values.addAll([
+      _product(model.textures.length, 256),
+      _product(model.textureWrapModes.length, 128),
+    ]);
+    for (final bindings in model.materialBindings.values) {
+      values.addAll([256, _product(bindings.length, 32)]);
+    }
+    for (final clip in model.materialAnimations.clips) {
+      values.addAll([1024, nameBytes(clip.name)]);
+      for (final track in clip.tracks) {
+        values.addAll([
+          1024,
+          nameBytes(track.interpolation),
+          _product(track.times.length, 64),
+          _product(track.textureIndices?.length ?? 0, 32),
+        ]);
+        for (final transform in track.transforms) {
+          values.add(_sum([128, _product(transform.length, 32)]));
+        }
+      }
+    }
+  }
+  return _sum(values);
 }
 
 const _maximumResourceBytes = 0x1fffffffffffff;

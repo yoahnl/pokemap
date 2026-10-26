@@ -8,7 +8,16 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
   final files = spatialPayload();
   var project = ProjectManifest.fromJson(
       jsonDecode(utf8.decode(files['project/project.json']!)));
-  if (feature == 'actorOcclusion') {
+  if (feature == 'cinematicFade') {
+    project = project.copyWith(cinematics: [
+      CinematicAsset(id: 'fade', title: 'Fade', mapId: 'map',
+        timeline: CinematicTimeline(steps: [
+          CinematicTimelineStep(id: 'out', kind: CinematicTimelineStepKind.fade,
+            durationMs: 200,
+            metadata: const {cinematicTimelineFadeModeMetadataKey: 'fadeOut'}),
+        ])),
+    ]);
+  } else if (feature == 'actorOcclusion') {
     final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
     project = project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
       atlases: const [ProjectSmartTileAtlas(id: 'grass-atlas', name: 'Grass', tilesetId: 'hero-atlas', columns: 1, rows: 1)],

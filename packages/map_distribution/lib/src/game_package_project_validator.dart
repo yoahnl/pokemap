@@ -200,6 +200,11 @@ final class GamePackageProjectValidator {
         if (errors.isNotEmpty) _fail(errors.join('; '));
       }
       if (spatial) {
+        if (SpatialGameplayCapabilities.requiresCinematicFade(project) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(
+                SpatialGameplayCapabilities.cinematicFadeCapabilityId)) {
+          _fail('Spatial cinematic fades require map3d.cinematic-fade@1.');
+        }
         if (SpatialGameplayCapabilities.requiresSceneMusic(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.sceneMusicCapabilityId)) _fail('Spatial scene music requires map3d.scene-music@1.');
         if (SpatialGameplayCapabilities.requiresAudio(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.audioCapabilityId)) _fail('Spatial scene audio requires map3d.scene-audio@1.');
         if (project.partyCompanion.enabled && !packageManifest.compatibility.requiredCapabilities

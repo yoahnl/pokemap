@@ -8,11 +8,184 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/model_byte_loader.dart';
+import 'package:map_render_3d/src/animated_render_model.dart';
 import 'package:map_render_3d/src/spatial_ground.dart';
 import 'package:map_render_3d/src/spatial_resource_admission.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'discarded GLB extras do not remain in the resident model lease',
+    () async {
+      Future<int> retained(Uint8List bytes) async {
+        final budget = RuntimeResourceBudget();
+        RuntimeResourceReservation? held;
+        await ModelByteLoader.load(
+          bytes,
+          budget: budget,
+          onResident: (lease) => held = lease,
+        );
+        final result = budget.residentBytes;
+        expect(budget.transientBytes, 0);
+        held!.release();
+        expect(budget.residentBytes, 0);
+        return result;
+      }
+
+      final small = await retained(
+        _model(metadata: {'unused': List.filled(64, 1)}),
+      );
+      final dense = await retained(
+        _model(metadata: {'unused': List.filled(1500, 1)}),
+      );
+      expect(dense, small);
+    },
+  );
+
+  test('several models keep their peak admission without accumulating discarded metadata', () async {
+    final budget = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(maximumResidentBytes: 1024 * 1024),
+    );
+    final held = <RuntimeResourceReservation>[];
+    final models = <Model>[];
+    try {
+      for (var i = 0; i < 8; i++) {
+        models.add(
+          await ModelByteLoader.load(
+            _model(metadata: {'unused': List.filled(1500, 1)}),
+            budget: budget,
+            onResident: held.add,
+          ),
+        );
+      }
+      expect(models, hasLength(8));
+      expect(budget.residentBytes, lessThan(256 * 1024));
+      expect(budget.peakBytes, greaterThan(budget.residentBytes));
+      expect(budget.transientBytes, 0);
+    } finally {
+      for (final lease in held) {
+        lease.release();
+      }
+    }
+    expect(budget.residentBytes, 0);
+    expect(budget.activeDecodes, 0);
+  });
+
+  test(
+    'retained STEP material keys stay charged and sample all 360 frames',
+    () async {
+      final png = img.encodePng(img.Image(width: 1, height: 1));
+      Future<(AnimatedRenderModel, int)> load(int keys) async {
+        final budget = RuntimeResourceBudget();
+        RuntimeResourceReservation? held;
+        final model = await ModelByteLoader.load(
+          _model(
+            texture: png,
+            metadata: {
+              'aveluneMaterialAnimations': {
+                'schemaVersion': 1,
+                'clips': [
+                  {
+                    'name': 'UV cycle',
+                    'durationSeconds': 12.0,
+                    'tracks': [
+                      {
+                        'materialIndex': 0,
+                        'times': [for (var i = 0; i < keys; i++) i / 30.0],
+                        'transforms': [
+                          for (var i = 0; i < keys; i++)
+                            [1, 0, 0, 1, i.toDouble(), 0],
+                        ],
+                        'interpolation': 'STEP',
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ),
+          budget: budget,
+          onResident: (lease) => held = lease,
+        ) as AnimatedRenderModel;
+        final bytes = budget.residentBytes;
+        held!.release();
+        return (model, bytes);
+      }
+
+      final (one, oneBytes) = await load(1);
+      final (cycle, cycleBytes) = await load(360);
+      expect(cycleBytes - oneBytes, greaterThanOrEqualTo(359 * 256));
+      for (var i = 0; i < 360; i++) {
+        expect(
+          cycle.materialAnimations.clips.single.tracks.single
+              .sample(i / 30.0)
+              .transform[4],
+          i.toDouble(),
+        );
+      }
+      expect(
+        one.materialAnimations.clips.single.tracks.single.times,
+        hasLength(1),
+      );
+    },
+  );
+
+  test('retained accounting never rejects a model at its former admission boundary', () async {
+    final bytes = _model(nodeName: 'n' * 2048);
+    final measuring = RuntimeResourceBudget();
+    final measuringLease = await measuring.acquire();
+    final estimate = await spatialModelResourceEstimate(bytes, measuringLease);
+    measuringLease.release();
+    final budget = RuntimeResourceBudget(
+      profile: RuntimeResourceProfile(maximumResidentBytes: estimate.resident),
+    );
+    RuntimeResourceReservation? held;
+    final model = await ModelByteLoader.load(
+      bytes,
+      budget: budget,
+      onResident: (lease) => held = lease,
+    );
+    expect(model.nodes.values.single.name, '${'n' * 2048} 0');
+    expect(budget.residentBytes, lessThanOrEqualTo(estimate.resident));
+    held!.release();
+    expect(budget.residentBytes, 0);
+  });
+
+  for (final closeSession in [false, true]) {
+    test(
+      'model conversion releases its lease and codec on ${closeSession ? 'dispose' : 'cancellation'}',
+      () async {
+        final budget = RuntimeResourceBudget();
+        var current = true, residents = 0;
+        late _ObservedCodec observed;
+        await expectLater(
+          ModelByteLoader.load(
+            _model(texture: img.encodePng(img.Image(width: 1, height: 1))),
+            budget: budget,
+            isCurrent: () => current,
+            onResident: (_) => residents++,
+            codecLoader: (bytes) async {
+              observed = _ObservedCodec(await ui.instantiateImageCodec(bytes));
+              if (closeSession) {
+                budget.dispose();
+              } else {
+                current = false;
+              }
+              return observed;
+            },
+          ),
+          throwsA(isA<RuntimeResourceAdmissionException>()),
+        );
+        expect(observed.disposed, isTrue);
+        expect(observed.images.single.debugDisposed, isTrue);
+        expect(residents, 0);
+        expect(budget.residentBytes, 0);
+        expect(budget.transientBytes, 0);
+        expect(budget.activeDecodes, 0);
+      },
+    );
+  }
 
   for (final sample in [
     (name: 'accessor count', count: 1 << 62, copies: 1, instances: 1),
@@ -348,6 +521,7 @@ final class _ObservedCodec implements ui.Codec {
 
 Uint8List _model({
   Uint8List? texture,
+  String nodeName = 'Triangle',
   int instances = 1,
   Object? metadata,
   int count = 3,
@@ -381,7 +555,7 @@ Uint8List _model({
       },
     ],
     'nodes': [
-      for (var i = 0; i < instances; i++) {'name': 'Triangle $i', 'mesh': 0},
+      for (var i = 0; i < instances; i++) {'name': '$nodeName $i', 'mesh': 0},
     ],
     'buffers': [
       {'byteLength': binary.length},

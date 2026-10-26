@@ -46,6 +46,9 @@ uniform Atmosphere {
 uniform Presentation {
     vec4 fogColor;
     vec4 depthRange;
+    vec4 weatherFog;
+    vec4 weatherImpacts;
+    vec4 manualFog;
 } presentation;
 
 float sampledShadowVisibility(vec4 packed, float reference, bool multisampled) {
@@ -231,8 +234,32 @@ void main() {
         vec3 litGlass = atmosphere.windowColor.rgb * (0.72 + 0.28 * color.rgb);
         outColor.rgb = mix(outColor.rgb, litGlass, clamp(mask * atmosphere.windowColor.w, 0.0, 1.0));
     }
-    if (presentation.fogColor.w > 0.0) {
+    if (presentation.weatherImpacts.x > 0.0 && abs(receiverNormal.y) > 0.7) {
+        vec2 cell = floor(fragPosition.xz * 1.8);
+        float seed = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
+        float phase = fract(presentation.weatherImpacts.z * presentation.weatherImpacts.y + seed);
+        vec2 center = vec2(fract(seed * 13.17), fract(seed * 39.43)) * 0.6 + 0.2;
+        float radius = length(fract(fragPosition.xz * 1.8) - center);
+        float ring = 1.0 - smoothstep(0.015, 0.055, abs(radius - phase * 0.38));
+        float ripple = ring * (1.0 - phase) * smoothstep(0.0, 0.08, phase);
+        ripple *= step(seed, presentation.weatherImpacts.x) * presentation.weatherImpacts.x;
+        outColor.rgb = mix(outColor.rgb, outColor.rgb * 0.75 + vec3(0.18, 0.23, 0.26) * environment.tint.rgb,
+                           ripple * 0.65);
+    }
+    if (presentation.fogColor.w > 0.0 || presentation.manualFog.z > 0.0) {
         float haze = smoothstep(presentation.depthRange.x, presentation.depthRange.y, fragViewDepth) * presentation.fogColor.w;
+        if (presentation.weatherFog.w > 0.0) {
+            float time = presentation.depthRange.z;
+            vec2 drift = fragPosition.xz * 0.32 - presentation.weatherFog.xy * time * 0.035;
+            float wave = sin(drift.x + sin(drift.y * 0.73 + time * 0.07))
+                       * sin(drift.y * 0.91 - time * 0.045);
+            float low = exp(-max(0.0, fragPosition.y - presentation.weatherFog.z) * 0.38);
+            float density = (0.95 + wave * 0.4) * (0.55 + low * 0.45);
+            float bank = low * (0.5 + wave * 0.5) * presentation.weatherFog.w * 0.18;
+            haze = 1.0 - exp(-(haze + bank) * (1.0 + presentation.weatherFog.w * 2.0) * density);
+        }
+        float manual = smoothstep(presentation.manualFog.x, presentation.manualFog.y, fragViewDepth) * presentation.manualFog.z;
+        haze = 1.0 - (1.0 - haze) * (1.0 - manual);
         outColor.rgb = mix(outColor.rgb, presentation.fogColor.rgb, haze);
     }
     if (material.alphaMode == 0.0) {

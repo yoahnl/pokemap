@@ -117,6 +117,119 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  for (final partitioned in [false, true]) {
+    test(
+      'current map Border definitions survive passage and Continue ${partitioned ? 'partitioned' : 'native'}',
+      () async {
+        await runtime.dispose();
+        await spatialWarpBundle(root, bundle);
+        final fixture = spatialBorderPassageFixture(bundle);
+        final manifest = fixture.manifest;
+        final maps = [fixture.source, fixture.destination];
+        for (final map in maps) {
+          await File('${root.path}/maps/${map.id}.json')
+              .writeAsString(jsonEncode(map.toJson()));
+        }
+        final publication = partitioned
+            ? PortableCatalogPublication.encodeProject(manifest)
+            : null;
+        await File('${root.path}/project.json').writeAsString(
+          jsonEncode(publication?.descriptor ?? manifest.toJson()),
+        );
+        for (final object
+            in publication?.storage.objects.entries ??
+                <MapEntry<String, List<int>>>[]) {
+          final file = File('${root.path}/catalog/objects/${object.key}.json');
+          await file.parent.create(recursive: true);
+          await file.writeAsBytes(object.value);
+        }
+        runtime = SpatialExplorationGameSessionRuntime(
+          descriptor: descriptor(
+            initialState: descriptor().initialGameState!.copyWith(
+              playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 4.5),
+            ),
+          ),
+          projectFilePath: () async => '${root.path}/project.json',
+          mountSession: (_) async {},
+          unmountSession: (_) async {},
+        );
+        await runtime.load((_) {});
+        await runtime.gameplayReady;
+        expect(runtime.session!.bundle.manifest.borderCatalog.records, isEmpty);
+
+        Future<void> moveUntil(
+          RuntimeInputControl control,
+          bool Function() reached,
+        ) async {
+          runtime.handleInput(RuntimeInputEvent.press(control));
+          try {
+            for (var frame = 0; frame < 160 && !reached(); frame++) {
+              runtime.session!.frame(.05);
+              await Future<void>.delayed(const Duration(milliseconds: 2));
+            }
+          } finally {
+            runtime.handleInput(RuntimeInputEvent.release(control));
+          }
+          expect(reached(), isTrue);
+          for (var frame = 0; frame < 30; frame++) {
+            runtime.session!.frame(0);
+            await Future<void>.delayed(const Duration(milliseconds: 2));
+          }
+          await runtime.gameplayReady;
+          expect(runtime.session!.interactionError.value, isNull);
+        }
+
+        await moveUntil(
+          RuntimeInputControl.down,
+          () => runtime.session!.bundle.map.id == 'other',
+        );
+        expect(
+          runtime.session!.bundle.manifest.borderCatalog.records.single.id,
+          'fence',
+        );
+        await moveUntil(
+          RuntimeInputControl.down,
+          () => runtime.gameStateSnapshot.trainerProfile.money == 7,
+        );
+        await moveUntil(
+          RuntimeInputControl.up,
+          () => runtime.session!.bundle.map.id == 'field',
+        );
+        await moveUntil(
+          RuntimeInputControl.down,
+          () => runtime.session!.bundle.map.id == 'other',
+        );
+        await moveUntil(
+          RuntimeInputControl.down,
+          () => runtime.gameStateSnapshot.trainerProfile.money == 14,
+        );
+        final checkpoint = (await runtime.captureCheckpoint())!;
+        final saved = gameStateFromStrictSaveJson(
+          Map<String, dynamic>.from(checkpoint.state),
+        );
+        await runtime.dispose();
+        runtime = SpatialExplorationGameSessionRuntime(
+          descriptor: descriptor(continueGame: true),
+          projectFilePath: () async => '${root.path}/project.json',
+          initialSave: () async => spatialSave(saved),
+          mountSession: (_) async {},
+          unmountSession: (_) async {},
+        );
+        await runtime.load((_) {});
+        await runtime.gameplayReady;
+        expect(runtime.gameStateSnapshot.trainerProfile.money, 14);
+        await moveUntil(
+          RuntimeInputControl.up,
+          () => runtime.gameStateSnapshot.playerPosition.y == 4,
+        );
+        await moveUntil(
+          RuntimeInputControl.down,
+          () => runtime.gameStateSnapshot.trainerProfile.money == 21,
+        );
+      },
+    );
+  }
+
   test('ledge does not dispatch a trigger on its airborne barrier cell', () async {
     await runtime.dispose();
     final scene = SceneAsset(id: 'airborne', name: 'Airborne', graph: SceneGraph(startNodeId: 'start', nodes: [
@@ -2391,12 +2504,17 @@ void main() {
     expect(saved.party, healed.gameStateSnapshot.party);
     expect(saved.playerSpatialPosition, before.playerSpatialPosition);
     expect(healed.inputAuthority.value.acceptsOverworldInput, isTrue);
+    expect(healed.worldServiceSnapshot, isNull);
   });
 
   test('failed healer checkpoint rolls back the party and releases input',
       () async {
-    final healed = serviceRuntime(
-        commitCheckpoint: (_) async => throw FileSystemException('disk full'));
+    var attempts = 0;
+    late final SpatialExplorationGameSessionRuntime healed;
+    healed = serviceRuntime(commitCheckpoint: (_) async {
+      expect(healed.worldServiceSnapshot?.stage, RuntimeWorldServiceStage.applying);
+      if (++attempts == 1) throw FileSystemException('disk full');
+    });
     addTearDown(healed.dispose);
     await healed.load((_) {});
     final before = healed.gameStateSnapshot;
@@ -2405,6 +2523,14 @@ void main() {
             interactionId: 'valbois-heal', requiresConfirmation: false));
     expect(result.status, PlayerServiceRuntimeStatus.failed);
     expect(healed.gameStateSnapshot, before);
+    expect(healed.inputAuthority.value.acceptsOverworldInput, isTrue);
+    expect(healed.worldServiceSnapshot, isNull);
+    final retry = await healed.openHealCenter(
+        request: const OpenHealService(
+            interactionId: 'valbois-heal-retry', requiresConfirmation: false));
+    expect(retry.status, PlayerServiceRuntimeStatus.completed);
+    expect(attempts, 2);
+    expect(healed.gameStateSnapshot.party.members.first.currentHp, 30);
     expect(healed.inputAuthority.value.acceptsOverworldInput, isTrue);
     expect(healed.worldServiceSnapshot, isNull);
   });
@@ -3393,4 +3519,213 @@ final class _SceneAudioDriver implements FlameCinematicAudioDriver, FlameCinemat
   Stream<void> onComplete(Object handle) { if(!started.isCompleted) started.complete(); return complete.stream; }
   @override
   Future<void> seekAndResume(Object handle,Duration position)async{}
+}
+
+({ProjectManifest manifest, MapData source, MapData destination})
+spatialBorderPassageFixture(RuntimeMapBundle bundle) {
+  final defaults = BorderGenerationParams(
+    irregularityPermille: 0,
+    detailDensityPermille: 0,
+    variationPermille: 0,
+    maxOverlapPx: 0,
+    gapTolerancePx: 0,
+    depthRows: 1,
+  );
+  final transforms = BorderTransformPolicy(
+    allowFlipX: false,
+    allowedQuarterTurns: const [0, 1, 2, 3],
+  );
+  const roles = [
+    BorderPrimitiveRole.lineCap,
+    BorderPrimitiveRole.lineStraight,
+    BorderPrimitiveRole.lineCorner,
+  ];
+  final draft = BorderBlueprintDraftDefinition(
+    name: 'Fence',
+    previewSeed: BorderSignedInt64.zero,
+    template: BorderBlueprintTemplate.connectedLine,
+    primitives: [
+      for (final role in roles)
+        BorderPrimitiveDraft(
+          id: role.name,
+          sourceModelId: 'fence-unit',
+          role: role,
+          weight: 1,
+          transforms: transforms,
+        ),
+    ],
+    defaults: defaults,
+    sortOrder: 0,
+  );
+  final revision = BorderBlueprintRevision(
+    revision: 1,
+    definition: BorderBlueprintPublishedDefinition(
+      name: draft.name,
+      previewSeed: draft.previewSeed,
+      template: draft.template,
+      primitives: [
+        for (final role in roles)
+          BorderPublishedPrimitive(
+            id: role.name,
+            sourceModelId: 'fence-unit',
+            role: role,
+            weight: 1,
+            transforms: transforms,
+          ),
+      ],
+      defaults: defaults,
+      sortOrder: 0,
+    ),
+  );
+  final source = bundle.map.copyWith(
+    entities: [],
+    warps: const [
+      MapWarp(
+        id: 'out',
+        pos: GridPos(x: 4, y: 5),
+        targetMapId: 'other',
+        targetPos: GridPos(x: 4, y: 4),
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
+      ),
+    ],
+  );
+  final raw = source.copyWith(
+    id: 'other',
+    warps: const [
+      MapWarp(
+        id: 'back',
+        pos: GridPos(x: 4, y: 3),
+        targetMapId: 'field',
+        targetPos: GridPos(x: 4, y: 4),
+        transition: MapWarpTransition(type: MapWarpTransitionType.none),
+      ),
+    ],
+    triggers: const [
+      MapTrigger(
+        id: 'reward',
+        type: TriggerType.event,
+        area: MapRect(
+          pos: GridPos(x: 4, y: 5),
+          size: GridSize(width: 1, height: 1),
+        ),
+      ),
+    ],
+    layers: [
+      MapLayer.border(
+        id: 'border',
+        name: 'Border',
+        content: BorderLayerContent(
+          formatVersion: 4,
+          features: [
+            BorderFeature(
+              id: 'fence',
+              name: 'Fence',
+              blueprintId: 'fence',
+              overrides: const [],
+              keepOutRegions: const [],
+              seed: BorderSignedInt64.zero,
+              geometry: BorderStrokeGeometry(
+                strokes: [
+                  BorderStroke(
+                    id: 'line',
+                    points: const [GridPos(x: 1, y: 1), GridPos(x: 2, y: 1)],
+                    closed: false,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+  final reward = spatialScene('border-reward', [
+    SceneConsequence.giveMoney(amount: 7),
+  ]);
+  final manifest = bundle.manifest.copyWith(
+    settings: bundle.manifest.settings.copyWith(
+      spatialCamera: SpatialCameraProfile(),
+    ),
+    dialogues: const [],
+    tilesets: const [
+      ProjectTilesetEntry(
+        id: 'unused',
+        name: 'Unused',
+        relativePath: 'hero.png',
+      ),
+    ],
+    maps: const [
+      ProjectMapEntry(
+        id: 'field',
+        name: 'Field',
+        relativePath: 'maps/field.json',
+      ),
+      ProjectMapEntry(
+        id: 'other',
+        name: 'Other',
+        relativePath: 'maps/other.json',
+      ),
+    ],
+    models3d: [
+      ProjectModel3dEntry(
+        id: 'fence-unit',
+        name: 'Fence unit',
+        sourceAssetId: 'fence-source',
+        relativePath: 'assets/models3d/fence-unit.glb',
+        inspection: Model3dInspection(
+          bounds: Model3dBounds(
+            min: Model3dVector3.zero,
+            max: Model3dVector3(x: 1, y: 1, z: 1),
+          ),
+          meshCount: 1,
+          triangleCount: 1,
+        ),
+      ),
+    ],
+    borderCatalog: ProjectBorderCatalog(
+      formatVersion: 5,
+      records: [
+        BorderBlueprintRecord(
+          id: 'fence',
+          latestPublished: revision,
+          draft: BorderBlueprintDraft(baseRevision: 1, definition: draft),
+        ),
+      ],
+    ),
+    scenes: [reward],
+    eventRegistry: NarrativeEventRegistry(
+      schemaVersion: 1,
+      mode: EventSystemMode.v2Only,
+      legacyClaims: const [],
+      records: [
+        NarrativeEventRecord.configuredStructurallyUnchecked(
+          NarrativeEventDefinition(
+            id: 'evt_019abcde-0000-7000-8000-000000000001',
+            name: 'Reward',
+            source: NarrativeEventSourceRef.triggerEnter('other', 'reward'),
+            conditions: const [],
+            sceneId: reward.id,
+            reusePolicy: NarrativeEventReusePolicy.reusable,
+            priority: 0,
+            order: 0,
+            resetPolicy: const NarrativeEventResetPolicy.never(),
+          ),
+          enabled: true,
+        ),
+      ],
+    ),
+  );
+  final resolved = resolveSpatialBorderFeature(
+    manifest: manifest,
+    map: raw,
+    layerId: 'border',
+    featureId: 'fence',
+  );
+  expect(resolved.result.canApply, isTrue);
+  final destination = applySpatialBorderFeaturePreview(
+    raw,
+    manifest: manifest,
+    proposedResult: resolved,
+  );
+  return (manifest: manifest, source: source, destination: destination);
 }

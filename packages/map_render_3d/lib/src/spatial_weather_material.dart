@@ -30,6 +30,8 @@ final class SpatialWeatherMaterial extends Material {
   final _particle = Vector4.zero();
   final _tint = Vector4.zero();
   final _bounds = Vector4.zero();
+  final _volume = Vector4.zero();
+  double _cameraDistance = 40;
   bool visible = false;
 
   void configure({
@@ -39,7 +41,9 @@ final class SpatialWeatherMaterial extends Material {
     required double seconds,
     required double weight,
     required int count,
+    double cameraDistance = 40,
   }) {
+    _cameraDistance = cameraDistance;
     visible = count > 0 && frame.opacity * weight > .001;
     _anchorTime.setValues(anchor.x, anchor.y, anchor.z, seconds);
     _motion.setValues(
@@ -60,6 +64,13 @@ final class SpatialWeatherMaterial extends Material {
 
   @override
   void apply(covariant RenderContext3D context) {
+    final projectionScale =
+        context.projection[0].abs() < context.projection[5].abs()
+        ? context.projection[0].abs()
+        : context.projection[5].abs();
+    final span = (2 * _cameraDistance / projectionScale.clamp(.1, 100) + 8)
+        .clamp(16.0, 80.0);
+    _volume.setValues(span, 10, 0, 0);
     vertexShader
       ..setMatrix4('Weather.view', context.view)
       ..setMatrix4('Weather.projection', context.projection)
@@ -68,6 +79,7 @@ final class SpatialWeatherMaterial extends Material {
       ..setVector4('Weather.particle', _particle)
       ..setVector4('Weather.tint', _tint)
       ..setVector4('Weather.bounds', _bounds)
+      ..setVector4('Weather.volume', _volume)
       ..setMatrix4('JointMatrices.joints[0]', _identity);
   }
 }

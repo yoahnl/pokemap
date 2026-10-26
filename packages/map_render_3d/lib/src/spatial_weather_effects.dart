@@ -82,6 +82,7 @@ final class SpatialWeatherEffects {
         seconds: seconds,
         weight: 1 - weight,
         count: oldCount,
+        cameraDistance: cameraDistance,
       );
       batches[1].material.configure(
         frame: after,
@@ -90,6 +91,7 @@ final class SpatialWeatherEffects {
         seconds: seconds,
         weight: weight,
         count: newCount,
+        cameraDistance: cameraDistance,
       );
     }
     final light =
@@ -97,23 +99,39 @@ final class SpatialWeatherEffects {
     context.lighting = _lighting(context.lighting, light);
     final opacity =
         before.fogOpacity * (1 - weight) + after.fogOpacity * weight;
-    if (opacity <= .0001) return;
+    final impact =
+        before.impactStrength * (1 - weight) + after.impactStrength * weight;
+    if (opacity <= .0001 && impact <= .0001) return;
     final base = context.presentationProfile;
     if (!identical(_baseFog, base)) {
       _baseFog = base;
       _fog = SpatialPresentationProfile(halos: base.halos);
     }
     final fog = _fog!;
-    final weatherStart = math.max(0.0, cameraDistance - 6);
-    final weatherEnd = cameraDistance + 20;
+    final weatherStart = math.max(
+      0.0,
+      cameraDistance - math.max(8, cameraDistance * .45),
+    );
+    final weatherEnd = cameraDistance + math.max(4, cameraDistance * .15);
     final manual = context.depthFogEnabled;
     fog
       ..haloSpread = base.haloSpread
       ..haloStrength = base.haloStrength
-      ..fogStart = manual ? math.min(base.fogStart, weatherStart) : weatherStart
-      ..fogEnd = manual ? math.min(base.fogEnd, weatherEnd) : weatherEnd
-      ..fogOpacity = (1 - (1 - (manual ? base.fogOpacity : 0)) * (1 - opacity))
-          .clamp(0, .5);
+      ..weatherFogStrength =
+          before.fogDensity * (1 - weight) + after.fogDensity * weight
+      ..weatherSeconds = seconds
+      ..weatherWindX = before.windX * (1 - weight) + after.windX * weight
+      ..weatherWindZ = before.windZ * (1 - weight) + after.windZ * weight
+      ..weatherGroundHeight = anchor.y
+      ..weatherImpactStrength = impact
+      ..weatherImpactSpeed =
+          before.impactSpeed * (1 - weight) + after.impactSpeed * weight
+      ..weatherManualFogStart = base.fogStart
+      ..weatherManualFogEnd = base.fogEnd
+      ..weatherManualFogOpacity = manual ? base.fogOpacity : 0
+      ..fogStart = weatherStart
+      ..fogEnd = weatherEnd
+      ..fogOpacity = opacity;
     context
       ..presentationProfile = fog
       ..depthFogEnabled = true

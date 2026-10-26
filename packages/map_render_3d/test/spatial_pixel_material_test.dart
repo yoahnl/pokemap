@@ -17,6 +17,8 @@ import 'package:map_render_3d/src/spatial_point_light.dart';
 import 'package:map_render_3d/src/spatial_point_shadow.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_presentation_effects.dart';
+import 'package:map_render_3d/src/spatial_weather_material.dart';
+import 'package:map_render_3d/src/spatial_weather_profile.dart';
 
 void main() {
   late _ShaderBackend backend;
@@ -31,6 +33,36 @@ void main() {
     material = SpatialPixelMaterial(Texture(ByteData(4), width: 1, height: 1));
     material.vertexShader.resource;
     material.fragmentShader.resource;
+  });
+
+  test('particle coverage follows the camera without growing geometry', () {
+    final batch = SpatialWeatherBatch();
+    final surface = batch.mesh.surfaces.single;
+    final shader = batch.material.vertexShader;
+    shader.resource;
+    batch.material.configure(
+      frame: const SpatialWeatherFrame(opacity: 1, size: .1),
+      anchor: Vector3.zero(),
+      bounds: const Rect.fromLTWH(0, 0, 100, 100),
+      seconds: 10,
+      weight: 1,
+      count: spatialWeatherMaximumParticles,
+      cameraDistance: 30,
+    );
+    context.projection.setIdentity();
+    context.projection[0] = 7;
+    context.projection[5] = 5;
+    batch.material.apply(context);
+    shader.bind(device);
+    expect(device.uniforms['Weather']![52], 20);
+    context.projection[0] = 2;
+    context.projection[5] = 3;
+    batch.material.apply(context);
+    shader.bind(device);
+    expect(device.uniforms['Weather']![52], 38);
+    expect(device.uniforms['Weather']![40], spatialWeatherMaximumParticles);
+    expect(batch.mesh.surfaces.single, same(surface));
+    expect(batch.mesh.vertexCount, spatialWeatherMaximumParticles * 4);
   });
 
   test('solar coverage uploads all 64 cells without changing the filter', () {
@@ -236,12 +268,59 @@ void main() {
     for (var i = 0; i < 120; i++) {
       material.apply(spatial);
     }
-    expect(writes, 2);
+    expect(writes, 5);
     expect(shader.presentationWrites, writes);
     spatial.depthFogEnabled = false;
     material.apply(spatial);
-    expect(shader.presentationWrites, writes + 2);
+    expect(shader.presentationWrites, writes + 5);
   });
+
+  test(
+    'weather uniforms animate existing materials and clear on return indoors',
+    () {
+      final profile = SpatialPresentationProfile()
+        ..weatherFogStrength = .4
+        ..weatherSeconds = 12
+        ..weatherWindX = 2
+        ..weatherWindZ = -3
+        ..weatherGroundHeight = 5
+        ..weatherImpactStrength = .7
+        ..weatherImpactSpeed = 2;
+      final spatial = SpatialRenderContext(device)
+        ..presentationProfile = profile;
+      material.apply(spatial);
+      material.fragmentShader.bind(device);
+      expect(device.uniforms['Presentation']!.sublist(8, 12), [
+        2,
+        -3,
+        5,
+        closeTo(.4, 1e-6),
+      ]);
+      expect(device.uniforms['Presentation']!.sublist(12, 16), [
+        closeTo(.7, 1e-6),
+        2,
+        12,
+        0,
+      ]);
+      profile.weatherSeconds = 13;
+      material.apply(spatial);
+      material.fragmentShader.bind(device);
+      expect(device.uniforms['Presentation']![14], 13);
+      final actor = SpatialPixelMaterial(
+        material.albedoTexture,
+        lightingRole: SpatialPixelLightingRole.actor,
+      );
+      actor.vertexShader.resource;
+      actor.fragmentShader.resource;
+      actor.apply(spatial);
+      actor.fragmentShader.bind(device);
+      expect(device.uniforms['Presentation']![12], 0);
+      spatial.presentationProfile = SpatialPresentationProfile.disabled;
+      material.apply(spatial);
+      material.fragmentShader.bind(device);
+      expect(device.uniforms['Presentation']!.sublist(8, 16), everyElement(0));
+    },
+  );
 
   test('atmosphere uniforms target one instance and keep all off pixels and resources intact', () {
     final spatial = SpatialRenderContext(device)..sourceInstanceId = 'house';
@@ -462,7 +541,9 @@ void main() {
     material.fragmentShader.bind(device);
     environment = device.uniforms['Environment']!;
     expect(environment.sublist(0, 8), [1, 1, 1, 1, 0, 0, 0, 0]);
-    expect(environment.skip(28), everyElement(0));
+    expect(environment.sublist(28, 44), everyElement(0));
+    expect(environment[55], 0);
+    expect(environment[59], 0);
   });
 
   test('actor point illumination follows a uniform foot anchor without a shadow map', () {
@@ -1127,19 +1208,37 @@ final class _Shader implements GpuShader {
       'origin': 112,
       'coverage': 128,
     }),
-    'Environment' => _UniformSlot(slot, 176, {
+    'Environment' => _UniformSlot(slot, 240, {
       'tint': 0,
       'options': 16,
       'samplePosition': 32,
       'pointPositionRadius': 48,
       'pointColorIntensity': 112,
+      'fireflyPositionRadius': 176,
+      'fireflyColorIntensity': 208,
     }),
     'Atmosphere' => _UniformSlot(slot, 160, {
       'options': 0,
       'windowColor': 16,
       'windowRects': 32,
     }),
-    'Presentation' => _UniformSlot(slot, 32, {'fogColor': 0, 'depthRange': 16}),
+    'Presentation' => _UniformSlot(slot, 80, {
+      'fogColor': 0,
+      'depthRange': 16,
+      'weatherFog': 32,
+      'weatherImpacts': 48,
+      'manualFog': 64,
+    }),
+    'Weather' => _UniformSlot(slot, 224, {
+      'view': 0,
+      'projection': 64,
+      'anchorTime': 128,
+      'motion': 144,
+      'particle': 160,
+      'tint': 176,
+      'bounds': 192,
+      'volume': 208,
+    }),
     'PointShadows' => _UniformSlot(slot, 16, {'options': 0}),
     'PointDepth' => _UniformSlot(slot, 32, {'positionRadius': 0, 'tile': 16}),
     'albedoTexture' ||

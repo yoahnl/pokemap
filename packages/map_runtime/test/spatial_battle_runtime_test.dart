@@ -25,6 +25,94 @@ import 'support/load_flame_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  for (final scenario in [(false, false), (true, false), (false, true)]) {
+    final (pausedByLifecycle, disposeRuntime) = scenario;
+    testWidgets(
+      'return to title removes an active battle without notifying a locked tree, paused=$pausedByLifecycle dispose=$disposeRuntime',
+      (tester) async {
+        final fixture = (await tester.runAsync(_fixture))!;
+        var commits = 0;
+        var outcomes = 0;
+        var notifications = 0;
+        final runtime = SpatialBattleRuntime(
+          readGameState: () => fixture.state,
+          commitGameState: (_, _) {
+            commits++;
+            return true;
+          },
+          onCompleted: (_) => outcomes++,
+        );
+        addTearDown(runtime.dispose);
+        final visible = ValueNotifier(true);
+        addTearDown(visible.dispose);
+        runtime.addListener(() => notifications++);
+        late Future<bool> completion;
+        await tester.runAsync(() async {
+          completion = runtime.start(
+            bundle: fixture.bundle,
+            request: _wild('return-title'),
+          );
+          await _ready(runtime);
+        });
+        await tester.pumpWidget(
+          MaterialApp(
+            home: ListenableBuilder(
+              listenable: runtime,
+              builder: (context, child) => ValueListenableBuilder<bool>(
+                valueListenable: visible,
+                builder: (context, showing, child) {
+                  if (showing) return SpatialBattleView(runtime: runtime);
+                  if (disposeRuntime) runtime.dispose();
+                  return const Text('Title', key: Key('title'));
+                },
+              ),
+            ),
+          ),
+        );
+        await _mountBattleView(tester, runtime);
+        final game =
+            tester
+                    .widget<GameWidget>(
+                      find.byWidgetPredicate((widget) => widget is GameWidget),
+                    )
+                    .game!
+                as SpatialBattlePresentation;
+        if (pausedByLifecycle) {
+          tester.binding.handleAppLifecycleStateChanged(
+            AppLifecycleState.inactive,
+          );
+          await tester.pump();
+          expect(runtime.isPaused, isTrue);
+        }
+        final beforeRemoval = notifications;
+        visible.value = false;
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const Key('title')), findsOneWidget);
+        expect(runtime.isActive, isFalse);
+        expect(runtime.isPaused, isFalse);
+        expect(runtime.battleOverlay, isNull);
+        expect(runtime.entryTransition, isNull);
+        expect(runtime.context, isNull);
+        expect(runtime.displaySession, isNull);
+        expect(runtime.battlePresentationListenable.value, isNull);
+        expect(game.stopped, isTrue);
+        expect(await tester.runAsync(() => completion), isFalse);
+        expect(commits, 0);
+        expect(outcomes, 0);
+        expect(
+          notifications,
+          disposeRuntime ? beforeRemoval : greaterThan(beforeRemoval),
+        );
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+      },
+    );
+  }
+
   for (final missingGuide in [false, true]) {
     test('demonstration ${missingGuide ? 'invalid profile' : 'cancellation'} leaves owned state untouched', () async {
       final fixture = await _fixture();

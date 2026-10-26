@@ -13,6 +13,7 @@ import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:flutter/gestures.dart' hide Matrix4;
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/widgets.dart' hide Matrix4, Texture;
 import 'package:map_core/map_core.dart';
@@ -554,6 +555,8 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   SpatialSceneGame? game;
   Object? failure;
   Object? previewFailure;
+  Object? pendingPreviewFailure;
+  bool previewStatusUpdateScheduled = false;
   bool draggingContent = false;
   SpatialContentDrag? contentDrag;
   double? contentDragHeight;
@@ -641,6 +644,23 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   }
 
   void handlePreviewStatus(Object? error) {
+    if (!mounted) return;
+    if (previewStatusUpdateScheduled ||
+        SchedulerBinding.instance.schedulerPhase ==
+            SchedulerPhase.persistentCallbacks) {
+      pendingPreviewFailure = error;
+      if (previewStatusUpdateScheduled) return;
+      previewStatusUpdateScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        previewStatusUpdateScheduled = false;
+        final next = pendingPreviewFailure;
+        pendingPreviewFailure = null;
+        if (mounted && !identical(previewFailure, next)) {
+          setState(() => previewFailure = next);
+        }
+      });
+      return;
+    }
     if (mounted && !identical(previewFailure, error)) {
       setState(() => previewFailure = error);
     }

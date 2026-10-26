@@ -3,6 +3,78 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_weather_profile.dart';
 
 void main() {
+  test('dense fog keeps its density beyond the shared opacity ceiling', () {
+    final settings = SpatialWeatherSettings(
+      enabled: true,
+      kind: SpatialWeatherKind.mist,
+      intensity: 1,
+      fogStrength: 1,
+    );
+    final mist = spatialWeatherFrame(settings, seconds: 1);
+    final fog = spatialWeatherFrame(
+      settings.copyWith(kind: SpatialWeatherKind.fog),
+      seconds: 1,
+    );
+    expect(fog.fogDensity, greaterThan(mist.fogDensity * 2));
+    expect(fog.fogOpacity, lessThanOrEqualTo(.5));
+  });
+  test(
+    'surface rain impacts scale independently of the fixed particle pool',
+    () {
+      final settings = SpatialWeatherSettings(
+        enabled: true,
+        kind: SpatialWeatherKind.rain,
+        intensity: 1,
+        density: 1,
+        opacity: 1,
+      );
+      final rain = spatialWeatherFrame(settings, seconds: 1);
+      final drizzle = spatialWeatherFrame(
+        settings.copyWith(kind: SpatialWeatherKind.drizzle),
+        seconds: 1,
+      );
+      final downpour = spatialWeatherFrame(
+        settings.copyWith(kind: SpatialWeatherKind.downpour),
+        seconds: 1,
+      );
+      expect(drizzle.impactStrength, greaterThan(0));
+      expect(rain.impactStrength, greaterThan(drizzle.impactStrength));
+      expect(downpour.impactStrength, greaterThan(rain.impactStrength));
+      expect(
+        spatialWeatherFrame(
+          settings.copyWith(density: 0),
+          seconds: 1,
+        ).impactStrength,
+        0,
+      );
+      expect(
+        spatialWeatherFrame(settings, seconds: 1, indoors: true).impactStrength,
+        0,
+      );
+      expect(
+        spatialWeatherFrame(
+          settings.copyWith(enabled: false),
+          seconds: 1,
+        ).impactStrength,
+        0,
+      );
+      for (final kind in [
+        SpatialWeatherKind.clear,
+        SpatialWeatherKind.mist,
+        SpatialWeatherKind.snow,
+        SpatialWeatherKind.petals,
+      ]) {
+        expect(
+          spatialWeatherFrame(
+            settings.copyWith(kind: kind),
+            seconds: 1,
+          ).impactStrength,
+          0,
+        );
+      }
+    },
+  );
+
   test(
     'disabled and indoor weather allocate no visible particles or flashes',
     () {

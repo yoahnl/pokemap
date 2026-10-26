@@ -12,6 +12,79 @@ import 'package:map_render_3d/src/spatial_weather_material.dart';
 import 'package:map_render_3d/src/spatial_weather_profile.dart';
 
 void main() {
+  test('rain impacts preserve independent manual fog distances', () {
+    final effects = SpatialWeatherEffects(World3D());
+    final base = SpatialPresentationProfile(
+      fogStart: 100,
+      fogEnd: 150,
+      fogOpacity: .2,
+    );
+    final context = SpatialRenderContext(_Device())
+      ..presentationProfile = base
+      ..depthFogEnabled = true;
+    effects.sync(
+      settings: SpatialWeatherSettings(
+        enabled: true,
+        kind: SpatialWeatherKind.rain,
+        fogStrength: 0,
+        transitionSeconds: 0,
+      ),
+      context: context,
+      dt: .1,
+      seconds: 1,
+      night: 0,
+      indoors: false,
+      anchor: Vector3.zero(),
+      bounds: const Rect.fromLTWH(0, 0, 100, 100),
+      cameraDistance: 30,
+    );
+    final profile = context.presentationProfile;
+    expect(profile.weatherImpactStrength, greaterThan(0));
+    expect(profile.fogAtDepth(30), 0);
+    expect(profile.fogAtDepth(100), 0);
+    expect(profile.fogAtDepth(150), closeTo(.2, 1e-6));
+    expect(base.fogStart, 100);
+    expect(base.fogEnd, 150);
+  });
+
+  test(
+    'mist and fog remain visible at the camera target at different zooms',
+    () {
+      for (final distance in [8.0, 30.0, 70.0]) {
+        final effects = SpatialWeatherEffects(World3D());
+        final context = SpatialRenderContext(_Device());
+        final base = SpatialPresentationProfile(fogOpacity: 0);
+        final opacities = <double>[];
+        for (final kind in [SpatialWeatherKind.mist, SpatialWeatherKind.fog]) {
+          context
+            ..lighting = SpatialLightingProfile.disabled
+            ..presentationProfile = base
+            ..depthFogEnabled = false;
+          effects.sync(
+            settings: SpatialWeatherSettings(
+              enabled: true,
+              kind: kind,
+              transitionSeconds: 0,
+            ),
+            context: context,
+            dt: .1,
+            seconds: 12,
+            night: 0,
+            indoors: false,
+            anchor: Vector3(20, 3, 30),
+            bounds: const Rect.fromLTWH(0, 0, 80, 80),
+            cameraDistance: distance,
+          );
+          opacities.add(context.presentationProfile.fogAtDepth(distance));
+        }
+        expect(opacities.first, greaterThan(.12));
+        expect(opacities.last, greaterThan(.32));
+        expect(opacities.last, greaterThan(opacities.first * 1.5));
+        expect(base.fogOpacity, 0);
+      }
+    },
+  );
+
   test('weather edits retain existing atmosphere and presentation pools', () {
     final control = SpatialSceneController();
     addTearDown(control.dispose);

@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/authoring_diff.dart';
+import '../../domains/maps/semantic_map_action_support.dart';
+import '../../domains/maps/warp_connection_actions.dart';
 import '../../contracts/resource_ref.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/resource_library_scope_guard.dart';
@@ -18,13 +20,14 @@ import 'catalog_project_reader.dart';
 
 final class CatalogSpatialMapSelection {
   CatalogSpatialMapSelection._(this.reader, this.snapshot, this.storageKey,
-      this.mapRevision, this.catalogRevision);
+      this.mapRevision, this.catalogRevision, this.mapId);
 
   final CatalogProjectReader reader;
   final ProjectSnapshot snapshot;
   final String storageKey;
   final String mapRevision;
   final String catalogRevision;
+  final String mapId;
 
   static bool supports(String action,
       {Map<String, Object?> parameters = const {}}) {
@@ -38,6 +41,8 @@ final class CatalogSpatialMapSelection {
               const {'environment', 'border'}.contains(op['layerKind']));
     }
     return const {
+      'warp.update',
+      'map3d.navigation.configure',
       'environment.attach_to_spatial_terrain',
       'environment.area_create',
       'environment.generated_placement_add',
@@ -47,6 +52,7 @@ final class CatalogSpatialMapSelection {
       'map3d.terrain.surface.delete_batch',
       'border_layer.feature_create',
       'border_layer.feature_update',
+      'border_layer.feature_move',
       'border_layer.materialize_apply',
       'border_layer.materialize_batch_apply',
       'border_layer.feature_set_variation',
@@ -66,11 +72,13 @@ final class CatalogSpatialMapSelection {
   }
 
   static String fingerprint(
-          String catalogRevision, String mapId, String mapRevision) =>
+          String catalogRevision, String mapId, String mapRevision,
+          {Map<String, String> readDependencies = const {}}) =>
       computeAuthoringJsonFingerprint({
         'catalogRevision': catalogRevision,
         'mapId': mapId,
         'mapRevision': mapRevision,
+        if (readDependencies.isNotEmpty) 'readDependencies': readDependencies,
       }, logicalName: 'catalog-map-selection.json');
 
   static Future<CatalogSpatialMapSelection> read(
@@ -80,6 +88,9 @@ final class CatalogSpatialMapSelection {
       required Map<String, Object?> parameters}) async {
     if (!supports(actionId, parameters: parameters)) {
       throw const FormatException('catalog.spatial: unsupported action');
+    }
+    if (actionId == 'warp.update') {
+      return _readWarpUpdate(reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
     if (actionId == 'map.apply_operations') {
       final operations = parameters['operations'];
@@ -283,7 +294,7 @@ final class CatalogSpatialMapSelection {
               'map:$mapId': entry.relativePath
             });
         final result = CatalogSpatialMapSelection._(selected, snapshot,
-            entry.relativePath, payload.resourceRevision, catalogRevision);
+            entry.relativePath, payload.resourceRevision, catalogRevision, mapId);
         if (await result.currentRevision() != revision) {
           throw AuthoringPlanException(
               code: 'plan.stale',
@@ -293,6 +304,178 @@ final class CatalogSpatialMapSelection {
         return result;
       } finally {
         await payload.release();
+      }
+    });
+  }
+
+  static Future<CatalogSpatialMapSelection> _readWarpUpdate({
+    required CatalogProjectReader reader,
+    required ProjectHandle projectHandle,
+    required Map<String, Object?> parameters,
+  }) async {
+    final args = SemanticParameters(
+      parameters,
+      allowed: {'mapId', 'warpId', 'warp'},
+    );
+    final mapId = args.string('mapId'), warpId = args.string('warpId');
+    final selected = await reader.withMetadataFields({'settings'});
+    return selected.read((catalog) async {
+      await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
+      final owner = await CatalogMetadataDocuments.readDocuments(
+        snapshot: catalog.snapshot,
+        project: catalog.projectMetadata,
+        ids: {
+          'maps': {mapId},
+        },
+      );
+      final sourceEntry = owner.project.maps.singleWhere(
+        (entry) => entry.id == mapId,
+      );
+      final source = await reader.store.gateway.captureResourcePayload(
+        sourceEntry.relativePath,
+      );
+      if (source == null)
+        throw const FormatException('catalog.warp: source map missing');
+      try {
+        final bytes = await source.readBytes();
+        final map = MapData.fromJson(
+          Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
+        );
+        if (map.id != mapId)
+          throw const FormatException('catalog.warp: source identity mismatch');
+        final after = const WarpConnectionActions().previewUpdate(
+          map,
+          warpId: warpId,
+          warp: args.object('warp'),
+        );
+        final index = map.warps.indexWhere((warp) => warp.id == warpId);
+        final beforeWarp = map.warps[index], updated = after.warps[index];
+        final metadata = await CatalogMetadataDocuments.readDocuments(
+          snapshot: catalog.snapshot,
+          project: catalog.projectMetadata,
+          ids: {
+            'maps': {mapId, updated.targetMapId},
+          },
+        );
+        final maps = <MapData>[map];
+        final mapBytes = <String, List<int>>{'map:$mapId': bytes};
+        final revisions = <String, String>{
+          sourceEntry.relativePath: source.resourceRevision,
+        };
+        final storageKeys = <String, String>{
+          'map:$mapId': sourceEntry.relativePath,
+        };
+        final fingerprints = <String, String>{
+          'map:$mapId': source.resourceRevision,
+        };
+        if (updated.targetMapId != mapId) {
+          final targetEntry = metadata.project.maps
+              .where((entry) => entry.id == updated.targetMapId)
+              .firstOrNull;
+          if (targetEntry == null)
+            throw semanticFailure(
+              'warp.target_map_missing',
+              'The target map does not exist in the current project snapshot.',
+              details: {'targetMapId': updated.targetMapId},
+            );
+          final target = await reader.store.gateway.captureResourcePayload(
+            targetEntry.relativePath,
+          );
+          if (target == null)
+            throw const FormatException('catalog.warp: destination missing');
+          try {
+            final targetBytes = await target.readBytes();
+            final targetMap = MapData.fromJson(
+              Map<String, dynamic>.from(
+                jsonDecode(utf8.decode(targetBytes)) as Map,
+              ),
+            );
+            if (targetMap.id != updated.targetMapId)
+              throw const FormatException(
+                'catalog.warp: destination identity mismatch',
+              );
+            maps.add(targetMap);
+            mapBytes['map:${targetMap.id}'] = targetBytes;
+            storageKeys['map:${targetMap.id}'] = targetEntry.relativePath;
+            fingerprints['map:${targetMap.id}'] = target.resourceRevision;
+            revisions[targetEntry.relativePath] = target.resourceRevision;
+          } finally {
+            await target.release();
+          }
+        }
+        var definitions = metadata.project;
+        final destinationOnly =
+            beforeWarp.copyWith(
+              targetMapId: updated.targetMapId,
+              targetPos: updated.targetPos,
+            ) ==
+            updated;
+        if (!destinationOnly && updated.door != null) {
+          final door = updated.door!;
+          final instance = map.spatialScene!.instances.singleWhere(
+            (value) => value.id == door.instanceId,
+          );
+          final unit = await catalog.lookup(
+            CatalogDefinitionKey(
+              CatalogDefinitionKind.model3d,
+              instance.modelId,
+            ),
+          );
+          definitions = definitions.copyWith(
+            models3d: [
+              if (unit != null)
+                ProjectModel3dEntry.fromJson(
+                  Map<String, dynamic>.from(unit.payload['value'] as Map),
+                ),
+            ],
+          );
+          validateMapWarpDoor(after, updated, models: definitions.models3d);
+        }
+        final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
+        final catalogRevision = 'sha256:${catalog.snapshot.root.sha256}';
+        final dependencies = Map<String, String>.from(revisions)
+          ..remove(sourceEntry.relativePath);
+        final revision = fingerprint(
+          catalogRevision,
+          mapId,
+          source.resourceRevision,
+          readDependencies: dependencies,
+        );
+        final snapshot = ProjectSnapshot(
+          projectHandle: projectHandle,
+          revision: revision,
+          manifest: definitions,
+          materializedCatalogProject: true,
+          availableProjectSections: const {},
+          scopedStorageRevisions: revisions,
+          maps: maps,
+          resourceFingerprints: {
+            ...fingerprints,
+            'project': computeAuthoringBytesFingerprint(
+              projectBytes,
+              logicalName: 'project.json',
+            ),
+          },
+          resourceBytes: {...mapBytes, 'project': projectBytes},
+          resourceStorageKeys: {...storageKeys, 'project': 'project.json'},
+        );
+        final result = CatalogSpatialMapSelection._(
+          selected,
+          snapshot,
+          sourceEntry.relativePath,
+          source.resourceRevision,
+          catalogRevision,
+          mapId,
+        );
+        if (await result.currentRevision() != revision) {
+          throw AuthoringPlanException(
+            code: 'plan.stale',
+            message: 'The source, destination or catalog changed while reading the warp.',
+          );
+        }
+        return result;
+      } finally {
+        await source.release();
       }
     });
   }
@@ -322,7 +505,13 @@ final class CatalogSpatialMapSelection {
           code: 'plan.stale',
           message: 'The selected map or catalog disappeared.');
     }
-    return fingerprint('sha256:${root.sha256}', snapshot.maps.single.id, map);
+    final dependencies = <String, String>{};
+    for (final path in snapshot.scopedStorageRevisions!.keys.where((path) => path != storageKey)) {
+      final revision = await reader.store.gateway.readResourceRevision(path);
+      if (revision == null) throw AuthoringPlanException(code: 'plan.stale', message: 'A selected warp destination disappeared.');
+      dependencies[path] = revision;
+    }
+    return fingerprint('sha256:${root.sha256}', mapId, map, readDependencies: dependencies);
   }
 
   Future<
@@ -335,7 +524,7 @@ final class CatalogSpatialMapSelection {
     if (changes.length != 1 ||
         changes.single.storageKey != storageKey ||
         changes.single.resource.kind != 'map' ||
-        changes.single.resource.id != snapshot.maps.single.id ||
+        changes.single.resource.id != mapId ||
         changes.single.beforeRevision != mapRevision ||
         changes.single.afterPayload == null) {
       throw AuthoringPlanException(
@@ -345,8 +534,13 @@ final class CatalogSpatialMapSelection {
     final projected = MapData.fromJson(Map<String, dynamic>.from(
         jsonDecode(utf8.decode(await changes.single.afterPayload!.readBytes()))
             as Map));
-    MapValidator.validate(projected, projectDialogueContext: snapshot.manifest);
-    validateResourceLibraryScopeIndex(
+    if (plan.request.actionId == 'warp.update') {
+      final args = SemanticParameters(plan.request.parameters, allowed: {'mapId', 'warpId', 'warp'});
+      final expected = const WarpConnectionActions().previewUpdate(snapshot.mapById(mapId)!, warpId: args.string('warpId'), warp: args.object('warp'));
+      if (projected != expected) throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The warp action changed data outside its validated update.');
+    } else {
+      MapValidator.validate(projected, projectDialogueContext: snapshot.manifest);
+      validateResourceLibraryScopeIndex(
         snapshot.manifest,
         ResourceLibraryUsageIndex.fromDocuments(maps: [
           projected
@@ -354,6 +548,7 @@ final class CatalogSpatialMapSelection {
           ResourceUsageDocument('map', projected.id, projected.name, storageKey,
               projected.toJson())
         ]));
+    }
     final state = computeAuthoringJsonFingerprint({
       'baseCatalog': catalogRevision,
       'resources': {storageKey: changes.single.afterRevision}

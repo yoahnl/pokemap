@@ -152,6 +152,7 @@ void main() {
     'audio': SpatialGameplayCapabilities.audioCapabilityId,
     'sceneMusic': SpatialGameplayCapabilities.sceneMusicCapabilityId,
     'actorOcclusion': SpatialActorOcclusionCapabilities.capabilityId,
+    'cinematicFade': SpatialGameplayCapabilities.cinematicFadeCapabilityId,
   };
   for (final entry in features.entries) {
     test(

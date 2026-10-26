@@ -18,6 +18,11 @@ abstract final class SpatialGameplayCapabilities {
   static const companionCapabilityId = 'map3d.party-companion@1';
   static const audioCapabilityId = 'map3d.scene-audio@1';
   static const sceneMusicCapabilityId = 'map3d.scene-music@1';
+  static const cinematicFadeCapabilityId = 'map3d.cinematic-fade@1';
+
+  static bool requiresCinematicFade(ProjectManifest project) =>
+      project.cinematics.any((asset) => asset.timeline.steps.any(
+          (step) => step.kind == CinematicTimelineStepKind.fade));
 
   static bool supportsSceneMusic(SceneMusicInteractiveCommand command) =>
       command.channel == SceneMusicChannel.music && command.scope == SceneMusicScope.scene;
@@ -65,6 +70,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.sceneMusic,
   };
   static const cinematicStepKinds = <CinematicTimelineStepKind>{
+    CinematicTimelineStepKind.fade,
     CinematicTimelineStepKind.atmosphere,
     CinematicTimelineStepKind.wait,
     CinematicTimelineStepKind.camera,

@@ -66,6 +66,9 @@ final class SpatialStoryPlayback {
         readVisuals: () => resolvedVisuals().overriddenBy(session.visualOverrides).overriddenBy(session.cinematicVisualOverrides),
         readVisualOverrides: () => session.cinematicVisualOverrides,
         writeVisuals: (profile) => session.cinematicVisualOverrides = profile,
+        writeFadeOpacity: (opacity) =>
+            session.cinematicFadeOpacity.value = opacity ?? 0,
+        retainFadeOnCompletion: () => _sceneFadeOwner != null,
         writeCamera: (pose) => camera = pose,
         canTraverse: (actor, fromX, fromZ, toX, toZ, poses, crossingActors) => session.movement.canTraverseActor(
             fromX, fromZ, toX, toZ, ignoredEntityId: actor.mapEntityId,
@@ -102,6 +105,11 @@ final class SpatialStoryPlayback {
           if (!locked) _publishActivity();
         },
         onCompletedPoses: _commitPoses,
+        onRestored: (keepFinal) {
+          final snapshot = _companionSnapshot;
+          _companionSnapshot = null;
+          if (!keepFinal && snapshot != null) session.restoreCompanionTrail(snapshot);
+        },
         isReady: () => !_disposed && !session.transitioning.value,
       ),
     );
@@ -119,6 +127,7 @@ final class SpatialStoryPlayback {
     session.npcStoryPose = (entity) => cinematics.isPlaying ? _poses['entity:${entity.id}'] : null;
     session.npcAutonomousPose = (entity) => autonomousNpcs.poseFor(entity.id);
     session.onBeforeMapChange = () {
+      _resetFade();
       visuals.reset();
       session.cinematicVisualOverrides = SpatialVisualPatch();
       autonomousNpcs.flush();
@@ -154,6 +163,21 @@ final class SpatialStoryPlayback {
   SpatialCinematicCameraPose? camera;
   bool _disposed = false;
   bool wasCancelled = false;
+  Object? _sceneFadeOwner;
+  PartyCompanionTrail? _companionSnapshot;
+
+  void releaseScene(Object owner) {
+    visuals.releaseScene(owner);
+    if (identical(_sceneFadeOwner, owner)) {
+      cinematics.cancel();
+      _resetFade();
+    }
+  }
+
+  void _resetFade() {
+    _sceneFadeOwner = null;
+    session.cinematicFadeOpacity.value = 0;
+  }
 
   String _key(CinematicActorBinding actor) =>
       actor.kind == CinematicActorBindingKind.player
@@ -269,10 +293,15 @@ final class SpatialStoryPlayback {
   }
 
   Future<String> playCinematic(
-      SceneRuntimePlanIntent intent, String sourceId) async {
-    if (_disposed || models.isPlaying) {
+      SceneRuntimePlanIntent intent, String sourceId, {Object? sceneOwner}) async {
+    if (_disposed || models.isPlaying || cinematics.isPlaying) {
       throw StateError('Spatial playback is busy.');
     }
+    if (_sceneFadeOwner != null && !identical(_sceneFadeOwner, sceneOwner)) {
+      throw StateError('Another scene owns the spatial cinematic fade.');
+    }
+    _sceneFadeOwner = sceneOwner;
+    _companionSnapshot = session.captureCompanionTrail();
     autonomousNpcs.update(0, paused: true);
     _poses.clear();
     wasCancelled = false;
@@ -287,11 +316,15 @@ final class SpatialStoryPlayback {
     try {
       final result = await future;
       if (!result.success || result.scenePortId == null) {
+        _resetFade();
         throw StateError(
             result.message ?? 'The spatial cinematic did not complete.');
       }
       return result.scenePortId!;
     } finally {
+      final snapshot = _companionSnapshot;
+      _companionSnapshot = null;
+      if (snapshot != null) session.restoreCompanionTrail(snapshot);
       if (!cinematics.isPlaying) _poses.clear();
       _publishActivity();
     }
@@ -309,6 +342,7 @@ final class SpatialStoryPlayback {
   }
 
   void synchronize(SpatialWorldState state) {
+    _resetFade();
     if (models.isPlaying || cinematics.isPlaying) cancel();
     models.synchronize(state);
     visuals.reset();
@@ -328,6 +362,7 @@ final class SpatialStoryPlayback {
     if (models.isPlaying || cinematics.isPlaying) wasCancelled = true;
     models.cancel();
     cinematics.cancel();
+    _resetFade();
     _publishActivity();
   }
 

@@ -16,6 +16,9 @@ final class SpatialWeatherFrame {
     this.windX = 0,
     this.windZ = 0,
     this.fogOpacity = 0,
+    this.fogDensity = 0,
+    this.impactStrength = 0,
+    this.impactSpeed = 0,
     this.lightFactor = 1,
     this.flash = 0,
     this.color = const Color(0xffd6e6f4),
@@ -25,6 +28,8 @@ final class SpatialWeatherFrame {
   final int particleCount, shape;
   final double fallSpeed, streakLength, size, opacity, windX, windZ;
   final double fogOpacity, lightFactor, flash;
+  final double fogDensity;
+  final double impactStrength, impactSpeed;
   final Color color, fogColor;
   static const disabled = SpatialWeatherFrame();
 }
@@ -83,6 +88,10 @@ SpatialWeatherFrame spatialWeatherFrame(
     windX: math.sin(angle) * wind,
     windZ: math.cos(angle) * wind,
     fogOpacity: (style.fog * settings.fogStrength * amount).clamp(0, .5),
+    fogDensity: style.fog * settings.fogStrength * amount,
+    impactStrength: style.impact * amount * settings.density * settings.opacity,
+    impactSpeed:
+        settings.speed * (settings.kind == SpatialWeatherKind.drizzle ? 1 : 2),
     lightFactor: light,
     flash: flash,
     color: color,
@@ -110,11 +119,13 @@ final class SpatialWeatherStyle {
     this.wind = 1,
     this.cloud = 0,
     this.fog = 0,
+    this.impact = 0,
     this.color = const Color(0xffd1e3f0),
     this.fogColor = const Color(0xffb8c6d1),
   });
   final int count, shape;
   final double fall, streak, size, opacity, wind, cloud, fog;
+  final double impact;
   final Color color, fogColor;
 }
 
@@ -135,6 +146,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
         wind: 2,
         cloud: .16,
         fog: .08,
+        impact: .22,
       ),
       SpatialWeatherKind.rain => const SpatialWeatherStyle(
         count: 256,
@@ -146,6 +158,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
         wind: 3,
         cloud: .27,
         fog: .12,
+        impact: .5,
       ),
       SpatialWeatherKind.downpour => const SpatialWeatherStyle(
         count: 384,
@@ -157,6 +170,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
         wind: 4,
         cloud: .35,
         fog: .22,
+        impact: .8,
       ),
       SpatialWeatherKind.storm => const SpatialWeatherStyle(
         count: 384,
@@ -168,6 +182,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
         wind: 7,
         cloud: .48,
         fog: .3,
+        impact: 1,
         color: Color(0xffb8cfe3),
         fogColor: Color(0xff8397ab),
       ),
@@ -211,12 +226,12 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
       ),
       SpatialWeatherKind.mist => const SpatialWeatherStyle(
         cloud: .04,
-        fog: .28,
+        fog: .56,
         fogColor: Color(0xffd2dce1),
       ),
       SpatialWeatherKind.fog => const SpatialWeatherStyle(
         cloud: .14,
-        fog: .7,
+        fog: 1.5,
         fogColor: Color(0xffbdcbd2),
       ),
       SpatialWeatherKind.dust => const SpatialWeatherStyle(

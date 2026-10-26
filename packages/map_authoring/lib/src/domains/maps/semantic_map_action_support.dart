@@ -183,6 +183,47 @@ final class SemanticMapActionContext {
     );
   }
 
+  AuthoringMutationDraft draftWarpUpdate({
+    required MapData after,
+    required String warpId,
+    required int changedItems,
+    Map<String, Object?> preview = const {},
+  }) {
+    if (planning.request.actionId != 'warp.update' ||
+        map.warps.length != after.warps.length ||
+        map.copyWith(warps: after.warps) != after) {
+      throw semanticFailure(
+        'warp.update_outside_scope',
+        'A warp update must preserve every other map field.',
+      );
+    }
+    final index = map.warps.indexWhere((warp) => warp.id == warpId);
+    if (index < 0 ||
+        map.warps.indexed.any(
+          (entry) => entry.$1 != index && entry.$2 != after.warps[entry.$1],
+        )) {
+      throw semanticFailure(
+        'warp.update_outside_scope',
+        'A warp update must replace only its selected warp.',
+      );
+    }
+    final before = map.warps[index], updated = after.warps[index];
+    final destinationOnly =
+        before.copyWith(
+          targetMapId: updated.targetMapId,
+          targetPos: updated.targetPos,
+        ) ==
+        updated;
+    if (!destinationOnly)
+      validateMapWarpDoor(after, updated, models: manifest.models3d);
+    return _draftMap(
+      after: after,
+      operation: 'warp.update',
+      changedItems: changedItems,
+      preview: preview,
+    );
+  }
+
   /// Builds one atomic map-wide change for semantic operations that also
   /// affect spatial collections (placements, entities, warps) or map size.
   AuthoringMutationDraft draftMap({
@@ -202,6 +243,17 @@ final class SemanticMapActionContext {
     if (validation != null) {
       throw validation.toFailure(validationState: 'projected');
     }
+    return _draftMap(after: after, operation: operation,
+        changedItems: changedItems, layerId: layerId, preview: preview);
+  }
+
+  AuthoringMutationDraft _draftMap({
+    required MapData after,
+    required String operation,
+    required int changedItems,
+    String? layerId,
+    Map<String, Object?> preview = const {},
+  }) {
     final afterBytes = encodeMapAuthoringDocument(after);
     if (_sameBytes(beforeBytes, afterBytes)) {
       throw semanticFailure(

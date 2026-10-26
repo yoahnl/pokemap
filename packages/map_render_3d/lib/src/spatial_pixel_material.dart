@@ -236,7 +236,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
 
   bool _atmosphereUniformsBound = false;
   final _fogColor = Vector4.zero(), _fogDepth = Vector4.zero();
+  final _weatherFog = Vector4.zero(), _weatherImpacts = Vector4.zero();
+  final _manualFog = Vector4.zero(), _boundManualFog = Vector4.zero();
   final _boundFogColor = Vector4.zero(), _boundFogDepth = Vector4.zero();
+  final _boundWeatherFog = Vector4.zero(),
+      _boundWeatherImpacts = Vector4.zero();
   bool _presentationUniformsBound = false;
   Shader? _presentationShader;
   GpuShader? _presentationResource;
@@ -252,22 +256,58 @@ class SpatialPixelMaterial extends UnlitMaterial {
       color?.b ?? 0,
       presentation?.depthFogEnabled == true ? profile!.fogOpacity : 0,
     );
-    _fogDepth.setValues(profile?.fogStart ?? 0, profile?.fogEnd ?? 1, 0, 0);
+    _fogDepth.setValues(
+      profile?.fogStart ?? 0,
+      profile?.fogEnd ?? 1,
+      profile?.weatherSeconds ?? 0,
+      profile?.weatherFogStrength ?? 0,
+    );
+    _weatherFog.setValues(
+      profile?.weatherWindX ?? 0,
+      profile?.weatherWindZ ?? 0,
+      profile?.weatherGroundHeight ?? 0,
+      profile?.weatherFogStrength ?? 0,
+    );
+    _weatherImpacts.setValues(
+      lightingRole == SpatialPixelLightingRole.actor ||
+              emissive ||
+              preserveUnlitColor
+          ? 0
+          : profile?.weatherImpactStrength ?? 0,
+      profile?.weatherImpactSpeed ?? 0,
+      profile?.weatherSeconds ?? 0,
+      0,
+    );
+    _manualFog.setValues(
+      profile?.weatherManualFogStart ?? 0,
+      profile?.weatherManualFogEnd ?? 1,
+      profile?.weatherManualFogOpacity ?? 0,
+      0,
+    );
     final shader = fragmentShader, resource = shader.resource;
     if (_presentationUniformsBound &&
         identical(_presentationShader, shader) &&
         identical(_presentationResource, resource) &&
         _boundFogColor == _fogColor &&
-        _boundFogDepth == _fogDepth)
+        _boundFogDepth == _fogDepth &&
+        _boundWeatherFog == _weatherFog &&
+        _boundWeatherImpacts == _weatherImpacts &&
+        _boundManualFog == _manualFog)
       return;
     shader
       ..setVector4('Presentation.fogColor', _fogColor)
-      ..setVector4('Presentation.depthRange', _fogDepth);
+      ..setVector4('Presentation.depthRange', _fogDepth)
+      ..setVector4('Presentation.weatherFog', _weatherFog)
+      ..setVector4('Presentation.weatherImpacts', _weatherImpacts)
+      ..setVector4('Presentation.manualFog', _manualFog);
     _presentationUniformsBound = true;
     _presentationShader = shader;
     _presentationResource = resource;
     _boundFogColor.setFrom(_fogColor);
     _boundFogDepth.setFrom(_fogDepth);
+    _boundWeatherFog.setFrom(_weatherFog);
+    _boundWeatherImpacts.setFrom(_weatherImpacts);
+    _boundManualFog.setFrom(_manualFog);
   }
 
   Shader? _atmosphereShader;

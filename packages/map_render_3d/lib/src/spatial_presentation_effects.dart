@@ -98,11 +98,29 @@ final class SpatialPresentationProfile {
     ],
   );
   double fogStart, fogEnd, fogOpacity, haloStrength, haloSpread;
+  double weatherFogStrength = 0;
+  double weatherSeconds = 0;
+  double weatherWindX = 0, weatherWindZ = 0, weatherGroundHeight = 0;
+  double weatherImpactStrength = 0, weatherImpactSpeed = 0;
+  double weatherManualFogStart = 0,
+      weatherManualFogEnd = 1,
+      weatherManualFogOpacity = 0;
   final List<SpatialHaloSource> halos;
 
   double fogAtDepth(double depth) {
     final t = ((depth - fogStart) / (fogEnd - fogStart)).clamp(0.0, 1.0);
-    return t * t * (3 - 2 * t) * fogOpacity;
+    final opacity = t * t * (3 - 2 * t) * fogOpacity;
+    final weather = weatherFogStrength > 0
+        ? 1 - math.exp(-opacity * (1 + weatherFogStrength * 2))
+        : opacity;
+    if (weatherManualFogOpacity == 0) return weather;
+    final manual =
+        ((depth - weatherManualFogStart) /
+                (weatherManualFogEnd - weatherManualFogStart))
+            .clamp(0.0, 1.0);
+    return 1 -
+        (1 - weather) *
+            (1 - manual * manual * (3 - 2 * manual) * weatherManualFogOpacity);
   }
 }
 

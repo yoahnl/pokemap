@@ -113,6 +113,10 @@ final class WarpConnectionActions {
       _descriptor(entry.$1, entry.$2, entry.$3),
   ]);
 
+  MapData previewUpdate(MapData map, {required String warpId,
+      required Map<String, Object?> warp}) =>
+      _replaceWarp(map, warpId, _parseWarp(map, warp));
+
   List<MapWarp> listWarps(MapData map) => List.unmodifiable(
         map.warps.toList()..sort((left, right) => left.id.compareTo(right.id)),
       );
@@ -254,11 +258,12 @@ final class WarpConnectionActions {
         );
       case 'warp.update':
         final warpId = parameters.string('warpId');
-        final warp = _parseWarp(context.map, parameters.object('warp'));
+        final after = previewUpdate(context.map, warpId: warpId, warp: parameters.object('warp'));
+        final warp = after.warps[context.map.warps.indexWhere((entry) => entry.id == warpId)];
         _validateWarpTarget(planning, context.map, warp);
-        return context.draftMap(
-          after: _replaceWarp(context.map, warpId, warp),
-          operation: 'warp.update',
+        return context.draftWarpUpdate(
+          after: after,
+          warpId: warpId,
           changedItems: 1,
           preview: {'warpId': warp.id, 'targetMapId': warp.targetMapId},
         );

@@ -22,6 +22,29 @@ final class PartyCompanionTrail {
   bool moving = false;
   double animationSeconds = 0;
   double facingX = 0, facingZ = 1;
+  bool _recovering = false;
+
+  String? get mapId => _mapId;
+  String? get individualId => _individualId;
+
+  PartyCompanionTrail capture() => PartyCompanionTrail()..restore(this);
+
+  void restore(PartyCompanionTrail snapshot) {
+    if (identical(snapshot, this)) return;
+    _points
+      ..clear()
+      ..addAll(snapshot._points);
+    _mapId = snapshot._mapId;
+    _individualId = snapshot._individualId;
+    _distance = snapshot._distance;
+    _followingDistance = snapshot._followingDistance;
+    position = snapshot.position;
+    moving = snapshot.moving;
+    animationSeconds = snapshot.animationSeconds;
+    facingX = snapshot.facingX;
+    facingZ = snapshot.facingZ;
+    _recovering = snapshot._recovering;
+  }
 
   void clear() {
     _points.clear();
@@ -32,6 +55,7 @@ final class PartyCompanionTrail {
     animationSeconds = 0;
     _mapId = null;
     _individualId = null;
+    _recovering = false;
   }
 
   void observe(
@@ -47,7 +71,10 @@ final class PartyCompanionTrail {
       double dt = 0,
       bool Function(double fromX, double fromZ, double toX, double toZ)?
           canTraverse}) {
-    if (paused) return;
+    if (paused) {
+      moving = false;
+      return;
+    }
     if (!x.isFinite ||
         !z.isFinite ||
         !y.isFinite ||
@@ -108,18 +135,27 @@ final class PartyCompanionTrail {
       _followingDistance =
           math.max(0, _followingDistance - position!.traversalSpeed * elapsed);
     }
-    while (_distance > _followingDistance && _points.length > 1) {
+    var remainingTravel = _recovering
+        ? traversalSpeed * (dt.isFinite && dt > 0 ? dt.clamp(0.0, .05) : 0)
+        : double.infinity;
+    while (_distance > _followingDistance &&
+        _points.length > 1 &&
+        remainingTravel > 0) {
       final first = _points.first, next = _points[1];
       final segment = _length(first, next);
-      if (_distance - segment >= _followingDistance) {
+      if (_distance - segment >= _followingDistance &&
+          segment <= remainingTravel) {
         if (!traverse(first, next)) {
           blocked = true;
           break;
         }
         _points.removeAt(0);
         _distance -= segment;
+        remainingTravel -= segment;
       } else {
-        final portion = (_distance - _followingDistance) / segment;
+        final advance =
+            math.min(_distance - _followingDistance, remainingTravel);
+        final portion = advance / segment;
         final target = PartyCompanionTrailPoint(
             first.x + (next.x - first.x) * portion,
             first.z + (next.z - first.z) * portion,
@@ -133,26 +169,22 @@ final class PartyCompanionTrail {
           break;
         }
         _points[0] = target;
-        _distance = _followingDistance;
+        _distance -= advance;
+        remainingTravel -= advance;
       }
     }
-    if (_distance >= _followingDistance && !blocked) {
+    if (_distance >= _followingDistance) {
       final target = _points.first;
-      blocked = !traverse(target, target);
-      if (!blocked) position = target;
+      if (traverse(target, target)) {
+        position = target;
+      } else {
+        blocked = true;
+      }
     }
     if (blocked) {
-      clear();
-      observe(
-          mapId: mapId,
-          individualId: individualId,
-          x: x,
-          z: z,
-          y: y,
-          groundY: groundY,
-          airborne: airborne,
-          traversalSpeed: traversalSpeed);
-      return;
+      _recovering = true;
+    } else if (_distance <= _followingDistance + .000001) {
+      _recovering = false;
     }
     if (position != null && !position!.airborne) _followingDistance = 1;
     moving = previous != null &&

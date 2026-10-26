@@ -83,6 +83,35 @@ final class CatalogTargetedMapSelection {
                     ids: {'facts': factIds})).project.facts;
             definitions = definitions.copyWith(facts: facts);
           }
+          final encounterTableIds = {
+            for (final layer in (projectedMap ?? map)
+                .layers
+                .whereType<SmartTileLayer>())
+              if (layer.encounterBehavior?.encounter.encounterTableId
+                  case final String id)
+                id,
+          }.difference(
+              definitions.encounterTables.map((table) => table.id).toSet());
+          if (encounterTableIds.isNotEmpty) {
+            if (!reader.readOnly) {
+              await reader.store
+                  .requireMetadataIndexAdmission(catalog.snapshot);
+            }
+            final tables = reader.readOnly
+                ? (await reader.readMetadata({'encounterTables'}))
+                    .encounterTables
+                    .where((table) => encounterTableIds.contains(table.id))
+                    .toList()
+                : (await CatalogMetadataDocuments.readDocuments(
+                        snapshot: catalog.snapshot,
+                        project: const ProjectManifest(
+                            name: 'Map dependencies', maps: [], tilesets: []),
+                        ids: {'encounterTables': encounterTableIds}))
+                    .project
+                    .encounterTables;
+            definitions = definitions.copyWith(
+                encounterTables: [...definitions.encounterTables, ...tables]);
+          }
           MapValidator.validate(projectedMap ?? map,
               projectDialogueContext: definitions);
           if (await reader.store.gateway

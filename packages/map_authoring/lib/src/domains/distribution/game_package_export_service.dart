@@ -293,6 +293,9 @@ final class CanonicalGamePackageExportService {
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,
         if (spatialStory) SpatialGameplayCapabilities.storyCapabilityId,
+        if (projection.project.settings.dimension == ProjectDimension.threeD &&
+            SpatialGameplayCapabilities.requiresCinematicFade(projection.project))
+          SpatialGameplayCapabilities.cinematicFadeCapabilityId,
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,

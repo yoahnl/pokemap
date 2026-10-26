@@ -86,6 +86,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   bool _resolving = false;
   bool _committing = false;
   bool _disposed = false;
+  bool _lifecycleNotificationScheduled = false;
   bool _entryReady = false;
   BattleCommandOverlaySnapshot? _entrySnapshot;
   int _generation = 0;
@@ -930,7 +931,24 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       _resumed = null;
       _maybeRevealEntry(_generation);
     }
-    notifyListeners();
+    _notifyLifecycleListeners();
+  }
+
+  void _notifyLifecycleListeners() {
+    if (_disposed) return;
+    final scheduler = SchedulerBinding.instance;
+    if (_lifecycleNotificationScheduled ||
+        scheduler.schedulerPhase == SchedulerPhase.persistentCallbacks ||
+        scheduler.schedulerPhase == SchedulerPhase.midFrameMicrotasks) {
+      if (_lifecycleNotificationScheduled) return;
+      _lifecycleNotificationScheduled = true;
+      scheduler.addPostFrameCallback((_) {
+        _lifecycleNotificationScheduled = false;
+        if (!_disposed) notifyListeners();
+      });
+    } else {
+      notifyListeners();
+    }
   }
 
   void _fail(Object failure) {
@@ -995,7 +1013,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     if (completion != null && !completion.isCompleted) {
       completion.complete(success);
     }
-    if (!_disposed) notifyListeners();
+    _notifyLifecycleListeners();
   }
 
   @override
