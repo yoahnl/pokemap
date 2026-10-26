@@ -10,6 +10,13 @@ void main() {
     expect(() => SpatialVisualDocument.fromJson({...json, 'schemaVersion': 5}), throwsFormatException);
     expect(SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'weatherMode': 'automatic'})).toJson()['schemaVersion'], 5);
   });
+  test('external conditions remain below scene overrides and offline fallback is deterministic', () {
+    final base = SpatialVisualPatch.fromJson({'weatherMode': 'real', 'weatherSequence': ['clear', 'rain'], 'weatherIntervalSeconds': 60});
+    expect(resolveWorldEnvironment(settings: base, elapsedSeconds: 75, realWeatherKind: SpatialWeatherKind.snow).weatherKind, SpatialWeatherKind.snow);
+    expect(resolveWorldEnvironment(settings: base, elapsedSeconds: 75).weatherKind, SpatialWeatherKind.rain);
+    final story = SpatialVisualPatch.fromJson({'weatherKind': 'storm'});
+    expect(resolveWorldEnvironment(settings: base.overriddenBy(story), overrides: story, elapsedSeconds: 75, realWeatherKind: SpatialWeatherKind.snow).weatherKind, isNull);
+  });
   test('player weather choices round trip without an IP address', () {
     final location = RealWeatherLocation(latitude: 48.86, longitude: 2.35, label: 'Paris', countryCode: 'FR');
     final prefs = RealWeatherPreferences(enabled: true, location: location);

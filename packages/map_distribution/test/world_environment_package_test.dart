@@ -18,7 +18,7 @@ void main() {
         utf8.encode(jsonEncode(SpatialVisualDocument(
             profile: SpatialVisualPatch.fromJson({
       'timeMode': 'real',
-      'weatherMode': 'automatic',
+      'weatherMode': 'real',
       'weatherSequence': ['clear', 'rain'],
     })).toJson()));
     expect(
@@ -28,9 +28,10 @@ void main() {
             (e) => e.message,
             'capability',
             contains(WorldEnvironmentCapabilities.capabilityId))));
+    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(capabilities: [...base, WorldEnvironmentCapabilities.capabilityId, WorldEnvironmentCapabilities.realWeatherCapabilityId]), payloadFiles: files), throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'capability', contains(WorldEnvironmentCapabilities.realWeatherCapabilityId))));
     final built = const GamePackageBuilder().build(
         manifest: spatialManifest(
-            capabilities: [...base, WorldEnvironmentCapabilities.capabilityId]),
+            capabilities: [...base, WorldEnvironmentCapabilities.capabilityId, WorldEnvironmentCapabilities.realWeatherCapabilityId]),
         payloadFiles: files);
     expect(
         const GamePackageInspector()

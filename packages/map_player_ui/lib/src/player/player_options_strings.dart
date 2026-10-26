@@ -7,8 +7,8 @@ enum PlayerOptionsCategory {
   audio,
   controls,
   language,
-  accessibility,
-  weather
+  weather,
+  accessibility
 }
 
 final class PlayerOptionsStrings {
