@@ -192,11 +192,11 @@ class BuildPipelineTest(unittest.TestCase):
             self.gpu_buffer.read_text(),
             patch_flutter_gpu.patch_source(self.gpu_buffer.read_text()),
         )
-        self.assertIn(
-            patch_flutter_gpu.COMMAND_MEMORY_PRESSURE,
+        self.assertNotIn(
+            "_CommandMemoryPressure",
             self.gpu_buffer.with_name("command_buffer.dart").read_text(),
         )
-        self.assertIn(
+        self.assertNotIn(
             "_commandBuffer._recordDraw();",
             self.gpu_buffer.with_name("render_pass.dart").read_text(),
         )

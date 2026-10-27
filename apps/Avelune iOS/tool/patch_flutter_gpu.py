@@ -73,7 +73,7 @@ PATCHED_ALLOCATION = '''  BufferView _allocateEmplacement(ByteData bytes) {
     _offsetCursor += bytes.lengthInBytes;
     return view;
   }'''
-COMMAND_MEMORY_PRESSURE = '''final class _CommandMemoryPressure implements Finalizable {
+LEGACY_COMMAND_MEMORY_PRESSURE = '''final class _CommandMemoryPressure implements Finalizable {
   static final _library = DynamicLibrary.process();
   static final _allocate = _library.lookupFunction<
       Pointer<Void> Function(IntPtr), Pointer<Void> Function(int)>('malloc');
@@ -92,7 +92,7 @@ COMMAND_MEMORY_PRESSURE = '''final class _CommandMemoryPressure implements Final
 
   final int estimatedBytes;
 }'''
-COMMAND_FIELDS = '''  final GpuContext _gpuContext;
+LEGACY_COMMAND_FIELDS = '''  final GpuContext _gpuContext;
   int _nativeCommandCount = 0;
   _CommandMemoryPressure? _nativeAllocation;
 
@@ -109,14 +109,14 @@ ORIGINAL_SUBMISSION = '''  void submit({CompletionCallback? completionCallback})
     }
     _submitted = true;
   }'''
-PATCHED_SUBMISSION = ORIGINAL_SUBMISSION.replace('''    _submitted = true;
+LEGACY_SUBMISSION = ORIGINAL_SUBMISSION.replace('''    _submitted = true;
   }''', '''    _submitted = true;
     if (_nativeAllocation == null && _nativeCommandCount > 0) {
       _nativeAllocation = _CommandMemoryPressure(_nativeCommandCount);
     }
   }''')
 ORIGINAL_DRAWS = {}
-PATCHED_DRAWS = {}
+LEGACY_DRAWS = {}
 for method, count in [("draw", "vertexCount"), ("drawIndexed", "indexCount")]:
     ORIGINAL_DRAWS[method] = f'''  void {method}(int {count}, {{int instanceCount = 1}}) {{
     RangeError.checkNotNegative({count}, '{count}');
@@ -129,7 +129,7 @@ for method, count in [("draw", "vertexCount"), ("drawIndexed", "indexCount")]:
       throw Exception("Failed to append {method}");
     }}
   }}'''
-    PATCHED_DRAWS[method] = ORIGINAL_DRAWS[method][:-3] + '''    _commandBuffer._recordDraw();
+    LEGACY_DRAWS[method] = ORIGINAL_DRAWS[method][:-3] + '''    _commandBuffer._recordDraw();
   }'''
 
 
@@ -150,46 +150,49 @@ def patch_source(source):
     return source[:match.start()] + PATCHED_ALLOCATION + source[match.end():]
 
 
-def replace_fragment(source, original, patched):
-    if source.count(patched) == 1:
-        return source
-    if source.count(original) != 1:
+def restore_fragment(source, legacy, original):
+    if source.count(legacy) == 1:
+        return source.replace(legacy, original, 1)
+    if source.count(legacy) > 1 or source.count(original) != 1:
         raise ValueError("Unsupported Flutter GPU command lifecycle; review the patch before building")
-    return source.replace(original, patched, 1)
+    return source
 
 
-def replace_method(source, name, original, patched):
+def restore_method(source, name, legacy, original):
     pattern = re.compile(r"  void " + name + r"\([^\n]*\) \{.*?\n  \}", re.DOTALL)
     matches = list(pattern.finditer(source))
     if len(matches) != 1:
         raise ValueError("Unsupported Flutter GPU command lifecycle; review the patch before building")
     match = matches[0]
     method = normalize(match.group())
-    if method == normalize(patched):
+    if method == normalize(original):
         return source
-    if method != normalize(original):
+    if method != normalize(legacy):
         raise ValueError("Unsupported Flutter GPU command lifecycle; review the patch before building")
-    return source[:match.start()] + patched + source[match.end():]
+    return source[:match.start()] + original + source[match.end():]
 
 
 def patch_command_source(source):
-    source = replace_fragment(source, "  final GpuContext _gpuContext;", COMMAND_FIELDS)
-    source = replace_method(source, "submit", ORIGINAL_SUBMISSION, PATCHED_SUBMISSION)
-    if COMMAND_MEMORY_PRESSURE not in source:
-        if "class _CommandMemoryPressure" in source:
-            raise ValueError("Unsupported Flutter GPU native memory accounting")
-        source += "\n" + COMMAND_MEMORY_PRESSURE + "\n"
+    source = restore_fragment(source, LEGACY_COMMAND_FIELDS, "  final GpuContext _gpuContext;")
+    source = restore_method(source, "submit", LEGACY_SUBMISSION, ORIGINAL_SUBMISSION)
+    legacy_accounting = "\n" + LEGACY_COMMAND_MEMORY_PRESSURE + "\n"
+    if source.count(legacy_accounting) == 1:
+        source = source.replace(legacy_accounting, "", 1)
+    if "_CommandMemoryPressure" in source:
+        raise ValueError("Unsupported Flutter GPU native memory accounting")
     return source
 
 
 def patch_render_pass_source(source):
     header = "base class RenderPass extends NativeFieldWrapperClass1 {"
-    source = replace_fragment(source, header, header + "\n  final CommandBuffer _commandBuffer;")
-    original = "  ) {\n    renderTarget._validateAttachments();"
-    patched = "  ) : _commandBuffer = commandBuffer {\n    renderTarget._validateAttachments();"
-    source = replace_fragment(source, original, patched)
+    source = restore_fragment(source, header + "\n  final CommandBuffer _commandBuffer;", header)
+    source = restore_fragment(
+        source,
+        "  ) : _commandBuffer = commandBuffer {\n    renderTarget._validateAttachments();",
+        "  ) {\n    renderTarget._validateAttachments();",
+    )
     for method in ORIGINAL_DRAWS:
-        source = replace_method(source, method, ORIGINAL_DRAWS[method], PATCHED_DRAWS[method])
+        source = restore_method(source, method, LEGACY_DRAWS[method], ORIGINAL_DRAWS[method])
     return source
 
 
@@ -224,7 +227,7 @@ def main():
             parser.exit(1, "Flutter GPU memory patch must be applied before building\n")
         for path, patched in changes:
             path.write_text(patched)
-        print("Flutter GPU HostBuffer block reuse, upload bounds and native command accounting patched")
+        print("Flutter GPU HostBuffer block reuse and upload bounds patched; native command accounting removed")
     except (OSError, ValueError) as error:
         parser.exit(1, f"Flutter GPU patch failed: {error}\n")
 

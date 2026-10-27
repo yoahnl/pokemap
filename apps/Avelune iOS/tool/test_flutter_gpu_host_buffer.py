@@ -1,13 +1,10 @@
 import json
 import pathlib
-import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-import urllib.parse
-import urllib.request
 
 import patch_flutter_gpu
 
@@ -71,10 +68,10 @@ def original_sdk_sources():
         lambda _: patch_flutter_gpu.ORIGINAL_ALLOCATION, sources["buffer.dart"],
     )
     sources["command_buffer.dart"] = sources["command_buffer.dart"].replace(
-        patch_flutter_gpu.COMMAND_FIELDS, "  final GpuContext _gpuContext;",
-    ).replace(patch_flutter_gpu.PATCHED_SUBMISSION, patch_flutter_gpu.ORIGINAL_SUBMISSION)
+        patch_flutter_gpu.LEGACY_COMMAND_FIELDS, "  final GpuContext _gpuContext;",
+    ).replace(patch_flutter_gpu.LEGACY_SUBMISSION, patch_flutter_gpu.ORIGINAL_SUBMISSION)
     sources["command_buffer.dart"] = sources["command_buffer.dart"].replace(
-        "\n" + patch_flutter_gpu.COMMAND_MEMORY_PRESSURE + "\n", "",
+        "\n" + patch_flutter_gpu.LEGACY_COMMAND_MEMORY_PRESSURE + "\n", "",
     )
     sources["render_pass.dart"] = sources["render_pass.dart"].replace(
         "\n  final CommandBuffer _commandBuffer;", "",
@@ -84,7 +81,28 @@ def original_sdk_sources():
     )
     for method in patch_flutter_gpu.ORIGINAL_DRAWS:
         sources["render_pass.dart"] = sources["render_pass.dart"].replace(
-            patch_flutter_gpu.PATCHED_DRAWS[method], patch_flutter_gpu.ORIGINAL_DRAWS[method],
+            patch_flutter_gpu.LEGACY_DRAWS[method], patch_flutter_gpu.ORIGINAL_DRAWS[method],
+        )
+    return sources
+
+
+def legacy_sdk_sources():
+    sources = original_sdk_sources()
+    sources["command_buffer.dart"] = sources["command_buffer.dart"].replace(
+        "  final GpuContext _gpuContext;", patch_flutter_gpu.LEGACY_COMMAND_FIELDS, 1,
+    ).replace(
+        patch_flutter_gpu.ORIGINAL_SUBMISSION, patch_flutter_gpu.LEGACY_SUBMISSION,
+    ) + "\n" + patch_flutter_gpu.LEGACY_COMMAND_MEMORY_PRESSURE + "\n"
+    header = "base class RenderPass extends NativeFieldWrapperClass1 {"
+    sources["render_pass.dart"] = sources["render_pass.dart"].replace(
+        header, header + "\n  final CommandBuffer _commandBuffer;",
+    ).replace(
+        "  ) {\n    renderTarget._validateAttachments();",
+        "  ) : _commandBuffer = commandBuffer {\n    renderTarget._validateAttachments();",
+    )
+    for method in patch_flutter_gpu.ORIGINAL_DRAWS:
+        sources["render_pass.dart"] = sources["render_pass.dart"].replace(
+            patch_flutter_gpu.ORIGINAL_DRAWS[method], patch_flutter_gpu.LEGACY_DRAWS[method],
         )
     return sources
 
@@ -227,19 +245,42 @@ class PatchApplicationTest(unittest.TestCase):
         self.assertEqual(self.target.read_text(), expected)
         command = self.target.with_name("command_buffer.dart")
         render = self.target.with_name("render_pass.dart")
-        self.assertNotIn("_CommandMemoryPressure", self.sources["command_buffer.dart"])
-        self.assertNotIn("_commandBuffer._recordDraw()", self.sources["render_pass.dart"])
-        self.assertIn(patch_flutter_gpu.COMMAND_FIELDS, command.read_text())
-        self.assertIn(patch_flutter_gpu.PATCHED_SUBMISSION, command.read_text())
-        self.assertIn(patch_flutter_gpu.COMMAND_MEMORY_PRESSURE, command.read_text())
-        self.assertIn("final CommandBuffer _commandBuffer;", render.read_text())
-        self.assertIn("_commandBuffer = commandBuffer", render.read_text())
-        for method in patch_flutter_gpu.PATCHED_DRAWS.values():
-            self.assertIn(method, render.read_text())
+        self.assertEqual(command.read_text(), self.sources["command_buffer.dart"])
+        self.assertEqual(render.read_text(), self.sources["render_pass.dart"])
         modification_times = {p: p.stat().st_mtime_ns for p in [self.target, command, render]}
         second = self.run_patch()
         self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
         self.assertEqual({p: p.stat().st_mtime_ns for p in modification_times}, modification_times)
+
+    def test_legacy_native_command_accounting_is_removed(self):
+        for name, source in legacy_sdk_sources().items():
+            self.target.with_name(name).write_text(source)
+        command = self.target.with_name("command_buffer.dart")
+        render = self.target.with_name("render_pass.dart")
+        self.assertIn("_CommandMemoryPressure", command.read_text())
+        self.assertIn("_commandBuffer._recordDraw();", render.read_text())
+        self.assertEqual(self.run_patch("--check").returncode, 1)
+        result = self.run_patch()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("native command accounting removed", result.stdout)
+        self.assertEqual(command.read_text(), self.sources["command_buffer.dart"])
+        self.assertEqual(render.read_text(), self.sources["render_pass.dart"])
+        self.assertEqual(self.run_patch("--check").returncode, 0)
+
+    def test_partially_removed_accounting_is_rejected_before_any_write(self):
+        legacy = legacy_sdk_sources()
+        for name, source in legacy.items():
+            self.target.with_name(name).write_text(source)
+        command = self.target.with_name("command_buffer.dart")
+        command.write_text(command.read_text().replace(
+            "\n" + patch_flutter_gpu.LEGACY_COMMAND_MEMORY_PRESSURE + "\n",
+            "\nfinal class _CommandMemoryPressure {}\n",
+        ))
+        originals = {p: p.read_text() for p in self.target.parent.glob("*.dart")}
+        result = self.run_patch()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Unsupported", result.stderr)
+        self.assertEqual({p: p.read_text() for p in originals}, originals)
 
     def test_check_is_read_only_and_rejects_an_unpatched_sdk(self):
         result = self.run_patch("--check")
@@ -294,153 +335,6 @@ class PatchApplicationTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("Unsupported", result.stderr)
         self.assertEqual({p: p.read_text() for p in originals}, originals)
-
-
-class NativeCommandMemoryTest(unittest.TestCase):
-    def test_only_successful_nonempty_draws_are_accounted_after_submission(self):
-        command = patch_flutter_gpu.patch_command_source(BUFFER_SOURCE.with_name("command_buffer.dart").read_text())
-        render = patch_flutter_gpu.patch_render_pass_source(BUFFER_SOURCE.with_name("render_pass.dart").read_text())
-        helper = command[command.index("final class _CommandMemoryPressure implements Finalizable {"):]
-        submit = re.search(r"  void submit\(\{CompletionCallback\? completionCallback\}\) \{.*?\n  \}", command, re.DOTALL).group()
-        draws = [re.search(rf"  void {name}\(.*?\n  \}}", render, re.DOTALL).group() for name in ["draw", "drawIndexed"]]
-        fields = patch_flutter_gpu.COMMAND_FIELDS.replace("  final GpuContext _gpuContext;", "")
-        driver = '''
-import 'dart:convert';
-import 'dart:ffi';
-
-typedef CompletionCallback = void Function(bool success);
-
-class CommandBuffer {
-  bool _submitted = false;
-  bool failSubmission = false;
-  String? _submit(CompletionCallback? callback) => failSubmission ? 'failed' : null;
-''' + fields + submit + '''
-}
-
-class RenderPass {
-  RenderPass(this._commandBuffer);
-  final CommandBuffer _commandBuffer;
-  bool failDraw = false;
-  void _validateVertexBindings() {}
-  bool _draw(int count, int instances) => !failDraw;
-  bool _drawIndexed(int count, int instances) => !failDraw;
-''' + "\n".join(draws) + '''
-}
-
-void main() {
-  final command = CommandBuffer();
-  final pass = RenderPass(command);
-  pass.draw(0);
-  pass.drawIndexed(2, instanceCount: 0);
-  pass.draw(3);
-  pass.drawIndexed(6);
-  pass.failDraw = true;
-  try { pass.draw(3); } catch (_) {}
-  command.submit();
-  bool secondSubmissionRejected = false;
-  try { command.submit(); } catch (_) { secondSubmissionRejected = true; }
-  final empty = CommandBuffer()..submit();
-  final failed = CommandBuffer()..failSubmission = true;
-  RenderPass(failed).draw(3);
-  try { failed.submit(); } catch (_) {}
-  print(jsonEncode({
-    'bytes': command._nativeAllocation?.estimatedBytes,
-    'commands': command._nativeCommandCount,
-    'emptyAccounted': empty._nativeAllocation != null,
-    'failedAccounted': failed._nativeAllocation != null,
-    'secondSubmissionRejected': secondSubmissionRejected,
-  }));
-}
-'''
-        with tempfile.TemporaryDirectory(prefix="avelune-command-accounting-") as directory:
-            script = pathlib.Path(directory) / "commands.dart"
-            script.write_text(driver + helper)
-            result = subprocess.run([str(DART), str(script)], capture_output=True, text=True, timeout=20)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(json.loads(result.stdout), {
-            "bytes": 2048, "commands": 2, "emptyAccounted": False,
-            "failedAccounted": False, "secondSubmissionRejected": True,
-        })
-
-    def test_native_memory_is_reported_to_the_vm_and_released_after_collection(self):
-        source = patch_flutter_gpu.patch_command_source(BUFFER_SOURCE.with_name("command_buffer.dart").read_text())
-        helper = source[source.index("final class _CommandMemoryPressure implements Finalizable {"):]
-        driver = r'''
-import 'dart:convert';
-import 'dart:developer' as developer;
-import 'dart:ffi';
-import 'dart:io';
-
-_CommandMemoryPressure? pressure;
-
-Future<void> main() async {
-  final service = await developer.Service.getInfo();
-  print(jsonEncode({'uri': service.serverUri.toString()}));
-  await for (final line in stdin.transform(utf8.decoder).transform(const LineSplitter())) {
-    if (line == 'allocate') {
-      pressure = _CommandMemoryPressure(8192);
-      print('allocated');
-    } else if (line == 'drop') {
-      pressure = null;
-      print('dropped');
-    } else if (line == 'quit') {
-      exit(0);
-    }
-  }
-}
-'''
-        with tempfile.TemporaryDirectory(prefix="avelune-native-command-memory-") as directory:
-            script = pathlib.Path(directory) / "native_memory.dart"
-            script.write_text(driver + helper)
-            process = subprocess.Popen(
-                [str(DART), "--enable-vm-service=0", "--disable-service-auth-codes",
-                 "--no-serve-devtools", str(script)],
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-            )
-            try:
-                uri = None
-                for _ in range(8):
-                    line = process.stdout.readline()
-                    try:
-                        uri = json.loads(line).get("uri")
-                    except json.JSONDecodeError:
-                        pass
-                    if uri:
-                        break
-                self.assertIsNotNone(uri)
-
-                def rpc(method, **arguments):
-                    url = uri + method + "?" + urllib.parse.urlencode(arguments)
-                    with urllib.request.urlopen(url, timeout=10) as response:
-                        return json.load(response)["result"]
-
-                isolate = rpc("getVM")["isolates"][0]["id"]
-
-                def external_bytes():
-                    return rpc("getAllocationProfile", isolateId=isolate, gc="true")["memoryUsage"]["externalUsage"]
-
-                def send(command, expected):
-                    process.stdin.write(command + "\n")
-                    process.stdin.flush()
-                    self.assertEqual(process.stdout.readline().strip(), expected)
-
-                baseline = external_bytes()
-                send("allocate", "allocated")
-                self.assertGreaterEqual(external_bytes() - baseline, 8 * 1024 * 1024)
-                send("drop", "dropped")
-                self.assertLess(external_bytes() - baseline, 1024 * 1024)
-            finally:
-                if process.poll() is None:
-                    process.stdin.write("quit\n")
-                    process.stdin.flush()
-                    try:
-                        process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        process.terminate()
-                        process.wait(timeout=5)
-                process.stdin.close()
-                process.stdout.close()
-                process.stderr.close()
 
 
 if __name__ == "__main__":
