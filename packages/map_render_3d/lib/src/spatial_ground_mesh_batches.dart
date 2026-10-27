@@ -3,9 +3,11 @@ import 'package:flame_3d/components.dart';
 import 'spatial_ground.dart';
 
 final class SpatialGroundMeshBatches {
-  SpatialGroundMeshBatches(this.build);
+  SpatialGroundMeshBatches(this.build, {this.buildSteps});
 
   final List<MeshComponent> Function(List<SpatialGroundVisual>) build;
+  final Iterable<MeshComponent?> Function(List<SpatialGroundVisual>)?
+  buildSteps;
   List<MeshComponent> components = [];
   List<SpatialGroundVisual> _visuals = [];
   List<({int start, int end, bool animated})> _ranges = [];
@@ -15,6 +17,27 @@ final class SpatialGroundMeshBatches {
     List<SpatialGroundVisual> visuals, {
     bool invalidateGeometry = false,
   }) {
+    for (final _ in _resolve(
+      visuals,
+      invalidateGeometry: invalidateGeometry,
+      stepwise: false,
+    )) {}
+  }
+
+  Iterable<void> resolveSteps(
+    List<SpatialGroundVisual> visuals, {
+    bool invalidateGeometry = false,
+  }) => _resolve(
+    visuals,
+    invalidateGeometry: invalidateGeometry,
+    stepwise: buildSteps != null,
+  );
+
+  Iterable<void> _resolve(
+    List<SpatialGroundVisual> visuals, {
+    required bool invalidateGeometry,
+    required bool stepwise,
+  }) sync* {
     final ranges = <({int start, int end, bool animated})>[];
     for (var start = 0; start < visuals.length;) {
       final animated = visuals[start].visual.isAnimated;
@@ -48,11 +71,20 @@ final class SpatialGroundMeshBatches {
           changed = false;
         }
       }
-      batches.add(
-        changed
-            ? build(visuals.sublist(range.start, range.end))
-            : _batches[index],
-      );
+      if (!changed) {
+        batches.add(_batches[index]);
+      } else if (!stepwise) {
+        batches.add(build(visuals.sublist(range.start, range.end)));
+      } else {
+        final built = <MeshComponent>[];
+        for (final component in buildSteps!(
+          visuals.sublist(range.start, range.end),
+        )) {
+          if (component != null) built.add(component);
+          yield null;
+        }
+        batches.add(built);
+      }
     }
     _visuals = visuals;
     _ranges = ranges;

@@ -41,6 +41,9 @@ extension _SpatialSceneMaterialization on SpatialSceneGame {
     final placementDefinitions = placement.definitions;
     final loader = placement.loader;
     final plans = decoration == null ? preparedPlans : null;
+    final workBudget = placement.active || decoration != null
+        ? null
+        : SpatialCooperativeBudget();
     final mapId = map?.id ?? '__scene__';
     final casters = <SpatialAuthoredShadowCaster>[];
     final lights =
@@ -135,15 +138,26 @@ extension _SpatialSceneMaterialization on SpatialSceneGame {
         );
       }
       sceneGround = ground;
-      ground.resolve(
-        (groundElapsed * 1000).round(),
-        animationElapsedMsForCell: decoration == null
-            ? snapshot.rasterAnimationElapsedMsForCell
-            : null,
-      );
+      final animationElapsedMsForCell = decoration == null
+          ? snapshot.rasterAnimationElapsedMsForCell
+          : null;
+      if (workBudget == null) {
+        ground.resolve(
+          (groundElapsed * 1000).round(),
+          animationElapsedMsForCell: animationElapsedMsForCell,
+        );
+      } else {
+        final resolved = await ground.resolveCooperatively(
+          (groundElapsed * 1000).round(),
+          animationElapsedMsForCell: animationElapsedMsForCell,
+          budget: workBudget,
+          isCurrent: current,
+        );
+        if (resolved == null || !current()) return null;
+      }
       components.addAll(ground.components);
     }
-    for (final mesh in terrainMeshes(
+    final terrainSteps = terrainMeshSteps(
       scene,
       snapshot.ground,
       snapshot.edge,
@@ -164,7 +178,16 @@ extension _SpatialSceneMaterialization on SpatialSceneGame {
               texture: textures[groundPlan!.cliff!.tilesetId]!,
               sourceRect: groundPlan.cliff!.sourceRect,
             ),
-    )) {
+    );
+    final terrain = workBudget == null
+        ? terrainSteps.nonNulls.toList()
+        : await spatialCollectSteps(
+            terrainSteps,
+            budget: workBudget,
+            isCurrent: current,
+          );
+    if (terrain == null) return null;
+    for (final mesh in terrain) {
       final component = MeshComponent(
         mesh: mesh,
         position: Vector3(placement.offset.dx, 0, placement.offset.dy),

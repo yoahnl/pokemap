@@ -454,9 +454,16 @@ final class SpatialGroundPlan {
 
   SpatialGroundUnderlayIndex underlaySupportsFor(
     List<SpatialGroundVisual> visuals,
-  ) {
+  ) => underlaySupportSteps(visuals).nonNulls.single;
+
+  Iterable<SpatialGroundUnderlayIndex?> underlaySupportSteps(
+    List<SpatialGroundVisual> visuals,
+  ) sync* {
     final result = <(int, int), List<SpatialGroundUnderlay>>{};
-    if (scene == null) return result;
+    if (scene == null) {
+      yield result;
+      return;
+    }
     for (final item in visuals) {
       final visual = item.visual;
       if (_flatVisualSurfaces.containsKey(visual) ||
@@ -488,8 +495,9 @@ final class SpatialGroundPlan {
           heightOffset: offset,
         ));
       }
+      yield null;
     }
-    return Map<(int, int), List<SpatialGroundUnderlay>>.unmodifiable({
+    yield Map<(int, int), List<SpatialGroundUnderlay>>.unmodifiable({
       for (final entry in result.entries)
         entry.key: List<SpatialGroundUnderlay>.unmodifiable(entry.value),
     });
@@ -1061,6 +1069,23 @@ Iterable<Mesh> spatialGroundMeshes(
   SpatialFlatGroundSurface? Function(SmartTileLayerVisual visual)?
   flatSurfaceFor,
   SpatialBorderGroundReplacementIndex groundReplacements = const {},
+}) => spatialGroundMeshSteps(
+  visuals,
+  textures,
+  scene: scene,
+  excludedCellsFor: excludedCellsFor,
+  flatSurfaceFor: flatSurfaceFor,
+  groundReplacements: groundReplacements,
+).nonNulls;
+
+Iterable<Mesh?> spatialGroundMeshSteps(
+  List<SpatialGroundVisual> visuals,
+  Map<String, Texture> textures, {
+  MapSpatialScene? scene,
+  Set<(int, int)> Function(SmartTileLayerVisual visual)? excludedCellsFor,
+  SpatialFlatGroundSurface? Function(SmartTileLayerVisual visual)?
+  flatSurfaceFor,
+  SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
   final animated = visuals.any((item) => item.visual.isAnimated);
   var mesh = _SpatialGroundMesh(textures);
@@ -1169,6 +1194,7 @@ Iterable<Mesh> spatialGroundMeshes(
         )..albedoColor = ui.Color.fromRGBO(255, 255, 255, item.opacity);
       }
     }
+    yield null;
   }
   if (vertexCount > 0) {
     flushSurface();

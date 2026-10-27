@@ -35,6 +35,7 @@ import 'spatial_actor_contact_shadow.dart';
 import 'spatial_game_surface.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_ground.dart';
+import 'spatial_cooperative_work.dart';
 import 'spatial_ground_mesh_batches.dart';
 import 'spatial_terrain_geometry.dart';
 import 'spatial_selection.dart';
@@ -3808,6 +3809,23 @@ final class _SceneGround {
       ))
         MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
     ],
+    buildSteps: (visuals) sync* {
+      for (final mesh in spatialGroundMeshSteps(
+        visuals,
+        textures,
+        scene: plan.scene,
+        excludedCellsFor: plan.excludedCellsFor,
+        flatSurfaceFor: plan.flatSurfaceFor,
+        groundReplacements: plan.borderGroundReplacements,
+      )) {
+        yield mesh == null
+            ? null
+            : MeshComponent(
+                mesh: mesh,
+                position: Vector3(offset.dx, 0, offset.dy),
+              );
+      }
+    },
   );
 
   bool resolve(
@@ -3821,9 +3839,57 @@ final class _SceneGround {
       int elapsedMs,
     )?
     animationElapsedMsForCell,
-  }) {
+  }) => _resolveSteps(
+    elapsedMs,
+    forceGeometry: forceGeometry,
+    animationElapsedMsForCell: animationElapsedMsForCell,
+    stepwise: false,
+  ).nonNulls.single;
+
+  Future<bool?> resolveCooperatively(
+    int elapsedMs, {
+    int Function(
+      String mapId,
+      String layerId,
+      int cellX,
+      int cellY,
+      int elapsedMs,
+    )?
+    animationElapsedMsForCell,
+    required SpatialCooperativeBudget budget,
+    required bool Function() isCurrent,
+  }) async {
+    final results = await spatialCollectSteps(
+      _resolveSteps(
+        elapsedMs,
+        forceGeometry: false,
+        animationElapsedMsForCell: animationElapsedMsForCell,
+        stepwise: true,
+      ),
+      budget: budget,
+      isCurrent: isCurrent,
+    );
+    return results?.single;
+  }
+
+  Iterable<bool?> _resolveSteps(
+    int elapsedMs, {
+    required bool forceGeometry,
+    required int Function(
+      String mapId,
+      String layerId,
+      int cellX,
+      int cellY,
+      int elapsedMs,
+    )?
+    animationElapsedMsForCell,
+    required bool stepwise,
+  }) sync* {
     if (_sampledElapsed != elapsedMs) sampleTextureWindow(elapsedMs);
-    if (currentImageIds.any((id) => !textures.containsKey(id))) return false;
+    if (currentImageIds.any((id) => !textures.containsKey(id))) {
+      yield false;
+      return;
+    }
     final next = plan.resolve(
       elapsedMs,
       animationElapsedMsForCell: animationElapsedMsForCell == null
@@ -3836,7 +3902,10 @@ final class _SceneGround {
               elapsedMs,
             ),
     );
-    if (!forceGeometry && initialized && identical(next, visuals)) return false;
+    if (!forceGeometry && initialized && identical(next, visuals)) {
+      yield false;
+      return;
+    }
     var changed =
         forceGeometry || !initialized || next.length != visuals.length;
     var geometryChanged = changed;
@@ -3864,13 +3933,24 @@ final class _SceneGround {
           visuals[index].height != next[index].height ||
           visuals[index].opacity != next[index].opacity;
     }
-    if (!changed) return false;
+    if (!changed) {
+      yield false;
+      return;
+    }
     initialized = true;
     visuals = next;
     if (geometryChanged) {
-      final painted = plan.paintedCellsFor(visuals);
-      underlays = [
-        if (renderTerrainBase) for (final mesh in terrainMeshes(
+      final nextUnderlays = <MeshComponent>[];
+      if (renderTerrainBase) {
+        final painted = plan.paintedCellsFor(visuals);
+        SpatialGroundUnderlayIndex? supports;
+        if (painted != null) {
+          for (final step in plan.underlaySupportSteps(visuals)) {
+            if (step != null) supports = step;
+            if (stepwise) yield null;
+          }
+        }
+        for (final mesh in terrainMeshSteps(
           plan.scene!,
           ground,
           edge,
@@ -3880,18 +3960,35 @@ final class _SceneGround {
           replacedGroundCells: plan.groundReplacementCells,
           borderGroundReplacements: plan.borderGroundReplacements,
           bridgeCells: plan.bridgeCells,
-          underlaySupports: painted == null
-              ? null
-              : plan.underlaySupportsFor(visuals),
+          underlaySupports: supports,
           includeCliffs: false,
           receiveShadows: receiveShadows,
-        ))
-          MeshComponent(mesh: mesh, position: Vector3(offset.dx, 0, offset.dy)),
-      ];
+        )) {
+          if (mesh != null) {
+            nextUnderlays.add(
+              MeshComponent(
+                mesh: mesh,
+                position: Vector3(offset.dx, 0, offset.dy),
+              ),
+            );
+          }
+          if (stepwise) yield null;
+        }
+      }
+      underlays = nextUnderlays;
     }
-    _meshBatches.resolve(visuals, invalidateGeometry: geometryChanged);
+    if (stepwise) {
+      for (final _ in _meshBatches.resolveSteps(
+        visuals,
+        invalidateGeometry: geometryChanged,
+      )) {
+        yield null;
+      }
+    } else {
+      _meshBatches.resolve(visuals, invalidateGeometry: geometryChanged);
+    }
     components = [..._meshBatches.components, ...underlays];
-    return true;
+    yield true;
   }
 }
 
@@ -3977,6 +4074,40 @@ class _SceneModelComponent extends AnimatedModelComponent {
 }
 
 Iterable<Mesh> terrainMeshes(
+  MapSpatialScene scene,
+  Color ground,
+  Color edge, {
+  (int, int)? selectedCell,
+  Set<(int, int)>? paintedCells,
+  SpatialGroundUnderlayIndex? underlaySupports,
+  Set<(int, int)> replacedGroundCells = const {},
+  SpatialBorderGroundReplacementIndex borderGroundReplacements = const {},
+  Set<(int, int)> bridgeCells = const {},
+  bool includeGround = true,
+  bool includeCliffs = true,
+  bool receiveShadows = false,
+  ({Texture texture, SmartTileSourceRect sourceRect})? cliffTexture,
+  Set<(int, int)> excludedCells = const {},
+  double? Function(double, double)? adjacentHeightAt,
+}) => terrainMeshSteps(
+  scene,
+  ground,
+  edge,
+  selectedCell: selectedCell,
+  paintedCells: paintedCells,
+  underlaySupports: underlaySupports,
+  replacedGroundCells: replacedGroundCells,
+  borderGroundReplacements: borderGroundReplacements,
+  bridgeCells: bridgeCells,
+  includeGround: includeGround,
+  includeCliffs: includeCliffs,
+  receiveShadows: receiveShadows,
+  cliffTexture: cliffTexture,
+  excludedCells: excludedCells,
+  adjacentHeightAt: adjacentHeightAt,
+).nonNulls;
+
+Iterable<Mesh?> terrainMeshSteps(
   MapSpatialScene scene,
   Color ground,
   Color edge, {
@@ -4091,6 +4222,7 @@ Iterable<Mesh> terrainMeshes(
       group.indices.addAll([base, base + index, base + index + 1]);
     }
     vertexCount += face.positions.length;
+    yield null;
   }
   if (vertexCount > 0) yield flush();
 }
