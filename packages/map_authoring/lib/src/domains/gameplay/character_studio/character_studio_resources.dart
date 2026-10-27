@@ -214,6 +214,10 @@ const List<Map<String, Object?>> _systemAnimationDefinitions = [
     'id': 'bicycle', 'displayName': 'Vélo',
     'mode': 'directional', 'sortOrder': 4, 'system': true, 'state': 'bicycle',
   },
+  {
+    'id': 'climb', 'displayName': 'Échelle',
+    'mode': 'directional', 'sortOrder': 5, 'system': true, 'state': 'climb',
+  },
   <String, Object?>{
     'id': 'base',
     'displayName': 'Base',

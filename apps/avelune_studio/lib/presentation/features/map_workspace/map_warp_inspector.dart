@@ -9,6 +9,7 @@ import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_warp_door_editor.dart';
 import 'map_warp_transition_editor.dart';
+import 'map_warp_ladder_editor.dart';
 
 class MapWarpInspector extends StatefulWidget {
   const MapWarpInspector({
@@ -263,6 +264,12 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
         if (!passive &&
             !pending &&
             widget.document.current.spatialScene != null) ...[
+          const SizedBox(height: 12),
+          MapWarpLadderEditor(
+            warp: warp,
+            onApply: (ladder) =>
+                _change(() => _commands.configureLadder(warp.id, ladder)),
+          ),
           const SizedBox(height: 12),
           MapWarpDoorEditor(
             map: widget.document.current,

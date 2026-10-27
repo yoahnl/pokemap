@@ -21,6 +21,9 @@ abstract final class SpatialGameplayCapabilities {
   static const sceneMusicCapabilityId = 'map3d.scene-music@1';
   static const cinematicFadeCapabilityId = 'map3d.cinematic-fade@1';
   static const cinematicConnectedCapabilityId = 'map3d.cinematic-connected@1';
+  static const ladderCapabilityId = 'map3d.ladder@1';
+  static bool requiresLadders(Iterable<MapData> maps) =>
+      maps.any((map) => map.warps.any((warp) => warp.ladder != null));
   static const liftCapabilityId = 'map3d.lift@1';
   static bool requiresLifts(Iterable<MapData> maps) => maps.any((map) => map.spatialScene?.lifts.isNotEmpty ?? false);
 

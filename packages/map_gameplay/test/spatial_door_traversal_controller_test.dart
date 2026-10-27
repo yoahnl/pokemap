@@ -26,6 +26,36 @@ void advance(SpatialDoorTraversalController controller, int ticks) {
 }
 
 void main() {
+  test('arrival binding can be resolved under cover without restarting departure', () async {
+    final controller = SpatialDoorTraversalController();
+    controller.start(
+      departure: binding('source'),
+      departurePos: sourcePos,
+      transition: const MapWarpTransition(type: MapWarpTransitionType.hgss),
+    );
+    expect(
+      () => controller.configureArrival(arrival: binding('target'), arrivalPos: sourcePos),
+      throwsStateError,
+    );
+    advance(controller, 60);
+    expect(await controller.readyToTransfer, isTrue);
+    expect(controller.blackoutOpacity, 1);
+    expect(
+      () => controller.configureArrival(arrival: binding('target'), arrivalPos: exitPos),
+      throwsArgumentError,
+    );
+    controller.configureArrival(arrival: binding('target'), arrivalPos: sourcePos);
+    expect(controller.phase, SpatialDoorTraversalPhase.waitingTransfer);
+    expect(controller.blackoutOpacity, 1);
+    controller.transferCompleted();
+    expect(controller.heroVisible, isFalse);
+    advance(controller, 60);
+    expect(await controller.finished, isTrue);
+    expect(controller.playerPose!.z, 5.5);
+    expect(controller.poseFor('target', 'door')!.animationIndex, 1);
+    expect(() => controller.configureArrival(), throwsStateError);
+  });
+
   for (final scenario in [
     for (final direction in [(0, -1), (0, 1), (-1, 0), (1, 0)])
       for (final hz in [10, 60]) (direction, hz),

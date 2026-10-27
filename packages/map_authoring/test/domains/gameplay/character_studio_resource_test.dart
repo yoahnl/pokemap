@@ -37,11 +37,11 @@ void main() {
       ]);
       expect(
         animations.map((value) => (value! as Map)['id']),
-        <String>['base', 'bicycle', 'bicycle_idle', 'run', 'victory', 'walk'],
+        <String>['base', 'bicycle', 'bicycle_idle', 'climb', 'run', 'victory', 'walk'],
       );
       expect(
         animations.where((value) => (value! as Map)['system'] == true),
-        hasLength(5),
+        hasLength(6),
       );
       expect(() => animations.add(const <String, Object?>{}),
           throwsUnsupportedError);

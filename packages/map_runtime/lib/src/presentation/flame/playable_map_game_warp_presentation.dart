@@ -17,21 +17,19 @@ extension _PlayableMapWarpPresentation on PlayableMapGame {
 
   Future<RuntimeWarpPresentationRenderer> _prepareSceneWarpPresentation(
     SceneWarpInteractiveCommand command,
-    RuntimeMapBundle destination,
   ) async {
     final source = _bundle;
     final session = _activeNarrativeSceneWorkingSession;
     if (_isRemoved ||
         _flowPhase != _RuntimeFlowPhase.overworld ||
         _warpTransitionOverlay != null ||
-        source.map.spatialScene != null ||
-        destination.map.spatialScene != null) {
+        source.map.spatialScene != null) {
       throw StateError('Warp presentation requires the current 2D overworld.');
     }
     final images = await _loadTilesetImagesCached(
       source.runtimeImageAbsolutePathsById,
       manifest: source.manifest,
-      resourceBundle: destination,
+      resourceBundle: source,
     );
     if (!identical(source, _bundle) ||
         !_scenePresentationScopeIsCurrent(session) ||
@@ -50,12 +48,14 @@ extension _PlayableMapWarpPresentation on PlayableMapGame {
     SceneWarpInteractiveCommand command,
     TriggeredWarp warp,
     RuntimeWarpPresentationRenderer renderer,
+    Future<TriggeredWarp> Function() resolveTarget,
   ) async {
     late final _SceneWarpPresentationOwner owner;
     final controller = RuntimeWarpPresentationController(
       presentation: command.presentation!,
       transfer: () => _handleWarp(
         warp,
+        resolveTarget: resolveTarget,
         allowMapActivationWork: true,
         skipVisualTransition: true,
         arrivalFacing: command.arrivalFacing,

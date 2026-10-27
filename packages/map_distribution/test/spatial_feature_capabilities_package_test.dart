@@ -22,6 +22,7 @@ void main() {
   });
 
   final features = {
+    'ladder': SpatialGameplayCapabilities.ladderCapabilityId,
     'cinematicConnected': 'map3d.cinematic-connected@1',
     'camera': SpatialCameraProfile.orthographicCapabilityId,
     'companion': SpatialGameplayCapabilities.companionCapabilityId,

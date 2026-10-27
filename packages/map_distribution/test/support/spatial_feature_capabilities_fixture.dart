@@ -8,7 +8,19 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
   final files = spatialPayload();
   var project = ProjectManifest.fromJson(
       jsonDecode(utf8.decode(files['project/project.json']!)));
-  if (feature == 'cinematicConnected') {
+  if (feature == 'ladder') {
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+    files['project/maps/map.json'] =
+        utf8.encode(jsonEncode(map.copyWith(warps: [
+      MapWarp(
+          id: 'stairs',
+          pos: const GridPos(x: 1, y: 1),
+          targetMapId: map.id,
+          targetPos: const GridPos(x: 2, y: 1),
+          ladder: MapWarpLadder())
+    ]).toJson()));
+  } else if (feature == 'cinematicConnected') {
     final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
     files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(connections: [
       const MapConnection(direction: MapConnectionDirection.east, targetMapId: 'neighbor'),

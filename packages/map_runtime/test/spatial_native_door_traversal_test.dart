@@ -138,6 +138,15 @@ void main() {
     expect(session.bundle.map.id, id);
   }
 
+  Future<void> untilCovered(SpatialExplorationSession session) async {
+    for (var i = 0; i < 180 && session.nativeDoorBlackout.value < 1; i++) {
+      session.frames(1 / 60);
+      await flush();
+    }
+    expect(session.nativeDoorBlackout.value, 1);
+    await flush();
+  }
+
   Future<SpatialExplorationGameSessionRuntime> host() async {
     final self = entrance.copyWith(targetMapId: 'outside');
     final map = outside.map.copyWith(warps: [self]);
@@ -210,6 +219,247 @@ void main() {
     expect(finished, isTrue);
     await operation;
   }
+
+  for (final style in [
+    (door: true, type: MapWarpTransitionType.fade),
+    (door: true, type: MapWarpTransitionType.hgss),
+    (door: true, type: MapWarpTransitionType.none),
+    (door: false, type: MapWarpTransitionType.fade),
+    (door: false, type: MapWarpTransitionType.hgss),
+  ]) {
+    test('shared departure precedes cold loading for $style', () async {
+      final portal = entrance.copyWith(
+        door: style.door ? entrance.door : null,
+        transition: MapWarpTransition(type: style.type),
+      );
+      final pending = Completer<RuntimeMapBundle>();
+      addTearDown(() {
+        if (!pending.isCompleted) pending.complete(inside);
+      });
+      var loads = 0;
+      late final SpatialExplorationSession session;
+      session = await SpatialExplorationSession.load(
+        outside.copyWith(map: outside.map.copyWith(warps: [portal])),
+        loadMap: (_) {
+          loads++;
+          expect(session.nativeDoorBlackout.value,
+              style.type == MapWarpTransitionType.none ? 0 : 1);
+          return pending.future;
+        },
+      );
+      addTearDown(session.dispose);
+      final operation = session.enterWarp(portal);
+      await flush();
+      expect(loads, 0);
+      expect(session.nativeDoorTraversalActive, isTrue);
+      session.frames(.1);
+      if (style.door) {
+        expect(session.modelRuntimeState('outside', 'door')!.normalizedTime,
+            greaterThan(0));
+      } else {
+        expect(session.nativeDoorBlackout.value, greaterThan(0));
+      }
+      expect(loads, 0);
+      for (var i = 0; i < 120 && loads == 0; i++) {
+        session.frames(1 / 60);
+        await flush();
+      }
+      expect(loads, 1);
+      expect(session.bundle.map.id, 'outside');
+      pending.complete(inside);
+      await complete(session, operation);
+      expect(session.bundle.map.id, 'inside');
+      expect(session.interactionError.value, isNull);
+      expect(session.movement.paused, isFalse);
+    });
+  }
+
+  test('cold arrival door is resolved after departure without replaying it', () async {
+    final session = await SpatialExplorationSession.load(
+      inside,
+      loadMap: (_) async => outside,
+    );
+    addTearDown(session.dispose);
+    final operation = session.enterWarp(exit);
+    await flush();
+    expect(session.nativeDoorTraversalActive, isTrue);
+    session.frames(.1);
+    expect(session.nativeDoorBlackout.value, greaterThan(0));
+    await untilMap(session, 'outside');
+    expect(session.nativeDoorBlackout.value, 1);
+    expect(session.nativeDoorHeroVisible, isFalse);
+    await complete(session, operation);
+    expect(session.movement.x, 3.5);
+    expect(session.movement.z, 5.5);
+    expect(session.interactionError.value, isNull);
+  });
+
+  for (final door in [false, true]) {
+    test('shared cold loading can be cancelled without awaiting I/O, door=$door', () async {
+      final portal = entrance.copyWith(door: door ? entrance.door : null);
+      final pending = Completer<RuntimeMapBundle>();
+      var loads = 0;
+      final session = await SpatialExplorationSession.load(
+        outside.copyWith(map: outside.map.copyWith(warps: [portal])),
+        loadMap: (_) {
+          loads++;
+          return pending.future;
+        },
+      );
+      addTearDown(session.dispose);
+      final original = session.movement.spatialPosition;
+      var finished = false;
+      final operation = session.enterWarp(portal).whenComplete(() => finished = true);
+      await untilCovered(session);
+      expect(loads, 1);
+      session.cancelPendingTransition();
+      await flush();
+      expect(finished, isTrue);
+      expect(session.movement.spatialPosition, original);
+      expect(session.movement.paused, isFalse);
+      expect(session.nativeDoorBlackout.value, 0);
+      pending.complete(inside);
+      await operation;
+      await flush();
+      expect(session.bundle.map.id, 'outside');
+      expect(session.interactionError.value, isNull);
+    });
+  }
+
+  for (final direction in MapWarpLadderDirection.values) {
+    test(
+      'native ladder $direction lifts the hero before transfer and preserves target coordinates',
+      () async {
+        await File('${root.path}/hero.png')
+            .writeAsBytes(img.encodePng(img.Image(width: 96, height: 32)));
+        final character = outside.manifest.characters.single;
+        final animated = character.copyWith(
+          animations: [
+            ...character.animations,
+            const CharacterAnimation(
+              state: CharacterAnimationState.climb,
+              direction: EntityFacing.north,
+              sourceAssetId: 'hero',
+              frames: [
+                CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 133),
+                CharacterAnimationFrame(source: TilesetSourceRect(x: 32, y: 0, width: 32, height: 32), durationMs: 133),
+                CharacterAnimationFrame(source: TilesetSourceRect(x: 64, y: 0, width: 32, height: 32), durationMs: 133),
+                CharacterAnimationFrame(source: TilesetSourceRect(x: 32, y: 0, width: 32, height: 32), durationMs: 134),
+              ],
+            ),
+          ],
+        );
+        final ladder = entrance.copyWith(
+          door: null,
+          ladder: MapWarpLadder(direction: direction, durationSeconds: .5),
+        );
+        final source = outside.copyWith(
+          manifest: outside.manifest.copyWith(characters: [animated]),
+          map: outside.map.copyWith(warps: [ladder]),
+        );
+        final session = await SpatialExplorationSession.load(
+          source,
+          loadMap: (_) async => inside,
+          spatialArrival: PlayerSpatialPosition(x: 3.4375, z: 4.5),
+        );
+        addTearDown(session.dispose);
+        final originalY = session.movement.y;
+        final operation = session.enterWarp(ladder);
+        await flush();
+        for (var i = 0; i < 6; i++) session.frames(1 / 60);
+        expect(session.frame(0).frame.left, 0);
+        for (var i = 0; i < 9; i++) session.frames(1 / 60);
+        final hero = session.frame(0);
+        expect(session.bundle.map.id, 'outside');
+        expect(hero.x, 3.4375);
+        expect(hero.z, 4.5);
+        expect(hero.frame.left, 32);
+        expect(hero.contactShadow, isFalse);
+        expect(
+          hero.y,
+          closeTo(
+            originalY + (direction == MapWarpLadderDirection.up ? 1 : -1),
+            1e-6,
+          ),
+        );
+        expect(session.movement.y, originalY);
+        expect(session.nativeDoorTraversalActive, isTrue);
+        await complete(session, operation);
+        expect(session.bundle.map.id, 'inside');
+        expect(session.movement.x, 3.5);
+        expect(session.movement.z, 4.5);
+        expect(session.interactionError.value, isNull);
+      },
+    );
+    test('cancel ladder $direction restores real source coordinates', () async {
+      final ladder = entrance.copyWith(
+        door: null,
+        ladder: MapWarpLadder(direction: direction),
+      );
+      final source = outside.copyWith(
+        map: outside.map.copyWith(warps: [ladder]),
+      );
+      final session = await SpatialExplorationSession.load(
+        source,
+        loadMap: (_) async => inside,
+        spatialArrival: PlayerSpatialPosition(x: 3.4375, z: 4.5),
+      );
+      addTearDown(session.dispose);
+      final operation = session.enterWarp(ladder);
+      await flush();
+      session.frames(.1);
+      session.cancelPendingTransition();
+      await operation;
+      expect(session.bundle.map.id, 'outside');
+      expect(session.movement.x, 3.4375);
+      expect(session.movement.z, 4.5);
+      expect(session.nativeDoorTraversalActive, isFalse);
+      expect(session.nativeDoorBlackout.value, 0);
+    });
+  }
+
+  for (final direction in MapWarpLadderDirection.values) {
+    test('cold ladder $direction starts before the destination bundle finishes loading', () async {
+      final ladder = entrance.copyWith(door: null, ladder: MapWarpLadder(direction: direction));
+      final pending = Completer<RuntimeMapBundle>();
+      var loadStarted = false;
+      final session = await SpatialExplorationSession.load(outside.copyWith(map: outside.map.copyWith(warps: [ladder])), spatialArrival: PlayerSpatialPosition(x: 3.4375, z: 4.5), loadMap: (_) {loadStarted = true; return pending.future;});
+      addTearDown(session.dispose);
+      final operation = session.enterWarp(ladder); await flush();
+      expect(loadStarted, isFalse);
+      session.frames(1/60);
+      final hero = session.frame(0);
+      expect((hero.y - hero.groundY!).abs(), greaterThan(0), reason: 'The first visible climb frame must not wait for map I/O');
+      for (var i = 0; i < 60; i++) session.frames(1/60);
+      expect(session.nativeDoorBlackout.value, 1); expect(session.bundle.map.id, 'outside');
+      await flush(); expect(loadStarted, isTrue);
+      pending.complete(inside); await complete(session, operation);
+      expect(session.interactionError.value, isNull); expect(session.bundle.map.id, 'inside');
+    });
+  }
+
+  test('ladder load failure restores the source pose and removes blackout', () async {
+    final ladder = entrance.copyWith(door: null, ladder: MapWarpLadder());
+    final session = await SpatialExplorationSession.load(outside.copyWith(map: outside.map.copyWith(warps: [ladder])), spatialArrival: PlayerSpatialPosition(x: 3.4375, z: 4.5), loadMap: (_) async => throw StateError('load-failed'));
+    addTearDown(session.dispose);
+    await complete(session, session.enterWarp(ladder));
+    expect(session.bundle.map.id, 'outside'); expect(session.movement.x, 3.4375); expect(session.movement.z, 4.5);
+    expect(session.nativeDoorBlackout.value, 0); expect(session.nativeDoorTraversalActive, isFalse);
+    expect(session.movement.paused, isFalse); expect(session.interactionError.value, isA<StateError>());
+  });
+
+  test('ladder without fade cancels safely during destination loading', () async {
+    final ladder = entrance.copyWith(door: null, ladder: MapWarpLadder(), transition: const MapWarpTransition(type: MapWarpTransitionType.none));
+    final pending = Completer<RuntimeMapBundle>();
+    final session = await SpatialExplorationSession.load(outside.copyWith(map: outside.map.copyWith(warps: [ladder])), spatialArrival: PlayerSpatialPosition(x: 3.4375, z: 4.5), loadMap: (_) => pending.future);
+    addTearDown(session.dispose);
+    final operation = session.enterWarp(ladder); await flush();
+    expect(session.nativeDoorTraversalActive, isTrue);
+    session.cancelPendingTransition(); pending.complete(inside); await operation;
+    expect(session.bundle.map.id, 'outside'); expect(session.movement.x, 3.4375);
+    expect(session.movement.paused, isFalse); expect(session.transitioning.value, isFalse);
+    expect(session.interactionError.value, isNull);
+  });
 
   RuntimeMapBundle sourceWithBudget(RuntimeResourceBudget budget) =>
       RuntimeMapBundle(
@@ -355,7 +605,7 @@ void main() {
     },
   );
 
-  test('native destination decoding starts during opening and stays covered until transfer', () async {
+  test('native destination decoding starts after departure and stays covered until transfer', () async {
     final budget = RuntimeResourceBudget(
       profile: const RuntimeResourceProfile(maximumConcurrentDecodes: 1),
     );
@@ -373,7 +623,8 @@ void main() {
     final blocker = await budget.acquire();
     addTearDown(blocker.release);
     final operation = session.enterWarp(entrance);
-    await waitFor(() => budget.pendingDecodes == 1);
+    await flush();
+    expect(budget.pendingDecodes, 0);
     expect(session.bundle.map.id, 'outside');
     expect(session.mapRevision.value, 0);
     expect(session.nativeDoorBlackout.value, 0);
@@ -382,13 +633,16 @@ void main() {
       session.modelRuntimeState('outside', 'door')!.normalizedTime,
       allOf(greaterThan(0), lessThan(1)),
     );
+    await untilCovered(session);
+    await waitFor(() => budget.pendingDecodes == 1);
     blocker.release();
     await waitFor(
       () => budget.residentBytes > baseline && budget.activeDecodes == 0,
     );
     await flush();
     await File('${root.path}/destination.png').delete();
-    expect(session.bundle.map.id, 'outside');
+    expect(session.bundle.map.id, 'inside');
+    expect(session.nativeDoorBlackout.value, 1);
     await complete(session, operation);
     expect(session.bundle.map.id, 'inside');
     expect(session.interactionError.value, isNull);
@@ -423,6 +677,7 @@ void main() {
         final blocker = await budget.acquire();
         addTearDown(blocker.release);
         final operation = session.enterWarp(entrance);
+        await untilCovered(session);
         await waitFor(() => budget.pendingDecodes == 1);
         session.frames(.1);
         session.cancelPendingTransition();
@@ -447,7 +702,7 @@ void main() {
   }
 
   test(
-    'native preparation failure cancels opening before any blackout',
+    'native preparation failure restores source after covered loading',
     () async {
       final budget = RuntimeResourceBudget();
       addTearDown(budget.dispose);
@@ -463,8 +718,8 @@ void main() {
       final operation = session
           .enterWarp(entrance)
           .then((_) => finished = true);
-      await waitFor(() => finished);
-      await operation;
+      await complete(session, operation);
+      expect(finished, isTrue);
       expect(session.bundle.map.id, 'outside');
       expect(session.mapRevision.value, 0);
       expect(session.nativeDoorBlackout.value, 0);
@@ -475,7 +730,7 @@ void main() {
     },
   );
 
-  test('native renderer prepares during opening and must finish before adoption', () async {
+  test('native renderer prepares after covered departure and must finish before adoption', () async {
     final rendererReady = Completer<void>();
     final session = await SpatialExplorationSession.load(
       outside,
@@ -491,15 +746,13 @@ void main() {
     };
     final operation = session.enterWarp(entrance);
     await flush();
-    expect(isCurrent, isNotNull);
-    expect(isCurrent!(), isTrue);
+    expect(isCurrent, isNull);
     session.frames(.1);
     expect(session.modelRuntimeState('outside', 'door')!.normalizedTime,
         allOf(greaterThan(0), lessThan(1)));
-    for (var i = 0; i < 120; i++) {
-      session.frames(1 / 60);
-      await flush();
-    }
+    await untilCovered(session);
+    expect(isCurrent, isNotNull);
+    expect(isCurrent!(), isTrue);
     expect(session.bundle.map.id, 'outside');
     expect(session.mapRevision.value, 0);
     expect(session.nativeDoorBlackout.value, 1);
@@ -633,8 +886,7 @@ void main() {
       final budget = RuntimeResourceBudget();
       addTearDown(budget.dispose);
       await File('${root.path}/destination.png').writeAsBytes(
-        img.encodePng(img.Image(width: 32, height: 32)),
-      );
+        img.encodePng(img.Image(width: 32, height: 32)));
       final destination = destinationWithUniqueImage(budget);
       final session = await SpatialExplorationSession.load(
         sourceWithBudget(budget),
@@ -651,6 +903,7 @@ void main() {
         return rendererReady.future;
       };
       final operation = session.enterWarp(entrance);
+      await untilCovered(session);
       await waitFor(() => budget.residentBytes > baseline && budget.activeDecodes == 0);
       expect(isCurrent!(), isTrue);
       session.frames(.1);
@@ -700,14 +953,13 @@ void main() {
     expect(session.movement.paused, isFalse);
   });
 
-  test('native renderer failure cancels source opening before blackout', () async {
+  test('native renderer failure during covered decoding restores the source', () async {
     final budget = RuntimeResourceBudget(
       profile: const RuntimeResourceProfile(maximumConcurrentDecodes: 1),
     );
     addTearDown(budget.dispose);
     await File('${root.path}/destination.png').writeAsBytes(
-      img.encodePng(img.Image(width: 32, height: 32)),
-    );
+      img.encodePng(img.Image(width: 32, height: 32)));
     final destination = destinationWithUniqueImage(budget);
     final session = await SpatialExplorationSession.load(
       sourceWithBudget(budget),
@@ -723,6 +975,7 @@ void main() {
     session.prepareNativeDoorDestination = (_, _) => rendererReady.future;
     var finished = false;
     final operation = session.enterWarp(entrance).then((_) => finished = true);
+    await untilCovered(session);
     await waitFor(() => budget.pendingDecodes == 1);
     rendererReady.completeError(failure);
     await waitFor(() => finished);

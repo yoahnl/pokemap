@@ -166,8 +166,8 @@ final class SpatialExplorationGameSessionRuntime
   final _locks = <RuntimeExternalInputLock>{};
   final _pressed = <RuntimeInputControl>{};
   final inputAuthority = ValueNotifier(const RuntimeInputAuthoritySnapshot(
-    context: RuntimeInputContext.blocked,
-  ));
+    context: RuntimeInputContext.blocked),
+  );
   SpatialExplorationSession? _session;
   RuntimeProjectCatalog? _projectCatalog;
   SpatialStoryPlayback? _story;
@@ -449,8 +449,7 @@ final class SpatialExplorationGameSessionRuntime
         for (final entry in entries)
           p.join(bundle.projectRootDirectory, entry.relativePath),
       ],
-      projectDialogueContext: bundle.projectCatalog == null ? project : null,
-    );
+      projectDialogueContext: bundle.projectCatalog == null ? project : null);
     _ensureLoadActive(generation);
     for (var index = 0; index < entries.length; index++) {
       maps[entries[index].id] = loadedMaps[index];
@@ -1060,6 +1059,14 @@ final class SpatialExplorationGameSessionRuntime
       _gameState = state;
       _environmentClock = WorldEnvironmentClock(now: _now, initialState: state.environmentState);
       _environmentClock!.resolve(bundle.visualProfile);
+      if (SpatialGameplayCapabilities.requiresLadders([bundle.map]) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialGameplayCapabilities.ladderCapabilityId,
+          )) {
+        throw StateError(
+          'The map requires ${SpatialGameplayCapabilities.ladderCapabilityId}.',
+        );
+      }
       if (bundle.map.spatialScene!.lifts.isNotEmpty && !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) {
         throw StateError('The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.');
       }
@@ -1089,7 +1096,15 @@ final class SpatialExplorationGameSessionRuntime
               projectCatalog: bundle.projectCatalog, resourceBudget: bundle.resourceBudget,
               additionalCharacterIds: {if (state.trainerProfile.avatarCharacterId case final String id when id.isNotEmpty) id},
             );
-            if (next.map.spatialScene!.lifts.isNotEmpty &&
+          if (SpatialGameplayCapabilities.requiresLadders([next.map]) &&
+              !descriptor.grantedCapabilities.contains(
+                SpatialGameplayCapabilities.ladderCapabilityId,
+              )) {
+            throw StateError(
+              'The map requires ${SpatialGameplayCapabilities.ladderCapabilityId}.',
+            );
+          }
+          if (next.map.spatialScene!.lifts.isNotEmpty &&
                 !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) {
               throw StateError('The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.');
             }

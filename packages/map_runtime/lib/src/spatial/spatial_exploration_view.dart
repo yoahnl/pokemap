@@ -217,6 +217,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
+    widget.session.waitForNativeTraversalStartFrame = waitForBlackoutFrame;
     widget.session.prepareNativeDoorDestination = prepareNativeDestination;
     widget.session.setVisibleMaps({});
     loadNeighbors();
@@ -383,12 +384,14 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     oldWidget.session.mapRevision.removeListener(mapChanged);
     oldWidget.session.transitioning.removeListener(release);
     oldWidget.session.waitForNativeDoorBlackoutFrame = null;
+    oldWidget.session.waitForNativeTraversalStartFrame = null;
     oldWidget.session.prepareNativeDoorDestination = null;
     keys.clear();
     widget.session.realWeather?.addListener(applyVisuals);
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
+    widget.session.waitForNativeTraversalStartFrame = waitForBlackoutFrame;
     widget.session.prepareNativeDoorDestination = prepareNativeDestination;
     activeBundle = widget.session.bundle;
     applyVisuals();
@@ -494,6 +497,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.realWeather?.removeListener(applyVisuals);
     widget.session.mapRevision.removeListener(mapChanged);
     widget.session.waitForNativeDoorBlackoutFrame = null;
+    widget.session.waitForNativeTraversalStartFrame = null;
     widget.session.prepareNativeDoorDestination = null;
     widget.session.transitioning.removeListener(release);
     WidgetsBinding.instance.removeObserver(this);

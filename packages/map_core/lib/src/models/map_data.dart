@@ -14,6 +14,7 @@ import 'map_event_definition.dart';
 import 'map_gameplay_zone_payloads.dart';
 import 'map_layer.dart';
 import 'map_metadata.dart';
+import 'map_warp_ladder.dart';
 import 'moving_platform.dart';
 import 'moving_prop.dart';
 import 'map_visual_stack_config.dart';
@@ -707,6 +708,7 @@ abstract class MapWarp with _$MapWarp {
     @Default([]) List<EntityFacing> allowedApproachFacings,
     @Default(WarpTriggerPadding()) WarpTriggerPadding triggerPadding,
     @JsonKey(includeIfNull: false) MapWarpDoor? door,
+    @JsonKey(includeIfNull: false) MapWarpLadder? ladder,
     @Default(MapWarpTransition()) MapWarpTransition transition,
   }) = _MapWarp;
 

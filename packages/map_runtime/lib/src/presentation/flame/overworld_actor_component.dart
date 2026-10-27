@@ -128,8 +128,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
         _strideBobActive && animation.frames.length <= 3 ? 2.4 : 1.0;
     final frame = _pickFrame(
       animation.frames,
-      timeScale: strideTimeScale,
-    );
+      timeScale: strideTimeScale);
     return _sourceResolver.resolveFrame(
       character: character,
       animation: animation,
@@ -324,8 +323,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
       );
       position = Vector2(
         next.x.roundToDouble(),
-        next.y.roundToDouble(),
-      );
+        next.y.roundToDouble());
       if (_moveRemaining <= 0) {
         position = _moveTo!.clone();
         _moveFrom = null;
@@ -472,6 +470,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
       if (a.direction == _facing) {
         if (a.state == _animState) exactFacing = a;
         switch (a.state) {
+          case CharacterAnimationState.climb:
           case CharacterAnimationState.bicycleIdle:
           case CharacterAnimationState.bicycle:
             break;
@@ -493,6 +492,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
           case CharacterAnimationState.run:
             runAny ??= a;
             break;
+          case CharacterAnimationState.climb:
           case CharacterAnimationState.bicycleIdle:
           case CharacterAnimationState.bicycle:
             break;

@@ -7,6 +7,7 @@ enum SpatialDoorTraversalPhase {
   idle,
   openingDeparture,
   steppingDeparture,
+  climbingDeparture,
   fadingOut,
   waitingTransfer,
   fadingInArrival,
@@ -51,6 +52,9 @@ final class SpatialDoorTraversalController {
   SpatialDoorTraversalPhase phase = SpatialDoorTraversalPhase.idle;
   SpatialDoorTraversalBinding? _departure, _arrival;
   GridPos? _departurePos, _arrivalPos;
+  MapWarpLadder? _ladder;
+  String? _departureMapId;
+  double _climbElapsed = 0;
   ({double x, double z})? _departureStart;
   double _elapsed = 0;
   double _sourceWalkElapsed = 0;
@@ -63,6 +67,7 @@ final class SpatialDoorTraversalController {
   bool _explicitTransition = false;
 
   MapWarpTransition get transition => _transition;
+  bool get isClimbing => _ladder != null && !_transferred && isActive;
   bool get revealing => _transferred;
   bool get _usesTransition =>
       (_hasDoor || _explicitTransition) &&
@@ -105,7 +110,7 @@ final class SpatialDoorTraversalController {
       ? null
       : _transferred
           ? _arrival?.mapId
-          : _departure?.mapId;
+          : _departure?.mapId ?? _departureMapId;
   bool get _hasDoor => _departure != null || _arrival != null;
   bool get heroVisible => switch (phase) {
         SpatialDoorTraversalPhase.fadingOut => !_hasDoor,
@@ -131,8 +136,21 @@ final class SpatialDoorTraversalController {
     ({double x, double z})? departureStart,
     GridPos? arrivalPos,
     MapWarpTransition? transition,
+    MapWarpLadder? ladder,
+    String? departureMapId,
   }) {
     if (isActive) return false;
+    if (ladder != null &&
+        (departure != null ||
+            arrival != null ||
+            departureMapId == null ||
+            departureMapId.isEmpty ||
+            departureStart == null ||
+            !departureStart.x.isFinite ||
+            !departureStart.z.isFinite)) {
+      throw ArgumentError(
+          'A ladder requires a finite source pose and no door binding.');
+    }
     bool adjacent(GridPos a, GridPos b) =>
         (a.x - b.x).abs() + (a.y - b.y).abs() == 1;
     if (departure != null &&
@@ -159,6 +177,9 @@ final class SpatialDoorTraversalController {
     }
     _transition = transition ?? const MapWarpTransition();
     _explicitTransition = transition != null;
+    _ladder = ladder;
+    _departureMapId = departureMapId;
+    _climbElapsed = 0;
     _departure = departure;
     _arrival = arrival;
     _departurePos = departurePos;
@@ -171,7 +192,9 @@ final class SpatialDoorTraversalController {
     _arrivalFirstFramePending = false;
     _ready = Completer<bool>();
     _finished = Completer<bool>();
-    phase = departure != null
+    phase = ladder != null
+        ? SpatialDoorTraversalPhase.climbingDeparture
+        : departure != null
         ? SpatialDoorTraversalPhase.openingDeparture
         : _usesTransition
             ? SpatialDoorTraversalPhase.fadingOut
@@ -180,6 +203,27 @@ final class SpatialDoorTraversalController {
       _ready!.complete(true);
     }
     return true;
+  }
+
+  void configureArrival({
+    SpatialDoorTraversalBinding? arrival,
+    GridPos? arrivalPos,
+  }) {
+    if (phase != SpatialDoorTraversalPhase.waitingTransfer) {
+      throw StateError('The arrival can only be configured before transfer.');
+    }
+    if (arrival != null &&
+        (_ladder != null ||
+            arrivalPos == null ||
+            (arrivalPos.x - arrival.exitPos.x).abs() +
+                    (arrivalPos.y - arrival.exitPos.y).abs() !=
+                1)) {
+      throw ArgumentError(
+        'Native door arrival requires one cardinal exit step and no ladder.',
+      );
+    }
+    _arrival = arrival;
+    _arrivalPos = arrivalPos;
   }
 
   void transferCompleted() {
@@ -208,6 +252,7 @@ final class SpatialDoorTraversalController {
       return;
     }
     final duration = switch (phase) {
+      SpatialDoorTraversalPhase.climbingDeparture => _ladder!.durationSeconds,
       SpatialDoorTraversalPhase.openingDeparture =>
         _departure!.openDurationSeconds,
       SpatialDoorTraversalPhase.steppingDeparture ||
@@ -230,7 +275,9 @@ final class SpatialDoorTraversalController {
     }
     _elapsed += admitted;
     if (_elapsed + duration * 1e-7 >= duration) _elapsed = duration;
-    if (phase == SpatialDoorTraversalPhase.steppingDeparture) {
+    if (phase == SpatialDoorTraversalPhase.climbingDeparture) {
+      _climbElapsed = _elapsed;
+    } else if (phase == SpatialDoorTraversalPhase.steppingDeparture) {
       _sourceWalkElapsed = _elapsed;
       if (!_departureAlignmentPresented) {
         final start = _departureStart!, target = _departurePos!;
@@ -254,6 +301,11 @@ final class SpatialDoorTraversalController {
     if (_elapsed < duration) return;
     _elapsed = 0;
     switch (phase) {
+      case SpatialDoorTraversalPhase.climbingDeparture:
+        phase = _usesTransition
+            ? SpatialDoorTraversalPhase.fadingOut
+            : SpatialDoorTraversalPhase.waitingTransfer;
+        if (!_usesTransition) _ready!.complete(true);
       case SpatialDoorTraversalPhase.openingDeparture:
         phase = SpatialDoorTraversalPhase.steppingDeparture;
       case SpatialDoorTraversalPhase.steppingDeparture:
@@ -329,11 +381,26 @@ final class SpatialDoorTraversalController {
     double z,
     EntityFacing facing,
     bool moving,
-    double animationSeconds
+    double animationSeconds,
+    double liftCells
   })? get playerPose {
     if (phase == SpatialDoorTraversalPhase.idle ||
         phase == SpatialDoorTraversalPhase.cancelled) {
       return null;
+    }
+    final ladder = _ladder;
+    if (isClimbing && ladder != null) {
+      final progress = (_climbElapsed / ladder.durationSeconds).clamp(0.0, 1.0);
+      return (
+        x: _departureStart!.x,
+        z: _departureStart!.z,
+        facing: ladder.facing,
+        moving: phase == SpatialDoorTraversalPhase.climbingDeparture,
+        animationSeconds: _climbElapsed,
+        liftCells: ladder.heightCells *
+            progress *
+            (ladder.direction == MapWarpLadderDirection.up ? 1 : -1)
+      );
     }
     final departure = _departure, departurePos = _departurePos;
     final departureStart = _departureStart;
@@ -373,6 +440,7 @@ final class SpatialDoorTraversalController {
                 departurePos.y - departure.exitPos.y),
         moving: phase == SpatialDoorTraversalPhase.steppingDeparture,
         animationSeconds: _sourceWalkElapsed,
+        liftCells: 0,
       );
     }
     final arrival = _arrival, from = _arrivalPos;
@@ -386,6 +454,7 @@ final class SpatialDoorTraversalController {
       facing: _facing(dx, dz),
       moving: phase == SpatialDoorTraversalPhase.steppingArrival,
       animationSeconds: _arrivalWalkElapsed,
+      liftCells: 0,
     );
   }
 
@@ -410,5 +479,8 @@ final class SpatialDoorTraversalController {
     _departure = _arrival = null;
     _departurePos = _arrivalPos = null;
     _departureStart = null;
+    _ladder = null;
+    _departureMapId = null;
+    _climbElapsed = 0;
   }
 }

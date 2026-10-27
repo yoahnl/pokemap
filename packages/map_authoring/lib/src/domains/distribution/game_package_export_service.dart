@@ -359,6 +359,8 @@ final class CanonicalGamePackageExportService {
             SpatialGameplayCapabilities.requiresCinematicFade(projection.project))
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
         if (SpatialGameplayCapabilities.requiresLifts(spatialMaps)) SpatialGameplayCapabilities.liftCapabilityId,
+        if (SpatialGameplayCapabilities.requiresLadders(spatialMaps))
+          SpatialGameplayCapabilities.ladderCapabilityId,
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (projection.project.battleSavings != null) ProjectBattleSavingsConfig.capabilityId,

@@ -489,6 +489,9 @@ _MapWarp _$MapWarpFromJson(Map<String, dynamic> json) => _MapWarp(
   door: json['door'] == null
       ? null
       : MapWarpDoor.fromJson(json['door'] as Map<String, dynamic>),
+  ladder: json['ladder'] == null
+      ? null
+      : MapWarpLadder.fromJson(json['ladder'] as Map<String, dynamic>),
   transition: json['transition'] == null
       ? const MapWarpTransition()
       : MapWarpTransition.fromJson(json['transition'] as Map<String, dynamic>),
@@ -505,6 +508,7 @@ Map<String, dynamic> _$MapWarpToJson(_MapWarp instance) => <String, dynamic>{
       .toList(),
   'triggerPadding': instance.triggerPadding.toJson(),
   'door': ?instance.door?.toJson(),
+  'ladder': ?instance.ladder?.toJson(),
   'transition': instance.transition.toJson(),
 };
 

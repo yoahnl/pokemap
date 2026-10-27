@@ -1109,6 +1109,7 @@ const _$CharacterAnimationStateEnumMap = {
   CharacterAnimationState.idle: 'idle',
   CharacterAnimationState.walk: 'walk',
   CharacterAnimationState.run: 'run',
+  CharacterAnimationState.climb: 'climb',
 };
 
 const _$EntityFacingEnumMap = {

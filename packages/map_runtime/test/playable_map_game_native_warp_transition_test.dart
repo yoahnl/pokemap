@@ -10,6 +10,76 @@ import 'package:map_runtime/src/presentation/flame/warp_transition_overlay_compo
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('2D presented scene resolves its cold destination after departure', () async {
+    var loads = 0;
+    final gate = Completer<void>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+    final game = await _mount(
+      const MapWarpTransition(),
+      gate: gate,
+      sourceHasPassage: false,
+      onTargetLoad: () => loads++,
+    );
+    var finished = false;
+    final operation = game.debugExecuteSceneInteractiveCommand(
+      SceneInteractiveCommand.warp(
+        destinationMapId: 'target',
+        warpId: 'passage',
+        presentation: SceneWarpPresentation(mode: SceneWarpPresentationMode.fade),
+      ),
+    ).whenComplete(() => finished = true);
+    await _flush();
+    expect(loads, 0);
+    await _until(game, () => game.debugFlowPhaseName == 'mapTransition');
+    game.update(.05);
+    await _flush();
+    expect(loads, 0);
+    await _until(game, () => loads == 1);
+    expect(game.gameStateSnapshot.currentMapId, 'source');
+    gate.complete();
+    await _until(game, () => finished);
+    expect(await operation, 'completed');
+    expect(game.gameStateSnapshot.currentMapId, 'target');
+  });
+
+  for (final type in [MapWarpTransitionType.fade, MapWarpTransitionType.hgss]) {
+    test('2D cold bundle waits for the $type departure', () async {
+      var loads = 0;
+      final gate = Completer<void>();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      final game = await _mount(
+        MapWarpTransition(type: type),
+        gate: gate,
+        sourceHasPassage: false,
+        onTargetLoad: () => loads++,
+      );
+      var finished = false;
+      final operation = game.debugExecuteSceneInteractiveCommand(
+        SceneInteractiveCommand.warp(
+          destinationMapId: 'target',
+          warpId: 'passage',
+          transition: SceneWarpTransition.mapDefault,
+        ),
+      ).whenComplete(() => finished = true);
+      await _until(game, () => _overlay(game) != null);
+      expect(loads, 0);
+      game.update(.05);
+      await _flush();
+      expect(loads, 0);
+      await _until(game, () => loads == 1);
+      expect(game.gameStateSnapshot.currentMapId, 'source');
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      gate.complete();
+      await _until(game, () => finished);
+      expect(await operation, 'completed');
+      expect(game.gameStateSnapshot.currentMapId, 'target');
+    });
+  }
+
   test(
     'map transfer stops the original SE owner without any map music controller',
     () async {
@@ -189,6 +259,8 @@ Future<PlayableMapGame> _mount(
   bool invalidArrival = false,
   SceneOwnedSoundEffectPlaybackPort? effects,
   bool logicalInstances = false,
+  bool sourceHasPassage = true,
+  void Function()? onTargetLoad,
 }) async {
   final maps = [
     for (final id in ['source', 'target'])
@@ -211,6 +283,7 @@ Future<PlayableMapGame> _mount(
         mapMetadata: const MapMetadata(defaultSpawnId: 'spawn'),
         warps: id == 'source'
             ? [
+                if (sourceHasPassage)
                 MapWarp(
                   id: 'passage',
                   pos: const GridPos(x: 2, y: 1),
@@ -270,7 +343,10 @@ Future<PlayableMapGame> _mount(
     projectFilePath: '/tmp/native-transitions/project.json',
     sceneSoundEffectPlaybackPort: effects,
     runtimeMapBundleLoader: ({required projectFilePath, required mapId}) async {
-      if (mapId == 'target') await gate?.future;
+      if (mapId == 'target') {
+        onTargetLoad?.call();
+        await gate?.future;
+      }
       return bundle(mapId);
     },
     runtimeTilesetImageLoader: (

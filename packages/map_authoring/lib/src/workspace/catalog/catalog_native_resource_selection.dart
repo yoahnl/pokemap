@@ -1,6 +1,7 @@
 part of 'catalog_workshop_selection.dart';
 
 const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
+  'characterStudio.animationClip.upsert': (CatalogDefinitionKind.character, 'characterId'),
   'tileset.upsert': (CatalogDefinitionKind.tileset, 'tileset'),
   'campaign.character.upsert': (CatalogDefinitionKind.character, 'value'),
   'resource.classify_batch': (CatalogDefinitionKind.resourceLibraryEntry, 'entries'),
@@ -47,7 +48,11 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     CatalogWorkshopSelection.unsupported(
         actionId, 'standalone new resource publication');
   }
-  final value = parameters[parameter];
+  final clip = actionId == 'characterStudio.animationClip.upsert';
+  if (clip && parameters['kind'] != 'system') {
+    CatalogWorkshopSelection.unsupported(actionId, 'a system animation slot');
+  }
+  final value = clip ? {'id': parameters[parameter]} : parameters[parameter];
   final inputs = value is List ? value : [value];
   final ids = <String>{};
   for (final input in inputs) {
@@ -103,6 +108,29 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         drafts.add(record);
         candidates.add(existing.payload['value']);
         replacements.add(key);
+      } else if (clip && existing != null) {
+        roots.add(key);
+        replacements.add(key);
+        candidates.add(existing.payload['value']);
+      } else if (existing != null && kind == CatalogDefinitionKind.character) {
+        final before = ProjectCharacterEntry.fromJson(
+            Map<String, dynamic>.from(existing.payload['value'] as Map));
+        final after = ProjectCharacterEntry.fromJson(
+            Map<String, dynamic>.from(value as Map));
+        if (after.copyWith(animations: before.animations) != before ||
+            before.animations.any((clip) => !after.animations.contains(clip)) ||
+            after.animations
+                    .map((clip) => (clip.state, clip.direction))
+                    .toSet()
+                    .length !=
+                after.animations.length) {
+          CatalogWorkshopSelection.unsupported(actionId,
+              'preserving the character and every existing animation slot');
+        }
+        roots.add(key);
+        replacements.add(key);
+      } else if (clip) {
+        throw const FormatException('catalog.character_clip: character missing');
       } else if (existing != null) {
         CatalogWorkshopSelection.unsupported(
             actionId, 'a new resource identity');

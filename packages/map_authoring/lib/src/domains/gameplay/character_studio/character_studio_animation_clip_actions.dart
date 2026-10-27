@@ -375,11 +375,12 @@ CharacterAnimationState _systemState(String value) {
     'base' || 'idle' => CharacterAnimationState.idle,
     'walk' => CharacterAnimationState.walk,
     'run' => CharacterAnimationState.run,
+    'climb' => CharacterAnimationState.climb,
     'bicycle_idle' => CharacterAnimationState.bicycleIdle,
     'bicycle' => CharacterAnimationState.bicycle,
     _ => throw CharacterStudioActionException(
         'character_studio.animation.state_invalid',
-        'state must be base, walk, run, bicycle_idle, or bicycle.',
+        'state must be base, walk, run, climb, bicycle_idle, or bicycle.',
         details: <String, Object?>{'state': value},
       ),
   };

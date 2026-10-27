@@ -263,7 +263,13 @@ final class AuthoringResourceKindRegistry {
             'createOnly': true,
             'atomic': true,
             'singleHistoryEntry': true,
-          },
+            },
+            'warpLadder': {
+              'configureAction': 'warp.ladder.configure',
+              'field': 'ladder',
+              'runtimeCapability': 'map3d.ladder@1',
+              'playbackOwner': 'nativeWarpTransition'
+            },
           'warpTransition': {
             'field': 'warps[].transition',
             'configureAction': 'warp.transition.configure',

@@ -522,7 +522,7 @@ void main() {
         gate.complete();
         expect(await execution, 'blocked');
         expect(game.gameStateSnapshot.toJson(), before.toJson());
-        expect(_overlay(game), isNull);
+        expect(_overlay(game)?.isRemoving ?? true, isTrue);
         expect(game.runtimeNotificationListenable.value, isNull);
         expect(game.debugIsMapLoaded('target'), isFalse);
       });

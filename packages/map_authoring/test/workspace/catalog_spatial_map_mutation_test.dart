@@ -14,6 +14,104 @@ import '../domains/maps/healing_display_fixture.dart';
 
 void main() {
   for (final unrelated in [0, 80]) {
+    test(
+        'ladder and additive character clips stay local with $unrelated foreign maps',
+        () async {
+      final base = spatialEnvironmentFixture();
+      final hero = ProjectCharacterEntry(
+          id: 'hero', name: 'Hero', tilesetId: 'hero-sheet');
+      final warp = MapWarp(
+          id: 'stairs',
+          pos: const GridPos(x: 1, y: 1),
+          targetMapId: base.map.id,
+          targetPos: const GridPos(x: 2, y: 1));
+      final f = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(characters: [
+          hero
+        ], tilesets: const [
+          ProjectTilesetEntry(
+              id: 'hero-sheet', name: 'Hero', relativePath: 'assets/hero.png')
+        ]),
+        map: base.map.copyWith(warps: [warp])
+      ));
+      addTearDown(f.close);
+      final counts = <int>[], times = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        f.reader.paths.clear();
+        final timer = Stopwatch()..start();
+        final ladder = MapWarpLadder(
+            direction: repeat == 0
+                ? MapWarpLadderDirection.up
+                : MapWarpLadderDirection.down);
+        await f.apply(
+            'warp.ladder.configure',
+            {
+              'mapId': base.map.id,
+              'warpId': 'stairs',
+              'ladder': ladder.toJson()
+            },
+            'ladder-$repeat');
+        times.add(timer.elapsedMilliseconds);
+        expect(
+            f.reader.paths
+                .where((p) => p.startsWith('maps/') && p != 'maps/map.json'),
+            isEmpty);
+        expect(f.reader.paths.where(f.unrelatedObjects.contains), isEmpty);
+        counts.add(f.reader.paths.length);
+      }
+      expect(counts.every((count) => count <= 72), isTrue);
+      f.reader.paths.clear();
+      final clip = CharacterAnimation(
+          state: CharacterAnimationState.climb,
+          direction: EntityFacing.north,
+          frames: const [
+            CharacterAnimationFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 16, height: 16),
+                durationMs: 100)
+          ]);
+      final updated = hero.copyWith(animations: [clip]);
+      await f.apply('campaign.character.upsert', {'value': updated.toJson()},
+          'append-climb',
+          workshop: true);
+      expect(f.reader.paths.where((p) => p.startsWith('maps/')), isEmpty);
+      expect(f.reader.paths.where(f.unrelatedObjects.contains), isEmpty);
+      f.reader.paths.clear();
+      await f.apply('characterStudio.animationClip.upsert', {'characterId':'hero', 'kind':'system','state':'climb','direction':'north','loop':true,'frames':[
+        {'source':{'x':0,'y':0,'width':16,'height':16},'durationMs':133},
+        {'source':{'x':16,'y':0,'width':16,'height':16},'durationMs':133},
+      ]}, 'animate-climb', workshop:true);
+      expect(f.reader.paths.where((p) => p.startsWith('maps/')), isEmpty);
+      expect(f.reader.paths.where(f.unrelatedObjects.contains), isEmpty);
+      await expectLater(
+          f.apply(
+              'campaign.character.upsert',
+              {'value': updated.copyWith(name: 'Changed').toJson()},
+              'reject-identity',
+              workshop: true),
+          throwsA(isA<AuthoringPlanException>()));
+      await expectLater(
+          f.apply('campaign.character.upsert', {'value': hero.toJson()},
+              'reject-removal',
+              workshop: true),
+          throwsA(isA<AuthoringPlanException>()));
+      await f.reopen();
+      final loaded = await f.api.readWorkshopSnapshot(f.opened.projectHandle,
+          actionId: 'warp.ladder.configure',
+          parameters: {
+            'mapId': base.map.id,
+            'warpId': 'stairs',
+            'ladder': null
+          });
+      expect(loaded.mapById(base.map.id)!.warps.single.ladder!.direction,
+          MapWarpLadderDirection.down);
+      print(jsonEncode({
+        'ladderUnrelated': unrelated,
+        'reads': counts,
+        'firstRepeatedMs': times
+      }));
+    });
+  }
+  for (final unrelated in [0, 80]) {
     test('battle audio configuration stays scoped with $unrelated unrelated records', () async {
       final fixture = await _Fixture.open(unrelated);
       addTearDown(fixture.close);
@@ -1727,7 +1825,7 @@ final class _Fixture {
 
   Future<AuthoringMutationResult> apply(
       String action, Map<String, Object?> parameters, String operation,
-      {String? revision, bool confirm = false}) async {
+      {String? revision, bool confirm = false, bool workshop = false}) async {
     final selected = revision ??
         (await api.readWorkshopSnapshot(opened.projectHandle,
                 actionId: action, parameters: parameters))
@@ -1739,6 +1837,7 @@ final class _Fixture {
             actionId: action,
             actionVersion: 1,
             workspaceHandle: opened.workspaceHandle.value,
+            extensions: {if (workshop) 'workshopScope': true},
             expectedRevision: selected,
             idempotencyKey: operation,
             parameters: parameters));

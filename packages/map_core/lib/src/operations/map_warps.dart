@@ -2,6 +2,7 @@ import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_warp_ladder.dart';
 import '../models/map_layer.dart';
 import '../models/project_model3d.dart';
 
@@ -15,6 +16,7 @@ MapWarp createMapWarp(
   List<EntityFacing> allowedApproachFacings = const [],
   WarpTriggerPadding triggerPadding = const WarpTriggerPadding(),
   MapWarpDoor? door,
+  MapWarpLadder? ladder,
   MapWarpTransition transition = const MapWarpTransition(),
 }) {
   final passive = triggerMode == MapWarpTriggerMode.sceneOnly;
@@ -34,6 +36,7 @@ MapWarp createMapWarp(
     allowedApproachFacings: allowedApproachFacings,
     triggerPadding: triggerPadding,
     door: door,
+    ladder: ladder,
     transition: transition,
   );
   _validateWarp(map, warp, duplicateIdLabel: 'Warp ID already exists');
@@ -42,16 +45,13 @@ MapWarp createMapWarp(
 
 MapData addWarpToMap(
   MapData map, {
-  required MapWarp warp,
-}) {
+  required MapWarp warp}) {
   _validateWarp(
     map,
     warp,
-    duplicateIdLabel: 'Warp ID already exists',
-  );
+    duplicateIdLabel: 'Warp ID already exists');
   return map.copyWith(
-    warps: [...map.warps, warp],
-  );
+    warps: [...map.warps, warp]);
 }
 
 MapData updateWarpOnMap(
@@ -66,6 +66,8 @@ MapData updateWarpOnMap(
   WarpTriggerPadding? triggerPadding,
   MapWarpDoor? door,
   bool clearDoor = false,
+  MapWarpLadder? ladder,
+  bool clearLadder = false,
   MapWarpTransition? transition,
 }) {
   final index = map.warps.indexWhere((warp) => warp.id == warpId);
@@ -106,6 +108,7 @@ MapData updateWarpOnMap(
         allowedApproachFacings ?? current.allowedApproachFacings,
     triggerPadding: triggerPadding ?? current.triggerPadding,
     door: nextDoor,
+    ladder: clearLadder ? null : ladder ?? current.ladder,
     transition: transition ?? current.transition,
   );
   _validateWarp(
@@ -121,8 +124,7 @@ MapData updateWarpOnMap(
 
 MapData removeWarpFromMap(
   MapData map, {
-  required String warpId,
-}) {
+  required String warpId}) {
   final index = map.warps.indexWhere((warp) => warp.id == warpId);
   if (index < 0) {
     throw ValidationException('Warp not found: $warpId');
@@ -139,6 +141,7 @@ void _validateWarp(
   required String duplicateIdLabel,
 }) {
   final id = warp.id.trim();
+  validateMapWarpLadder(map, warp);
   validateMapWarpTransition(warp.transition);
   validateMapWarpDoor(
     excludedWarpId == null
@@ -193,7 +196,20 @@ void validateMapWarpTransition(MapWarpTransition transition) {
   if (!transition.durationSeconds.isFinite || transition.durationSeconds <= 0 ||
       transition.durationSeconds > 5) {
     throw const ValidationException('La transition doit durer plus de zéro et au plus cinq secondes.',
-        code: 'warp.transition_invalid_duration');
+        code: 'warp.transition_invalid_duration',
+    );
+  }
+}
+
+void validateMapWarpLadder(MapData map, MapWarp warp) {
+  if (warp.ladder == null) return;
+  if (map.spatialScene == null ||
+      warp.triggerMode == MapWarpTriggerMode.sceneOnly ||
+      warp.door != null) {
+    throw const ValidationException(
+      'Une échelle nécessite un passage 3D actif sans animation de porte.',
+      code: 'warp.ladder_invalid_binding',
+    );
   }
 }
 

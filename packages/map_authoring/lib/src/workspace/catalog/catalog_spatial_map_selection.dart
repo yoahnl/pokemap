@@ -44,6 +44,7 @@ final class CatalogSpatialMapSelection {
                       const {'environment', 'border'}.contains(op['layerKind']))));
     }
     return const {
+      'warp.ladder.configure',
       'warp.update',
       'warp.create',
       'connection.upsert',
@@ -159,7 +160,8 @@ final class CatalogSpatialMapSelection {
     if (!supports(actionId, parameters: parameters)) {
       throw const FormatException('catalog.spatial: unsupported action');
     }
-    if (actionId == 'map.update_metadata' || actionId == 'map3d.camera.configure') {
+    if (actionId == 'map.update_metadata' || actionId == 'map3d.camera.configure' ||
+        actionId == 'warp.ladder.configure') {
       return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
     if (const {'warp.update', 'warp.create', 'connection.upsert',
@@ -630,6 +632,21 @@ final class CatalogSpatialMapSelection {
         if (projected != expectedMaps[id]) {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
               message: 'The relation changed data outside its validated update.');
+        }
+      } else if (action == 'warp.ladder.configure') {
+        final parameters = plan.request.parameters;
+        final ladder = parameters['ladder'];
+        final expected = updateWarpOnMap(snapshot.mapById(mapId)!,
+            warpId: parameters['warpId'] as String,
+            ladder: ladder == null
+                ? null
+                : MapWarpLadder.fromJson(
+                    Map<String, dynamic>.from(ladder as Map)),
+            clearLadder: ladder == null);
+        if (projected != expected) {
+          throw AuthoringPlanException(
+              code: 'catalog.mutation_outside_scope',
+              message: 'The ladder action changed unrelated map content.');
         }
       } else {
         MapValidator.validate(projected, projectDialogueContext: snapshot.manifest);

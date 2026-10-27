@@ -83,6 +83,7 @@ class WarpEditingCommands {
         targetPos: targetPos,
         triggerMode: triggerMode,
         clearDoor: triggerMode == MapWarpTriggerMode.sceneOnly,
+        clearLadder: triggerMode == MapWarpTriggerMode.sceneOnly,
       ),
     );
   }
@@ -92,6 +93,7 @@ class WarpEditingCommands {
       document.current,
       warpId: id,
       door: door,
+      clearLadder: door != null,
       clearDoor: door == null,
     );
     validateMapWarpDoor(
@@ -101,6 +103,16 @@ class WarpEditingCommands {
     );
     document.commit(next);
   }
+
+  void configureLadder(String id, MapWarpLadder? ladder) => document.commit(
+    updateWarpOnMap(
+      document.current,
+      warpId: id,
+      ladder: ladder,
+      clearLadder: ladder == null,
+      clearDoor: ladder != null,
+    ),
+  );
 
   void configureTransition(String id, MapWarpTransition transition) =>
       document.commit(

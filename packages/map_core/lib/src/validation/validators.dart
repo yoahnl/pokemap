@@ -2670,8 +2670,7 @@ class ProjectValidator {
             details: {
               'trainerId': id,
               'teamIndex': i,
-              'field': issue.field,
-            },
+              'field': issue.field},
           );
         }
         if (pokemon.ballItemId case final ballItemId?) {
@@ -3335,6 +3334,7 @@ class MapValidator {
     for (final warp in map.warps) {
       validateMapWarpTransition(warp.transition);
       validateMapWarpDoor(map, warp, models: projectDialogueContext?.models3d);
+      validateMapWarpLadder(map, warp);
       final warpId = _requireNonBlank(warp.id, 'Warp ID cannot be empty');
       _requireNonBlank(warp.targetMapId, 'Warp $warpId has empty targetMapId');
       _validatePositionInBounds(warp.pos, map.size, errorLabel: 'Warp $warpId');

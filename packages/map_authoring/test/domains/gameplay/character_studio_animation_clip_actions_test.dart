@@ -25,9 +25,9 @@ void main() {
       );
     });
 
-    for (final state in ['bicycle_idle', 'bicycle']) {
+    for (final state in ['bicycle_idle', 'bicycle', 'climb']) {
       for (final direction in EntityFacing.values) {
-        test('authors dedicated bicycle slot $state/${direction.name}', () {
+        test('authors dedicated system slot $state/${direction.name}', () {
           final draft = const CharacterStudioAnimationClipActions().build(
             _context(snapshot: _snapshot(),
               actionId: 'characterStudio.animationClip.upsert', parameters: {

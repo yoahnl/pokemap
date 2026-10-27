@@ -443,6 +443,8 @@ enum CharacterAnimationState {
   walk,
   @JsonValue('run')
   run,
+  @JsonValue('climb')
+  climb,
 }
 
 enum CharacterPortraitFitMode {

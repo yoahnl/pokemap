@@ -161,6 +161,7 @@ final class SpatialExplorationSession {
   final transitioning = ValueNotifier(false);
   final nativeDoorBlackout = ValueNotifier<double>(0);
   Future<void> Function()? waitForNativeDoorBlackoutFrame;
+  Future<void> Function()? waitForNativeTraversalStartFrame;
   Future<void> Function(
     RuntimeMapBundle destination,
     bool Function() isCurrent,
@@ -1050,7 +1051,11 @@ final class SpatialExplorationSession {
     }
     final story = heroStoryPose?.call();
     final facing = story?.facing ?? movement.facing;
-    final state = story?.motion ??
+    final climbing =
+        _nativeDoor.isClimbing && _nativeDoor.playerPoseMapId == bundle.map.id;
+    final state = climbing
+        ? CharacterAnimationState.climb
+        : story?.motion ??
         (movement.moving
             ? (movement.running
                 ? CharacterAnimationState.run
@@ -1090,10 +1095,12 @@ final class SpatialExplorationSession {
     return SpatialActorVisual(
         x: story?.x ?? movement.x,
         groundY: story == null ? movement.groundY : cinematicHeightAt(story.x, story.z),
-        contactShadow: character.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault,
+        contactShadow:
+          !climbing &&
+          (character.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault),
         y: story == null
-            ? movement.y
-            : cinematicHeightAt(story.x, story.z) + story.liftCells,
+            ? movement.y + (climbing ? _nativeDoor.playerPose!.liftCells : 0)
+          : cinematicHeightAt(story.x, story.z) + story.liftCells,
         z: story?.z ?? movement.z,
         texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
@@ -1788,15 +1795,17 @@ final class SpatialExplorationSession {
   }
 
   Future<void> _transfer(
-      String targetMapId, GridPos Function(MapData) resolveArrival,
-      {({
-        MapConnection connection,
-        GridSize sourceSize,
-        double sourceX,
+    String targetMapId,
+    GridPos Function(MapData) resolveArrival, {
+    ({
+      MapConnection connection,
+      GridSize sourceSize,
+      double sourceX,
       double sourceZ,
-      })? connectionEntry,
-      PlayerSpatialPosition? spatialArrival,
-      EntityFacing? arrivalFacing,
+    })?
+    connectionEntry,
+    PlayerSpatialPosition? spatialArrival,
+    EntityFacing? arrivalFacing,
     MapWarp? warp,
     bool compensatePendingScene = false,
   }) async {
@@ -1812,12 +1821,15 @@ final class SpatialExplorationSession {
     final sourceConnection = _connectionEntry;
     final lease = Object();
     if (warp != null) _nativeScreenTransition = warp.transition;
-    var native = warp != null &&
+    var native =
+        warp != null &&
         (warp.transition.type != MapWarpTransitionType.none ||
+            warp.ladder != null ||
             warp.door != null ||
             (_knownMaps[targetMapId]?.warps.any(
                   (entry) => entry.pos == warp.targetPos && entry.door != null,
-                ) ?? false));
+                ) ??
+                false));
     if (native) {
       _nativeDoorLease = lease;
       _assets.owners[lease] = source.imageIds;
@@ -1831,9 +1843,88 @@ final class SpatialExplorationSession {
     SpatialExplorationSession? candidate;
     Future<void>? candidatePreparation;
     var acceptingCandidate = true;
+    var departureStarted = false;
+    void rollbackSource() {
+      final changed = !identical(movement, source.movement);
+      bundle = source.bundle;
+      movement = source.movement;
+      restoreSourceMovement();
+      _entityVisuals = source.visuals;
+      _imageIds = source.imageIds;
+      _smartTileAnimations = source.animations;
+      _assets.owners[_assetOwner] = _imageIds;
+      _mapOrigins
+        ..clear()
+        ..addAll(sourceOrigins);
+      _connectionEntry = sourceConnection;
+      _warps = SpatialWarpController(
+        map: bundle.map,
+        x: movement.x,
+        z: movement.z,
+      );
+      attachWorldStateProviders();
+      if (changed) mapRevision.value++;
+    }
+
+    Future<bool> presentDeparture() async {
+      final passage = warp!;
+      final departure = _resolveNativeDoor(source.bundle, passage);
+      _nativeDoorLease = lease;
+      _assets.owners[lease] = source.imageIds;
+      _nativeDoorRollback = rollbackSource;
+      if ((departure != null || passage.ladder != null) &&
+          !await _waitForNativeRenderer(source.bundle.map.id)) {
+        return false;
+      }
+      if (_disposed || generation != _transferGeneration) return false;
+      _nativeDoor.start(
+        ladder: passage.ladder,
+        departureMapId: source.bundle.map.id,
+        departure: departure,
+        departurePos: departure == null ? null : passage.pos,
+        departureStart: (x: movement.x, z: movement.z),
+        transition: passage.transition,
+      );
+      departureStarted = true;
+      final firstFrame = waitForNativeTraversalStartFrame?.call();
+      if (firstFrame != null &&
+          !await Future.any<bool>([
+            firstFrame.then((_) => true),
+            _nativeDoor.finished,
+          ])) {
+        return false;
+      }
+      if (_disposed || generation != _transferGeneration) return false;
+      if (!await _nativeDoor.readyToTransfer ||
+          _disposed ||
+          generation != _transferGeneration) {
+        return false;
+      }
+      final coveredFrame = passage.transition.type == MapWarpTransitionType.none
+          ? null
+          : waitForNativeDoorBlackoutFrame?.call();
+      if (coveredFrame != null &&
+          !await Future.any<bool>([
+            coveredFrame.then((_) => true),
+            _nativeDoor.finished,
+          ])) {
+        return false;
+      }
+      return !_disposed && generation == _transferGeneration;
+    }
+
     try {
-      final next =
-          _preparedMaps[targetMapId]?.bundle ?? await _loadMap(targetMapId);
+      if (native && !await presentDeparture()) return;
+      final cached = _preparedMaps[targetMapId]?.bundle;
+      final loading = cached == null ? _loadMap(targetMapId) : null;
+      final next = cached ??
+          (native
+              ? await Future.any<RuntimeMapBundle?>([
+                  loading!,
+                  _nativeDoor.finished.then((_) => null),
+                ])
+              : await loading!);
+      if (next == null) return;
       if (_disposed || generation != _transferGeneration) return;
       _validateDestination(next, targetMapId, bundle.projectRootDirectory);
       SpatialDoorTraversalBinding? arrivalDoor;
@@ -1845,7 +1936,9 @@ final class SpatialExplorationSession {
             spatialArrival: spatialArrival,
             facing:
                 arrivalFacing ??
-                (native ? _nativeDoor.playerPose?.facing ?? movement.facing : facing),
+                (native
+                    ? _nativeDoor.playerPose?.facing ?? movement.facing
+                    : facing),
             characterId: character.id,
             worldStateProvider: worldStateProvider,
             modelPoseProvider: native ? modelRuntimeState : null,
@@ -1856,11 +1949,14 @@ final class SpatialExplorationSession {
             sharedAssets: _assets,
             knownMaps: _knownMaps.values,
           );
-          if (!acceptingCandidate || _disposed || generation != _transferGeneration) {
+          if (!acceptingCandidate ||
+              _disposed ||
+              generation != _transferGeneration) {
             prepared.dispose();
             if (!_disposed) {
               _assets.retain({
-                for (final prepared in _preparedMaps.values) ...prepared.imageIds,
+                for (final prepared in _preparedMaps.values)
+                  ...prepared.imageIds,
               });
             }
             return;
@@ -1885,7 +1981,9 @@ final class SpatialExplorationSession {
             rendererPreparation,
           ], eagerError: true);
         } on Object catch (error) {
-          if (acceptingCandidate && !_disposed && generation == _transferGeneration) {
+          if (acceptingCandidate &&
+              !_disposed &&
+              generation == _transferGeneration) {
             acceptingCandidate = false;
             interactionError.value = error;
             if (native) _nativeDoor.cancel();
@@ -1907,65 +2005,31 @@ final class SpatialExplorationSession {
         }
         arrivalDoor = _resolveNativeDoor(next, matching.firstOrNull);
         final departure = _resolveNativeDoor(bundle, warp);
-        native = departure != null || arrivalDoor != null ||
+        native =
+            warp.ladder != null ||
+            departure != null ||
+            arrivalDoor != null ||
             warp.transition.type != MapWarpTransitionType.none;
         if (native) {
-          _nativeDoorLease = lease;
-          _assets.owners[lease] = source.imageIds;
+          if (!departureStarted && !await presentDeparture()) return;
           _nativeArrivalDoor = arrivalDoor;
-          _nativeDoorRollback = () {
-            final changed = !identical(movement, source.movement);
-            bundle = source.bundle;
-            movement = source.movement;
-            restoreSourceMovement();
-            _entityVisuals = source.visuals;
-            _imageIds = source.imageIds;
-            _smartTileAnimations = source.animations;
-            _assets.owners[_assetOwner] = _imageIds;
-            _mapOrigins
-              ..clear()
-              ..addAll(sourceOrigins);
-            _connectionEntry = sourceConnection;
-            _warps = SpatialWarpController(
-              map: bundle.map,
-              x: movement.x,
-              z: movement.z,
-            );
-            attachWorldStateProviders();
-            if (changed) mapRevision.value++;
-          };
-          if (departure != null && !await _waitForNativeRenderer(bundle.map.id))
-            return;
-          if (_disposed || generation != _transferGeneration) return;
-          _nativeDoor.start(
-            departure: departure,
+          _nativeDoor.configureArrival(
             arrival: arrivalDoor,
-            departurePos: departure == null ? null : warp.pos,
-            departureStart: (x: movement.x, z: movement.z),
             arrivalPos: warp.targetPos,
-            transition: warp.transition,
           );
-          candidatePreparation = prepareCandidate();
-          if (!await _nativeDoor.readyToTransfer ||
-              _disposed ||
-              generation != _transferGeneration) {
-            return;
-          }
-          final blackFrame = warp.transition.type == MapWarpTransitionType.none
-              ? null
-              : waitForNativeDoorBlackoutFrame?.call();
-          if (blackFrame != null &&
-              !await Future.any<bool>([
-                blackFrame.then((_) => true),
-                _nativeDoor.finished,
-              ])) {
-            return;
-          }
-          if (_disposed || generation != _transferGeneration) return;
         }
       }
       candidatePreparation ??= prepareCandidate();
-      await candidatePreparation;
+      if (native) {
+        if (!await Future.any<bool>([
+          candidatePreparation.then((_) => true),
+          _nativeDoor.finished,
+        ])) {
+          return;
+        }
+      } else {
+        await candidatePreparation;
+      }
       final preparedCandidate = candidate;
       if (!acceptingCandidate || preparedCandidate == null) return;
       if (_disposed || generation != _transferGeneration) return;
@@ -2001,7 +2065,7 @@ final class SpatialExplorationSession {
       _mapOrigins[bundle.map.id] = connectionEntry == null
           ? ui.Offset.zero
           : previousOrigin +
-              spatialConnectionOffset(
+                spatialConnectionOffset(
                   connectionEntry.sourceSize,
                   next.map.size,
                   connectionEntry.connection.direction,
@@ -2020,8 +2084,9 @@ final class SpatialExplorationSession {
       if (native) {
         final rendered = _waitForNativeRenderer(bundle.map.id);
         mapRevision.value++;
-        if (!await rendered || _disposed || generation != _transferGeneration)
+        if (!await rendered || _disposed || generation != _transferGeneration) {
           return;
+        }
         final coveredDestinationFrame = waitForNativeDoorBlackoutFrame?.call();
         if (coveredDestinationFrame != null &&
             !await Future.any<bool>([
@@ -2073,7 +2138,6 @@ final class SpatialExplorationSession {
       }
     }
   }
-
   void dispose() {
     if (_disposed) return;
     if (_dialogueSound case final sound?) unawaited(sound.dispose());

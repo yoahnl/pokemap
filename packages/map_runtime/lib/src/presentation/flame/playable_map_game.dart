@@ -12989,28 +12989,34 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     Future<void> Function()? restorePresentation;
     try {
-      final destination = await _loadRuntimeMapBundleCached(
-        command.destinationMapId,
-      );
-      if (_isRemoved) return 'blocked';
       MapWarp? arrival;
-      for (final warp in destination.map.warps) {
-        if (warp.id == command.warpId) {
-          arrival = warp;
-          break;
-        }
-      }
-      if (arrival == null) {
-        _notifySceneCommand(
-          'Warp ${command.warpId} introuvable sur '
-          '${command.destinationMapId}.',
+      Future<TriggeredWarp> resolveTarget() async {
+        final loaded = await _loadRuntimeMapBundleCached(
+          command.destinationMapId,
         );
-        return 'blocked';
+        if (command.presentation != null && loaded.map.spatialScene != null) {
+          throw StateError('Warp presentation requires a 2D destination.');
+        }
+        arrival = loaded.map.warps
+            .where((warp) => warp.id == command.warpId)
+            .firstOrNull;
+        final resolved = arrival;
+        if (resolved == null) {
+          throw StateError(
+            'Warp ${command.warpId} introuvable sur ${command.destinationMapId}.',
+          );
+        }
+        return TriggeredWarp(
+          warpId: command.warpId,
+          targetMapId: command.destinationMapId,
+          targetPos: resolved.pos,
+          triggerMode: resolved.triggerMode,
+        );
       }
 
       final presentationRenderer = command.presentation == null
           ? null
-          : await _prepareSceneWarpPresentation(command, destination);
+          : await _prepareSceneWarpPresentation(command);
       if (_isRemoved || _flowPhase != _RuntimeFlowPhase.overworld) {
         return 'blocked';
       }
@@ -13057,12 +13063,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       final targetWarp = TriggeredWarp(
         warpId: command.warpId,
         targetMapId: command.destinationMapId,
-        targetPos: arrival.pos,
-        triggerMode: arrival.triggerMode,
+        targetPos: arrival?.pos ?? const GridPos(x: 0, y: 0),
+        triggerMode: arrival?.triggerMode ?? MapWarpTriggerMode.sceneOnly,
       );
       final transitioned = presentationRenderer == null
           ? await _handleWarp(
               targetWarp,
+              resolveTarget: resolveTarget,
               allowMapActivationWork: true,
               arrivalFacing: command.arrivalFacing,
               skipVisualTransition: command.transition == SceneWarpTransition.none,
@@ -13072,10 +13079,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               command,
               targetWarp,
               presentationRenderer,
+              resolveTarget,
             );
       final completed = transitioned &&
           _activeMapId == command.destinationMapId &&
-          _world.player.pos == arrival.pos &&
+          _world.player.pos == arrival?.pos &&
           _world.player.facing == expectedFacing;
       if (!completed) {
         await restorePresentation?.call();
@@ -17039,6 +17047,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<bool> _handleWarp(
     TriggeredWarp warp, {
+    Future<TriggeredWarp> Function()? resolveTarget,
     bool allowMapActivationWork = false,
     bool skipVisualTransition = false,
     MapWarpTransition? passageTransition,
@@ -17097,6 +17106,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         '[warp] start transition warp=${warp.warpId} map=$sourceMapId -> ${warp.targetMapId} target=(${warp.targetPos.x}, ${warp.targetPos.y})',
       );
       final warpStopwatch = Stopwatch()..start();
+      if (overlay != null) {
+        await overlay.fadeOut();
+      }
+      if (resolveTarget != null) {
+        final resolved = await resolveTarget();
+        if (_isRemoved || resolved.targetMapId != warp.targetMapId) {
+          throw StateError('The Warp destination changed during resolution.');
+        }
+        warp = resolved;
+      }
       var newBundle = await _traceAsync(
         'warp',
         'loadBundle',
@@ -17115,9 +17134,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           : sourceInstances;
       final destinationState = transitionState.copyWith(mapInstanceWorldState: nextInstances,
         currentMapId: newBundle.map.id, playerPosition: warp.targetPos);
-      if (overlay != null) {
-        await overlay.fadeOut();
-      }
       await _prepareMapResourcesForDemand(newBundle);
       debugPrint('[warp] loading target map visuals id=${newBundle.map.id}');
       final newImages = await _traceAsync(

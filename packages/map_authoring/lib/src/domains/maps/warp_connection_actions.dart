@@ -67,6 +67,9 @@ final class WarpConnectionActions {
     for (final entry in const <(String, String, AuthoringRiskLevel)>[
       ('warp.create', 'Create a validated warp', AuthoringRiskLevel.low),
       ('warp.update', 'Replace a validated warp', AuthoringRiskLevel.low),
+      (
+        'warp.ladder.configure',
+        'Configure the native ladder traversal of one warp', AuthoringRiskLevel.low),
       ('warp.transition.configure', 'Configure the native screen transition of one warp', AuthoringRiskLevel.low),
       ('warp.delete', 'Delete a warp', AuthoringRiskLevel.low),
       (
@@ -226,6 +229,7 @@ final class WarpConnectionActions {
       'warp.create' => const {'warp'},
       'warp.create_reciprocal_apply' => const {'warp', 'reciprocalWarpId'},
       'warp.update' => const {'warpId', 'warp'},
+      'warp.ladder.configure' => const {'warpId', 'ladder'},
       'warp.transition.configure' => const {'warpId', 'transition'},
       'warp.update_pair_apply' => const {
           'warpId',
@@ -276,6 +280,33 @@ final class WarpConnectionActions {
           changedItems: 1,
           preview: {'warpId': warp.id, 'targetMapId': warp.targetMapId},
         );
+      case 'warp.ladder.configure':
+        final warpId = parameters.string('warpId');
+        final value = planning.request.parameters['ladder'];
+        final MapWarpLadder? ladder;
+        try {
+          if (!planning.request.parameters.containsKey('ladder')) {
+            throw const FormatException('Missing ladder');
+          }
+          ladder = value == null
+              ? null
+              : MapWarpLadder.fromJson(Map<String, dynamic>.from(value as Map));
+        } on Object {
+          throw _failure('warp.ladder_invalid',
+              'Choose a valid ladder direction, orientation, height and duration.');
+        }
+        try {
+          return context.draftMap(
+            after: updateWarpOnMap(context.map,
+                warpId: warpId, ladder: ladder, clearLadder: ladder == null),
+            operation: 'warp.ladder.configure',
+            changedItems: 1,
+            validateProjectReferences: false,
+            preview: {'warpId': warpId, 'ladder': ladder?.toJson()},
+          );
+        } on ValidationException catch (error) {
+          throw _coreFailure('warp.ladder_invalid', error);
+        }
       case 'warp.transition.configure':
         final warpId = parameters.string('warpId');
         final current = _warp(context.map, warpId);
@@ -397,7 +428,8 @@ final class WarpConnectionActions {
         sourceMap: context.map,
         sourceWarp: updated,
         id: reciprocal.id,
-      ).copyWith(door: reciprocal.door, transition: reciprocal.transition),
+      ).copyWith(door: reciprocal.door,
+          ladder: reciprocal.ladder, transition: reciprocal.transition),
     );
     return _draftPair(
       planning: planning,
@@ -617,6 +649,46 @@ AuthoringActionDescriptor _descriptor(
             'doorBindingIndependent': true,
             'sceneOnly': 'unsupported',
             'sceneOrCinematicRequired': false,
+          },
+        if (id == 'warp.ladder.configure')
+          'inputSchema': const {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['mapId', 'warpId', 'ladder'],
+            'properties': {
+              'mapId': {'type': 'string', 'minLength': 1},
+              'warpId': {'type': 'string', 'minLength': 1},
+              'ladder': {
+                'type': ['object', 'null'],
+                'additionalProperties': false,
+                'required': [
+                  'direction',
+                  'facing',
+                  'heightCells',
+                  'durationSeconds'
+                ],
+                'properties': {
+                  'direction': {
+                    'type': 'string',
+                    'enum': ['up', 'down']
+                  },
+                  'facing': {
+                    'type': 'string',
+                    'enum': ['north', 'south', 'east', 'west']
+                  },
+                  'heightCells': {
+                    'type': 'number',
+                    'exclusiveMinimum': 0,
+                    'maximum': 16
+                  },
+                  'durationSeconds': {
+                    'type': 'number',
+                    'exclusiveMinimum': 0,
+                    'maximum': 10
+                  },
+                },
+              },
+            },
           },
         if (id == 'warp.transition.configure')
           'inputSchema': const {
@@ -886,6 +958,7 @@ MapWarp _parseWarp(MapData map, Map<String, Object?> value) {
     'allowedApproachFacings',
     'triggerPadding',
     'door',
+    'ladder',
     'transition',
   };
   final unknown = value.keys.where((key) => !allowed.contains(key)).toList()
@@ -919,6 +992,7 @@ MapWarp _parseWarp(MapData map, Map<String, Object?> value) {
       allowedApproachFacings: warp.allowedApproachFacings,
       triggerPadding: warp.triggerPadding,
       door: warp.door,
+      ladder: warp.ladder,
       transition: warp.transition,
     );
   } on Object {
@@ -976,8 +1050,10 @@ MapData _replaceWarp(MapData map, String warpId, MapWarp warp) {
       allowedApproachFacings: warp.allowedApproachFacings,
       triggerPadding: warp.triggerPadding,
       door: warp.door,
+      ladder: warp.ladder,
       transition: warp.transition,
       clearDoor: warp.door == null,
+      clearLadder: warp.ladder == null,
     );
   } on Object catch (error) {
     throw _coreFailure('warp.update_invalid', error);

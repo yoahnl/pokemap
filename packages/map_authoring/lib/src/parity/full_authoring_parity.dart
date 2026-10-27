@@ -534,6 +534,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/standard_event_template_stdio.test.ts',
     };
   }
+  if (actionId == 'warp.ladder.configure') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/warp_ladder_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/warp_ladder_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/warp_ladder_stdio.test.ts',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/presentation/map_warp_ladder_editor_test.dart',
+    };
+  }
   if (actionId == 'warp.transition.configure') {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/warp_transition_transport_test.dart',
@@ -2111,6 +2123,9 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     ['environment.'],
     'test/domains/maps/environment_actions_test.dart',
   ),
+  _ContractEvidenceRule(
+    ['warp.ladder.configure'],
+      'test/domains/maps/warp_ladder_transport_test.dart'),
   _ContractEvidenceRule(
     ['warp.transition.configure'],
     'test/domains/maps/warp_transition_transport_test.dart',
