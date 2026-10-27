@@ -11,7 +11,12 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../../../packages/map_runtime/test/source_converted_gym_reward_journey_test.dart'
+    show installConvertedQaHeadlessAudio;
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
   testWidgets(
     'spatial battles use canonical touch commands and reject stale taps',
     (tester) async {
@@ -348,6 +353,10 @@ Future<void> _pump(
           return Stack(
             fit: StackFit.expand,
             children: [
+              SpatialOverworldPresentation(
+                battle: runtime,
+                child: const SizedBox.expand(),
+              ),
               SpatialBattleView(runtime: runtime),
               ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
                 valueListenable: runtime.battlePresentationListenable,

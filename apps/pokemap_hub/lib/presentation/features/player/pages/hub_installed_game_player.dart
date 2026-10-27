@@ -1519,27 +1519,30 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             key: _gameplayViewportKey,
             child: Stack(
               children: [
-                SpatialExplorationView(
-                  key: ObjectKey(spatial),
-                  session: spatial.session!,
-                  audioMixer: spatial.audioMixer,
-                  keyboardInputEnabled: false,
-                  onReady: () {
-                    final ready = _spatialReady;
-                    if (identical(spatial, _mountedSpatial) &&
-                        ready != null &&
-                        !ready.isCompleted) {
-                      ready.complete();
-                    }
-                  },
-                  onError: (error) {
-                    final ready = _spatialReady;
-                    if (identical(spatial, _mountedSpatial) &&
-                        ready != null &&
-                        !ready.isCompleted) {
-                      ready.completeError(error);
-                    }
-                  },
+                SpatialOverworldPresentation(
+                  battle: spatial.battle,
+                  child: SpatialExplorationView(
+                    key: ObjectKey(spatial),
+                    session: spatial.session!,
+                    audioMixer: spatial.audioMixer,
+                    keyboardInputEnabled: false,
+                    onReady: () {
+                      final ready = _spatialReady;
+                      if (identical(spatial, _mountedSpatial) &&
+                          ready != null &&
+                          !ready.isCompleted) {
+                        ready.complete();
+                      }
+                    },
+                    onError: (error) {
+                      final ready = _spatialReady;
+                      if (identical(spatial, _mountedSpatial) &&
+                          ready != null &&
+                          !ready.isCompleted) {
+                        ready.completeError(error);
+                      }
+                    },
+                  ),
                 ),
                 if (spatial.battle case final battle?)
                   ListenableBuilder(

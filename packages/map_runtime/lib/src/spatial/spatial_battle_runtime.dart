@@ -211,6 +211,12 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   }
 
   bool get isActive => phase != SpatialBattlePhase.idle;
+  bool get coversOverworldPresentation =>
+      (phase == SpatialBattlePhase.battle ||
+          phase == SpatialBattlePhase.postBattle) &&
+      entryTransition == null &&
+      battleOverlay?.isMounted == true &&
+      exitTransition == null;
   BattlePublicState? get engineState => _engine?.state;
   bool _current(int generation) =>
       !_disposed && generation == _generation && isActive;

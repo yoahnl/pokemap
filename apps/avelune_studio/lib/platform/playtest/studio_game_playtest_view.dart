@@ -176,23 +176,26 @@ class _StudioGamePlaytestViewState extends State<StudioGamePlaytestView>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            SpatialExplorationView(
-              key: ObjectKey(spatial),
-              session: spatial.session!,
-              audioMixer: spatial.audioMixer,
-              keyboardInputEnabled: false,
-              onReady: () {
-                if (identical(spatial, _spatial) &&
-                    !(_spatialReady?.isCompleted ?? true)) {
-                  _spatialReady!.complete();
-                }
-              },
-              onError: (error) {
-                if (identical(spatial, _spatial) &&
-                    !(_spatialReady?.isCompleted ?? true)) {
-                  _spatialReady!.completeError(error);
-                }
-              },
+            SpatialOverworldPresentation(
+              battle: spatial.battle,
+              child: SpatialExplorationView(
+                key: ObjectKey(spatial),
+                session: spatial.session!,
+                audioMixer: spatial.audioMixer,
+                keyboardInputEnabled: false,
+                onReady: () {
+                  if (identical(spatial, _spatial) &&
+                      !(_spatialReady?.isCompleted ?? true)) {
+                    _spatialReady!.complete();
+                  }
+                },
+                onError: (error) {
+                  if (identical(spatial, _spatial) &&
+                      !(_spatialReady?.isCompleted ?? true)) {
+                    _spatialReady!.completeError(error);
+                  }
+                },
+              ),
             ),
             if (spatial.battle case final battle?)
               ListenableBuilder(

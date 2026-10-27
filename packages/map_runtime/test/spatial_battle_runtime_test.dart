@@ -9,11 +9,12 @@ import 'package:flame/game.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_render_3d/map_render_3d.dart' show SpatialGameSurface;
 import 'package:image/image.dart' as img;
 import 'package:map_runtime/map_runtime.dart' show
     SpatialExplorationGameSessionRuntime, GameSessionDescriptor, GameIdentity,
     GameSessionLaunchMode, GameSessionAccessibilityOptions,
-    RuntimeInitialMapPreloadResult;
+    RuntimeInitialMapPreloadResult, SpatialOverworldPresentation;
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
@@ -45,6 +46,213 @@ void main() {
     expect(runtime.battleOverlay!.playCry, isNotNull);
     expect(runtime.battleOverlay!.onOutcomePresented, isNotNull);
     runtime.cancel();
+  });
+  testWidgets(
+      'changing the battle binding preserves the overworld child and game',
+      (tester) async {
+    final runtimeA = SpatialBattleRuntime(
+      readGameState: () => throw StateError('No battle started'),
+      commitGameState: (_, _) => false,
+    );
+    final runtimeB = SpatialBattleRuntime(
+      readGameState: () => throw StateError('No battle started'),
+      commitGameState: (_, _) => false,
+    );
+    addTearDown(runtimeA.dispose);
+    addTearDown(runtimeB.dispose);
+    final battle = ValueNotifier<SpatialBattleRuntime?>(null);
+    addTearDown(battle.dispose);
+    final world = _CountingOverworldGame();
+    final surface = SpatialGameSurface(
+      game: world,
+      loadingBuilder: (_) => const SizedBox(),
+      errorBuilder: (_, error) => throw error,
+    );
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: ValueListenableBuilder<SpatialBattleRuntime?>(
+        valueListenable: battle,
+        child: surface,
+        builder: (_, current, child) => SpatialOverworldPresentation(
+          battle: current,
+          child: child!,
+        ),
+      ),
+    ));
+    await tester.runAsync(world.ready);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.paints, greaterThan(0));
+    final surfaceFinder = find.byWidgetPredicate(
+      (widget) => widget is SpatialGameSurface,
+      skipOffstage: false,
+    );
+    final initialState = tester.state<State>(surfaceFinder);
+    for (final next in [runtimeA, runtimeB, null]) {
+      battle.value = next;
+      await tester.pump();
+      expect(tester.state<State>(surfaceFinder), same(initialState));
+      expect(world.isAttached, true);
+      expect(world.attachments, 1);
+      expect(world.loads, 1);
+    }
+    world.pauseEngine();
+    await tester.pump();
+    expect(tester.binding.hasScheduledFrame, false);
+    runtimeA.pause();
+    runtimeB.pause();
+    expect(tester.binding.hasScheduledFrame, false);
+    battle.value = runtimeB;
+    await tester.pump();
+    runtimeB.resume();
+    expect(tester.binding.hasScheduledFrame, true);
+    await tester.pump();
+    expect(tester.state<State>(surfaceFinder), same(initialState));
+    expect(world.isPaused, true);
+    battle.value = null;
+    await tester.pump();
+    world.resumeEngine();
+    final paints = world.paints;
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.paints, greaterThan(paints));
+    expect(world.attachments, 1);
+    expect(world.loads, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets(
+      'opaque battles suppress overworld paint while updates and attachment survive',
+      (tester) async {
+    final fixture = (await tester.runAsync(_fixture))!;
+    var state = fixture.state;
+    var commits = 0;
+    BattleTransitionOverlayComponent? runtimeExit;
+    GameState? committedBase;
+    bool? committedUnderBlack;
+    final runtime = SpatialBattleRuntime(
+      readGameState: () => state,
+      commitGameState: (expected, next) {
+        committedBase = expected;
+        committedUnderBlack = runtimeExit?.isHoldingBlack;
+        state = next;
+        commits++;
+        return true;
+      },
+    );
+    addTearDown(runtime.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final world = _CountingOverworldGame();
+    var worldBuilds = 0;
+    final worldChild = Builder(builder: (_) {
+      worldBuilds++;
+      return SpatialGameSurface(
+        game: world,
+        loadingBuilder: (_) => const SizedBox(),
+        errorBuilder: (_, error) => throw error,
+      );
+    });
+    await tester.pumpWidget(_battleWorldHost(runtime, worldChild));
+    await tester.runAsync(world.ready);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.paints, greaterThan(0));
+    expect(world.updates, greaterThan(0));
+    expect(world.isAttached, true);
+    expect(runtime.coversOverworldPresentation, false);
+    final exitCoverageSignals = <bool>[];
+    runtime.addListener(() {
+      if (runtime.exitTransition != null) {
+        exitCoverageSignals.add(runtime.coversOverworldPresentation);
+      }
+    });
+    final idlePaints = world.paints;
+    final initialBuilds = worldBuilds;
+    late Future<bool> completion;
+    await tester.runAsync(() async {
+      completion = runtime.start(
+        bundle: fixture.bundle,
+        request: _wild('opaque-paint'),
+      );
+      await _ready(runtime);
+    });
+    await _mountBattleView(tester, runtime, advanceTime: false);
+    expect(runtime.entryTransition, isNotNull);
+    expect(runtime.coversOverworldPresentation, false);
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.paints, greaterThan(idlePaints));
+    await _finishBattleEntry(tester, runtime);
+    expect(runtime.coversOverworldPresentation, true);
+    await tester.pump();
+    final opaquePaints = world.paints;
+    final opaqueUpdates = world.updates;
+    world.deltas.clear();
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    expect(world.paints - opaquePaints, 0);
+    expect(world.updates - opaqueUpdates, 8);
+    expect(world.deltas, everyElement(closeTo(0.02, 0.000001)));
+    expect(worldBuilds, initialBuilds);
+    expect(world.loads, 1);
+    expect(world.attachments, 1);
+    expect(world.isPaused, false);
+    await tester.binding.setSurfaceSize(const Size(393, 852));
+    await tester.pump();
+    expect(world.size, Vector2(393, 852));
+    expect(world.paints, opaquePaints);
+    expect(world.attachments, 1);
+    world.pauseEngine();
+    final pausedUpdates = world.updates;
+    runtime.pause();
+    runtime.resume();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.isPaused, true);
+    expect(world.updates, pausedUpdates);
+    world.resumeEngine();
+    for (var i = 0; i < 10 && runtime.postBattleOverlay == null; i++) {
+      await _submit(tester, runtime, const PlayerBattleChoiceRun());
+    }
+    expect(runtime.phase, SpatialBattlePhase.postBattle);
+    expect(runtime.coversOverworldPresentation, true);
+    expect(runtime.battleOverlay!.isMounted, true);
+    expect(runtime.exitTransition, isNull);
+    await tester.pump();
+    expect(world.paints, opaquePaints);
+    for (var i = 0; i < 500 && runtime.exitTransition == null; i++) {
+      runtime.handleInput(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      await _pumpPresentation(tester);
+    }
+    runtimeExit = runtime.exitTransition;
+    expect(runtimeExit, isNotNull);
+    expect(exitCoverageSignals, isNotEmpty);
+    expect(exitCoverageSignals, everyElement(false));
+    expect(runtime.coversOverworldPresentation, false);
+    expect(runtimeExit!.isHoldingBlack, false);
+    expect(commits, 0);
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.paints, greaterThan(opaquePaints));
+    expect(runtimeExit.isHoldingBlack, false);
+    expect(commits, 0);
+    expect(world.isAttached, true);
+    expect(world.attachments, 1);
+    expect(world.loads, 1);
+    world.deltas.clear();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.deltas, [closeTo(0.02, 0.000001)]);
+    await _acknowledge(tester, runtime);
+    expect(await tester.runAsync(() => completion), true,
+        reason: '${runtime.error} / commits=$commits');
+    expect(commits, 1);
+    expect(committedBase, same(fixture.state));
+    expect(committedUnderBlack, true);
+    expect(runtime.phase, SpatialBattlePhase.idle);
+    expect(runtime.coversOverworldPresentation, false);
+    expect(state.completedBattleRequestIds, contains('opaque-paint'));
+    final resumedPaints = world.paints;
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(world.paints, greaterThan(resumedPaints));
+    await tester.pumpWidget(const SizedBox());
+    expect(world.isAttached, false);
   });
   for (final scenario in [(false, false), (true, false), (false, true)]) {
     final (pausedByLifecycle, disposeRuntime) = scenario;
@@ -591,6 +799,7 @@ void main() {
       await tester.pump();
       expect(oldCurtain.isMounted, false);
       expect(runtime.entryTransition, isNull);
+      expect(runtime.coversOverworldPresentation, false);
       expect(runtime.battlePresentationListenable.value, isNull);
       expect(commits, 0);
       runtime.resume();
@@ -691,6 +900,7 @@ void main() {
     await _ready(runtime);
     await loadFlameComponent(runtime.battleOverlay!);
     expect(runtime.battleOverlay!.isMounted, false);
+    expect(runtime.coversOverworldPresentation, false);
     final displaySession = runtime.displaySession;
     expect(runtime.battlePresentationListenable.value, isNull);
     expect(
@@ -1294,6 +1504,52 @@ void main() {
   });
 }
 
+Widget _battleWorldHost(SpatialBattleRuntime runtime, Widget world) =>
+    MaterialApp(
+      home: Stack(
+        fit: StackFit.expand,
+        children: [
+          SpatialOverworldPresentation(battle: runtime, child: world),
+          ListenableBuilder(
+            listenable: runtime,
+            builder: (_, _) => runtime.isActive
+                ? SpatialBattleView(runtime: runtime)
+                : const SizedBox(),
+          ),
+        ],
+      ),
+    );
+
+class _CountingOverworldGame extends FlameGame {
+  int paints = 0;
+  int updates = 0;
+  int attachments = 0;
+  int loads = 0;
+  final deltas = <double>[];
+
+  @override
+  Future<void> onLoad() async {
+    loads++;
+    await super.onLoad();
+  }
+
+  @override
+  void onAttach() => attachments++;
+
+  @override
+  void update(double dt) {
+    updates++;
+    deltas.add(dt);
+    super.update(dt);
+  }
+
+  @override
+  void render(ui.Canvas canvas) {
+    paints++;
+    super.render(canvas);
+  }
+}
+
 Future<void> _mountBattleView(WidgetTester tester, SpatialBattleRuntime runtime,
     {bool advanceTime = true}) async {
   for (var i = 0; i < 100 && !runtime.battleOverlay!.isMounted; i++) {
@@ -1391,8 +1647,9 @@ Future<void> _ready(SpatialBattleRuntime runtime) async {
 
 Future<void> _readyInView(
     WidgetTester tester, SpatialBattleRuntime runtime) async {
-  await tester
-      .pumpWidget(MaterialApp(home: SpatialBattleView(runtime: runtime)));
+  await tester.pumpWidget(
+    _battleWorldHost(runtime, const SizedBox.expand()),
+  );
   for (var i = 0;
       i < 2000 && runtime.battleOverlay == null && runtime.isActive;
       i++) {

@@ -693,6 +693,7 @@ export 'src/spatial/spatial_exploration_bootstrap.dart';
 export 'src/spatial/spatial_exploration_view.dart';
 export 'src/spatial/spatial_battle_runtime.dart';
 export 'src/spatial/spatial_battle_view.dart';
+export 'src/spatial/spatial_overworld_presentation.dart';
 export 'src/spatial/spatial_entity_visual_plan.dart';
 export 'src/spatial/spatial_gameplay_events.dart';
 export 'src/player/overworld_sfx_player.dart';

@@ -39,8 +39,15 @@ void main() {
           () =>
               '${runtime.session?.interactionError.value} / ${runtime.battle?.error}');
       final battle = runtime.battle!;
-      await tester
-          .pumpWidget(MaterialApp(home: SpatialBattleView(runtime: battle)));
+      await tester.pumpWidget(MaterialApp(
+        home: Stack(fit: StackFit.expand, children: [
+          SpatialOverworldPresentation(
+            battle: battle,
+            child: const SizedBox.expand(),
+          ),
+          SpatialBattleView(runtime: battle),
+        ]),
+      ));
       await _until(
           tester,
           () => battle.battleOverlay?.isMounted == true,
@@ -69,6 +76,7 @@ void main() {
               '${runtime.session!.interactionError.value} / ${battle.error}');
       expect(battle.phase, SpatialBattlePhase.idle);
       expect(battle.isActive, false);
+      expect(battle.coversOverworldPresentation, false);
       expect(
           runtime.inputAuthority.value.context, RuntimeInputContext.dialogue);
       expect(runtime.inputAuthority.value.acceptsRuntimeInput, true);

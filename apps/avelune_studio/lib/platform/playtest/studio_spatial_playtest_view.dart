@@ -96,17 +96,20 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
             fit: StackFit.expand,
             children: [
               Positioned.fill(
-                child:
-                    widget.sceneBuilder?.call(context) ??
-                    SpatialExplorationView(
-                      key: ObjectKey(runtime),
-                      session: session,
-                      audioMixer: runtime.audioMixer,
-                      previewVisuals: widget.previewVisuals,
-                      keyboardInputEnabled: false,
-                      onReady: widget.onReady,
-                      onError: widget.onError,
-                    ),
+                child: SpatialOverworldPresentation(
+                  battle: runtime.battle,
+                  child:
+                      widget.sceneBuilder?.call(context) ??
+                      SpatialExplorationView(
+                        key: ObjectKey(runtime),
+                        session: session,
+                        audioMixer: runtime.audioMixer,
+                        previewVisuals: widget.previewVisuals,
+                        keyboardInputEnabled: false,
+                        onReady: widget.onReady,
+                        onError: widget.onError,
+                      ),
+                ),
               ),
               if (runtime.battle case final battle?)
                 Positioned.fill(
