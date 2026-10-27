@@ -188,7 +188,7 @@ class SpatialRenderContext extends RenderContext3D
           projection: projection,
           draw: (depthContext, materialFor) {
             for (final entry in [..._captured, ..._unlitDepth]) {
-              _withPose(entry, () {
+              _withMaterialPose(entry, () {
                 depthContext.model.setFrom(entry.model);
                 depthContext.jointsInfo.jointTransforms = entry.joints;
                 depthContext.device.clearBindings();
@@ -255,7 +255,7 @@ class SpatialRenderContext extends RenderContext3D
               } else {
                 coverage?.fill();
               }
-              _withPose(entry, () {
+              _withMaterialPose(entry, () {
                 context.model.setFrom(entry.model);
                 context.jointsInfo.jointTransforms = entry.joints;
                 final material = depthMaterial(entry.material)
@@ -308,7 +308,7 @@ class SpatialRenderContext extends RenderContext3D
                           entry.worldBounds,
                         ))
                   continue;
-                _withPose(entry, () {
+                _withMaterialPose(entry, () {
                   context.model.setFrom(entry.model);
                   context.jointsInfo.jointTransforms = entry.joints;
                   final material = depthMaterial(entry.material)
@@ -401,6 +401,19 @@ class SpatialRenderContext extends RenderContext3D
     for (final surface in _weather) {
       super.drawSurface(surface);
       weatherDrawCount++;
+    }
+  }
+
+  void _withMaterialPose(_TransparentSurface entry, void Function() draw) {
+    final previousPose = _MaterialPose(entry.material);
+    final previousMaterial = entry.surface.material;
+    try {
+      entry.pose.apply(entry.material);
+      entry.surface.material = entry.material;
+      draw();
+    } finally {
+      previousPose.apply(entry.material);
+      entry.surface.material = previousMaterial;
     }
   }
 
