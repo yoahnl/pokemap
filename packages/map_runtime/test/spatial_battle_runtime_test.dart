@@ -27,6 +27,7 @@ import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/load_flame_component.dart';
+import 'support/battle_transition_presets.dart';
 import 'source_converted_gym_reward_journey_test.dart' show installConvertedQaHeadlessAudio;
 
 void main() {
@@ -271,7 +272,7 @@ void main() {
       completion = runtime.start(
         bundle: fixture.bundle.copyWith(
           manifest: fixture.bundle.manifest.copyWith(
-            battleTransitions: const ProjectBattleTransitionConfig(
+            battleTransitions: transitionPresetConfig(
               wildTransitionId: 'rby_wild',
               trainerTransitionId: 'dpp_trainer',
             ),
@@ -404,11 +405,15 @@ void main() {
       await _ready(runtime);
     });
     final sheetReady = Completer<ui.Image?>();
+    final requestedSheets = <String>[];
     final curtain = runtime.entryTransition = BattleTransitionOverlayComponent(
-      spec: runtime.entryTransition!.spec,
+      spec: battleTransitionRbyWild,
       viewportSize: Vector2(640, 480),
       onBlackHeld: () {},
-      loadSheet: (_) => sheetReady.future,
+      loadSheet: (sheetName) {
+        requestedSheets.add(sheetName);
+        return sheetReady.future;
+      },
     );
     await tester
         .pumpWidget(MaterialApp(home: SpatialBattleView(runtime: runtime)));
@@ -417,6 +422,7 @@ void main() {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 1)));
     }
+    expect(requestedSheets, ['embedded:rby_wild.png']);
     expect(curtain.isLoading, true);
     expect(curtain.isMounted, false);
     expect(curtain.size, Vector2(393, 852));
@@ -460,9 +466,17 @@ void main() {
     addTearDown(runtime.dispose);
     final bundle = fixture.bundle.copyWith(
       manifest: fixture.bundle.manifest.copyWith(
-        battleTransitions: const ProjectBattleTransitionConfig(
+        battleTransitions: ProjectBattleTransitionConfig(
           wildTransitionId: 'dpp_trainer',
           trainerTransitionId: 'rby_wild',
+          definitions: [
+            for (final definition in transitionPresetDefinitions)
+              if (['dpp_trainer', 'rby_wild'].contains(definition.id))
+                BattleTransitionDefinition.fromJson({
+                  ...definition.toJson(),
+                  'usages': ['wild', 'trainer'],
+                }),
+          ],
         ),
       ),
     );

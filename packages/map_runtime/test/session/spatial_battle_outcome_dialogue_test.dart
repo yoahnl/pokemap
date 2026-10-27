@@ -1,21 +1,25 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
+import '../source_converted_gym_reward_journey_test.dart'
+    show installConvertedQaHeadlessAudio;
 import 'spatial_exploration_game_session_runtime_test.dart' as fixtures;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
   for (final kind in ['trainer', 'static']) {
-    test(
+    testWidgets(
         '$kind Scene battle delivers its outcome dialogue with live host input',
-        () async {
-      final fixture = await _fixture(kind);
+        (tester) async {
+      final fixture = (await tester.runAsync(() => _fixture(kind)))!;
       final runtime = SpatialExplorationGameSessionRuntime(
         descriptor: fixtures.descriptor(initialState: fixture.state),
         projectFilePath: () async => p.join(fixture.root.path, 'project.json'),
@@ -28,12 +32,19 @@ void main() {
         unmountSession: (_) async {},
       );
       addTearDown(runtime.dispose);
-      await runtime.load((_) {});
+      await tester.runAsync(() => runtime.load((_) {}));
       await _until(
+          tester,
           () => runtime.battle?.displaySession != null,
           () =>
               '${runtime.session?.interactionError.value} / ${runtime.battle?.error}');
       final battle = runtime.battle!;
+      await tester
+          .pumpWidget(MaterialApp(home: SpatialBattleView(runtime: battle)));
+      await _until(
+          tester,
+          () => battle.battleOverlay?.isMounted == true,
+          () => '${battle.phase} / ${battle.error}');
       expect(runtime.inputAuthority.value.context, RuntimeInputContext.battle);
       expect(
           battle.context!.request.kind,
@@ -42,7 +53,7 @@ void main() {
               : RuntimeBattleKind.staticEncounter);
       for (var i = 0; i < 500 && battle.postBattleOverlay == null; i++) {
         _primary(runtime);
-        await Future<void>.delayed(const Duration(milliseconds: 5));
+        await _pumpPresentation(tester);
       }
       expect(battle.postBattleOverlay, isNotNull, reason: '${battle.error}');
       expect(battle.engineState!.outcome!.isVictory, true);
@@ -50,7 +61,7 @@ void main() {
           i < 500 && runtime.dialoguePresentationListenable.value == null;
           i++) {
         _primary(runtime);
-        await Future<void>.delayed(const Duration(milliseconds: 5));
+        await _pumpPresentation(tester);
       }
       final dialogue = runtime.dialoguePresentationListenable.value;
       expect(dialogue, isNotNull,
@@ -74,8 +85,10 @@ void main() {
       expect(runtime.gameStateSnapshot.trainerProfile.money,
           beforeReward.trainerProfile.money);
       _primary(runtime);
-      await runtime.gameplayReady.timeout(const Duration(seconds: 3));
+      await tester.runAsync(
+          () => runtime.gameplayReady.timeout(const Duration(seconds: 3)));
       await _until(
+          tester,
           () =>
               runtime.inputAuthority.value.context ==
               RuntimeInputContext.overworld,
@@ -93,9 +106,10 @@ void main() {
       expect(
           completed.playerSpatialPosition, fixture.state.playerSpatialPosition);
       _primary(runtime);
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await _pumpPresentation(tester);
       expect(runtime.gameStateSnapshot.trainerProfile.money,
           completed.trainerProfile.money);
+      await tester.pumpWidget(const SizedBox.shrink());
     });
   }
 }
@@ -109,11 +123,18 @@ void _primary(SpatialExplorationGameSessionRuntime runtime) {
       const RuntimeInputEvent.release(RuntimeInputControl.primary));
 }
 
-Future<void> _until(bool Function() ready, String Function() diagnostic) async {
+Future<void> _until(WidgetTester tester, bool Function() ready,
+    String Function() diagnostic) async {
   for (var i = 0; i < 600 && !ready(); i++) {
-    await Future<void>.delayed(const Duration(milliseconds: 5));
+    await _pumpPresentation(tester);
   }
   expect(ready(), true, reason: diagnostic());
+}
+
+Future<void> _pumpPresentation(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 20));
+  await tester
+      .runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1)));
 }
 
 String _eventId(int id) =>
