@@ -69,7 +69,7 @@ float pointShadowComparison(vec2 pixel, vec2 tile, float resolution, float rows,
     float planeDistance = abs(denominator) > 0.000001 ? dot(receiverNormal, delta) / denominator : -1.0;
     float expected = planeDistance > 0.0 ? min(radius, planeDistance) : length(delta);
     float reference = max(0.0, expected - bias) / radius;
-    return sampledShadowVisibility(texture(pointShadowTexture, sampleUv), reference, point_shadows.options.x > 1.5 && point_shadows.options.x < 2.5);
+    return sampledShadowVisibility(textureLod(pointShadowTexture, sampleUv, 0.0), reference, point_shadows.options.x > 1.5 && point_shadows.options.x < 2.5);
 }
 
 float pointVisibility(vec3 delta, vec3 receiverNormal, int lightIndex, float radius) {
@@ -111,13 +111,13 @@ float shadowComparison(vec2 pixel, float reference, vec2 receiverPixel, vec2 dep
         for (int y = 0; y < 2; y++) {
             for (int x = 0; x < 2; x++) {
                 vec2 subPixel = pixel + vec2(float(x), float(y)) * 0.5 - 0.25;
-                vec4 packed = texture(shadowTexture, (subPixel + 0.5) / resolution);
+                vec4 packed = textureLod(shadowTexture, (subPixel + 0.5) / resolution, 0.0);
                 visibility += sampledShadowVisibility(packed, reference + dot(subPixel - receiverPixel, depthGradient), false);
             }
         }
         return visibility * 0.25;
     }
-    vec4 packed = texture(shadowTexture, (pixel + 0.5) / resolution);
+    vec4 packed = textureLod(shadowTexture, (pixel + 0.5) / resolution, 0.0);
     return sampledShadowVisibility(packed, reference + dot(pixel - receiverPixel, depthGradient), shadow.options.x > 1.5);
 }
 
@@ -179,6 +179,8 @@ void main() {
     if (environment.samplePosition.w > 0.5) receiverNormal = vec3(0.0, 1.0, 0.0);
     vec4 color = samplePixelColor();
     outColor = color * material.albedoColor * (material.alphaMode == 4.0 ? vec4(1.0) : fragColor);
+    if (material.alphaMode == 0.0 && color.a < material.alphaCutoff) discard;
+    if (material.alphaMode == 2.0 && outColor.a < material.alphaCutoff) discard;
     if (atmosphere.options.z < 0.5 && material.lightingOptions.x > 0.5) {
         vec3 normal = vec3(0.0, 1.0, 0.0);
         if (material.lightingOptions.y > 0.5 && dot(fragNormal, fragNormal) > 0.000001) {
@@ -264,12 +266,10 @@ void main() {
         outColor.rgb = mix(outColor.rgb, presentation.fogColor.rgb, haze);
     }
     if (material.alphaMode == 0.0) {
-        if (color.a < material.alphaCutoff) discard;
         outColor.rgb *= material.albedoColor.a * fragColor.a;
     } else if (material.alphaMode == 3.0) {
         outColor.rgb *= outColor.a;
     } else if (material.alphaMode != 4.0) {
-        if (material.alphaMode == 2.0 && outColor.a < material.alphaCutoff) discard;
         outColor.a = 1.0;
     }
 }
