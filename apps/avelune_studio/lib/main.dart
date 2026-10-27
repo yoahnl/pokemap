@@ -17,7 +17,7 @@ Future<ProjectTemplateCatalog> loadStudioProjectTemplateCatalog() async =>
     ProjectTemplateCatalog.fromJson(
       jsonDecode(
         await rootBundle.loadString(
-          '../../packages/map_authoring/assets/project_templates.v1.json',
+          'packages/map_authoring/assets/project_templates.v1.json',
         ),
       ),
     );
