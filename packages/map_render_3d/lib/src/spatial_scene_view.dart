@@ -24,6 +24,7 @@ import 'model_preview.dart';
 import 'model_playback.dart';
 import 'spatial_picking.dart';
 import 'adaptive_camera.dart';
+import 'spatial_scene_height_cache.dart';
 import 'spatial_camera_magnification.dart';
 import 'flutter_frame_graphics_device.dart';
 import 'spatial_render_context.dart';
@@ -1161,6 +1162,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     required this.onSurfaceChanged,
   }) : super(world: World3D(), camera: AdaptiveCamera3D(fovY: 40));
   SpatialSceneView configuration;
+  final _cameraHeightCache = SpatialSceneHeightCache();
   SpatialLightingProfile? previewLighting;
   SpatialLightingProfile authoredLighting = SpatialLightingProfile.disabled;
   List<SpatialAuthoredShadowCaster> authoredShadowCasters = const [];
@@ -2748,8 +2750,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             scene.depth / 2,
           )
         : Vector3(visual.x, visual.y, visual.z);
-    final maximumHeight =
-        scene.heightLevels.reduce(math.max) * scene.levelHeight;
+    final maximumHeight = _cameraHeightCache.maximumHeight(
+      scene.heightLevels,
+      scene.levelHeight,
+    );
     (camera as AdaptiveCamera3D).sceneRadius = math.max(
       math.max(scene.width, scene.depth).toDouble(),
       32 * scene.levelHeight,
