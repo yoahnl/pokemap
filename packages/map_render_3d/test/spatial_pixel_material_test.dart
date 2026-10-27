@@ -570,6 +570,293 @@ void main() {
     expect(device.uniforms['Shadow']![16], 0);
   });
 
+  test('moving an actor only rewrites its environment sample position', () {
+    final shader = _CountingFragmentShader();
+    shader.resource;
+    final actor =
+        SpatialPixelMaterial(
+            material.albedoTexture,
+            lightingRole: SpatialPixelLightingRole.actor,
+          )
+          ..fragmentShader = shader
+          ..shadowSamplePosition = Vector3(4, 1, 7);
+    actor.vertexShader.resource;
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized();
+
+    actor.apply(spatial);
+    expect(
+      shader.environmentWrites,
+      unorderedEquals([
+        'Environment.tint',
+        'Environment.options',
+        'Environment.samplePosition',
+        for (var i = 0; i < 4; i++) ...[
+          'Environment.pointPositionRadius[$i]',
+          'Environment.pointColorIntensity[$i]',
+        ],
+        for (var i = 0; i < 2; i++) ...[
+          'Environment.fireflyPositionRadius[$i]',
+          'Environment.fireflyColorIntensity[$i]',
+        ],
+      ]),
+    );
+    for (var i = 0; i < 120; i++) {
+      actor.apply(spatial);
+    }
+    actor.shadowSamplePosition = Vector3(4, 1, 7);
+    actor.apply(spatial);
+    expect(shader.environmentWrites, hasLength(15));
+
+    final positions = <Vector3?>[
+      actor.shadowSamplePosition!..x = 8,
+      Vector3(9, 2, 10),
+      null,
+      Vector3.zero(),
+      Vector3(4, 1, 7),
+    ];
+    for (final position in positions) {
+      actor.shadowSamplePosition = position;
+      final before = shader.environmentWrites.length;
+      actor.apply(spatial);
+      expect(shader.environmentWrites.skip(before), [
+        'Environment.samplePosition',
+      ]);
+      shader.bind(device);
+      expect(device.uniforms['Environment']!.sublist(8, 12), [
+        position?.x ?? 0,
+        position?.y ?? 0,
+        position?.z ?? 0,
+        position == null ? 0 : 1,
+      ]);
+      actor.apply(spatial);
+      expect(shader.environmentWrites, hasLength(before + 1));
+    }
+  });
+
+  test(
+    'new environment profiles restore light slots without rewriting the anchor',
+    () {
+      final shader = _CountingFragmentShader();
+      shader.resource;
+      final actor =
+          SpatialPixelMaterial(
+              material.albedoTexture,
+              lightingRole: SpatialPixelLightingRole.actor,
+            )
+            ..fragmentShader = shader
+            ..shadowSamplePosition = Vector3(4, 1, 7);
+      actor.vertexShader.resource;
+      final spatial = SpatialRenderContext(device)
+        ..lighting = SpatialLightingProfile.stylized(
+          pointLights: [
+            for (var i = 0; i < 4; i++)
+              SpatialPointLight(position: (x: i + 1, y: 2, z: 3), radius: 4),
+          ],
+          fireflyLights: [
+            for (var i = 0; i < 2; i++)
+              SpatialPointLight(position: (x: i + 5, y: 6, z: 7), radius: 8),
+          ],
+        );
+      actor.apply(spatial);
+      expect(shader.environmentWrites, hasLength(15));
+
+      final reduced = SpatialLightingProfile.stylized(
+        sceneTint: const Color(0xff00ff00),
+        pointLights: [
+          SpatialPointLight(
+            position: (x: 10, y: 11, z: 12),
+            radius: 13,
+            color: const Color(0xffff0000),
+            intensity: .5,
+          ),
+        ],
+      );
+      for (final profile in [
+        reduced,
+        SpatialLightingProfile.disabled,
+        reduced,
+      ]) {
+        spatial.lighting = profile;
+        final before = shader.environmentWrites.length;
+        actor.apply(spatial);
+        final writes = shader.environmentWrites.skip(before);
+        expect(writes, hasLength(14));
+        expect(writes, isNot(contains('Environment.samplePosition')));
+        shader.bind(device);
+        final environment = device.uniforms['Environment']!;
+        expect(environment.sublist(8, 12), [4, 1, 7, 1]);
+        expect(environment.sublist(16, 28), [
+          for (var i = 0; i < 3; i++) ...[0, 0, 0, 1],
+        ]);
+        expect(environment.sublist(32, 44), everyElement(0));
+        expect(environment.sublist(44, 52), [0, 0, 0, 1, 0, 0, 0, 1]);
+        expect(environment.sublist(52, 60), everyElement(0));
+        if (profile.enabled) {
+          expect(environment.sublist(0, 8), [0, 1, 0, 1, 1, 1, 0, 0]);
+          expect(environment.sublist(12, 16), [10, 11, 12, 13]);
+          expect(environment.sublist(28, 32), [1, 0, 0, .5]);
+        } else {
+          expect(environment.sublist(0, 8), [1, 1, 1, 1, 0, 0, 0, 0]);
+          expect(environment.sublist(12, 16), [0, 0, 0, 1]);
+          expect(environment.sublist(28, 32), everyElement(0));
+          actor.shadowSamplePosition!.x = 5;
+          actor.apply(spatial);
+          expect(shader.environmentWrites, hasLength(before + 15));
+          shader.bind(device);
+          expect(device.uniforms['Environment']!.sublist(8, 12), [5, 1, 7, 1]);
+          actor.shadowSamplePosition!.x = 4;
+          actor.apply(spatial);
+        }
+      }
+    },
+  );
+
+  test('replaced shaders and resources restore both environment groups', () {
+    final first = _CountingFragmentShader();
+    first.resource;
+    final actor =
+        SpatialPixelMaterial(
+            material.albedoTexture,
+            lightingRole: SpatialPixelLightingRole.actor,
+          )
+          ..fragmentShader = first
+          ..shadowSamplePosition = Vector3(4, 1, 7);
+    actor.vertexShader.resource;
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(
+        sceneTint: const Color(0xff00ff00),
+        pointLights: [
+          SpatialPointLight(position: (x: 2, y: 3, z: 4), radius: 5),
+        ],
+        fireflyLights: [
+          SpatialPointLight(position: (x: 6, y: 7, z: 8), radius: 9),
+        ],
+      );
+    actor.apply(spatial);
+    first.bind(device);
+    final expected = device.uniforms['Environment']!.toList();
+    final second = _CountingFragmentShader();
+    second.resource;
+    actor.fragmentShader = second;
+    actor.apply(spatial);
+    second.bind(device);
+    expect(first.environmentWrites, hasLength(15));
+    expect(second.environmentWrites, hasLength(15));
+    expect(device.uniforms['Environment'], expected);
+
+    final resource = second.resource;
+    backend._shaders['TextureFragment'] = _Shader();
+    second.recreateResource = true;
+    expect(second.resource, isNot(same(resource)));
+    actor.apply(spatial);
+    second.bind(device);
+    expect(second.environmentWrites, hasLength(30));
+    expect(device.uniforms['Environment'], expected);
+    actor.apply(spatial);
+    expect(second.environmentWrites, hasLength(30));
+  });
+
+  test('recreated pixel shader resources restore environment with identical GPU handles', () {
+    final actor = SpatialPixelMaterial(
+      material.albedoTexture,
+      lightingRole: SpatialPixelLightingRole.actor,
+    )..shadowSamplePosition = Vector3(4, 1, 7);
+    actor.vertexShader.resource;
+    actor.fragmentShader.resource;
+    final spatial = SpatialRenderContext(device)
+      ..lighting = SpatialLightingProfile.stylized(
+        sceneTint: const Color(0xff00ff00),
+        pointLights: [
+          SpatialPointLight(position: (x: 2, y: 3, z: 4), radius: 5),
+        ],
+        fireflyLights: [
+          SpatialPointLight(position: (x: 6, y: 7, z: 8), radius: 9),
+        ],
+      );
+    actor.apply(spatial);
+    actor.fragmentShader.bind(device);
+    final expected = device.uniforms['Environment']!.toList();
+    final resource = actor.fragmentShader.resource;
+    actor.fragmentShader.recreateResource = true;
+    expect(actor.fragmentShader.resource, same(resource));
+    device.uniforms.clear();
+    actor.apply(spatial);
+    actor.fragmentShader.bind(device);
+    expect(device.uniforms['Environment'], expected);
+  });
+
+  test(
+    'environment anchors follow the actor role even for excluded materials',
+    () {
+      final spatial = SpatialRenderContext(device)
+        ..lighting = SpatialLightingProfile.stylized(
+          unlitMaterialNames: {'prelit'},
+        );
+      for (final role in SpatialPixelLightingRole.values) {
+        final shader = _CountingFragmentShader();
+        shader.resource;
+        final surface =
+            SpatialPixelMaterial(
+                material.albedoTexture,
+                lightingRole: role,
+                sourceMaterialName: 'prelit',
+              )
+              ..fragmentShader = shader
+              ..shadowSamplePosition = Vector3(4, 1, 7);
+        surface.vertexShader.resource;
+        surface.apply(spatial);
+        shader.bind(device);
+        expect(device.uniforms['Material']![36], 0);
+        expect(
+          device.uniforms['Environment']!.sublist(8, 12),
+          role == SpatialPixelLightingRole.actor ? [4, 1, 7, 1] : [0, 0, 0, 0],
+        );
+        surface.shadowSamplePosition!.x = 5;
+        surface.apply(spatial);
+        expect(
+          shader.environmentWrites,
+          hasLength(role == SpatialPixelLightingRole.actor ? 16 : 15),
+        );
+      }
+    },
+  );
+
+  test(
+    'environment profile and anchor buffers stay isolated across materials',
+    () {
+      final spatial = SpatialRenderContext(device)
+        ..lighting = SpatialLightingProfile.stylized(
+          sceneTint: const Color(0xff00ff00),
+        );
+      final actors = [
+        for (var i = 0; i < 2; i++)
+          SpatialPixelMaterial(
+            material.albedoTexture,
+            lightingRole: SpatialPixelLightingRole.actor,
+          )..shadowSamplePosition = Vector3(i + 1, 2, 3),
+      ];
+      final snapshots = <List<double>>[];
+      for (final actor in actors) {
+        actor.vertexShader.resource;
+        actor.fragmentShader.resource;
+        actor.apply(spatial);
+        actor.fragmentShader.bind(device);
+        snapshots.add(device.uniforms['Environment']!.toList());
+      }
+      spatial.lighting = SpatialLightingProfile.stylized(
+        sceneTint: const Color(0xffff0000),
+      );
+      actors[0].shadowSamplePosition!.x = 10;
+      actors[0].apply(spatial);
+      actors[1].fragmentShader.bind(device);
+      expect(device.uniforms['Environment'], snapshots[1]);
+      actors[0].fragmentShader.bind(device);
+      expect(device.uniforms['Environment']!.sublist(0, 4), [1, 0, 0, 1]);
+      expect(device.uniforms['Environment']!.sublist(8, 12), [10, 2, 3, 1]);
+    },
+  );
+
   test('unlit context binds identity joints on its first static draw', () {
     final spatial = SpatialRenderContext(device);
     final unlit = UnlitMaterial(albedoTexture: material.albedoTexture);
@@ -1112,6 +1399,7 @@ final class _CountingFragmentShader extends FragmentShader {
   final albedoSnapshots = <List<double>>[];
   int atmosphereWrites = 0;
   int presentationWrites = 0;
+  final environmentWrites = <String>[];
 
   @override
   void setVector4(String key, Vector4 value) {
@@ -1121,6 +1409,7 @@ final class _CountingFragmentShader extends FragmentShader {
     }
     if (key.startsWith('Atmosphere.')) atmosphereWrites++;
     if (key.startsWith('Presentation.')) presentationWrites++;
+    if (key.startsWith('Environment.')) environmentWrites.add(key);
     if (key != 'Material.albedoColor' &&
         !key.startsWith('Environment.') &&
         !key.startsWith('PointShadows.') &&

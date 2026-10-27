@@ -480,6 +480,10 @@ class SpatialPixelMaterial extends UnlitMaterial {
 
   void _applyEnvironment(SpatialLightingProfile lighting) {
     final shader = fragmentShader, resource = shader.resource;
+    final invalidated =
+        !_environmentUniformsBound ||
+        !identical(_environmentShader, shader) ||
+        !identical(_environmentResource, resource);
     final sample = lightingRole == SpatialPixelLightingRole.actor
         ? shadowSamplePosition
         : null;
@@ -489,12 +493,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
       sample?.z ?? 0,
       sample == null ? 0 : 1,
     );
-    if (_environmentUniformsBound &&
-        identical(_boundEnvironmentLighting, lighting) &&
-        _boundEnvironmentSample == _environmentSample &&
-        identical(_environmentShader, shader) &&
-        identical(_environmentResource, resource))
-      return;
+    if (invalidated || _boundEnvironmentSample != _environmentSample) {
+      shader.setVector4('Environment.samplePosition', _environmentSample);
+      _boundEnvironmentSample.setFrom(_environmentSample);
+    }
+    if (!invalidated && identical(_boundEnvironmentLighting, lighting)) return;
     final tint = lighting.sceneTint;
     _environmentTint.setValues(tint.r, tint.g, tint.b, 1);
     _environmentOptions.setValues(
@@ -505,8 +508,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     );
     shader
       ..setVector4('Environment.tint', _environmentTint)
-      ..setVector4('Environment.options', _environmentOptions)
-      ..setVector4('Environment.samplePosition', _environmentSample);
+      ..setVector4('Environment.options', _environmentOptions);
     for (var index = 0; index < 4; index++) {
       final light = index < lighting.pointLights.length
           ? lighting.pointLights[index]
@@ -563,7 +565,6 @@ class SpatialPixelMaterial extends UnlitMaterial {
         );
     }
     _boundEnvironmentLighting = lighting;
-    _boundEnvironmentSample.setFrom(_environmentSample);
     _environmentShader = shader;
     _environmentResource = resource;
     _environmentUniformsBound = true;
