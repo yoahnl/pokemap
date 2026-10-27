@@ -109,6 +109,10 @@ final class SpatialSceneResourcePreparation {
       }
 
       await Future.wait([loadNext(), loadNext()]);
+      if (!isCurrent) {
+        discard();
+        return false;
+      }
       final ground = SpatialGroundPlan(map, project);
       final occlusion = SpatialActorOcclusionPlan(map, project);
       Set<String> imagesAt(int elapsed) => {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -199,6 +200,80 @@ void main() {
     expect(budget.transientBytes, 0);
     expect(budget.activeDecodes, 0);
   });
+  for (final layerCount in [1, 1000]) {
+    for (final cancellation in ['request', 'source', null]) {
+      test(
+        'warm preparation ${cancellation == null ? 'builds plans' : 'skips plans after $cancellation cancellation'} with $layerCount layers',
+        () async {
+          final budget = RuntimeResourceBudget();
+          addTearDown(budget.dispose);
+          final lease = await budget.acquire(residentBytes: 128);
+          lease.commit();
+          addTearDown(lease.release);
+          final warmModel = Future.value(Model(nodes: {}, animations: const []));
+          final models = {'source-tree': warmModel};
+          final textures = <String, Future<Texture>>{};
+          final modelLeases = {'source-tree': lease};
+          final textureLeases = <String, RuntimeResourceReservation>{};
+          final layers = _CountingLayers(layerCount);
+          var requestCurrent = true;
+          var sourceCurrent = true;
+          var modelReads = 0;
+          var imageReads = 0;
+          final prep = SpatialSceneResourcePreparation(
+            SpatialScenePreparation(
+              map: target().copyWith(layers: layers),
+              project: project,
+              loadModel: (_) async {
+                modelReads++;
+                return _triangle('tree');
+              },
+              loadGroundImage: (_) async {
+                imageReads++;
+                return Uint8List(0);
+              },
+              resourceIdentity: 'root:sha',
+              resourceBudget: budget,
+              isCurrent: () => requestCurrent,
+            ),
+            modelCache: models,
+            groundTextureCache: textures,
+            isCurrent: () => sourceCurrent,
+          );
+          addTearDown(prep.discard);
+          final loading = prep.prepare();
+          if (cancellation == 'request') requestCurrent = false;
+          if (cancellation == 'source') sourceCurrent = false;
+          layers.reads = 0;
+          expect(await loading, cancellation == null);
+          expect(layers.reads, cancellation == null ? greaterThan(0) : 0);
+          if (cancellation == null) {
+            prep.adoptInto(models, textures, modelLeases, textureLeases);
+            prep.commit();
+          } else {
+            expect(
+              () => prep.adoptInto(
+                models,
+                textures,
+                modelLeases,
+                textureLeases,
+              ),
+              throwsStateError,
+            );
+          }
+          expect(modelReads, 0);
+          expect(imageReads, 0);
+          expect(models, {'source-tree': same(warmModel)});
+          expect(modelLeases, {'source-tree': same(lease)});
+          expect(textures, isEmpty);
+          expect(textureLeases, isEmpty);
+          expect(budget.residentBytes, 128);
+          expect(budget.transientBytes, 0);
+          expect(budget.activeDecodes, 0);
+        },
+      );
+    }
+  }
   test('failed preparation releases leases and remains retryable', () async {
     final budget = RuntimeResourceBudget();
     addTearDown(budget.dispose);
@@ -444,6 +519,33 @@ void main() {
       },
     );
   }
+}
+
+final class _CountingLayers extends ListBase<MapLayer> {
+  _CountingLayers(int count)
+    : _layers = [
+        for (var i = 0; i < count; i++)
+          MapLayer.tile(id: 'layer-$i', name: 'Layer $i'),
+      ];
+
+  final List<MapLayer> _layers;
+  var reads = 0;
+
+  @override
+  int get length => _layers.length;
+
+  @override
+  set length(int value) => throw UnsupportedError('Immutable layers');
+
+  @override
+  MapLayer operator [](int index) {
+    reads++;
+    return _layers[index];
+  }
+
+  @override
+  void operator []=(int index, MapLayer value) =>
+      throw UnsupportedError('Immutable layers');
 }
 
 Uint8List _triangle(String name) {
