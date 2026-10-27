@@ -22,6 +22,7 @@ import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/step_studio_world_presence_runtime.dart';
 import '../application/world_rules/runtime_world_rule_projection_hook.dart';
 import '../application/world_rules/runtime_world_rule_projection_cache.dart';
+import 'spatial_model_interaction_index.dart';
 
 typedef SpatialSceneCallbackFactory = SceneRuntimeHostCallbacks Function(
   GameState Function() readSceneState,
@@ -87,6 +88,9 @@ final class SpatialGameplayEvents {
        _persistItemPickup = persistItemPickup,
        _presentItemPickup = presentItemPickup,
        _itemCatalog = itemCatalog,
+       _modelInteractions = SpatialModelInteractionIndex(
+         project.eventRegistry?.records ?? const <NarrativeEventRecord>[],
+       ),
        _transactions = NarrativeEventStateTransactions(readGameState()),
        _chapterIndex = buildGlobalStoryChapterStepIndex(project.scenarios),
        _battleContracts = buildBattlePublicContracts(project),
@@ -235,6 +239,7 @@ final class SpatialGameplayEvents {
   final Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
   _presentItemPickup;
   final ItemCatalogSnapshot? _itemCatalog;
+  final SpatialModelInteractionIndex _modelInteractions;
   final NarrativeEventStateTransactions _transactions;
   final GlobalStoryChapterStepIndex _chapterIndex;
   final List<BattlePublicContract> _battleContracts;
@@ -454,34 +459,16 @@ final class SpatialGameplayEvents {
     final position = state.playerSpatialPosition;
     if (position == null) return null;
     final map = _map;
-    final ids = <String>{};
-    for (final record
-        in project.eventRegistry?.records ?? const <NarrativeEventRecord>[]) {
-      if (record.enabledOrNull != true) continue;
-      final id = record.definitionOrNull?.source.when<String?>(
-        modelInteract: (mapId, instanceId) =>
-            mapId == map.id ? instanceId : null,
-        entityInteract: (mapId, entityId) => null,
-        entityAutorun: (mapId, entityId) => null,
-        entityBump: (mapId, entityId) => null,
-        triggerBump: (mapId, triggerId) => null,
-        triggerEnter: (mapId, triggerId) => null,
-        mapEnter: (mapId) => null,
-        outcomeReceived: (outcome) => null,
-      );
-      if (id != null) ids.add(id);
-    }
+    final candidates = _modelInteractions.candidatesFor(map);
+    if (candidates.isEmpty) return null;
     return findSpatialModelInteraction(
       scene: map.spatialScene!,
       models: currentModelDefinitions?.call() ?? project.models3d,
       modelStateProvider: (id) => state.spatialWorldState.modelState(map.id, id),
-      instances: map.spatialScene!.instances.where((instance) {
-        if (!ids.contains(instance.id)) return false;
-        final ownerId = instance.entityId;
-        if (ownerId == null) return true;
-        final owner = map.entities.where((entity) => entity.id == ownerId).firstOrNull;
-        return owner != null && entityIsPresent(map.id, owner, gameStateOverride: state);
-      }),
+      instances: candidates
+          .where((candidate) => candidate.owner == null ||
+              entityIsPresent(map.id, candidate.owner!, gameStateOverride: state))
+          .map((candidate) => candidate.instance),
       x: position.x,
       z: position.z,
       facing: state.playerFacing,

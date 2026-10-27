@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,7 @@ import 'package:map_runtime/src/application/scene_runtime/scene_runtime_host_cal
 import 'package:map_runtime/src/application/scene_runtime/scene_consequence_runtime_writer.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/spatial/spatial_gameplay_events.dart';
+import 'package:map_runtime/src/spatial/spatial_model_interaction_index.dart';
 
 void main() {
   test('collected bound model cannot become a ghost interaction target', () async {
@@ -28,6 +30,453 @@ void main() {
     expect(host.events.interactionTarget, isNull);
     expect(host.events.modelInteractionTarget, isNull);
   });
+
+  for (final unrelatedCount in [10, 1000]) {
+    test('model interaction index visits $unrelatedCount records once', () {
+      final owner = MapEntity(
+        id: 'owner',
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 2, y: 3),
+      );
+      final owners = _CountingList([
+        owner,
+        for (var index = 0; index < unrelatedCount; index++)
+          owner.copyWith(id: 'unrelated-owner-$index'),
+      ]);
+      final target = _interactionInstance('target', entityId: owner.id);
+      final map = _modelMap([
+        target,
+        for (var index = 0; index < unrelatedCount; index++)
+          _interactionInstance('unrelated-$index'),
+      ], entities: owners);
+      final records = _CountingIterable([
+        _event(
+          0,
+          NarrativeEventSourceRef.modelInteract(map.id, target.id),
+          'interaction',
+        ),
+        for (var index = 0; index < unrelatedCount; index++)
+          _event(
+            index + 1,
+            NarrativeEventSourceRef.modelInteract('other', 'foreign-$index'),
+            'interaction',
+          ),
+      ]);
+      final index = SpatialModelInteractionIndex(records);
+      expect(records.iterations, 1);
+      expect(records.reads, unrelatedCount + 1);
+      final candidates = index.candidatesFor(map);
+      expect(candidates.single.instance, same(target));
+      expect(candidates.single.owner, same(owner));
+      expect(owners.reads, greaterThan(0));
+      owners.reads = 0;
+
+      for (var query = 0; query < 300; query++) {
+        expect(index.candidatesFor(map), same(candidates));
+      }
+
+      expect(records.iterations, 1);
+      expect(records.reads, unrelatedCount + 1);
+      expect(owners.reads, 0);
+      expect(() => candidates.clear(), throwsUnsupportedError);
+    });
+  }
+
+  test('model interaction index preserves map order and first owner', () {
+    const first = MapEntity(
+      id: 'owner',
+      kind: MapEntityKind.custom,
+      pos: GridPos(x: 2, y: 3),
+    );
+    final duplicate = first.copyWith(pos: const GridPos(x: 4, y: 4));
+    final bound = _interactionInstance('z-bound', entityId: first.id);
+    final free = _interactionInstance('a-free');
+    final map = _modelMap(
+      [
+        bound,
+        _interactionInstance('disabled'),
+        _interactionInstance('draft'),
+        _interactionInstance('wrong-source'),
+        _interactionInstance('other-map'),
+        _interactionInstance('missing-owner', entityId: 'missing'),
+        free,
+      ],
+      entities: [first, duplicate],
+    );
+    final index = SpatialModelInteractionIndex([
+      _event(
+        1,
+        NarrativeEventSourceRef.modelInteract(map.id, free.id),
+        'interaction',
+      ),
+      _event(
+        2,
+        NarrativeEventSourceRef.modelInteract(map.id, bound.id),
+        'interaction',
+      ),
+      _event(
+        3,
+        NarrativeEventSourceRef.modelInteract(map.id, free.id),
+        'interaction',
+      ),
+      NarrativeEventRecord.configuredStructurallyUnchecked(
+        _event(
+          4,
+          NarrativeEventSourceRef.modelInteract(map.id, 'disabled'),
+          'interaction',
+        ).definitionOrNull!,
+        enabled: false,
+      ),
+      NarrativeEventRecord.draft(
+        NarrativeEventDraft(
+          id: _id('evt', 5),
+          name: 'Draft',
+          source: NarrativeEventSourceRef.modelInteract(map.id, 'draft'),
+          conditions: [],
+          priority: 0,
+          order: 5,
+        ),
+      ),
+      _event(
+        6,
+        NarrativeEventSourceRef.entityInteract(map.id, 'wrong-source'),
+        'interaction',
+      ),
+      _event(
+        7,
+        NarrativeEventSourceRef.modelInteract('other', 'other-map'),
+        'interaction',
+      ),
+      _event(
+        8,
+        NarrativeEventSourceRef.modelInteract(map.id, 'missing-owner'),
+        'interaction',
+      ),
+    ]);
+
+    final candidates = index.candidatesFor(map);
+    expect(candidates.map((candidate) => candidate.instance), [bound, free]);
+    expect(candidates.first.owner, same(first));
+    expect(candidates.last.owner, isNull);
+    final replacement = _interactionInstance('a-free');
+    final replacementMap = _modelMap([replacement]);
+    expect(replacementMap.id, map.id);
+    expect(
+      index.candidatesFor(replacementMap).single.instance,
+      same(replacement),
+    );
+    final restored = index.candidatesFor(map);
+    expect(restored, isNot(same(candidates)));
+    expect(restored.map((candidate) => candidate.instance), [bound, free]);
+  });
+
+  for (final foreignEventCount in [0, 10, 1000]) {
+    test(
+      '300 model target queries skip definitions with $foreignEventCount foreign events',
+      () async {
+        final model = _interactionModel();
+        final map = _modelMap([
+          _interactionInstance('target'),
+          for (var index = 0; index < foreignEventCount; index++)
+            _interactionInstance('unrelated-$index'),
+        ]);
+        final definitions = _CountingIterable([model]);
+        var definitionRequests = 0;
+        final host = await _Host.create(
+          _project(
+            map,
+            records: [
+              for (var index = 0; index < foreignEventCount; index++)
+                _event(
+                  index,
+                  NarrativeEventSourceRef.modelInteract(
+                    'other',
+                    'foreign-$index',
+                  ),
+                  'interaction',
+                ),
+            ],
+            scenes: [_scene('interaction', [])],
+          ).copyWith(models3d: [model]),
+          map,
+          currentModelDefinitions: () {
+            definitionRequests++;
+            return definitions;
+          },
+        );
+
+        for (var query = 0; query < 300; query++) {
+          expect(host.events.modelInteractionTarget, isNull);
+        }
+
+        expect(definitionRequests, 0);
+        expect(definitions.iterations, 0);
+        expect(definitions.reads, 0);
+      },
+    );
+  }
+
+  test(
+    'real model targets still consume current definitions on each query',
+    () async {
+      final model = _interactionModel();
+      final instance = _interactionInstance('target');
+      final map = _modelMap([instance]);
+      final definitions = _CountingIterable([model]);
+      final host = await _Host.create(
+        _project(
+          map,
+          records: [
+            _event(
+              1,
+              NarrativeEventSourceRef.modelInteract(map.id, instance.id),
+              'interaction',
+            ),
+          ],
+          scenes: [_scene('interaction', [])],
+        ).copyWith(models3d: [model]),
+        map,
+        currentModelDefinitions: () => definitions,
+      );
+
+      for (var query = 0; query < 3; query++) {
+        expect(host.events.modelInteractionTarget, same(instance));
+      }
+
+      expect(definitions.iterations, 3);
+      expect(definitions.reads, 3);
+    },
+  );
+
+  test('absent authored instances and owners skip model definitions', () async {
+    final model = _interactionModel();
+    final map = _modelMap([
+      _interactionInstance('orphan', entityId: 'missing-owner'),
+    ]);
+    var definitionRequests = 0;
+    final host = await _Host.create(
+      _project(
+        map,
+        records: [
+          _event(
+            1,
+            NarrativeEventSourceRef.modelInteract(map.id, 'missing-instance'),
+            'interaction',
+          ),
+          _event(
+            2,
+            NarrativeEventSourceRef.modelInteract(map.id, 'orphan'),
+            'interaction',
+          ),
+        ],
+        scenes: [_scene('interaction', [])],
+      ).copyWith(models3d: [model]),
+      map,
+      currentModelDefinitions: () {
+        definitionRequests++;
+        return [model];
+      },
+    );
+
+    for (var query = 0; query < 300; query++) {
+      expect(host.events.modelInteractionTarget, isNull);
+    }
+    expect(definitionRequests, 0);
+  });
+
+  test(
+    'cached model candidates keep hot definitions, facing and player position',
+    () async {
+      final model = _interactionModel();
+      final instance = _interactionInstance('target');
+      final map = _modelMap([instance]);
+      var definitions = [model];
+      var worldProject = _project(
+        map,
+        records: [
+          _event(
+            1,
+            NarrativeEventSourceRef.modelInteract(map.id, instance.id),
+            'interaction',
+          ),
+        ],
+        scenes: [_scene('interaction', [])],
+      ).copyWith(models3d: definitions);
+      ProjectManifest? lastWorldProject;
+      final host = await _Host.create(
+        worldProject,
+        map,
+        currentModelDefinitions: () => definitions,
+        currentWorldProject: () => lastWorldProject = worldProject,
+      );
+
+      expect(host.events.modelInteractionTarget, same(instance));
+      definitions = [_interactionModel(minX: 2, maxX: 2.2)];
+      expect(host.events.modelInteractionTarget, isNull);
+      definitions = [model];
+      expect(host.events.modelInteractionTarget, same(instance));
+      host.state = host.state.copyWith(playerFacing: EntityFacing.north);
+      expect(host.events.modelInteractionTarget, isNull);
+      host.state = host.state.copyWith(playerFacing: EntityFacing.south);
+      host.moveTo(4.5, 2.5);
+      expect(host.events.modelInteractionTarget, isNull);
+      host.moveTo(2.5, 2.5);
+      expect(host.events.modelInteractionTarget, same(instance));
+      worldProject = worldProject.copyWith(
+        models3d: [_interactionModel(minX: 2, maxX: 2.2)],
+        eventRegistry: null,
+      );
+      host.events.projectWorld();
+      expect(lastWorldProject, same(worldProject));
+      expect(host.events.modelInteractionTarget, same(instance));
+    },
+  );
+
+  test('cached model candidates keep live obstacle runtime state', () async {
+    final model = _interactionModel();
+    final instance = _interactionInstance('target');
+    final obstacle = SpatialModelInstance(
+      id: 'obstacle',
+      modelId: model.id,
+      position: Model3dVector3(x: 2.5, y: 0, z: 3),
+    );
+    final map = _modelMap([obstacle, instance]);
+    final host = await _Host.create(
+      _project(
+        map,
+        records: [
+          _event(
+            1,
+            NarrativeEventSourceRef.modelInteract(map.id, instance.id),
+            'interaction',
+          ),
+        ],
+        scenes: [_scene('interaction', [])],
+      ).copyWith(models3d: [model]),
+      map,
+    );
+
+    expect(host.events.modelInteractionTarget, isNull);
+    host.state = host.state.copyWith(
+      spatialWorldState: host.state.spatialWorldState.setModelState(
+        map.id,
+        obstacle.id,
+        SpatialModelRuntimeState(
+          modelId: model.id,
+          animationIndex: null,
+          normalizedTime: 0,
+          blocksMovement: false,
+        ),
+      ),
+    );
+    expect(host.events.modelInteractionTarget, same(instance));
+    host.state = host.state.copyWith(
+      spatialWorldState: host.state.spatialWorldState.removeModelState(
+        map.id,
+        obstacle.id,
+      ),
+    );
+    expect(host.events.modelInteractionTarget, isNull);
+  });
+
+  test(
+    'cached bound model keeps live owner visibility and world projection',
+    () async {
+      final owner = MapEntity(
+        id: 'owner',
+        kind: MapEntityKind.npc,
+        pos: const GridPos(x: 2, y: 3),
+        npc: const MapEntityNpcData(
+          visibilityRule: MapEntityNpcVisibilityRule(
+            mode: MapEntityNpcVisibilityMode.visibleWhen,
+            predicate: MapEntityRuntimePredicate(
+              refId: 'visible',
+              kind: MapEntityRuntimePredicateKind.storyFlagSet,
+            ),
+          ),
+        ),
+        presentation: MapEntityPresentation(
+          variants: [
+            MapEntityPresentationVariant(
+              id: 'projected',
+              condition: NarrativeEventConditionExpression.leaf(
+                NarrativeEventCondition.fact('projected', true),
+              ),
+              blocksMovement: true,
+            ),
+          ],
+        ),
+      );
+      final model = _interactionModel();
+      final instance = _interactionInstance('target', entityId: owner.id);
+      final map = _modelMap([instance], entities: [owner]);
+      final project =
+          _project(
+            map,
+            records: [
+              _event(
+                1,
+                NarrativeEventSourceRef.modelInteract(map.id, instance.id),
+                'interaction',
+              ),
+            ],
+            scenes: [_scene('interaction', [])],
+            worldRules: [
+              WorldRuleDefinition(
+                id: 'hide',
+                label: 'Hide owner',
+                source: WorldRuleSource(
+                  kind: WorldRuleSourceKind.fact,
+                  sourceId: 'hidden',
+                  predicate: WorldRuleSourcePredicate.isTrue,
+                ),
+                target: WorldRuleTarget(
+                  kind: WorldRuleTargetKind.mapEntity,
+                  mapId: map.id,
+                  entityId: owner.id,
+                ),
+                effect: const WorldRuleEffect(
+                  kind: WorldRuleEffectKind.entityHidden,
+                ),
+              ),
+            ],
+          ).copyWith(
+            models3d: [model],
+            facts: [
+              NarrativeFactDefinition(
+                id: 'hidden',
+                label: 'Hidden',
+                legacyFlagName: 'hidden',
+              ),
+              NarrativeFactDefinition(
+                id: 'projected',
+                label: 'Projected',
+                legacyFlagName: 'projected',
+              ),
+            ],
+          );
+      final host = await _Host.create(project, map);
+
+      expect(host.events.modelInteractionTarget, isNull);
+      host.state = const GameStateMutations().setFlag(host.state, 'visible');
+      expect(host.events.modelInteractionTarget, isNull);
+      host.state = const GameStateMutations().setFlag(host.state, 'projected');
+      expect(host.events.modelInteractionTarget, same(instance));
+      host.state = const GameStateMutations().setFlag(host.state, 'hidden');
+      expect(host.events.modelInteractionTarget, isNull);
+      host.state = const GameStateMutations().clearFlag(host.state, 'hidden');
+      expect(host.events.modelInteractionTarget, same(instance));
+      host.state = const GameStateMutations().clearFlag(host.state, 'visible');
+      expect(host.events.modelInteractionTarget, isNull);
+      host.state = const GameStateMutations().setFlag(host.state, 'visible');
+      expect(host.events.modelInteractionTarget, same(instance));
+      host.state = const GameStateMutations().clearFlag(
+        host.state,
+        'projected',
+      );
+      expect(host.events.modelInteractionTarget, isNull);
+    },
+  );
 
 
   test('native bag-full pickup preserves its model owner and never persists a partial grant', () async {
@@ -1215,6 +1664,8 @@ final class _Host {
     Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
     presentItemPickup,
     DateTime Function()? now,
+    Iterable<ProjectModel3dEntry> Function()? currentModelDefinitions,
+    ProjectManifest Function()? currentWorldProject,
   }) async {
     final host = _Host(
       state ??
@@ -1227,6 +1678,8 @@ final class _Host {
     );
     host.events = await SpatialGameplayEvents.create(
       project: project,
+      currentModelDefinitions: currentModelDefinitions,
+      currentWorldProject: currentWorldProject,
       mapsById: maps ?? {map.id: map},
       readGameState: () => host.state,
       commitGameState: (state) => host.state = state,
@@ -1261,6 +1714,79 @@ final class _Host {
         playerPosition: GridPos(x: x.floor(), y: z.floor()),
         playerSpatialPosition: PlayerSpatialPosition(x: x, z: z));
   }
+}
+
+final class _CountingIterable<T> extends IterableBase<T> {
+  _CountingIterable(this.values);
+
+  final Iterable<T> values;
+  int iterations = 0;
+  int reads = 0;
+
+  @override
+  Iterator<T> get iterator {
+    iterations++;
+    return values.map((value) {
+      reads++;
+      return value;
+    }).iterator;
+  }
+}
+
+final class _CountingList<T> extends ListBase<T> {
+  _CountingList(this.values);
+
+  final List<T> values;
+  int reads = 0;
+
+  @override
+  int get length => values.length;
+
+  @override
+  set length(int value) => values.length = value;
+
+  @override
+  T operator [](int index) {
+    reads++;
+    return values[index];
+  }
+
+  @override
+  void operator []=(int index, T value) => values[index] = value;
+}
+
+ProjectModel3dEntry _interactionModel({double minX = -.1, double maxX = .1}) =>
+    ProjectModel3dEntry(
+      id: 'orb',
+      name: 'Orb',
+      sourceAssetId: 'orb-source',
+      relativePath: 'assets/models3d/orb.glb',
+      inspection: Model3dInspection(
+        bounds: Model3dBounds(
+          min: Model3dVector3(x: minX, y: 0, z: -.1),
+          max: Model3dVector3(x: maxX, y: 1, z: .1),
+        ),
+        meshCount: 1,
+        triangleCount: 1,
+      ),
+    );
+
+SpatialModelInstance _interactionInstance(String id, {String? entityId}) =>
+    SpatialModelInstance(
+      id: id,
+      modelId: 'orb',
+      entityId: entityId,
+      position: Model3dVector3(x: 2.5, y: 0, z: 3.5),
+    );
+
+MapData _modelMap(
+  List<SpatialModelInstance> instances, {
+  List<MapEntity> entities = const [],
+}) {
+  final map = _map(entities: entities);
+  return map.copyWith(
+    spatialScene: map.spatialScene!.copyWith(instances: instances),
+  );
 }
 
 String _id(String prefix, int value) =>
