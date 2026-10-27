@@ -23,7 +23,9 @@ import 'runtime_pokemon_summary_media_resolver.dart';
 /// This projection deliberately stays in `map_runtime`: embedding hosts only
 /// render snapshots and never inspect project JSON or save internals.
 final class RuntimePlayerPauseDataBuilder {
-  const RuntimePlayerPauseDataBuilder();
+  const RuntimePlayerPauseDataBuilder({this.moveCatalogLoader});
+
+  final RuntimeMoveCatalogLoader? moveCatalogLoader;
 
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
       build({
@@ -63,7 +65,7 @@ final class RuntimePlayerPauseDataBuilder {
     // l'ouverture du menu pause : le chargeur lève quand la clé est absente.
     RuntimeMoveCatalog? moveCatalog;
     try {
-      moveCatalog = await RuntimeMoveCatalogLoader().load(
+      moveCatalog = await (moveCatalogLoader ?? RuntimeMoveCatalogLoader()).load(
         projectRootDirectory: projectRootDirectory,
         pokemonConfig: pokemonConfig,
       );

@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import '../application/load_runtime_map_bundle.dart';
 import '../application/runtime_project_catalog.dart';
 import '../application/runtime_item_catalog_loader.dart';
+import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_bag_capacity.dart';
 import '../application/narrative_runtime_activity_gate.dart';
 import '../application/player_service_runtime_controller.dart';
@@ -312,6 +313,9 @@ final class SpatialExplorationGameSessionRuntime
   bool _mounted = false, _paused = false, _stopped = false, _disposed = false;
   bool _loadingStarted = false;
   ItemCatalogSnapshot _bagItemCatalog = ItemCatalogSnapshot.empty();
+  final _pauseDataBuilder = RuntimePlayerPauseDataBuilder(
+    moveCatalogLoader: RuntimeMoveCatalogLoader(),
+  );
   int _loadGeneration = 0;
   Future<void>? _mountFuture;
 
@@ -1613,10 +1617,11 @@ final class SpatialExplorationGameSessionRuntime
     if (manifest.contactDevice != null) {
       await contactPortraits.ensureCatalogLoaded(characterIds: manifest.contactDevice!.contacts.map((c) => c.characterId).whereType<String>());
     }
-    final details = await const RuntimePlayerPauseDataBuilder().build(
+    final details = await _pauseDataBuilder.build(
         gameState: state,
         projectRootDirectory: session.bundle.projectRootDirectory,
         pokemonConfig: manifest.pokemon,
+        itemCatalog: _bagItemCatalog,
         locale: descriptor.locale,
         uiLocale: _preferences?.locale,
         mapEnabled: descriptor.grantedCapabilities.contains('map3d@1'),

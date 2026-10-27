@@ -2778,6 +2778,145 @@ void main() {
     expect(unmounts, 1);
   });
 
+  test(
+    'session reuses item and move catalogs across companion menu reads',
+    () async {
+      final items = File('${root.path}/data/pokemon/catalogs/items.json');
+      final moves = File('${root.path}/data/pokemon/catalogs/moves.json');
+      await items.parent.create(recursive: true);
+      await items.writeAsString(
+        jsonEncode(
+          const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: 'potion',
+                displayName: 'Potion initiale',
+                pocketId: 'medicine',
+              ),
+            ],
+          ).toJson(),
+        ),
+      );
+      await moves.writeAsString(
+        jsonEncode({
+          'schemaVersion': 1,
+          'catalog': 'moves',
+          'entries': [
+            PokemonMove(
+              id: 'tackle',
+              name: 'Tackle',
+              names: const {'fr': 'Charge'},
+              generation: 1,
+              source: 'test',
+              type: 'normal',
+              category: PokemonMoveCategory.physical,
+              target: PokemonMoveTarget.normal,
+              basePower: 40,
+              accuracy: const PokemonMoveAccuracy.percent(value: 100),
+              pp: 35,
+            ).toJson(),
+          ],
+        }),
+      );
+      bundle = bundle.copyWith(
+        manifest: bundle.manifest.copyWith(
+          pokemon: bundle.manifest.pokemon.copyWith(
+            catalogFiles: {
+              'items': 'data/pokemon/catalogs/items.json',
+              'moves': 'data/pokemon/catalogs/moves.json',
+            },
+          ),
+        ),
+      );
+      SpatialExplorationGameSessionRuntime newRuntime() =>
+          SpatialExplorationGameSessionRuntime(
+            descriptor: descriptor(
+              initialState: descriptor().initialGameState!.copyWith(
+                bag: const Bag(
+                  entries: [BagEntry(itemId: 'potion', quantity: 1)],
+                ),
+              ),
+            ),
+            projectFilePath: () async => '${root.path}/project.json',
+            preloadedInitialMap: ({
+              required projectFilePath,
+              required descriptor,
+              required initialSave,
+            }) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+            mountSession: (_) async => mounts++,
+            unmountSession: (_) async => unmounts++,
+          );
+      await runtime.dispose();
+      runtime = newRuntime();
+      final trackedItems = _TrackedMenuCatalogFile(items);
+      final trackedMoves = _TrackedMenuCatalogFile(moves);
+      final createFile = Zone.current.bindUnaryCallback(File.new);
+      await IOOverrides.runZoned(
+        () async {
+          await runtime.load((_) {});
+          final first = await runtime.readCompanionMenuData();
+          final second = await runtime.readCompanionMenuData();
+          expect(
+            first
+                .pauseDetails[RuntimePlayerPauseSection.bag]!
+                .entries
+                .single
+                .title,
+            'Potion initiale',
+          );
+          expect(
+            second
+                .pauseDetails[RuntimePlayerPauseSection.bag]!
+                .entries
+                .single
+                .title,
+            'Potion initiale',
+          );
+          expect(
+            {'items': trackedItems.reads, 'moves': trackedMoves.reads},
+            {'items': 1, 'moves': 1},
+          );
+          await runtime.dispose();
+          await items.writeAsString(
+            jsonEncode(
+              const ProjectItemCatalog(
+                schemaVersion: 1,
+                entries: [
+                  ProjectItemDefinition(
+                    id: 'potion',
+                    displayName: 'Potion nouvelle',
+                    pocketId: 'medicine',
+                  ),
+                ],
+              ).toJson(),
+            ),
+          );
+          runtime = newRuntime();
+          await runtime.load((_) {});
+          final fresh = await runtime.readCompanionMenuData();
+          expect(
+            fresh
+                .pauseDetails[RuntimePlayerPauseSection.bag]!
+                .entries
+                .single
+                .title,
+            'Potion nouvelle',
+          );
+          expect(
+            {'items': trackedItems.reads, 'moves': trackedMoves.reads},
+            {'items': 2, 'moves': 2},
+          );
+        },
+        createFile: (path) => path == items.path
+            ? trackedItems
+            : path == moves.path
+            ? trackedMoves
+            : createFile(path),
+      );
+    },
+  );
+
   test('companion exposes live gameplay menus including save and party',
       () async {
     await runtime.load((_) {});
@@ -4110,4 +4249,26 @@ class _WeatherCache implements RealWeatherCache {
   Future<RealWeatherSnapshot?> read() async => saved;
   @override
   Future<void> write(RealWeatherSnapshot snapshot) async { saved = snapshot; }
+}
+
+final class _TrackedMenuCatalogFile implements File {
+  _TrackedMenuCatalogFile(this.file);
+
+  final File file;
+  int reads = 0;
+
+  @override
+  String get path => file.path;
+
+  @override
+  Future<bool> exists() => file.exists();
+
+  @override
+  Future<String> readAsString({Encoding encoding = utf8}) {
+    reads++;
+    return file.readAsString(encoding: encoding);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
