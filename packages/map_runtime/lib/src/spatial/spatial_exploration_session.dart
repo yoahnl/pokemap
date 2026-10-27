@@ -374,13 +374,14 @@ final class SpatialExplorationSession {
 
   void attachWorldStateProviders() {
     final source = bundle;
+    final index = _modelPresenceIndices[source.map] ??=
+        _SpatialModelPresenceIndex(source.map);
     movement.entityProjection = (entity) => entityProjection == null ? entity :
       entityProjection!(source.map.id, entity);
     movement.setRuntimeStateProviders(
       modelStateProvider: (id) => modelRuntimeState(source.map.id, id),
       actorStateProvider: (id) {
-        final entity =
-            source.map.entities.where((value) => value.id == id).firstOrNull;
+        final entity = index.entitiesById[id];
         return entity == null
             ? null
             : source.map.id == bundle.map.id
