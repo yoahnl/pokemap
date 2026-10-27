@@ -1,8 +1,11 @@
+import 'dart:collection';
+import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/components.dart' show Object3D;
 import 'package:flame_3d/graphics.dart';
+import 'package:flame_3d/model.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
@@ -17,6 +20,10 @@ import 'spatial_presentation_effects.dart';
 import 'spatial_depth_of_field.dart';
 import 'spatial_weather_material.dart';
 import 'flutter_frame_graphics_device.dart';
+import 'glb_renderer_layout.dart';
+import 'spatial_model_source_admission.dart';
+
+part 'spatial_static_depth_batches.dart';
 
 class SpatialRenderContext extends RenderContext3D
     implements
@@ -57,6 +64,8 @@ class SpatialRenderContext extends RenderContext3D
   Iterable<Object3D> shadowCasters = const [];
   String? sourceInstanceId;
   String? sourceShadowId;
+  Object? sourceModelOwner;
+  SpatialStaticDepthBatches? staticDepthBatches;
   SpatialShadowStats shadowStats = const SpatialShadowStats();
   SpatialShadowMap? _shadowMap;
   bool _collecting = false;
@@ -64,6 +73,16 @@ class SpatialRenderContext extends RenderContext3D
   final _captured = <_TransparentSurface>[];
   final _casterSurfaces = <_TransparentSurface>[];
   bool _capturingShadowCasters = false;
+  bool _flushing = false;
+
+  Future<void> prepareStaticDepthBatches(
+    Iterable<SpatialStaticDepthOwner> owners, {
+    required RuntimeResourceBudget budget,
+  }) async {
+    if (_flushing)
+      throw StateError('Depth batches cannot prepare during flush.');
+    await staticDepthBatches?.prepare(owners, budget: budget);
+  }
 
   double weatherSkyFlash = 0;
   double weatherVeilOpacity = 0;
@@ -156,12 +175,14 @@ class SpatialRenderContext extends RenderContext3D
       sequence: sequence,
       instanceId: sourceInstanceId,
       shadowId: sourceShadowId,
+      owner: sourceModelOwner,
       worldBounds: Aabb3.copy(surface.aabb)..transform(model),
     );
   }
 
   @override
   void flush() {
+    _flushing = true;
     final shadow = lighting.enabled ? lighting.shadow : null;
     final hasPointShadows =
         lighting.enabled &&
@@ -187,16 +208,22 @@ class SpatialRenderContext extends RenderContext3D
           view: view,
           projection: projection,
           draw: (depthContext, materialFor) {
-            for (final entry in [..._captured, ..._unlitDepth]) {
-              _withMaterialPose(entry, () {
-                depthContext.model.setFrom(entry.model);
-                depthContext.jointsInfo.jointTransforms = entry.joints;
-                depthContext.device.clearBindings();
-                depthContext.applyMaterial(
-                  materialFor(entry.material)..cullMode = entry.pose.cullMode,
-                );
-                depthContext.device.bindGeometry(entry.surface);
-              });
+            final batches = staticDepthBatches;
+            try {
+              final depthEntries = batches?._select(_captured) ?? _captured;
+              for (final entry in [...depthEntries, ..._unlitDepth]) {
+                _withMaterialPose(entry, () {
+                  depthContext.model.setFrom(entry.model);
+                  depthContext.jointsInfo.jointTransforms = entry.joints;
+                  depthContext.device.clearBindings();
+                  depthContext.applyMaterial(
+                    materialFor(entry.material)..cullMode = entry.pose.cullMode,
+                  );
+                  depthContext.device.bindGeometry(entry.surface);
+                });
+              }
+            } finally {
+              batches?._finishFrame();
             }
           },
         );
@@ -391,6 +418,7 @@ class SpatialRenderContext extends RenderContext3D
       _collecting = false;
       _capturingShadowCasters = false;
       _captured.clear();
+      _flushing = false;
       _casterSurfaces.clear();
       _transparent.clear();
       _unlitDepth.clear();
@@ -424,6 +452,7 @@ class SpatialRenderContext extends RenderContext3D
     final previousJoints = jointsInfo.jointTransforms;
     final previousInstance = sourceInstanceId;
     final previousShadow = sourceShadowId;
+    final previousOwner = sourceModelOwner;
     try {
       entry.pose.apply(entry.material);
       entry.surface.material = entry.material;
@@ -431,6 +460,7 @@ class SpatialRenderContext extends RenderContext3D
       jointsInfo.jointTransforms = entry.joints;
       sourceInstanceId = entry.instanceId;
       sourceShadowId = entry.shadowId;
+      sourceModelOwner = entry.owner;
       draw();
     } finally {
       previousPose.apply(entry.material);
@@ -439,6 +469,7 @@ class SpatialRenderContext extends RenderContext3D
       jointsInfo.jointTransforms = previousJoints;
       sourceInstanceId = previousInstance;
       sourceShadowId = previousShadow;
+      sourceModelOwner = previousOwner;
     }
   }
 }
@@ -454,6 +485,7 @@ final class _TransparentSurface {
     required this.sequence,
     required this.instanceId,
     required this.shadowId,
+    required this.owner,
     required this.worldBounds,
   });
 
@@ -466,6 +498,7 @@ final class _TransparentSurface {
   final int sequence;
   final String? instanceId;
   final String? shadowId;
+  final Object? owner;
   final Aabb3 worldBounds;
 }
 
