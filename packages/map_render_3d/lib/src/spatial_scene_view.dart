@@ -498,6 +498,7 @@ class SpatialSceneView extends StatefulWidget {
     this.rasterAnimationElapsedMsForCell,
     this.actorOcclusionStateForCell,
     this.presentationPaused,
+    this.renderPreparationPaused,
     this.presentationElapsedSeconds,
     this.cameraPose,
     this.cameraMagnification,
@@ -529,6 +530,7 @@ class SpatialSceneView extends StatefulWidget {
   rasterAnimationElapsedMsForCell;
   final SpatialActorOcclusionStateForCell? actorOcclusionStateForCell;
   final bool Function()? presentationPaused;
+  final bool Function()? renderPreparationPaused;
   final double Function()? presentationElapsedSeconds;
   final ({double x, double y, double z, double zoom})? Function()? cameraPose;
   final double Function()? cameraMagnification;
@@ -1258,6 +1260,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   double get allReceiverMaxY => decorationChunks.isEmpty ? authoredReceiverMaxY : math.max(authoredReceiverMaxY, decorationReceiverMaxY);
 
   void syncLighting() {
+    if (visibleConfiguration.renderPreparationPaused?.call() == true) return;
     (context as SpatialRenderContext).pointLightShadowsEnabled =
         this.configuration.controller.previewPointLightShadowsEnabled;
     final preview = previewLighting;
@@ -2810,6 +2813,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   void syncCamera() {
     if (refreshing && renderedConfiguration == null) return;
     final configuration = visibleConfiguration;
+    if (configuration.renderPreparationPaused?.call() == true) return;
     final scene = configuration.scene;
     final control = configuration.controller;
     final visual = actorVisual;
@@ -2906,12 +2910,16 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     }
     if (!sceneReady || closed || (refreshing && renderedConfiguration == null))
       return;
+    final renderPreparationPaused =
+        visibleConfiguration.renderPreparationPaused?.call() == true;
     if (!refreshing && grounds.isNotEmpty) {
       if (dt.isFinite &&
           dt > 0 &&
           grounds.any((ground) => ground.plan.animated)) {
         groundElapsed += dt;
       }
+    }
+    if (!renderPreparationPaused && !refreshing && grounds.isNotEmpty) {
       _requestGroundAnimationTextures((groundElapsed * 1000).round());
       for (final ground in grounds.where((ground) => ground.plan.animated)) {
         final previous = ground.components;
@@ -2936,9 +2944,13 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         }
       }
     }
-    syncActors(dt);
-    syncActorOcclusions();
-    if (!refreshing) _pruneGroundTextures(sample: false);
+    if (renderPreparationPaused) {
+      visibleConfiguration.actorFrames?.call(dt);
+    } else {
+      syncActors(dt);
+      syncActorOcclusions();
+      if (!refreshing) _pruneGroundTextures(sample: false);
+    }
     syncRuntimeModels();
     final configuration = visibleConfiguration;
     configuration.controller.advanceEnvironment(
@@ -2952,6 +2964,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         dt.isFinite &&
         dt > 0)
       atmosphereElapsed += dt;
+    if (renderPreparationPaused) return;
     final control = configuration.controller;
     final elapsed =
         configuration.presentationElapsedSeconds?.call() ?? atmosphereElapsed;

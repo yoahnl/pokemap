@@ -9,12 +9,13 @@ import 'package:flame/game.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
-import 'package:map_render_3d/map_render_3d.dart' show SpatialGameSurface;
+import 'package:map_render_3d/map_render_3d.dart' show SpatialGameSurface, SpatialSceneView;
 import 'package:image/image.dart' as img;
 import 'package:map_runtime/map_runtime.dart' show
     SpatialExplorationGameSessionRuntime, GameSessionDescriptor, GameIdentity,
     GameSessionLaunchMode, GameSessionAccessibilityOptions,
-    RuntimeInitialMapPreloadResult, SpatialOverworldPresentation;
+    RuntimeInitialMapPreloadResult, SpatialOverworldPresentation,
+    SpatialExplorationSession, SpatialExplorationView;
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
@@ -140,14 +141,70 @@ void main() {
     );
     addTearDown(runtime.dispose);
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    final session = (await tester.runAsync(() async {
+      final path = p.join(fixture.bundle.projectRootDirectory, 'scene-hero.png');
+      await File(path)
+          .writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
+      return SpatialExplorationSession.load(
+        fixture.bundle.copyWith(
+          manifest: fixture.bundle.manifest.copyWith(
+            settings: fixture.bundle.manifest.settings.copyWith(
+              defaultPlayerCharacterId: 'scene-hero',
+            ),
+            characters: [
+              ProjectCharacterEntry(
+                id: 'scene-hero',
+                name: 'Hero',
+                tilesetId: 'unused',
+                animations: [
+                  for (final facing in EntityFacing.values)
+                    CharacterAnimation(
+                      state: CharacterAnimationState.walk,
+                      direction: facing,
+                      sourceAssetId: 'scene-hero',
+                      frames: const [
+                        CharacterAnimationFrame(
+                          source: TilesetSourceRect(
+                            x: 0,
+                            y: 0,
+                            width: 32,
+                            height: 32,
+                          ),
+                          durationMs: 100,
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ],
+          ),
+          characterAnimationAbsolutePathsByAssetId: {'scene-hero': path},
+        ),
+      );
+    }))!;
+    addTearDown(session.dispose);
+    final sessionTicks = <(double, bool)>[];
+    session.onPresentationFrame = (dt, paused) => sessionTicks.add((dt, paused));
+    SpatialSceneView scene() => tester.widget<SpatialSceneView>(
+      find.byType(SpatialSceneView, skipOffstage: false),
+    );
     final world = _CountingOverworldGame();
     var worldBuilds = 0;
     final worldChild = Builder(builder: (_) {
       worldBuilds++;
-      return SpatialGameSurface(
-        game: world,
-        loadingBuilder: (_) => const SizedBox(),
-        errorBuilder: (_, error) => throw error,
+      return Stack(
+        children: [
+          SpatialGameSurface(
+            game: world,
+            loadingBuilder: (_) => const SizedBox(),
+            errorBuilder: (_, error) => throw error,
+          ),
+          Offstage(child: SpatialExplorationView(
+            session: session,
+            keyboardInputEnabled: false,
+            renderPreparationPaused: () => runtime.coversOverworldPresentation,
+          )),
+        ],
       );
     });
     await tester.pumpWidget(_battleWorldHost(runtime, worldChild));
@@ -158,6 +215,10 @@ void main() {
     expect(world.updates, greaterThan(0));
     expect(world.isAttached, true);
     expect(runtime.coversOverworldPresentation, false);
+    final sceneState = tester.state<State>(
+      find.byType(SpatialExplorationView, skipOffstage: false),
+    );
+    expect(scene().renderPreparationPaused!(), false);
     final exitCoverageSignals = <bool>[];
     runtime.addListener(() {
       if (runtime.exitTransition != null) {
@@ -181,13 +242,34 @@ void main() {
     expect(world.paints, greaterThan(idlePaints));
     await _finishBattleEntry(tester, runtime);
     expect(runtime.coversOverworldPresentation, true);
+    expect(scene().renderPreparationPaused!(), true);
     await tester.pump();
     final opaquePaints = world.paints;
     final opaqueUpdates = world.updates;
     world.deltas.clear();
+    final worldSeconds = session.environmentClock.elapsedSeconds;
+    final presentationSeconds = session.presentationSeconds;
+    sessionTicks.clear();
     for (var i = 0; i < 8; i++) {
+      scene().actorFrames!(.02);
       await tester.pump(const Duration(milliseconds: 20));
     }
+    expect(sessionTicks, List.filled(8, (.02, false)));
+    expect(session.environmentClock.elapsedSeconds,
+        closeTo(worldSeconds + .16, .000001));
+    expect(session.presentationSeconds,
+        closeTo(presentationSeconds + .16, .000001));
+    for (final lifecycle in [false, true]) {
+      session.dialoguePaused = !lifecycle;
+      session.setLifecyclePaused(lifecycle);
+      final seconds = session.environmentClock.elapsedSeconds;
+      scene().actorFrames!(.02);
+      expect(sessionTicks.last, (.02, true));
+      expect(session.environmentClock.elapsedSeconds, seconds);
+      expect(scene().presentationPaused!(), true);
+    }
+    session.dialoguePaused = false;
+    session.setLifecyclePaused(false);
     expect(world.paints - opaquePaints, 0);
     expect(world.updates - opaqueUpdates, 8);
     expect(world.deltas, everyElement(closeTo(0.02, 0.000001)));
@@ -228,6 +310,10 @@ void main() {
     expect(exitCoverageSignals, everyElement(false));
     expect(runtime.coversOverworldPresentation, false);
     expect(runtimeExit!.isHoldingBlack, false);
+    expect(scene().renderPreparationPaused!(), false);
+    expect(
+        tester.state<State>(find.byType(SpatialExplorationView, skipOffstage: false)),
+        same(sceneState));
     expect(commits, 0);
     await tester.pump(const Duration(milliseconds: 20));
     expect(world.paints, greaterThan(opaquePaints));

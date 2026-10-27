@@ -1523,6 +1523,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                   battle: spatial.battle,
                   child: SpatialExplorationView(
                     staticDepthBatchesEnabled: true,
+                    renderPreparationPaused: () =>
+                        spatial.battle?.coversOverworldPresentation ?? false,
                     key: ObjectKey(spatial),
                     session: spatial.session!,
                     audioMixer: spatial.audioMixer,

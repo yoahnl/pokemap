@@ -1,22 +1,367 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/graphics.dart';
+import 'package:flame_3d/model.dart';
+import 'package:flame_3d/src/parser/gltf/animation_interpolation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_actor_occlusion.dart';
+import 'package:map_render_3d/src/spatial_actor_visual.dart';
+import 'package:map_render_3d/src/model_byte_loader.dart';
+import 'package:map_render_3d/src/model_playback.dart';
+import 'package:map_render_3d/src/spatial_game_surface.dart';
 import 'package:map_render_3d/src/spatial_ground.dart';
+import 'package:map_render_3d/src/spatial_lighting_preview.dart';
+import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_scene_preparation.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
 import 'package:map_render_3d/src/spatial_scene_neighbor.dart';
+import 'package:map_render_3d/src/spatial_weather_material.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(_UnusedBackend.new);
+
+  for (final decoration in [false, true]) {
+    testWidgets(
+      'covered model pause and resume match visible clocks decoration=$decoration',
+      (tester) async {
+        final visible = _ModelPauseFixture();
+        final hidden = _ModelPauseFixture();
+        for (final fixture in [visible, hidden]) {
+          addTearDown(fixture.controller.dispose);
+          addTearDown(fixture.preview.dispose);
+          fixture.game.pauseEngine();
+          final lease = await fixture.game.resourceBudget.acquire(
+            residentBytes: 1,
+          );
+          lease.commit();
+          fixture.game.modelReservations['lamp'] = lease;
+        }
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Offstage(
+              child: Stack(
+                children: [
+                  for (final fixture in [visible, hidden])
+                    SpatialGameSurface(
+                      game: fixture.game,
+                      loadingBuilder: (_) => const SizedBox(),
+                      errorBuilder: (_, error) => throw error,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.runAsync(() async {
+          for (final fixture in [visible, hidden]) {
+            for (
+              var frame = 0;
+              frame < 100 && !fixture.game.isLoaded;
+              frame++
+            ) {
+              fixture.game.update(0);
+              await Future<void>.delayed(const Duration(milliseconds: 1));
+            }
+            expect(fixture.game.isLoaded, isTrue);
+            await fixture.game.toBeLoaded();
+          }
+        });
+        await tester.pump();
+        await tester.runAsync(() async {
+          for (final fixture in [visible, hidden]) {
+            await fixture.game.ready();
+          }
+        });
+        for (final fixture in [visible, hidden]) {
+          expect(
+            fixture.game.modelComponents.keys,
+            contains('lamp'),
+            reason:
+                'ready=${fixture.game.sceneReady} refreshing=${fixture.game.refreshing} rendered=${fixture.game.renderedConfiguration != null} failures=${fixture.failures}',
+          );
+          final component = fixture.game.modelComponents['lamp']!.component;
+          expect(component.isMounted, isTrue);
+          fixture.deltas.clear();
+          if (decoration) {
+            fixture.game.animationModels.clear();
+            fixture.game.decorationAnimationModels[('decor', 'lamp')] =
+                component;
+          }
+        }
+        final visibleComponent =
+            visible.game.modelComponents['lamp']!.component;
+        final hiddenComponent = hidden.game.modelComponents['lamp']!.component;
+        void advance() {
+          visible.game.update(.02);
+          hidden.game.update(.02);
+          expect(
+            hiddenComponent.playback.clock,
+            closeTo(visibleComponent.playback.clock, 1e-9),
+          );
+          expect(
+            hiddenComponent.playback.paused,
+            visibleComponent.playback.paused,
+          );
+          expect(hidden.deltas, visible.deltas);
+        }
+
+        advance();
+        advance();
+        expect(visibleComponent.playback.clock, closeTo(.04, 1e-9));
+        hidden.covered = true;
+        visible.paused = hidden.paused = true;
+        for (var frame = 0; frame < 4; frame++) {
+          advance();
+        }
+        expect(hiddenComponent.playback.paused, isTrue);
+        expect(hiddenComponent.playback.clock, closeTo(.06, 1e-9));
+        visible.paused = hidden.paused = false;
+        visible.preview.togglePause('lamp');
+        hidden.preview.togglePause('lamp');
+        advance();
+        expect(hiddenComponent.playback.paused, isTrue);
+        visible.preview.togglePause('lamp');
+        hidden.preview.togglePause('lamp');
+        advance();
+        if (!decoration) {
+          final ambientClock = hiddenComponent.playback.clock;
+          visible.state = hidden.state = SpatialModelRuntimeState(
+            modelId: 'lamp',
+            animationIndex: 0,
+            normalizedTime: .7,
+            blocksMovement: true,
+          );
+          advance();
+          expect(hiddenComponent.playback.paused, isTrue);
+          expect(hiddenComponent.playback.clock, .7);
+          visible.state = hidden.state = visible.state!.copyWith(
+            normalizedTime: .9,
+          );
+          advance();
+          expect(hiddenComponent.playback.clock, .9);
+          visible.state = hidden.state = null;
+          advance();
+          expect(
+            hiddenComponent.playback.clock,
+            closeTo(ambientClock + .02, 1e-9),
+          );
+        }
+        advance();
+        hidden.covered = false;
+        visible.paused = hidden.paused = true;
+        advance();
+        final pausedClock = hiddenComponent.playback.clock;
+        advance();
+        expect(hiddenComponent.playback.clock, pausedClock);
+        visible.paused = hidden.paused = false;
+        advance();
+        expect(hiddenComponent.playback.clock, pausedClock);
+        advance();
+        expect(
+          hiddenComponent.playback.clock,
+          closeTo(pausedClock + .02, 1e-9),
+        );
+        expect(hidden.deltas, everyElement(.02));
+        await tester.pumpWidget(const SizedBox());
+      },
+    );
+  }
+
+  test('covered rebuilds retain lighting until preparation resumes', () async {
+    final f = _Fixture(1);
+    var covered = false;
+    final game = f.game(
+      (_) async => f.png,
+      renderPreparationPaused: () => covered,
+    );
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    final context = game.context as SpatialRenderContext;
+    final lighting = context.lighting;
+    final replacement = SpatialLightingProfile.stylized(ambientStrength: .3);
+    game.previewLighting = replacement;
+    covered = true;
+    game.syncLighting();
+    expect(context.lighting, same(lighting));
+    covered = false;
+    game.syncLighting();
+    expect(context.lighting, same(replacement));
+  });
+
+  test(
+    'covered refresh preserves the original frame and clock guards',
+    () async {
+      final f = _Fixture(4);
+      var frames = 0;
+      var elapsed = 0.0;
+      final base = f.game(
+        (_) async => f.png,
+        renderPreparationPaused: () => true,
+        actorFrames: (dt) {
+          frames++;
+          elapsed += dt;
+          return {};
+        },
+        presentationElapsedSeconds: () => elapsed,
+      );
+      final game = _CountingPreparationGame(base.configuration)
+        ..onGameResize(Vector2(200, 200))
+        ..sceneReady = true;
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      final initialFrames = frames;
+      final preparation = game.preparationCalls;
+      final modelSyncs = game.modelSyncCalls;
+      game.refreshing = true;
+      game.update(.02);
+      expect(frames, initialFrames + 1);
+      expect(game.groundElapsed, 0);
+      expect(game.atmosphereElapsed, .02);
+      expect(game.preparationCalls, preparation);
+      expect(game.modelSyncCalls, modelSyncs + 1);
+      game.renderedConfiguration = null;
+      game.update(.02);
+      expect(frames, initialFrames + 1);
+      expect(game.atmosphereElapsed, .02);
+    },
+  );
+
+  test(
+    'covered preparation keeps clocks live and resumes the retained scene',
+    () async {
+      final f = _Fixture(20, occlusion: true);
+      final recorder = ui.PictureRecorder();
+      ui.Canvas(recorder).drawColor(const Color(0xffffffff), ui.BlendMode.src);
+      final picture = recorder.endRecording();
+      final image = picture.toImageSync(1, 1);
+      final texture = await SpatialActorTexture.fromImage(image);
+      image.dispose();
+      picture.dispose();
+      var covered = false;
+      var paused = false;
+      var elapsed = 0.0;
+      var extraActor = false;
+      final deltas = <double>[];
+      final reads = <String>[];
+      final fixtureGame = f.game(
+        (id) async {
+          reads.add(id);
+          return f.png;
+        },
+        sourceMap: f.map.copyWith(
+          spatialScene: MapSpatialScene(
+            width: 1,
+            depth: 1,
+            dayNightCycle: SpatialDayNightCycle(
+              durationSeconds: 1440,
+              startMinuteOfDay: 0,
+            ),
+          ),
+        ),
+        renderPreparationPaused: () => covered,
+        presentationPaused: () => paused,
+        presentationElapsedSeconds: () => elapsed,
+        actorFrames: (dt) {
+          deltas.add(dt);
+          if (!paused) elapsed += dt;
+          SpatialActorVisual actor() => SpatialActorVisual(
+            x: elapsed,
+            y: 0,
+            z: 0,
+            texture: texture,
+            frame: const Rect.fromLTWH(0, 0, 1, 1),
+          );
+          return {'hero': actor(), if (extraActor) 'newcomer': actor()};
+        },
+      );
+      final game = _CountingPreparationGame(fixtureGame.configuration)
+        ..onGameResize(Vector2(200, 200))
+        ..sceneReady = true;
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await Future.wait(List.of(game.groundTextureCache.values));
+      game.update(0);
+      game.configuration.controller.sceneChanges.addListener(game.syncCamera);
+      final ground = game.grounds.single;
+      final components = List.of(ground.components);
+      final actorMesh = game.actors['hero']!.mesh;
+      final leases = Map.of(game.groundReservations);
+      final cached = Map.of(game.groundTextureCache);
+      final generation = game.generation;
+      final work = _groundWork(ground.plan);
+      final preparation = game.preparationCalls;
+    final modelSyncs = game.modelSyncCalls;
+      final haloAllocations = game.presentationEffects.allocations;
+      final resident = game.resourceBudget.residentBytes;
+      final cameraPosition = game.camera.position.clone();
+      final cameraTarget = game.camera.target.clone();
+      final initialReads = List.of(reads);
+      deltas.clear();
+      covered = true;
+      extraActor = true;
+      game.configuration.controller.panBy(3, 4);
+      for (var frame = 0; frame < 8; frame++) {
+        game.update(.02);
+      }
+      await Future<void>.delayed(Duration.zero);
+      expect(deltas, List.filled(8, .02));
+      expect(elapsed, closeTo(.16, .000001));
+      expect(game.groundElapsed, closeTo(.16, .000001));
+      expect(game.atmosphereElapsed, closeTo(.16, .000001));
+      expect(
+        game.configuration.controller.dayNightMinuteOfDay,
+        closeTo(.16, .000001),
+      );
+      expect(game.preparationCalls, preparation);
+    expect(game.modelSyncCalls, modelSyncs + 8);
+      expect(game.camera.position, cameraPosition);
+      expect(game.camera.target, cameraTarget);
+      expect(_groundWork(ground.plan), work);
+      expect(reads, initialReads);
+      expect(game.groundReservations, leases);
+      expect(game.groundTextureCache, cached);
+      expect(game.resourceBudget.residentBytes, resident);
+      expect(game.resourceBudget.pendingDecodes, 0);
+      expect(game.presentationEffects.allocations, haloAllocations);
+      expect(ground.components, orderedEquals(components));
+      expect(game.actors.keys, ['hero']);
+      expect(game.actors['hero']!.mesh, same(actorMesh));
+      expect(actorMesh.position.x, 0);
+      paused = true;
+      game.update(.02);
+      expect(elapsed, closeTo(.16, .000001));
+      expect(game.atmosphereElapsed, closeTo(.16, .000001));
+      expect(game.groundElapsed, closeTo(.18, .000001));
+      expect(game.preparationCalls, preparation);
+      paused = false;
+      covered = false;
+      deltas.clear();
+      game.update(.02);
+      expect(deltas, [.02]);
+      expect(elapsed, closeTo(.18, .000001));
+      expect(game.actors['hero']!.mesh, same(actorMesh));
+      expect(actorMesh.position.x, closeTo(.18, .000001));
+      expect(game.actors, contains('newcomer'));
+      expect(game.preparationCalls, greaterThan(preparation));
+      await Future.wait(List.of(game.groundTextureCache.values));
+      game.update(0);
+      expect(ground.visuals.single.visual.tilesetId, 'page-6');
+      expect(game.generation, generation);
+      expect(game.closed, isFalse);
+      for (final entry in leases.entries) {
+        expect(game.groundReservations[entry.key], same(entry.value));
+      }
+    },
+  );
 
   test('invariant selected images skip 300 arbitrary animation clocks', () {
     final f = _Fixture(4, singleImage: true);
@@ -1260,6 +1605,10 @@ final class _Fixture {
     void Function(Object?)? onStatus,
     MapData? sourceMap,
     RuntimeResourceBudget? resourceBudget,
+    bool Function()? renderPreparationPaused,
+    bool Function()? presentationPaused,
+    double Function()? presentationElapsedSeconds,
+    Map<String, SpatialActorVisual> Function(double)? actorFrames,
   }) {
     final controller = SpatialSceneController();
     final budget = resourceBudget ?? RuntimeResourceBudget();
@@ -1278,6 +1627,10 @@ final class _Fixture {
               resourceIdentity: 'fixture',
               neighbors: neighbors,
               rasterAnimationElapsedMsForCell: clock,
+              renderPreparationPaused: renderPreparationPaused,
+              presentationPaused: presentationPaused,
+              presentationElapsedSeconds: presentationElapsedSeconds,
+              actorFrames: actorFrames,
               onCell: (_, _) {},
               background: const Color(0xff000000),
               ground: const Color(0xff224422),
@@ -1293,6 +1646,130 @@ final class _Fixture {
     addTearDown(budget.dispose);
     return game;
   }
+}
+
+class _CountingPreparationGame extends SpatialSceneGame {
+  _CountingPreparationGame(super.configuration)
+    : super(onPreviewStatus: (_) {}, onSurfaceChanged: () {});
+
+  int preparationCalls = 0;
+  int modelSyncCalls = 0;
+
+  @override
+  void syncActors(double dt) {
+    preparationCalls++;
+    super.syncActors(dt);
+  }
+
+  @override
+  void syncRuntimeModels() {
+    modelSyncCalls++;
+    super.syncRuntimeModels();
+  }
+
+  @override
+  void syncLighting() {
+    preparationCalls++;
+    super.syncLighting();
+  }
+
+  @override
+  void syncActorContactShadows() {
+    preparationCalls++;
+    super.syncActorContactShadows();
+  }
+}
+
+class _ModelPauseFixture {
+  _ModelPauseFixture() {
+    final scene = MapSpatialScene(
+      width: 1,
+      depth: 1,
+      instances: [
+        SpatialModelInstance(
+          id: 'lamp',
+          modelId: 'lamp',
+          position: Model3dVector3.zero,
+          animationIndex: 0,
+        ),
+      ],
+    );
+    game = SpatialSceneGame(
+      SpatialSceneView(
+        scene: scene,
+        models: [
+          ProjectModel3dEntry(
+            id: 'lamp',
+            name: 'Lamp',
+            sourceAssetId: 'lamp',
+            relativePath: 'assets/models3d/lamp.glb',
+            inspection: Model3dInspection(
+              bounds: Model3dBounds(
+                min: Model3dVector3.zero,
+                max: Model3dVector3(x: 1, y: 1, z: 1),
+              ),
+              meshCount: 1,
+              triangleCount: 1,
+            ),
+          ),
+        ],
+        loadModel: (_) async =>
+            throw StateError('The cached model must be reused'),
+        controller: controller,
+        animationPreview: preview,
+        renderPreparationPaused: () => covered,
+        presentationPaused: () => paused,
+        modelRuntimeState: (_, _) => state,
+        actorFrames: (dt) {
+          deltas.add(dt);
+          return {};
+        },
+        onCell: (_, _) {},
+        background: const Color(0xff000000),
+        ground: const Color(0xff224422),
+        edge: const Color(0xff111111),
+        errorBuilder: (_, error) => throw error,
+      ),
+      onPreviewStatus: failures.add,
+      onSurfaceChanged: () {},
+    );
+    game.cache['lamp'] = Future.value(
+      Model(
+        nodes: {},
+        animations: [
+          ModelAnimation(
+            name: 'ambient',
+            nodes: {
+              0: AbsoluteNodeAnimation(
+                channels: [
+                  EndpointSafeAnimationController(
+                    animation: TranslationAnimationSpline.from(
+                      interpolation: AnimationInterpolation.linear,
+                      times: [0, 1],
+                      values: [Vector3.zero(), Vector3(3, 0, 0)],
+                    ),
+                  ),
+                ],
+              ),
+            },
+          ),
+        ],
+      ),
+    );
+    game.onGameResize(Vector2(200, 200));
+    game.weatherEffects.batches.addAll([
+      SpatialWeatherBatch(),
+      SpatialWeatherBatch(),
+    ]);
+  }
+
+  final controller = SpatialSceneController();
+  final preview = SpatialAnimationPreviewController();
+  final deltas = <double>[];
+  final failures = <Object?>[];
+  bool covered = false, paused = false;
+  SpatialModelRuntimeState? state;
+  late final SpatialSceneGame game;
 }
 
 final class _UnusedBackend extends GpuBackend {

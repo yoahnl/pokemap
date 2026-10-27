@@ -19,6 +19,7 @@ class SpatialExplorationView extends StatefulWidget {
     required this.session,
     this.keyboardInputEnabled = true,
     this.staticDepthBatchesEnabled = false,
+    this.renderPreparationPaused,
     this.onReady,
     this.previewVisuals,
     this.sceneController,
@@ -31,6 +32,7 @@ class SpatialExplorationView extends StatefulWidget {
   final SpatialSceneController? sceneController;
   final bool keyboardInputEnabled;
   final bool staticDepthBatchesEnabled;
+  final bool Function()? renderPreparationPaused;
   final VoidCallback? onReady;
   final void Function(Object)? onError;
   @override
@@ -554,6 +556,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                 rasterAnimationElapsedMsForCell:
                     widget.session.rasterAnimationElapsedMsForCell,
                 presentationPaused: () => widget.session.presentationPaused,
+                renderPreparationPaused: widget.renderPreparationPaused,
                 presentationElapsedSeconds: () =>
                     widget.session.presentationSeconds,
                 cameraMagnification: () =>
