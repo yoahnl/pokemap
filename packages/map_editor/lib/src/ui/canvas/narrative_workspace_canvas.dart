@@ -5078,6 +5078,8 @@ _buildSceneActionPickerOptions(
       for (final platform in activeMap?.movingPlatforms ?? const <MovingPlatformDefinition>[])
         SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}',
             label: '${activeMap.name} · Plateforme ${activeMap.movingPlatforms.indexOf(platform) + 1}'),
+      for (final lift in activeMap?.spatialScene?.lifts ?? const <SpatialLiftDefinition>[])
+        SceneActionPickerOption(id:'${activeMap!.id}::${lift.id}',label:'${activeMap.name} · ${lift.name}'),
     ],
     NarrativeCommandParameterKind.mapEntityReference: [
       for (final map in activeMap == null ? const <MapData>[] : [activeMap])

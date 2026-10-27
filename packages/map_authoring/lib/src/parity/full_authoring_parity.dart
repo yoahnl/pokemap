@@ -971,6 +971,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/border_spatial_stdio.test.ts',
     };
   }
+  if (actionId.startsWith('map3d.lift.')) {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/spatial_lift_controls_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_lift_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('map3d.terrain.surface.')) {
     return const {
       AuthoringTransport.directApi:

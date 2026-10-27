@@ -1719,7 +1719,7 @@ void _diagnoseActionConsequenceAgainstProject(
   }
   if (interactiveCommand is SceneMovePlatformInteractiveCommand) {
     final map = mapsById[interactiveCommand.mapId];
-    if (map == null || !map.movingPlatforms.any((value) => value.id == interactiveCommand.platformId)) {
+    if (map == null || !(map.movingPlatforms.any((value) => value.id == interactiveCommand.platformId) || (map.spatialScene?.lifts.any((value) => value.id == interactiveCommand.platformId) ?? false))) {
       diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownPlatform,
           severity: SceneDiagnosticSeverity.error,
           message: 'La commande movePlatform cible une plateforme absente du projet.',

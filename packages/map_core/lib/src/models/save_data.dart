@@ -23,6 +23,8 @@ import 'game_completion_party_journal.dart';
 part 'save_data.freezed.dart';
 part 'save_data.g.dart';
 
+bool? _encodeEggFlag(bool value) => value ? true : null;
+
 /// Semantic pronoun choice persisted independently from the active locale.
 ///
 /// Runtime dialogue projections translate the set when a session starts,
@@ -192,6 +194,8 @@ abstract class PlayerPokemon with _$PlayerPokemon {
     @Default(1) int currentHp,
     @Default('') String statusId,
     @Default(false) bool isShiny,
+    @JsonKey(includeIfNull: false, toJson: _encodeEggFlag)
+    @Default(false) bool isEgg,
     @Default('') String heldItemId,
     @Default('') String nickname,
     @Default(0) int friendship,

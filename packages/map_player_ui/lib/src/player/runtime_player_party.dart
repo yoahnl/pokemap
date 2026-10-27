@@ -477,7 +477,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
                 semanticValue: summary == null
                     ? null
                     : [
-                        strings.hpValue(summary.currentHp, summary.maxHp),
+                        if (!summary.isEgg) strings.hpValue(summary.currentHp, summary.maxHp),
                         ?summary.genderLabel,
                         ?status,
                       ].join(' · '),
@@ -603,6 +603,7 @@ class _RuntimePlayerPartyState extends State<RuntimePlayerParty> {
     final strings = PlayerPokemonSummaryStrings.of(context);
     final text = DefaultTextStyle.of(context).style;
     final meta = text.copyWith(fontSize: dense ? 11 : 12, height: 1.25);
+    if (summary.isEgg) return Text(summary.displayLabel, style: text);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

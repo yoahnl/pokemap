@@ -666,6 +666,7 @@ final class SpatialExplorationGameSessionRuntime
                 sceneMusic: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 worldPresentation: (command) => _story!.playVisual(command, owner: read),
                 playModelAnimation: (command) => _story!.playModel(command),
+                movePlatform: (command) => _story!.playPlatform(command),
                 playSoundEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 playMusicEffect: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 stopSoundEffects: (command) => _sceneAudio!.execute(command, sceneOwner: read),
@@ -988,6 +989,7 @@ final class SpatialExplorationGameSessionRuntime
         if (manifest.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(manifest)) SpatialGameplayCapabilities.npcTradeCapabilityId,
+        if (SpatialGameplayCapabilities.requiresEggGift(manifest)) SpatialGameplayCapabilities.eggGiftCapabilityId,
         if (SpatialGameplayCapabilities.requiresAudio(manifest)) SpatialGameplayCapabilities.audioCapabilityId,
         if (SpatialGameplayCapabilities.requiresCinematicFade(manifest)) SpatialGameplayCapabilities.cinematicFadeCapabilityId,
       }) {
@@ -1058,6 +1060,9 @@ final class SpatialExplorationGameSessionRuntime
       _gameState = state;
       _environmentClock = WorldEnvironmentClock(now: _now, initialState: state.environmentState);
       _environmentClock!.resolve(bundle.visualProfile);
+      if (bundle.map.spatialScene!.lifts.isNotEmpty && !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) {
+        throw StateError('The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.');
+      }
       if (bundle.map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic && !descriptor.grantedCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) throw StateError('The map requires ${SpatialCameraProfile.orthographicCapabilityId}.');
       if (SpatialActorOcclusionCapabilities.requiresCapability(manifest, maps: [bundle.map]) &&
           !descriptor.grantedCapabilities.contains(SpatialActorOcclusionCapabilities.capabilityId)) {
@@ -1077,6 +1082,19 @@ final class SpatialExplorationGameSessionRuntime
       _ensureLoadActive(generation);
       final loaded = await SpatialExplorationSession.load(bundle,
           allowNpcOverlapRecovery: descriptor.launchMode == GameSessionLaunchMode.continueGame,
+          loadMap: (id) async {
+            final next = await loadRuntimeMapBundle(
+              projectFilePath: path, mapId: id,
+              preloadedManifest: bundle.projectCatalog == null ? bundle.manifest : null,
+              projectCatalog: bundle.projectCatalog, resourceBudget: bundle.resourceBudget,
+              additionalCharacterIds: {if (state.trainerProfile.avatarCharacterId case final String id when id.isNotEmpty) id},
+            );
+            if (next.map.spatialScene!.lifts.isNotEmpty &&
+                !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) {
+              throw StateError('The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.');
+            }
+            return next;
+          },
           knownMaps: _mapsById.values,
           worldStateProvider: () =>
               _sceneStateReader?.call().spatialWorldState ??

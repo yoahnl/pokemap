@@ -274,7 +274,8 @@ final class SceneActions {
       'nicknamePolicy',
       'nicknameMaxGraphemes',
       'pokedexPresentationPolicy',
-      'moveIds'
+      'moveIds',
+      'isEgg'
     ],
     'moveIds': {
       'type': 'array',
@@ -286,6 +287,7 @@ final class SceneActions {
       'default': null,
       'semantics': 'replaceNativeLevelLearnset'
     },
+    'isEgg': {'default': false, 'destination': 'partyOnly', 'fullParty': 'noCapacity', 'pokedex': 'hidden', 'nicknamePolicy': 'disabled', 'battle': 'excluded', 'persistent': true},
     'levelRange': [1, 100],
     'nicknamePolicies': ['offer', 'disabled'],
     'nicknameMaxGraphemesRange': [1, 100],

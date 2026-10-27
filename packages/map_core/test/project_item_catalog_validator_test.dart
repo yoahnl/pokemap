@@ -238,6 +238,7 @@ void main() {
       'black_sludge',
       'king_s_rock',
       'lum_berry',
+      'persim_berry',
       'sitrus_berry',
       'smoke_ball',
     ]) {

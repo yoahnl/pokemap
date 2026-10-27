@@ -3059,6 +3059,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       final state = provider?.call(entry.key.$1, entry.key.$2);
       final instance = runtimeModelIndex.instance(entry.key.$1, entry.key.$2);
       if (instance == null) continue;
+      final offsetY = state?.translationY ?? 0;
+      final targetY = component.initialPositionY + instance.position.y - component.initialAnchorY + offsetY;
+      if (component.position.y != targetY) {
+        component.staticDepthBatches?.invalidateOwner(component);
+        component.position.y = targetY;
+      }
       component.bindRuntimeState(
         state,
         authoredAnimationIndex: instance.animationIndex,

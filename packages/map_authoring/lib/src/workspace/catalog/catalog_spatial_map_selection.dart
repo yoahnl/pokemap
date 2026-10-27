@@ -59,6 +59,8 @@ final class CatalogSpatialMapSelection {
       'environment.generated_placement_adopt_batch',
       'map3d.terrain.configure_appearance',
       'map3d.terrain.surface.upsert_batch',
+      'map3d.lift.upsert_batch',
+      'map3d.lift.delete_batch',
       'map3d.terrain.surface.delete_batch',
       'border_layer.feature_create',
       'border_layer.feature_delete',

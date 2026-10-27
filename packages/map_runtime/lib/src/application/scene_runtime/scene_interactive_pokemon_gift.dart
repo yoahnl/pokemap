@@ -40,7 +40,7 @@ final class PreparedScenePokemonGift {
       operationId: operationId,
       ruleset: project.pokemon.ruleset,
     );
-    if (generated != generatedPokemon) {
+    if (generated.copyWith(isEgg: pokemon.isEgg) != generatedPokemon) {
       throw StateError('The Pokemon gift catalog changed before commit.');
     }
     final acquired = const GameStateMutations().acquirePokemon(
@@ -58,6 +58,7 @@ final class PreparedScenePokemonGift {
     if (!granted.appliedPokemonGrantOperationIds.contains(operationId)) {
       throw StateError('The prepared Pokemon gift was rejected.');
     }
+    if (pokemon.isEgg) return granted;
     return granted.copyWith(
       progression: granted.progression
           .copyWith(
@@ -123,7 +124,10 @@ Future<ScenePokemonGiftPreparation> receiveScenePokemonFromCatalog({
     state: state,
     operationId: operationId,
     ruleset: project.pokemon.ruleset,
-  );
+  ).copyWith(isEgg: command.isEgg);
+  if (command.isEgg && state.party.members.length >= maxPlayerPartySize) {
+    return const ScenePokemonGiftPreparation(outputPortId: 'noCapacity');
+  }
   final acquisition = const GameStateMutations().acquirePokemon(
     state,
     pokemon: generated,

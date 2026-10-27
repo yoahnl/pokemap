@@ -1,4 +1,5 @@
 import '../models/enums.dart';
+import '../models/spatial_lift.dart';
 import '../models/geometry.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/map_data.dart';
@@ -21,6 +22,19 @@ final class SpatialCellLevel {
 
 final class SpatialMapOperations {
   const SpatialMapOperations();
+
+  MapData upsertLifts(MapData map, List<SpatialLiftDefinition> lifts) {
+    final scene = _scene(map);
+    if (lifts.isEmpty || lifts.length > 64 || lifts.map((v) => v.id).toSet().length != lifts.length) throw const FormatException('A lift batch requires unique bounded identities.');
+    final updates = {for (final lift in lifts) lift.id:lift};
+    final ids = scene.lifts.map((v)=>v.id).toSet();
+    return map.copyWith(spatialScene:scene.copyWith(lifts:[for(final lift in scene.lifts)updates[lift.id] ?? lift,for(final lift in lifts)if(!ids.contains(lift.id))lift]));
+  }
+  MapData deleteLifts(MapData map, List<String> ids) {
+    final scene = _scene(map);
+    if (ids.isEmpty || ids.length > 64 || ids.toSet().length != ids.length || ids.any((id)=>!scene.lifts.any((v)=>v.id==id))) throw const FormatException('Lift deletion requires existing unique identities.');
+    return map.copyWith(spatialScene:scene.copyWith(lifts:scene.lifts.where((v)=>!ids.contains(v.id))));
+  }
 
   MapData upsertTerrainSurfaces(
     MapData map,

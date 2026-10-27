@@ -50,9 +50,10 @@ final class SpatialModelRuntimeState {
     required this.animationIndex,
     required num normalizedTime,
     required this.blocksMovement,
+    this.translationY = 0,
   }) : modelId = _identity(modelId),
        normalizedTime = normalizedTime.toDouble() {
-    if ((animationIndex != null && animationIndex! < 0) ||
+    if (!translationY.isFinite || translationY.abs() > 1024 || (animationIndex != null && animationIndex! < 0) ||
         !this.normalizedTime.isFinite ||
         this.normalizedTime < 0 ||
         this.normalizedTime > 1 ||
@@ -61,6 +62,7 @@ final class SpatialModelRuntimeState {
     }
   }
 
+  final double translationY;
   final String modelId;
   final int? animationIndex;
   final double normalizedTime;
@@ -69,19 +71,24 @@ final class SpatialModelRuntimeState {
   SpatialModelRuntimeState copyWith({
     double? normalizedTime,
     bool? blocksMovement,
+    double? translationY,
   }) => SpatialModelRuntimeState(
     modelId: modelId,
+    translationY: translationY ?? this.translationY,
     animationIndex: animationIndex,
     normalizedTime: normalizedTime ?? this.normalizedTime,
     blocksMovement: blocksMovement ?? this.blocksMovement,
   );
 
   factory SpatialModelRuntimeState.fromJson(Map<String, dynamic> json) {
-    _keys(json, {
+    final offset = json.containsKey('translationY') ? json['translationY'] : 0;
+    if (offset is! num) throw const FormatException('Invalid model vertical offset.');
+    _keys({...json, 'translationY': offset}, {
       'modelId',
       'animationIndex',
       'normalizedTime',
       'blocksMovement',
+      'translationY',
     });
     final index = json['animationIndex'];
     final time = json['normalizedTime'];
@@ -91,6 +98,7 @@ final class SpatialModelRuntimeState {
     }
     return SpatialModelRuntimeState(
       modelId: _identity(json['modelId']),
+      translationY: offset.toDouble(),
       animationIndex: index as int?,
       normalizedTime: time,
       blocksMovement: blocks,
@@ -99,6 +107,7 @@ final class SpatialModelRuntimeState {
 
   Map<String, dynamic> toJson() => {
     'modelId': modelId,
+    if (translationY != 0) 'translationY': translationY,
     'animationIndex': animationIndex,
     'normalizedTime': normalizedTime,
     'blocksMovement': blocksMovement,
@@ -109,13 +118,14 @@ final class SpatialModelRuntimeState {
       identical(this, other) ||
       other is SpatialModelRuntimeState &&
           other.modelId == modelId &&
+          other.translationY == translationY &&
           other.animationIndex == animationIndex &&
           other.normalizedTime == normalizedTime &&
           other.blocksMovement == blocksMovement;
 
   @override
   int get hashCode =>
-      Object.hash(modelId, animationIndex, normalizedTime, blocksMovement);
+      Object.hash(modelId, animationIndex, normalizedTime, blocksMovement, translationY);
 }
 
 final class SpatialWorldState {

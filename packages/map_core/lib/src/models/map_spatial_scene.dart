@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
 import 'project_model3d.dart';
+import 'spatial_lift.dart';
 import 'spatial_day_night_cycle.dart';
 import 'spatial_navigation.dart';
 import 'smart_tile.dart';
@@ -362,12 +363,14 @@ final class MapSpatialScene {
     this.cliffFrame,
     this.generateCliffs = true,
     Iterable<SpatialModelInstance> instances = const [],
+    Iterable<SpatialLiftDefinition> lifts = const [],
     SpatialCameraProfile? camera,
     this.dayNightCycle,
     SpatialNavigationProfile? navigation,
     this.terrainSurfaces = const SpatialTerrainSurfaceSet.empty(),
   }) : heightLevels = List.unmodifiable(heightLevels ?? _flat(width, depth)),
        instances = List.unmodifiable(instances),
+       lifts = List.unmodifiable(lifts),
        camera = camera ?? SpatialCameraProfile(),
        navigation = navigation ?? SpatialNavigationProfile() {
     if (width <= 0 ||
@@ -385,6 +388,17 @@ final class MapSpatialScene {
       throw const FormatException(
         'Invalid spatial terrain dimensions, levels or instances.',
       );
+    }
+    if (this.lifts.length > 64 || this.lifts.map((v) => v.id).toSet().length != this.lifts.length || this.lifts.map((v) => v.instanceId).toSet().length != this.lifts.length || this.lifts.any((lift) => !lift.fits(width, depth) || !this.instances.any((instance) => instance.id == lift.instanceId))) {
+      throw const FormatException('Spatial lifts require unique valid model instances and bounded footprints.');
+    }
+    for (var i = 0; i < this.lifts.length; i++) {
+      final a = this.lifts[i];
+      for (final b in this.lifts.skip(i + 1)) {
+        if (a.x < b.x + b.width && b.x < a.x + a.width && a.z < b.z + b.depth && b.z < a.z + a.depth) {
+          throw const FormatException('Spatial lift footprints must not overlap.');
+        }
+      }
     }
     if (this.navigation.spawn.x >= width ||
         this.navigation.spawn.z >= depth ||
@@ -448,6 +462,7 @@ final class MapSpatialScene {
   final SmartTileFrameRef? cliffFrame;
   final bool generateCliffs;
   final List<SpatialModelInstance> instances;
+  final List<SpatialLiftDefinition> lifts;
   final SpatialCameraProfile camera;
   final SpatialDayNightCycle? dayNightCycle;
   final SpatialNavigationProfile navigation;
@@ -539,6 +554,7 @@ final class MapSpatialScene {
   MapSpatialScene copyWith({
     Iterable<int>? heightLevels,
     Iterable<SpatialModelInstance>? instances,
+    Iterable<SpatialLiftDefinition>? lifts,
     SpatialCameraProfile? camera,
     SpatialDayNightCycle? dayNightCycle,
     bool clearDayNightCycle = false,
@@ -556,6 +572,7 @@ final class MapSpatialScene {
         : cliffFrame as SmartTileFrameRef?,
     generateCliffs: generateCliffs ?? this.generateCliffs,
     instances: instances ?? this.instances,
+    lifts: lifts ?? this.lifts,
     camera: camera ?? this.camera,
     dayNightCycle: clearDayNightCycle
         ? null
@@ -567,6 +584,7 @@ final class MapSpatialScene {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is MapSpatialScene &&
+          const DeepCollectionEquality().equals(other.lifts, lifts) &&
           other.width == width &&
           other.depth == depth &&
           other.levelHeight == levelHeight &&
@@ -594,11 +612,12 @@ final class MapSpatialScene {
     terrainSurfaces,
     const DeepCollectionEquality().hash(heightLevels),
     const DeepCollectionEquality().hash(instances),
+    const DeepCollectionEquality().hash(lifts),
   );
 
   factory MapSpatialScene.fromJson(Map<String, dynamic> json) {
     final version = json['schemaVersion'];
-    if (version is! int || (version != 1 && version != 2)) {
+    if (version is! int || (version != 1 && version != 2 && version != 3)) {
       throw const FormatException('Unsupported spatial scene version.');
     }
     if (version == 1 && json.containsKey('terrainSurfaces')) {
@@ -611,7 +630,7 @@ final class MapSpatialScene {
         'Spatial scene version 2 requires continuous terrain surfaces.',
       );
     }
-    final terrainSurfaces = version == 2
+    final terrainSurfaces = version >= 2 && json['terrainSurfaces'] != null
         ? SpatialTerrainSurfaceSet.fromJson(
             Map<String, dynamic>.from(json['terrainSurfaces'] as Map),
           )
@@ -621,7 +640,11 @@ final class MapSpatialScene {
         'Spatial scene version 2 requires at least one continuous surface.',
       );
     }
+    if (version != 3 && json.containsKey('lifts') || version == 3 && (json['lifts'] is! List || (json['lifts'] as List).isEmpty)) {
+      throw const FormatException('Spatial lifts require scene version 3.');
+    }
     return MapSpatialScene(
+      lifts: [for (final value in json['lifts'] as List? ?? const []) SpatialLiftDefinition.fromJson(Map<String,dynamic>.from(value as Map))],
       width: json['width'] as int,
       depth: json['depth'] as int,
       heightLevels: (json['heightLevels'] as List).cast<int>(),
@@ -653,7 +676,8 @@ final class MapSpatialScene {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': terrainSurfaces.surfaces.isEmpty ? 1 : 2,
+    'schemaVersion': lifts.isNotEmpty ? 3 : terrainSurfaces.surfaces.isEmpty ? 1 : 2,
+    if (lifts.isNotEmpty) 'lifts': [for (final lift in lifts) lift.toJson()],
     'width': width,
     'depth': depth,
     'heightLevels': heightLevels,

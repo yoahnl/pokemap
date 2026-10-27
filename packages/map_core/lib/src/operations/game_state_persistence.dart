@@ -233,11 +233,13 @@ PlayerProgression _normalizePokedexProgression({
   // - les saves legacy peuvent ne rien stocker, donc on reconstruit ce socle
   //   minimal à partir de la party quand nécessaire.
   final ownedSpeciesIds = party.members
+      .where((member) => !member.isEgg)
       .map((member) => member.speciesId.trim())
       .where((speciesId) => speciesId.isNotEmpty)
       .toList(growable: true)
     ..addAll(
       pokemonStorage.storedPokemon
+          .where((member) => !member.isEgg)
           .map((member) => member.speciesId.trim())
           .where((speciesId) => speciesId.isNotEmpty),
     );

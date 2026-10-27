@@ -271,7 +271,7 @@ class RuntimeBattleSetupMapper {
     }
 
     final activeMember = party.members[activeIndex];
-    if (activeMember.isFainted) {
+    if (activeMember.isFainted || activeMember.isEgg) {
       throw RuntimeBattleSetupException(
         'Le slot de party joueur demandé pour le combat est déjà K.O.',
         debugDetails:
@@ -281,7 +281,7 @@ class RuntimeBattleSetupMapper {
 
     final reserveIndices = <int>[];
     for (var i = 0; i < party.members.length; i++) {
-      if (i == activeIndex) {
+      if (i == activeIndex || party.members[i].isEgg) {
         continue;
       }
       reserveIndices.add(i);
@@ -320,7 +320,7 @@ class RuntimeBattleSetupMapper {
     // - l'extraire dans le builder brouillerait la frontière M7 pour peu de
     //   valeur réelle dans ce repo.
     for (var i = 0; i < party.members.length; i++) {
-      if (!party.members[i].isFainted) {
+      if (!party.members[i].isFainted && !party.members[i].isEgg) {
         return i;
       }
     }

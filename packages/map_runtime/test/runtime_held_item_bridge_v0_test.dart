@@ -325,7 +325,7 @@ void main() {
       );
     });
 
-    for (final effectId in ['lum_berry', 'sitrus_berry', 'smoke_ball']) {
+    for (final effectId in ['lum_berry', 'persim_berry', 'sitrus_berry', 'smoke_ball']) {
       test(
         'proven held effect $effectId survives its real lifecycle write-back',
         () {
@@ -402,6 +402,44 @@ void main() {
                 )
                 .state;
             expect(after.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+          } else if (effectId == 'persim_berry') {
+            after = const BattleMoveSecondaryEffectResolver()
+                .resolve(
+                  state: initial,
+                  rng: BattleRngStreams.fromPsdkSeeds(_rngSeeds),
+                  user: psdkOpponentSlot,
+                  target: psdkPlayerSlot,
+                  turn: 1,
+                  move: BattleMoveDefinition.fromPsdk(
+                    PsdkBattleMoveData(
+                      id: 'confuse_ray',
+                      dbSymbol: 'confuse_ray',
+                      name: 'Confusion',
+                      type: 'ghost',
+                      category: PsdkBattleMoveCategory.status,
+                      power: 0,
+                      accuracy: 100,
+                      pp: 10,
+                      priority: 0,
+                      battleEngineMethod: 's_confuse',
+                      target: PsdkBattleMoveTarget.adjacentFoe,
+                      statuses: [
+                        PsdkBattleMoveStatus.volatile(
+                          status: PsdkBattleVolatileStatus.confusion,
+                          chance: 100,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .state;
+            expect(
+              after
+                  .battlerAt(psdkPlayerSlot)
+                  .effects
+                  .contains(PsdkBattleEffectIds.confusion),
+              isFalse,
+            );
           } else if (effectId == 'sitrus_berry') {
             after = const BattleEndTurnHandler()
                 .resolveEndTurn(

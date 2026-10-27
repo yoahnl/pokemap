@@ -232,6 +232,9 @@ final class GamePackageProjectValidator {
               .contains(ProjectBattleSavingsConfig.capabilityId)) {
         _fail('Battle savings require ${ProjectBattleSavingsConfig.capabilityId}.');
       }
+      if (SpatialGameplayCapabilities.requiresEggGift(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.eggGiftCapabilityId)) {
+        _fail('Egg gifts require gameplay.egg-gift@1.');
+      }
       if (SpatialGameplayCapabilities.requiresNpcTrade(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.npcTradeCapabilityId)) {
         _fail('NPC trade offers require gameplay.npc-trade@1.');
       }
@@ -268,6 +271,7 @@ final class GamePackageProjectValidator {
               as Map<String, dynamic>);
           return map;
         }).toList()..addAll(exterior.visualMaps);
+        if (SpatialGameplayCapabilities.requiresLifts(maps) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) _fail('Spatial lifts require map3d.lift@1.');
         final hasModelShadows = exterior.modelShadows || SpatialModelShadowCapabilities.requiresCapability(project, maps: maps);
         final hasPointLights = exterior.pointLights || SpatialSceneLightingCapabilities.requiresPointLights(project, maps: maps);
         if (SpatialGameplayCapabilities.requiresConnectedCinematics(project,

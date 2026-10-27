@@ -499,6 +499,7 @@ final class NarrativeCommandCatalog {
           ),
           _parameter('moveIds', 'Capacités imposées', NarrativeCommandParameterKind.text, required: false,
           ),
+          _parameter('isEgg', 'Recevoir un Œuf', NarrativeCommandParameterKind.boolean, required: false),
         ],
         isPersistent: true,
       ),

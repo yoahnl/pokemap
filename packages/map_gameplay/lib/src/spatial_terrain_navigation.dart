@@ -3,14 +3,14 @@ import 'dart:math' as math;
 import 'package:map_core/map_core.dart';
 
 bool canTraverseSpatialTerrainStep(
-        MapSpatialScene scene, double ax, double az, double bx, double bz) =>
+        MapSpatialScene scene, double ax, double az, double bx, double bz, {double Function(double,double)? heightAt}) =>
     !scene.navigation.ledges.any((ledge) =>
         ledge.containsBarrier(ax, az) || ledge.containsBarrier(bx, bz)) &&
-    ((scene.worldHeightAt(bx, bz) - scene.worldHeightAt(ax, az)).abs() <= .25 + 1e-6 ||
-        _rampAllowsTransition(scene, ax, az, bx, bz));
+    (((heightAt ?? scene.worldHeightAt)(bx, bz) - (heightAt ?? scene.worldHeightAt)(ax, az)).abs() <= .25 + 1e-6 ||
+        _rampAllowsTransition(scene, ax, az, bx, bz, heightAt: heightAt));
 
 bool _rampAllowsTransition(
-    MapSpatialScene scene, double ax, double az, double bx, double bz) {
+    MapSpatialScene scene, double ax, double az, double bx, double bz, {double Function(double,double)? heightAt}) {
   for (final ramp in scene.navigation.ramps) {
     final vertical = ramp.direction == SpatialRampDirection.north ||
         ramp.direction == SpatialRampDirection.south;
@@ -28,10 +28,10 @@ bool _rampAllowsTransition(
         : math.max(ax, bx) >= ramp.x && math.min(ax, bx) <= ramp.x + ramp.width;
     if (aligned &&
         intersects &&
-        (scene.worldHeightAt(ax, az) - ramp.levelAt(ax, az) * scene.levelHeight)
+        ((heightAt ?? scene.worldHeightAt)(ax, az) - ramp.levelAt(ax, az) * scene.levelHeight)
                 .abs() <
             .0001 &&
-        (scene.worldHeightAt(bx, bz) - ramp.levelAt(bx, bz) * scene.levelHeight)
+        ((heightAt ?? scene.worldHeightAt)(bx, bz) - ramp.levelAt(bx, bz) * scene.levelHeight)
                 .abs() <
             .0001) {
       return true;

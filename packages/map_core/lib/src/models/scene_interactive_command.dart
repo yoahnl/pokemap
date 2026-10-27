@@ -104,6 +104,7 @@ abstract base class SceneInteractiveCommand {
     required ScenePokemonGiftNicknamePolicy nicknamePolicy,
     required int nicknameMaxGraphemes,
     required ScenePokemonGiftPokedexPresentationPolicy pokedexPresentationPolicy,
+    bool isEgg,
     List<String>? moveIds,
   }) = SceneReceivePokemonFromCatalogInteractiveCommand;
 
@@ -1743,10 +1744,15 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
     required this.nicknamePolicy,
     required this.nicknameMaxGraphemes,
     required this.pokedexPresentationPolicy,
+    this.isEgg = false,
     List<String>? moveIds,
   }) : speciesId = speciesId.trim(),
        formId = formId.trim(),
        moveIds = readScenePokemonGiftMoveIds(moveIds) {
+    if (isEgg && (nicknamePolicy != ScenePokemonGiftNicknamePolicy.disabled ||
+        pokedexPresentationPolicy != ScenePokemonGiftPokedexPresentationPolicy.never)) {
+      throw const FormatException('Egg gifts cannot disclose a species or offer a nickname.');
+    }
     if (this.speciesId.isEmpty ||
         this.formId.isEmpty ||
         level < 1 ||
@@ -1772,13 +1778,15 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
       'pokedexPresentationPolicy',
     };
     if (fields.any((field) => !json.containsKey(field)) ||
-        json.keys.any((key) => key != 'moveIds' && !fields.contains(key)) ||
+        json.keys.any((key) => key != 'moveIds' && key != 'isEgg' && !fields.contains(key)) ||
         json['kind'] != 'receivePokemonFromCatalog' ||
         json['level'] is! int ||
+        json.containsKey('isEgg') && json['isEgg'] is! bool ||
         json['nicknameMaxGraphemes'] is! int) {
       throw const FormatException('Invalid interactive catalog gift fields.');
     }
     return SceneReceivePokemonFromCatalogInteractiveCommand(
+      isEgg: json['isEgg'] as bool? ?? false,
       speciesId: _required(json, 'speciesId'),
       formId: _required(json, 'formId'),
       level: json['level'] as int,
@@ -1797,6 +1805,7 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
     );
   }
 
+  final bool isEgg;
   final String speciesId;
   final String formId;
   final int level;
@@ -1815,6 +1824,7 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
   @override
   Map<String, dynamic> toJson() => {
     'kind': kind.name,
+    if (isEgg) 'isEgg': true,
     'speciesId': speciesId,
     'formId': formId,
     'level': level,
@@ -1827,6 +1837,7 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
   @override
   bool operator ==(Object other) =>
       other is SceneReceivePokemonFromCatalogInteractiveCommand &&
+      other.isEgg == isEgg &&
       other.speciesId == speciesId &&
       other.formId == formId &&
       other.level == level &&
@@ -1837,7 +1848,7 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
 
   @override
   int get hashCode => Object.hash(
-    speciesId,
+    isEgg,    speciesId,
     formId,
     level,
     nicknamePolicy,

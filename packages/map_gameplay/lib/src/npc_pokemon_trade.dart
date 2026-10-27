@@ -16,6 +16,7 @@ final class NpcPokemonTradeOperations {
         members.indexWhere((p) => p.individualId == selectedIndividualId);
     if (selectedIndividualId.isEmpty ||
         index < 0 ||
+        members[index].isEgg ||
         members.where((p) => p.individualId == selectedIndividualId).length !=
             1 ||
         members[index].speciesId != offer.requestedSpeciesId ||

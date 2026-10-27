@@ -39,7 +39,7 @@ class PlayerPokemonSummarySheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) => PlayerMenuThemeScope(
     role: surfaceRole,
-    child: _PlayerPokemonSummaryTabs(sheet: this),
+    child: summary.isEgg ? Column(mainAxisSize: MainAxisSize.min, children: [PlayerPokemonImage(summary: summary), Text(summary.displayLabel), Text(Localizations.localeOf(context).languageCode == 'fr' ? 'Un Œuf confié à votre équipe.' : 'An Egg entrusted to your party.'), ?actions]) : _PlayerPokemonSummaryTabs(sheet: this),
   );
 
   Widget _hpBar(BuildContext context, PlayerPokemonSummaryStrings strings) {

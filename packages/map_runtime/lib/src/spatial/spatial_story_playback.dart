@@ -9,6 +9,7 @@ import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_exploration_session.dart';
 import 'spatial_npc_fixed_route_runtime.dart';
 import 'spatial_visual_playback.dart';
+import 'spatial_lift_playback.dart';
 
 final class SpatialStoryPlayback {
   SpatialStoryPlayback({
@@ -56,6 +57,9 @@ final class SpatialStoryPlayback {
       },
       random: Random(),
     );
+    lifts = SpatialLiftPlayback(readMap: () => session.bundle.map, readWorld: () => readGameState().spatialWorldState, writeWorld: (world) => writeGameState(readGameState().copyWith(spatialWorldState:world)));
+    session.liftHeightAt = lifts.heightAt;
+    session.liftModelPose = lifts.modelPose;
     cinematics = CinematicRuntimePlaybackController(
       sink: SpatialCinematicRuntimePlaybackSink(
         project: session.bundle.manifest,
@@ -131,6 +135,7 @@ final class SpatialStoryPlayback {
     session.npcStoryPose = (entity) => cinematics.isPlaying ? _poses['entity:${entity.id}'] : null;
     session.npcAutonomousPose = (entity) => autonomousNpcs.poseFor(entity.id);
     session.onBeforeMapChange = () {
+      lifts.cancel();
       _resetFade();
       visuals.reset();
       session.cinematicVisualOverrides = SpatialVisualPatch();
@@ -146,6 +151,7 @@ final class SpatialStoryPlayback {
 
   final SpatialExplorationSession session;
   late final SpatialVisualRuleResolver visualRules;
+  late final SpatialLiftPlayback lifts;
   late final SpatialVisualPlayback visuals;
   SpatialVisualPatch resolvedVisuals() {
     final bundle = session.bundle;
@@ -356,11 +362,18 @@ final class SpatialStoryPlayback {
     }
   }
 
+  Future<String> playPlatform(SceneInteractiveCommand command) async {
+    final result = lifts.play(command);
+    _publishActivity();
+    try { return await result; } finally { _publishActivity(); }
+  }
+
   void update(double dt, bool paused) {
     if (_disposed) return;
     autonomousNpcs.update(dt, paused: paused || session.movement.paused || models.isPlaying || cinematics.isPlaying ||
         session.interactionActive.value || session.storyInputLocked || session.nativeDoorTraversalActive);
     models.update(dt, paused: paused);
+    lifts.update(dt, paused: paused);
     if (!paused) visuals.advance(dt);
     if (!paused && dt.isFinite && dt > 0) {
       cinematics.update(Duration(microseconds: (dt * 1000000).round()));
@@ -369,7 +382,7 @@ final class SpatialStoryPlayback {
 
   void synchronize(SpatialWorldState state) {
     _resetFade();
-    if (models.isPlaying || cinematics.isPlaying) cancel();
+    if (models.isPlaying || cinematics.isPlaying || lifts.isPlaying) cancel();
     models.synchronize(state);
     visuals.reset();
     session.cinematicVisualOverrides = SpatialVisualPatch();
@@ -380,7 +393,7 @@ final class SpatialStoryPlayback {
 
   void _publishActivity() {
     if (!_disposed) {
-      session.storyActive.value = models.isPlaying || cinematics.isPlaying;
+      session.storyActive.value = models.isPlaying || cinematics.isPlaying || lifts.isPlaying;
     }
   }
 
@@ -388,6 +401,7 @@ final class SpatialStoryPlayback {
     if (models.isPlaying || cinematics.isPlaying) wasCancelled = true;
     models.cancel();
     cinematics.cancel();
+    lifts.cancel();
     _resetFade();
     _publishActivity();
   }
@@ -395,6 +409,7 @@ final class SpatialStoryPlayback {
   void skip() {
     if (session.presentationPaused) return;
     models.update(86400);
+    lifts.update(86400, paused:false);
     cinematics.update(const Duration(days: 1));
     _publishActivity();
   }
@@ -412,6 +427,8 @@ final class SpatialStoryPlayback {
     session.onBeforeMapChange = null;
     session.onCancelStory = null;
     session.onSkipStory = null;
+    session.liftHeightAt = null;
+    session.liftModelPose = null;
     session.worldStateProvider = null;
     session.heroStoryPose = null;
     session.npcStoryPose = null;

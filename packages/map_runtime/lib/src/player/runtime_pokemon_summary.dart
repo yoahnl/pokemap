@@ -63,6 +63,7 @@ final class RuntimePokemonSummarySnapshot {
     this.stats,
     this.genderLabel,
     this.isShiny = false,
+    this.isEgg = false,
     this.heldItemLabel,
     this.statusLabel,
     List<RuntimePokemonMoveSummarySnapshot> moves =
@@ -92,6 +93,7 @@ final class RuntimePokemonSummarySnapshot {
   /// sans elle, la cible retombe sur une position, qui change au dépôt.
   final String individualId;
 
+  final bool isEgg;
   final String speciesLabel;
   final String nickname;
   final String? formLabel;
@@ -226,6 +228,9 @@ final class RuntimePokemonSummaryBuilder {
     PlayerPokemon pokemon, {
     required String targetId,
   }) {
+    if (pokemon.isEgg) {
+      return RuntimePokemonSummarySnapshot(targetId: targetId, individualId: pokemon.individualId, speciesLabel: _isFrench ? 'Œuf' : 'Egg', nickname: '', level: 1, currentHp: 1, maxHp: 1, natureLabel: '', abilityLabel: '', friendship: 0, isEgg: true);
+    }
     final calculated = resolvers.calculatedStatsFor?.call(pokemon);
     // Une sauvegarde peut porter des PV supérieurs au maximum calculable
     // lorsque l'espèce n'expose pas de stats de base. Le plancher évite une

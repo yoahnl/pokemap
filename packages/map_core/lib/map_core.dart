@@ -78,3 +78,5 @@ export 'src/projection/world_environment_resolution.dart';
 export 'src/validation/world_environment_capabilities.dart';
 
 export 'src/models/real_weather.dart';
+
+export 'src/models/spatial_lift.dart';

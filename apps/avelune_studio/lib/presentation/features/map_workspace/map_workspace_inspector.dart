@@ -19,6 +19,7 @@ import 'map_catalogue_properties.dart';
 import 'map_camera_panel.dart';
 import 'map_day_night_panel.dart';
 import 'spatial_model_entity_controls.dart';
+import 'spatial_lift_controls.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
@@ -161,6 +162,8 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             onChanged: onChanged,
           ),
           const SizedBox(height: 12),
+          SpatialLiftControls(key:ValueKey('lift-${instance.id}'),document:document,instance:instance,onChanged:onChanged),
+          const SizedBox(height:12),
           field(
             'x',
             'X',

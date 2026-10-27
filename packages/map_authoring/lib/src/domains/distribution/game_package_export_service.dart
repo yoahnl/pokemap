@@ -358,10 +358,12 @@ final class CanonicalGamePackageExportService {
         if (projection.project.settings.dimension == ProjectDimension.threeD &&
             SpatialGameplayCapabilities.requiresCinematicFade(projection.project))
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
+        if (SpatialGameplayCapabilities.requiresLifts(spatialMaps)) SpatialGameplayCapabilities.liftCapabilityId,
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (projection.project.battleSavings != null) ProjectBattleSavingsConfig.capabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project)) SpatialGameplayCapabilities.npcTradeCapabilityId,
+        if (SpatialGameplayCapabilities.requiresEggGift(projection.project)) SpatialGameplayCapabilities.eggGiftCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresAudio(projection.project)) SpatialGameplayCapabilities.audioCapabilityId,
         if (projection.project.partyCompanion.enabled) SpatialGameplayCapabilities.companionCapabilityId,

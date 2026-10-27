@@ -206,6 +206,8 @@ final class SpatialMovementController {
   late final SpatialMovementNeighbor _localMap =
       SpatialMovementNeighbor(controller: this, offsetX: 0, offsetZ: 0);
   final MapSpatialScene scene;
+  double? Function(double x, double z)? terrainHeightOverride;
+  double heightAt(double x, double z) => terrainHeightOverride?.call(x,z) ?? scene.worldHeightAt(x,z);
   final List<MapEntity> entities;
   final Map<String, MapEntity> _entitiesById = {};
   final Map<String, SpatialModelInstance> _instancesById = {};
@@ -228,7 +230,7 @@ final class SpatialMovementController {
       ? 0
       : math.sin(math.pi * _ledgeJump!.progress) * _ledgeJump!.ledge.height;
   double get groundY => _ledgeJump == null
-      ? scene.worldHeightAt(x, z)
+      ? heightAt(x, z)
       : _ledgeJump!.sourceY +
           (_ledgeJump!.landingY - _ledgeJump!.sourceY) * _ledgeJump!.progress;
   double _remainderX = 0, _remainderZ = 0;
@@ -436,7 +438,7 @@ final class SpatialMovementController {
                   playerPosition: playerPosition) ||
           !(allowConnectedMaps
               ? _canTraverseConnectedTerrain(previousX, previousZ, x, z, neighbors: neighbors)
-              : canTraverseSpatialTerrainStep(scene, previousX, previousZ, x, z))) {
+              : canTraverseSpatialTerrainStep(scene, previousX, previousZ, x, z, heightAt: heightAt))) {
         return false;
       }
       previousX = x;
@@ -669,7 +671,7 @@ final class SpatialMovementController {
           final previousX = px + (originX - px).sign / pixelsPerCell;
           final previousZ = pz + (originZ - pz).sign / pixelsPerCell;
           final blocked = !canTraverseSpatialTerrainStep(
-              scene, previousX, previousZ, px, pz);
+              scene, previousX, previousZ, px, pz, heightAt: heightAt);
           if (blocked) {
             collided = true;
           }
@@ -738,8 +740,8 @@ final class SpatialMovementController {
       _ledgeJump = _SpatialLedgeJump(
           ledge,
           source,
-          scene.worldHeightAt(sourceX, sourceZ),
-          scene.worldHeightAt(ledge.landingX + .5, ledge.landingZ + .5));
+          heightAt(sourceX, sourceZ),
+          heightAt(ledge.landingX + .5, ledge.landingZ + .5));
       moving = true;
       return true;
     }
@@ -799,11 +801,11 @@ final class SpatialMovementController {
     if (a == null || b == null) return false;
     if (identical(a.controller, b.controller)) {
       return canTraverseSpatialTerrainStep(a.controller.scene, ax - a.offsetX,
-          az - a.offsetZ, bx - b.offsetX, bz - b.offsetZ);
+          az - a.offsetZ, bx - b.offsetX, bz - b.offsetZ, heightAt: a.controller.heightAt);
     }
-    return (a.controller.scene.worldHeightAt(ax - a.offsetX, az - a.offsetZ) -
-                b.controller.scene
-                    .worldHeightAt(bx - b.offsetX, bz - b.offsetZ))
+    return (a.controller.heightAt(ax - a.offsetX, az - a.offsetZ) -
+                b.controller
+                    .heightAt(bx - b.offsetX, bz - b.offsetZ))
             .abs() <=
         .25;
   }
@@ -1099,7 +1101,7 @@ final class SpatialMovementController {
     }
     final geometry =
         spatialModelWorldGeometry(instance, model, useCollisionBounds: true);
-    final actorHeight = scene.worldHeightAt(
+    final actorHeight = heightAt(
         rect.bottomCenterPx.xPx / pixelsPerCell + offsetX,
         rect.bottomCenterPx.yPx / pixelsPerCell + offsetZ);
     if (actorHeight >= geometry.maxY || actorHeight + 1.92 <= geometry.minY) {
@@ -1177,7 +1179,7 @@ final class SpatialMovementController {
             ax / pixelsPerCell + offsetX,
             az / pixelsPerCell + offsetZ,
             bx / pixelsPerCell + offsetX,
-            bz / pixelsPerCell + offsetZ);
+            bz / pixelsPerCell + offsetZ, heightAt:heightAt);
     for (var x = left; x < right; x++) {
       if (!traversable(x, top, x + 1, top) ||
           !traversable(x, bottom, x + 1, bottom)) {

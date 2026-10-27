@@ -9,6 +9,36 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' as border;
 
 void main() {
+  test('native vertical platforms preserve map content across API JSONL and undo', () async {
+    for(final direct in [true,false]) {
+      final f=await _Fixture.create();addTearDown(f.dispose);
+      final preparation=await f.request('workshop_prepare',{'projectHandle':f.project.value});
+      expect(preparation.status,AuthoringResultStatus.success,reason:preparation.toJson().toString());
+      final imported=await f.apply(await f.plan());
+      expect(imported.status,AuthoringResultStatus.success,reason:imported.toJson().toString());
+      final deck=SpatialModelInstance(id:'lift-deck',modelId:'house',position:Model3dVector3(x:1.5,y:0,z:1.5));
+      await f.executeAction('map3d.instance.upsert',{'mapId':'first-map','instance':deck.toJson()},direct:direct);
+      final before=(await f.snapshots.load(f.project)).mapById('first-map')!;
+      final lift=SpatialLiftDefinition(id:'lift',name:'Platform',instanceId:deck.id,x:1,z:1,width:2,depth:2,lowerHeight:0,upperHeight:3,durationMs:1000);
+      await f.executeAction('map3d.lift.upsert_batch',{'mapId':'first-map','lifts':[lift.toJson()]},direct:direct);
+      final saved=(await f.snapshots.load(f.project)).mapById('first-map')!;
+      expect(saved.spatialScene!.lifts,[lift]);
+      expect(saved.spatialScene!.instances,before.spatialScene!.instances);
+      expect(saved.spatialScene!.terrainSurfaces,before.spatialScene!.terrainSurfaces);
+      expect(saved.layers,before.layers);
+      final bytes=await File('${f.root.path}/maps/first-map.json').readAsBytes();
+      final rejected=await f.planAction('map3d.lift.upsert_batch',{'mapId':'first-map','lifts':[{...lift.toJson(),'instanceId':'missing'}]});
+      expect(rejected.status,AuthoringResultStatus.failure);
+      expect(await File('${f.root.path}/maps/first-map.json').readAsBytes(),bytes);
+      await f.executeAction('map3d.lift.delete_batch',{'mapId':'first-map','liftIds':['lift']},direct:direct);
+      expect((await f.snapshots.load(f.project)).mapById('first-map')!.spatialScene!.lifts,isEmpty);
+      final history=await f.request('history',{'projectHandle':f.project.value,'limit':1});
+      final entry=(history.data['entries'] as List).single as Map;
+      final undone=await f.request('undo',{'projectHandle':f.project.value,'entryId':entry['entryId'],'idempotencyKey':'undo-lift-delete'});
+      expect(undone.status,AuthoringResultStatus.success,reason:undone.toJson().toString());
+      expect((await f.snapshots.load(f.project)).mapById('first-map')!.spatialScene!.lifts,[lift]);
+    }
+  });
   test('3D entity model binding matches API and JSONL and rejects missing owner', () async {
     for (final direct in [true, false]) {
       final f = await _Fixture.create();

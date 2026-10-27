@@ -10,6 +10,22 @@ import 'package:test/test.dart';
 import 'package:image/image.dart' as img;
 
 void main() {
+  test('badge first and repeated upserts stay in their metadata document', () async {
+    final fixture = await _Fixture.open(unrelatedRecords: 100);
+    addTearDown(fixture.close);
+    for (var i = 0; i < 2; i++) {
+      final parameters = <String, Object?>{'value': {'id': 'wing', 'label': 'Wing $i', 'fieldAbilityUnlock': 'rock_smash'}};
+      final scope = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: 'campaign.badge.upsert', parameters: parameters);
+      expect(scope.maps, isEmpty);
+      expect(scope.manifest.trainers, isEmpty);
+      expect(scope.manifest.models3d, isEmpty);
+      await _applyScoped(fixture, 'campaign.badge.upsert', parameters, 'badge_$i');
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptorBytes);
+      final reopened = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: 'campaign.badge.upsert', parameters: parameters);
+      expect(reopened.manifest.badges.single.label, 'Wing $i');
+      expect(reopened.manifest.badges.single.fieldAbilityUnlock, FieldAbility.rockSmash);
+    }
+  });
   test('raw asset first and repeated imports retain unrelated catalog data', () async {
     final fixture = await _Fixture.open(unrelatedRecords: 100);
     addTearDown(fixture.close);

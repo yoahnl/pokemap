@@ -8,6 +8,30 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  RuntimePokemonSummarySnapshot summary(bool isEgg) => RuntimePokemonSummarySnapshot(
+    targetId: 'party.one', individualId: 'one', speciesLabel: isEgg ? 'Œuf' : 'Bird',
+    nickname: '', level: 1, currentHp: 1, maxHp: 1, natureLabel: '',
+    abilityLabel: '', friendship: 0, isEgg: isEgg,
+  );
+  for (final egg in [false, true]) {
+    test('companion summary preserves egg status $egg across transport', () {
+      final encoded = RuntimeCompanionPresentationCodec.encodeRuntimePokemonSummarySnapshot(summary(egg));
+      expect(encoded.containsKey('isEgg'), egg);
+      final decoded = RuntimeCompanionPresentationCodec.decodeRuntimePokemonSummarySnapshot(_crossTransport(encoded));
+      expect(decoded.isEgg, egg);
+      expect(decoded.speciesLabel, summary(egg).speciesLabel);
+    });
+  }
+  test('legacy companion summaries without egg status remain readable', () {
+    final legacy = RuntimeCompanionPresentationCodec.encodeRuntimePokemonSummarySnapshot(summary(false))..remove('isEgg');
+    expect(RuntimeCompanionPresentationCodec.decodeRuntimePokemonSummarySnapshot(_crossTransport(legacy)).isEgg, isFalse);
+  });
+  test('companion summaries reject malformed egg status', () {
+    final legacy = RuntimeCompanionPresentationCodec.encodeRuntimePokemonSummarySnapshot(summary(false));
+    for (final value in [null, 1, 'true']) {
+      expect(() => RuntimeCompanionPresentationCodec.decodeRuntimePokemonSummarySnapshot(_crossTransport({...legacy, 'isEgg': value})), throwsA(isA<TypeError>()));
+    }
+  });
   test('frame rate defaults and exact limits cross companion transports', () {
     const defaults = PlayerPreferencesSnapshot(
       locale: 'fr',

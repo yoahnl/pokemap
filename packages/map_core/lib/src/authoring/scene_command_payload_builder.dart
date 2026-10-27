@@ -407,6 +407,7 @@ Map<String, dynamic> _catalogGiftParameters(
   for (final entry in parameters.entries)
     entry.key: switch (entry.key) {
       'level' || 'nicknameMaxGraphemes' => int.tryParse(entry.value),
+      'isEgg' => switch (entry.value) { 'true' => true, 'false' => false, _ => throw const FormatException('Egg gift flag must be boolean.') },
       'moveIds' => switch (jsonDecode(entry.value)) {
         final List<dynamic> values => values,
         _ => throw const FormatException('Imposed gift moves must be a JSON list.',

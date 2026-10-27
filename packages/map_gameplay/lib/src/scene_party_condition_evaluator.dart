@@ -50,7 +50,7 @@ bool evaluateScenePartyCondition({
         throw StateError('Unknown Scene party move reference: $moveId.');
       }
       final members = gameState.party.members
-          .where((member) => member.knownMoveIds.contains(moveId));
+          .where((member) => !member.isEgg && member.knownMoveIds.contains(moveId));
       if (kind == ScenePartyConditionKind.knowsMove) {
         matched = members.isNotEmpty;
       } else {

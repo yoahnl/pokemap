@@ -21,6 +21,13 @@ abstract final class SpatialGameplayCapabilities {
   static const sceneMusicCapabilityId = 'map3d.scene-music@1';
   static const cinematicFadeCapabilityId = 'map3d.cinematic-fade@1';
   static const cinematicConnectedCapabilityId = 'map3d.cinematic-connected@1';
+  static const liftCapabilityId = 'map3d.lift@1';
+  static bool requiresLifts(Iterable<MapData> maps) => maps.any((map) => map.spatialScene?.lifts.isNotEmpty ?? false);
+
+  static const eggGiftCapabilityId = 'gameplay.egg-gift@1';
+
+  static bool requiresEggGift(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand && ((node.payload as SceneActionPayload).interactiveCommand as SceneReceivePokemonFromCatalogInteractiveCommand).isEgg));
+
   static const npcTradeCapabilityId = 'gameplay.npc-trade@1';
 
   static bool requiresNpcTrade(ProjectManifest project) => project.scenes.any(
@@ -104,6 +111,9 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.setPlayerAvatar,
     NarrativeCommandIds.setPauseMenuEntryVisibility,
     NarrativeCommandIds.warp,
+    NarrativeCommandIds.movePlatform,
+    NarrativeCommandIds.awardBadge,
+    NarrativeCommandIds.unlockFieldAbility,
     NarrativeCommandIds.openShop,
     NarrativeCommandIds.openHeal,
     NarrativeCommandIds.openPc,

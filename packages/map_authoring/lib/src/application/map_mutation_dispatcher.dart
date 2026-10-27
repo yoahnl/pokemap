@@ -1,3 +1,4 @@
+import '../domains/maps/spatial_lift_actions.dart';
 import '../domains/assets/resource_pack_actions.dart';
 import '../domains/assets/resource_pack_import_preparer.dart';
 import '../domains/maps/spatial_map_actions.dart';
@@ -234,6 +235,8 @@ final class MapMutationDispatcher {
       for (final descriptor in SpatialMapActions.descriptors)
         MapMutationActionRegistration(
             descriptor: descriptor, build: const SpatialMapActions().build),
+      for (final descriptor in SpatialLiftActions.descriptors)
+        MapMutationActionRegistration(descriptor:descriptor,build:const SpatialLiftActions().build),
       for (final descriptor in SpatialTerrainSurfaceActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,

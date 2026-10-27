@@ -449,6 +449,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         'targetId': value.targetId,
         'individualId': value.individualId,
         'speciesLabel': value.speciesLabel,
+        if (value.isEgg) 'isEgg': true,
         'nickname': value.nickname,
         'formLabel': value.formLabel,
         'level': value.level,
@@ -487,6 +488,7 @@ abstract final class RuntimeCompanionPresentationCodec {
         targetId: data['targetId'] as String,
         individualId: data['individualId'] as String,
         speciesLabel: data['speciesLabel'] as String,
+        isEgg: data.containsKey('isEgg') ? data['isEgg'] as bool : false,
         nickname: data['nickname'] as String,
         formLabel:
             data['formLabel'] == null ? null : data['formLabel'] as String,

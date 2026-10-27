@@ -5,6 +5,7 @@ const _gameplayActions = {
   'pokemon.ruleset.set',
   'campaign.encounter_table.upsert',
   'campaign.trainer.upsert',
+  'campaign.badge.upsert',
   'campaign.shop.upsert',
   'bag.capacity.set',
   'contact_device.configure',
@@ -40,6 +41,7 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
     final value = parameters['value'];
     final documentField = switch (actionId) {
       'campaign.trainer.upsert' => 'trainers',
+      'campaign.badge.upsert' => 'badges',
       'campaign.shop.upsert' => 'shops',
       'campaign.encounter_table.upsert' => 'encounterTables',
       _ => null,

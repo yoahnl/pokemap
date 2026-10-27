@@ -41,6 +41,6 @@ bool partyHasUsableFieldMove(PlayerParty party, FieldAbility ability) =>
 
 int? _usableFieldMovePartyIndex(PlayerParty party, FieldAbility ability) {
   final index = party.members.indexWhere((pokemon) =>
-      !pokemon.isFainted && pokemon.knownMoveIds.contains(ability.moveId));
+      !pokemon.isFainted && !pokemon.isEgg && pokemon.knownMoveIds.contains(ability.moveId));
   return index < 0 ? null : index;
 }

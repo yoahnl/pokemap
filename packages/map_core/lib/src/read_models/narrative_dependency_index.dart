@@ -1,3 +1,4 @@
+import '../models/spatial_lift.dart';
 import 'dart:collection';
 import '../dialogue/dialogue_fact_references.dart';
 import '../dialogue/runtime_dialogue_document.dart';
@@ -829,6 +830,9 @@ final class _NarrativeDependencyIndexBuilder {
         _definition(NarrativeDependencyTargetKind.sourceMap, platform.id, platform.id,
             owner: mapKey, path: 'maps[${map.id}].movingPlatforms[${platform.id}]',
             scope: _physicalMapScope, parentId: map.id, sourceKind: 'movingPlatform');
+      }
+      for (final lift in map.spatialScene?.lifts ?? const <SpatialLiftDefinition>[]) {
+        _definition(NarrativeDependencyTargetKind.sourceMap, lift.id, lift.name, owner: mapKey, path: 'maps[${map.id}].spatialScene.lifts[${lift.id}]', scope: _physicalMapScope, parentId: map.id, sourceKind: 'movingPlatform');
       }
       for (final prop in map.movingProps) {
         _definition(NarrativeDependencyTargetKind.sourceMap, prop.id, prop.id,

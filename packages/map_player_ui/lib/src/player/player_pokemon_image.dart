@@ -23,7 +23,7 @@ class PlayerPokemonImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final media =
         thumbnail ? summary.media.thumbnail : summary.media.illustration;
-    final placeholder = Icon(Icons.catching_pokemon,
+    final placeholder = Icon(summary.isEgg ? Icons.egg_outlined : Icons.catching_pokemon,
         key: ValueKey('pokemon-image-missing-${summary.targetId}'),
         size: thumbnail ? 36 : 96,
         color: context.playerMenuTheme.secondary);

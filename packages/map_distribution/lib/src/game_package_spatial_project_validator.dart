@@ -747,7 +747,7 @@ final class GamePackageSpatialProjectValidator {
           if (entity.kind != MapEntityKind.npc ||
               npc == null ||
               entity.size != const GridSize(width: 1, height: 1) ||
-              !entity.blocksMovement ||
+              !gameplay && !entity.blocksMovement ||
               entity.properties.isNotEmpty ||
               !gameplay && entity.editorVisual != null ||
               entity.sign != null ||

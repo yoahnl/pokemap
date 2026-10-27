@@ -7,6 +7,13 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('native vertical platform cites its four executed transport proofs', () {
+      for(final action in ['map3d.lift.upsert_batch','map3d.lift.delete_batch']) {
+        final evidence=AuthoringFullParityCatalog.canonical().requireMutationAction(action);
+        expect(evidence.endToEndEvidence.keys.toSet(),AuthoringTransport.values.toSet());
+        expect(evidence.endToEndEvidence[AuthoringTransport.mcp],'../../tools/pokemap_mcp/test/spatial_lift_stdio.test.ts');
+      }
+    });
     test('actor contact shadows expose four dedicated proven transports', () {
       final evidence = AuthoringFullParityCatalog.canonical()
           .requireMutationAction('project.actor_contact_shadows.configure');

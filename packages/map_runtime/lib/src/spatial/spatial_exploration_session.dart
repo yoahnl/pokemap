@@ -106,7 +106,7 @@ final class SpatialExplorationSession {
     if (location == null) {
       throw StateError('The cinematic point is outside loaded connected maps.');
     }
-    return location.map.spatialScene!.worldHeightAt(location.x, location.z);
+    return liftHeightAt?.call(location.map.id,location.x,location.z) ?? location.map.spatialScene!.worldHeightAt(location.x, location.z);
   }
 
   List<MapConnection> _connectionsFor(MapData map) =>
@@ -199,6 +199,8 @@ final class SpatialExplorationSession {
   VoidCallback? onFrame;
   void Function(double dt, bool paused)? onPresentationFrame;
   SpatialWorldState Function()? worldStateProvider;
+  double? Function(String mapId,double x,double z)? liftHeightAt;
+  SpatialModelRuntimeState? Function(String mapId,String instanceId)? liftModelPose;
   SpatialCinematicActorPose? Function()? heroStoryPose;
   SpatialCinematicActorPose? Function(MapEntity)? npcStoryPose;
   SpatialCinematicActorPose? Function(MapEntity)? npcAutonomousPose;
@@ -220,7 +222,7 @@ final class SpatialExplorationSession {
 
   void restoreCompanionTrail(PartyCompanionTrail snapshot) {
     final lead = presentationStateProvider?.call().party.members
-        .where((pokemon) => !pokemon.isFainted).firstOrNull;
+        .where((pokemon) => !pokemon.isFainted && !pokemon.isEgg).firstOrNull;
     if (snapshot.mapId == bundle.map.id && snapshot.individualId == lead?.individualId) {
       _companionTrail.restore(snapshot);
     }
@@ -230,7 +232,7 @@ final class SpatialExplorationSession {
     final config = bundle.manifest.partyCompanion;
     final state = presentationStateProvider?.call();
     final lead = state?.party.members
-        .where((pokemon) => !pokemon.isFainted)
+        .where((pokemon) => !pokemon.isFainted && !pokemon.isEgg)
         .firstOrNull;
     final visual = lead == null
         ? null
@@ -309,8 +311,8 @@ final class SpatialExplorationSession {
     return SpatialActorVisual(
       x: position.x,
       z: position.z,
-      y: position.y,
-      groundY: position.groundY,
+      y: (liftHeightAt?.call(bundle.map.id,position.x,position.z) ?? position.groundY) + position.y - position.groundY,
+      groundY: liftHeightAt?.call(bundle.map.id,position.x,position.z) ?? position.groundY,
       contactShadow: actor.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault,
       texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
@@ -342,6 +344,7 @@ final class SpatialExplorationSession {
     String instanceId,
   ) =>
       _nativeDoor.poseFor(mapId, instanceId) ??
+      liftModelPose?.call(mapId, instanceId) ??
       worldStateProvider?.call().modelState(mapId, instanceId) ??
       (mapId == bundle.map.id
               ? _smartTileAnimations
@@ -376,6 +379,7 @@ final class SpatialExplorationSession {
     final source = bundle;
     final index = _modelPresenceIndices[source.map] ??=
         _SpatialModelPresenceIndex(source.map);
+    movement.terrainHeightOverride = (x,z) => liftHeightAt?.call(source.map.id,x,z);
     movement.entityProjection = (entity) => entityProjection == null ? entity :
       entityProjection!(source.map.id, entity);
     movement.setRuntimeStateProviders(
@@ -1147,7 +1151,7 @@ final class SpatialExplorationSession {
       occupants[bundle.map.id]!['hero'] = occupiedCell(hero);
     }
     final companion = result['party-companion'];
-    final lead = presentationStateProvider?.call().party.members.where((p) => !p.isFainted).firstOrNull;
+    final lead = presentationStateProvider?.call().party.members.where((p) => !p.isFainted && !p.isEgg).firstOrNull;
     if (companion != null && lead != null) {
       final actorId = 'companion:${lead.individualId}';
       occupants[bundle.map.id]![actorId] = occupiedCell(companion);
@@ -1288,7 +1292,7 @@ final class SpatialExplorationSession {
     final z = (saved?.z ?? entity.pos.y + .5) + entity.size.height - 1;
     final groundY = active && containsCinematicPoint(x, z)
         ? cinematicHeightAt(x, z)
-        : source.map.spatialScene!.worldHeightAt(x, z);
+        : liftHeightAt?.call(source.map.id,x,z) ?? source.map.spatialScene!.worldHeightAt(x, z);
     return SpatialActorVisual(
         x: x,
         z: z,

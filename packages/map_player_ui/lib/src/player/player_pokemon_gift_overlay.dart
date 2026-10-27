@@ -31,7 +31,7 @@ class PlayerPokemonGiftOverlay extends StatelessWidget {
       return PlayerTextInputOverlay(snapshot: snapshot, onCommand: onCommand);
     }
     final french = Localizations.localeOf(context).languageCode == 'fr';
-    final name = request.speciesName ?? request.pokemon.speciesId;
+    final name = request.pokemon.isEgg ? (french ? 'L’Œuf' : 'The Egg') : request.speciesName ?? request.pokemon.speciesId;
     final nickname = request.pokemon.nickname.isEmpty
         ? name
         : request.pokemon.nickname;

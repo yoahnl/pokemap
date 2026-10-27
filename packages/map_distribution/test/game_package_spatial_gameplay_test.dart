@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:archive/archive.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -8,6 +9,34 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  for (final gameplay in [false, true]) {
+    test('${gameplay ? 'gameplay' : 'exploration'} NPC collision flags survive package validation', () {
+      for (final blocksMovement in [true, false]) {
+        final files = spatialPayload();
+        final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+        files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(entities: [
+          MapEntity(id: 'actor', kind: MapEntityKind.npc,
+            pos: const GridPos(x: 2, y: 2), blocksMovement: blocksMovement,
+            npc: const MapEntityNpcData(characterId: 'hero')),
+        ]).toJson()));
+        GamePackageBuildResult build() => const GamePackageBuilder().build(
+          manifest: gameplay ? _manifest() : spatialManifest(), payloadFiles: files);
+        if (!gameplay && !blocksMovement) {
+          expect(build, throwsA(isA<GamePackageFormatException>().having(
+            (error) => error.code, 'code', 'runtime3d.exploration_only')));
+        } else {
+          final built = build();
+          final inspected = const GamePackageInspector().inspect(built.packageBytes);
+          expect(inspected.manifest.compatibility.requiredCapabilities, contains('map3d@1'));
+          final archive = ZipDecoder().decodeBytes(built.packageBytes);
+          final installed = MapData.fromJson(jsonDecode(utf8.decode(
+            archive.findFile('project/maps/map.json')!.content as List<int>)));
+          expect(installed.entities.single.blocksMovement, blocksMovement);
+        }
+      }
+    });
+  }
+
   test('3D gameplay retains pre-session presentation cinematics', () {
     final files = _payload();
     final project = _project(files).copyWith(
@@ -132,12 +161,7 @@ void main() {
       SceneActionPayload(actionKind: 'legacy-script'),
       SceneActionPayload.interactive(SceneInteractiveCommand.moveNpc(
           mapId: 'map', entityId: 'npc', warpId: 'warp')),
-      SceneBattlePayload(battleKind: 'unknown'),
-      SceneConditionPayload(
-          conditionSource: SceneConditionSource(
-              sourceKind: SceneConditionSourceKind.partyState,
-              sourceId: 'party',
-              operator: SceneConditionOperator.isTrue))
+      SceneBattlePayload(battleKind: 'unknown')
     ]) {
       final files = _payload();
       final original = _project(files);
@@ -157,6 +181,14 @@ void main() {
               'code',
               'runtime3d.gameplay_unsupported')));
     }
+  });
+
+  test('malformed party conditions are rejected before packaging', () {
+    expect(() => SceneConditionSource(
+      sourceKind: SceneConditionSourceKind.partyState,
+      sourceId: 'party',
+      operator: SceneConditionOperator.isTrue,
+    ), throwsArgumentError);
   });
 
   test('generic Event V2 custom objects retain canonical editor visuals', () {
@@ -302,7 +334,7 @@ void main() {
     }
   });
 
-  test('moving NPCs and automatic sight battles remain unsupported', () {
+  test('scripted NPCs are supported while sight requires a trainer', () {
     for (final sight in [0, 2]) {
       final files = _payload();
       final map = MapData.fromJson(
@@ -322,10 +354,22 @@ void main() {
                         mode: MapEntityNpcMovementMode.scriptedOnly)
                     : const MapEntityNpcMovementConfig()))
       ]).toJson()));
-      expect(
-          () => const GamePackageBuilder()
-              .build(manifest: _manifest(), payloadFiles: files),
-          throwsA(isA<GamePackageFormatException>()));
+      if (sight > 0) {
+        expect(() => const GamePackageBuilder()
+            .build(manifest: _manifest(), payloadFiles: files),
+            throwsA(isA<GamePackageFormatException>().having(
+              (error) => error.code, 'code', 'runtime3d.gameplay_unsupported')));
+        continue;
+      }
+      final built = const GamePackageBuilder()
+          .build(manifest: _manifest(), payloadFiles: files);
+      final archive = ZipDecoder().decodeBytes(built.packageBytes);
+      final installed = MapData.fromJson(jsonDecode(utf8.decode(
+          archive.findFile('project/maps/map.json')!.content as List<int>)));
+      expect(installed.entities.single.npc!.lineOfSightRange, sight);
+      expect(installed.entities.single.npc!.trainerId, isNull);
+      expect(installed.entities.single.npc!.movement.mode,
+          sight == 0 ? MapEntityNpcMovementMode.scriptedOnly : MapEntityNpcMovementMode.idle);
     }
   });
 }

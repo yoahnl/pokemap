@@ -2127,6 +2127,9 @@ buildEventBuilderV2TemplateActionPickerOptions({
         for (final platform in map.movingPlatforms)
           SceneActionPickerOption(id: '${map.id}::${platform.id}',
               label: '${map.name} · Plateforme ${map.movingPlatforms.indexOf(platform) + 1}'),
+      for (final map in maps)
+        for (final lift in map.spatialScene?.lifts ?? const <SpatialLiftDefinition>[])
+          SceneActionPickerOption(id:'${map.id}::${lift.id}',label:'${map.name} · ${lift.name}'),
     ],
     NarrativeCommandParameterKind.mapEntityReference: [
       for (final map in maps)

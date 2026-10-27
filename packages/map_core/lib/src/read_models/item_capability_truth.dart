@@ -155,6 +155,7 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
     'king_s_rock',
     'leftovers',
     'lum_berry',
+    'persim_berry',
     'metal_coat',
     'prevent_evolution',
     'sitrus_berry',
