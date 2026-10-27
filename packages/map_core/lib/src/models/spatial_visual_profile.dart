@@ -57,7 +57,15 @@ enum SpatialVisualParameter {
   timeMode.choice(),
   weatherMode.choice(),
   weatherIntervalSeconds(10, 86400),
-  weatherSequence(1, 20);
+  weatherSequence(1, 20),
+  weatherDryMinSeconds(10, 86400),
+  weatherDryMaxSeconds(10, 86400),
+  weatherEventMinSeconds(10, 3600),
+  weatherEventMaxSeconds(10, 3600),
+  weatherDrizzleWeight(0, 100),
+  weatherRainWeight(0, 100),
+  weatherDownpourWeight(0, 100),
+  weatherStormWeight(0, 100);
 
   const SpatialVisualParameter(this.minimum, this.maximum)
     : isBoolean = false,
@@ -81,6 +89,18 @@ enum SpatialVisualParameter {
     weatherMode => [for (final value in WorldWeatherMode.values) value.name],
     _ => const [],
   };
+  bool get isWeatherEpisode => index >= weatherDryMinSeconds.index;
+  double? get defaultNumber => switch (this) {
+    weatherDryMinSeconds => 900,
+    weatherDryMaxSeconds => 1800,
+    weatherEventMinSeconds => 120,
+    weatherEventMaxSeconds => 300,
+    weatherDrizzleWeight => 50,
+    weatherRainWeight => 30,
+    weatherDownpourWeight => 15,
+    weatherStormWeight => 5,
+    _ => null,
+  };
   bool get isSequence => this == weatherSequence;
   bool get isCamera => index <= lockVerticalFraming.index;
   bool get isClock =>
@@ -91,12 +111,12 @@ enum SpatialVisualParameter {
       index >= fireflyLighting.index && index <= fireflyLightRadius.index;
   bool get isWeather =>
       (index >= weatherEnabled.index && index <= weatherWindVolume.index) ||
-      this == weatherMode || this == weatherIntervalSeconds || isSequence;
+      this == weatherMode || this == weatherIntervalSeconds || isSequence || isWeatherEpisode;
   bool get isWeatherSound =>
       index >= weatherSoundEnabled.index && index <= weatherWindVolume.index;
   bool get isWorldEnvironment =>
       this == timeMode || this == weatherMode ||
-      this == weatherIntervalSeconds || isSequence;
+      this == weatherIntervalSeconds || isSequence || isWeatherEpisode;
 
   Object normalize(Object? value) {
     if (isSequence) {
@@ -130,6 +150,18 @@ final class SpatialVisualPatch {
     : values = Map.unmodifiable({
         for (final e in values.entries) e.key: e.key.normalize(e.value),
       }) {
+    for (final pair in const [
+      (SpatialVisualParameter.weatherDryMinSeconds, SpatialVisualParameter.weatherDryMaxSeconds),
+      (SpatialVisualParameter.weatherEventMinSeconds, SpatialVisualParameter.weatherEventMaxSeconds),
+    ]) {
+      final min = number(pair.$1), max = number(pair.$2);
+      if (min != null && max != null && min > max) {
+        throw const FormatException('Weather minimum must not exceed maximum.');
+      }
+    }
+    if (const [SpatialVisualParameter.weatherDrizzleWeight, SpatialVisualParameter.weatherRainWeight, SpatialVisualParameter.weatherDownpourWeight, SpatialVisualParameter.weatherStormWeight].every((p) => (number(p) ?? p.defaultNumber!) == 0)) {
+      throw const FormatException('Choose at least one occasional weather.');
+    }
     final start = number(SpatialVisualParameter.fogStart);
     final end = number(SpatialVisualParameter.fogEnd);
     if (start != null && end != null && start >= end) {
@@ -143,6 +175,8 @@ final class SpatialVisualPatch {
       (choice(SpatialVisualParameter.weatherKind) != null && SpatialWeatherKind.parse(choice(SpatialVisualParameter.weatherKind)).isExtended) ||
       ((value(SpatialVisualParameter.weatherSequence) as List<String>?) ?? const <String>[]).any((kind) => SpatialWeatherKind.parse(kind).isExtended);
 
+  bool get requiresWeatherEpisodes =>
+      choice(SpatialVisualParameter.weatherMode) == WorldWeatherMode.occasional.name || values.keys.any((p) => p.isWeatherEpisode);
   bool get requiresWeather => values.keys.any((p) => p.isWeather);
   bool get requiresWeatherSound => values.keys.any((p) => p.isWeatherSound);
   bool get requiresRealWeather => choice(SpatialVisualParameter.weatherMode) == WorldWeatherMode.real.name;
@@ -231,6 +265,16 @@ final class SpatialVisualPatch {
         merged[SpatialVisualParameter.fogEnd] = start + .01;
       } else {
         merged[SpatialVisualParameter.fogStart] = (end - .01).clamp(0, end);
+      }
+    }
+    for (final pair in const [(SpatialVisualParameter.weatherDryMinSeconds, SpatialVisualParameter.weatherDryMaxSeconds), (SpatialVisualParameter.weatherEventMinSeconds, SpatialVisualParameter.weatherEventMaxSeconds)]) {
+      final min = merged[pair.$1] as double?, max = merged[pair.$2] as double?;
+      if (min != null && max != null && min > max) {
+        if (override.value(pair.$1) != null) {
+          merged[pair.$2] = min;
+        } else {
+          merged[pair.$1] = max;
+        }
       }
     }
     return SpatialVisualPatch(merged);
@@ -379,6 +423,7 @@ final class SpatialVisualDocument {
   static const worldEnvironmentSchemaVersion = 5;
   static const realWeatherSchemaVersion = 6;
   static const extendedWeatherSchemaVersion = 7;
+  static const weatherEpisodesSchemaVersion = 8;
   static const maxBytes = 32768;
   static const projectRelativePath = 'project.visual.json';
   final String? mapId;
@@ -408,6 +453,7 @@ final class SpatialVisualDocument {
           worldEnvironmentSchemaVersion,
           realWeatherSchemaVersion,
           extendedWeatherSchemaVersion,
+          weatherEpisodesSchemaVersion,
         }.contains(json['schemaVersion']) ||
         json.keys.any(
           (key) => !{'schemaVersion', 'mapId', 'profile'}.contains(key),
@@ -421,6 +467,9 @@ final class SpatialVisualDocument {
     final profile = SpatialVisualPatch.fromJson(
       json['profile'] as Map<String, dynamic>,
     );
+    if ((json['schemaVersion'] as int) < weatherEpisodesSchemaVersion && profile.requiresWeatherEpisodes) {
+      throw const FormatException('Occasional weather requires visual schema 8.');
+    }
     if ((json['schemaVersion'] as int) < extendedWeatherSchemaVersion && profile.requiresExtendedWeather) {
       throw const FormatException('Extended weather requires visual schema 7.');
     }
@@ -450,7 +499,7 @@ final class SpatialVisualDocument {
     );
   }
   Map<String, dynamic> toJson() => {
-    'schemaVersion': profile.requiresExtendedWeather ? extendedWeatherSchemaVersion : profile.requiresRealWeather ? realWeatherSchemaVersion : profile.requiresWorldEnvironment
+    'schemaVersion': profile.requiresWeatherEpisodes ? weatherEpisodesSchemaVersion : profile.requiresExtendedWeather ? extendedWeatherSchemaVersion : profile.requiresRealWeather ? realWeatherSchemaVersion : profile.requiresWorldEnvironment
         ? worldEnvironmentSchemaVersion
         : profile.requiresWeatherSound
         ? weatherSoundSchemaVersion

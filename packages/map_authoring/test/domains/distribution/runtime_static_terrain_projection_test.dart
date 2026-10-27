@@ -9,6 +9,19 @@ import 'package:map_authoring/src/domains/distribution/runtime_static_terrain_pr
 import 'package:test/test.dart';
 
 void main() {
+  test('exterior material references prevent destructive static baking', () async {
+    final original = _project();
+    final result = await projectRuntimeStaticTerrain(
+      project: original,
+      maps: [_map()],
+      minimumRuleCount: 1,
+      retainedMaterialIds: {'m1'},
+      readAsset: (_) async => throw StateError('Protected material must not be baked'),
+    );
+    expect(result.project, original);
+    expect(result.maps, [_map()]);
+    expect(result.assets, isEmpty);
+  });
   test('static projection preserves flat sampling and refuses mixed sampling', () async {
     final source = image.Image(width: 4, height: 1, numChannels: 4);
     for (var x = 0; x < 4; x++) {

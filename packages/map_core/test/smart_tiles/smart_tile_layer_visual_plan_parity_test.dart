@@ -37,6 +37,21 @@ void main() {
     expect(clockCalls, 0);
   });
 
+  test('prepared plans preserve the bounded native context resolver', () {
+    final layer = smartLayers.singleWhere((layer) => layer.id == 'paths');
+    var calls = 0;
+    final plan = buildSmartTileLayerVisualPlan(map: map, layer: layer, catalog: catalog,
+      pass: SmartTileVisualPass.background, cellContextResolver: ({required preset, required x, required y}) {
+        calls++;
+        return smartTileCellContextForLayerCell(layer: layer, map: map, preset: preset, x: x, y: y);
+      });
+    expect(plan.resolveBatch().visuals, isNotEmpty);
+    expect(calls, greaterThan(0));
+    final firstCalls = calls;
+    plan.resolveBatch(elapsedMs: 16);
+    expect(calls, firstCalls);
+  });
+
   test('fixture exposes smart tile layers to compare', () {
     expect(smartLayers, isNotEmpty);
   });

@@ -917,6 +917,135 @@ void main() {
         fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
   });
 
+  final layerOrderReadCounts = <int, List<int>>{};
+  for (final unrelated in [0, 90]) {
+    test('layer identity reorder stays local with $unrelated unrelated maps', () async {
+      final source = spatialBorderAuthoringFixture(published: true);
+      final extra = BorderLayer(id: 'rear', name: 'Rear');
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: source.project,
+        map: source.map.copyWith(layers: [...source.map.layers, extra]),
+      ));
+      addTearDown(fixture.close);
+      final before = await fixture.mapFile.readAsBytes();
+      final reads = <int>[];
+      final receipts = <String>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final applied = await fixture.apply('map.apply_operations', {
+          'mapId': 'map',
+          'operations': [{'kind': 'layer.reorder_by_id', 'layerId': 'rear', 'newIndex': repeat == 0 ? 0 : 2}],
+        }, 'layer-order-$repeat');
+        receipts.add(applied.receipt.receiptId);
+        final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()) as Map<String, dynamic>);
+        expect(after.layers.map((layer) => layer.id), repeat == 0 ? ['rear', 'border'] : ['border', 'rear']);
+        expect(after.spatialScene, source.map.spatialScene);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(100));
+        reads.add(fixture.reader.paths.where((path) => path == 'maps/map.json').length);
+      }
+      layerOrderReadCounts[unrelated] = reads;
+      if (unrelated == 90) expect(reads, layerOrderReadCounts[0]);
+      final persisted = await fixture.mapFile.readAsBytes();
+      await fixture.reopen();
+      final reopened = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+        actionId: 'map.apply_operations', parameters: {'mapId': 'map', 'operations': [{'kind': 'layer.reorder_by_id', 'layerId': 'rear', 'newIndex': 0}]});
+      expect(reopened.maps.single.toJson(), jsonDecode(utf8.decode(persisted)));
+      for (final receipt in receipts.reversed) {
+        await fixture.api.undoMutation(fixture.opened.projectHandle, entryId: receipt, idempotencyKey: 'undo-$receipt');
+      }
+      expect(await fixture.mapFile.readAsBytes(), before);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+
+  final borderDeleteReadCounts = <int, List<int>>{};
+  for (final unrelated in [0, 90]) {
+    test('materialized Border deletion stays local with $unrelated unrelated maps', () async {
+      final source = spatialBorderAuthoringFixture(published: true);
+      final fixture = await _Fixture.open(unrelated, content: source);
+      addTearDown(fixture.close);
+      await fixture.apply('border_layer.materialize_apply',
+        {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence'}, 'prepare-delete');
+      final before = await fixture.mapFile.readAsBytes();
+      final original = MapData.fromJson(jsonDecode(utf8.decode(before)) as Map<String, dynamic>);
+      expect(original.spatialScene!.instances, isNotEmpty);
+      final reads = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final applied = await fixture.apply('border_layer.feature_delete',
+          {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence'}, 'delete-$repeat');
+        final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()) as Map<String, dynamic>);
+        expect(after.toJson(), removeBorderFeature(original, layerId: 'border', featureId: 'fence').toJson());
+        expect(after.layers.whereType<BorderLayer>().single.content.features, isEmpty);
+        expect(after.spatialScene!.instances, isEmpty);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(100));
+        reads.add(fixture.reader.paths.where((path) => path == 'maps/map.json').length);
+        await fixture.reopen();
+        final reopened = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'border_layer.feature_delete', parameters: {'mapId': 'map'});
+        expect(reopened.maps.single.toJson(), after.toJson());
+        await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: applied.receipt.receiptId, idempotencyKey: 'undo-delete-$repeat');
+        expect(await fixture.mapFile.readAsBytes(), before);
+      }
+      borderDeleteReadCounts[unrelated] = reads;
+      if (unrelated == 90) expect(reads, borderDeleteReadCounts[0]);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+
+  final keepOutReadCounts = <int, List<int>>{};
+  for (final unrelated in [0, 90]) {
+    test('Border keep-out stays local with $unrelated unrelated maps', () async {
+      final source = spatialBorderAuthoringFixture(published: true);
+      final fixture = await _Fixture.open(unrelated, content: source);
+      addTearDown(fixture.close);
+      final before = await fixture.mapFile.readAsBytes();
+      final reads = <int>[];
+      final receipts = <String>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        final cells = List.filled(source.map.size.width * source.map.size.height, false);
+        cells[source.map.size.width + repeat + 1] = true;
+        final regions = [BorderKeepOutRegion(id: 'opening', region: BorderRegionGeometry(
+          width: source.map.size.width, height: source.map.size.height, cells: cells))];
+        fixture.reader.paths.clear();
+        final applied = await fixture.apply('border_layer.feature_set_keep_out', {
+          'mapId': 'map', 'layerId': 'border', 'featureId': 'fence',
+          'regions': [{'id': 'opening', 'region': {
+            'width': source.map.size.width, 'height': source.map.size.height,
+            'cells': cells,
+          }}],
+        }, 'keep-out-$repeat');
+        receipts.add(applied.receipt.receiptId);
+        final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()) as Map<String, dynamic>);
+        final expected = updateBorderFeatureKeepOutRegions(source.map,
+          layerId: 'border', featureId: 'fence', keepOutRegions: regions);
+        expect(after.toJson(), expected.toJson());
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(100));
+        reads.add(fixture.reader.paths.where((path) => path == 'maps/map.json').length);
+      }
+      keepOutReadCounts[unrelated] = reads;
+      if (unrelated == 90) expect(reads, keepOutReadCounts[0]);
+      final persisted = await fixture.mapFile.readAsBytes();
+      await fixture.reopen();
+      final reopened = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+        actionId: 'border_layer.feature_set_keep_out', parameters: {'mapId': 'map'});
+      expect(reopened.maps.single.toJson(), jsonDecode(utf8.decode(persisted)));
+      for (final receipt in receipts.reversed) {
+        await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: receipt, idempotencyKey: 'undo-$receipt');
+      }
+      expect(await fixture.mapFile.readAsBytes(), before);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+
   test('native Border create and materialization use only their model closure',
       () async {
     final source = spatialBorderAuthoringFixture(published: true);
@@ -1266,6 +1395,49 @@ void main() {
     expect(reopened.maps.single, deleted);
   });
 
+  for (final unrelated in [0, 90]) {
+    test('grass encounter configuration stays scoped with $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(smartTileCatalog: _groundCatalog(), tilesets: const [ProjectTilesetEntry(id: 'ground-image', name: 'Ground', relativePath: 'assets/ground.png')], encounterTables: [
+          ProjectEncounterTable(id: 'route', name: 'Route', encounterKind: EncounterKind.walk, entries: [
+            ProjectEncounterEntry(speciesId: 'pidgey', minLevel: 3, maxLevel: 3)
+          ])
+        ]), map: base.map
+      ));
+      addTearDown(fixture.close);
+      await fixture.apply('smart_tile.layer.create', {
+        'mapId': 'map', 'layerId': 'grass', 'name': 'Grass', 'presetId': 'ground'
+      }, 'create-grass');
+      await fixture.apply('smart_tile.cell.paint', {
+        'mapId': 'map', 'layerId': 'grass', 'materialId': 'grass', 'cells': [{'x': 1, 'y': 1}]
+      }, 'paint-grass');
+      final before = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+      final counts = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        await fixture.apply('smart_tile.layer.set_encounter_behavior', {
+          'mapId': 'map', 'layerId': 'grass', 'materialId': 'grass',
+          'priority': 20 + repeat, 'encounterTableId': 'route', 'encounterKind': 'walk'
+        }, 'set-grass-$repeat');
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        counts.add(fixture.reader.paths.length);
+        final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+        final layer = after.layers.whereType<SmartTileLayer>().single;
+        expect(layer.encounterBehavior!.priority, 20 + repeat);
+        expect(layer.encounterBehavior!.encounter.encounterTableId, 'route');
+        expect(after.copyWith(layers: [for (final value in after.layers) value is SmartTileLayer ? value.copyWith(encounterBehavior: null) : value]), before);
+      }
+      expect(counts.last, lessThanOrEqualTo(counts.first + 2));
+      await fixture.reopen();
+      await fixture.apply('smart_tile.layer.clear_encounter_behavior', {'mapId': 'map', 'layerId': 'grass'}, 'clear-grass');
+      expect(MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString())), before);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+      print(jsonEncode({'grassEncounterForeignMaps': unrelated, 'firstRepeatedReads': counts}));
+    });
+  }
+
   test('native Smart Tile map edits do not load unrelated maps or resources',
       () async {
     final base = spatialEnvironmentFixture();
@@ -1448,7 +1620,7 @@ final class _Fixture {
   static Future<_Fixture> open(int unrelated,
       {({ProjectManifest project, MapData map})? content}) async {
     final root = Directory(
-        '${Platform.environment['HOME']}/Library/Caches/AveluneQA/targeted-story-authoring/dart');
+        '${Platform.environment['AVELUNE_QA_ROOT'] ?? '${Platform.environment['HOME']}/Library/Caches/AveluneQA/targeted-story-authoring'}/dart');
     await root.create(recursive: true);
     final base = content ?? spatialEnvironmentFixture();
     final model = base.project.models3d.single;

@@ -147,6 +147,8 @@ final class LocalVisualSettingsAuthoring {
         'weatherCapability': SpatialWeatherCapabilities.capabilityId,
         'weatherSoundCapability': SpatialWeatherCapabilities.soundCapabilityId,
         'worldEnvironmentCapability': WorldEnvironmentCapabilities.capabilityId,
+        'weatherEpisodesCapability': WorldEnvironmentCapabilities.weatherEpisodesCapabilityId,
+        'weatherModes': [for (final mode in WorldWeatherMode.values) mode.name],
         'realWeatherCapability': WorldEnvironmentCapabilities.realWeatherCapabilityId,
         'weatherKinds': [for (final kind in SpatialWeatherKind.values) kind.name],
         'parameterTypes': {

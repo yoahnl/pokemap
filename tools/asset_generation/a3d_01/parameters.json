@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "seed": 31012026,
+  "house": {
+    "file": "japanese_house.glb",
+    "sourceInstanceId": "object-60-007",
+    "allowedBounds": [-2.875, 0.125, -2.375, 2.875, 5.626220703125, 2.125],
+    "wallBounds": [-2.45, 0.125, -1.95, 2.45, 3.94, 1.375],
+    "doorOpening": [-1.66, 0.125, 0.625, -0.34, 1.8, 1.375],
+    "roofRidgeY": 5.48,
+    "roofEaveY": 3.85,
+    "roofRidgeZ": -0.25,
+    "roofColumns": 13,
+    "roofRows": 4,
+    "windows": [[0.3125, 0.8125, 0.8125, 1.5], [0.9375, 0.8125, 1.4375, 1.5], [-0.875, 2.565673828125, -0.0625, 3.5625], [0.0625, 2.565673828125, 0.875, 3.5625]],
+    "plasterRgb": [224, 210, 184],
+    "timberRgb": [135, 88, 55],
+    "roofRgb": [72, 95, 115],
+    "glassRgb": [131, 163, 160],
+    "textureSize": 128
+  },
+  "tree": {
+    "file": "volumetric_tree.glb",
+    "allowedBounds": [-2, 0, -2.5478515625, 2, 3.083984375, 0],
+    "trunkBase": [0, 0, -1.23],
+    "trunkTop": [0.08, 1.5, -1.27],
+    "trunkRadius": 0.19,
+    "foliageRgb": [105, 143, 61],
+    "barkRgb": [124, 85, 49],
+    "segments": 8,
+    "rings": 4,
+    "crowns": [
+      {"center": [-0.56, 1.58, -1.36], "radius": [0.93, 0.65, 0.87]},
+      {"center": [0.62, 1.7, -1.35], "radius": [0.89, 0.66, 0.85]},
+      {"center": [0.03, 1.68, -0.74], "radius": [1.01, 0.68, 0.63]},
+      {"center": [-0.39, 2.22, -1.33], "radius": [0.77, 0.55, 0.67]},
+      {"center": [0.44, 2.27, -1.16], "radius": [0.72, 0.56, 0.61]},
+      {"center": [0.03, 2.64, -1.27], "radius": [0.56, 0.43, 0.52]}
+    ],
+    "textureSize": 128
+  }
+}

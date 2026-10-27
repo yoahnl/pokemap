@@ -5,16 +5,29 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_documents.dart';
 import 'package:map_core/map_core.dart';
+import 'package:image/image.dart' as img;
+import 'glb_fixture.dart';
+import '../domains/maps/border_spatial_actions_test.dart' show spatialBorderAuthoringFixture;
 
 import '../domains/maps/healing_display_fixture.dart';
 
 Future<void> main(List<String> arguments) async {
   final root = arguments.first;
+  if (arguments.contains('--map-creation')) {
+    await File('$root/source.glb').writeAsBytes(triangleGlb());
+    await File('$root/source.png').writeAsBytes(img.encodePng(img.Image(width: 16, height: 16)));
+    await File('$root/border.json').writeAsString(jsonEncode(encodeBorderBlueprintRecordJson(
+        spatialBorderAuthoringFixture().project.borderCatalog.records.single,
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion)).replaceAll('tree', 'house'));
+  }
   final legacyHistory = arguments.contains('--legacy-history');
+  final mapCreation = arguments.contains('--map-creation');
   final healing = arguments.contains('--story-map') ? healingProject() : null;
   final project = ProjectManifest(
       name: 'Transport catalog',
-      version: ProjectVersion.v8,
+      version: mapCreation ? ProjectVersion.v9 : ProjectVersion.v8,
+      settings: mapCreation ? ProjectSettings(dimension: ProjectDimension.threeD,
+          spatialCamera: SpatialCameraProfile()) : const ProjectSettings(),
       maps: arguments.contains('--story-map')
           ? const [
               ProjectMapEntry(

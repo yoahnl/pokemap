@@ -179,6 +179,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                       (guard) => _libraryExitGuard = guard,
                                       _controller.refreshCatalogSelection,
                                       _openResourceTools,
+                                      _replaceCatalogModelSource,
                                     )
                               : _space == WorkspaceSpace.projectSettings &&
                                     _controller.port is ProjectVisualsPort

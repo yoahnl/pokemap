@@ -155,8 +155,12 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
           candidate,
     ],
   );
-  ProjectValidator.validate(manifest);
-  MapValidator.validate(updated, projectDialogueContext: manifest);
+  final localProperties = snapshot.materializedCatalogProject &&
+      snapshot.availableProjectSections != null && !hasDungeon;
+  if (!localProperties) {
+    ProjectValidator.validate(manifest);
+  }
+  MapValidator.validate(updated, projectDialogueContext: localProperties ? null : manifest);
   final map = AuthoringResourceRef(
       kind: 'map',
       id: mapId,

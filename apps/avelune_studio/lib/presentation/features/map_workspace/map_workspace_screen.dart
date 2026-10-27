@@ -82,6 +82,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 import '../resources/resource_navigation.dart';
+import '../resources/model_resource_library.dart';
 import '../resources/resource_catalog.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
 import '../resources/resource_image_import.dart';
@@ -125,6 +126,7 @@ typedef WorkspaceResourceLibraryBuilder = Widget Function(
   void Function(Future<bool> Function()?) registerExitGuard,
   Future<void> Function() onSaved,
   VoidCallback onOpenTools,
+  Future<bool> Function(String modelId) onReplaceModelSource,
 );
 
 class MapWorkspaceScreen extends StatefulWidget {

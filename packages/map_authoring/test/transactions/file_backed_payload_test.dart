@@ -13,6 +13,47 @@ import 'package:map_authoring/src/transactions/authoring_payload.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+      'staged payload verifies its framed identity in one pass and rechecks consumption',
+      () async {
+    final directory = await Directory.systemTemp.createTemp('staged-one-pass-');
+    addTearDown(() => directory.delete(recursive: true));
+    final observer = _GatewayByteObserver();
+    final gateway = await LocalTransactionFileGateway.open(
+        projectRoot: directory.path, performanceObserver: observer);
+    final bytes = List<int>.generate(100620, (index) => index % 251);
+    await gateway.stagePayload(
+        operationId: 'one-pass',
+        storageKey: 'source.bin',
+        kind: TransactionPayloadKind.after,
+        bytes: bytes);
+    observer.counters.clear();
+    final staged = await gateway.readStagedPayload(
+        operationId: 'one-pass',
+        storageKey: 'source.bin',
+        kind: TransactionPayloadKind.after);
+    expect(
+        (observer.counters['io.gateway.verification.readBytes'] ?? 0) +
+            (observer.counters['io.gateway.resource.readBytes'] ?? 0),
+        bytes.length);
+    observer.counters.clear();
+    expect(await staged.payload!.readBytes(), bytes);
+    expect(observer.counters['io.gateway.resource.readBytes'], bytes.length);
+    final file = (await Directory('${directory.path}/.pokemap')
+            .list(recursive: true)
+            .where(
+                (entry) => entry is File && entry.path.endsWith('.after.bin'))
+            .cast<File>()
+            .toList())
+        .single;
+    final corrupted = bytes.toList()..[bytes.length - 1] ^= 1;
+    await file.writeAsBytes(corrupted);
+    await expectLater(
+        staged.payload!.readBytes(),
+        throwsA(isA<AuthoringPayloadException>()
+            .having((error) => error.code, 'code', 'payload.source_mismatch')));
+    await staged.payload!.release();
+  });
   test('gateway counts real streaming bytes after each completed write',
       () async {
     final directory =
@@ -68,8 +109,7 @@ void main() {
         storageKey: 'assets/été😀.bin',
         kind: TransactionPayloadKind.after);
     expect(staged.payload!.isInline, isFalse);
-    expect(
-        observer.counters['io.gateway.verification.readBytes'], bytes.length);
+    expect(observer.counters['io.gateway.verification.readBytes'] ?? 0, 0);
     expect(observer.counters['io.gateway.resource.readBytes'], bytes.length);
     observer.counters.clear();
     expect(await staged.payload!.openRead().expand((chunk) => chunk).toList(),

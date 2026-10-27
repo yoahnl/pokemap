@@ -152,6 +152,27 @@ class MapWorkspaceViewState {
   }
 
   MapEnvironmentSession? environment;
+  String? exteriorEnvironmentPresetId;
+
+  void selectEnvironmentPreset(
+    EditableMapDocument document,
+    ProjectManifest project,
+    EnvironmentPreset preset,
+  ) {
+    final exterior = document.exteriorDecoration;
+    if (exterior?.editingExterior == true) {
+      exteriorEnvironmentPresetId = preset.id;
+      environment = null;
+    } else {
+      exteriorEnvironmentPresetId = null;
+      environment = EnvironmentEditingCommands(
+        document,
+        project,
+      ).create(preset);
+    }
+    tool = StudioMapTool.environment;
+  }
+
   MapSelectionTarget? _target;
   MapSelectionTarget? get target => _target;
 
@@ -371,6 +392,7 @@ class MapWorkspaceViewState {
     bool has(String kind, String id) => available.contains('$kind:$id');
     if (mapId != null && _resourceMapId != null && _resourceMapId != mapId) {
       environment = null;
+      exteriorEnvironmentPresetId = null;
       borderDraft = null;
       borderDraftFailure = null;
       borderPreview = null;
@@ -493,7 +515,13 @@ class MapWorkspaceViewState {
         environment = null;
       }
     }
-    if (environment == null && tool == StudioMapTool.environment) {
+    if (exteriorEnvironmentPresetId != null &&
+        !has('environmentPreset', exteriorEnvironmentPresetId!)) {
+      exteriorEnvironmentPresetId = null;
+    }
+    if (environment == null &&
+        exteriorEnvironmentPresetId == null &&
+        tool == StudioMapTool.environment) {
       tool = StudioMapTool.select;
     }
   }

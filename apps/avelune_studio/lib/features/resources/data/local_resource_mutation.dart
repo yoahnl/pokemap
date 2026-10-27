@@ -15,7 +15,10 @@ extension _LocalResourceMutation on LocalResourceAdapter {
   }) => mapAdapter.withResourceMutation(() async {
     _resourceMutationActive = true;
     final trace = developer.TimelineTask()..start('studio.resource.save');
-    void phase(String name) => trace.instant(name);
+    void phase(String name) {
+      trace.instant(name);
+      mutationPhaseObserver?.call(name);
+    }
     try {
       if (_disposed || !LocalResourceAdapter._actions.contains(actionId)) {
         throw const ResourceFailure(
@@ -33,6 +36,12 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         );
       }
       final fields = Map<String, Object?>.from(parameters(before.manifest));
+      final scopedModelSource =
+          session.storage == ProjectSessionStorage.workingCatalog &&
+          {
+            'model3d.source.replace',
+            'model3d.source.replace_batch',
+          }.contains(actionId);
       if (expectedSnapshotRevision == null &&
           resourceMutationIsUnchanged(before.manifest, actionId, fields)) {
         await mapAdapter.resourceBaseline(session);
@@ -60,6 +69,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         );
       }
       final context = await _requireMutationContext();
+      phase('context.ready');
       final snapshots = context.snapshots;
       final opened = context.opened;
       final artifacts = context.artifacts;
@@ -91,6 +101,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           artifactHandle = staged.reference.handle;
           stagedHandles.add(artifactHandle);
           fields['artifactHandle'] = artifactHandle;
+          phase('artifact.staged');
         }
         if (borderSources != null &&
             borderSources.any((source) => !source.draft.isSpatial)) {
@@ -129,17 +140,26 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         phase('attach.start');
         await context.attach();
         phase('attach.end');
-        final snapshot = await snapshots.load(
-          opened.projectHandle,
-          policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-        );
+        final snapshot = scopedModelSource
+            ? await api.readWorkshopSnapshot(
+                opened.projectHandle,
+                actionId: actionId,
+                parameters: fields,
+              )
+            : await snapshots.load(
+                opened.projectHandle,
+                policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+              );
         if (expectedSnapshotRevision != null &&
             snapshot.revision != expectedSnapshotRevision) {
           throw const ResourceFailure(
             'Le projet a changé depuis la préparation. Votre saisie est conservée.',
           );
         }
-        if (studioProjectSnapshotRevision(snapshot) != before.revision) {
+        if ((scopedModelSource
+                ? _modelSourceDocumentRevision(snapshot)
+                : studioProjectSnapshotRevision(snapshot)) !=
+            before.revision) {
           throw const ResourceFailure(
             'Le projet a changé sur le disque. Rien n’a été écrasé.',
           );
@@ -161,9 +181,9 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         ownedPlan = planned.plan;
         phase('plan.end');
         final changes = planned.plan.changeSet.changes;
-        final mapPaths = before.manifest.maps
-            .map((map) => map.relativePath)
-            .toSet();
+        final mapPaths = scopedModelSource
+            ? const <String>{}
+            : before.manifest.maps.map((map) => map.relativePath).toSet();
         if (changes.any(
           (change) =>
               change.resource.kind == 'map' ||
@@ -186,16 +206,30 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             changedPaths: const [],
           );
         }
+        final projectedProject = scopedModelSource
+            ? _mergeModelSourceProjection(
+                before.manifest,
+                planned.projectedProject ?? snapshot.manifest,
+              )
+            : planned.projectedProject;
         final receipt = _resourceReceipt(
           before.manifest,
           before.revision,
           planned.plan,
           createdTilesetId,
           operationId,
-          projectedProject: planned.projectedProject,
+          projectedProject: projectedProject,
           projectedRevision: snapshot.materializedCatalogProject
-              ? studioProjectPlanRevision(snapshot, planned.plan)
+              ? scopedModelSource
+                    ? _modelSourceDocumentRevision(snapshot, plan: planned.plan)
+                    : studioProjectPlanRevision(snapshot, planned.plan)
               : null,
+          changedModels: scopedModelSource
+              ? {
+                  for (final model in planned.projectedProject!.models3d)
+                    model.id: model,
+                }
+              : const {},
         );
         phase('receipt.end');
         _requireAvailable();
@@ -238,12 +272,26 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           await beforeReconciliation?.call();
           _requireAvailable();
           if (snapshot.materializedCatalogProject) {
-            final after = await snapshots.load(
-              opened.projectHandle,
-              policy: ProjectSnapshotLoadPolicy.editorReadProjection,
-            );
-            if (studioProjectSnapshotRevision(after) != receipt.revision ||
-                after.manifest != receipt.manifest) {
+            final after = scopedModelSource
+                ? await api.readWorkshopSnapshot(
+                    opened.projectHandle,
+                    actionId: actionId,
+                    parameters: fields,
+                  )
+                : await snapshots.load(
+                    opened.projectHandle,
+                    policy: ProjectSnapshotLoadPolicy.editorReadProjection,
+                  );
+            if ((scopedModelSource
+                        ? _modelSourceDocumentRevision(after)
+                        : studioProjectSnapshotRevision(after)) !=
+                    receipt.revision ||
+                (scopedModelSource
+                    ? !_modelSourcesMatch(
+                        after.manifest,
+                        planned.projectedProject ?? snapshot.manifest,
+                      )
+                    : after.manifest != receipt.manifest)) {
               throw const ResourceFailure(
                 'La publication a changé avant sa relecture. Relisez sans la rejouer.',
               );

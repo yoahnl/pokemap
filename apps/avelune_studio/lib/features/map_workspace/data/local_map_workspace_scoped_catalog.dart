@@ -7,7 +7,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     _workshopCharacterDefinitions.remove(session.sessionId);
     final result = await _readScopedCatalog(session, (catalog, revision) async {
       return MapWorkspaceCatalog(
-        metadata: catalog.projectMetadata,
+        metadata: catalog.projectMetadata.copyWith(
+          models3d: ProjectModel3dEntries.prepare(catalog.projectMetadata.models3d),
+        ),
         revision: revision,
       );
     });
@@ -60,7 +62,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     );
     if (workshop == MapWorkspaceWorkshop.dialogue ||
         workshop == MapWorkspaceWorkshop.cinematic) {
-      _workshopCharacterDefinitions[session.sessionId] = projection.metadata;
+      _workshopCharacterDefinitions[session.sessionId] = projection.metadata.copyWith(
+        models3d: ProjectModel3dEntries.prepare(projection.metadata.models3d),
+      );
     }
     final latest = _project(session);
     if (latest.revision != projection.revision) {
@@ -69,9 +73,10 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         'Le catalogue a changé pendant l’ouverture de cet atelier.',
       );
     }
+    final merged = workshop.merge(latest.manifest, projection.metadata);
     _projects[session.sessionId] = _ProjectDocument(
       latest.root,
-      workshop.merge(latest.manifest, projection.metadata),
+      merged.copyWith(models3d: ProjectModel3dEntries.prepare(merged.models3d)),
       projection.revision,
       complete: false,
       metadataFields: {
@@ -119,7 +124,12 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
           cursor = page.nextCursor;
         } while (cursor != null);
         final manifest = await ProjectCatalogSelection(catalog).resolve(roots);
-        return MapWorkspaceCatalog(metadata: manifest, revision: revision);
+        return MapWorkspaceCatalog(
+          metadata: manifest.copyWith(
+            models3d: ProjectModel3dEntries.prepare(manifest.models3d),
+          ),
+          revision: revision,
+        );
       },
       metadataFields: {
         ..._mapCatalogMetadataFields,
@@ -135,20 +145,21 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       );
     }
     _resourceSelections[session.sessionId] = result.metadata;
+    final merged = mergeResourceSelection(
+      latest.manifest,
+      combineResourceVisuals(
+        _activeMapDefinitions[session.sessionId] ?? latest.manifest,
+        _workshopCharacterDefinitions[session.sessionId] == null
+            ? result.metadata
+            : combineResourceVisuals(
+                result.metadata,
+                _workshopCharacterDefinitions[session.sessionId]!,
+              ),
+      ),
+    );
     _projects[session.sessionId] = _ProjectDocument(
       latest.root,
-      mergeResourceSelection(
-        latest.manifest,
-        combineResourceVisuals(
-          _activeMapDefinitions[session.sessionId] ?? latest.manifest,
-          _workshopCharacterDefinitions[session.sessionId] == null
-              ? result.metadata
-              : combineResourceVisuals(
-                  result.metadata,
-                  _workshopCharacterDefinitions[session.sessionId]!,
-                ),
-        ),
-      ),
+      merged.copyWith(models3d: ProjectModel3dEntries.prepare(merged.models3d)),
       result.revision,
       complete: false,
       metadataFields: latest.metadataFields,
@@ -156,7 +167,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     return result;
   }
 
-  Future<MapWorkspaceSelection> _loadScopedMapSelection(
+  Future<MapWorkspaceSelection> _loadScopedPreviewSelection(
     ProjectSession session,
     ProjectMapEntry entry,
   ) async {
@@ -196,9 +207,18 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         snapshotRevision: source.snapshotRevision,
       );
     });
-    _activeMapDefinitions[session.sessionId] = selection.definitions;
+    _loadedPaths[(session.sessionId, entry.id)] = path;
+    return selection;
+  }
+
+  Future<MapWorkspaceSelection> _loadScopedMapSelection(ProjectSession session, ProjectMapEntry entry) async {
+    final selection = await _loadScopedPreviewSelection(session, entry);
+    final activeDefinitions = selection.definitions.copyWith(
+      models3d: ProjectModel3dEntries.prepare(selection.definitions.models3d),
+    );
+    _activeMapDefinitions[session.sessionId] = activeDefinitions;
     final latest = _project(session);
-    var definitions = selection.definitions;
+    var definitions = activeDefinitions;
     final characters = _workshopCharacterDefinitions[session.sessionId];
     if (characters != null) {
       definitions = combineResourceVisuals(definitions, characters);
@@ -210,7 +230,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     _projects[session.sessionId] = _ProjectDocument(
       latest.root,
       mergeProjectMetadataSections(
-        definitions,
+        definitions.copyWith(
+          models3d: ProjectModel3dEntries.prepare(definitions.models3d),
+        ),
         latest.manifest,
         latest.metadataFields ?? _mapCatalogMetadataFields,
       ),
@@ -218,7 +240,6 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       complete: false,
       metadataFields: latest.metadataFields,
     );
-    _loadedPaths[(session.sessionId, entry.id)] = path;
     return selection;
   }
 

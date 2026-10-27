@@ -85,6 +85,7 @@ export 'src/workspace/catalog/catalog_targeted_map_edit.dart'
 export 'src/documents/character_contact_shadow_authoring.dart';
 
 export 'src/documents/map_atmosphere_authoring.dart';
+export 'src/documents/map_exterior_decoration_authoring.dart';
 export 'src/documents/map_editor_authoring.dart';
 export 'src/documents/map_element_order_authoring.dart';
 
@@ -92,3 +93,5 @@ export 'src/support/map_authoring_worker_trace.dart'
     show MapAuthoringWorkerDiagnostics;
 
 export 'src/documents/visual_settings_authoring.dart';
+
+export 'src/references/exterior_decoration_references.dart' show projectExteriorReferenceUsages;

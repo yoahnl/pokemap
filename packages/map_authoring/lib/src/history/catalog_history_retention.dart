@@ -141,6 +141,138 @@ final class CatalogHistoryRetention {
           maxBytes: maxBytes,
           readObject: _MaintenanceObjectReads(store).read));
 
+  Future<void> prepareNavigableAdmissions({required String projectId}) =>
+      store.gateway.withExclusiveWriteLock(() async {
+        safeAuthoringSecurityIdentifier(projectId, 'projectId');
+        if (await store.readProjectId() != projectId) {
+          throw const CatalogStorageException('catalog.project_mismatch',
+              'The catalog belongs to a different project.');
+        }
+        final generations = CatalogGenerationRetention(store: store);
+        await generations.requireNoPendingTransactionsUnderLock();
+        await generations.requireNoPreparedGenerationsUnderLock();
+        final current = await store.readHead();
+        if (current == null) {
+          throw const CatalogStorageException(
+              'catalog.missing', 'There is no current catalog generation.');
+        }
+        final window = await history.localWindow(projectId);
+        if (window == null) {
+          throw const AuthoringHistoryException('history.preparation_required',
+              'Prepare a bounded undo window before its catalog contexts.');
+        }
+        final fingerprint = computeAuthoringJsonFingerprint(window.toJson(),
+            logicalName: 'catalog-context-history-window.json');
+        final inventory = _RetentionInventory(
+            store, blobs, _MaintenanceObjectReads(store).read,
+            existingConversions: window.catalogConversions);
+        final entries = <AuthoringHistoryEntry>[];
+        for (final id in window.entryIds) {
+          final entry =
+              await history.getLocalEntry(projectId: projectId, entryId: id);
+          if (entry == null || entry.nonUndoableReason != null) {
+            throw const AuthoringHistoryException('history.entry_missing',
+                'A navigable undo operation is unavailable.');
+          }
+          entries.add(entry);
+        }
+        final prepared = <CatalogObjectReference>{};
+        Future<void> prepare(CatalogObjectReference root) async {
+          if (!prepared.add(root)) return;
+          final snapshot = (await store.openRoot(root)).snapshot;
+          try {
+            await store.restoreIndexAdmission(snapshot);
+            if (await store.metadataContextRevision(snapshot) != null) {
+              if (await store.metadataIndexPrepared(snapshot)) return;
+              final conversion =
+                  window.catalogConversions[root.sha256]?.conversion;
+              if (conversion != null) {
+                await store.requireHistoryConversion(conversion);
+                final target =
+                    (await store.openRoot(conversion.target)).snapshot;
+                await store.restoreIndexAdmission(target);
+                if (await store.metadataIndexPrepared(target) &&
+                    await store.metadataContextRevision(target) != null) {
+                  return;
+                }
+              }
+            }
+          } on CatalogStorageException catch (error) {
+            if (error.code != 'catalog.preparation_required') rethrow;
+          }
+          await inventory._graph(root);
+        }
+
+        await prepare(current);
+        for (final entry in entries) {
+          for (final change in entry.changes) {
+            if (change.storageKey != CatalogStorageStore.headStorageKey) {
+              continue;
+            }
+            for (final retained in [
+              (change.beforeBlobId, change.beforeRevision),
+              (change.afterBlobId, change.afterRevision)
+            ]) {
+              if (retained.$1 == null || retained.$2 == null) {
+                throw const AuthoringHistoryException('history.blob_missing',
+                    'A navigable catalog transition is incomplete.');
+              }
+              await prepare(await inventory._head(retained.$1!, retained.$2!));
+            }
+          }
+        }
+        final conversions = {
+          ...window.catalogConversions,
+          ...inventory.conversionsFor(entries),
+        };
+        await history.prepareCatalogConversions(
+            projectId: projectId,
+            expectedWindowFingerprint: fingerprint,
+            catalogConversions: conversions,
+            dryRun: true);
+        Future<void> publish(_ValidatedHistoricalGeneration admission) async {
+          await store.publishIndexAdmissionUnderLock(admission.snapshot);
+          await store.prepareMetadataContextUnderLock(admission.snapshot);
+          if (admission.conversion != null) {
+            await admission.conversion!.publishUnderLock(store,
+                metadataContextRequired: true,
+                publishMetadataContext:
+                    admission.conversion!.targetSnapshot.root != current);
+          } else if (admission.metadataPrepared) {
+            await store
+                .publishMetadataIndexAdmissionUnderLock(admission.snapshot);
+          }
+        }
+
+        for (final admission in inventory._admissions.values) {
+          if (admission.snapshot.root != current) await publish(admission);
+        }
+        if (await store.readHead() != current) {
+          throw const AuthoringHistoryException('history.retention_stale',
+              'The catalog changed while preparing metadata contexts.');
+        }
+        await history.prepareCatalogConversions(
+            projectId: projectId,
+            expectedWindowFingerprint: fingerprint,
+            catalogConversions: conversions);
+        final active = inventory._admissions[current.sha256];
+        if (active != null) await publish(active);
+        final observed = await history.localWindow(projectId);
+        if (await store.readHead() != current ||
+            observed == null ||
+            canonicalAuthoringJson(observed.catalogConversions
+                    .map((key, value) => MapEntry(key, value.toJson()))) !=
+                canonicalAuthoringJson(conversions
+                    .map((key, value) => MapEntry(key, value.toJson()))) ||
+            observed.generation != window.generation ||
+            observed.cursor != window.cursor ||
+            canonicalAuthoringJson(observed.entryIds) !=
+                canonicalAuthoringJson(window.entryIds)) {
+          throw const AuthoringHistoryException('history.retention_stale',
+              'The undo window changed during metadata context publication.');
+        }
+      });
+
   Future<CatalogHistoryRetentionResult> apply({
     required String projectId,
     required String expectedFingerprint,

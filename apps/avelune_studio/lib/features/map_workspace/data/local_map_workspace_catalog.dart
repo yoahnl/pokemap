@@ -23,9 +23,10 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     bool allowMapOrganization = false,
   }) async {
     final project = _project(session);
-    if (project.manifest == receipt.manifest &&
-        project.revision == receipt.revision) {
+    if (project.revision == receipt.revision &&
+        project.manifest == receipt.manifest) {
       await _requireProjectRevision(session, project);
+      _acceptModelSourceProjections(session.sessionId, receipt.changedModels);
       return;
     }
     final originalMaps = project.manifest.maps;
@@ -58,7 +59,40 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
       metadataFields: project.metadataFields,
     );
     await _requireProjectRevision(session, next);
+    _acceptModelSourceProjections(session.sessionId, receipt.changedModels);
     _projects[session.sessionId] = next;
+  }
+
+  void _acceptModelSourceProjections(
+    String sessionId,
+    Map<String, ProjectModel3dEntry> changes,
+  ) {
+    if (changes.isEmpty) return;
+    ProjectManifest updated(ProjectManifest value) {
+      final entries = value.models3d;
+      if (entries is! ProjectModel3dEntries) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.invalidDocument,
+          'Rechargez le catalogue des modèles avant de reprendre cette modification.',
+        );
+      }
+      final next = entries.replaceSelected(
+        changes.values.where((model) => entries.lookup(model.id) != null),
+      );
+      return identical(next, entries) ? value : value.copyWith(models3d: next);
+    }
+    final projections = [
+      for (final cache in [
+        _resourceSelections,
+        _activeMapDefinitions,
+        _workshopCharacterDefinitions,
+      ])
+        if (cache[sessionId] case final value?)
+          (cache: cache, manifest: updated(value)),
+    ];
+    for (final projection in projections) {
+      projection.cache[sessionId] = projection.manifest;
+    }
   }
 
   Future<void> acceptCatalogMutation(

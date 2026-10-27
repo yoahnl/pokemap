@@ -73,7 +73,7 @@ SpatialWeatherFrame spatialWeatherFrame(
                   amount *
                   (1 - darkness * .65) +
               flash)
-          .clamp(.4, 1.1);
+          .clamp(settings.kind == SpatialWeatherKind.storm || settings.kind == SpatialWeatherKind.tempest ? .65 : .4, 1.1);
   final tint = 1 - darkness * .4;
   final color = Color.from(
     alpha: 1,
@@ -97,7 +97,7 @@ SpatialWeatherFrame spatialWeatherFrame(
         settings.speed * (settings.kind == SpatialWeatherKind.drizzle ? 1 : 2),
     lightFactor: light,
     flash: flash,
-    veilOpacity: (settings.kind == SpatialWeatherKind.tempest ? .24 : settings.kind == SpatialWeatherKind.storm ? .14 : 0) * substance * settings.cloudCover * (.85 + .15 * math.sin(seconds * .43 + math.sin(seconds * .17))),
+    veilOpacity: (settings.kind == SpatialWeatherKind.tempest ? .12 : settings.kind == SpatialWeatherKind.storm ? .08 : 0) * substance * settings.cloudCover * (.85 + .15 * math.sin(seconds * .43 + math.sin(seconds * .17))),
     color: color,
     fogColor: Color.lerp(
       style.fogColor,
@@ -140,7 +140,7 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
       SpatialWeatherKind.windy => const SpatialWeatherStyle(count: 96, shape: 3, fall: .12, size: .055, opacity: .4, wind: 10, cloud: .18, fog: .2),
       SpatialWeatherKind.heavySnow => const SpatialWeatherStyle(count: 384, shape: 1, fall: 1.4, streak: .1, size: .1, opacity: 1, wind: 2, cloud: .22, fog: .7, color: Color(0xfff1f5ff), fogColor: Color(0xffd9e2ed)),
       SpatialWeatherKind.sleet => const SpatialWeatherStyle(count: 352, shape: 7, fall: 10, streak: .8, size: .08, opacity: .95, wind: 5, cloud: .36, fog: .42, impact: .65),
-      SpatialWeatherKind.tempest => const SpatialWeatherStyle(count: 1536, shape: 0, fall: 25, streak: .95, size: .022, opacity: 1, wind: 13, cloud: .9, fog: 2, impact: 1.8, color: Color(0xffb8cfe3), fogColor: Color(0xff8397ab)),
+      SpatialWeatherKind.tempest => const SpatialWeatherStyle(count: 1536, shape: 0, fall: 25, streak: .95, size: .022, opacity: 1, wind: 13, cloud: .35, fog: .65, impact: 1.8, color: Color(0xffb8cfe3), fogColor: Color(0xff8397ab)),
       SpatialWeatherKind.cloudy => const SpatialWeatherStyle(
         cloud: .24,
         fog: .05,
@@ -189,8 +189,8 @@ SpatialWeatherStyle spatialWeatherStyle(SpatialWeatherKind kind) =>
         size: .02,
         opacity: .9,
         wind: 7,
-        cloud: .7,
-        fog: 1.4,
+        cloud: .3,
+        fog: .45,
         impact: 1.3,
         color: Color(0xffb8cfe3),
         fogColor: Color(0xff8397ab),

@@ -51,6 +51,9 @@ extension _WorkspaceResourceUsageBinding on _MapWorkspaceScreenState {
       }
       final document = _controller.active!;
       final instanceId = entry.entityId;
+      if (instanceId?.startsWith('exterior:') == true) {
+        document.exteriorDecoration?.setEditingExterior(true);
+      }
       if (instanceId != null) {
         final family =
             document.current.placedElements.any((item) => item.id == instanceId)

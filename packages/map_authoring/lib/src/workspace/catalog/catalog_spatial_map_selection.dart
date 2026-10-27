@@ -32,20 +32,27 @@ final class CatalogSpatialMapSelection {
 
   static bool supports(String action,
       {Map<String, Object?> parameters = const {}}) {
+    if (action == 'map.update_metadata' && parameters.containsKey('escapeRopeDungeonId')) return false;
     if (action == 'map.apply_operations') {
       final operations = parameters['operations'];
       return operations is List &&
           operations.isNotEmpty &&
           operations.every((op) =>
               op is Map &&
-              op['kind'] == 'layer.add' &&
-              const {'environment', 'border'}.contains(op['layerKind']));
+              (op['kind'] == 'layer.reorder_by_id' ||
+                  (op['kind'] == 'layer.add' &&
+                      const {'environment', 'border'}.contains(op['layerKind']))));
     }
     return const {
       'warp.update',
+      'warp.create',
+      'connection.upsert',
+      'connection.create_bidirectional_apply',
       'entity.upsert',
       'trigger.create',
       'map3d.navigation.configure',
+      'map3d.camera.configure',
+      'map.update_metadata',
       'environment.attach_to_spatial_terrain',
       'environment.area_create',
       'environment.generated_placement_add',
@@ -54,8 +61,10 @@ final class CatalogSpatialMapSelection {
       'map3d.terrain.surface.upsert_batch',
       'map3d.terrain.surface.delete_batch',
       'border_layer.feature_create',
+      'border_layer.feature_delete',
       'border_layer.feature_update',
       'border_layer.feature_move',
+      'border_layer.feature_set_keep_out',
       'border_layer.materialize_apply',
       'border_layer.materialize_batch_apply',
       'border_layer.feature_set_variation',
@@ -68,6 +77,8 @@ final class CatalogSpatialMapSelection {
       'map3d.instance.upsert_batch',
       'smart_tile.layer.create',
       'smart_tile.layer.delete',
+      'smart_tile.layer.set_encounter_behavior',
+      'smart_tile.layer.clear_encounter_behavior',
       'smart_tile.cell.paint',
       'smart_tile.cell.paint_batch',
       'smart_tile.cell.erase',
@@ -84,6 +95,60 @@ final class CatalogSpatialMapSelection {
         if (readDependencies.isNotEmpty) 'readDependencies': readDependencies,
       }, logicalName: 'catalog-map-selection.json');
 
+  static Future<CatalogSpatialMapSelection> _readProperties({
+    required CatalogProjectReader reader, required ProjectHandle projectHandle,
+    required String actionId, required Map<String, Object?> parameters,
+  }) async {
+    final mapId = parameters['mapId'];
+    if (mapId is! String || mapId.isEmpty || mapId.trim() != mapId) {
+      throw const FormatException('catalog.map_properties: mapId required');
+    }
+    final selected = await reader.withMetadataFields({'settings'});
+    return selected.read((catalog) async {
+      await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
+      final settings = catalog.projectMetadata.settings;
+      final base = ProjectManifest(name: catalog.projectMetadata.name,
+          version: catalog.projectMetadata.version, maps: const [], tilesets: const [],
+          settings: ProjectSettings(dimension: settings.dimension, spatialCamera: settings.spatialCamera,
+              tileWidth: settings.tileWidth, tileHeight: settings.tileHeight));
+      final documents = await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot,
+          project: base, ids: {'maps': {mapId}});
+      final entry = documents.project.maps.where((entry) => entry.id == mapId).firstOrNull;
+      if (entry == null) {
+        throw const ProjectSnapshotException('project.map_missing', 'The map is not declared.');
+      }
+      final payload = await reader.store.gateway.captureResourcePayload(entry.relativePath);
+      if (payload == null) {
+        throw const ProjectSnapshotException('project.map_missing', 'The map document is missing.');
+      }
+      try {
+        final bytes = await payload.readBytes();
+        final map = MapData.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
+        if (map.id != mapId || (actionId == 'map3d.camera.configure' && map.spatialScene == null)) {
+          throw const FormatException('catalog.map_properties: map identity or dimension mismatch');
+        }
+        MapValidator.validate(map);
+        final projectBytes = utf8.encode(jsonEncode(documents.project.toJson()));
+        final snapshot = ProjectSnapshot(projectHandle: projectHandle,
+            revision: fingerprint(selected.revision, mapId, payload.resourceRevision),
+            manifest: documents.project, materializedCatalogProject: true,
+            availableProjectSections: const {}, scopedStorageRevisions: {entry.relativePath: payload.resourceRevision},
+            maps: [map], resourceFingerprints: {'project': computeAuthoringBytesFingerprint(projectBytes, logicalName: 'project.json'),
+              'map:$mapId': payload.resourceRevision},
+            resourceBytes: {'project': projectBytes, 'map:$mapId': bytes},
+            resourceStorageKeys: {'project': 'project.json', 'map:$mapId': entry.relativePath});
+        final selection = CatalogSpatialMapSelection._(selected, snapshot,
+            entry.relativePath, payload.resourceRevision, selected.revision, mapId);
+        if (await selection.currentRevision() != snapshot.revision) {
+          throw AuthoringPlanException(code: 'plan.stale', message: 'The map changed while selecting its properties.');
+        }
+        return selection;
+      } finally {
+        await payload.release();
+      }
+    });
+  }
+
   static Future<CatalogSpatialMapSelection> read(
       {required CatalogProjectReader reader,
       required ProjectHandle projectHandle,
@@ -92,8 +157,13 @@ final class CatalogSpatialMapSelection {
     if (!supports(actionId, parameters: parameters)) {
       throw const FormatException('catalog.spatial: unsupported action');
     }
-    if (actionId == 'warp.update') {
-      return _readWarpUpdate(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    if (actionId == 'map.update_metadata' || actionId == 'map3d.camera.configure') {
+      return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
+    }
+    if (const {'warp.update', 'warp.create', 'connection.upsert',
+        'connection.create_bidirectional_apply'}.contains(actionId)) {
+      return _readRelations(reader: reader, projectHandle: projectHandle,
+          actionId: actionId, parameters: parameters);
     }
     if (actionId == 'map.apply_operations') {
       final operations = parameters['operations'];
@@ -101,12 +171,13 @@ final class CatalogSpatialMapSelection {
           operations.isEmpty ||
           operations.any((op) =>
               op is! Map ||
-              op['kind'] != 'layer.add' ||
-              !const {'environment', 'border'}.contains(op['layerKind']))) {
+              (op['kind'] != 'layer.reorder_by_id' &&
+                  (op['kind'] != 'layer.add' ||
+                      !const {'environment', 'border'}.contains(op['layerKind']))))) {
         throw AuthoringPlanException(
             code: 'catalog.mutation_scope_required',
             message:
-                'Only native Environment and Border layer creation have a targeted map-operation scope.');
+                'Only native Environment and Border layer creation and identity layer reordering have a targeted map-operation scope.');
       }
     }
     final mapId = parameters['mapId'];
@@ -141,6 +212,7 @@ final class CatalogSpatialMapSelection {
         final map = MapData.fromJson(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(mapBytes)) as Map));
         final supportsTwoDimensions = actionId == 'map.apply_operations' ||
+            actionId == 'map.update_metadata' ||
             actionId == 'entity.upsert' ||
             actionId == 'trigger.create' ||
             actionId.startsWith('environment.') ||
@@ -342,175 +414,128 @@ final class CatalogSpatialMapSelection {
     });
   }
 
-  static Future<CatalogSpatialMapSelection> _readWarpUpdate({
+  static Future<CatalogSpatialMapSelection> _readRelations({
     required CatalogProjectReader reader,
     required ProjectHandle projectHandle,
+    required String actionId,
     required Map<String, Object?> parameters,
   }) async {
-    final args = SemanticParameters(
-      parameters,
-      allowed: {'mapId', 'warpId', 'warp'},
-    );
-    final mapId = args.string('mapId'), warpId = args.string('warpId');
+    final isWarp = actionId.startsWith('warp.');
+    final args = SemanticParameters(parameters, allowed: {
+      'mapId',
+      if (isWarp) 'warp',
+      if (actionId == 'warp.update') 'warpId',
+      if (!isWarp) ...{'direction', 'targetMapId', 'offset'},
+    });
+    final mapId = args.string('mapId');
     final selected = await reader.withMetadataFields({'settings'});
     return selected.read((catalog) async {
       await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
-      final owner = await CatalogMetadataDocuments.readDocuments(
-        snapshot: catalog.snapshot,
-        project: catalog.projectMetadata,
-        ids: {
-          'maps': {mapId},
-        },
-      );
-      final sourceEntry = owner.project.maps.singleWhere(
-        (entry) => entry.id == mapId,
-      );
-      final source = await reader.store.gateway.captureResourcePayload(
-        sourceEntry.relativePath,
-      );
-      if (source == null)
-        throw const FormatException('catalog.warp: source map missing');
-      try {
-        final bytes = await source.readBytes();
-        final map = MapData.fromJson(
-          Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
-        );
-        if (map.id != mapId)
-          throw const FormatException('catalog.warp: source identity mismatch');
-        final after = const WarpConnectionActions().previewUpdate(
-          map,
-          warpId: warpId,
-          warp: args.object('warp'),
-        );
-        final index = map.warps.indexWhere((warp) => warp.id == warpId);
-        final beforeWarp = map.warps[index], updated = after.warps[index];
-        final metadata = await CatalogMetadataDocuments.readDocuments(
-          snapshot: catalog.snapshot,
-          project: catalog.projectMetadata,
-          ids: {
-            'maps': {mapId, updated.targetMapId},
-          },
-        );
-        final maps = <MapData>[map];
-        final mapBytes = <String, List<int>>{'map:$mapId': bytes};
-        final revisions = <String, String>{
-          sourceEntry.relativePath: source.resourceRevision,
-        };
-        final storageKeys = <String, String>{
-          'map:$mapId': sourceEntry.relativePath,
-        };
-        final fingerprints = <String, String>{
-          'map:$mapId': source.resourceRevision,
-        };
-        if (updated.targetMapId != mapId) {
-          final targetEntry = metadata.project.maps
-              .where((entry) => entry.id == updated.targetMapId)
-              .firstOrNull;
-          if (targetEntry == null)
-            throw semanticFailure(
-              'warp.target_map_missing',
-              'The target map does not exist in the current project snapshot.',
-              details: {'targetMapId': updated.targetMapId},
-            );
-          final target = await reader.store.gateway.captureResourcePayload(
-            targetEntry.relativePath,
-          );
-          if (target == null)
-            throw const FormatException('catalog.warp: destination missing');
-          try {
-            final targetBytes = await target.readBytes();
-            final targetMap = MapData.fromJson(
-              Map<String, dynamic>.from(
-                jsonDecode(utf8.decode(targetBytes)) as Map,
-              ),
-            );
-            if (targetMap.id != updated.targetMapId)
-              throw const FormatException(
-                'catalog.warp: destination identity mismatch',
-              );
-            maps.add(targetMap);
-            mapBytes['map:${targetMap.id}'] = targetBytes;
-            storageKeys['map:${targetMap.id}'] = targetEntry.relativePath;
-            fingerprints['map:${targetMap.id}'] = target.resourceRevision;
-            revisions[targetEntry.relativePath] = target.resourceRevision;
-          } finally {
-            await target.release();
-          }
+      var metadata = await CatalogMetadataDocuments.readDocuments(
+          snapshot: catalog.snapshot, project: catalog.projectMetadata,
+          ids: {'maps': {mapId}});
+      final maps = <String, MapData>{};
+      final mapBytes = <String, List<int>>{};
+      final revisions = <String, String>{};
+      final storageKeys = <String, String>{};
+      final fingerprints = <String, String>{};
+      Future<MapData> readMap(String id) async {
+        if (maps[id] != null) return maps[id]!;
+        final entry = metadata.project.maps.where((entry) => entry.id == id).firstOrNull;
+        if (entry == null) {
+          throw semanticFailure(isWarp ? 'warp.target_map_missing' : 'connection.target_map_missing',
+              'A selected relation map is not declared.', details: {'mapId': id});
         }
-        var definitions = metadata.project;
-        final destinationOnly =
-            beforeWarp.copyWith(
-              targetMapId: updated.targetMapId,
-              targetPos: updated.targetPos,
-            ) ==
-            updated;
-        if (!destinationOnly && updated.door != null) {
-          final door = updated.door!;
-          final instance = map.spatialScene!.instances.singleWhere(
-            (value) => value.id == door.instanceId,
-          );
-          final unit = await catalog.lookup(
-            CatalogDefinitionKey(
-              CatalogDefinitionKind.model3d,
-              instance.modelId,
-            ),
-          );
-          definitions = definitions.copyWith(
-            models3d: [
-              if (unit != null)
-                ProjectModel3dEntry.fromJson(
-                  Map<String, dynamic>.from(unit.payload['value'] as Map),
-                ),
-            ],
-          );
-          validateMapWarpDoor(after, updated, models: definitions.models3d);
+        final payload = await reader.store.gateway.captureResourcePayload(entry.relativePath);
+        if (payload == null) throw const FormatException('catalog.relation: selected map missing');
+        try {
+          final bytes = await payload.readBytes();
+          final map = MapData.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
+          if (map.id != id) throw const FormatException('catalog.relation: map identity mismatch');
+          maps[id] = map;
+          mapBytes['map:$id'] = bytes;
+          storageKeys['map:$id'] = entry.relativePath;
+          fingerprints['map:$id'] = payload.resourceRevision;
+          revisions[entry.relativePath] = payload.resourceRevision;
+          return map;
+        } finally {
+          await payload.release();
         }
-        final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
-        final catalogRevision = 'sha256:${catalog.snapshot.root.sha256}';
-        final dependencies = Map<String, String>.from(revisions)
-          ..remove(sourceEntry.relativePath);
-        final revision = fingerprint(
-          catalogRevision,
-          mapId,
-          source.resourceRevision,
-          readDependencies: dependencies,
-        );
-        final snapshot = ProjectSnapshot(
-          projectHandle: projectHandle,
-          revision: revision,
-          manifest: definitions,
-          materializedCatalogProject: true,
-          availableProjectSections: const {},
-          scopedStorageRevisions: revisions,
-          maps: maps,
-          resourceFingerprints: {
-            ...fingerprints,
-            'project': computeAuthoringBytesFingerprint(
-              projectBytes,
-              logicalName: 'project.json',
-            ),
-          },
-          resourceBytes: {...mapBytes, 'project': projectBytes},
-          resourceStorageKeys: {...storageKeys, 'project': 'project.json'},
-        );
-        final result = CatalogSpatialMapSelection._(
-          selected,
-          snapshot,
-          sourceEntry.relativePath,
-          source.resourceRevision,
-          catalogRevision,
-          mapId,
-        );
-        if (await result.currentRevision() != revision) {
-          throw AuthoringPlanException(
-            code: 'plan.stale',
-            message: 'The source, destination or catalog changed while reading the warp.',
-          );
-        }
-        return result;
-      } finally {
-        await source.release();
       }
+      final source = await readMap(mapId);
+      const actions = WarpConnectionActions();
+      MapWarp? updated;
+      MapData? after;
+      var destinationOnly = false;
+      String targetId;
+      if (isWarp) {
+        if (actionId == 'warp.create') {
+          after = actions.previewCreate(source, warp: args.object('warp'));
+          updated = after.warps.last;
+        } else {
+          final warpId = args.string('warpId');
+          after = actions.previewUpdate(source, warpId: warpId, warp: args.object('warp'));
+          final index = source.warps.indexWhere((warp) => warp.id == warpId);
+          updated = after.warps[index];
+          destinationOnly = source.warps[index].copyWith(
+              targetMapId: updated.targetMapId, targetPos: updated.targetPos) == updated;
+        }
+        targetId = updated.targetMapId;
+      } else {
+        targetId = args.string('targetMapId');
+        actions.previewConnection(source, direction: args.string('direction'),
+            targetMapId: targetId, offset: args.integer('offset'));
+      }
+      metadata = await CatalogMetadataDocuments.readDocuments(
+          snapshot: catalog.snapshot, project: catalog.projectMetadata,
+          ids: {'maps': {mapId, targetId}});
+      final target = await readMap(targetId);
+      if (!isWarp) {
+        final direction = MapConnectionDirection.values.byName(args.string('direction'));
+        final neighbors = <String>{
+          if (source.spatialScene == null)
+            for (final connection in source.connections)
+              if (connection.direction == direction) connection.targetMapId,
+          if (actionId == 'connection.create_bidirectional_apply' && target.spatialScene == null)
+            for (final connection in target.connections)
+              if (connection.direction == direction.opposite) connection.targetMapId,
+        }..removeAll(maps.keys);
+        if (neighbors.isNotEmpty) {
+          metadata = await CatalogMetadataDocuments.readDocuments(
+              snapshot: catalog.snapshot, project: catalog.projectMetadata,
+              ids: {'maps': {mapId, targetId, ...neighbors}});
+          for (final id in neighbors) { await readMap(id); }
+        }
+      }
+      var definitions = metadata.project;
+      if (updated != null && !destinationOnly && updated.door != null) {
+        final instance = source.spatialScene!.instances.singleWhere(
+            (value) => value.id == updated!.door!.instanceId);
+        final unit = await catalog.lookup(CatalogDefinitionKey(CatalogDefinitionKind.model3d, instance.modelId));
+        definitions = definitions.copyWith(models3d: [
+          if (unit != null) ProjectModel3dEntry.fromJson(Map<String, dynamic>.from(unit.payload['value'] as Map)),
+        ]);
+        validateMapWarpDoor(after!, updated, models: definitions.models3d);
+      }
+      final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
+      final catalogRevision = 'sha256:${catalog.snapshot.root.sha256}';
+      final sourcePath = storageKeys['map:$mapId']!;
+      final dependencies = Map<String, String>.from(revisions)..remove(sourcePath);
+      final revision = fingerprint(catalogRevision, mapId, revisions[sourcePath]!, readDependencies: dependencies);
+      final snapshot = ProjectSnapshot(projectHandle: projectHandle, revision: revision,
+          manifest: definitions, materializedCatalogProject: true,
+          availableProjectSections: const {}, scopedStorageRevisions: revisions,
+          maps: maps.values.toList(), resourceFingerprints: {
+            ...fingerprints, 'project': computeAuthoringBytesFingerprint(projectBytes, logicalName: 'project.json')},
+          resourceBytes: {...mapBytes, 'project': projectBytes},
+          resourceStorageKeys: {...storageKeys, 'project': 'project.json'});
+      final result = CatalogSpatialMapSelection._(selected, snapshot, sourcePath,
+          revisions[sourcePath]!, catalogRevision, mapId);
+      if (await result.currentRevision() != revision) {
+        throw AuthoringPlanException(code: 'plan.stale',
+            message: 'A selected relation map or catalog changed while reading.');
+      }
+      return result;
     });
   }
 
@@ -555,37 +580,66 @@ final class CatalogSpatialMapSelection {
         String fingerprint
       })> translate(AuthoringPlan plan) async {
     final changes = plan.changeSet.changes;
-    if (changes.length != 1 ||
-        changes.single.storageKey != storageKey ||
-        changes.single.resource.kind != 'map' ||
-        changes.single.resource.id != mapId ||
-        changes.single.beforeRevision != mapRevision ||
-        changes.single.afterPayload == null) {
-      throw AuthoringPlanException(
-          code: 'catalog.mutation_outside_scope',
-          message: 'The semantic action must change only its selected map.');
+    final action = plan.request.actionId;
+    final relation = const {'warp.update', 'warp.create', 'connection.upsert',
+        'connection.create_bidirectional_apply'}.contains(action);
+    final expectedMaps = <String, MapData>{};
+    if (relation) {
+      const actions = WarpConnectionActions();
+      final source = snapshot.mapById(mapId)!;
+      final parameters = plan.request.parameters;
+      if (action.startsWith('warp.')) {
+        final warp = Map<String, Object?>.from(parameters['warp'] as Map);
+        expectedMaps[mapId] = action == 'warp.create'
+            ? actions.previewCreate(source, warp: warp)
+            : actions.previewUpdate(source, warpId: parameters['warpId'] as String, warp: warp);
+      } else {
+        final direction = parameters['direction'] as String;
+        final targetId = parameters['targetMapId'] as String;
+        final offset = parameters['offset'] as int;
+        expectedMaps[mapId] = actions.previewConnection(source, direction: direction,
+            targetMapId: targetId, offset: offset);
+        if (action == 'connection.create_bidirectional_apply') {
+          expectedMaps[targetId] = actions.previewConnection(snapshot.mapById(targetId)!,
+              direction: MapConnectionDirection.values.byName(direction).opposite.name,
+              targetMapId: mapId, offset: -offset);
+        }
+      }
     }
-    final projected = MapData.fromJson(Map<String, dynamic>.from(
-        jsonDecode(utf8.decode(await changes.single.afterPayload!.readBytes()))
-            as Map));
-    if (plan.request.actionId == 'warp.update') {
-      final args = SemanticParameters(plan.request.parameters, allowed: {'mapId', 'warpId', 'warp'});
-      final expected = const WarpConnectionActions().previewUpdate(snapshot.mapById(mapId)!, warpId: args.string('warpId'), warp: args.object('warp'));
-      if (projected != expected) throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The warp action changed data outside its validated update.');
-    } else {
-      MapValidator.validate(projected, projectDialogueContext: snapshot.manifest);
-      validateResourceLibraryScopeIndex(
-        snapshot.manifest,
-        ResourceLibraryUsageIndex.fromDocuments(maps: [
-          projected
-        ], documents: [
-          ResourceUsageDocument('map', projected.id, projected.name, storageKey,
-              projected.toJson())
-        ]));
+    if (changes.length != (relation ? expectedMaps.length : 1)) {
+      throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
+          message: 'The action must change only its selected maps.');
+    }
+    final seen = <String>{};
+    for (final change in changes) {
+      final id = change.resource.id;
+      final expectedPath = relation ? snapshot.resourceStorageKeys['map:$id'] : storageKey;
+      if (!seen.add(id) || change.storageKey != expectedPath ||
+          change.resource.kind != 'map' ||
+          (relation ? !expectedMaps.containsKey(id) : id != mapId) ||
+          change.beforeRevision != snapshot.resourceFingerprints['map:$id'] ||
+          change.afterPayload == null) {
+        throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
+            message: 'The action changed data outside its selected maps.');
+      }
+      final projected = MapData.fromJson(Map<String, dynamic>.from(
+          jsonDecode(utf8.decode(await change.afterPayload!.readBytes())) as Map));
+      if (relation) {
+        if (projected != expectedMaps[id]) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
+              message: 'The relation changed data outside its validated update.');
+        }
+      } else {
+        MapValidator.validate(projected, projectDialogueContext: snapshot.manifest);
+        validateResourceLibraryScopeIndex(snapshot.manifest,
+            ResourceLibraryUsageIndex.fromDocuments(maps: [projected], documents: [
+              ResourceUsageDocument('map', projected.id, projected.name, storageKey, projected.toJson())
+            ]));
+      }
     }
     final state = computeAuthoringJsonFingerprint({
       'baseCatalog': catalogRevision,
-      'resources': {storageKey: changes.single.afterRevision}
+      'resources': {for (final change in changes) change.storageKey: change.afterRevision}
     }, logicalName: 'catalog-spatial-map-state.json');
     final diff = AuthoringDiff([
       for (final entry in plan.changeSet.diff.entries)
@@ -595,7 +649,7 @@ final class CatalogSpatialMapSelection {
             ...entry.resource.toJson(),
             'extensions': {
               ...entry.resource.extensions,
-              'nativeMapResourcePath': storageKey
+              'nativeMapResourcePath': snapshot.resourceStorageKeys['map:${entry.resource.id}'] ?? storageKey
             }
           }
         }),

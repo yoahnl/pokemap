@@ -19,7 +19,7 @@ test("visual defaults and map inheritance use bounded canonical documents across
  }
  try{
   await mkdir(join(root,"maps"));await writeFile(join(root,"project.json"),"unreadable unrelated project");await writeFile(join(root,"maps","shore.json"),"unreadable map");
-  for(const [i,settings] of [{depthOfFieldEnabled:true,pitchDegrees:34,timeMode:"real",weatherMode:"real",weatherSequence:["clear","rain"],weatherIntervalSeconds:600},{depthOfFieldEnabled:false,timeMode:"fixed",minuteOfDay:1320,weatherMode:"fixed",weatherKind:"storm"},{},{timeMode:"cycle",weatherMode:"automatic",fireflyLighting:true,fireflyGreenAmount:.5,fireflyBlueAmount:.8,fireflyLightRadius:1.25},{weatherEnabled:true,weatherKind:"snow",weatherIntensity:.8},{weatherEnabled:false,weatherKind:"snow"},{weatherEnabled:true,weatherKind:"rain",weatherSoundEnabled:true,weatherRainVolume:.8,weatherWindVolume:.4},{weatherSoundEnabled:false},{}].entries()){
+  for(const [i,settings] of [{depthOfFieldEnabled:true,pitchDegrees:34,timeMode:"real",weatherMode:"real",weatherSequence:["clear","rain"],weatherIntervalSeconds:600},{depthOfFieldEnabled:false,timeMode:"fixed",minuteOfDay:1320,weatherMode:"fixed",weatherKind:"storm"},{},{timeMode:"cycle",weatherMode:"automatic",fireflyLighting:true,fireflyGreenAmount:.5,fireflyBlueAmount:.8,fireflyLightRadius:1.25},{weatherEnabled:true,weatherKind:"snow",weatherIntensity:.8},{weatherEnabled:false,weatherKind:"snow"},{weatherEnabled:true,weatherKind:"rain",weatherSoundEnabled:true,weatherRainVolume:.8,weatherWindVolume:.4},{weatherSoundEnabled:false},{weatherMode:"occasional",weatherDryMinSeconds:900,weatherDryMaxSeconds:1800,weatherEventMinSeconds:120,weatherEventMaxSeconds:300,weatherDrizzleWeight:50,weatherRainWeight:30,weatherDownpourWeight:15,weatherStormWeight:5},{}].entries()){
    await session(async call=>{
     const catalog=await call("pokemap_describe");assert.equal(record(catalog.visualSettingsAuthoring).id,"visual.settings.set");
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("weatherSoundEnabled"));
@@ -28,6 +28,8 @@ test("visual defaults and map inheritance use bounded canonical documents across
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("tempest"));
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("map3d.weather-states@1"));
     assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("map3d.real-weather@1"));
+    assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("map3d.weather-episodes@1"));
+    assert.ok(JSON.stringify(catalog.visualSettingsAuthoring).includes("weatherStormWeight"));
     const initial=await call("pokemap_visual_settings_inspect",{projectRoot:root});
     const input={projectRoot:root,expectedRevision:initial.revision,settings,operationId:`visual-${i}`};
     const changed=await call("pokemap_visual_settings_set",input);assert.deepEqual(changed.afterSettings,settings);

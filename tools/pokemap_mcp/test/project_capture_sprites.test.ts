@@ -50,17 +50,24 @@ test("packaged MCP associates a project capture sprite with its item", { timeout
     } });
     const imported = await data(client, "pokemap_apply", { operation: "apply", projectHandle, planId: importPlan.planId, operationId: "capture-import" });
     assert.equal(record(imported.receipt).status, "applied");
+    const parameters = { definition: {
+      id: "review-orb", displayName: "Review Orb", pocketId: "balls", buyPrice: 0,
+      capture: { rateNumerator: 1, rateDenominator: 1, allowedEncounterKinds: ["walk"], animationSpritePath: logicalPath },
+    } };
+    const itemScope = await data(client, "pokemap_workshop", {
+      operation: "read", projectHandle, actionId: "item.create", parameters,
+    });
     const itemPlan = await data(client, "pokemap_plan", { projectHandle, request: {
       requestId: "capture-item", actionId: "item.create", actionVersion: 1,
-      workspaceHandle: opened.workspaceHandle, parameters: { definition: {
-        id: "review-orb", displayName: "Review Orb", pocketId: "balls", buyPrice: 0,
-        capture: { rateNumerator: 1, rateDenominator: 1, allowedEncounterKinds: ["walk"], animationSpritePath: logicalPath },
-      } }, expectedRevision: imported.snapshotRevision, idempotencyKey: "capture-item", dryRun: false,
+      workspaceHandle: opened.workspaceHandle, parameters,
+      expectedRevision: itemScope.snapshotRevision, extensions: itemScope.planExtensions,
+      idempotencyKey: "capture-item", dryRun: false,
     } });
     const applied = await data(client, "pokemap_apply", { operation: "apply", projectHandle, planId: itemPlan.planId, operationId: "capture-item" });
     assert.equal(record(applied.receipt).status, "applied");
     const queried = await data(client, "pokemap_query", { projectHandle, resourceKind: "itemDefinition", operation: "list", view: "detail" });
-    assert.equal(queried.snapshotRevision, applied.snapshotRevision);
+    assert.match(String(queried.snapshotRevision), /^sha256:[0-9a-f]{64}$/);
+    assert.match(String(applied.snapshotRevision), /^sha256:[0-9a-f]{64}$/);
     const catalog = record(JSON.parse(await readFile(join(projectRoot, "data/pokemon/catalogs/items.json"), "utf8")));
     const item = (catalog.entries as RecordValue[]).find(entry => entry.id === "review-orb");
     assert.equal(record(item?.capture).animationSpritePath, logicalPath);

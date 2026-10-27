@@ -7,8 +7,73 @@ import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.d
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
+import 'package:image/image.dart' as img;
 
 void main() {
+  test('raw asset first and repeated imports retain unrelated catalog data', () async {
+    final fixture = await _Fixture.open(unrelatedRecords: 100);
+    addTearDown(fixture.close);
+    final png = img.encodePng(img.Image(width: 2, height: 2));
+    final staged = await fixture.api.artifacts.put(png, declaredMediaType: 'image/png');
+    for (var repeat = 0; repeat < 2; repeat++) {
+      final entries = [for (var index = 0; index <= repeat; index++) {
+        'assetId': 'image-$repeat-$index', 'logicalPath': 'assets/imported-$repeat-$index.png',
+        'artifactHandle': staged.reference.handle, 'tags': ['test'], 'usages': ['image']
+      }];
+      final action = repeat == 0 ? 'asset.import' : 'asset.import_batch';
+      final parameters = repeat == 0 ? entries.single : <String, Object?>{'entries': entries};
+      final snapshot = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: action, parameters: parameters);
+      expect(snapshot.maps, isEmpty);
+      expect(snapshot.manifest.trainers, isEmpty);
+      expect(snapshot.manifest.tilesets, isEmpty);
+      expect(snapshot.availableProjectSections, isEmpty);
+      await _applyScoped(fixture, action, parameters, 'raw_asset_$repeat');
+      for (final entry in entries) {
+        expect(await File('${fixture.root.path}/${entry['logicalPath']}').readAsBytes(), png);
+      }
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptorBytes);
+    }
+  });
+
+  test('contact configuration first update reopen and clear ignore unrelated data', () async {
+    final fixture = await _Fixture.open(savings: true, contacts: true, unrelatedRecords: 100);
+    addTearDown(fixture.close);
+    await _applyScoped(fixture, 'fact.create', {'fact': NarrativeFactDefinition(
+        id: 'fact_mentor_known', label: 'Mentor known').toJson()}, 'contact_fact');
+    final scene = SceneAsset.fromJson({
+      'id': 'contact-call', 'name': 'Contact call',
+      'graph': {'startNodeId': 'start', 'nodes': [
+        {'id': 'start', 'kind': 'start'}, {'id': 'end', 'kind': 'end'}
+      ], 'edges': [
+        {'id': 'end-edge', 'fromNodeId': 'start', 'fromPortId': 'completed', 'toNodeId': 'end', 'kind': 'defaultFlow'}
+      ]}
+    });
+    await _applyScoped(fixture, 'scene.upsert', {'scene': scene.toJson()}, 'contact_scene');
+    for (var i = 0; i < 2; i++) {
+      final config = {'id': 'device', 'label': 'Device $i', 'acquiredFactId': 'enabled',
+        'emptyMessage': 'No contacts', 'contacts': [
+          {'id': 'mentor', 'label': 'Mentor', 'registeredFactId': 'fact_mentor_known',
+            'sceneId': scene.id, 'unavailableSceneId': scene.id}
+        ]};
+      final parameters = <String, Object?>{'configuration': config};
+      await _applyScoped(fixture, 'contact_device.configure', parameters, 'contact_$i');
+      final snapshot = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'contact_device.configure', parameters: parameters);
+      expect(snapshot.manifest.contactDevice!.label, 'Device $i');
+      expect(snapshot.manifest.facts.map((f) => f.id), unorderedEquals(['enabled', 'fact_mentor_known']));
+      expect(snapshot.manifest.scenes.map((s) => s.id), [scene.id]);
+      expect(snapshot.manifest.trainers, isEmpty);
+      expect(snapshot.manifest.shops, isEmpty);
+      expect(snapshot.maps, isEmpty);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptorBytes);
+    }
+    await _applyScoped(fixture, 'contact_device.configure', {'configuration': null}, 'clear_contact');
+    final reopened = (await CatalogProjectReader.open(store: fixture.store,
+        descriptor: fixture.working.descriptor.toJson(), metadataFields: {'contactDevice'}))!;
+    expect(reopened.catalog.projectMetadata.contactDevice, isNull);
+  });
+
   test('guided publication selects typed condition Facts and scene music only', () async {
     final fixture = await _Fixture.open(savings: true, guidedMusic: true, unrelatedRecords: 80);
     addTearDown(fixture.close);
@@ -830,6 +895,7 @@ final class _Fixture {
       {AuthoringTransactionFaultInjector? faultInjector,
       bool playerCharacters = false,
       bool savings = false,
+      bool contacts = false,
       bool guidedMusic = false,
       bool ambiguousSavingsFacts = false,
       int unrelatedRecords = 0}) async {
@@ -860,8 +926,10 @@ final class _Fixture {
           for (var i = 0; i < unrelatedRecords; i++)
             ShopDefinition(id: 'other-$i', label: 'Other $i')
         ],
-        version: ProjectVersion.v8,
-        settings: playerCharacters
+        version: contacts ? ProjectVersion.v9 : ProjectVersion.v8,
+        settings: contacts
+            ? ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile())
+            : playerCharacters
             ? const ProjectSettings(defaultPlayerCharacterId: 'guide')
             : const ProjectSettings(),
         newGame: ProjectNewGameConfig(

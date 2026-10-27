@@ -76,6 +76,12 @@ final class LocalTransactionFileGateway
   final String? _transactionNamespace;
   final AuthoringPerformanceObserver? _performanceObserver;
 
+  Future<LocalTransactionFileGateway> inNamespace(String namespace) => open(
+      projectRoot: _projectRoot,
+      expectedProjectRoot: _expectedProjectRoot,
+      performanceObserver: _performanceObserver,
+      transactionNamespace: namespace);
+
   @override
   Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) =>
       withLocalProjectWriteQueue(
@@ -339,15 +345,8 @@ final class LocalTransactionFileGateway
         }
         AuthoringPayload? source;
         if (present) {
-          final observed = await _inspectFile(paths.payload, storageKey,
-              expectedStagedRevision: rawRevision as String);
-          source = await AuthoringPayload.verifiedSource(
-              storageKey: storageKey,
-              byteLength: rawLength as int,
-              rawSha256: observed.rawSha256,
-              resourceRevision: rawRevision,
-              openRead: () => _readFile(paths.payload,
-                  AuthoringPerformanceCounterName.gatewayResourceReadBytes));
+          source = await _readVerifiedStagedFile(paths.payload, storageKey,
+              rawLength as int, rawRevision as String);
         }
         final payload = TransactionStagedPayload.withPayload(
             storageKey: storageKey, payload: source);
@@ -669,6 +668,65 @@ final class LocalTransactionFileGateway
             'The resource changed during verification.');
       }
       return observed;
+    }
+  }
+
+  Future<AuthoringPayload> _readVerifiedStagedFile(
+    File file,
+    String storageKey,
+    int byteLength,
+    String resourceRevision,
+  ) async {
+    for (var attempt = 0;; attempt++) {
+      final before = await file.stat();
+      if (await FileSystemEntity.type(file.path, followLinks: false) !=
+              FileSystemEntityType.file ||
+          before.type != FileSystemEntityType.file) {
+        throw const TransactionFileGatewayException(
+            'transaction.resource_not_regular',
+            'The resource is not a regular file.');
+      }
+      AuthoringPayload? source;
+      Object? failure;
+      StackTrace? stack;
+      try {
+        source = await AuthoringPayload.verifiedResource(
+            storageKey: storageKey,
+            byteLength: before.size,
+            resourceRevision: resourceRevision,
+            openRead: () => _readFile(file,
+                AuthoringPerformanceCounterName.gatewayResourceReadBytes));
+      } on Object catch (error, trace) {
+        failure = error;
+        stack = trace;
+      }
+      final after = await file.stat();
+      if (before.size != after.size ||
+          before.modified != after.modified ||
+          before.changed != after.changed) {
+        final matches = source?.resourceRevision == resourceRevision;
+        await source?.release();
+        if (attempt < 2 &&
+            matches &&
+            before.size == after.size &&
+            before.modified == after.modified &&
+            before.mode == after.mode &&
+            before.type == after.type) {
+          continue;
+        }
+        throw const TransactionFileGatewayException(
+            'transaction.resource_changed_during_read',
+            'The resource changed during verification.');
+      }
+      if (failure != null) Error.throwWithStackTrace(failure, stack!);
+      final verified = source!;
+      if (verified.byteLength != byteLength) {
+        await verified.release();
+        throw const TransactionFileGatewayException(
+            'transaction.stage_corrupt',
+            'The staged payload length differs from its descriptor.');
+      }
+      return verified;
     }
   }
 

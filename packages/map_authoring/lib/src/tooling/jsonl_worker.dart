@@ -11,6 +11,11 @@ import 'package:map_authoring/map_authoring_local.dart'
     show
         LocalCharacterContactShadowAuthoring,
         LocalMapAtmosphereAuthoring,
+        LocalMapExteriorDecorationAuthoring,
+        MapExteriorDecorationBorderAuthoring,
+        MapExteriorDecorationNativeAuthoring,
+        MapExteriorDecorationBatchAuthoring,
+        MapExteriorDecorationIncomingReferences,
         LocalVisualSettingsAuthoring,
         LocalMapEditorAuthoring,
         MapEditorIncompleteStateException,
@@ -83,6 +88,7 @@ final class JsonlWorker {
     NativeProjectCreationTransportPort? nativeProjectCreation,
     LocalCharacterContactShadowAuthoring? characterContactShadows,
     LocalMapAtmosphereAuthoring? mapAtmosphere,
+    LocalMapExteriorDecorationAuthoring? mapExteriorDecoration,
     LocalVisualSettingsAuthoring? visualSettings,
     LocalMapEditorAuthoring? mapEditor,
     LocalMapElementOrderAuthoring? mapElementOrder,
@@ -99,6 +105,7 @@ final class JsonlWorker {
         _nativeProjectCreation = nativeProjectCreation,
         _characterContactShadows = characterContactShadows,
         _mapAtmosphere = mapAtmosphere,
+        _mapExteriorDecoration = mapExteriorDecoration,
         _visualSettings = visualSettings,
         _mapEditor = mapEditor,
         _mapElementOrder = mapElementOrder,
@@ -137,6 +144,7 @@ final class JsonlWorker {
   final NativeProjectCreationTransportPort? _nativeProjectCreation;
   final LocalCharacterContactShadowAuthoring? _characterContactShadows;
   final LocalMapAtmosphereAuthoring? _mapAtmosphere;
+  final LocalMapExteriorDecorationAuthoring? _mapExteriorDecoration;
   final LocalVisualSettingsAuthoring? _visualSettings;
   final LocalMapEditorAuthoring? _mapEditor;
   final LocalMapElementOrderAuthoring? _mapElementOrder;
@@ -960,7 +968,9 @@ final class JsonlWorker {
         return (await service.undoReceipt(
                 projectRoot: requireContractString(
                     args['projectRoot'], 'args.projectRoot'),
-                mapId: args['mapId'] == null ? LocalVisualSettingsAuthoring.projectScopeId : requireContractString(args['mapId'], 'args.mapId'),
+                mapId: args['mapId'] == null
+                    ? LocalVisualSettingsAuthoring.projectScopeId
+                    : requireContractString(args['mapId'], 'args.mapId'),
                 mapRelativePath: args['mapRelativePath'] == null
                     ? null
                     : requireContractString(
@@ -987,7 +997,9 @@ final class JsonlWorker {
         });
         final root =
             requireContractString(args['projectRoot'], 'args.projectRoot');
-        final mapId = args['mapId'] == null ? LocalVisualSettingsAuthoring.projectScopeId : requireContractString(args['mapId'], 'args.mapId');
+        final mapId = args['mapId'] == null
+            ? LocalVisualSettingsAuthoring.projectScopeId
+            : requireContractString(args['mapId'], 'args.mapId');
         final mapPath = args['mapRelativePath'] == null
             ? null
             : requireContractString(
@@ -1010,6 +1022,224 @@ final class JsonlWorker {
                 settings: SpatialVisualPatch.fromJson(settings),
                 operationId: requireContractString(
                     args['operationId'], 'args.operationId')))
+            .toJson();
+      case 'map_exterior_decoration_native_catalog':
+      case 'map_exterior_decoration_native_edit':
+        final service =
+            _mapExteriorDecoration ?? (throw const _UnsupportedWorkerCommand());
+        final editing = command == 'map_exterior_decoration_native_edit';
+        rejectUnknownContractKeys(args, {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          if (editing) ...[
+            'expectedRevision',
+            'expectedCatalogRevision',
+            'operationId',
+            'edit'
+          ]
+        });
+        final root =
+                requireContractString(args['projectRoot'], 'args.projectRoot'),
+            mapId = requireContractString(args['mapId'], 'args.mapId');
+        final path = args['mapRelativePath'] == null
+            ? null
+            : requireContractString(
+                args['mapRelativePath'], 'args.mapRelativePath');
+        if (!editing) {
+          return {
+            'catalogRevision': await service.inspectNativeCatalogRevision(
+                projectRoot: root, mapId: mapId, mapRelativePath: path)
+          };
+        }
+        final edit = args['edit'];
+        if (edit is! Map<String, dynamic>) {
+          throw const FormatException(
+              'Native exterior edit must be an object.');
+        }
+        return (await service.nativeEdit(
+                projectRoot: root,
+                mapId: mapId,
+                mapRelativePath: path,
+                expectedRevision: requireContractString(
+                    args['expectedRevision'], 'args.expectedRevision'),
+                expectedCatalogRevision: requireContractString(
+                    args['expectedCatalogRevision'],
+                    'args.expectedCatalogRevision'),
+                operationId: requireContractString(
+                    args['operationId'], 'args.operationId'),
+                edit: edit))
+            .toJson();
+      case 'map_exterior_decoration_references_prepare':
+      case 'map_exterior_decoration_inspect':
+      case 'map_exterior_decoration_configure':
+      case 'map_exterior_decoration_sector_batch':
+      case 'map_exterior_decoration_sector_set':
+      case 'map_exterior_decoration_sector_remove':
+      case 'map_exterior_decoration_border_set':
+      case 'map_exterior_decoration_border_remove':
+      case 'map_exterior_decoration_undo':
+        final service =
+            _mapExteriorDecoration ?? (throw const _UnsupportedWorkerCommand());
+        final inspecting = command == 'map_exterior_decoration_inspect';
+        final configuring = command == 'map_exterior_decoration_configure';
+        final batching = command == 'map_exterior_decoration_sector_batch';
+        final setting = command == 'map_exterior_decoration_sector_set';
+        final removing = command == 'map_exterior_decoration_sector_remove';
+        final borderSetting = command == 'map_exterior_decoration_border_set';
+        final borderRemoving =
+            command == 'map_exterior_decoration_border_remove';
+        rejectUnknownContractKeys(args, {
+          'projectRoot',
+          'mapId',
+          'mapRelativePath',
+          if (inspecting) ...['sectorIds', 'borderIds'],
+          if (!inspecting) ...['expectedRevision', 'operationId'],
+          if (configuring) 'decoration',
+          if (setting) 'sector',
+          if (batching) ...['sectors', 'removeSectorIds'],
+          if (removing) 'sectorId',
+          if (borderSetting) 'border',
+          if (borderRemoving) 'borderId',
+          if (command == 'map_exterior_decoration_undo') 'receiptId',
+        });
+        final root =
+            requireContractString(args['projectRoot'], 'args.projectRoot');
+        final mapId = requireContractString(args['mapId'], 'args.mapId');
+        final mapPath = args['mapRelativePath'] == null
+            ? null
+            : requireContractString(
+                args['mapRelativePath'], 'args.mapRelativePath');
+        if (inspecting) {
+          final ids = args['sectorIds'];
+          final borderIds = args['borderIds'];
+          if (borderIds != null &&
+              (borderIds is! List || borderIds.any((id) => id is! String))) {
+            throw const FormatException('borderIds must be a list of strings.');
+          }
+          if (ids != null && (ids is! List || ids.any((id) => id is! String))) {
+            throw const FormatException('sectorIds must be a list of strings.');
+          }
+          return (await service.inspect(
+                  projectRoot: root,
+                  mapId: mapId,
+                  mapRelativePath: mapPath,
+                  sectorIds: (ids as List?)?.cast<String>(),
+                  borderIds: (borderIds as List?)?.cast<String>()))
+              .toJson();
+        }
+        final revision = requireContractString(
+            args['expectedRevision'], 'args.expectedRevision');
+        final operation =
+            requireContractString(args['operationId'], 'args.operationId');
+        if (command == 'map_exterior_decoration_references_prepare') {
+          return (await service.prepareIncomingReferences(
+                  projectRoot: root,
+                  mapId: mapId,
+                  mapRelativePath: mapPath,
+                  expectedRevision: revision,
+                  operationId: operation))
+              .toJson();
+        }
+        if (configuring) {
+          final raw = args['decoration'];
+          if (raw != null && raw is! Map<String, dynamic>) {
+            throw const FormatException(
+                'decoration must be an object or null.');
+          }
+          return (await service.configure(
+                  projectRoot: root,
+                  mapId: mapId,
+                  mapRelativePath: mapPath,
+                  expectedRevision: revision,
+                  operationId: operation,
+                  decoration: raw == null
+                      ? null
+                      : MapExteriorDecoration.fromJson(
+                          raw as Map<String, dynamic>)))
+              .toJson();
+        }
+        if (batching) {
+          final raw = args['sectors'];
+          final removed = args['removeSectorIds'];
+          if (raw is! List ||
+              raw.any((value) => value is! Map<String, dynamic>) ||
+              (removed != null &&
+                  (removed is! List ||
+                      removed.any((value) => value is! String)))) {
+            throw const FormatException(
+                'sectors must contain objects and removeSectorIds strings.');
+          }
+          return (await service.setSectors(
+            projectRoot: root,
+            mapId: mapId,
+            mapRelativePath: mapPath,
+            expectedRevision: revision,
+            operationId: operation,
+            sectors: raw.map((value) => ExteriorDecorationSector.fromJson(
+                value as Map<String, dynamic>)),
+            removeSectorIds: (removed as List?)?.cast<String>() ?? const [],
+          ))
+              .toJson();
+        }
+        if (setting) {
+          final raw = args['sector'];
+          if (raw is! Map<String, dynamic>) {
+            throw const FormatException('sector must be an object.');
+          }
+          return (await service.setSector(
+                  projectRoot: root,
+                  mapId: mapId,
+                  mapRelativePath: mapPath,
+                  expectedRevision: revision,
+                  operationId: operation,
+                  sector: ExteriorDecorationSector.fromJson(raw)))
+              .toJson();
+        }
+        if (borderSetting) {
+          final raw = args['border'];
+          if (raw is! Map<String, dynamic>) {
+            throw const FormatException('border must be an object.');
+          }
+          return (await service.setBorder(
+                  projectRoot: root,
+                  mapId: mapId,
+                  mapRelativePath: mapPath,
+                  expectedRevision: revision,
+                  operationId: operation,
+                  border: ExteriorDecorationBorder.fromJson(raw)))
+              .toJson();
+        }
+        if (borderRemoving) {
+          return (await service.removeBorder(
+                  projectRoot: root,
+                  mapId: mapId,
+                  mapRelativePath: mapPath,
+                  expectedRevision: revision,
+                  operationId: operation,
+                  borderId:
+                      requireContractString(args['borderId'], 'args.borderId')))
+              .toJson();
+        }
+        if (removing) {
+          return (await service.removeSector(
+                  projectRoot: root,
+                  mapId: mapId,
+                  mapRelativePath: mapPath,
+                  expectedRevision: revision,
+                  operationId: operation,
+                  sectorId:
+                      requireContractString(args['sectorId'], 'args.sectorId')))
+              .toJson();
+        }
+        return (await service.undoReceipt(
+                projectRoot: root,
+                mapId: mapId,
+                mapRelativePath: mapPath,
+                expectedRevision: revision,
+                operationId: operation,
+                receiptId:
+                    requireContractString(args['receiptId'], 'args.receiptId')))
             .toJson();
       case 'map_atmosphere_undo':
         final service =
@@ -1185,13 +1415,14 @@ final class JsonlWorker {
                 : Map<String, String>.from(_jsonObject(
                     args['readDependencies'], 'args.readDependencies')));
       case 'workshop_prepare':
-        rejectUnknownContractKeys(args, const {'projectHandle'});
+        rejectUnknownContractKeys(args, const {'projectHandle', 'scope'});
         final workshops = _mutations;
         if (workshops is! AuthoringWorkshopPort) {
           throw const _UnsupportedWorkerCommand();
         }
         return (workshops as AuthoringWorkshopPort)
-            .prepareWorkshopDocument(_projectHandle(args));
+            .prepareWorkshopDocument(_projectHandle(args), scope: args['scope'] == null
+                ? null : requireContractString(args['scope'], 'args.scope'));
       case 'plan':
         rejectUnknownContractKeys(args, const {'projectHandle', 'request'});
         final request = _jsonObject(args['request'], 'args.request');
@@ -1322,11 +1553,11 @@ final class JsonlWorker {
         final apply = args.containsKey('apply') ? args['apply'] : false;
         final maxOperations =
             args.containsKey('maxOperations') ? args['maxOperations'] : 50;
-        final maxBytes = args.containsKey('maxBytes')
-            ? args['maxBytes']
-            : 200 * 1024 * 1024;
+        final maxBytes =
+            args.containsKey('maxBytes') ? args['maxBytes'] : 200 * 1024 * 1024;
         if (apply is! bool || maxOperations is! int || maxBytes is! int) {
-          throw const FormatException('history.maintenance: invalid parameters');
+          throw const FormatException(
+              'history.maintenance: invalid parameters');
         }
         return (maintenance as AuthoringHistoryMaintenancePort).maintainHistory(
             _projectHandle(args),
@@ -1425,6 +1656,7 @@ final class JsonlWorker {
         _nativeProjectCreation == null &&
         _characterContactShadows == null &&
         _mapAtmosphere == null &&
+        _mapExteriorDecoration == null &&
         _visualSettings == null &&
         _mapEditor == null &&
         _mapElementOrder == null &&
@@ -1576,10 +1808,66 @@ final class JsonlWorker {
             'readOnly': operation == 'inspect',
             'summary':
                 'Read or save one bounded map atmosphere sidecar without loading the project.',
-            'storagePattern': ['project.visual.json','maps/<mapId>.visual.json'],
+            'storagePattern': [
+              'project.visual.json',
+              'maps/<mapId>.visual.json'
+            ],
             'maximumDocumentBytes': SpatialVisualDocument.maxBytes,
             'expectedRevision':
                 operation != 'inspect' ? 'opaque revision from inspect' : null
+          },
+      if (_mapExteriorDecoration != null)
+        for (final operation in ['native_catalog', 'native_edit'])
+          {
+            'id': 'map_exterior_decoration_$operation',
+            'actionId': 'map.exteriorDecoration.native.edit',
+            'readOnly': operation == 'native_catalog',
+            'summary':
+                'Use canonical selected native definitions to edit exterior visual content.',
+            'kinds': [
+              'terrain.paint',
+              'environment.generate',
+              'border.draw',
+              'border.erase'
+            ],
+            'coordinateSpace': 'ownerMapLogical',
+            'requiresWorkingCatalog': true
+          },
+      if (_mapExteriorDecoration != null)
+        for (final operation in [
+          'inspect',
+          'references_prepare',
+          'configure',
+          'sector_set',
+          'sector_batch',
+          'sector_remove',
+          'border_set',
+          'border_remove',
+          'undo'
+        ])
+          {
+            'id': 'map_exterior_decoration_$operation',
+            'actionId': operation == 'references_prepare'
+                ? 'map.exteriorDecoration.references.prepare'
+                : operation == 'sector_batch'
+                    ? 'map.exteriorDecoration.sector.batch'
+                    : operation == 'border_set'
+                        ? 'map.exteriorDecoration.border.set'
+                        : operation == 'border_remove'
+                            ? 'map.exteriorDecoration.border.remove'
+                            : operation == 'sector_set'
+                                ? 'map.exteriorDecoration.sector.set'
+                                : operation == 'sector_remove'
+                                    ? 'map.exteriorDecoration.sector.remove'
+                                    : 'map.exteriorDecoration.configure',
+            'readOnly': operation == 'inspect',
+            'summary':
+                'Read or edit one exterior decoration definition and selected native sectors.',
+            'storagePattern': 'maps/<mapId>.decoration.json',
+            'sectorStoragePattern': 'maps/<mapId>.decoration/<sectorId>.json',
+            'expectedRevision': operation == 'inspect'
+                ? null
+                : 'opaque definition revision from inspect',
           },
       if (_mapAtmosphere != null)
         for (final operation in ['inspect', 'set', 'undo'])
@@ -1649,6 +1937,8 @@ final class JsonlWorker {
       if (_resourcePacks != null)
         'resourcePackTransfer': resourcePackTransferContract,
       if (mutation != null) 'mutationActions': mutation['actions'],
+      if (mutation?['workshopPreparation'] != null)
+        'workshopPreparation': mutation!['workshopPreparation'],
       if (_mapEditor != null || _mapElementOrder != null)
         'scopedMutationActions': [
           if (_mapEditor != null) LocalMapEditorAuthoring.descriptor.toJson(),
@@ -1686,7 +1976,14 @@ final class JsonlWorker {
       if (_mapEditor != null)
         'mapEditorAuthoring': LocalMapEditorAuthoring.descriptor.toJson(),
       if (_visualSettings != null)
-        'visualSettingsAuthoring': LocalVisualSettingsAuthoring.descriptor.toJson(),
+        'visualSettingsAuthoring':
+            LocalVisualSettingsAuthoring.descriptor.toJson(),
+      if (_mapExteriorDecoration != null)
+        'mapExteriorDecorationAuthoring': [
+          for (final descriptor
+              in LocalMapExteriorDecorationAuthoring.descriptors)
+            descriptor.toJson()
+        ],
       if (_mapAtmosphere != null)
         'mapAtmosphereAuthoring':
             LocalMapAtmosphereAuthoring.descriptor.toJson(),

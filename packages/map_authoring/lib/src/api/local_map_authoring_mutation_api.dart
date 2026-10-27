@@ -1,3 +1,4 @@
+import '../references/exterior_decoration_references.dart';
 import '../documents/map_element_order_authoring.dart';
 import '../documents/map_editor_authoring.dart';
 import '../domains/maps/map_lifecycle_atmosphere.dart';
@@ -273,15 +274,17 @@ final class LocalMapAuthoringMutationApi
         readDependencies: readDependencies);
   }
 
-  Future<void> prepareWorkshopCatalog(ProjectHandle handle) async {
+  Future<void> prepareWorkshopCatalog(ProjectHandle handle, {String? scope}) async {
+    if (scope != null && !const {'mapCreation', 'assetImport', 'nativeResources', 'metadataContext'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
     final session = _catalogSession(handle);
     if (session == null) {
+      if (scope != null) throw const FormatException('catalog.preparation_requires_catalog');
       await _session(handle).prepareLocalWorkshop();
       return;
     }
     session.requirePreparationAuthorization();
-    await _session(handle)._idempotencyStore.prepareIncrementalStorage();
-    await session.prepareWorkshopCatalog();
+    if (scope == null) await _session(handle)._idempotencyStore.prepareIncrementalStorage();
+    await session.prepareWorkshopCatalog(scope: scope);
   }
 
   @override
@@ -315,13 +318,23 @@ final class LocalMapAuthoringMutationApi
 
   @override
   Future<Map<String, Object?>> prepareWorkshopDocument(
-      ProjectHandle projectHandle) async {
-    await prepareWorkshopCatalog(projectHandle);
+      ProjectHandle projectHandle, {String? scope}) async {
+    await prepareWorkshopCatalog(projectHandle, scope: scope);
     final catalog = _catalogSession(projectHandle);
     final current = catalog == null ? null : await CatalogProjectReader.open(
         store: catalog.reader.store, descriptor: catalog.reader.descriptor, metadataFields: {});
+    if (scope == 'metadataContext') {
+      return {
+        'prepared': true,
+        'snapshotRevision': current!.revision,
+        'scope': 'explicitCatalogMetadataContext',
+        'contextVersion': 1,
+        'metadataRevision': await catalog!.reader.store
+            .requireMetadataContextAdmission(current.catalog.snapshot),
+      };
+    }
     return {'prepared': true, if (current != null) 'snapshotRevision': current.revision,
-      'scope': catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
+      'scope': scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
   }
 
   Future<bool> catalogProjectReadOnly(ProjectHandle handle) async {
@@ -414,7 +427,7 @@ final class LocalMapAuthoringMutationApi
           AuthoringMutationCommandDescriptor(
               id: 'workshop_prepare',
               summary:
-                  'Explicitly prepare catalog admission, metadata indexes and retained local history before editing an older or copied project.'),
+                  'Explicitly prepare catalog admission, metadata indexes and retained local history. Scope metadataContext separately attests catalog metadata and every navigable undo generation without changing HEAD or expiring history.'),
           AuthoringMutationCommandDescriptor(
             id: 'plan',
             summary: 'Plan and preview a map mutation.',
@@ -455,8 +468,19 @@ final class LocalMapAuthoringMutationApi
       );
 
   @override
-  Map<String, Object?> describeMutations() =>
-      describeMutationContracts().toJson();
+  Map<String, Object?> describeMutations() => {
+        ...describeMutationContracts().toJson(),
+        'workshopPreparation': {
+          'scopes': ['mapCreation', 'assetImport', 'nativeResources', 'metadataContext'],
+          'metadataContext': {
+            'contextVersion': 1,
+            'requiresPreparedLocalUndoWindow': true,
+            'changesHead': false,
+            'expiresHistory': false,
+            'mayInspectRetainedCatalogs': true,
+          },
+        },
+      };
 
   @override
   Future<AuthoringArtifactStageResult> stageArtifactFile({
@@ -564,6 +588,8 @@ final class LocalMapAuthoringMutationApi
                 _inspectCatalogHistoryReplay(
                     projectHandle, operationId, actionId, entryId),
             loadProject: () => _snapshotLoader.load(projectHandle),
+            acceptObservedCatalogRevision: (expected, root, resources) => _snapshotLoader.acceptsObservedCatalogRevision(
+                projectHandle, expectedRevision: expected, rootRevision: root, resources: resources),
             buildProjectPlan: (request) =>
                 _session(projectHandle).planMutation(request),
             buildScopedProjectPlan: (request, snapshot) =>
@@ -693,6 +719,7 @@ final class LocalMapAuthoringMutationApi
     await _sessions.remove(projectHandle)?.dispose();
     await _partitionActions.remove(projectHandle)?.close();
     await _catalogSessions.remove(projectHandle)?.close();
+    _snapshotLoader.invalidate(projectHandle);
     return true;
   }
 
@@ -1585,6 +1612,9 @@ final class _LocalMapAuthoringSession {
         message: 'Mutation planning requires an idempotency key.',
       );
     }
+    await requireUnusedExteriorReferences(
+        exteriorDeletedDefinitions(request.actionId, request.parameters),
+        _mapAtmosphereGateway);
     await _requireReconciled();
     final descriptor = _dispatcher.descriptor(request.actionId);
     if (descriptor.version != request.actionVersion) {
@@ -2173,6 +2203,7 @@ final class _LocalMapAuthoringSession {
       'smart_tile.preset.rename',
       'smart_tile.preset.duplicate',
       'smart_tile.preset.delete',
+      'smart_tile.pattern.delete',
       'smart_tile.preset.draft.delete',
       'environment.preset.delete',
       'border.blueprint.delete',
@@ -2195,6 +2226,9 @@ final class _LocalMapAuthoringSession {
     }
     return () async {
       await supplied?.call();
+      await requireUnusedExteriorReferences(
+          exteriorDeletedDefinitions(plan.request.actionId, plan.request.parameters),
+          _mapAtmosphereGateway);
       if (atmosphereGuards) {
         await requireMapLifecycleAtmosphereGuards(
           plan.changeSet.diff,

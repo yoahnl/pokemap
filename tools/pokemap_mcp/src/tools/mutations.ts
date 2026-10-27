@@ -21,19 +21,19 @@ export function registerMutationTools(
     "pokemap_workshop",
     {
       title: "Read or prepare scoped workshop authoring",
-      description: "Reads only the documents needed by a catalog action. Explicit preparation admits an older or copied catalog and prepares its editing indexes and retained history; preparation may inspect the whole catalog and belongs before local edits. Use returned snapshotRevision and planExtensions with pokemap_plan. Set includeDocuments=false when only planning metadata is needed to omit project and map documents.",
+      description: "Reads only the documents needed by a catalog action. Explicit preparation admits an older or copied catalog and prepares its editing indexes and retained history; preparation may inspect the whole catalog and belongs before local edits. Use returned snapshotRevision and planExtensions with pokemap_plan. Use preparation scope=mapCreation for only the map identity/path ownership index of an already admitted catalog; it reads map metadata, without maps, assets or retained history. Preparation scope=assetImport indexes only model and tileset definition positions for append-only imports. Preparation scope=nativeResources indexes only Smart Tile, Border and Environment definition positions. Preparation scope=metadataContext explicitly attests canonical catalog metadata for the current generation and its prepared local undo window, including required historical index conversions; it preserves HEAD, receipts and navigable entries and never expires or collects data. It returns contextVersion and metadataRevision. Set includeDocuments=false when only planning metadata is needed to omit project and map documents.",
       inputSchema: z.discriminatedUnion("operation", [
         z.object({ operation: z.literal("read"), projectHandle: z.string().min(1),
           actionId: z.string().min(1), parameters: jsonRecordSchema.default({}),
           readDependencies: z.record(z.string(), z.string()).optional(),
           includeDocuments: z.boolean().default(true), }).strict(),
-        z.object({ operation: z.literal("prepare"), projectHandle: z.string().min(1) }).strict(),
+        z.object({ operation: z.literal("prepare"), projectHandle: z.string().min(1), scope: z.enum(["mapCreation", "assetImport", "nativeResources", "metadataContext"]).optional() }).strict(),
       ]),
       outputSchema: toolEnvelopeSchema,
       annotations: mutationAnnotations,
     },
     async (input) => authoringResult(() => input.operation === "prepare"
-      ? authoring.request("workshop_prepare", { projectHandle: input.projectHandle })
+      ? authoring.request("workshop_prepare", { projectHandle: input.projectHandle, ...(input.scope ? { scope: input.scope } : {}) })
       : authoring.request("workshop_snapshot", { projectHandle: input.projectHandle,
           actionId: input.actionId, parameters: input.parameters, includeDocuments: input.includeDocuments,
           ...(input.readDependencies ? {readDependencies: input.readDependencies} : {}) })),

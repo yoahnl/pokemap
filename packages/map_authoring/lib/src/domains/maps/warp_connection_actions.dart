@@ -113,6 +113,14 @@ final class WarpConnectionActions {
       _descriptor(entry.$1, entry.$2, entry.$3),
   ]);
 
+  MapData previewCreate(MapData map, {required Map<String, Object?> warp}) =>
+      _addWarp(map, _parseWarp(map, warp));
+
+  MapData previewConnection(MapData map, {required String direction,
+      required String targetMapId, required int offset}) =>
+      _upsertConnectionOnMap(map, MapConnection(direction: _direction(direction),
+          targetMapId: targetMapId, offset: offset));
+
   MapData previewUpdate(MapData map, {required String warpId,
       required Map<String, Object?> warp}) =>
       _replaceWarp(map, warpId, _parseWarp(map, warp));
@@ -250,10 +258,11 @@ final class WarpConnectionActions {
       case 'warp.create':
         final warp = _parseWarp(context.map, parameters.object('warp'));
         _validateWarpTarget(planning, context.map, warp);
-        return context.draftMap(
-          after: _addWarp(context.map, warp),
+        final after = _addWarp(context.map, warp);
+        validateMapWarpDoor(after, warp, models: planning.snapshot.manifest.models3d);
+        return _draftRelation(
+          planning: planning, before: context.map, after: after,
           operation: 'warp.create',
-          changedItems: 1,
           preview: {'warpId': warp.id, 'targetMapId': warp.targetMapId},
         );
       case 'warp.update':
@@ -453,10 +462,10 @@ final class WarpConnectionActions {
     );
     _requireOverlap(alignment, context.map.id, target.id);
     _requireFreeSpan(planning.snapshot, context.map, connection);
-    return context.draftMap(
+    return _draftRelation(
+      planning: planning, before: context.map,
       after: _upsertConnectionOnMap(context.map, connection),
       operation: 'connection.upsert',
-      changedItems: 1,
       preview: {
         'targetMapId': target.id,
         ...alignment.toJson(),
@@ -522,6 +531,7 @@ final class WarpConnectionActions {
       sourceAfter: _upsertConnectionOnMap(context.map, sourceConnection),
       targetBefore: target,
       targetAfter: _upsertConnectionOnMap(target, targetConnection),
+      validateMaps: !createOnly,
       operation: createOnly
           ? 'connection.create_bidirectional_apply'
           : 'connection.update_bidirectional_apply',
@@ -680,6 +690,28 @@ AuthoringActionDescriptor _descriptor(
       },
     );
 
+AuthoringMutationDraft _draftRelation({
+  required AuthoringPlanningContext planning,
+  required MapData before,
+  required MapData after,
+  required String operation,
+  required Map<String, Object?> preview,
+}) {
+  if (before == after) {
+    throw _failure('map.no_change', 'The inter-map operation changes nothing.');
+  }
+  final change = _mapChange(planning, before, after);
+  return AuthoringMutationDraft(
+    changeSet: AuthoringChangeSet(changes: [change], diff: AuthoringDiff([
+      AuthoringDiffEntry(operation: AuthoringDiffOperation.replace,
+          resource: change.resource, path: '/maps/${before.id}',
+          before: semanticMapSummary(before), after: semanticMapSummary(after)),
+    ])),
+    preview: {'operation': operation, 'mapId': before.id,
+      'changedItemCount': 1, 'seed': planning.seed, ...preview},
+  );
+}
+
 AuthoringMutationDraft _draftPair({
   required AuthoringPlanningContext planning,
   required MapData sourceBefore,
@@ -689,9 +721,12 @@ AuthoringMutationDraft _draftPair({
   required String operation,
   required String collection,
   required Map<String, Object?> preview,
+  bool validateMaps = true,
 }) {
-  _validateProjected(planning, sourceAfter);
-  _validateProjected(planning, targetAfter);
+  if (validateMaps) {
+    _validateProjected(planning, sourceAfter);
+    _validateProjected(planning, targetAfter);
+  }
   final changes = <AuthoringResourceChange>[];
   final diffs = <AuthoringDiffEntry>[];
   void addChange(MapData before, MapData after) {

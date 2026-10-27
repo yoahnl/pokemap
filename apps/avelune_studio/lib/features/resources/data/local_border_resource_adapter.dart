@@ -164,6 +164,18 @@ Future<ResourceMutationReceipt> _createBorder(
 }
 
 ResourceFailure _resourceFailure(Object error) {
+  if (error is AuthoringPlanException &&
+      error.code == 'model3d.source_collision_bounds_required') {
+    return const ResourceFailure(
+      'Le volume de collision précédent est plat ou vide. Vérifiez et définissez un volume de collision explicite avant de remplacer ce modèle.',
+    );
+  }
+  if (error is AuthoringPlanException &&
+      error.code == 'catalog.model_source_usage_proof_required') {
+    return const ResourceFailure(
+      'Cette source change les animations disponibles. Conservez les anciens indices et leurs durées, ou faites vérifier explicitement les utilisations du modèle avant de changer ce contrat.',
+    );
+  }
   if (error is MapAuthoringException &&
       error.code == 'border.blueprint.publication_invalid') {
     final diagnostics = error.details['diagnostics'];

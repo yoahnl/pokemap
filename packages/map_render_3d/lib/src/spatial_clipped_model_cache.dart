@@ -48,6 +48,7 @@ final class SpatialClippedModelCache {
   final _sourceIds = Expando<int>('spatial-clip-cache-source');
   final _entries =
       <(int, double, double, double, double), SpatialClippedModel?>{};
+  final _sourceEntries = <int, Set<(int, double, double, double, double)>>{};
   int _nextSourceId = 0, _hits = 0, _misses = 0, _retainedBytes = 0;
 
   int get hits => _hits;
@@ -97,23 +98,28 @@ final class SpatialClippedModelCache {
     while (_entries.isNotEmpty &&
         (_entries.length >= maximumEntries ||
             _retainedBytes + bytes > maximumRetainedBytes)) {
-      _retainedBytes -=
-          _entries.remove(_entries.keys.first)?.retainedBytes ?? 0;
+      final oldest = _entries.keys.first;
+      _retainedBytes -= _entries.remove(oldest)?.retainedBytes ?? 0;
+      final sourceEntries = _sourceEntries[oldest.$1]!;
+      sourceEntries.remove(oldest);
+      if (sourceEntries.isEmpty) _sourceEntries.remove(oldest.$1);
     }
     _entries[key] = value;
+    (_sourceEntries[sourceId] ??= {}).add(key);
     _retainedBytes += bytes;
     return value;
   }
 
   void clear() {
     _entries.clear();
+    _sourceEntries.clear();
     _retainedBytes = 0;
   }
 
   void releaseSource(Model source) {
     final id = _sourceIds[source];
     if (id == null) return;
-    for (final key in _entries.keys.where((key) => key.$1 == id).toList()) {
+    for (final key in _sourceEntries.remove(id) ?? const {}) {
       _retainedBytes -= _entries.remove(key)?.retainedBytes ?? 0;
     }
   }

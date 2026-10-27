@@ -237,6 +237,37 @@ final class ProjectSnapshotLoader {
   final PokemonCatalogCoherenceLoader _pokemonCatalogLoader;
   final ProjectSnapshotLoadProfileSink? profileSink;
   final int maxConcurrentSecondObservations;
+  final _observedCatalogRevisions = <ProjectHandle, ({String revision, String rootRevision, String descriptorRevision, Map<String, String> resources})>{};
+
+  int get retainedCatalogRevisionCount => _observedCatalogRevisions.length;
+
+  void _rememberCatalogRevision(ProjectSnapshot snapshot) {
+    final bytes = snapshot.findResourceBytes('catalogHead');
+    if (!snapshot.materializedCatalogProject || bytes == null) return;
+    final head = jsonDecode(utf8.decode(bytes)) as Map;
+    final root = CatalogObjectReference.fromJson(Map<String, dynamic>.from(head['root'] as Map));
+    final handle = snapshot.projectHandle;
+    _handles.registerProjectCleanup(handle, this, () => invalidate(handle));
+    _observedCatalogRevisions[snapshot.projectHandle] = (
+      revision: snapshot.revision,
+      rootRevision: 'sha256:${root.sha256}',
+      descriptorRevision: computeAuthoringBytesFingerprint(snapshot.resourceBytes('project'), logicalName: 'project.json'),
+      resources: {for (final entry in snapshot.resourceStorageKeys.entries)
+        if (snapshot.resourceFingerprints[entry.key] case final String fingerprint) entry.value: fingerprint});
+  }
+
+  Future<bool> acceptsObservedCatalogRevision(ProjectHandle projectHandle,
+      {required String? expectedRevision, required String rootRevision, Map<String, String?> resources = const {}}) async {
+    _handles.requireActiveProject(projectHandle);
+    final observed = _observedCatalogRevisions[projectHandle];
+    if (observed == null || observed.revision != expectedRevision || observed.rootRevision != rootRevision) return false;
+    for (final entry in resources.entries) {
+      if (observed.resources[entry.key] != entry.value) return false;
+    }
+    final bytes = await _handles.resolveProject(projectHandle).readBytes('project.json');
+    return computeAuthoringBytesFingerprint(bytes, logicalName: 'project.json') == observed.descriptorRevision;
+  }
+
 
   void requireActiveProject(ProjectHandle projectHandle) {
     _handles.requireActiveProject(projectHandle);
@@ -404,7 +435,23 @@ final class ProjectSnapshotLoader {
           ProjectHandle projectHandle, String storageKey) =>
       _handles.resolveProject(projectHandle).probeResource(storageKey);
 
+  Future<List<int>?> readOptionalResourceBytes(ProjectHandle projectHandle,
+      String storageKey, {required int maximumBytes}) async {
+    final access = _handles.resolveProject(projectHandle);
+    final probe = await access.probeResource(storageKey);
+    if (probe.status == ProjectResourceProbeStatus.missing) return null;
+    if (probe.identity != null && probe.identity!.byteLength > maximumBytes) {
+      throw const ProjectSnapshotException('project.resource_too_large', 'The selected resource exceeds its bounded read limit.');
+    }
+    final bytes = await _readOptional(access, storageKey);
+    if (bytes != null && bytes.typedBytes.length > maximumBytes) {
+      throw const ProjectSnapshotException('project.resource_too_large', 'The selected resource exceeds its bounded read limit.');
+    }
+    return bytes?.bytes;
+  }
+
   void invalidate(ProjectHandle projectHandle) {
+    _observedCatalogRevisions.remove(projectHandle);
     _snapshotCache?.invalidateHandle(projectHandle);
     _resourceUsageSnapshotCache.invalidateHandle(projectHandle);
   }
@@ -602,8 +649,10 @@ final class ProjectSnapshotLoader {
           ),
         );
       }
-      return cached.rebind(projectHandle,
+      final snapshot = cached.rebind(projectHandle,
           resourcePayloadReader: _captureSnapshotResource);
+      _rememberCatalogRevision(snapshot);
+      return snapshot;
     }
     final manifestReadTimer = profiler?.startStage();
     final manifestBytes = await access.readResourceBytes('project.json');
@@ -1404,6 +1453,7 @@ final class ProjectSnapshotLoader {
         ),
       );
     }
+    _rememberCatalogRevision(snapshot);
     return snapshot;
   }
 

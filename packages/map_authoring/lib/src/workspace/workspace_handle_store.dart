@@ -318,10 +318,15 @@ final class WorkspaceHandleStore {
     }
   }
 
+  void registerProjectCleanup(ProjectHandle handle, Object owner, void Function() cleanup) {
+    _requireActive(handle).cleanup[owner] = cleanup;
+  }
+
   bool closeWorkspace(WorkspaceHandle handle) {
     final projectHandle = _projectsByWorkspace.remove(handle);
     if (projectHandle == null) return false;
-    _projects.remove(projectHandle);
+    final stored = _projects[projectHandle];
+    if (stored != null) _remove(projectHandle, stored);
     return true;
   }
 
@@ -424,6 +429,10 @@ final class WorkspaceHandleStore {
   void _remove(ProjectHandle handle, _StoredProjectAccess stored) {
     _projects.remove(handle);
     _projectsByWorkspace.remove(stored.workspaceHandle);
+    for (final cleanup in stored.cleanup.values) {
+      cleanup();
+    }
+    stored.cleanup.clear();
   }
 
   String _nextUniqueToken(String prefix) {
@@ -475,6 +484,7 @@ final class _StoredProjectAccess {
   final Future<void> Function()? requireReadableProject;
   final Future<void> Function(String)? requireMutationRoot;
   final bool canReuseSnapshots;
+  final cleanup = <Object, void Function()>{};
 }
 
 DateTime _systemClock() => DateTime.now().toUtc();

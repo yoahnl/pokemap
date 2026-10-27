@@ -21,6 +21,9 @@ final class ResourceUsageProjection {
       'decors' => 'element',
       'terrains' => 'preset',
       'borders' => 'border',
+      'models3d' => 'model3d',
+      'materials' => 'smartTileMaterial',
+      'environments' => 'environmentPreset',
       _ => throw ArgumentError.value(target.family, 'family'),
     };
     final definition = documents

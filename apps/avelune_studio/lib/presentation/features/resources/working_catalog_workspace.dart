@@ -9,6 +9,7 @@ import 'model_light_preview_scope.dart';
 import '../../../features/project_session/domain/project_session.dart';
 import '../../../features/resources/application/working_catalog_controller.dart';
 import '../../../features/resources/domain/working_catalog_port.dart';
+import '../../../features/resources/domain/resource_port.dart';
 import '../characters/character_contact_shadow_controls.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/dialogs/studio_review_dialog.dart';
@@ -36,6 +37,7 @@ class WorkingCatalogWorkspace extends StatefulWidget {
     this.onOpenTools,
     this.onRecovered,
     this.onModelLightSaved,
+    this.onReplaceModelSource,
   });
 
   final ProjectSession session;
@@ -48,6 +50,7 @@ class WorkingCatalogWorkspace extends StatefulWidget {
   final Future<void> Function()? onSaved;
   final VoidCallback? onOpenTools;
   final Future<void> Function()? onRecovered;
+  final Future<bool> Function(String modelId)? onReplaceModelSource;
   final Future<void> Function(
     ProjectModel3dEntry model,
     String beforeRevision,
@@ -64,19 +67,30 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
   WorkingCatalogController get catalog => widget.controller;
   bool synchronizing = false;
   bool synchronizationPending = false;
+  bool sourceReplacementActive = false;
+  bool sourceReconciliationPending = false;
+  bool sourceReloadPending = false;
   String? saved;
   String? navigationNotice;
   String? tagsIdentity;
   String tagsText = '';
   WorkingCatalogDetail? previewDetail;
   Widget? preview;
+  int sourcePreviewRevision = 0;
+  bool get sourceReplacementPending =>
+      sourceReplacementActive ||
+      sourceReconciliationPending ||
+      sourceReloadPending;
 
   Widget resourcePreview(WorkingCatalogDetail detail) {
     if (preview == null ||
         previewDetail?.entry.identity != detail.entry.identity ||
         !identical(previewDetail?.visualIdentity, detail.visualIdentity)) {
       previewDetail = detail;
-      preview = widget.previewBuilder!(detail);
+      preview = KeyedSubtree(
+        key: ValueKey((detail.entry.identity, sourcePreviewRevision)),
+        child: widget.previewBuilder!(detail),
+      );
     }
     return preview!;
   }
@@ -120,10 +134,16 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     }
   }
 
-  Future<bool> allowExit() => allowCatalogExit();
+  Future<bool> allowExit() => allowCatalogExit(closing: true);
 
-  Future<bool> allowCatalogExit() async {
-    if (catalog.saving || catalog.recovering || synchronizing) return false;
+  Future<bool> allowCatalogExit({bool closing = false}) async {
+    if (catalog.saving ||
+        catalog.recovering ||
+        synchronizing ||
+        sourceReplacementActive ||
+        (!closing && (sourceReconciliationPending || sourceReloadPending))) {
+      return false;
+    }
     if (synchronizationPending && !await synchronize()) return false;
     if (!mounted) return false;
     if (!catalog.dirty) return true;
@@ -220,6 +240,51 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     return !catalog.dirty;
   }
 
+  Future<void> replaceModelSource() async {
+    final selected = catalog.selected;
+    final replace = widget.onReplaceModelSource;
+    if (selected == null ||
+        selected.kind != 'model3d' ||
+        replace == null ||
+        catalog.dirty ||
+        catalog.saving ||
+        catalog.opening ||
+        synchronizing ||
+        synchronizationPending ||
+        sourceReplacementActive) {
+      return;
+    }
+    setState(() {
+      sourceReplacementActive = true;
+      saved = null;
+      navigationNotice = null;
+    });
+    try {
+      if (!sourceReloadPending && !await replace(selected.id)) return;
+      sourceReconciliationPending = false;
+      sourceReloadPending = true;
+      if (!mounted) return;
+      preview = null;
+      previewDetail = null;
+      sourcePreviewRevision++;
+      await catalog.select(selected);
+      if (!mounted) return;
+      if (catalog.error != null) {
+        navigationNotice = 'Le modèle est enregistré. Actualisez son aperçu avant de continuer.';
+        return;
+      }
+      sourceReloadPending = false;
+      saved = 'Modèle remplacé.';
+    } on ResourceFailure catch (failure) {
+      sourceReconciliationPending = failure.partialReceipt != null;
+      navigationNotice = failure.message;
+    } catch (failure) {
+      navigationNotice = 'Le modèle ne peut pas être remplacé : $failure';
+    } finally {
+      if (mounted) setState(() => sourceReplacementActive = false);
+    }
+  }
+
   @override
   void dispose() {
     catalog.removeListener(refresh);
@@ -278,14 +343,15 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
           if (widget.onOpenTools != null)
             StudioButton(
               label: 'Créer et importer',
-              onPressed: catalog.saving || synchronizing
+              onPressed:
+                  sourceReplacementPending || catalog.saving || synchronizing
                   ? null
                   : widget.onOpenTools,
             ),
           StudioButton(
             label: 'Actualiser',
             secondary: true,
-            onPressed: catalog.loading
+            onPressed: sourceReplacementPending || catalog.loading
                 ? null
                 : () => catalog.search(catalog.query),
           ),
@@ -310,6 +376,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                 key: const ValueKey('working-catalog-search'),
                 label: 'Rechercher dans la bibliothèque',
                 value: catalog.query,
+                enabled: !sourceReplacementPending,
                 onChanged: (value) => catalog.search(value),
               ),
               StudioSelect(
@@ -324,8 +391,9 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                   'environmentPreset': 'Environnements',
                   'character': 'Personnages',
                 },
-                onChanged: (value) =>
-                    catalog.search(catalog.query, kind: value),
+                onChanged: sourceReplacementPending
+                    ? null
+                    : (value) => catalog.search(catalog.query, kind: value),
               ),
               StudioSelect(
                 label: 'Contexte recherché',
@@ -336,8 +404,9 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                   'exterior': 'Extérieur',
                   'both': 'Intérieur et extérieur',
                 },
-                onChanged: (value) =>
-                    catalog.search(catalog.query, context: value),
+                onChanged: sourceReplacementPending
+                    ? null
+                    : (value) => catalog.search(catalog.query, context: value),
               ),
             ];
             if (bounds.maxWidth < 700) {
@@ -369,6 +438,12 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
         ),
       if (saved != null)
         Padding(padding: const EdgeInsets.all(8), child: Text(saved!)),
+      if (sourceReloadPending && catalog.detail == null && !catalog.opening)
+        StudioButton(
+          key: const ValueKey('working-model-source-replace'),
+          label: 'Actualiser le modèle',
+          onPressed: sourceReplacementActive ? null : replaceModelSource,
+        ),
       Expanded(
         child: LayoutBuilder(
           builder: (context, bounds) => bounds.maxWidth >= 850
@@ -422,7 +497,11 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                         : entry.description,
                     leading: const Icon(Icons.category_outlined),
                     selected: catalog.selected?.identity == entry.identity,
-                    onTap: catalog.saving
+                    onTap:
+                        catalog.saving ||
+                            sourceReplacementActive ||
+                            sourceReconciliationPending ||
+                            sourceReloadPending
                         ? null
                         : () {
                             saved = null;
@@ -442,7 +521,10 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
               StudioButton(
                 label: 'Page précédente',
                 secondary: true,
-                onPressed: catalog.loading || !catalog.hasPreviousPage
+                onPressed:
+                    sourceReplacementPending ||
+                        catalog.loading ||
+                        !catalog.hasPreviousPage
                     ? null
                     : catalog.previousPage,
               ),
@@ -450,7 +532,10 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
               StudioButton(
                 key: const ValueKey('working-catalog-more'),
                 label: catalog.loading ? 'Chargement…' : 'Page suivante',
-                onPressed: catalog.loading || catalog.nextCursor == null
+                onPressed:
+                    sourceReplacementPending ||
+                        catalog.loading ||
+                        catalog.nextCursor == null
                     ? null
                     : catalog.loadMore,
               ),
@@ -474,6 +559,9 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     }
     final editable =
         !catalog.saving &&
+        !sourceReplacementActive &&
+        !sourceReconciliationPending &&
+        !sourceReloadPending &&
         widget.session.storage != ProjectSessionStorage.portableCatalog;
     if (tagsIdentity != selected.entry.identity) {
       tagsIdentity = selected.entry.identity;
@@ -499,6 +587,33 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
               title: selected.entry.name,
               children: [
                 if (model != null &&
+                    widget.onReplaceModelSource != null &&
+                    widget.session.storage !=
+                        ProjectSessionStorage.portableCatalog) ...[
+                  StudioButton(
+                    key: const ValueKey('working-model-source-replace'),
+                    label: sourceReplacementActive
+                        ? 'Remplacement…'
+                        : sourceReconciliationPending || sourceReloadPending
+                        ? 'Actualiser le modèle'
+                        : 'Remplacer le modèle GLB',
+                    onPressed:
+                        !sourceReplacementActive &&
+                            !catalog.dirty &&
+                            !catalog.saving &&
+                            !catalog.opening &&
+                            !synchronizing &&
+                            !synchronizationPending
+                        ? replaceModelSource
+                        : null,
+                  ),
+                  if (catalog.dirty)
+                    const StudioNotice(
+                      'Enregistrez ou annulez vos modifications avant de remplacer le modèle.',
+                    ),
+                  const SizedBox(height: 16),
+                ],
+                if (model != null &&
                     catalog.port is WorkingCatalogModelLightPort) ...[
                   ModelLightControls(
                     key: ValueKey('working-model-light-${model.id}'),
@@ -510,8 +625,10 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                           .singleWhere((m) => m.id == model.id);
                       await widget.onModelLightSaved?.call(
                         updated,
-                        catalog.detail!.previousDocumentRevision ?? selected.revision,
-                        catalog.detail!.documentRevision ?? catalog.detail!.revision,
+                        catalog.detail!.previousDocumentRevision ??
+                            selected.revision,
+                        catalog.detail!.documentRevision ??
+                            catalog.detail!.revision,
                       );
                     },
                   ),

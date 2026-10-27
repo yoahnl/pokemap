@@ -579,6 +579,71 @@ final class FileAuthoringHistoryStore
             return window;
           }));
 
+  Future<void> prepareCatalogConversions({
+    required String projectId,
+    required String expectedWindowFingerprint,
+    required Map<String, AuthoringHistoryCatalogConversion> catalogConversions,
+    bool dryRun = false,
+  }) =>
+      _guard(() => _withLock(() async {
+            final window = await _readWindow();
+            if (window == null ||
+                window.projectId != projectId ||
+                computeAuthoringJsonFingerprint(window.toJson(),
+                        logicalName: 'catalog-context-history-window.json') !=
+                    expectedWindowFingerprint) {
+              throw const AuthoringHistoryException('history.retention_stale',
+                  'The undo window changed while preparing catalog contexts.');
+            }
+            _requireWindowGeneration(window, await _readIncrementalHead());
+            final entries = <String, AuthoringHistoryEntry>{};
+            for (final id in window.entryIds) {
+              final entry = await _getLocalEntry(projectId, id);
+              if (entry == null) {
+                throw const AuthoringHistoryException('history.entry_missing',
+                    'A navigable undo operation is unavailable.');
+              }
+              entries[id] = entry;
+            }
+            for (final row in window.catalogConversions.entries) {
+              final supplied = catalogConversions[row.key];
+              if (supplied != null &&
+                  canonicalAuthoringJson(supplied.toJson()) !=
+                      canonicalAuthoringJson(row.value.toJson())) {
+                throw const AuthoringHistoryException('history.retention_stale',
+                    'An existing catalog conversion changed during preparation.');
+              }
+            }
+            final candidate = _maintenanceWindow(
+                projectId: projectId,
+                entryIds: window.entryIds,
+                cursor: window.cursor,
+                maxOperations: window.maxOperations,
+                maxBytes: window.maxBytes,
+                costs: window.costs,
+                catalogConversions: {
+                  ...window.catalogConversions,
+                  ...catalogConversions,
+                },
+                entries: entries,
+                head: window.headEntryId == null
+                    ? null
+                    : await _getLocalEntry(
+                        window.headProjectId!, window.headEntryId!),
+                generation: window.generation,
+                legacySnapshot: window.legacySnapshot);
+            if (!_windowFits(candidate)) {
+              throw const AuthoringHistoryException(
+                  'history.conversion_exceeds_budget',
+                  'Prepared catalog conversions exceed the retained undo budget.');
+            }
+            if (!dryRun &&
+                canonicalAuthoringJson(candidate.toJson()) !=
+                    canonicalAuthoringJson(window.toJson())) {
+              await _writeWindow(candidate);
+            }
+          }));
+
   Future<CatalogHistoryRootConversion?> historyConversion(
       {required String projectId,
       required CatalogObjectReference source}) async {

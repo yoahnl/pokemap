@@ -13,6 +13,7 @@ import '../../support/authoring_fingerprint.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
+import '../../transactions/plan_store.dart';
 import '../../workspace/project_snapshot.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
@@ -26,6 +27,32 @@ final class Model3dActions {
   static const maximumModelCount = 50;
   static const maximumTotalByteLength = 64 * 1024 * 1024;
   static const maximumInlineModelDiffByteLength = 8 * 1024;
+
+  static void requireLocalSourceContract(Model3dInspection before, Model3dInspection after) {
+    if ((before.animations.isEmpty && after.animations.isNotEmpty) ||
+        before.animations.any((clip) => !after.animations.any((next) =>
+            next.index == clip.index && next.durationSeconds == clip.durationSeconds))) {
+      throw AuthoringPlanException(
+          code: 'catalog.model_source_usage_proof_required',
+          message: 'This replacement changes existing source animation capabilities. Local replacement preserves static sources and every existing animation index and duration. Inspect project usages explicitly with sourceReplacementScope: project to change that contract.');
+    }
+  }
+
+  static Model3dBounds? retainedSourceCollisionBounds(
+      ProjectModel3dEntry current, Model3dInspection inspection) {
+    if (current.collisionBounds != null ||
+        current.inspection.bounds == inspection.bounds) {
+      return current.collisionBounds;
+    }
+    final bounds = current.inspection.bounds;
+    final size = bounds.size;
+    if (size.x <= 0 || size.y <= 0 || size.z <= 0) {
+      throw AuthoringPlanException(
+          code: 'model3d.source_collision_bounds_required',
+          message: 'The existing source has implicit collision bounds without volume. Review and configure explicit model collision bounds before replacing it with different source bounds.');
+    }
+    return bounds;
+  }
 
   static final descriptors = [
     for (final action in [
@@ -86,6 +113,16 @@ final class Model3dActions {
           AuthoringGuarantee.undoable
         ],
         extensions: {
+          if (action.startsWith('source.replace'))
+            'sourceCollisionContract': 'preserve_effective_bounds_require_explicit_for_changed_degenerate_source',
+          if (action.startsWith('source.replace'))
+            'sourceReplacementScope': {
+              'requestExtension': 'sourceReplacementScope',
+              'values': ['local', 'project'],
+              'catalogDefault': 'local',
+              'localContract': 'preserve_static_and_existing_animation_indices_and_durations',
+              'projectScope': 'explicit_full_project_usage_validation',
+            },
           if (action == 'source.replace' ||
               action == 'configure' ||
               action == 'configure_batch')
@@ -184,6 +221,11 @@ final class Model3dActions {
   ];
 
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
+    if (context.request.actionId.startsWith('model3d.source.replace') &&
+        context.request.extensions.containsKey('sourceReplacementScope') &&
+        !const {'local', 'project'}.contains(context.request.extensions['sourceReplacementScope'])) {
+      throw const FormatException('sourceReplacementScope must be local or project.');
+    }
     if (context.request.actionId == 'model3d.import_batch') {
       return _importBatch(context);
     }
@@ -353,6 +395,9 @@ final class Model3dActions {
         throw const FormatException('The staged model content changed.');
       }
       final inspection = const GlbModel3dInspector().inspect(bytes);
+      if (_isLocalModelSourceSnapshot(context.snapshot)) {
+        requireLocalSourceContract(current.inspection, inspection);
+      }
       _requireClippedSource(context, current, inspection: inspection);
       _requireNativeDoorSource(context, current, inspection);
       for (final map in context.snapshot.maps) {
@@ -379,7 +424,7 @@ final class Model3dActions {
           inspection: inspection,
           scale: current.scale,
           pivot: current.pivot,
-          collisionBounds: current.collisionBounds,
+          collisionBounds: retainedSourceCollisionBounds(current, inspection),
           blocksMovementByDefault: current.blocksMovementByDefault,
           castsShadowsByDefault: current.castsShadowsByDefault,
           light: current.light,
@@ -517,6 +562,9 @@ final class Model3dActions {
         }
         final inspection = inspections.putIfAbsent(
             artifact.handle, () => const GlbModel3dInspector().inspect(bytes));
+        if (_isLocalModelSourceSnapshot(context.snapshot)) {
+          requireLocalSourceContract(entry.model.inspection, inspection);
+        }
         _requireClippedSource(context, entry.model,
             inspection: inspection, clippedIds: clippedIds);
         _requireNativeDoorSource(context, entry.model, inspection);
@@ -535,7 +583,7 @@ final class Model3dActions {
             inspection: inspection,
             scale: current.scale,
             pivot: current.pivot,
-            collisionBounds: current.collisionBounds,
+            collisionBounds: retainedSourceCollisionBounds(current, inspection),
             blocksMovementByDefault: current.blocksMovementByDefault,
             castsShadowsByDefault: current.castsShadowsByDefault,
             light: current.light,
@@ -847,6 +895,11 @@ final class Model3dActions {
               planId: context.planId,
               seed: context.seed));
 }
+
+bool _isLocalModelSourceSnapshot(ProjectSnapshot snapshot) =>
+    snapshot.materializedCatalogProject &&
+    snapshot.availableProjectDocuments?['models3d'] != null &&
+    snapshot.scopedStorageRevisions != null;
 
 void _requireNativeDoorSource(AuthoringPlanningContext context,
     ProjectModel3dEntry model, Model3dInspection inspection) {

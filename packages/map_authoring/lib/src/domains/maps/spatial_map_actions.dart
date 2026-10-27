@@ -190,6 +190,8 @@ final class SpatialMapActions {
             }))),
       };
       return context.draftMap(
+          validateProjectReferences: field != 'camera' || !planning.snapshot.materializedCatalogProject ||
+              planning.snapshot.availableProjectSections == null,
           after: after,
           operation: action,
           changedItems: switch (field) {

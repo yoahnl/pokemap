@@ -78,11 +78,20 @@ final class CatalogPreparedHistoryConversion {
     }
   }
 
-  Future<void> publishUnderLock(CatalogStorageStore store) async {
+  Future<void> publishUnderLock(CatalogStorageStore store,
+      {bool metadataContextRequired = false,
+      bool publishMetadataContext = true}) async {
     requireOwner(store);
     await store.publishObjectsUnderLock(objects);
     await store.publishIndexAdmissionUnderLock(targetSnapshot);
     await store.publishMetadataIndexAdmissionUnderLock(targetSnapshot);
+    if (publishMetadataContext) {
+      await store.publishMetadataContextTransitionUnderLock(
+          before: sourceSnapshot,
+          after: targetSnapshot,
+          changedKeys: const [],
+          metadataContextRequired: metadataContextRequired);
+    }
     await store.publishHistoryConversionUnderLock(this);
   }
 }

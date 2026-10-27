@@ -8,16 +8,17 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
   required Map<String, String> readDependencies,
 }) async {
   final configuring = actionId == 'project.battle_audio.update';
-  final sections = configuring ? const {'battleAudio'} : const {'cinematicMediaAssets'};
+  final importingBytes = actionId == 'asset.import' || actionId == 'asset.import_batch';
+  final sections = importingBytes ? const <String>{} : configuring ? const {'battleAudio'} : const {'cinematicMediaAssets'};
   final mediaId = parameters['mediaId'];
-  if (!configuring && (mediaId is! String || mediaId.isEmpty || mediaId.trim() != mediaId)) {
+  if (!configuring && !importingBytes && (mediaId is! String || mediaId.isEmpty || mediaId.trim() != mediaId)) {
     throw const FormatException('catalog.audio: mediaId required');
   }
   final selected = await reader.withMetadataFields(configuring ? {'battleAudio'} : {});
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
     final ids = {
-      if (!configuring) 'cinematicMediaAssets': {mediaId as String},
+      if (!configuring && !importingBytes) 'cinematicMediaAssets': {mediaId as String},
     };
     final documents = await CatalogMetadataDocuments.readDocuments(
       snapshot: catalog.snapshot,
@@ -47,17 +48,26 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
     }
 
     await readFile(assetCatalogResourceIdentity, assetCatalogStorageKey);
-    if (parameters['artifactHandle'] case final String handle) {
-      final match =
-          RegExp(r'^artifact://sha256/([0-9a-f]{64})$').firstMatch(handle);
-      if (match != null) {
-        final digest = match.group(1)!;
-        await readFile(assetBlobResourceIdentity('sha256:$digest'),
-            'assets/.pokemap-store/$digest.blob');
-      }
+    final inputs = actionId == 'asset.import_batch' ? parameters['entries'] : [parameters];
+    if (inputs is! List || inputs.isEmpty || inputs.length > 200 || inputs.any((entry) => entry is! Map)) {
+      throw const FormatException('catalog.media: expected one to 200 imports');
     }
-    if (parameters['logicalPath'] case final String path) {
-      await readFile('audioTarget', path);
+    for (final input in inputs.cast<Map>()) {
+      if (input['artifactHandle'] case final String handle) {
+        final match =
+            RegExp(r'^artifact://sha256/([0-9a-f]{64})$').firstMatch(handle);
+        if (match != null) {
+          final digest = match.group(1)!;
+          await readFile(assetBlobResourceIdentity('sha256:$digest'),
+              'assets/.pokemap-store/$digest.blob');
+        }
+      }
+      if (input['logicalPath'] case final String path) {
+        await readFile(importingBytes ? 'mediaTarget:$path' : 'audioTarget', path);
+        if (importingBytes && revisions[path] != null) {
+          throw const FormatException('catalog.media: destination already exists');
+        }
+      }
     }
     for (final entry in readDependencies.entries) {
       await readFile(entry.key, entry.value);

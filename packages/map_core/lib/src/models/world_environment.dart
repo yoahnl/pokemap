@@ -1,6 +1,6 @@
 enum WorldTimeMode { cycle, real, fixed }
 
-enum WorldWeatherMode { fixed, automatic, real }
+enum WorldWeatherMode { fixed, automatic, real, occasional }
 
 final class WorldEnvironmentState {
   const WorldEnvironmentState.empty() : elapsedSeconds = 0;

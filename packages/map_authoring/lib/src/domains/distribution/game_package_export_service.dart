@@ -13,6 +13,7 @@ import 'game_package_export_profile.dart';
 import 'immutable_byte_snapshot.dart';
 import 'runtime_project_projection_builder.dart';
 import 'runtime_project_projection_file_reader.dart';
+import '../../documents/map_exterior_decoration_authoring.dart';
 
 typedef GamePackagePokemonValidator = Future<PokemonCatalogCoherenceReport>
     Function({
@@ -199,6 +200,7 @@ final class CanonicalGamePackageExportService {
       var entityModels = false;
       var actorOcclusion = false;
       var modelClips = SpatialModelClipCapabilities.requiresCapability(projection.project);
+      var exteriorDecoration = false;
       final spatialMaps = <MapData>[];
       if (projection.project.settings.dimension == ProjectDimension.threeD) {
         final reader = RuntimeProjectProjectionFileReader(projection);
@@ -220,6 +222,37 @@ final class CanonicalGamePackageExportService {
           final map = MapData.fromJson(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
           spatialMaps.add(map);
+          final decoration = projection.project.maps.any((other) =>
+              other.relativePath == 'maps/${map.id}.decoration.json') ? null : await loadMapExteriorDecoration(
+            projectRoot: RuntimeProjectProjectionFileReader.projectRoot,
+            map: map,
+            reader: reader,
+          );
+          if (decoration != null) {
+            exteriorDecoration = true;
+            final models = {for (final model in projection.project.models3d) model.id: model};
+            for (final border in decoration.borders) {
+              for (final instance in border.instances) {
+                final model = models[instance.modelId];
+                if (model == null) throw const FormatException('Missing logical exterior Border model.');
+                animatedDecor |= instance.animationIndex != null;
+                modelClips |= instance.clip != null;
+                modelShadows |= instance.effectiveCastsShadows(model);
+                pointLights |= model.light != null && model.light!.intensity > 0;
+              }
+            }
+            for (final sector in decoration.sectors) {
+              final visual = sector.asVisualMap();
+              dayNight |= SpatialSceneLightingCapabilities.requiresDayNight(projection.project, maps: [visual]);
+              pointLights |= SpatialSceneLightingCapabilities.requiresPointLights(projection.project, maps: [visual]);
+              modelShadows |= SpatialModelShadowCapabilities.requiresCapability(projection.project, maps: [visual]);
+              modelClips |= sector.scene.instances.any((instance) => instance.clip != null);
+              animatedDecor |= SpatialGameplayCapabilities.requiresModelAnimation(projection.project, maps: [visual]);
+              customTerrainAppearance |= !sector.scene.generateCliffs;
+              continuousTerrain |= sector.scene.terrainSurfaces.surfaces.isNotEmpty;
+              orthographicCamera |= sector.scene.camera.projection == SpatialCameraProjection.orthographic;
+            }
+          }
           actorOcclusion |= SpatialActorOcclusionCapabilities.requiresCapability(
               projection.project, maps: [map]);
           dayNight |= SpatialSceneLightingCapabilities.requiresDayNight(projection.project, maps: [map]);
@@ -264,6 +297,7 @@ final class CanonicalGamePackageExportService {
           return false;
         });
       final worldEnvironment = WorldEnvironmentCapabilities.requiresProject(projection.project) || projection.payloadFiles.entries.any((entry) => entry.key.endsWith('.visual.json') && SpatialVisualDocument.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresWorldEnvironment);
+      final weatherEpisodes = WorldEnvironmentCapabilities.requiresEpisodesProject(projection.project) || projection.payloadFiles.entries.any((entry) => entry.key.endsWith('.visual.json') && SpatialVisualDocument.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresWeatherEpisodes);
       final realWeather = WorldEnvironmentCapabilities.requiresRealProject(projection.project) || projection.payloadFiles.entries.any((entry) => entry.key.endsWith('.visual.json') && SpatialVisualDocument.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresRealWeather);
       final extendedWeather = SpatialWeatherCapabilities.requiresExtendedProject(projection.project) || projection.payloadFiles.entries.any((entry) {
         if (entry.key.endsWith('.visual.json')) return SpatialVisualDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).profile.requiresExtendedWeather;
@@ -271,7 +305,9 @@ final class CanonicalGamePackageExportService {
         return false;
       });
       final requiredCapabilities = <String>{
+        if (exteriorDecoration) MapExteriorDecoration.capabilityId,
         if (extendedWeather) SpatialWeatherCapabilities.extendedCapabilityId,
+        if (weatherEpisodes) WorldEnvironmentCapabilities.weatherEpisodesCapabilityId,
         if (realWeather) WorldEnvironmentCapabilities.realWeatherCapabilityId,
         if (worldEnvironment) WorldEnvironmentCapabilities.capabilityId,
         if (SpatialWeatherCapabilities.requiresSoundProject(projection.project) || projection.payloadFiles.entries.any((entry) {

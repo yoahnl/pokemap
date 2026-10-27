@@ -49,6 +49,10 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     FocusManager.instance.applyFocusChangesIfNeeded();
     final document = _controller.active;
     if (document != null) {
+      if (document.weatherVisuals?.dirty == true) {
+        unawaited(_controller.save(document));
+        return;
+      }
       unawaited(
         _narrative?.save(document: document) ?? _controller.save(document),
       );

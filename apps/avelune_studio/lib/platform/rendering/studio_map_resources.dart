@@ -38,6 +38,8 @@ final class StudioMapResources
     implements
         MapWorkspaceVisuals,
         SpatialWorkspaceVisuals,
+        SpatialScopedWorkspaceVisuals,
+        SpatialModelSourceWorkspaceVisuals,
         ResourceWorkspaceVisuals,
         ResourceImageDimensionsVisuals,
         CharacterWorkspaceVisuals,
@@ -75,6 +77,11 @@ final class StudioMapResources
     if (tileset == null) {
       throw StateError('Image de terrain absente : $tilesetId');
     }
+    return readGroundDefinition(tileset);
+  }
+
+  @override
+  Future<Uint8List> readGroundDefinition(ProjectTilesetEntry tileset) async {
     return Uint8List.fromList(
       await const LocalProjectFileReader().readBytes(
         projectRoot: projectRoot,
@@ -194,6 +201,11 @@ final class StudioMapResources
         .where((item) => item.id == modelId)
         .firstOrNull;
     if (model == null) throw StateError('Modèle introuvable : $modelId');
+    return readModelDefinition(model);
+  }
+
+  @override
+  Future<Uint8List> readModelDefinition(ProjectModel3dEntry model) async {
     final bytes = Uint8List.fromList(
       await const LocalProjectFileReader().readBytes(
         projectRoot: projectRoot,
@@ -226,6 +238,9 @@ final class StudioMapResources
   ProjectSmartTilePreset? _terrainPreset;
   ProjectCharacterEntry? _characterBrush;
   int catalogVersion = 0;
+  @override
+  final SpatialModelSourceUpdates modelSourceUpdates =
+      SpatialModelSourceUpdates();
   late final StudioImageStore store;
   late final StudioBorderPreview borderPreview = StudioBorderPreview(
     projectRoot: projectRoot,
@@ -280,6 +295,19 @@ final class StudioMapResources
       failed: result._failed,
     );
     return result;
+  }
+
+  @override
+  Future<void> updateModelSources(
+    ProjectManifest updated,
+    Map<String, ProjectModel3dEntry> definitions,
+    Map<String, String> revisions,
+  ) async {
+    if (_disposed) return;
+    manifest = updated;
+    modelSourceUpdates.publish(revisions: revisions, definitions: definitions);
+    catalogVersion++;
+    _notify();
   }
 
   @override
@@ -450,6 +478,7 @@ final class StudioMapResources
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    modelSourceUpdates.dispose();
     store.release(_activeOwner);
     store.release(_brushOwner);
     store.close();

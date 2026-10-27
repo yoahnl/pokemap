@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:map_authoring/map_authoring.dart'
     show
         MapAuthoringException,
+        AuthoringPlanException,
         AssetCatalog,
         JournaledAuthoringTransactionException,
         AuthoringIdempotencyException;
@@ -29,6 +30,7 @@ import 'resource_no_change.dart';
 part 'local_border_resource_adapter.dart';
 part 'local_resource_character_operations.dart';
 part 'local_resource_mutation.dart';
+part 'local_model_source_replacement.dart';
 part 'local_character_contact_shadow.dart';
 part 'local_resource_mutation_context.dart';
 part 'local_resource_preparation.dart';
@@ -50,6 +52,7 @@ final class LocalResourceAdapter
     required this.mapAdapter,
     this.beforeTransactionPrecondition,
     this.beforeReconciliation,
+    this.mutationPhaseObserver,
   });
 
   final ProjectSession session;
@@ -60,6 +63,7 @@ final class LocalResourceAdapter
   bool _resourceMutationActive = false;
   final Future<void> Function()? beforeTransactionPrecondition;
   final Future<void> Function()? beforeReconciliation;
+  final void Function(String phase)? mutationPhaseObserver;
   final Set<ResourceMutationPreparation> _appliedPreparations = {};
   final Map<ResourceMutationPreparation, _ResourcePreparedContext> _prepared =
       {};
@@ -164,7 +168,9 @@ final class LocalResourceAdapter
 
   @override
   Future<Uint8List> readModel(String modelId) =>
-      _readResourceSnapshot(this, (snapshot, _) async {
+      session.storage == ProjectSessionStorage.workingCatalog
+          ? _readCatalogModelSource(this, modelId)
+          : _readResourceSnapshot(this, (snapshot, _) async {
         final model = snapshot.manifest.models3d
             .where((entry) => entry.id == modelId)
             .firstOrNull;

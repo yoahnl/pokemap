@@ -124,17 +124,42 @@ class ModelPlaybackState extends AnimationState {
 
 class AnimatedModelComponent extends ModelComponent {
   AnimatedModelComponent({
-    required super.model,
+    required Model model,
     super.position,
     super.rotation,
     super.scale,
     super.children,
     ModelPlaybackState? playback,
     ModelPlaybackState? runtimePoseBefore,
-  }) : playback = playback ?? ModelPlaybackState(),
+  }) : _sourceModel = model,
+       playback = playback ?? ModelPlaybackState(),
        _runtimePoseBefore = runtimePoseBefore == null
            ? null
-           : ModelPlaybackState.from(runtimePoseBefore);
+           : ModelPlaybackState.from(runtimePoseBefore),
+       super(
+         model: Model(nodes: const {}, animations: const []),
+       );
+
+  Model _sourceModel;
+  @override
+  Model get model => _sourceModel;
+
+  void replaceModelFrom(AnimatedModelComponent source) {
+    _sourceModel = source.model;
+    _hiddenNodes.clear();
+    _runtimePoseBefore = source.runtimePoseBefore;
+    final state = source.playback;
+    playback
+      ..animationRef = state.animationRef
+      ..materialAnimationRef = state.materialAnimationRef
+      .._nodeClock = state._nodeClock
+      .._materialElapsed = state._materialElapsed
+      ..clock = state.clock
+      ..loop = state.loop
+      ..paused = state.paused
+      ..speed = state.speed;
+    markAabbDirty();
+  }
 
   final ModelPlaybackState playback;
   ModelPlaybackState? _runtimePoseBefore;

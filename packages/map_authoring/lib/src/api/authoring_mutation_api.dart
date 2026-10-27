@@ -62,7 +62,7 @@ abstract interface class AuthoringWorkshopPort {
       Map<String, String> readDependencies = const {},
       bool includeDocuments = true});
   Future<Map<String, Object?>> prepareWorkshopDocument(
-      ProjectHandle projectHandle);
+      ProjectHandle projectHandle, {String? scope});
 }
 
 abstract interface class AuthoringHistoryMaintenancePort {

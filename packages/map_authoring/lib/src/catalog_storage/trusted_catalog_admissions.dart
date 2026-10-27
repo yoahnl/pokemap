@@ -92,6 +92,62 @@ final class TrustedCatalogAdmissions {
         await _file(record), utf8.encode(canonicalAuthoringJson(record)));
   }
 
+  Future<String?> metadataContextRevision(CatalogSnapshot snapshot) async {
+    final record = {...await _record(snapshot), 'contextVersion': 1};
+    final file = await _file(record);
+    if (await FileSystemEntity.type(file.path, followLinks: false) ==
+        FileSystemEntityType.notFound) {
+      return null;
+    }
+    await _requireFile(file);
+    if (await file.length() > 8192) {
+      throw const FormatException(
+          'catalog.admission: oversized context record');
+    }
+    final source = await file.readAsString();
+    final value = jsonDecode(source);
+    if (value is! Map<String, dynamic> ||
+        value.length != 3 ||
+        value['metadataRevision'] is! String ||
+        !RegExp(r'^sha256:[0-9a-f]{64}$')
+            .hasMatch(value['metadataRevision'] as String) ||
+        canonicalAuthoringJson(value['admission']) !=
+            canonicalAuthoringJson(record) ||
+        value['fingerprint'] !=
+            computeAuthoringJsonFingerprint({
+              'admission': value['admission'],
+              'metadataRevision': value['metadataRevision'],
+            }, logicalName: 'trusted-catalog-metadata-context.json') ||
+        canonicalAuthoringJson(value) != source) {
+      throw const FormatException(
+          'catalog.admission: invalid metadata context');
+    }
+    return value['metadataRevision'] as String;
+  }
+
+  Future<String> publishMetadataContext(
+      CatalogSnapshot snapshot, String metadataRevision) async {
+    if (snapshot.admittedStoredBytes == null ||
+        !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(metadataRevision)) {
+      throw StateError('The metadata context has no validated evidence.');
+    }
+    final existing = await metadataContextRevision(snapshot);
+    if (existing != null) return existing;
+    final record = {...await _record(snapshot), 'contextVersion': 1};
+    final payload = <String, Object?>{
+      'admission': record,
+      'metadataRevision': metadataRevision,
+    };
+    await _publishRecord(
+        await _file(record),
+        utf8.encode(canonicalAuthoringJson({
+          ...payload,
+          'fingerprint': computeAuthoringJsonFingerprint(payload,
+              logicalName: 'trusted-catalog-metadata-context.json'),
+        })));
+    return metadataRevision;
+  }
+
   Future<void> publishHistoryConversion(
       CatalogPreparedHistoryConversion prepared) async {
     if (prepared.sourceSnapshot.admittedStoredBytes == null ||

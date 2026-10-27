@@ -73,7 +73,7 @@ final class MapValidationIssue {
 
 MapValidationIssue? inspectMapValidation(
   MapData map, {
-  required ProjectManifest manifest,
+  required ProjectManifest? manifest,
   required String fallbackCode,
   required String fallbackMessage,
 }) {

@@ -850,36 +850,245 @@ void nativeDoorSourceReplacementTests() {
   test('native door bindings protect both clips during single and batch source replacement', () async {
     final f = await _Fixture.create();
     addTearDown(f.dispose);
-    expect((await f.apply(await f.plan())).status, AuthoringResultStatus.success);
-    final original = animatedGlb(edit: (json) {
-      final clips = json['animations'] as List;
-      clips.add({...clips.single as Map, 'name': 'Close'});
-    });
-    expect((await f.apply(await f.planReplacement(original))).status, AuthoringResultStatus.success);
-    await f.addPlacement();
+    expect(
+      (await f.apply(await f.plan())).status,
+      AuthoringResultStatus.success,
+    );
+    final original = animatedGlb(
+      edit: (json) {
+        final clips = json['animations'] as List;
+        clips.add({...clips.single as Map, 'name': 'Close'});
+      },
+    );
+    expect(
+      (await f.apply(await f.planReplacement(original))).status,
+      AuthoringResultStatus.success,
+    );
+    final mapFile = await f.addPlacement();
     final warpPlan = await f.planAction('warp.create', {
-      'mapId': 'room', 'warp': const MapWarp(
-        id: 'entrance', pos: GridPos(x: 1, y: 1), targetMapId: 'room',
-        targetPos: GridPos(x: 2, y: 1), door: MapWarpDoor(
-          instanceId: 'placed', openAnimationIndex: 0, closeAnimationIndex: 1,
-          exitPos: GridPos(x: 1, y: 2)),
+      'mapId': 'room',
+      'warp': const MapWarp(
+        id: 'entrance',
+        pos: GridPos(x: 1, y: 1),
+        targetMapId: 'room',
+        targetPos: GridPos(x: 2, y: 1),
+        door: MapWarpDoor(
+          instanceId: 'placed',
+          openAnimationIndex: 0,
+          closeAnimationIndex: 1,
+          exitPos: GridPos(x: 1, y: 2),
+        ),
       ).toJson(),
     });
-    expect(warpPlan.status, AuthoringResultStatus.success, reason: jsonEncode(warpPlan.toJson()));
+    expect(
+      warpPlan.status,
+      AuthoringResultStatus.success,
+      reason: jsonEncode(warpPlan.toJson()),
+    );
     expect((await f.apply(warpPlan)).status, AuthoringResultStatus.success);
     final before = await f.projectFile.readAsBytes();
+    final beforeMap = await mapFile.readAsBytes();
+    final sourceFile = File('${f.root.path}/assets/models3d/house.glb');
     for (final bytes in [triangleGlb(), animatedGlb()]) {
       for (final batch in [false, true]) {
         await File('${f.root.path}/replacement.glb').writeAsBytes(bytes);
-        final staged = await f.request('stage_artifact', {'sourcePath': '${f.root.path}/replacement.glb'});
-        final replacement = {'modelId': 'house', 'artifactHandle': staged.data['artifactHandle']};
-        final result = await f.planAction(batch ? 'model3d.source.replace_batch' : 'model3d.source.replace',
-          batch ? {'replacements': [replacement]} : replacement);
-        expect(result.status, AuthoringResultStatus.failure, reason: jsonEncode(result.toJson()));
+        final staged = await f.request('stage_artifact', {
+          'sourcePath': '${f.root.path}/replacement.glb',
+        });
+        final replacement = {
+          'modelId': 'house',
+          'artifactHandle': staged.data['artifactHandle'],
+        };
+        final result = await f.planAction(
+          batch ? 'model3d.source.replace_batch' : 'model3d.source.replace',
+          batch
+              ? {
+                  'models': [replacement],
+                }
+              : replacement,
+        );
+        expect(
+          result.status,
+          AuthoringResultStatus.failure,
+          reason: jsonEncode(result.toJson()),
+        );
+        expect(result.error?.code, AuthoringErrorCode.validationFailed);
+        expect(result.error?.details['domainCode'], 'warp.door_clip_invalid');
+        expect(result.error?.details['mapId'], 'room');
+        expect(result.error?.details['warpId'], 'entrance');
         expect(await f.projectFile.readAsBytes(), before);
+        expect(await mapFile.readAsBytes(), beforeMap);
+        expect(await sourceFile.readAsBytes(), original);
+        expect(f.mutations.artifacts.list(), isEmpty);
       }
     }
   });
+
+  for (final batch in [false, true]) {
+    test(
+      'source replacement ${batch ? 'batch' : 'single'} preserves native door bindings and saved pose through undo',
+      () async {
+        final f = await _Fixture.create();
+        addTearDown(f.dispose);
+        final original = animatedGlb(
+          edit: (json) {
+            final clips = json['animations'] as List;
+            clips.add({...clips.single as Map, 'name': 'Close'});
+          },
+        );
+        await File('${f.root.path}/input.glb').writeAsBytes(original);
+        expect(
+          (await f.apply(await f.plan())).status,
+          AuthoringResultStatus.success,
+        );
+        final mapFile = await f.addPlacement();
+        final warpPlan = await f.planAction('warp.create', {
+          'mapId': 'room',
+          'warp': const MapWarp(
+            id: 'entrance',
+            pos: GridPos(x: 1, y: 1),
+            targetMapId: 'room',
+            targetPos: GridPos(x: 2, y: 1),
+            door: MapWarpDoor(
+              instanceId: 'placed',
+              openAnimationIndex: 0,
+              closeAnimationIndex: 1,
+              exitPos: GridPos(x: 1, y: 2),
+            ),
+          ).toJson(),
+        });
+        expect(
+          warpPlan.status,
+          AuthoringResultStatus.success,
+          reason: jsonEncode(warpPlan.toJson()),
+        );
+        expect((await f.apply(warpPlan)).status, AuthoringResultStatus.success);
+        final beforeMap = await mapFile.readAsBytes();
+        final savedPose = const SpatialWorldState.empty().setModelState(
+          'room',
+          'placed',
+          SpatialModelRuntimeState(
+            modelId: 'house',
+            animationIndex: 1,
+            normalizedTime: .75,
+            blocksMovement: false,
+          ),
+        );
+        final savedFile = File('${f.root.path}/existing-spatial-pose.json');
+        final savedBytes = utf8.encode(jsonEncode(savedPose.toJson()));
+        await savedFile.writeAsBytes(savedBytes);
+        final replacement = animatedGlb(
+          edit: (json) {
+            final clips = json['animations'] as List;
+            clips.add({...clips.single as Map, 'name': 'Close'});
+            json['materials'][0]['name'] = 'Replacement';
+          },
+        );
+        await File('${f.root.path}/replacement.glb').writeAsBytes(replacement);
+        final staged = await f.request('stage_artifact', {
+          'sourcePath': '${f.root.path}/replacement.glb',
+        });
+        expect(staged.status, AuthoringResultStatus.success);
+        final entry = {
+          'modelId': 'house',
+          'artifactHandle': staged.data['artifactHandle'],
+        };
+        final action = batch
+            ? 'model3d.source.replace_batch'
+            : 'model3d.source.replace';
+        final plan = await f.planAction(
+          action,
+          batch
+              ? {
+                  'models': [entry],
+                }
+              : entry,
+        );
+        expect(
+          plan.status,
+          AuthoringResultStatus.success,
+          reason: jsonEncode(plan.toJson()),
+        );
+        final applied = await f.apply(plan);
+        expect(
+          applied.status,
+          AuthoringResultStatus.success,
+          reason: jsonEncode(applied.toJson()),
+        );
+        final sourceFile = File('${f.root.path}/assets/models3d/house.glb');
+        expect(await sourceFile.readAsBytes(), replacement);
+        expect(await mapFile.readAsBytes(), beforeMap);
+        final after = await f.snapshots.load(f.project);
+        final reloadedPose = SpatialWorldState.fromJson(
+          jsonDecode(await savedFile.readAsString()) as Map<String, dynamic>,
+        );
+        validateSpatialWorldState(
+          state: reloadedPose,
+          project: after.manifest,
+          maps: after.maps,
+        );
+        validateMapWarpDoor(
+          after.maps.single,
+          after.maps.single.warps.single,
+          models: after.manifest.models3d,
+        );
+        final placed = after.maps.single.spatialScene!.instances.single;
+        final rebound = after.maps.single.copyWith(
+          spatialScene: after.maps.single.spatialScene!.copyWith(
+            instances: [
+              SpatialModelInstance.fromJson({
+                ...placed.toJson(),
+                'modelId': 'other-model',
+              }),
+            ],
+          ),
+        );
+        expect(
+          () => validateSpatialWorldState(
+            state: reloadedPose,
+            project: after.manifest,
+            maps: [rebound],
+          ),
+          throwsA(
+            isA<FormatException>().having(
+              (error) => error.message,
+              'message',
+              'Saved model pose is incompatible: room/placed.',
+            ),
+          ),
+        );
+        expect(await savedFile.readAsBytes(), savedBytes);
+        final history = await f.request('history', {
+          'projectHandle': f.project.value,
+          'limit': 1,
+        });
+        final entryId =
+            ((history.data['entries'] as List).single as Map)['entryId'];
+        final undone = await f.request('undo', {
+          'projectHandle': f.project.value,
+          'entryId': entryId,
+          'idempotencyKey': 'undo-door-source',
+        });
+        expect(
+          undone.status,
+          AuthoringResultStatus.success,
+          reason: jsonEncode(undone.toJson()),
+        );
+        expect(await sourceFile.readAsBytes(), original);
+        expect(await mapFile.readAsBytes(), beforeMap);
+        expect(await savedFile.readAsBytes(), savedBytes);
+        final restored = await f.snapshots.load(f.project);
+        validateSpatialWorldState(
+          state: SpatialWorldState.fromJson(
+            jsonDecode(await savedFile.readAsString()) as Map<String, dynamic>,
+          ),
+          project: restored.manifest,
+          maps: restored.maps,
+        );
+        expect(f.mutations.artifacts.list(), isEmpty);
+      },
+    );
+  }
 }
 
 final class _Fixture {
@@ -1039,5 +1248,12 @@ final class _Fixture {
     });
   }
 
-  Future<void> dispose() => root.delete(recursive: true);
+  Future<void> dispose() async {
+    try {
+      await mutations.detachWorkspace(workspace);
+      await worker.close();
+    } finally {
+      if (await root.exists()) await root.delete(recursive: true);
+    }
+  }
 }

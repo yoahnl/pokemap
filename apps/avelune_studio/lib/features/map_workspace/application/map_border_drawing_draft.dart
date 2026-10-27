@@ -16,11 +16,15 @@ final class MapBorderEraseDraft {
   final List<GridPos> points;
 
   BorderFeature get feature {
-    final layer = sourceMap.layers.whereType<BorderLayer>()
-        .where((layer) => layer.id == layerId && layer.isVisible).firstOrNull;
+    final layer = sourceMap.layers
+        .whereType<BorderLayer>()
+        .where((layer) => layer.id == layerId && layer.isVisible)
+        .firstOrNull;
     final feature = layer?.content.featureById(featureId);
     if (feature?.geometry is! BorderStrokeGeometry) {
-      throw const ValidationException('Sélectionnez un tracé linéaire visible à gommer.');
+      throw const ValidationException(
+        'Sélectionnez un tracé linéaire visible à gommer.',
+      );
     }
     return feature!;
   }
@@ -29,9 +33,13 @@ final class MapBorderEraseDraft {
 
   GridPos pointFromWorldCell(GridPos cell) {
     final offset = feature.spatialOffsetWorld;
-    final center = geometry.alignment == BorderStrokeAlignment.cellCenters ? .5 : 0;
-    return GridPos(x: cell.x - (center + (offset?.x ?? 0)).floor(),
-        y: cell.y - (center + (offset?.z ?? 0)).floor());
+    final center = geometry.alignment == BorderStrokeAlignment.cellCenters
+        ? .5
+        : 0;
+    return GridPos(
+      x: cell.x - (center + (offset?.x ?? 0)).floor(),
+      y: cell.y - (center + (offset?.z ?? 0)).floor(),
+    );
   }
 
   bool validFor(MapData map, ProjectManifest project) =>
@@ -40,8 +48,13 @@ final class MapBorderEraseDraft {
   MapBorderEraseDraft sample(GridPos point) {
     _requireInside(point, sourceMap.size, geometry.alignment);
     if (points.lastOrNull == point) return this;
-    return MapBorderEraseDraft(sourceMap: sourceMap, sourceProject: sourceProject,
-        layerId: layerId, featureId: featureId, points: [...points, point]);
+    return MapBorderEraseDraft(
+      sourceMap: sourceMap,
+      sourceProject: sourceProject,
+      layerId: layerId,
+      featureId: featureId,
+      points: [...points, point],
+    );
   }
 }
 
@@ -58,6 +71,7 @@ final class MapBorderDrawingDraft {
     required this.seed,
     required this.sourceMap,
     required this.sourceProject,
+    this.logicalOrigin,
   }) : anchors = List.unmodifiable(anchors);
 
   factory MapBorderDrawingDraft.start({
@@ -70,6 +84,7 @@ final class MapBorderDrawingDraft {
     ProjectManifest? sourceProject,
     String? featureId,
     BorderSignedInt64? seed,
+    GridPos? logicalOrigin,
   }) {
     _requireInside(origin, mapSize, alignment);
     return MapBorderDrawingDraft._(
@@ -88,6 +103,7 @@ final class MapBorderDrawingDraft {
           BorderSignedInt64.fromInt(DateTime.now().microsecondsSinceEpoch),
       sourceMap: sourceMap,
       sourceProject: sourceProject,
+      logicalOrigin: logicalOrigin,
     );
   }
 
@@ -100,6 +116,7 @@ final class MapBorderDrawingDraft {
   final bool closed;
   final String featureId;
   final BorderSignedInt64 seed;
+  final GridPos? logicalOrigin;
   final MapData? sourceMap;
   final ProjectManifest? sourceProject;
   static int _nextId = 0;
@@ -128,6 +145,7 @@ final class MapBorderDrawingDraft {
       seed: seed,
       sourceMap: sourceMap,
       sourceProject: sourceProject,
+      logicalOrigin: logicalOrigin,
     );
   }
 
@@ -161,6 +179,7 @@ final class MapBorderDrawingDraft {
       seed: seed,
       sourceMap: sourceMap,
       sourceProject: sourceProject,
+      logicalOrigin: logicalOrigin,
     );
   }
 

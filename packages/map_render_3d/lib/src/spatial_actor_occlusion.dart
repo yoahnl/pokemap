@@ -39,6 +39,8 @@ final class SpatialActorOcclusionPlan {
     this.map,
     ProjectManifest project, {
     bool Function(String layerId)? includeLayer,
+    this.includeVisual,
+    Map<String, SmartTileCellContextResolver> cellContextResolvers = const {},
   }) {
     for (final layer in map.layers.whereType<SmartTileLayer>()) {
       if (!layer.isVisible ||
@@ -76,6 +78,7 @@ final class SpatialActorOcclusionPlan {
           layer: layer,
           catalog: project.smartTileCatalog,
           pass: SmartTileVisualPass.actorOcclusion,
+          cellContextResolver: cellContextResolvers[layer.id],
           sourceCellWidth: project.settings.tileWidth.toDouble(),
           sourceCellHeight: project.settings.tileHeight.toDouble(),
           destinationCellWidth: 1,
@@ -85,13 +88,15 @@ final class SpatialActorOcclusionPlan {
     }
   }
   final MapData map;
+  final bool Function(SmartTileLayerVisual)? includeVisual;
   final _plans = <({SmartTileLayer layer, SmartTileLayerVisualPlan plan})>[];
   final _layerIds = <String>{};
 
   SpatialActorOcclusionPlan._visible(
     SpatialActorOcclusionPlan source,
     bool Function(String) includeLayer,
-  ) : map = source.map {
+  ) : map = source.map,
+      includeVisual = source.includeVisual {
     _plans.addAll(source._plans.where((entry) => includeLayer(entry.layer.id)));
     _layerIds.addAll(source._layerIds.where(includeLayer));
   }
@@ -99,7 +104,7 @@ final class SpatialActorOcclusionPlan {
   SpatialActorOcclusionPlan._reordered(
     SpatialActorOcclusionPlan source,
     this.map,
-  ) {
+  ) : includeVisual = source.includeVisual {
     final byId = {for (final entry in source._plans) entry.layer.id: entry};
     for (final layer in map.layers) {
       final entry = byId[layer.id];
@@ -163,6 +168,7 @@ final class SpatialActorOcclusionPlan {
           .visuals;
       for (var index = 0; index < visuals.length; index++) {
         final visual = visuals[index];
+        if (includeVisual?.call(visual) == false) continue;
         final occupant = state(visual.cellX, visual.cellY);
         if (!occupant.active) continue;
         final rectangle = visual.geometry.visualBounds;

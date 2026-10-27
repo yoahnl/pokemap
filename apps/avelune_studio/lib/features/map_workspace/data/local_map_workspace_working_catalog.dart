@@ -23,7 +23,9 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
       }
       return _ProjectDocument(
         session.directoryPath,
-        snapshot.manifest,
+        snapshot.manifest.copyWith(
+          models3d: ProjectModel3dEntries.prepare(snapshot.manifest.models3d),
+        ),
         studioProjectSnapshotRevision(snapshot),
       );
     } finally {

@@ -10,6 +10,7 @@ import 'package:pokemap_hub/features/dashboard/application/services/hub_diagnost
 import 'package:pokemap_hub/features/dashboard/application/services/hub_directory_storage_reader.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/editor_export_install_result.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
+import 'package:pokemap_hub/features/installation/application/game_installation_message.dart';
 import 'package:pokemap_hub/features/library/domain/repositories/game_library_repository_interface.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
 import 'package:pokemap_hub/app/di/dashboard_dependencies_provider.dart';
@@ -474,18 +475,7 @@ final class HubDashboardNotifier extends Notifier<HubDashboardSnapshot> {
   }
 
   String _installMessage(GameInstallationDiagnostic diagnostic) =>
-      switch (diagnostic.code) {
-        GameInstallationErrorCode.cancelled =>
-          'L’installation a été annulée sans modifier le jeu actuel.',
-        GameInstallationErrorCode.incompatible =>
-          'Ce jeu n’est pas compatible avec cette version du Hub.',
-        GameInstallationErrorCode.insufficientDisk =>
-          'L’espace disque est insuffisant pour installer ce jeu.',
-        GameInstallationErrorCode.integrityFailed ||
-        GameInstallationErrorCode.sourceChanged =>
-          'Le package est incomplet ou a été modifié.',
-        _ => 'L’installation n’a pas pu être terminée.',
-      };
+      gameInstallationMessage(diagnostic);
 
   void _publish(HubDashboardSnapshot snapshot) {
     if (_disposed) return;

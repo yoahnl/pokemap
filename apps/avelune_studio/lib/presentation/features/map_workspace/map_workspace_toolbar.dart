@@ -234,9 +234,9 @@ class MapWorkspaceToolbar extends StatelessWidget {
               final atmosphere = document?.atmosphere;
               final editor = document?.editor;
               final label =
-                  document?.saving == true || atmosphere?.saving == true || editor?.saving == true
+                  document?.saving == true || atmosphere?.saving == true || editor?.saving == true || document?.weatherVisuals?.saving == true
                   ? 'Enregistrement…'
-                  : document?.dirty == true || atmosphere?.dirty == true || editor?.dirty == true
+                  : document?.dirty == true || atmosphere?.dirty == true || editor?.dirty == true || document?.weatherVisuals?.dirty == true
                   ? 'Non enregistré'
                   : 'Enregistré';
               return Tooltip(
@@ -252,10 +252,10 @@ class MapWorkspaceToolbar extends StatelessWidget {
 
             final atmosphere = document?.atmosphere;
             final editor = document?.editor;
-            final status = atmosphere == null && editor == null
+            final status = atmosphere == null && editor == null && document?.weatherVisuals == null
                 ? buildStatus()
                 : ListenableBuilder(
-                    listenable: Listenable.merge([?atmosphere, ?editor]),
+                    listenable: Listenable.merge([?atmosphere, ?editor, ?document?.weatherVisuals]),
                     builder: (context, _) => buildStatus(),
                   );
             if (largeText) {

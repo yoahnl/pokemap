@@ -111,18 +111,20 @@ class _StudioMapWorkspaceHost extends ConsumerWidget {
       controller: controller,
       resourceLibraryBuilder:
           session.storage == ProjectSessionStorage.workingCatalog
-          ? (context, guard, onSaved, onOpenTools) => WorkingCatalogWorkspace(
-              session: session,
-              controller: catalog!,
-              onClose: onClose,
-              registerExitGuard: guard,
-              embedded: true,
-              onSaved: onSaved,
-              onModelLightSaved: controller.acceptModelLight,
-              onOpenTools: onOpenTools,
-              previewBuilder: (detail) =>
-                  WorkingCatalogPreview(session: session, detail: detail),
-            )
+          ? (context, guard, onSaved, onOpenTools, onReplaceModelSource) =>
+                WorkingCatalogWorkspace(
+                  session: session,
+                  controller: catalog!,
+                  onClose: onClose,
+                  registerExitGuard: guard,
+                  embedded: true,
+                  onSaved: onSaved,
+                  onModelLightSaved: controller.acceptModelLight,
+                  onOpenTools: onOpenTools,
+                  onReplaceModelSource: onReplaceModelSource,
+                  previewBuilder: (detail) =>
+                      WorkingCatalogPreview(session: session, detail: detail),
+                )
           : null,
       mapConnectionPort: ref.watch(mapConnectionPortProvider(session)),
       resourcePort: ref.watch(resourcePortProvider(session)),

@@ -20,6 +20,12 @@ void main() {
           .writeAsBytes(image.encodePng(image.Image(width: 32, height: 32)));
       session = await SpatialExplorationSession.load(
         RuntimeMapBundle(
+          exteriorDecoration: MapExteriorDecoration(
+            mapId: 'field',
+            playableWidth: 8,
+            playableDepth: 8,
+            west: 2,
+          ),
           spatialAtmosphereSettings: SpatialAtmosphereSettings(
             waterAnimated: true,
             windowsLit: true,
@@ -109,6 +115,14 @@ void main() {
       find.byType(SpatialSceneView),
     );
     expect(after.loadModel, before.loadModel);
+    expect(
+      after.decorations.single.loadModel,
+      before.decorations.single.loadModel,
+    );
+    expect(
+      after.decorations.single.loadGroundImage,
+      before.decorations.single.loadGroundImage,
+    );
     expect(after.controller.atmosphereProfile, same(atmosphereProfile));
     expect(after.background, Colors.black);
     expect(session.prepareNativeDoorDestination, preparation);

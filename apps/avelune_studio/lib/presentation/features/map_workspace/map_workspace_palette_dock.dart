@@ -54,7 +54,10 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
   @override
   Widget build(BuildContext context) {
     final kind = widget.view.paletteTab;
-    final map = widget.document.current;
+    final exterior = widget.document.exteriorDecoration;
+    final map = exterior?.editingExterior == true
+        ? exterior?.editingDocument?.current ?? widget.document.current
+        : widget.document.current;
     widget.view.reconcileResources(widget.project, mapId: map.id, map: map);
     widget.view.resourceFilters.query = kind == 'Personnages'
         ? ''

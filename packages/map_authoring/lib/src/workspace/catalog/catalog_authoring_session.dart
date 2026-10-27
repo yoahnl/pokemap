@@ -1,3 +1,4 @@
+import '../../references/exterior_decoration_references.dart';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -9,6 +10,7 @@ import '../../workspace/project_snapshot.dart';
 import 'catalog_working_mutation.dart';
 import 'catalog_targeted_map_edit.dart';
 import 'catalog_spatial_map_selection.dart';
+import 'catalog_model_source_selection.dart';
 import 'catalog_workshop_selection.dart';
 import 'catalog_scoped_working_mutation.dart';
 import '../../catalog_storage/catalog_editing_session.dart';
@@ -17,6 +19,7 @@ import '../../catalog_storage/catalog_generation_retention.dart';
 import 'catalog_action_contracts.dart';
 import '../../contracts/authoring_request.dart';
 import '../../contracts/json_contract_support.dart';
+import '../../support/authoring_fingerprint.dart';
 import '../../history/history_store.dart';
 import '../../history/file_history_store.dart';
 import '../../history/catalog_history_retention.dart';
@@ -43,6 +46,7 @@ final class CatalogAuthoringSession {
       required this.resolveAction,
       required this.inspectHistoryReplay,
       required this.loadProject,
+      this.acceptObservedCatalogRevision,
       required this.buildProjectPlan,
       required this.buildScopedProjectPlan,
       required this.projectHandle,
@@ -70,6 +74,7 @@ final class CatalogAuthoringSession {
   final Future<AuthoringReceipt?> Function(
       String operationId, String actionId, String entryId) inspectHistoryReplay;
   final Future<ProjectSnapshot> Function() loadProject;
+  final Future<bool> Function(String? expectedRevision, String catalogRevision, Map<String, String?> resources)? acceptObservedCatalogRevision;
   final Future<AuthoringMutationPlanResult> Function(AuthoringRequest)
       buildProjectPlan;
   final Future<AuthoringMutationPlanResult> Function(AuthoringRequest, ProjectSnapshot)
@@ -93,6 +98,8 @@ final class CatalogAuthoringSession {
   final AuthoringTransactionFaultInjector? faultInjector;
   late final AuthoringAuthorizationPolicy _policy;
   Future<CatalogEditingSession>? _editingFuture;
+  ({String requestKey, String revision, CatalogModelSourceSelection selection})?
+      _modelSourceSelection;
   final Map<String, CatalogEditingPlan> _plans = {};
   final Map<String, String> _operations = {};
 
@@ -182,7 +189,26 @@ final class CatalogAuthoringSession {
       throw const WorkspaceHandleException('workspace.project_mismatch',
           'The request does not belong to this workspace.');
     }
+    await requireUnusedExteriorReferences(
+        exteriorDeletedDefinitions(request.actionId, request.parameters),
+        reader.store.gateway);
     if (request.actionId == 'map.save') return _planMap(request);
+    if (request.actionId == 'map.update_metadata' && !request.parameters.containsKey('escapeRopeDungeonId')) return _planWorkshop(request);
+    if (request.actionId == 'map.create') {
+      final current = (await CatalogProjectReader.open(store: reader.store,
+          descriptor: reader.descriptor, metadataFields: {'settings'}))!;
+      if (current.catalog.projectMetadata.settings.dimension == ProjectDimension.threeD) {
+        return _planWorkshop(request);
+      }
+    }
+    if (CatalogModelSourceSelection.supports(request.actionId)) {
+      final scope = request.extensions['sourceReplacementScope'];
+      if (request.extensions.containsKey('sourceReplacementScope') &&
+          !const {'local', 'project'}.contains(scope)) {
+        throw const FormatException('sourceReplacementScope must be local or project.');
+      }
+      return scope == 'project' ? _planProject(request) : _planModelSource(request);
+    }
     if (CatalogSpatialMapSelection.supports(request.actionId, parameters: request.parameters)) return _planSpatialMap(request);
     if (request.actionId != catalogDefinitionUpdateDescriptor.id) {
       return request.extensions['workshopScope'] == true || CatalogWorkshopSelection.supports(request.actionId,parameters:request.parameters)
@@ -334,9 +360,24 @@ final class CatalogAuthoringSession {
       Map<String, Object?> parameters = const {},
       Map<String, String> readDependencies = const {}}) async {
     requireRead();
+    _modelSourceSelection = null;
+    final requestKey = CatalogModelSourceSelection.supports(actionId)
+        ? _modelSourceRequestKey(actionId, parameters)
+        : null;
     final current = (await CatalogProjectReader.open(store: reader.store,
         descriptor: reader.descriptor, metadataFields: {}))!;
-    if (CatalogSpatialMapSelection.supports(actionId, parameters: parameters)) {
+    if (CatalogModelSourceSelection.supports(actionId)) {
+      if (readDependencies.isNotEmpty) throw const FormatException('catalog.model_source: external read dependencies are unsupported');
+      final selection = await CatalogModelSourceSelection.read(reader: current,
+          projectHandle: projectHandle, actionId: actionId, parameters: parameters);
+      _modelSourceSelection = (
+        requestKey: requestKey!,
+        revision: selection.snapshot.revision,
+        selection: selection
+      );
+      return selection.snapshot;
+    }
+    if (actionId != 'map.update_metadata' && CatalogSpatialMapSelection.supports(actionId, parameters: parameters)) {
       if (readDependencies.isNotEmpty) throw const FormatException('catalog.spatial: external read dependencies are unsupported');
       return (await CatalogSpatialMapSelection.read(reader: current, projectHandle: projectHandle, actionId: actionId, parameters: parameters)).snapshot;
     }
@@ -345,8 +386,29 @@ final class CatalogAuthoringSession {
         parameters: parameters, readDependencies: readDependencies)).snapshot;
   }
 
-  Future<void> prepareWorkshopCatalog() async {
+  Future<void> prepareWorkshopCatalog({String? scope}) async {
     _authorize(AuthoringSecurityOperation.plan);
+    if (scope == 'assetImport' || scope == 'nativeResources') {
+      await (await _editing()).prepareAssetImport(nativeResources: scope == 'nativeResources');
+      return;
+    }
+    if (scope == 'mapCreation') {
+      await (await _editing()).prepareMapCreation();
+      return;
+    }
+    if (scope == 'metadataContext') {
+      final editing = await _editing();
+      final history = editing.history;
+      if (history is! FileAuthoringHistoryStore) {
+        throw const AuthoringHistoryException('history.preparation_required',
+            'Metadata contexts require a prepared local undo window.');
+      }
+      await CatalogHistoryRetention(store: reader.store,
+              history: history, blobs: editing.blobs)
+          .prepareNavigableAdmissions(projectId: reader.projectId);
+      return;
+    }
+    if (scope != null) throw const FormatException('catalog.preparation_scope_unsupported');
     final currentGenerationPrepared = await reader.store.prepareLocalEditing();
     await reader.store.gateway.withExclusiveWriteLock(() =>
         CatalogGenerationRetention(store: reader.store)
@@ -412,8 +474,23 @@ final class CatalogAuthoringSession {
         parameters: request.parameters, readDependencies: Map<String, String>.from(
             request.extensions['workshopReadDependencies'] as Map? ?? const {}));
     selection.requireSafeParameters(request);
-    final built = await buildScopedProjectPlan(request, selection.snapshot);
+    var scopedRequest = request;
+    if (request.expectedRevision != selection.snapshot.revision &&
+        await acceptObservedCatalogRevision?.call(request.expectedRevision, current.revision, selection.resourceRevisions) == true) {
+      scopedRequest = AuthoringRequest(requestId: request.requestId,
+          actionId: request.actionId, actionVersion: request.actionVersion,
+          workspaceHandle: request.workspaceHandle, parameters: request.parameters,
+          expectedRevision: selection.snapshot.revision, idempotencyKey: request.idempotencyKey,
+          dryRun: request.dryRun, extensions: request.extensions);
+    }
+    final publicRevision = scopedRequest == request ? selection.snapshot.revision : request.expectedRevision!;
+    Future<String> currentRevision() async {
+      final revision = await selection.currentRevision();
+      return revision == selection.snapshot.revision ? publicRevision : revision;
+    }
+    final built = await buildScopedProjectPlan(scopedRequest, selection.snapshot);
     if (!built.applicable) return built;
+    AuthoringPlan? publicPlan;
     try {
       final mutation = await CatalogScopedWorkingMutation.translate(
           selection: selection, publicPlan: built.plan);
@@ -426,22 +503,25 @@ final class CatalogAuthoringSession {
         throw AuthoringPlanException(code: 'plan.stale',
             message: 'The catalog changed while planning this workshop edit.');
       }
+      publicPlan = built.plan.reframeChangeSet(
+          changeSet: built.plan.changeSet, request: request, baseRevision: publicRevision);
       final prepared = await editing.planPatch(upserts: mutation.upserts,
           removals: mutation.removals,
           additionalChanges: mutation.additionalChanges,
           workspaceFingerprint: mutation.workspaceFingerprint,
-          publicBaseRevision: selection.snapshot.revision,
-          publicDiff: mutation.diff, publicPlan: built.plan,
-          currentProjectRevision: selection.currentRevision,
+          publicBaseRevision: publicRevision,
+          publicDiff: mutation.diff, publicPlan: publicPlan,
+          currentProjectRevision: currentRevision,
           idempotencyKey: request.idempotencyKey!, request: request);
       _plans[prepared.plan.planId] = prepared;
       final receipt = prepared.plan.toPlannedReceipt();
       return AuthoringMutationPlanResult(plan: prepared.plan,
-          snapshotRevision: selection.snapshot.revision, receipt: receipt,
+          snapshotRevision: publicRevision, receipt: receipt,
           projectedProject: mutation.projectedProject,
           publicProjection: await projections?.preparePlan(plan: prepared.plan,
-              receipt: receipt, snapshotRevision: selection.snapshot.revision));
+              receipt: receipt, snapshotRevision: publicRevision));
     } finally {
+      await publicPlan?.releasePayloads();
       await discardProjectPlan(built.planId);
     }
   }
@@ -497,6 +577,69 @@ final class CatalogAuthoringSession {
             snapshotRevision: edit.selection.snapshotRevision));
   }
 
+  String _modelSourceRequestKey(
+          String actionId, Map<String, Object?> parameters) =>
+      canonicalAuthoringJson({'actionId': actionId, 'parameters': parameters});
+
+  Future<AuthoringMutationPlanResult> _planModelSource(AuthoringRequest request) async {
+    final previous = _modelSourceSelection;
+    _modelSourceSelection = null;
+    final current = (await CatalogProjectReader.open(store: reader.store,
+        descriptor: reader.descriptor, metadataFields: {}))!;
+    final CatalogModelSourceSelection selection;
+    if (previous != null &&
+        previous.requestKey ==
+            _modelSourceRequestKey(request.actionId, request.parameters) &&
+        previous.revision == request.expectedRevision) {
+      selection = previous.selection;
+      if (current.catalog.snapshot.root !=
+              selection.reader.catalog.snapshot.root ||
+          await selection.currentRevision() != previous.revision) {
+        throw AuthoringPlanException(
+            code: 'plan.stale',
+            message: 'The model source selection changed before planning.');
+      }
+      for (final unit in selection.units.values) {
+        final fresh = await current.catalog.lookup(unit.key);
+        if (fresh == null ||
+            canonicalAuthoringJson(fresh.toJson()) !=
+                canonicalAuthoringJson(unit.toJson())) {
+          throw AuthoringPlanException(
+              code: 'plan.stale',
+              message: 'A selected model changed before planning.');
+        }
+      }
+    } else {
+      selection = await CatalogModelSourceSelection.read(reader: current,
+          projectHandle: projectHandle, actionId: request.actionId, parameters: request.parameters);
+    }
+    final built = await buildScopedProjectPlan(request, selection.snapshot);
+    if (!built.applicable) return built;
+    try {
+      final mutation = await selection.translate(built.plan);
+      final editing = await _editing();
+      if (editing.snapshot.root != current.catalog.snapshot.root) {
+        throw AuthoringPlanException(code: 'plan.stale', message: 'The catalog changed during model source planning.');
+      }
+      final prepared = await editing.planPatch(upserts: mutation.upserts,
+          additionalChanges: mutation.additionalChanges,
+          workspaceFingerprint: mutation.workspaceFingerprint,
+          publicBaseRevision: selection.snapshot.revision,
+          publicDiff: mutation.diff, publicPlan: built.plan,
+          currentProjectRevision: selection.currentRevision,
+          idempotencyKey: request.idempotencyKey!, request: request);
+      _plans[prepared.plan.planId] = prepared;
+      final receipt = prepared.plan.toPlannedReceipt();
+      return AuthoringMutationPlanResult(plan: prepared.plan,
+          snapshotRevision: selection.snapshot.revision, receipt: receipt,
+          projectedProject: mutation.projectedProject,
+          publicProjection: await projections?.preparePlan(plan: prepared.plan,
+              receipt: receipt, snapshotRevision: selection.snapshot.revision));
+    } finally {
+      await discardProjectPlan(built.planId);
+    }
+  }
+
   Future<AuthoringMutationPlanResult> _planSpatialMap(
       AuthoringRequest request) async {
     final current = (await CatalogProjectReader.open(
@@ -508,8 +651,24 @@ final class CatalogAuthoringSession {
         projectHandle: projectHandle,
         actionId: request.actionId,
         parameters: request.parameters);
-    final built = await buildScopedProjectPlan(request, selection.snapshot);
+    var scopedRequest = request;
+    if (const {'map3d.camera.configure', 'warp.create', 'connection.upsert', 'connection.create_bidirectional_apply'}.contains(request.actionId) && request.expectedRevision != selection.snapshot.revision &&
+        await acceptObservedCatalogRevision?.call(request.expectedRevision, current.revision,
+            selection.snapshot.scopedStorageRevisions!) == true) {
+      scopedRequest = AuthoringRequest(requestId: request.requestId,
+          actionId: request.actionId, actionVersion: request.actionVersion,
+          workspaceHandle: request.workspaceHandle, parameters: request.parameters,
+          expectedRevision: selection.snapshot.revision, idempotencyKey: request.idempotencyKey,
+          dryRun: request.dryRun, extensions: request.extensions);
+    }
+    final publicRevision = scopedRequest == request ? selection.snapshot.revision : request.expectedRevision!;
+    Future<String> currentRevision() async {
+      final revision = await selection.currentRevision();
+      return revision == selection.snapshot.revision ? publicRevision : revision;
+    }
+    final built = await buildScopedProjectPlan(scopedRequest, selection.snapshot);
     if (!built.applicable) { return built; }
+    AuthoringPlan? publicPlan;
     try {
       final mutation = await selection.translate(built.plan);
       final editing = await _editing();
@@ -517,26 +676,29 @@ final class CatalogAuthoringSession {
         throw AuthoringPlanException(
             code: 'plan.stale',
             message: 'The catalog changed during spatial map planning.'); }
+      publicPlan = built.plan.reframeChangeSet(
+          changeSet: built.plan.changeSet, request: request, baseRevision: publicRevision);
       final prepared = await editing.planPatch(
           additionalChanges: mutation.changes,
           workspaceFingerprint: mutation.fingerprint,
-          publicBaseRevision: selection.snapshot.revision,
+          publicBaseRevision: publicRevision,
           publicDiff: mutation.diff,
-          publicPlan: built.plan,
-          currentProjectRevision: selection.currentRevision,
+          publicPlan: publicPlan,
+          currentProjectRevision: currentRevision,
           idempotencyKey: request.idempotencyKey!,
           request: request);
       _plans[prepared.plan.planId] = prepared;
       final receipt = prepared.plan.toPlannedReceipt();
       return AuthoringMutationPlanResult(
           plan: prepared.plan,
-          snapshotRevision: selection.snapshot.revision,
+          snapshotRevision: publicRevision,
           receipt: receipt,
           publicProjection: await projections?.preparePlan(
               plan: prepared.plan,
               receipt: receipt,
-              snapshotRevision: selection.snapshot.revision));
+              snapshotRevision: publicRevision));
     } finally {
+      await publicPlan?.releasePayloads();
       await discardProjectPlan(built.planId);
     }
   }
@@ -986,6 +1148,7 @@ final class CatalogAuthoringSession {
     _closed = true;
     final opening = _editingFuture;
     _editingFuture = null;
+    _modelSourceSelection = null;
     _plans.clear();
     _operations.clear();
     if (opening == null) return;

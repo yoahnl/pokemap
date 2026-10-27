@@ -1,7 +1,15 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show listEquals;
+import 'package:map_render_3d/map_render_3d.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../../features/map_workspace/domain/map_exterior_decoration_port.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import 'map_library_navigator.dart';
 import '../resources/resource_catalog.dart';
@@ -12,12 +20,15 @@ import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'spatial_map_editor.dart';
+import 'map_exterior_decoration_controls.dart';
 import 'map_border_tool_panel.dart';
 import 'map_environment_tool_panel.dart';
 import 'map_terrain_tool_panel.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_catalogue_workspace_actions.dart';
 import 'map_lifecycle_workspace_actions.dart';
+
+part 'map_workspace_spatial_neighbors.dart';
 
 class MapWorkspaceEditorPane extends StatefulWidget {
   const MapWorkspaceEditorPane({
@@ -68,8 +79,55 @@ class MapWorkspaceEditorPane extends StatefulWidget {
 }
 
 class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
+  final _neighborSources = <Object, Future<_EditorNeighborSource>>{};
+  List<SpatialSceneNeighbor> _neighbors = const [];
+  List<SpatialSceneDecoration> _neighborDecorations = const [];
+  List<Object?>? _neighborRequest;
+  int _neighborGeneration = 0;
+  Object? _neighborFailure;
+  bool _neighborLoading = false;
+
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
+  void initState() {
+    super.initState();
+    _loadSpatialNeighbors();
+  }
+
+  @override
+  void didUpdateWidget(MapWorkspaceEditorPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadSpatialNeighbors();
+  }
+
+  @override
+  void dispose() {
+    _neighborGeneration++;
+    _neighborSources.clear();
+    super.dispose();
+  }
+
+  bool get _exteriorActive =>
+      widget.document.exteriorDecoration?.editingExterior == true;
+  EditableMapDocument get _toolDocument => _exteriorActive
+      ? widget.document.exteriorDecoration!.editingDocument ?? widget.document
+      : widget.document;
+  bool get _nativeReady =>
+      !_exteriorActive ||
+      widget.document.exteriorDecoration!.editingDocument != null;
+  Widget _nativePanel(Widget child) =>
+      IgnorePointer(ignoring: !_nativeReady, child: child);
+  @override
+  Widget build(BuildContext context) {
+    final exterior = widget.document.exteriorDecoration;
+    return exterior == null
+        ? _buildPane(context)
+        : ListenableBuilder(
+            listenable: exterior,
+            builder: (context, _) => _buildPane(context),
+          );
+  }
+
+  Widget _buildPane(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final compact = bounds.maxWidth < 1000 || largeText;
@@ -91,6 +149,12 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                       Expanded(
                         child: Column(
                           children: [
+                            if (widget.document.exteriorDecoration
+                                case final exterior?)
+                              MapExteriorDecorationControls(
+                                controller: exterior,
+                                onChanged: widget.onChanged,
+                              ),
                             if (widget.showToolStrip)
                               MapWorkspaceToolStrip(
                                 elements: widget.project.elements,
@@ -103,13 +167,25 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                 onChanged: widget.onToolChanged,
                                 onMoreTools: widget.onMoreTools,
                                 onResources: widget.onResources,
-                                onUndo: widget.document.canUndo
+                                onUndo:
+                                    (_exteriorActive
+                                        ? widget
+                                              .document
+                                              .exteriorDecoration!
+                                              .canUndo
+                                        : widget.document.canUndo)
                                     ? () {
                                         widget.controller.restore(redo: false);
                                         widget.onChanged();
                                       }
                                     : null,
-                                onRedo: widget.document.canRedo
+                                onRedo:
+                                    (_exteriorActive
+                                        ? widget
+                                              .document
+                                              .exteriorDecoration!
+                                              .canRedo
+                                        : widget.document.canRedo)
                                     ? () {
                                         widget.controller.restore(redo: true);
                                         widget.onChanged();
@@ -121,12 +197,14 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                     (widget.view.terrain != null ||
                                         widget.document.current.spatialScene !=
                                             null)))
-                              MapTerrainToolPanel(
-                                document: widget.document,
-                                project: widget.project,
-                                visuals: widget.visuals,
-                                view: widget.view,
-                                onChanged: widget.onChanged,
+                              _nativePanel(
+                                MapTerrainToolPanel(
+                                  document: _toolDocument,
+                                  project: widget.project,
+                                  visuals: widget.visuals,
+                                  view: widget.view,
+                                  onChanged: widget.onChanged,
+                                ),
                               ),
                             if (widget.view.tool == StudioMapTool.border)
                               ConstrainedBox(
@@ -134,13 +212,16 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                   maxHeight: bounds.maxHeight * .3,
                                 ),
                                 child: SingleChildScrollView(
-                                  child: MapBorderToolPanel(
-                                    document: widget.document,
-                                    project: widget.project,
-                                    view: widget.view,
-                                    onChanged: widget.onChanged,
-                                    onCreateModel:
-                                        widget.onBorders ?? widget.onResources,
+                                  child: _nativePanel(
+                                    MapBorderToolPanel(
+                                      document: _toolDocument,
+                                      project: widget.project,
+                                      view: widget.view,
+                                      onChanged: widget.onChanged,
+                                      onCreateModel:
+                                          widget.onBorders ??
+                                          widget.onResources,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -150,16 +231,22 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                   maxHeight: bounds.maxHeight * .3,
                                 ),
                                 child: SingleChildScrollView(
-                                  child: MapEnvironmentToolPanel(
-                                    document: widget.document,
-                                    project: widget.project,
-                                    view: widget.view,
-                                    onChanged: widget.onChanged,
-                                    onResources:
-                                        widget.onEnvironments ??
-                                        widget.onResources,
+                                  child: _nativePanel(
+                                    MapEnvironmentToolPanel(
+                                      document: _toolDocument,
+                                      project: widget.project,
+                                      view: widget.view,
+                                      onChanged: widget.onChanged,
+                                      onResources:
+                                          widget.onEnvironments ??
+                                          widget.onResources,
+                                    ),
                                   ),
                                 ),
+                              ),
+                            if (_neighborFailure != null)
+                              StudioNotice(
+                                'Les cartes voisines ne peuvent pas être affichées : $_neighborFailure',
                               ),
                             Expanded(
                               child:
@@ -167,6 +254,11 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                   ? SpatialMapEditor(
                                       key: ValueKey(widget.document.base.mapId),
                                       document: widget.document,
+                                      neighbors: _neighbors,
+                                      exteriorContextReady:
+                                          !_neighborLoading &&
+                                          _neighborFailure == null,
+                                      neighborDecorations: _neighborDecorations,
                                       controller: widget.controller,
                                       project: widget.project,
                                       visuals: widget.visuals,
@@ -209,7 +301,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
               ],
             ),
           ),
-          ?widget.inspector,
+          if (!_exteriorActive && widget.inspector != null) widget.inspector!,
         ],
       );
     },

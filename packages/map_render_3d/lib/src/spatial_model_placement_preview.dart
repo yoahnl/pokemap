@@ -38,6 +38,7 @@ final class SpatialPlacementPreviewRenderer {
   ModelComponent? get component => _component;
   _PlacementModelComponent? _component;
   ProjectModel3dEntry? _definition;
+  ProjectModel3dEntry? get definition => _definition;
   int _generation = 0;
   bool _closed = false;
 

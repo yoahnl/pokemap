@@ -46,6 +46,7 @@ final class _LocalResourceMutationContext {
       policy: policy,
       fileReader: reader,
       handles: handles,
+      catalogMetadataFields: const {},
     );
     final opened = await openService.openProject(session.directoryPath);
     try {

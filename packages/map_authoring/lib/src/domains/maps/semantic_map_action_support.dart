@@ -231,11 +231,12 @@ final class SemanticMapActionContext {
     required String operation,
     required int changedItems,
     String? layerId,
+    bool validateProjectReferences = true,
     Map<String, Object?> preview = const {},
   }) {
     final validation = inspectMapValidation(
       after,
-      manifest: planning.snapshot.manifest,
+      manifest: validateProjectReferences ? planning.snapshot.manifest : null,
       fallbackCode: 'map.semantic_projected_state_invalid',
       fallbackMessage:
           'The semantic operation would produce invalid PokeMap data.',

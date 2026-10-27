@@ -399,6 +399,7 @@ final class _StudioGameSource implements RuntimeGameSource {
           'map3d@1',
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,
+          SpatialGameplayCapabilities.trainerSpottingCapabilityId,
           SpatialGameplayCapabilities.companionCapabilityId,
           SpatialCameraProfile.orthographicCapabilityId,
           SpatialVisualDocument.capabilityId,

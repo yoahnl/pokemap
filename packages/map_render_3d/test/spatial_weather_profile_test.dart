@@ -3,6 +3,17 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_weather_profile.dart';
 
 void main() {
+  test('storms preserve playable visibility without losing rain or sky flashes', () {
+    for (final kind in [SpatialWeatherKind.storm, SpatialWeatherKind.tempest]) {
+      final settings = SpatialWeatherSettings(enabled: true, kind: kind, intensity: 1, density: 1, cloudCover: 1, fogStrength: 1, lightning: true);
+      final dark = spatialWeatherFrame(settings, seconds: 3);
+      expect(dark.lightFactor, greaterThanOrEqualTo(.65));
+      expect(dark.fogDensity, lessThanOrEqualTo(.65));
+      expect(dark.veilOpacity, lessThanOrEqualTo(.12));
+      expect(dark.particleCount, greaterThanOrEqualTo(1024));
+      expect(spatialWeatherFrame(settings, seconds: 4.35).flash, greaterThan(0));
+    }
+  });
   test('intensity levels progress continuously within the same fixed budget', () {
     for (final kind in SpatialWeatherKind.values.where((kind) => kind != SpatialWeatherKind.clear)) {
       var previous = 0;

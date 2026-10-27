@@ -219,7 +219,16 @@ Future<ProjectManifest> _acceptResourceReceipt(
         'Le projet a été fermé après la publication.',
       );
     }
-    if (navigation.workspace.project != receipt.manifest) {
+    if (receipt.changedPaths.isEmpty &&
+        identical(receipt.before, receipt.manifest) &&
+        receipt.beforeRevision == receipt.revision) {
+      navigation.pendingReceipt = null;
+      navigation.changed();
+      return navigation.workspace.project ?? receipt.manifest;
+    }
+    if (receipt.changedModels.isNotEmpty
+        ? !identical(navigation.workspace.project, receipt.manifest)
+        : navigation.workspace.project != receipt.manifest) {
       navigation.workspace.acceptResourceMaps({
         for (final entry in receipt.changedMaps.entries)
           entry.key: MapWorkspaceDocument(
@@ -228,26 +237,47 @@ Future<ProjectManifest> _acceptResourceReceipt(
             mapId: entry.key,
           ),
       });
-      navigation.workspace.acceptResources(receipt.before, receipt.manifest);
-    }
-    navigation.characters.refreshClean();
-    navigation.reconcileCharacterManagement(receipt);
-    if (receipt.actionId == 'characterStudio.character.delete') {
-      navigation.characterSourcesChanged?.call({
-        for (final entry in receipt.before.dialogues)
-          if (receipt.changedPaths.contains(entry.relativePath)) entry.id,
-      });
-    }
-    navigation.reconcileTerrainManagement(receipt);
-    navigation.reconcileBorderManagement(receipt);
-    for (final model in navigation.terrains.values) {
-      model.manifest = receipt.manifest;
-    }
-    if (navigation.visuals case final ResourceWorkspaceVisuals resources) {
-      await resources.updateCatalog(
+      navigation.workspace.acceptResources(
+        receipt.before,
         receipt.manifest,
-        changedRelativePaths: receipt.changedPaths.toSet(),
+        changedModels: receipt.changedModels,
       );
+    }
+    if (receipt.changedPaths.isEmpty &&
+        receipt.before == receipt.manifest &&
+        receipt.beforeRevision == receipt.revision) {
+      navigation.pendingReceipt = null;
+      navigation.changed();
+      return receipt.manifest;
+    }
+    if (receipt.changedModels.isNotEmpty &&
+        navigation.visuals is SpatialModelSourceWorkspaceVisuals) {
+      await (navigation.visuals as SpatialModelSourceWorkspaceVisuals)
+          .updateModelSources(
+            navigation.workspace.project!,
+            receipt.changedModels,
+            receipt.modelSourceRevisions,
+          );
+    } else {
+      navigation.characters.refreshClean();
+      navigation.reconcileCharacterManagement(receipt);
+      if (receipt.actionId == 'characterStudio.character.delete') {
+        navigation.characterSourcesChanged?.call({
+          for (final entry in receipt.before.dialogues)
+            if (receipt.changedPaths.contains(entry.relativePath)) entry.id,
+        });
+      }
+      navigation.reconcileTerrainManagement(receipt);
+      navigation.reconcileBorderManagement(receipt);
+      for (final model in navigation.terrains.values) {
+        model.manifest = receipt.manifest;
+      }
+      if (navigation.visuals case final ResourceWorkspaceVisuals resources) {
+        await resources.updateCatalog(
+          receipt.manifest,
+          changedRelativePaths: receipt.changedPaths.toSet(),
+        );
+      }
     }
     if (navigation._disposed) {
       throw const ResourceFailure(
@@ -256,7 +286,9 @@ Future<ProjectManifest> _acceptResourceReceipt(
     }
     navigation.pendingReceipt = null;
     navigation.changed();
-    return receipt.manifest;
+    return receipt.changedModels.isEmpty
+        ? receipt.manifest
+        : navigation.workspace.project!;
   } on Object catch (failure) {
     throw ResourceFailure(
       'La publication a réussi, mais l’interface n’a pas pu être actualisée. Relisez sans relancer la mutation. $failure',

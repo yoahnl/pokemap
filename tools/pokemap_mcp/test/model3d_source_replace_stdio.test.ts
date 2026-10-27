@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
+import { promisify } from "node:util";
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import type { JsonRecord } from "../src/authoring_client.js";
@@ -12,9 +14,9 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-function glb(animated: boolean): Buffer {
+function glb(animated: boolean, animationCount = 1, width = 1): Buffer {
   const binary = Buffer.alloc(animated ? 68 : 36);
-  [0, 0, 0, 1, 0, 0, 0, 1, 0].forEach((value, index) =>
+  [0, 0, 0, width, 0, 0, 0, 1, 0].forEach((value, index) =>
     binary.writeFloatLE(value, index * 4));
   if (animated) {
     binary.writeFloatLE(2, 40);
@@ -30,12 +32,14 @@ function glb(animated: boolean): Buffer {
       { buffer: 0, byteOffset: 44, byteLength: 24 },
     ] : [])],
     accessors: [{ bufferView: 0, componentType: 5126, count: 3,
-      type: "VEC3", min: [0, 0, 0], max: [1, 1, 0] }, ...(animated ? [
+      type: "VEC3", min: [0, 0, 0], max: [width, 1, 0] }, ...(animated ? [
       { bufferView: 1, componentType: 5126, count: 2, type: "SCALAR" },
       { bufferView: 2, componentType: 5126, count: 2, type: "VEC3" },
     ] : [])],
-    ...(animated ? { animations: [{ name: "Wind", samplers: [{ input: 1, output: 2 }],
-      channels: [{ sampler: 0, target: { node: 0, path: "translation" } }] }] } : {}),
+    ...(animated ? { animations: Array.from({ length: animationCount }, (_, index) => ({
+      name: index === 0 ? "Wind" : "Close", samplers: [{ input: 1, output: 2 }],
+      channels: [{ sampler: 0, target: { node: 0, path: "translation" } }],
+    })) } : {}),
   };
   const json = Buffer.from(JSON.stringify(document));
   const jsonLength = Math.ceil(json.length / 4) * 4;
@@ -88,6 +92,14 @@ test("live MCP replaces an inspected model source and restores it without changi
     assert.equal(record(batchDescriptor.extensions).maximumModelCount, 50);
     assert.equal(record(batchDescriptor.extensions).maximumTotalByteLength, 64 << 20);
     assert.deepEqual(record(record(batchDescriptor.extensions).inputSchema).required, ["models"]);
+    for (const action of [descriptor, batchDescriptor]) {
+      assert.deepEqual(record(action.extensions).sourceReplacementScope, {
+        requestExtension: "sourceReplacementScope", values: ["local", "project"],
+        catalogDefault: "local",
+        localContract: "preserve_static_and_existing_animation_indices_and_durations",
+        projectScope: "explicit_full_project_usage_validation",
+      });
+    }
     const configureDescriptor = (described.mutationActions as JsonRecord[])
       .find((action) => action.id === "model3d.configure")!;
     const configureSchema = record(record(configureDescriptor.extensions).inputSchema);
@@ -103,6 +115,7 @@ test("live MCP replaces an inspected model source and restores it without changi
     const projectRoot = String(created.projectPath);
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot });
     const projectHandle = String(opened.projectHandle);
+    await call("pokemap_workshop", { operation: "prepare", projectHandle });
     let sequence = 0;
     async function stage(bytes: Buffer): Promise<string> {
       const path = join(root, `candidate-${sequence++}.glb`);
@@ -314,6 +327,134 @@ test("live MCP replaces an inspected model source and restores it without changi
     assert.deepEqual(record((restored.items as JsonRecord[])[0]).collisionBounds, collisionBounds);
     assert.equal(record((restored.items as JsonRecord[])[0]).blocksMovementByDefault, false);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
+  } finally {
+    await client.close();
+    await transport.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("live MCP catalog model source replacements use explicit scoped and project contracts", { timeout: 120_000 }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "pokemap-model-source-catalog-"));
+  const transport = new StdioClientTransport({ command: process.execPath,
+    args: [resolve("dist/src/index.js"), "--root", root, "--authoring-timeout-ms", "60000"],
+    cwd: process.cwd(), stderr: "pipe" });
+  const client = new Client({ name: "model3d-catalog-source-proof", version: "1.0.0" });
+  let workspace: JsonRecord;
+  let sequence = 0;
+  async function call(name: string, args: JsonRecord = {}, failure = false): Promise<JsonRecord> {
+    const result = await client.callTool({ name, arguments: args });
+    const envelope = record(result.structuredContent);
+    assert.equal(envelope.ok, !failure, JSON.stringify(envelope));
+    return record(envelope[failure ? "error" : "data"]);
+  }
+  async function stage(bytes: Buffer): Promise<string> {
+    const path = join(root, `candidate-${sequence++}.glb`);
+    await writeFile(path, bytes);
+    return String((await call("pokemap_artifact_stage", {
+      sourcePath: path, declaredMediaType: "model/gltf-binary" })).artifactHandle);
+  }
+  async function plan(actionId: string, parameters: JsonRecord, options: {
+    scoped?: boolean; projectScope?: boolean; failure?: boolean;
+  } = {}): Promise<JsonRecord> {
+    const current = options.scoped
+      ? await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
+        actionId, parameters, includeDocuments: false })
+      : await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+    const id = `catalog-model-source-${sequence++}`;
+    return call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
+      requestId: id, actionId, actionVersion: 1,
+      workspaceHandle: workspace.workspaceHandle, parameters,
+      expectedRevision: current.snapshotRevision, idempotencyKey: id,
+      extensions: { ...(current.planExtensions ? record(current.planExtensions) : {}),
+        ...(options.projectScope ? { sourceReplacementScope: "project" } : {}) },
+    } }, options.failure);
+  }
+  async function apply(planned: JsonRecord): Promise<JsonRecord> {
+    return call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
+      planId: planned.planId, operationId: `catalog-model-source-apply-${sequence++}` });
+  }
+  try {
+    await client.connect(transport);
+    const projectRoot = root;
+    const originalDoor = glb(true, 2);
+    const originalStatic = glb(false);
+    await writeFile(join(root, "door.glb"), originalDoor);
+    await writeFile(join(root, "static.glb"), originalStatic);
+    const packageRoot = resolve("../../packages/map_authoring");
+    await promisify(execFile)(process.env.POKEMAP_TEST_DART ?? "dart", [
+      `--packages=${join(packageRoot, ".dart_tool/package_config.json")}`,
+      join(packageRoot, "test/support/create_model_source_catalog_fixture.dart"), root,
+    ], { timeout: 60_000 });
+    const manifestPath = join(projectRoot, "project.json");
+    const mapId = "room";
+    workspace = await call("pokemap_workspace", { operation: "open", projectRoot });
+    await call("pokemap_workshop", { operation: "prepare", projectHandle: workspace.projectHandle });
+    const descriptor = await readFile(manifestPath);
+    const mapPath = join(projectRoot, "maps", `${mapId}.json`);
+    const mapBytes = await readFile(mapPath);
+    const staticPath = join(projectRoot, "assets/models3d/static.glb");
+    const doorPath = join(projectRoot, "assets/models3d/door.glb");
+    const firstStatic = glb(false, 1, 2);
+    const first = await plan("model3d.source.replace", {
+      modelId: "static", artifactHandle: await stage(firstStatic),
+    }, { scoped: true });
+    const operationId = `catalog-model-source-apply-${sequence++}`;
+    const applyArgs = { operation: "apply", projectHandle: workspace.projectHandle,
+      planId: first.planId, operationId };
+    const applied = await call("pokemap_apply", applyArgs);
+    const replay = await call("pokemap_apply", applyArgs);
+    assert.equal(record(replay.receipt).receiptId, record(applied.receipt).receiptId);
+    assert.deepEqual(await readFile(staticPath), firstStatic);
+    assert.deepEqual(await readFile(doorPath), originalDoor);
+    assert.deepEqual(await readFile(mapPath), mapBytes);
+    assert.deepEqual(await readFile(manifestPath), descriptor);
+    const nextDoor = glb(true, 2, 1.25);
+    const nextStatic = glb(false, 1, 3);
+    await apply(await plan("model3d.source.replace_batch", { models: [
+      { modelId: "door", artifactHandle: await stage(nextDoor) },
+      { modelId: "static", artifactHandle: await stage(nextStatic) },
+    ] }, { scoped: true }));
+    assert.deepEqual(await readFile(doorPath), nextDoor);
+    assert.deepEqual(await readFile(staticPath), nextStatic);
+    assert.deepEqual(await readFile(mapPath), mapBytes);
+    const history = await call("pokemap_history", { operation: "list", projectHandle: workspace.projectHandle, limit: 1 });
+    await call("pokemap_history", { operation: "undo", projectHandle: workspace.projectHandle,
+      entryId: record((history.entries as JsonRecord[])[0]).entryId, idempotencyKey: "undo-catalog-source-batch" });
+    assert.deepEqual(await readFile(doorPath), originalDoor);
+    assert.deepEqual(await readFile(staticPath), firstStatic);
+    assert.deepEqual(await readFile(mapPath), mapBytes);
+    for (const actionId of ["model3d.source.replace", "model3d.source.replace_batch"]) {
+      const entry = { modelId: "door", artifactHandle: await stage(glb(true)) };
+      const parameters = actionId.endsWith("_batch") ? { models: [entry] } : entry;
+      const localFailure = await plan(actionId, parameters, { scoped: true, failure: true });
+      assert.equal(localFailure.domainCode, "catalog.model_source_usage_proof_required");
+      const globalEntry = { modelId: "door", artifactHandle: await stage(glb(true)) };
+      const globalFailure = await plan(actionId,
+        actionId.endsWith("_batch") ? { models: [globalEntry] } : globalEntry,
+        { projectScope: true, failure: true });
+      assert.equal(globalFailure.domainCode, "warp.door_clip_invalid");
+      assert.deepEqual(await readFile(doorPath), originalDoor);
+      assert.deepEqual(await readFile(mapPath), mapBytes);
+    }
+    const refusedAnimation = await plan("model3d.source.replace", {
+      modelId: "static", artifactHandle: await stage(glb(true)),
+    }, { scoped: true, failure: true });
+    assert.equal(refusedAnimation.domainCode, "catalog.model_source_usage_proof_required");
+    assert.deepEqual(await readFile(staticPath), firstStatic);
+    await apply(await plan("model3d.source.replace", {
+      modelId: "static", artifactHandle: await stage(glb(true)),
+    }, { projectScope: true }));
+    assert.deepEqual(await readFile(staticPath), glb(true));
+    assert.deepEqual(await readFile(mapPath), mapBytes);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+    workspace = await call("pokemap_workspace", { operation: "open", projectRoot });
+    const reopened = await call("pokemap_query", { projectHandle: workspace.projectHandle,
+      resourceKind: "model3d", operation: "batch_get", ids: ["door", "static"], view: "detail" });
+    const models = reopened.items as JsonRecord[];
+    assert.equal((record(models.find(model => model.id === "door")!.inspection).animations as unknown[]).length, 2);
+    assert.equal((record(models.find(model => model.id === "static")!.inspection).animations as unknown[]).length, 1);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
   } finally {
     await client.close();
     await transport.close();

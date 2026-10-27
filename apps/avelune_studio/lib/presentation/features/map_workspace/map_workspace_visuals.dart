@@ -6,6 +6,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
@@ -56,6 +57,20 @@ abstract interface class SpatialWorkspaceVisuals {
   Future<Uint8List> readModel(String modelId);
   Future<Uint8List> readGroundImage(String tilesetId);
   Future<SpatialNpcPreview> spatialPreview(MapData map);
+}
+
+abstract interface class SpatialScopedWorkspaceVisuals {
+  Future<Uint8List> readModelDefinition(ProjectModel3dEntry model);
+  Future<Uint8List> readGroundDefinition(ProjectTilesetEntry tileset);
+}
+
+abstract interface class SpatialModelSourceWorkspaceVisuals {
+  SpatialModelSourceUpdates get modelSourceUpdates;
+  Future<void> updateModelSources(
+    ProjectManifest manifest,
+    Map<String, ProjectModel3dEntry> definitions,
+    Map<String, String> revisions,
+  );
 }
 
 typedef LoadWorkspaceVisuals = Future<MapWorkspaceVisuals> Function(

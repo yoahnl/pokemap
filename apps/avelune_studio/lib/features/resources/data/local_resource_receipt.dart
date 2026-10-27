@@ -8,6 +8,7 @@ ResourceMutationReceipt _resourceReceipt(
   String operationId, {
   ProjectManifest? projectedProject,
   String? projectedRevision,
+  Map<String, ProjectModel3dEntry> changedModels = const {},
 }) {
   final changes = plan.changeSet.changes;
   final manifestChanges = changes.where((c) => c.storageKey == 'project.json');
@@ -28,6 +29,7 @@ ResourceMutationReceipt _resourceReceipt(
               jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
             ));
   if (plan.request.actionId != 'map.library.reorganize' &&
+      before.maps != manifest.maps &&
       jsonEncode(before.maps) != jsonEncode(manifest.maps)) {
     throw const ResourceFailure(
       'Une ressource ne peut pas remplacer le catalogue de cartes.',
@@ -47,6 +49,14 @@ ResourceMutationReceipt _resourceReceipt(
     operationId: operationId,
     actionId: plan.request.actionId,
     snapshotBeforeRevision: plan.baseRevision,
+    changedModels: Map.unmodifiable(changedModels),
+    modelSourceRevisions: Map.unmodifiable({
+      for (final model in changedModels.values)
+        for (final change in changes)
+          if (change.storageKey == model.relativePath &&
+              change.afterRevision != null)
+            model.sourceAssetId: change.afterRevision!,
+    }),
     resourceRevisions: Map.unmodifiable({
       for (final change in changes)
         '${change.resource.kind}:${change.resource.id}': change.afterRevision,

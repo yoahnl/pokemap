@@ -12,6 +12,7 @@ import '../../transactions/change_set.dart';
 import '../../transactions/plan_store.dart';
 import 'catalog_workshop_selection.dart';
 import 'catalog_metadata_documents.dart';
+import 'catalog_resource_positions.dart';
 
 final class CatalogScopedWorkingMutation {
   CatalogScopedWorkingMutation._(
@@ -94,6 +95,55 @@ final class CatalogScopedWorkingMutation {
         references: original.references,
       ));
       changedFields.remove('models3d');
+    }
+    if (selection.resourceCounts.isNotEmpty) {
+      final built = PortableCatalogPublication.encodeProject(projected);
+      final generated = PortableCatalogPublication.readSync(built.descriptor,
+          readObject: (reference) => built.storage.objects[reference.sha256]!);
+      for (final entry in selection.resourceCounts.entries) {
+        final path = CatalogResourcePositions.sections[entry.key]!.split('.');
+        final field = path.first;
+        if (!changedFields.contains(field)) continue;
+        final beforeRows = path.length == 1 ? previousJson[field] as List
+            : (previousJson[field] as Map?)?[path.last] as List? ?? const [];
+        final beforeById = {for (final row in beforeRows.cast<Map>()) row['id']: row};
+        final afterRows = path.length == 1 ? projectedJson[field] as List
+            : (projectedJson[field] as Map)[path.last] as List;
+        if (!afterRows.cast<Map>().map((row) => row['id']).toSet().containsAll(beforeById.keys)) {
+          throw const FormatException('catalog.resource_creation: existing definitions cannot be removed');
+        }
+        if (path.length > 1 && previousJson[field] != null && !_same(
+            {...previousJson[field] as Map}..remove(path.last),
+            {...projectedJson[field] as Map}..remove(path.last))) {
+          throw const FormatException('catalog.resource_creation: undeclared catalog changes');
+        }
+        var position = entry.value;
+        final created = generated.units.where((unit) => unit.key.kind == entry.key).toList()
+          ..sort((a, b) => (a.payload['position'] as int).compareTo(b.payload['position'] as int));
+        for (final unit in created) {
+          final previous = beforeById[unit.key.id];
+          final original = await catalog.lookup(unit.key);
+          if (previous != null) {
+            if (_same(previous, unit.payload['value'])) continue;
+            if (original == null || !selection.resourceReplacements.contains(unit.key)) {
+              throw const FormatException('catalog.resource_creation: existing definition changed');
+            }
+            upserts.add(CatalogDefinitionUnit(key: unit.key,
+                payload: {...original.payload, 'value': _preserveUntouched(
+                    original.payload['value'], previous, unit.payload['value'])},
+                references: unit.references));
+          } else {
+            if (original != null) throw const FormatException('catalog.resource_creation: identity already in use');
+            upserts.add(CatalogDefinitionUnit(key: unit.key,
+                payload: {...unit.payload, 'position': position++}, references: unit.references));
+          }
+        }
+        if (path.length > 1 && oldShell[field] == null) {
+          final generatedShell = generated.units.singleWhere((unit) => unit.key == shellKey);
+          nextShell[field] = (generatedShell.payload['value'] as Map)[field];
+        }
+        changedFields.remove(field);
+      }
     }
     final indexed = selection.metadataDocuments;
     if (indexed != null) {
@@ -264,12 +314,12 @@ final class CatalogScopedWorkingMutation {
         removals
             .addAll(previousUnits.keys.where((key) => !desired.contains(key)));
       }
-      if (!_same(oldShell, nextShell)) {
-        upserts.add(CatalogDefinitionUnit(
-            key: originalShell.key,
-            payload: {...originalShell.payload, 'value': nextShell},
-            references: originalShell.references));
-      }
+    }
+    if (!_same(oldShell, nextShell)) {
+      upserts.add(CatalogDefinitionUnit(
+          key: originalShell.key,
+          payload: {...originalShell.payload, 'value': nextShell},
+          references: originalShell.references));
     }
     if (removals.isNotEmpty) {
       CatalogWorkshopSelection.unsupported(publicPlan.request.actionId,

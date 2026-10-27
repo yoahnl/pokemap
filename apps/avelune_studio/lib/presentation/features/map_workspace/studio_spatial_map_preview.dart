@@ -116,6 +116,10 @@ class _StudioSpatialMapPreviewState extends State<StudioSpatialMapPreview> {
       children: [
         Positioned.fill(
           child: SpatialSceneView(
+            modelSourceUpdates: source is SpatialModelSourceWorkspaceVisuals
+                ? (source as SpatialModelSourceWorkspaceVisuals)
+                      .modelSourceUpdates
+                : null,
             scene: scene,
             models: widget.project.models3d,
             loadModel: visuals.readModel,

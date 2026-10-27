@@ -16,23 +16,31 @@ import '../project_snapshot.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_project_reader.dart';
 import 'catalog_metadata_documents.dart';
+import 'catalog_resource_positions.dart';
+import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';
 
 part 'catalog_gameplay_workshop_selection.dart';
 part 'catalog_guided_workshop_selection.dart';
 part 'catalog_model_light_selection.dart';
 part 'catalog_audio_media_selection.dart';
+part 'catalog_map_creation_selection.dart';
+part 'catalog_map_metadata_selection.dart';
+part 'catalog_asset_import_selection.dart';
+part 'catalog_native_resource_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
       this.reader, this.snapshot, this.writableSections, this.resourceRevisions,
-      {this.metadataDocuments});
+      {this.metadataDocuments, this.resourceCounts = const {}, this.resourceReplacements = const {}});
 
   final CatalogProjectReader reader;
   final ProjectSnapshot snapshot;
   final Set<String> writableSections;
   final Map<String, String?> resourceRevisions;
   final CatalogMetadataDocumentSelection? metadataDocuments;
+  final Map<CatalogDefinitionKind, int> resourceCounts;
+  final Set<CatalogDefinitionKey> resourceReplacements;
 
   static const _narrativeFields = {
     'maps',
@@ -65,7 +73,10 @@ final class CatalogWorkshopSelection {
           parameters != null &&
           parameters.containsKey('light') &&
           parameters.keys.every((key) => {'modelId', 'light'}.contains(key))) ||
+      (action == 'map.update_metadata' && parameters != null && !parameters.containsKey('escapeRopeDungeonId')) ||
       action == 'scene.dialogue.audioMedia.import' ||
+      action == 'asset.import' ||
+      action == 'asset.import_batch' ||
       action == 'project.battle_audio.update' ||
       _guidedActions.contains(action) ||
       _gameplayActions.contains(action) ||
@@ -136,7 +147,27 @@ final class CatalogWorkshopSelection {
     Map<String, Object?> parameters = const {},
     Map<String, String> readDependencies = const {},
   }) async {
-    if (!supports(actionId, parameters: parameters)) unsupported(actionId);
+    if (actionId != 'map.create' && !_nativeResourceActions.containsKey(actionId) &&
+        !const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId) &&
+        !supports(actionId, parameters: parameters)) {
+      unsupported(actionId);
+    }
+    if (actionId == 'map.update_metadata') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readMapMetadataWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
+    if (_nativeResourceActions.containsKey(actionId)) {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readNativeResourceWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
+    }
+    if (const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId)) {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readAssetImportWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
+    }
+    if (actionId == 'map.create') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readMapCreationWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
     if (actionId == 'model3d.configure') {
       if (readDependencies.isNotEmpty) {
         unsupported(
@@ -145,7 +176,8 @@ final class CatalogWorkshopSelection {
       return _readModelLightWorkshop(
           reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
-    if (actionId == 'scene.dialogue.audioMedia.import' || actionId == 'project.battle_audio.update') {
+    if (actionId == 'scene.dialogue.audioMedia.import' || actionId == 'project.battle_audio.update' ||
+        actionId == 'asset.import' || actionId == 'asset.import_batch') {
       return _readAudioMediaWorkshop(
           actionId: actionId,
           reader: reader,

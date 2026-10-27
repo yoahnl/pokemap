@@ -4,6 +4,8 @@ import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_documents.dart'
+    show loadMapExteriorDecoration;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -551,6 +553,47 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     projectRoot: projectRoot,
     mapId: map.id,
   );
+  final exteriorDecoration = await loadMapExteriorDecoration(
+    projectRoot: projectRoot,
+    map: map,
+    mapRelativePath: rel,
+  );
+  if (catalog != null && exteriorDecoration != null) {
+    manifest = await catalog.manifestForMaps(
+      [
+        map,
+        for (final sector in exteriorDecoration.sectors) sector.asVisualMap().copyWith(id: map.id),
+      ],
+      extraCharacterIds: additionalCharacterIds,
+      extraDefinitionKeys: [
+        for (final border in exteriorDecoration.borders) ...[
+          CatalogDefinitionKey(
+            CatalogDefinitionKind.borderRecord,
+            border.feature.blueprintId,
+          ),
+          for (final instance in border.instances)
+            CatalogDefinitionKey(
+              CatalogDefinitionKind.model3d,
+              instance.modelId,
+            ),
+          for (final placement
+              in border.feature.materialization?.placements ??
+                  const <BorderResolvedPlacement>[])
+            CatalogDefinitionKey(
+              CatalogDefinitionKind.borderVisualSnapshot,
+              placement.visualSnapshotId,
+            ),
+          for (final ground
+              in border.feature.materialization?.ground ??
+                  const <BorderResolvedGroundCell>[])
+            CatalogDefinitionKey(
+              CatalogDefinitionKind.borderVisualSnapshot,
+              ground.visualSnapshotId,
+            ),
+        ],
+      ],
+    );
+  }
   final projectVisualProfile = await loadSpatialVisualProfile(
     projectRoot: projectRoot,
   );
@@ -567,11 +610,32 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   assetCatalogWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.assetCatalog);
   final tilesetWatch = Stopwatch()..start();
+  final exteriorGroundPresets = <String>{};
+  for (final border in exteriorDecoration?.borders ?? const <ExteriorDecorationBorder>[]) {
+    final published = manifest.borderCatalog.recordById(border.feature.blueprintId)?.latestPublished;
+    final materialization = border.feature.materialization;
+    if (published == null || materialization == null ||
+        materialization.receipt.blueprintRevision != published.revision) {
+      continue;
+    }
+    final selected = materialization.spatialPlacements.map((placement) => placement.primitiveId).toSet();
+    for (final primitive in published.definition.primitives) {
+      if (!selected.contains(primitive.id)) continue;
+      exteriorGroundPresets.addAll(primitive.groundSurfaces.map((surface) => surface.sourceSmartTilePresetId));
+    }
+  }
   final tilesetIds = collectAllRuntimeTilesetIds(
     map,
     manifest,
     additionalCharacterIds: additionalCharacterIds,
+    additionalSmartTilePresetIds: exteriorGroundPresets,
   );
+  for (final sector
+      in exteriorDecoration?.sectors ?? const <ExteriorDecorationSector>[]) {
+    tilesetIds.addAll(
+      collectAllRuntimeTilesetIds(sector.asVisualMap().copyWith(id: map.id), manifest),
+    );
+  }
   _runtimeLoaderLog('bundle tilesets collected ids=${tilesetIds.join(',')}');
   final paths = resolveTilesetAbsolutePaths(
     manifest: manifest,
@@ -609,6 +673,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
       manifest: manifest,
       map: map,
       spatialAtmosphereSettings: atmosphere,
+      exteriorDecoration: exteriorDecoration,
       projectVisualProfile: projectVisualProfile,
       mapVisualProfile: mapVisualProfile,
       projectRootDirectory: projectRoot,

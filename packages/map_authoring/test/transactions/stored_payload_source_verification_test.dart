@@ -6,6 +6,53 @@ import 'package:map_authoring/src/transactions/authoring_payload.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('framed source verification reads once and preserves replay integrity',
+      () async {
+    final bytes = Uint8List.fromList([1, 2, 3, 4]);
+    final expected = AuthoringPayload.inline(bytes, storageKey: 'source.bin');
+    var reads = 0;
+    List<int> source = bytes;
+    final payload = await AuthoringPayload.verifiedResource(
+      storageKey: 'source.bin',
+      byteLength: bytes.length,
+      resourceRevision: expected.resourceRevision,
+      openRead: () {
+        reads++;
+        return Stream.value(source);
+      },
+    );
+    addTearDown(payload.release);
+    expect(reads, 1);
+    expect(payload.rawSha256, expected.rawSha256);
+    expect(payload.contentDigest, expected.contentDigest);
+    expect(await payload.readBytes(), bytes);
+    source = [9, 2, 3, 4];
+    await expectLater(
+        payload.readBytes(),
+        throwsA(isA<AuthoringPayloadException>()
+            .having((error) => error.code, 'code', 'payload.source_mismatch')));
+  });
+  for (final wrong in ['revision', 'key', 'length']) {
+    test('framed source verification rejects wrong $wrong', () async {
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final expected = AuthoringPayload.inline(bytes, storageKey: 'source.bin');
+      await expectLater(
+          AuthoringPayload.verifiedResource(
+            storageKey: wrong == 'key' ? 'other.bin' : 'source.bin',
+            byteLength: wrong == 'length' ? bytes.length + 1 : bytes.length,
+            resourceRevision: wrong == 'revision'
+                ? 'sha256:${'0' * 64}'
+                : expected.resourceRevision,
+            openRead: () => Stream.value(bytes),
+          ),
+          throwsA(isA<AuthoringPayloadException>().having(
+              (error) => error.code,
+              'code',
+              wrong == 'length'
+                  ? 'payload.length_mismatch'
+                  : 'payload.source_mismatch')));
+    });
+  }
   test(
       'stored factory rejects a false framed revision with a correct raw digest',
       () async {

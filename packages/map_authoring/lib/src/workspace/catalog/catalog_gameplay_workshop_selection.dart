@@ -7,6 +7,7 @@ const _gameplayActions = {
   'campaign.trainer.upsert',
   'campaign.shop.upsert',
   'bag.capacity.set',
+  'contact_device.configure',
   'item.create',
   'item.update',
 };
@@ -22,7 +23,8 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
     'pokemon',
     if (actionId == 'campaign.battle_savings.update') 'battleSavings',
     if (actionId == 'bag.capacity.set') 'newGame',
-    if (actionId == 'bag.capacity.set') 'bagCapacity'
+    if (actionId == 'bag.capacity.set') 'bagCapacity',
+    if (actionId == 'contact_device.configure') 'contactDevice'
   });
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
@@ -63,6 +65,7 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
       }
     }
     if (actionId == 'bag.capacity.set') writable.add('bagCapacity');
+    if (actionId == 'contact_device.configure') writable.add('contactDevice');
     if (actionId == 'campaign.battle_savings.update') writable.add('battleSavings');
     if (actionId == 'item.update' && parameters['itemId'] is String) {
       add(
@@ -80,16 +83,19 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
         snapshot: catalog.snapshot, project: base, ids: ids);
     final candidates = <Object?>[
       parameters,
-      base.settings.toJson()
+      base.settings.toJson(),
+      if (actionId == 'contact_device.configure') base.contactDevice?.toJson()
     ];
     var previous = -1;
     while (
         previous != ids.values.fold<int>(0, (n, values) => n + values.length)) {
       previous = ids.values.fold<int>(0, (n, values) => n + values.length);
       candidates.add(documents.project.toJson());
-      for (final entry in const {
-        'facts': {'factId', 'existingPartyFactId', 'enabledFactId', 'balanceFactId'},
-        'scenes': {'sceneId', 'preSessionSceneId'},
+      for (final entry in {
+        'facts': {'factId', 'existingPartyFactId', 'enabledFactId', 'balanceFactId',
+          if (actionId == 'contact_device.configure') ...{'acquiredFactId', 'registeredFactId', 'availableFactId'}},
+        'scenes': {'sceneId', 'preSessionSceneId',
+          if (actionId == 'contact_device.configure') 'unavailableSceneId'},
         'badges': {'badgeId', 'rewardBadgeId'},
         'dialogues': {
           'dialogueId',

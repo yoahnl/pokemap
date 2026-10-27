@@ -5,6 +5,15 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('occasional exports require their capability and retain exact profiles', () {
+    final files = spatialPayload();
+    files['project/project.visual.json'] = utf8.encode(jsonEncode(SpatialVisualDocument(profile: SpatialVisualPatch.fromJson({'weatherMode': 'occasional', 'weatherDryMinSeconds': 900})).toJson()));
+    final caps = ['map3d@1', SpatialVisualDocument.capabilityId, SpatialWeatherCapabilities.capabilityId, WorldEnvironmentCapabilities.capabilityId];
+    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(capabilities: caps), payloadFiles: files), throwsA(isA<GamePackageFormatException>().having((e) => e.message, 'capability', contains(WorldEnvironmentCapabilities.weatherEpisodesCapabilityId))));
+    final result = const GamePackageBuilder().build(manifest: spatialManifest(capabilities: [...caps, WorldEnvironmentCapabilities.weatherEpisodesCapabilityId]), payloadFiles: files);
+    expect(const GamePackageInspector().inspect(result.packageBytes).manifest.compatibility.requiredCapabilities, contains(WorldEnvironmentCapabilities.weatherEpisodesCapabilityId));
+    expect(AveluneRuntimeCompatibility.host().capabilities, contains(WorldEnvironmentCapabilities.weatherEpisodesCapabilityId));
+  });
   test(
       'world environment exports require explicit support while legacy exports remain admitted',
       () {

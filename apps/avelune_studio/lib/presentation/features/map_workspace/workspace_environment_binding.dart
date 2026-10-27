@@ -94,11 +94,7 @@ extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
       return;
     }
     try {
-      view.environment = EnvironmentEditingCommands(
-        document,
-        current,
-      ).create(selected);
-      view.tool = StudioMapTool.environment;
+      view.selectEnvironmentPreset(document, current, selected);
       _openMap();
       _toolChanged();
     } on Object catch (failure) {

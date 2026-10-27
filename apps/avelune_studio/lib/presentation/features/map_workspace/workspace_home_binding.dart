@@ -1,6 +1,32 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
+  Future<bool> _replaceCatalogModelSource(String modelId) async {
+    final resources = _resources;
+    if (resources == null || resources.busy) {
+      throw const ResourceFailure(
+        'Le remplacement est indisponible pour le moment.',
+      );
+    }
+    final pending = resources.pendingReceipt;
+    if (pending != null) {
+      if (!pending.changedModels.containsKey(modelId)) {
+        throw const ResourceFailure(
+          'Terminez l’actualisation de la ressource précédente.',
+        );
+      }
+      if (await resources.retryReconciliation()) return true;
+    } else {
+      final receipt = await replaceStudioModelSource(resources, modelId);
+      if (receipt != null) return true;
+      if (resources.error == null) return false;
+    }
+    throw ResourceFailure(
+      resources.error ?? 'Le modèle ne peut pas être actualisé.',
+      partialReceipt: resources.pendingReceipt,
+    );
+  }
+
   Future<void> _useResource(ResourceItem item) async {
     if (item.environment case final preset?) {
       await _drawEnvironment(preset);

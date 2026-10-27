@@ -1,13 +1,16 @@
-import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
+import '../../project_visuals/application/project_visuals_controller.dart';
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry, ProjectModel3dEntries;
 
 import '../../project_visuals/domain/project_visuals_port.dart';
 import 'map_atmosphere_controller.dart';
+import 'map_exterior_decoration_controller.dart';
 import 'map_editor_controller.dart';
 
 import 'dart:async';
 
 import '../domain/map_editor_port.dart';
 import '../domain/map_atmosphere_port.dart';
+import '../domain/map_exterior_decoration_port.dart';
 
 import 'package:map_core/map_core_domain.dart';
 
@@ -36,6 +39,8 @@ class MapWorkspaceController {
   final Map<String, EditableMapDocument> documents = {};
   final Map<String, Future<EditableMapDocument>> _loading = {};
   final Map<String, Future<MapData?>> _previews = {};
+  final Map<String, ProjectManifest> _previewDefinitions = {};
+  ProjectManifest? previewDefinitionsFor(String mapId) => _previewDefinitions[mapId];
   final Map<String, EditableMapDocument> retiredDocuments = {};
   final _elementOrderReceipts =
       <String, Map<Object, MapElementOrderWorkspaceReceipt>>{};
@@ -48,6 +53,89 @@ class MapWorkspaceController {
   ProjectManifest? project;
   MapWorkspaceProjectScope projectScope;
   final Map<String, MapWorkspaceSelection> _selections = {};
+  final _selectionMapsByModel = <String, Set<String>>{};
+  final _previewMapsByModel = <String, Set<String>>{};
+  final _acceptedModelDefinitions = <String, ({int epoch, ProjectModel3dEntry definition})>{};
+  int _modelSourceEpoch = 0;
+  int modelSourceSelectionsVisited = 0;
+  int modelSourcePreviewsVisited = 0;
+  int modelSourceProjectionLookups = 0;
+  int visualProjectionBuilds = 0;
+
+  ProjectManifest _prepareModelProjection(ProjectManifest value, {int? sourceEpoch}) {
+    final entries = ProjectModel3dEntries.prepare(value.models3d);
+    final replacements = <ProjectModel3dEntry>[];
+    if (sourceEpoch != null && _acceptedModelDefinitions.isNotEmpty) {
+      for (final entry in entries) {
+        final replacement = _acceptedModelDefinitions[entry.id];
+        if (replacement != null && replacement.epoch > sourceEpoch && !identical(entry, replacement.definition)) {
+          replacements.add(replacement.definition);
+        }
+      }
+    }
+    final models = replacements.isEmpty ? entries : entries.replaceSelected(replacements);
+    return identical(models, value.models3d) ? value : value.copyWith(models3d: models);
+  }
+
+  ProjectManifest _replaceModelProjection(ProjectManifest value, Map<String, ProjectModel3dEntry> changed) {
+    final entries = value.models3d as ProjectModel3dEntries;
+    final replacements = <ProjectModel3dEntry>[];
+    for (final replacement in changed.values) {
+      modelSourceProjectionLookups++;
+      final previous = entries.lookup(replacement.id);
+      if (previous != null && !identical(previous, replacement)) replacements.add(replacement);
+    }
+    return replacements.isEmpty ? value : value.copyWith(models3d: entries.replaceSelected(replacements));
+  }
+
+  MapWorkspaceSelection _selectionWithDefinitions(MapWorkspaceSelection selection, ProjectManifest definitions) =>
+      identical(selection.definitions, definitions) ? selection : MapWorkspaceSelection(
+        document: selection.document, definitions: definitions,
+        catalogRevision: selection.catalogRevision, snapshotRevision: selection.snapshotRevision,
+      );
+
+  void _indexModelProjection(String mapId, ProjectManifest? previous, ProjectManifest next, Map<String, Set<String>> index) {
+    if (previous != null) {
+      for (final model in previous.models3d) {
+        final maps = index[model.id];
+        maps?.remove(mapId);
+        if (maps?.isEmpty == true) index.remove(model.id);
+      }
+    }
+    for (final model in next.models3d) {
+      (index[model.id] ??= {}).add(mapId);
+    }
+  }
+
+  void _cacheSelection(String mapId, MapWorkspaceSelection selection, int sourceEpoch) {
+    final definitions = _prepareModelProjection(selection.definitions, sourceEpoch: sourceEpoch);
+    _indexModelProjection(mapId, _selections[mapId]?.definitions, definitions, _selectionMapsByModel);
+    _selections[mapId] = _selectionWithDefinitions(selection, definitions);
+  }
+
+  void _cachePreviewDefinitions(String mapId, ProjectManifest value, int sourceEpoch) {
+    final definitions = _prepareModelProjection(value, sourceEpoch: sourceEpoch);
+    _indexModelProjection(mapId, _previewDefinitions[mapId], definitions, _previewMapsByModel);
+    _previewDefinitions[mapId] = definitions;
+  }
+
+  void _clearSelections() {
+    _selections.clear();
+    _selectionMapsByModel.clear();
+  }
+
+  Map<String, Map<String, ProjectModel3dEntry>> _dependentModelChanges(
+    Map<String, ProjectModel3dEntry> changed, Map<String, Set<String>> index,
+  ) {
+    final result = <String, Map<String, ProjectModel3dEntry>>{};
+    for (final model in changed.values) {
+      for (final mapId in index[model.id] ?? const <String>{}) {
+        (result[mapId] ??= {})[model.id] = model;
+      }
+    }
+    return result;
+  }
+
   bool get hasCompleteProject =>
       projectScope == MapWorkspaceProjectScope.completeProject;
   ProjectManifest? _visualMapSource;
@@ -61,27 +149,60 @@ class MapWorkspaceController {
     if (map == null || family == null) return map;
     if (!identical(map, _visualMapSource) ||
         !identical(family, _visualFamilySource)) {
-      _visualMapSource = map;
-      _visualFamilySource = family;
-      _combinedVisuals = combineResourceVisuals(map, family);
+      _cacheVisualComposition(map, family);
     }
     return _combinedVisuals;
   }
 
+  void _cacheVisualComposition(ProjectManifest map, ProjectManifest family) {
+    _visualMapSource = map;
+    _visualFamilySource = family;
+    _combinedVisuals = _prepareModelProjection(combineResourceVisuals(map, family));
+    visualProjectionBuilds++;
+  }
+
   EditableMapDocument? active;
   SpatialVisualPatch? _projectVisualProfile;
+  SpatialVisualPatch get inheritedVisualProfile => _projectVisualProfile ?? SpatialVisualPatch();
+  ProjectVisualsController? weatherDraftFor(EditableMapDocument document) {
+    if (document.weatherVisuals case final existing?) return existing;
+    final source = port;
+    if (source is! ProjectVisualsPort) return null;
+    final entry = project?.maps.where((map) => map.id == document.base.mapId).firstOrNull;
+    if (entry == null) return null;
+    final owner = ProjectVisualsController(session: session, port: source as ProjectVisualsPort);
+    document.weatherVisuals = owner;
+    var attached = false;
+    owner.addListener(() {
+      if (_disposed || owner.saved == null) return;
+      if (!owner.dirty) _mapVisualProfiles[entry.id] = owner.preview.value;
+      document.visualProfile = inheritedVisualProfile.overriddenBy(owner.preview.value);
+      if (!attached) {
+        attached = true;
+        notify();
+      }
+    });
+    unawaited(Future<void>(() async {
+      if (!_disposed) await owner.open(map: entry);
+    }));
+    return owner;
+  }
   final _mapVisualProfiles = <String, SpatialVisualPatch>{};
   void acceptVisualProfile(SpatialVisualPatch profile, {String? mapId}) {
     if (mapId == null) {
       _projectVisualProfile = profile;
     } else {
       _mapVisualProfiles[mapId] = profile;
+      final owner = documents[mapId]?.weatherVisuals;
+      if (owner != null && !owner.dirty && !owner.saving && owner.saved != null && owner.preview.value != profile) {
+        unawaited(owner.open(map: owner.scope));
+      }
     }
     final document = active;
     if (document != null && (mapId == null || document.base.mapId == mapId)) {
       document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch())
           .overriddenBy(
-            _mapVisualProfiles[document.base.mapId] ?? SpatialVisualPatch(),
+            document.weatherVisuals?.preview.value ?? _mapVisualProfiles[document.base.mapId] ?? SpatialVisualPatch(),
           );
       notify();
     }
@@ -100,12 +221,16 @@ class MapWorkspaceController {
     (document) =>
         document.dirty ||
         document.atmosphere?.dirty == true ||
+        document.exteriorDecoration?.dirty == true ||
+        document.weatherVisuals?.dirty == true ||
         document.editor?.dirty == true,
   );
   bool get saving => documents.values.any(
     (document) =>
         document.saving ||
         document.atmosphere?.saving == true ||
+        document.exteriorDecoration?.saving == true ||
+        document.weatherVisuals?.saving == true ||
         document.editor?.saving == true,
   );
   void addListener(void Function() listener) => _listeners.add(listener);
@@ -119,7 +244,7 @@ class MapWorkspaceController {
           ? (await source.loadCatalog(session)).metadata
           : await port.loadProject(session);
       if (_disposed) return;
-      project = manifest;
+      project = _prepareModelProjection(manifest);
       notify();
       if (manifest.maps.isNotEmpty) {
         final initial = manifest.newGame.enabled
@@ -159,13 +284,14 @@ class MapWorkspaceController {
             'Cet atelier ne dispose pas de lecteur ciblé.',
           );
         }
+        final sourceEpoch = _modelSourceEpoch;
         final loaded = await source.loadWorkshop(session, workshop);
         if (_disposed) return;
-        _workshopDefinitions = workshop.merge(
+        _workshopDefinitions = _prepareModelProjection(workshop.merge(
           _workshopDefinitions ?? project!,
-          loaded.metadata,
-        );
-        project = workshop.merge(project!, loaded.metadata);
+          _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch),
+        ));
+        project = _prepareModelProjection(workshop.merge(project!, _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch)));
         _workshops.add(workshop);
         notify();
       } finally {
@@ -198,17 +324,19 @@ class MapWorkspaceController {
           'Cette famille ne dispose pas de lecteur ciblé.',
         );
       }
+      final sourceEpoch = _modelSourceEpoch;
       final loaded = await (source as MapWorkspaceResourceKindPort)
           .loadResourceKind(session, kind);
       if (_disposed || request != _resourceKindRequest) return;
       final map = _selections[active?.base.mapId]?.definitions ?? project!;
       _resourceVisualDefinitions = null;
-      project = mergeResourceSelection(
+      project = _prepareModelProjection(mergeResourceSelection(
         project!,
-        combineResourceVisuals(_withWorkshops(map), loaded.metadata),
-      );
+        combineResourceVisuals(_withWorkshops(map), _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch)),
+      ));
       _resourceKind = kind;
-      _resourceVisualDefinitions = loaded.metadata;
+      _resourceVisualDefinitions = _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch);
+      _cacheVisualComposition(map, _resourceVisualDefinitions!);
       notify();
     });
     _resourceKindQueue = operation.then<void>(
@@ -228,18 +356,19 @@ class MapWorkspaceController {
       merged = workshop.merge(merged, loaded);
     }
     final family = _resourceVisualDefinitions;
-    return family == null ? merged : combineResourceVisuals(merged, family);
+    return _prepareModelProjection(family == null ? merged : combineResourceVisuals(merged, family));
   }
 
   Future<void> materializeProject() async {
     if (hasCompleteProject || _disposed) return;
     final source = port;
     if (source is! MapWorkspaceScopedPort) return;
+    final sourceEpoch = _modelSourceEpoch;
     final complete = await source.materializeProject(session);
     if (_disposed) return;
-    project = complete;
+    project = _prepareModelProjection(complete, sourceEpoch: sourceEpoch);
     projectScope = MapWorkspaceProjectScope.completeProject;
-    _selections.clear();
+    _clearSelections();
     notify();
   }
 
@@ -255,27 +384,29 @@ class MapWorkspaceController {
     _resourceVisualDefinitions = null;
     for (final workshop in _workshops.toList()) {
       if (source is MapWorkspaceWorkshopPort) {
+        final sourceEpoch = _modelSourceEpoch;
         final loaded = await source.loadWorkshop(session, workshop);
         if (_disposed) return;
-        _workshopDefinitions = workshop.merge(
+        _workshopDefinitions = _prepareModelProjection(workshop.merge(
           _workshopDefinitions ?? catalog.metadata,
-          loaded.metadata,
-        );
+          _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch),
+        ));
       }
     }
     final document = active;
     final entry = catalog.metadata.maps
         .where((entry) => entry.id == document?.base.mapId)
         .firstOrNull;
+    final sourceEpoch = _modelSourceEpoch;
     final selection = entry == null
         ? null
         : await source.loadMapSelection(session, entry);
     if (_disposed) return;
-    _selections.clear();
+    _clearSelections();
     if (selection != null) {
-      _selections[entry!.id] = selection;
+      _cacheSelection(entry!.id, selection, sourceEpoch);
     }
-    project = _withWorkshops(selection?.definitions ?? catalog.metadata);
+    project = _withWorkshops(_selections[entry?.id]?.definitions ?? _prepareModelProjection(catalog.metadata));
     projectScope = selection == null
         ? MapWorkspaceProjectScope.catalogMetadata
         : MapWorkspaceProjectScope.mapSelection;
@@ -308,11 +439,12 @@ class MapWorkspaceController {
         pending = _loading.putIfAbsent(entry.id, () async {
           final source = port;
           if (!hasCompleteProject && source is MapWorkspaceScopedPort) {
+            final sourceEpoch = _modelSourceEpoch;
             final selection = await source.loadMapSelection(
               session,
               currentEntry,
             );
-            _selections[entry.id] = selection;
+            _cacheSelection(entry.id, selection, sourceEpoch);
             return _prepareAtmosphere(
               EditableMapDocument(selection.document),
               currentEntry,
@@ -330,10 +462,9 @@ class MapWorkspaceController {
           !hasCompleteProject &&
           source is MapWorkspaceScopedPort &&
           !_selections.containsKey(entry.id)) {
-        _selections[entry.id] = await source.loadMapSelection(
-          session,
-          currentEntry,
-        );
+        final sourceEpoch = _modelSourceEpoch;
+        final selection = await source.loadMapSelection(session, currentEntry);
+        _cacheSelection(entry.id, selection, sourceEpoch);
       }
       if (_disposed ||
           mapEpoch != _mapEpochs[entry.id] ||
@@ -345,10 +476,10 @@ class MapWorkspaceController {
       if (generation == _generation) {
         active = document;
         document.visualProfile = (_projectVisualProfile ?? SpatialVisualPatch())
-            .overriddenBy(_mapVisualProfiles[entry.id] ?? SpatialVisualPatch());
+            .overriddenBy(document.weatherVisuals?.preview.value ?? _mapVisualProfiles[entry.id] ?? SpatialVisualPatch());
         final selection = _selections[entry.id];
         if (!hasCompleteProject && selection != null) {
-          project = _withWorkshops(selection.definitions);
+          project = _withWorkshops(_selections[entry.id]!.definitions);
           projectScope = MapWorkspaceProjectScope.mapSelection;
         }
       }
@@ -384,6 +515,11 @@ class MapWorkspaceController {
         return document;
       }
       document.editor = editor;
+    }
+    if (document.current.spatialScene != null && port is MapExteriorDecorationPort) {
+      final exterior = await MapExteriorDecorationController.open(session,document.current,port as MapExteriorDecorationPort);
+      if (_disposed) { exterior.dispose(); return document; }
+      if(exterior.available){document.exteriorDecoration = exterior;}else{exterior.dispose();}
     }
     final atmospherePort = port;
     if (document.current.spatialScene != null &&
@@ -423,12 +559,16 @@ class MapWorkspaceController {
     late final Future<MapData?> pending;
     pending = () async {
       try {
-        final loaded = await port.loadMap(session, entry);
+        final previewPort = port;
+        final sourceEpoch = _modelSourceEpoch;
+        final selection = previewPort is MapWorkspacePreviewSelectionPort ? await (previewPort as MapWorkspacePreviewSelectionPort).loadMapPreviewSelection(session, entry) : null;
+        final loaded = selection?.document ?? await port.loadMap(session, entry);
         if (_disposed ||
             mapEpoch != _mapEpochs[id] ||
             !_entryDocumentCurrent(entry)) {
           return null;
         }
+        if (selection != null) _cachePreviewDefinitions(id, selection.definitions, sourceEpoch);
         return loaded.map;
       } on Object {
         if (identical(_previews[id], pending)) _previews.remove(id);
@@ -456,6 +596,7 @@ class MapWorkspaceController {
       final updated = EditableMapDocument(await port.loadMap(session, entry));
       if (_disposed) return;
       updated.atmosphere = document?.atmosphere;
+      updated.exteriorDecoration = document?.exteriorDecoration;
       updated.editor = document?.editor;
       documents[id] = updated;
       if (activeId == id) active = updated;
@@ -477,10 +618,12 @@ class MapWorkspaceController {
       notify();
       return false;
     }
+    if (!await (document.weatherVisuals?.save() ?? Future.value(true))) return false;
     if (!await (document.atmosphere?.save() ?? Future.value(true))) {
       return false;
     }
     if (!await (document.editor?.save() ?? Future.value(true))) return false;
+    if (!await (document.exteriorDecoration?.save() ?? Future.value(true))) return false;
     if (!document.dirty) return true;
     document.saving = true;
     document.error = null;
@@ -495,11 +638,12 @@ class MapWorkspaceController {
         final entry = project!.maps.singleWhere(
           (entry) => entry.id == document.base.mapId,
         );
+        final sourceEpoch = _modelSourceEpoch;
         final selection = await source.loadMapSelection(session, entry);
         if (_disposed) return false;
-        _selections[entry.id] = selection;
+        _cacheSelection(entry.id, selection, sourceEpoch);
         if (identical(active, document)) {
-          project = _withWorkshops(selection.definitions);
+          project = _withWorkshops(_selections[entry.id]!.definitions);
         }
       }
       return true;
@@ -527,6 +671,12 @@ class MapWorkspaceController {
         document.saving ||
         catalogLocks(document.base.mapId) ||
         !manifest.maps.any((entry) => entry.id == document.base.mapId)) {
+      return;
+    }
+    final exterior = document.exteriorDecoration;
+    if (exterior?.editingExterior == true) {
+      if (redo) { exterior!.redo(); } else { exterior!.undo(); }
+      notify();
       return;
     }
     final token = redo ? document.redoToken : document.undoToken;
@@ -603,38 +753,78 @@ class MapWorkspaceController {
       );
     }
     if (_disposed) return;
-    _selections.removeWhere(
-      (_, selection) =>
-          selection.definitions.models3d.any((value) => value.id == model.id),
-    );
     final current = project;
     if (current == null) return;
-    acceptResources(
-      current,
-      current.copyWith(
-        models3d: [
-          for (final value in current.models3d)
-            value.id == model.id
-                ? value.copyWith(
-                    light: model.light,
-                    clearLight: model.light == null,
-                  )
-                : value,
-        ],
-      ),
-    );
+    final entries = current.models3d as ProjectModel3dEntries;
+    final previous = entries.lookup(model.id);
+    if (previous == null) return;
+    final replacement = previous.copyWith(light: model.light, clearLight: model.light == null);
+    acceptResources(current, current.copyWith(models3d: entries.replaceSelected([replacement])),
+      changedModels: {model.id: replacement});
   }
 
-  void acceptResources(ProjectManifest before, ProjectManifest updated) {
+  void acceptResources(ProjectManifest before, ProjectManifest updated, {
+    Map<String, ProjectModel3dEntry> changedModels = const {},
+  }) {
     if (_disposed) return;
-    if (project != before) {
-      throw const MapWorkspaceFailure(
-        MapWorkspaceProblem.conflict,
-        'Le catalogue a changé pendant cette opération.',
-      );
+    if (changedModels.isEmpty) {
+      if (project != before) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le catalogue a changé pendant cette opération.',
+        );
+      }
+      project = _prepareModelProjection(updated);
+      if (_workshopDefinitions != null) _workshopDefinitions = project;
+    } else {
+      final current = project;
+      final currentModels = current?.models3d;
+      final beforeModels = before.models3d;
+      if (current == null || currentModels is! ProjectModel3dEntries ||
+          beforeModels is! ProjectModel3dEntries) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le catalogue a changé pendant cette opération.',
+        );
+      }
+      for (final change in changedModels.entries) {
+        final existing = currentModels.lookup(change.key);
+        if (change.key != change.value.id ||
+            (existing != null && existing != beforeModels.lookup(change.key) &&
+                existing != change.value)) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.conflict,
+            'Le catalogue a changé pendant cette opération.',
+          );
+        }
+      }
+      final sourceEpoch = ++_modelSourceEpoch;
+      for (final entry in changedModels.entries) {
+        _acceptedModelDefinitions[entry.key] = (epoch: sourceEpoch, definition: entry.value);
+      }
+      for (final change in _dependentModelChanges(changedModels, _selectionMapsByModel).entries) {
+        modelSourceSelectionsVisited++;
+        final selection = _selections[change.key]!;
+        _selections[change.key] = _selectionWithDefinitions(selection,
+          _replaceModelProjection(selection.definitions, change.value));
+      }
+      for (final change in _dependentModelChanges(changedModels, _previewMapsByModel).entries) {
+        modelSourcePreviewsVisited++;
+        _previewDefinitions[change.key] = _replaceModelProjection(_previewDefinitions[change.key]!, change.value);
+      }
+      project = _replaceModelProjection(current, changedModels);
+      if (_workshopDefinitions case final definitions?) {
+        _workshopDefinitions = _replaceModelProjection(definitions, changedModels);
+      }
+      if (_resourceVisualDefinitions case final definitions?) {
+        _resourceVisualDefinitions = _replaceModelProjection(definitions, changedModels);
+      }
+      if (_combinedVisuals case final definitions?) {
+        _combinedVisuals = _replaceModelProjection(definitions, changedModels);
+        _visualMapSource = _selections[active?.base.mapId]?.definitions ?? project;
+        _visualFamilySource = _resourceVisualDefinitions;
+      }
     }
-    project = updated;
-    if (_workshopDefinitions != null) _workshopDefinitions = updated;
     notify();
   }
 
@@ -658,8 +848,14 @@ class MapWorkspaceController {
     _disposed = true;
     _generation++;
     _previews.clear();
+    _previewDefinitions.clear();
+    _previewMapsByModel.clear();
+    _clearSelections();
+    _acceptedModelDefinitions.clear();
     for (final document in {...documents.values, ...retiredDocuments.values}) {
+      document.weatherVisuals?.dispose();
       document.atmosphere?.dispose();
+      document.exteriorDecoration?.dispose();
       document.editor?.dispose();
     }
     _listeners.clear();

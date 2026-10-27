@@ -111,6 +111,40 @@ void main() {
     expect(rootReads, 0);
   });
 
+  test(
+    'returns an actionable installation error to the native shell',
+    () async {
+      await expectLater(
+        invoke('installGame', {
+          'packagePath': '${root.path}/missing.avelunegame',
+        }),
+        throwsA(
+          isA<PlatformException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'installation.integrityFailed',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                'Le package est incomplet ou a été modifié.',
+              )
+              .having(
+                (error) => error.details,
+                'details',
+                isA<Map>().having(
+                  (details) => details['code'],
+                  'diagnostic',
+                  'integrityFailed',
+                ),
+              ),
+        ),
+      );
+      expect(bridge.playing.value, isNull);
+    },
+  );
+
   test('stopping an idle session does not load storage', () async {
     expect(await invoke('stopGame'), isNull);
     expect(rootReads, 0);

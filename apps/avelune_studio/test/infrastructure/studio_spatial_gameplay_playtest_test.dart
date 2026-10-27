@@ -567,6 +567,72 @@ void main() {
   );
 
   testWidgets(
+    'scene pointer restores movement focus after editing a setting',
+    (tester) async {
+      final host = (await tester.runAsync(prepare))!;
+      await tester.runAsync(() async {
+        await host.runtime.load((_) {});
+        await host.runtime.gameplayReady;
+      });
+      final settingsFocus = FocusNode();
+      addTearDown(settingsFocus.dispose);
+      var sceneTaps = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Row(
+              children: [
+                Expanded(
+                  child: StudioSpatialPlaytestView(
+                    runtime: host.runtime,
+                    sceneBuilder: (_) => GestureDetector(
+                      key: const ValueKey('interactive-scene'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => sceneTaps++,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 160,
+                  child: TextField(
+                    key: const ValueKey('visual-setting'),
+                    focusNode: settingsFocus,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('visual-setting')));
+      await tester.pump();
+      expect(settingsFocus.hasFocus, isTrue);
+      final movement = host.runtime.session!.movement;
+      final startZ = movement.z;
+      await tester.tap(find.byKey(const ValueKey('interactive-scene')));
+      await tester.pump();
+      expect(sceneTaps, 1);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+      host.runtime.session!.frames(.3);
+      expect(movement.z, greaterThan(startZ));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+      expect(movement.inputDirection, (x: 0, z: 1));
+      await tester.tap(find.byKey(const ValueKey('visual-setting')));
+      await tester.pump();
+      expect(settingsFocus.hasFocus, isTrue);
+      expect(movement.inputDirection, (x: 0, z: 0));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      expect(movement.inputDirection, (x: 0, z: 0));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'Studio keyboard runs model Event V2 and save restores final pose',
     (tester) async {
       bundle = fixtures.animatedDoorBundle(bundle);

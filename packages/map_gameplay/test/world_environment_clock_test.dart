@@ -3,6 +3,27 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('occasional episode intensity and calendar survive pause, maps, story and save', () {
+    final settings = SpatialVisualPatch.fromJson({'weatherMode': 'occasional'});
+    final clock = WorldEnvironmentClock(now: () => throw StateError('Unexpected wall clock'));
+    for (var t = 0; t < 2000; t++) {
+      if (clock.resolve(settings).weatherKind != SpatialWeatherKind.clear) break;
+      clock.advance(1);
+    }
+    final start = clock.resolve(settings);
+    expect(start.weatherKind, isNot(SpatialWeatherKind.clear));
+    clock.advance(20);
+    final active = clock.resolve(settings);
+    expect(active.weatherIntensity, 1);
+    clock.advance(100, paused: true);
+    expect(clock.resolve(settings).weatherKind, active.weatherKind);
+    final reopened = WorldEnvironmentClock(now: () => DateTime(2026), initialState: WorldEnvironmentState.fromJson(clock.checkpoint!.toJson()));
+    expect(reopened.resolve(settings).weatherKind, active.weatherKind);
+    expect(reopened.resolve(settings).weatherIntensity, active.weatherIntensity);
+    final story = SpatialVisualPatch.fromJson({'weatherMode': 'fixed', 'weatherKind': 'snow'});
+    expect(clock.resolve(settings.overriddenBy(story), overrides: story).weatherKind, isNull);
+    expect(clock.resolve(settings).weatherKind, active.weatherKind);
+  });
   test(
       'real time follows weather city offset while narrative time remains authoritative',
       () {

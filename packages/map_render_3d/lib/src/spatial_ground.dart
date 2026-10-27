@@ -18,11 +18,27 @@ typedef SpatialGroundVisual = ({
   double opacity,
 });
 
+final class SpatialGroundBorderInputs {
+  const SpatialGroundBorderInputs({
+    this.masks = const {},
+    this.replacements = const {},
+    this.surfaces = const [],
+  });
+  final Map<String, Set<(int, int)>> masks;
+  final Map<String, List<SpatialBorderGroundReplacement>> replacements;
+  final List<SpatialBorderGroundSurface> surfaces;
+  bool get isEmpty => masks.isEmpty && replacements.isEmpty && surfaces.isEmpty;
+}
+
 final class SpatialGroundPlan {
   SpatialGroundPlan(
     MapData map,
     ProjectManifest project, {
     bool Function(String layerId)? includeLayer,
+    this.excludedCells = const {},
+    Map<String, SmartTileCellContextResolver> cellContextResolvers = const {},
+    SpatialGroundBorderInputs additionalBorders =
+        const SpatialGroundBorderInputs(),
   }) : scene = map.spatialScene {
     final catalog = project.smartTileCatalog;
     _borderMaskLayers.addAll(
@@ -32,6 +48,12 @@ final class SpatialGroundPlan {
         includeLayer: includeLayer,
       ),
     );
+    for (final entry in additionalBorders.masks.entries) {
+      _borderMaskLayers[entry.key] = {
+        ...?_borderMaskLayers[entry.key],
+        ...entry.value,
+      };
+    }
     _borderReplacementLayers.addAll(
       resolveSpatialBorderGroundReplacementsByLayer(
         manifest: project,
@@ -39,6 +61,12 @@ final class SpatialGroundPlan {
         includeLayer: includeLayer,
       ),
     );
+    for (final entry in additionalBorders.replacements.entries) {
+      _borderReplacementLayers[entry.key] = [
+        ...?_borderReplacementLayers[entry.key],
+        ...entry.value,
+      ];
+    }
     borderGroundReplacements = scene == null
         ? const {}
         : indexSpatialBorderGroundReplacements(
@@ -55,6 +83,7 @@ final class SpatialGroundPlan {
       catalog: catalog,
       sourceCellWidth: project.settings.tileWidth,
       sourceCellHeight: project.settings.tileHeight,
+      cellContextResolvers: cellContextResolvers,
     ).groundReplacements;
     final replacements = {
       for (final entry in allReplacements.entries)
@@ -125,6 +154,7 @@ final class SpatialGroundPlan {
           layer: layer,
           catalog: catalog,
           pass: SmartTileVisualPass.background,
+          cellContextResolver: cellContextResolvers[layer.id],
           sourceCellWidth: project.settings.tileWidth.toDouble(),
           sourceCellHeight: project.settings.tileHeight.toDouble(),
         ),
@@ -152,7 +182,12 @@ final class SpatialGroundPlan {
         }
       }
     }
-    _addBorderSurfaces(map, project, includeLayer: includeLayer);
+    _addBorderSurfaces(
+      map,
+      project,
+      includeLayer: includeLayer,
+      additionalSurfaces: additionalBorders.surfaces,
+    );
     this.bridgeCells = Set.unmodifiable(bridgeCells);
     final covered = <(int, int)>{...borderMaskCells};
     for (var index = _layerIds.length - 1; index >= 0; index--) {
@@ -227,6 +262,7 @@ final class SpatialGroundPlan {
       );
     }
     cliff = source.cliff;
+    excludedCells = source.excludedCells;
     animated = source.animated;
     _animationLookaheadMs = source._animationLookaheadMs;
     imageIds.addAll(source.imageIds);
@@ -430,8 +466,12 @@ final class SpatialGroundPlan {
     });
   }
 
+  Set<(int, int)> excludedCells = const {};
+
   Set<(int, int)> excludedCellsFor(SmartTileLayerVisual visual) =>
-      _visualExclusions[visual] ?? const {};
+      excludedCells.isEmpty
+      ? _visualExclusions[visual] ?? const {}
+      : {...excludedCells, ...?_visualExclusions[visual]};
 
   SpatialFlatGroundSurface? flatSurfaceFor(SmartTileLayerVisual visual) =>
       _flatVisualSurfaces[visual];
@@ -440,6 +480,7 @@ final class SpatialGroundPlan {
     MapData map,
     ProjectManifest project, {
     bool Function(String layerId)? includeLayer,
+    List<SpatialBorderGroundSurface> additionalSurfaces = const [],
   }) {
     if (scene == null) return;
     final planes =
@@ -454,11 +495,14 @@ final class SpatialGroundPlan {
             })
           >
         >{};
-    for (final surface in resolveSpatialBorderGroundSurfaces(
-      manifest: project,
-      map: map,
-      includeLayer: includeLayer,
-    )) {
+    for (final surface in [
+      ...additionalSurfaces,
+      ...resolveSpatialBorderGroundSurfaces(
+        manifest: project,
+        map: map,
+        includeLayer: includeLayer,
+      ),
+    ]) {
       final groups = planes.putIfAbsent((
         surface.layerId,
         surface.height,
@@ -532,6 +576,44 @@ final class SpatialGroundPlan {
         materialPalette: ['', key.$2],
         field: SmartTileField.cell(semanticCells: cells),
       ) as SmartTileLayer;
+      SmartTileCellContext contextAt({
+        required ProjectSmartTilePreset preset,
+        required int x,
+        required int y,
+      }) {
+        SmartTileObservedSlot sample(int sx, int sy) {
+          final covered = entry.value.any((footprint) {
+            final xs = footprint.points.map((point) => point.x);
+            final zs = footprint.points.map((point) => point.z);
+            return sx < xs.reduce(math.max) &&
+                sx + 1 > xs.reduce(math.min) &&
+                sy < zs.reduce(math.max) &&
+                sy + 1 > zs.reduce(math.min);
+          });
+          final inside =
+              sx >= 0 && sy >= 0 && sx < map.size.width && sy < map.size.height;
+          return covered || inside
+              ? SmartTileObservedSlot.inside(
+                  materialId: covered ? key.$2 : null,
+                )
+              : const SmartTileObservedSlot.outside();
+        }
+
+        return SmartTileCellContext(
+          centerMaterialId: sample(x, y).materialId,
+          observed: SmartTileObservedSignature(
+            northEdge: sample(x, y - 1),
+            northEastCorner: sample(x + 1, y - 1),
+            eastEdge: sample(x + 1, y),
+            southEastCorner: sample(x + 1, y + 1),
+            southEdge: sample(x, y + 1),
+            southWestCorner: sample(x - 1, y + 1),
+            westEdge: sample(x - 1, y),
+            northWestCorner: sample(x - 1, y - 1),
+          ),
+        );
+      }
+
       _flatPlans.add((
         layerId: key.$7,
         plan: buildSmartTileLayerVisualPlan(
@@ -539,6 +621,7 @@ final class SpatialGroundPlan {
           layer: layer,
           catalog: project.smartTileCatalog,
           pass: SmartTileVisualPass.background,
+          cellContextResolver: additionalSurfaces.isEmpty ? null : contextAt,
           sourceCellWidth: project.settings.tileWidth.toDouble(),
           sourceCellHeight: project.settings.tileHeight.toDouble(),
         ),

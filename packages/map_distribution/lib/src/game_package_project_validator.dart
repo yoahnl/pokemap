@@ -7,6 +7,7 @@ import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
 import 'game_package_security_policy.dart';
 import 'game_package_spatial_project_validator.dart';
+import 'game_package_exterior_decoration_validator.dart';
 
 /// Performs the pure project preflight available before staging/smoke.
 final class GamePackageProjectValidator {
@@ -73,6 +74,7 @@ final class GamePackageProjectValidator {
       var extendedWeather = SpatialWeatherCapabilities.requiresExtendedProject(project);
       var weatherSound = SpatialWeatherCapabilities.requiresSoundProject(project);
       var worldEnvironment = WorldEnvironmentCapabilities.requiresProject(project);
+      var weatherEpisodes = WorldEnvironmentCapabilities.requiresEpisodesProject(project);
       var realWeather = WorldEnvironmentCapabilities.requiresRealProject(project);
       var lightWorkshop = SpatialLightWorkshopCapabilities.requiresProject(project);
       for (final entry in visualPaths.entries) {
@@ -90,6 +92,7 @@ final class GamePackageProjectValidator {
         extendedWeather |= document.profile.requiresExtendedWeather;
         weatherSound |= document.profile.requiresWeatherSound;
         worldEnvironment |= document.profile.requiresWorldEnvironment;
+        weatherEpisodes |= document.profile.requiresWeatherEpisodes;
         realWeather |= document.profile.requiresRealWeather;
         if (document.mapId != entry.value) {
           _fail('Visual settings identity mismatch.');
@@ -118,6 +121,12 @@ final class GamePackageProjectValidator {
       }
       _validateComplexity(project.toJson());
       ProjectValidator.validate(project);
+      final exterior = const GamePackageExteriorDecorationValidator().validate(
+        project: project,
+        payloadPaths: payloadPaths,
+        readPayload: readPayload,
+        requiredCapabilities: packageManifest.compatibility.requiredCapabilities,
+      );
       if (GameCompletionPartyCapabilities.requiresCapability(project) &&
           packageManifest.compatibility.saveFormat !=
               SaveEnvelopeCodec.currentSaveFormat) {
@@ -186,6 +195,9 @@ final class GamePackageProjectValidator {
       if (worldEnvironment && !packageManifest.compatibility.requiredCapabilities.contains(WorldEnvironmentCapabilities.capabilityId)) {
         _fail('World environment requires map3d.world-environment@1.');
       }
+      if (weatherEpisodes && !packageManifest.compatibility.requiredCapabilities.contains(WorldEnvironmentCapabilities.weatherEpisodesCapabilityId)) {
+        _fail('Occasional weather requires map3d.weather-episodes@1.');
+      }
       if (realWeather && !packageManifest.compatibility.requiredCapabilities.contains(WorldEnvironmentCapabilities.realWeatherCapabilityId)) {
         _fail('Real weather requires map3d.real-weather@1.');
       }
@@ -252,15 +264,17 @@ final class GamePackageProjectValidator {
                   utf8.decode(readPayload('project/${entry.relativePath}')!))
               as Map<String, dynamic>);
           return map;
-        });
+        }).toList()..addAll(exterior.visualMaps);
+        final hasModelShadows = exterior.modelShadows || SpatialModelShadowCapabilities.requiresCapability(project, maps: maps);
+        final hasPointLights = exterior.pointLights || SpatialSceneLightingCapabilities.requiresPointLights(project, maps: maps);
         if (SpatialGameplayCapabilities.requiresConnectedCinematics(project,
                 maps: maps) &&
             !packageManifest.compatibility.requiredCapabilities.contains(
                 SpatialGameplayCapabilities.cinematicConnectedCapabilityId)) {
           _fail('Connected spatial cinematics require map3d.cinematic-connected@1.');
         }
-        if (SpatialGameplayCapabilities.requiresModelAnimation(project,
-                maps: maps) &&
+        if ((exterior.animatedModels || SpatialGameplayCapabilities.requiresModelAnimation(project,
+                maps: maps)) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains('map3d.animation@1')) {
           _fail('Animated 3D decor requires map3d.animation@1.');
@@ -269,8 +283,8 @@ final class GamePackageProjectValidator {
             !packageManifest.compatibility.requiredCapabilities.contains(SpatialActorOcclusionCapabilities.capabilityId)) {
           _fail('3D actor occlusion requires map3d.actor-occlusion@1.');
         }
-        if (SpatialModelClipCapabilities.requiresCapability(project,
-                maps: maps) &&
+        if ((exterior.modelClips || SpatialModelClipCapabilities.requiresCapability(project,
+                maps: maps)) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialModelClipCapabilities.capabilityId)) {
           _fail('Clipped 3D models require map3d.model-clip@1.');
@@ -280,8 +294,7 @@ final class GamePackageProjectValidator {
                 SpatialActorContactShadowCapabilities.capabilityId)) {
           _fail('3D actor contact shadows require map3d.actor-contact-shadows@1.');
         }
-        if (SpatialModelShadowCapabilities.requiresCapability(project,
-                maps: maps) &&
+        if (hasModelShadows &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialModelShadowCapabilities.capabilityId)) {
           _fail('Shadow-casting 3D models require map3d.shadows@1.');
@@ -292,14 +305,12 @@ final class GamePackageProjectValidator {
                 .contains(SpatialSceneLightingCapabilities.dayNightCapabilityId)) {
           _fail('Visual 3D day/night cycles require map3d.day-night@1.');
         }
-        if (SpatialSceneLightingCapabilities.requiresPointLights(project,
-                maps: maps) &&
+        if (hasPointLights &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialSceneLightingCapabilities.pointLightCapabilityId)) {
           _fail('Illuminated 3D models require map3d.point-light@1.');
         }
-        if (SpatialSceneLightingCapabilities.requiresPointLightShadows(project,
-                maps: maps) &&
+        if (hasPointLights && hasModelShadows &&
             !packageManifest.compatibility.requiredCapabilities.contains(
                 SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId)) {
           _fail('Occluded 3D point lights require map3d.point-light-shadows@1.');

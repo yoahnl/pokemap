@@ -216,7 +216,6 @@ final class ProjectOpenService {
             'The mutation root differs from the opened project.',
           );
         }
-        await requireReadableProject();
       },
       requireReadableProject:physicalRoot?requireReadableProject:null,
       canReuseSnapshots: reader is ProjectSnapshotCacheIdentityReader,

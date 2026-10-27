@@ -113,6 +113,22 @@ sealed class AuthoringPayload {
   }
 
   static const int chunkSize = 64 * 1024;
+  static Future<AuthoringPayload> verifiedResource({
+    required String storageKey,
+    required int byteLength,
+    required String resourceRevision,
+    required Stream<List<int>> Function() openRead,
+  }) async {
+    final observed = await inspectAuthoringPayload(openRead(),
+        storageKey: storageKey, byteLength: byteLength);
+    if (resourceRevision != observed.resourceRevision) {
+      throw const AuthoringPayloadException('payload.source_mismatch',
+          'The stored payload failed content verification.');
+    }
+    return _StoredAuthoringPayload(storageKey, byteLength, observed.rawSha256,
+        observed.resourceRevision, observed.contentDigest, openRead, null);
+  }
+
   String get storageKey;
   int get byteLength;
   String get rawSha256;

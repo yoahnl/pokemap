@@ -43,14 +43,15 @@ void main() {
   test('live resource revision equals full inspection across multiple chunks',
       () async {
     const storageKey = 'assets/été😀.bin';
-    final source = List<int>.generate(64 * 1024 * 3 + 17,
-        (index) => (index * 37 + index ~/ 251) % 256);
+    final source = List<int>.generate(
+        64 * 1024 * 3 + 17, (index) => (index * 37 + index ~/ 251) % 256);
     await Directory('${root.path}/assets').create();
     final file = File('${root.path}/$storageKey');
     await file.writeAsBytes(source);
     final full = await inspectAuthoringPayload(file.openRead(),
         storageKey: storageKey, byteLength: source.length);
-    expect(await gateway.readResourceRevision(storageKey), full.resourceRevision);
+    expect(
+        await gateway.readResourceRevision(storageKey), full.resourceRevision);
     expect(await file.readAsBytes(), source);
   });
 
@@ -71,7 +72,8 @@ void main() {
   });
 
   for (final outward in [false, true]) {
-    test('live resource revision rejects a symlink, outward=$outward', () async {
+    test('live resource revision rejects a symlink, outward=$outward',
+        () async {
       final outside = await Directory.systemTemp.createTemp('revision-link-');
       addTearDown(() => outside.delete(recursive: true));
       final target = outward
@@ -93,6 +95,27 @@ void main() {
         kind: TransactionPayloadKind.before);
     expect(await payload.payload!.readBytes(), bytes);
     await payload.payload!.release();
+  });
+  test('staged read rejects a stable size inconsistent with the frozen content',
+      () async {
+    await gateway.stagePayload(
+        operationId: 'metadata-test',
+        storageKey: 'project.json',
+        kind: TransactionPayloadKind.before,
+        bytes: bytes);
+    await expectLater(
+        IOOverrides.runZoned(
+            () => gateway.readStagedPayload(
+                operationId: 'metadata-test',
+                storageKey: 'project.json',
+                kind: TransactionPayloadKind.before), stat: (path) async {
+          final actual = await Zone.root.run(() => FileStat.stat(path));
+          return path.endsWith('.before.bin')
+              ? _Stat(actual, changed: actual.changed, size: actual.size + 1)
+              : actual;
+        }),
+        error('transaction.stage_corrupt'));
+    expect(await File('${root.path}/project.json').readAsBytes(), bytes);
   });
 
   test('rechecks a transient metadata change against the frozen payload',

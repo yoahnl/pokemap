@@ -49,7 +49,7 @@ void main() {
         for (final (i, enabled) in <bool?>[true, false, null].indexed) {
           final snapshot = await observer.inspect(projectRoot: directory.path);
           final settings = SpatialVisualPatch.fromJson(
-              {if (enabled != null) ...{'weatherEnabled': enabled, 'weatherKind': 'tempest', 'weatherSoundEnabled': enabled, 'weatherRainVolume': .8, 'weatherWindVolume': .4, 'timeMode': enabled ? 'real' : 'cycle', 'weatherMode': enabled ? 'real' : 'automatic', 'weatherSequence': [for (final kind in SpatialWeatherKind.values) kind.name], 'weatherIntervalSeconds': 600}});
+              {if (enabled != null) ...{'weatherEnabled': enabled, 'weatherKind': 'tempest', 'weatherSoundEnabled': enabled, 'weatherRainVolume': .8, 'weatherWindVolume': .4, 'timeMode': enabled ? 'real' : 'cycle', 'weatherMode': enabled ? 'occasional' : 'automatic', 'weatherDryMinSeconds': 900, 'weatherDryMaxSeconds': 1800, 'weatherEventMinSeconds': 120, 'weatherEventMaxSeconds': 300, 'weatherDrizzleWeight': 50, 'weatherRainWeight': 30, 'weatherDownpourWeight': 15, 'weatherStormWeight': 5, 'weatherSequence': [for (final kind in SpatialWeatherKind.values) kind.name], 'weatherIntervalSeconds': 600}});
           final worker = LocalVisualSettingsAuthoring(
               policy: workerPolicy,
               runInWorker: true,

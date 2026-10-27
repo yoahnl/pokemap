@@ -257,7 +257,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                     },
               onPalette: compactPalette && ready ? openPalette : onPalette,
               onInspector: openInspector,
-              onAmbiance: !ready || doc.current.spatialScene == null
+              onAmbiance: !ready || controller.loading || doc.current.spatialScene == null
                   ? null
                   : () => showWorkspaceCompactPanel(
                       context,
@@ -269,7 +269,8 @@ class MapWorkspaceLayout extends StatelessWidget {
                         document: doc,
                         project: project,
                         preview: view!.spatialSceneController,
-                        onSave: onSave,
+                        onMapChanged: close,
+                        onSave: () { controller.save(doc); },
                         onChanged: onToolChanged,
                       ),
                     ),

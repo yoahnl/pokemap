@@ -1,3 +1,4 @@
+import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
 import '../workspace/catalog/catalog_project_reader.dart';
 import '../workspace/catalog/catalog_targeted_map_edit.dart';
@@ -151,17 +152,19 @@ final class AuthoringReadApi
     final catalog = await _openService.catalogProject(projectHandle);
     if (catalog != null &&
         request.resourceKind == 'map' &&
-        request.extensions['materializeProject'] != true)
+        request.extensions['materializeProject'] != true) {
       return catalog.queryMaps(request, readMap: (id) async {
         final selection =
             await CatalogTargetedMapSelection.read(reader: catalog, mapId: id);
         return (map: selection.map, revision: selection.snapshotRevision);
       });
+    }
     if (catalog != null &&
         (catalogResourceKinds.containsKey(request.resourceKind) ||
             (request.resourceKind == 'project' &&
-                request.view == AuthoringQueryView.summary)))
+                request.view == AuthoringQueryView.summary))) {
       return catalog.query(request);
+    }
     if (catalog != null &&
         request.resourceKind == 'project' &&
         request.view == AuthoringQueryView.detail &&
@@ -182,7 +185,12 @@ final class AuthoringReadApi
     if (request.extensions['actionId'] == 'event_v2.simulate') {
       return queryEventSimulation(snapshot, request);
     }
-    return _queryService.queryAsync(snapshot, request);
+    return _queryService.queryAsync(snapshot, request,
+        projectResourceUsages: request.resourceKind == 'resourceUsage'
+            ? (report) => projectExteriorReferenceUsages(report,
+                (path, maximumBytes) => _snapshotLoader.readOptionalResourceBytes(
+                    projectHandle, path, maximumBytes: maximumBytes))
+            : null);
   }
 
   @override

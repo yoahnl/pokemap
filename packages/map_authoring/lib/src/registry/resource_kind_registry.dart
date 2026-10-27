@@ -345,7 +345,7 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Resource usages',
         summary: 'Read-only project usages for one family-qualified identity',
         extensions: const {
-          'families': ['images', 'decors', 'terrains'],
+          'families': ['images', 'decors', 'terrains', 'borders', 'models3d', 'materials', 'environments'],
           'freshness': 'exact snapshot revision and resource fingerprints',
           'draftCoverage': 'saved documents only; resolve in-memory owners',
         },

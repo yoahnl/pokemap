@@ -27,8 +27,9 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
 void addSmartTileTilesetIds(
   Set<String> ids,
   MapData map,
-  ProjectManifest manifest,
-) {
+  ProjectManifest manifest, {
+  Iterable<String> additionalPresetIds = const [],
+}) {
   final catalog = manifest.smartTileCatalog;
   if (catalog.isEmpty) return;
   final atlasById = <String, ProjectSmartTileAtlas>{
@@ -65,9 +66,7 @@ void addSmartTileTilesetIds(
     );
   }
 
-  for (final layer in map.layers.whereType<SmartTileLayer>()) {
-    final preset = presetById[layer.presetId];
-    if (preset == null || preset.usage != layer.usage) continue;
+  void addPreset(ProjectSmartTilePreset preset) {
     for (final rule in preset.rules) {
       for (final candidate in rule.candidates) {
         for (final part in candidate.parts) {
@@ -75,6 +74,12 @@ void addSmartTileTilesetIds(
         }
       }
     }
+  }
+
+  for (final layer in map.layers.whereType<SmartTileLayer>()) {
+    final preset = presetById[layer.presetId];
+    if (preset == null || preset.usage != layer.usage) continue;
+    addPreset(preset);
     for (final stroke in layer.patternStrokes) {
       final pattern = patternById[stroke.patternId];
       if (pattern == null || pattern.usage != layer.usage) continue;
@@ -84,6 +89,10 @@ void addSmartTileTilesetIds(
         }
       }
     }
+  }
+  for (final id in additionalPresetIds.toSet()) {
+    final preset = presetById[id];
+    if (preset != null) addPreset(preset);
   }
 }
 
@@ -273,9 +282,15 @@ Set<String> collectAllRuntimeTilesetIds(
   ProjectManifest manifest, {
   Set<String> additionalSceneIds = const {},
   Set<String> additionalCharacterIds = const {},
+  Iterable<String> additionalSmartTilePresetIds = const [],
 }) {
   final ids = collectTilesetIdsReferencedOnMap(map);
-  addSmartTileTilesetIds(ids, map, manifest);
+  addSmartTileTilesetIds(
+    ids,
+    map,
+    manifest,
+    additionalPresetIds: additionalSmartTilePresetIds,
+  );
   addEntityVisualTilesetIds(ids, map, manifest);
   addCharacterTilesetIds(ids, map, manifest);
   // Append placed-element visuals after the established sources so their

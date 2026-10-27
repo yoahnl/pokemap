@@ -71,6 +71,7 @@ final class CatalogStorageStore {
   final TransactionFileGateway _gateway;
   final CatalogStorageLimits _limits;
   TransactionFileGateway get gateway => _gateway;
+  ProjectFileReader get fileReader => _reader;
   CatalogStorageLimits get limits => _limits;
   late final Future<String> _canonicalProjectRoot =
       _reader.canonicalizeDirectory(projectRoot);
@@ -108,6 +109,109 @@ final class CatalogStorageStore {
   Future<void> publishMetadataIndexAdmissionUnderLock(
           CatalogSnapshot snapshot) =>
       _admissions.publishMetadataIndex(snapshot);
+
+  Future<String?> metadataContextRevision(CatalogSnapshot snapshot) =>
+      _admissions.metadataContextRevision(snapshot);
+
+  Future<String> requireMetadataContextAdmission(
+      CatalogSnapshot snapshot) async {
+    final revision = await metadataContextRevision(snapshot);
+    if (revision == null) {
+      throw const CatalogStorageException('catalog.preparation_required',
+          'Prepare this catalog explicitly before using its local metadata context.');
+    }
+    return revision;
+  }
+
+  Future<String> prepareMetadataContextUnderLock(
+      CatalogSnapshot snapshot) async {
+    final existing = await metadataContextRevision(snapshot);
+    if (existing != null) return existing;
+    if (snapshot.admittedStoredBytes == null ||
+        !identical(snapshot.limits, limits)) {
+      throw const CatalogStorageException('catalog.preparation_required',
+          'Validate the catalog before preparing its local metadata context.');
+    }
+    final units = <CatalogDefinitionUnit>[];
+    String? cursor;
+    do {
+      final page = await snapshot.page(
+          kind: CatalogDefinitionKind.catalogMetadata,
+          limit: limits.indexPageSize,
+          cursor: cursor);
+      for (final entry in page.items) {
+        final unit = await snapshot.lookup(entry.key);
+        if (unit == null) {
+          throw const FormatException('catalog.context: missing metadata unit');
+        }
+        units.add(unit);
+      }
+      cursor = page.nextCursor;
+    } while (cursor != null);
+    units.sort((a, b) => a.key.compareTo(b.key));
+    final revision = computeAuthoringJsonFingerprint({
+      'contextVersion': 1,
+      'units': [
+        for (final unit in units)
+          [unit.key.toJson(), _metadataFingerprint(unit)]
+      ],
+    }, logicalName: 'catalog-metadata-context.json');
+    return _admissions.publishMetadataContext(snapshot, revision);
+  }
+
+  Future<void> publishMetadataContextTransitionUnderLock({
+    required CatalogSnapshot before,
+    required CatalogSnapshot after,
+    required Iterable<CatalogDefinitionKey> changedKeys,
+    bool metadataContextRequired = false,
+  }) async {
+    try {
+      final previous = await metadataContextRevision(before);
+      if (previous == null) {
+        if (metadataContextRequired) {
+          await requireMetadataContextAdmission(before);
+        }
+        return;
+      }
+      if (await metadataContextRevision(after) != null) return;
+      if (!identical(before.limits, limits) ||
+          !identical(after.limits, limits)) {
+        throw const FormatException('catalog.context: incompatible limits');
+      }
+      final keys = changedKeys
+          .where((key) => key.kind == CatalogDefinitionKind.catalogMetadata)
+          .toSet()
+          .toList()
+        ..sort();
+      final deltas = <List<Object?>>[];
+      for (final key in keys) {
+        final old = await before.lookup(key);
+        final next = await after.lookup(key);
+        final oldFingerprint = old == null ? null : _metadataFingerprint(old);
+        final nextFingerprint =
+            next == null ? null : _metadataFingerprint(next);
+        if (oldFingerprint != nextFingerprint) {
+          deltas.add([key.toJson(), oldFingerprint, nextFingerprint]);
+        }
+      }
+      final revision = deltas.isEmpty
+          ? previous
+          : computeAuthoringJsonFingerprint({
+              'contextVersion': 1,
+              'previous': previous,
+              'deltas': deltas,
+            }, logicalName: 'catalog-metadata-context-delta.json');
+      await _admissions.publishMetadataContext(after, revision);
+    } on FormatException {
+      if (metadataContextRequired) rethrow;
+    } on FileSystemException {
+      if (metadataContextRequired) rethrow;
+    }
+  }
+
+  static String _metadataFingerprint(CatalogDefinitionUnit unit) =>
+      computeAuthoringJsonFingerprint(unit.toJson(),
+          logicalName: 'catalog-metadata-unit.json');
 
   Future<void> publishHistoryConversionUnderLock(
       CatalogPreparedHistoryConversion prepared) async {
@@ -284,6 +388,9 @@ final class CatalogStorageStore {
         final published = await _openRoot(build.root);
         await published.snapshot.validate();
         await publishIndexAdmissionUnderLock(published.snapshot);
+        if (previous != null) {
+          await _preparePublishedMetadataContext(previous, published.snapshot);
+        }
         final head = _headBytes(build.root);
         if (head.length > maximumHeadBytes) {
           throw const CatalogStorageException(
@@ -304,6 +411,21 @@ final class CatalogStorageStore {
         await _gateway.deleteTransaction(operationId);
       }
     });
+  }
+
+  Future<void> _preparePublishedMetadataContext(
+      CatalogObjectReference previous, CatalogSnapshot next) async {
+    try {
+      if (await metadataContextRevision((await _openRoot(previous)).snapshot) ==
+          null) {
+        return;
+      }
+      await prepareMetadataContextUnderLock(next);
+    } on FormatException {
+      return;
+    } on FileSystemException {
+      return;
+    }
   }
 
   Future<PublishedCatalogSnapshot> _openRoot(CatalogObjectReference root,

@@ -6,6 +6,20 @@ import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_slider.
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 
 void main() {
+  testWidgets('occasional weather exposes timing and weights without real-weather fallback controls', (tester) async {
+    var patch = SpatialVisualPatch();
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: StatefulBuilder(builder: (context, setState) => SpatialVisualControls(camera: false, clock: false, patch: patch, inherited: SpatialVisualPatch(), onChanged: (next) => setState(() => patch = next)))))));
+    final select = find.byKey(const ValueKey('visual-weatherMode'));
+    await tester.ensureVisible(select); await tester.tap(select); await tester.pumpAndSettle();
+    await tester.tap(find.text('Météo occasionnelle').last); await tester.pumpAndSettle();
+    expect(patch.choice(SpatialVisualParameter.weatherMode), 'occasional');
+    expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
+    for (final key in ['weatherDryMinSeconds', 'weatherDryMaxSeconds', 'weatherEventMinSeconds', 'weatherEventMaxSeconds', 'weatherStormWeight']) {
+      expect(find.byKey(ValueKey('visual-$key')), findsOneWidget);
+    }
+    expect(find.byKey(const ValueKey('visual-weatherIntervalSeconds')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('time modes and automatic weather edit only their local settings', (tester) async {
     var patch = SpatialVisualPatch();
     await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: StatefulBuilder(builder: (context, setState) => SpatialVisualControls(

@@ -153,7 +153,7 @@ void main() {
               visualLoads++;
               return _Visuals([]);
             },
-            resourceLibraryBuilder: (context, guard, onSaved, onOpenTools) =>
+            resourceLibraryBuilder: (context, guard, onSaved, onOpenTools, onReplaceModelSource) =>
                 WorkingCatalogWorkspace(
                   session: scopedMapSession,
                   controller: catalog,
@@ -162,6 +162,7 @@ void main() {
                   embedded: true,
                   onSaved: onSaved,
                   onOpenTools: onOpenTools,
+                  onReplaceModelSource: onReplaceModelSource,
                 ),
             runtimeBuilder: (_, _, _) => const SizedBox(),
             onClose: () async {},

@@ -89,9 +89,9 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
         onFocusChange: (focused) {
           if (!focused) _releaseInput();
         },
-        child: GestureDetector(
+        child: Listener(
           behavior: HitTestBehavior.translucent,
-          onTap: _focus.requestFocus,
+          onPointerDown: (_) => _focus.requestFocus(),
           child: Stack(
             fit: StackFit.expand,
             children: [

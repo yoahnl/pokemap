@@ -27,8 +27,9 @@ class SpatialVisualControls extends StatelessWidget {
   final bool camera, clock;
   final VoidCallback? onEditStart, onEditEnd;
   SpatialVisualPatch get effective => inherited.overriddenBy(patch);
-  double number(SpatialVisualParameter p) => effective.number(p) ?? (p == SpatialVisualParameter.weatherIntervalSeconds ? 600 : p.minimum);
+  double number(SpatialVisualParameter p) => effective.number(p) ?? p.defaultNumber ?? (p == SpatialVisualParameter.weatherIntervalSeconds ? 600 : p.minimum);
   String get timeMode => effective.choice(SpatialVisualParameter.timeMode) ?? (flag(SpatialVisualParameter.dayNightEnabled) ? 'cycle' : 'fixed');
+  bool get occasionalWeather => effective.choice(SpatialVisualParameter.weatherMode) == 'occasional';
   bool get automaticWeather => const ['automatic', 'real'].contains(effective.choice(SpatialVisualParameter.weatherMode));
   List<String> get weatherSequence => effective.value(SpatialVisualParameter.weatherSequence) as List<String>? ?? const ['clear', 'cloudy', 'rain'];
   void selectWeather(SpatialWeatherKind kind) {
@@ -48,6 +49,21 @@ class SpatialVisualControls extends StatelessWidget {
   }
   bool flag(SpatialVisualParameter p) => effective.enabled(p) ?? false;
   void change(SpatialVisualParameter p, Object value) {
+    if (p.isWeatherEpisode) {
+      final current = effective;
+      if (p.index >= SpatialVisualParameter.weatherDrizzleWeight.index && value == 0 && const [SpatialVisualParameter.weatherDrizzleWeight, SpatialVisualParameter.weatherRainWeight, SpatialVisualParameter.weatherDownpourWeight, SpatialVisualParameter.weatherStormWeight].where((field) => field != p).every((field) => (current.number(field) ?? field.defaultNumber!) == 0)) return;
+      for (final pair in const [(SpatialVisualParameter.weatherDryMinSeconds, SpatialVisualParameter.weatherDryMaxSeconds), (SpatialVisualParameter.weatherEventMinSeconds, SpatialVisualParameter.weatherEventMaxSeconds)]) {
+        if (p == pair.$1 || p == pair.$2) {
+          final other = p == pair.$1 ? pair.$2 : pair.$1;
+          var next = patch.set(p, null).set(other, null).set(p, value);
+          final changed = value as double;
+          final existing = number(other);
+          next = next.set(other, p == pair.$1 ? math.max(changed, existing) : math.min(changed, existing));
+          onChanged?.call(next);
+          return;
+        }
+      }
+    }
     var next =
         (p == SpatialVisualParameter.fogStart ||
             p == SpatialVisualParameter.fogEnd)
@@ -59,7 +75,7 @@ class SpatialVisualControls extends StatelessWidget {
     if (p.isClock && p != SpatialVisualParameter.timeMode && next.choice(SpatialVisualParameter.timeMode) == null) {
       next = next.set(SpatialVisualParameter.timeMode, timeMode);
     }
-    if (p == SpatialVisualParameter.weatherMode && (value == 'automatic' || value == 'real')) {
+    if (p == SpatialVisualParameter.weatherMode && (value == 'automatic' || value == 'real' || value == 'occasional')) {
       next = next.set(SpatialVisualParameter.weatherEnabled, true);
     }
     if (p == SpatialVisualParameter.fieldOfViewDegrees) {
@@ -305,7 +321,7 @@ class SpatialVisualControls extends StatelessWidget {
             key: const ValueKey('visual-weatherMode'),
             label: 'Fonctionnement de la météo',
             value: effective.choice(SpatialVisualParameter.weatherMode) ?? 'fixed',
-            options: const {'fixed': 'Météo fixe', 'automatic': 'Météo automatique', 'real': 'Météo réelle du joueur'},
+            options: const {'fixed': 'Météo fixe', 'automatic': 'Météo automatique', 'real': 'Météo réelle du joueur', 'occasional': 'Météo occasionnelle'},
             onChanged: onChanged == null ? null : (value) => change(SpatialVisualParameter.weatherMode, value),
           ),
           inherit(SpatialVisualParameter.weatherMode),
@@ -315,13 +331,30 @@ class SpatialVisualControls extends StatelessWidget {
             Text(effective.requiresRealWeather ? 'Choisissez les météos de repli utilisées si le joueur désactive le service ou si les données sont indisponibles.' : 'Choisissez les temps autorisés. Le jeu les alterne dans la liste enregistrée et conserve sa progression entre les cartes.'),
             inherit(SpatialVisualParameter.weatherSequence),
           ],
+          if (occasionalWeather) ...[
+            const Text('Des épisodes de pluie espacés, séparés de la météo réelle. Le calendrier suit la partie entre les cartes et les sauvegardes. Les fréquences sont relatives : au moins un type doit rester autorisé.'),
+            for (final entry in const {
+              SpatialVisualParameter.weatherDryMinSeconds: 'Temps sec minimum',
+              SpatialVisualParameter.weatherDryMaxSeconds: 'Temps sec maximum',
+              SpatialVisualParameter.weatherEventMinSeconds: 'Durée minimale d’un épisode',
+              SpatialVisualParameter.weatherEventMaxSeconds: 'Durée maximale d’un épisode',
+            }.entries)
+              slider(entry.key, entry.value, 10, entry.key.maximum, format: (value) => '${(value / 60).toStringAsFixed(1)} min'),
+            for (final entry in const {
+              SpatialVisualParameter.weatherDrizzleWeight: 'Pluie douce · fréquence relative',
+              SpatialVisualParameter.weatherRainWeight: 'Pluie forte · fréquence relative',
+              SpatialVisualParameter.weatherDownpourWeight: 'Très forte pluie · fréquence relative',
+              SpatialVisualParameter.weatherStormWeight: 'Orage · fréquence relative',
+            }.entries)
+              slider(entry.key, entry.value, 0, 100, format: (value) => value.round().toString()),
+          ],
           toggle(
             SpatialVisualParameter.weatherEnabled,
             'Activer la météo',
             Icons.cloud_outlined,
             StudioAccent.water,
           ),
-          Wrap(
+          if (!occasionalWeather) Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 import 'package:map_core/map_core_domain.dart';
 
 final class ResourceImageImport {
@@ -143,6 +144,8 @@ final class ResourceMutationReceipt {
     this.pathRevisions = const {},
     this.changedMaps = const {},
     this.mapRevisions = const {},
+    this.changedModels = const {},
+    this.modelSourceRevisions = const {},
   });
 
   final ProjectManifest before;
@@ -158,6 +161,8 @@ final class ResourceMutationReceipt {
   final Map<String, String?> pathRevisions;
   final Map<String, MapData> changedMaps;
   final Map<String, String> mapRevisions;
+  final Map<String, ProjectModel3dEntry> changedModels;
+  final Map<String, String> modelSourceRevisions;
   bool get noChange => changedPaths.isEmpty;
 }
 

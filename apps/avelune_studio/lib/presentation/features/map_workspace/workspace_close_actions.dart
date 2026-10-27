@@ -3,11 +3,22 @@ part of 'workspace_actions.dart';
 extension _WorkspaceCloseActions on WorkspaceActions {
   Future<bool> _allowClose() async {
     final pack = resources()?.packTransfer;
-    if (pack != null && (pack.routeActive || pack.blocksClose || pack.operationActive)) {
+    if (pack != null &&
+        (pack.routeActive || pack.blocksClose || pack.operationActive)) {
       if (!await pack.requestClose()) return false;
     }
+    final pending = resources()?.pendingReceipt;
+    final publishedModelSource =
+        pending != null &&
+        const {
+          'model3d.source.replace',
+          'model3d.source.replace_batch',
+        }.contains(pending.actionId) &&
+        pending.changedModels.isNotEmpty &&
+        pending.operationId?.isNotEmpty == true &&
+        pending.revision.isNotEmpty;
     if (resources()?.managementDialogActive == true ||
-        resources()?.pendingReceipt != null) {
+        (pending != null && !publishedModelSource)) {
       return false;
     }
     if (!_flushDialogueEdit()) return false;

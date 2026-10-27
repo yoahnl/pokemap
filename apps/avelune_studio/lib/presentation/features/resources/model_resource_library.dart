@@ -65,19 +65,27 @@ Future<void> importStudioModel(
   }
 }
 
-Future<void> replaceStudioModelSource(
+Future<ResourceMutationReceipt?> replaceStudioModelSource(
   ResourceNavigation navigation,
   String modelId, {
   PickModelSource picker = pickNativeModel,
 }) async {
-  if (navigation.busy || navigation.port is! ModelResourcePort) return;
+  if (navigation.busy || navigation.port is! ModelResourcePort) return null;
+  if (navigation.pendingReceipt != null) {
+    navigation.setImportError(
+      'Actualisez la publication précédente avant de remplacer un modèle.',
+    );
+    return null;
+  }
+  navigation.error = null;
   navigation.setImportBusy(true);
   try {
     final source = await picker();
-    if (source == null || navigation.isDisposed) return;
+    if (source == null || navigation.isDisposed) return null;
     final receipt = await (navigation.port as ModelResourcePort)
         .replaceModelSource(modelId: modelId, sourcePath: source.path);
     await navigation.accept(receipt);
+    return receipt;
   } on ResourceFailure catch (failure) {
     navigation.pendingReceipt = failure.partialReceipt;
     if (!navigation.isDisposed) navigation.setImportError(failure.message);
@@ -86,6 +94,7 @@ Future<void> replaceStudioModelSource(
   } finally {
     if (!navigation.isDisposed) navigation.setImportBusy(false);
   }
+  return null;
 }
 
 class ModelResourceLibrary extends StatefulWidget {
