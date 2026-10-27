@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'hub_save_codec_executor.dart';
 
 /// Slot-level integrity primitives shared by reads, writes and migrations.
 ///
@@ -16,12 +16,14 @@ final class SaveSlotIntegrity {
     required this.identity,
     required this.codec,
     required this.compatibilityEvaluator,
+    this.codecExecutor = const HubSaveCodecExecutor(),
   });
 
   final Directory supportRoot;
   final GameIdentity identity;
   final SaveEnvelopeCodec codec;
   final SaveCompatibilityEvaluator compatibilityEvaluator;
+  final HubSaveCodecExecutor codecExecutor;
 
   static bool isUnsupportedContract(Object error) =>
       error is SaveContractException &&
@@ -33,25 +35,12 @@ final class SaveSlotIntegrity {
     SaveSlotAddress address,
   ) async {
     final content = await file.readAsString();
-    final decoded = jsonDecode(content);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Invalid save candidate.');
-    }
-    final format = decoded['saveFormat'];
-    final envelope = codec.decodeJson(
-      decoded,
-      acceptedSaveFormats: {
-        if (format is int && format <= identity.saveFormat) format,
-      },
+    return codecExecutor.decodeCandidate(
+      codec: codec,
+      source: content,
+      address: address,
+      currentSaveFormat: identity.saveFormat,
     );
-    if (envelope.profileId != address.profileId ||
-        envelope.slotId != address.slotId) {
-      throw const SaveContractException(
-        SaveContractErrorCode.addressMismatch,
-        'Save profile/slot does not match its storage address.',
-      );
-    }
-    return envelope;
   }
 
   Future<void> restoreAnyValidCurrent({
@@ -64,6 +53,8 @@ final class SaveSlotIntegrity {
       try {
         await decodeCandidate(current, address);
         return;
+      } on HubSaveCodecExecutionException {
+        rethrow;
       } catch (error) {
         if (isUnsupportedContract(error)) return;
       }
@@ -89,6 +80,8 @@ final class SaveSlotIntegrity {
     try {
       await decodeCandidate(file, address);
       return true;
+    } on HubSaveCodecExecutionException {
+      rethrow;
     } catch (_) {
       return false;
     }

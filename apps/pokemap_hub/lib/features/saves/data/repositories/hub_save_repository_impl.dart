@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/features/saves/domain/entities/save_profile.dart';
 import 'package:pokemap_hub/features/saves/domain/entities/save_slot_metadata.dart';
 import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_codec_executor.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/save_compatibility_diagnostics.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/save_path_guard.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/save_slot_integrity.dart';
@@ -34,6 +35,7 @@ final class HubSaveStore
     this.codec = const SaveEnvelopeCodec(),
     this.compatibilityEvaluator = const SaveCompatibilityEvaluator(),
     this.faultHook,
+    this.codecExecutor = const HubSaveCodecExecutor(),
   });
 
   final Directory supportRoot;
@@ -42,6 +44,7 @@ final class HubSaveStore
   final SaveEnvelopeCodec codec;
   final SaveCompatibilityEvaluator compatibilityEvaluator;
   final SaveWriteFaultHook? faultHook;
+  final HubSaveCodecExecutor codecExecutor;
 
   Future<T> _withFileLock<T>(
     Directory slot,
@@ -82,6 +85,7 @@ final class HubSaveStore
         identity: identity,
         codec: codec,
         compatibilityEvaluator: compatibilityEvaluator,
+        codecExecutor: codecExecutor,
       );
 
   SavePathGuard get _paths =>
@@ -99,32 +103,40 @@ final class HubSaveStore
   @override
   Future<SaveEnvelope> writeVerified(SaveEnvelope envelope) async {
     _paths.assertAddressScope(envelope.address);
-    // Même validation complète (champs + checksum) que l'ancien
-    // decode(encode(...)), sans matérialiser la chaîne JSON indentée ni la
-    // re-parser : le round-trip doublait le coût CPU de chaque checkpoint.
-    final validated = codec.decodeJson(
-      codec.toJson(envelope),
-      expectedAddress: envelope.address,
-      acceptedSaveFormats: <int>{identity.saveFormat},
-    );
-    final compatibility = compatibilityEvaluator.evaluate(
-      save: validated.compatibility,
-      game: identity,
-    );
-    if (!compatibility.isAccepted) {
-      throw SaveStorageException(
-        SaveStorageErrorCode.invalidEnvelope,
-        'Save is not compatible with the active game identity: '
-        '${compatibility.code?.name}.',
-      );
-    }
-    final slot = (await _paths.safeSlotDirectory(envelope.address, create: true))!;
     return _queueSlot<SaveEnvelope>(
-      slot.path,
-      () => _withFileLock<SaveEnvelope>(
-        slot,
-        () => _writeLocked(slot, validated),
+      p.join(
+        supportRoot.path,
+        'saves',
+        identity.gameId,
+        envelope.profileId,
+        envelope.slotId,
       ),
+      () async {
+        final validated = await codecExecutor.validate(
+          codec: codec,
+          envelope: envelope,
+          acceptedSaveFormats: <int>{identity.saveFormat},
+        );
+        final compatibility = compatibilityEvaluator.evaluate(
+          save: validated.compatibility,
+          game: identity,
+        );
+        if (!compatibility.isAccepted) {
+          throw SaveStorageException(
+            SaveStorageErrorCode.invalidEnvelope,
+            'Save is not compatible with the active game identity: '
+            '${compatibility.code?.name}.',
+          );
+        }
+        final slot = (await _paths.safeSlotDirectory(
+          envelope.address,
+          create: true,
+        ))!;
+        return _withFileLock<SaveEnvelope>(
+          slot,
+          () => _writeLocked(slot, validated),
+        );
+      },
     );
   }
 
@@ -311,6 +323,8 @@ final class HubSaveStore
             playTimeSeconds: result.envelope?.playTimeSeconds,
           ),
         );
+      } on HubSaveCodecExecutionException {
+        rethrow;
       } catch (_) {
         // Non-slot directories and hostile entries are ignored, never followed.
       }
@@ -366,6 +380,8 @@ final class HubSaveStore
             ),
           );
           if (result.canContinue) candidates.add(result);
+        } on HubSaveCodecExecutionException {
+          rethrow;
         } catch (_) {
           // Invalid directory names cannot participate in Continue.
         }
@@ -506,7 +522,10 @@ final class HubSaveStore
       await _paths.rejectLink(file.path);
     }
     if (!await primary.exists()) {
-      await primary.writeAsString(codec.encode(source), flush: true);
+      await primary.writeAsBytes(
+        await codecExecutor.encodeUtf8(codec: codec, envelope: source),
+        flush: true,
+      );
     }
     final verified = await _integrity.decodeCandidate(primary, source.address);
     if (verified.checksum != source.checksum) {
@@ -545,15 +564,18 @@ final class HubSaveStore
     try {
       final handle = await temporary.open(mode: FileMode.write);
       try {
-        await handle.writeFrom(codec.encodeUtf8(envelope));
+        await handle.writeFrom(
+          await codecExecutor.encodeUtf8(codec: codec, envelope: envelope),
+        );
         await handle.flush();
       } finally {
         await handle.close();
       }
       await _fault(SaveWriteStage.afterTemporaryFlushed);
-      codec.decode(
-        await temporary.readAsString(),
-        expectedAddress: envelope.address,
+      await codecExecutor.decode(
+        codec: codec,
+        source: await temporary.readAsString(),
+        address: envelope.address,
         acceptedSaveFormats: <int>{identity.saveFormat},
       );
       await _fault(SaveWriteStage.afterTemporaryVerified);
@@ -582,6 +604,8 @@ final class HubSaveStore
               'Refusing to overwrite an incompatible current save.',
             );
           }
+        } on HubSaveCodecExecutionException {
+          rethrow;
         } on SaveStorageException {
           rethrow;
         } catch (error) {
@@ -607,9 +631,10 @@ final class HubSaveStore
       await _fault(SaveWriteStage.afterBackupPromoted);
       await temporary.rename(current.path);
       await _fault(SaveWriteStage.afterCurrentPromoted);
-      final confirmed = codec.decode(
-        await current.readAsString(),
-        expectedAddress: envelope.address,
+      final confirmed = await codecExecutor.decode(
+        codec: codec,
+        source: await current.readAsString(),
+        address: envelope.address,
         acceptedSaveFormats: <int>{identity.saveFormat},
       );
       if (confirmed.checksum != envelope.checksum) {
@@ -620,12 +645,23 @@ final class HubSaveStore
       }
       await _fault(SaveWriteStage.afterCurrentConfirmed);
       return confirmed;
+    } on HubSaveCodecExecutionException {
+      rethrow;
     } catch (error) {
-      await _integrity.restoreAnyValidCurrent(
-        slot: slot,
-        address: envelope.address,
-        temporary: temporary,
-      );
+      try {
+        await _integrity.restoreAnyValidCurrent(
+          slot: slot,
+          address: envelope.address,
+          temporary: temporary,
+        );
+      } on HubSaveCodecExecutionException catch (recoveryError) {
+        throw HubSaveCodecExecutionException(
+          operation: recoveryError.operation,
+          cause: recoveryError.cause,
+          stackTrace: recoveryError.stackTrace,
+          precedingError: error,
+        );
+      }
       throw SaveStorageException(
         SaveStorageErrorCode.writeInterrupted,
         'Atomic save write was interrupted; a valid generation was retained.',
@@ -657,6 +693,8 @@ final class HubSaveStore
       SaveEnvelope envelope;
       try {
         envelope = await _integrity.decodeCandidate(file, address);
+      } on HubSaveCodecExecutionException {
+        rethrow;
       } catch (error) {
         if (SaveSlotIntegrity.isUnsupportedContract(error)) {
           return SaveSlotRead(
