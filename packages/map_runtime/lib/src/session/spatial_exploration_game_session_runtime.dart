@@ -1252,6 +1252,7 @@ final class SpatialExplorationGameSessionRuntime
     _syncMovement();
     _configureRealWeather();
     if (owner == RuntimeExternalInputLock.lifecycle) _syncMusicSuspension();
+    _startPendingContact();
   }
 
   void _syncMovement() {
@@ -1322,9 +1323,14 @@ final class SpatialExplorationGameSessionRuntime
     if (!_stopped && _session != null) _playWatch.start();
     _syncMovement();
     _configureRealWeather();
+    _startPendingContact();
+  }
+
+  void _startPendingContact() {
+    if (_disposed || _stopped || _paused || _locks.isNotEmpty) return;
     final contactId = _pendingContactId;
     _pendingContactId = null;
-    if (contactId != null && !_stopped) {
+    if (contactId != null) {
       unawaited(_runGameplay(() async {
         final called = await _gameplay?.callContact(contactId) ?? false;
         if (!called && !_disposed && !_stopped) throw StateError('The contact conversation is unavailable.');

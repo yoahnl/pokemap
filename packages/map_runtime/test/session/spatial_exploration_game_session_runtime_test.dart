@@ -867,6 +867,167 @@ void main() {
     expect(session.movement.moving, isFalse);
   });
 
+  for (final lifecycleLocked in [false, true]) {
+    test(
+      'contact call waits for controller pause locks, lifecycle=$lifecycleLocked',
+      () async {
+        await runtime.dispose();
+        final nodes = [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'talk',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(dialogueId: 'hello'),
+          ),
+          SceneNode(
+            id: 'reward',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.giveMoney(amount: 7),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ];
+        bundle = bundle.copyWith(
+          manifest: bundle.manifest.copyWith(
+            facts: [
+              for (final id in ['device-owned', 'mentor-known'])
+                NarrativeFactDefinition(id: id, label: id),
+            ],
+            contactDevice: ProjectContactDeviceConfig(
+              id: 'journal',
+              label: 'Journal',
+              acquiredFactId: 'device-owned',
+              emptyMessage: 'No contacts',
+              contacts: [
+                ProjectContactEntryConfig(
+                  id: 'mentor',
+                  label: 'Mentor',
+                  registeredFactId: 'mentor-known',
+                  sceneId: 'mentor-call',
+                  unavailableSceneId: 'mentor-call',
+                ),
+              ],
+            ),
+            scenes: [
+              SceneAsset(
+                id: 'mentor-call',
+                name: 'Mentor call',
+                graph: SceneGraph(
+                  startNodeId: 'start',
+                  nodes: nodes,
+                  edges: [
+                    for (var i = 0; i < nodes.length - 1; i++)
+                      SceneEdge(
+                        id: 'call-$i',
+                        fromNodeId: nodes[i].id,
+                        fromPortId: 'completed',
+                        toNodeId: nodes[i + 1].id,
+                        kind: nodes[i].kind == SceneNodeKind.action
+                            ? SceneEdgeKind.actionCompleted
+                            : SceneEdgeKind.defaultFlow,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+        final initial = descriptor().initialGameState!.copyWith(
+          narrativeFactRuntimeState: NarrativeFactRuntimeState(
+            overridesByFactId: {'device-owned': true, 'mentor-known': true},
+          ),
+        );
+        final launch = descriptor(
+          initialState: initial,
+          additionalCapabilities: {ProjectContactDeviceConfig.capabilityId},
+        );
+        final controller = GameSessionController(
+          adapterFactory: (_) => InProcessGameSessionAdapter(
+            runtimeFactory: (descriptor) =>
+                runtime = SpatialExplorationGameSessionRuntime(
+                  descriptor: descriptor,
+                  projectFilePath: () async => '${root.path}/project.json',
+                  preloadedInitialMap: ({
+                    required projectFilePath,
+                    required descriptor,
+                    required initialSave,
+                  }) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+                  mountSession: (_) async {},
+                  unmountSession: (_) async {},
+                ),
+          ),
+          commitCheckpoint: (_) async {},
+        );
+        addTearDown(controller.dispose);
+        await controller.prepare(launch);
+        await controller.start();
+        await runtime.gameplayReady;
+        await controller.pause();
+        final result = await controller.dispatchPauseCommand(
+          const RuntimePlayerPauseCommand.callContact(contactId: 'mentor'),
+        );
+        expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+        expect(result.resumeGameplay, isTrue);
+        if (lifecycleLocked) {
+          await runtime.setInputLock(
+            RuntimeExternalInputLock.lifecycle,
+            locked: true,
+          );
+        }
+        await controller.resume();
+        await Future<void>.delayed(const Duration(milliseconds: 30));
+        expect(runtime.session!.interactionError.value, isNull);
+        if (lifecycleLocked) {
+          expect(runtime.dialoguePresentationListenable.value, isNull);
+          await runtime.setInputLock(
+            RuntimeExternalInputLock.lifecycle,
+            locked: false,
+          );
+        }
+        await waitForValue(
+          runtime.dialoguePresentationListenable,
+          (value) => value != null,
+        );
+        expect(
+          runtime.dialoguePresentationListenable.value!.fullText,
+          'Salut !',
+        );
+        for (
+          var i = 0;
+          i < 8 && runtime.dialoguePresentationListenable.value != null;
+          i++
+        ) {
+          runtime.session!.confirmDialogue();
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(runtime.dialoguePresentationListenable.value, isNull);
+        await waitForValue(
+          runtime.inputAuthority,
+          (_) =>
+              runtime.gameStateSnapshot.trainerProfile.money ==
+                  initial.trainerProfile.money + 7 ||
+              runtime.session!.interactionError.value != null,
+        );
+        expect(runtime.session!.interactionError.value, isNull);
+        expect(
+          runtime.gameStateSnapshot.trainerProfile.money,
+          initial.trainerProfile.money + 7,
+        );
+        expect(runtime.inputAuthority.value.acceptsOverworldInput, isTrue);
+        await runtime.setInputLock(
+          RuntimeExternalInputLock.pauseMenu,
+          locked: false,
+        );
+        expect(runtime.dialoguePresentationListenable.value, isNull);
+        expect(
+          runtime.gameStateSnapshot.trainerProfile.money,
+          initial.trainerProfile.money + 7,
+        );
+      },
+    );
+  }
+
   test('awaited dialogue completes only after its last line', () async {
     await runtime.load((_) {});
     var completed = false;
