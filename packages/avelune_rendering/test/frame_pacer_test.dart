@@ -35,6 +35,20 @@ void main() {
     expect(gaps, {1, 2});
   });
 
+  for (final refreshRate in [60, 120]) {
+    for (final limit in [30, 60]) {
+      test('$limit FPS stays evenly paced on $refreshRate Hz with vsync jitter',
+          () {
+        final gaps = _simulateVsyncs(
+          limit: limit,
+          refreshRate: refreshRate,
+          jitterMicroseconds: 50,
+        );
+        expect(gaps, {refreshRate ~/ limit});
+      });
+    }
+  }
+
   test('a late frame advances directly to a future deadline', () {
     final pacer = AveluneFramePacer(limit: 30);
     pacer.frameStarted(Duration.zero);
@@ -71,6 +85,28 @@ void main() {
       const Duration(microseconds: 33333),
     );
   });
+}
+
+Set<int> _simulateVsyncs({
+  required int limit,
+  required int refreshRate,
+  required int jitterMicroseconds,
+}) {
+  final random = math.Random(7);
+  final pacer = AveluneFramePacer(limit: limit);
+  final period = 1000000 / refreshRate;
+  final drawn = <int>[];
+  for (var tick = 0; tick < refreshRate * 10; tick++) {
+    final jitter = (random.nextDouble() * 2 - 1) * jitterMicroseconds;
+    final now = Duration(microseconds: (tick * period + jitter).round());
+    if (pacer.delay(now) > Duration.zero) continue;
+    pacer.frameStarted(now);
+    drawn.add(tick);
+  }
+  return {
+    for (var index = 1; index < drawn.length; index++)
+      drawn[index] - drawn[index - 1],
+  };
 }
 
 List<Duration> _simulate({required int limit, required int refreshRate}) {
