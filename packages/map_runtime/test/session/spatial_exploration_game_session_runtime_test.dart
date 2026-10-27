@@ -281,6 +281,19 @@ void main() {
     expect(service.value.snapshot, isNull);
     expect(provider.requests, 1);
   });
+  test('a chosen player hour reaches the mounted session and follows later changes', () async {
+    const real = PlayerPreferencesSnapshot(locale: 'fr', accessibility: GameSessionAccessibilityOptions());
+    final noon = real.copyWith(worldTime: const RuntimeWorldTimePreferences(chosenMinuteOfDay: 720));
+    runtime.applyPlayerPreferences(noon);
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    expect(session.worldTimeOverrides, const RuntimeWorldTimePreferences(chosenMinuteOfDay: 720).visualOverrides);
+    final profile = SpatialVisualPatch.fromJson({'timeMode': 'real'});
+    expect(session.environmentClock.resolve(profile.overriddenBy(session.worldTimeOverrides), overrides: session.worldTimeOverrides).minuteOfDay, 720);
+    runtime.applyPlayerPreferences(real);
+    expect(session.worldTimeOverrides.isEmpty, isTrue);
+  });
   test('session frames checkpoint and Continue share one environment timeline', () async {
     bundle = bundle.copyWith(projectVisualProfile: SpatialVisualPatch.fromJson({
       'timeMode': 'cycle', 'dayDurationSeconds': 1200, 'minuteOfDay': 360,

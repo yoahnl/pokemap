@@ -59,6 +59,7 @@ import '../../player/runtime_capture_sprite_resolver.dart';
 import '../../player/runtime_audio_mixer.dart';
 import '../../player/overworld_sfx_player.dart';
 import '../../player/runtime_player_host.dart';
+import '../../player/runtime_world_time_preferences.dart';
 import '../../player/runtime_music_service.dart';
 import '../../player/runtime_scene_music_controller.dart';
 import '../../player/runtime_world_audio_controller.dart';
@@ -2487,6 +2488,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     reducedMotion = preferences.accessibility.reducedMotion;
     textScale = preferences.accessibility.textScale;
     setDialogueTextSpeed(preferences.dialogueTextSpeed);
+    _worldTime = preferences.worldTime;
   }
 
   /// Confie la boîte de dialogue au shell Flutter sans déplacer la machine
@@ -6669,6 +6671,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   final DateTime Function() _encounterClock;
+  RuntimeWorldTimePreferences _worldTime = const RuntimeWorldTimePreferences();
   int? _runtimeLocalMinuteOfDay;
   bool _npcHoursLineOfSightRefreshPending = false;
   final Map<(String, String), int> _npcPresenceMinuteWhileMoving = {};
@@ -6683,7 +6686,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               target.mapId == mapId && target.entityId == entityId));
 
   int _readLocalMinuteOfDay() {
-    final now = _encounterClock();
+    final now = _worldTime.worldTime(_encounterClock());
     return now.hour * 60 + now.minute;
   }
 

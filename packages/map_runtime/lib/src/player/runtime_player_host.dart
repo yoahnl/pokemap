@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../session/game_session_contract.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import 'runtime_audio_mixer.dart';
+import 'runtime_world_time_preferences.dart';
 
 /// Host-provided source for one game selected by the player.
 ///
@@ -132,6 +133,7 @@ final class PlayerPreferencesSnapshot {
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
     this.realWeather = const RealWeatherPreferences(),
+    this.worldTime = const RuntimeWorldTimePreferences(),
     this.targetFramesPerSecond = AveluneFrameRate.defaultLimit,
   })  : assert(locale != ''),
         assert(
@@ -159,6 +161,7 @@ final class PlayerPreferencesSnapshot {
   final RuntimePlayerMenuEffects menuEffects;
   final int targetFramesPerSecond;
   final RealWeatherPreferences realWeather;
+  final RuntimeWorldTimePreferences worldTime;
 
   PlayerPreferencesSnapshot copyWith({
     String? locale,
@@ -173,10 +176,12 @@ final class PlayerPreferencesSnapshot {
     RuntimePlayerMenuEffects? menuEffects,
     int? targetFramesPerSecond,
     RealWeatherPreferences? realWeather,
+    RuntimeWorldTimePreferences? worldTime,
   }) =>
       PlayerPreferencesSnapshot(
         locale: locale ?? this.locale,
         realWeather: realWeather ?? this.realWeather,
+        worldTime: worldTime ?? this.worldTime,
         accessibility: accessibility ?? this.accessibility,
         touchControlsOpacity: touchControlsOpacity ?? this.touchControlsOpacity,
         leftHandedTouchControls:

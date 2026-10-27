@@ -32,6 +32,7 @@ import '../player/runtime_scene_music_controller.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../presentation/flame/battle_music_resolver.dart';
 import '../player/runtime_world_service_models.dart';
+import '../player/runtime_world_time_preferences.dart';
 import '../application/runtime_overworld_interaction.dart';
 import 'runtime_overworld_interaction_port.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -190,8 +191,13 @@ final class SpatialExplorationGameSessionRuntime
     _preferences = preferences;
     if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
+    _session?.worldTimeOverrides = preferences.worldTime.visualOverrides;
     _configureRealWeather();
   }
+
+  DateTime _worldNow() =>
+      (_preferences?.worldTime ?? const RuntimeWorldTimePreferences())
+          .worldTime(_now());
 
   String get _mapActivationId =>
       '${descriptor.sessionId}:spatial:${(_session?.mapRevision.value ?? 0) + 1}';
@@ -498,7 +504,7 @@ final class SpatialExplorationGameSessionRuntime
     _gameplay = await SpatialGameplayEvents.create(
         project: project,
         currentWorldProject: () => _session?.bundle.manifest ?? project,
-        now: _now,
+        now: _worldNow,
         interactionPositionBlocked: (x, z, ignoredEntityId) => _session == null || !_session!.movement.canTraverseActor(x, z, x, z, ignoredEntityId: ignoredEntityId),
         currentModelDefinitions: () =>
             _session?.bundle.manifest.models3d ?? project.models3d,
@@ -1161,6 +1167,7 @@ final class SpatialExplorationGameSessionRuntime
       loaded.onLifecyclePausedChanged = (_) { _syncMusicSuspension(); _configureRealWeather(); };
       if (_preferences case final preferences?) {
         loaded.setTextSpeed(preferences.dialogueTextSpeed);
+        loaded.worldTimeOverrides = preferences.worldTime.visualOverrides;
       }
       _syncMovement();
       _mounted = true;

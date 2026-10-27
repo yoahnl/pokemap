@@ -284,6 +284,28 @@ void main() {
       expect(game.overworldInteractionSnapshot.primaryAction, isNull);
     },
   );
+
+  test('a chosen player hour replaces the device clock for NPC hours', () async {
+    final game = await _load(_cow(), () => _date(1410));
+    expect(game.overworldInteractionSnapshot.primaryAction, isNull);
+    const preferences = PlayerPreferencesSnapshot(
+      locale: 'fr',
+      accessibility: GameSessionAccessibilityOptions(),
+    );
+    game.applyPlayerPreferences(
+      preferences.copyWith(
+        worldTime: const RuntimeWorldTimePreferences(chosenMinuteOfDay: 720),
+      ),
+    );
+    game.update(.016);
+    expect(
+      game.overworldInteractionSnapshot.primaryAction?.request.targetId,
+      'cow',
+    );
+    game.applyPlayerPreferences(preferences);
+    game.update(.016);
+    expect(game.overworldInteractionSnapshot.primaryAction, isNull);
+  });
 }
 
 DateTime _date(int minute) => DateTime(2026, 10, 24, minute ~/ 60, minute % 60);

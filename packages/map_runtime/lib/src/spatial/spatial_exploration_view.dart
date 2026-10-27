@@ -9,6 +9,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 import '../application/runtime_map_bundle.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_weather_audio_controller.dart';
+import '../player/runtime_world_time_preferences.dart';
 import '../presentation/map_warp_transition_overlay.dart';
 import 'spatial_exploration_session.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
@@ -52,9 +53,15 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
       widget.sceneController ??
       (SpatialSceneController()..setView(SpatialEditorView.game));
   void applyVisuals() {
-    final overrides =
-        (widget.session.worldVisualProfile?.call() ?? SpatialVisualPatch())
-            .overriddenBy(widget.session.visualOverrides)
+    final world =
+        widget.session.worldVisualProfile?.call() ?? SpatialVisualPatch();
+    final timed =
+        RuntimeWorldTimePreferences.hasWorldClock(activeBundle.visualProfile) ||
+            RuntimeWorldTimePreferences.hasWorldClock(world)
+        ? world.overriddenBy(widget.session.worldTimeOverrides)
+        : world;
+    final overrides = timed
+        .overriddenBy(widget.session.visualOverrides)
             .overriddenBy(widget.session.cinematicVisualOverrides)
             .overriddenBy(widget.previewVisuals?.value ?? SpatialVisualPatch());
     final authored = activeBundle.visualProfile.overriddenBy(overrides);

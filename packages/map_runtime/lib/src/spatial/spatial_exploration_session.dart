@@ -207,6 +207,7 @@ final class SpatialExplorationSession {
   SpatialCinematicActorPose? Function(MapEntity)? npcAutonomousPose;
   SpatialCinematicCameraPose? Function()? storyCamera;
   SpatialVisualPatch visualOverrides = SpatialVisualPatch();
+  SpatialVisualPatch worldTimeOverrides = SpatialVisualPatch();
   SpatialVisualPatch cinematicVisualOverrides = SpatialVisualPatch();
   final cinematicFadeOpacity = ValueNotifier(0.0);
   SpatialVisualPatch Function()? worldVisualProfile;

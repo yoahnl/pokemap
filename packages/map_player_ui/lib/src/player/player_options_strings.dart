@@ -8,6 +8,7 @@ enum PlayerOptionsCategory {
   controls,
   language,
   weather,
+  time,
   accessibility
 }
 
@@ -24,6 +25,7 @@ final class PlayerOptionsStrings {
   String category(PlayerOptionsCategory value) => switch (value) {
         PlayerOptionsCategory.general => text('Général', 'General'),
         PlayerOptionsCategory.weather => text('Météo', 'Weather'),
+        PlayerOptionsCategory.time => text('Heure', 'Time'),
         PlayerOptionsCategory.display => text('Affichage', 'Display'),
         PlayerOptionsCategory.audio => text('Son', 'Sound'),
         PlayerOptionsCategory.controls => text('Commandes', 'Controls'),
@@ -47,6 +49,9 @@ final class PlayerOptionsStrings {
 
   String help(PlayerOptionsCategory value) => switch (value) {
         PlayerOptionsCategory.weather => text('Choisissez la source de la météo réelle. Les scènes du jeu gardent la priorité.', 'Choose the source for real weather. Story scenes keep priority.'),
+        PlayerOptionsCategory.time => text(
+            'L’heure réelle suit l’horloge prévue par le jeu, souvent celle de l’appareil. Une heure choisie fige le jour et la nuit, et les événements liés à l’heure la suivent. Les scènes du jeu gardent la priorité.',
+            'Real time follows the clock the game intends, usually the device clock. A chosen hour freezes day and night, and time-based events follow it. Story scenes keep priority.'),
         PlayerOptionsCategory.general => text(
             'Choisissez la vitesse d’affichage des dialogues.',
             'Choose how quickly dialogue text appears.'),
@@ -82,6 +87,13 @@ final class PlayerOptionsStrings {
   String get textSpeed => text('Vitesse des textes', 'Text speed');
   String get menuEffects => text('Effets du menu', 'Menu effects');
   String get frameRateLimit => text('Images par seconde', 'Frames per second');
+  String get worldTime => text('Heure du monde', 'World time');
+  String worldTimeValue(RuntimeWorldTimePreferences value) =>
+      switch (value.chosenMinuteOfDay) {
+        final minute? =>
+          '${(minute ~/ 60).toString().padLeft(2, '0')}:${(minute % 60).toString().padLeft(2, '0')}',
+        _ => text('Heure réelle', 'Real time'),
+      };
   String frameRate(int value) => '$value FPS';
   String get master => text('Volume principal', 'Master volume');
   String get music => text('Musique', 'Music');

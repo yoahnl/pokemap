@@ -800,6 +800,37 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         ...RuntimeRealWeatherOptions(preferences: preferences.realWeather, service: widget.weatherService,
           onChanged: !_enabled ? null : (weather) => _save(_confirmed.copyWith(realWeather: weather))).sections(context),
       ],
+      PlayerOptionsCategory.time => [
+        _choiceRow(
+          _strings.worldTime,
+          _strings.worldTimeValue(preferences.worldTime),
+          'world-time',
+          compact,
+          () async {
+            final value = await _choose(
+              _strings.worldTime,
+              preferences.worldTime,
+              {
+                for (final choice in [
+                  const RuntimeWorldTimePreferences(),
+                  for (var hour = 0; hour < 24; hour++)
+                    RuntimeWorldTimePreferences(chosenMinuteOfDay: hour * 60),
+                  preferences.worldTime,
+                ])
+                  choice: _strings.worldTimeValue(choice),
+              },
+              (value) => value.chosenMinuteOfDay?.toString() ?? 'real',
+              focusAfterClose: _choiceNode('world-time'),
+            );
+            if (value != null) {
+              await _save(
+                _confirmed.copyWith(worldTime: value),
+                focusAfterSave: _choiceNode('world-time'),
+              );
+            }
+          },
+        ),
+      ],
       PlayerOptionsCategory.general => [
 
         _choiceRow(
@@ -1477,6 +1508,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     final defaults = widget.defaultPreferences;
     return switch (_category) {
       PlayerOptionsCategory.weather => value.realWeather != defaults.realWeather,
+      PlayerOptionsCategory.time => value.worldTime != defaults.worldTime,
       PlayerOptionsCategory.general =>
         value.dialogueTextSpeed != defaults.dialogueTextSpeed,
       PlayerOptionsCategory.display =>
@@ -1515,6 +1547,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     final defaults = widget.defaultPreferences;
     await _save(switch (category) {
       PlayerOptionsCategory.weather => _confirmed.copyWith(realWeather: defaults.realWeather),
+      PlayerOptionsCategory.time => _confirmed.copyWith(worldTime: defaults.worldTime),
       PlayerOptionsCategory.general => _confirmed.copyWith(
         dialogueTextSpeed: defaults.dialogueTextSpeed,
       ),
@@ -1548,6 +1581,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   IconData _icon(PlayerOptionsCategory category) => switch (category) {
     PlayerOptionsCategory.general => Icons.tune_rounded,
     PlayerOptionsCategory.weather => Icons.cloud_outlined,
+    PlayerOptionsCategory.time => Icons.schedule_rounded,
     PlayerOptionsCategory.display => Icons.desktop_windows_rounded,
     PlayerOptionsCategory.audio => Icons.volume_up_rounded,
     PlayerOptionsCategory.controls => Icons.sports_esports_rounded,
