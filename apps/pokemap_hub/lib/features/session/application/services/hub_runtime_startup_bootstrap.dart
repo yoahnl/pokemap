@@ -268,13 +268,7 @@ final class HubRuntimeStartupBootstrap
         expectedIdentity: launch.identity,
         projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,
-        resourceProfile: spatial
-            ? const RuntimeResourceProfile()
-            : const RuntimeResourceProfile(
-                maximumResidentBytes: 256 * 1024 * 1024,
-                maximumTransientBytes: 256 * 1024 * 1024,
-                maximumConcurrentDecodes: 1,
-              ),
+        resourceProfile: hubRuntimeResourceProfile(spatial: spatial),
       );
       ownedPreloader = initialMapPreloader;
       preparedCatalog = null;
@@ -375,6 +369,15 @@ final class HubRuntimeStartupBootstrap
     }
   }
 }
+
+RuntimeResourceProfile hubRuntimeResourceProfile({required bool spatial}) =>
+    spatial
+    ? const RuntimeResourceProfile(maximumResidentBytes: 256 * 1024 * 1024)
+    : const RuntimeResourceProfile(
+        maximumResidentBytes: 256 * 1024 * 1024,
+        maximumTransientBytes: 256 * 1024 * 1024,
+        maximumConcurrentDecodes: 1,
+      );
 
 bool _referencesPresentationMedia(ProjectManifest project) {
   for (final cinematic in project.presentationCinematics) {
