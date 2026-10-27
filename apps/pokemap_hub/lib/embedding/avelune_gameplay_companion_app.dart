@@ -221,6 +221,7 @@ class _AveluneGameplayCompanionAppState
               ? null
               : '${snapshot.sessionId}:$key';
           final dataReady =
+              snapshot?.mode == AveluneGameplayCompanionMode.waiting ||
               snapshot?.mode == AveluneGameplayCompanionMode.menu &&
                   snapshot?.player != null ||
               snapshot?.mode == AveluneGameplayCompanionMode.battle &&

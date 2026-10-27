@@ -1409,8 +1409,16 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     final delegatesNarrative =
         companion != null &&
         companion.companionAttached &&
+        companion.narrativeReady &&
+        companion.mode == AveluneGameplayCompanionMode.menu &&
+        companion.player?.revision == snapshot.revision &&
         snapshot.phase == RuntimePlayerPhase.preSession &&
         snapshot.preSessionRequest is SceneTextInteractionRequest &&
+        companion.narrativeIdentity ==
+            AveluneGameplayCompanionData(
+              mode: AveluneGameplayCompanionMode.menu,
+              player: snapshot,
+            ).narrativeIdentity &&
         _mountedGame?.battleExitTransitionVisible.value != true;
     final delegatesCompanion =
         companion != null &&

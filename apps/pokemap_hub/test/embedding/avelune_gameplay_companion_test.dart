@@ -24,7 +24,7 @@ void main() {
       await owner.refresh();
       const press = RuntimeInputEvent.press(RuntimeInputControl.down);
       expect(owner.inputPayload(press), isNull);
-      owner.setCompanionAttached('battle-session', true);
+      await owner.setCompanionAttached('battle-session', true);
       final current = owner.value!;
       final input = owner.inputPayload(press)!;
       expect(input['mode'], 'battle');
@@ -44,7 +44,7 @@ void main() {
       await owner.applyIntent(intent);
       await owner.applyIntent(intent);
       expect(port.executed, hasLength(1));
-      owner.setCompanionAttached('battle-session', false);
+      await owner.setCompanionAttached('battle-session', false);
       expect(port.battleReleases, 1);
       await expectLater(
         owner.applyIntent({...intent, 'sequence': 2}),
@@ -487,7 +487,7 @@ void main() {
     owner.start('title-session');
     owner.bind(port);
     await owner.refresh();
-    owner.setCompanionAttached('title-session', true);
+    await owner.setCompanionAttached('title-session', true);
     final initial = owner.value!;
     expect(initial.narrativeIdentity, isNotNull);
     await expectLater(
@@ -536,8 +536,8 @@ void main() {
       _error('staleRevision'),
     );
     final beforeDetach = owner.value!;
-    owner.setCompanionAttached('title-session', false);
-    owner.setCompanionAttached('title-session', true);
+    await owner.setCompanionAttached('title-session', false);
+    await owner.setCompanionAttached('title-session', true);
     expect(owner.value!.narrativeReady, isFalse);
     await expectLater(
       owner.applyIntent({
@@ -619,7 +619,7 @@ void main() {
     owner.start('reveal');
     owner.bind(port);
     await owner.refresh();
-    owner.setCompanionAttached('reveal', true);
+    await owner.setCompanionAttached('reveal', true);
     final painted = owner.value!;
     port.dialogue = _narrative(revision: 9, text: 'Bo');
     await owner.refresh();
@@ -718,7 +718,7 @@ void main() {
     owner.start('narrative-session');
     owner.bind(port);
     await owner.refresh();
-    owner.setCompanionAttached('narrative-session', true);
+    await owner.setCompanionAttached('narrative-session', true);
     final initial = owner.value!;
     final command = {
       ..._intent(initial),
@@ -770,7 +770,7 @@ void main() {
       _error('staleRevision'),
     );
     final beforeDetach = owner.value!;
-    owner.setCompanionAttached('narrative-session', false);
+    await owner.setCompanionAttached('narrative-session', false);
     expect(owner.value!.narrativeReady, isFalse);
     await expectLater(
       owner.applyIntent({
@@ -780,7 +780,7 @@ void main() {
       }),
       _error('companionDetached'),
     );
-    owner.setCompanionAttached('narrative-session', true);
+    await owner.setCompanionAttached('narrative-session', true);
     await expectLater(
       owner.applyIntent({
         ..._intent(owner.value!, sequence: 3),
@@ -1058,7 +1058,7 @@ void main() {
     owner.start('session-a');
     owner.bind(port);
     await owner.refresh();
-    owner.setCompanionAttached('session-a', true);
+    await owner.setCompanionAttached('session-a', true);
     final intent = {
       ..._intent(owner.value!),
       'kind': 'worldService',
@@ -1294,7 +1294,7 @@ void main() {
     final port = _Port();
     owner.start('session-a');
     owner.bind(port);
-    await owner.refresh();
+    await owner.setCompanionAttached('session-a', true);
     final state = owner.value!;
     expect(state.mode, AveluneGameplayCompanionMode.menu);
     expect(state.player!.revision, 7);
@@ -1307,6 +1307,269 @@ void main() {
     );
   });
 
+  test('an owner without a companion skips 300 notifications and explicit refreshes', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port();
+    owner.start('session-a');
+    final initial = owner.value;
+    owner.bind(port);
+    await owner.refresh();
+    for (var revision = 0; revision < 300; revision++) {
+      port.presentation = {'revision': revision};
+      owner.invalidate();
+      await Future<void>.delayed(Duration.zero);
+    }
+    await owner.refresh();
+    expect(port.reads, 0);
+    expect(owner.value, same(initial));
+    expect(port.executed, isEmpty);
+  });
+
+  test('late attachment reads fresh state without another notification', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port();
+    owner.start('session-a');
+    owner.bind(port);
+    await owner.refresh();
+    final previousReads = port.reads;
+    port.playerOverride = RuntimePlayerSnapshot(
+      revision: 22,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Updated game',
+    );
+    owner.setCompanionAttached('session-a', true);
+    await Future<void>.delayed(Duration.zero);
+    expect(port.reads, previousReads + 1);
+    expect(owner.value!.player!.revision, 22);
+    expect(owner.value!.player!.gameTitle, 'Updated game');
+    expect(port.executed, isEmpty);
+  });
+
+  test('native transport does not project before a companion attaches', () async {
+    const channel = MethodChannel('avelune.gameplay.test.owner-lazy');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    final owner = AveluneGameplayCompanionOwner();
+    final bridge = AveluneGameplayCompanionBridge(owner, channel: channel);
+    addTearDown(() {
+      bridge.detach();
+      owner.dispose();
+      messenger.setMockMethodCallHandler(channel, null);
+    });
+    bridge.attach();
+    final port = _Port();
+    owner.bind(port);
+    final started = AveluneGameplayCompanionSnapshot.fromPayload(
+      await _nativeCall(channel, 'start', {'sessionId': 'session-a'}),
+    );
+    expect(started.mode, AveluneGameplayCompanionMode.waiting);
+    final snapshot = AveluneGameplayCompanionSnapshot.fromPayload(
+      await _nativeCall(channel, 'snapshot', null),
+    );
+    expect(snapshot.companionAttached, isFalse);
+    expect(snapshot.player, isNull);
+    expect(port.reads, 0);
+    await expectLater(_nativeCall(channel, 'setCompanionAttached', {
+      'sessionId': 'old-session',
+      'attached': true,
+    }), _error('staleSession'));
+    final attached = AveluneGameplayCompanionSnapshot.fromPayload(
+      await _nativeCall(channel, 'setCompanionAttached', {
+        'sessionId': 'session-a',
+        'attached': true,
+      }),
+    );
+    expect(attached.player!.revision, 7);
+    expect(port.reads, 1);
+  });
+
+  test('native reattachment reply waits for a fresh projection', () async {
+    const channel = MethodChannel('avelune.gameplay.test.owner-reattach');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => null);
+    final owner = AveluneGameplayCompanionOwner();
+    final bridge = AveluneGameplayCompanionBridge(owner, channel: channel);
+    final gate = Completer<void>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+      bridge.detach();
+      owner.dispose();
+      messenger.setMockMethodCallHandler(channel, null);
+    });
+    bridge.attach();
+    final port = _Port();
+    owner.start('session-a');
+    owner.setCompanionAttached('session-a', true);
+    owner.bind(port);
+    await owner.refresh();
+    owner.setCompanionAttached('session-a', false);
+    final previousReads = port.reads;
+    port.readGate = gate;
+    port.playerOverride = RuntimePlayerSnapshot(
+      revision: 22,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Updated game',
+    );
+    var replied = false;
+    final attachment = _nativeCall(channel, 'setCompanionAttached', {
+      'sessionId': 'session-a',
+      'attached': true,
+    }).then((reply) {
+      replied = true;
+      return AveluneGameplayCompanionSnapshot.fromPayload(reply);
+    });
+    await Future<void>.delayed(Duration.zero);
+    expect(replied, isFalse);
+    expect(port.reads, previousReads + 1);
+    gate.complete();
+    expect((await attachment).player!.revision, 22);
+    expect(port.reads, previousReads + 1);
+  });
+
+  test('reattachment waits for fresh data before accepting cached menu actions', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port()..paused = true;
+    owner.start('session-a');
+    owner.setCompanionAttached('session-a', true);
+    owner.bind(port);
+    await owner.refresh();
+    final previous = owner.value!;
+    final previousReads = port.reads;
+    owner.setCompanionAttached('session-a', false);
+    final gate = Completer<void>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+    port.readGate = gate;
+    port.playerOverride = RuntimePlayerSnapshot(
+      revision: 22,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Updated game',
+    );
+    owner.setCompanionAttached('session-a', true);
+    expect(owner.value!.mode, AveluneGameplayCompanionMode.waiting);
+    expect(owner.value!.player, isNull);
+    expect(owner.inputPayload(
+      const RuntimeInputEvent.press(RuntimeInputControl.primary),
+    ), isNull);
+    await expectLater(owner.applyIntent({
+      ..._intent(previous),
+      'revision': owner.value!.revision,
+      'mode': owner.value!.mode.name,
+    }), _error('companionUnavailable'));
+    gate.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(port.reads, previousReads + 1);
+    expect(owner.value!.player!.revision, 22);
+    expect(port.executed, isEmpty);
+  });
+
+  test('detaching discards an in-flight projection and its queued refreshes', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port()..battle = _battleFixture();
+    owner.start('session-a');
+    owner.setCompanionAttached('session-a', true);
+    owner.bind(port);
+    await owner.refresh();
+    final previousReads = port.reads;
+    final gate = Completer<void>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+    port.readGate = gate;
+    port.battle = _battleFixture(revision: 21);
+    owner.invalidate();
+    final completed = owner.refresh();
+    owner.setCompanionAttached('session-a', false);
+    final detached = owner.value;
+    for (var notification = 0; notification < 300; notification++) {
+      owner.invalidate();
+    }
+    gate.complete();
+    await completed;
+    expect(port.reads, previousReads + 1);
+    expect(port.maximumConcurrentReads, 1);
+    expect(owner.value, same(detached));
+    expect(port.battleReleases, 1);
+    expect(owner.inputPayload(
+      const RuntimeInputEvent.press(RuntimeInputControl.down),
+    ), isNull);
+  });
+
+  test('reattachment during an obsolete read publishes only the fresh generation', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final gate = Completer<void>();
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+    final port = _Port()..readGate = gate;
+    owner.start('session-a');
+    owner.setCompanionAttached('session-a', true);
+    owner.bind(port);
+    owner.setCompanionAttached('session-a', false);
+    port.playerOverride = RuntimePlayerSnapshot(
+      revision: 22,
+      phase: RuntimePlayerPhase.paused,
+      gameTitle: 'Updated game',
+    );
+    owner.setCompanionAttached('session-a', true);
+    final published = <AveluneGameplayCompanionSnapshot?>[];
+    owner.addListener(() => published.add(owner.value));
+    gate.complete();
+    await Future<void>.delayed(Duration.zero);
+    expect(port.reads, 2);
+    expect(port.maximumConcurrentReads, 1);
+    expect(published, hasLength(1));
+    expect(published.single!.player!.revision, 22);
+  });
+
+  test('detaching discards an in-flight error without publishing or retrying', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final gate = Completer<void>();
+    final port = _Port()..readGate = gate;
+    owner.start('session-a');
+    await owner.setCompanionAttached('session-a', true);
+    owner.bind(port);
+    final completed = owner.refresh();
+    await owner.setCompanionAttached('session-a', false);
+    final detached = owner.value;
+    owner.invalidate();
+    gate.completeError(StateError('obsolete read'));
+    await completed;
+    expect(port.reads, 1);
+    expect(owner.value, same(detached));
+    expect(owner.value!.mode, AveluneGameplayCompanionMode.waiting);
+    expect(port.battleReleases, 1);
+  });
+
+  test('reattachment queued as a read completes still refreshes the consumer', () async {
+    final owner = AveluneGameplayCompanionOwner();
+    addTearDown(owner.dispose);
+    final port = _Port();
+    owner.start('session-a');
+    await owner.setCompanionAttached('session-a', true);
+    var reattached = false;
+    owner.addListener(() {
+      if (reattached || owner.value?.player == null) return;
+      reattached = true;
+      owner.setCompanionAttached('session-a', false);
+      scheduleMicrotask(() => owner.setCompanionAttached('session-a', true));
+    });
+    owner.bind(port);
+    await Future<void>.delayed(Duration.zero);
+    expect(port.reads, 2);
+    expect(port.maximumConcurrentReads, 1);
+    expect(owner.value!.mode, AveluneGameplayCompanionMode.menu);
+  });
+
   test(
     'intent rejects stale session revision mode and detached surfaces',
     () async {
@@ -1317,10 +1580,15 @@ void main() {
       await owner.refresh();
       final state = owner.value!;
       await expectLater(
-        owner.applyIntent(_intent(state)),
+        owner.applyIntent({
+          ..._intent(_savedSnapshot()),
+          'sessionId': state.sessionId,
+          'revision': state.revision,
+          'mode': state.mode.name,
+        }),
         _error('companionDetached'),
       );
-      owner.setCompanionAttached('session-a', true);
+      await owner.setCompanionAttached('session-a', true);
       final attached = owner.value!;
       await expectLater(
         owner.applyIntent({..._intent(attached), 'sessionId': 'old'}),
@@ -1347,7 +1615,7 @@ void main() {
     owner.start('session-a');
     owner.bind(port);
     await owner.refresh();
-    owner.setCompanionAttached('session-a', true);
+    await owner.setCompanionAttached('session-a', true);
     final intent = _intent(owner.value!);
     final first = owner.applyIntent(intent);
     await Future<void>.delayed(Duration.zero);
@@ -1368,7 +1636,7 @@ void main() {
     owner.start('session-a');
     owner.bind(port);
     await owner.refresh();
-    owner.setCompanionAttached('session-a', true);
+    await owner.setCompanionAttached('session-a', true);
     port.gate = Completer<void>();
     final action = owner.applyIntent(_intent(owner.value!));
     await Future<void>.delayed(Duration.zero);
@@ -1389,7 +1657,7 @@ void main() {
       owner.start('session-a');
       owner.bind(port);
       await owner.refresh();
-      owner.setCompanionAttached('session-a', true);
+      await owner.setCompanionAttached('session-a', true);
       expect(
         owner.inputPayload(
           const RuntimeInputEvent.press(RuntimeInputControl.primary),
@@ -1403,7 +1671,7 @@ void main() {
       expect(input!['sessionId'], 'session-a');
       expect(input['control'], 'primary');
       expect(input['phase'], 'press');
-      owner.setCompanionAttached('session-a', false);
+      await owner.setCompanionAttached('session-a', false);
       expect(
         owner.inputPayload(
           const RuntimeInputEvent.press(RuntimeInputControl.primary),
@@ -1418,6 +1686,7 @@ void main() {
     addTearDown(owner.dispose);
     final port = _Port()..readGate = Completer<void>();
     owner.start('session-a');
+    await owner.setCompanionAttached('session-a', true);
     owner.bind(port);
     owner.invalidate();
     owner.invalidate();
@@ -1438,6 +1707,7 @@ void main() {
       addTearDown(owner.dispose);
       final port = _Port()..readGate = Completer<void>();
       owner.start('session-a');
+      await owner.setCompanionAttached('session-a', true);
       owner.bind(port);
       final completed = owner.refresh();
       owner.stop('session-a');
@@ -1824,9 +2094,7 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
     if (concurrentReads > maximumConcurrentReads) {
       maximumConcurrentReads = concurrentReads;
     }
-    await readGate?.future;
-    concurrentReads--;
-    return AveluneGameplayCompanionData(
+    final data = AveluneGameplayCompanionData(
       mode: battle == null
           ? AveluneGameplayCompanionMode.menu
           : AveluneGameplayCompanionMode.battle,
@@ -1849,6 +2117,9 @@ class _Port implements AveluneGameplayCompanionOwnerPort {
             ],
           ),
     );
+    await readGate?.future;
+    concurrentReads--;
+    return data;
   }
 
   @override

@@ -52,6 +52,7 @@ class RuntimeCompanionSession(
     private val mutableAttached = MutableStateFlow(false)
     val attached = mutableAttached.asStateFlow()
     private var relay: RuntimeCompanionRelay? = null
+    private var attachment: RuntimeCompanionAttachment? = null
     private var ownerActivity: RuntimeActivity? = null
     private var ownerVisible = false
     private var ownerResumed = false
@@ -91,7 +92,27 @@ class RuntimeCompanionSession(
     fun prepare(): String {
         check(!closed && relay == null) { "La partie précédente est encore en cours de fermeture." }
         val sessionId = UUID.randomUUID().toString()
-        relay = RuntimeCompanionRelay(sessionId)
+        val current = RuntimeCompanionRelay(sessionId)
+        relay = current
+        attachment = RuntimeCompanionAttachment(
+            scope = scope,
+            canReport = { attached -> relay === current && !closed && (!attached || !ending) },
+            report = { attached, beforeInvoke ->
+                val response = invokeOwner("setCompanionAttached", mapOf("sessionId" to current.sessionId, "attached" to attached), beforeInvoke)
+                check(response is Map<*, *> && response["sessionId"] == current.sessionId) {
+                    "Cet écran compagnon appartient à une autre partie."
+                }
+                response
+            },
+            onReply = { response -> acceptReply(current, response) },
+            onFailure = { attached, error ->
+                if (attached && relay === current && mutableAttached.value) {
+                    blockedDisplayId = companion?.lease?.displayId
+                    closeCompanion()
+                }
+                Log.w(TAG, "Companion attachment could not be reported", error)
+            },
+        )
         ending = false
         started = false
         blockedDisplayId = null
@@ -329,7 +350,7 @@ class RuntimeCompanionSession(
                 } else when (call.method) {
                     "companionReady" -> {
                         next.connected = true
-                        result.success(current.snapshot)
+                        result.success(attachment?.snapshot(current.snapshot))
                     }
                     "surfaceReady" -> {
                         val arguments = call.arguments as? Map<*, *>
@@ -338,7 +359,7 @@ class RuntimeCompanionSession(
                         } else {
                             next.ready = arguments["ready"] as? Boolean ?: true
                             updateAttachment()
-                            result.success(current.snapshot)
+                            result.success(attachment?.snapshot(current.snapshot))
                         }
                     }
                     "intent" -> scope.launch {
@@ -346,13 +367,13 @@ class RuntimeCompanionSession(
                             val request = current.companionIntent(call.arguments, lease.sourceId)
                             val response = invokeOwner("intent", request) {
                                 check(companion === next && windows.isCurrent(lease.generation) && relay === current &&
-                                    mutableAttached.value && started && !ending && !closed) { "Cet écran compagnon a été fermé." }
+                                    mutableAttached.value && attachment?.isConfirmed == true && started && !ending && !closed) { "Cet écran compagnon a été fermé." }
                             }
                             check(companion === next && relay === current && windows.isCurrent(lease.generation) && !ending && !closed) {
                                 "Cet écran compagnon a été fermé."
                             }
                             acceptReply(current, response)
-                            result.success(current.snapshot)
+                            result.success(attachment?.snapshot(current.snapshot))
                         } catch (error: Exception) {
                             if (error is OwnerMethodFailure) result.error(error.code, error.message, error.details)
                             else result.error("companionIntentFailed", error.message, null)
@@ -438,23 +459,9 @@ class RuntimeCompanionSession(
         )
         if (attached == mutableAttached.value) return
         mutableAttached.value = attached
-        if (attached) broadcastSnapshot(relay?.snapshot)
-        val current = relay ?: return
         if (!started || closed) return
-        scope.launch {
-            runCatching {
-                val response = invokeOwner("setCompanionAttached", mapOf("sessionId" to current.sessionId, "attached" to attached)) {
-                    check(relay === current && !closed && mutableAttached.value == attached && (!attached || !ending))
-                }
-                if (relay === current && !ending) acceptReply(current, response)
-            }.onFailure {
-                if (attached && relay === current && mutableAttached.value) {
-                    blockedDisplayId = companion?.lease?.displayId
-                    closeCompanion()
-                }
-                Log.w(TAG, "Companion attachment could not be reported", it)
-            }
-        }
+        attachment?.update(attached)
+        broadcastSnapshot(relay?.snapshot)
     }
 
     private fun closeCompanion() {
@@ -484,18 +491,18 @@ class RuntimeCompanionSession(
 
     private fun acceptReply(current: RuntimeCompanionRelay, payload: Any?) {
         if (relay !== current || payload == null || ending || closed) return
-        val snapshot = current.acceptSnapshot(payload) ?: return
-        broadcastSnapshot(snapshot)
+        current.acceptSnapshot(payload)
+        broadcastSnapshot(current.snapshot)
     }
 
     private fun broadcastSnapshot(payload: Map<String, Any?>?) {
         companion?.takeIf { it.connected && windows.isCurrent(it.lease.generation) }
-            ?.channel?.invokeMethod("stateChanged", payload)
+            ?.channel?.invokeMethod("stateChanged", attachment?.snapshot(payload))
     }
 
     private fun forwardInput(payload: Any?) {
         val surface = companion ?: return
-        val input = relay?.ownerInput(payload, mutableAttached.value, windows.isCurrent(surface.lease.generation)) ?: return
+        val input = relay?.ownerInput(payload, mutableAttached.value && attachment?.isConfirmed == true, windows.isCurrent(surface.lease.generation)) ?: return
         surface.channel.invokeMethod("input", input)
     }
 

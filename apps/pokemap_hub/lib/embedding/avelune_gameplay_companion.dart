@@ -240,7 +240,9 @@ class AveluneGameplayCompanionOwner
   void invalidate() => unawaited(refresh());
 
   Future<void> refresh() {
-    if (value == null || _port == null) return Future<void>.value();
+    if (value?.companionAttached != true || _port == null) {
+      return Future<void>.value();
+    }
     _readRequested = true;
     final pending = _refreshing;
     if (pending != null) return pending;
@@ -262,7 +264,7 @@ class AveluneGameplayCompanionOwner
   }
 
   Future<void> _drainReads() async {
-    while (_readRequested && value != null && _port != null) {
+    while (_readRequested && value?.companionAttached == true && _port != null) {
       _readRequested = false;
       final port = _port!;
       final generation = _generation;
@@ -271,6 +273,7 @@ class AveluneGameplayCompanionOwner
         final data = await port.read();
         if (generation != _generation ||
             read != _readGeneration ||
+            value?.companionAttached != true ||
             !identical(port, _port) ||
             _readRequested)
           continue;
@@ -278,6 +281,7 @@ class AveluneGameplayCompanionOwner
       } on Object catch (error) {
         if (generation != _generation ||
             read != _readGeneration ||
+            value?.companionAttached != true ||
             !identical(port, _port) ||
             _readRequested)
           continue;
@@ -291,25 +295,31 @@ class AveluneGameplayCompanionOwner
     }
   }
 
-  void setCompanionAttached(String sessionId, bool attached) {
+  Future<void> setCompanionAttached(String sessionId, bool attached) {
     final current = _active();
     if (current.sessionId != sessionId)
       throw PlatformException(code: 'staleSession');
-    if (current.companionAttached == attached) return;
+    if (current.companionAttached == attached) {
+      return attached ? _refreshing ?? Future<void>.value() : Future<void>.value();
+    }
+    _readGeneration++;
+    _readRequested = false;
     if (!attached) _port?.releaseBattleInputs();
     if (current.narrativeIdentity != null) _narrativeGeneration++;
+    if (attached) _dataFingerprint = null;
     value = AveluneGameplayCompanionSnapshot(
       sessionId: current.sessionId,
       revision: current.revision + 1,
       companionAttached: attached,
-      mode: current.mode,
-      player: current.player,
-      battle: current.battle,
-      dialogue: current.dialogue,
-      presentation: current.presentation,
+      mode: attached ? AveluneGameplayCompanionMode.waiting : current.mode,
+      player: attached ? null : current.player,
+      battle: attached ? null : current.battle,
+      dialogue: attached ? null : current.dialogue,
+      presentation: attached ? const {} : current.presentation,
       narrativeGeneration: _narrativeGeneration,
-      encodedData: current.dataPayload,
+      encodedData: attached ? null : current.dataPayload,
     );
+    return attached ? refresh() : Future<void>.value();
   }
 
   Future<AveluneGameplayCompanionSnapshot?> applyIntent(
@@ -415,7 +425,7 @@ class AveluneGameplayCompanionOwner
 
   void _publishData(AveluneGameplayCompanionData data) {
     final current = value;
-    if (current == null) return;
+    if (current == null || !current.companionAttached) return;
     if (current.mode == AveluneGameplayCompanionMode.battle &&
         (data.mode != current.mode ||
             data.battle?.mode != current.battle?.mode ||
@@ -534,7 +544,7 @@ class AveluneGameplayCompanionBridge {
         if (args['attached'] is! bool)
           throw PlatformException(code: 'invalidIntent');
         if (owner.value == null && args['attached'] == false) return null;
-        owner.setCompanionAttached(_session(args), args['attached'] as bool);
+        await owner.setCompanionAttached(_session(args), args['attached'] as bool);
       case 'intent':
         await owner.applyIntent(_map(call.arguments));
       default:
