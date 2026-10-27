@@ -367,6 +367,22 @@ final class SpatialGroundPlan {
   List<SpatialGroundVisual>? _static;
   List<List<SmartTileLayerVisual>>? _resolvedLayers;
   List<SpatialGroundVisual>? _resolvedVisuals;
+  final _paintRankCache =
+      <
+        SmartTileLayerVisualPlan,
+        ({List<SmartTileLayerVisual> visuals, List<int> ranks, int maximum})
+      >{};
+  int _debugPaintRankBuilds = 0;
+  int _debugPaintRankOccupiedCells = 0;
+  int _debugPaintRankOverlapComparisons = 0;
+
+  @visibleForTesting
+  ({int rankBuilds, int occupiedCells, int overlapComparisons})
+  get debugPaintRankWork => (
+    rankBuilds: _debugPaintRankBuilds,
+    occupiedCells: _debugPaintRankOccupiedCells,
+    overlapComparisons: _debugPaintRankOverlapComparisons,
+  );
   final _imageWindows =
       <
         ({
@@ -764,8 +780,7 @@ final class SpatialGroundPlan {
     for (var index = 0; index < _flatPlans.length; index++) {
       final group = _flatPlans[index];
       final visuals = layers[index];
-      final ranks = _groundPaintRanks(visuals);
-      final maximum = ranks.fold(0, (a, b) => a > b ? a : b);
+      final paint = _paintRanksFor(group.plan, visuals);
       for (var part = 0; part < visuals.length; part++) {
         final visual = visuals[part];
         final surface = group.surfaces[(visual.cellX, visual.cellY)];
@@ -775,7 +790,7 @@ final class SpatialGroundPlan {
           visual: visual,
           height:
               .0001 *
-              (_flatRanks[index] + ranks[part] / (maximum + 1)) /
+              (_flatRanks[index] + paint.ranks[part] / (paint.maximum + 1)) /
               ((_source?._flatPlans.length ?? _flatPlans.length) + 1),
           opacity: group.opacity,
         ));
@@ -783,15 +798,14 @@ final class SpatialGroundPlan {
     }
     for (var index = 0; index < _plans.length; index++) {
       final visuals = layers[_flatPlans.length + index];
-      final ranks = _groundPaintRanks(visuals);
-      final maximum = ranks.fold(0, (a, b) => a > b ? a : b);
+      final paint = _paintRanksFor(_plans[index], visuals);
       for (var part = 0; part < visuals.length; part++) {
         _visualExclusions[visuals[part]] = _layerExclusions[index];
         result.add((
           visual: visuals[part],
           height:
               spatialSmartTileLayerPaintStep *
-              (_planRanks[index] + ranks[part] / (maximum + 1)),
+              (_planRanks[index] + paint.ranks[part] / (paint.maximum + 1)),
           opacity: _opacities[index],
         ));
       }
@@ -801,37 +815,84 @@ final class SpatialGroundPlan {
     if (!animated) _static = result;
     return result;
   }
-}
 
-List<int> _groundPaintRanks(List<SmartTileLayerVisual> visuals) {
-  final occupied = <(int, int), List<(SmartTileGeometryRect, int)>>{};
-  final ranks = <int>[];
-  for (final visual in visuals) {
-    final bounds = visual.geometry.visualBounds;
-    var rank = 0;
-    final cells = <(int, int)>[
-      for (var y = bounds.top.floor(); y < bounds.bottom.ceil(); y++)
-        for (var x = bounds.left.floor(); x < bounds.right.ceil(); x++) (x, y),
-    ];
-    for (final cell in cells) {
-      for (final previous
-          in occupied[cell] ?? <(SmartTileGeometryRect, int)>[]) {
-        final other = previous.$1;
-        if (bounds.left < other.right &&
-            bounds.right > other.left &&
-            bounds.top < other.bottom &&
-            bounds.bottom > other.top &&
-            rank <= previous.$2) {
-          rank = previous.$2 + 1;
-        }
+  ({List<SmartTileLayerVisual> visuals, List<int> ranks, int maximum})
+  _paintRanksFor(
+    SmartTileLayerVisualPlan plan,
+    List<SmartTileLayerVisual> visuals,
+  ) {
+    final previous = _paintRankCache[plan];
+    if (previous != null) {
+      if (identical(previous.visuals, visuals)) return previous;
+      var matches = previous.visuals.length == visuals.length;
+      for (var index = 0; matches && index < visuals.length; index++) {
+        matches =
+            previous.visuals[index].geometry.visualBounds ==
+            visuals[index].geometry.visualBounds;
+      }
+      if (matches) {
+        final current = (
+          visuals: visuals,
+          ranks: previous.ranks,
+          maximum: previous.maximum,
+        );
+        _paintRankCache[plan] = current;
+        return current;
       }
     }
-    ranks.add(rank);
-    for (final cell in cells) {
-      occupied.putIfAbsent(cell, () => []).add((bounds, rank));
-    }
+    final ranks = _groundPaintRanks(visuals);
+    final current = (
+      visuals: visuals,
+      ranks: ranks,
+      maximum: ranks.fold(0, (a, b) => a > b ? a : b),
+    );
+    _paintRankCache[plan] = current;
+    return current;
   }
-  return ranks;
+
+  List<int> _groundPaintRanks(List<SmartTileLayerVisual> visuals) {
+    assert(() {
+      _debugPaintRankBuilds++;
+      return true;
+    }());
+    final occupied = <(int, int), List<(SmartTileGeometryRect, int)>>{};
+    final ranks = <int>[];
+    for (final visual in visuals) {
+      final bounds = visual.geometry.visualBounds;
+      var rank = 0;
+      final cells = <(int, int)>[
+        for (var y = bounds.top.floor(); y < bounds.bottom.ceil(); y++)
+          for (var x = bounds.left.floor(); x < bounds.right.ceil(); x++)
+            (x, y),
+      ];
+      assert(() {
+        _debugPaintRankOccupiedCells += cells.length;
+        return true;
+      }());
+      for (final cell in cells) {
+        for (final previous
+            in occupied[cell] ?? <(SmartTileGeometryRect, int)>[]) {
+          assert(() {
+            _debugPaintRankOverlapComparisons++;
+            return true;
+          }());
+          final other = previous.$1;
+          if (bounds.left < other.right &&
+              bounds.right > other.left &&
+              bounds.top < other.bottom &&
+              bounds.bottom > other.top &&
+              rank <= previous.$2) {
+            rank = previous.$2 + 1;
+          }
+        }
+      }
+      ranks.add(rank);
+      for (final cell in cells) {
+        occupied.putIfAbsent(cell, () => []).add((bounds, rank));
+      }
+    }
+    return ranks;
+  }
 }
 
 List<Vertex> spatialGroundVertices(
