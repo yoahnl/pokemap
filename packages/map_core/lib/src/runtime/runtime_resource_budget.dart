@@ -103,6 +103,9 @@ final class RuntimeResourceBudget {
   final RuntimeResourceProfile profile;
   final _pending = <_RuntimeResourceRequest>[];
   final _reservations = <RuntimeResourceReservation>{};
+  final _optionalReservations = <RuntimeResourceReservation>{};
+  var _draining = false;
+  var _checking = 0;
   var _residentBytes = 0;
   var _transientBytes = 0;
   var _activeDecodes = 0;
@@ -141,6 +144,16 @@ final class RuntimeResourceBudget {
   }
 
   void _drain() {
+    if (_disposed || _draining || _checking > 0) return;
+    _draining = true;
+    try {
+      _drainPending();
+    } finally {
+      _draining = false;
+    }
+  }
+
+  void _drainPending() {
     if (_disposed) return;
     _pending.removeWhere((request) {
       if (request.isCurrent?.call() ?? true) return false;
@@ -156,6 +169,9 @@ final class RuntimeResourceBudget {
       final request = _pending.removeAt(index);
       try {
         _check(request.residentBytes, request.transientBytes);
+        if (!(request.isCurrent?.call() ?? true)) {
+          throw const RuntimeResourceAdmissionException('cancelled');
+        }
         final lease = RuntimeResourceReservation._(
           this,
           request.residentBytes,
@@ -181,14 +197,43 @@ final class RuntimeResourceBudget {
     }
   }
 
-  void _check(int resident, int transient) {
+  void _check(
+    int resident,
+    int transient, {
+    RuntimeResourceReservation? replacing,
+  }) {
     if (resident < 0 || transient < 0) {
       throw ArgumentError('Negative resource reservation.');
     }
-    if (resident > profile.maximumResidentBytes - _residentBytes) {
+    if (resident > profile.maximumResidentBytes) {
       throw const RuntimeResourceAdmissionException('resident_bytes');
     }
-    if (transient > profile.maximumTransientBytes - _transientBytes) {
+    if (transient > profile.maximumTransientBytes) {
+      throw const RuntimeResourceAdmissionException('transient_bytes');
+    }
+    int availableResident() =>
+        profile.maximumResidentBytes -
+        (_residentBytes - (replacing?._resident ?? 0));
+    if (resident > availableResident()) {
+      _checking++;
+      try {
+        for (final lease in _optionalReservations.toList()) {
+          if (resident <= availableResident()) break;
+          lease._evict();
+        }
+      } finally {
+        _checking--;
+      }
+    }
+    if (_disposed) {
+      throw const RuntimeResourceAdmissionException('session_closed');
+    }
+    if (resident > availableResident()) {
+      throw const RuntimeResourceAdmissionException('resident_bytes');
+    }
+    if (transient >
+        profile.maximumTransientBytes -
+            (_transientBytes - (replacing?._transient ?? 0))) {
       throw const RuntimeResourceAdmissionException('transient_bytes');
     }
   }
@@ -230,6 +275,37 @@ final class RuntimeResourceReservation {
   int _resident, _transient;
   bool _released = false;
   bool _committed = false;
+  void Function()? _onEvicted;
+  int get residentBytes => _resident;
+
+  void retainOptionally(void Function() onEvicted) {
+    if (_released || _budget._disposed) {
+      throw const RuntimeResourceAdmissionException('cancelled_or_closed');
+    }
+    if (!_committed) {
+      throw StateError('Only committed resources may be optional.');
+    }
+    _onEvicted = onEvicted;
+    _budget._optionalReservations.add(this);
+  }
+
+  void retainRequired() {
+    _onEvicted = null;
+    _budget._optionalReservations.remove(this);
+  }
+
+  void _evict() {
+    final callback = _onEvicted;
+    if (callback == null) return;
+    retainRequired();
+    try {
+      callback();
+    } catch (_) {
+      return;
+    }
+    release();
+  }
+
   RuntimeResourceProfile get profile => _budget.profile;
 
   void ensureCurrent() {
@@ -241,20 +317,22 @@ final class RuntimeResourceReservation {
   void resize({required int residentBytes, required int transientBytes}) {
     ensureCurrent();
     if (_committed) throw StateError('A committed resource cannot be resized.');
-    _budget._residentBytes -= _resident;
-    _budget._transientBytes -= _transient;
+    if (_budget._checking > 0) {
+      throw StateError('Resources cannot be resized during optional eviction.');
+    }
     try {
-      _budget._check(residentBytes, transientBytes);
+      _budget._check(residentBytes, transientBytes, replacing: this);
+      ensureCurrent();
     } catch (_) {
-      _budget._residentBytes += _resident;
-      _budget._transientBytes += _transient;
+      _budget._drain();
       rethrow;
     }
+    _budget._residentBytes += residentBytes - _resident;
+    _budget._transientBytes += transientBytes - _transient;
     _resident = residentBytes;
     _transient = transientBytes;
-    _budget._residentBytes += _resident;
-    _budget._transientBytes += _transient;
     _budget._recordPeak();
+    _budget._drain();
   }
 
   void commit() {
@@ -270,6 +348,7 @@ final class RuntimeResourceReservation {
   void release() {
     if (_released) return;
     _released = true;
+    retainRequired();
     _budget._residentBytes -= _resident;
     _budget._transientBytes -= _transient;
     if (!_committed) _budget._activeDecodes--;

@@ -169,6 +169,263 @@ void main() {
     ),
   );
 
+  RuntimeResourceBudget concurrentBudget() => RuntimeResourceBudget(
+    profile: const RuntimeResourceProfile(
+      maximumResidentBytes: 100,
+      maximumTransientBytes: 80,
+      maximumConcurrentDecodes: 2,
+    ),
+  );
+
+  test('mandatory admission evicts optional committed reservations', () async {
+    final controller = budget();
+    addTearDown(controller.dispose);
+    var evicted = 0;
+    final optional = await controller.acquire(residentBytes: 80);
+    optional.commit();
+    optional.retainOptionally(() => evicted++);
+    final required = await controller.acquire(residentBytes: 100);
+    expect(evicted, 1);
+    expect(controller.residentBytes, 100);
+    required.release();
+    expect(controller.residentBytes, 0);
+  });
+
+  test(
+    'resize reclaims optional memory before rejecting any consumer',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final optional = await controller.acquire(residentBytes: 80);
+      optional.commit();
+      var evicted = false;
+      optional.retainOptionally(() => evicted = true);
+      final mandatory = await controller.acquire(residentBytes: 8);
+      mandatory.resize(residentBytes: 100, transientBytes: 0);
+      expect(evicted, isTrue);
+      expect(controller.residentBytes, 100);
+      mandatory.release();
+    },
+  );
+
+  test('impossible requests preserve optional resident resources', () async {
+    final controller = budget();
+    addTearDown(controller.dispose);
+    final optional = await controller.acquire(residentBytes: 80);
+    optional.commit();
+    optional.retainOptionally(() => fail('Impossible request evicted memory'));
+    await expectLater(
+      controller.acquire(residentBytes: 101),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(controller.residentBytes, 80);
+  });
+
+  test(
+    'optional eviction during acquire keeps the initiating request first',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final optional = await controller.acquire(residentBytes: 80);
+      optional.commit();
+      Future<RuntimeResourceReservation>? callbackAdmission;
+      optional.retainOptionally(() {
+        callbackAdmission = controller.acquire(residentBytes: 50);
+      });
+      final mandatory = await controller.acquire(residentBytes: 100);
+      await expectLater(
+        callbackAdmission!,
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      expect(controller.residentBytes, 100);
+      expect(controller.activeDecodes, 1);
+      mandatory.release();
+    },
+  );
+
+  test(
+    'failed resize preserves resident accounting before callback admission',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final optional = await controller.acquire(residentBytes: 70);
+      optional.commit();
+      Future<RuntimeResourceReservation>? callbackAdmission;
+      optional.retainOptionally(() {
+        callbackAdmission = controller.acquire(residentBytes: 81);
+      });
+      final mandatory = await controller.acquire(residentBytes: 20);
+      final blocker = await controller.acquire(transientBytes: 20);
+      expect(
+        () => mandatory.resize(residentBytes: 100, transientBytes: 70),
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      blocker.release();
+      await expectLater(
+        callbackAdmission!,
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      expect(controller.residentBytes, 20);
+      expect(controller.activeDecodes, 1);
+      mandatory.release();
+    },
+  );
+
+  test('impossible transient requests preserve optional resources', () async {
+    final controller = budget();
+    addTearDown(controller.dispose);
+    final optional = await controller.acquire(residentBytes: 80);
+    optional.commit();
+    optional.retainOptionally(() => fail('Impossible request evicted memory'));
+    await expectLater(
+      controller.acquire(residentBytes: 90, transientBytes: 81),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(controller.residentBytes, 80);
+  });
+
+  test(
+    'failed optional callbacks keep bytes counted and try other resources',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final failed = await controller.acquire(residentBytes: 50);
+      failed.commit();
+      failed.retainOptionally(() => throw StateError('Cache cleanup failed'));
+      final optional = await controller.acquire(residentBytes: 40);
+      optional.commit();
+      optional.retainOptionally(() {});
+      final mandatory = await controller.acquire(residentBytes: 50);
+      expect(controller.residentBytes, 100);
+      expect(failed.residentBytes, 50);
+      mandatory.release();
+    },
+  );
+
+  test('eviction disposal rejects the initiating admission', () async {
+    final controller = concurrentBudget();
+    final optional = await controller.acquire(residentBytes: 80);
+    optional.commit();
+    optional.retainOptionally(controller.dispose);
+    await expectLater(
+      controller.acquire(residentBytes: 100),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(controller.residentBytes, 0);
+    expect(controller.activeDecodes, 0);
+    expect(controller.pendingDecodes, 0);
+  });
+
+  test(
+    'eviction disposal rejects the initiating resize without residual bytes',
+    () async {
+      final controller = concurrentBudget();
+      final optional = await controller.acquire(residentBytes: 80);
+      optional.commit();
+      final mandatory = await controller.acquire(residentBytes: 20);
+      optional.retainOptionally(controller.dispose);
+      expect(
+        () => mandatory.resize(residentBytes: 100, transientBytes: 0),
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      expect(controller.residentBytes, 0);
+      expect(controller.transientBytes, 0);
+      expect(controller.activeDecodes, 0);
+    },
+  );
+
+  test('eviction cancellation rejects the initiating admission', () async {
+    final controller = concurrentBudget();
+    addTearDown(controller.dispose);
+    var current = true;
+    final optional = await controller.acquire(residentBytes: 80);
+    optional.commit();
+    optional.retainOptionally(() => current = false);
+    await expectLater(
+      controller.acquire(residentBytes: 100, isCurrent: () => current),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(controller.residentBytes, 0);
+    expect(controller.activeDecodes, 0);
+  });
+
+  test(
+    'resize survives a callback releasing its initiating reservation',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final optional = await controller.acquire(residentBytes: 80);
+      optional.commit();
+      final mandatory = await controller.acquire(residentBytes: 20);
+      optional.retainOptionally(mandatory.release);
+      expect(
+        () => mandatory.resize(residentBytes: 100, transientBytes: 0),
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      expect(controller.residentBytes, 0);
+      expect(controller.activeDecodes, 0);
+    },
+  );
+
+  test(
+    'eviction callbacks cannot resize another reservation recursively',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final optional = await controller.acquire(residentBytes: 80);
+      optional.commit();
+      final mandatory = await controller.acquire(residentBytes: 20);
+      optional.retainOptionally(() {
+        expect(
+          () => mandatory.resize(residentBytes: 30, transientBytes: 0),
+          throwsStateError,
+        );
+      });
+      mandatory.resize(residentBytes: 100, transientBytes: 0);
+      expect(controller.residentBytes, 100);
+      mandatory.release();
+    },
+  );
+
+  test('promoted required memory cannot be evicted', () async {
+    final controller = budget();
+    addTearDown(controller.dispose);
+    final lease = await controller.acquire(residentBytes: 80);
+    lease.commit();
+    lease.retainOptionally(() => fail('Required lease evicted'));
+    lease.retainRequired();
+    await expectLater(
+      controller.acquire(residentBytes: 30),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(controller.residentBytes, 80);
+  });
+
+  test(
+    'eviction callbacks cannot recursively drain or expose resize headroom',
+    () async {
+      final controller = concurrentBudget();
+      addTearDown(controller.dispose);
+      final optional = await controller.acquire(residentBytes: 80);
+      optional.commit();
+      Future<RuntimeResourceReservation>? callbackAdmission;
+      optional.retainOptionally(() {
+        optional.release();
+        callbackAdmission = controller.acquire(residentBytes: 50);
+      });
+      final mandatory = await controller.acquire(residentBytes: 8);
+      mandatory.resize(residentBytes: 100, transientBytes: 0);
+      await expectLater(
+        callbackAdmission!,
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      expect(controller.residentBytes, 100);
+      expect(controller.activeDecodes, 1);
+      expect(controller.pendingDecodes, 0);
+      mandatory.release();
+    },
+  );
+
   test('admission checks exact boundaries before work starts', () async {
     final controller = budget();
     final lease = await controller.acquire(
@@ -221,14 +478,6 @@ void main() {
     expect(controller.residentBytes + controller.transientBytes, 0);
     controller.dispose();
   });
-
-  RuntimeResourceBudget concurrentBudget() => RuntimeResourceBudget(
-    profile: const RuntimeResourceProfile(
-      maximumResidentBytes: 100,
-      maximumTransientBytes: 80,
-      maximumConcurrentDecodes: 2,
-    ),
-  );
 
   for (final commit in [true, false]) {
     test(

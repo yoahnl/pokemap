@@ -430,8 +430,8 @@ void main() {
     await game.groundTextureCache['page-4'];
     game.update(0);
     expect(game.grounds.single.renderedImageIds, {'page-3'});
-    expect(game.groundTextureCache, isNot(contains('page-0')));
-    expect(game.groundReservations, isNot(contains('page-0')));
+    expect(game.groundTextureCache['page-0'], same(displayedTexture));
+    expect(game.groundReservations['page-0'], same(displayedLease));
     expect(displayed, {'page-0'});
   });
 
@@ -465,8 +465,8 @@ void main() {
       game.update(0);
       expect(ground.renderedImageIds, {'page-0', 'page-3'});
       expect(ground.renderedOcclusionImageIds, {'page-3'});
-      expect(game.groundTextureCache, isNot(contains('page-2')));
-      expect(game.groundReservations, isNot(contains('page-2')));
+      expect(game.groundTextureCache, contains('page-2'));
+      expect(game.groundReservations['page-2'], same(lease));
     },
   );
 
@@ -660,8 +660,291 @@ void main() {
     },
   );
 
+  for (final pages in [4, 90]) {
+    test(
+      'encountered $pages page cycles keep reads and reservations stable',
+      () async {
+        final f = _Fixture(pages, imageSize: pages == 90 ? 256 : 32);
+        final reads = <String, int>{};
+        final game = f.game((id) async {
+          reads.update(id, (count) => count + 1, ifAbsent: () => 1);
+          return f.png;
+        });
+        addTearDown(game.onRemove);
+        expect(await game.refresh(), isTrue);
+        expect(reads.length, lessThanOrEqualTo(2));
+        for (var frame = 0; frame < pages * 3; frame++) {
+          game.update(.033);
+          await Future.wait(List.of(game.groundTextureCache.values));
+          game.update(0);
+        }
+        expect(reads.length, pages);
+        expect(reads.values, everyElement(1));
+        expect(game.groundReservations.length, pages);
+        expect(
+          game.resourceBudget.residentBytes,
+          pages * (pages == 90 ? 256 : 32) * (pages == 90 ? 256 : 32) * 8,
+        );
+        game.onRemove();
+        expect(game.groundTextureCache, isEmpty);
+        expect(game.resourceBudget.residentBytes, 0);
+      },
+    );
+  }
+
   test(
-    'animation evicts retired pages and retains bounded admission',
+    'pending encountered pages finish after leaving the texture window',
+    () async {
+      final f = _Fixture(4);
+      final delayed = Completer<Uint8List>();
+      var delayedReads = 0;
+      final game = f.game((id) async {
+        if (id == 'page-1') {
+          delayedReads++;
+          return delayed.future;
+        }
+        return f.png;
+      });
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      game.update(.099);
+      await game.groundTextureCache['page-3'];
+      game.update(0);
+      delayed.complete(f.png);
+      await game.groundTextureCache['page-1'];
+      expect(game.groundReservations, contains('page-1'));
+      game.groundElapsed = .033;
+      game.update(0);
+      expect(game.grounds.single.renderedImageIds, {'page-1'});
+      expect(delayedReads, 1);
+    },
+  );
+
+  for (final imageSize in [32, 512]) {
+    test(
+      'oversized cycles respect retention bounds for $imageSize px pages',
+      () async {
+        final f = _Fixture(160, imageSize: imageSize);
+        final game = f.game((_) async => f.png);
+        addTearDown(game.onRemove);
+        expect(await game.refresh(), isTrue);
+        for (var frame = 0; frame < 160; frame++) {
+          game.update(.033);
+          await Future.wait(List.of(game.groundTextureCache.values));
+          game.update(0);
+          final ground = game.grounds.single;
+          final required = {
+            ...ground.currentImageIds,
+            ...ground.nextImageIds,
+            ...ground.renderedImageIds,
+          };
+          final optional = game.groundReservations.entries.where(
+            (entry) => !required.contains(entry.key),
+          );
+          expect(optional.length, lessThanOrEqualTo(128));
+          expect(
+            optional.fold<int>(
+              0,
+              (sum, entry) => sum + entry.value.residentBytes,
+            ),
+            lessThanOrEqualTo(48 * 1024 * 1024),
+          );
+        }
+        expect(game.groundReservations.length, lessThan(160));
+      },
+    );
+  }
+
+  test(
+    'shared mandatory consumers evict retained pages and preserve the window',
+    () async {
+      final f = _Fixture(4);
+      final game = f.game((_) async => f.png);
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      for (var frame = 0; frame < 4; frame++) {
+        game.update(.033);
+        await Future.wait(List.of(game.groundTextureCache.values));
+        game.update(0);
+      }
+      final ground = game.grounds.single;
+      final required = {
+        ...ground.currentImageIds,
+        ...ground.nextImageIds,
+        ...ground.renderedImageIds,
+      };
+      final requiredLeases = {
+        for (final id in required) id: game.groundReservations[id],
+      };
+      final requiredBytes = requiredLeases.values.fold<int>(
+        0,
+        (sum, lease) => sum + lease!.residentBytes,
+      );
+      final otherConsumer = await game.resourceBudget.acquire(residentBytes: 8);
+      otherConsumer.resize(
+        residentBytes:
+            game.resourceBudget.profile.maximumResidentBytes - requiredBytes,
+        transientBytes: 0,
+      );
+      expect(game.groundReservations.keys.toSet(), required);
+      expect(game.groundReservations, requiredLeases);
+      expect(
+        game.resourceBudget.residentBytes,
+        game.resourceBudget.profile.maximumResidentBytes,
+      );
+      otherConsumer.release();
+      game.onRemove();
+      expect(game.resourceBudget.residentBytes, 0);
+    },
+  );
+
+  test(
+    'a smaller shared budget evicts optional pages without eager loading',
+    () async {
+      final f = _Fixture(90, imageSize: 256);
+      final reads = <String, int>{};
+      final statuses = <Object?>[];
+      final budget = RuntimeResourceBudget(
+        profile: const RuntimeResourceProfile(
+          maximumResidentBytes: 2 * 1024 * 1024,
+        ),
+      );
+      final game = f.game(
+        (id) async {
+          reads.update(id, (count) => count + 1, ifAbsent: () => 1);
+          return f.png;
+        },
+        resourceBudget: budget,
+        onStatus: statuses.add,
+      );
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      expect(reads.length, lessThanOrEqualTo(2));
+      for (var frame = 0; frame < 180; frame++) {
+        game.update(.033);
+        await Future.wait(List.of(game.groundTextureCache.values));
+        game.update(0);
+        expect(budget.residentBytes, lessThanOrEqualTo(2 * 1024 * 1024));
+      }
+      expect(reads.length, 90);
+      expect(reads['page-0'], greaterThan(1));
+      expect(statuses.whereType<Object>(), isEmpty);
+      expect(game.groundReservations.length, lessThanOrEqualTo(4));
+    },
+  );
+  test('map changes release encountered pages outside the new plan', () async {
+    final f = _Fixture(4);
+    final game = f.game((_) async => f.png);
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    for (var frame = 0; frame < 4; frame++) {
+      game.update(.033);
+      await Future.wait(List.of(game.groundTextureCache.values));
+      game.update(0);
+    }
+    final destination = f.game(
+      (_) async => f.png,
+      sourceMap: f.map.copyWith(id: 'empty', layers: const []),
+      resourceBudget: game.resourceBudget,
+    );
+    addTearDown(destination.onRemove);
+    game.configuration = destination.configuration;
+    expect(await game.refresh(), isTrue);
+    expect(game.grounds, isEmpty);
+    expect(game.groundTextureCache, isEmpty);
+    expect(game.groundReservations, isEmpty);
+    expect(game.resourceBudget.residentBytes, 0);
+    expect(game.resourceBudget.transientBytes, 0);
+  });
+
+  test(
+    'prepared destinations borrow no optional snapshot under shared pressure',
+    () async {
+      final f = _Fixture(4);
+      final reads = <String, int>{};
+      Future<Uint8List> load(String id) async {
+        reads.update(id, (count) => count + 1, ifAbsent: () => 1);
+        return f.png;
+      }
+
+      final game = f.game(load);
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      for (var frame = 0; frame < 4; frame++) {
+        game.update(.033);
+        await Future.wait(List.of(game.groundTextureCache.values));
+        game.update(0);
+      }
+      final initial = game.groundTextureCache['page-2'];
+      expect(
+        await game.prepareDestination(
+          SpatialScenePreparation(
+            map: f.map.copyWith(
+              id: 'destination',
+              layers: const [],
+              spatialScene: MapSpatialScene(
+                width: 1,
+                depth: 1,
+                cliffFrame: const SmartTileFrameRef(
+                  atlasId: 'atlas-2',
+                  column: 0,
+                  row: 0,
+                ),
+              ),
+            ),
+            project: f.project,
+            loadModel: (_) async => throw StateError('No models'),
+            loadGroundImage: load,
+            resourceIdentity: 'fixture',
+            resourceBudget: game.resourceBudget,
+            isCurrent: () => true,
+          ),
+        ),
+        isTrue,
+      );
+      expect(reads['page-2'], 2);
+      expect(game.groundTextureCache['page-2'], same(initial));
+      final required = {'page-0', 'page-1', 'page-2'};
+      final otherConsumer = await game.resourceBudget.acquire(
+        residentBytes:
+            game.resourceBudget.profile.maximumResidentBytes -
+            required.length * 32 * 32 * 8,
+      );
+      expect(game.groundReservations.keys.toSet(), required);
+      expect(game.groundTextureCache['page-2'], same(initial));
+      otherConsumer.release();
+      game.onRemove();
+      expect(game.resourceBudget.residentBytes, 0);
+    },
+  );
+
+  test('resource invalidation releases optional pages before retiring displayed resources', () async {
+    final f = _Fixture(4);
+    final game = f.game((_) async => f.png);
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    for (var frame = 0; frame < 4; frame++) {
+      game.update(.033);
+      await Future.wait(List.of(game.groundTextureCache.values));
+      game.update(0);
+    }
+    final ground = game.grounds.single;
+    final required = {
+      ...ground.currentImageIds,
+      ...ground.nextImageIds,
+      ...ground.renderedImageIds,
+    };
+    game.clearGroundResourceCache(retire: true);
+    expect(game.groundReservations, isEmpty);
+    expect(game.groundTextureCache, isEmpty);
+    expect(game.retiredReservations.length, required.length);
+    expect(game.resourceBudget.residentBytes, required.length * 32 * 32 * 8);
+    game.onRemove();
+    expect(game.resourceBudget.residentBytes, 0);
+  });
+  test(
+    'animation retains encountered pages within the active plan',
     () async {
       final f = _Fixture(8);
       final reads = <String>[];
@@ -676,10 +959,10 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 1));
         game.update(0);
         await Future<void>.delayed(Duration.zero);
-        expect(game.groundTextureCache.length, lessThanOrEqualTo(3));
+        expect(game.groundTextureCache.length, lessThanOrEqualTo(8));
         expect(
           game.resourceBudget.residentBytes,
-          lessThanOrEqualTo(3 * 32 * 32 * 8),
+          lessThanOrEqualTo(8 * 32 * 32 * 8),
         );
       }
       expect(reads.toSet().length, greaterThan(2));
@@ -845,10 +1128,11 @@ final class _Fixture {
     bool animated = true,
     bool singleImage = false,
     List<int> durations = const [33],
+    int imageSize = 32,
     bool occlusion = false,
     int occlusionPage = 2,
   }) {
-    png = Uint8List.fromList(img.encodePng(img.Image(width: 32, height: 32)));
+    png = Uint8List.fromList(img.encodePng(img.Image(width: imageSize, height: imageSize)));
     map = MapData(
       id: 'room',
       name: 'Room',
@@ -974,14 +1258,17 @@ final class _Fixture {
     List<SpatialSceneNeighbor> neighbors = const [],
     int Function(String, String, int, int, int)? clock,
     void Function(Object?)? onStatus,
+    MapData? sourceMap,
+    RuntimeResourceBudget? resourceBudget,
   }) {
     final controller = SpatialSceneController();
-    final budget = RuntimeResourceBudget();
+    final budget = resourceBudget ?? RuntimeResourceBudget();
+    final groundMap = sourceMap ?? map;
     final game =
         SpatialSceneGame(
             SpatialSceneView(
-              scene: map.spatialScene!,
-              groundMap: map,
+              scene: groundMap.spatialScene!,
+              groundMap: groundMap,
               groundProject: project,
               models: const [],
               loadModel: (_) async => throw StateError('No models'),

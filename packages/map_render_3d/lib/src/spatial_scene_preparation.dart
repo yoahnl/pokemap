@@ -229,6 +229,7 @@ final class SpatialSceneResourcePreparation {
       if (textures.containsKey(key) &&
           !identical(textures[key], _textures[key])) {
         _textureLeases.remove(key)?.release();
+        _textures[key] = textures[key]!;
         continue;
       }
       textures[key] = _textures[key]!;

@@ -1512,6 +1512,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final _groundTextureErrors = <String, Object>{};
   final _reportedGroundTextureErrors = <String, Object>{};
   Set<String> _wantedGroundImages = {};
+  final _retainedGroundImages = <String>{};
+  static const _maximumRetainedGroundPages = 128;
+  static const _maximumRetainedGroundBytes = 48 * 1024 * 1024;
   final _ownedResourceBudget = RuntimeResourceBudget();
   RuntimeResourceBudget get resourceBudget =>
       configuration.resourceBudget ?? _ownedResourceBudget;
@@ -1534,7 +1537,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     final preparation = SpatialSceneResourcePreparation(
       request,
       modelCache: cache,
-      groundTextureCache: groundTextureCache,
+      groundTextureCache: {
+        for (final entry in groundTextureCache.entries)
+          if (!_retainedGroundImages.contains(entry.key)) entry.key: entry.value,
+      },
       isCurrent: () =>
           !closed &&
           generation == ticket &&
@@ -1550,6 +1556,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         modelReservations,
         groundReservations,
       );
+      _wantedGroundImages.addAll(preparation.preparedGroundImageIds);
+      _protectWantedGroundTextures();
       return true;
     } on Object {
       preparation.discard();
@@ -1561,12 +1569,19 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 
   void clearGroundResourceCache({bool retire = false}) {
+    for (final id in _retainedGroundImages.toList()) {
+      _removeGroundTexture(id);
+    }
     groundTextureCache.clear();
     _groundTextures.clear();
     _groundTextureTokens.clear();
     _groundTextureErrors.clear();
     _reportedGroundTextureErrors.clear();
     _wantedGroundImages.clear();
+    _retainedGroundImages.clear();
+    for (final lease in groundReservations.values) {
+      lease.retainRequired();
+    }
     if (retire) {
       retiredReservations.addAll(groundReservations.values);
     } else {
@@ -1584,6 +1599,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     required int ticket,
     bool prefetch = false,
   }) {
+    _protectWantedGroundTextures();
     final existing = groundTextureCache[id];
     if (existing != null) {
       return existing.then((texture) {
@@ -1601,7 +1617,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         !closed &&
         ticket == generation &&
         identical(_groundTextureTokens[id], token) &&
-        _wantedGroundImages.contains(id);
+        (_wantedGroundImages.contains(id) || _retainedGroundImages.contains(id));
     late final Future<Texture> pending;
     pending =
         loadSpatialGroundTextureFromSource(
@@ -1620,6 +1636,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             }
             groundReservations.remove(id)?.release();
             groundReservations[id] = lease;
+            if (_retainedGroundImages.contains(id)) {
+              _retainGroundTexture(id, lease);
+              _trimRetainedGroundTextures();
+            }
           },
         ).then(
           (texture) {
@@ -1632,6 +1652,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           onError: (Object error, StackTrace stack) {
             if (identical(groundTextureCache[id], pending)) {
               groundTextureCache.remove(id);
+              _retainedGroundImages.remove(id);
               if (current() &&
                   (!prefetch || error is! RuntimeResourceAdmissionException)) {
                 _groundTextureErrors[id] = error;
@@ -1643,6 +1664,43 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         );
     groundTextureCache[id] = pending;
     return pending;
+  }
+
+  void _protectWantedGroundTextures() {
+    for (final id in _wantedGroundImages) {
+      _retainedGroundImages.remove(id);
+      groundReservations[id]?.retainRequired();
+    }
+  }
+
+  void _removeGroundTexture(String id) {
+    _retainedGroundImages.remove(id);
+    groundTextureCache.remove(id);
+    _groundTextures.remove(id);
+    _groundTextureTokens.remove(id);
+    _groundTextureErrors.remove(id);
+    _reportedGroundTextureErrors.remove(id);
+    groundReservations.remove(id)?.release();
+  }
+
+  void _retainGroundTexture(String id, RuntimeResourceReservation lease) {
+    lease.retainOptionally(() {
+      if (identical(groundReservations[id], lease)) _removeGroundTexture(id);
+    });
+  }
+
+  void _trimRetainedGroundTextures() {
+    _retainedGroundImages.removeWhere((id) => !groundTextureCache.containsKey(id));
+    var bytes = 0;
+    for (final id in _retainedGroundImages) {
+      bytes += groundReservations[id]?.residentBytes ?? 0;
+    }
+    while (_retainedGroundImages.length > _maximumRetainedGroundPages ||
+        bytes > _maximumRetainedGroundBytes) {
+      final id = _retainedGroundImages.first;
+      bytes -= groundReservations[id]?.residentBytes ?? 0;
+      _removeGroundTexture(id);
+    }
   }
 
   void _pruneGroundTextures({bool sample = true}) {
@@ -1667,15 +1725,20 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       ...?_destinationPreparation?.preparedGroundImageIds,
       ..._visibilityRetainedGroundImages,
     };
+    _protectWantedGroundTextures();
     for (final id in groundTextureCache.keys.toList()) {
       if (_wantedGroundImages.contains(id)) continue;
-      groundTextureCache.remove(id);
-      _groundTextures.remove(id);
-      _groundTextureTokens.remove(id);
-      _groundTextureErrors.remove(id);
-      _reportedGroundTextureErrors.remove(id);
-      groundReservations.remove(id)?.release();
+      if (grounds.any((ground) => ground.plan.imageIds.contains(id))) {
+        if (_retainedGroundImages.add(id)) {
+          if (groundReservations[id] case final lease?) {
+            _retainGroundTexture(id, lease);
+          }
+        }
+      } else {
+        _removeGroundTexture(id);
+      }
     }
+    _trimRetainedGroundTextures();
   }
 
   void _requestGroundAnimationTextures(int elapsed) {
