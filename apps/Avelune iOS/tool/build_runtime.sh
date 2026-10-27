@@ -12,10 +12,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT="$ROOT/flutter_runtime/build/swift-package"
 CONFIGURATION="${CONFIGURATION-Debug}"
+BUILD_MODES=(--build-mode debug --build-mode release)
+BUILD_CONFIGURATIONS=(Debug Release)
 case "$CONFIGURATION" in
   Debug) FLUTTER_BUILD_MODE=debug ;;
+  Profile)
+    FLUTTER_BUILD_MODE=profile
+    BUILD_MODES=(--build-mode profile)
+    BUILD_CONFIGURATIONS=(Profile)
+    ;;
   Release) FLUTTER_BUILD_MODE=release ;;
-  *) echo "Unsupported CONFIGURATION: $CONFIGURATION. Use Debug or Release." >&2; exit 2 ;;
+  *) echo "Unsupported CONFIGURATION: $CONFIGURATION. Use Debug, Profile or Release." >&2; exit 2 ;;
 esac
 
 cd "$ROOT/flutter_runtime"
@@ -24,13 +31,13 @@ python3 "$ROOT/tool/patch_flutter_gpu.py"
 
 # The tool rsyncs into <mode>/Frameworks without creating the parent first.
 rm -rf "$OUTPUT"
-mkdir -p "$OUTPUT/FlutterNativeIntegration/Debug/Frameworks"
-mkdir -p "$OUTPUT/FlutterNativeIntegration/Release/Frameworks"
+for build_configuration in "${BUILD_CONFIGURATIONS[@]}"; do
+  mkdir -p "$OUTPUT/FlutterNativeIntegration/$build_configuration/Frameworks"
+done
 
 flutter build swift-package \
   --platform ios \
-  --build-mode debug \
-  --build-mode release \
+  "${BUILD_MODES[@]}" \
   -o "$OUTPUT" \
   "$@"
 

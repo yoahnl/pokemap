@@ -21,11 +21,7 @@ FLUTTER_BIN="$FLUTTER_DIR/bin/flutter"
 
 if [ ! -x "$FLUTTER_BIN" ]; then
   rm -rf "$FLUTTER_DIR"
-  if ! git clone --depth 1 --branch "$FLUTTER_TAG" https://github.com/flutter/flutter.git "$FLUTTER_DIR"; then
-    echo "Tag $FLUTTER_TAG indisponible, repli sur la pointe de beta."
-    rm -rf "$FLUTTER_DIR"
-    git clone --depth 1 --branch beta https://github.com/flutter/flutter.git "$FLUTTER_DIR"
-  fi
+  git clone --depth 1 --branch "$FLUTTER_TAG" https://github.com/flutter/flutter.git "$FLUTTER_DIR"
 fi
 
 export PATH="$FLUTTER_DIR/bin:$PATH"

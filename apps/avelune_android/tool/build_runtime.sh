@@ -16,6 +16,7 @@ cd "$runtime_root/flutter_runtime"
 "$runtime_flutter" pub get
 rm -rf -- .ios
 runtime_sdk="$(sed -n 's/^flutter.sdk=//p' .android/local.properties)"
+python3 "$runtime_root/../Avelune iOS/tool/patch_flutter_gpu.py" --flutter-root "$runtime_sdk"
 bash "$runtime_root/gradlew" \
   --no-daemon \
   -p "$runtime_root/flutter_runtime/.android" \

@@ -49,12 +49,12 @@ class NativeHostContractsTest(unittest.TestCase):
         )
         project = source("apps/Avelune iOS/project.yml")
         self.assertNotIn("MARKETING_VERSION:", project)
-        for configuration in ("Debug", "Release"):
+        for configuration in ("Debug", "Profile", "Release"):
             self.assertRegex(project, rf"(?m)^  {configuration}: ../avelune_version\.xcconfig$")
         xcode_project = source("apps/Avelune iOS/AveluneiOS.xcodeproj/project.pbxproj")
         self.assertNotRegex(xcode_project, r"\bMARKETING_VERSION\s*=")
         references = re.findall(r"baseConfigurationReference = ([A-F0-9]{24})", xcode_project)
-        self.assertEqual(len(references), 2)
+        self.assertEqual(len(references), 3)
         self.assertEqual(len(set(references)), 1)
         reference = re.search(
             rf"{references[0]}[^\n]* = \{{([^}}]*)\}};", xcode_project, re.DOTALL
@@ -67,6 +67,13 @@ class NativeHostContractsTest(unittest.TestCase):
         workflow = source(".github/workflows/avelune_android_release.yml")
         self.assertIn("python3 apps/avelune_android/tool/read_app_version.py", workflow)
         self.assertNotRegex(workflow, r"(?m)^\s+AVELUNE_VERSION_NAME:")
+
+    def test_ios_profile_uses_a_dedicated_release_based_configuration(self):
+        project = source("apps/Avelune iOS/project.yml")
+        self.assertRegex(project, r"(?m)^configs:\n  Debug: debug\n  Profile: release\n  Release: release$")
+        self.assertIn("    profile:\n      config: Profile\n", project)
+        scheme = source("apps/Avelune iOS/AveluneiOS.xcodeproj/xcshareddata/xcschemes/AveluneiOS.xcscheme")
+        self.assertRegex(scheme, r'<ProfileAction\s+buildConfiguration = "Profile"')
 
     def test_swiftui_host_preserves_the_configurable_app_store_identity(self):
         project = source("apps/Avelune iOS/project.yml")

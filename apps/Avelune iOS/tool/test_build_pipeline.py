@@ -1,6 +1,7 @@
 import json
 import os
 import pathlib
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -50,9 +51,11 @@ if command == "flutter" and arguments[:2] == ["build", "swift-package"]:
     output = pathlib.Path(arguments[arguments.index("-o") + 1])
     package = output / "FlutterNativeIntegration"
     package.mkdir(parents=True, exist_ok=True)
-    for mode in ["Debug", "Release"]:
-        (package / mode).mkdir(exist_ok=True)
-    (package / "FlutterPluginRegistrant").symlink_to("./Release")
+    modes = [arguments[index + 1].title() for index, value in enumerate(arguments) if value == "--build-mode"]
+    for mode in modes:
+        if not (package / mode / "Frameworks").is_dir():
+            sys.exit(10)
+    (package / "FlutterPluginRegistrant").symlink_to("./" + modes[-1])
     (package / "Package.swift").write_text('        .package(name: "FlutterNativeTools", path: "FlutterNativeTools"),\n')
     video = package / ".plugins/video_player_avfoundation/darwin/video_player_avfoundation/Package.swift"
     video.parent.mkdir(parents=True)
@@ -71,6 +74,8 @@ if command == "xcodebuild":
     package = pathlib.Path(os.environ["FLUTTER_SWIFT_PACKAGE_OUTPUT"]) / "FlutterNativeIntegration"
     if os.readlink(package / "FlutterPluginRegistrant") != "./" + os.environ["CONFIGURATION"]:
         sys.exit(8)
+if command == "git" and os.environ.get("FAIL_CLONE"):
+    sys.exit(19)
 '''
 
 
@@ -86,13 +91,19 @@ class BuildPipelineTest(unittest.TestCase):
             source = SOURCE_ROOT / "tool" / name
             if source.exists():
                 shutil.copy2(source, self.tool / name)
+        cloud_source = (SOURCE_ROOT / "ci_scripts/ci_post_clone.sh").read_text()
+        self.assertIn('FLUTTER_DIR="$HOME/flutter"', cloud_source)
+        cloud_source = cloud_source.replace('FLUTTER_DIR="$HOME/flutter"', "FLUTTER_DIR=" + shlex.quote(str(self.root / "Flutter SDK")))
+        cloud_script = self.root / "ci_scripts/ci_post_clone.sh"
+        cloud_script.parent.mkdir()
+        cloud_script.write_text(cloud_source)
         self.bin = pathlib.Path(self.directory.name) / "bin"
         self.bin.mkdir()
         self.gpu_buffer = self.bin / "cache/pkg/flutter_gpu/lib/src/buffer.dart"
         self.gpu_buffer.parent.mkdir(parents=True)
         for name, source in original_sdk_sources().items():
             self.gpu_buffer.with_name(name).write_text(source)
-        for command in ["flutter", "xcodegen", "xcodebuild", "pipeline_stub"]:
+        for command in ["flutter", "xcodegen", "xcodebuild", "pipeline_stub", "git"]:
             stub = self.bin / command
             stub.write_text(STUB)
             stub.chmod(0o755)
@@ -154,6 +165,23 @@ class BuildPipelineTest(unittest.TestCase):
         self.assertEqual(prebuild["configuration"], "Release")
         self.assertEqual(prebuild["mode"], "release")
 
+    def test_runtime_builds_only_profile_when_explicitly_selected(self):
+        result = self.run_script("build_runtime.sh", "Profile", FLUTTER_BUILD_MODE="debug")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        events = self.events()
+        build = next(event for event in events if event["arguments"][:2] == ["build", "swift-package"])
+        self.assertEqual(build["arguments"].count("--build-mode"), 1)
+        self.assertEqual(build["arguments"][build["arguments"].index("--build-mode") + 1], "profile")
+        self.assertTrue(build["gpu_patch_ready"])
+        prebuild = next(event for event in events if event["command"] == "prebuild")
+        self.assertEqual(prebuild["configuration"], "Profile")
+        self.assertEqual(prebuild["mode"], "profile")
+        package = self.root / "flutter_runtime/build/swift-package/FlutterNativeIntegration"
+        self.assertTrue((package / "Profile/Frameworks").is_dir())
+        self.assertFalse((package / "Debug").exists())
+        self.assertFalse((package / "Release").exists())
+        self.assertEqual(os.readlink(package / "FlutterPluginRegistrant"), "./Profile")
+
     def test_runtime_applies_gpu_patch_before_compilation(self):
         result = self.run_script("build_runtime.sh")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -181,7 +209,7 @@ class BuildPipelineTest(unittest.TestCase):
         self.assertEqual([event["arguments"] for event in self.events()], [["pub", "get"]])
 
     def test_runtime_rejects_unsupported_configuration_before_building(self):
-        for configuration in ["Profile", "Debug-Custom", ""]:
+        for configuration in ["Debug-Custom", ""]:
             with self.subTest(configuration=configuration):
                 result = self.run_script("build_runtime.sh", configuration)
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
@@ -215,8 +243,29 @@ class BuildPipelineTest(unittest.TestCase):
         self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
         self.assertEqual([event["command"] for event in self.events()], ["prebuild"])
 
+    def test_host_selects_profile_before_xcode_package_resolution(self):
+        result = self.run_script("build_runtime.sh", "Profile")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.clear_events()
+        result = self.run_script("build_ios.sh", "Profile", FLUTTER_BUILD_MODE="release")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        events = self.events()
+        self.assertEqual([event["command"] for event in events], ["prebuild", "xcodebuild"])
+        self.assertEqual(events[0]["configuration"], "Profile")
+        self.assertEqual(events[0]["mode"], "profile")
+        arguments = events[1]["arguments"]
+        self.assertEqual(arguments[arguments.index("-configuration") + 1], "Profile")
+
+    def test_host_rejects_missing_requested_mode_before_prebuild(self):
+        self.prepare_package()
+        result = self.run_script("build_ios.sh", "Profile")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("Profile", result.stderr)
+        self.assertIn("build_runtime.sh", result.stderr)
+        self.assertEqual(self.events(), [])
+
     def test_host_rejects_unsupported_configuration(self):
-        for configuration in ["Profile", "Release-Custom", ""]:
+        for configuration in ["Release-Custom", ""]:
             with self.subTest(configuration=configuration):
                 result = self.run_script("build_ios.sh", configuration)
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
@@ -249,6 +298,20 @@ class BuildPipelineTest(unittest.TestCase):
         source = (SOURCE_ROOT / "ci_scripts/ci_post_clone.sh").read_text()
         self.assertIn("CONFIGURATION=Release ./tool/build_runtime.sh --no-codesign", source)
         self.assertNotIn("ln -sfn ./Release", source)
+
+    def test_cloud_stops_when_pinned_flutter_clone_fails(self):
+        result = subprocess.run(
+            ["/bin/zsh", str(self.root / "ci_scripts/ci_post_clone.sh")],
+            env={**self.environment, "FAIL_CLONE": "1"},
+            text=True,
+            capture_output=True,
+            timeout=20,
+        )
+        self.assertEqual(result.returncode, 19, result.stdout + result.stderr)
+        events = self.events()
+        self.assertEqual([event["command"] for event in events], ["git"])
+        arguments = events[0]["arguments"]
+        self.assertEqual(arguments[arguments.index("--branch") + 1], "3.48.0-0.4.pre")
 
 
 if __name__ == "__main__":
