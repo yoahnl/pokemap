@@ -18,6 +18,297 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(_UnusedBackend.new);
 
+  test('invariant selected images skip 300 arbitrary animation clocks', () {
+    final f = _Fixture(4, singleImage: true);
+    final plan = SpatialGroundPlan(f.map, f.project);
+    var clockCalls = 0;
+    int clock(String layer, int x, int y, int time) {
+      clockCalls++;
+      return time * 7 + 51;
+    }
+
+    final first = plan.imageIdsAt(0, animationElapsedMsForCell: clock);
+    expect(first, {'page-0'});
+    clockCalls = 0;
+    final initialWork = _groundWork(plan);
+    var retainedIdentity = true;
+    for (var query = 0; query < 300; query++) {
+      final time = switch (query % 3) {
+        0 => query * 29,
+        1 => -query * 71,
+        _ => 100000 - query * 113,
+      };
+      retainedIdentity =
+          identical(
+            plan.imageIdsAt(time, animationElapsedMsForCell: clock),
+            first,
+          ) &&
+          retainedIdentity;
+    }
+    expect(clockCalls, 0);
+    expect(initialWork, (
+      resolveBatchCalls: 0,
+      animationVariantVisits: 0,
+      compiledAnimationVariants: 4,
+      selectedCellVisits: 1,
+    ));
+    expect(_groundWork(plan), initialWork);
+    expect(retainedIdentity, isTrue);
+    expect(() => first.add('other'), throwsUnsupportedError);
+  });
+
+  for (final cells in [1, 256]) {
+    for (final frames in [4, 97]) {
+      test(
+        'cold proof compiles $frames variants per $cells selected cells once',
+        () {
+          final f = _Fixture(frames, singleImage: true);
+          final layer = (f.map.layers.single as SmartTileLayer).copyWith(
+            field: SmartTileField.cell(semanticCells: List.filled(cells, 1)),
+          );
+          final map = f.map.copyWith(
+            size: GridSize(width: cells, height: 1),
+            layers: [layer],
+            spatialScene: MapSpatialScene(width: cells, depth: 1),
+          );
+          final plan = SpatialGroundPlan(map, f.project);
+          expect(_groundWork(plan).compiledAnimationVariants, 0);
+          final images = plan.imageIdsAt(0);
+          expect(images, {'page-0'});
+          final cold = _groundWork(plan);
+          expect(cold, (
+            resolveBatchCalls: 0,
+            animationVariantVisits: 0,
+            compiledAnimationVariants: cells * frames,
+            selectedCellVisits: cells,
+          ));
+          for (var frame = 0; frame < 300; frame++) {
+            expect(plan.imageIdsAt(frame * 17), same(images));
+          }
+          expect(_groundWork(plan), cold);
+        },
+      );
+    }
+  }
+
+  test('invariant image queries keep on-enter rendering clocks live', () {
+    final f = _Fixture(4, singleImage: true);
+    final layer = (f.map.layers.single as SmartTileLayer).copyWith(
+      animationActivation: SmartTileAnimationActivation.onEnter,
+    );
+    final plan = SpatialGroundPlan(f.map.copyWith(layers: [layer]), f.project);
+    final images = plan.imageIdsAt(0);
+    var cellTime = 0;
+    var clockCalls = 0;
+    int clock(String layer, int x, int y, int time) {
+      clockCalls++;
+      return cellTime;
+    }
+
+    for (final sample in [(0, 0), (66, 64), (-10, 0), (33, 32)]) {
+      cellTime = sample.$1;
+      expect(
+        plan.imageIdsAt(1000, animationElapsedMsForCell: clock),
+        same(images),
+      );
+      expect(
+        plan
+            .resolve(1000, animationElapsedMsForCell: clock)
+            .single
+            .visual
+            .sourceRect
+            .x,
+        sample.$2,
+      );
+    }
+    expect(clockCalls, 4);
+    expect(_groundWork(plan).resolveBatchCalls, 4);
+    expect(_groundWork(plan).animationVariantVisits, 4);
+  });
+
+  test(
+    'multi-atlas current and prefetch sets stay exact with arbitrary clocks',
+    () {
+      final f = _Fixture(4);
+      final plan = SpatialGroundPlan(f.map, f.project);
+      var calls = 0;
+      var cellTime = 66;
+      int clock(String layer, int x, int y, int time) {
+        calls++;
+        return cellTime;
+      }
+
+      expect(plan.imageIdsAt(0, animationElapsedMsForCell: clock), {'page-2'});
+      cellTime = 99;
+      expect(
+        plan.imageIdsAt(
+          plan.animationLookaheadMs,
+          animationElapsedMsForCell: clock,
+        ),
+        {'page-3'},
+      );
+      cellTime = -100;
+      expect(plan.imageIdsAt(-100, animationElapsedMsForCell: clock), {
+        'page-0',
+      });
+      expect(calls, 3);
+      expect(_groundWork(plan).resolveBatchCalls, 3);
+      expect(_groundWork(plan).animationVariantVisits, 3);
+    },
+  );
+
+  test('invariant and dynamic windows track a mutable cliff image', () {
+    for (final singleImage in [false, true]) {
+      final f = _Fixture(4, singleImage: singleImage);
+      final plan = SpatialGroundPlan(f.map, f.project);
+      final original = plan.imageIdsAt(0);
+      const rect = SmartTileSourceRect(x: 0, y: 0, width: 32, height: 32);
+      plan.cliff = (tilesetId: 'cliff-a', sourceRect: rect);
+      final first = plan.imageIdsAt(0);
+      expect(first, {'page-0', 'cliff-a'});
+      plan.cliff = (tilesetId: 'cliff-b', sourceRect: rect);
+      expect(plan.imageIdsAt(0), {'page-0', 'cliff-b'});
+      plan.cliff = null;
+      expect(plan.imageIdsAt(0), {'page-0'});
+      expect(original, {'page-0'});
+      expect(first, {'page-0', 'cliff-a'});
+    }
+  });
+
+  test(
+    'prepared visibility order and replaced sources own exact image sets',
+    () {
+      final f = _Fixture(4, singleImage: true);
+      final source = f.map.layers.single as SmartTileLayer;
+      final other = source.copyWith(id: 'other', presetId: 'other');
+      final catalog = f.project.smartTileCatalog;
+      final project = f.project.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: catalog.materials,
+          animations: catalog.animations,
+          atlases: [
+            for (final atlas in catalog.atlases)
+              atlas.copyWith(
+                tilesetId: atlas.id == 'atlas-0' ? 'page-0' : 'page-1',
+              ),
+          ],
+          presets: [
+            catalog.presets.single.copyWith(
+              rules: [
+                catalog.presets.single.rules.single.copyWith(
+                  candidates: [
+                    const SmartTileCandidate(
+                      id: 'fixed',
+                      parts: [
+                        SmartTileVisualPart(
+                          source: SmartTileVisualSource.frame(
+                            frame: SmartTileFrameRef(
+                              atlasId: 'atlas-0',
+                              column: 0,
+                              row: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            catalog.presets.single.copyWith(
+              id: 'other',
+              rules: [
+                catalog.presets.single.rules.single.copyWith(
+                  candidates: [
+                    const SmartTileCandidate(
+                      id: 'fixed',
+                      parts: [
+                        SmartTileVisualPart(
+                          source: SmartTileVisualSource.frame(
+                            frame: SmartTileFrameRef(
+                              atlasId: 'atlas-1',
+                              column: 0,
+                              row: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      final map = f.map.copyWith(layers: [source, other]);
+      final plan = SpatialGroundPlan(map, project);
+      final all = plan.imageIdsAt(0);
+      expect(all, {'page-0', 'page-1'});
+      final filtered = plan.withLayerVisibility((id) => id == 'water');
+      final visible = filtered.imageIdsAt(0);
+      expect(visible, {'page-0'});
+      expect(plan.imageIdsAt(100), same(all));
+      expect(filtered.imageIdsAt(100), same(visible));
+      expect(plan.withLayerVisibility((_) => false).imageIdsAt(0), isEmpty);
+      expect(
+        plan.reordered(map.copyWith(layers: [other, source])).imageIdsAt(0),
+        all,
+      );
+      final replaced = SpatialGroundPlan(
+        map,
+        project.copyWith(
+          smartTileCatalog: ProjectSmartTileCatalog(
+            materials: project.smartTileCatalog.materials,
+            animations: project.smartTileCatalog.animations,
+            presets: project.smartTileCatalog.presets,
+            atlases: [
+              for (final atlas in project.smartTileCatalog.atlases)
+                atlas.copyWith(tilesetId: 'replacement'),
+            ],
+          ),
+        ),
+      );
+      expect(replaced.imageIdsAt(0), {'replacement'});
+      expect(all, {'page-0', 'page-1'});
+    },
+  );
+
+  test('flat border plans contribute their selected invariant images', () {
+    final f = _Fixture(4, singleImage: true);
+    final plan = SpatialGroundPlan(
+      f.map.copyWith(layers: const []),
+      f.project,
+      additionalBorders: SpatialGroundBorderInputs(
+        surfaces: [
+          SpatialBorderGroundSurface(
+            layerId: 'border',
+            sourceSmartTilePresetId: 'water',
+            materialId: 'water',
+            height: 1,
+            opacity: 1,
+            footprints: [
+              BorderGroundFootprint(
+                points: [
+                  BorderGroundPoint(x: 0, z: 0),
+                  BorderGroundPoint(x: 1, z: 0),
+                  BorderGroundPoint(x: 1, z: 1),
+                  BorderGroundPoint(x: 0, z: 1),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    final images = plan.imageIdsAt(0);
+    expect(images, {'page-0'});
+    expect(plan.imageIdsAt(50), same(images));
+    expect(_groundWork(plan).resolveBatchCalls, 0);
+    expect(plan.resolve(66).single.visual.sourceRect.x, 64);
+    expect(plan.withLayerVisibility((_) => false).imageIdsAt(0), isEmpty);
+  });
+
   for (final size in [256, 65536]) {
     test(
       '300 rendered image queries do not rescan $size displayed visuals',
@@ -552,6 +843,7 @@ final class _Fixture {
   _Fixture(
     int frames, {
     bool animated = true,
+    bool singleImage = false,
     List<int> durations = const [33],
     bool occlusion = false,
     int occlusionPage = 2,
@@ -590,7 +882,8 @@ final class _Fixture {
             ProjectSmartTileAtlas(
               id: 'atlas-$i',
               name: 'Page $i',
-              tilesetId: 'page-$i',
+              tilesetId: singleImage ? 'page-0' : 'page-$i',
+              originX: singleImage ? i * 32 : 0,
               columns: 1,
               rows: 1,
             ),
@@ -744,4 +1037,30 @@ final class _CountingVisuals extends ListBase<SpatialGroundVisual> {
   @override
   void operator []=(int index, SpatialGroundVisual value) =>
       throw UnsupportedError('Immutable displayed visuals');
+}
+
+({
+  int resolveBatchCalls,
+  int animationVariantVisits,
+  int compiledAnimationVariants,
+  int selectedCellVisits,
+})
+_groundWork(SpatialGroundPlan ground) {
+  var calls = 0;
+  var variants = 0;
+  var compiled = 0;
+  var cells = 0;
+  for (final plan in ground.debugVisualPlans) {
+    final work = plan.debugWork;
+    calls += work.resolveBatchCalls;
+    variants += work.animationVariantVisits;
+    compiled += work.compiledAnimationVariants;
+    cells += work.selectedCellVisits;
+  }
+  return (
+    resolveBatchCalls: calls,
+    animationVariantVisits: variants,
+    compiledAnimationVariants: compiled,
+    selectedCellVisits: cells,
+  );
 }

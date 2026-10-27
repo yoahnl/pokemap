@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:map_core/map_core.dart';
 
 import 'spatial_pixel_material.dart';
@@ -360,12 +361,24 @@ final class SpatialGroundPlan {
   bool animated = false;
   int? _animationLookaheadMs;
   int get animationLookaheadMs => _animationLookaheadMs ?? 0;
-  Set<String>? _staticImageIds;
+  late final Set<String>? _invariantBaseImageIds = _buildInvariantImageIds();
+  Set<String>? _invariantImageIds;
+  String? _invariantCliffImageId;
   List<SpatialGroundVisual>? _static;
   List<List<SmartTileLayerVisual>>? _resolvedLayers;
   List<SpatialGroundVisual>? _resolvedVisuals;
   final _imageWindows =
-      <({List<List<SmartTileLayerVisual>> layers, Set<String> images})>[];
+      <
+        ({
+          List<List<SmartTileLayerVisual>> layers,
+          String? cliffImageId,
+          Set<String> images,
+        })
+      >[];
+
+  @visibleForTesting
+  Iterable<SmartTileLayerVisualPlan> get debugVisualPlans =>
+      _plans.followedBy(_flatPlans.map((group) => group.plan));
 
   bool _sameLayers(
     List<List<SmartTileLayerVisual>> a,
@@ -686,24 +699,50 @@ final class SpatialGroundPlan {
     imageIds.add(atlas.tilesetId);
   }
 
+  Set<String>? _buildInvariantImageIds() {
+    final images = <String>{};
+    for (final plan in [..._plans, ..._flatPlans.map((group) => group.plan)]) {
+      final invariant = plan.invariantImageIds();
+      if (invariant == null) return null;
+      images.addAll(invariant);
+    }
+    return Set.unmodifiable(images);
+  }
+
   Set<String> imageIdsAt(
     int elapsedMs, {
     int Function(String layerId, int cellX, int cellY, int elapsedMs)?
     animationElapsedMsForCell,
   }) {
-    if (!animated && _staticImageIds != null) return _staticImageIds!;
+    final cliffImageId = cliff?.tilesetId;
+    if (_invariantBaseImageIds case final base?) {
+      if (_invariantImageIds == null ||
+          _invariantCliffImageId != cliffImageId) {
+        _invariantCliffImageId = cliffImageId;
+        _invariantImageIds = cliffImageId == null || base.contains(cliffImageId)
+            ? base
+            : Set.unmodifiable({...base, cliffImageId});
+      }
+      return _invariantImageIds!;
+    }
     final layers = _layerVisuals(elapsedMs, animationElapsedMsForCell);
     for (final window in _imageWindows) {
-      if (_sameLayers(window.layers, layers)) return window.images;
+      if (window.cliffImageId == cliffImageId &&
+          _sameLayers(window.layers, layers)) {
+        return window.images;
+      }
     }
     final images = Set<String>.unmodifiable({
       if (cliff case final frame?) frame.tilesetId,
       for (final batch in layers)
         for (final visual in batch) visual.tilesetId,
     });
-    if (!animated) _staticImageIds = images;
     if (_imageWindows.length == 2) _imageWindows.removeAt(0);
-    _imageWindows.add((layers: layers, images: images));
+    _imageWindows.add((
+      layers: layers,
+      cliffImageId: cliffImageId,
+      images: images,
+    ));
     return images;
   }
 

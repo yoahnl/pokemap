@@ -1,4 +1,4 @@
-import 'package:meta/meta.dart' show immutable;
+import 'package:meta/meta.dart' show immutable, visibleForTesting;
 
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -1186,77 +1186,44 @@ final class SmartTileLayerVisualPlan {
         })
       >[];
 
+  int _debugResolveBatchCalls = 0;
+  int _debugAnimationVariantVisits = 0;
+  int _debugCompiledAnimationVariants = 0;
+  int _debugSelectedCellVisits = 0;
+  int _debugImageIdVariantVisits = 0;
+
+  @visibleForTesting
+  int get debugImageIdVariantVisits => _debugImageIdVariantVisits;
+
+  @visibleForTesting
+  ({
+    int resolveBatchCalls,
+    int animationVariantVisits,
+    int compiledAnimationVariants,
+    int selectedCellVisits,
+  })
+  get debugWork => (
+    resolveBatchCalls: _debugResolveBatchCalls,
+    animationVariantVisits: _debugAnimationVariantVisits,
+    compiledAnimationVariants: _debugCompiledAnimationVariants,
+    selectedCellVisits: _debugSelectedCellVisits,
+  );
+
   /// Emits the visuals intersecting [viewportBounds] at [elapsedMs].
   SmartTileLayerVisualBatch resolveBatch({
     int elapsedMs = 0,
     SmartTileGeometryRect? viewportBounds,
     SmartTileAnimationElapsedMsForCell? animationElapsedMsForCell,
   }) {
+    assert(() {
+      _debugResolveBatchCalls++;
+      return true;
+    }());
     final envelope = _envelope;
     if (envelope == null) {
       return const SmartTileLayerVisualBatch.empty();
     }
-    final mapWidth = _map.size.width;
-    final mapHeight = _map.size.height;
-    final (:startX, :startY, :endX, :endY) = viewportBounds == null
-        ? (startX: 0, startY: 0, endX: mapWidth, endY: mapHeight)
-        : _scanRangeForViewport(
-            mapWidth: mapWidth,
-            mapHeight: mapHeight,
-            envelope: envelope,
-            viewport: viewportBounds,
-            destinationCellWidth: _destinationCellWidth,
-            destinationCellHeight: _destinationCellHeight,
-          );
-    final key = (
-      startX,
-      startY,
-      endX,
-      endY,
-      viewportBounds?.left,
-      viewportBounds?.top,
-      viewportBounds?.right,
-      viewportBounds?.bottom,
-    );
-    var ownerCellVisits = _animatedSelection.length;
-    if (_selectionKey != key) {
-      _selectionKey = key;
-      _selectionBase.clear();
-      _animatedSelection.clear();
-      _resolvedFrames.clear();
-      ownerCellVisits = 0;
-      for (var y = startY; y < endY; y++) {
-        for (var x = startX; x < endX; x++) {
-          ownerCellVisits++;
-          final items = _plannedByCellIndex[y * mapWidth + x] ??= _planCell(
-            x,
-            y,
-          );
-          final animated = <({int slot, _PlannedSmartTileVisual item})>[];
-          for (final item in items) {
-            final slot = _selectionBase.length;
-            if (item._variants != null) {
-              animated.add((slot: slot, item: item));
-              _selectionBase.add(null);
-            } else {
-              final visual = item._fixed;
-              _selectionBase.add(
-                visual != null &&
-                        (viewportBounds == null ||
-                            visual.geometry.visualBounds.intersects(
-                              viewportBounds,
-                            ))
-                    ? visual
-                    : null,
-              );
-            }
-          }
-          if (animated.isNotEmpty) {
-            _animatedSelection.add((x: x, y: y, items: animated));
-          }
-        }
-      }
-    }
+    final selection = _prepareSelection(viewportBounds);
     final dynamicVisuals = <SmartTileLayerVisual?>[];
     for (final cell in _animatedSelection) {
       final time =
@@ -1267,6 +1234,10 @@ final class SmartTileLayerVisualPlan {
           ) ??
           elapsedMs;
       for (final entry in cell.items) {
+        assert(() {
+          _debugAnimationVariantVisits++;
+          return true;
+        }());
         final visual = entry.item.visualAt(time);
         dynamicVisuals.add(
           visual != null &&
@@ -1305,11 +1276,117 @@ final class SmartTileLayerVisualPlan {
     return SmartTileLayerVisualBatch._shared(
       visuals: visuals,
       work: SmartTileLayerVisualWorkCounts(
-        requestedCellCount: (endX - startX) * (endY - startY),
-        ownerCellVisits: ownerCellVisits,
+        requestedCellCount: selection.requestedCellCount,
+        ownerCellVisits: selection.ownerCellVisits,
         patternStrokeCellVisits: 0,
         resolvedVisualCount: visuals.length,
       ),
+    );
+  }
+
+  Set<String>? _invariantImageIds;
+  bool _invariantImageIdsChecked = false;
+
+  Set<String>? invariantImageIds({SmartTileGeometryRect? viewportBounds}) {
+    if (_envelope == null) return const <String>{};
+    _prepareSelection(viewportBounds);
+    if (_invariantImageIdsChecked) return _invariantImageIds;
+    final possibleImageIds = <String>{
+      for (final visual in _selectionBase)
+        if (visual != null) visual.tilesetId,
+    };
+    final guaranteedImageIds = <String>{...possibleImageIds};
+    for (final cell in _animatedSelection) {
+      for (final entry in cell.items) {
+        entry.item.addImageIds(
+          possibleImageIds,
+          guaranteedImageIds,
+          viewportBounds,
+          this,
+        );
+      }
+    }
+    _invariantImageIds = possibleImageIds.length == guaranteedImageIds.length
+        ? Set<String>.unmodifiable(possibleImageIds)
+        : null;
+    _invariantImageIdsChecked = true;
+    return _invariantImageIds;
+  }
+
+  ({int requestedCellCount, int ownerCellVisits}) _prepareSelection(
+    SmartTileGeometryRect? viewportBounds,
+  ) {
+    final envelope = _envelope!;
+    final mapWidth = _map.size.width;
+    final mapHeight = _map.size.height;
+    final (:startX, :startY, :endX, :endY) = viewportBounds == null
+        ? (startX: 0, startY: 0, endX: mapWidth, endY: mapHeight)
+        : _scanRangeForViewport(
+            mapWidth: mapWidth,
+            mapHeight: mapHeight,
+            envelope: envelope,
+            viewport: viewportBounds,
+            destinationCellWidth: _destinationCellWidth,
+            destinationCellHeight: _destinationCellHeight,
+          );
+    final key = (
+      startX,
+      startY,
+      endX,
+      endY,
+      viewportBounds?.left,
+      viewportBounds?.top,
+      viewportBounds?.right,
+      viewportBounds?.bottom,
+    );
+    var ownerCellVisits = _animatedSelection.length;
+    if (_selectionKey != key) {
+      _selectionKey = key;
+      _selectionBase.clear();
+      _animatedSelection.clear();
+      _resolvedFrames.clear();
+      _invariantImageIds = null;
+      _invariantImageIdsChecked = false;
+      ownerCellVisits = 0;
+      for (var y = startY; y < endY; y++) {
+        for (var x = startX; x < endX; x++) {
+          ownerCellVisits++;
+          assert(() {
+            _debugSelectedCellVisits++;
+            return true;
+          }());
+          final items = _plannedByCellIndex[y * mapWidth + x] ??= _planCell(
+            x,
+            y,
+          );
+          final animated = <({int slot, _PlannedSmartTileVisual item})>[];
+          for (final item in items) {
+            final slot = _selectionBase.length;
+            if (item._variants != null) {
+              animated.add((slot: slot, item: item));
+              _selectionBase.add(null);
+            } else {
+              final visual = item._fixed;
+              _selectionBase.add(
+                visual != null &&
+                        (viewportBounds == null ||
+                            visual.geometry.visualBounds.intersects(
+                              viewportBounds,
+                            ))
+                    ? visual
+                    : null,
+              );
+            }
+          }
+          if (animated.isNotEmpty) {
+            _animatedSelection.add((x: x, y: y, items: animated));
+          }
+        }
+      }
+    }
+    return (
+      requestedCellCount: (endX - startX) * (endY - startY),
+      ownerCellVisits: ownerCellVisits,
     );
   }
 
@@ -1428,16 +1505,32 @@ final class SmartTileLayerVisualPlan {
         final cumulativeMs = <int>[];
         var cursor = 0;
         var hasAnyVisual = false;
+        final possibleImageIds = <String>{};
+        String? guaranteedImageId;
         for (final entry in timeline) {
+          assert(() {
+            _debugCompiledAnimationVariants++;
+            return true;
+          }());
           cursor += entry.durationMs;
           cumulativeMs.add(cursor);
           final visual = build(entry.frame);
-          if (visual != null) hasAnyVisual = true;
+          if (visual != null) {
+            hasAnyVisual = true;
+            possibleImageIds.add(visual.tilesetId);
+          }
+          if (variants.isEmpty) {
+            guaranteedImageId = visual?.tilesetId;
+          } else if (guaranteedImageId != visual?.tilesetId) {
+            guaranteedImageId = null;
+          }
           variants.add(visual);
         }
         if (!hasAnyVisual) return null;
         return _PlannedSmartTileVisual.animated(
           variants: variants,
+          possibleImageIds: Set.unmodifiable(possibleImageIds),
+          guaranteedImageId: guaranteedImageId,
           cumulativeMs: cumulativeMs,
           totalDurationMs: totalDurationMs,
           syncOffsetMs:
@@ -1466,6 +1559,8 @@ final class _PlannedSmartTileVisual {
   const _PlannedSmartTileVisual.fixed(SmartTileLayerVisual visual)
     : _fixed = visual,
       _variants = null,
+      _possibleImageIds = const {},
+      _guaranteedImageId = null,
       _cumulativeMs = const <int>[],
       totalDurationMs = 0,
       syncOffsetMs = 0,
@@ -1473,20 +1568,60 @@ final class _PlannedSmartTileVisual {
 
   const _PlannedSmartTileVisual.animated({
     required List<SmartTileLayerVisual?> variants,
+    required Set<String> possibleImageIds,
+    required String? guaranteedImageId,
     required List<int> cumulativeMs,
     required this.totalDurationMs,
     required this.syncOffsetMs,
     required this.loopOnce,
   }) : _fixed = null,
        _variants = variants,
+       _possibleImageIds = possibleImageIds,
+       _guaranteedImageId = guaranteedImageId,
        _cumulativeMs = cumulativeMs;
 
   final SmartTileLayerVisual? _fixed;
   final List<SmartTileLayerVisual?>? _variants;
+  final Set<String> _possibleImageIds;
+  final String? _guaranteedImageId;
   final List<int> _cumulativeMs;
   final int totalDurationMs;
   final int syncOffsetMs;
   final bool loopOnce;
+
+  void addImageIds(
+    Set<String> possible,
+    Set<String> guaranteed,
+    SmartTileGeometryRect? viewportBounds,
+    SmartTileLayerVisualPlan workOwner,
+  ) {
+    final variants = _variants!;
+    if (viewportBounds == null) {
+      possible.addAll(_possibleImageIds);
+      if (_guaranteedImageId case final imageId?) guaranteed.add(imageId);
+      return;
+    }
+    String? guaranteedImageId;
+    for (var index = 0; index < variants.length; index++) {
+      assert(() {
+        workOwner._debugImageIdVariantVisits++;
+        return true;
+      }());
+      final visual = variants[index];
+      final imageId =
+          visual != null &&
+              visual.geometry.visualBounds.intersects(viewportBounds)
+          ? visual.tilesetId
+          : null;
+      if (imageId != null) possible.add(imageId);
+      if (index == 0) {
+        guaranteedImageId = imageId;
+      } else if (guaranteedImageId != imageId) {
+        guaranteedImageId = null;
+      }
+    }
+    if (guaranteedImageId != null) guaranteed.add(guaranteedImageId);
+  }
 
   SmartTileLayerVisual? visualAt(int elapsedMs) {
     final variants = _variants;

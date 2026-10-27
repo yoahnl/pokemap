@@ -56,6 +56,232 @@ void main() {
     expect(smartLayers, isNotEmpty);
   });
 
+  for (final frames in [4, 97, 360]) {
+    test(
+      'render-only viewport motion skips proof visits for $frames frames',
+      () {
+        final f = _imageFixture(
+          width: 20,
+          height: 18,
+          frames: [
+            for (var frame = 0; frame < frames; frame++)
+              SmartTileFrameRef(atlasId: 'a', column: frame % 4, row: 0),
+          ],
+        );
+        final plan = f.plan();
+        plan.resolveBatch(
+          viewportBounds: const SmartTileGeometryRect(
+            left: 0,
+            top: 0,
+            width: 20,
+            height: 18,
+          ),
+        );
+        expect(plan.debugWork.compiledAnimationVariants, 360 * frames);
+        final before = plan.debugImageIdVariantVisits;
+        for (var movement = 0; movement < 300; movement++) {
+          plan.resolveBatch(
+            elapsedMs: movement * 17,
+            viewportBounds: SmartTileGeometryRect(
+              left: (movement + 1) / 10000,
+              top: 0,
+              width: 20,
+              height: 18,
+            ),
+          );
+        }
+        expect(plan.debugImageIdVariantVisits - before, 0);
+      },
+    );
+  }
+
+  test(
+    'invariant IDs use selected compiled parts and preserve live rendering',
+    () {
+      final f = _imageFixture();
+      final plan = f.plan();
+      expect(plan.debugWork.compiledAnimationVariants, 0);
+      final images = plan.invariantImageIds();
+      expect(images, {'image-a'});
+      expect(plan.debugWork, (
+        resolveBatchCalls: 0,
+        animationVariantVisits: 0,
+        compiledAnimationVariants: 2,
+        selectedCellVisits: 1,
+      ));
+      final firstWork = plan.debugWork;
+      for (var query = 0; query < 300; query++) {
+        expect(plan.invariantImageIds(), same(images));
+      }
+      expect(plan.debugWork, firstWork);
+      var clockCalls = 0;
+      var cellTime = 0;
+      SmartTileLayerVisualBatch render() => plan.resolveBatch(
+        elapsedMs: 1000,
+        animationElapsedMsForCell:
+            ({required cellX, required cellY, required elapsedMs}) {
+              clockCalls++;
+              return cellTime;
+            },
+      );
+      expect(render().visuals.single.sourceRect.x, 0);
+      cellTime = 20;
+      expect(render().visuals.single.sourceRect.x, 32);
+      cellTime = -50;
+      expect(render().visuals.single.sourceRect.x, 0);
+      expect(clockCalls, 3);
+      expect(plan.debugWork.animationVariantVisits, 3);
+      expect(plan.invariantImageIds(), same(images));
+      expect(() => images!.add('other'), throwsUnsupportedError);
+    },
+  );
+
+  test('image proof is lazy and caches a nullable result per selection', () {
+    final f = _imageFixture(
+      frames: const [
+        SmartTileFrameRef(atlasId: 'a', column: 0, row: 0),
+        SmartTileFrameRef(atlasId: 'b', column: 0, row: 0),
+      ],
+    );
+    final plan = f.plan();
+    const viewport = SmartTileGeometryRect(
+      left: 0,
+      top: 0,
+      width: 3,
+      height: 1,
+    );
+    plan.resolveBatch(viewportBounds: viewport);
+    expect(plan.debugImageIdVariantVisits, 0);
+    expect(plan.invariantImageIds(viewportBounds: viewport), isNull);
+    expect(plan.debugImageIdVariantVisits, 2);
+    for (var query = 0; query < 300; query++) {
+      expect(plan.invariantImageIds(viewportBounds: viewport), isNull);
+      plan.resolveBatch(elapsedMs: query, viewportBounds: viewport);
+    }
+    expect(plan.debugImageIdVariantVisits, 2);
+    const moved = SmartTileGeometryRect(
+      left: .001,
+      top: 0,
+      width: 3,
+      height: 1,
+    );
+    plan.resolveBatch(viewportBounds: moved);
+    expect(plan.debugImageIdVariantVisits, 2);
+    expect(plan.invariantImageIds(viewportBounds: moved), isNull);
+    expect(plan.debugImageIdVariantVisits, 4);
+    expect(plan.invariantImageIds(), isNull);
+    expect(plan.debugImageIdVariantVisits, 4);
+  });
+
+  test('multi-atlas and nullable variants require dynamic selection', () {
+    for (final last in [
+      const SmartTileFrameRef(atlasId: 'b', column: 0, row: 0),
+      const SmartTileFrameRef(atlasId: 'a', column: 4, row: 0),
+    ]) {
+      final f = _imageFixture(
+        frames: [
+          const SmartTileFrameRef(atlasId: 'a', column: 0, row: 0),
+          last,
+        ],
+      );
+      final plan = f.plan();
+      expect(plan.invariantImageIds(), isNull);
+      expect(
+        plan.resolveBatch(elapsedMs: 0).visuals.single.tilesetId,
+        'image-a',
+      );
+      final next = plan.resolveBatch(elapsedMs: 20).visuals;
+      expect(
+        next.map((visual) => visual.tilesetId).toSet(),
+        last.atlasId == 'b' ? {'image-b'} : isEmpty,
+      );
+    }
+  });
+
+  test('fixed parts can guarantee images despite nullable animated parts', () {
+    final f = _imageFixture(
+      frames: const [
+        SmartTileFrameRef(atlasId: 'a', column: 0, row: 0),
+        SmartTileFrameRef(atlasId: 'a', column: 4, row: 0),
+      ],
+      fixed: true,
+    );
+    final plan = f.plan();
+    expect(plan.invariantImageIds(), {'image-a'});
+    expect(plan.resolveBatch().visuals, hasLength(2));
+    expect(plan.resolveBatch(elapsedMs: 20).visuals, hasLength(1));
+  });
+
+  test('all-null, inert and empty selections have an immutable empty set', () {
+    final f = _imageFixture(
+      frames: const [
+        SmartTileFrameRef(atlasId: 'a', column: 4, row: 0),
+        SmartTileFrameRef(atlasId: 'a', column: 5, row: 0),
+      ],
+    );
+    final plans = [
+      f.plan(),
+      buildSmartTileLayerVisualPlan(
+        map: f.map,
+        layer: f.layer,
+        catalog: const ProjectSmartTileCatalog.empty(),
+        pass: SmartTileVisualPass.background,
+      ),
+      buildSmartTileLayerVisualPlan(
+        map: f.map,
+        layer: f.layer.copyWith(
+          field: const SmartTileField.cell(semanticCells: [0]),
+        ),
+        catalog: f.catalog,
+        pass: SmartTileVisualPass.background,
+      ),
+    ];
+    for (final plan in plans) {
+      final images = plan.invariantImageIds();
+      expect(images, isEmpty);
+      expect(plan.resolveBatch(elapsedMs: 20).visuals, isEmpty);
+      expect(() => images!.add('other'), throwsUnsupportedError);
+    }
+  });
+
+  test('proof follows sampled frames rather than unsampled source spans', () {
+    const frames = [
+      SmartTileFrameRef(atlasId: 'a', column: 3, row: 0, columnSpan: 2),
+      SmartTileFrameRef(atlasId: 'a', column: 3, row: 0, columnSpan: 2),
+    ];
+    final full = _imageFixture(frames: frames).plan();
+    final sampled = _imageFixture(
+      frames: frames,
+      sampling: SmartTileFrameSampling.tessellated,
+    ).plan();
+    expect(full.invariantImageIds(), isEmpty);
+    expect(sampled.invariantImageIds(), {'image-a'});
+    expect(sampled.resolveBatch().visuals.single.sourceRect.x, 96);
+  });
+
+  test('viewport changes recompute guarantees after clipping each variant', () {
+    final f = _imageFixture(
+      frames: const [
+        SmartTileFrameRef(atlasId: 'a', column: 0, row: 0),
+        SmartTileFrameRef(atlasId: 'b', column: 0, row: 0),
+      ],
+      fixed: true,
+    );
+    final plan = f.plan();
+    const left = SmartTileGeometryRect(left: 0, top: 0, width: 1, height: 1);
+    const empty = SmartTileGeometryRect(left: 10, top: 0, width: 1, height: 1);
+    expect(plan.invariantImageIds(), isNull);
+    final clipped = plan.invariantImageIds(viewportBounds: left);
+    expect(clipped, {'image-a'});
+    expect(
+      plan.resolveBatch(elapsedMs: 20, viewportBounds: left).visuals,
+      hasLength(1),
+    );
+    expect(plan.invariantImageIds(viewportBounds: empty), isEmpty);
+    expect(plan.invariantImageIds(), isNull);
+    expect(clipped, {'image-a'});
+  });
+
   const elapsedSamples = <int>[0, 130, 250, 999, 5000, 123456];
   final viewports = <SmartTileGeometryRect?>[
     null,
@@ -163,4 +389,157 @@ void main() {
       },
     );
   }
+}
+
+({
+  MapData map,
+  SmartTileLayer layer,
+  ProjectSmartTileCatalog catalog,
+  SmartTileLayerVisualPlan Function() plan,
+})
+_imageFixture({
+  List<SmartTileFrameRef> frames = const [
+    SmartTileFrameRef(atlasId: 'a', column: 0, row: 0),
+    SmartTileFrameRef(atlasId: 'a', column: 1, row: 0),
+  ],
+  bool fixed = false,
+  int width = 1,
+  int height = 1,
+  SmartTileFrameSampling sampling = SmartTileFrameSampling.fullFrame,
+}) {
+  final layer = SmartTileLayer(
+    id: 'ground',
+    name: 'Ground',
+    presetId: 'ground',
+    usage: SmartTileUsage.terrain,
+    animationActivation: SmartTileAnimationActivation.onEnter,
+    materialPalette: ['', 'water'],
+    field: SmartTileField.cell(semanticCells: List.filled(width * height, 1)),
+  );
+  final map = MapData(
+    id: 'room',
+    name: 'Room',
+    size: GridSize(width: width, height: height),
+    layers: [layer],
+  );
+  final catalog = ProjectSmartTileCatalog(
+    materials: const [
+      ProjectSmartTileMaterial(
+        id: 'water',
+        name: 'Water',
+        connectionGroupId: 'water',
+      ),
+      ProjectSmartTileMaterial(
+        id: 'other',
+        name: 'Other',
+        connectionGroupId: 'other',
+      ),
+    ],
+    atlases: const [
+      ProjectSmartTileAtlas(
+        id: 'a',
+        name: 'A',
+        tilesetId: 'image-a',
+        columns: 4,
+        rows: 1,
+      ),
+      ProjectSmartTileAtlas(
+        id: 'b',
+        name: 'B',
+        tilesetId: 'image-b',
+        columns: 4,
+        rows: 1,
+        pixelOffsetX: 64,
+      ),
+    ],
+    animations: [
+      ProjectSmartTileAnimation(
+        id: 'wave',
+        name: 'Wave',
+        sync: SmartTileAnimationSync.perCell,
+        frames: [
+          for (final frame in frames)
+            ProjectSmartTileAnimationFrame(frame: frame, durationMs: 20),
+        ],
+      ),
+    ],
+    presets: [
+      ProjectSmartTilePreset(
+        id: 'ground',
+        name: 'Ground',
+        usage: SmartTileUsage.terrain,
+        topology: SmartTileTopology.uniform,
+        templateHint: SmartTileTemplateHint.simple,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: const SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: const SmartTileTransformPolicy(),
+        defaultMaterialId: 'water',
+        allowedMaterialIds: ['water', 'other'],
+        rules: [
+          SmartTileRule(
+            id: 'fill',
+            centerMatch: const SmartTileSlotMatch.material('water'),
+            candidates: [
+              SmartTileCandidate(
+                id: 'wave',
+                parts: [
+                  SmartTileVisualPart(
+                    source: const SmartTileVisualSource.animation(
+                      animationId: 'wave',
+                    ),
+                    frameSampling: sampling,
+                    spatialClip: SmartTileSpatialClip(
+                      left: 0,
+                      top: 0,
+                      right: 1,
+                      bottom: 1,
+                    ),
+                  ),
+                  if (fixed)
+                    const SmartTileVisualPart(
+                      source: SmartTileVisualSource.frame(
+                        frame: SmartTileFrameRef(
+                          atlasId: 'a',
+                          column: 0,
+                          row: 0,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SmartTileRule(
+            id: 'unused',
+            centerMatch: SmartTileSlotMatch.material('other'),
+            candidates: [
+              SmartTileCandidate(
+                id: 'other',
+                parts: [
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(atlasId: 'b', column: 0, row: 0),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+  return (
+    map: map,
+    layer: layer,
+    catalog: catalog,
+    plan: () => buildSmartTileLayerVisualPlan(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: SmartTileVisualPass.background,
+    ),
+  );
 }
