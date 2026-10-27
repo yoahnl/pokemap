@@ -433,28 +433,36 @@ class SpatialRenderContext extends RenderContext3D
   }
 
   void _withMaterialPose(_TransparentSurface entry, void Function() draw) {
-    final previousPose = _MaterialPose(entry.material);
+    final previousPose = entry.pose.matches(entry.material)
+        ? null
+        : _MaterialPose(entry.material);
     final previousMaterial = entry.surface.material;
     try {
-      entry.pose.apply(entry.material);
+      if (previousPose != null) entry.pose.apply(entry.material);
       entry.surface.material = entry.material;
       draw();
     } finally {
-      previousPose.apply(entry.material);
+      previousPose?.apply(entry.material);
       entry.surface.material = previousMaterial;
     }
   }
 
+  final _poseModels = <Matrix4>[];
+  int _poseDepth = 0;
+
   void _withPose(_TransparentSurface entry, void Function() draw) {
-    final previousPose = _MaterialPose(entry.material);
+    final previousPose = entry.pose.matches(entry.material)
+        ? null
+        : _MaterialPose(entry.material);
     final previousMaterial = entry.surface.material;
-    final previousModel = model.clone();
+    if (_poseDepth == _poseModels.length) _poseModels.add(Matrix4.zero());
+    final previousModel = _poseModels[_poseDepth++]..setFrom(model);
     final previousJoints = jointsInfo.jointTransforms;
     final previousInstance = sourceInstanceId;
     final previousShadow = sourceShadowId;
     final previousOwner = sourceModelOwner;
     try {
-      entry.pose.apply(entry.material);
+      if (previousPose != null) entry.pose.apply(entry.material);
       entry.surface.material = entry.material;
       model.setFrom(entry.model);
       jointsInfo.jointTransforms = entry.joints;
@@ -463,9 +471,10 @@ class SpatialRenderContext extends RenderContext3D
       sourceModelOwner = entry.owner;
       draw();
     } finally {
-      previousPose.apply(entry.material);
+      previousPose?.apply(entry.material);
       entry.surface.material = previousMaterial;
       model.setFrom(previousModel);
+      _poseDepth--;
       jointsInfo.jointTransforms = previousJoints;
       sourceInstanceId = previousInstance;
       sourceShadowId = previousShadow;
@@ -520,6 +529,22 @@ final class _MaterialPose {
   final int wrapS, wrapT;
   final CullMode cullMode;
   final Vector3? shadowSamplePosition;
+
+  bool matches(SpatialPixelMaterial material) {
+    final sample = shadowSamplePosition,
+        current = material.shadowSamplePosition;
+    return identical(texture, material.albedoTexture) &&
+        color == material.albedoColor &&
+        cullMode == material.cullMode &&
+        wrapS == material.activeWrapS &&
+        wrapT == material.activeWrapT &&
+        rect == material.uvRect &&
+        u == material.uvTransformU &&
+        v == material.uvTransformV &&
+        (sample == null
+            ? current == null
+            : current != null && sample == current);
+  }
 
   void apply(SpatialPixelMaterial material) {
     final sample = shadowSamplePosition;

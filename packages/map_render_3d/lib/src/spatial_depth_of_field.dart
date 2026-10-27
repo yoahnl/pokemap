@@ -180,8 +180,8 @@ final class _DepthDevice extends GraphicsDevice {
   void bindPipeline(GpuPipeline pipeline, CullMode cullMode) =>
       _pass.bindPipeline(pipeline, cullMode);
   @override
-  void bindUniform(GpuUniformSlot slot, ByteBuffer buffer) =>
-      _pass.bindUniform(slot, buffer.asByteData());
+  void bindUniform(GpuUniformSlot slot, ByteData data) =>
+      _pass.bindUniform(slot, data);
   @override
   void bindTexture(GpuUniformSlot slot, Texture texture) =>
       _pass.bindTexture(slot, texture.resource);

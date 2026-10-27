@@ -23,12 +23,12 @@ void main() {
     test('auxiliary passes $flags avoid copying the outer pose', () {
       final baseline = _Fixture(0)..render();
       final fixture = _Fixture(flags)..render();
-      expect(baseline.context.countedModel.clones, 6);
+      expect(baseline.context.countedModel.clones, 3);
       expect(
         fixture.context.countedModel.clones -
             baseline.context.countedModel.clones,
         0,
-        reason: 'Only the three captures and three color replays need clones.',
+        reason: 'Only the three captures need clones; replays reuse a scratch.',
       );
       expect(
         fixture.context.countedModel.copies -
@@ -44,7 +44,7 @@ void main() {
   test('mask and blend keep pass filtering, uniforms and color order', () {
     final baseline = _Fixture(0, mixedAlpha: true)..render();
     final fixture = _Fixture(7, mixedAlpha: true)..render();
-    expect(baseline.context.countedModel.clones, 8);
+    expect(baseline.context.countedModel.clones, 5);
     expect(
       fixture.context.countedModel.clones -
           baseline.context.countedModel.clones,
@@ -74,7 +74,7 @@ void main() {
     expect(draws.where((draw) => draw.path == 'color'), hasLength(3));
     expect(fixture.context.shadowStats.casterDrawCount, 1);
     expect(fixture.context.shadowStats.pointCasterDrawCount, 6);
-    expect(fixture.context.countedModel.clones, 6);
+    expect(fixture.context.countedModel.clones, 3);
     _expectRestored(fixture);
   });
 

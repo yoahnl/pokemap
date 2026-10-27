@@ -157,6 +157,60 @@ void main() {
     }
   });
 
+  group('uniform field resolution', () {
+    late _RecordingBackend backend;
+    late GraphicsDevice device;
+
+    setUp(() {
+      backend = _RecordingBackend();
+      device = GraphicsDevice(backend: backend)
+        ..begin()
+        ..beginPass(const Size(1, 1));
+      _memberLookups = 0;
+    });
+
+    tearDown(() => device.end());
+
+    test('a block binds one stable view that reflects every write', () {
+      final shader = _shader()..resource;
+      shader
+        ..setFloat('Uniforms.floatValue', 1)
+        ..bind(device);
+      shader
+        ..setFloat('Uniforms.floatValue', 2)
+        ..bind(device);
+      expect(backend.boundViews, hasLength(2));
+      expect(backend.boundViews[1], same(backend.boundViews[0]));
+      expect(_floats(backend.uploads.first.$3, 0, 1), [1]);
+      expect(_floats(backend.uploads.last.$3, 0, 1), [2]);
+    });
+
+    test('each key consults reflection once across 300 frames', () {
+      final shader = _shader()..resource;
+      for (var frame = 0; frame < 300; frame++) {
+        shader
+          ..setFloat('Uniforms.floatValue', frame.toDouble())
+          ..setFloat('Uniforms.floatArray[0]', frame + .5)
+          ..setFloat('Uniforms.floatArray[1]', frame + .75)
+          ..bind(device);
+        final bytes = backend.uploads.last.$3;
+        expect(_floats(bytes, 0, 1), [frame.toDouble()]);
+        expect(_floats(bytes, 192, 1), [frame + .5]);
+        expect(_floats(bytes, 208, 1), [frame + .75]);
+      }
+      expect(_memberLookups, 3);
+
+      backend.generation++;
+      shader.recreateResource = true;
+      shader.resource;
+      shader
+        ..setFloat('Uniforms.floatValue', 4)
+        ..bind(device);
+      expect(_memberLookups, 4);
+      expect(_floats(backend.uploads.last.$3, 8, 1), [4]);
+    });
+  });
+
   group('uniform uploads through setters and bindings', () {
     late _RecordingBackend backend;
     late GraphicsDevice device;
@@ -413,6 +467,8 @@ class _CountingUniformKeyCache extends UniformKeyCache {
   }
 }
 
+var _memberLookups = 0;
+
 Shader _shader() => Shader.fromAsset(
   'uniform-key-test',
   entryPoint: 'UniformKeys',
@@ -429,6 +485,7 @@ List<double> _floats(Uint8List bytes, int offset, int count) {
 
 final class _RecordingBackend extends GpuBackend {
   final uploads = <(String, int, Uint8List)>[];
+  final boundViews = <ByteData>[];
   int generation = 0;
 
   @override
@@ -497,7 +554,10 @@ final class _UniformSlot implements GpuUniformSlot {
   final Map<String, int> offsets;
 
   @override
-  int? getMemberOffsetInBytes(String member) => offsets[member];
+  int? getMemberOffsetInBytes(String member) {
+    _memberLookups++;
+    return offsets[member];
+  }
 }
 
 final class _RecordingFrame implements GpuFrame {
@@ -524,6 +584,7 @@ final class _RecordingPass implements GpuRenderPass {
   @override
   void bindUniform(GpuUniformSlot slot, ByteData data) {
     final uniform = slot as _UniformSlot;
+    backend.boundViews.add(data);
     backend.uploads.add((
       uniform.name,
       uniform.generation,

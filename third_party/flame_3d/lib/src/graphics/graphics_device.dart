@@ -123,9 +123,9 @@ class GraphicsDevice({
       ..draw();
   }
 
-  /// Bind a uniform [slot] to the data in [buffer].
-  void bindUniform(GpuUniformSlot slot, ByteBuffer buffer) {
-    _renderPass.bindUniform(slot, buffer.asByteData());
+  /// Bind a uniform [slot] to the bytes in [data].
+  void bindUniform(GpuUniformSlot slot, ByteData data) {
+    _renderPass.bindUniform(slot, data);
   }
 
   /// Bind a uniform [slot] to the [texture].

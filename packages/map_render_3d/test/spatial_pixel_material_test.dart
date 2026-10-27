@@ -1680,7 +1680,9 @@ final class _RecordingDevice extends GraphicsDevice {
   }
 
   @override
-  void bindUniform(GpuUniformSlot slot, ByteBuffer buffer) {
-    uniforms[(slot as _UniformSlot).name] = buffer.asFloat32List().toList();
+  void bindUniform(GpuUniformSlot slot, ByteData data) {
+    uniforms[(slot as _UniformSlot).name] = data.buffer
+        .asFloat32List(data.offsetInBytes, data.lengthInBytes ~/ 4)
+        .toList();
   }
 }

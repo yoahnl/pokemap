@@ -50,8 +50,8 @@ class UnlitMaterial({
         ' found ${jointTransforms.length}',
       );
     }
-    for (final (index, transform) in jointTransforms.indexed) {
-      vertexShader.setMatrix4('JointMatrices.joints[$index]', transform);
+    for (var index = 0; index < jointTransforms.length; index++) {
+      vertexShader.setMatrix4(_jointKeys[index], jointTransforms[index]);
     }
 
     fragmentShader
@@ -60,4 +60,10 @@ class UnlitMaterial({
   }
 
   static const _maxJoints = 16;
+
+  static final _jointKeys = List<String>.generate(
+    _maxJoints,
+    (index) => 'JointMatrices.joints[$index]',
+    growable: false,
+  );
 }

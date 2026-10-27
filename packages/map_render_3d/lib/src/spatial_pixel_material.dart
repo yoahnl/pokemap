@@ -371,10 +371,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
         rect?.right ?? 0,
         rect?.bottom ?? 0,
       );
-      fragmentShader.setVector4(
-        'Atmosphere.windowRects[$i]',
-        _atmosphereMask[i],
-      );
+      fragmentShader.setVector4(_windowRectKeys[i], _atmosphereMask[i]);
     }
     _atmosphereUniformsBound = true;
     _atmosphereShader = shader;
@@ -449,6 +446,30 @@ class SpatialPixelMaterial extends UnlitMaterial {
   }
 
   static final _identityJoint = Matrix4.identity();
+  static final _windowRectKeys = _indexedKeys('Atmosphere.windowRects', 8);
+  static final _pointPositionRadiusKeys = _indexedKeys(
+    'Environment.pointPositionRadius',
+    4,
+  );
+  static final _pointColorIntensityKeys = _indexedKeys(
+    'Environment.pointColorIntensity',
+    4,
+  );
+  static final _fireflyPositionRadiusKeys = _indexedKeys(
+    'Environment.fireflyPositionRadius',
+    2,
+  );
+  static final _fireflyColorIntensityKeys = _indexedKeys(
+    'Environment.fireflyColorIntensity',
+    2,
+  );
+
+  static List<String> _indexedKeys(String member, int count) =>
+      List<String>.generate(
+        count,
+        (index) => '$member[$index]',
+        growable: false,
+      );
 
   void _applyPointShadow(SpatialPointShadowFrame? frame) {
     final shader = fragmentShader, resource = shader.resource;
@@ -529,11 +550,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
       );
       shader
         ..setVector4(
-          'Environment.pointPositionRadius[$index]',
+          _pointPositionRadiusKeys[index],
           _pointPositionRadius[index],
         )
         ..setVector4(
-          'Environment.pointColorIntensity[$index]',
+          _pointColorIntensityKeys[index],
           _pointColorIntensity[index],
         );
     }
@@ -556,11 +577,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
       );
       shader
         ..setVector4(
-          'Environment.fireflyPositionRadius[$index]',
+          _fireflyPositionRadiusKeys[index],
           _fireflyPositionRadius[index],
         )
         ..setVector4(
-          'Environment.fireflyColorIntensity[$index]',
+          _fireflyColorIntensityKeys[index],
           _fireflyColorIntensity[index],
         );
     }
