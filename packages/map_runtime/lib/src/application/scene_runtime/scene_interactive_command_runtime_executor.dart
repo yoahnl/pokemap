@@ -212,8 +212,9 @@ final class SceneInteractiveCommandRuntimeExecutor {
           interactionId: 'scene.openPc:${storageId ?? 'default'}',
           storageId: storageId,
         ),
-      SceneOpenPartyTradeInteractiveCommand() => const OpenPartyTradeService(
+      SceneOpenPartyTradeInteractiveCommand(:final npcOffer) => OpenPartyTradeService(
         interactionId: 'scene.openPartyTrade',
+        npcOffer: npcOffer,
       ),
       SceneOpenRegionalMapInteractiveCommand() => const OpenRegionalMapService(
           interactionId: 'scene.openRegionalMap',

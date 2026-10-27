@@ -11,6 +11,11 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
     }
     if (_active) return const PlayerServiceRuntimeResult.busy();
     final initial = _currentGameState();
+    final offer = request.npcOffer;
+    if (offer != null &&
+        initial.appliedPokemonGrantOperationIds.contains(offer.operationId)) {
+      return PlayerServiceRuntimeResult.completed(initial);
+    }
     final denied = _worldRequestUnavailableReason(request, initial);
     if (denied != null) return PlayerServiceRuntimeResult.unavailable(denied);
     final root = _projectRootDirectory;
@@ -37,6 +42,14 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
     try {
       _setInputLocked(true);
       locked = true;
+      if (offer != null) {
+        session.offeredSpecies = await _pokemonSpeciesLoader.loadById(
+          projectRootDirectory: root,
+          pokemonConfig: config,
+          speciesId: offer.offeredPokemon.speciesId,
+        );
+        if (!_tradeContinues(session)) return await session.result.future;
+      }
       for (final pokemon in initial.party.members) {
         final species = await _pokemonSpeciesLoader.loadById(
           projectRootDirectory: root,
@@ -82,6 +95,11 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
     _ContextualPartyTradeSession session,
     RuntimeWorldServiceCommand command,
   ) async {
+    if (session.applying) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.stale,
+      );
+    }
     if (session.result.isCompleted) {
       return const RuntimeWorldServiceCommandResult(
         status: RuntimeWorldServiceCommandStatus.stale,
@@ -116,8 +134,27 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
               status: RuntimeWorldServiceCommandStatus.unavailable,
             );
           }
+          final offer = session.request.npcOffer;
+          if (offer != null &&
+              session.members
+                      .singleWhere((p) => p.individualId == id)
+                      .speciesId !=
+                  offer.requestedSpeciesId) {
+            session.completionMessage =
+                'Ce Pokémon ne correspond pas à celui demandé.';
+            _publishPartyTrade(session);
+            return const RuntimeWorldServiceCommandResult(
+              status: RuntimeWorldServiceCommandStatus.unavailable,
+            );
+          }
+          session.completionMessage = null;
           session.firstIndividualId = id;
-          session.phase = RuntimePartyTradePhase.choosePartner;
+          session.partnerIndividualId = offer == null
+              ? null
+              : 'npc-offer:${offer.id}';
+          session.phase = offer == null
+              ? RuntimePartyTradePhase.choosePartner
+              : RuntimePartyTradePhase.review;
         case RuntimePartyTradePhase.choosePartner:
           if (id == RuntimePartyTradeServiceContent.samePartnerTarget) {
             session.partnerIndividualId = session.firstIndividualId;
@@ -155,8 +192,12 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         status: RuntimeWorldServiceCommandStatus.unavailable,
       );
     }
+    session.applying = true;
     _publishPartyTrade(session, applying: true);
     try {
+      if (session.request.npcOffer != null) {
+        return await _completeNpcTrade(session);
+      }
       final first = session.initialState.party.members.singleWhere(
         (pokemon) => pokemon.individualId == session.firstIndividualId,
       );
@@ -220,6 +261,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         () => _commitAndSave(result.state),
       );
       await session.pendingCommit;
+      session.applying = false;
       session.completedState = result.state;
       session.phase = RuntimePartyTradePhase.completed;
       if (_disposed) {
@@ -235,6 +277,7 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         status: RuntimeWorldServiceCommandStatus.accepted,
       );
     } catch (error) {
+      session.applying = false;
       session.failure = error;
       if (_disposed) {
         if (!session.result.isCompleted) {
@@ -248,6 +291,90 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
         safeMessage: 'L’échange n’a pas pu être enregistré.',
       );
     }
+  }
+
+  Future<RuntimeWorldServiceCommandResult> _completeNpcTrade(
+    _ContextualPartyTradeSession session,
+  ) async {
+    final offer = session.request.npcOffer!;
+    final initial = session.initialState;
+    final selected = initial.party.members.singleWhere(
+      (p) => p.individualId == session.firstIndividualId,
+    );
+    final template = offer.offeredPokemon;
+    final level = offer.matchSelectedLevel ? selected.level : template.level;
+    final gift = SceneGivePokemonFromCatalogConsequence(
+      speciesId: template.speciesId,
+      formId: template.formId,
+      level: level,
+      moveIds: template.knownMoveIds.isEmpty ? null : template.knownMoveIds,
+    );
+    final catalog = await loadRuntimeScenePokemonCatalog(
+      scene: null,
+      additionalGifts: [gift],
+      projectRootDirectory: _projectRootDirectory!,
+      pokemonConfig: _pokemonConfig!,
+      speciesLoader: _pokemonSpeciesLoader,
+    );
+    if (!_tradeContinues(session)) {
+      return const RuntimeWorldServiceCommandResult(
+        status: RuntimeWorldServiceCommandStatus.cancelled,
+      );
+    }
+    if (_currentGameState() != initial) {
+      throw StateError('The party changed before the NPC trade.');
+    }
+    final generated = catalog!.generate(
+      consequence: gift,
+      state: initial,
+      operationId: offer.operationId,
+      ruleset: _pokemonConfig.ruleset,
+    );
+    var received = generated.copyWith(
+      natureId: template.natureId.isEmpty
+          ? generated.natureId
+          : template.natureId,
+      abilityId: template.abilityId.isEmpty
+          ? generated.abilityId
+          : template.abilityId,
+      gender: template.gender ?? generated.gender,
+      ivs: template.ivs,
+      evs: template.evs,
+      nickname: template.nickname,
+      heldItemId: template.heldItemId,
+      isShiny: template.isShiny,
+    );
+    if (!session.offeredSpecies!.abilityIds.contains(received.abilityId)) {
+      throw StateError(
+        'The NPC offer ability is not available for its species.',
+      );
+    }
+    final stats = _calculatedStatsFor(session.offeredSpecies!, received);
+    if (stats == null) throw StateError('Invalid NPC trade stats.');
+    received = received.copyWith(currentHp: stats.maxHp);
+    final next = const NpcPokemonTradeOperations().trade(
+      initial,
+      offer: offer,
+      selectedIndividualId: selected.individualId,
+      receivedPokemon: received,
+    );
+    session.pendingState = next;
+    session.pendingCommit = Future<void>.sync(() => _commitAndSave(next));
+    await session.pendingCommit;
+    session.applying = false;
+    session.completedState = next;
+    session.completionMessage = 'Échange terminé.';
+    session.phase = RuntimePartyTradePhase.completed;
+    if (_disposed) {
+      if (!session.result.isCompleted) {
+        session.result.complete(PlayerServiceRuntimeResult.completed(next));
+      }
+    } else {
+      _publishPartyTrade(session);
+    }
+    return const RuntimeWorldServiceCommandResult(
+      status: RuntimeWorldServiceCommandStatus.accepted,
+    );
   }
 
   void _publishPartyTrade(
@@ -272,7 +399,25 @@ extension RuntimePartyTradeService on PlayerServiceRuntimeController {
             : RuntimeWorldServiceStage.active,
         content: RuntimePartyTradeServiceContent(
           phase: session.phase,
-          members: session.members,
+          members: [
+            ...session.members,
+            if (session.request.npcOffer case final offer?
+                when session.phase != RuntimePartyTradePhase.selectFirst)
+              RuntimePartyTradePokemonSnapshot(
+                individualId: 'npc-offer:${offer.id}',
+                speciesId: offer.offeredPokemon.speciesId,
+                label: offer.offeredPokemon.nickname.isEmpty
+                    ? session.offeredSpecies!.displayName(_locale)
+                    : offer.offeredPokemon.nickname,
+                level: offer.matchSelectedLevel
+                    ? session.members
+                          .singleWhere(
+                            (p) => p.individualId == session.firstIndividualId,
+                          )
+                          .level
+                    : offer.offeredPokemon.level,
+              ),
+          ],
           firstIndividualId: session.firstIndividualId,
           partnerIndividualId: session.partnerIndividualId,
           completionMessage: session.completionMessage,
@@ -336,6 +481,8 @@ final class _ContextualPartyTradeSession {
   String? firstIndividualId, partnerIndividualId;
   String? completionMessage;
   Object? failure;
+  RuntimePokemonSpecies? offeredSpecies;
+  bool applying = false;
   Future<void>? pendingCommit;
   GameState? pendingState, completedState;
 }

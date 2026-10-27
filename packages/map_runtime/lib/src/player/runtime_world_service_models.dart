@@ -98,9 +98,12 @@ final class RuntimeRegionalMapServiceContent {
 final class OpenPartyTradeService extends RuntimeWorldServiceRequest {
   const OpenPartyTradeService({
     required super.interactionId,
+    this.npcOffer,
     super.requiredCapabilities,
     super.availabilityCondition,
   });
+
+  final NpcPokemonTradeOffer? npcOffer;
 
   @override
   RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.partyTrade;

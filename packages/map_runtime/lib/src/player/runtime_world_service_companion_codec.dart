@@ -79,7 +79,9 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
         'requiresConfirmation': request.requiresConfirmation,
         'displayEntityId': request.displayEntityId,
       },
-      OpenPartyTradeService() => <String, Object?>{},
+      OpenPartyTradeService(:final npcOffer) => {
+        if (npcOffer != null) 'npcOffer': npcOffer.toJson(),
+      },
       OpenPokemonGiftInteractionService() => {
         'interaction': request.interaction.toJson(),
         'stage': request.stage.name,
@@ -132,6 +134,7 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
       ),
       RuntimeWorldServiceKind.partyTrade => OpenPartyTradeService(
         interactionId: id,
+        npcOffer: data['npcOffer'] == null ? null : NpcPokemonTradeOffer.fromJson(_map(data['npcOffer'])),
         requiredCapabilities: capabilities,
         availabilityCondition: condition,
       ),

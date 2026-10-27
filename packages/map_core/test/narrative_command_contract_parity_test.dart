@@ -204,6 +204,11 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
   NarrativeCommandIds.openPartyTrade: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.openPartyTrade(),
   ),
+  NarrativeCommandIds.openNpcTrade: () => SceneActionPayload.interactive(
+    SceneInteractiveCommand.openNpcTrade(npcOffer: NpcPokemonTradeOffer(
+      id: 'village-offer', requestedSpeciesId: 'bellsprout',
+      offeredPokemon: const PlayerPokemon(speciesId: 'onix', natureId: 'hardy', abilityId: 'sturdy'))),
+  ),
   NarrativeCommandIds.setPropState: () => SceneActionPayload.interactive(
     SceneInteractiveCommand.setPropState(mapId: 'map_port', propIds: ['gate'], state: MovingPropState.open),
   ),

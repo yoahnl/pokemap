@@ -22,6 +22,7 @@ void main() {
     ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     speciesDir: 'native/species',
     evolutionsDir: 'native/evolutions',
+    learnsetsDir: 'native/learnsets',
   );
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('native-party-trade-');
@@ -37,6 +38,20 @@ void main() {
         await file.parent.create(recursive: true);
         await file.writeAsString(jsonEncode(row));
       }
+    }
+    for (final row in (native['sourceLearnsets'] as List).cast<Map>()) {
+      final file = File(
+        '${directory.path}/native/learnsets/${row['speciesId']}.json',
+      );
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(row));
+    }
+    for (final row in (native['catalogs'] as List).cast<Map>()) {
+      final file = File(
+        '${directory.path}/data/pokemon/catalogs/${row['catalog']}.json',
+      );
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(row));
     }
     state = const GameState(
       saveId: 'native-party-trade',
@@ -419,6 +434,163 @@ void main() {
       expect((await open()).status, PlayerServiceRuntimeStatus.unavailable);
       expect(locks, isEmpty);
       expect(commits, isEmpty);
+    },
+  );
+  for (final fails in [false, true]) {
+    test(
+      'NPC offer replaces selected identity only after durable save failure=$fails',
+      () async {
+        saveFails = fails;
+        final before = state;
+        final offer = NpcPokemonTradeOffer(
+          id: 'village-fixed-offer',
+          requestedSpeciesId: 'machoke',
+          offeredPokemon: const PlayerPokemon(
+            speciesId: 'onix',
+            formId: '0',
+            natureId: 'hardy',
+            abilityId: 'sturdy',
+            nickname: 'Granite',
+          ),
+        );
+        final request = OpenPartyTradeService(
+          interactionId: 'villager.trade',
+          npcOffer: offer,
+        );
+        final opening = controller.openPartyTrade(request: request);
+        await ready();
+        await command(RuntimeWorldServiceAction.select, targetId: 'partner');
+        expect(content().phase, RuntimePartyTradePhase.selectFirst);
+        expect(state, same(before));
+        await command(RuntimeWorldServiceAction.select, targetId: 'first');
+        expect(content().phase, RuntimePartyTradePhase.review);
+        expect(content().members.last.label, 'Granite');
+        final result = await command(RuntimeWorldServiceAction.confirm);
+        if (!fails &&
+            result.status == RuntimeWorldServiceCommandStatus.failed) {
+          await command(RuntimeWorldServiceAction.close);
+          fail('NPC trade runtime: ${(await opening).error}');
+        }
+        if (fails) {
+          expect(result.status, RuntimeWorldServiceCommandStatus.failed);
+          expect(state, same(before));
+          expect(commits, isEmpty);
+          await command(RuntimeWorldServiceAction.close);
+          expect((await opening).status, PlayerServiceRuntimeStatus.failed);
+        } else {
+          expect(result.status, RuntimeWorldServiceCommandStatus.accepted);
+          expect(state.party.members.first.speciesId, 'onix');
+          expect(state.party.members.first.level, 28);
+          expect(state.party.members.first.nickname, 'Granite');
+          expect(state.party.members.first.currentHp, greaterThan(1));
+          expect(state.party.members.first.knownMoveIds, isNotEmpty);
+          expect(state.party.members[1], before.party.members[1]);
+          expect(commits, hasLength(1));
+          await command(RuntimeWorldServiceAction.close);
+          expect((await opening).status, PlayerServiceRuntimeStatus.completed);
+          final saved = GameState.fromJson(state.toJson());
+          state = saved;
+          expect(
+            (await controller.openPartyTrade(request: request)).status,
+            PlayerServiceRuntimeStatus.completed,
+          );
+          expect(state, same(saved));
+          expect(commits, hasLength(1));
+        }
+      },
+    );
+  }
+
+  for (final fails in [false, true]) {
+    test(
+      'NPC offer blocks duplicate and cancel during its durable commit failure=$fails',
+      () async {
+        saveStarted = Completer<void>();
+        saveRelease = Completer<void>();
+        saveFails = fails;
+        final before = state;
+        final offer = NpcPokemonTradeOffer(
+          id: 'atomic-village-offer',
+          requestedSpeciesId: 'machoke',
+          offeredPokemon: const PlayerPokemon(
+            speciesId: 'onix',
+            formId: '0',
+            natureId: 'hardy',
+            abilityId: 'sturdy',
+          ),
+        );
+        final opening = controller.openPartyTrade(
+          request: OpenPartyTradeService(
+            interactionId: 'atomic.trade',
+            npcOffer: offer,
+          ),
+        );
+        await ready();
+        await command(RuntimeWorldServiceAction.select, targetId: 'first');
+        final pending = command(RuntimeWorldServiceAction.confirm);
+        await saveStarted!.future.timeout(const Duration(seconds: 5));
+        final rejected = <RuntimeWorldServiceCommandStatus>[];
+        for (final action in [
+          RuntimeWorldServiceAction.confirm,
+          RuntimeWorldServiceAction.cancel,
+          RuntimeWorldServiceAction.close,
+        ]) {
+          rejected.add((await command(action)).status);
+        }
+        final unchanged = identical(state, before);
+        saveRelease!.complete();
+        expect(unchanged, isTrue);
+        expect(
+          rejected,
+          everyElement(RuntimeWorldServiceCommandStatus.unavailable),
+        );
+        expect(
+          (await pending).status,
+          fails
+              ? RuntimeWorldServiceCommandStatus.failed
+              : RuntimeWorldServiceCommandStatus.accepted,
+        );
+        await command(RuntimeWorldServiceAction.close);
+        expect(
+          (await opening).status,
+          fails
+              ? PlayerServiceRuntimeStatus.failed
+              : PlayerServiceRuntimeStatus.completed,
+        );
+        expect(commits, hasLength(fails ? 0 : 1));
+      },
+    );
+  }
+  test(
+    'NPC offer refuses an ability outside the species before persistence',
+    () async {
+      final before = state;
+      final offer = NpcPokemonTradeOffer(
+        id: 'invalid-ability',
+        requestedSpeciesId: 'machoke',
+        offeredPokemon: const PlayerPokemon(
+          speciesId: 'onix',
+          formId: '0',
+          natureId: 'hardy',
+          abilityId: 'guts',
+        ),
+      );
+      final opening = controller.openPartyTrade(
+        request: OpenPartyTradeService(
+          interactionId: 'bad.trade',
+          npcOffer: offer,
+        ),
+      );
+      await ready();
+      await command(RuntimeWorldServiceAction.select, targetId: 'first');
+      expect(
+        (await command(RuntimeWorldServiceAction.confirm)).status,
+        RuntimeWorldServiceCommandStatus.failed,
+      );
+      await command(RuntimeWorldServiceAction.close);
+      expect((await opening).status, PlayerServiceRuntimeStatus.failed);
+      expect(commits, isEmpty);
+      expect(state, same(before));
     },
   );
 }

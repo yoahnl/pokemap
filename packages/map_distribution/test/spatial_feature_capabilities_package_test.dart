@@ -28,6 +28,7 @@ void main() {
     'contact': ProjectContactDeviceConfig.capabilityId,
     'audio': SpatialGameplayCapabilities.audioCapabilityId,
     'sceneMusic': SpatialGameplayCapabilities.sceneMusicCapabilityId,
+    'npcTrade': SpatialGameplayCapabilities.npcTradeCapabilityId,
     'actorOcclusion': SpatialActorOcclusionCapabilities.capabilityId,
     'cinematicFade': SpatialGameplayCapabilities.cinematicFadeCapabilityId,
   };

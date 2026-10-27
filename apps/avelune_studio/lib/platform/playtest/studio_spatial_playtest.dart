@@ -185,6 +185,7 @@ final class StudioSpatialPlaytest {
           ProjectContactDeviceConfig.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,
+          SpatialGameplayCapabilities.npcTradeCapabilityId,
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
           SpatialGameplayCapabilities.cinematicConnectedCapabilityId,
           'map3d.animation@1',

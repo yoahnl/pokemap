@@ -682,11 +682,7 @@ final class SpatialExplorationGameSessionRuntime
                       ),
                     OpenHealService() => openHealCenter(request: request),
                     OpenPcService() => openPc(request: request),
-            OpenPartyTradeService() => Future<PlayerServiceRuntimeResult>.value(
-              const PlayerServiceRuntimeResult.unavailable(
-                'Ce service nécessite une carte 2D.',
-              ),
-            ),
+                    OpenPartyTradeService() => _playerServices!.openPartyTrade(request: request),
                     OpenRegionalMapService() => Future<PlayerServiceRuntimeResult>.value(
                         const PlayerServiceRuntimeResult.unavailable('La carte régionale en scène n’est pas disponible en 3D.')),
                     OpenShopService(:final shopId) => openShop(
@@ -991,6 +987,7 @@ final class SpatialExplorationGameSessionRuntime
       for (final requirement in {
         if (manifest.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
+        if (SpatialGameplayCapabilities.requiresNpcTrade(manifest)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresAudio(manifest)) SpatialGameplayCapabilities.audioCapabilityId,
         if (SpatialGameplayCapabilities.requiresCinematicFade(manifest)) SpatialGameplayCapabilities.cinematicFadeCapabilityId,
       }) {

@@ -15,8 +15,9 @@ void main() {
       final descriptor =
           SceneActions.descriptors.singleWhere((entry) => entry.id == id);
       expect(descriptor.extensions['openPartyTrade'], {
-        'projectDimension': 'twoD',
-        'parameters': [],
+        'projectDimension': 'twoDOrThreeD',
+        'parameters': ['npcOffer?'],
+        'npcOffer': {'fields': ['id', 'requestedSpeciesId', 'offeredPokemon', 'matchSelectedLevel'], 'selection': 'requestedSpeciesIndividualIdentity', 'replacement': 'samePartySlot', 'idempotency': 'saveScopedOfferIdentity', 'persistenceFailure': 'originalPartyPreserved'},
         'selection': 'individualIdentity',
         'teamOrder': 'preserved',
         'partner': 'unchanged',
@@ -33,7 +34,7 @@ void main() {
   for (final jsonl in [false, true]) {
     for (final spatial in [false, true]) {
       test(
-          'party trade ${jsonl ? 'JSONL' : 'API'} ${spatial ? 'refuses 3D before writes' : 'persists and cold reopens'}',
+          'party trade ${jsonl ? 'JSONL' : 'API'} ${spatial ? '3D' : '2D'} persists and cold reopens',
           () async {
         final root =
             await Directory.systemTemp.createTemp('party-trade-command-');
@@ -84,27 +85,6 @@ void main() {
             expectedRevision: snapshot.revision,
             idempotencyKey: 'party-trade',
             parameters: {'scene': scene.toJson()});
-        if (spatial) {
-          if (jsonl) {
-            final result = await wire('plan', {
-              'projectHandle': opened.projectHandle.value,
-              'request': request.toJson()
-            });
-            expect(result.status, AuthoringResultStatus.failure);
-            expect(jsonEncode(result.error!.details),
-                contains('commandUnsupportedDimension'));
-          } else {
-            await expectLater(
-                mutations.plan(opened.projectHandle, request),
-                throwsA(isA<NarrativeAuthoringException>().having(
-                    (error) => error.code,
-                    'code',
-                    'scene.publication_blocked')));
-          }
-          expect(await file.readAsBytes(), before);
-          await api.closeWorkspace(opened.workspaceHandle);
-          return;
-        }
         late Map<String, Object?> plan;
         if (jsonl) {
           final result = await wire('plan', {
@@ -140,7 +120,7 @@ void main() {
         expect(
             (saved.graph.nodes[1].payload as SceneActionPayload)
                 .interactiveCommand,
-            SceneInteractiveCommand.openPartyTrade());
+            (scene.graph.nodes[1].payload as SceneActionPayload).interactiveCommand);
         expect(diagnoseScene(saved).hasErrors, isFalse);
         await api.closeWorkspace(reopened.workspaceHandle);
       });
@@ -157,7 +137,7 @@ SceneAsset _scene() => SceneAsset(
           id: 'map',
           kind: SceneNodeKind.action,
           payload: buildScenePayloadForNarrativeCommand(
-              commandId: 'openPartyTrade', parameters: const {})),
+              commandId: 'openNpcTrade', parameters: const {'offerName':'Village offer', 'requestedSpeciesId':'bellsprout', 'speciesId':'onix', 'formId':'base', 'level':'5', 'matchSelectedLevel':'true'})),
       SceneNode(id: 'end', kind: SceneNodeKind.end),
     ], edges: [
       SceneEdge(

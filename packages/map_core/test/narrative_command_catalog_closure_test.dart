@@ -48,6 +48,7 @@ void main() {
       NarrativeCommandIds.openPc,
       NarrativeCommandIds.openRegionalMap,
       NarrativeCommandIds.openPartyTrade,
+      NarrativeCommandIds.openNpcTrade,
       NarrativeCommandIds.dialogue,
       NarrativeCommandIds.trainerBattle,
       NarrativeCommandIds.staticEncounter,
@@ -138,6 +139,8 @@ void main() {
       NarrativeCommandIds.openRegionalMap: 'SceneInteractiveCommand.openRegionalMap',
       NarrativeCommandIds.openPartyTrade:
           'SceneInteractiveCommand.openPartyTrade',
+      NarrativeCommandIds.openNpcTrade:
+          'SceneInteractiveCommand.openNpcTrade',
       NarrativeCommandIds.playCharacterAnimation:
           'SceneInteractiveCommand.playCharacterAnimation',
       NarrativeCommandIds.playModelAnimation:

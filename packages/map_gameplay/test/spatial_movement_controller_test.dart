@@ -52,6 +52,18 @@ void steps(SpatialMovementController player, int count,
 }
 
 void main() {
+  test('terrain step tolerates source plane rounding but not a higher obstacle', () {
+    for (final height in [3.25,3.250000093125,3.25001,3.5]) {
+      final scene=MapSpatialScene(width:16,depth:14,heightLevels:List.filled(16*14,3),
+        terrainSurfaces:SpatialTerrainSurfaceSet(surfaces:[
+          SpatialTerrainSurface(id:'upper',x:0,z:0,height:height,footprints:[
+            BorderGroundFootprint(points:[BorderGroundPoint(x:0,z:0),BorderGroundPoint(x:16,z:0),BorderGroundPoint(x:16,z:6),BorderGroundPoint(x:0,z:6)])])]),
+        navigation:SpatialNavigationProfile(spawn:SpatialSpawn(x:8,z:8)));
+      final movement=SpatialMovementController(scene:scene,models:[]);
+      expect(movement.canTraverseActor(8,6.25,8,5.75),height<=3.250001,reason:'step height=$height');
+      expect(movement.canTraverseActor(8,5.75,8,6.25),height<=3.250001,reason:'return height=$height');
+    }
+  });
   test('tree canopy permits passage while the authored trunk blocks movement',
       () {
     final model = ProjectModel3dEntry.fromJson({

@@ -13,6 +13,7 @@ import 'scene_warp_presentation.dart';
 import 'scene_pokemon_gift_moves.dart';
 import 'scene_structured_interaction.dart';
 import 'scene_integer_operand.dart';
+import 'npc_pokemon_trade_offer.dart';
 
 part 'scene_integer_commands.dart';
 part 'scene_world_presentation_commands.dart';
@@ -224,8 +225,11 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.openRegionalMap() =
       SceneOpenRegionalMapInteractiveCommand;
 
-  factory SceneInteractiveCommand.openPartyTrade() =
+  factory SceneInteractiveCommand.openPartyTrade({NpcPokemonTradeOffer? npcOffer}) =
       SceneOpenPartyTradeInteractiveCommand;
+
+  factory SceneInteractiveCommand.openNpcTrade({required NpcPokemonTradeOffer npcOffer}) =>
+      SceneOpenPartyTradeInteractiveCommand(npcOffer: npcOffer);
 
   factory SceneInteractiveCommand.playCharacterAnimation({
     required CharacterCustomAnimationRuntimeCommand runtimeCommand,
@@ -1353,17 +1357,25 @@ final class SceneOpenRegionalMapInteractiveCommand extends SceneInteractiveComma
 @immutable
 final class SceneOpenPartyTradeInteractiveCommand
     extends SceneInteractiveCommand {
-  const SceneOpenPartyTradeInteractiveCommand();
+  const SceneOpenPartyTradeInteractiveCommand({this.npcOffer});
+
+  final NpcPokemonTradeOffer? npcOffer;
 
   factory SceneOpenPartyTradeInteractiveCommand.fromJson(
     Map<String, dynamic> json,
   ) {
-    if (json.keys.any((key) => key != 'kind')) {
+    if (json.keys.any((key) => key != 'kind' && key != 'npcOffer')) {
       throw const FormatException(
         'Party trade commands do not accept options.',
       );
     }
-    return const SceneOpenPartyTradeInteractiveCommand();
+    return SceneOpenPartyTradeInteractiveCommand(
+      npcOffer: json['npcOffer'] == null
+          ? null
+          : NpcPokemonTradeOffer.fromJson(
+              Map<String, dynamic>.from(json['npcOffer'] as Map),
+            ),
+    );
   }
 
   @override
@@ -1374,14 +1386,18 @@ final class SceneOpenPartyTradeInteractiveCommand
   List<String> get outputPortIds => const ['completed', 'cancelled'];
 
   @override
-  Map<String, dynamic> toJson() => {'kind': kind.name};
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    if (npcOffer != null) 'npcOffer': npcOffer!.toJson(),
+  };
 
   @override
   bool operator ==(Object other) =>
-      other is SceneOpenPartyTradeInteractiveCommand;
+      other is SceneOpenPartyTradeInteractiveCommand &&
+      other.npcOffer == npcOffer;
 
   @override
-  int get hashCode => kind.hashCode;
+  int get hashCode => Object.hash(kind, npcOffer);
 }
 
 @immutable

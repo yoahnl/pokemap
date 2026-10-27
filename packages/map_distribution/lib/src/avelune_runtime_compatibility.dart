@@ -46,6 +46,7 @@ abstract final class AveluneRuntimeCompatibility {
           ProjectBattleSavingsConfig.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,
+          SpatialGameplayCapabilities.npcTradeCapabilityId,
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
           SpatialGameplayCapabilities.cinematicConnectedCapabilityId,
           SpatialGameplayCapabilities.trainerSpottingCapabilityId,

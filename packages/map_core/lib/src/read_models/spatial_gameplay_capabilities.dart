@@ -21,6 +21,12 @@ abstract final class SpatialGameplayCapabilities {
   static const sceneMusicCapabilityId = 'map3d.scene-music@1';
   static const cinematicFadeCapabilityId = 'map3d.cinematic-fade@1';
   static const cinematicConnectedCapabilityId = 'map3d.cinematic-connected@1';
+  static const npcTradeCapabilityId = 'gameplay.npc-trade@1';
+
+  static bool requiresNpcTrade(ProjectManifest project) => project.scenes.any(
+    (scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload &&
+      (node.payload as SceneActionPayload).interactiveCommand is SceneOpenPartyTradeInteractiveCommand &&
+      ((node.payload as SceneActionPayload).interactiveCommand as SceneOpenPartyTradeInteractiveCommand).npcOffer != null));
 
   static const trainerSpottingCapabilityId = 'map3d.trainer-spotting@1';
 
@@ -101,6 +107,8 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.openShop,
     NarrativeCommandIds.openHeal,
     NarrativeCommandIds.openPc,
+    NarrativeCommandIds.openPartyTrade,
+    NarrativeCommandIds.openNpcTrade,
     NarrativeCommandIds.dialogue,
     NarrativeCommandIds.trainerBattle,
     NarrativeCommandIds.staticEncounter,

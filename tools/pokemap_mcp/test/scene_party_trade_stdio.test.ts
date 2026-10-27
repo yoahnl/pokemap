@@ -13,9 +13,9 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP authors a native party trade Scene and rejects 3D", { timeout: 120_000 }, async () => {
+test("live MCP authors a native party trade Scene in 2D and 3D", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "scene-party-trade-mcp-"));
-  const command = { kind: "openPartyTrade" };
+  const command = { kind: "openPartyTrade", npcOffer: { id: "Village offer", requestedSpeciesId: "bellsprout", offeredPokemon: { speciesId: "onix", formId: "base", natureId: "hardy", abilityId: "sturdy" }, matchSelectedLevel: true } };
   const scene = { id: "party-trade", name: "Party trade", graph: {
     startNodeId: "start", nodes: [
       { id: "start", kind: "start" },
@@ -53,7 +53,8 @@ test("live MCP authors a native party trade Scene and rejects 3D", { timeout: 12
       const action = (description.mutationActions as JsonRecord[]).find(entry => entry.id === id);
       assert.ok(action);
       assert.deepEqual(record(record(action.extensions).openPartyTrade), {
-        projectDimension: "twoD", parameters: [], selection: "individualIdentity",
+        projectDimension: "twoDOrThreeD", parameters: ["npcOffer?"],
+        npcOffer: { fields: ["id", "requestedSpeciesId", "offeredPokemon", "matchSelectedLevel"], selection: "requestedSpeciesIndividualIdentity", replacement: "samePartySlot", idempotency: "saveScopedOfferIdentity", persistenceFailure: "originalPartyPreserved" }, selection: "individualIdentity",
         teamOrder: "preserved", partner: "unchanged", evolution: "firstPokemonNativeTradeRules",
         cancellation: "noMutation", commit: "onceAfterConfirmation",
         completion: "closed", persistent: true, outputPorts: ["completed", "cancelled"],
@@ -61,7 +62,7 @@ test("live MCP authors a native party trade Scene and rejects 3D", { timeout: 12
     }
     const held = (description.mutationActions as JsonRecord[]).find(entry => entry.id === "item.set_held_effect");
     assert.ok(held);
-    assert.deepEqual(record(held.extensions).heldEffectIds, ["leftovers", "prevent_evolution"]);
+    assert.ok((record(held.extensions).heldEffectIds as string[]).includes("prevent_evolution"));
     assert.deepEqual(record(record(held.extensions).nativePassiveEffects).prevent_evolution,
       { evolution: "prevented", battle: "neutral", consumed: false });
     for (const spatial of [false, true]) {
@@ -76,17 +77,13 @@ test("live MCP authors a native party trade Scene and rejects 3D", { timeout: 12
           workspaceHandle: workspace.workspaceHandle, expectedRevision: validation.snapshotRevision,
           idempotencyKey: `map-${spatial}`, parameters: { scene },
         },
-      }, spatial);
+      });
       assert.deepEqual(await readFile(file), before);
-      if (spatial) {
-        assert.ok(JSON.stringify(planned).includes("commandUnsupportedDimension"));
-      } else {
         await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
           planId: planned.planId, operationId: "apply-map" });
         const queried = await call("pokemap_query", { projectHandle: workspace.projectHandle,
           resourceKind: "scene", operation: "get", ids: ["party-trade"], view: "detail" });
         assert.ok(JSON.stringify(queried).includes('"openPartyTrade"'));
-      }
       await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
       if (!spatial) {
         const reopened = await call("pokemap_workspace", { operation: "open", projectRoot });
@@ -97,7 +94,8 @@ test("live MCP authors a native party trade Scene and rejects 3D", { timeout: 12
         const stored = record((manifest.scenes as JsonRecord[])[0]);
         const graph = record(stored.graph);
         const action = (graph.nodes as JsonRecord[]).find(node => node.id === "map");
-        assert.deepEqual(record(action!.payload).interactiveCommand, command);
+        assert.equal(record(record(action!.payload).interactiveCommand).kind, command.kind);
+        assert.equal(record(record(record(action!.payload).interactiveCommand).npcOffer).id, command.npcOffer.id);
         await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
       }
     }

@@ -57,7 +57,7 @@ void main() {
       }
       expect(
         SpatialGameplayCapabilities.commandIds,
-        isNot(contains('openPartyTrade')),
+        contains('openPartyTrade'),
       );
     },
   );

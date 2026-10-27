@@ -16,6 +16,7 @@ import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_evolution_loader.dart';
 import 'runtime_pokemon_evolution_held_item_policy.dart';
 import 'runtime_pokemon_species_loader.dart';
+import 'scene_runtime/runtime_scene_pokemon_catalog.dart';
 import '../player/runtime_pokemon_summary.dart';
 
 part 'runtime_party_trade_service.dart';

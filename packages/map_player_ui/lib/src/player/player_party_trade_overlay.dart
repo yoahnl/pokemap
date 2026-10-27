@@ -60,7 +60,7 @@ class PlayerPartyTradeOverlay extends StatelessWidget {
               text('Échange terminé.', 'Trade completed.')
         : failed || content == null
         ? text('L’échange est indisponible.', 'Trade is unavailable.')
-        : switch (phase!) {
+        : content.completionMessage ?? switch (phase!) {
             RuntimePartyTradePhase.selectFirst => text(
               'Choisissez le Pokémon à échanger.',
               'Choose the Pokémon to trade.',

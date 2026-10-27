@@ -232,6 +232,9 @@ final class GamePackageProjectValidator {
               .contains(ProjectBattleSavingsConfig.capabilityId)) {
         _fail('Battle savings require ${ProjectBattleSavingsConfig.capabilityId}.');
       }
+      if (SpatialGameplayCapabilities.requiresNpcTrade(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.npcTradeCapabilityId)) {
+        _fail('NPC trade offers require gameplay.npc-trade@1.');
+      }
       if (project.contactDevice case final device?) {
         if (!spatial) _fail('Contact devices require a 3D project.');
         if (!packageManifest.compatibility.requiredCapabilities.contains(ProjectContactDeviceConfig.capabilityId)) _fail('Contact devices require project.contact-device@1.');

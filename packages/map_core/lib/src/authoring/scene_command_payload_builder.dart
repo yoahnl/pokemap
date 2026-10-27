@@ -5,6 +5,8 @@ import '../models/dialogue_line_feedback.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_integer_operand.dart';
+import '../models/npc_pokemon_trade_offer.dart';
+import '../models/save_data.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/scene_actor_route.dart';
 import '../models/scene_finish_game_contract.dart';
@@ -282,6 +284,16 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
           : throw const FormatException(
               'Party trade commands do not accept options.',
             ),
+    NarrativeCommandIds.openNpcTrade => SceneActionPayload.interactive(
+      SceneInteractiveCommand.openNpcTrade(npcOffer: NpcPokemonTradeOffer(
+        id: parameters['offerName']?.trim() ?? '',
+        requestedSpeciesId: parameters['requestedSpeciesId']?.trim() ?? '',
+        offeredPokemon: PlayerPokemon(speciesId: parameters['speciesId']?.trim() ?? '',
+          formId: parameters['formId']?.trim() ?? '', natureId: '', abilityId: '',
+          nickname: parameters['nickname']?.trim() ?? '', level: integer('level')),
+        matchSelectedLevel: parameters['matchSelectedLevel'] != 'false',
+      )),
+    ),
     NarrativeCommandIds.openRegionalMap => parameters.isEmpty
         ? SceneActionPayload.interactive(SceneInteractiveCommand.openRegionalMap(),
             )

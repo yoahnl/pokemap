@@ -149,6 +149,12 @@ Map<String, List<int>> spatialFeaturePayload(String feature) {
         ],
       ),
     );
+  } else if (feature == 'npcTrade') {
+    project = project.copyWith(scenes: [
+      featureScene('trade', command: SceneInteractiveCommand.openPartyTrade(
+        npcOffer: NpcPokemonTradeOffer(id: 'fixed-offer', requestedSpeciesId: 'first',
+          offeredPokemon: const PlayerPokemon(speciesId: 'second', natureId: 'hardy', abilityId: 'calm')))),
+    ]);
   } else if (feature == 'audio' || feature == 'sceneMusic') {
     final sound = <int>[
       82,

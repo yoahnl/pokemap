@@ -6,6 +6,8 @@ abstract final class CatalogResourcePositions {
   static const sections = {
     CatalogDefinitionKind.model3d: 'models3d',
     CatalogDefinitionKind.tileset: 'tilesets',
+    CatalogDefinitionKind.character: 'characters',
+    CatalogDefinitionKind.resourceLibraryEntry: 'resourceLibraryCatalog.entries',
     CatalogDefinitionKind.smartTileAtlas: 'smartTileCatalog.atlases',
     CatalogDefinitionKind.smartTileMaterial: 'smartTileCatalog.materials',
     CatalogDefinitionKind.smartTilePattern: 'smartTileCatalog.patterns',

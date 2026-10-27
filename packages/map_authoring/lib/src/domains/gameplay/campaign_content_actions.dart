@@ -510,7 +510,10 @@ AuthoringActionDescriptor _descriptor(
       resourceKinds: const ['project', 'campaignContent'],
       capabilityIds: const ['authoring.gameData.campaign'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
-      extensions: {'campaign.encounter_table.upsert', 'campaign.encounter_table.upsert_batch'}.contains(id)
+      extensions: id == 'campaign.character.upsert' ? {
+        'incrementalCatalogCreation': {'preparationScope': 'nativeResources', 'read': 'workshop_read',
+          'newIdentitiesOnly': true, 'dependencies': 'selectedTilesetAndItsReferences'},
+      } : {'campaign.encounter_table.upsert', 'campaign.encounter_table.upsert_batch'}.contains(id)
           ? {
               'encounterVariants': encounterVariantAuthoringContract,
               'tableValueField': id.endsWith('_batch') ? 'values[]' : 'value',

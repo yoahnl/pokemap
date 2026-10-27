@@ -106,10 +106,12 @@ final class CatalogScopedWorkingMutation {
         if (!changedFields.contains(field)) continue;
         final beforeRows = path.length == 1 ? previousJson[field] as List
             : (previousJson[field] as Map?)?[path.last] as List? ?? const [];
-        final beforeById = {for (final row in beforeRows.cast<Map>()) row['id']: row};
+        String identity(Map row) => entry.key == CatalogDefinitionKind.resourceLibraryEntry
+            ? '${row['resourceKind']}:${row['resourceId']}' : row['id'] as String;
+        final beforeById = {for (final row in beforeRows.cast<Map>()) identity(row): row};
         final afterRows = path.length == 1 ? projectedJson[field] as List
             : (projectedJson[field] as Map)[path.last] as List;
-        if (!afterRows.cast<Map>().map((row) => row['id']).toSet().containsAll(beforeById.keys)) {
+        if (!afterRows.cast<Map>().map(identity).toSet().containsAll(beforeById.keys)) {
           throw const FormatException('catalog.resource_creation: existing definitions cannot be removed');
         }
         if (path.length > 1 && previousJson[field] != null && !_same(

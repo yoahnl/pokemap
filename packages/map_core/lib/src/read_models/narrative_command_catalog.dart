@@ -42,6 +42,7 @@ abstract final class NarrativeCommandIds {
   static const openPc = 'openPc';
   static const openRegionalMap = 'openRegionalMap';
   static const openPartyTrade = 'openPartyTrade';
+  static const openNpcTrade = 'openNpcTrade';
   static const dialogue = 'dialogue';
   static const trainerBattle = 'trainerBattle';
   static const staticEncounter = 'staticEncounter';
@@ -64,7 +65,9 @@ abstract final class NarrativeCommandIds {
   static String forConsequence(SceneConsequence consequence) => consequence.kind.name;
 
   static String forInteractiveCommand(SceneInteractiveCommand command) =>
-      command is SceneGiveItemInteractiveCommand ? giveItemGift : command.kind.name;
+      command is SceneGiveItemInteractiveCommand ? giveItemGift :
+      command is SceneOpenPartyTradeInteractiveCommand && command.npcOffer != null
+          ? openNpcTrade : command.kind.name;
 }
 
 final class NarrativeCommandCatalog {
@@ -1036,6 +1039,22 @@ final class NarrativeCommandCatalog {
         'Échanger deux Pokémon de l’équipe',
         'FG-055',
         const [],
+        isPersistent: true,
+      ),
+      interactive(
+        NarrativeCommandIds.openNpcTrade,
+        'Échanger avec un personnage',
+        'FG-082',
+        [
+          _parameter('offerName', 'Nom de l’offre unique', NarrativeCommandParameterKind.text),
+          _parameter('requestedSpeciesId', 'Pokémon demandé', NarrativeCommandParameterKind.species),
+          _parameter('speciesId', 'Pokémon offert', NarrativeCommandParameterKind.species),
+          _parameter('formId', 'Forme offerte', NarrativeCommandParameterKind.speciesForm),
+          _parameter('nickname', 'Surnom offert', NarrativeCommandParameterKind.text, required: false),
+          _parameter('level', 'Niveau offert', NarrativeCommandParameterKind.integer),
+          _parameter('matchSelectedLevel', 'Reprendre le niveau du Pokémon choisi', NarrativeCommandParameterKind.boolean),
+        ],
+        wireId: 'SceneInteractiveCommand.openNpcTrade',
         isPersistent: true,
       ),
       interactive(

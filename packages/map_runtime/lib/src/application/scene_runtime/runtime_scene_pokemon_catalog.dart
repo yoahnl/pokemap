@@ -79,6 +79,7 @@ final class RuntimeScenePokemonCatalog {
 
 Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
   required SceneAsset? scene,
+  List<SceneGivePokemonFromCatalogConsequence> additionalGifts = const [],
   required String projectRootDirectory,
   required ProjectPokemonConfig pokemonConfig,
   RuntimePokemonSpeciesLoader? speciesLoader,
@@ -86,6 +87,7 @@ Future<RuntimeScenePokemonCatalog?> loadRuntimeScenePokemonCatalog({
   RuntimeMoveCatalogLoader? moveCatalogLoader,
 }) async {
   final gifts = <SceneGivePokemonFromCatalogConsequence>[
+    ...additionalGifts,
     for (final node in scene?.graph.nodes ?? const <SceneNode>[])
       if (node.payload case SceneActionPayload(
         consequence: final SceneGivePokemonFromCatalogConsequence gift,

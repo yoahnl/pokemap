@@ -216,6 +216,9 @@ void main() {
             'tileHeight': 16
           }
         ),
+        ('tileset.upsert', <String, Object?>{'tileset': {'id': 'actor-atlas', 'name': 'Actor atlas', 'relativePath': 'assets/studio/ground.png', 'source': {'kind':'regular_atlas', 'assetId':'image_ground', 'pixelWidth':16, 'pixelHeight':16, 'tileWidth':16, 'tileHeight':16, 'tileProperties':[]}}}),
+        ('campaign.character.upsert', <String, Object?>{'value': {'id':'walker', 'name':'Walker', 'tilesetId':'actor-atlas', 'frameWidth':1, 'frameHeight':1, 'animations':[]}}),
+        ('resource.classify_batch', <String, Object?>{'entries': [{'resourceKind':'character','resourceId':'walker','familyId':'characters','role':'standard','mapId':null}, {'resourceKind':'tileset','resourceId':'actor-atlas','familyId':'characters','role':'component','mapId':null}]}),
         (
           'smart_tile.atlas.upsert',
           <String, Object?>{
@@ -326,6 +329,8 @@ void main() {
               CatalogDefinitionKind.smartTilePreset, 'ground')))!
           .payload['value'] as Map;
       expect(preset['status'], 'published');
+      expect((await root.lookup(CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'character:walker')))!.payload['value'], containsPair('familyId', 'characters'));
+      for(var i=0;i<unrelated;i++) expect(await root.lookup(CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'tileset:foreign-$i')), isNotNull);
       final savedBorder = decodeBorderBlueprintRecordJson(
           (await root.lookup(CatalogDefinitionKey(
                   CatalogDefinitionKind.borderRecord, 'fence')))!
@@ -396,6 +401,7 @@ final class _Fixture {
               relativePath: 'assets/models3d/foreign-$i.glb',
               inspection: const GlbModel3dInspector().inspect(triangleGlb()))
       ],
+      resourceLibraryCatalog: ResourceLibraryCatalog(entries: [for (var i=0;i<unrelated;i++) ResourceLibraryEntry(resourceKind:'tileset',resourceId:'foreign-$i',familyId:'characters')]),
       tilesets: [
         for (var i = 0; i < unrelated; i++)
           ProjectTilesetEntry(

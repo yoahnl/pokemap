@@ -203,8 +203,11 @@ final class SceneActions {
   };
 
   static const _openPartyTradeContract = {
-    'projectDimension': 'twoD',
-    'parameters': [],
+    'projectDimension': 'twoDOrThreeD',
+    'parameters': ['npcOffer?'],
+    'npcOffer': {'fields': ['id', 'requestedSpeciesId', 'offeredPokemon', 'matchSelectedLevel'],
+      'selection': 'requestedSpeciesIndividualIdentity', 'replacement': 'samePartySlot',
+      'idempotency': 'saveScopedOfferIdentity', 'persistenceFailure': 'originalPartyPreserved'},
     'selection': 'individualIdentity',
     'teamOrder': 'preserved',
     'partner': 'unchanged',

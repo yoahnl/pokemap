@@ -390,6 +390,7 @@ export 'src/scene_player_facing_condition_evaluator.dart';
 export 'src/pokedex_caught_count.dart';
 
 export 'src/pokemon_party_trade.dart';
+export 'src/npc_pokemon_trade.dart';
 
 export 'src/pokemon_evolution_held_item_policy.dart';
 

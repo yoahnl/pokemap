@@ -1,6 +1,9 @@
 part of 'catalog_workshop_selection.dart';
 
 const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
+  'tileset.upsert': (CatalogDefinitionKind.tileset, 'tileset'),
+  'campaign.character.upsert': (CatalogDefinitionKind.character, 'value'),
+  'resource.classify_batch': (CatalogDefinitionKind.resourceLibraryEntry, 'entries'),
   'smart_tile.atlas.upsert': (CatalogDefinitionKind.smartTileAtlas, 'atlas'),
   'smart_tile.material.upsert_batch': (
     CatalogDefinitionKind.smartTileMaterial,
@@ -48,7 +51,8 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
   final inputs = value is List ? value : [value];
   final ids = <String>{};
   for (final input in inputs) {
-    final id = publishingBorder
+    final id = kind == CatalogDefinitionKind.resourceLibraryEntry && input is Map
+        ? '${input['resourceKind']}:${input['resourceId']}' : publishingBorder
         ? input
         : input is Map
             ? input['id']
@@ -66,6 +70,20 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     final replacements = <CatalogDefinitionKey>{};
     final drafts = <BorderBlueprintRecord>[];
     final candidates = <Object?>[parameters];
+    if (kind == CatalogDefinitionKind.resourceLibraryEntry) {
+      for (final input in inputs.cast<Map>()) {
+        if (input['mapId'] != null || input['resourceKind'] is! String || input['resourceId'] is! String) {
+          CatalogWorkshopSelection.unsupported(actionId, 'new global classifications only');
+        }
+        final resourceKind = catalogResourceKinds[input['resourceKind']];
+        if (resourceKind == null) throw const FormatException('Unknown classification resource kind.');
+        roots.add(CatalogDefinitionKey(resourceKind, input['resourceId'] as String));
+        final family = input['familyId'];
+        if (family is String && !ResourceLibraryCatalog.predefinedFamilies.any((x) => x.id == family)) {
+          roots.add(CatalogDefinitionKey(CatalogDefinitionKind.resourceFamily, family));
+        }
+      }
+    }
     for (final id in ids) {
       final key = CatalogDefinitionKey(kind, id);
       final existing = await catalog.lookup(key);
@@ -151,7 +169,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
       }
     }
 
-    if (actionId == 'smart_tile.atlas.upsert') {
+    if (actionId == 'smart_tile.atlas.upsert' || actionId == 'tileset.upsert') {
       await readFile(assetCatalogResourceIdentity, assetCatalogStorageKey);
       final bytes = values[assetCatalogResourceIdentity];
       if (bytes != null) {

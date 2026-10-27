@@ -333,7 +333,16 @@ AuthoringActionDescriptor visualLibraryDescriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: inputSchema == null ? const {} : {'inputSchema': inputSchema},
+      extensions: {
+        if (inputSchema != null) 'inputSchema': inputSchema,
+        if (const {'tileset.upsert', 'resource.classify_batch'}.contains(id))
+          'incrementalCatalogCreation': {
+            'preparationScope': id == 'tileset.upsert' ? 'assetImport' : 'nativeResources',
+            'read': 'workshop_read', 'newIdentitiesOnly': true,
+            if (id == 'resource.classify_batch') 'mapScope': 'globalOnly',
+            'dependencies': 'selectedDefinitionsAndTheirReferences',
+          },
+      },
     );
 
 AuthoringMutationDraft buildVisualManifestDraft(

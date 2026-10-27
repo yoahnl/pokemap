@@ -166,7 +166,6 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       id == NarrativeCommandIds.setPropState ||
       id == NarrativeCommandIds.whiteOut ||
       id == NarrativeCommandIds.openRegionalMap ||
-      id == NarrativeCommandIds.openPartyTrade ||
       id == NarrativeCommandIds.waitForActorRoutes ||
       id == NarrativeCommandIds.wait ||
       id == NarrativeCommandIds.worldTone ||
@@ -191,13 +190,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   bool _runtimeAllows(NarrativeCommandDescriptor command) {
     final runtimeCommandIds = widget.runtimeCommandIds;
     if (runtimeCommandIds != null) {
-      return runtimeCommandIds.contains(command.id);
+      return runtimeCommandIds.contains(command.id == NarrativeCommandIds.openNpcTrade
+          ? NarrativeCommandIds.openPartyTrade : command.id);
     }
     return command.capabilities.runtime ==
         NarrativeCommandCapabilityStatus.supported;
   }
 
   String _initialCommandId() {
+    final trade = widget.initialPayload?.interactiveCommand;
+    if (widget.initialCommandId == null && trade is SceneOpenPartyTradeInteractiveCommand && trade.npcOffer != null) {
+      return NarrativeCommandIds.openNpcTrade;
+    }
     final requested =
         widget.initialCommandId ??
         widget.initialPayload?.interactiveCommand?.kind.name ??
@@ -230,10 +234,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         ? sceneFinishGameAuthoringParameters(previousFinish)
         : const <String, String>{};
     for (final parameter in command.parameters) {
-      final data =
+      var data =
           widget.initialPayload?.interactiveCommand?.toJson() ??
           widget.initialPayload?.consequence?.toJson() ??
           const <String, dynamic>{};
+      if (command.id == NarrativeCommandIds.openNpcTrade && data['npcOffer'] is Map) {
+        final offer = data['npcOffer'] as Map;
+        final pokemon = offer['offeredPokemon'] as Map;
+        data = {...data, 'kind': NarrativeCommandIds.openNpcTrade, 'offerName': offer['id'], 'requestedSpeciesId': offer['requestedSpeciesId'],
+          'speciesId': pokemon['speciesId'], 'formId': pokemon['formId'],
+          'nickname': pokemon['nickname'], 'level': pokemon['level'],
+          'matchSelectedLevel': offer['matchSelectedLevel']};
+      }
       final presentation = data['presentation'];
       final textFact = data['kind'] == NarrativeCommandIds.inputTextToFact && command.id == NarrativeCommandIds.inputTextToFact;
       final nestedText = textFact ? data[parameter.id] : null;
@@ -261,6 +273,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   command.id == NarrativeCommandIds.adjustIntegerFact ||
                   _isIntegerSceneCommand(command.id) ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
+                  command.id == NarrativeCommandIds.openNpcTrade ||
                   command.id == NarrativeCommandIds.givePokemonFromCatalog)
           ? textFact ? textFactValue : command.id == NarrativeCommandIds.warp && presentation is Map
               ? parameter.id == 'presentationMode' ? presentation['mode']
@@ -1550,6 +1563,16 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         commandId: _command.id,
         parameters: parameters,
       );
+      final previousTrade = widget.initialPayload?.interactiveCommand;
+      if (_command.id == NarrativeCommandIds.openNpcTrade && previousTrade is SceneOpenPartyTradeInteractiveCommand && previousTrade.npcOffer != null && payload is SceneActionPayload) {
+        final fresh = (payload.interactiveCommand as SceneOpenPartyTradeInteractiveCommand).npcOffer!;
+        final previous = previousTrade.npcOffer!;
+        if (previous.offeredPokemon.speciesId == fresh.offeredPokemon.speciesId && previous.offeredPokemon.formId == fresh.offeredPokemon.formId) {
+          payload = SceneActionPayload.interactive(SceneInteractiveCommand.openPartyTrade(npcOffer: NpcPokemonTradeOffer(
+            id: fresh.id, requestedSpeciesId: fresh.requestedSpeciesId, matchSelectedLevel: fresh.matchSelectedLevel,
+            offeredPokemon: previous.offeredPokemon.copyWith(nickname: fresh.offeredPokemon.nickname, level: fresh.offeredPokemon.level))));
+        }
+      }
       final previousPayload = widget.initialPayload;
       final previousFinish = previousPayload?.consequence;
       if (_command.id == NarrativeCommandIds.finishGame &&

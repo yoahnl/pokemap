@@ -1437,7 +1437,6 @@ void _diagnoseActionConsequenceAgainstProject(
   }
   if ((interactiveCommand is SceneWaitInteractiveCommand ||
           interactiveCommand is SceneOpenRegionalMapInteractiveCommand ||
-          interactiveCommand is SceneOpenPartyTradeInteractiveCommand ||
           interactiveCommand is SceneWorldToneInteractiveCommand ||
           interactiveCommand is SceneWorldPresentationInteractiveCommand) &&
       project.settings.dimension != ProjectDimension.twoD) {

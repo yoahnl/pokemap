@@ -9,6 +9,26 @@ import 'package:map_editor/src/features/narrative/state/scene_consequence_catalo
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('3D NPC trade uses species pickers and preserves authored Pokemon details', (tester) async {
+    final offer = NpcPokemonTradeOffer(id: 'Village offer', requestedSpeciesId: 'bellsprout',
+      offeredPokemon: const PlayerPokemon(speciesId: 'onix', formId: 'base',
+        natureId: 'hasty', abilityId: 'sturdy', nickname: 'Lombric', heldItemId: 'berry',
+        ivs: PokemonStatSpread(hp: 25, attack: 20)));
+    SceneNodePayload? applied;
+    await _pumpBuilder(tester, initialCommandId: NarrativeCommandIds.openNpcTrade, project: ProjectManifest(name: 'Spatial', maps: [], tilesets: [],
+      settings: const ProjectSettings(dimension: ProjectDimension.threeD)),
+      initialPayload: SceneActionPayload.interactive(SceneInteractiveCommand.openPartyTrade(npcOffer: offer)),
+      options: {NarrativeCommandParameterKind.species: const [
+        SceneActionPickerOption(id: 'bellsprout', label: 'Chétiflor'),
+        SceneActionPickerOption(id: 'onix', label: 'Onix')],
+        NarrativeCommandParameterKind.speciesForm: const [SceneActionPickerOption(id: 'base', label: 'Normale', parentId: 'onix')]},
+      onSubmit: (value) => applied = value);
+    expect(_picker(tester, 'Pokémon demandé').items.map((x) => x.label), contains('Chétiflor'));
+    expect(_picker(tester, 'Pokémon offert').items.map((x) => x.label), contains('Onix'));
+    expect(_submitButton(tester).onPressed, isNotNull);
+    _submitButton(tester).onPressed!();
+    expect((applied as SceneActionPayload).interactiveCommand, SceneInteractiveCommand.openPartyTrade(npcOffer: offer));
+  });
   testWidgets('integer command uses guided Fact selection and preserves typed operands', (tester) async {
     final project = ProjectManifest(name: 'Numbers', maps: [], tilesets: [], facts: [
       NarrativeFactDefinition(id: 'counter', label: 'Compteur', initialValue: NarrativeValue.integer(4)),
