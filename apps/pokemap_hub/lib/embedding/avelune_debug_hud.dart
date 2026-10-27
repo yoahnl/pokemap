@@ -48,57 +48,70 @@ class AveluneDebugHud extends StatelessWidget {
                           fontFamily: 'monospace',
                           height: 1.45,
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'DEBUG · MOTEUR',
-                              style: TextStyle(
-                                color: colors.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.topRight,
+                          child: SizedBox(
+                            width: 200,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'DEBUG · MOTEUR',
+                                  style: TextStyle(
+                                    color: colors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'FPS ${_number(frames.fps)} · rendu ${_number(frames.latencyMs)} ms',
+                                ),
+                                Text('latence p95 ${_number(frames.p95Ms)} ms'),
+                                Text(
+                                  'intervalle p99 ${_number(frames.intervals.p99Ms)} · max ${_number(frames.intervals.maxMs)} ms',
+                                ),
+                                Text(
+                                  'hors budget 30/60 : ${frames.budget30.overruns}/${frames.budget60.overruns}',
+                                ),
+                                Text(
+                                  'UI ${_number(frames.buildMs)} · raster ${_number(frames.rasterMs)} ms',
+                                ),
+                                Text(
+                                  'RAM ${_number(process.memoryMiB)} MiB${process.memoryKind == 'pss'
+                                      ? ' (PSS)'
+                                      : process.memoryKind == 'footprint'
+                                      ? ' (empreinte)'
+                                      : ''}',
+                                ),
+                                Text('CPU ${_number(sample.cpuPercent)} %'),
+                                Text(
+                                  'Chauffe : ${_thermal(process.thermalState)}',
+                                  style: TextStyle(
+                                    color: switch (process.thermalState) {
+                                      'serious' || 'critical' => colors.danger,
+                                      'fair' => colors.warning,
+                                      _ => colors.textPrimary,
+                                    },
+                                  ),
+                                ),
+                                Text(
+                                  'Économie : ${process.lowPowerMode == null
+                                      ? 'N/D'
+                                      : process.lowPowerMode!
+                                      ? 'oui'
+                                      : 'non'}',
+                                ),
+                                Text(
+                                  'Latence de rendu · CPU 100 % = 1 cœur',
+                                  style: TextStyle(
+                                    color: colors.textSecondary,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'FPS ${_number(frames.fps)} · rendu ${_number(frames.latencyMs)} ms',
-                            ),
-                            Text('p95 ${_number(frames.p95Ms)} ms'),
-                            Text(
-                              'UI ${_number(frames.buildMs)} · raster ${_number(frames.rasterMs)} ms',
-                            ),
-                            Text(
-                              'RAM ${_number(process.memoryMiB)} MiB${process.memoryKind == 'pss'
-                                  ? ' (PSS)'
-                                  : process.memoryKind == 'footprint'
-                                  ? ' (empreinte)'
-                                  : ''}',
-                            ),
-                            Text('CPU ${_number(sample.cpuPercent)} %'),
-                            Text(
-                              'Chauffe : ${_thermal(process.thermalState)}',
-                              style: TextStyle(
-                                color: switch (process.thermalState) {
-                                  'serious' || 'critical' => colors.danger,
-                                  'fair' => colors.warning,
-                                  _ => colors.textPrimary,
-                                },
-                              ),
-                            ),
-                            Text(
-                              'Économie : ${process.lowPowerMode == null
-                                  ? 'N/D'
-                                  : process.lowPowerMode!
-                                  ? 'oui'
-                                  : 'non'}',
-                            ),
-                            Text(
-                              'Latence de rendu · CPU 100 % = 1 cœur',
-                              style: TextStyle(
-                                color: colors.textSecondary,
-                                fontSize: 9,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
