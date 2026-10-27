@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:flame_3d/core.dart';
@@ -7,6 +8,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
+import 'package:map_render_3d/src/spatial_actor_occlusion.dart';
+import 'package:map_render_3d/src/spatial_ground.dart';
 import 'package:map_render_3d/src/spatial_scene_preparation.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
 import 'package:map_render_3d/src/spatial_scene_neighbor.dart';
@@ -15,6 +18,218 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(_UnusedBackend.new);
 
+  for (final size in [256, 65536]) {
+    test(
+      '300 rendered image queries do not rescan $size displayed visuals',
+      () async {
+        final f = _Fixture(2, animated: false);
+        final game = f.game((_) async => f.png);
+        addTearDown(game.onRemove);
+        expect(await game.refresh(), isTrue);
+        final ground = game.grounds.single;
+        final displayed = ground.visuals;
+        final counted = _CountingVisuals(
+          List.generate(size, (index) => displayed[index % displayed.length]),
+        );
+        ground.visuals = counted;
+        final images = ground.renderedImageIds;
+        expect(images, {'page-0', 'page-1'});
+        expect(counted.reads, size);
+        counted.reads = 0;
+        Set<String>? last;
+        for (var frame = 0; frame < 300; frame++) {
+          last = ground.renderedImageIds;
+        }
+        expect(counted.reads, 0);
+        expect(last, same(images));
+      },
+    );
+  }
+
+  test('displayed source replacement refreshes image references', () async {
+    final f = _Fixture(2, animated: false);
+    final game = f.game((_) async => f.png);
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    final ground = game.grounds.single;
+    final displayed = ground.visuals;
+    final first = _CountingVisuals([displayed.first]);
+    final second = _CountingVisuals([displayed.last]);
+    ground.visuals = first;
+    final before = ground.renderedImageIds;
+    expect(before, {'page-0'});
+    first.reads = 0;
+    ground.visuals = second;
+    final after = ground.renderedImageIds;
+    expect(after, {'page-1'});
+    expect(after, isNot(same(before)));
+    expect(second.reads, 1);
+    expect(first.reads, 0);
+    second.reads = 0;
+    expect(ground.renderedImageIds, same(after));
+    expect(second.reads, 0);
+    ground.visuals = const [];
+    expect(ground.renderedImageIds, isEmpty);
+    expect(after, {'page-1'});
+  });
+
+  test('cliff and occlusion revisions never rescan displayed cells', () async {
+    final f = _Fixture(2, animated: false);
+    final game = f.game((_) async => f.png);
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    final ground = game.grounds.single;
+    final counted = _CountingVisuals(ground.visuals);
+    ground.visuals = counted;
+    final before = ground.renderedImageIds;
+    counted.reads = 0;
+    ground.plan.cliff = (
+      tilesetId: 'cliff',
+      sourceRect: const SmartTileSourceRect(x: 0, y: 0, width: 32, height: 32),
+    );
+    final withCliff = ground.renderedImageIds;
+    expect(withCliff, {'page-0', 'page-1', 'cliff'});
+    expect(before, {'page-0', 'page-1'});
+    ground.renderedOcclusionImageIds = {'canopy'};
+    final withOcclusion = ground.renderedImageIds;
+    expect(withOcclusion, {'page-0', 'page-1', 'cliff', 'canopy'});
+    ground.renderedOcclusionImageIds = {'canopy'};
+    expect(ground.renderedImageIds, same(withOcclusion));
+    ground.renderedOcclusionImageIds
+      ..clear()
+      ..add('other-canopy');
+    final changedOcclusion = ground.renderedImageIds;
+    expect(changedOcclusion, {'page-0', 'page-1', 'cliff', 'other-canopy'});
+    expect(withOcclusion, {'page-0', 'page-1', 'cliff', 'canopy'});
+    ground.plan.cliff = null;
+    ground.renderedOcclusionImageIds = {};
+    expect(ground.renderedImageIds, {'page-0', 'page-1'});
+    expect(counted.reads, 0);
+    expect(() => withCliff.add('unexpected'), throwsUnsupportedError);
+    ground.visuals = const [];
+    expect(ground.renderedImageIds, isEmpty);
+  });
+
+  test('queued texture admission retains displayed image references', () async {
+    final f = _Fixture(6);
+    final game = f.game((_) async => f.png);
+    addTearDown(game.onRemove);
+    expect(await game.refresh(), isTrue);
+    await game.groundTextureCache['page-1'];
+    final displayed = game.grounds.single.renderedImageIds;
+    final displayedTexture = game.groundTextureCache['page-0'];
+    final displayedLease = game.groundReservations['page-0'];
+    final gates = [
+      await game.resourceBudget.acquire(),
+      await game.resourceBudget.acquire(),
+    ];
+    for (final gate in gates) {
+      addTearDown(gate.release);
+    }
+    game.update(.099);
+    expect(game.resourceBudget.pendingDecodes, greaterThan(0));
+    expect(game.grounds.single.visuals.single.visual.tilesetId, 'page-0');
+    expect(game.grounds.single.renderedImageIds, same(displayed));
+    expect(game.groundTextureCache['page-0'], same(displayedTexture));
+    expect(game.groundReservations['page-0'], same(displayedLease));
+    for (final gate in gates) {
+      gate.release();
+    }
+    await game.groundTextureCache['page-3'];
+    await game.groundTextureCache['page-4'];
+    game.update(0);
+    expect(game.grounds.single.renderedImageIds, {'page-3'});
+    expect(game.groundTextureCache, isNot(contains('page-0')));
+    expect(game.groundReservations, isNot(contains('page-0')));
+    expect(displayed, {'page-0'});
+  });
+
+  test(
+    'a delayed occlusion atlas retains the displayed occlusion lease',
+    () async {
+      final f = _Fixture(4, occlusion: true);
+      final replacement = _Fixture(4, occlusion: true, occlusionPage: 3);
+      final pending = Completer<Uint8List>();
+      final game = f.game(
+        (id) => id == 'page-3' ? pending.future : Future.value(f.png),
+      );
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      await game.groundTextureCache['page-1'];
+      game.update(0);
+      final ground = game.grounds.single;
+      final previous = ground.renderedImageIds;
+      expect(previous, {'page-0', 'page-2'});
+      final lease = game.groundReservations['page-2'];
+      ground.occlusionPlan = SpatialActorOcclusionPlan(
+        replacement.map,
+        replacement.project,
+      );
+      game.update(0);
+      expect(ground.renderedImageIds, same(previous));
+      expect(ground.renderedOcclusionImageIds, {'page-2'});
+      expect(game.groundReservations['page-2'], same(lease));
+      pending.complete(f.png);
+      await game.groundTextureCache['page-3'];
+      game.update(0);
+      expect(ground.renderedImageIds, {'page-0', 'page-3'});
+      expect(ground.renderedOcclusionImageIds, {'page-3'});
+      expect(game.groundTextureCache, isNot(contains('page-2')));
+      expect(game.groundReservations, isNot(contains('page-2')));
+    },
+  );
+
+  test(
+    'frame purges retain a prepared destination until cancellation',
+    () async {
+      final f = _Fixture(4, animated: false);
+      final game = f.game((_) async => f.png);
+      addTearDown(game.onRemove);
+      expect(await game.refresh(), isTrue);
+      final residentBytes = game.resourceBudget.residentBytes;
+      var current = true;
+      expect(
+        await game.prepareDestination(
+          SpatialScenePreparation(
+            map: f.map.copyWith(
+              id: 'destination',
+              layers: const [],
+              spatialScene: MapSpatialScene(
+                width: 1,
+                depth: 1,
+                cliffFrame: const SmartTileFrameRef(
+                  atlasId: 'atlas-3',
+                  column: 0,
+                  row: 0,
+                ),
+              ),
+            ),
+            project: f.project,
+            loadModel: (_) async => throw StateError('No models'),
+            loadGroundImage: (_) async => f.png,
+            resourceIdentity: 'fixture',
+            resourceBudget: game.resourceBudget,
+            isCurrent: () => current,
+          ),
+        ),
+        isTrue,
+      );
+      final texture = game.groundTextureCache['page-3'];
+      final lease = game.groundReservations['page-3'];
+      expect(texture, isNotNull);
+      expect(lease, isNotNull);
+      for (var frame = 0; frame < 300; frame++) {
+        game.update(0);
+      }
+      expect(game.groundTextureCache['page-3'], same(texture));
+      expect(game.groundReservations['page-3'], same(lease));
+      current = false;
+      game.update(0);
+      expect(game.groundTextureCache, isNot(contains('page-3')));
+      expect(game.groundReservations, isNot(contains('page-3')));
+      expect(game.resourceBudget.residentBytes, residentBytes);
+    },
+  );
   test(
     'ten thousand future pages are inventoried but never eagerly loaded',
     () async {
@@ -199,10 +414,14 @@ void main() {
     expect(await game.refresh(), isTrue);
     await started.future;
     final components = List.of(game.grounds.single.components);
+    final images = game.grounds.single.renderedImageIds;
+    final lease = game.groundReservations['page-0'];
     final generation = game.generation;
     game.update(.034);
     expect(game.grounds.single.visuals.single.visual.tilesetId, 'page-0');
     expect(game.grounds.single.components, orderedEquals(components));
+    expect(game.grounds.single.renderedImageIds, same(images));
+    expect(game.groundReservations['page-0'], same(lease));
     next.complete(f.png);
     await Future<void>.delayed(const Duration(milliseconds: 10));
     game.update(0);
@@ -330,7 +549,13 @@ void main() {
 }
 
 final class _Fixture {
-  _Fixture(int frames, {bool animated = true, List<int> durations = const [33], bool occlusion = false}) {
+  _Fixture(
+    int frames, {
+    bool animated = true,
+    List<int> durations = const [33],
+    bool occlusion = false,
+    int occlusionPage = 2,
+  }) {
     png = Uint8List.fromList(img.encodePng(img.Image(width: 32, height: 32)));
     map = MapData(
       id: 'room',
@@ -410,10 +635,14 @@ final class _Fixture {
                     id: 'wave',
                     parts: [
                       if (occlusion)
-                        const SmartTileVisualPart(
+                        SmartTileVisualPart(
                           channel: SmartTileRenderChannel.actorOcclusion,
                           source: SmartTileVisualSource.frame(
-                            frame: SmartTileFrameRef(atlasId: 'atlas-2', column: 0, row: 0),
+                            frame: SmartTileFrameRef(
+                              atlasId: 'atlas-$occlusionPage',
+                              column: 0,
+                              row: 0,
+                            ),
                           ),
                         ),
                       if (animated)
@@ -490,4 +719,29 @@ final class _UnusedBackend extends GpuBackend {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnsupportedError(invocation.memberName.toString());
+}
+
+final class _CountingVisuals extends ListBase<SpatialGroundVisual> {
+  _CountingVisuals(List<SpatialGroundVisual> values)
+    : values = List.unmodifiable(values);
+
+  final List<SpatialGroundVisual> values;
+  int reads = 0;
+
+  @override
+  int get length => values.length;
+
+  @override
+  set length(int value) =>
+      throw UnsupportedError('Immutable displayed visuals');
+
+  @override
+  SpatialGroundVisual operator [](int index) {
+    reads++;
+    return values[index];
+  }
+
+  @override
+  void operator []=(int index, SpatialGroundVisual value) =>
+      throw UnsupportedError('Immutable displayed visuals');
 }

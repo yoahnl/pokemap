@@ -25,6 +25,7 @@ import 'model_playback.dart';
 import 'spatial_picking.dart';
 import 'adaptive_camera.dart';
 import 'spatial_scene_height_cache.dart';
+import 'spatial_scene_ground_image_references.dart';
 import 'spatial_camera_magnification.dart';
 import 'flutter_frame_graphics_device.dart';
 import 'spatial_render_context.dart';
@@ -2855,7 +2856,6 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           chunk?.components.addAll(added);
         }
       }
-      _pruneGroundTextures(sample: false);
     }
     syncActors(dt);
     syncActorOcclusions();
@@ -3623,11 +3623,12 @@ final class _SceneGround {
     _sampledElapsed = elapsed;
   }
 
-  Set<String> get renderedImageIds => {
-    if (plan.cliff case final cliff?) cliff.tilesetId,
-    for (final item in visuals) item.visual.tilesetId,
-    ...renderedOcclusionImageIds,
-  };
+  final _imageReferences = SpatialSceneGroundImageReferences();
+  Set<String> get renderedImageIds => _imageReferences.resolve(
+    visuals,
+    cliffImageId: plan.cliff?.tilesetId,
+    occlusionImageIds: renderedOcclusionImageIds,
+  );
   final Color ground, edge;
   final (int, int)? selectedCell;
   final bool receiveShadows;
