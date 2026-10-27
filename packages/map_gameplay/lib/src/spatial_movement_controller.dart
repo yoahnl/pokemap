@@ -186,6 +186,12 @@ final class SpatialMovementController {
         _blockedCells = Set.unmodifiable(blockedCells),
         _entityPresencePredicate = entityPresencePredicate,
         allowDiagonalMovement = scene.navigation.allowDiagonalMovement {
+    for (final entity in this.entities) {
+      _entitiesById.putIfAbsent(entity.id, () => entity);
+    }
+    for (final instance in scene.instances) {
+      _instancesById.putIfAbsent(instance.id, () => instance);
+    }
     _reset(validateSpawn: validateSpawn);
   }
   final SpatialSpawn _spawn;
@@ -201,6 +207,8 @@ final class SpatialMovementController {
       SpatialMovementNeighbor(controller: this, offsetX: 0, offsetZ: 0);
   final MapSpatialScene scene;
   final List<MapEntity> entities;
+  final Map<String, MapEntity> _entitiesById = {};
+  final Map<String, SpatialModelInstance> _instancesById = {};
   final Map<String, ProjectModel3dEntry> models;
   SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider;
   SpatialActorRuntimeState? Function(String entityId)? actorStateProvider;
@@ -438,9 +446,7 @@ final class SpatialMovementController {
   }
 
   bool wouldModelBlockActor(String instanceId, double x, double z) {
-    final instance = scene.instances
-        .where((instance) => instance.id == instanceId)
-        .firstOrNull;
+    final instance = _instancesById[instanceId];
     if (instance == null) {
       throw StateError('Modèle de collision absent : $instanceId');
     }
@@ -1028,8 +1034,7 @@ final class SpatialMovementController {
     }
     for (final instance in scene.instances) {
       if (instance.entityId case final entityId?) {
-        final entity =
-            entities.where((entity) => entity.id == entityId).firstOrNull;
+        final entity = _entitiesById[entityId];
         if (entity == null) {
           throw StateError('The bound 3D entity does not exist.');
         }
