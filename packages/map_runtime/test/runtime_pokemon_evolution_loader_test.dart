@@ -172,6 +172,99 @@ void main() {
       expect(itemCandidates.single.condition.itemId, 'leaf-stone');
     });
 
+    test('loads every requested item in catalog order before validating targets',
+        () async {
+      await _writeEvolution(tempRoot, _itemEvolutionJson());
+      for (final id in <String>['bloomon', 'branchmon']) {
+        await _writeSpecies(tempRoot, id: id, primaryAbilityId: 'overgrow');
+      }
+
+      final candidates =
+          await RuntimePokemonEvolutionLoader().loadItemUseCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+        itemIds: <String>{'water-stone', 'leaf-stone'},
+      );
+
+      expect(
+        candidates.map((candidate) => candidate.condition.itemId),
+        <String>['leaf-stone', 'water-stone'],
+      );
+      expect(
+        candidates.map((candidate) => candidate.targetSpeciesId),
+        <String>['bloomon', 'branchmon'],
+      );
+    });
+
+    test('an empty item filter skips every target', () async {
+      await _writeEvolution(tempRoot, _itemEvolutionJson());
+
+      final candidates =
+          await RuntimePokemonEvolutionLoader().loadItemUseCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+        itemIds: <String>{},
+      );
+
+      expect(candidates, isEmpty);
+    });
+
+    test('preserves the single item filter before loading unrequested targets',
+        () async {
+      await _writeEvolution(tempRoot, _itemEvolutionJson());
+      await _writeSpecies(tempRoot,
+          id: 'bloomon', primaryAbilityId: 'overgrow');
+
+      final candidates =
+          await RuntimePokemonEvolutionLoader().loadItemUseCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+        itemId: ' leaf-stone ',
+      );
+
+      expect(candidates.single.targetSpeciesId, 'bloomon');
+      expect(candidates.single.condition.itemId, 'leaf-stone');
+    });
+
+    test('applies both item filters when they are supplied together', () async {
+      await _writeEvolution(tempRoot, _itemEvolutionJson());
+
+      final candidates =
+          await RuntimePokemonEvolutionLoader().loadItemUseCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+        itemId: 'leaf-stone',
+        itemIds: <String>{'water-stone'},
+      );
+
+      expect(candidates, isEmpty);
+    });
+
+    test('keeps the requested item set stable while loading', () async {
+      await _writeEvolution(tempRoot, _itemEvolutionJson());
+      await _writeSpecies(tempRoot,
+          id: 'bloomon', primaryAbilityId: 'overgrow');
+      final itemIds = <String>{'leaf-stone'};
+
+      final pending = RuntimePokemonEvolutionLoader().loadItemUseCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+        itemIds: itemIds,
+      );
+      itemIds
+        ..clear()
+        ..add('water-stone');
+      final candidates = await pending;
+
+      expect(candidates.single.targetSpeciesId, 'bloomon');
+      expect(candidates.single.condition.itemId, 'leaf-stone');
+    });
+
     test('fails closed on malformed supported friendship and item rules',
         () async {
       await _writeEvolution(tempRoot, <String, dynamic>{
@@ -549,6 +642,29 @@ Map<String, dynamic> _validEvolutionJson() {
         'targetSpeciesId': 'bloomon',
         'method': 'level_up',
         'minLevel': 16,
+      },
+    ],
+  };
+}
+
+Map<String, dynamic> _itemEvolutionJson() {
+  return <String, dynamic>{
+    'speciesId': 'sproutle',
+    'evolutions': <Object?>[
+      <String, Object?>{
+        'targetSpeciesId': 'bloomon',
+        'method': 'use_item',
+        'itemId': 'leaf-stone',
+      },
+      <String, Object?>{
+        'targetSpeciesId': 'branchmon',
+        'method': 'use_item',
+        'itemId': 'water-stone',
+      },
+      <String, Object?>{
+        'targetSpeciesId': '../unowned',
+        'method': 'use_item',
+        'itemId': 'fire-stone',
       },
     ],
   };

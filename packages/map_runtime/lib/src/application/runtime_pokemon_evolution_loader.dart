@@ -39,6 +39,7 @@ final class RuntimePokemonEvolutionLoader {
     required ProjectPokemonConfig pokemonConfig,
     required String sourceSpeciesId,
     String? itemId,
+    Set<String>? itemIds,
   }) {
     return _loadCandidates(
       projectRootDirectory: projectRootDirectory,
@@ -48,6 +49,7 @@ final class RuntimePokemonEvolutionLoader {
         PokemonEvolutionTriggerKind.itemUse,
       },
       itemId: itemId,
+      itemIds: itemIds == null ? null : Set<String>.unmodifiable(itemIds),
     );
   }
 
@@ -68,6 +70,7 @@ final class RuntimePokemonEvolutionLoader {
     required String sourceSpeciesId,
     required Set<PokemonEvolutionTriggerKind> acceptedTriggers,
     String? itemId,
+    Set<String>? itemIds,
   }) async {
     final sourceId = _validatedSourceId(sourceSpeciesId);
     final file = _boundedEvolutionFile(
@@ -126,10 +129,6 @@ final class RuntimePokemonEvolutionLoader {
           !acceptedTriggers.contains(declaredTrigger)) {
         continue;
       }
-      final rawTargetId = entry['targetSpeciesId'];
-      final targetId = rawTargetId is String && _isSafeSpeciesId(rawTargetId)
-          ? rawTargetId
-          : '';
       final condition = _conditionFor(
         entry,
         method: method,
@@ -144,6 +143,13 @@ final class RuntimePokemonEvolutionLoader {
           condition.itemId != normalizedItemFilter) {
         continue;
       }
+      if (itemIds != null && !itemIds.contains(condition.itemId)) {
+        continue;
+      }
+      final rawTargetId = entry['targetSpeciesId'];
+      final targetId = rawTargetId is String && _isSafeSpeciesId(rawTargetId)
+          ? rawTargetId
+          : '';
       if (targetId.isEmpty || targetId == sourceId) {
         throw _invalidRule(sourceId, file.path, index);
       }

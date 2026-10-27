@@ -11,6 +11,7 @@ import 'package:map_runtime/src/player/runtime_player_pause_data_builder.dart';
 void main() {
   late Directory root;
   late _TrackedSpeciesDirectory speciesDirectory;
+  late _TrackedEvolutionFile evolutionFile;
 
   setUp(() async {
     root = await Directory.systemTemp.createTemp('pause-evolution-items-');
@@ -60,6 +61,7 @@ void main() {
         },
       ],
     }));
+    evolutionFile = _TrackedEvolutionFile(evolution);
   });
 
   tearDown(() => root.delete(recursive: true));
@@ -67,6 +69,7 @@ void main() {
   Future<RuntimePlayerPauseDetailSnapshot> buildBag(
       List<BagEntry> entries) async {
     final createDirectory = Zone.current.bindUnaryCallback(Directory.new);
+    final createFile = Zone.current.bindUnaryCallback(File.new);
     final details = await IOOverrides.runZoned(
       () => const RuntimePlayerPauseDataBuilder().build(
         gameState: GameState(
@@ -103,6 +106,9 @@ void main() {
           ],
         )),
       ),
+      createFile: (path) => path == evolutionFile.path
+          ? evolutionFile
+          : createFile(path),
       createDirectory: (path) => path == speciesDirectory.path
           ? speciesDirectory
           : createDirectory(path),
@@ -118,6 +124,7 @@ void main() {
     expect(bag.entries.single.bagAction!.isEnabled, isTrue);
     expect(bag.entries.single.bagAction!.requiresConfirmation, isTrue);
     expect(bag.entries.single.bagAction!.usability, ItemUsabilityState.usable);
+    expect(evolutionFile.readCount, 1);
     expect(speciesDirectory.listCount, 2);
   });
 
@@ -131,6 +138,7 @@ void main() {
       BagEntry(itemId: 'water-stone', quantity: 1),
     ]);
     expect(bag.entries, hasLength(2));
+    expect(evolutionFile.readCount, 1);
     expect(bag.entries.map((entry) => entry.bagAction!.isEnabled),
         everyElement(isTrue));
     expect(speciesDirectory.listCount, 2);
@@ -149,6 +157,10 @@ void main() {
               .where((entry) => entry.quantity > 0)
               .map((entry) => entry.itemId));
       expect(speciesDirectory.listCount, 1);
+      expect(
+        evolutionFile.readCount,
+        scenario.value.any((entry) => entry.quantity > 0) ? 1 : 0,
+      );
     });
   }
 
@@ -158,6 +170,7 @@ void main() {
         await buildBag(const [BagEntry(itemId: 'water-stone', quantity: 1)]);
     expect(bag.entries.single.bagAction!.isEnabled, isFalse);
     expect(bag.entries.single.bagAction!.requiresConfirmation, isFalse);
+    expect(evolutionFile.readCount, 1);
   });
 }
 
@@ -178,5 +191,24 @@ class _TrackedSpeciesDirectory extends Fake implements Directory {
       {bool recursive = false, bool followLinks = true}) {
     listCount += 1;
     return delegate.list(recursive: recursive, followLinks: followLinks);
+  }
+}
+
+class _TrackedEvolutionFile extends Fake implements File {
+  _TrackedEvolutionFile(this.delegate);
+
+  final File delegate;
+  var readCount = 0;
+
+  @override
+  String get path => delegate.path;
+
+  @override
+  Future<bool> exists() => delegate.exists();
+
+  @override
+  Future<String> readAsString({Encoding encoding = utf8}) {
+    readCount++;
+    return delegate.readAsString(encoding: encoding);
   }
 }

@@ -745,15 +745,12 @@ final class RuntimePlayerPauseDataBuilder {
       if (!heldPolicy.recognizes(pokemon.heldItemId) || heldPolicy.preventsEvolution(pokemon.heldItemId)) continue;
       if (!loadedSpeciesIds.add(pokemon.speciesId)) continue;
       try {
-        final candidates = <PokemonEvolutionCandidate>[];
-        for (final itemId in ownedItemIds) {
-          candidates.addAll(await loader.loadItemUseCandidates(
-            projectRootDirectory: projectRootDirectory,
-            pokemonConfig: pokemonConfig,
-            sourceSpeciesId: pokemon.speciesId,
-            itemId: itemId,
-          ));
-        }
+        final candidates = await loader.loadItemUseCandidates(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+          sourceSpeciesId: pokemon.speciesId,
+          itemIds: ownedItemIds,
+        );
         itemIds.addAll(
           candidates
               .where(
