@@ -3707,6 +3707,9 @@ final class _SceneGround {
   List<MeshComponent> components = [];
   List<MeshComponent> underlays = [];
   bool initialized = false;
+  int _debugVisualComparisons = 0;
+  @visibleForTesting
+  int get debugVisualComparisons => _debugVisualComparisons;
   late final _meshBatches = SpatialGroundMeshBatches(
     (visuals) => [
       for (final mesh in spatialGroundMeshes(
@@ -3747,10 +3750,15 @@ final class _SceneGround {
               elapsedMs,
             ),
     );
+    if (!forceGeometry && initialized && identical(next, visuals)) return false;
     var changed =
         forceGeometry || !initialized || next.length != visuals.length;
     var geometryChanged = changed;
     for (var index = 0; !geometryChanged && index < next.length; index++) {
+      assert(() {
+        _debugVisualComparisons++;
+        return true;
+      }());
       final before = visuals[index].visual, after = next[index].visual;
       geometryChanged =
           before.transform != after.transform ||
