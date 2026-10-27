@@ -9,6 +9,11 @@ import 'model_byte_loader.dart';
 import 'spatial_ground.dart';
 import 'spatial_actor_occlusion.dart';
 
+typedef SpatialPreparedScenePlans = ({
+  SpatialGroundPlan ground,
+  SpatialActorOcclusionPlan occlusion,
+});
+
 final class SpatialScenePreparation {
   const SpatialScenePreparation({
     required this.map,
@@ -53,6 +58,7 @@ final class SpatialSceneResourcePreparation {
   Map<String, RuntimeResourceReservation>? _adoptedModelLeases;
   Map<String, RuntimeResourceReservation>? _adoptedTextureLeases;
   Future<bool>? _pending;
+  SpatialPreparedScenePlans? _preparedPlans;
   bool _discarded = false, _committed = false, _ready = false;
 
   bool get isCurrent => !_discarded && request.isCurrent() && _sourceCurrent();
@@ -162,6 +168,7 @@ final class SpatialSceneResourcePreparation {
         discard();
         return false;
       }
+      _preparedPlans = (ground: ground, occlusion: occlusion);
       _ready = true;
       return true;
     } on Object {
@@ -170,6 +177,27 @@ final class SpatialSceneResourcePreparation {
       if (cancelled) return false;
       rethrow;
     }
+  }
+
+  SpatialPreparedScenePlans? takePreparedPlans({
+    required MapData? map,
+    required ProjectManifest? project,
+    required String? resourceIdentity,
+    required RuntimeResourceBudget resourceBudget,
+  }) {
+    if (!_ready ||
+        !isCurrent ||
+        _committed ||
+        _adoptedModels == null ||
+        !identical(request.map, map) ||
+        !identical(request.project, project) ||
+        request.resourceIdentity != resourceIdentity ||
+        !identical(request.resourceBudget, resourceBudget)) {
+      return null;
+    }
+    final plans = _preparedPlans;
+    _preparedPlans = null;
+    return plans;
   }
 
   void adoptInto(
@@ -213,6 +241,7 @@ final class SpatialSceneResourcePreparation {
       throw StateError('The destination resources have not been adopted.');
     }
     _committed = true;
+    _preparedPlans = null;
     _modelLeases.clear();
     _textureLeases.clear();
     _models.clear();
@@ -222,6 +251,7 @@ final class SpatialSceneResourcePreparation {
   }
 
   void discard() {
+    _preparedPlans = null;
     if (_discarded || _committed) return;
     _discarded = true;
     for (final entry in _modelLeases.entries) {

@@ -5,12 +5,17 @@ import 'dart:typed_data';
 
 import 'package:flame_3d/model.dart';
 import 'package:flame_3d/resources.dart';
+import 'package:flame_3d/core.dart' show Vector2;
+import 'package:flame_3d/graphics.dart' show GpuBackend;
 import 'package:flutter/widgets.dart' hide Texture;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_render_3d/src/spatial_scene_preparation.dart';
+import 'package:map_render_3d/src/spatial_scene_view.dart' show SpatialSceneGame;
+import 'package:map_render_3d/src/spatial_ground.dart';
+import 'package:map_render_3d/src/spatial_actor_occlusion.dart';
 
 final project = ProjectManifest(
   name: 'Pilot',
@@ -70,6 +75,239 @@ SpatialSceneView view(
 );
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'prepared plans transfer once without changing adopted resources',
+    () async {
+      final f = _PreparedPlansFixture();
+      addTearDown(f.dispose);
+      expect(await f.preparation.prepare(), isTrue);
+      f.adopt();
+      final model = f.models['source-tree'];
+      final lease = f.modelLeases['source-tree'];
+      final resident = f.budget.residentBytes;
+      final plans = f.take();
+      expect(plans, isNotNull);
+      expect(f.take(), isNull);
+      f.preparation.commit();
+      expect(f.take(), isNull);
+      expect(plans!.ground.scene, same(f.map.spatialScene));
+      expect(plans.occlusion.map, same(f.map));
+      expect(plans.ground.resolve(100), isEmpty);
+      expect(f.models['source-tree'], same(model));
+      expect(f.modelLeases['source-tree'], same(lease));
+      expect(f.budget.residentBytes, resident);
+      expect(f.budget.transientBytes, 0);
+    },
+  );
+  for (final mismatch in [
+    'not ready',
+    'not adopted',
+    'committed',
+    'discarded',
+    'map',
+    'project',
+    'identity',
+    'budget',
+    'request',
+    'source',
+  ]) {
+    test(
+      'prepared plans reject $mismatch without changing resources',
+      () async {
+        final f = _PreparedPlansFixture();
+        addTearDown(f.dispose);
+        if (mismatch != 'not ready') {
+          expect(await f.preparation.prepare(), isTrue);
+          if (mismatch != 'not adopted') f.adopt();
+        }
+        if (mismatch == 'committed') f.preparation.commit();
+        if (mismatch == 'discarded') f.preparation.discard();
+        if (mismatch == 'request') f.requestCurrent = false;
+        if (mismatch == 'source') f.sourceCurrent = false;
+        final models = Map.of(f.models);
+        final textures = Map.of(f.textures);
+        final modelLeases = Map.of(f.modelLeases);
+        final textureLeases = Map.of(f.textureLeases);
+        final resident = f.budget.residentBytes;
+        final otherBudget = RuntimeResourceBudget();
+        addTearDown(otherBudget.dispose);
+        expect(
+          f.preparation.takePreparedPlans(
+            map: mismatch == 'map' ? f.map.copyWith() : f.map,
+            project: mismatch == 'project' ? project.copyWith() : project,
+            resourceIdentity: mismatch == 'identity' ? 'other' : 'root:sha',
+            resourceBudget: mismatch == 'budget' ? otherBudget : f.budget,
+          ),
+          isNull,
+        );
+        expect(f.models, models);
+        expect(f.textures, textures);
+        expect(f.modelLeases, modelLeases);
+        expect(f.textureLeases, textureLeases);
+        expect(f.budget.residentBytes, resident);
+        expect(f.budget.transientBytes, 0);
+        expect(f.budget.activeDecodes, 0);
+      },
+    );
+  }
+  test('independent preparations never share mutable plans', () async {
+    final first = _PreparedPlansFixture();
+    final second = _PreparedPlansFixture(map: first.map, budget: first.budget);
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    expect(await first.preparation.prepare(), isTrue);
+    expect(await second.preparation.prepare(), isTrue);
+    first.adopt();
+    second.adopt();
+    final a = first.take()!;
+    final b = second.take()!;
+    expect(a.ground, isNot(same(b.ground)));
+    expect(a.occlusion, isNot(same(b.occlusion)));
+    a.ground.cliff = (
+      tilesetId: 'changed',
+      sourceRect: const SmartTileSourceRect(x: 0, y: 0, width: 1, height: 1),
+    );
+    first.preparation.discard();
+    expect(a.ground.cliff?.tilesetId, 'changed');
+    expect(b.ground.cliff, isNull);
+  });
+  for (final elapsed in [0, 134]) {
+    test(
+      'prepared mixed SmartTile activation matches fresh plans at $elapsed with current onEnter clocks',
+      () async {
+        _UnusedBackend();
+        final f = _mixedPreparedFixture();
+        final budget = RuntimeResourceBudget();
+        final controller = SpatialSceneController();
+        final png = Uint8List.fromList(
+          img.encodePng(img.Image(width: 32, height: 32)),
+        );
+        var active = true;
+        var localElapsed = elapsed + 67;
+        final game =
+            SpatialSceneGame(
+                SpatialSceneView(
+                  scene: f.map.spatialScene!,
+                  groundMap: f.map,
+                  groundProject: f.project,
+                  models: f.project.models3d,
+                  loadModel: (_) async => _triangle('Tree'),
+                  loadGroundImage: (_) async => png,
+                  controller: controller,
+                  resourceBudget: budget,
+                  resourceIdentity: 'mixed',
+                  rasterAnimationElapsedMsForCell: (_, _, _, _, _) =>
+                      localElapsed,
+                  actorOcclusionStateForCell: (_, _, x, _, _) =>
+                      (active: active && x == 0, elapsedMs: localElapsed),
+                  presentationElapsedSeconds: () => elapsed / 1000,
+                  onCell: (_, _) {},
+                  background: const Color(0xff000000),
+                  ground: const Color(0xff224422),
+                  edge: const Color(0xff111111),
+                  errorBuilder: (_, _) => const SizedBox(),
+                ),
+                onPreviewStatus: (_) {},
+                onSurfaceChanged: () {},
+              )
+              ..onGameResize(Vector2(200, 200))
+              ..sceneReady = true;
+        addTearDown(() {
+          game.onRemove();
+          controller.dispose();
+          budget.dispose();
+        });
+        expect(
+          await game.prepareDestination(
+            SpatialScenePreparation(
+              map: f.map,
+              project: f.project,
+              loadModel: (_) async => _triangle('Tree'),
+              loadGroundImage: (_) async => png,
+              resourceIdentity: 'mixed',
+              resourceBudget: budget,
+              isCurrent: () => true,
+            ),
+          ),
+          isTrue,
+        );
+        game.groundElapsed = elapsed / 1000;
+        expect(await game.refresh(), isTrue);
+        game.update(0);
+        final projected = projectSpatialSmartTileModels(
+          map: f.map,
+          catalog: f.project.smartTileCatalog,
+        );
+        final projection = resolveSpatialSmartTileModelProjection(
+          map: f.map,
+          catalog: f.project.smartTileCatalog,
+        );
+        final freshGround = SpatialGroundPlan(projected, f.project);
+        final freshOcclusion = SpatialActorOcclusionPlan(projected, f.project);
+        final ground = game.grounds.single;
+        expect(projected.spatialScene!.instances.length, 7);
+        expect(
+          game.modelComponents.keys,
+          unorderedEquals(
+            projected.spatialScene!.instances.map((instance) => instance.id),
+          ),
+        );
+        expect(game.sceneChunks[f.map.id]!.cellOrigins, projection.cellOrigins);
+        expect(
+          ground.plan.groundReplacementCells,
+          freshGround.groundReplacementCells,
+        );
+        expect(ground.plan.bridgeCells, freshGround.bridgeCells);
+        expect(ground.plan.cliff, freshGround.cliff);
+        expect(
+          ground.visuals.map(_groundSignature),
+          freshGround
+              .resolve(
+                elapsed,
+                animationElapsedMsForCell: (_, _, _, _) => localElapsed,
+              )
+              .map(_groundSignature),
+        );
+        expect(ground.currentImageIds, {
+          ...freshGround.imageIdsAt(
+            elapsed,
+            animationElapsedMsForCell: (_, _, _, _) => localElapsed,
+          ),
+          for (final visual in freshOcclusion.resolve(
+            elapsed,
+            stateForCell: (_, x, _, _) =>
+                (active: active && x == 0, elapsedMs: localElapsed),
+          ))
+            visual.visual.tilesetId,
+        });
+        for (final point in [(0.5, 0.5), (1.5, 0.5), (0.5, 1.5), (2.5, 1.5)]) {
+          expect(
+            ground.plan.scene!.worldHeightAt(point.$1, point.$2),
+            freshGround.scene!.worldHeightAt(point.$1, point.$2),
+          );
+        }
+        for (final nextActive in [true, false, true]) {
+          active = nextActive;
+          localElapsed += 67;
+          final preparedVisuals = ground.occlusionPlan.resolve(
+            elapsed,
+            stateForCell: (_, x, _, _) =>
+                (active: active && x == 0, elapsedMs: localElapsed),
+          );
+          final freshVisuals = freshOcclusion.resolve(
+            elapsed,
+            stateForCell: (_, x, _, _) =>
+                (active: active && x == 0, elapsedMs: localElapsed),
+          );
+          expect(
+            preparedVisuals.map(_occlusionSignature),
+            freshVisuals.map(_occlusionSignature),
+          );
+          expect(preparedVisuals.length, active ? 2 : 0);
+        }
+      },
+    );
+  }
   test('immutable catalogue scope survives map projection changes only with same budget', () {
     final budget = RuntimeResourceBudget();
     final before = view(project, budget, identity: 'root:sha');
@@ -519,6 +757,238 @@ void main() {
       },
     );
   }
+}
+
+final class _PreparedPlansFixture {
+  _PreparedPlansFixture({MapData? map, RuntimeResourceBudget? budget})
+    : map = map ?? target(),
+      budget = budget ?? RuntimeResourceBudget() {
+    preparation = SpatialSceneResourcePreparation(
+      SpatialScenePreparation(
+        map: this.map,
+        project: project,
+        loadModel: (_) async => _triangle('tree'),
+        loadGroundImage: (_) async => Uint8List(0),
+        resourceIdentity: 'root:sha',
+        resourceBudget: this.budget,
+        isCurrent: () => requestCurrent,
+      ),
+      modelCache: models,
+      groundTextureCache: textures,
+      isCurrent: () => sourceCurrent,
+    );
+  }
+  final MapData map;
+  final RuntimeResourceBudget budget;
+  final models = <String, Future<Model>>{};
+  final textures = <String, Future<Texture>>{};
+  final modelLeases = <String, RuntimeResourceReservation>{};
+  final textureLeases = <String, RuntimeResourceReservation>{};
+  late final SpatialSceneResourcePreparation preparation;
+  bool requestCurrent = true, sourceCurrent = true;
+  void adopt() =>
+      preparation.adoptInto(models, textures, modelLeases, textureLeases);
+  SpatialPreparedScenePlans? take() => preparation.takePreparedPlans(
+    map: map,
+    project: project,
+    resourceIdentity: 'root:sha',
+    resourceBudget: budget,
+  );
+  void dispose() {
+    preparation.discard();
+    for (final lease in [...modelLeases.values, ...textureLeases.values]) {
+      lease.release();
+    }
+    budget.dispose();
+  }
+}
+
+Object _groundSignature(SpatialGroundVisual value) => (
+  value.height,
+  value.opacity,
+  value.visual.cellX,
+  value.visual.cellY,
+  value.visual.channel,
+  value.visual.tilesetId,
+  value.visual.sourceRect,
+  value.visual.geometry.visualBounds,
+  value.visual.drawOrder,
+);
+
+Object _occlusionSignature(SpatialActorOcclusionVisual value) => (
+  value.id,
+  value.x,
+  value.y,
+  value.z,
+  value.width,
+  value.height,
+  value.opacity,
+  value.visual.cellX,
+  value.visual.cellY,
+  value.visual.tilesetId,
+  value.visual.sourceRect,
+  value.visual.geometry.visualBounds,
+);
+
+({MapData map, ProjectManifest project}) _mixedPreparedFixture() {
+  final layer = SmartTileLayer(
+    id: 'mixed',
+    name: 'Mixed',
+    presetId: 'mixed',
+    usage: SmartTileUsage.terrain,
+    materialPalette: const ['', 'grass'],
+    animationActivation: SmartTileAnimationActivation.onEnter,
+    field: const SmartTileField.cell(semanticCells: [1, 1, 1, 1, 1, 1]),
+  );
+  final map = MapData(
+    id: 'mixed',
+    name: 'Mixed',
+    size: const GridSize(width: 3, height: 2),
+    layers: [layer],
+    spatialScene: MapSpatialScene(
+      width: 3,
+      depth: 2,
+      heightLevels: [0, 0, 4, 4, 4, 4],
+      levelHeight: .25,
+      cliffFrame: const SmartTileFrameRef(
+        atlasId: 'atlas-0',
+        column: 0,
+        row: 0,
+      ),
+      instances: [
+        SpatialModelInstance(
+          id: 'authored',
+          modelId: 'tree',
+          position: Model3dVector3.zero,
+        ),
+      ],
+      navigation: SpatialNavigationProfile(
+        ramps: [
+          SpatialRamp(
+            id: 'ramp',
+            x: 1,
+            z: 0,
+            width: 1,
+            depth: 1,
+            lowLevel: 0,
+            highLevel: 4,
+            direction: SpatialRampDirection.east,
+          ),
+        ],
+      ),
+      terrainSurfaces: SpatialTerrainSurfaceSet(
+        surfaces: [
+          SpatialTerrainSurface(
+            id: 'slope',
+            x: 0,
+            z: 1,
+            height: 1,
+            gradientX: .25,
+            gradientZ: .5,
+            footprints: [
+              BorderGroundFootprint(
+                points: [
+                  BorderGroundPoint(x: 0, z: 0),
+                  BorderGroundPoint(x: 3, z: 0),
+                  BorderGroundPoint(x: 3, z: 1),
+                  BorderGroundPoint(x: 0, z: 1),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+  return (
+    map: map,
+    project: project.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const [
+          ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Grass',
+            connectionGroupId: 'grass',
+          ),
+        ],
+        atlases: [
+          for (var i = 0; i < 4; i++)
+            ProjectSmartTileAtlas(
+              id: 'atlas-$i',
+              name: 'Atlas $i',
+              tilesetId: 'page-$i',
+              columns: 1,
+              rows: 1,
+            ),
+        ],
+        animations: [
+          ProjectSmartTileAnimation(
+            id: 'wave',
+            name: 'Wave',
+            frames: [
+              for (var i = 0; i < 4; i++)
+                ProjectSmartTileAnimationFrame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'atlas-$i',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: 67,
+                ),
+            ],
+          ),
+        ],
+        presets: [
+          ProjectSmartTilePreset(
+            id: 'mixed',
+            name: 'Mixed',
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform,
+            coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: const SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: const SmartTileTransformPolicy(),
+            defaultMaterialId: 'grass',
+            allowedMaterialIds: const ['grass'],
+            rules: [
+              SmartTileRule(
+                id: 'fill',
+                centerMatch: const SmartTileSlotMatch.material('grass'),
+                candidates: const [
+                  SmartTileCandidate(
+                    id: 'fill',
+                    parts: [
+                      SmartTileVisualPart(
+                        source: SmartTileVisualSource.model3d(modelId: 'tree'),
+                      ),
+                      SmartTileVisualPart(
+                        source: SmartTileVisualSource.animation(
+                          animationId: 'wave',
+                        ),
+                      ),
+                      SmartTileVisualPart(
+                        channel: SmartTileRenderChannel.actorOcclusion,
+                        source: SmartTileVisualSource.animation(
+                          animationId: 'wave',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+final class _UnusedBackend extends GpuBackend {
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError(invocation.memberName.toString());
 }
 
 final class _CountingLayers extends ListBase<MapLayer> {

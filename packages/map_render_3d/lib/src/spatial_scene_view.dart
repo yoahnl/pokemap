@@ -2120,10 +2120,17 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       if (refreshing) return (_pendingVisualOrder ??= Completer<bool>()).future;
       if (_syncVisualOrder()) return true;
     }
+    SpatialPreparedScenePlans? preparedPlans;
     final prepared = _destinationPreparation;
     if (prepared != null) {
       if (prepared.request.map.id == configuration.groundMap?.id &&
           prepared.isCurrent) {
+        preparedPlans = prepared.takePreparedPlans(
+          map: configuration.groundMap,
+          project: configuration.groundProject,
+          resourceIdentity: configuration.resourceIdentity,
+          resourceBudget: resourceBudget,
+        );
         prepared.commit();
       } else {
         prepared.discard();
@@ -2282,8 +2289,11 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             if (caster != null) nextShadowCasters.add(caster);
           }
           if (placement.active) nextModelComponents.addAll(chunk.models);
+          if (placement.active) preparedPlans = null;
           continue;
         }
+        final placementPlans = placement.active ? preparedPlans : null;
+        preparedPlans = null;
         final components = <Object3D>[];
         final placedModels = <String, _ScenePlacedModel>{};
         final terrainComponents = <Object3D>[];
@@ -2295,7 +2305,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           if (project == null || loader == null) {
             throw StateError('Les ressources du sol 3D sont indisponibles.');
           }
-          final plan = SpatialGroundPlan(map, project);
+          final plan = placementPlans?.ground ?? SpatialGroundPlan(map, project);
           groundPlan = plan;
           final elapsed = (groundElapsed * 1000).round();
           final ground = _SceneGround(
@@ -2312,7 +2322,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             edge: snapshot.edge,
             selectedCell: placement.active ? snapshot.selectedCell : null,
             receiveShadows: receiveShadows,
-            occlusionPlan: SpatialActorOcclusionPlan(map, project),
+            occlusionPlan:
+                placementPlans?.occlusion ?? SpatialActorOcclusionPlan(map, project),
           );
           ground.sampleTextureWindow(elapsed);
           final requiredImages = ground.currentImageIds;
