@@ -88,6 +88,7 @@ void main() {
         '${activeAddress(identity).slotId}/save.backup.json',
       ).readAsString(),
       expectedAddress: activeAddress(identity),
+      acceptedSaveFormats: {identity.saveFormat},
     );
     expect(
       backup.updatedAt,

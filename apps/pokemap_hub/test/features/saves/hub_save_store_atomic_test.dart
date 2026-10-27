@@ -35,6 +35,7 @@ void main() {
     final backup = const SaveEnvelopeCodec().decode(
       await File(p.join(_slotPath(root), 'save.backup.json')).readAsString(),
       expectedAddress: address,
+      acceptedSaveFormats: {identity.saveFormat},
     );
 
     expect(current.status, SaveSlotReadStatus.valid);
@@ -55,6 +56,7 @@ void main() {
     final backup = const SaveEnvelopeCodec().decode(
       await File(p.join(_slotPath(root), 'save.backup.json')).readAsString(),
       expectedAddress: address,
+      acceptedSaveFormats: {identity.saveFormat},
     );
 
     expect(current.envelope!.state['marker'], 'new');
@@ -100,6 +102,7 @@ void main() {
     final backup = const SaveEnvelopeCodec().decode(
       await File(p.join(_slotPath(root), 'save.backup.json')).readAsString(),
       expectedAddress: address,
+      acceptedSaveFormats: {identity.saveFormat},
     );
     expect(current.envelope!.state['marker'], 'new');
     expect(backup.state['marker'], 'old');
@@ -151,6 +154,7 @@ void main() {
     final backup = const SaveEnvelopeCodec().decode(
       await File(p.join(_slotPath(root), 'save.backup.json')).readAsString(),
       expectedAddress: address,
+      acceptedSaveFormats: {identity.saveFormat},
     );
     expect(current.envelope!.state['marker'], anyOf('one', 'two'));
     expect(backup.state['marker'], anyOf('initial', 'one', 'two'));

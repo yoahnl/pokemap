@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
-import 'package:pokemap_hub/pokemap_hub.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 
 Future<void> main(List<String> arguments) async {
   final stage = SaveWriteStage.values.byName(arguments[1]);
