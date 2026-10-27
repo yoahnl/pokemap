@@ -21,6 +21,7 @@ import '../../contracts/authoring_request.dart';
 import '../../contracts/json_contract_support.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../history/history_store.dart';
+import '../../history/content_blob_store.dart';
 import '../../history/file_history_store.dart';
 import '../../history/catalog_history_retention.dart';
 import '../../security/authoring_permission.dart';
@@ -397,15 +398,22 @@ final class CatalogAuthoringSession {
       return;
     }
     if (scope == 'metadataContext') {
-      final editing = await _editing();
-      final history = editing.history;
-      if (history is! FileAuthoringHistoryStore) {
-        throw const AuthoringHistoryException('history.preparation_required',
-            'Metadata contexts require a prepared local undo window.');
+      final store = reader.store;
+      final history = await FileAuthoringHistoryStore.open(
+          projectRoot: store.projectRoot, incrementalWrites: true);
+      await history.requireExistingLocalWindow();
+      final root = await store.readHead();
+      if (root == null) {
+        throw const CatalogStorageException('catalog.missing',
+            'There is no current catalog generation.');
       }
-      await CatalogHistoryRetention(store: reader.store,
-              history: history, blobs: editing.blobs)
-          .prepareNavigableAdmissions(projectId: reader.projectId);
+      await store.requireMetadataIndexAdmission(
+          (await store.openRoot(root)).snapshot);
+      final blobs = await FileAuthoringContentBlobStore.open(
+          projectRoot: store.projectRoot);
+      await CatalogHistoryRetention(store: store, history: history, blobs: blobs)
+          .prepareNavigableAdmissions(projectId: reader.projectId,
+              requirePreparedMetadataIndex: true);
       return;
     }
     if (scope != null) throw const FormatException('catalog.preparation_scope_unsupported');

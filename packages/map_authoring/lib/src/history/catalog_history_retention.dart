@@ -141,12 +141,23 @@ final class CatalogHistoryRetention {
           maxBytes: maxBytes,
           readObject: _MaintenanceObjectReads(store).read));
 
-  Future<void> prepareNavigableAdmissions({required String projectId}) =>
+  Future<void> prepareNavigableAdmissions(
+          {required String projectId,
+          bool requirePreparedMetadataIndex = false}) =>
       store.gateway.withExclusiveWriteLock(() async {
         safeAuthoringSecurityIdentifier(projectId, 'projectId');
         if (await store.readProjectId() != projectId) {
           throw const CatalogStorageException('catalog.project_mismatch',
               'The catalog belongs to a different project.');
+        }
+        if (requirePreparedMetadataIndex) {
+          final root = await store.readHead();
+          if (root == null) {
+            throw const CatalogStorageException(
+                'catalog.missing', 'There is no current catalog generation.');
+          }
+          await store.requireMetadataIndexAdmission(
+              (await store.openRoot(root)).snapshot);
         }
         final generations = CatalogGenerationRetention(store: store);
         await generations.requireNoPendingTransactionsUnderLock();

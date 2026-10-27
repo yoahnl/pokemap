@@ -36,6 +36,54 @@ Map<String, List<int>> connectedFiles(
   return files;
 }
 
+Map<String, List<int>> slopedConnectionFiles(
+    MapConnectionDirection direction, int offset, double targetHeight) {
+  final files = connectedFiles(direction, offset);
+  for (final id in ['map', 'room']) {
+    editMap(files, id, (map) {
+      final gradientX = id == 'room'
+          ? 0.0
+          : switch (direction) {
+              MapConnectionDirection.east => 1.0,
+              MapConnectionDirection.west => -1.0,
+              _ => 0.0,
+            };
+      final gradientZ = id == 'room'
+          ? 0.0
+          : switch (direction) {
+              MapConnectionDirection.south => 1.0,
+              MapConnectionDirection.north => -1.0,
+              _ => 0.0,
+            };
+      return map.copyWith(
+          spatialScene: map.spatialScene!.copyWith(
+        terrainSurfaces: SpatialTerrainSurfaceSet(surfaces: [
+          SpatialTerrainSurface(
+              id: 'continuous-ground',
+              x: 0,
+              z: 0,
+              height: id == 'room'
+                  ? targetHeight
+                  : gradientX < 0 || gradientZ < 0
+                      ? 8
+                      : 0,
+              gradientX: gradientX,
+              gradientZ: gradientZ,
+              footprints: [
+                BorderGroundFootprint(points: [
+                  BorderGroundPoint(x: 0, z: 0),
+                  BorderGroundPoint(x: 8, z: 0),
+                  BorderGroundPoint(x: 8, z: 8),
+                  BorderGroundPoint(x: 0, z: 8)
+                ])
+              ]),
+        ]),
+      ));
+    });
+  }
+  return files;
+}
+
 void main() {
   for (final direction in MapConnectionDirection.values) {
     test('closed connected border permits different heights ${direction.name}',
@@ -73,7 +121,8 @@ void main() {
       }
       final built = const GamePackageBuilder()
           .build(manifest: spatialManifest(), payloadFiles: files);
-      expect(const GamePackageInspector().inspect(built.packageBytes).payloadPaths,
+      expect(
+          const GamePackageInspector().inspect(built.packageBytes).payloadPaths,
           contains('project/maps/room.json'));
     });
   }
@@ -105,8 +154,43 @@ void main() {
       expect(
           () => const GamePackageBuilder()
               .build(manifest: spatialManifest(), payloadFiles: files),
-          throwsA(isA<GamePackageFormatException>().having((error) => error.code,
-              'code', 'runtime3d.connection_height_mismatch')));
+          throwsA(isA<GamePackageFormatException>().having(
+              (error) => error.code,
+              'code',
+              'runtime3d.connection_height_mismatch')));
+    });
+  }
+  for (final direction in MapConnectionDirection.values) {
+    for (final offset in [-2, 2]) {
+      test(
+          'continuous slope ${direction.name} offset $offset survives package roundtrip',
+          () {
+        final files = slopedConnectionFiles(direction, offset, 8);
+        final built = const GamePackageBuilder().build(
+            manifest: spatialManifest(capabilities: [
+              'map3d@1',
+              SpatialTerrainSurfaceSet.capabilityId
+            ]),
+            payloadFiles: files);
+        final inspected =
+            const GamePackageInspector().inspect(built.packageBytes);
+        expect(inspected.payloadPaths, contains('project/maps/room.json'));
+        final archive = ZipDecoder().decodeBytes(built.packageBytes);
+        for (final id in ['map', 'room']) {
+          expect(archive.findFile('project/maps/$id.json')!.content,
+              files['project/maps/$id.json']);
+        }
+      });
+    }
+    test('legacy equal cell centres stay readable at the ${direction.name} seam',
+        () {
+      final files = slopedConnectionFiles(direction, 0, 7.5);
+      final built = const GamePackageBuilder().build(
+          manifest: spatialManifest(capabilities: [
+            'map3d@1', SpatialTerrainSurfaceSet.capabilityId
+          ]), payloadFiles: files);
+      expect(const GamePackageInspector().inspect(built.packageBytes).payloadPaths,
+          contains('project/maps/room.json'));
     });
   }
   for (final direction in MapConnectionDirection.values) {

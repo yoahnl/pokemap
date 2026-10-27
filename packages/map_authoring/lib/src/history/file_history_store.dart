@@ -568,6 +568,31 @@ final class FileAuthoringHistoryStore
             _nextWindow(window, entry, sequence.publishedGeneration + 1, costs);
           }));
 
+  Future<void> requireExistingLocalWindow() => _guard(() async {
+        var current = Directory(_projectRoot);
+        for (final segment in const ['.pokemap', 'authoring']) {
+          final next = Directory(_join(current.path, segment));
+          final type =
+              await FileSystemEntity.type(next.path, followLinks: false);
+          if (type == FileSystemEntityType.notFound) {
+            throw const AuthoringHistoryException(
+                'history.preparation_required',
+                'Prepare a bounded local undo window before metadata contexts.');
+          }
+          if (type != FileSystemEntityType.directory) {
+            throw const AuthoringHistoryStoreException(
+                'history.store_path_invalid',
+                'The history store directory is unsafe.');
+          }
+          current = next;
+        }
+        if (!await (await _checkedFile(current, 'history-retention.json'))
+            .exists()) {
+          throw const AuthoringHistoryException('history.preparation_required',
+              'Prepare a bounded local undo window before metadata contexts.');
+        }
+      });
+
   Future<AuthoringHistoryWindow?> localWindow(String projectId,
           {bool allowPending = false}) =>
       _guard(() => _withLock(() async {

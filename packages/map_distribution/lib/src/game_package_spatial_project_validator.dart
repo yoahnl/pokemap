@@ -604,11 +604,17 @@ final class GamePackageSpatialProjectValidator {
                 _connectionCellIsClosed(target, targetPos)) {
               continue;
             }
-            final sourceHeight = map.spatialScene!
-                .worldHeightAt(sourcePos.x + .5, sourcePos.y + .5);
-            final targetHeight = target.spatialScene!
-                .worldHeightAt(targetPos.x + .5, targetPos.y + .5);
-            if ((sourceHeight - targetHeight).abs() > .25) {
+            final sourceHeight =
+                _connectionBoundaryHeight(map, sourcePos, connection.direction);
+            final targetHeight = _connectionBoundaryHeight(
+                target, targetPos, connection.direction.opposite);
+            final boundaryHeightsMatch = (sourceHeight - targetHeight).abs() <= .25;
+            final legacyCellHeightsMatch = (map.spatialScene!
+                        .worldHeightAt(sourcePos.x + .5, sourcePos.y + .5) -
+                    target.spatialScene!
+                        .worldHeightAt(targetPos.x + .5, targetPos.y + .5))
+                .abs() <= .25;
+            if (!boundaryHeightsMatch && !legacyCellHeightsMatch) {
               _fail('runtime3d.connection_height_mismatch', path,
                   'Connected edges require matching terrain heights.');
             }
@@ -1052,6 +1058,18 @@ final class GamePackageSpatialProjectValidator {
         allowed.any((key) => !value.containsKey(key))) {
       throw const FormatException('Unexpected canonical catalogue fields.');
     }
+  }
+
+  double _connectionBoundaryHeight(
+      MapData map, GridPos cell, MapConnectionDirection edge) {
+    const inset = .000001;
+    final (x, z) = switch (edge) {
+      MapConnectionDirection.north => (cell.x + .5, inset),
+      MapConnectionDirection.south => (cell.x + .5, map.size.height - inset),
+      MapConnectionDirection.west => (inset, cell.y + .5),
+      MapConnectionDirection.east => (map.size.width - inset, cell.y + .5),
+    };
+    return map.spatialScene!.worldHeightAt(x, z);
   }
 
   Never _unsupported(String path) => _fail(

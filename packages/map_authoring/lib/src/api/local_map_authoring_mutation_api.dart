@@ -475,6 +475,7 @@ final class LocalMapAuthoringMutationApi
           'metadataContext': {
             'contextVersion': 1,
             'requiresPreparedLocalUndoWindow': true,
+            'requiresPreparedMetadataIndexes': true,
             'changesHead': false,
             'expiresHistory': false,
             'mayInspectRetainedCatalogs': true,

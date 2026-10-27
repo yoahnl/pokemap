@@ -39,7 +39,10 @@ test("metadata context preparation crosses live MCP and the canonical CLI", { ti
     const tools = await client.listTools();
     assert.ok(JSON.stringify(tools.tools.find(tool => tool.name === "pokemap_workshop")?.inputSchema).includes("metadataContext"));
     const description = await call("pokemap_describe", {});
-    assert.equal(record(record(description.workshopPreparation).metadataContext).contextVersion, 1);
+    const prerequisites = record(record(description.workshopPreparation).metadataContext);
+    assert.equal(prerequisites.contextVersion, 1);
+    assert.equal(prerequisites.requiresPreparedLocalUndoWindow, true);
+    assert.equal(prerequisites.requiresPreparedMetadataIndexes, true);
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle });
     const before = await readFile(join(root, "catalog/HEAD.json"));
