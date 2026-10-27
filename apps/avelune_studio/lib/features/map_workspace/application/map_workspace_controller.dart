@@ -2,12 +2,14 @@ import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
 import '../../project_visuals/domain/project_visuals_port.dart';
 import 'map_atmosphere_controller.dart';
+import 'map_exterior_decoration_controller.dart';
 import 'map_editor_controller.dart';
 
 import 'dart:async';
 
 import '../domain/map_editor_port.dart';
 import '../domain/map_atmosphere_port.dart';
+import '../domain/map_exterior_decoration_port.dart';
 
 import 'package:map_core/map_core_domain.dart';
 
@@ -36,6 +38,8 @@ class MapWorkspaceController {
   final Map<String, EditableMapDocument> documents = {};
   final Map<String, Future<EditableMapDocument>> _loading = {};
   final Map<String, Future<MapData?>> _previews = {};
+  final Map<String, ProjectManifest> _previewDefinitions = {};
+  ProjectManifest? previewDefinitionsFor(String mapId) => _previewDefinitions[mapId];
   final Map<String, EditableMapDocument> retiredDocuments = {};
   final _elementOrderReceipts =
       <String, Map<Object, MapElementOrderWorkspaceReceipt>>{};
@@ -100,12 +104,14 @@ class MapWorkspaceController {
     (document) =>
         document.dirty ||
         document.atmosphere?.dirty == true ||
+        document.exteriorDecoration?.dirty == true ||
         document.editor?.dirty == true,
   );
   bool get saving => documents.values.any(
     (document) =>
         document.saving ||
         document.atmosphere?.saving == true ||
+        document.exteriorDecoration?.saving == true ||
         document.editor?.saving == true,
   );
   void addListener(void Function() listener) => _listeners.add(listener);
@@ -385,6 +391,11 @@ class MapWorkspaceController {
       }
       document.editor = editor;
     }
+    if (document.current.spatialScene != null && port is MapExteriorDecorationPort) {
+      final exterior = await MapExteriorDecorationController.open(session,document.current,port as MapExteriorDecorationPort);
+      if (_disposed) { exterior.dispose(); return document; }
+      if(exterior.available){document.exteriorDecoration = exterior;}else{exterior.dispose();}
+    }
     final atmospherePort = port;
     if (document.current.spatialScene != null &&
         atmospherePort is MapAtmospherePort) {
@@ -423,12 +434,15 @@ class MapWorkspaceController {
     late final Future<MapData?> pending;
     pending = () async {
       try {
-        final loaded = await port.loadMap(session, entry);
+        final previewPort = port;
+        final selection = previewPort is MapWorkspacePreviewSelectionPort ? await (previewPort as MapWorkspacePreviewSelectionPort).loadMapPreviewSelection(session, entry) : null;
+        final loaded = selection?.document ?? await port.loadMap(session, entry);
         if (_disposed ||
             mapEpoch != _mapEpochs[id] ||
             !_entryDocumentCurrent(entry)) {
           return null;
         }
+        if (selection != null) _previewDefinitions[id] = selection.definitions;
         return loaded.map;
       } on Object {
         if (identical(_previews[id], pending)) _previews.remove(id);
@@ -456,6 +470,7 @@ class MapWorkspaceController {
       final updated = EditableMapDocument(await port.loadMap(session, entry));
       if (_disposed) return;
       updated.atmosphere = document?.atmosphere;
+      updated.exteriorDecoration = document?.exteriorDecoration;
       updated.editor = document?.editor;
       documents[id] = updated;
       if (activeId == id) active = updated;
@@ -481,6 +496,7 @@ class MapWorkspaceController {
       return false;
     }
     if (!await (document.editor?.save() ?? Future.value(true))) return false;
+    if (!await (document.exteriorDecoration?.save() ?? Future.value(true))) return false;
     if (!document.dirty) return true;
     document.saving = true;
     document.error = null;
@@ -527,6 +543,12 @@ class MapWorkspaceController {
         document.saving ||
         catalogLocks(document.base.mapId) ||
         !manifest.maps.any((entry) => entry.id == document.base.mapId)) {
+      return;
+    }
+    final exterior = document.exteriorDecoration;
+    if (exterior?.editingExterior == true) {
+      if (redo) { exterior!.redo(); } else { exterior!.undo(); }
+      notify();
       return;
     }
     final token = redo ? document.redoToken : document.undoToken;
@@ -658,8 +680,10 @@ class MapWorkspaceController {
     _disposed = true;
     _generation++;
     _previews.clear();
+    _previewDefinitions.clear();
     for (final document in {...documents.values, ...retiredDocuments.values}) {
       document.atmosphere?.dispose();
+      document.exteriorDecoration?.dispose();
       document.editor?.dispose();
     }
     _listeners.clear();

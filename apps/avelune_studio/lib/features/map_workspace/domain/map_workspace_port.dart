@@ -50,6 +50,10 @@ abstract interface class MapWorkspaceScopedPort implements MapWorkspacePort {
   Future<ProjectManifest> materializeProject(ProjectSession session);
 }
 
+abstract interface class MapWorkspacePreviewSelectionPort {
+  Future<MapWorkspaceSelection> loadMapPreviewSelection(ProjectSession session, ProjectMapEntry entry);
+}
+
 abstract interface class MapWorkspaceWorkshopPort
     implements MapWorkspaceScopedPort {
   Future<MapWorkspaceCatalog> loadWorkshop(

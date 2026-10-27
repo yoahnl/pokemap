@@ -12,6 +12,7 @@ import '../../catalog_storage/catalog_storage_store.dart';
 import '../../workspace/catalog/catalog_project_reader.dart';
 import '../../references/resource_library_scope_guard.dart';
 import '../../references/resource_usage_documents.dart';
+import '../../documents/map_exterior_decoration_authoring.dart';
 import '../assets/asset_store.dart';
 import '../assets/project_media_store.dart';
 import '../assets/tileset_actions.dart';
@@ -441,6 +442,31 @@ final class RuntimeProjectProjectionBuilder {
           virtualFiles: {...authorFiles.virtualFiles, ...sourceMapFiles});
     }
 
+    final exteriorDocuments = <MapExteriorDecoration>[];
+    final exteriorFiles = <String, List<int>>{};
+    final playablePaths = authorProject.maps.map((entry) => _normalizeRelative(entry.relativePath)).toSet();
+    for (final entry in authorProject.maps) {
+      final relative = 'maps/${entry.id}.decoration.json';
+      if (playablePaths.contains(relative)) continue;
+      if (!await File(p.join(projectRoot.path, relative)).exists()) continue;
+      try {
+        final map = sourceMaps[entry.id] ?? MapData.fromJson(_decodeJsonObject(
+          await authorFiles.read(entry.relativePath, budget, jsonLike: true), entry.relativePath));
+        final decoration = await loadMapExteriorDecoration(projectRoot: projectRoot.path, map: map);
+        if (decoration == null) throw const FormatException('Exterior decoration disappeared during export.');
+        exteriorDocuments.add(decoration);
+        for (final path in [relative,
+          for (final sector in decoration.sectors) 'maps/${entry.id}.decoration/${sector.id}.json',
+          for (final border in decoration.borders) 'maps/${entry.id}.decoration/borders/${border.id}.json',
+        ]) {
+          exteriorFiles[path] = await authorFiles.read(path, budget, jsonLike: true);
+        }
+      } on Object catch (error) {
+        throw GamePackageExportException(code: 'exterior_decoration.invalid', path: relative,
+          message: 'The exterior decoration is missing, changed, malformed or unsupported.', cause: error);
+      }
+    }
+
     var projectedProject = authorProject.copyWith(
       dialogues: compiledEntries,
       settings: authorProject.settings.copyWith(mistralApiKey: null),
@@ -462,6 +488,12 @@ final class RuntimeProjectProjectionBuilder {
       final terrain = await projectRuntimeStaticTerrain(
         project: projectedProject,
         maps: terrainMaps,
+        retainedMaterialIds: {
+          for (final decoration in exteriorDocuments)
+            for (final sector in decoration.sectors)
+              for (final layer in sector.layers.whereType<SmartTileLayer>())
+                ...layer.materialPalette.skip(1),
+        },
         readAsset: (path) => authorFiles.read(path, budget),
       );
       projectedProject = terrain.project;
@@ -602,6 +634,10 @@ final class RuntimeProjectProjectionBuilder {
     }
 
     final atmospherePaths = <String>{};
+    for (final entry in exteriorFiles.entries) {
+      atmospherePaths.add(entry.key);
+      budget.addPayload(payload, _normalizePackagePath('project/${entry.key}'), entry.value);
+    }
     for (final entry in projectedProject.maps) {
       final relative = SpatialAtmosphereDocument.relativePathForMap(entry.id);
       final file = File(p.join(projectRoot.path, relative));
@@ -715,6 +751,12 @@ final class RuntimeProjectProjectionBuilder {
         continue;
       }
       final extension = p.extension(relative).toLowerCase();
+      if (relative.startsWith('maps/') &&
+          (relative.endsWith('.decoration.json') || relative.contains('.decoration/')) &&
+          !exteriorFiles.containsKey(relative) && !playablePaths.contains(relative)) {
+        throw GamePackageExportException(code: 'exterior_decoration.orphan', path: relative,
+          message: 'Exterior decoration data has no matching canonical owner or sector reference.');
+      }
       if (extension == '.json') {
         if (relative.startsWith('data/') &&
                 _isRuntimeProjectFile(relative, extension,

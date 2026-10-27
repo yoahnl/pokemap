@@ -8,8 +8,8 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
       return const [];
     }
     final preview = widget.view.terrainSurfacePreview;
-    final scene = preview?.validFor(widget.document.current) == true
-        ? preview!.result.spatialScene! : widget.document.current.spatialScene!;
+    final scene = preview?.validFor(editingDocument.current) == true
+        ? preview!.result.spatialScene! : editingDocument.current.spatialScene!;
     final surface = scene.terrainSurfaces.surfaces.where((surface) => surface.id == widget.view.spatialSurfaceId).firstOrNull;
     if (surface == null) return const [];
     final bounds = surface.bounds;
@@ -32,7 +32,7 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
 
   String? get guidance {
     if (!showsHover) return null;
-    final scene = widget.document.current.spatialScene!;
+    final scene = editingDocument.current.spatialScene!;
     final hit = hover;
     final cell = hit == null
         ? ''
@@ -40,7 +40,7 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
     final pose = placementPreview;
     if (widget.view.tool == StudioMapTool.border) {
       final failure = widget.view.borderDraftErrorFor(
-        widget.document.current,
+        editingDocument.current,
         widget.project,
       );
       if (failure != null) return failure;
@@ -124,7 +124,7 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
 
   List<SpatialCellOverlay> previewOverlays(ColorScheme colors) {
     if (!showsHover) return const [];
-    final scene = widget.document.current.spatialScene!;
+    final scene = editingDocument.current.spatialScene!;
     final stroke = reliefStroke;
     final targets = <(int, int)>{};
     if (widget.view.tool == StudioMapTool.environment) {

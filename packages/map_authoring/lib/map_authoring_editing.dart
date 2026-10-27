@@ -14,3 +14,6 @@ export 'src/editing/environment_editing.dart'
 
 export 'package:map_core/map_core_domain.dart'
     show SpatialMapOperations, SpatialCellLevel;
+
+export 'src/editing/native_terrain_brush.dart';
+export 'src/editing/exterior_decoration_native_editing.dart';

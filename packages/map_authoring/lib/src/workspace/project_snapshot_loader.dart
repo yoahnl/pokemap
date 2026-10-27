@@ -404,6 +404,21 @@ final class ProjectSnapshotLoader {
           ProjectHandle projectHandle, String storageKey) =>
       _handles.resolveProject(projectHandle).probeResource(storageKey);
 
+  Future<List<int>?> readOptionalResourceBytes(ProjectHandle projectHandle,
+      String storageKey, {required int maximumBytes}) async {
+    final access = _handles.resolveProject(projectHandle);
+    final probe = await access.probeResource(storageKey);
+    if (probe.status == ProjectResourceProbeStatus.missing) return null;
+    if (probe.identity != null && probe.identity!.byteLength > maximumBytes) {
+      throw const ProjectSnapshotException('project.resource_too_large', 'The selected resource exceeds its bounded read limit.');
+    }
+    final bytes = await _readOptional(access, storageKey);
+    if (bytes != null && bytes.typedBytes.length > maximumBytes) {
+      throw const ProjectSnapshotException('project.resource_too_large', 'The selected resource exceeds its bounded read limit.');
+    }
+    return bytes?.bytes;
+  }
+
   void invalidate(ProjectHandle projectHandle) {
     _snapshotCache?.invalidateHandle(projectHandle);
     _resourceUsageSnapshotCache.invalidateHandle(projectHandle);

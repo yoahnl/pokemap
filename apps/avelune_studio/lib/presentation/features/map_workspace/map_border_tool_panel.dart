@@ -6,6 +6,7 @@ import '../../../features/map_workspace/application/map_border_editing_commands.
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_filter_button.dart';
@@ -27,7 +28,76 @@ class MapBorderToolPanel extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback onCreateModel;
 
+  Widget _existingExteriorBorders() {
+    final controller = document.exteriorDecoration!;
+    final features =
+        controller.current?.borders ?? const <ExteriorDecorationBorder>[];
+    if (features.isEmpty) return const SizedBox.shrink();
+    final selected =
+        features
+            .where((v) => v.id == view.borderFeature?.featureId)
+            .firstOrNull ??
+        features.first;
+    return StudioPanel(
+      compact: true,
+      title: 'Tracés du décor extérieur',
+      children: [
+        StudioSelect(
+          label: 'Tracé',
+          value: selected.id,
+          options: {
+            for (final feature in features) feature.id: feature.feature.name,
+          },
+          onChanged: (id) {
+            final feature = features.firstWhere((v) => v.id == id);
+            view.borderFeature = (
+              layerId: feature.layerId,
+              featureId: feature.id,
+            );
+            onChanged();
+          },
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            StudioButton(
+              label: 'Régénérer le tracé',
+              secondary: true,
+              onPressed: controller.saving
+                  ? null
+                  : () {
+                      try {
+                        controller.regenerateBorder(selected.id, project);
+                        document.error = null;
+                      } catch (error) {
+                        document.error = '$error';
+                      }
+                      onChanged();
+                    },
+            ),
+            StudioButton(
+              label: 'Supprimer le tracé',
+              secondary: true,
+              onPressed: controller.saving
+                  ? null
+                  : () {
+                      controller.removeBorder(selected.id);
+                      view.borderFeature = null;
+                      onChanged();
+                    },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _existingBorders(BuildContext context) {
+    if (document.exteriorDecoration?.editingExterior == true) {
+      return _existingExteriorBorders();
+    }
     final map = document.current;
     final features = [
       for (final layer in map.layers.whereType<BorderLayer>())
@@ -37,17 +107,18 @@ class MapBorderToolPanel extends StatelessWidget {
     ];
     if (features.isEmpty) {
       return view.borderEditingMode == BorderStrokeEditingMode.erase
-          ? const StudioNotice('Aucun tracé visible. Affichez un calque Bordures ou revenez au mode Tracer.')
+          ? const StudioNotice(
+              'Aucun tracé visible. Affichez un calque Bordures ou revenez au mode Tracer.',
+            )
           : const SizedBox.shrink();
     }
-    final explicitSelection =
-        features
-            .where(
-              (item) =>
-                  item.feature.id == view.borderFeature?.featureId &&
-                  item.layer.id == view.borderFeature?.layerId,
-            )
-            .firstOrNull;
+    final explicitSelection = features
+        .where(
+          (item) =>
+              item.feature.id == view.borderFeature?.featureId &&
+              item.layer.id == view.borderFeature?.layerId,
+        )
+        .firstOrNull;
     final selectionRequired =
         view.borderEditingMode == BorderStrokeEditingMode.erase &&
         explicitSelection == null;
@@ -57,18 +128,18 @@ class MapBorderToolPanel extends StatelessWidget {
     String? diagnostic;
     try {
       if (map.spatialScene != null) {
-      final report = diagnoseSpatialBorderFeature(
-        manifest: project,
-        map: map,
-        layerId: selected.layer.id,
-        featureId: selected.feature.id,
-      );
-      stale = report.diagnostics.any(
-        (issue) => issue.code == 'border.spatial.materialization_stale',
-      );
-      if (report.hasErrors) {
-        diagnostic = 'Cette bordure doit être corrigée avant régénération.';
-      }
+        final report = diagnoseSpatialBorderFeature(
+          manifest: project,
+          map: map,
+          layerId: selected.layer.id,
+          featureId: selected.feature.id,
+        );
+        stale = report.diagnostics.any(
+          (issue) => issue.code == 'border.spatial.materialization_stale',
+        );
+        if (report.hasErrors) {
+          diagnostic = 'Cette bordure doit être corrigée avant régénération.';
+        }
       } else {
         final proposed = MapBorderEditingCommands(document, project)
             .previewExisting(
@@ -83,7 +154,8 @@ class MapBorderToolPanel extends StatelessWidget {
     }
     final preview = view.borderPreview;
     final ready =
-        !selectionRequired && preview != null &&
+        !selectionRequired &&
+        preview != null &&
         preview.validFor(map, project) &&
         preview.layerId == selected.layer.id &&
         preview.featureId == selected.feature.id;
@@ -112,10 +184,12 @@ class MapBorderToolPanel extends StatelessWidget {
                 child: DropdownButton<({String layerId, String featureId})>(
                   key: const ValueKey('border-feature-picker'),
                   isExpanded: true,
-                  value: selectionRequired ? null : (
-                    layerId: selected.layer.id,
-                    featureId: selected.feature.id,
-                  ),
+                  value: selectionRequired
+                      ? null
+                      : (
+                          layerId: selected.layer.id,
+                          featureId: selected.feature.id,
+                        ),
                   hint: const Text('Choisir un tracé visible'),
                   items: [
                     for (final item in features)
@@ -144,34 +218,52 @@ class MapBorderToolPanel extends StatelessWidget {
               key: const ValueKey('border-stroke-erase-mode'),
               label: 'Gommer une partie',
               icon: Icons.auto_fix_normal,
-              secondary: view.borderEditingMode != BorderStrokeEditingMode.erase,
-              onPressed: view.borderDraft != null || selectionRequired ? null : () {
-                view.borderEditingMode = BorderStrokeEditingMode.erase;
-                view.borderFeature = (layerId: selected.layer.id, featureId: selected.feature.id);
-                view.borderPreview = null;
-                view.tool = StudioMapTool.border;
-                onChanged();
-              },
+              secondary:
+                  view.borderEditingMode != BorderStrokeEditingMode.erase,
+              onPressed: view.borderDraft != null || selectionRequired
+                  ? null
+                  : () {
+                      view.borderEditingMode = BorderStrokeEditingMode.erase;
+                      view.borderFeature = (
+                        layerId: selected.layer.id,
+                        featureId: selected.feature.id,
+                      );
+                      view.borderPreview = null;
+                      view.tool = StudioMapTool.border;
+                      onChanged();
+                    },
             ),
             if (map.spatialScene == null)
               StudioButton(
                 key: const ValueKey('border-layer-foreground-button'),
-                label: selected.layer.renderInForeground ? 'Calque au premier plan' : 'Calque à l’arrière-plan',
+                label: selected.layer.renderInForeground
+                    ? 'Calque au premier plan'
+                    : 'Calque à l’arrière-plan',
                 icon: Icons.layers_outlined,
                 secondary: !selected.layer.renderInForeground,
-                onPressed: view.borderDraft != null || selectionRequired ? null : () => action(() {
-                  MapBorderEditingCommands(document, project).setForeground(
-                      layerId: selected.layer.id,
-                      renderInForeground: !selected.layer.renderInForeground);
-                  view.borderPreview = null;
-                }),
+                onPressed: view.borderDraft != null || selectionRequired
+                    ? null
+                    : () => action(() {
+                        MapBorderEditingCommands(
+                          document,
+                          project,
+                        ).setForeground(
+                          layerId: selected.layer.id,
+                          renderInForeground:
+                              !selected.layer.renderInForeground,
+                        );
+                        view.borderPreview = null;
+                      }),
               ),
             StudioButton(
               key: const ValueKey('border-regeneration-preview'),
               label: 'Préparer la régénération',
               icon: Icons.refresh,
               secondary: true,
-              onPressed: view.borderDraft != null || selectionRequired || diagnostic != null
+              onPressed:
+                  view.borderDraft != null ||
+                      selectionRequired ||
+                      diagnostic != null
                   ? null
                   : () => action(() {
                       final result = MapBorderEditingCommands(document, project)
@@ -231,27 +323,31 @@ class MapBorderToolPanel extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        if (map.spatialScene != null && !selectionRequired) _BorderSpatialOffsetEditor(
-          key: ObjectKey(selected.feature),
-          feature: selected.feature,
-          enabled: view.borderDraft == null,
-          onSave: (offset) => action(() {
-            MapBorderEditingCommands(document, project).setSpatialOffset(
-              layerId: selected.layer.id,
-              featureId: selected.feature.id,
-              offset: offset,
-              source: selected.feature,
-            );
-            view.borderPreview = null;
-          }),
-        ),
+        if (map.spatialScene != null && !selectionRequired)
+          _BorderSpatialOffsetEditor(
+            key: ObjectKey(selected.feature),
+            feature: selected.feature,
+            enabled: view.borderDraft == null,
+            onSave: (offset) => action(() {
+              MapBorderEditingCommands(document, project).setSpatialOffset(
+                layerId: selected.layer.id,
+                featureId: selected.feature.id,
+                offset: offset,
+                source: selected.feature,
+              );
+              view.borderPreview = null;
+            }),
+          ),
         if (view.borderEditingMode == BorderStrokeEditingMode.erase) ...[
           const SizedBox(height: 6),
-          StudioNotice(selectionRequired
-              ? 'Le tracé sélectionné n’est plus visible. Choisissez un tracé visible pour continuer à gommer.'
-              : 'Glissez sur le tracé sélectionné pour gommer une partie. Relâchez pour appliquer ; Échap annule. Les autres tracés restent inchangés.'),
+          StudioNotice(
+            selectionRequired
+                ? 'Le tracé sélectionné n’est plus visible. Choisissez un tracé visible pour continuer à gommer.'
+                : 'Glissez sur le tracé sélectionné pour gommer une partie. Relâchez pour appliquer ; Échap annule. Les autres tracés restent inchangés.',
+          ),
         ],
-        if (!selectionRequired && (stale || missing || diagnostic != null || ready)) ...[
+        if (!selectionRequired &&
+            (stale || missing || diagnostic != null || ready)) ...[
           const SizedBox(height: 6),
           StudioNotice(
             diagnostic ??
@@ -385,10 +481,27 @@ class MapBorderToolPanel extends StatelessWidget {
           onPressed: draft.canFinish
               ? () {
                   try {
-                    MapBorderEditingCommands(
-                      document,
-                      project,
-                    ).finish(draft);
+                    final exterior = document.exteriorDecoration;
+                    if (exterior?.editingExterior == true &&
+                        draft.logicalOrigin != null) {
+                      final origin = draft.logicalOrigin!;
+                      exterior!.drawBorder(
+                        manifest: project,
+                        blueprintId: draft.blueprintId,
+                        logicalPoints: [
+                          for (final point in draft.anchors)
+                            GridPos(
+                              x: point.x + origin.x,
+                              y: point.y + origin.y,
+                            ),
+                        ],
+                        seed: draft.seed,
+                        borderId: draft.featureId,
+                        closed: draft.closed,
+                      );
+                    } else {
+                      MapBorderEditingCommands(document, project).finish(draft);
+                    }
                     if (spatial) view.clearBorderDraftFailure(document);
                     view.borderDraft = null;
                   } catch (error) {
@@ -413,13 +526,17 @@ class MapBorderToolPanel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (view.borderEditingMode == BorderStrokeEditingMode.erase)
-              StudioButton(key: const ValueKey('border-stroke-draw-mode'),
-                label: 'Tracer une bordure', icon: Icons.edit,
-                secondary: true, onPressed: () {
+              StudioButton(
+                key: const ValueKey('border-stroke-draw-mode'),
+                label: 'Tracer une bordure',
+                icon: Icons.edit,
+                secondary: true,
+                onPressed: () {
                   view.borderEditingMode = BorderStrokeEditingMode.draw;
                   view.borderPreview = null;
                   onChanged();
-                }),
+                },
+              ),
             models.isEmpty
                 ? Wrap(
                     spacing: 12,
@@ -427,9 +544,11 @@ class MapBorderToolPanel extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       contextFilters(),
-                      Text(eligible.isEmpty
-                        ? 'Aucun modèle de bordure linéaire n’est publié dans ce projet.'
-                        : 'Aucune bordure ne correspond aux filtres.'),
+                      Text(
+                        eligible.isEmpty
+                            ? 'Aucun modèle de bordure linéaire n’est publié dans ce projet.'
+                            : 'Aucune bordure ne correspond aux filtres.',
+                      ),
                       StudioButton(
                         label: 'Créer un modèle',
                         icon: Icons.add,

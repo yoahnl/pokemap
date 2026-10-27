@@ -367,6 +367,8 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
   double? right,
   double? bottom,
   bool repeatWalls = true,
+  Set<(int, int)> excludedCells = const {},
+  double? Function(double x, double z)? adjacentHeightAt,
   bool includeModelledRampSurfaces = false,
   SpatialBorderGroundReplacementIndex groundReplacements = const {},
 }) sync* {
@@ -378,6 +380,7 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
     bottom: bottom,
     groundReplacements: groundReplacements,
   )) {
+    if (excludedCells.contains(patch.cell)) continue;
     if (patch.ramp?.surfaceInstanceId == null || includeModelledRampSurfaces) {
       yield (
         cell: patch.cell,
@@ -396,6 +399,8 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
       final start = edge.$1, end = edge.$2, normal = edge.$3;
       final midpointX = (start.$1 + end.$1) / 2 + normal.$1 * .000001;
       final midpointZ = (start.$2 + end.$2) / 2 + normal.$2 * .000001;
+      if (excludedCells.contains((midpointX.floor(), midpointZ.floor())))
+        continue;
       final outside =
           midpointX < 0 ||
           midpointZ < 0 ||
@@ -407,7 +412,15 @@ Iterable<SpatialTerrainFace> spatialTerrainFaces(
                 .where((r) => r.contains(midpointX, midpointZ))
                 .firstOrNull;
       double neighborHeight((double, double) point) => outside
-          ? -.15
+          ? adjacentHeightAt?.call(
+                  point.$1 +
+                      normal.$1 * 1e-9 +
+                      ((start.$1 + end.$1) / 2 - point.$1) * 1e-9,
+                  point.$2 +
+                      normal.$2 * 1e-9 +
+                      ((start.$2 + end.$2) / 2 - point.$2) * 1e-9,
+                ) ??
+                -.15
           : neighbor == null
           ? _terrainNeighborHeight(scene, midpointX, midpointZ, point) ??
                 _borderGroundHeight(

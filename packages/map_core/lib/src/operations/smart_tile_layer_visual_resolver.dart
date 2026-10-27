@@ -1001,6 +1001,7 @@ SmartTileLayerVisualPlan buildSmartTileLayerVisualPlan({
   double sourceCellWidth = 32,
   double sourceCellHeight = 32,
   SmartTilePatternOwnerIndex? patternOwnerIndex,
+  SmartTileCellContextResolver? cellContextResolver,
 }) {
   ProjectSmartTilePreset? preset;
   for (final candidate in catalog.presets) {
@@ -1085,6 +1086,7 @@ SmartTileLayerVisualPlan buildSmartTileLayerVisualPlan({
     animations: animations,
     patternOwners: patternOwners,
     resolver: resolver,
+    cellContextResolver: cellContextResolver,
     envelope: envelope,
     destinationCellWidth: destinationCellWidth,
     destinationCellHeight: destinationCellHeight,
@@ -1105,6 +1107,7 @@ final class SmartTileLayerVisualPlan {
     required SmartTileLayer layer,
     required ProjectSmartTilePreset preset,
     required this.pass,
+    this.cellContextResolver,
     required int projectSeed,
     required Map<String, ProjectSmartTileAtlas> atlases,
     required Map<String, ProjectSmartTileAnimation> animations,
@@ -1134,6 +1137,7 @@ final class SmartTileLayerVisualPlan {
       _layer = null,
       _preset = null,
       pass = SmartTileVisualPass.background,
+      cellContextResolver = null,
       _projectSeed = 0,
       _atlases = const <String, ProjectSmartTileAtlas>{},
       _animations = const <String, ProjectSmartTileAnimation>{},
@@ -1149,6 +1153,7 @@ final class SmartTileLayerVisualPlan {
       <_PlannedSmartTileVisual>[];
 
   final SmartTileVisualPass pass;
+  final SmartTileCellContextResolver? cellContextResolver;
   final MapData _map;
   final SmartTileLayer? _layer;
   final ProjectSmartTilePreset? _preset;
@@ -1311,13 +1316,15 @@ final class SmartTileLayerVisualPlan {
   List<_PlannedSmartTileVisual> _planCell(int x, int y) {
     final layer = _layer!;
     final preset = _preset!;
-    final context = smartTileCellContextForLayerCell(
-      layer: layer,
-      map: _map,
-      preset: preset,
-      x: x,
-      y: y,
-    );
+    final context =
+        cellContextResolver?.call(preset: preset, x: x, y: y) ??
+        smartTileCellContextForLayerCell(
+          layer: layer,
+          map: _map,
+          preset: preset,
+          x: x,
+          y: y,
+        );
     final resolution = _resolver!.resolve(context: context, x: x, y: y);
     List<_PlannedSmartTileVisual>? items;
     final candidate = resolution.candidate;

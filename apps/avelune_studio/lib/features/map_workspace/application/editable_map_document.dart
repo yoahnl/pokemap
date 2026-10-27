@@ -1,4 +1,5 @@
 import 'map_atmosphere_controller.dart';
+import 'map_exterior_decoration_controller.dart';
 import 'map_editor_controller.dart';
 
 import 'package:map_authoring/map_authoring_editing.dart';
@@ -12,6 +13,7 @@ class EditableMapDocument {
   }
 
   MapAtmosphereController? atmosphere;
+  MapExteriorDecorationController? exteriorDecoration;
   SpatialVisualPatch visualProfile = SpatialVisualPatch();
   MapEditorController? editor;
   static final _unlockedEditorState = MapEditorState();

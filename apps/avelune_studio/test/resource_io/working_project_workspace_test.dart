@@ -135,6 +135,26 @@ void main() {
     await sessions.close(reopened);
   });
 
+  test('neutral map preview preserves the active metadata without reading unrelated definitions', () async {
+    final working = await WorkingProjectCatalog.open(store: await CatalogStorageStore.open(projectRoot:fixture.root.path),
+      descriptor:WorkingProjectCatalogDescriptor(projectId:'studio-map-working'));
+    final unused = await working.catalog.snapshot.indexEntry(CatalogDefinitionKey(CatalogDefinitionKind.tileset,'existing'));
+    final file = File('${fixture.root.path}/catalog/objects/${unused!.reference.sha256}.json');
+    final bytes = await file.readAsBytes();
+    await file.writeAsString('unrelated unreadable definition');
+    try {
+      await maps.loadCatalog(session);
+      final selected = await maps.loadMapSelection(session,ResourceFixture.entry);
+      final before = await maps.resourceBaseline(session);
+      final preview = await maps.loadMapPreviewSelection(session,ResourceFixture.entry);
+      final after = await maps.resourceBaseline(session);
+      expect(preview.document.map,selected.document.map);
+      expect(preview.definitions.tilesets,isEmpty);
+      expect(after.manifest,same(before.manifest));
+      expect(after.revision,before.revision);
+    } finally { await file.writeAsBytes(bytes); }
+  });
+
   test('scoped opening reads metadata and the selected map without unrelated definitions', () async {
     final store = await CatalogStorageStore.open(
       projectRoot: fixture.root.path,

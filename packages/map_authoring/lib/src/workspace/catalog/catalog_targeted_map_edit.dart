@@ -6,6 +6,7 @@ import '../../contracts/authoring_diff.dart';
 import '../../contracts/authoring_request.dart';
 import '../../contracts/json_contract_support.dart';
 import '../../contracts/resource_ref.dart';
+import '../../documents/map_exterior_decoration_authoring.dart';
 import '../../domains/maps/map_lifecycle_adapter.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/resource_library_scope_guard.dart';
@@ -62,31 +63,111 @@ final class CatalogTargetedMapSelection {
               (projectedMap != null && projectedMap.id != mapId)) {
             throw const FormatException('catalog.map: identity mismatch');
           }
-          var definitions = await ProjectCatalogSelection(catalog)
-              .forMap(projectedMap ?? map);
-          final factIds = <String>{};
-          void collectFacts(Object? value) {
+          final exterior = await loadMapExteriorDecoration(
+            projectRoot: reader.store.projectRoot,
+            map: map,
+            mapRelativePath: entry.relativePath,
+            reader: reader.store.fileReader,
+          );
+          var definitions = await ProjectCatalogSelection(catalog).forMaps(
+            [
+              projectedMap ?? map,
+              for (final sector
+                  in exterior?.sectors ?? const <ExteriorDecorationSector>[])
+                sector.asVisualMap().copyWith(id: map.id),
+            ],
+            additionalRoots: [
+              for (final border in exterior?.borders ??
+                  const <ExteriorDecorationBorder>[]) ...[
+                CatalogDefinitionKey(CatalogDefinitionKind.borderRecord,
+                    border.feature.blueprintId),
+                for (final instance in border.instances)
+                  CatalogDefinitionKey(
+                      CatalogDefinitionKind.model3d, instance.modelId),
+                for (final placement
+                    in border.feature.materialization?.placements ??
+                        const <BorderResolvedPlacement>[])
+                  CatalogDefinitionKey(
+                      CatalogDefinitionKind.borderVisualSnapshot,
+                      placement.visualSnapshotId),
+                for (final ground in border.feature.materialization?.ground ??
+                    const <BorderResolvedGroundCell>[])
+                  CatalogDefinitionKey(
+                      CatalogDefinitionKind.borderVisualSnapshot,
+                      ground.visualSnapshotId),
+              ],
+            ],
+          );
+          final dependencyIds = <String, Set<String>>{
+            'dialogues': {},
+            'facts': {},
+          };
+          void collectReferences(Object? value) {
             if (value is Map) {
-              if (value['factId'] case final String id) factIds.add(id);
-              for (final nested in value.values) { collectFacts(nested); }
+              for (final entry in value.entries) {
+                final field = switch (entry.key) {
+                  'dialogueId' ||
+                  'preBattleDialogueId' ||
+                  'victoryDialogueId' ||
+                  'defeatDialogueId' =>
+                    'dialogues',
+                  'factId' => 'facts',
+                  _ => null,
+                };
+                final id = entry.value;
+                if (field != null && id is String && id.isNotEmpty) {
+                  dependencyIds[field]!.add(id);
+                }
+                collectReferences(entry.value);
+              }
             } else if (value is List) {
-              for (final nested in value) { collectFacts(nested); }
+              for (final nested in value) {
+                collectReferences(nested);
+              }
             }
           }
-          collectFacts((projectedMap ?? map).toJson());
-          if (factIds.isNotEmpty) {
-            if (!reader.readOnly) await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
-            final facts = reader.readOnly
-                ? (await reader.readMetadata({'facts'})).facts.where((fact) => factIds.contains(fact.id)).toList()
-                : (await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot,
-                    project: const ProjectManifest(name: 'Map dependencies', maps: [], tilesets: []),
-                    ids: {'facts': factIds})).project.facts;
-            definitions = definitions.copyWith(facts: facts);
+
+          collectReferences((projectedMap ?? map).toJson());
+          dependencyIds['dialogues']!
+              .removeAll(definitions.dialogues.map((dialogue) => dialogue.id));
+          dependencyIds['facts']!
+              .removeAll(definitions.facts.map((fact) => fact.id));
+          dependencyIds.removeWhere((_, ids) => ids.isEmpty);
+          if (dependencyIds.isNotEmpty) {
+            if (dependencyIds.values
+                    .fold<int>(0, (count, ids) => count + ids.length) >
+                catalog.snapshot.limits.maxClosureNodes) {
+              throw const FormatException(
+                  'catalog.map: dependency budget exceeded');
+            }
+            if (!reader.readOnly) {
+              await reader.store
+                  .requireMetadataIndexAdmission(catalog.snapshot);
+            }
+            final metadata = reader.readOnly
+                ? await reader.readMetadata(dependencyIds.keys.toSet())
+                : (await CatalogMetadataDocuments.readDocuments(
+                        snapshot: catalog.snapshot,
+                        project: const ProjectManifest(
+                            name: 'Map dependencies', maps: [], tilesets: []),
+                        ids: dependencyIds))
+                    .project;
+            definitions = definitions.copyWith(
+              dialogues: [
+                ...definitions.dialogues,
+                ...metadata.dialogues.where((dialogue) =>
+                    dependencyIds['dialogues']?.contains(dialogue.id) ?? false),
+              ],
+              facts: [
+                ...definitions.facts,
+                ...metadata.facts.where((fact) =>
+                    dependencyIds['facts']?.contains(fact.id) ?? false),
+              ],
+            );
           }
           final encounterTableIds = {
-            for (final layer in (projectedMap ?? map)
-                .layers
-                .whereType<SmartTileLayer>())
+            for (final layer
+                in (projectedMap ?? map).layers.whereType<SmartTileLayer>())
               if (layer.encounterBehavior?.encounter.encounterTableId
                   case final String id)
                 id,

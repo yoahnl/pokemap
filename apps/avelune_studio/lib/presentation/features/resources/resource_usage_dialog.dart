@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../features/resources/domain/resource_usage_port.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'resource_catalog.dart';
@@ -29,7 +30,16 @@ class ResourceUsageDialog extends StatefulWidget {
   final ResourceUsageTarget? target;
   final String? name;
   ResourceUsageTarget get resolvedTarget =>
-      target ?? ResourceUsageTarget(family: item!.kind.name, id: item!.id);
+      target ??
+      ResourceUsageTarget(
+        family: switch (item!.canonicalKind) {
+          'model3d' => 'models3d',
+          'environmentPreset' => 'environments',
+          'borderBlueprint' => 'borders',
+          _ => item!.kind.name,
+        },
+        id: item!.id,
+      );
   final ResourceUsagePort port;
   final Listenable changes;
   final List<String> Function() dirtyOwners;

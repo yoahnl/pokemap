@@ -27,7 +27,7 @@ import 'border_linear_lattice.dart';
 import 'border_region_contours.dart';
 import 'border_resolver.dart';
 import 'narrative_event_canonical_json.dart';
-import 'map_visual_composition.dart';
+import 'spatial_border_resolution_context.dart';
 
 final class SpatialBorderResolutionResult {
   SpatialBorderResolutionResult({
@@ -36,10 +36,12 @@ final class SpatialBorderResolutionResult {
     required this.featureId,
     required this.result,
     required List<SpatialModelInstance> modelInstances,
+    this.sourceContext,
   }) : modelInstances = List.unmodifiable(modelInstances);
   final String mapId, layerId, featureId;
   final BorderResolutionResult result;
   final List<SpatialModelInstance> modelInstances;
+  final SpatialBorderResolutionContext? sourceContext;
 }
 
 typedef _SpatialBorderNode = ({
@@ -117,15 +119,26 @@ Map<String, Set<(int, int)>> resolveSpatialBorderGroundMaskCellsByLayer({
   required ProjectManifest manifest,
   required MapData map,
   bool Function(String layerId)? includeLayer,
+}) => resolveSpatialBorderGroundMaskCellsByLayerInContext(
+  manifest: manifest,
+  context: SpatialBorderResolutionContext.fromMap(map),
+  includeLayer: includeLayer,
+);
+
+
+Map<String, Set<(int, int)>> resolveSpatialBorderGroundMaskCellsByLayerInContext({
+  required ProjectManifest manifest,
+  required SpatialBorderResolutionContext context,
+  bool Function(String layerId)? includeLayer,
+  bool Function(String instanceId)? includeInstance,
 }) {
-  final scene = map.spatialScene;
-  if (scene == null) return const {};
+  if (!context.isSpatial) return const {};
   final instances = {
-    for (final instance in scene.instances) instance.id: instance,
+    for (final instance in context.instances) instance.id: instance,
   };
   final models = {for (final model in manifest.models3d) model.id: model};
   final result = <String, Set<(int, int)>>{};
-  for (final layer in map.layers.whereType<BorderLayer>()) {
+  for (final layer in context.layers.whereType<BorderLayer>()) {
     if (!layer.isVisible ||
         layer.opacity <= 0 ||
         includeLayer?.call(layer.id) == false) {
@@ -159,6 +172,7 @@ Map<String, Set<(int, int)>> resolveSpatialBorderGroundMaskCellsByLayer({
         continue;
       }
       for (final placement in applied.spatialPlacements) {
+        if (includeInstance?.call(placement.instanceId) == false) continue;
         final instance = instances[placement.instanceId]!;
         final model = models[instance.modelId]!;
         final anchor =
@@ -173,7 +187,7 @@ Map<String, Set<(int, int)>> resolveSpatialBorderGroundMaskCellsByLayer({
         final z =
             (instance.position.z - math.sin(angle) * dx + math.cos(angle) * dz)
                 .floor();
-        if (x >= 0 && z >= 0 && x < scene.width && z < scene.depth) {
+        if (x >= 0 && z >= 0 && x < context.size.width && z < context.size.height) {
           result.putIfAbsent(layer.id, () => {}).add((x, z));
         }
       }
@@ -224,15 +238,27 @@ resolveSpatialBorderGroundReplacementsByLayer({
   required ProjectManifest manifest,
   required MapData map,
   bool Function(String layerId)? includeLayer,
+}) => resolveSpatialBorderGroundReplacementsByLayerInContext(
+  manifest: manifest,
+  context: SpatialBorderResolutionContext.fromMap(map),
+  includeLayer: includeLayer,
+);
+
+
+Map<String, List<SpatialBorderGroundReplacement>>
+resolveSpatialBorderGroundReplacementsByLayerInContext({
+  required ProjectManifest manifest,
+  required SpatialBorderResolutionContext context,
+  bool Function(String layerId)? includeLayer,
+  bool Function(String instanceId)? includeInstance,
 }) {
-  final scene = map.spatialScene;
-  if (scene == null) return const {};
+  if (!context.isSpatial) return const {};
   final instances = {
-    for (final instance in scene.instances) instance.id: instance,
+    for (final instance in context.instances) instance.id: instance,
   };
   final models = {for (final model in manifest.models3d) model.id: model};
   final result = <String, List<SpatialBorderGroundReplacement>>{};
-  for (final layer in map.layers.whereType<BorderLayer>()) {
+  for (final layer in context.layers.whereType<BorderLayer>()) {
     if (!layer.isVisible ||
         layer.opacity <= 0 ||
         includeLayer?.call(layer.id) == false) {
@@ -263,6 +289,7 @@ resolveSpatialBorderGroundReplacementsByLayer({
         continue;
       }
       for (final placement in applied.spatialPlacements) {
+        if (includeInstance?.call(placement.instanceId) == false) continue;
         final instance = instances[placement.instanceId]!;
         final model = models[instance.modelId]!;
         final bounds = model.inspection.bounds;
@@ -360,17 +387,28 @@ List<SpatialBorderGroundSurface> resolveSpatialBorderGroundSurfaces({
   required ProjectManifest manifest,
   required MapData map,
   bool Function(String layerId)? includeLayer,
+}) => resolveSpatialBorderGroundSurfacesInContext(
+  manifest: manifest,
+  context: SpatialBorderResolutionContext.fromMap(map),
+  includeLayer: includeLayer,
+);
+
+
+List<SpatialBorderGroundSurface> resolveSpatialBorderGroundSurfacesInContext({
+  required ProjectManifest manifest,
+  required SpatialBorderResolutionContext context,
+  bool Function(String layerId)? includeLayer,
+  bool Function(String instanceId)? includeInstance,
 }) {
-  final scene = map.spatialScene;
-  if (scene == null) return const [];
+  if (!context.isSpatial) return const [];
   final instances = {
-    for (final instance in scene.instances) instance.id: instance,
+    for (final instance in context.instances) instance.id: instance,
   };
   final models = {for (final model in manifest.models3d) model.id: model};
   final result = <SpatialBorderGroundSurface>[];
-  final ordered = mapPaintsFirstLayerInFront(map)
-      ? map.layers.reversed
-      : map.layers;
+  final ordered = context.paintsFirstLayerInFront
+      ? context.layers.reversed
+      : context.layers;
   for (final layer in ordered.whereType<BorderLayer>()) {
     if (!layer.isVisible ||
         layer.opacity <= 0 ||
@@ -402,6 +440,7 @@ List<SpatialBorderGroundSurface> resolveSpatialBorderGroundSurfaces({
         continue;
       }
       for (final placement in applied.spatialPlacements) {
+        if (includeInstance?.call(placement.instanceId) == false) continue;
         final instance = instances[placement.instanceId]!;
         final model = models[instance.modelId]!;
         final scale = model.scale * instance.scale;
@@ -777,8 +816,22 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   required String layerId,
   required String featureId,
   int resolverVersion = borderResolverVersion,
+}) => resolveSpatialBorderFeatureInContext(
+  manifest: manifest,
+  context: SpatialBorderResolutionContext.fromMap(map),
+  layerId: layerId,
+  featureId: featureId,
+  resolverVersion: resolverVersion,
+);
+
+SpatialBorderResolutionResult resolveSpatialBorderFeatureInContext({
+  required ProjectManifest manifest,
+  required SpatialBorderResolutionContext context,
+  required String layerId,
+  required String featureId,
+  int resolverVersion = borderResolverVersion,
 }) {
-  final layer = map.layers
+  final layer = context.layers
       .whereType<BorderLayer>()
       .where((layer) => layer.id == layerId)
       .firstOrNull;
@@ -806,7 +859,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       suggestedAction: suggestedAction,
     ),
   );
-  if (map.version != ProjectVersion.v9 || map.spatialScene == null) {
+  if (!context.isSpatial) {
     error('border.spatial.map_required');
   }
   if (feature.lineSide == BorderLineSide.inverted &&
@@ -839,7 +892,8 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   final placements = <BorderSpatialPlacement>[];
   final instances = <SpatialModelInstance>[];
   SpatialBorderResolutionResult failed() => SpatialBorderResolutionResult(
-    mapId: map.id,
+    sourceContext: context,
+    mapId: context.mapId,
     layerId: layerId,
     featureId: featureId,
     result: BorderResolutionResult(
@@ -853,7 +907,6 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   )) {
     return failed();
   }
-  final scene = map.spatialScene!;
   final definition = revision!.definition;
   final params = feature.paramsOverride ?? definition.defaults;
   final geometry = feature.geometry;
@@ -904,8 +957,8 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       ));
     }
   } else if (geometry is BorderRegionGeometry) {
-    if (geometry.width != map.size.width ||
-        geometry.height != map.size.height) {
+    if (geometry.width != context.size.width ||
+        geometry.height != context.size.height) {
       error('border.spatial.region_size_mismatch');
     }
     for (final contour in extractCanonicalBorderRegionContours(
@@ -941,14 +994,14 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
     }
   }
   for (final keepOut in feature.keepOutRegions) {
-    if (keepOut.region.width != map.size.width ||
-        keepOut.region.height != map.size.height) {
+    if (keepOut.region.width != context.size.width ||
+        keepOut.region.height != context.size.height) {
       error('border.spatial.keep_out_size_mismatch');
     }
   }
   final allOwned = <String>{};
-  final instanceIds = scene.instances.map((instance) => instance.id).toSet();
-  for (final candidateLayer in map.layers) {
+  final instanceIds = context.instances.map((instance) => instance.id).toSet();
+  for (final candidateLayer in context.layers) {
     final owned = switch (candidateLayer) {
       BorderLayer() => candidateLayer.content.features.expand(
         (candidate) => candidate.generatedPlacementIds,
@@ -1094,18 +1147,18 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       if (!manifest.resourceLibraryCatalog.availableForMap(
             'model3d',
             model.id,
-            map.id,
+            context.mapId,
           ) ||
           !manifest.resourceLibraryCatalog.availableForMap(
             'borderBlueprint',
             feature.blueprintId,
-            map.id,
+            context.mapId,
           )) {
         error('border.spatial.resource_scope_conflict', slotKey: slotKey);
         continue;
       }
       final id =
-          'border3d_${_hash([map.id, layerId, featureId, slotKey]).substring(7, 39)}';
+          'border3d_${_hash([context.mapId, layerId, featureId, slotKey]).substring(7, 39)}';
       final angle = -selected.turns * math.pi / 2;
       final anchor = primitive.anchorWorld ?? model.pivot;
       final dx = (anchor.x - model.pivot.x) * model.scale;
@@ -1133,7 +1186,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
         position: Model3dVector3(
           x: x,
           y:
-              scene.worldHeightAt(
+              context.worldHeightAt(
                 terrainCell == null ? node.cell.x + offset : terrainCell.x + .5,
                 terrainCell == null ? node.cell.y + offset : terrainCell.y + .5,
               ) -
@@ -1148,7 +1201,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
         blocksMovement: primitive.blocksMovement,
       );
       if (override?.lockedInstanceId != null) {
-        final locked = scene.instances
+        final locked = context.instances
             .where((instance) => instance.id == override!.lockedInstanceId)
             .firstOrNull;
         final ownedSlot = feature.materialization?.spatialPlacements
@@ -1166,8 +1219,8 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       }
       if (instance.position.x < 0 ||
           instance.position.z < 0 ||
-          instance.position.x >= scene.width ||
-          instance.position.z >= scene.depth) {
+          instance.position.x >= context.size.width ||
+          instance.position.z >= context.size.height) {
         error('border.spatial.anchor_outside_map', slotKey: slotKey);
         continue;
       }
@@ -1237,7 +1290,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   )) {
     return failed();
   }
-  if (scene.instances.length -
+  if (context.instances.length -
           feature.generatedPlacementIds.length +
           instances.length >
       10000) {
@@ -1255,18 +1308,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
           )
           .toList()
         ..sort((a, b) => a.id.compareTo(b.id));
-  final context = {
-    'mapId': map.id,
-    'mapVersion': map.version.name,
-    'mapSize': map.size.toJson(),
-    'width': scene.width,
-    'depth': scene.depth,
-    'heightLevels': scene.heightLevels,
-    'levelHeight': scene.levelHeight,
-    'ramps': scene.navigation.ramps.map((ramp) => ramp.toJson()).toList(),
-    'tileWidth': manifest.settings.tileWidth,
-    'tileHeight': manifest.settings.tileHeight,
-  };
+  final terrainContext = context.fingerprintContext();
   final components = BorderInputFingerprints(
     blueprint: _hash(
       encodeBorderBlueprintRevisionJson(
@@ -1286,7 +1328,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
     overrides: _hash({
       'overrides': featureJson['overrides'],
       'lockedInstances': [
-        for (final instance in scene.instances)
+        for (final instance in context.instances)
           if (feature.overrides.any(
             (override) => override.lockedInstanceId == instance.id,
           ))
@@ -1294,7 +1336,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
       ],
     }),
     keepOutRegions: _hash(featureJson['keepOutRegions']),
-    mapContext: _hash(context),
+    mapContext: _hash(terrainContext),
     visualSnapshots: _hash({
       'models': relevantModels.map((model) => model.toJson()).toList(),
     }),
@@ -1327,7 +1369,8 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
     spatialPlacements: placements,
   );
   return SpatialBorderResolutionResult(
-    mapId: map.id,
+    sourceContext: context,
+    mapId: context.mapId,
     layerId: layerId,
     featureId: featureId,
     result: BorderResolutionResult(

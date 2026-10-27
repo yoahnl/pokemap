@@ -1,4 +1,5 @@
 import '../models/map_data.dart';
+import '../models/map_spatial_scene.dart';
 import '../models/enums.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
@@ -7,6 +8,7 @@ import '../models/smart_tile_field.dart';
 import '../exceptions/map_exceptions.dart';
 import '../validation/validators.dart';
 import 'map_visual_composition.dart';
+import 'smart_tile_catalog_validation.dart';
 
 sealed class SmartTileLayerCreationResult {
   const SmartTileLayerCreationResult();
@@ -117,7 +119,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
     );
   }
   try {
-    ProjectValidator.validate(manifest);
+    _validateSelectedSmartTileCatalog(manifest);
     MapValidator.validate(map, projectDialogueContext: manifest);
   } on ValidationException catch (error) {
     return SmartTileLayerCreationFailure(
@@ -269,7 +271,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
   );
 
   try {
-    ProjectValidator.validate(projectedManifest);
+    _validateSelectedSmartTileCatalog(projectedManifest);
   } on ValidationException catch (error) {
     return SmartTileLayerCreationFailure(
       code: error.code ?? 'smart_tile_projected_manifest_invalid',
@@ -293,6 +295,24 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreationForMap({
     manifest: projectedManifest,
     layerId: normalizedLayerId,
   );
+}
+
+void _validateSelectedSmartTileCatalog(ProjectManifest manifest) {
+  for (final diagnostic in validateProjectSmartTileCatalog(
+    catalog: manifest.smartTileCatalog,
+    projectTilesetIds: manifest.tilesets.map((entry) => entry.id),
+    projectModelIds: manifest.models3d.map((entry) => entry.id),
+    projectModelAnimationIndices: {
+      for (final model in manifest.models3d)
+        model.id: model.inspection.animations.map((clip) => clip.index).toSet(),
+    },
+    spatial: manifest.settings.dimension == ProjectDimension.threeD,
+  )) {
+    if (diagnostic.isError) {
+      throw ValidationException('${diagnostic.path}: ${diagnostic.message}',
+          code: diagnostic.code);
+    }
+  }
 }
 
 SmartTileLayerCreationFailure? _validateProjectMapCoverage({

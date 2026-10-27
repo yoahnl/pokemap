@@ -156,7 +156,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     return result;
   }
 
-  Future<MapWorkspaceSelection> _loadScopedMapSelection(
+  Future<MapWorkspaceSelection> _loadScopedPreviewSelection(
     ProjectSession session,
     ProjectMapEntry entry,
   ) async {
@@ -196,6 +196,12 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
         snapshotRevision: source.snapshotRevision,
       );
     });
+    _loadedPaths[(session.sessionId, entry.id)] = path;
+    return selection;
+  }
+
+  Future<MapWorkspaceSelection> _loadScopedMapSelection(ProjectSession session, ProjectMapEntry entry) async {
+    final selection = await _loadScopedPreviewSelection(session, entry);
     _activeMapDefinitions[session.sessionId] = selection.definitions;
     final latest = _project(session);
     var definitions = selection.definitions;
@@ -218,7 +224,6 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       complete: false,
       metadataFields: latest.metadataFields,
     );
-    _loadedPaths[(session.sessionId, entry.id)] = path;
     return selection;
   }
 

@@ -10,6 +10,8 @@ import '../models/project_model3d.dart';
 import '../models/smart_tile.dart';
 import 'map_visual_composition.dart';
 import 'smart_tile_layer_context.dart';
+import 'smart_tile_layer_visual_resolver.dart'
+    show SmartTileCellContextResolver;
 import 'smart_tile_resolver.dart';
 import 'smart_tile_sprite_geometry.dart';
 
@@ -78,6 +80,7 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
   int projectSeed = 0,
   int sourceCellWidth = 32,
   int sourceCellHeight = 32,
+  Map<String, SmartTileCellContextResolver> cellContextResolvers = const {},
 }) {
   final scene = map.spatialScene;
   if (scene == null) {
@@ -165,13 +168,19 @@ SpatialSmartTileModelProjection resolveSpatialSmartTileModelProjection({
             }
           }
           final resolved = resolver.resolve(
-            context: smartTileCellContextForLayerCell(
-              layer: layer,
-              map: map,
-              preset: preset,
-              x: x,
-              y: z,
-            ),
+            context:
+                cellContextResolvers[layer.id]?.call(
+                  preset: preset,
+                  x: x,
+                  y: z,
+                ) ??
+                smartTileCellContextForLayerCell(
+                  layer: layer,
+                  map: map,
+                  preset: preset,
+                  x: x,
+                  y: z,
+                ),
             x: x,
             y: z,
           );

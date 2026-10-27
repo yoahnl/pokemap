@@ -73,8 +73,70 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   final keys = <LogicalKeyboardKey>{};
   int inputEpoch = -1;
   late RuntimeMapBundle activeBundle;
+  RuntimeMapBundle? _loaderBundle;
+  SpatialExplorationSession? _loaderSession;
+  late Future<Uint8List> Function(String) _renderedModelLoader;
+  late Future<Uint8List> Function(String) _renderedGroundLoader;
+
+  void _bindResourceLoaders(
+    SpatialExplorationSession session,
+    RuntimeMapBundle bundle,
+  ) {
+    if (identical(_loaderBundle, bundle) && identical(_loaderSession, session)) {
+      return;
+    }
+    _loaderBundle = bundle;
+    _loaderSession = session;
+    _renderedModelLoader = (id) => session.modelBytesForBundle(bundle, id);
+    _renderedGroundLoader = (id) =>
+        session.groundImageBytesForBundle(bundle, id);
+  }
+
   Offset sceneOffset = Offset.zero;
   List<SpatialSceneNeighbor> neighbors = const [];
+  final _decorationBundles = <String, RuntimeMapBundle>{};
+
+  final _decorationLoaders =
+      Expando<
+        ({
+          SpatialExplorationSession session,
+          Future<Uint8List> Function(String) model,
+          Future<Uint8List> Function(String) ground,
+        })
+      >();
+
+  SpatialSceneDecoration _decorationSource(
+    RuntimeMapBundle bundle,
+    Offset offset,
+  ) {
+    final session = widget.session;
+    var loaders = _decorationLoaders[bundle];
+    if (loaders == null || !identical(loaders.session, session)) {
+      loaders = (
+        session: session,
+        model: (id) => session.modelBytesForBundle(bundle, id),
+        ground: (id) => session.groundImageBytesForBundle(bundle, id),
+      );
+      _decorationLoaders[bundle] = loaders;
+    }
+    return SpatialSceneDecoration(
+      ownerMapId: bundle.map.id,
+      decoration: bundle.exteriorDecoration!,
+      offset: offset,
+      project: bundle.manifest,
+      loadGroundImage: loaders.ground,
+      loadModel: loaders.model,
+    );
+  }
+
+  List<SpatialSceneDecoration> get exteriorDecorations => [
+    if (activeBundle.exteriorDecoration != null)
+      _decorationSource(activeBundle, Offset.zero),
+    for (final neighbor in neighbors)
+      if (_decorationBundles[neighbor.map.id] case final bundle?)
+        if (bundle.exteriorDecoration != null)
+          _decorationSource(bundle, neighbor.offset),
+  ];
   int neighborGeneration = 0;
   Object? neighborError;
   String? renderedFramesMapId;
@@ -131,6 +193,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
 
   void mapChanged() {
     final previous = activeBundle;
+    _decorationBundles[previous.map.id] = previous;
     activeBundle = widget.session.bundle;
     applyVisuals();
     camera.applyAtmosphereSettings(activeBundle.spatialAtmosphereSettings);
@@ -201,6 +264,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
             ? previous!
             : await session.loadConnectionNeighbor(connection);
         if (!mounted || generation != neighborGeneration) return;
+        _decorationBundles[bundle.map.id] = bundle;
         loaded.add(neighbor(bundle, connection));
       } on Object catch (error) {
         failure = error;
@@ -217,6 +281,11 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     }
     setState(() {
       neighbors = loaded;
+      final retained = {
+        activeBundle.map.id,
+        ...loaded.map((value) => value.map.id),
+      };
+      _decorationBundles.removeWhere((id, _) => !retained.contains(id));
       neighborError = failure;
     });
     if (failure != null) widget.onError?.call(failure);
@@ -408,6 +477,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     final colors = Theme.of(context).colorScheme;
     final renderedSession = widget.session;
     final renderedBundle = renderedSession.bundle;
+    _bindResourceLoaders(renderedSession, renderedBundle);
     final renderedOrigin = sceneOffset;
     final renderedMapId = renderedBundle.map.id;
     final renderedMaps = {
@@ -435,13 +505,12 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
                 scene: renderedBundle.map.spatialScene!,
                 groundMap: renderedBundle.map,
                 groundProject: renderedBundle.manifest,
-                loadGroundImage: (id) => renderedSession
-                    .groundImageBytesForBundle(renderedBundle, id),
+                loadGroundImage: _renderedGroundLoader,
                 sceneOffset: sceneOffset,
                 neighbors: neighbors,
+                decorations: exteriorDecorations,
                 models: renderedBundle.manifest.models3d,
-                loadModel: (id) =>
-                    renderedSession.modelBytesForBundle(renderedBundle, id),
+                loadModel: _renderedModelLoader,
                 controller: camera,
                 onCell: (_, _) {
                   if (widget.keyboardInputEnabled) focus.requestFocus();

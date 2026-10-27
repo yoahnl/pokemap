@@ -1,11 +1,15 @@
+import '../../../features/project_visuals/application/project_visuals_controller.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../features/map_workspace/application/map_atmosphere_controller.dart';
+import '../../../features/map_workspace/application/map_exterior_decoration_controller.dart';
 
 import 'dart:math' as math;
 
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
@@ -37,8 +41,14 @@ class SpatialMapEditor extends StatefulWidget {
     required this.view,
     required this.onChanged,
     this.onContextMenu,
+    this.neighbors = const [],
+    this.neighborDecorations = const [],
+    this.exteriorContextReady = true,
   });
   final EditableMapDocument document;
+  final List<SpatialSceneNeighbor> neighbors;
+  final List<SpatialSceneDecoration> neighborDecorations;
+  final bool exteriorContextReady;
   final MapWorkspaceController controller;
   final ProjectManifest project;
   final MapWorkspaceVisuals visuals;
@@ -50,6 +60,289 @@ class SpatialMapEditor extends StatefulWidget {
 }
 
 class _SpatialMapEditorState extends State<SpatialMapEditor> {
+  MapExteriorDecorationController? get exterior =>
+      widget.document.exteriorDecoration;
+  bool get editingExterior => exterior?.editingExterior == true;
+  EditableMapDocument get editingDocument => editingExterior
+      ? exterior?.editingDocument ?? widget.document
+      : widget.document;
+  ChangeNotifier? _exteriorNotifier;
+
+  void _bindExterior() {
+    final next = exterior;
+    if (identical(next, _exteriorNotifier)) return;
+    _exteriorNotifier?.removeListener(_exteriorChanged);
+    _exteriorNotifier = next;
+    _exteriorNotifier?.addListener(_exteriorChanged);
+  }
+
+  void _exteriorChanged() {
+    if (_exteriorGestureActive && !editingExterior) {
+      _exteriorGestureActive = false;
+      _exteriorLastCell = null;
+      discardGesture();
+      exterior?.cancelGesture();
+    }
+    if (mounted) setState(() {});
+  }
+
+  SpatialSceneAuthoringTarget? get authoringTarget {
+    final controller = exterior;
+    final child = controller?.editingDocument;
+    if (!editingExterior || child == null) return null;
+    return SpatialSceneAuthoringTarget(
+      map: child.current,
+      offset: Offset(
+        controller!.originX.toDouble(),
+        controller.originZ.toDouble(),
+      ),
+      decorationKey:
+          'exterior:${widget.document.current.id}:${controller.selectedSectorId}',
+    );
+  }
+
+  EnvironmentArea? _exteriorEnvironmentTemplate;
+  void _bindExteriorEnvironment({required bool create}) {
+    if (!editingExterior || widget.view.tool != StudioMapTool.environment) {
+      return;
+    }
+    final commands = EnvironmentEditingCommands(
+      editingDocument,
+      widget.project,
+    );
+    final session = widget.view.environment;
+    final armedPresetId = widget.view.exteriorEnvironmentPresetId;
+    final current = session == null ? null : commands.area(session);
+    if (current == null &&
+        armedPresetId != null &&
+        _exteriorEnvironmentTemplate?.presetId != armedPresetId) {
+      _exteriorEnvironmentTemplate = null;
+      if (!create) return;
+      final preset = widget.project.environmentPresets
+          .where((preset) => preset.id == armedPresetId)
+          .firstOrNull;
+      if (preset == null) return;
+      final created = commands.create(preset);
+      widget.view.environment = created;
+      _exteriorEnvironmentTemplate = commands.area(created);
+      return;
+    }
+    if (current != null) {
+      _exteriorEnvironmentTemplate = current;
+      return;
+    }
+    final area = _exteriorEnvironmentTemplate;
+    if (area == null) return;
+    final existing = commands.areas
+        .where(
+          (entry) =>
+              entry.area.presetId == area.presetId &&
+              entry.area.seed == area.seed &&
+              entry.area.paramsOverride == area.paramsOverride,
+        )
+        .firstOrNull;
+    if (existing == null && !create) return;
+    final next = existing == null
+        ? commands.create(
+            widget.project.environmentPresets.firstWhere(
+              (preset) => preset.id == area.presetId,
+            ),
+          )
+        : MapEnvironmentSession(
+            layerId: existing.layer.id,
+            areaId: existing.area.id,
+          );
+    if (existing == null) {
+      editingDocument.commit(
+        const EnvironmentEditing().updateArea(
+          editingDocument.current,
+          manifest: widget.project,
+          layerId: next.layerId,
+          areaId: next.areaId,
+          seed: area.seed,
+          paramsOverride: area.paramsOverride,
+        ),
+      );
+    }
+    next.tool = session?.tool ?? EnvironmentPaintTool.brush;
+    widget.view.environment = next;
+  }
+
+  bool _exteriorGestureActive = false;
+  GridPos? _exteriorLastCell;
+
+  Iterable<ExteriorDecorationRect> get _neighborBounds => [
+    for (final neighbor in widget.neighbors)
+      ExteriorDecorationRect(
+        x: neighbor.offset.dx.round(),
+        z: neighbor.offset.dy.round(),
+        width: neighbor.map.size.width,
+        depth: neighbor.map.size.height,
+      ),
+  ];
+
+  bool get _continuousExteriorStroke =>
+      terrainStroke != null ||
+      reliefStroke != null ||
+      environmentGesture != null &&
+          environmentGesture!.tool != EnvironmentPaintTool.rectangle;
+
+  void _continueExteriorStroke(int x, int z) {
+    final controller = exterior!;
+    final definition = controller.current!;
+    final last = _exteriorLastCell;
+    if (last == null || last.x == x && last.y == z) return;
+    final bounds = definition.outerBounds;
+    final path = MapEncounterCellStroke(
+      GridSize(width: bounds.width, height: bounds.depth),
+      false,
+      GridPos(x: last.x - bounds.x, y: last.y - bounds.z),
+    )..paint(GridPos(x: x - bounds.x, y: z - bounds.z));
+    for (final point in path.cells.skip(1)) {
+      final logical = GridPos(x: point.x + bounds.x, y: point.y + bounds.z);
+      final current = authoringTarget;
+      if (current == null) return;
+      var localX = logical.x - controller.originX,
+          localZ = logical.y - controller.originZ;
+      if (localX < 0 ||
+          localZ < 0 ||
+          localX >= current.map.size.width ||
+          localZ >= current.map.size.height) {
+        if (definition.isExcluded(
+          logical.x,
+          logical.y,
+          neighborBounds: _neighborBounds,
+        )) {
+          return;
+        }
+        final session = widget.view.environment;
+        final area = session == null
+            ? null
+            : EnvironmentEditingCommands(
+                editingDocument,
+                widget.project,
+              ).area(session);
+        finishSegment();
+        if (!_exteriorGestureActive ||
+            !controller.selectAt(
+              logical.x,
+              logical.y,
+              neighborBounds: _neighborBounds,
+            )) {
+          return;
+        }
+        if (area != null) _exteriorEnvironmentTemplate = area;
+        _bindExteriorEnvironment(create: true);
+        localX = logical.x - controller.originX;
+        localZ = logical.y - controller.originZ;
+        if (!_startSegment(localX, localZ)) return;
+      } else {
+        updateDrag((localX, localZ));
+      }
+      _exteriorLastCell = logical;
+    }
+  }
+
+  SpatialSceneAuthoringTarget? resolveAuthoringTarget(int x, int z) {
+    final controller = exterior;
+    if (!editingExterior || controller == null || !widget.exteriorContextReady) {
+      return null;
+    }
+    final activeGesture =
+        terrainStroke != null ||
+        reliefStroke != null ||
+        environmentGesture != null ||
+        (borderEraseDraft != null || exteriorBorderEraseActive) ||
+        gesture != null ||
+        modelGesture != null ||
+        widget.view.borderDraft != null;
+    final target = authoringTarget;
+    final environment = widget.view.environment;
+    if (environment != null) {
+      final area = EnvironmentEditingCommands(
+        editingDocument,
+        widget.project,
+      ).area(environment);
+      if (area != null) _exteriorEnvironmentTemplate = area;
+    }
+    if (_exteriorGestureActive && _continuousExteriorStroke) {
+      _continueExteriorStroke(x, z);
+      final selected = authoringTarget;
+      return selected != null &&
+              selected.map.spatialScene != null &&
+              x >= controller.originX &&
+              z >= controller.originZ &&
+              x < controller.originX + selected.map.size.width &&
+              z < controller.originZ + selected.map.size.height
+          ? selected
+          : null;
+    }
+    if (activeGesture &&
+        target != null &&
+        !(widget.view.tool == StudioMapTool.border)) {
+      final localX = x - controller.originX, localZ = z - controller.originZ;
+      return localX >= 0 &&
+              localZ >= 0 &&
+              localX < target.map.size.width &&
+              localZ < target.map.size.height
+          ? target
+          : null;
+    }
+    if (!controller.selectAt(x, z, neighborBounds: _neighborBounds)) {
+      return null;
+    }
+    _bindExteriorEnvironment(create: false);
+    return authoringTarget;
+  }
+
+  List<SpatialSceneDecoration> decorationVisuals(
+    SpatialWorkspaceVisuals visuals,
+    MapData? preview,
+  ) {
+    final controller = exterior;
+    var decoration = controller?.current;
+    if (decoration == null) return widget.neighborDecorations;
+    if (editingExterior &&
+        preview != null &&
+        controller?.selectedSectorId != null) {
+      decoration = MapExteriorDecoration(
+        mapId: decoration.mapId,
+        playableWidth: decoration.playableWidth,
+        playableDepth: decoration.playableDepth,
+        west: decoration.west,
+        east: decoration.east,
+        north: decoration.north,
+        south: decoration.south,
+        borders: decoration.borders,
+        sectors: [
+          for (final sector in decoration.sectors)
+            if (sector.id == controller!.selectedSectorId)
+              ExteriorDecorationSector(
+                id: sector.id,
+                originX: sector.originX,
+                originZ: sector.originZ,
+                scene: preview.spatialScene!,
+                layers: preview.layers,
+              )
+            else
+              sector,
+        ],
+      );
+    }
+    decoration = withExteriorBorderPreview(decoration);
+    return [
+      ...widget.neighborDecorations,
+      SpatialSceneDecoration(
+        ownerMapId: widget.document.current.id,
+        decoration: decoration,
+        offset: Offset.zero,
+        project: widget.project,
+        loadGroundImage: visuals.readGroundImage,
+        loadModel: visuals.readModel,
+      ),
+    ];
+  }
+
   final camera = SpatialSceneController()..setView(SpatialEditorView.game);
   final focus = FocusNode();
   MapAtmosphereController? _atmosphere;
@@ -121,7 +414,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       }.contains(widget.view.tool);
 
   Model3dVector3 positionFor(SpatialSurfaceHit hit) {
-    final scene = widget.document.current.spatialScene!;
+    final scene = editingDocument.current.spatialScene!;
     final x = precision
         ? hit.position.x.clamp(0.0, scene.width - .000001)
         : hit.cell.$1 + .5;
@@ -157,14 +450,16 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     if (hover?.cell == hit?.cell && hover?.position == hit?.position) return;
     setState(() {
       hover = showsHover ? hit : null;
-      hoverMap = widget.document.current;
+      hoverMap = editingDocument.current;
       hoverProject = widget.project;
       hoverTool = widget.view.tool;
       hoverModelId = widget.view.model3d?.id;
       hoverMode = widget.view.spatialTerrainMode;
       if (widget.view.tool == StudioMapTool.border && borderContextValid) {
         widget.view.borderDraft = widget.view.borderDraft?.pointAt(
-          hit == null ? null : GridPos(x: hit.cell.$1, y: hit.cell.$2),
+          hit == null
+              ? null
+              : borderPointForCell(GridPos(x: hit.cell.$1, y: hit.cell.$2)),
         );
       }
     });
@@ -185,20 +480,22 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     focus.requestFocus();
     try {
       final item = SpatialModelEditingCommands(
-        widget.document,
+        editingDocument,
         widget.project,
       ).placeAt(widget.view.model3d!, positionFor(hit));
-      widget.view.select(widget.document, MapSelectionFamily.decor, item.id);
+      widget.view.select(editingDocument, MapSelectionFamily.decor, item.id);
     } on Object catch (failure) {
-      widget.document.error = failure.toString();
+      editingDocument.error = failure.toString();
     }
     hover = null;
     widget.onChanged();
   }
 
   bool get locked =>
-      widget.document.saving ||
-      widget.controller.catalogLocks(widget.document.base.mapId);
+      editingExterior && !widget.exteriorContextReady ||
+      exterior?.saving == true ||
+      editingDocument.saving ||
+      widget.controller.catalogLocks(editingDocument.base.mapId);
   bool get selectingTerrainSurface =>
       widget.view.tool == StudioMapTool.terrain &&
       widget.view.spatialTerrainMode == SpatialTerrainMode.relief &&
@@ -208,7 +505,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   void selectTerrainSurfaceAt(double x, double z) {
     SpatialTerrainSurface? selected;
     for (final surface
-        in widget.document.current.spatialScene!.terrainSurfaces.surfaces) {
+        in editingDocument.current.spatialScene!.terrainSurfaces.surfaces) {
       if (surface.contains(x, z) &&
           (selected == null ||
               surface.heightAt(x, z) >= selected.heightAt(x, z))) {
@@ -225,6 +522,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     super.initState();
     widget.view.spatialSceneController = camera;
     _bindAtmosphere();
+    _bindExterior();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && identical(widget.view.spatialSceneController, camera)) {
         widget.onChanged();
@@ -239,18 +537,18 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   bool get contentGestureValid =>
       !locked &&
       (modelGesture == null ||
-          !widget.document.isElementUnavailable('model', modelGesture!)) &&
+          !editingDocument.isElementUnavailable('model', modelGesture!)) &&
       gesture?.isLocked != true &&
       widget.view.tool == StudioMapTool.select &&
       gestureFreeView == widget.view.spatialFreeView &&
-      identical(contentSource, widget.document.current) &&
+      identical(contentSource, editingDocument.current) &&
       identical(contentProject, widget.project);
 
   bool get terrainGestureValid =>
       !locked &&
       terrainTool == widget.view.tool &&
       gestureFreeView == widget.view.spatialFreeView &&
-      identical(terrainSource, widget.document.current) &&
+      identical(terrainSource, editingDocument.current) &&
       identical(terrainProject, widget.project) &&
       (!widget.view.spatialSurfaceSelect ||
           reliefStroke?.surfaceBrush == null) &&
@@ -263,7 +561,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   SpatialSceneContentPreview? get contentPreview {
     if (!contentGestureValid) return null;
-    final scene = widget.document.current.spatialScene!;
+    final scene = editingDocument.current.spatialScene!;
     if (modelGesture != null && modelEnd != null) {
       final x = modelPosition!.x + modelEnd!.x - modelOrigin!.x;
       final z = modelPosition!.z + modelEnd!.y - modelOrigin!.y;
@@ -299,6 +597,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   void didUpdateWidget(SpatialMapEditor old) {
     super.didUpdateWidget(old);
     _bindAtmosphere();
+    _bindExterior();
     if (!identical(old.view, widget.view)) {
       if (identical(old.view.spatialSceneController, camera)) {
         old.view.spatialSceneController = null;
@@ -311,7 +610,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     if (old.project != widget.project || old.visuals != widget.visuals) {
       previewMap = null;
     }
-    if (hoverMap != widget.document.current ||
+    if (hoverMap != editingDocument.current ||
         hoverProject != widget.project ||
         hoverTool != widget.view.tool ||
         hoverModelId != widget.view.model3d?.id ||
@@ -328,18 +627,21 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     if (widget.view.borderDraft != null && !borderContextValid) {
       discardBorder();
     }
-    if (borderEraseDraft != null && !borderEraseContextValid) discardBorder();
+    if ((borderEraseDraft != null || exteriorBorderEraseActive) &&
+        !borderEraseContextValid) {
+      discardBorder();
+    }
     if (widget.view.borderPreview?.validFor(
-          widget.document.current,
+          editingDocument.current,
           widget.project,
         ) ==
         false) {
       widget.view.borderPreview = null;
     }
-    if (widget.view.rampPreview?.validFor(widget.document.current) == false) {
+    if (widget.view.rampPreview?.validFor(editingDocument.current) == false) {
       widget.view.rampPreview = null;
     }
-    if (widget.view.terrainSurfacePreview?.validFor(widget.document.current) ==
+    if (widget.view.terrainSurfacePreview?.validFor(editingDocument.current) ==
         false) {
       widget.view.terrainSurfacePreview = null;
     }
@@ -378,7 +680,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   Future<void> updatePreview(SpatialWorkspaceVisuals visuals) async {
-    final map = widget.document.current;
+    final map = editingExterior
+        ? widget.document.current
+        : editingDocument.current;
     if (identical(previewMap, map)) return;
     final previous = previewMap;
     if (previous != null && _previewOrderOnlyChange(previous, map)) {
@@ -408,7 +712,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       if (mounted && generation == previewGeneration) {
         setState(() {
           error = failure;
-          widget.document.error =
+          editingDocument.error =
               'Aperçu des personnages indisponible : $failure';
         });
         widget.onChanged();
@@ -417,7 +721,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   bool canSelectContent(SpatialSceneContentKind kind, String id) {
-    return !widget.document.isElementUnavailable(
+    return !editingDocument.isElementUnavailable(
       switch (kind) {
         SpatialSceneContentKind.model => 'model',
         SpatialSceneContentKind.actor ||
@@ -430,8 +734,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     );
   }
 
-  SpatialSceneVisibility get sceneVisibility {
-    final document = widget.document;
+  SpatialSceneVisibility get sceneVisibility => _visibilityFor(editingDocument);
+
+  SpatialSceneVisibility _visibilityFor(EditableMapDocument document) {
     final state = document.editorState;
     final content = <(SpatialSceneContentKind, String)>{};
     final layers = <String>{};
@@ -483,7 +788,46 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   bool start(int x, int z, [SpatialSceneContentHit? hit]) {
-    widget.view.reconcileLocks(widget.document);
+    if (editingExterior &&
+        {
+          StudioMapTool.character,
+          StudioMapTool.warp,
+          StudioMapTool.connection,
+          StudioMapTool.spawn,
+          StudioMapTool.sign,
+          StudioMapTool.fieldObstacle,
+          StudioMapTool.zone,
+          StudioMapTool.gameplayZone,
+          StudioMapTool.encounterPaint,
+          StudioMapTool.encounterErase,
+          StudioMapTool.collisionPaint,
+          StudioMapTool.collisionErase,
+        }.contains(widget.view.tool)) {
+      widget.document.error =
+          'Le décor extérieur accepte uniquement les outils visuels.';
+      widget.onChanged();
+      return false;
+    }
+    if (editingExterior && !_exteriorGestureActive) {
+      exterior!.beginGesture();
+      _exteriorGestureActive = true;
+      _exteriorLastCell = GridPos(
+        x: x + exterior!.originX,
+        y: z + exterior!.originZ,
+      );
+    }
+    final started = _startSegment(x, z, hit);
+    if (!started && _exteriorGestureActive) {
+      exterior!.endGesture();
+      _exteriorGestureActive = false;
+      _exteriorLastCell = null;
+    }
+    return started;
+  }
+
+  bool _startSegment(int x, int z, [SpatialSceneContentHit? hit]) {
+    if (_exteriorGestureActive) _bindExteriorEnvironment(create: true);
+    widget.view.reconcileLocks(editingDocument);
     if (hit != null && !canSelectContent(hit.kind, hit.id)) {
       discardGesture();
       widget.onChanged();
@@ -518,7 +862,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
           StudioMapTool.eraseDecor,
         }.contains(widget.view.tool)) {
       discardGesture();
-      widget.document.error = SpatialModelEditingCommands.paintedTerrainMessage;
+      editingDocument.error = SpatialModelEditingCommands.paintedTerrainMessage;
       widget.onChanged();
       return false;
     }
@@ -526,7 +870,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     widget.view.pendingMove = armedMove;
     focus.requestFocus();
     gestureFreeView = widget.view.spatialFreeView;
-    final document = widget.document;
+    final document = editingDocument;
     final cell = GridPos(x: x, y: z);
     final commands = SpatialModelEditingCommands(document, widget.project);
     try {
@@ -684,7 +1028,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       );
     }
     gesture = MapCharacterGesture.start(
-      document: widget.document,
+      document: editingDocument,
       project: widget.project,
       view: widget.view,
       origin: GridPos(x: x, y: z),
@@ -719,13 +1063,23 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   void cancel() {
+    if (_exteriorGestureActive) exterior?.cancelGesture();
+    _exteriorGestureActive = false;
+    _exteriorLastCell = null;
     discardGesture();
     if (widget.view.tool == StudioMapTool.border) discardBorder();
     widget.onChanged();
   }
 
   void finish() {
-    if (borderEraseDraft != null) {
+    finishSegment();
+    if (_exteriorGestureActive) exterior?.endGesture();
+    _exteriorGestureActive = false;
+    _exteriorLastCell = null;
+  }
+
+  void finishSegment() {
+    if (borderEraseDraft != null || exteriorBorderEraseActive) {
       finishBorderErase();
       return;
     }
@@ -758,18 +1112,18 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     terrainSurfaceOptions = null;
     if (stroke != null || relief != null) {
       if (!locked &&
-          identical(widget.document.current, source) &&
+          identical(editingDocument.current, source) &&
           widget.view.tool == tool &&
           (relief == null ||
               relief.mode == widget.view.spatialTerrainMode &&
                   relief.level == widget.view.spatialTerrainLevel)) {
         try {
-          widget.document.commit(relief?.commit() ?? stroke!.commit());
+          editingDocument.commit(relief?.commit() ?? stroke!.commit());
           if (relief?.surfaceId != null) {
             widget.view.spatialSurfaceId = relief!.surfaceId;
           }
         } on Object catch (failure) {
-          widget.document.error = failure.toString();
+          editingDocument.error = failure.toString();
         }
       }
       widget.onChanged();
@@ -777,13 +1131,13 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
     if (modelGesture != null && modelEnd != null) {
       try {
-        SpatialModelEditingCommands(widget.document, widget.project).update(
+        SpatialModelEditingCommands(editingDocument, widget.project).update(
           modelGesture!,
           x: modelPosition!.x + modelEnd!.x - modelOrigin!.x,
           z: modelPosition!.z + modelEnd!.y - modelOrigin!.y,
         );
       } on Object catch (failure) {
-        widget.document.error = failure.toString();
+        editingDocument.error = failure.toString();
       }
       widget.view.pendingMove = null;
     }
@@ -802,7 +1156,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   void updateDrag((int, int) cell) {
-    if (borderEraseDraft != null) {
+    if (borderEraseDraft != null || exteriorBorderEraseActive) {
       sampleBorderErase(GridPos(x: cell.$1, y: cell.$2));
       widget.onChanged();
       return;
@@ -828,7 +1182,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       try {
         terrainStroke!.paint(GridPos(x: cell.$1, y: cell.$2));
       } on Object catch (error) {
-        widget.document.error = error.toString();
+        editingDocument.error = error.toString();
         cancel();
         return;
       }
@@ -836,7 +1190,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
     if (reliefStroke != null && !locked) {
       reliefStroke!.paint(GridPos(x: cell.$1, y: cell.$2));
-      widget.document.error = reliefStroke!.error;
+      editingDocument.error = reliefStroke!.error;
       widget.onChanged();
     }
     gesture?.end = GridPos(x: cell.$1, y: cell.$2);
@@ -850,7 +1204,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       );
     }
     if (modelGesture != null) {
-      final scene = widget.document.current.spatialScene!;
+      final scene = editingDocument.current.spatialScene!;
       final x = modelPosition!.x.floor(), z = modelPosition!.z.floor();
       modelEnd = GridPos(
         x:
@@ -867,6 +1221,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   KeyEventResult onKey(KeyEvent event) {
+    if (editingExterior && exterior?.editingDocument == null) {
+      return KeyEventResult.ignored;
+    }
     if (textEditing) return KeyEventResult.ignored;
     final key = event.logicalKey;
     if (key == LogicalKeyboardKey.shiftLeft ||
@@ -912,23 +1269,23 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         !HardwareKeyboard.instance.isMetaPressed &&
         !HardwareKeyboard.instance.isAltPressed) {
       final id = widget.view.selectedFor(
-        widget.document.current.id,
+        editingDocument.current.id,
         MapSelectionFamily.decor,
       );
       final commands = SpatialModelEditingCommands(
-        widget.document,
+        editingDocument,
         widget.project,
       );
       if (id != null &&
           commands.selected(id) != null &&
-          !widget.document.isElementUnavailable('model', id)) {
+          !editingDocument.isElementUnavailable('model', id)) {
         if (!locked) {
           discardGesture();
           try {
             commands.delete(id);
-            widget.view.clearSelection(widget.document);
+            widget.view.clearSelection(editingDocument);
           } on Object catch (failure) {
-            widget.document.error = failure.toString();
+            editingDocument.error = failure.toString();
           }
           widget.onChanged();
         }
@@ -959,7 +1316,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
             widget.view.rampPreview != null ||
             widget.view.terrainSurfacePreview != null ||
             (selectingTerrainSurface && widget.view.spatialSurfaceId != null) ||
-            widget.view.hasSelectionIn(widget.document.current.id) ||
+            widget.view.hasSelectionIn(editingDocument.current.id) ||
             widget.view.pendingMove != null ||
             widget.view.tool == StudioMapTool.place)) {
       discardGesture();
@@ -970,7 +1327,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       if (widget.view.tool == StudioMapTool.place) {
         widget.view.tool = StudioMapTool.select;
       }
-      widget.view.clearSelection(widget.document);
+      widget.view.clearSelection(editingDocument);
       widget.onChanged();
       return KeyEventResult.handled;
     }
@@ -989,12 +1346,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     }
     if (delta == null) return KeyEventResult.ignored;
     if (nudgeKeys.isEmpty) {
-      final map = widget.document.current;
+      final map = editingDocument.current;
       final modelId = widget.view.selectedFor(map.id, MapSelectionFamily.decor);
       final model = modelId == null
           ? null
           : SpatialModelEditingCommands(
-              widget.document,
+              editingDocument,
               widget.project,
             ).selected(modelId);
       final npc = map.entities
@@ -1056,6 +1413,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   @override
   void dispose() {
     _atmosphere?.removeListener(_syncAtmosphere);
+    _exteriorNotifier?.removeListener(_exteriorChanged);
     previewGeneration++;
     preview?.dispose();
     widget.view.transform.removeListener(syncZoom);
@@ -1070,7 +1428,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   @override
   Widget build(BuildContext context) {
-    widget.view.reconcileLocks(widget.document);
+    widget.view.reconcileLocks(editingDocument);
     if (contentSource != null && !contentGestureValid) discardGesture();
     final visuals = widget.visuals;
     if (visuals is! SpatialWorkspaceVisuals) {
@@ -1084,7 +1442,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     final rampMap =
         widget.view.tool == StudioMapTool.terrain &&
             widget.view.spatialTerrainMode == SpatialTerrainMode.ramp &&
-            widget.view.rampPreview?.validFor(widget.document.current) == true
+            widget.view.rampPreview?.validFor(editingDocument.current) == true
         ? widget.view.rampPreview!.result
         : null;
     final terrainSurfaceMap =
@@ -1092,28 +1450,28 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
             widget.view.spatialTerrainMode == SpatialTerrainMode.relief &&
             widget.view.spatialContinuousTerrain &&
             widget.view.terrainSurfacePreview?.validFor(
-                  widget.document.current,
+                  editingDocument.current,
                 ) ==
                 true
         ? widget.view.terrainSurfacePreview!.result
         : null;
     final colors = Theme.of(context).colorScheme;
-    final selectedModel = widget.document.current.spatialScene!.instances
+    final selectedModel = editingDocument.current.spatialScene!.instances
         .where(
           (instance) =>
               instance.id ==
               widget.view.selectedFor(
-                widget.document.current.id,
+                editingDocument.current.id,
                 MapSelectionFamily.decor,
               ),
         )
         .firstOrNull;
-    final selectedActor = widget.document.current.entities
+    final selectedActor = editingDocument.current.entities
         .where(
           (entity) =>
               entity.id ==
               widget.view.selectedFor(
-                widget.document.current.id,
+                editingDocument.current.id,
                 MapSelectionFamily.character,
               ),
         )
@@ -1131,10 +1489,26 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         children: [
           Positioned.fill(
             child: SpatialSceneView(
-              visibility: sceneVisibility,
+              neighbors: widget.neighbors,
+              visibility: editingExterior
+                  ? _visibilityFor(widget.document)
+                  : sceneVisibility,
+              decorations: decorationVisuals(
+                visuals as SpatialWorkspaceVisuals,
+                borderMap ??
+                    rampMap ??
+                    terrainSurfaceMap ??
+                    environmentPreview ??
+                    reliefStroke?.preview ??
+                    terrainStroke?.preview,
+              ),
+              authoringTarget: authoringTarget,
+              resolveAuthoringTarget: editingExterior
+                  ? resolveAuthoringTarget
+                  : null,
               canSelectContent: canSelectContent,
               canSelectLayer: (id) =>
-                  !widget.document.isElementUnavailable('layer', id),
+                  !editingDocument.isElementUnavailable('layer', id),
               animationPreview: widget.view.spatialAnimations,
               onHover: showsHover ? updateHover : null,
               onSurfaceTap: surfaceTap,
@@ -1172,21 +1546,23 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
               selectContent:
                   widget.view.tool == StudioMapTool.select ||
                   (!freeView && widget.view.tool == StudioMapTool.eraseDecor),
-              scene:
-                  borderMap?.spatialScene ??
-                  rampMap?.spatialScene ??
-                  terrainSurfaceMap?.spatialScene ??
-                  environmentPreview?.spatialScene ??
-                  reliefStroke?.preview.spatialScene ??
-                  widget.document.current.spatialScene!,
-              groundMap:
-                  borderMap ??
-                  rampMap ??
-                  terrainSurfaceMap ??
-                  environmentPreview ??
-                  reliefStroke?.preview ??
-                  terrainStroke?.preview ??
-                  widget.document.current,
+              scene: editingExterior
+                  ? widget.document.current.spatialScene!
+                  : borderMap?.spatialScene ??
+                        rampMap?.spatialScene ??
+                        terrainSurfaceMap?.spatialScene ??
+                        environmentPreview?.spatialScene ??
+                        reliefStroke?.preview.spatialScene ??
+                        editingDocument.current.spatialScene!,
+              groundMap: editingExterior
+                  ? widget.document.current
+                  : borderMap ??
+                        rampMap ??
+                        terrainSurfaceMap ??
+                        environmentPreview ??
+                        reliefStroke?.preview ??
+                        terrainStroke?.preview ??
+                        editingDocument.current,
               groundProject: widget.project,
               loadGroundImage:
                   (visuals as SpatialWorkspaceVisuals).readGroundImage,
@@ -1194,7 +1570,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
               loadModel: (visuals as SpatialWorkspaceVisuals).readModel,
               controller: camera,
               onCell: tap,
-              onContextMenu: freeView ? null : widget.onContextMenu,
+              onContextMenu: freeView || editingExterior
+                  ? null
+                  : widget.onContextMenu,
               onDragStart: (x, z, hit) =>
                   widget.view.tool == StudioMapTool.place ||
                       (widget.view.tool == StudioMapTool.border &&
@@ -1232,7 +1610,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                       reliefStroke?.error != null ||
                       borderPreviewError != null ||
                       widget.view.borderDraftErrorFor(
-                            widget.document.current,
+                            editingDocument.current,
                             widget.project,
                           ) !=
                           null,
@@ -1250,7 +1628,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         environmentPreview ??
         reliefStroke?.preview ??
         terrainStroke?.preview ??
-        widget.document.current;
+        editingDocument.current;
     final destination = contentGestureValid ? gesture?.destination : null;
     final cells = <SpatialCellOverlay>[];
     cells.addAll(previewOverlays(colors));

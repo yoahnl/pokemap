@@ -16,6 +16,7 @@ abstract final class AveluneRuntimeCompatibility {
           'dialogue.choices@1',
           'map@1',
           'map3d@1',
+          MapExteriorDecoration.capabilityId,
           'map3d.animation@1',
           SpatialModelShadowCapabilities.capabilityId,
           SpatialActorContactShadowCapabilities.capabilityId,

@@ -2,6 +2,64 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('scoped native layer creation', () {
+    for (final spatial in [false, true]) {
+      test('ignores unrelated player metadata, spatial=$spatial', () {
+        final manifest = _manifestWithMaterials().copyWith(
+          version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+          newGame: const ProjectNewGameConfig(enabled: true, startMapId: 'target',
+              preSessionSceneId: 'scene_not_selected'),
+          settings: ProjectSettings(
+            defaultPlayerCharacterId: 'player_not_selected',
+            dimension: spatial ? ProjectDimension.threeD : ProjectDimension.twoD,
+            spatialCamera: spatial ? SpatialCameraProfile() : null,
+          ),
+        );
+        final result = planNativeSmartTileLayerCreationForMap(
+          map: MapData(
+            id: 'target', name: 'Target',
+            version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+            size: const GridSize(width: 2, height: 2),
+            spatialScene: spatial ? MapSpatialScene(width: 2, depth: 2) : null,
+          ),
+          manifest: manifest,
+          preset: _preset(topology: SmartTileTopology.uniform),
+          layerId: 'terrain', layerName: 'Terrain',
+        );
+        expect(result, isA<SmartTileLayerCreationSuccess>());
+        final success = result as SmartTileLayerCreationSuccess;
+        expect(success.manifest.characters, isEmpty);
+        expect(success.manifest.scenes, isEmpty);
+        expect(success.manifest.newGame.preSessionSceneId, 'scene_not_selected');
+        expect(success.manifest.settings.defaultPlayerCharacterId,
+            'player_not_selected');
+      });
+    }
+    test('still rejects selected visual references that are missing', () {
+      final map = MapData(id: 'target', name: 'Target',
+          size: const GridSize(width: 2, height: 2));
+      final invalidPresets = [
+        _preset(topology: SmartTileTopology.uniform)
+            .copyWith(allowedMaterialIds: ['grass', 'missing_material']),
+        _preset(topology: SmartTileTopology.uniform).copyWith(rules: [
+          SmartTileRule(id: 'missing_atlas', centerMatch: SmartTileSlotMatch.material('grass'), candidates: [
+            SmartTileCandidate(id: 'frame', parts: [
+              SmartTileVisualPart(source: SmartTileVisualSource.frame(
+                  frame: SmartTileFrameRef(atlasId: 'missing_atlas',
+                      column: 0, row: 0)))
+            ])
+          ])
+        ]),
+      ];
+      for (final preset in invalidPresets) {
+        final result = planNativeSmartTileLayerCreationForMap(
+            map: map, manifest: _manifestWithMaterials(), preset: preset,
+            layerId: 'terrain', layerName: 'Terrain');
+        expect(result, isA<SmartTileLayerCreationFailure>());
+      }
+    });
+  });
+
   group('native path animation activation', () {
     for (final scenario in <({
       String name,

@@ -69,7 +69,10 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
 
   void _refresh() {
     final project = widget.project;
-    final map = widget.document.current;
+    final exterior = widget.document.exteriorDecoration;
+    final map = exterior?.editingExterior == true
+        ? exterior?.editingDocument?.current ?? widget.document.current
+        : widget.document.current;
     widget.view.reconcileResources(project, mapId: map.id, map: map);
     widget.view.resourceFilters.query = kind == 'Personnages'
         ? ''

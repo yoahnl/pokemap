@@ -6,6 +6,7 @@ import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
 import '../domain/map_atmosphere_port.dart';
+import '../domain/map_exterior_decoration_port.dart';
 import '../../project_visuals/domain/project_visuals_port.dart';
 import '../domain/map_editor_port.dart';
 
@@ -20,6 +21,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import '../../project_session/data/studio_project_document_revision.dart';
 
 part 'local_map_atmosphere_adapter.dart';
+part 'local_map_exterior_decoration_adapter.dart';
 part 'local_project_visuals_adapter.dart';
 part 'local_map_editor_adapter.dart';
 part 'local_map_workspace_catalog.dart';
@@ -29,10 +31,12 @@ part 'local_map_workspace_scoped_catalog.dart';
 final class LocalMapWorkspaceAdapter
     implements
         MapWorkspacePort,
+        MapWorkspacePreviewSelectionPort,
         MapWorkspaceWorkshopPort,
         MapWorkspaceResourceKindPort,
         MapWorkspaceModelLightPort,
         MapAtmospherePort,
+        MapExteriorDecorationPort,
         ProjectVisualsPort,
         MapEditorPort,
         MapElementOrderPort {
@@ -88,6 +92,15 @@ final class LocalMapWorkspaceAdapter
   final _workshopCharacterDefinitions = <String, ProjectManifest>{};
   final _loadedPaths = <(String, String), String>{};
   Future<void> _writes = Future.value();
+  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationBorder(ProjectSession session,String mapId,ExteriorDecorationBorder border,String expectedRevision)=>_saveExteriorDecorationBorder(session,mapId,border,expectedRevision);
+  @override Future<MapExteriorDecorationWrite> removeExteriorDecorationBorder(ProjectSession session,String mapId,String borderId,String expectedRevision)=>_removeExteriorDecorationBorder(session,mapId,borderId,expectedRevision);
+  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationSectors(ProjectSession session,String mapId,List<ExteriorDecorationSector> sectors,List<String> removeSectorIds,String expectedRevision)=>_saveExteriorDecorationSectors(session,mapId,sectors,removeSectorIds,expectedRevision);
+  final _exteriorServices = <String, Future<LocalMapExteriorDecorationAuthoring>>{};
+  var _exteriorOperations = 0;
+  @override Future<MapExteriorDecorationState> loadExteriorDecoration(ProjectSession session,String mapId) => _loadExteriorDecoration(session,mapId);
+  @override Future<MapExteriorDecorationWrite> configureExteriorDecoration(ProjectSession session,String mapId,MapExteriorDecoration? definition,String expectedRevision) => _configureExteriorDecoration(session,mapId,definition,expectedRevision);
+  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationSector(ProjectSession session,String mapId,ExteriorDecorationSector sector,String expectedRevision) => _saveExteriorDecorationSector(session,mapId,sector,expectedRevision);
+  @override Future<MapExteriorDecorationWrite> removeExteriorDecorationSector(ProjectSession session,String mapId,String sectorId,String expectedRevision) => _removeExteriorDecorationSector(session,mapId,sectorId,expectedRevision);
   final _atmosphereServices = <String, Future<LocalMapAtmosphereAuthoring>>{};
   final _editorServices = <String, Future<LocalMapEditorAuthoring>>{};
   final _elementOrderServices = <String, Future<LocalMapElementOrderAuthoring>>{};
@@ -213,6 +226,15 @@ final class LocalMapWorkspaceAdapter
   @override
   Future<MapWorkspaceCatalog> loadCatalog(ProjectSession session) =>
       _loadScopedCatalog(session);
+
+  @override
+  Future<MapWorkspaceSelection> loadMapPreviewSelection(ProjectSession session, ProjectMapEntry entry) async {
+    final project = _project(session);
+    if (!project.complete) return _loadScopedPreviewSelection(session, entry);
+    final document = await loadMap(session, entry);
+    return MapWorkspaceSelection(document: document, definitions: project.manifest,
+      catalogRevision: project.revision, snapshotRevision: project.revision);
+  }
 
   @override
   Future<MapWorkspaceSelection> loadMapSelection(

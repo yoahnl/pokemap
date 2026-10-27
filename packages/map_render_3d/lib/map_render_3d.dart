@@ -30,3 +30,7 @@ export 'src/spatial_atmosphere.dart'
         SpatialAtmosphereTarget,
         SpatialWindowGlow,
         SpatialFireflyZone;
+
+export 'src/spatial_scene_decoration.dart';
+
+export 'src/spatial_scene_authoring_target.dart';

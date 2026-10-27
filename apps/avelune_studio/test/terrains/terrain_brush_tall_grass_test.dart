@@ -1,3 +1,4 @@
+import 'package:map_authoring/map_authoring_editing.dart' show ExteriorDecorationNativeEditing;
 import 'package:avelune_studio/features/terrains/application/terrain_brush.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,5 +63,29 @@ void main() {
         [0, 0, 0, 0, 0, 1, 0, 0, 0]);
     expect(MapData.fromJson(erased.toJson()), erased);
     expect(erased.spatialScene, original.spatialScene);
+    final exterior = MapExteriorDecoration(
+      mapId: 'map',
+      playableWidth: 3,
+      playableDepth: 3,
+      west: 3,
+    );
+    final sector = ExteriorDecorationSector(
+      id: 'west',
+      originX: -3,
+      originZ: 0,
+      scene: MapSpatialScene(width: 3, depth: 3),
+    );
+    final visual = const ExteriorDecorationNativeEditing().paintTerrain(
+      decoration: exterior,
+      sector: sector,
+      manifest: manifest,
+      presetId: 'grass',
+      logicalCells: const [GridPos(x: -2, y: 1)],
+    );
+    final visualLayer = visual.layers.single as SmartTileLayer;
+    expect(visualLayer.id, 'terrain-grass');
+    expect(visualLayer.encounterBehavior, isNull);
+    expect(smartTileSemanticCells(visualLayer), [0, 0, 0, 0, 1, 0, 0, 0, 0]);
+    expect(original.layers, isEmpty);
   });
 }

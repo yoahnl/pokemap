@@ -71,6 +71,7 @@ final class CatalogStorageStore {
   final TransactionFileGateway _gateway;
   final CatalogStorageLimits _limits;
   TransactionFileGateway get gateway => _gateway;
+  ProjectFileReader get fileReader => _reader;
   CatalogStorageLimits get limits => _limits;
   late final Future<String> _canonicalProjectRoot =
       _reader.canonicalizeDirectory(projectRoot);

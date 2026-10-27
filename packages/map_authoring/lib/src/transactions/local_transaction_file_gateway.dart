@@ -76,6 +76,12 @@ final class LocalTransactionFileGateway
   final String? _transactionNamespace;
   final AuthoringPerformanceObserver? _performanceObserver;
 
+  Future<LocalTransactionFileGateway> inNamespace(String namespace) => open(
+      projectRoot: _projectRoot,
+      expectedProjectRoot: _expectedProjectRoot,
+      performanceObserver: _performanceObserver,
+      transactionNamespace: namespace);
+
   @override
   Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) =>
       withLocalProjectWriteQueue(

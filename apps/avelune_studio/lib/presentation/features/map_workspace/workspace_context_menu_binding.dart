@@ -6,7 +6,9 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
     for (final entry in _views.entries) {
       if (entry.key != document?.base.mapId) entry.value.pendingMove = null;
     }
-    if (_contextMapId != null && _contextMapId != document?.current.id) {
+    if (_contextMapId != null &&
+        (_contextMapId != document?.current.id ||
+            document?.exteriorDecoration?.editingExterior == true)) {
       _contextRequest = null;
       _contextCell = null;
       _contextTarget = null;
@@ -29,7 +31,11 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
   MapContextActionContext? _contextAt(GridPos cell) {
     final document = _controller.active;
     final project = _controller.project;
-    if (document == null || project == null) return null;
+    if (document == null ||
+        project == null ||
+        document.exteriorDecoration?.editingExterior == true) {
+      return null;
+    }
     return MapContextActionContext(
       document: document,
       project: project,
@@ -43,7 +49,11 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
   void _openContextMenuFromKeyboard() {
     final document = _controller.active;
     final project = _controller.project;
-    if (document == null || project == null) return;
+    if (document == null ||
+        project == null ||
+        document.exteriorDecoration?.editingExterior == true) {
+      return;
+    }
     final selected = selectedContextTarget(document, project, _view);
     if (selected == null) {
       document.error =

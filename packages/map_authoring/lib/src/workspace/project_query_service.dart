@@ -48,14 +48,31 @@ final class ProjectQueryService {
 
   Future<AuthoringQueryPage> queryAsync(
     ProjectSnapshot snapshot,
-    AuthoringQueryRequest request,
-  ) =>
+    AuthoringQueryRequest request, {
+    Future<ResourceUsageReport> Function(ResourceUsageReport)? projectResourceUsages,
+  }) =>
       switch (request.resourceKind) {
+        'resourceUsage' => _queryResourceUsages(snapshot, request, projectResourceUsages),
         'trainerPokemonStats' => queryTrainerPokemonStats(snapshot, request),
         'pokemonDocument' => queryPokemonDocuments(snapshot, request),
         'scene' => queryScenes(snapshot, request),
         _ => Future.value(query(snapshot, request)),
       };
+
+  Future<AuthoringQueryPage> _queryResourceUsages(ProjectSnapshot snapshot,
+      AuthoringQueryRequest request,
+      Future<ResourceUsageReport> Function(ResourceUsageReport)? projectUsages) async {
+    if (request.extensions['actionId'] != null) {
+      throw const AuthoringQueryException('query.action_resource_mismatch', 'Resource usage queries do not accept another action.');
+    }
+    final records = <_QueryRecord>[];
+    for (final identity in request.ids) {
+      final report = _resourceUsageReport(snapshot, identity);
+      records.add(_resourceUsageRecord(snapshot, identity,
+          projected: projectUsages == null ? report : await projectUsages(report)));
+    }
+    return _queryRecordsPage(snapshot, request, records);
+  }
 
   Future<AuthoringQueryPage> queryTrainerPokemonStats(
     ProjectSnapshot snapshot,
@@ -2855,21 +2872,25 @@ _QueryCursor _decodeCursor(String value) {
   }
 }
 
-_QueryRecord _resourceUsageRecord(ProjectSnapshot snapshot, String identity) {
+ResourceUsageReport _resourceUsageReport(ProjectSnapshot snapshot, String identity) {
   final separator = identity.indexOf(':');
   if (separator < 1 ||
       separator == identity.length - 1 ||
-      !const {'images', 'decors', 'terrains', 'borders'}
+      !const {'images', 'decors', 'terrains', 'borders', 'models3d', 'materials', 'environments'}
           .contains(identity.substring(0, separator))) {
     throw const AuthoringQueryException('query.resource_usage_identity_invalid',
         'Expected a family-qualified resource identity.');
   }
-  final report = const ResourceUsageProjection().analyze(
+  return const ResourceUsageProjection().analyze(
     snapshot,
     ResourceUsageTarget(
         family: identity.substring(0, separator),
         id: identity.substring(separator + 1)),
   );
+}
+
+_QueryRecord _resourceUsageRecord(ProjectSnapshot snapshot, String identity, {ResourceUsageReport? projected}) {
+  final report = projected ?? _resourceUsageReport(snapshot, identity);
   final detail = report.toJson();
   return _QueryRecord(
     summary: {

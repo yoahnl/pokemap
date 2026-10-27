@@ -2,6 +2,18 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('model projection applies the same native context override as raster plans', () {
+    var calls = 0;
+    final projection = resolveSpatialSmartTileModelProjection(map: _map(), catalog: _catalog(),
+      cellContextResolvers: {'floor': ({required preset, required x, required y}) {
+        calls++;
+        return const SmartTileCellContext();
+      }});
+    expect(calls, 3);
+    expect(projection.instances, isEmpty);
+    expect(projection.groundReplacements, isEmpty);
+  });
+
   test('instance clip survives serialization and placement edits', () {
     final json =
         SpatialModelInstance(

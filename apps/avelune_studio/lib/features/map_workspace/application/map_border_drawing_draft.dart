@@ -58,6 +58,7 @@ final class MapBorderDrawingDraft {
     required this.seed,
     required this.sourceMap,
     required this.sourceProject,
+    this.logicalOrigin,
   }) : anchors = List.unmodifiable(anchors);
 
   factory MapBorderDrawingDraft.start({
@@ -70,6 +71,7 @@ final class MapBorderDrawingDraft {
     ProjectManifest? sourceProject,
     String? featureId,
     BorderSignedInt64? seed,
+    GridPos? logicalOrigin,
   }) {
     _requireInside(origin, mapSize, alignment);
     return MapBorderDrawingDraft._(
@@ -88,6 +90,7 @@ final class MapBorderDrawingDraft {
           BorderSignedInt64.fromInt(DateTime.now().microsecondsSinceEpoch),
       sourceMap: sourceMap,
       sourceProject: sourceProject,
+      logicalOrigin: logicalOrigin,
     );
   }
 
@@ -100,6 +103,7 @@ final class MapBorderDrawingDraft {
   final bool closed;
   final String featureId;
   final BorderSignedInt64 seed;
+  final GridPos? logicalOrigin;
   final MapData? sourceMap;
   final ProjectManifest? sourceProject;
   static int _nextId = 0;
@@ -128,6 +132,7 @@ final class MapBorderDrawingDraft {
       seed: seed,
       sourceMap: sourceMap,
       sourceProject: sourceProject,
+      logicalOrigin: logicalOrigin,
     );
   }
 
@@ -161,6 +166,7 @@ final class MapBorderDrawingDraft {
       seed: seed,
       sourceMap: sourceMap,
       sourceProject: sourceProject,
+      logicalOrigin: logicalOrigin,
     );
   }
 

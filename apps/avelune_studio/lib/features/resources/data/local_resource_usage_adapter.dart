@@ -82,7 +82,14 @@ final class LocalResourceUsageAdapter implements ResourceUsagePort {
     bool Function()? cancelled,
   }) async {
     final snapshot = await _snapshot(cancelled);
-    final report = const ResourceUsageProjection().analyze(snapshot, target);
+    final report = await projectExteriorReferenceUsages(
+      const ResourceUsageProjection().analyze(snapshot, target),
+      (path, maximumBytes) => _loader!.readOptionalResourceBytes(
+        _opened!.projectHandle,
+        path,
+        maximumBytes: maximumBytes,
+      ),
+    );
     _check(cancelled);
     return report;
   }
@@ -91,13 +98,13 @@ final class LocalResourceUsageAdapter implements ResourceUsagePort {
   Future<bool> isCurrent(ResourceUsageReport report) async {
     if (_disposed) return false;
     try {
-      final snapshot = await _snapshot();
-      if (report.revision != snapshot.revision ||
-          report.fingerprints.length != snapshot.resourceFingerprints.length) {
+      final current = await analyze(report.target);
+      if (report.revision != current.revision ||
+          report.fingerprints.length != current.fingerprints.length) {
         return false;
       }
       return report.fingerprints.entries.every(
-        (entry) => snapshot.resourceFingerprints[entry.key] == entry.value,
+        (entry) => current.fingerprints[entry.key] == entry.value,
       );
     } on Object {
       return false;

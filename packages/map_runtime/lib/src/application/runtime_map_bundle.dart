@@ -12,6 +12,7 @@ class RuntimeMapBundle {
     this.characterAnimationAbsolutePathsByAssetId = const <String, String>{},
     this.borderRuntimePreparation,
     this.projectCatalog,
+    this.exteriorDecoration,
     SpatialAtmosphereSettings? spatialAtmosphereSettings,
     SpatialVisualPatch? projectVisualProfile,
     SpatialVisualPatch? mapVisualProfile,
@@ -26,8 +27,11 @@ class RuntimeMapBundle {
          catalog: manifest.smartTileCatalog,
          sourceCellWidth: manifest.settings.tileWidth,
          sourceCellHeight: manifest.settings.tileHeight,
-       );
+       ) {
+    exteriorDecoration?.validateForMap(this.map);
+  }
 
+  final MapExteriorDecoration? exteriorDecoration;
   final SpatialAtmosphereSettings spatialAtmosphereSettings;
   final SpatialVisualPatch projectVisualProfile;
   final SpatialVisualPatch mapVisualProfile;
@@ -50,6 +54,8 @@ class RuntimeMapBundle {
 
   RuntimeMapBundle copyWith({
     ProjectManifest? manifest,
+    MapExteriorDecoration? exteriorDecoration,
+    bool clearExteriorDecoration = false,
     SpatialAtmosphereSettings? spatialAtmosphereSettings,
     SpatialVisualPatch? projectVisualProfile,
     SpatialVisualPatch? mapVisualProfile,
@@ -69,6 +75,10 @@ class RuntimeMapBundle {
         nextProjectRoot != this.projectRootDirectory;
     return RuntimeMapBundle(
       manifest: nextManifest,
+      exteriorDecoration: clearExteriorDecoration
+          ? null
+          : exteriorDecoration ??
+                (nextMap.id == this.map.id ? this.exteriorDecoration : null),
       projectVisualProfile: projectVisualProfile ?? this.projectVisualProfile,
       mapVisualProfile:
           mapVisualProfile ??

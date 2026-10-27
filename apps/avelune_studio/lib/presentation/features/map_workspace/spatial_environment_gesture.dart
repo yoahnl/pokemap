@@ -54,7 +54,7 @@ extension _SpatialEnvironmentEditing on _SpatialMapEditorState {
     return gesture != null &&
         !locked &&
         widget.view.tool == StudioMapTool.environment &&
-        identical(gesture.source, widget.document.current) &&
+        identical(gesture.source, editingDocument.current) &&
         identical(gesture.project, widget.project) &&
         identical(gesture.session, widget.view.environment) &&
         gesture.tool == gesture.session.tool &&
@@ -64,16 +64,16 @@ extension _SpatialEnvironmentEditing on _SpatialMapEditorState {
   bool startEnvironment(GridPos cell) {
     final session = widget.view.environment;
     if (session == null) {
-      widget.document.error =
+      editingDocument.error =
           'Choisissez ou créez une zone dans Environnements.';
       widget.onChanged();
       return false;
     }
     final commands = EnvironmentEditingCommands(
-      widget.document,
+      editingDocument,
       widget.project,
     );
-    final layer = widget.document.current.layers
+    final layer = editingDocument.current.layers
         .whereType<EnvironmentLayer>()
         .where((layer) => layer.id == session.layerId)
         .firstOrNull;
@@ -81,12 +81,12 @@ extension _SpatialEnvironmentEditing on _SpatialMapEditorState {
         commands.area(session) == null ||
         cell.x < 0 ||
         cell.y < 0 ||
-        cell.x >= widget.document.current.size.width ||
-        cell.y >= widget.document.current.size.height) {
+        cell.x >= editingDocument.current.size.width ||
+        cell.y >= editingDocument.current.size.height) {
       return false;
     }
     environmentGesture = _SpatialEnvironmentGesture(
-      source: widget.document.current,
+      source: editingDocument.current,
       project: widget.project,
       session: session,
       freeView: widget.view.spatialFreeView,
@@ -100,7 +100,7 @@ extension _SpatialEnvironmentEditing on _SpatialMapEditorState {
   void finishEnvironment() {
     final gesture = environmentGesture!;
     final commands = EnvironmentEditingCommands(
-      widget.document,
+      editingDocument,
       widget.project,
     );
     try {
@@ -114,7 +114,7 @@ extension _SpatialEnvironmentEditing on _SpatialMapEditorState {
         );
       }
     } on Object catch (failure) {
-      widget.document.error = environmentEditingMessage(failure);
+      editingDocument.error = environmentEditingMessage(failure);
     }
     discardGesture();
     widget.onChanged();
@@ -124,7 +124,7 @@ extension _SpatialEnvironmentEditing on _SpatialMapEditorState {
     final session = widget.view.environment;
     if (widget.view.tool != StudioMapTool.environment ||
         session == null ||
-        !identical(session.previewSource, widget.document.current) ||
+        !identical(session.previewSource, editingDocument.current) ||
         !identical(session.previewProject, widget.project)) {
       return null;
     }
@@ -137,7 +137,7 @@ extension _SpatialEnvironmentEditing on _SpatialMapEditorState {
     final area = session == null
         ? null
         : EnvironmentEditingCommands(
-            widget.document,
+            editingDocument,
             widget.project,
           ).area(session);
     final stroke = environmentGestureValid ? environmentGesture : null;

@@ -1,3 +1,4 @@
+import '../references/exterior_decoration_references.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
@@ -46,6 +47,7 @@ final class CatalogEditingPlan {
   List<AuthoringHistoryResourceChange>? _retentionChanges;
   final Object _owner;
   final Future<String> Function()? _currentProjectRevision;
+  List<CatalogDefinitionKey>? _exteriorRemovals;
   bool _settled = false;
   bool _invalidated = false;
   CatalogGenerationLease _lease;
@@ -380,6 +382,7 @@ final class CatalogEditingSession {
     }
     final units = upserts.toList();
     final deleted = removals.toList();
+    await requireUnusedExteriorReferences(deleted, store.gateway);
     if (!prepareMetadataDocuments &&
         (units.any((unit) =>
                 unit.key.kind == CatalogDefinitionKind.workspaceState ||
@@ -458,6 +461,7 @@ final class CatalogEditingSession {
             additionalChanges: additional,
             currentProjectRevision: currentProjectRevision,
             patch: patch);
+        prepared._exteriorRemovals = deleted;
         await _checkRetentionCosts(prepared, projected: next);
         await store.publishObjectsUnderLock(patch.objects);
         await store.publishIndexAdmissionUnderLock(next);
@@ -543,6 +547,10 @@ final class CatalogEditingSession {
         _decodeHead(_headChange(prepared.plan.changeSet.changes).beforeBytes!);
     final context = AuthoringHistoryContext.fromExtensions(
         prepared.plan.request.extensions);
+    prepared._exteriorRemovals ??= (await (await store.openRoot(prepared.root))
+            .snapshot
+            .deltaFrom(snapshot))
+        .removals;
     final currentRevision = prepared._currentProjectRevision == null
         ? 'sha256:${snapshot.root.sha256}'
         : await prepared._currentProjectRevision();
@@ -567,6 +575,8 @@ final class CatalogEditingSession {
               prepared._currentProjectRevision, prepared.plan.baseRevision);
           await _checkRetentionCosts(prepared);
           await precondition?.call();
+          await requireUnusedExteriorReferences(
+              prepared._exteriorRemovals!, store.gateway);
           if (context.expectedHeadEntryId != null) {
             final head = await readAuthoringHistoryHead(history, projectId);
             if (head?.entryId != context.expectedHeadEntryId) {

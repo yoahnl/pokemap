@@ -6,6 +6,7 @@ import 'package:map_authoring/map_authoring_local.dart'
     show
         LocalCharacterContactShadowAuthoring,
         LocalMapAtmosphereAuthoring,
+        LocalMapExteriorDecorationAuthoring,
         LocalMapEditorAuthoring,
         LocalMapElementOrderAuthoring,
         LocalVisualSettingsAuthoring;
@@ -112,6 +113,8 @@ Future<void> main(List<String> arguments) async {
         LocalMapElementOrderAuthoring(policy: policy, reader: fileReader),
     mapEditor: LocalMapEditorAuthoring(policy: policy, reader: fileReader),
     visualSettings: LocalVisualSettingsAuthoring(policy: policy),
+    mapExteriorDecoration:
+        LocalMapExteriorDecorationAuthoring(policy: policy, reader: fileReader),
     mapAtmosphere:
         LocalMapAtmosphereAuthoring(policy: policy, reader: fileReader),
     characterContactShadows: LocalCharacterContactShadowAuthoring(

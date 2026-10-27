@@ -1,3 +1,4 @@
+import '../references/exterior_decoration_references.dart';
 import '../documents/map_element_order_authoring.dart';
 import '../documents/map_editor_authoring.dart';
 import '../domains/maps/map_lifecycle_atmosphere.dart';
@@ -1585,6 +1586,9 @@ final class _LocalMapAuthoringSession {
         message: 'Mutation planning requires an idempotency key.',
       );
     }
+    await requireUnusedExteriorReferences(
+        exteriorDeletedDefinitions(request.actionId, request.parameters),
+        _mapAtmosphereGateway);
     await _requireReconciled();
     final descriptor = _dispatcher.descriptor(request.actionId);
     if (descriptor.version != request.actionVersion) {
@@ -2173,6 +2177,7 @@ final class _LocalMapAuthoringSession {
       'smart_tile.preset.rename',
       'smart_tile.preset.duplicate',
       'smart_tile.preset.delete',
+      'smart_tile.pattern.delete',
       'smart_tile.preset.draft.delete',
       'environment.preset.delete',
       'border.blueprint.delete',
@@ -2195,6 +2200,9 @@ final class _LocalMapAuthoringSession {
     }
     return () async {
       await supplied?.call();
+      await requireUnusedExteriorReferences(
+          exteriorDeletedDefinitions(plan.request.actionId, plan.request.parameters),
+          _mapAtmosphereGateway);
       if (atmosphereGuards) {
         await requireMapLifecycleAtmosphereGuards(
           plan.changeSet.diff,

@@ -38,6 +38,7 @@ final class StudioMapResources
     implements
         MapWorkspaceVisuals,
         SpatialWorkspaceVisuals,
+        SpatialScopedWorkspaceVisuals,
         ResourceWorkspaceVisuals,
         ResourceImageDimensionsVisuals,
         CharacterWorkspaceVisuals,
@@ -75,6 +76,11 @@ final class StudioMapResources
     if (tileset == null) {
       throw StateError('Image de terrain absente : $tilesetId');
     }
+    return readGroundDefinition(tileset);
+  }
+
+  @override
+  Future<Uint8List> readGroundDefinition(ProjectTilesetEntry tileset) async {
     return Uint8List.fromList(
       await const LocalProjectFileReader().readBytes(
         projectRoot: projectRoot,
@@ -194,6 +200,11 @@ final class StudioMapResources
         .where((item) => item.id == modelId)
         .firstOrNull;
     if (model == null) throw StateError('Modèle introuvable : $modelId');
+    return readModelDefinition(model);
+  }
+
+  @override
+  Future<Uint8List> readModelDefinition(ProjectModel3dEntry model) async {
     final bytes = Uint8List.fromList(
       await const LocalProjectFileReader().readBytes(
         projectRoot: projectRoot,

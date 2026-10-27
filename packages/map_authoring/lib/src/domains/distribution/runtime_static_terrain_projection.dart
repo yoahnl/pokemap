@@ -22,6 +22,7 @@ Future<RuntimeStaticTerrainProjection> projectRuntimeStaticTerrain({
   required List<MapData> maps,
   required Future<List<int>> Function(String path) readAsset,
   int minimumRuleCount = 64,
+  Iterable<String> retainedMaterialIds = const [],
 }) async {
   final catalog = project.smartTileCatalog;
   final atlases = {for (final atlas in catalog.atlases) atlas.id: atlas};
@@ -34,6 +35,7 @@ Future<RuntimeStaticTerrainProjection> projectRuntimeStaticTerrain({
   final materialIds = materials.keys.toSet();
   final externalProjectJson = project.toJson()..remove('smartTileCatalog');
   final protectedMaterials = <String>{
+    ...retainedMaterialIds,
     ..._references(externalProjectJson, materialIds),
     ..._references(
         catalog.patterns.map((p) => p.toJson()).toList(), materialIds),

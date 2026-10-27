@@ -334,11 +334,13 @@ final class RuntimeProjectCatalog {
     Iterable<MapData> maps, {
     Iterable<String> extraCharacterIds = const [],
     Iterable<String> extraSceneIds = const [],
+    Iterable<CatalogDefinitionKey> extraDefinitionKeys = const [],
   }) => _manifestForMaps(
     maps,
     extraCharacterIds: extraCharacterIds,
     extraSceneIds: extraSceneIds,
     includeMapVisuals: true,
+    extraDefinitionKeys: extraDefinitionKeys,
   );
 
   Future<ProjectManifest> manifestForNarrativeMaps(
@@ -354,9 +356,10 @@ final class RuntimeProjectCatalog {
     Iterable<String> extraCharacterIds = const [],
     Iterable<String> extraSceneIds = const [],
     required bool includeMapVisuals,
+    Iterable<CatalogDefinitionKey> extraDefinitionKeys = const [],
   }) async {
     _ensureOpen();
-    final roots = <CatalogDefinitionKey>{};
+    final roots = <CatalogDefinitionKey>{...extraDefinitionKeys};
     final additionalCharacters = extraCharacterIds.toSet();
     final additionalScenes = extraSceneIds.toSet();
     for (final map in maps) {
@@ -1183,8 +1186,13 @@ Iterable<CatalogDefinitionKey> _definitionDependencies(
           primitive.visualSnapshotId,
         );
       }
+      for (final surface in primitive.groundSurfaces) {
+        yield key(CatalogDefinitionKind.smartTilePreset, surface.sourceSmartTilePresetId);
+        yield key(CatalogDefinitionKind.smartTileMaterial, surface.materialId);
+      }
     }
     if (definition.ground case final ground?) {
+      yield key(CatalogDefinitionKind.smartTilePreset, ground.sourceSmartTilePresetId);
       for (final id in ground.visualSnapshotIdsByRole.values) {
         yield key(CatalogDefinitionKind.borderVisualSnapshot, id);
       }

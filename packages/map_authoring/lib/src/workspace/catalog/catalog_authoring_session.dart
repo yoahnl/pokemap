@@ -1,3 +1,4 @@
+import '../../references/exterior_decoration_references.dart';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -182,6 +183,9 @@ final class CatalogAuthoringSession {
       throw const WorkspaceHandleException('workspace.project_mismatch',
           'The request does not belong to this workspace.');
     }
+    await requireUnusedExteriorReferences(
+        exteriorDeletedDefinitions(request.actionId, request.parameters),
+        reader.store.gateway);
     if (request.actionId == 'map.save') return _planMap(request);
     if (CatalogSpatialMapSelection.supports(request.actionId, parameters: request.parameters)) return _planSpatialMap(request);
     if (request.actionId != catalogDefinitionUpdateDescriptor.id) {
