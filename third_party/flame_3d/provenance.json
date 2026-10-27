@@ -16,7 +16,7 @@
       "pubspec.yaml",
       "LICENSE"
     ],
-    "file_count": 132,
+    "file_count": 133,
     "source_verified_against_archive": true,
     "shader_assets_byte_identical": true
   },
@@ -24,8 +24,14 @@
     {
       "path": "lib/src/resources/shader/shader.dart",
       "upstream_sha256": "52164266420a1b472ee0b69774ea13c92ba3b1b6f62b41040459aaf0f18d5a12",
-      "local_sha256": "38b9ab020d62524f101f1d7c6ca3d3ee7ae6d6dc9c44731318c0c4e95a84c9f6",
-      "change": "Replace the unbounded process-wide Color cache with one reusable four-float Vector4 per Shader; retain exact RGBA Float32 uploads."
+      "local_sha256": "804e7efac960a152a63eab34fb0f2448879c8d2c80afcd177498cc4b2d2edad5",
+      "change": "Replace the unbounded process-wide Color cache with one reusable four-float Vector4 per Shader; retain exact RGBA Float32 uploads. Replace unbounded RegExpMatch retention with a shared FIFO cache of at most 256 fully parsed uniform keys; preserve grammar, errors and resource-local GPU bindings."
+    },
+    {
+      "path": "lib/src/resources/shader/uniform_key_cache.dart",
+      "upstream_sha256": null,
+      "local_sha256": "d68d5b4efcee52c4c641db32fc938877c897a21fd9f251f589a508da593f5910",
+      "change": "Add the internal bounded uniform-key parser cache; retain only successful pure syntax results, with FIFO eviction and no GPU layout or value retention."
     },
     {
       "path": "pubspec.yaml",

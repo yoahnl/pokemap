@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame_3d/game.dart';
 import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
+import 'package:flame_3d/src/resources/shader/uniform_key_cache.dart';
 
 /// {@template shader}
 /// A shader [Resource] that represents a compiled shader program and the
@@ -141,23 +142,9 @@ class Shader._(
   /// - `'VertexInfo.model'` becomes `('VertexInfo', 'model', null)`
   /// - `'Lights.positions[0]'` becomes `('Lights', 'positions', 0)`
   /// - `'albedoTexture'` becomes `('albedoTexture', null, null)`
-  static (String, String?, int?) parseKey(String key) {
-    final match = _keyMatches.putIfAbsent(key, () {
-      final match = _keyRegex.firstMatch(key);
-      if (match == null) {
-        throw StateError('Invalid uniform key: "$key"');
-      }
-      return match;
-    });
+  static (String, String?, int?) parseKey(String key) => _keys.parse(key);
 
-    final struct = match.group(1)!;
-    final member = match.group(2);
-    final index = match.group(3);
-    return (struct, member, index != null ? int.parse(index) : null);
-  }
-
-  static final _keyRegex = RegExp(r'^(\w+)(?:\.(\w+))?(?:\[(\d+)\])?$');
-  static final _keyMatches = <String, RegExpMatch>{};
+  static final _keys = UniformKeyCache();
 
   static final _scalarData = ByteData(4);
   static final _scalarBuf = _scalarData.buffer.asFloat32List();
