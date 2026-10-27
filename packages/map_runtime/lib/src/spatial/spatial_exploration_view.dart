@@ -19,6 +19,7 @@ class SpatialExplorationView extends StatefulWidget {
     required this.session,
     this.keyboardInputEnabled = true,
     this.staticDepthBatchesEnabled = false,
+    this.renderResolutionScale = 1,
     this.renderPreparationPaused,
     this.onReady,
     this.previewVisuals,
@@ -32,6 +33,7 @@ class SpatialExplorationView extends StatefulWidget {
   final SpatialSceneController? sceneController;
   final bool keyboardInputEnabled;
   final bool staticDepthBatchesEnabled;
+  final double renderResolutionScale;
   final bool Function()? renderPreparationPaused;
   final VoidCallback? onReady;
   final void Function(Object)? onError;
@@ -529,6 +531,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
             Positioned.fill(
               child: SpatialSceneView(
                 staticDepthBatchesEnabled: widget.staticDepthBatchesEnabled,
+                renderResolutionScale: widget.renderResolutionScale,
                 resourceBudget: renderedBundle.resourceBudget,
                 resourceIdentity: renderedBundle.projectCatalog?.identity,
                 key: ObjectKey(widget.session),

@@ -37,8 +37,11 @@ class World3D({
     final camera = CameraComponent3D.currentCamera!;
     final Viewport(virtualSize: size) = camera.viewport;
 
-    final pixelRatio = MediaQuery.devicePixelRatioOf(gameRef.buildContext!);
-    final renderSize = Size(size.x * pixelRatio, size.y * pixelRatio);
+    final renderSize = renderSizeFor(
+      size,
+      devicePixelRatio: MediaQuery.devicePixelRatioOf(gameRef.buildContext!),
+      resolutionScale: gameRef.renderResolutionScale,
+    );
 
     context
       ..lights = _lights
@@ -57,6 +60,20 @@ class World3D({
     );
     image.dispose();
   }
+
+  static Size renderSizeFor(
+    flame.Vector2 virtualSize, {
+    required double devicePixelRatio,
+    required double resolutionScale,
+  }) {
+    final scale = resolutionScale.isFinite
+        ? resolutionScale.clamp(minimumResolutionScale, 1.0)
+        : 1.0;
+    final pixelRatio = devicePixelRatio * scale;
+    return Size(virtualSize.x * pixelRatio, virtualSize.y * pixelRatio);
+  }
+
+  static const minimumResolutionScale = .25;
 
   static final _paint = Paint();
 }

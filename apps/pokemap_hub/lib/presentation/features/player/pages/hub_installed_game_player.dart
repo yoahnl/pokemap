@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
@@ -19,6 +20,7 @@ import 'package:pokemap_hub/features/preferences/domain/repositories/player_pref
 import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_spatial_render_resolution.dart';
 import 'package:pokemap_hub/embedding/avelune_gameplay_companion.dart';
 import 'package:flutter/services.dart';
 
@@ -1523,6 +1525,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                   battle: spatial.battle,
                   child: SpatialExplorationView(
                     staticDepthBatchesEnabled: true,
+                    renderResolutionScale: hubSpatialRenderResolutionScale(
+                      platform: defaultTargetPlatform,
+                      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+                    ),
                     renderPreparationPaused: () =>
                         spatial.battle?.coversOverworldPresentation ?? false,
                     key: ObjectKey(spatial),

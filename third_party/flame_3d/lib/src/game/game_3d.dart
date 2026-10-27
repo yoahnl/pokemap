@@ -11,6 +11,8 @@ mixin Game3D on Game {
   @internal
   late final RenderContext3D context = RenderContext3D(device);
 
+  double get renderResolutionScale => 1;
+
   @override
   void render(Canvas canvas) {
     device.begin();

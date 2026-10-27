@@ -504,6 +504,7 @@ class SpatialSceneView extends StatefulWidget {
     this.cameraMagnification,
     this.resourceBudget,
     this.staticDepthBatchesEnabled = false,
+    this.renderResolutionScale = 1,
     this.resourceIdentity,
     this.modelSourceRevisions = const {},
     this.changedModelSourceIds,
@@ -512,6 +513,7 @@ class SpatialSceneView extends StatefulWidget {
   });
   final RuntimeResourceBudget? resourceBudget;
   final bool staticDepthBatchesEnabled;
+  final double renderResolutionScale;
   final String? resourceIdentity;
   final Map<String, String> modelSourceRevisions;
   final Set<String>? changedModelSourceIds;
@@ -1390,6 +1392,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   SpatialSceneView? renderedConfiguration;
   SpatialSceneView get visibleConfiguration =>
       renderedConfiguration ?? configuration;
+  @override
+  double get renderResolutionScale => configuration.renderResolutionScale;
   bool refreshing = false;
   Future<bool> syncDecorations() async {
     final accepted = await _syncDecorations();
