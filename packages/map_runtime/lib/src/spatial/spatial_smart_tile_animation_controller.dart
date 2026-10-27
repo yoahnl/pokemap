@@ -12,6 +12,9 @@ final class SpatialSmartTileAnimationController {
          map: map,
          catalog: project.smartTileCatalog,
        ) {
+    for (final layer in map.layers.whereType<SmartTileLayer>()) {
+      _smartTileLayersById.putIfAbsent(layer.id, () => layer);
+    }
     final layers = map.layers.whereType<SmartTileLayer>().where(
       (layer) =>
           layer.isVisible &&
@@ -45,6 +48,7 @@ final class SpatialSmartTileAnimationController {
 
   final MapData _map;
   final ProjectSmartTileCatalog _catalog;
+  final _smartTileLayersById = <String, SmartTileLayer>{};
   final _actorCells = <String, GridPos?>{};
   final _actorAnimations = <String, SmartTileAnimationActivationController>{};
   final _instancesByCell = <GridPos, List<String>>{};
@@ -111,10 +115,7 @@ final class SpatialSmartTileAnimationController {
     required int cellY,
     required int globalElapsedMs,
   }) {
-    final layer = _map.layers
-        .whereType<SmartTileLayer>()
-        .where((l) => l.id == layerId)
-        .firstOrNull;
+    final layer = _smartTileLayersById[layerId];
     if (layer?.animationActivation == SmartTileAnimationActivation.always) {
       return (active: true, elapsedMs: globalElapsedMs);
     }
