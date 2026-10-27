@@ -713,18 +713,34 @@ void main() {
     final shader = _CountingFragmentShader();
     shader.resource;
     material.fragmentShader = shader;
+    material.albedoColor = const Color.from(
+      alpha: .375,
+      red: .125,
+      green: .625,
+      blue: .875,
+    );
     material.apply(context);
     expect(shader.pixelWrites, 16);
+    expect(shader.albedoWrites, 1);
 
     for (var frame = 0; frame < 120; frame++) {
       material.apply(context);
     }
 
     expect(shader.pixelWrites, 16);
+    expect(shader.albedoWrites, 121);
+    expect(shader.albedoSnapshots, everyElement([.125, .625, .875, .375]));
     material.uvRect.x = .25;
     material.apply(context);
     expect(shader.pixelWrites, 23);
+    expect(shader.albedoWrites, 122);
     material.fragmentShader.bind(device);
+    expect(device.uniforms['Material']!.sublist(0, 4), [
+      .125,
+      .625,
+      .875,
+      .375,
+    ]);
     expect(device.uniforms['Material']!.sublist(4, 8), [.25, 0, 1, 1]);
   });
 
@@ -1092,14 +1108,21 @@ final class _CountingFragmentShader extends FragmentShader {
       );
 
   int pixelWrites = 0;
+  int albedoWrites = 0;
+  final albedoSnapshots = <List<double>>[];
   int atmosphereWrites = 0;
   int presentationWrites = 0;
 
   @override
   void setVector4(String key, Vector4 value) {
+    if (key == 'Material.albedoColor') {
+      albedoWrites++;
+      albedoSnapshots.add(value.storage.toList());
+    }
     if (key.startsWith('Atmosphere.')) atmosphereWrites++;
     if (key.startsWith('Presentation.')) presentationWrites++;
-    if (!key.startsWith('Environment.') &&
+    if (key != 'Material.albedoColor' &&
+        !key.startsWith('Environment.') &&
         !key.startsWith('PointShadows.') &&
         !key.startsWith('Presentation.') &&
         !key.startsWith('Atmosphere.'))

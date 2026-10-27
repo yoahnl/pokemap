@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "upstream": {
+    "package": "flame_3d",
+    "version": "0.4.0-dev.1",
+    "repository": "https://github.com/flame-engine/flame/tree/main/packages/flame_3d",
+    "archive_url": "https://pub.dev/api/archives/flame_3d-0.4.0-dev.1.tar.gz",
+    "archive_sha256": "efa236d34422fbe33a9e3882796a616ba9560689393b1ec7dd7b6a579af000fc",
+    "license": "MIT",
+    "license_file": "LICENSE"
+  },
+  "snapshot": {
+    "included_paths": [
+      "lib/",
+      "assets/",
+      "pubspec.yaml",
+      "LICENSE"
+    ],
+    "file_count": 132,
+    "source_verified_against_archive": true,
+    "shader_assets_byte_identical": true
+  },
+  "local_modifications": [
+    {
+      "path": "lib/src/resources/shader/shader.dart",
+      "upstream_sha256": "52164266420a1b472ee0b69774ea13c92ba3b1b6f62b41040459aaf0f18d5a12",
+      "local_sha256": "38b9ab020d62524f101f1d7c6ca3d3ee7ae6d6dc9c44731318c0c4e95a84c9f6",
+      "change": "Replace the unbounded process-wide Color cache with one reusable four-float Vector4 per Shader; retain exact RGBA Float32 uploads."
+    },
+    {
+      "path": "pubspec.yaml",
+      "upstream_sha256": "eb5dba5b29800d27bbe1ad11288b4b2526c8391def5653a7592862c17123da41",
+      "local_sha256": "0d033adc03dbd9c3f8a6f23ff32c1f683f389d500859723bca5ea3b935232f2c",
+      "change": "Remove workspace resolution so this runtime snapshot resolves as a standalone path dependency."
+    }
+  ]
+}
