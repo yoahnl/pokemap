@@ -343,7 +343,8 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     ];
   }
 
-  final camera = SpatialSceneController()..setView(SpatialEditorView.game);
+  final camera = SpatialSceneController(presentationEffectsEnabled: false)
+    ..setView(SpatialEditorView.game);
   final focus = FocusNode();
   MapAtmosphereController? _atmosphere;
   ProjectVisualsController? _weatherVisuals;

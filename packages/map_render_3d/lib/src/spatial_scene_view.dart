@@ -136,7 +136,20 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
-  SpatialSceneController({DateTime Function()? now}) : _now = now ?? DateTime.now;
+  SpatialSceneController({
+    DateTime Function()? now,
+    this.presentationEffectsEnabled = true,
+  }) : _now = now ?? DateTime.now;
+  final bool presentationEffectsEnabled;
+  static final _clearDepthOfField = SpatialDepthOfFieldProfile();
+  static final _clearWeather = SpatialWeatherSettings(
+    kind: SpatialWeatherKind.clear,
+    transitionSeconds: 0,
+  );
+  late final _clearPresentation = SpatialPresentationProfile(
+    haloStrength: 0,
+    fogOpacity: 0,
+  );
   final DateTime Function() _now;
   WorldEnvironmentFrame? worldEnvironment;
   double? weatherTimelineSeconds;
@@ -164,13 +177,14 @@ class SpatialSceneController extends ModelPreviewController {
 
   SpatialDepthOfFieldProfile _depthOfFieldProfile =
       SpatialDepthOfFieldProfile();
-  SpatialDepthOfFieldProfile get depthOfFieldProfile => _depthOfFieldProfile;
+  SpatialDepthOfFieldProfile get depthOfFieldProfile =>
+      presentationEffectsEnabled ? _depthOfFieldProfile : _clearDepthOfField;
   set depthOfFieldProfile(SpatialDepthOfFieldProfile value) {
     _depthOfFieldProfile = value;
     super.notifyListeners();
   }
 
-  bool get depthOfFieldEnabled => _depthOfFieldProfile.enabled;
+  bool get depthOfFieldEnabled => depthOfFieldProfile.enabled;
   set depthOfFieldEnabled(bool value) =>
       depthOfFieldProfile = SpatialDepthOfFieldProfile(
         enabled: value,
@@ -179,7 +193,8 @@ class SpatialSceneController extends ModelPreviewController {
       );
   SpatialPresentationProfile _presentationProfile =
       SpatialPresentationProfile.disabled;
-  SpatialPresentationProfile get presentationProfile => _presentationProfile;
+  SpatialPresentationProfile get presentationProfile =>
+      presentationEffectsEnabled ? _presentationProfile : _clearPresentation;
   set presentationProfile(SpatialPresentationProfile value) {
     if (identical(_presentationProfile, value)) return;
     _presentationProfile = value;
@@ -187,14 +202,14 @@ class SpatialSceneController extends ModelPreviewController {
   }
 
   bool _halosEnabled = false, _depthFogEnabled = false;
-  bool get halosEnabled => _halosEnabled;
+  bool get halosEnabled => presentationEffectsEnabled && _halosEnabled;
   set halosEnabled(bool value) {
     if (_halosEnabled == value) return;
     _halosEnabled = value;
     super.notifyListeners();
   }
 
-  bool get depthFogEnabled => _depthFogEnabled;
+  bool get depthFogEnabled => presentationEffectsEnabled && _depthFogEnabled;
   set depthFogEnabled(bool value) {
     if (_depthFogEnabled == value) return;
     _depthFogEnabled = value;
@@ -228,6 +243,7 @@ class SpatialSceneController extends ModelPreviewController {
   }
 
   SpatialWeatherSettings get weatherSettings {
+    if (!presentationEffectsEnabled) return _clearWeather;
     final base = (_authoredAtmosphere ?? _baseAtmosphere).weather;
     final environment = worldEnvironment ?? _previewEnvironment;
     final kind = environment.weatherKind;
@@ -335,7 +351,7 @@ class SpatialSceneController extends ModelPreviewController {
     super.notifyListeners();
   }
 
-  bool get fireflies => _fireflies;
+  bool get fireflies => presentationEffectsEnabled && _fireflies;
   set fireflies(bool value) {
     if (_fireflies == value) return;
     _fireflies = value;
