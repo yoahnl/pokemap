@@ -96,8 +96,8 @@ final class SpatialAtmosphereProfile {
   }) : waterTargets = List.unmodifiable(waterTargets),
        windows = List.unmodifiable(windows),
        fireflyZones = List.unmodifiable(fireflyZones),
-       _water = {for (final target in waterTargets) target.key},
-       _windows = {for (final window in windows) window.target.key: window} {
+       _water = _waterIndex(waterTargets),
+       _windows = _windowIndex(windows) {
     if (fireflyCapacityScale < 1 ||
         fireflyCapacityScale > 2 ||
         fireflyZones.fold<int>(0, (sum, zone) => sum + zone.count) *
@@ -176,12 +176,34 @@ final class SpatialAtmosphereProfile {
   final List<SpatialAtmosphereTarget> waterTargets;
   final List<SpatialWindowGlow> windows;
   final List<SpatialFireflyZone> fireflyZones;
-  final Set<String> _water;
-  final Map<String, SpatialWindowGlow> _windows;
+  final Map<String, Set<String>> _water;
+  final Map<String, Map<String, SpatialWindowGlow>> _windows;
   bool isWater(String? instance, String? material) =>
-      _water.contains('${instance ?? ''}\u0000${material ?? ''}');
+      _water[instance ?? '']?.contains(material ?? '') ?? false;
   SpatialWindowGlow? window(String? instance, String? material) =>
-      _windows['${instance ?? ''}\u0000${material ?? ''}'];
+      _windows[instance ?? '']?[material ?? ''];
+
+  static Map<String, Set<String>> _waterIndex(
+    List<SpatialAtmosphereTarget> targets,
+  ) {
+    final index = <String, Set<String>>{};
+    for (final target in targets) {
+      (index[target.instanceId ?? ''] ??= {}).add(target.materialName);
+    }
+    return index;
+  }
+
+  static Map<String, Map<String, SpatialWindowGlow>> _windowIndex(
+    List<SpatialWindowGlow> windows,
+  ) {
+    final index = <String, Map<String, SpatialWindowGlow>>{};
+    for (final window in windows) {
+      (index[window.target.instanceId ?? ''] ??=
+              {})[window.target.materialName] =
+          window;
+    }
+    return index;
+  }
 }
 
 abstract interface class SpatialAtmosphereContext {

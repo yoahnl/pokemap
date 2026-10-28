@@ -126,11 +126,14 @@ spatialPointShadowProjection(SpatialPointLight light, int face) {
 
 bool spatialPointShadowIntersects(SpatialPointLight light, Aabb3 bounds) {
   final p = light.position;
-  final dx = p.x - p.x.clamp(bounds.min.x, bounds.max.x);
-  final dy = p.y - p.y.clamp(bounds.min.y, bounds.max.y);
-  final dz = p.z - p.z.clamp(bounds.min.z, bounds.max.z);
+  final dx = p.x - _clamp(p.x, bounds.min.x, bounds.max.x);
+  final dy = p.y - _clamp(p.y, bounds.min.y, bounds.max.y);
+  final dz = p.z - _clamp(p.z, bounds.min.z, bounds.max.z);
   return dx * dx + dy * dy + dz * dz <= light.radius * light.radius;
 }
+
+double _clamp(double value, double lower, double upper) =>
+    value < lower ? lower : (value > upper ? upper : value);
 
 bool spatialPointShadowIntersectsFace(Matrix4 worldToClip, Aabb3 bounds) {
   final m = worldToClip.storage;

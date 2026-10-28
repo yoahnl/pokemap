@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
+import 'spatial_point_light.dart';
 import 'spatial_point_shadow.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
@@ -248,42 +249,50 @@ class SpatialPixelMaterial extends UnlitMaterial {
     final presentation = context is SpatialPresentationContext
         ? context as SpatialPresentationContext
         : null;
-    final profile = presentation?.presentationProfile;
-    final color = presentation?.depthFogColor;
-    _fogColor.setValues(
-      color?.r ?? 0,
-      color?.g ?? 0,
-      color?.b ?? 0,
-      presentation?.depthFogEnabled == true ? profile!.fogOpacity : 0,
-    );
-    _fogDepth.setValues(
-      profile?.fogStart ?? 0,
-      profile?.fogEnd ?? 1,
-      profile?.weatherSeconds ?? 0,
-      profile?.weatherFogStrength ?? 0,
-    );
-    _weatherFog.setValues(
-      profile?.weatherWindX ?? 0,
-      profile?.weatherWindZ ?? 0,
-      profile?.weatherGroundHeight ?? 0,
-      profile?.weatherFogStrength ?? 0,
-    );
-    _weatherImpacts.setValues(
-      lightingRole == SpatialPixelLightingRole.actor ||
-              emissive ||
-              preserveUnlitColor
-          ? 0
-          : profile?.weatherImpactStrength ?? 0,
-      profile?.weatherImpactSpeed ?? 0,
-      profile?.weatherSeconds ?? 0,
-      0,
-    );
-    _manualFog.setValues(
-      profile?.weatherManualFogStart ?? 0,
-      profile?.weatherManualFogEnd ?? 1,
-      profile?.weatherManualFogOpacity ?? 0,
-      0,
-    );
+    if (presentation == null) {
+      _fogColor.setValues(0, 0, 0, 0);
+      _fogDepth.setValues(0, 1, 0, 0);
+      _weatherFog.setValues(0, 0, 0, 0);
+      _weatherImpacts.setValues(0, 0, 0, 0);
+      _manualFog.setValues(0, 1, 0, 0);
+    } else {
+      final profile = presentation.presentationProfile;
+      final color = presentation.depthFogColor;
+      _fogColor.setValues(
+        color.r,
+        color.g,
+        color.b,
+        presentation.depthFogEnabled ? profile.fogOpacity : 0,
+      );
+      _fogDepth.setValues(
+        profile.fogStart,
+        profile.fogEnd,
+        profile.weatherSeconds,
+        profile.weatherFogStrength,
+      );
+      _weatherFog.setValues(
+        profile.weatherWindX,
+        profile.weatherWindZ,
+        profile.weatherGroundHeight,
+        profile.weatherFogStrength,
+      );
+      _weatherImpacts.setValues(
+        lightingRole == SpatialPixelLightingRole.actor ||
+                emissive ||
+                preserveUnlitColor
+            ? 0
+            : profile.weatherImpactStrength,
+        profile.weatherImpactSpeed,
+        profile.weatherSeconds,
+        0,
+      );
+      _manualFog.setValues(
+        profile.weatherManualFogStart,
+        profile.weatherManualFogEnd,
+        profile.weatherManualFogOpacity,
+        0,
+      );
+    }
     final shader = fragmentShader, resource = shader.resource;
     if (_presentationUniformsBound &&
         identical(_presentationShader, shader) &&
@@ -334,17 +343,21 @@ class SpatialPixelMaterial extends UnlitMaterial {
       water ? profile!.waterStrength : 0,
       water ? atmosphere!.atmosphereElapsedSeconds * profile!.waterSpeed : 0,
       emissive ? 1 : 0,
-      window?.uvRects.length.toDouble() ?? 0,
+      window == null ? 0 : window.uvRects.length.toDouble(),
     );
-    final color = window?.color;
-    _atmosphereColor.setValues(
-      color?.r ?? 0,
-      color?.g ?? 0,
-      color?.b ?? 0,
-      (window?.strength ?? 0) *
-          (profile?.windowStrength ?? 1) *
-          (atmosphere?.atmosphereNight ?? 0),
-    );
+    final windowStrength = profile == null ? 1.0 : profile.windowStrength;
+    final night = atmosphere == null ? 0.0 : atmosphere.atmosphereNight;
+    if (window == null) {
+      _atmosphereColor.setValues(0, 0, 0, 0 * windowStrength * night);
+    } else {
+      final color = window.color;
+      _atmosphereColor.setValues(
+        color.r,
+        color.g,
+        color.b,
+        window.strength * windowStrength * night,
+      );
+    }
     final shader = fragmentShader, resource = shader.resource;
     if (_atmosphereUniformsBound &&
         identical(_atmosphereShader, shader) &&
@@ -499,6 +512,21 @@ class SpatialPixelMaterial extends UnlitMaterial {
     _pointShadowUniformsBound = true;
   }
 
+  static void _setLight(
+    SpatialPointLight? light,
+    Vector4 positionRadius,
+    Vector4 colorIntensity,
+  ) {
+    if (light == null) {
+      positionRadius.setValues(0, 0, 0, 1);
+      colorIntensity.setValues(0, 0, 0, 0);
+      return;
+    }
+    final position = light.position, color = light.color;
+    positionRadius.setValues(position.x, position.y, position.z, light.radius);
+    colorIntensity.setValues(color.r, color.g, color.b, light.intensity);
+  }
+
   void _applyEnvironment(SpatialLightingProfile lighting) {
     final shader = fragmentShader, resource = shader.resource;
     final invalidated =
@@ -508,12 +536,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
     final sample = lightingRole == SpatialPixelLightingRole.actor
         ? shadowSamplePosition
         : null;
-    _environmentSample.setValues(
-      sample?.x ?? 0,
-      sample?.y ?? 0,
-      sample?.z ?? 0,
-      sample == null ? 0 : 1,
-    );
+    if (sample == null) {
+      _environmentSample.setValues(0, 0, 0, 0);
+    } else {
+      _environmentSample.setValues(sample.x, sample.y, sample.z, 1);
+    }
     if (invalidated || _boundEnvironmentSample != _environmentSample) {
       shader.setVector4('Environment.samplePosition', _environmentSample);
       _boundEnvironmentSample.setFrom(_environmentSample);
@@ -531,22 +558,12 @@ class SpatialPixelMaterial extends UnlitMaterial {
       ..setVector4('Environment.tint', _environmentTint)
       ..setVector4('Environment.options', _environmentOptions);
     for (var index = 0; index < 4; index++) {
-      final light = index < lighting.pointLights.length
-          ? lighting.pointLights[index]
-          : null;
-      final position = light?.position;
-      _pointPositionRadius[index].setValues(
-        position?.x ?? 0,
-        position?.y ?? 0,
-        position?.z ?? 0,
-        light?.radius ?? 1,
-      );
-      final color = light?.color;
-      _pointColorIntensity[index].setValues(
-        color?.r ?? 0,
-        color?.g ?? 0,
-        color?.b ?? 0,
-        light?.intensity ?? 0,
+      _setLight(
+        index < lighting.pointLights.length
+            ? lighting.pointLights[index]
+            : null,
+        _pointPositionRadius[index],
+        _pointColorIntensity[index],
       );
       shader
         ..setVector4(
@@ -559,21 +576,12 @@ class SpatialPixelMaterial extends UnlitMaterial {
         );
     }
     for (var index = 0; index < 2; index++) {
-      final light = index < lighting.fireflyLights.length
-          ? lighting.fireflyLights[index]
-          : null;
-      final position = light?.position, color = light?.color;
-      _fireflyPositionRadius[index].setValues(
-        position?.x ?? 0,
-        position?.y ?? 0,
-        position?.z ?? 0,
-        light?.radius ?? 1,
-      );
-      _fireflyColorIntensity[index].setValues(
-        color?.r ?? 0,
-        color?.g ?? 0,
-        color?.b ?? 0,
-        light?.intensity ?? 0,
+      _setLight(
+        index < lighting.fireflyLights.length
+            ? lighting.fireflyLights[index]
+            : null,
+        _fireflyPositionRadius[index],
+        _fireflyColorIntensity[index],
       );
       shader
         ..setVector4(

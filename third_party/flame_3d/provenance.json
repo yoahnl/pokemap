@@ -90,6 +90,12 @@
       "change": "Bind uniforms from ByteData and pool render targets by size and secondary color clear value."
     },
     {
+      "path": "lib/src/graphics/joints_info.dart",
+      "upstream_sha256": "10b3cdb26b26441979a00ac0e7f41d7b9c4f6cf6b67d8d304dd6e533ed016079",
+      "local_sha256": "759f4598781491564b3cf69a8d1fe86d1c8c5dca5661c473ea74be32c42bfe44",
+      "change": "Select a surface without joints through a constant empty list instead of allocating one per draw."
+    },
+    {
       "path": "lib/src/model/model.dart",
       "upstream_sha256": "28d93034562615d4841b27d88335ac6f9a912b990f8df216e67aad20a2154343",
       "local_sha256": "b96e874fb2950f468aa472ca288e23ffc73090da0cd4a51fd16b4e0bb3896768",
@@ -110,8 +116,8 @@
     {
       "path": "lib/src/resources/shader/shader.dart",
       "upstream_sha256": "52164266420a1b472ee0b69774ea13c92ba3b1b6f62b41040459aaf0f18d5a12",
-      "local_sha256": "17c957b38d5a47c123340638f741e58c4e0bc6095d41029e1573f71548290f4e",
-      "change": "Replace the unbounded process-wide Color cache with one reusable four-float Vector4 per Shader; retain exact RGBA Float32 uploads. Replace unbounded RegExpMatch retention with a shared FIFO cache of at most 256 fully parsed uniform keys; preserve grammar, errors and resource-local GPU bindings. Resolve each uniform key once per shader into its binding and offset, and bind a stable ByteData view."
+      "local_sha256": "f77c38abb37b6dcd909603d1c8c535a670b2a66df93c3e0987aaedef530b3d90",
+      "change": "Replace the unbounded process-wide Color cache with one reusable four-float Vector4 per Shader; retain exact RGBA Float32 uploads. Replace unbounded RegExpMatch retention with a shared FIFO cache of at most 256 fully parsed uniform keys; preserve grammar, errors and resource-local GPU bindings. Resolve each uniform key once per shader into its binding and offset, and bind a stable ByteData view. Rebind an existing texture slot without allocating a putIfAbsent closure. Bind slots from an insertion-ordered list instead of iterating the binding map on every draw."
     },
     {
       "path": "lib/src/resources/shader/uniform_key_cache.dart",

@@ -121,27 +121,46 @@ class SpatialRenderContext extends RenderContext3D
     _transparent.add(_snapshot(surface, material, _transparent.length));
   }
 
+  final _snapshots = <_TransparentSurface>[];
+  int _snapshotCount = 0;
+  final _snapshotCenter = Vector3.zero();
+
   _TransparentSurface _snapshot(
     Surface surface,
     SpatialPixelMaterial material,
     int sequence,
   ) {
-    final center = surface.aabb.center.clone();
-    model.transform3(center);
-    view.transform3(center);
-    return _TransparentSurface(
-      surface: surface,
-      material: material,
-      pose: _MaterialPose(material),
-      model: model.clone(),
-      joints: [for (final joint in jointsInfo.jointTransforms) joint.clone()],
-      depth: -center.z,
-      sequence: sequence,
-      instanceId: sourceInstanceId,
-      shadowId: sourceShadowId,
-      owner: sourceModelOwner,
-      worldBounds: Aabb3.copy(surface.aabb)..transform(model),
-    );
+    surface.aabb.copyCenter(_snapshotCenter);
+    model.transform3(_snapshotCenter);
+    view.transform3(_snapshotCenter);
+    if (_snapshotCount == _snapshots.length) {
+      _snapshots.add(_TransparentSurface());
+    }
+    final joints = jointsInfo.jointTransforms;
+    final entry = _snapshots[_snapshotCount++]
+      .._surface = surface
+      .._material = material
+      ..joints = joints.isEmpty
+          ? const []
+          : [for (final joint in joints) joint.clone()]
+      ..depth = -_snapshotCenter.z
+      ..sequence = sequence
+      ..instanceId = sourceInstanceId
+      ..shadowId = sourceShadowId
+      ..owner = sourceModelOwner;
+    entry.pose.capture(material);
+    entry.model.setFrom(model);
+    entry.worldBounds
+      ..copyFrom(surface.aabb)
+      ..transform(model);
+    return entry;
+  }
+
+  void _releaseSnapshots() {
+    for (var index = 0; index < _snapshotCount; index++) {
+      _snapshots[index].release();
+    }
+    _snapshotCount = 0;
   }
 
   @override
@@ -215,16 +234,8 @@ class SpatialRenderContext extends RenderContext3D
               } else {
                 coverage?.fill();
               }
-              _withMaterialPose(entry, () {
-                context.model.setFrom(entry.model);
-                context.jointsInfo.jointTransforms = entry.joints;
-                final material = depthMaterial(entry.material)
-                  ..cullMode = entry.pose.cullMode;
-                context.device.clearBindings();
-                context.applyMaterial(material);
-                context.device.bindGeometry(entry.surface);
-                casterDrawCount++;
-              });
+              _drawShadowCaster(entry, context, depthMaterial);
+              casterDrawCount++;
             }
           },
           antialiasing: shadowAntialiasingEnabled,
@@ -268,16 +279,8 @@ class SpatialRenderContext extends RenderContext3D
                           entry.worldBounds,
                         ))
                   continue;
-                _withMaterialPose(entry, () {
-                  context.model.setFrom(entry.model);
-                  context.jointsInfo.jointTransforms = entry.joints;
-                  final material = depthMaterial(entry.material)
-                    ..cullMode = entry.pose.cullMode;
-                  context.device.clearBindings();
-                  context.applyMaterial(material);
-                  context.device.bindGeometry(entry.surface);
-                  pointCasterDrawCount++;
-                });
+                _drawShadowCaster(entry, context, depthMaterial);
+                pointCasterDrawCount++;
               }
             },
             antialiasing: shadowAntialiasingEnabled,
@@ -353,6 +356,7 @@ class SpatialRenderContext extends RenderContext3D
       _captured.clear();
       _casterSurfaces.clear();
       _transparent.clear();
+      _releaseSnapshots();
     }
   }
 
@@ -363,7 +367,11 @@ class SpatialRenderContext extends RenderContext3D
     }
   }
 
-  void _withMaterialPose(_TransparentSurface entry, void Function() draw) {
+  void _drawShadowCaster(
+    _TransparentSurface entry,
+    RenderContext3D context,
+    Material Function(SpatialPixelMaterial) depthMaterial,
+  ) {
     final previousPose = entry.pose.matches(entry.material)
         ? null
         : _MaterialPose(entry.material);
@@ -371,7 +379,13 @@ class SpatialRenderContext extends RenderContext3D
     try {
       if (previousPose != null) entry.pose.apply(entry.material);
       entry.surface.material = entry.material;
-      draw();
+      context.model.setFrom(entry.model);
+      context.jointsInfo.jointTransforms = entry.joints;
+      final material = depthMaterial(entry.material)
+        ..cullMode = entry.pose.cullMode;
+      context.device.clearBindings();
+      context.applyMaterial(material);
+      context.device.bindGeometry(entry.surface);
     } finally {
       previousPose?.apply(entry.material);
       entry.surface.material = previousMaterial;
@@ -415,51 +429,68 @@ class SpatialRenderContext extends RenderContext3D
 }
 
 final class _TransparentSurface {
-  _TransparentSurface({
-    required this.surface,
-    required this.material,
-    required this.pose,
-    required this.model,
-    required this.joints,
-    required this.depth,
-    required this.sequence,
-    required this.instanceId,
-    required this.shadowId,
-    required this.owner,
-    required this.worldBounds,
-  });
+  Surface? _surface;
+  SpatialPixelMaterial? _material;
+  final pose = _MaterialPose.empty();
+  final model = Matrix4.zero();
+  List<Matrix4> joints = const [];
+  double depth = 0;
+  int sequence = 0;
+  String? instanceId;
+  String? shadowId;
+  Object? owner;
+  final worldBounds = Aabb3();
 
-  final Surface surface;
-  final SpatialPixelMaterial material;
-  final _MaterialPose pose;
-  final Matrix4 model;
-  final List<Matrix4> joints;
-  final double depth;
-  final int sequence;
-  final String? instanceId;
-  final String? shadowId;
-  final Object? owner;
-  final Aabb3 worldBounds;
+  Surface get surface => _surface!;
+  SpatialPixelMaterial get material => _material!;
+
+  void release() {
+    _surface = null;
+    _material = null;
+    joints = const [];
+    instanceId = null;
+    shadowId = null;
+    owner = null;
+    pose.release();
+  }
 }
 
 final class _MaterialPose {
-  _MaterialPose(SpatialPixelMaterial material)
-    : texture = material.albedoTexture,
-      color = material.albedoColor,
-      rect = material.uvRect.clone(),
-      u = material.uvTransformU.clone(),
-      v = material.uvTransformV.clone(),
-      wrapS = material.activeWrapS,
-      wrapT = material.activeWrapT,
-      shadowSamplePosition = material.shadowSamplePosition?.clone(),
-      cullMode = material.cullMode;
+  _MaterialPose(SpatialPixelMaterial material) {
+    capture(material);
+  }
 
-  final Texture texture;
-  final Color color;
-  final Vector4 rect, u, v;
-  final int wrapS, wrapT;
-  final CullMode cullMode;
-  final Vector3? shadowSamplePosition;
+  _MaterialPose.empty();
+
+  Texture? _texture;
+  Color color = const Color(0x00000000);
+  final rect = Vector4.zero(), u = Vector4.zero(), v = Vector4.zero();
+  int wrapS = 0, wrapT = 0;
+  CullMode cullMode = CullMode.none;
+  Vector3? shadowSamplePosition;
+  Vector3? _sample;
+
+  Texture get texture => _texture!;
+
+  void capture(SpatialPixelMaterial material) {
+    _texture = material.albedoTexture;
+    color = material.albedoColor;
+    rect.setFrom(material.uvRect);
+    u.setFrom(material.uvTransformU);
+    v.setFrom(material.uvTransformV);
+    wrapS = material.activeWrapS;
+    wrapT = material.activeWrapT;
+    final sample = material.shadowSamplePosition;
+    shadowSamplePosition = sample == null
+        ? null
+        : ((_sample ??= Vector3.zero())..setFrom(sample));
+    cullMode = material.cullMode;
+  }
+
+  void release() {
+    _texture = null;
+    shadowSamplePosition = null;
+  }
 
   bool matches(SpatialPixelMaterial material) {
     final sample = shadowSamplePosition,
@@ -488,7 +519,7 @@ final class _MaterialPose {
       ..albedoColor = color
       ..cullMode = cullMode
       ..applyAnimation(
-        [u.x, v.x, u.y, v.y, u.z, v.z],
+        _uvIdentity,
         texture: texture,
         wrapModes: (wrapS: wrapS, wrapT: wrapT),
       );
@@ -496,4 +527,6 @@ final class _MaterialPose {
     material.uvTransformU.setFrom(u);
     material.uvTransformV.setFrom(v);
   }
+
+  static const _uvIdentity = <double>[1, 0, 0, 1, 0, 0];
 }

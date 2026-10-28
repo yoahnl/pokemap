@@ -43,14 +43,19 @@ class Shader._(
 
   final Map<String, GpuUniformSlot> _slots = {};
   final Map<String, _SlotBinding> _bindings = {};
+  final List<_SlotBinding> _bindingOrder = [];
   final Map<String, _UniformField> _fields = {};
   final Vector4 _colorScratch = Vector4.zero();
 
   /// Set a [Texture] at the given [key].
   void setTexture(String key, Texture texture) {
+    if (_bindings[key] case final _TextureBinding binding) {
+      binding.resource = texture;
+      return;
+    }
     final binding = switch (_bindings.putIfAbsent(
       key,
-      () => _TextureBinding(_slots[key]!, texture),
+      () => _ordered(_TextureBinding(_slots[key]!, texture)),
     )) {
       final _TextureBinding binding => binding,
       _ => throw StateError('Slot "$key" is a uniform block, not a sampler'),
@@ -97,8 +102,8 @@ class Shader._(
 
   /// Bind all uniform data and textures to the [device].
   void bind(GraphicsDevice device) {
-    for (final binding in _bindings.values) {
-      switch (binding) {
+    for (var index = 0; index < _bindingOrder.length; index++) {
+      switch (_bindingOrder[index]) {
         case _UniformBinding(:final slot, :final data):
           device.bindUniform(slot, data);
         case _TextureBinding(:final slot, :final resource):
@@ -112,6 +117,7 @@ class Shader._(
     // Always clear up old data to prevent memory leaks.
     _slots.clear();
     _bindings.clear();
+    _bindingOrder.clear();
     _fields.clear();
 
     final shader = _getShader(entryPoint);
@@ -119,6 +125,11 @@ class Shader._(
       _slots[name] = shader.getUniformSlot(name);
     }
     return shader;
+  }
+
+  _SlotBinding _ordered(_SlotBinding binding) {
+    _bindingOrder.add(binding);
+    return binding;
   }
 
   void _set(String key, Float32List data) {
@@ -130,7 +141,7 @@ class Shader._(
 
     final binding = switch (_bindings.putIfAbsent(
       slot,
-      () => _UniformBinding(_slots[slot]!),
+      () => _ordered(_UniformBinding(_slots[slot]!)),
     )) {
       final _UniformBinding binding => binding,
       _ => throw StateError('Slot "$key" is a sampler block, not a uniform'),

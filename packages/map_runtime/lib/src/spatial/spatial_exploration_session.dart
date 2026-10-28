@@ -375,9 +375,11 @@ final class SpatialExplorationSession {
 
   ({bool active, int elapsedMs}) actorOcclusionStateForCell(
     String mapId, String layerId, int cellX, int cellY, int elapsedMs,
-  ) => (mapId == bundle.map.id ? _smartTileAnimations : _preparedMaps[mapId]?.animations)
-      ?.actorOcclusionStateForCell(layerId: layerId, cellX: cellX, cellY: cellY, globalElapsedMs: elapsedMs)
-      ?? (active: false, elapsedMs: 0);
+  ) {
+    final animations = mapId == bundle.map.id ? _smartTileAnimations : _preparedMaps[mapId]?.animations;
+    if (animations == null) return const (active: false, elapsedMs: 0);
+    return animations.actorOcclusionStateForCell(layerId: layerId, cellX: cellX, cellY: cellY, globalElapsedMs: elapsedMs);
+  }
 
   void attachWorldStateProviders() {
     final source = bundle;
