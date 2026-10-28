@@ -4,6 +4,7 @@ import 'field_ability_gate.dart';
 import 'field_action.dart';
 
 enum FlashBlockReason {
+  disabled,
   unsupportedMap,
   invalidTarget,
   missingMapInstance,
@@ -62,6 +63,7 @@ FlashEvaluation evaluateFlashAttempt({
   required MapData map,
   required GameState gameState,
   required String zoneId,
+  ProjectSettings? projectSettings,
 }) {
   if (map.spatialScene != null || map.version == ProjectVersion.v9) {
     return const FlashUnavailable(FlashBlockReason.unsupportedMap);
@@ -95,8 +97,11 @@ FlashEvaluation evaluateFlashAttempt({
     unlockedFieldAbilities:
         gameState.progression.unlockedFieldAbilities.toSet(),
     party: gameState.party,
+    projectSettings: projectSettings,
   );
   return switch (gate.status) {
+    FieldAbilityGateStatus.disabled =>
+      const FlashUnavailable(FlashBlockReason.disabled),
     FieldAbilityGateStatus.usable => CanUseFlash(gate.partyIndex!),
     FieldAbilityGateStatus.missingMove =>
       const FlashUnavailable(FlashBlockReason.missingMove),
@@ -112,6 +117,7 @@ FlashCommit commitFlashAction({
   required MapData map,
   required GameState gameState,
   required int currentStateRevision,
+  ProjectSettings? projectSettings,
 }) {
   if (ticket.fieldAction.issuedAtStateRevision != currentStateRevision) {
     return const FlashRefused(FieldActionRefusal.staleStateRevision);
@@ -127,7 +133,8 @@ FlashCommit commitFlashAction({
     return const FlashRefused(FieldActionRefusal.targetChanged);
   }
   final evaluation = evaluateFlashAttempt(
-      map: map, gameState: gameState, zoneId: ticket.zone.id);
+      map: map, gameState: gameState, zoneId: ticket.zone.id,
+      projectSettings: projectSettings);
   if (evaluation is! CanUseFlash) {
     return FlashRefused(FieldActionRefusal.noLongerAvailable,
         evaluation: evaluation);

@@ -6,6 +6,7 @@ import 'field_traversal_geometry.dart';
 import 'gameplay_world_state.dart';
 
 enum WaterfallBlockReason {
+  disabled,
   unsupportedMap,
   invalidTarget,
   wrongDirection,
@@ -87,10 +88,12 @@ FieldActionRefusal? validateWaterfallTicket({
   required MapData map,
   required GameState gameState,
   required int currentStateRevision,
+  ProjectSettings? projectSettings,
 }) =>
     validateFieldTraversalTicket(
         ticket: ticket,
         ability: FieldAbility.waterfall,
         map: map,
         gameState: gameState,
-        currentStateRevision: currentStateRevision);
+        currentStateRevision: currentStateRevision,
+        projectSettings: projectSettings);

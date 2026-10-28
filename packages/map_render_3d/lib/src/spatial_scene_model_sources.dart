@@ -47,6 +47,113 @@ bool _sameProjectOutsideModels(
             after.copyWith(models3d: const []);
 
 extension _SpatialSceneModelSources on SpatialSceneGame {
+  bool _syncLightDefinitions(SpatialSceneView before) {
+    final after = configuration;
+    if (!sceneReady ||
+        refreshing ||
+        before.resourceIdentity != after.resourceIdentity ||
+        !identical(before.resourceBudget, after.resourceBudget) ||
+        !identical(before.controller, after.controller) ||
+        !identical(before.scene, after.scene) ||
+        !identical(before.groundMap, after.groundMap) ||
+        before.sceneOffset != after.sceneOffset ||
+        before.ground != after.ground ||
+        before.edge != after.edge ||
+        before.selectedCell != after.selectedCell ||
+        before.visibility != after.visibility ||
+        before.selectedContent != after.selectedContent ||
+        before.authoringTarget != after.authoringTarget ||
+        before.selectionColor != after.selectionColor ||
+        !listEquals(before.cellOverlays, after.cellOverlays) ||
+        before.neighbors.length != after.neighbors.length ||
+        before.decorations.length != after.decorations.length ||
+        !mapEquals(before.modelSourceRevisions, after.modelSourceRevisions) ||
+        !identical(before.modelSourceUpdates, after.modelSourceUpdates) ||
+        _modelSourceRevisionPending ||
+        !identical(before.contentPreview, after.contentPreview) ||
+        !identical(before.placementPreview, after.placementPreview) ||
+        !_sameProjectOutsideModels(before.groundProject, after.groundProject))
+      return false;
+    final previous = before.models, next = after.models;
+    if (previous is! ProjectModel3dEntries || next is! ProjectModel3dEntries)
+      return false;
+    final changes = next.changesSince(previous);
+    if (changes == null || changes.isEmpty) return false;
+    bool projectMatches(ProjectManifest? old, ProjectManifest? updated) =>
+        identical(old, updated) ||
+        identical(old, before.groundProject) &&
+            identical(updated, after.groundProject);
+    for (final (index, neighbor) in before.neighbors.indexed) {
+      final updated = after.neighbors[index];
+      if (!identical(neighbor.map, updated.map) ||
+          neighbor.offset != updated.offset ||
+          !projectMatches(neighbor.project, updated.project))
+        return false;
+    }
+    for (final (index, decoration) in before.decorations.indexed) {
+      final updated = after.decorations[index];
+      if (decoration.decoration != updated.decoration ||
+          decoration.ownerMapId != updated.ownerMapId ||
+          decoration.offset != updated.offset ||
+          !projectMatches(decoration.project, updated.project))
+        return false;
+    }
+    for (final model in changes) {
+      final old = previous.lookup(model.id)!;
+      if (old.copyWith(light: model.light, clearLight: model.light == null) !=
+          model)
+        return false;
+    }
+    final affected = <_SceneModelComponent, bool>{};
+    final decorationMaps = <String>{};
+    for (final model in changes) {
+      for (final dependent
+          in _modelSourceDependents[model.sourceAssetId] ??
+              const <_ModelSourceDependent>[]) {
+        if (dependent.instance.modelId != model.id) continue;
+        final component =
+            dependent.chunk.models[dependent.instance.id]!.component;
+        component.definition = model;
+        affected[component] = dependent.decoration;
+        if (dependent.decoration) decorationMaps.add(dependent.mapId);
+      }
+    }
+    List<({Model3dPointLight definition, _SceneModelComponent component})>
+    update(
+      List<({Model3dPointLight definition, _SceneModelComponent component})>
+      lights,
+      bool decoration,
+    ) => [
+      for (final light in lights)
+        if (!affected.containsKey(light.component)) light,
+      for (final entry in affected.entries)
+        if (entry.value == decoration && entry.key.sourceGeometryVisible)
+          if (entry.key.definition.light case final light?)
+            (definition: light, component: entry.key),
+    ];
+    pointLightBindings = update(pointLightBindings, false);
+    decorationPointLights = update(decorationPointLights, true);
+    for (final id in decorationMaps) {
+      final old = _decorationMaterializations[id];
+      if (old == null) continue;
+      _decorationMaterializations[id] = (
+        chunk: old.chunk,
+        sourceAssetIds: old.sourceAssetIds,
+        casters: old.casters,
+        lights: [
+          for (final light in decorationPointLights)
+            if (old.chunk.models.values.any(
+              (model) => identical(model.component, light.component),
+            ))
+              light,
+        ],
+      );
+    }
+    renderedConfiguration = after;
+    syncLighting();
+    return true;
+  }
+
   void _bindModelSourceUpdates() {
     final updates = configuration.modelSourceUpdates;
     if (identical(updates, _modelSourceUpdates)) return;

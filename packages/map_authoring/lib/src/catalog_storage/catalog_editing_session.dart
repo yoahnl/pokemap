@@ -1547,7 +1547,7 @@ final class CatalogEditingSession {
 
   Future<void> _requireAdmission(CatalogObjectReference expected,
       {String? ownOperationId}) async {
-    for (final journal in await store.gateway.listJournals()) {
+    for (final journal in await readPendingTransactionJournals(store.gateway)) {
       if (journal.operationId != ownOperationId &&
           journal.entries.any((entry) =>
               entry.storageKey == CatalogStorageStore.headStorageKey)) {

@@ -19,7 +19,8 @@ final class LocalTransactionFileGateway
     implements
         TransactionFileGateway,
         StreamingTransactionFileGateway,
-        TransactionStagedArtifactProbe {
+        TransactionStagedArtifactProbe,
+        PendingTransactionJournalGateway {
   LocalTransactionFileGateway._(
     this._projectRoot,
     this._performanceObserver,
@@ -82,10 +83,39 @@ final class LocalTransactionFileGateway
       performanceObserver: _performanceObserver,
       transactionNamespace: namespace);
 
+  static final _writeLockZoneKey = Object();
+
   @override
-  Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) =>
-      withLocalProjectWriteQueue(
-          _projectRoot, () => _withFilesystemWriteLock(operation));
+  Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) {
+    final inherited = Zone.current[_writeLockZoneKey];
+    if (inherited is _ProjectWriteLockLease &&
+        inherited.active &&
+        inherited.projectRoot == _projectRoot) {
+      return operation();
+    }
+    return withLocalProjectWriteQueue(_projectRoot, () {
+      final lease = _ProjectWriteLockLease(_projectRoot);
+      return runZoned(() async {
+        try {
+          return await _withFilesystemWriteLock(() async {
+            lease.active = true;
+            try {
+              return await operation();
+            } finally {
+              lease.active = false;
+            }
+          });
+        } finally {
+          lease.active = false;
+        }
+      }, zoneValues: {_writeLockZoneKey: lease});
+    });
+  }
+
+  Future<T> _withPendingJournalWrite<T>(Future<T> Function() operation) =>
+      withExclusiveWriteLock(() => withLocalProjectWriteQueue(
+          '$_projectRoot#pending-journals#${_transactionNamespace ?? ''}',
+          operation));
 
   Future<T> _withFilesystemWriteLock<T>(Future<T> Function() operation) async {
     late final RandomAccessFile lock;
@@ -421,27 +451,36 @@ final class LocalTransactionFileGateway
 
   @override
   Future<void> writeJournal(AuthoringTransactionJournal journal) {
-    _performanceObserver?.incrementCounter(
-      AuthoringPerformanceCounterName.filesystemWrite,
-    );
-    _performanceObserver?.incrementCounter(
-      AuthoringPerformanceCounterName.jsonEncode,
-    );
-    return _guardIo(() async {
-      final directory = await _operationDirectory(
-        journal.operationId,
-        create: true,
-      );
-      await _writeAtomic(
-        File(_join(directory.path, 'journal.json')),
-        utf8.encode(jsonEncode(journal.toJson())),
-        suffix: 'journal',
-        counterName: AuthoringPerformanceCounterName
-            .gatewayJournalCompletedWriteInputBytes,
-      );
-      _performanceObserver?.incrementCounter(
-          AuthoringPerformanceCounterName.journalCompletedWrites);
-    });
+    _performanceObserver
+        ?.incrementCounter(AuthoringPerformanceCounterName.filesystemWrite);
+    _performanceObserver
+        ?.incrementCounter(AuthoringPerformanceCounterName.jsonEncode);
+    return _withPendingJournalWrite(() => _guardIo(() async {
+          final pending = await _pendingIdsForWrite(journal.operationId);
+          final directory =
+              await _operationDirectory(journal.operationId, create: true);
+          final journalFile = File(_join(directory.path, 'journal.json'));
+          final reservation =
+              File(_join(directory.path, 'journal-reservation.json'));
+          final bytes = utf8.encode(jsonEncode(journal.toJson()));
+          if (!pending.contains(journal.operationId)) {
+            await _writeAtomic(reservation, bytes,
+                suffix: 'reserve',
+                counterName: AuthoringPerformanceCounterName
+                    .gatewayJournalCompletedWriteInputBytes);
+            pending.add(journal.operationId);
+            await _writePendingIds(pending);
+            await reservation.rename(journalFile.path);
+          } else {
+            await _writeAtomic(journalFile, bytes,
+                suffix: 'journal',
+                counterName: AuthoringPerformanceCounterName
+                    .gatewayJournalCompletedWriteInputBytes);
+            await _deleteIfExists(reservation);
+          }
+          _performanceObserver?.incrementCounter(
+              AuthoringPerformanceCounterName.journalCompletedWrites);
+        }));
   }
 
   @override
@@ -451,8 +490,17 @@ final class LocalTransactionFileGateway
     );
     return _guardIo(() async {
       final directory = await _operationDirectory(operationId, create: false);
-      final journalFile = File(_join(directory.path, 'journal.json'));
-      if (!await journalFile.exists()) return null;
+      var journalFile = File(_join(directory.path, 'journal.json'));
+      if (!await journalFile.exists()) {
+        journalFile = File(_join(directory.path, 'journal-reservation.json'));
+        if (!await journalFile.exists()) return null;
+      }
+      if (await FileSystemEntity.type(journalFile.path, followLinks: false) !=
+          FileSystemEntityType.file) {
+        throw const TransactionFileGatewayException(
+            'transaction.journal_corrupt',
+            'A transaction journal is not a safe local file.');
+      }
       try {
         _performanceObserver?.incrementCounter(
           AuthoringPerformanceCounterName.jsonDecode,
@@ -486,8 +534,11 @@ final class LocalTransactionFileGateway
       if (!await root.exists()) return journals;
       await for (final entity in root.list(followLinks: false)) {
         if (entity is! Directory) continue;
-        final operationId =
+        final name =
             entity.uri.pathSegments.where((segment) => segment.isNotEmpty).last;
+        final operationId = name.startsWith('.retiring-')
+            ? name.substring('.retiring-'.length)
+            : name;
         if (!_operationPattern.hasMatch(operationId)) continue;
         final journal = await readJournal(operationId);
         if (journal != null) journals.add(journal);
@@ -501,24 +552,160 @@ final class LocalTransactionFileGateway
 
   @override
   Future<void> deleteTransaction(String operationId) {
-    _performanceObserver?.incrementCounter(
-      AuthoringPerformanceCounterName.filesystemWrite,
-    );
-    return _guardIo(() async {
-      final directory = await _operationDirectory(operationId, create: false);
-      final type = await FileSystemEntity.type(
-        directory.path,
-        followLinks: false,
-      );
-      if (type == FileSystemEntityType.notFound) return;
-      if (type != FileSystemEntityType.directory) {
-        throw const TransactionFileGatewayException(
-          'transaction.artifact_invalid',
-          'Transaction artifacts are not a safe directory.',
-        );
+    _performanceObserver
+        ?.incrementCounter(AuthoringPerformanceCounterName.filesystemWrite);
+    return _withPendingJournalWrite(() => _guardIo(() async {
+          final safeId = _safeOperationId(operationId);
+          final root = await _ensureInternalRoot(create: false);
+          final directory = await _operationDirectory(safeId, create: false);
+          final retiredPath = _join(root.path, '.retiring-$safeId');
+          final type =
+              await FileSystemEntity.type(directory.path, followLinks: false);
+          if (type != FileSystemEntityType.notFound) {
+            if (type != FileSystemEntityType.directory) {
+              throw const TransactionFileGatewayException(
+                  'transaction.artifact_invalid',
+                  'Transaction artifacts are not a safe directory.');
+            }
+            if (directory.path != retiredPath) {
+              await directory.rename(retiredPath);
+            }
+          }
+          final pending = await _readPendingIds();
+          if (pending != null && pending.remove(safeId)) {
+            await _writePendingIds(pending);
+          }
+          final retired = Directory(retiredPath);
+          if (await retired.exists()) await retired.delete(recursive: true);
+        }));
+  }
+
+  @override
+  Future<void> preparePendingJournalIndex() =>
+      _withPendingJournalWrite(() async {
+        if (await _readPendingIds() != null) return;
+        final ids = <String>{};
+        for (final journal in await listJournals()) {
+          ids.add(journal.operationId);
+        }
+        await _writePendingIds(ids);
+      });
+
+  @override
+  Future<List<AuthoringTransactionJournal>> listPendingJournals() =>
+      _guardIo(() async {
+        final pending = await _readPendingIds();
+        if (pending == null) {
+          await _requireNoLegacyJournals();
+          return const [];
+        }
+        if (pending.isEmpty) return const [];
+        final journals = <AuthoringTransactionJournal>[];
+        for (final id in pending.toList()..sort()) {
+          final journal = await readJournal(id);
+          if (journal == null) {
+            throw const TransactionFileGatewayException(
+                'transaction.pending_journal_missing',
+                'A reserved transaction has no durable journal or reservation. Restore a verified recoverable copy before retrying; existing data are preserved.');
+          }
+          journals.add(journal);
+        }
+        final observed = await _readPendingIds();
+        if (observed == null ||
+            observed.length != pending.length ||
+            !observed.containsAll(pending)) {
+          throw const TransactionFileGatewayException(
+              'transaction.pending_journals_changed',
+              'Pending transactions changed while being inspected. Retry the read.');
+        }
+        return List.unmodifiable(journals);
+      });
+
+  Future<Set<String>?> _readPendingIds() async {
+    final root = await _ensureInternalRoot(create: false);
+    final file = File(_join(root.path, 'pending-journals.json'));
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type == FileSystemEntityType.notFound) return null;
+    if (type != FileSystemEntityType.file ||
+        await file.length() > 1024 * 1024) {
+      throw const TransactionFileGatewayException(
+          'transaction.pending_index_invalid',
+          'The pending transaction index is not a safe bounded document.');
+    }
+    _performanceObserver
+        ?.incrementCounter(AuthoringPerformanceCounterName.filesystemRead);
+    _performanceObserver
+        ?.incrementCounter(AuthoringPerformanceCounterName.jsonDecode);
+    try {
+      final json = jsonDecode(await file.readAsString());
+      if (json is! Map ||
+          json.length != 2 ||
+          json['schemaVersion'] != 1 ||
+          json['operationIds'] is! List) {
+        throw const FormatException();
       }
-      await directory.delete(recursive: true);
-    });
+      final values = json['operationIds'] as List;
+      if (values.any((id) =>
+              id is! String ||
+              id.length > 120 ||
+              id.trim() != id ||
+              !_operationPattern.hasMatch(id)) ||
+          values.toSet().length != values.length) {
+        throw const FormatException();
+      }
+      return values.cast<String>().toSet();
+    } catch (_) {
+      throw const TransactionFileGatewayException(
+          'transaction.pending_index_invalid',
+          'The pending transaction index failed strict verification.');
+    }
+  }
+
+  Future<void> _requireNoLegacyJournals({String? ownOperationId}) async {
+    final root = await _ensureInternalRoot(create: false);
+    if (!await root.exists()) return;
+    await for (final entity in root.list(followLinks: false)) {
+      if (entity is! Directory) continue;
+      final name =
+          entity.uri.pathSegments.where((segment) => segment.isNotEmpty).last;
+      final id = name.startsWith('.retiring-')
+          ? name.substring('.retiring-'.length)
+          : name;
+      if (!_operationPattern.hasMatch(id) || id == ownOperationId) continue;
+      if (await File(_join(entity.path, 'journal.json')).exists() ||
+          await File(_join(entity.path, 'journal-reservation.json')).exists()) {
+        throw const TransactionFileGatewayException(
+            'transaction.pending_index_preparation_required',
+            'Prepare legacy transaction journals explicitly before local editing.');
+      }
+    }
+  }
+
+  Future<Set<String>> _pendingIdsForWrite(String operationId) async {
+    final existing = await _readPendingIds();
+    if (existing != null) return existing;
+    await _requireNoLegacyJournals(ownOperationId: operationId);
+    await _writePendingIds({});
+    return {};
+  }
+
+  Future<void> _writePendingIds(Set<String> ids) async {
+    final bytes = utf8.encode(
+        jsonEncode({'schemaVersion': 1, 'operationIds': ids.toList()..sort()}));
+    if (bytes.length > 1024 * 1024) {
+      throw const TransactionFileGatewayException(
+          'transaction.pending_index_capacity',
+          'The pending transaction index exceeds its 1 MiB limit. Reconcile and retire finalized transactions explicitly before retrying; existing journals are preserved.');
+    }
+    final root = await _ensureInternalRoot(create: true);
+    _performanceObserver
+        ?.incrementCounter(AuthoringPerformanceCounterName.filesystemWrite);
+    _performanceObserver
+        ?.incrementCounter(AuthoringPerformanceCounterName.jsonEncode);
+    await _writeAtomic(File(_join(root.path, 'pending-journals.json')), bytes,
+        suffix: 'pending',
+        counterName: AuthoringPerformanceCounterName
+            .gatewayDescriptorCompletedWriteInputBytes);
   }
 
   Future<Directory> _ensureInternalRoot(
@@ -545,26 +732,33 @@ final class LocalTransactionFileGateway
     return current;
   }
 
-  Future<Directory> _operationDirectory(
-    String operationId, {
-    required bool create,
-  }) async {
+  Future<Directory> _operationDirectory(String operationId,
+      {required bool create}) async {
     final safeId = _safeOperationId(operationId);
     final root = await _ensureInternalRoot(create: create);
     final directory = Directory(_join(root.path, safeId));
-    final type = await FileSystemEntity.type(
-      directory.path,
-      followLinks: false,
-    );
+    final retired = Directory(_join(root.path, '.retiring-$safeId'));
+    final type =
+        await FileSystemEntity.type(directory.path, followLinks: false);
+    final retiredType =
+        await FileSystemEntity.type(retired.path, followLinks: false);
+    if (retiredType != FileSystemEntityType.notFound) {
+      if (retiredType != FileSystemEntityType.directory ||
+          type != FileSystemEntityType.notFound) {
+        throw const TransactionFileGatewayException(
+            'transaction.artifact_invalid',
+            'Transaction retirement is not a safe unique directory.');
+      }
+      return retired;
+    }
     if (type == FileSystemEntityType.notFound) {
       if (create) await directory.create();
       return directory;
     }
     if (type != FileSystemEntityType.directory) {
       throw const TransactionFileGatewayException(
-        'transaction.artifact_invalid',
-        'Transaction artifacts are not a safe directory.',
-      );
+          'transaction.artifact_invalid',
+          'Transaction artifacts are not a safe directory.');
     }
     return directory;
   }
@@ -722,8 +916,7 @@ final class LocalTransactionFileGateway
       final verified = source!;
       if (verified.byteLength != byteLength) {
         await verified.release();
-        throw const TransactionFileGatewayException(
-            'transaction.stage_corrupt',
+        throw const TransactionFileGatewayException('transaction.stage_corrupt',
             'The staged payload length differs from its descriptor.');
       }
       return verified;
@@ -876,4 +1069,10 @@ Future<T> withLocalProjectWriteQueue<T>(
       _projectWriters.remove(canonicalProjectRoot);
     }
   }
+}
+
+final class _ProjectWriteLockLease {
+  _ProjectWriteLockLease(this.projectRoot);
+  final String projectRoot;
+  bool active = false;
 }

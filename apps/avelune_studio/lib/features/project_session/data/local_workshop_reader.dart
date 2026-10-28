@@ -34,6 +34,7 @@ final class LocalWorkshopReader {
       fileReader: reader,
       handles: handles,
       catalogMetadataFields: metadataFields,
+      workshopScope: true,
     );
     final opened = await opener.openProject(session.directoryPath);
     try {
@@ -64,14 +65,29 @@ final class LocalWorkshopReader {
       }
 
       return catalog == null
-          ? await run(
-              ProjectManifest.fromJson(
-                jsonDecode(utf8.decode(descriptor)) as Map<String, dynamic>,
-              ),
-            )
+          ? await run(_nativeProjection(descriptor, metadataFields))
           : await catalog.read((catalog) => run(catalog.projectMetadata));
     } finally {
       opener.closeWorkspace(opened.workspaceHandle);
     }
   }
+}
+
+ProjectManifest _nativeProjection(
+  List<int> descriptor,
+  Set<String> metadataFields,
+) {
+  final decoded = jsonDecode(utf8.decode(descriptor)) as Map<String, dynamic>;
+  return ProjectManifest.fromJson({
+    'name': decoded['name'],
+    'version': decoded['version'] ?? 'v8',
+    'maps': const [],
+    'tilesets': const [],
+    if (decoded.containsKey('settings')) 'settings': decoded['settings'],
+    'pokemon': decoded['pokemon'] is Map
+        ? {'ruleset': (decoded['pokemon'] as Map)['ruleset']}
+        : decoded['pokemon'],
+    for (final field in metadataFields)
+      if (decoded.containsKey(field)) field: decoded[field],
+  });
 }

@@ -169,11 +169,13 @@ test("native catalog light workshop is bounded, discoverable and durable over MC
     const action = (described.mutationActions as JsonRecord[]).find(v => v.id === "model3d.configure");
     const schema = record(record(record(action!.extensions).inputSchema).properties);
     assert.ok(record(record(schema.light).properties).colorCycle);
+    assert.ok(record(record(schema.light).properties).flame);
     const opened = await call("pokemap_workspace", {operation: "open", projectRoot: root});
     await call("pokemap_workshop", {operation: "prepare", projectHandle: opened.projectHandle});
     const light = {localPosition: {x: .2, y: 2.1, z: -.1}, radius: 5, intensity: .8, colorRgb: 0xbddfff,
       nightOnly: true, colorCycle: {colors: [0xbddfff,0xf2c8e5], periodSeconds: 8},
-      proximity: {mode: "near", enterDistance: 3, exitDistance: 4, fadeSeconds: .35}};
+      proximity: {mode: "near", enterDistance: 3, exitDistance: 4, fadeSeconds: .35},
+      flame: {height: .3, flicker: .1, style: "brazier", embers: .75, crackleVolume: .65}};
     for (const [index, value] of [light, null, light].entries()) {
       const parameters = {modelId: "lamp", light: value};
       const snapshot = await call("pokemap_workshop", {operation: "read", projectHandle: opened.projectHandle,

@@ -182,7 +182,7 @@ final class RuntimeMusicService {
       _interruptionEnvelope = _musicEffects.isEmpty ? 1 : 0;
       final handle = await _driver.play(
         path,
-        volume: _mixer.mix.volumeFor(
+        volume: _mixer.volumeFor(
           _desiredRoute,
           sourceVolume: _desiredVolume * _interruptionEnvelope,
         ),

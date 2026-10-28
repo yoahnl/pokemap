@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 enum FieldAbilityGateStatus {
   unsupported,
+  disabled,
   missingMove,
   locked,
   usable,
@@ -19,9 +20,13 @@ FieldAbilityGateResult evaluateFieldAbilityGate({
   required Set<FieldAbility> supportedAbilities,
   required Set<FieldAbility> unlockedFieldAbilities,
   required PlayerParty party,
+  ProjectSettings? projectSettings,
 }) {
   if (!supportedAbilities.contains(ability)) {
     return const FieldAbilityGateResult._(FieldAbilityGateStatus.unsupported);
+  }
+  if (projectSettings != null && !isProjectFieldAbilityEnabled(projectSettings, ability)) {
+    return const FieldAbilityGateResult._(FieldAbilityGateStatus.disabled);
   }
   final partyIndex = _usableFieldMovePartyIndex(party, ability);
   if (partyIndex == null) {

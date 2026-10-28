@@ -102,8 +102,8 @@ void main() {
       }
     });
   }
-  for (final (cycleEnabled, lampEnabled) in [(false, false), (true, false), (false, true), (true, true)]) {
-    test('lighting export derives cycle $cycleEnabled and placed lamp $lampEnabled without source mutation', () async {
+  for (final (cycleEnabled, lampEnabled, flameEnabled) in [(false, false, false), (true, false, false), (false, true, false), (true, true, false), (false, true, true)]) {
+    test('lighting export derives cycle $cycleEnabled, placed lamp $lampEnabled and flame $flameEnabled without source mutation', () async {
       final root = await Directory.systemTemp.createTemp('lighting-feature-export-');
       addTearDown(() => root.delete(recursive: true));
       final files = spatialPayload();
@@ -111,7 +111,8 @@ void main() {
       final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
       files['project/project.json'] = utf8.encode(jsonEncode(project.copyWith(models3d: [
         for (final model in project.models3d) model.copyWith(light: lampEnabled
-          ? Model3dPointLight(localPosition: Model3dVector3(x: 0, y: 2.25, z: 0)) : null),
+          ? Model3dPointLight(localPosition: Model3dVector3(x: 0, y: 2.25, z: 0),
+              flame: flameEnabled ? ModelLightFlame(crackleVolume: .65) : null) : null),
       ]).toJson()));
       files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(spatialScene:
         map.spatialScene!.copyWith(dayNightCycle: cycleEnabled ? SpatialDayNightCycle() : null)).toJson()));
@@ -129,6 +130,8 @@ void main() {
       final capabilities = result.manifest.compatibility.requiredCapabilities;
       expect(capabilities.contains(SpatialSceneLightingCapabilities.dayNightCapabilityId), cycleEnabled);
       expect(capabilities.contains(SpatialSceneLightingCapabilities.pointLightCapabilityId), lampEnabled);
+      expect(capabilities.contains(SpatialLightWorkshopCapabilities.flameCapabilityId), flameEnabled);
+      expect(capabilities.contains(SpatialLightWorkshopCapabilities.crackleCapabilityId), flameEnabled);
       expect(await File('${root.path}/project.json').readAsBytes(), beforeProject);
       expect(await File('${root.path}/maps/map.json').readAsBytes(), beforeMap);
     });

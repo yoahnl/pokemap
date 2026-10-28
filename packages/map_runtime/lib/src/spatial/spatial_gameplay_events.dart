@@ -621,6 +621,7 @@ final class SpatialGameplayEvents {
     const height = PlayerCollisionConventionsV1.defaultSpriteHeightPx;
     final player = GameplayPlayerState(
       pos: state.playerPosition,
+      movementMode: state.playerMovementMode,
       facing: state.playerFacing.asDirection,
       playerPositionPx: PixelPosition(
         leftPx: (position.x * settings.tileWidth).floor() - width ~/ 2,

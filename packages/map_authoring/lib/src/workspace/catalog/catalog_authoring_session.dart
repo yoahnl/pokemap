@@ -1,3 +1,4 @@
+import '../../ports/transaction_file_gateway.dart';
 import '../../references/exterior_decoration_references.dart';
 import 'dart:convert';
 
@@ -389,6 +390,7 @@ final class CatalogAuthoringSession {
 
   Future<void> prepareWorkshopCatalog({String? scope}) async {
     _authorize(AuthoringSecurityOperation.plan);
+    await preparePendingTransactionJournals(reader.store.gateway);
     if (scope == 'assetImport' || scope == 'nativeResources') {
       await (await _editing()).prepareAssetImport(nativeResources: scope == 'nativeResources');
       return;

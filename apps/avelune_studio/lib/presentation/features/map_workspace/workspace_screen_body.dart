@@ -187,6 +187,11 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   key: ValueKey(_controller.session.sessionId),
                                   workspace: _controller,
                                   owner: _visualOwner,
+                                  surfOwner: _surfOwner,
+                                  csOwner: _csOwner,
+                                  audioOwner: _audioOwner,
+                                  pickMedia: widget.presentationMediaPicker,
+                                  loadItems: _loadSceneItems,
                                   testBuilder: widget.visualTestBuilder,
                                 )
                               : _space == WorkspaceSpace.regionalMap &&

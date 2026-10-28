@@ -206,6 +206,10 @@ final class CharacterStudioResourceProjector {
 }
 
 const List<Map<String, Object?>> _systemAnimationDefinitions = [
+  {'id': 'surf_idle', 'displayName': 'Surf au repos', 'mode': 'directional', 'sortOrder': 6, 'system': true, 'state': 'surf_idle'},
+  {'id': 'surf', 'displayName': 'Surf', 'mode': 'directional', 'sortOrder': 7, 'system': true, 'state': 'surf'},
+  {'id': 'surf_enter', 'displayName': 'Entrée dans l’eau', 'mode': 'directional', 'sortOrder': 8, 'system': true, 'state': 'surf_enter'},
+  {'id': 'surf_exit', 'displayName': 'Sortie de l’eau', 'mode': 'directional', 'sortOrder': 9, 'system': true, 'state': 'surf_exit'},
   <String, Object?>{
     'id': 'bicycle_idle', 'displayName': 'Vélo au repos',
     'mode': 'directional', 'sortOrder': 3, 'system': true, 'state': 'bicycle_idle',
@@ -282,6 +286,10 @@ Map<String, Object?> _coverage(
     'runDefined': systemCount(CharacterAnimationState.run),
     'bicycleIdleDefined': systemCount(CharacterAnimationState.bicycleIdle),
     'bicycleDefined': systemCount(CharacterAnimationState.bicycle),
+    'surfIdleDefined': systemCount(CharacterAnimationState.surfIdle),
+    'surfDefined': systemCount(CharacterAnimationState.surf),
+    'surfEnterDefined': systemCount(CharacterAnimationState.surfEnter),
+    'surfExitDefined': systemCount(CharacterAnimationState.surfExit),
     'runRequired': EntityFacing.values.length,
     'customDefined': customDefined,
     'customRequired': customDefinitions.length,

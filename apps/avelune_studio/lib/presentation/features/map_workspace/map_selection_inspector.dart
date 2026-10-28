@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/characters/application/character_editing_commands.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_editing_commands.dart';
@@ -9,6 +10,7 @@ import '../../../features/map_workspace/application/map_entity_editing_commands.
 import '../../../features/map_workspace/application/trigger_editing_commands.dart';
 import '../../../features/map_workspace/application/warp_editing_commands.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../characters/character_inspector.dart';
 import 'map_marker_inspector.dart';
@@ -59,7 +61,35 @@ class MapSelectionInspector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (view.tool == StudioMapTool.connection &&
+    final exterior = document.exteriorDecoration;
+    if (exterior == null) return _buildInspector(context, document);
+    return ListenableBuilder(
+      listenable: exterior,
+      builder: (context, _) {
+        if (!exterior.editingExterior) {
+          return _buildInspector(context, document);
+        }
+        final target = exterior.editingDocument;
+        if (target == null) {
+          return StudioSidebar(
+            width: width,
+            child: const StudioNotice(
+              'Cliquez dans le décor extérieur pour sélectionner une zone à éditer.',
+            ),
+          );
+        }
+        return _buildInspector(context, target, visualOnly: true);
+      },
+    );
+  }
+
+  Widget _buildInspector(
+    BuildContext context,
+    EditableMapDocument document, {
+    bool visualOnly = false,
+  }) {
+    if (!visualOnly &&
+        view.tool == StudioMapTool.connection &&
         onLinkMaps != null &&
         onUnlinkMaps != null) {
       return StudioSidebar(
@@ -79,6 +109,7 @@ class MapSelectionInspector extends StatelessWidget {
         (view.tool == StudioMapTool.erase &&
             (view.terrain != null || document.current.spatialScene != null))) {
       return MapTerrainInspector(
+        key: ObjectKey(document),
         document: document,
         project: project,
         view: view,
@@ -221,7 +252,8 @@ class MapSelectionInspector extends StatelessWidget {
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(12),
                       child: MapMarkerInspector(
-                        elementPreview: (element) => visuals.thumbnail(element, size: 64),
+                        elementPreview: (element) =>
+                            visuals.thumbnail(element, size: 64),
                         document: document,
                         project: project,
                         entity: marker,
@@ -303,6 +335,7 @@ class MapSelectionInspector extends StatelessWidget {
                     ),
                   )
                 : MapDecorInspectorTabs(
+                    key: ObjectKey(document),
                     project: project,
                     document: document,
                     visuals: visuals,
@@ -310,9 +343,9 @@ class MapSelectionInspector extends StatelessWidget {
                     onChanged: onChanged,
                     onOpenResource: onOpenElement,
                     onEditResource: onEditElement,
-                    onRenameMap: onRenameMap,
-                    onEscapeSettings: onEscapeSettings,
-                    onEventSource: onEventSource,
+                    onRenameMap: visualOnly ? null : onRenameMap,
+                    onEscapeSettings: visualOnly ? null : onEscapeSettings,
+                    onEventSource: visualOnly ? null : onEventSource,
                     width: width,
                   ),
           ),

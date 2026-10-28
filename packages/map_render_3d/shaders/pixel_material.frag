@@ -175,11 +175,45 @@ float shadowVisibility(vec3 samplePosition, vec3 receiverNormal) {
     return visibility;
 }
 
+float flameHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float flameNoise(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(flameHash(i), flameHash(i + vec2(1.0, 0.0)), f.x), mix(flameHash(i + vec2(0.0, 1.0)), flameHash(i + vec2(1.0)), f.x), f.y);
+}
+float flameFbm(vec2 p) {
+    float n = 0.0, a = 0.5;
+    for (int i = 0; i < 4; i++) {
+        n += a * flameNoise(p);
+        p = mat2(1.6, 1.2, -1.2, 1.6) * p + 13.7;
+        a *= 0.5;
+    }
+    return n;
+}
+vec4 brazierFlame(vec2 uv, float t) {
+    float y = uv.y;
+    float x = (uv.x - 0.5) * 2.0;
+    float curl = flameFbm(vec2(x * 2.2, y * 4.0 - t * 1.5));
+    x += (curl - 0.46) * 0.52 * y + sin(t * 2.0 + y * 4.0) * 0.16 * y;
+    float turbulence = flameFbm(vec2(x * 3.7, y * 5.5 - t * 2.8));
+    float width = 0.82 * pow(max(1.0 - y, 0.0), 0.68);
+    float density = 1.0 - abs(x) / max(width, 0.025) - y * 0.57 + (turbulence - 0.43) * (0.40 + 0.75 * y);
+    float alpha = smoothstep(0.02, 0.29, density) * smoothstep(0.0, 0.13, y) * (1.0 - smoothstep(0.78, 1.0, y)) * 0.88;
+    float hot = clamp(1.0 - y * 0.90 - abs(x) * 0.42 + (turbulence - 0.5) * 0.24, 0.0, 1.0);
+    vec3 color = mix(vec3(0.88, 0.075, 0.008), vec3(1.0, 0.66, 0.10), smoothstep(0.18, 0.90, hot));
+    color = mix(color, vec3(1.0, 0.88, 0.46), smoothstep(0.84, 1.0, hot) * 0.72);
+    return vec4(color, alpha);
+}
+
 void main() {
     vec3 receiverNormal = cross(dFdx(fragPosition), dFdy(fragPosition));
     receiverNormal = dot(receiverNormal, receiverNormal) > 0.000000000001 ? normalize(receiverNormal) : vec3(0.0, 1.0, 0.0);
     if (environment.samplePosition.w > 0.5) receiverNormal = vec3(0.0, 1.0, 0.0);
     vec4 color = samplePixelColor();
+    if (material.alphaMode == 5.0) {
+        color = brazierFlame(fragTexCoord, atmosphere.options.y);
+        if (color.a < 0.008) discard;
+    }
     outColor = color * material.albedoColor * (material.alphaMode == 4.0 ? vec4(1.0) : fragColor);
     if (material.alphaMode == 0.0 && color.a < material.alphaCutoff) discard;
     if (material.alphaMode == 2.0 && outColor.a < material.alphaCutoff) discard;
@@ -274,7 +308,7 @@ void main() {
     }
     if (material.alphaMode == 0.0) {
         outColor.rgb *= material.albedoColor.a * fragColor.a;
-    } else if (material.alphaMode == 3.0) {
+    } else if (material.alphaMode == 3.0 || material.alphaMode == 5.0) {
         outColor.rgb *= outColor.a;
     } else if (material.alphaMode != 4.0) {
         outColor.a = 1.0;

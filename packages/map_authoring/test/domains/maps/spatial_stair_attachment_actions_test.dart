@@ -10,6 +10,121 @@ import '../../support/glb_fixture.dart';
 
 void main() {
   test(
+      'navigation attachment preserves its owner pose through direct and JSONL while supported props follow',
+      () async {
+    for (final direct in [false, true]) {
+      final host = await stairFixture(ProjectManifest(
+          name: 'Attach authored stair',
+          maps: [],
+          tilesets: [],
+          version: ProjectVersion.v9,
+          settings: ProjectSettings(
+              dimension: ProjectDimension.threeD,
+              spatialCamera: SpatialCameraProfile())));
+      addTearDown(host.dispose);
+      final modelFile = File('${host.root.path}/stair.glb');
+      await modelFile.writeAsBytes(triangleGlb());
+      final staged =
+          await host.command('stage_artifact', {'sourcePath': modelFile.path});
+      await host.mutate('model3d.import', {
+        'modelId': 'stairs',
+        'name': 'Escalier complet',
+        'artifactHandle': staged.data['artifactHandle']
+      });
+      final manifest = await host.read();
+      final stair = SpatialModelInstance(
+          id: 'stairs_a',
+          modelId: 'stairs',
+          position: Model3dVector3(x: 3.5, y: 1, z: 5),
+          blocksMovement: false);
+      final prop = SpatialModelInstance(
+          id: 'supported_prop',
+          modelId: 'stairs',
+          position: Model3dVector3(x: 3.5, y: 1, z: 5),
+          blocksMovement: false);
+      final source = MapData(
+          id: 'map',
+          name: 'Map',
+          version: ProjectVersion.v9,
+          size: const GridSize(width: 12, height: 12),
+          spatialScene: MapSpatialScene(
+              width: 12,
+              depth: 12,
+              heightLevels: List.filled(144, 1),
+              instances: [stair, prop]));
+      final file = File('${host.root.path}/maps/map.json');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(source.toJson()));
+      await File('${host.root.path}/project.json')
+          .writeAsString(jsonEncode(manifest.copyWith(maps: [
+        const ProjectMapEntry(
+            id: 'map', name: 'Map', relativePath: 'maps/map.json'),
+      ]).toJson()));
+      final navigation = SpatialNavigationProfile(ramps: [
+        SpatialRamp(
+            id: 'stair-surface',
+            x: 3,
+            z: 4,
+            width: 1,
+            depth: 2,
+            lowLevel: 1,
+            highLevel: 3,
+            direction: SpatialRampDirection.north,
+            surfaceInstanceId: stair.id),
+      ]);
+      MapData readMap() =>
+          MapData.fromJson(jsonDecode(file.readAsStringSync()));
+      Future<void> configure(
+          SpatialNavigationProfile profile, String id) async {
+        final parameters = {'mapId': 'map', 'navigation': profile.toJson()};
+        if (direct) {
+          final snapshot =
+              await host.snapshots.load(ProjectHandle(host.project));
+          final planned = await host.mutations.plan(
+              ProjectHandle(host.project),
+              AuthoringRequest(
+                  requestId: id,
+                  actionId: 'map3d.navigation.configure',
+                  actionVersion: 1,
+                  workspaceHandle: host.workspace,
+                  expectedRevision: snapshot.revision,
+                  idempotencyKey: id,
+                  parameters: parameters));
+          await host.mutations.apply(ProjectHandle(host.project),
+              planId: planned['planId'] as String, operationId: id);
+        } else {
+          await host.mutate('map3d.navigation.configure', parameters);
+        }
+      }
+
+      await configure(navigation, 'attach');
+      final attached = readMap();
+      expect(attached.spatialScene!.instances.first, stair);
+      expect(attached.spatialScene!.instances.last.position.y, 2);
+      expect(attached.spatialScene!.navigation, navigation);
+      final repeated = await host.plan('map3d.navigation.configure',
+          {'mapId': 'map', 'navigation': navigation.toJson()});
+      expect(repeated.status, AuthoringResultStatus.failure);
+      expect(repeated.error!.details['domainCode'], 'map.no_change');
+      expect(readMap(), attached);
+      await configure(SpatialNavigationProfile(), 'remove');
+      expect(readMap().spatialScene!.instances, [stair, prop]);
+      expect(readMap().spatialScene!.navigation.ramps, isEmpty);
+      final history =
+          await host.mutations.history(ProjectHandle(host.project), limit: 1);
+      await host.mutations.undo(ProjectHandle(host.project),
+          entryId: (history['entries'] as List).single['entryId'] as String,
+          idempotencyKey: 'undo-remove');
+      expect(readMap(), attached);
+      await host.command('close', {'projectHandle': host.project});
+      final reopened =
+          await host.command('open', {'projectRoot': host.root.path});
+      final handle = ProjectHandle(reopened.data['projectHandle'] as String);
+      expect((await host.snapshots.load(handle)).maps.single, attached);
+      await host.command('close', {'projectHandle': handle.value});
+    }
+  });
+  test(
       'stair profiles configure through JSONL then attach move delete undo and reopen',
       () async {
     final manifest = ProjectManifest(

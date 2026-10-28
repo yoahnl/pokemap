@@ -25,28 +25,130 @@ import '../presentation/flame/dialogue_overlay_component.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import '../presentation/flame/flame_narrative_sound_playback_adapter.dart';
 import '../player/runtime_music_service.dart';
+import '../player/runtime_project_audio_controller.dart';
 import '../player/runtime_graphics_preferences.dart';
 import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_cinematic_emote_visuals.dart';
 import 'spatial_smart_tile_animation_controller.dart';
+import 'spatial_surf_water.dart';
+import '../application/field_move_dialogue.dart';
 
 final class SpatialExplorationSession {
   SpatialExplorationSession._(this.bundle, this.character, this.movement,
     this._assets,
     this._ownsAssets,
     this._knownMaps,
-  ) : _smartTileAnimations = SpatialSmartTileAnimationController(
+  ) : _surfMode = movement.movementMode,
+      _smartTileAnimations = SpatialSmartTileAnimationController(
         map: bundle.map,
         project: bundle.manifest,
       );
   SpatialSmartTileAnimationController _smartTileAnimations;
   RuntimeMapBundle bundle;
+  RuntimeProjectAudioController? projectAudio;
   RealWeatherService? realWeather;
   bool realWeatherAllowed = false;
   WorldEnvironmentClock environmentClock = WorldEnvironmentClock(now: DateTime.now);
   ProjectCharacterEntry character;
   SpatialMovementController movement;
+  final _surfWaterMaps = Expando<SpatialSurfWater>();
+  SpatialSurfWater get surfWater => _surfWaterMaps[bundle.map] ??=
+      SpatialSurfWater.fromMap(bundle.map);
+  VoidCallback? _surfConfirmation;
+  MovementMode _surfMode;
+  CharacterAnimationState? _surfTransition;
+  double _surfAnimationSeconds = 0;
+  GridPos? _surfEntryTarget;
+  double _surfEntryElapsed = 0;
+  bool get surfTransitionActive => _surfTransition != null || _surfEntryTarget != null;
+  bool get _surfClipActive => _surfTransition != null;
+
+  void _resetSurfPresentation() {
+    _surfMode = movement.movementMode;
+    _surfTransition = null;
+    _surfEntryTarget = null;
+    _surfAnimationSeconds = 0;
+  }
+
+  void beginSurf(GridPos target) {
+    if (surfTarget != target) {
+      return;
+    }
+    movement.movementMode = MovementMode.surf;
+    _surfEntryTarget = target;
+    _surfEntryElapsed = 0;
+  }
+
+  void _updateSurfEntry(double dt) {
+    final target = _surfEntryTarget;
+    if (target == null || presentationPaused || interactionActive.value ||
+        transitioning.value || storyInputLocked || _surfClipActive || movement.paused) {
+      return;
+    }
+    if (surfWater.contains(movement.x, movement.z)) {
+      _surfEntryTarget = null;
+      movement.releaseInput();
+      return;
+    }
+    if (dt.isFinite && dt > 0) {
+      _surfEntryElapsed += dt.clamp(0.0, .05);
+    }
+    if (_surfEntryElapsed > 2 / movement.surfSpeedCellsPerSecond + .25 ||
+        movement.bumpedCell != null) {
+      _surfEntryTarget = null;
+      movement.movementMode = MovementMode.walk;
+      movement.releaseInput();
+      return;
+    }
+    movement.setInput(x: (target.x + .5 - movement.x).sign.toInt(),
+      z: (target.y + .5 - movement.z).sign.toInt());
+  }
+
+  void _updateSurfTransition(double dt) {
+    if (_surfMode != movement.movementMode) {
+      final next = movement.movementMode == MovementMode.surf
+          ? CharacterAnimationState.surfEnter : CharacterAnimationState.surfExit;
+      unawaited(projectAudio?.play(movement.movementMode == MovementMode.surf
+          ? ProjectSoundCue.surfEnter : ProjectSoundCue.surfExit));
+      _surfMode = movement.movementMode;
+      _surfAnimationSeconds = 0;
+      _surfTransition = character.animations.any((clip) =>
+          clip.state == next && clip.direction == movement.facing && clip.frames.isNotEmpty)
+          ? next : null;
+    }
+    if (_surfTransition == null || presentationPaused || interactionActive.value ||
+        transitioning.value || storyInputLocked) {
+      return;
+    }
+    final clip = character.animations.where((clip) =>
+        clip.state == _surfTransition && clip.direction == movement.facing).firstOrNull;
+    if (clip == null) {
+      _surfTransition = null;
+      return;
+    }
+    if (dt.isFinite && dt > 0) {
+      _surfAnimationSeconds += dt;
+    }
+    final duration = clip.frames.fold<int>(0, (sum, frame) => sum + frame.durationMs) / 1000;
+    if (_surfAnimationSeconds >= duration) {
+      _surfTransition = null;
+    }
+  }
+
+  GridPos? get surfTarget => bundle.manifest.settings.surf?.enabled == true &&
+      movement.movementMode != MovementMode.surf
+      ? surfWater.facingWater(movement.x, movement.z, movement.facing)
+      : null;
+
+  Future<void> promptSurf(SurfAttemptEvaluation evaluation, VoidCallback onConfirmed) async {
+    final node = surfEvaluationToYarnNode(evaluation);
+    if (node == null) return;
+    await _openDialogue(const DialogueRef(dialogueId: 'system:surf'),
+      providedSession: loadSurfDialogueSession(node),
+      onSurfConfirmed: evaluation is CanPromptSurf ? onConfirmed : null,
+    );
+  }
   final _SpatialActorAssets _assets;
   final bool _ownsAssets;
   Map<String, ui.Image> get _images => _assets.images;
@@ -530,6 +632,8 @@ final class SpatialExplorationSession {
       String Function(String)? transformText,
       List<SceneDialogueChoicePolicy> choicePolicies = const [],
     List<SceneDialogueLinePolicy> linePolicies = const [],
+    DialogueSession? providedSession,
+    VoidCallback? onSurfConfirmed,
   }) async {
     if (_disposed || interactionActive.value || transitioning.value) {
       completion?.complete(const SceneDialogueRuntimeAwaitableResult.failed(
@@ -539,13 +643,13 @@ final class SpatialExplorationSession {
       );
       return;
     }
-    final resolved = resolveDialogue(
+    final resolved = providedSession == null ? resolveDialogue(
         entityId: entity?.id ?? 'scene',
         ref: ref,
         projectRootDirectory: bundle.projectRootDirectory,
       dialogues: bundle.manifest.dialogues,
-    );
-    if (resolved == null) {
+    ) : null;
+    if (resolved == null && providedSession == null) {
       completion?.complete(const SceneDialogueRuntimeAwaitableResult.failed(
           errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
           message: 'The authored dialogue is unavailable.',
@@ -554,6 +658,7 @@ final class SpatialExplorationSession {
       return;
     }
     _dialogueCompletion = completion;
+    _surfConfirmation = onSurfConfirmed;
     _dialogueEntityId = entity?.id;
     interactionError.value = null;
     final generation = ++_interactionGeneration;
@@ -567,7 +672,7 @@ final class SpatialExplorationSession {
     movement.setPaused(true);
     interactionActive.value = true;
     try {
-      final loaded = await loadDialogueContent(resolved);
+      final loaded = providedSession ?? await loadDialogueContent(resolved!);
       if (_disposed || generation != _interactionGeneration) return;
       if (loaded == null) {
         throw StateError('Le dialogue ne peut pas être ouvert.');
@@ -664,6 +769,7 @@ final class SpatialExplorationSession {
     } else if (command is DialogueSelectChoiceCommand) {
       final state = _dialogue?.currentSession.state;
       if (state is DialogueWaitingForChoice) {
+        if (_confirmSurfChoice(command.choiceIndex)) return;
         _dialogue!.moveCursor(command.choiceIndex - state.selectedIndex);
         _dialogue!.confirmChoice();
       }
@@ -677,10 +783,20 @@ final class SpatialExplorationSession {
   void confirmDialogue() {
     if (_disposed || presentationPaused) return;
     if (_dialogue?.isShowingChoices ?? false) {
+      final state = _dialogue!.currentSession.state;
+      if (state is DialogueWaitingForChoice && _confirmSurfChoice(state.selectedIndex)) return;
       _dialogue!.confirmChoice();
     } else {
       _dialogue?.advance();
     }
+  }
+
+  bool _confirmSurfChoice(int index) {
+    final confirmed = _surfConfirmation;
+    if (confirmed == null) return false;
+    closeDialogue();
+    if (index == 0) confirmed();
+    return true;
   }
 
   void cancelDialogue() {
@@ -728,6 +844,7 @@ final class SpatialExplorationSession {
   }
 
   void _finishDialogue(SceneDialogueRuntimeAwaitableResult result) {
+    _surfConfirmation = null;
     _completeDialogue(result);
     _interactionGeneration++;
     _dialogue?.removeFromParent();
@@ -743,6 +860,7 @@ final class SpatialExplorationSession {
     GridPos? arrival,
     PlayerSpatialPosition? spatialArrival,
     EntityFacing? facing,
+    MovementMode movementMode = MovementMode.walk,
     String? characterId,
     bool Function(String mapId, MapEntity entity)? entityIsPresent,
     MapEntity? Function(String mapId, MapEntity entity)? entityProjection,
@@ -757,6 +875,7 @@ final class SpatialExplorationSession {
           arrival: arrival,
           spatialArrival: spatialArrival,
           facing: facing,
+          movementMode: movementMode,
           characterId: characterId,
           entityIsPresent: entityIsPresent,
           entityProjection: entityProjection,
@@ -771,6 +890,7 @@ final class SpatialExplorationSession {
     GridPos? arrival,
     PlayerSpatialPosition? spatialArrival,
     EntityFacing? facing,
+    MovementMode movementMode = MovementMode.walk,
     String? characterId,
     bool Function(String mapId, MapEntity entity)? entityIsPresent,
     MapEntity? Function(String mapId, MapEntity entity)? entityProjection,
@@ -851,6 +971,8 @@ final class SpatialExplorationSession {
       }
       characters.add(npcCharacter);
     }
+    final surf = bundle.manifest.settings.surf;
+    final water = surf != null ? SpatialSurfWater.fromMap(bundle.map) : null;
     SpatialMovementController movementAt(PlayerSpatialPosition? position) => SpatialMovementController.fromMap(
         map: bundle.map,
         models: bundle.manifest.models3d,
@@ -867,6 +989,9 @@ final class SpatialExplorationSession {
             worldStateProvider?.call().actorState(bundle.map.id, id),
         validateSpawn: validateSpawn && position == null,
       facing: facing,
+      initialMovementMode: movementMode,
+      waterPredicate: water?.contains,
+      surfSpeedCellsPerSecond: surf?.speedCellsPerSecond ?? 4,
     );
     var movement = movementAt(spatialArrival);
     if (allowNpcOverlapRecovery && spatialArrival != null && !movement.isPositionTraversable) {
@@ -1017,7 +1142,15 @@ final class SpatialExplorationSession {
         if (door != null) unawaited(enterWarp(door));
       }
       final wasJumping = movement.isJumping;
-      movement.update(dt);
+      _updateSurfTransition(dt);
+      _updateSurfEntry(dt);
+      movement.update(_surfClipActive ? 0 : dt);
+      if (!wasJumping && movement.isJumping &&
+          projectAudio?.settings?.cues.containsKey(ProjectSoundCue.overworldJump) == true) {
+        unawaited(projectAudio?.play(ProjectSoundCue.overworldJump));
+      }
+      _updateSurfEntry(0);
+      _updateSurfTransition(0);
       _updateCompanion(dt);
       if (!presentationPaused &&
           !storyInputLocked &&
@@ -1047,6 +1180,9 @@ final class SpatialExplorationSession {
           !movement.isJumping &&
           (movement.moving || wasJumping) &&
           (previousMapId != bundle.map.id || previousCell != cell || wasJumping)) {
+        if (previousMapId == bundle.map.id && previousCell != cell && !wasJumping) {
+          unawaited(projectAudio?.play(ProjectSoundCue.overworldStep));
+        }
         _smartTileAnimations.onPlayerEnteredCell(cell);
       }
       onFrame?.call();
@@ -1060,14 +1196,17 @@ final class SpatialExplorationSession {
         _nativeDoor.isClimbing && _nativeDoor.playerPoseMapId == bundle.map.id;
     final state = climbing
         ? CharacterAnimationState.climb
-        : story?.motion ??
+        : story?.motion ?? _surfTransition ??
+        (movement.movementMode == MovementMode.surf
+            ? (movement.moving ? CharacterAnimationState.surf : CharacterAnimationState.surfIdle)
+            :
         (movement.moving
             ? (movement.running
                 ? CharacterAnimationState.run
                 : CharacterAnimationState.walk)
-            : CharacterAnimationState.idle);
+            : CharacterAnimationState.idle));
     final animation = character.animations
-            .where((v) => v.state == state && v.direction == facing)
+            .where((v) => v.state == state && v.direction == facing && v.frames.isNotEmpty)
             .firstOrNull ??
         character.animations
             .where((v) =>
@@ -1085,7 +1224,7 @@ final class SpatialExplorationSession {
       (sum, frame) => sum + frame.durationMs,
     );
     var remaining =
-        ((story?.animationSeconds ?? movement.animationSeconds) * 1000).floor();
+        ((story?.animationSeconds ?? (_surfClipActive ? _surfAnimationSeconds : movement.animationSeconds)) * 1000).floor();
     remaining =
         animation.loop ? remaining % total : remaining.clamp(0, total - 1);
     var selected = animation.frames.last;
@@ -1116,7 +1255,12 @@ final class SpatialExplorationSession {
     if (_disposed) return const {};
     if (nativeDoorTraversalActive) {
       try {
+        final previousPhase = _nativeDoor.phase;
         _nativeDoor.update(dt, paused: presentationPaused);
+        if (previousPhase != _nativeDoor.phase &&
+            _nativeDoor.phase == SpatialDoorTraversalPhase.closingArrival) {
+          unawaited(projectAudio?.play(ProjectSoundCue.doorClose));
+        }
         final pose = _nativeDoor.playerPose;
         if (pose != null && _nativeDoor.playerPoseMapId == bundle.map.id) {
           movement.setNativeTraversalPose(
@@ -1484,13 +1628,15 @@ final class SpatialExplorationSession {
       await _transfer(state.currentMapId, (_) => state.playerPosition,
           spatialArrival: position,
           arrivalFacing: state.playerFacing,
+          arrivalMovementMode: state.playerMovementMode,
         compensatePendingScene: compensatePendingScene,
       );
       if (_disposed || bundle.map.id != state.currentMapId) {
         throw StateError('The authored spatial relocation could not complete.');
       }
     } else if (movement.spatialPosition != position ||
-        movement.facing != state.playerFacing) {
+        movement.facing != state.playerFacing ||
+        movement.movementMode != state.playerMovementMode) {
       final source = bundle;
       final previousMovement = movement;
       final diagonal = movement.allowDiagonalMovement;
@@ -1512,6 +1658,9 @@ final class SpatialExplorationSession {
             return entity == null ? null : actorRuntimeState(entity);
           },
         facing: state.playerFacing,
+        initialMovementMode: state.playerMovementMode,
+        waterPredicate: bundle.manifest.settings.surf != null ? surfWater.contains : null,
+        surfSpeedCellsPerSecond: bundle.manifest.settings.surf?.speedCellsPerSecond ?? 4,
       );
       attachWorldStateProviders();
       try {
@@ -1522,6 +1671,9 @@ final class SpatialExplorationSession {
         rethrow;
       }
       movement.setDiagonalMovement(diagonal);
+      _surfMode = movement.movementMode;
+      _surfTransition = null;
+      _surfEntryTarget = null;
       movement.setPaused(presentationPaused || interactionActive.value);
       _warps = SpatialWarpController(
         map: bundle.map,
@@ -1559,6 +1711,11 @@ final class SpatialExplorationSession {
         _preparedMaps[bundle.map.id] = _capturePrepared();
         bundle = prepared.bundle;
         movement = prepared.movement;
+        if (movement.movementMode == MovementMode.surf &&
+            !movement.isWaterAt(movement.x, movement.z)) {
+          movement.movementMode = MovementMode.walk;
+        }
+        _resetSurfPresentation();
         _smartTileAnimations = prepared.animations;
         _entityVisuals = prepared.visuals;
         _imageIds = prepared.imageIds;
@@ -1811,6 +1968,7 @@ final class SpatialExplorationSession {
     connectionEntry,
     PlayerSpatialPosition? spatialArrival,
     EntityFacing? arrivalFacing,
+    MovementMode? arrivalMovementMode,
     MapWarp? warp,
     bool compensatePendingScene = false,
   }) async {
@@ -1853,6 +2011,7 @@ final class SpatialExplorationSession {
       final changed = !identical(movement, source.movement);
       bundle = source.bundle;
       movement = source.movement;
+      _resetSurfPresentation();
       restoreSourceMovement();
       _entityVisuals = source.visuals;
       _imageIds = source.imageIds;
@@ -1890,6 +2049,7 @@ final class SpatialExplorationSession {
         departureStart: (x: movement.x, z: movement.z),
         transition: passage.transition,
       );
+      if (departure != null) unawaited(projectAudio?.play(ProjectSoundCue.doorOpen));
       departureStarted = true;
       final firstFrame = waitForNativeTraversalStartFrame?.call();
       if (firstFrame != null &&
@@ -1945,6 +2105,7 @@ final class SpatialExplorationSession {
                     ? _nativeDoor.playerPose?.facing ?? movement.facing
                     : facing),
             characterId: character.id,
+            movementMode: arrivalMovementMode ?? (connectionEntry != null ? movement.movementMode : MovementMode.walk),
             worldStateProvider: worldStateProvider,
             modelPoseProvider: native ? modelRuntimeState : null,
             entityIsPresent: entityIsPresent,
@@ -1954,6 +2115,11 @@ final class SpatialExplorationSession {
             sharedAssets: _assets,
             knownMaps: _knownMaps.values,
           );
+          if (connectionEntry != null &&
+              prepared.movement.movementMode == MovementMode.surf &&
+              !prepared.movement.isWaterAt(prepared.movement.x, prepared.movement.z)) {
+            prepared.movement.movementMode = MovementMode.walk;
+          }
           if (!acceptingCandidate ||
               _disposed ||
               generation != _transferGeneration) {
@@ -2063,6 +2229,7 @@ final class SpatialExplorationSession {
       candidate = null;
       bundle = preparedBundle;
       movement = nextMovement;
+      _resetSurfPresentation();
       _smartTileAnimations = nextAnimations;
       _preparedMaps.addAll(preparedNeighbors);
       _mapOrigins.addAll(preparedOrigins);

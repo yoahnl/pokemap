@@ -153,10 +153,12 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                 case final exterior?)
                               MapExteriorDecorationControls(
                                 controller: exterior,
+                                view: widget.view,
                                 onChanged: widget.onChanged,
                               ),
                             if (widget.showToolStrip)
                               MapWorkspaceToolStrip(
+                                exterior: _exteriorActive,
                                 elements: widget.project.elements,
                                 spatial:
                                     widget.document.current.spatialScene !=
@@ -301,7 +303,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
               ],
             ),
           ),
-          if (!_exteriorActive && widget.inspector != null) widget.inspector!,
+          if (widget.inspector != null) widget.inspector!,
         ],
       );
     },

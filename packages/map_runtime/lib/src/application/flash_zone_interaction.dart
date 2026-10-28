@@ -13,6 +13,7 @@ final class RuntimeFlashInteraction {
     required MapData map,
     required GameState gameState,
     required int currentStateRevision,
+    ProjectSettings? projectSettings,
   }) {
     final current = ticket;
     if (outcomeId != 'flash-confirmed' || current == null) return null;
@@ -21,6 +22,7 @@ final class RuntimeFlashInteraction {
       map: map,
       gameState: gameState,
       currentStateRevision: currentStateRevision,
+      projectSettings: projectSettings,
     );
   }
 }
@@ -30,11 +32,13 @@ RuntimeFlashInteraction? prepareFlashInteraction({
   required GameState gameState,
   required int stateRevision,
   required String zoneId,
+  ProjectSettings? projectSettings,
 }) {
   final evaluation = evaluateFlashAttempt(
     map: map,
     gameState: gameState,
     zoneId: zoneId,
+    projectSettings: projectSettings,
   );
   FlashActionTicket? ticket;
   final String text;

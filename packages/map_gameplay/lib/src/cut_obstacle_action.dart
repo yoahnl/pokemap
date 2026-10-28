@@ -7,6 +7,7 @@ import 'gameplay_world_state.dart';
 import 'npc_instance_pose_projection.dart';
 
 enum CutObstacleBlockReason {
+  disabled,
   invalidTarget,
   unsupportedMap,
   missingMapInstance,
@@ -62,7 +63,8 @@ final class CutObstacleRefused extends CutObstacleCommit {
 CutObstacleEvaluation evaluateCutObstacleAttempt(
     {required MapData map,
     required GameState gameState,
-    required String entityId}) {
+    required String entityId,
+    ProjectSettings? projectSettings}) {
   if (map.spatialScene != null || map.version == ProjectVersion.v9) {
     return const CutObstacleUnavailable(CutObstacleBlockReason.unsupportedMap);
   }
@@ -122,8 +124,11 @@ CutObstacleEvaluation evaluateCutObstacleAttempt(
     unlockedFieldAbilities:
         gameState.progression.unlockedFieldAbilities.toSet(),
     party: gameState.party,
+    projectSettings: projectSettings,
   );
   return switch (gate.status) {
+    FieldAbilityGateStatus.disabled =>
+      const CutObstacleUnavailable(CutObstacleBlockReason.disabled),
     FieldAbilityGateStatus.unsupported =>
       throw StateError('The Cut obstacle action requires Cut support.'),
     FieldAbilityGateStatus.missingMove =>
@@ -139,7 +144,8 @@ CutObstacleCommit commitCutObstacleAction(
     required MapData map,
     required GameState gameState,
     required int currentStateRevision,
-    required String confirmedEntityId}) {
+    required String confirmedEntityId,
+    ProjectSettings? projectSettings}) {
   if (ticket.fieldAction.issuedAtStateRevision != currentStateRevision) {
     return const CutObstacleRefused(FieldActionRefusal.staleStateRevision);
   }
@@ -155,7 +161,8 @@ CutObstacleCommit commitCutObstacleAction(
     return const CutObstacleRefused(FieldActionRefusal.targetChanged);
   }
   final evaluation = evaluateCutObstacleAttempt(
-      map: map, gameState: gameState, entityId: ticket.entityId);
+      map: map, gameState: gameState, entityId: ticket.entityId,
+      projectSettings: projectSettings);
   if (evaluation is! CanPromptCutObstacle) {
     return CutObstacleRefused(FieldActionRefusal.noLongerAvailable,
         evaluation: evaluation);

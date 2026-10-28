@@ -9,6 +9,7 @@ abstract final class CatalogResourcePositions {
     CatalogDefinitionKind.character: 'characters',
     CatalogDefinitionKind.resourceLibraryEntry: 'resourceLibraryCatalog.entries',
     CatalogDefinitionKind.smartTileAtlas: 'smartTileCatalog.atlases',
+    CatalogDefinitionKind.smartTileAnimation: 'smartTileCatalog.animations',
     CatalogDefinitionKind.smartTileMaterial: 'smartTileCatalog.materials',
     CatalogDefinitionKind.smartTilePattern: 'smartTileCatalog.patterns',
     CatalogDefinitionKind.smartTilePreset: 'smartTileCatalog.presets',

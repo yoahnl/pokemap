@@ -7,6 +7,7 @@ final class ScenePartyConditionContext {
   ScenePartyConditionContext({
     Iterable<String>? availableMoveIds,
     Iterable<FieldAbility> supportedFieldAbilities = const [],
+    this.projectSettings,
   })  : availableMoveIds = availableMoveIds == null
             ? null
             : Set.unmodifiable(availableMoveIds),
@@ -14,10 +15,12 @@ final class ScenePartyConditionContext {
 
   const ScenePartyConditionContext.unavailable()
       : availableMoveIds = null,
-        supportedFieldAbilities = const {};
+        supportedFieldAbilities = const {},
+        projectSettings = null;
 
   final Set<String>? availableMoveIds;
   final Set<FieldAbility> supportedFieldAbilities;
+  final ProjectSettings? projectSettings;
 }
 
 bool evaluateScenePartyCondition({
@@ -72,6 +75,7 @@ bool evaluateScenePartyCondition({
             unlockedFieldAbilities:
                 gameState.progression.unlockedFieldAbilities.toSet(),
             party: gameState.party,
+            projectSettings: context.projectSettings,
           ).status ==
           FieldAbilityGateStatus.usable;
   }

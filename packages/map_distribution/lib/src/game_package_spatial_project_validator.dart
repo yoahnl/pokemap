@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 
 import 'game_package_format_exception.dart';
 import 'game_package_security_policy.dart';
+import 'game_package_source_assets.dart';
 import 'glb_model3d_inspector.dart';
 import 'package_path_policy.dart';
 import 'raster_image_dimensions.dart';
@@ -989,48 +990,9 @@ final class GamePackageSpatialProjectValidator {
     }
   }
 
-  Map<String, _SpatialAsset> _catalogue(GamePackagePayloadReader read) {
-    final json =
-        _object(_json(_read(read, 'project/assets/.pokemap-assets.json')));
-    _keys(json, {'schemaVersion', 'records'});
-    if (json['schemaVersion'] != 1 || json['records'] is! List) {
-      throw const FormatException('Invalid asset catalogue.');
-    }
-    final result = <String, _SpatialAsset>{};
-    final logicalPaths = <String>{};
-    for (final raw in json['records'] as List) {
-      final record = _object(raw);
-      _keys(record, {'id', 'logicalPath', 'artifact', 'usages', 'tags'});
-      final artifact = _object(record['artifact']);
-      _keys(artifact, {'digest', 'handle', 'mediaType', 'byteLength'});
-      final id = record['id'] as String;
-      final path = record['logicalPath'] as String;
-      final digest = artifact['digest'] as String;
-      final length = artifact['byteLength'] as int;
-      final mediaType = artifact['mediaType'] as String;
-      PackagePathPolicy.validate('project/$path', errorPath: path);
-      if (id.isEmpty ||
-          id.trim() != id ||
-          !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(digest) ||
-          artifact['handle'] != 'artifact://sha256/${digest.substring(7)}' ||
-          !RegExp(r'^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$')
-              .hasMatch(mediaType) ||
-          length < 0 ||
-          length > policy.maxFileBytes ||
-          result.containsKey(id) ||
-          !logicalPaths.add(PackagePathPolicy.collisionKey(path))) {
-        throw const FormatException('Invalid canonical asset record.');
-      }
-      for (final field in ['usages', 'tags']) {
-        if (record[field] is! List ||
-            (record[field] as List).any((v) => v is! String)) {
-          throw const FormatException('Invalid asset record strings.');
-        }
-      }
-      result[id] = _SpatialAsset(path, digest, mediaType, length);
-    }
-    return result;
-  }
+  Map<String, GamePackageSourceAsset> _catalogue(GamePackagePayloadReader read) =>
+      readGamePackageSourceAssetCatalog(
+          _read(read, 'project/assets/.pokemap-assets.json'), policy);
 
   List<int> _read(GamePackagePayloadReader read, String path) {
     PackagePathPolicy.validate(path, errorPath: path);
@@ -1053,12 +1015,6 @@ final class GamePackageSpatialProjectValidator {
 
   Map<String, dynamic> _object(Object? value) =>
       Map<String, dynamic>.from(value as Map);
-  void _keys(Map<String, dynamic> value, Set<String> allowed) {
-    if (value.keys.any((key) => !allowed.contains(key)) ||
-        allowed.any((key) => !value.containsKey(key))) {
-      throw const FormatException('Unexpected canonical catalogue fields.');
-    }
-  }
 
   double _connectionBoundaryHeight(
       MapData map, GridPos cell, MapConnectionDirection edge) {
@@ -1083,13 +1039,4 @@ final class GamePackageSpatialProjectValidator {
   Never _fail(String code, String path, String message) =>
       throw GamePackageFormatException(
           code: code, path: path, message: message);
-}
-
-final class _SpatialAsset {
-  const _SpatialAsset(
-      this.logicalPath, this.digest, this.mediaType, this.byteLength);
-  final String logicalPath, digest, mediaType;
-  final int byteLength;
-  String get blobPath =>
-      'project/assets/.pokemap-store/${digest.substring(7)}.blob';
 }

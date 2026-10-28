@@ -11,6 +11,7 @@ extension _PlayableMapFieldTraversal on PlayableMapGame {
         _player.isStepping ||
         _player.isJumping ||
         validateFieldTraversalTicket(
+              projectSettings: _bundle.manifest.settings,
               ticket: ticket,
               ability: ticket.fieldAction.ability,
               map: _world.map,

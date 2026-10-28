@@ -24,6 +24,7 @@ class SpatialPixelMaterial extends UnlitMaterial {
     this.sourceMaterialName,
     this.preserveUnlitColor = false,
     this.emissive = false,
+    this.proceduralFlame = false,
   }) : _defaultAlbedoTexture = texture,
        _activeWrapS = wrapS,
        _activeWrapT = wrapT,
@@ -60,6 +61,8 @@ class SpatialPixelMaterial extends UnlitMaterial {
   final String? sourceMaterialName;
   final bool preserveUnlitColor;
   final bool emissive;
+  final bool proceduralFlame;
+  double flameElapsedSeconds = 0;
   Vector3? shadowSamplePosition;
   late final VertexShader _unlitVertexShader;
   late final VertexShader _litVertexShader = _PixelVertexShader(
@@ -299,7 +302,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
     };
     fragmentShader.setFloat(
       'Material.alphaMode',
-      preserveUnlitColor ? 4 : sourceAlphaMode,
+      proceduralFlame
+          ? 5
+          : preserveUnlitColor
+          ? 4
+          : sourceAlphaMode,
     );
     fragmentShader.setFloat('Material.alphaCutoff', alphaCutoff);
     fragmentShader.setFloat('Material.depthAlphaMode', sourceAlphaMode);
@@ -421,7 +428,11 @@ class SpatialPixelMaterial extends UnlitMaterial {
         : null;
     _atmosphereOptions.setValues(
       water ? profile!.waterStrength : 0,
-      water ? atmosphere!.atmosphereElapsedSeconds * profile!.waterSpeed : 0,
+      proceduralFlame
+          ? flameElapsedSeconds
+          : water
+          ? atmosphere!.atmosphereElapsedSeconds * profile!.waterSpeed
+          : 0,
       emissive ? 1 : 0,
       window == null ? 0 : window.uvRects.length.toDouble(),
     );

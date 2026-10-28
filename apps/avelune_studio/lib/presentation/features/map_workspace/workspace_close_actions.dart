@@ -45,6 +45,15 @@ extension _WorkspaceCloseActions on WorkspaceActions {
     if (controller.saving || (busy && !closing) || !_validateWorldInputs()) {
       return false;
     }
+    if (projectSurf?.call() case final owner?) {
+      if (!await owner.save()) return false;
+    }
+    if (projectCs?.call() case final owner?) {
+      if (!await owner.save()) return false;
+    }
+    if (projectAudio?.call() case final owner?) {
+      if (!await owner.save()) return false;
+    }
     if (projectVisuals?.call() case final owner?) {
       if (!await owner.save()) return false;
     }

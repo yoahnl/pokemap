@@ -710,3 +710,7 @@ export 'src/presentation/map_warp_transition_overlay.dart';
 
 export 'src/player/real_weather_service.dart';
 export 'src/player/real_weather_provider.dart';
+
+export 'src/player/runtime_project_audio_controller.dart';
+
+export 'src/application/load_runtime_project_audio.dart';

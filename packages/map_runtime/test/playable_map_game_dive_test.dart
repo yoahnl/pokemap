@@ -352,6 +352,7 @@ Future<PlayableMapGame> mountDive(
   Completer<void>? visualEntered,
   bool surfaceBlocked = false,
   MapData? seaOverride,
+  ProjectFieldAbilitiesSettings? fieldAbilities,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-dive-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -366,6 +367,7 @@ Future<PlayableMapGame> mountDive(
   );
   final manifest = ProjectManifest(
     name: 'Dive Player',
+    settings: ProjectSettings(fieldAbilities: fieldAbilities),
     tilesets: const [],
     maps: const [
       ProjectMapEntry(id: 'sea', name: 'Sea', relativePath: 'maps/sea.json'),

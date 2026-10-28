@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:map_core/map_core.dart';
 
 import '../ports/project_file_reader.dart';
+import '../ports/transaction_file_gateway.dart';
 import 'workspace_handle_store.dart';
 import 'workspace_policy.dart';
 import '../catalog_storage/catalog_storage_store.dart';
@@ -108,7 +109,7 @@ final class ProjectOpenService {
         if(type!=FileSystemEntityType.directory) throw const CatalogStorageException('catalog.transaction_directory_invalid','The transaction directory is not a safe local directory.');
       }
       final gateway=await LocalTransactionFileGateway.open(projectRoot:canonicalRoot);
-      return [for(final journal in await gateway.listJournals()) if(journal.status!=AuthoringTransactionStatus.committed && journal.status!=AuthoringTransactionStatus.compensated && journal.entries.any((entry)=>entry.storageKey==CatalogStorageStore.headStorageKey)) journal];
+      return [for(final journal in await readPendingTransactionJournals(gateway, allowLegacyScan: true)) if(journal.status!=AuthoringTransactionStatus.committed && journal.status!=AuthoringTransactionStatus.compensated && journal.entries.any((entry)=>entry.storageKey==CatalogStorageStore.headStorageKey)) journal];
     }
     Future<void> requireReadableProject() async {
       if((await pendingCatalogTransactions()).isNotEmpty) throw const CatalogStorageException('catalog.recovery_required','Recover the pending catalog transaction before reading project content.');

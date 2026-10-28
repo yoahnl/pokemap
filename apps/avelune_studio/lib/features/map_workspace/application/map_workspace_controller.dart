@@ -143,15 +143,15 @@ class MapWorkspaceController {
   ProjectManifest? _combinedVisuals;
   ProjectManifest? _resourceVisualDefinitions;
   ProjectManifest? get visualProject {
-    if (hasCompleteProject) return project;
+    if (hasCompleteProject) return project == null ? null : _withSurfConfiguration(project!);
     final map = _selections[active?.base.mapId]?.definitions ?? project;
     final family = _resourceVisualDefinitions;
-    if (map == null || family == null) return map;
+    if (map == null || family == null) return map == null ? null : _withSurfConfiguration(map);
     if (!identical(map, _visualMapSource) ||
         !identical(family, _visualFamilySource)) {
       _cacheVisualComposition(map, family);
     }
-    return _combinedVisuals;
+    return _combinedVisuals == null ? null : _withSurfConfiguration(_combinedVisuals!);
   }
 
   void _cacheVisualComposition(ProjectManifest map, ProjectManifest family) {
@@ -159,6 +159,66 @@ class MapWorkspaceController {
     _visualFamilySource = family;
     _combinedVisuals = _prepareModelProjection(combineResourceVisuals(map, family));
     visualProjectionBuilds++;
+  }
+
+  ProjectSurfSettings? _acceptedSurfConfiguration;
+  ProjectFieldAbilitiesSettings? _acceptedFieldAbilities;
+  ProjectAudioSettings? _acceptedAudio;
+  bool _surfConfigurationAccepted = false,
+      _fieldAbilitiesAccepted = false,
+      _audioAccepted = false;
+  Expando<ProjectManifest> _surfProjections = Expando<ProjectManifest>();
+
+  ProjectManifest _withSurfConfiguration(ProjectManifest value) {
+    final settings = value.settings;
+    final updated = settings.copyWith(
+      surf: _surfConfigurationAccepted
+          ? _acceptedSurfConfiguration
+          : settings.surf,
+      fieldAbilities: _fieldAbilitiesAccepted
+          ? _acceptedFieldAbilities
+          : settings.fieldAbilities,
+      audio: _audioAccepted ? _acceptedAudio : settings.audio,
+    );
+    if (settings == updated) return value;
+    return _surfProjections[value] ??= value.copyWith(settings: updated);
+  }
+
+  void _acceptSettingsProjection(bool notifyChange) {
+    if (_disposed) return;
+    _surfProjections = Expando<ProjectManifest>();
+    if (project case final current?) project = _withSurfConfiguration(current);
+    if (notifyChange) notify();
+  }
+
+  void acceptSurfConfiguration(
+    ProjectSurfSettings? configuration, {
+    bool notifyChange = true,
+  }) {
+    if (_disposed) return;
+    _surfConfigurationAccepted = true;
+    _acceptedSurfConfiguration = configuration;
+    _acceptSettingsProjection(notifyChange);
+  }
+
+  void acceptFieldAbilities(
+    ProjectFieldAbilitiesSettings? configuration, {
+    bool notifyChange = true,
+  }) {
+    if (_disposed) return;
+    _fieldAbilitiesAccepted = true;
+    _acceptedFieldAbilities = configuration;
+    _acceptSettingsProjection(notifyChange);
+  }
+
+  void acceptAudio(
+    ProjectAudioSettings? configuration, {
+    bool notifyChange = true,
+  }) {
+    if (_disposed) return;
+    _audioAccepted = true;
+    _acceptedAudio = configuration;
+    _acceptSettingsProjection(notifyChange);
   }
 
   EditableMapDocument? active;
@@ -350,13 +410,13 @@ class MapWorkspaceController {
 
   ProjectManifest _withWorkshops(ProjectManifest selection) {
     final loaded = _workshopDefinitions;
-    if (loaded == null) return selection;
+    if (loaded == null) return _withSurfConfiguration(selection);
     var merged = selection;
     for (final workshop in _workshops) {
       merged = workshop.merge(merged, loaded);
     }
     final family = _resourceVisualDefinitions;
-    return _prepareModelProjection(family == null ? merged : combineResourceVisuals(merged, family));
+    return _withSurfConfiguration(_prepareModelProjection(family == null ? merged : combineResourceVisuals(merged, family)));
   }
 
   Future<void> materializeProject() async {

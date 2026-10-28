@@ -67,6 +67,7 @@ final class CatalogSpatialMapSelection {
       'border_layer.feature_delete',
       'border_layer.feature_update',
       'border_layer.feature_move',
+      'border_layer.feature_reorder',
       'border_layer.feature_set_keep_out',
       'border_layer.materialize_apply',
       'border_layer.materialize_batch_apply',
@@ -79,12 +80,15 @@ final class CatalogSpatialMapSelection {
       'map3d.instance.upsert',
       'map3d.instance.upsert_batch',
       'smart_tile.layer.create',
+      'smart_tile.layer.change_preset',
       'smart_tile.layer.delete',
       'smart_tile.layer.set_encounter_behavior',
       'smart_tile.layer.clear_encounter_behavior',
       'smart_tile.cell.paint',
       'smart_tile.cell.paint_batch',
       'smart_tile.cell.erase',
+      'smart_tile.pattern.paint',
+      'smart_tile.pattern.paint_batch',
     }.contains(action);
   }
 
@@ -336,8 +340,9 @@ final class CatalogSpatialMapSelection {
             'targetBlueprintId'
           },
           CatalogDefinitionKind.smartTileAtlas: {'atlasId'},
-          CatalogDefinitionKind.smartTilePreset: {'presetId'},
+          CatalogDefinitionKind.smartTilePreset: {'presetId', 'targetPresetId'},
           CatalogDefinitionKind.smartTileMaterial: {'materialId'},
+          CatalogDefinitionKind.smartTilePattern: {'patternId'},
           CatalogDefinitionKind.model3d: {'modelId'},
           CatalogDefinitionKind.character: {
             'characterId',

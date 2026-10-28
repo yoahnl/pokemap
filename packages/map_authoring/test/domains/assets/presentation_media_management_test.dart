@@ -38,7 +38,7 @@ void main() {
       expect(before, isNot(renamedBytes));
     });
   }
-  for (final consumer in ['cinematic', 'poster', 'fallback', 'captions']) {
+  for (final consumer in ['cinematic', 'poster', 'fallback', 'captions', 'projectAudio']) {
     test('delete blocks $consumer media references', () async {
       final h = await _Harness.create(consumer: consumer);
       addTearDown(h.dispose);
@@ -157,21 +157,24 @@ final class _Harness {
     final image = ProjectMediaAsset(
         id: 'image',
         label: 'image.png',
-        kind: ProjectMediaKind.image,
+        kind: consumer == 'projectAudio' ? ProjectMediaKind.audio : ProjectMediaKind.image,
         sourceAssetId: 'source',
         technicalMetadata: ProjectMediaTechnicalMetadata(
-            mediaType: 'image/png',
-            container: 'png',
-            codec: 'png',
+            mediaType: consumer == 'projectAudio' ? 'audio/wav' : 'image/png',
+            container: consumer == 'projectAudio' ? 'wav' : 'png',
+            codec: consumer == 'projectAudio' ? 'pcm' : 'png',
             sizeBytes: 3,
-            width: 1,
-            height: 1));
+            width: consumer == 'projectAudio' ? null : 1,
+            height: consumer == 'projectAudio' ? null : 1));
     final manifest = ProjectManifest(
         name: 'Media management',
         version: ProjectVersion.v9,
         settings: ProjectSettings(
             dimension: ProjectDimension.threeD,
-            spatialCamera: SpatialCameraProfile()),
+            spatialCamera: SpatialCameraProfile(),
+            audio: consumer == 'projectAudio' ? ProjectAudioSettings(cues: {
+              ProjectSoundCue.uiConfirm: const ProjectSoundBinding(source: ProjectSoundSource.custom, mediaId: 'image'),
+            }) : null),
         maps: const [],
         tilesets: const [],
         presentation: profile
@@ -209,7 +212,7 @@ final class _Harness {
         .writeAsString(jsonEncode(manifest.toJson()));
     final catalog = ProjectMediaCatalog(entries: [
       image,
-      if (consumer != null && consumer != 'cinematic')
+      if (consumer != null && consumer != 'cinematic' && consumer != 'projectAudio')
         ProjectMediaAsset(
             id: 'consumer',
             label: 'Consumer',
@@ -223,7 +226,7 @@ final class _Harness {
     await mediaFile.parent.create(recursive: true);
     await mediaFile.writeAsBytes(encodeProjectMediaCatalogBytes(catalog));
     final artifact =
-        ContentArtifactRef.fromBytes([1, 2, 3], mediaType: 'image/png');
+        ContentArtifactRef.fromBytes([1, 2, 3], mediaType: consumer == 'projectAudio' ? 'audio/wav' : 'image/png');
     await File('${root.path}/$assetCatalogStorageKey')
         .writeAsString(jsonEncode(AssetCatalog(records: [
       AssetRecord(

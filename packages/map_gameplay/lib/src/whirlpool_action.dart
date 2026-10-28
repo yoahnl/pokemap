@@ -6,6 +6,7 @@ import 'field_traversal_geometry.dart';
 import 'gameplay_world_state.dart';
 
 enum WhirlpoolBlockReason {
+  disabled,
   unsupportedMap,
   invalidTarget,
   wrongDirection,
@@ -86,10 +87,12 @@ FieldActionRefusal? validateWhirlpoolTicket({
   required MapData map,
   required GameState gameState,
   required int currentStateRevision,
+  ProjectSettings? projectSettings,
 }) =>
     validateFieldTraversalTicket(
         ticket: ticket,
         ability: FieldAbility.whirlpool,
         map: map,
         gameState: gameState,
-        currentStateRevision: currentStateRevision);
+        currentStateRevision: currentStateRevision,
+        projectSettings: projectSettings);

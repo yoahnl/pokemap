@@ -1,3 +1,4 @@
+import '../../../map_runtime/test/support/project_audio_test_driver.dart';
 import 'dart:async';
 import 'dart:ui'
     as ui
@@ -21,6 +22,30 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('accepted UI commands emit once and stale or guarded actions stay silent', (tester) async {
+    final driver = ProjectAudioTestDriver();
+    final audio = (await tester.runAsync(() async => RuntimeProjectAudioController(mixer: RuntimeAudioMixer(mix: const RuntimeAudioMix(masterVolume: .5, effectsVolume: .4)), driver: driver, settings: ProjectAudioSettings(cues: {ProjectSoundCue.uiConfirm: const ProjectSoundBinding(source: ProjectSoundSource.builtin)}))))!;
+    final controller = _FakeRuntimePlayerCoordinator(_snapshot(revision: 1, phase: RuntimePlayerPhase.playing, preferences: const PlayerPreferencesSnapshot(locale: 'fr', accessibility: GameSessionAccessibilityOptions(), audioMix: RuntimeAudioMix(masterVolume: .5, effectsVolume: .4))));
+    final commands = RuntimePlayerSessionCommandController();
+    final blocked = ValueNotifier(true);
+    addTearDown(controller.dispose);
+    addTearDown(blocked.dispose);
+
+    await _pumpMeasuredSessionWidget(tester, _app(_view(controller, commandController: commands, menuInteractionBlocked: blocked, projectAudio: () => audio, hapticFeedback: () async {})));
+    await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
+    blocked.value = false;
+    await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 0));
+    expect(driver.paths, isEmpty);
+    await tester.runAsync(() async {
+      await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
+      await commands.dispatch(const RuntimePlayerCommand(action: RuntimePlayerAction.openMenu, snapshotRevision: 1));
+    });
+    expect(driver.paths, hasLength(1));
+    expect(driver.volumes.values.single, closeTo(.2, .00001));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(audio.dispose);
+  });
+
   testWidgets(
     'stable overworld action stays opaque across hardware input and session updates',
     (tester) async {
@@ -4711,6 +4736,7 @@ PokeMapPlayerSessionView _view(
   bool? controllerInputEnabled,
   RuntimePlayerActionPayloadBuilder? payloadForAction,
   Future<void> Function()? hapticFeedback,
+  RuntimeProjectAudioController? Function()? projectAudio,
   PlayerControlProfile? controlProfile,
   PlayerPausePresentation? pausePresentation,
   FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged,
@@ -4763,6 +4789,7 @@ PokeMapPlayerSessionView _view(
             normalizedControllerInputEvents != null),
     onShowDiagnostics: onShowDiagnostics,
     hapticFeedback: hapticFeedback,
+    projectAudio: projectAudio,
     controlProfile: controlProfile,
     pausePresentation: pausePresentation,
     onControlProfileChanged: onControlProfileChanged,

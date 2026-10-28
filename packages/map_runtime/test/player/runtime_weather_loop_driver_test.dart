@@ -6,6 +6,34 @@ import 'package:map_runtime/src/player/runtime_weather_loop_driver.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 
 void main() {
+  test('custom loops use their native duration without the built in weather schedule', () {
+    fakeAsync((async) {
+      final audio = _Driver();
+      final driver = RuntimeWeatherLoopDriver(
+        audio,
+        clock: () => async.elapsed,
+        crossfadePath: (path) => path.startsWith('packages/'),
+      );
+      Object? handle;
+      driver
+          .play('/project/custom.ogg', volume: .5, loop: true)
+          .then((value) => handle = value);
+      async.flushMicrotasks();
+      async.elapse(const Duration(minutes: 2));
+      async.flushMicrotasks();
+      expect(audio.nativeLoops, [true]);
+      expect(audio.plays, 1);
+      expect(async.periodicTimerCount, 0);
+      driver.pause(handle!);
+      async.flushMicrotasks();
+      expect(audio.paused, contains(handle));
+      driver.resume(handle!);
+      async.flushMicrotasks();
+      driver.stop(handle!);
+      async.flushMicrotasks();
+      expect(audio.voices, isEmpty);
+    });
+  });
   test('stopping during a delayed overlap start releases both voices', () {
     fakeAsync((async) {
       final audio = _Driver();

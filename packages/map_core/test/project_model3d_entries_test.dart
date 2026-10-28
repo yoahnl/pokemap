@@ -5,6 +5,22 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('changed definitions visit only shared-tree mutation paths', () {
+    final original = ProjectModel3dEntries.prepare(List.generate(8192, _model));
+    final replacement = original[8000].copyWith(name: 'Lantern');
+    final changed = original.replaceSelected([replacement]);
+    var visited = 0;
+    expect(changed.changesSince(original, onNodeVisited: () => visited++), [
+      replacement,
+    ]);
+    expect(visited, lessThanOrEqualTo(14));
+    expect(original.changesSince(changed), [original[8000]]);
+    expect(changed.changesSince(changed), isEmpty);
+    expect(
+      changed.changesSince(ProjectModel3dEntries.prepare(original.toList())),
+      isNull,
+    );
+  });
   for (final count in [32, 8192]) {
     test(
       'selected model projection is bounded cold and repeated with $count entries',

@@ -1436,7 +1436,9 @@ List<bool> _buildWaterCellCache(MapData map) {
         if (x < 0 || x >= map.size.width) {
           continue;
         }
-        cache[y * map.size.width + x] = true;
+        if (gameplayZoneContainsPosition(zone, GridPos(x: x, y: y))) {
+          cache[y * map.size.width + x] = true;
+        }
       }
     }
   }

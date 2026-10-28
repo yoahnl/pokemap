@@ -541,6 +541,7 @@ mountFly(
   bool sceneFails = false,
   bool retainInstances = false,
   bool sameMapDestination = false,
+  ProjectFieldAbilitiesSettings? fieldAbilities,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-fly-');
   addTearDown(() => root.delete(recursive: true));
@@ -604,6 +605,7 @@ mountFly(
   final manifest = ProjectManifest(
     name: 'Fly',
     settings: ProjectSettings(
+      fieldAbilities: fieldAbilities,
       mapInstanceRetentionPolicy: retainInstances
           ? MapInstanceRetentionPolicy(
               viewportWidthTiles: 8,

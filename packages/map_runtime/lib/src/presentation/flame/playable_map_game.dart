@@ -57,6 +57,8 @@ import '../../application/rail_journey_runtime_transaction.dart';
 import '../../player/runtime_input_lock_manager.dart';
 import '../../player/runtime_capture_sprite_resolver.dart';
 import '../../player/runtime_audio_mixer.dart';
+import '../../player/runtime_project_audio_controller.dart';
+import '../../application/load_runtime_project_audio.dart';
 import '../../player/overworld_sfx_player.dart';
 import '../../player/runtime_player_host.dart';
 import '../../player/runtime_world_time_preferences.dart';
@@ -344,6 +346,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     PlayerPronounSet? initialPlayerPronounSet,
     RuntimeAudioMixer? audioMixer,
     OverworldSfxPlayer? overworldSfxPlayer,
+    this.projectAudio,
     this.dialogueFeedbackPlaybackPort,
     this.sceneSoundEffectPlaybackPort,
     this.dialogueIconBytesLoader,
@@ -353,7 +356,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     @visibleForTesting double Function()? devicePixelRatioProvider,
   })  : _bundle = bundle,
         _encounterClock = encounterClock ?? DateTime.now,
-        _audioMixer = audioMixer,
+        _audioMixer = audioMixer ?? RuntimeAudioMixer(),
+        _usesInjectedOverworldSfx = overworldSfxPlayer != null,
         _overworldSfxPlayer = overworldSfxPlayer ??
             FlameAudioOverworldSfxPlayer(mixer: audioMixer),
         _injectedMusicService = musicService,
@@ -821,7 +825,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// BETA-BAT-015 : la musique du runtime. Une seule piste à la fois, pilotée
   /// en état désiré par [_syncRuntimeMusic] ; créée au premier besoin pour ne
   /// rien coûter aux hôtes de test qui n'authorent aucune musique.
-  final RuntimeAudioMixer? _audioMixer;
+  final RuntimeAudioMixer _audioMixer;
+  RuntimeProjectAudioController? projectAudio;
+  final bool _usesInjectedOverworldSfx;
   final OverworldSfxPlayer _overworldSfxPlayer;
   final DialogueFeedbackPlaybackPort? dialogueFeedbackPlaybackPort;
   final SceneSoundEffectPlaybackPort? sceneSoundEffectPlaybackPort;
@@ -903,6 +909,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final serial = ++_worldAudioSelectionSerial;
     final ambience = _activeNarrativeSceneWorkingSession?.sceneAudio?.ambience.selection ??
         _mapAudio?.ambience.selection;
+    await projectAudio?.setSuspended(_audioLifecycleSuspended ||
+        _externalInputLocks.containsKey(RuntimeExternalInputLock.lifecycle));
     await _ambienceMusic.setSuspended(_audioLifecycleSuspended ||
         _cinematicMusicDepth > 0 || _flowPhase == _RuntimeFlowPhase.battle ||
         _flowPhase == _RuntimeFlowPhase.battleTransition);
@@ -2888,6 +2896,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return (ticket: null, reason: FlyBlockReason.invalidDestination);
     }
     final evaluation = evaluateFlyAttempt(
+      projectSettings: _bundle.manifest.settings,
       sourceMap: source,
       sourceRole:
           _bundle.manifest.maps
@@ -2955,6 +2964,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
               mapInstanceWorldState: ticket.gameState.mapInstanceWorldState,
             );
       return commitFlyAction(
+        projectSettings: _bundle.manifest.settings,
         ticket: ticket,
         sourceMap: _bundle.map,
         sourceRole:
@@ -3564,6 +3574,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ),
       );
       if (owner == RuntimeExternalInputLock.lifecycle) {
+        unawaited(projectAudio?.setSuspended(true));
         _cancelPlayerFishing(notify: false);
         _cancelInteractiveEncounter();
       }
@@ -3580,6 +3591,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return;
     }
     final token = _externalInputLocks.remove(owner);
+    if (owner == RuntimeExternalInputLock.lifecycle) {
+      unawaited(projectAudio?.setSuspended(_audioLifecycleSuspended));
+    }
     if (token != null) {
       _inputLocks.release(
         owner: _inputOwnerForExternalLock(owner),
@@ -4926,6 +4940,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (_world.player.movementMode == movementMode) {
       return;
     }
+    final previousMode = _world.player.movementMode;
+    if (movementMode == MovementMode.surf || previousMode == MovementMode.surf) {
+      unawaited(projectAudio?.play(movementMode == MovementMode.surf
+          ? ProjectSoundCue.surfEnter : ProjectSoundCue.surfExit));
+    }
     _world = _world.withPlayer(
       _world.player.copyWith(movementMode: movementMode),
     );
@@ -4945,6 +4964,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// laissait passer parce qu'il n'avait rien à comparer.
   void _commitPendingFieldAction(FieldActionTicket ticket) {
     final decision = commitFieldAction(
+      surfSettings: _bundle.manifest.settings.surf,
+      conditionContext: ScriptEvaluationContext(narrativeFactResolver: _narrativeFactResolver),
       ticket: ticket,
       gameState: _gameState,
       currentStateRevision: _gameStateRevision,
@@ -5167,6 +5188,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _resetWorldPresentation();
     _cancelPendingDirectedJump();
     unawaited(_overworldSfxPlayer.dispose());
+    unawaited(projectAudio?.dispose());
     unawaited(_dialogueFeedbackPlayer?.dispose());
     _dialogueFeedbackPlayer = null;
     _battleExitTransitionVisible.value = false;
@@ -5193,6 +5215,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _onLoadInProgress = true;
     try {
       if (_isRemoved) return;
+      projectAudio ??= await loadRuntimeProjectAudio(
+        projectRootDirectory: _bundle.projectRootDirectory,
+        mixer: _audioMixer,
+        settings: _bundle.manifest.settings.audio,
+      );
+      if (_isRemoved) {
+        await projectAudio!.dispose();
+        return;
+      }
       if (!_observingMemoryPressure) {
         WidgetsBinding.instance.addObserver(this);
         _observingMemoryPressure = true;
@@ -6395,7 +6426,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _publishInputAuthoritySnapshot();
       rethrow;
     }
-    unawaited(_overworldSfxPlayer.playJump());
+    if (_usesInjectedOverworldSfx) {
+      unawaited(_overworldSfxPlayer.playJump());
+    } else {
+      unawaited(projectAudio?.play(ProjectSoundCue.overworldJump));
+    }
     _publishInputAuthoritySnapshot();
   }
 
@@ -6654,6 +6689,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       movement: movement,
     );
     _lastCommittedMovement = committed;
+    unawaited(projectAudio?.play(ProjectSoundCue.overworldStep));
     _advanceRepelForCommittedMovement(movement);
     final committedStateRevision = _gameStateRevision;
     _isPublishingCommittedMovement = true;
@@ -12944,6 +12980,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final partyConditionContext = scene == null
         ? const ScenePartyConditionContext.unavailable()
         : await loadRuntimeScenePartyConditionContext(
+            projectSettings: project.settings,
             scene: scene,
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: project.pokemon,
@@ -13228,6 +13265,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return false;
     }
 
+    unawaited(projectAudio?.play(ProjectSoundCue.doorOpen));
     final mapId = _activeMapId;
     final frameDurationsMs = normalizeElementFrameDurationsMs(
       element.frames.map((frame) => frame.durationMs).toList(growable: false),
@@ -13243,6 +13281,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         isCurrent: () => !_isRemoved && _activeMapId == mapId,
         durationMs: durationMs.round(),
       );
+      if (_activeMapId == mapId) {
+        unawaited(projectAudio?.play(ProjectSoundCue.doorClose));
+      }
       return _activeMapId == mapId;
     } finally {
       if (_activeMapId == mapId &&
@@ -16462,6 +16503,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _lastWaterRequiresSurfMessageAtMs = _runtimeClockMs;
 
     final evaluation = evaluateSurfAttempt(
+      surfSettings: _bundle.manifest.settings.surf,
+      conditionContext: ScriptEvaluationContext(narrativeFactResolver: _narrativeFactResolver),
       gameState: _gameState,
       isTargetWater: true,
     );

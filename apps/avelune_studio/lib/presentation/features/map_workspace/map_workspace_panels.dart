@@ -16,6 +16,7 @@ import '../../shared/widgets/inputs/studio_palette_tabs.dart';
 import 'map_tile_palette.dart';
 import 'map_warp_palette.dart';
 import 'map_workspace_view_state.dart';
+import 'map_workspace_tool_strip_selection.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_palette_dock_filters.dart';
 
@@ -70,6 +71,11 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
   void _refresh() {
     final project = widget.project;
     final exterior = widget.document.exteriorDecoration;
+    if (exterior?.editingExterior == true &&
+        !exteriorDecorationPaletteTabs.contains(kind)) {
+      widget.view.paletteTab = 'Décors';
+      widget.view.paletteTiles = false;
+    }
     final map = exterior?.editingExterior == true
         ? exterior?.editingDocument?.current ?? widget.document.current
         : widget.document.current;
@@ -270,8 +276,11 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
               if (map.spatialScene == null) 'Tuiles',
               'Bordures',
               'Environnements',
-              'Personnages',
-              'Passages',
+              if (widget.document.exteriorDecoration?.editingExterior !=
+                  true) ...[
+                'Personnages',
+                'Passages',
+              ],
             ],
             selected: kind,
             onChanged: (value) => setState(() {

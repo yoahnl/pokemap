@@ -2,6 +2,25 @@ import 'package:flutter/material.dart';
 
 import 'map_workspace_view_state.dart';
 
+const exteriorDecorationPaletteTabs = {
+  'Décors',
+  'Terrains',
+  'Bordures',
+  'Environnements',
+};
+
+bool isExteriorDecorationTool(StudioMapTool tool) => switch (tool) {
+  StudioMapTool.select ||
+  StudioMapTool.pan ||
+  StudioMapTool.place ||
+  StudioMapTool.terrain ||
+  StudioMapTool.border ||
+  StudioMapTool.environment ||
+  StudioMapTool.erase ||
+  StudioMapTool.eraseDecor => true,
+  _ => false,
+};
+
 (String, IconData)? mapExtraToolSelection(StudioMapTool tool) => switch (tool) {
   StudioMapTool.pan => ('Déplacer la vue', Icons.pan_tool_outlined),
   StudioMapTool.paint => ('Peindre', Icons.brush_outlined),
@@ -10,7 +29,10 @@ import 'map_workspace_view_state.dart';
   StudioMapTool.character => ('Placer un personnage', Icons.person_add_alt),
   StudioMapTool.spawn => ('Placer le départ du joueur', Icons.flag_outlined),
   StudioMapTool.sign => ('Placer un panneau', Icons.signpost_outlined),
-  StudioMapTool.fieldObstacle => ('Obstacle de terrain', Icons.landscape_outlined),
+  StudioMapTool.fieldObstacle => (
+    'Obstacle de terrain',
+    Icons.landscape_outlined,
+  ),
   _ => null,
 };
 
@@ -19,8 +41,7 @@ String mapToolHelp(StudioMapTool tool) => switch (tool) {
     'Sélectionnez un décor ou un personnage pour retrouver ses propriétés ici.',
   StudioMapTool.pan =>
     'Faites glisser la carte pour explorer. Le zoom reste conservé.',
-  StudioMapTool.place =>
-    'Choisissez un décor dans la palette, puis cliquez sur la carte pour le placer.',
+  StudioMapTool.place => 'Choisissez un décor dans la palette, puis cliquez sur la carte pour le placer.',
   StudioMapTool.paint => 'Choisissez une tuile, puis peignez sur la carte.',
   StudioMapTool.terrain =>
     'Peignez le terrain choisi : les raccords se calculent automatiquement.',
@@ -33,8 +54,7 @@ String mapToolHelp(StudioMapTool tool) => switch (tool) {
   StudioMapTool.spawn =>
     'Cliquez la case où le joueur apparaît au début du jeu.',
   StudioMapTool.sign => 'Cliquez la case du panneau, puis écrivez son texte.',
-  StudioMapTool.fieldObstacle =>
-    'Choisissez la capacité et le visuel de l’obstacle, puis cliquez sur sa case.',
+  StudioMapTool.fieldObstacle => 'Choisissez la capacité et le visuel de l’obstacle, puis cliquez sur sa case.',
   StudioMapTool.zone =>
     'Tracez une zone sur la carte pour lui associer une interaction.',
   StudioMapTool.gameplayZone =>
@@ -43,16 +63,12 @@ String mapToolHelp(StudioMapTool tool) => switch (tool) {
     'Cliquez ou glissez pour peindre les cases de rencontre.',
   StudioMapTool.encounterErase =>
     'Retirez les cases peintes de la zone de rencontres sélectionnée.',
-  StudioMapTool.border =>
-    'Cliquez pour poser des points et faire des angles. Terminez le tracé dans la barre au-dessus de la carte.',
-  StudioMapTool.environment =>
-    'Dessinez la zone au pinceau ou en rectangle. La gomme laisse des trous. Préparez l’aperçu, puis appliquez les décors.',
-  StudioMapTool.erase =>
-    'Effacez les tuiles et terrains sous le curseur. La gomme de décors se choisit dans les outils supplémentaires.',
+  StudioMapTool.border => 'Cliquez pour poser des points et faire des angles. Terminez le tracé dans la barre au-dessus de la carte.',
+  StudioMapTool.environment => 'Dessinez la zone au pinceau ou en rectangle. La gomme laisse des trous. Préparez l’aperçu, puis appliquez les décors.',
+  StudioMapTool.erase => 'Effacez les tuiles et terrains sous le curseur. La gomme de décors se choisit dans les outils supplémentaires.',
   StudioMapTool.eraseDecor =>
     'Cliquez sur un décor pour effacer celui qui apparaît au premier plan.',
-  StudioMapTool.collisionPaint =>
-    'Cliquez ou glissez pour bloquer les cases. Le trait est annulable en une fois.',
+  StudioMapTool.collisionPaint => 'Cliquez ou glissez pour bloquer les cases. Le trait est annulable en une fois.',
   StudioMapTool.collisionErase =>
     'Cliquez ou glissez pour libérer les cases bloquées.',
 };

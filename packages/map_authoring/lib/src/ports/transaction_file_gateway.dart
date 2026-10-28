@@ -117,3 +117,33 @@ abstract interface class TransactionFileGateway {
 
   Future<void> deleteTransaction(String operationId);
 }
+
+abstract interface class PendingTransactionJournalGateway {
+  Future<void> preparePendingJournalIndex();
+  Future<List<AuthoringTransactionJournal>> listPendingJournals();
+}
+
+Future<void> preparePendingTransactionJournals(
+    TransactionFileGateway gateway) async {
+  if (gateway is PendingTransactionJournalGateway) {
+    await (gateway as PendingTransactionJournalGateway)
+        .preparePendingJournalIndex();
+  }
+}
+
+Future<List<AuthoringTransactionJournal>> readPendingTransactionJournals(
+    TransactionFileGateway gateway,
+    {bool allowLegacyScan = false}) async {
+  if (gateway is PendingTransactionJournalGateway) {
+    try {
+      return await (gateway as PendingTransactionJournalGateway)
+          .listPendingJournals();
+    } on TransactionFileGatewayException catch (error) {
+      if (!allowLegacyScan ||
+          error.code != 'transaction.pending_index_preparation_required') {
+        rethrow;
+      }
+    }
+  }
+  return gateway.listJournals();
+}

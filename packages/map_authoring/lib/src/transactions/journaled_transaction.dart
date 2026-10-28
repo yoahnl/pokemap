@@ -116,7 +116,7 @@ final class JournaledAuthoringTransaction {
         );
         return replay;
       }
-      for (final journal in await _gateway.listJournals()) {
+      for (final journal in await readPendingTransactionJournals(_gateway)) {
         if (journal.bulkCapability == null &&
             journal.nativeCreationCapability == null) {
           continue;

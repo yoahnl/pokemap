@@ -1085,6 +1085,110 @@ void main() {
     expect(result.errorCode, SceneDialogueRuntimeAwaitableErrorCode.cancelled);
   });
 
+  for (final audio in [false, true]) {
+    test('spatial startup refuses undeclared ${audio ? 'audio' : 'CS'} capability before mounting', () async {
+      bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(settings: bundle.manifest.settings.copyWith(
+        fieldAbilities: audio ? null : ProjectFieldAbilitiesSettings(disabledAbilities: [FieldAbility.dive]),
+        audio: audio ? ProjectAudioSettings(cues: {ProjectSoundCue.uiConfirm: const ProjectSoundBinding(source: ProjectSoundSource.silent)}) : null,
+      )));
+      final id = audio ? ProjectAudioCapabilities.capabilityId : FieldAbilityActivationCapabilities.capabilityId;
+      await expectLater(runtime.load((_) {}), throwsA(isA<StateError>().having((e) => e.message, 'capability', contains(id))));
+      expect(mounts, 0);
+      expect(runtime.session, isNull);
+    });
+  }
+
+  for (final audio in [false, true]) {
+    test('spatial startup accepts declared ${audio ? 'audio' : 'CS'} capability', () async {
+      final id = audio ? ProjectAudioCapabilities.capabilityId : FieldAbilityActivationCapabilities.capabilityId;
+      bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(settings: bundle.manifest.settings.copyWith(
+        fieldAbilities: audio ? null : ProjectFieldAbilitiesSettings(disabledAbilities: [FieldAbility.dive]),
+        audio: audio ? ProjectAudioSettings(cues: {ProjectSoundCue.uiConfirm: const ProjectSoundBinding(source: ProjectSoundSource.silent)}) : null,
+      )));
+      await runtime.dispose();
+      runtime = SpatialExplorationGameSessionRuntime(
+        descriptor: descriptor(additionalCapabilities: {id}),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        mountSession: (_) async => mounts++, unmountSession: (_) async => unmounts++);
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      expect(mounts, 1);
+      expect(runtime.session, isNotNull);
+    });
+  }
+
+  test('Surf action confirms, persists its mode and exits at the shore', () async {
+    bundle = bundle.copyWith(
+      manifest: bundle.manifest.copyWith(settings: bundle.manifest.settings.copyWith(
+        surf: const ProjectSurfSettings(requiresKnownMove: false, accessMode: ProjectSurfAccessMode.always))),
+      map: bundle.map.copyWith(entities: [], gameplayZones: [MapGameplayZone(
+        id: 'water', kind: GameplayZoneKind.movement,
+        area: const MapRect(pos: GridPos(x: 2, y: 1), size: GridSize(width: 4, height: 3)),
+        movement: const MovementZonePayload(requiredMode: MovementMode.surf))]));
+    await runtime.dispose();
+    runtime = SpatialExplorationGameSessionRuntime(
+      descriptor: descriptor(additionalCapabilities: {SurfGameplayCapabilities.capabilityId}),
+      projectFilePath: () async => '${root.path}/project.json',
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) async => mounts++, unmountSession: (_) async => unmounts++);
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    runtime.session!.movement.setInput(x: 0, z: -1);
+    runtime.session!.frame(.01);
+    runtime.session!.movement.setInput(x: 0, z: 0);
+    runtime.session!.frame(0);
+    final request = runtime.overworldInteractions.value.primaryAction!.request;
+    expect(request.actionId, 'surf');
+    expect(runtime.dispatchOverworldInteraction(request), isTrue);
+    await waitForValue(runtime.dialoguePresentationListenable, (value) => value != null);
+    for (var i = 0; i < 20 && runtime.dialoguePresentationListenable.value!.choices.isEmpty; i++) {
+      runtime.session!.confirmDialogue();
+      runtime.session!.frame(.05);
+    }
+    final snapshot = runtime.dialoguePresentationListenable.value!;
+    expect(snapshot.choices.map((choice) => choice.label), ['Oui', 'Non']);
+    runtime.session!.dispatchDialogueCommand(DialogueSelectChoiceCommand(
+      snapshotRevision: snapshot.revision, choiceIndex: 0));
+    expect(runtime.gameStateSnapshot.playerMovementMode, MovementMode.surf);
+    await expectLater(runtime.captureCheckpoint(), throwsStateError);
+    runtime.session!.movement.setInput(x: 0, z: 1);
+    for (var i = 0; i < 10; i++) {
+      runtime.session!.frame(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(runtime.gameStateSnapshot.playerPosition.y, lessThan(4));
+    expect(runtime.gameStateSnapshot.playerMovementMode, MovementMode.surf);
+    final save = spatialSave(runtime.gameStateSnapshot);
+    final checkpoint = await runtime.captureCheckpoint();
+    expect(checkpoint!.state['playerMovementMode'], 'surf');
+    final saveFile = File('${root.path}/surf-save.json');
+    final originalSaveBytes = const SaveEnvelopeCodec().encodeUtf8(save);
+    await saveFile.writeAsBytes(originalSaveBytes, flush: true);
+    final saved = const GameStateSaveEnvelopeMapper().restore(save);
+    expect(saved.playerMovementMode, MovementMode.surf);
+    final continued = SpatialExplorationGameSessionRuntime(
+      descriptor: descriptor(continueGame: true, additionalCapabilities: {SurfGameplayCapabilities.capabilityId}),
+      projectFilePath: () async => '${root.path}/project.json',
+      initialSave: () async => const SaveEnvelopeCodec().decodeUtf8(
+        await saveFile.readAsBytes(), acceptedSaveFormats: {1}),
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) async {}, unmountSession: (_) async {});
+    addTearDown(continued.dispose);
+    await continued.load((_) {});
+    expect(continued.gameStateSnapshot.playerMovementMode, MovementMode.surf);
+    expect(continued.session!.movement.isPositionTraversable, isTrue);
+    expect(continued.gameStateSnapshot.playerSpatialPosition, saved.playerSpatialPosition);
+    expect(await saveFile.readAsBytes(), orderedEquals(originalSaveBytes));
+    runtime.session!.movement.setInput(x: 0, z: 1);
+    for (var i = 0; i < 14; i++) {
+      runtime.session!.frame(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(runtime.gameStateSnapshot.playerMovementMode, MovementMode.walk);
+    expect(runtime.dispatchOverworldInteraction(request), isFalse);
+  });
+
   test('authored dialogue choices stay visible and resolve their output',
       () async {
     await File('${root.path}/hello.json').writeAsBytes(

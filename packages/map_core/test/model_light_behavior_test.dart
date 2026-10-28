@@ -2,6 +2,52 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('optional crackle volume preserves silent legacy flames', () {
+    final flame = ModelLightFlame.fromJson({'style': 'brazier', 'crackleVolume': .65});
+    expect(flame.toJson()['crackleVolume'], .65);
+    expect(ModelLightFlame.fromJson(flame.toJson()), flame);
+    expect(ModelLightFlame().toJson().containsKey('crackleVolume'), isFalse);
+    for (final value in [-.1, 1.1, double.nan, 'loud']) {
+      expect(() => ModelLightFlame.fromJson({'crackleVolume': value}), throwsFormatException);
+    }
+  });
+  test('optional flame round trips without changing legacy lights', () {
+    final legacy = Model3dPointLight(localPosition: Model3dVector3.zero);
+    expect(legacy.toJson().containsKey('flame'), isFalse);
+    final light = Model3dPointLight.fromJson({
+      ...legacy.toJson(),
+      'flame': {'height': .35, 'flicker': .12},
+    });
+    expect(light.toJson()['flame'], {'height': .35, 'flicker': .12});
+    expect(Model3dPointLight.fromJson(light.toJson()), light);
+    final brazier = ModelLightFlame(
+      style: ModelLightFlameStyle.brazier,
+      embers: .75,
+    );
+    expect(ModelLightFlame.fromJson(brazier.toJson()), brazier);
+    expect(
+      ModelLightFlame.fromJson({'height': .35}).style,
+      ModelLightFlameStyle.candle,
+    );
+    expect(
+      light.copyWith(intensity: .7).toJson()['flame'],
+      light.toJson()['flame'],
+    );
+    for (final value in [
+      {'height': 0},
+      {'height': double.nan},
+      {'flicker': 2},
+      {'unknown': true},
+      {'style': 'unknown'},
+      {'embers': 2},
+    ]) {
+      expect(
+        () => Model3dPointLight.fromJson({...legacy.toJson(), 'flame': value}),
+        throwsFormatException,
+      );
+    }
+  });
+
   test('legacy lights retain their exact representation and behavior', () {
     final legacy = {
       'localPosition': {'x': 0.0, 'y': 2.0, 'z': 0.0},

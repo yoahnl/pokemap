@@ -21,6 +21,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
     required this.onUndo,
     required this.onRedo,
     this.spatial = false,
+    this.exterior = false,
     this.elements = const [],
   });
 
@@ -30,6 +31,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
   final VoidCallback onResources;
   final bool storyAvailable;
   final bool spatial;
+  final bool exterior;
   final List<ProjectElementEntry> elements;
   final bool paletteVisible;
   final VoidCallback? onUndo, onRedo;
@@ -55,16 +57,18 @@ class MapWorkspaceToolStrip extends StatelessWidget {
             _ => '',
           };
     final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
-    const families = [
+    final families = [
       ('Sélection', Icons.near_me_outlined),
       ('Décors', Icons.brush_outlined),
       ('Terrains', Icons.terrain),
       ('Bordures', Icons.timeline),
       ('Environnements', Icons.forest_outlined),
-      ('Zones', Icons.grid_on_outlined),
-      ('Collisions', Icons.block_outlined),
-      ('Passages', Icons.meeting_room_outlined),
-      ('Connexions', Icons.compare_arrows),
+      if (!exterior) ...[
+        ('Zones', Icons.grid_on_outlined),
+        ('Collisions', Icons.block_outlined),
+        ('Passages', Icons.meeting_room_outlined),
+        ('Connexions', Icons.compare_arrows),
+      ],
     ];
     bool supported(String label) =>
         !spatial ||
@@ -124,30 +128,38 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           ('Palette complète', Icons.open_in_full),
           ('Gérer les ressources', Icons.grid_view_outlined),
         ])
-          PopupMenuItem(
-            value: label,
-            enabled:
-                supported(label) &&
-                (label != 'Peindre' ||
-                    view.tile != null ||
-                    view.brush != null ||
-                    view.terrain != null ||
-                    (spatial && view.paletteTab == 'Terrains')),
-            child: Row(
-              children: [
-                Icon(icon, size: 18),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          if (!exterior ||
+              {
+                'Déplacer la vue',
+                'Gomme de tuiles',
+                'Gomme de décors',
+                'Palette complète',
+                'Gérer les ressources',
+              }.contains(label))
+            PopupMenuItem(
+              value: label,
+              enabled:
+                  supported(label) &&
+                  (label != 'Peindre' ||
+                      view.tile != null ||
+                      view.brush != null ||
+                      view.terrain != null ||
+                      (spatial && view.paletteTab == 'Terrains')),
+              child: Row(
+                children: [
+                  Icon(icon, size: 18),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        if (storyAvailable && !spatial)
+        if (storyAvailable && !spatial && !exterior)
           const PopupMenuItem(
             value: 'Dessiner une zone d’histoire',
             child: Row(
@@ -197,8 +209,8 @@ class MapWorkspaceToolStrip extends StatelessWidget {
       StudioTool(label: 'Annuler', icon: Icons.undo, onPressed: onUndo),
       StudioTool(label: 'Rétablir', icon: Icons.redo, onPressed: onRedo),
     ];
-    final zonesVisible = active == 'Zones';
-    final collisionsVisible = active == 'Collisions';
+    final zonesVisible = !exterior && active == 'Zones';
+    final collisionsVisible = !exterior && active == 'Collisions';
     return Container(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),

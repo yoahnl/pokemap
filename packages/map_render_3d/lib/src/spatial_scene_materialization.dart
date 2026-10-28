@@ -33,6 +33,7 @@ extension _SpatialSceneMaterialization on SpatialSceneGame {
     _MaterializedSceneChunk? reuseModels,
     double? Function(double, double)? adjacentHeightAt,
     bool Function()? stillCurrent,
+    Set<String>? pendingGroundImages,
   }) async {
     bool current() =>
         ticket == generation && !closed && (stillCurrent?.call() ?? true);
@@ -115,6 +116,7 @@ extension _SpatialSceneMaterialization on SpatialSceneGame {
       ground.sampleTextureWindow(elapsed);
       final requiredImages = ground.currentImageIds;
       final nextImages = ground.nextImageIds;
+      pendingGroundImages?.addAll({...requiredImages, ...nextImages});
       _wantedGroundImages.addAll({...requiredImages, ...nextImages});
       for (final id in requiredImages) {
         textures[id] = await _loadGroundTexture(

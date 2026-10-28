@@ -343,6 +343,7 @@ Future<PlayableMapGame> mountWaterfall(
   bool finalWarp = false,
   RepelState? repelState,
   void Function(RuntimeCommittedMovement)? onMovement,
+  ProjectFieldAbilitiesSettings? fieldAbilities,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-flash-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -408,6 +409,7 @@ Future<PlayableMapGame> mountWaterfall(
   );
   final manifest = ProjectManifest(
     name: 'Cascade Player',
+    settings: ProjectSettings(fieldAbilities: fieldAbilities),
     scenes: [?scene],
     eventRegistry: scene == null
         ? null

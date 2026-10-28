@@ -320,6 +320,10 @@ final class CanonicalGamePackageExportService {
           return false;
         })) SpatialWeatherCapabilities.soundCapabilityId,
         if (lightWorkshop) SpatialLightWorkshopCapabilities.capabilityId,
+        if (SpatialLightWorkshopCapabilities.requiresFlames(projection.project))
+          SpatialLightWorkshopCapabilities.flameCapabilityId,
+        if (SpatialLightWorkshopCapabilities.requiresCrackle(projection.project))
+          SpatialLightWorkshopCapabilities.crackleCapabilityId,
         if (weather) SpatialWeatherCapabilities.capabilityId,
         ...profile.requiredCapabilities,
         if (projection.payloadFiles.keys.any((path) => path == 'project/project.visual.json' || path.endsWith('.visual.json')) ||
@@ -364,6 +368,9 @@ final class CanonicalGamePackageExportService {
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (projection.project.battleSavings != null) ProjectBattleSavingsConfig.capabilityId,
+        if (SurfGameplayCapabilities.requiresCapability(projection.project)) SurfGameplayCapabilities.capabilityId,
+        if (FieldAbilityActivationCapabilities.requiresCapability(projection.project)) FieldAbilityActivationCapabilities.capabilityId,
+        if (ProjectAudioCapabilities.requiresCapability(projection.project)) ProjectAudioCapabilities.capabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(projection.project)) SpatialGameplayCapabilities.eggGiftCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,

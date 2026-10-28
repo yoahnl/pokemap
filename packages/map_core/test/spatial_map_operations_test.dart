@@ -147,6 +147,33 @@ void main() {
       );
     },
   );
+  test('attaching navigation to an authored stair preserves its world pose', () {
+    final stair = SpatialModelInstance(
+      id: 'stairs',
+      modelId: 'complete-stair',
+      position: Model3dVector3(x: 1.5, y: 1, z: 1.5),
+      blocksMovement: false,
+    );
+    final before = map().copyWith(
+      spatialScene: map().spatialScene!.copyWith(instances: [stair]),
+    );
+    final navigation = SpatialNavigationProfile(
+      ramps: [SpatialRamp(
+        id: 'stair-surface',
+        x: 1, z: 1, width: 1, depth: 1,
+        lowLevel: 1.125, highLevel: 2.125,
+        direction: SpatialRampDirection.north,
+        surfaceInstanceId: 'stairs',
+      )],
+    );
+    final attached = ops.configureNavigation(before, navigation);
+    expect(attached.spatialScene!.instances.single, stair);
+    expect(attached.spatialScene!.navigation.ramps, navigation.ramps);
+    expect(ops.configureNavigation(attached, navigation).spatialScene!.instances.single, stair);
+    final detached = ops.configureNavigation(attached, SpatialNavigationProfile());
+    expect(detached.spatialScene!.instances.single, stair);
+    expect(before.spatialScene!.navigation.ramps, isEmpty);
+  });
   test(
     'instances upsert by stable id, preserve order and delete explicitly',
     () {

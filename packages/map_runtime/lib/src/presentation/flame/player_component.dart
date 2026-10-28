@@ -90,12 +90,16 @@ class PlayerComponent extends PositionComponent with HasVisibility {
   CharacterAnimationState get _idleAnimation =>
       _state.movementMode == MovementMode.bicycle
           ? CharacterAnimationState.bicycleIdle
-          : CharacterAnimationState.idle;
+          : _state.movementMode == MovementMode.surf
+              ? CharacterAnimationState.surfIdle
+              : CharacterAnimationState.idle;
 
   CharacterAnimationState get _movingAnimation =>
       _state.movementMode == MovementMode.bicycle
           ? CharacterAnimationState.bicycle
-          : CharacterAnimationState.walk;
+          : _state.movementMode == MovementMode.surf
+              ? CharacterAnimationState.surf
+              : CharacterAnimationState.walk;
 
   GameplayPlayerState _state;
   Vector2 _mapOrigin;
@@ -346,7 +350,7 @@ class PlayerComponent extends PositionComponent with HasVisibility {
     super.update(dt);
     if (isStepping && _moveFrom != null && _moveTo != null) {
       _moveRemaining = (_moveRemaining - dt).clamp(0.0, _stepDurationSeconds);
-      if (_jumpPlan != null && _moveRemaining < 0.000000001) {
+      if (_moveRemaining <= 0.000000001) {
         _moveRemaining = 0;
       }
       final progress =
@@ -433,18 +437,26 @@ class PlayerComponent extends PositionComponent with HasVisibility {
     if (snapToGrid) {
       cancelDirectedJump();
     }
+    final previousMode = _state.movementMode;
     _state = state;
+    final transition = snapToGrid || previousMode == state.movementMode
+        ? null
+        : state.movementMode == MovementMode.surf
+            ? CharacterAnimationState.surfEnter
+            : previousMode == MovementMode.surf
+                ? CharacterAnimationState.surfExit
+                : null;
     final facing = EntityFacing.values.byName(state.facing.name);
     if (snapToGrid || !isStepping) {
       _moveFrom = null;
       _moveTo = null;
       _moveRemaining = 0.0;
       _snapToStatePosition();
-      _actor?.setMotion(facing, _idleAnimation);
+      _actor?.setMotion(facing, transition ?? _idleAnimation);
     } else {
       // Ne pas forcer idle pendant l’interpolation d’un pas (sinon tout appel
       // à syncState — ex. changement de mode — écrase l’anim marche).
-      _actor?.setMotion(facing, _stepAnimationState);
+      _actor?.setMotion(facing, transition ?? _stepAnimationState);
     }
   }
 

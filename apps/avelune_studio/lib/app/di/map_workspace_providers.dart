@@ -1,3 +1,4 @@
+import '../../features/project_audio/domain/project_audio_port.dart';
 import '../../presentation/features/project_settings/project_settings_page.dart';
 
 import 'package:flutter/widgets.dart';
@@ -53,3 +54,5 @@ final workspaceVisualTestBuilderProvider =
     Provider<
       StudioVisualTestBuilder Function(ProjectSession, MapWorkspacePort)?
     >((ref) => null);
+
+final projectAudioPreviewProvider = Provider.autoDispose.family<ProjectAudioPreviewPort?, ProjectSession>((ref, session) => null);

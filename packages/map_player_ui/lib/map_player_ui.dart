@@ -15,6 +15,7 @@ export 'src/foundation/player_menu_components.dart';
 export 'src/foundation/player_overworld_components.dart';
 export 'src/foundation/player_pokemon_type_badge.dart';
 export 'src/foundation/player_feedback.dart';
+export 'src/foundation/project_player_feedback_port.dart';
 export 'src/foundation/player_text_scaler.dart';
 export 'src/localization/player_localizations.dart';
 export 'src/player/player_battle_overlay.dart';

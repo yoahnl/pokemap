@@ -345,9 +345,6 @@ final class SpatialMapOperations {
       (instance) => attached.contains(instance.id),
     )) {
       final p = instance.position;
-      final previouslyAttached = before.navigation.ramps.any(
-        (ramp) => ramp.surfaceInstanceId == instance.id,
-      );
       final delta = reanchorAttached
           ? after.worldHeightAt(p.x, p.z, excludingRampSurface: instance.id) -
                 before.worldHeightAt(
@@ -355,9 +352,7 @@ final class SpatialMapOperations {
                   p.z,
                   excludingRampSurface: instance.id,
                 )
-          : previouslyAttached
-          ? 0.0
-          : after.worldHeightAt(p.x, p.z) - before.worldHeightAt(p.x, p.z);
+          : 0.0;
       owners[instance.id] = delta == 0
           ? instance
           : instance.copyWith(

@@ -70,6 +70,10 @@ void main() {
           sectors: [sector],
           operationId: 'worker-$i');
       final rows = (await trace())['rows'] as List;
+      final sectorReads = rows.where((row) =>
+          row['path'] == 'maps/route.decoration/west.json' &&
+          row['operation'] == 'read');
+      expect(sectorReads.single['calls'], lessThanOrEqualTo(8));
       expect(
           rows.where((row) =>
               row['path'] == 'maps/route.json' &&

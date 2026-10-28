@@ -12,7 +12,10 @@ import '../../../../packages/map_authoring/test/support/exterior_decoration_fixt
 
 void main() {
   test('reopened and neutral preview selections admit resources owned only by persisted exterior visuals', () async {
-    final root = await Directory.systemTemp.createTemp('exterior-selection-');
+    final temporary = await Directory.systemTemp.createTemp(
+      'exterior-selection-',
+    );
+    final root = Directory(await temporary.resolveSymbolicLinks());
     addTearDown(() => root.delete(recursive: true));
     final project = exteriorDecorationFixtureProject();
     final working = await WorkingProjectCatalog.create(

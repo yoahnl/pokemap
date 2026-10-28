@@ -234,6 +234,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
           entity.fieldObstacle != null &&
           !_hasIntrinsicFieldObstacleOwner(entity)) {
         final evaluation = evaluateFieldObstacleAttempt(
+          projectSettings: _bundle.manifest.settings,
           map: _world.map,
           gameState: _gameState,
           entityId: entity.id,
@@ -316,7 +317,9 @@ extension _PlayableMapInteractions on PlayableMapGame {
       final selected = _selectInteractionMapEvent();
       if (selected == null) {
         final dive = findDiveTarget(map: _world.map, gameState: _gameState);
-        if (dive != null && _activeNarrativeSceneWorkingSession == null) {
+        if (dive != null && _activeNarrativeSceneWorkingSession == null &&
+            (_gameState.playerMovementMode == MovementMode.dive ||
+                isProjectFieldAbilityEnabled(_bundle.manifest.settings, FieldAbility.dive))) {
           final settings = _bundle.manifest.settings;
           return _ResolvedOverworldInteraction(
             action: RuntimeOverworldInteractionAction(
@@ -388,7 +391,9 @@ extension _PlayableMapInteractions on PlayableMapGame {
         }
         final target = findFlashTarget(map: _world.map, gameState: _gameState);
         if (target == null) return null;
-        final prepared = prepareFlashInteraction(map: _world.map, gameState: _gameState,
+        final prepared = prepareFlashInteraction(
+          projectSettings: _bundle.manifest.settings,
+          map: _world.map, gameState: _gameState,
           stateRevision: _gameStateRevision, zoneId: target.id);
         if (prepared == null) return null;
         final settings = _bundle.manifest.settings;
@@ -639,11 +644,15 @@ extension _PlayableMapInteractions on PlayableMapGame {
     }
     final flashZoneId = interaction.flashZoneId;
     if (flashZoneId != null) {
-      final prepared = prepareFlashInteraction(map: _world.map, gameState: _gameState,
+      final prepared = prepareFlashInteraction(
+        projectSettings: _bundle.manifest.settings,
+        map: _world.map, gameState: _gameState,
         stateRevision: _gameStateRevision, zoneId: flashZoneId);
       if (prepared == null) return;
       _openDialogue(prepared.session, onDialogueFinished: (outcome) {
-        final result = prepared.complete(outcomeId: outcome, map: _world.map,
+        final result = prepared.complete(
+          projectSettings: _bundle.manifest.settings,
+          outcomeId: outcome, map: _world.map,
           gameState: _gameState, currentStateRevision: _gameStateRevision);
         if (result is FlashRefused) {
           _showNotification('Cette action n’est plus disponible.');
@@ -671,6 +680,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
         return;
       }
       final prepared = prepareFieldObstacleInteraction(
+        projectSettings: _bundle.manifest.settings,
         map: _world.map,
         gameState: _gameState,
         stateRevision: _gameStateRevision,
@@ -755,7 +765,13 @@ extension _PlayableMapInteractions on PlayableMapGame {
     final originalEntity = _world.map.entities.where((entity) => entity.id == decision.entityId).singleOrNull;
     _applyIntrinsicFieldObstacleState(decision.gameState);
     final ability = interaction.ticket!.fieldAction.ability;
-    if (ability == FieldAbility.cut) unawaited(_overworldSfxPlayer.playCut());
+    if (ability == FieldAbility.cut) {
+      if (_usesInjectedOverworldSfx) {
+        unawaited(_overworldSfxPlayer.playCut());
+      } else {
+        unawaited(projectAudio?.play(ProjectSoundCue.fieldCut));
+      }
+    }
     _showNotification(switch (ability) {
       FieldAbility.cut => 'Votre Pokémon utilise Coupe !',
       FieldAbility.strength => 'Force est active sur cette carte. Avancez vers un rocher pour le pousser.',

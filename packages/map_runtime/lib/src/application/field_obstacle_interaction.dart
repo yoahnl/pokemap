@@ -42,11 +42,13 @@ RuntimeFieldObstacleInteraction? prepareFieldObstacleInteraction({
   required GameState gameState,
   required int stateRevision,
   required String entityId,
+  ProjectSettings? projectSettings,
 }) {
   final evaluation = evaluateFieldObstacleAttempt(
     map: map,
     gameState: gameState,
     entityId: entityId,
+    projectSettings: projectSettings,
   );
   if (evaluation is FieldObstacleUnavailable &&
       evaluation.reason != FieldObstacleBlockReason.missingMove &&

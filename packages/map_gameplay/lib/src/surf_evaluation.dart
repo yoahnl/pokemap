@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'field_action.dart';
+import 'script_condition_evaluator.dart';
 
 /// Spécialisation Surf du contrat d'action terrain.
 ///
@@ -14,10 +15,14 @@ typedef SurfAttemptEvaluation = FieldActionEvaluation;
 FieldActionEvaluation evaluateSurfAttempt({
   required GameState gameState,
   required bool isTargetWater,
+  ProjectSurfSettings? surfSettings,
+  ScriptEvaluationContext? conditionContext,
 }) {
   return evaluateFieldAction(
     ability: FieldAbility.surf,
     gameState: gameState,
     isTargetWater: isTargetWater,
+    surfSettings: surfSettings,
+    conditionContext: conditionContext,
   );
 }

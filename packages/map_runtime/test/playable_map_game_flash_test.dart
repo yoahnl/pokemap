@@ -162,6 +162,7 @@ Future<PlayableMapGame> mountFlash(
   WidgetTester tester, {
   GameState? restored,
   bool retainInstances = false,
+  ProjectFieldAbilitiesSettings? fieldAbilities,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-flash-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -214,6 +215,7 @@ Future<PlayableMapGame> mountFlash(
   final manifest = ProjectManifest(
     name: 'Flash Player',
     settings: ProjectSettings(
+      fieldAbilities: fieldAbilities,
       mapInstanceRetentionPolicy: retainInstances
           ? MapInstanceRetentionPolicy(
               viewportWidthTiles: 10,

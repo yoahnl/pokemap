@@ -350,6 +350,19 @@ _ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>
       dimension:
           $enumDecodeNullable(_$ProjectDimensionEnumMap, json['dimension']) ??
           ProjectDimension.twoD,
+      surf: json['surf'] == null
+          ? null
+          : ProjectSurfSettings.fromJson(json['surf'] as Map<String, dynamic>),
+      fieldAbilities: json['fieldAbilities'] == null
+          ? null
+          : ProjectFieldAbilitiesSettings.fromJson(
+              json['fieldAbilities'] as Map<String, dynamic>,
+            ),
+      audio: json['audio'] == null
+          ? null
+          : ProjectAudioSettings.fromJson(
+              json['audio'] as Map<String, dynamic>,
+            ),
       spatialCamera: json['spatialCamera'] == null
           ? null
           : SpatialCameraProfile.fromJson(
@@ -377,6 +390,9 @@ Map<String, dynamic> _$ProjectSettingsToJson(
   _ProjectSettings instance,
 ) => <String, dynamic>{
   'dimension': _$ProjectDimensionEnumMap[instance.dimension]!,
+  'surf': ?instance.surf?.toJson(),
+  'fieldAbilities': ?_projectFieldAbilitiesToJson(instance.fieldAbilities),
+  'audio': ?instance.audio?.toJson(),
   'spatialCamera': ?instance.spatialCamera?.toJson(),
   'mapInstanceRetentionPolicy': ?instance.mapInstanceRetentionPolicy?.toJson(),
   'actorContactShadowsByDefault': instance.actorContactShadowsByDefault,
@@ -1110,6 +1126,10 @@ const _$CharacterAnimationStateEnumMap = {
   CharacterAnimationState.walk: 'walk',
   CharacterAnimationState.run: 'run',
   CharacterAnimationState.climb: 'climb',
+  CharacterAnimationState.surfIdle: 'surf_idle',
+  CharacterAnimationState.surf: 'surf',
+  CharacterAnimationState.surfEnter: 'surf_enter',
+  CharacterAnimationState.surfExit: 'surf_exit',
 };
 
 const _$EntityFacingEnumMap = {

@@ -61,6 +61,7 @@ flutter:
     - assets/audio/battle/se/
     - assets/audio/overworld/
     - assets/audio/weather/
+    - assets/audio/fire/
     - assets/transitions/
     - assets/battle/stats/
     - assets/battle_animations/

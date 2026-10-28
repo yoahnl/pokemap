@@ -9,6 +9,7 @@ import 'gameplay_world_state.dart';
 import 'movement_terrain_policy.dart';
 
 enum FieldTraversalBlockReason {
+  disabled,
   unsupportedMap,
   invalidTarget,
   wrongDirection,
@@ -101,7 +102,11 @@ FieldTraversalEvaluation evaluateFieldTraversalAttempt({
       supportedAbilities: {ability},
       unlockedFieldAbilities:
           gameState.progression.unlockedFieldAbilities.toSet(),
-      party: gameState.party);
+      party: gameState.party,
+      projectSettings: project?.settings);
+  if (gate.status == FieldAbilityGateStatus.disabled) {
+    return const FieldTraversalEvaluation.unavailable(FieldTraversalBlockReason.disabled);
+  }
   if (gate.status == FieldAbilityGateStatus.missingMove) {
     return const FieldTraversalEvaluation.unavailable(
         FieldTraversalBlockReason.missingMove);
@@ -157,6 +162,7 @@ FieldActionRefusal? validateFieldTraversalTicket({
   required MapData map,
   required GameState gameState,
   required int currentStateRevision,
+  ProjectSettings? projectSettings,
 }) {
   if (ticket.fieldAction.issuedAtStateRevision != currentStateRevision) {
     return FieldActionRefusal.staleStateRevision;
@@ -176,6 +182,9 @@ FieldActionRefusal? validateFieldTraversalTicket({
       ticket.instance != gameState.mapInstanceWorldState.instanceRef(map.id) ||
       findGameplayZoneById(map, ticket.zone.id) != ticket.zone) {
     return FieldActionRefusal.targetChanged;
+  }
+  if (projectSettings != null && !isProjectFieldAbilityEnabled(projectSettings, ability)) {
+    return FieldActionRefusal.noLongerAvailable;
   }
   return null;
 }

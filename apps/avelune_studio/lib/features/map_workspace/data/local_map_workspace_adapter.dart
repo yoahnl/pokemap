@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:map_authoring/map_authoring.dart'
+    show AssetRecord, assetBlobStorageKey;
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
@@ -19,10 +21,18 @@ import 'package:avelune_studio/features/map_workspace/data/map_document_retentio
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
 import '../../project_session/data/studio_project_document_revision.dart';
+import '../../project_session/data/local_workshop_reader.dart';
+import '../../project_surf/domain/project_surf_port.dart';
+import '../../project_cs/domain/project_cs_port.dart';
+import '../../project_audio/domain/project_audio_port.dart';
 
 part 'local_map_atmosphere_adapter.dart';
 part 'local_map_exterior_decoration_adapter.dart';
 part 'local_project_visuals_adapter.dart';
+part 'local_project_surf_adapter.dart';
+part 'local_project_cs_adapter.dart';
+part 'local_project_audio_adapter.dart';
+part 'local_project_settings_mutation.dart';
 part 'local_map_editor_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
@@ -38,6 +48,9 @@ final class LocalMapWorkspaceAdapter
         MapAtmospherePort,
         MapExteriorDecorationPort,
         ProjectVisualsPort,
+        ProjectSurfPort,
+        ProjectCsPort,
+        ProjectAudioPort,
         MapEditorPort,
         MapElementOrderPort {
   LocalMapWorkspaceAdapter({
@@ -45,6 +58,31 @@ final class LocalMapWorkspaceAdapter
     AtomicMapDocumentPersistence? persistence,
   }) : _reader = reader ?? const LocalProjectFileReader(),
        _persistence = persistence ?? const AtomicMapDocumentPersistence();
+
+  @override
+  Future<ProjectAudioState> loadAudio(ProjectSession session) => _loadAudio(session);
+  @override
+  Future<ProjectAudioState> saveAudioCue(ProjectSession session, ProjectSoundCue cue, ProjectSoundBinding? binding, String expectedRevision) => withResourceMutation(() => _saveAudioCue(session, cue, binding, expectedRevision));
+  @override
+  Future<ProjectAudioPage> queryAudio(ProjectSession session, {String query = '', String? cursor}) => _queryAudio(session, query: query, cursor: cursor);
+  @override
+  Future<ProjectAudioImport> importAudio(ProjectSession session, String sourcePath, String label, String expectedRevision) => withResourceMutation(() => _importAudio(session, sourcePath, label, expectedRevision));
+  @override
+  Future<ProjectAudioFile> resolveAudio(ProjectSession session, String mediaId) => _resolveAudio(session, mediaId);
+  var _settingsOperations = 0;
+  @override
+  Future<ProjectCsState> loadFieldAbilities(ProjectSession session) => _loadFieldAbilities(session);
+  @override
+  Future<ProjectCsState> saveFieldAbility(ProjectSession session, FieldAbility ability, bool enabled, String expectedRevision) => withResourceMutation(() => _saveFieldAbility(session, ability, enabled, expectedRevision));
+  var _surfOperations = 0;
+  @override
+  Future<ProjectSurfState> loadSurf(ProjectSession session) => _loadSurf(session);
+  @override
+  Future<ProjectSurfState> saveSurf(ProjectSession session, ProjectSurfSettings? configuration, String expectedRevision) => withResourceMutation(() => _saveSurf(session, configuration, expectedRevision));
+  @override
+  Future<ProjectSurfReferences> loadSurfReferences(ProjectSession session) => _loadSurfReferences(session);
+  @override
+  Future<NarrativeFactDefinition> loadSurfFact(ProjectSession session, String id) => _loadSurfFact(session, id);
 
   final _visualServices = <String, Future<LocalVisualSettingsAuthoring>>{};
   var _visualOperations = 0;

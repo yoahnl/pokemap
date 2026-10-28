@@ -1,5 +1,59 @@
 enum ModelLightProximityMode { near, far }
 
+enum ModelLightFlameStyle { candle, brazier }
+
+final class ModelLightFlame {
+  ModelLightFlame({
+    num height = .35,
+    num flicker = .12,
+    this.style = ModelLightFlameStyle.candle,
+    num embers = 0,
+    num crackleVolume = 0,
+  }) : height = _range(height, .03, 8),
+       flicker = _range(flicker, 0, .4),
+       embers = _range(embers, 0, 1),
+       crackleVolume = _range(crackleVolume, 0, 1);
+
+  final double height, flicker, embers, crackleVolume;
+  final ModelLightFlameStyle style;
+
+  factory ModelLightFlame.fromJson(Map<String, dynamic> json) {
+    _keys(json, {'height', 'flicker', 'style', 'embers', 'crackleVolume'});
+    return ModelLightFlame(
+      height: _number(json['height'] ?? .35),
+      flicker: _number(json['flicker'] ?? .12),
+      embers: _number(json['embers'] ?? 0),
+      crackleVolume: _number(json['crackleVolume'] ?? 0),
+      style: switch (json['style']) {
+        null || 'candle' => ModelLightFlameStyle.candle,
+        'brazier' => ModelLightFlameStyle.brazier,
+        _ => throw const FormatException('Unknown flame style.'),
+      },
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'height': height,
+    'flicker': flicker,
+    if (style != ModelLightFlameStyle.candle) 'style': style.name,
+    if (embers > 0) 'embers': embers,
+    if (crackleVolume > 0) 'crackleVolume': crackleVolume,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ModelLightFlame &&
+      height == other.height &&
+      flicker == other.flicker &&
+      style == other.style &&
+      embers == other.embers &&
+      crackleVolume == other.crackleVolume;
+
+  @override
+  int get hashCode =>
+      Object.hash(height, flicker, style, embers, crackleVolume);
+}
+
 final class ModelLightColorCycle {
   ModelLightColorCycle({required List<int> colors, num periodSeconds = 10})
     : colors = List.unmodifiable(colors),

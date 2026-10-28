@@ -270,6 +270,7 @@ final class Model3dPointLight {
     this.nightOnly = true,
     this.colorCycle,
     this.proximity,
+    this.flame,
   }) {
     if (!radius.isFinite ||
         radius < .25 ||
@@ -289,6 +290,7 @@ final class Model3dPointLight {
   final bool nightOnly;
   final ModelLightColorCycle? colorCycle;
   final ModelLightProximity? proximity;
+  final ModelLightFlame? flame;
 
   Model3dPointLight copyWith({
     Model3dVector3? localPosition,
@@ -298,8 +300,10 @@ final class Model3dPointLight {
     bool? nightOnly,
     ModelLightColorCycle? colorCycle,
     ModelLightProximity? proximity,
+    ModelLightFlame? flame,
     bool clearColorCycle = false,
     bool clearProximity = false,
+    bool clearFlame = false,
   }) => Model3dPointLight(
     localPosition: localPosition ?? this.localPosition,
     radius: radius ?? this.radius,
@@ -308,6 +312,7 @@ final class Model3dPointLight {
     nightOnly: nightOnly ?? this.nightOnly,
     colorCycle: clearColorCycle ? null : colorCycle ?? this.colorCycle,
     proximity: clearProximity ? null : proximity ?? this.proximity,
+    flame: clearFlame ? null : flame ?? this.flame,
   );
 
   factory Model3dPointLight.fromJson(Map<String, dynamic> json) {
@@ -315,6 +320,7 @@ final class Model3dPointLight {
       'localPosition',
       if (json.containsKey('colorCycle')) 'colorCycle',
       if (json.containsKey('proximity')) 'proximity',
+      if (json.containsKey('flame')) 'flame',
       for (final field in ['radius', 'intensity', 'colorRgb', 'nightOnly'])
         if (json.containsKey(field)) field,
     });
@@ -339,6 +345,9 @@ final class Model3dPointLight {
       proximity: json['proximity'] == null
           ? null
           : ModelLightProximity.fromJson(_object(json['proximity'])),
+      flame: json['flame'] == null
+          ? null
+          : ModelLightFlame.fromJson(_object(json['flame'])),
     );
   }
 
@@ -350,6 +359,7 @@ final class Model3dPointLight {
     'nightOnly': nightOnly,
     if (colorCycle != null) 'colorCycle': colorCycle!.toJson(),
     if (proximity != null) 'proximity': proximity!.toJson(),
+    if (flame != null) 'flame': flame!.toJson(),
   };
   @override
   bool operator ==(Object other) =>
@@ -360,7 +370,8 @@ final class Model3dPointLight {
       colorRgb == other.colorRgb &&
       nightOnly == other.nightOnly &&
       colorCycle == other.colorCycle &&
-      proximity == other.proximity;
+      proximity == other.proximity &&
+      flame == other.flame;
   @override
   int get hashCode => Object.hash(
     localPosition,
@@ -370,6 +381,7 @@ final class Model3dPointLight {
     nightOnly,
     colorCycle,
     proximity,
+    flame,
   );
 }
 

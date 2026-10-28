@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'field_ability_gate.dart';
+import 'script_condition_evaluator.dart';
 
 export 'field_ability_gate.dart' show partyHasUsableFieldMove;
 
@@ -55,6 +56,10 @@ class MissingSurfCapablePokemon extends FieldActionEvaluation {
   const MissingSurfCapablePokemon();
 }
 
+class SurfDisabled extends FieldActionEvaluation {
+  const SurfDisabled();
+}
+
 /// Un Pokémon connaît Surf, mais la capacité n'est pas débloquée
 /// côté progression (badge, scénario, etc.).
 class SurfNotUnlocked extends FieldActionEvaluation {
@@ -74,15 +79,10 @@ FieldActionEvaluation evaluateFieldAction({
   required FieldAbility ability,
   required GameState gameState,
   required bool isTargetWater,
+  ProjectSurfSettings? surfSettings,
+  ScriptEvaluationContext? conditionContext,
 }) {
-  final gate = evaluateFieldAbilityGate(
-    ability: ability,
-    supportedAbilities: betaSignedFieldAbilities,
-    unlockedFieldAbilities:
-        gameState.progression.unlockedFieldAbilities.toSet(),
-    party: gameState.party,
-  );
-  if (gate.status == FieldAbilityGateStatus.unsupported) {
+  if (!betaSignedFieldAbilities.contains(ability)) {
     return FieldActionUnsupported(ability);
   }
   if (!isTargetWater) {
@@ -91,10 +91,25 @@ FieldActionEvaluation evaluateFieldAction({
   if (gameState.playerMovementMode == fieldActionMovementMode(ability)) {
     return const AlreadySurfing();
   }
-  if (gate.status == FieldAbilityGateStatus.missingMove) {
+  final settings = (surfSettings ?? const ProjectSurfSettings()).validated();
+  if (!settings.enabled) {
+    return const SurfDisabled();
+  }
+  if (settings.requiresKnownMove &&
+      !partyHasUsableFieldMove(gameState.party, ability)) {
     return const MissingSurfCapablePokemon();
   }
-  if (gate.status == FieldAbilityGateStatus.locked) {
+  final unlocked = switch (settings.accessMode) {
+    ProjectSurfAccessMode.progression =>
+      gameState.progression.unlockedFieldAbilities.contains(ability),
+    ProjectSurfAccessMode.always => true,
+    ProjectSurfAccessMode.condition => const ScriptConditionEvaluator().evaluate(
+      settings.condition!,
+      gameState,
+      context: conditionContext,
+    ),
+  };
+  if (!unlocked) {
     return const SurfNotUnlocked();
   }
   return const CanPromptSurf();
@@ -185,6 +200,8 @@ FieldActionCommit commitFieldAction({
   required int currentStateRevision,
   required GridPos confirmedTargetCell,
   required bool isTargetWater,
+  ProjectSurfSettings? surfSettings,
+  ScriptEvaluationContext? conditionContext,
 }) {
   if (ticket.issuedAtStateRevision != currentStateRevision) {
     return const FieldActionRefused(FieldActionRefusal.staleStateRevision);
@@ -196,6 +213,8 @@ FieldActionCommit commitFieldAction({
     ability: ticket.ability,
     gameState: gameState,
     isTargetWater: isTargetWater,
+    surfSettings: surfSettings,
+    conditionContext: conditionContext,
   );
   if (evaluation is! CanPromptSurf) {
     return FieldActionRefused(

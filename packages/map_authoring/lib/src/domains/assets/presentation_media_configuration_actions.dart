@@ -319,6 +319,15 @@ AuthoringMutationDraft _managePresentationMedia(
   }
   ProjectMediaAsset? after;
   if (deleting) {
+    final cueIds = context.snapshot.manifest.settings.audio?.cues.entries
+        .where((entry) => entry.value.source == ProjectSoundSource.custom && entry.value.mediaId == id)
+        .map((entry) => entry.key.wireName).toList() ?? const <String>[];
+    if (cueIds.isNotEmpty) {
+      throw PresentationMediaConfigurationException(
+          'presentation_media.references_blocking',
+          'The media is assigned to game sounds. Change those sound assignments before deleting it.',
+          details: {'mediaId': id, 'soundCueIds': cueIds});
+    }
     final graph = PresentationReferenceGraph.build(
         cinematics: context.snapshot.manifest.presentationCinematics,
         scenes: context.snapshot.manifest.scenes,

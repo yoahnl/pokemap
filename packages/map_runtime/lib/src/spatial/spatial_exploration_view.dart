@@ -9,6 +9,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 import '../application/runtime_map_bundle.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_weather_audio_controller.dart';
+import '../player/runtime_brazier_audio_controller.dart';
 import '../player/runtime_graphics_preferences.dart';
 import '../player/runtime_world_time_preferences.dart';
 import '../presentation/map_warp_transition_overlay.dart';
@@ -44,9 +45,17 @@ class SpatialExplorationView extends StatefulWidget {
 class _SpatialExplorationViewState extends State<SpatialExplorationView>
     with WidgetsBindingObserver {
   final focus = FocusNode();
+  Timer? _fireAudioTimer;
+  late RuntimeBrazierAudioController fireAudio = RuntimeBrazierAudioController(
+    mixer: widget.audioMixer ??
+        widget.session.projectAudio?.mixer ?? RuntimeAudioMixer(),
+    projectAudio: widget.session.projectAudio,
+  );
   late RuntimeWeatherAudioController weatherAudio =
       RuntimeWeatherAudioController(
-        mixer: widget.audioMixer ?? RuntimeAudioMixer(),
+        mixer: widget.audioMixer ??
+        widget.session.projectAudio?.mixer ?? RuntimeAudioMixer(),
+        projectAudio: widget.session.projectAudio,
       );
   late final camera =
       widget.sceneController ??
@@ -61,8 +70,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
         : world;
     final overrides = timed
         .overriddenBy(widget.session.visualOverrides)
-            .overriddenBy(widget.session.cinematicVisualOverrides)
-            .overriddenBy(widget.previewVisuals?.value ?? SpatialVisualPatch());
+        .overriddenBy(widget.session.cinematicVisualOverrides)
+        .overriddenBy(widget.previewVisuals?.value ?? SpatialVisualPatch());
     final authored = activeBundle.visualProfile.overriddenBy(overrides);
     final observed = widget.session.realWeatherAllowed
         ? widget.session.realWeather?.value.snapshot
@@ -123,6 +132,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     setState(() => _graphicsOverrides = overrides);
     applyVisuals();
   }
+
   late RuntimeMapBundle activeBundle;
   RuntimeMapBundle? _loaderBundle;
   SpatialExplorationSession? _loaderSession;
@@ -133,7 +143,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     SpatialExplorationSession session,
     RuntimeMapBundle bundle,
   ) {
-    if (identical(_loaderBundle, bundle) && identical(_loaderSession, session)) {
+    if (identical(_loaderBundle, bundle) &&
+        identical(_loaderSession, session)) {
       return;
     }
     _loaderBundle = bundle;
@@ -229,9 +240,21 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     activeBundle = widget.session.bundle;
+    _fireAudioTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      unawaited(
+        fireAudio.update(
+          widget.session.transitioning.value ? 0 : camera.flameSoundGain,
+        ),
+      );
+    });
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     unawaited(
       weatherAudio.setSuspended(
+        lifecycle != null && lifecycle != AppLifecycleState.resumed,
+      ),
+    );
+    unawaited(
+      fireAudio.setSuspended(
         lifecycle != null && lifecycle != AppLifecycleState.resumed,
       ),
     );
@@ -245,6 +268,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   }
 
   void mapChanged() {
+    camera.flameSoundGain = 0;
+    unawaited(fireAudio.update(0));
     final previous = activeBundle;
     _decorationBundles[previous.map.id] = previous;
     activeBundle = widget.session.bundle;
@@ -381,10 +406,24 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
   @override
   void didUpdateWidget(SpatialExplorationView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.audioMixer != widget.audioMixer) {
+    if (oldWidget.audioMixer != widget.audioMixer ||
+        oldWidget.session.projectAudio != widget.session.projectAudio) {
+      unawaited(fireAudio.dispose());
+      fireAudio = RuntimeBrazierAudioController(
+        mixer: widget.audioMixer ??
+        widget.session.projectAudio?.mixer ?? RuntimeAudioMixer(),
+        projectAudio: widget.session.projectAudio,
+      );
+      unawaited(
+        fireAudio.setSuspended(
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed,
+        ),
+      );
       unawaited(weatherAudio.dispose());
       weatherAudio = RuntimeWeatherAudioController(
-        mixer: widget.audioMixer ?? RuntimeAudioMixer(),
+        mixer: widget.audioMixer ??
+        widget.session.projectAudio?.mixer ?? RuntimeAudioMixer(),
+        projectAudio: widget.session.projectAudio,
       );
       unawaited(
         weatherAudio.setSuspended(
@@ -429,6 +468,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    unawaited(fireAudio.setSuspended(state != AppLifecycleState.resumed));
     unawaited(weatherAudio.setSuspended(state != AppLifecycleState.resumed));
     widget.session.setLifecyclePaused(state != AppLifecycleState.resumed);
     if (state != AppLifecycleState.resumed) release();
@@ -515,6 +555,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
 
   @override
   void dispose() {
+    _fireAudioTimer?.cancel();
+    unawaited(fireAudio.dispose());
     unawaited(weatherAudio.dispose());
     neighborGeneration++;
     release();

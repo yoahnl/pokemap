@@ -709,6 +709,7 @@ final class LocalMapExteriorDecorationAuthoring {
     final verifyVisualReferences = await _admitVisualReferences(context, after);
     final changes = <AuthoringResourceChange>[];
     final diffs = <AuthoringDiffEntry>[];
+    final beforeImages = <String, List<int>?>{};
     final afterIndexBytes =
         restoredBytes != null && restoredBytes.containsKey(context.storageKey)
             ? restoredBytes[context.storageKey]
@@ -730,6 +731,7 @@ final class LocalMapExteriorDecorationAuthoring {
       }
       final before =
           await _readBytes(context, item.key, _storageLimit(context, item.key));
+      beforeImages[item.key] = before;
       if (isIndex && _revision(before, item.key, mapId) != expectedRevision) {
         throw const FormatException('map.exteriorDecoration_revision_conflict');
       }
@@ -768,8 +770,8 @@ final class LocalMapExteriorDecorationAuthoring {
             'documentAfterRevision': afterRevision
           }));
     }
-    await _prepareIncomingChanges(
-        context, index, after, changes, diffs, expectedRevision, afterRevision,
+    await _prepareIncomingChanges(context, index, beforeImages, after, changes,
+        diffs, expectedRevision, afterRevision,
         repairing: prepareReferences, operationId: operationId);
     if (changes.isEmpty) {
       throw const FormatException('map.exteriorDecoration_no_changes');

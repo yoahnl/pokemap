@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:io';
+
+import '../platform/rendering/studio_project_audio_preview.dart';
 
 import '../features/resources/data/local_resource_pack_adapter.dart';
 import '../platform/files/native_resource_pack_picker.dart';
@@ -242,6 +245,11 @@ class StudioBootstrap extends StatelessWidget {
           ) as LocalMapWorkspaceAdapter,
         ),
       ),
+      projectAudioPreviewProvider.overrideWith((ref, session) {
+        final preview = StudioProjectAudioPreview(session: session, port: ref.watch(mapWorkspacePortProvider(session)) as LocalMapWorkspaceAdapter);
+        ref.onDispose(() => unawaited(preview.close()));
+        return preview;
+      }),
       presentationMediaPickerProvider.overrideWithValue(
         const NativePresentationMediaPicker().choose,
       ),

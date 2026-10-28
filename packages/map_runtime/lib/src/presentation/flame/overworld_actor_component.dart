@@ -83,6 +83,23 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
   Vector2? _moveTo;
   double _moveRemaining = 0;
   double _stepDurationSeconds = 0.12;
+  CharacterAnimationState? _surfTransitionReturnState;
+
+  double get _surfTransitionSeconds {
+    if (_animState != CharacterAnimationState.surfEnter &&
+        _animState != CharacterAnimationState.surfExit) {
+      return 0;
+    }
+    CharacterAnimation? transition;
+    for (final animation in character.animations) {
+      if (animation.state == _animState && animation.direction == _facing) {
+        transition = animation;
+      }
+    }
+    if (!_hasRenderableFrames(transition)) return 0;
+    return transition!.frames.fold<int>(0, (sum, frame) => sum + frame.durationMs) / 1000;
+  }
+
 
   void setGameplayVisible(bool visible) {
     _gameplayVisible = visible;
@@ -172,6 +189,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
   }
 
   void restoreBase(EntityFacing facing) {
+    _surfTransitionReturnState = null;
     _customAnimation = null;
     _customAnimationElapsed = 0;
     _facing = facing;
@@ -191,6 +209,19 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
   }
 
   void setMotion(EntityFacing facing, CharacterAnimationState animState) {
+    final transitionSeconds = _surfTransitionSeconds;
+    if (transitionSeconds > _animElapsed &&
+        const {CharacterAnimationState.idle, CharacterAnimationState.walk,
+          CharacterAnimationState.run, CharacterAnimationState.surfIdle,
+          CharacterAnimationState.surf}.contains(animState)) {
+      _surfTransitionReturnState = animState;
+      return;
+    }
+    _surfTransitionReturnState = switch (animState) {
+      CharacterAnimationState.surfEnter => CharacterAnimationState.surfIdle,
+      CharacterAnimationState.surfExit => CharacterAnimationState.idle,
+      _ => null,
+    };
     // Guard rail:
     // pendant un pas interpolé, certains appels externes peuvent demander
     // "idle" avant la fin visuelle du déplacement (resync runtime, update état).
@@ -232,6 +263,11 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
             animState == CharacterAnimationState.bicycle) ||
         (previousState == CharacterAnimationState.bicycle &&
             animState == CharacterAnimationState.bicycleIdle);
+    final togglesSurfIdle =
+        (previousState == CharacterAnimationState.surfIdle &&
+            animState == CharacterAnimationState.surf) ||
+        (previousState == CharacterAnimationState.surf &&
+            animState == CharacterAnimationState.surfIdle);
     final togglesMovementIdle =
         (previousState == CharacterAnimationState.idle &&
                 (animState == CharacterAnimationState.walk ||
@@ -240,7 +276,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
                     previousState == CharacterAnimationState.run) &&
                 animState == CharacterAnimationState.idle);
     final preserveAnimationPhase =
-        previousFacing == facing && (togglesMovementIdle || togglesBicycleIdle);
+        previousFacing == facing && (togglesMovementIdle || togglesBicycleIdle || togglesSurfIdle);
 
     _facing = facing;
     _animState = animState;
@@ -311,6 +347,12 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
   void update(double dt) {
     super.update(dt);
     _animElapsed += dt;
+    final transitionSeconds = _surfTransitionSeconds;
+    if (_surfTransitionReturnState != null && _animElapsed >= transitionSeconds) {
+      final next = _surfTransitionReturnState!;
+      _surfTransitionReturnState = null;
+      setMotion(_facing, next);
+    }
     if (_customAnimation != null) _customAnimationElapsed += dt;
     if (isStepping && _moveFrom != null && _moveTo != null) {
       _moveRemaining = (_moveRemaining - dt).clamp(0.0, _stepDurationSeconds);
@@ -470,6 +512,10 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
       if (a.direction == _facing) {
         if (a.state == _animState) exactFacing = a;
         switch (a.state) {
+          case CharacterAnimationState.surfIdle:
+          case CharacterAnimationState.surf:
+          case CharacterAnimationState.surfEnter:
+          case CharacterAnimationState.surfExit:
           case CharacterAnimationState.climb:
           case CharacterAnimationState.bicycleIdle:
           case CharacterAnimationState.bicycle:
@@ -492,6 +538,10 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
           case CharacterAnimationState.run:
             runAny ??= a;
             break;
+          case CharacterAnimationState.surfIdle:
+          case CharacterAnimationState.surf:
+          case CharacterAnimationState.surfEnter:
+          case CharacterAnimationState.surfExit:
           case CharacterAnimationState.climb:
           case CharacterAnimationState.bicycleIdle:
           case CharacterAnimationState.bicycle:
@@ -513,11 +563,12 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     }
 
     final wantsMotion = _animState == CharacterAnimationState.walk ||
-        _animState == CharacterAnimationState.run;
+        _animState == CharacterAnimationState.run ||
+        _animState == CharacterAnimationState.surf;
 
     if (wantsMotion) {
       final List<CharacterAnimation?> cascade =
-          _animState == CharacterAnimationState.walk
+          _animState != CharacterAnimationState.run
               ? <CharacterAnimation?>[
                   walkFacing,
                   runFacing,

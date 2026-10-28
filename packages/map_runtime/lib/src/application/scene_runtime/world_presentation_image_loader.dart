@@ -46,6 +46,28 @@ final class WorldPresentationImageLoader {
   Future<ProjectMediaCatalog> loadCatalog() async =>
       (await (_catalogs ??= _loadCatalogs())).$1;
 
+  Future<Map<String, (String, String)>> loadAudioFiles(Iterable<String> ids) async {
+    final selected = ids.toSet();
+    if (selected.isEmpty) return const {};
+    final (catalog, assets) = await (_catalogs ??= _loadCatalogs());
+    final result = <String, (String, String)>{};
+    for (final id in selected) {
+      final media = catalog.find(id);
+      final metadata = media?.technicalMetadata;
+      final asset = media == null ? null : assets.find(media.sourceAssetId);
+      if (media?.kind != ProjectMediaKind.audio || metadata == null ||
+          !metadata.mediaType.startsWith('audio/') || asset == null) {
+        throw StateError('The project sound $id is unavailable or is not audio.');
+      }
+      final file = await _confinedFile(assetBlobStorageKey(asset.artifact));
+      if (await file.length() != metadata.sizeBytes) {
+        throw StateError('The project sound $id has changed since its import.');
+      }
+      result[id] = (file.path, metadata.mediaType);
+    }
+    return Map.unmodifiable(result);
+  }
+
   Future<ui.Image> load(String id) async {
     final (mediaCatalog, assets) = await (_catalogs ??= _loadCatalogs());
     final media = mediaCatalog.find(id);

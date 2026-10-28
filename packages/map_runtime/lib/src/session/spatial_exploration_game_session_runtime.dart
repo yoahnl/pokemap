@@ -30,6 +30,8 @@ import '../player/runtime_player_host.dart';
 import '../player/runtime_music_service.dart';
 import '../player/runtime_scene_music_controller.dart';
 import '../player/runtime_audio_mixer.dart';
+import '../player/runtime_project_audio_controller.dart';
+import '../application/load_runtime_project_audio.dart';
 import '../presentation/flame/battle_music_resolver.dart';
 import '../player/runtime_world_service_models.dart';
 import '../player/runtime_world_time_preferences.dart';
@@ -80,6 +82,7 @@ final class SpatialExplorationGameSessionRuntime
     RealWeatherService? realWeatherService,
     DateTime Function()? now,
     RuntimeAudioMixer? audioMixer,
+    @visibleForTesting this.projectAudio,
     @visibleForTesting FlameCinematicAudioDriver Function()? sceneAudioDriverFactory,
     @visibleForTesting RuntimeMusicService Function(RuntimeAudioMixer)? musicServiceFactory,
   })  : _projectFilePath = projectFilePath,
@@ -135,6 +138,7 @@ final class SpatialExplorationGameSessionRuntime
   int _transferPauseEpoch = 0;
   Completer<void>? _materializationResumed;
   GridPos? _lastCell;
+  RuntimeProjectAudioController? projectAudio;
   Future<void> gameplayReady = Future.value();
   String? _sceneBattleOutcome;
   final DateTime Function() _now;
@@ -251,6 +255,22 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     final npcPose = npc == null ? null : session.actorRuntimeState(npc);
+    final surfCell = npc == null && inputAuthority.value.acceptsOverworldInput
+        ? session.surfTarget : null;
+    final surfAction = surfCell == null ? null : RuntimeOverworldInteractionAction(
+      request: RuntimeOverworldInteractionRequest(
+        sessionId: descriptor.sessionId, mapActivationId: _mapActivationId,
+        mapId: session.bundle.map.id,
+        targetKind: RuntimeOverworldInteractionTargetKind.gameplayZone,
+        targetId: 'water:${surfCell.x}:${surfCell.y}', actionId: 'surf'),
+      verb: RuntimeOverworldInteractionVerb.interact,
+      targetCell: surfCell,
+      targetBounds: PixelRect(
+        leftPx: surfCell.x * session.bundle.manifest.settings.tileWidth,
+        topPx: surfCell.y * session.bundle.manifest.settings.tileHeight,
+        widthPx: session.bundle.manifest.settings.tileWidth,
+        heightPx: session.bundle.manifest.settings.tileHeight),
+    );
     final npcCell = npcPose == null
         ? npc?.pos
         : GridPos(x: npcPose.x.floor(), y: npcPose.z.floor());
@@ -262,7 +282,7 @@ final class SpatialExplorationGameSessionRuntime
             '${descriptor.sessionId}:${session.movement.inputEpoch}',
         primaryAction: npc == null ||
                 (_gameplay == null && npc.npc?.dialogue == null)
-            ? null
+            ? surfAction
             : RuntimeOverworldInteractionAction(
                 request: RuntimeOverworldInteractionRequest(
                     sessionId: descriptor.sessionId,
@@ -298,12 +318,46 @@ final class SpatialExplorationGameSessionRuntime
         _gameplayOperations > 0 ||
         _materializingState ||
         (_gameplay?.isBusy ?? false) ||
+        (_session?.surfTransitionActive ?? false) ||
         !inputAuthority.value.acceptsOverworldInput) {
       return false;
     }
     _publishInteractions();
     if (request != overworldInteractions.value.primaryAction?.request) {
       return false;
+    }
+    if (request.actionId == 'surf') {
+      final session = _session!;
+      final target = session.surfTarget;
+      if (target == null) return false;
+      final state = gameStateSnapshot;
+      final configuration = session.bundle.manifest.settings.surf;
+      final context = ScriptEvaluationContext(narrativeFactResolver:
+        NarrativeFactRuntimeResolver.fromFacts(session.bundle.manifest.facts));
+      final ticket = FieldActionTicket(ability: FieldAbility.surf,
+        targetCell: target, issuedAtStateRevision: 0);
+      final evaluation = evaluateSurfAttempt(gameState: state, isTargetWater: true,
+        surfSettings: configuration, conditionContext: context);
+      unawaited(session.promptSurf(evaluation, () {
+        if (_disposed || _stopped || !identical(session, _session) ||
+            session.surfTarget != target) {
+          return;
+        }
+        final current = gameStateSnapshot;
+        final decision = commitFieldAction(ticket: ticket, gameState: current,
+          currentStateRevision: identical(current, state) ? 0 : 1,
+          confirmedTargetCell: target,
+          isTargetWater: session.surfWater.contains(target.x + .5, target.y + .5),
+          surfSettings: configuration, conditionContext: context);
+        if (decision case FieldActionApplied(:final movementMode)) {
+          if (movementMode == MovementMode.surf) {
+            session.beginSurf(target);
+          }
+          _syncGameState();
+          _publishFrame();
+        }
+      }));
+      return true;
     }
     final gameplay = _gameplay;
     if (gameplay == null) {
@@ -350,14 +404,16 @@ final class SpatialExplorationGameSessionRuntime
     final position = PlayerSpatialPosition(x: movement.x, z: movement.z);
     if (state.currentMapId == session.bundle.map.id &&
         state.playerSpatialPosition == position &&
-        state.playerFacing == movement.facing) {
+        state.playerFacing == movement.facing &&
+        state.playerMovementMode == movement.movementMode) {
       return;
     }
     _gameState = state.copyWith(
         currentMapId: session.bundle.map.id,
         playerPosition: GridPos(x: position.x.floor(), y: position.z.floor()),
         playerSpatialPosition: position,
-        playerFacing: movement.facing);
+        playerFacing: movement.facing,
+        playerMovementMode: movement.movementMode);
   }
 
   void _publishFrame() {
@@ -379,7 +435,9 @@ final class SpatialExplorationGameSessionRuntime
               map.layers.whereType<SmartTileLayer>().any(
                   (layer) => layer.isVisible && layer.encounterBehavior != null))) {
         unawaited(_runGameplay(() => gameplay.playerEnteredCell(
-            previousPosition: previous, currentPosition: cell)));
+            previousPosition: previous, currentPosition: cell,
+            encounterKind: _session!.movement.movementMode == MovementMode.surf
+                ? EncounterKind.surf : EncounterKind.walk)));
       }
     }
     _publishInteractions();
@@ -565,6 +623,7 @@ final class SpatialExplorationGameSessionRuntime
             scene: scene,
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: project.pokemon,
+            projectSettings: project.settings,
           );
           _ensureGameplayActive();
           return SceneConsequenceRuntimeWriter(
@@ -845,7 +904,8 @@ final class SpatialExplorationGameSessionRuntime
             x: state.playerPosition.x + .5, z: state.playerPosition.y + .5);
     if (!changedMap &&
         session.movement.spatialPosition == position &&
-        session.movement.facing == state.playerFacing) {
+        session.movement.facing == state.playerFacing &&
+        session.movement.movementMode == state.playerMovementMode) {
       return state.copyWith(playerSpatialPosition: position);
     }
     _materializingState = true;
@@ -953,6 +1013,8 @@ final class SpatialExplorationGameSessionRuntime
 
   void _syncMusicSuspension() {
     if (_disposed || _stopped) return;
+    _observeMusic(projectAudio?.setSuspended(_locks.contains(RuntimeExternalInputLock.lifecycle) ||
+        (_session?.lifecyclePaused ?? false)) ?? Future.value());
     _observeMusic(_music.setSuspended(_locks.contains(RuntimeExternalInputLock.lifecycle) ||
         (_session?.lifecyclePaused ?? false)));
   }
@@ -993,6 +1055,8 @@ final class SpatialExplorationGameSessionRuntime
       _ensureLoadActive(generation);
       for (final requirement in {
         if (manifest.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
+        if (FieldAbilityActivationCapabilities.requiresCapability(manifest)) FieldAbilityActivationCapabilities.capabilityId,
+        if (ProjectAudioCapabilities.requiresCapability(manifest)) ProjectAudioCapabilities.capabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(manifest)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(manifest)) SpatialGameplayCapabilities.eggGiftCapabilityId,
@@ -1051,6 +1115,10 @@ final class SpatialExplorationGameSessionRuntime
       if (bundle.map.id != mapId) {
         throw StateError('The preloaded map does not match the spatial state.');
       }
+      if (SurfGameplayCapabilities.requiresCapability(bundle.manifest) &&
+          !descriptor.grantedCapabilities.contains(SurfGameplayCapabilities.capabilityId)) {
+        throw StateError('The project requires ${SurfGameplayCapabilities.capabilityId}.');
+      }
       _bagItemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: manifest.pokemon,
@@ -1081,6 +1149,15 @@ final class SpatialExplorationGameSessionRuntime
       if (SpatialActorOcclusionCapabilities.requiresCapability(manifest, maps: [bundle.map]) &&
           !descriptor.grantedCapabilities.contains(SpatialActorOcclusionCapabilities.capabilityId)) {
         throw StateError('The map requires ${SpatialActorOcclusionCapabilities.capabilityId}.');
+      }
+      projectAudio ??= await loadRuntimeProjectAudio(
+        projectRootDirectory: bundle.projectRootDirectory,
+        mixer: _audioMixer,
+        settings: manifest.settings.audio,
+      );
+      if (_disposed || _stopped || generation != _loadGeneration) {
+        await projectAudio!.dispose();
+        _ensureLoadActive(generation);
       }
       _audioMapId = bundle.map.id;
       _sceneAudio = SpatialSceneAudioRuntime(
@@ -1122,6 +1199,7 @@ final class SpatialExplorationGameSessionRuntime
               _sceneStateReader?.call().spatialWorldState ??
               _gameState!.spatialWorldState,
           spatialArrival: position,
+          movementMode: state.playerMovementMode,
           facing: state.playerFacing,
           entityProjection: (mapId, entity) => _gameplay?.projectEntity(mapId, entity,
             gameStateOverride: _stopped || _disposed ? _gameState :
@@ -1143,6 +1221,7 @@ final class SpatialExplorationGameSessionRuntime
       loaded.realWeather = _realWeather;
       _realWeatherDeclared = WorldEnvironmentCapabilities.requiresRealProject(bundle.manifest);
       _session = loaded;
+      loaded.projectAudio = projectAudio;
       if (loaded.movement.spatialPosition != position) {
         _gameState = state.copyWith(playerPosition: GridPos(
             x: loaded.movement.x.floor(), y: loaded.movement.z.floor()),
@@ -1383,6 +1462,9 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   Future<GameSessionCheckpoint?> captureCheckpoint() async {
+    if (_session?.surfTransitionActive ?? false) {
+      throw StateError('A Surf transition is still in progress.');
+    }
     if (_session?.transitioning.value ?? false) {
       throw StateError('A spatial map transfer is still in progress.');
     }
@@ -1624,6 +1706,7 @@ final class SpatialExplorationGameSessionRuntime
     if (_disposed) return;
     _stopped = true;
     _weatherTimer?.cancel();
+    final projectAudioStopped = projectAudio?.dispose();
     final sceneAudioStopped = _sceneAudio?.dispose();
     final musicStopped = _music.dispose();
     _loadGeneration++;
@@ -1634,6 +1717,7 @@ final class SpatialExplorationGameSessionRuntime
     _session?.closeDialogue();
     _syncMovement();
     await _rollbackPendingSceneWarp();
+    await projectAudioStopped;
     await sceneAudioStopped;
     await musicStopped;
   }
@@ -1689,6 +1773,7 @@ final class SpatialExplorationGameSessionRuntime
     _story?.autonomousNpcs.flush();
     _story?.cancel();
     _disposed = true;
+    final projectAudioStopped = projectAudio?.dispose();
     final sceneAudioStopped = _sceneAudio?.dispose();
     final musicStopped = _music.dispose();
     _projectCatalog?.dispose();
@@ -1734,8 +1819,9 @@ final class SpatialExplorationGameSessionRuntime
           await _worldServiceSnapshots.close();
           inputAuthority.dispose();
           await _events.close();
+          await projectAudioStopped;
           await sceneAudioStopped;
-    await musicStopped;
+          await musicStopped;
         }
       }
     }

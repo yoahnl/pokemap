@@ -13,6 +13,126 @@ import '../domains/maps/environment_spatial_actions_test.dart'
 import '../domains/maps/healing_display_fixture.dart';
 
 void main() {
+
+  for (final unrelated in [0, 90]) {
+    test('targeted spatial Border reorder preserves full feature and instances with $unrelated foreign maps', () async {
+      final base = spatialBorderAuthoringFixture(published: true);
+      final layer = base.map.layers.single as BorderLayer;
+      final original = layer.content.features.single;
+      final cells = List.filled(base.map.size.width * base.map.size.height, false);
+      cells[0] = cells[1] = cells[2] = true;
+      BorderFeature feature(String id) => BorderFeature(id: id, name: id, blueprintId: original.blueprintId, seed: original.seed,
+          geometry: original.geometry,
+          overrides: [BorderSlotOverride(slotKey: 'retained-slot', variationSalt: BorderSignedInt64.fromInt(3), suppressed: true, locked: false)],
+          keepOutRegions: [BorderKeepOutRegion(id: 'opening', region: BorderRegionGeometry(width: base.map.size.width, height: base.map.size.height, cells: cells))]);
+      final features = [feature('front'), feature('fence'), feature('back')];
+      final beforeMap = base.map.copyWith(layers: [layer.copyWith(content: BorderLayerContent(formatVersion: 4, features: features))],
+          spatialScene: base.map.spatialScene!.copyWith(instances: [SpatialModelInstance(id: 'sentinel', modelId: 'tree', position: Model3dVector3(x: 1, y: 0, z: 1))]));
+      final fixture = await _Fixture.open(unrelated, content: (project: base.project, map: beforeMap));
+      addTearDown(fixture.close);
+      fixture.reader.paths.clear();
+      await fixture.apply('border_layer.feature_reorder', {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence', 'newIndex': 2}, 'reorder');
+      final expected = beforeMap.copyWith(layers: [layer.copyWith(content: BorderLayerContent(formatVersion: 4, features: [features[0], features[2], features[1]]))]);
+      final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+      expect(after.toJson(), expected.toJson());
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+      expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json'), isEmpty);
+      expect(fixture.reader.paths.length, lessThan(150));
+      await fixture.reopen();
+      final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: 'border_layer.feature_reorder', parameters: {'mapId': 'map', 'layerId': 'border', 'featureId': 'fence', 'newIndex': 1});
+      expect(selected.maps.single.toJson(), expected.toJson());
+      final persisted = await fixture.mapFile.readAsBytes();
+      for (final ids in [('border', 'missing'), ('missing', 'fence')]) {
+        await expectLater(fixture.apply('border_layer.feature_reorder', {'mapId': 'map', 'layerId': ids.$1, 'featureId': ids.$2, 'newIndex': 0}, 'bad-${ids.$1}-${ids.$2}'), throwsA(isA<ValidationException>()));
+        expect(await fixture.mapFile.readAsBytes(), persisted);
+      }
+    });
+  }
+
+
+  for (final usage in [SmartTileUsage.path, SmartTileUsage.terrain]) {
+    for (final action in ['smart_tile.pattern.paint', 'smart_tile.pattern.paint_batch']) {
+      for (final unrelated in [0, 90]) {
+        test('targeted pattern ${usage.name} $action with $unrelated foreign maps', () async {
+          final fixture = await _Fixture.open(unrelated, content: _patternContent(usage), unreadPatternIds: {'foreign-pattern'});
+          addTearDown(fixture.close);
+          for (var repeat = 0; repeat < 2; repeat++) {
+            final parameters = _patternParameters(action, 'patch', 'stroke-$repeat', repeat + 1);
+            fixture.reader.paths.clear();
+            final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: action, parameters: parameters);
+            expect(selected.manifest.smartTileCatalog.patterns.map((p) => p.id), ['patch']);
+            await fixture.apply(action, parameters, 'pattern-$repeat');
+            expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+            expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json'), isEmpty);
+            expect(fixture.reader.paths.length, lessThan(200));
+            final map = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+            final layer = map.layers.whereType<SmartTileLayer>().single;
+            expect(layer.usage, usage);
+            expect(layer.patternStrokes, hasLength(repeat + 1));
+            expect(layer.patternStrokes.last.cells, [GridPos(x: repeat + 1, y: 1)]);
+            expect(layer.patternStrokes.last.phaseX, -repeat - 1);
+            expect(layer.patternStrokes.last.phaseY, -1);
+            expect(smartTileSemanticCells(layer).every((c) => c == 0), isTrue);
+          }
+          await fixture.reopen();
+          final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: action, parameters: _patternParameters(action, 'patch', 'reopen', 1));
+          expect(selected.maps.single.layers.whereType<SmartTileLayer>().single.patternStrokes, hasLength(2));
+        });
+      }
+    }
+  }
+  test('targeted pattern rejects missing and mismatched usage without writes', () async {
+    final fixture = await _Fixture.open(0, content: _patternContent(SmartTileUsage.terrain));
+    addTearDown(fixture.close);
+    final before = await fixture.mapFile.readAsBytes();
+    for (final pair in [('missing', 'smart_tile.pattern.unknown'), ('wrong-usage', 'smart_tile.pattern.usage_mismatch')]) {
+      await expectLater(fixture.apply('smart_tile.pattern.paint_batch', _patternParameters('smart_tile.pattern.paint_batch', pair.$1, 'rejected', 1), 'rejected-${pair.$1}'), throwsA(isA<MapAuthoringException>().having((e) => e.code, 'domain code', pair.$2)));
+      expect(await fixture.mapFile.readAsBytes(), before);
+    }
+  });
+
+  for (final unrelated in [0, 90]) {
+    test('native preset changes preserve geometry and undo with $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final raw = _groundCatalog().toJson();
+      (raw['presets'] as List).add({...Map<String, dynamic>.from((raw['presets'] as List).single), 'id': 'alternate'});
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog.fromJson(raw), tilesets: const [
+          ProjectTilesetEntry(id: 'ground-image', name: 'Ground', relativePath: 'assets/ground.png')
+        ]), map: base.map
+      ));
+      addTearDown(fixture.close);
+      await fixture.apply('smart_tile.layer.create', {
+        'mapId': 'map', 'layerId': 'water', 'name': 'Water', 'presetId': 'ground'
+      }, 'create-water');
+      await fixture.apply('smart_tile.cell.paint', {
+        'mapId': 'map', 'layerId': 'water', 'materialId': 'grass', 'cells': [{'x': 1, 'y': 1}]
+      }, 'paint-water');
+      final before = await fixture.mapFile.readAsBytes();
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final applied = await fixture.apply('smart_tile.layer.change_preset', {
+          'mapId': 'map', 'layerId': 'water', 'targetPresetId': 'alternate'
+        }, 'change-water-$repeat');
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(160));
+        final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+        final original = MapData.fromJson(jsonDecode(utf8.decode(before)));
+        final layer = after.layers.whereType<SmartTileLayer>().single;
+        expect(layer.presetId, 'alternate');
+        expect(smartTileSemanticCells(layer), smartTileSemanticCells(original.layers.whereType<SmartTileLayer>().single));
+        expect(after.spatialScene, original.spatialScene);
+        await fixture.reopen();
+        final scope = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'smart_tile.layer.change_preset', parameters: {'mapId': 'map', 'layerId': 'water', 'targetPresetId': 'ground'});
+        expect(scope.maps.single, after);
+        await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: applied.receipt.receiptId, idempotencyKey: 'undo-water-$repeat');
+        expect(await fixture.mapFile.readAsBytes(), before);
+      }
+    });
+  }
   for (final unrelated in [0, 80]) {
     test(
         'ladder and additive character clips stay local with $unrelated foreign maps',
@@ -1702,6 +1822,29 @@ void main() {
   });
 }
 
+
+Map<String, Object?> _patternParameters(String action, String pattern, String strokeId, int x) {
+  final stroke = <String, Object?>{'patternId': pattern, 'strokeId': strokeId, 'selection': {'kind': 'stamp', 'anchor': {'x': x, 'y': 1}}};
+  return {'mapId': 'map', 'layerId': 'ground-layer', if (action.endsWith('_batch')) 'strokes': [stroke] else ...stroke};
+}
+
+({ProjectManifest project, MapData map}) _patternContent(SmartTileUsage usage) {
+  final base = spatialEnvironmentFixture();
+  final raw = _groundCatalog().toJson();
+  (raw['presets'] as List).single['usage'] = usage.name;
+  raw['patterns'] = [
+    for (final id in ['patch', 'foreign-pattern', 'wrong-usage']) {
+      'id': id, 'name': id, 'usage': id == 'wrong-usage' ? (usage == SmartTileUsage.terrain ? 'path' : 'terrain') : usage.name,
+      'width': 1, 'height': 1, 'repeatMode': 'stamp', 'clippingPolicy': 'reject',
+      'cells': [{'x': 0, 'y': 0, 'parts': [{'source': {'kind': 'frame', 'frame': {'atlasId': 'ground-atlas', 'column': 0, 'row': 0}}}]}],
+    },
+  ];
+  return (
+    project: base.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog.fromJson(raw), tilesets: const [ProjectTilesetEntry(id: 'ground-image', name: 'Ground', relativePath: 'assets/ground.png')]),
+    map: base.map.copyWith(layers: [MapLayer.smartTile(id: 'ground-layer', name: 'Ground', presetId: 'ground', usage: usage, materialPalette: const ['', 'grass'], field: SmartTileField.cell(semanticCells: List.filled(base.map.size.width * base.map.size.height, 0)))]),
+  );
+}
+
 final class _Fixture {
   _Fixture(this.root, this.opened, this.handles, this.api, this.reader,
       this.unrelatedObjects, this.descriptor, this.instance);
@@ -1716,7 +1859,7 @@ final class _Fixture {
   File get mapFile => File('${root.path}/maps/map.json');
 
   static Future<_Fixture> open(int unrelated,
-      {({ProjectManifest project, MapData map})? content}) async {
+      {({ProjectManifest project, MapData map})? content, Set<String> unreadPatternIds = const {}}) async {
     final root = Directory(
         '${Platform.environment['AVELUNE_QA_ROOT'] ?? '${Platform.environment['HOME']}/Library/Caches/AveluneQA/targeted-story-authoring'}/dart');
     await root.create(recursive: true);
@@ -1753,6 +1896,12 @@ final class _Fixture {
       final foreign = File('${root.path}/maps/other-$i.json');
       await foreign.parent.create(recursive: true);
       await foreign.writeAsString('unrelated map must not be decoded');
+    }
+    for (final id in unreadPatternIds) {
+      final entry = (await working.catalog.snapshot.indexEntry(CatalogDefinitionKey(CatalogDefinitionKind.smartTilePattern, id)))!;
+      final path = 'catalog/objects/${entry.reference.sha256}.json';
+      unrelatedObjects.add(path);
+      await File('${root.path}/$path').writeAsString('unrelated pattern must not be decoded');
     }
     for (var i = 0; i < base.project.cinematicMediaAssets.length; i++) {
       final key = CatalogDefinitionKey(CatalogDefinitionKind.catalogMetadata,

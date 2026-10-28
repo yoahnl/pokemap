@@ -276,6 +276,27 @@ abstract final class CatalogMetadataDocuments {
     return Set.unmodifiable(_facetIds(await snapshot.lookup(key)));
   }
 
+  static Future<({List<Map<String, dynamic>> records, int total})> readPage({
+    required CatalogSnapshot snapshot,
+    required String field,
+    required int offset,
+    required int limit,
+  }) async {
+    _requireField(field);
+    final count = _count(await snapshot.lookup(fieldKey(field)), field);
+    if (offset < 0 || offset > count || limit < 1 || limit > 200) {
+      throw const FormatException('catalog.metadata_documents.invalid_page');
+    }
+    final records = <Map<String, dynamic>>[];
+    final end = offset + limit < count ? offset + limit : count;
+    for (var position = offset; position < end; position++) {
+      final unit = await snapshot.lookup(definitionKey(field, position));
+      if (unit == null) _invalid('index_stale');
+      records.add(Map<String, dynamic>.from(_definition(unit, field, position)));
+    }
+    return (records: records, total: count);
+  }
+
   static Future<CatalogMetadataDocumentSelection> readDocuments({
     required CatalogSnapshot snapshot,
     required ProjectManifest project,

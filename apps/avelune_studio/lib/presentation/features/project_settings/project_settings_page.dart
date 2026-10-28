@@ -1,3 +1,8 @@
+import '../../../features/project_cs/application/project_cs_controller.dart';
+import '../../../features/project_audio/application/project_audio_controller.dart';
+import '../presentations/presentation_media_picker.dart';
+import 'project_cs_panel.dart';
+import 'project_audio_panel.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -12,6 +17,8 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'spatial_visual_controls.dart';
+import '../../../features/project_surf/application/project_surf_controller.dart';
+import 'project_surf_panel.dart';
 
 typedef StudioVisualTestBuilder = Widget Function(
   ProjectMapEntry entry,
@@ -26,10 +33,20 @@ class ProjectSettingsPage extends StatefulWidget {
     required this.workspace,
     required this.owner,
     this.testBuilder,
+    this.surfOwner,
+    this.csOwner,
+    this.audioOwner,
+    this.pickMedia,
+    this.loadItems,
   });
   final MapWorkspaceController workspace;
   final ProjectVisualsController owner;
   final StudioVisualTestBuilder? testBuilder;
+  final ProjectSurfController? surfOwner;
+  final ProjectCsController? csOwner;
+  final ProjectAudioController? audioOwner;
+  final PickPresentationMedia? pickMedia;
+  final Future<Map<String, String>> Function()? loadItems;
   @override
   State<ProjectSettingsPage> createState() => _ProjectSettingsPageState();
 }
@@ -46,6 +63,7 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
   ProjectMapEntry? selected;
   bool localScope = false, opening = false;
   Widget? test;
+  String section = 'settings';
   String? error;
   (String?, String)? _applied;
   @override
@@ -276,10 +294,27 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: StudioTabs<String>(
-            items: const {'settings': 'Réglages', 'test': 'Test en jeu'},
-            selected: test == null ? 'settings' : 'test',
+            items: {
+              'settings': 'Réglages',
+              if (widget.surfOwner != null) 'cs': 'CS',
+              if (widget.audioOwner != null) 'audio': 'Son',
+              'test': 'Test en jeu',
+            },
+            selected: section == 'cs' || section == 'audio'
+                ? section
+                : test == null
+                ? 'settings'
+                : 'test',
             onChanged: (value) {
               if (opening) return;
+              if (value == 'cs' || value == 'audio') {
+                setState(() {
+                  section = value;
+                  test = null;
+                });
+                return;
+              }
+              setState(() => section = 'settings');
               if (value == 'test' && test == null) {
                 unawaited(startTest());
               } else if (value == 'settings') {
@@ -293,7 +328,16 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
             builder: (context, bounds) {
               final controls = SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                child: settings,
+                child: section == 'audio' && widget.audioOwner != null
+                    ? ProjectAudioPanel(owner: widget.audioOwner!, pickMedia: widget.pickMedia)
+                    : section == 'cs' && widget.surfOwner != null && widget.csOwner != null
+                    ? ProjectCsPanel(owner: widget.csOwner!, surf: widget.surfOwner!, settings: workspace.project!.settings, loadItems: widget.loadItems)
+                    : section == 'cs' && widget.surfOwner != null
+                    ? ProjectSurfPanel(
+                        owner: widget.surfOwner!,
+                        loadItems: widget.loadItems,
+                      )
+                    : settings,
               );
               if (test == null) return controls;
               if (bounds.maxWidth < 850) {

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'support/project_audio_test_driver.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -219,6 +220,28 @@ void main() {
     expect(finished, isTrue);
     await operation;
   }
+
+  test('native door cues fire for the door phases and never for a plain transfer', () async {
+    final driver = ProjectAudioTestDriver();
+    final audio = RuntimeProjectAudioController(mixer: RuntimeAudioMixer(), driver: driver,
+      settings: ProjectAudioSettings(cues: {
+        ProjectSoundCue.doorOpen: const ProjectSoundBinding(source: ProjectSoundSource.builtin),
+        ProjectSoundCue.doorClose: const ProjectSoundBinding(source: ProjectSoundSource.builtin),
+      }));
+    addTearDown(audio.dispose);
+    final session = await SpatialExplorationSession.load(outside,
+      loadMap: (id) async => id == 'inside' ? inside : outside, knownMaps: [outside.map, inside.map]);
+    addTearDown(session.dispose);
+    session.projectAudio = audio;
+    await complete(session, session.enterWarp(entrance));
+    await complete(session, session.enterWarp(exit));
+    await flush();
+    expect(driver.paths.where((path) => path == RuntimeProjectAudioController.builtinPaths[ProjectSoundCue.doorOpen]), hasLength(1));
+    expect(driver.paths.where((path) => path == RuntimeProjectAudioController.builtinPaths[ProjectSoundCue.doorClose]), hasLength(1));
+    await complete(session, session.enterWarp(entrance.copyWith(door: null, transition: const MapWarpTransition(type: MapWarpTransitionType.none))));
+    await flush();
+    expect(driver.paths, hasLength(2));
+  });
 
   for (final style in [
     (door: true, type: MapWarpTransitionType.fade),

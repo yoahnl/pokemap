@@ -965,6 +965,14 @@ Map<String, Object?> _configurationProperties() => {
           'intensity': {'type': 'number', 'minimum': 0, 'maximum': 4, 'default': 1},
           'colorRgb': {'type': 'integer', 'minimum': 0, 'maximum': 16777215, 'default': 16766362},
           'nightOnly': {'type': 'boolean', 'default': true},
+          'flame': {'type': ['object', 'null'], 'additionalProperties': false,
+            'properties': {
+              'height': {'type': 'number', 'minimum': .03, 'maximum': 8, 'default': .35},
+              'flicker': {'type': 'number', 'minimum': 0, 'maximum': .4, 'default': .12},
+              'style': {'type':'string','enum':['candle','brazier'],'default':'candle'},
+              'embers': {'type':'number','minimum':0,'maximum':1,'default':0},
+              'crackleVolume': {'type':'number','minimum':0,'maximum':1,'default':0},
+            }},
           'colorCycle': {'type':['object','null'], 'additionalProperties':false,
             'required':['colors'], 'properties': {
               'colors': {'type':'array','minItems':2,'maxItems':8,'items':{'type':'integer','minimum':0,'maximum':16777215}},

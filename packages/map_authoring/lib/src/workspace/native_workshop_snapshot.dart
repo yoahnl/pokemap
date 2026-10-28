@@ -1,6 +1,10 @@
 part of 'project_snapshot_loader.dart';
 
 const _nativeWorkshopActions = {
+  'surf.configure',
+  'field_ability.configure',
+  'project.audio.cue.configure',
+  'presentationMedia.import',
   'campaign.battle_savings.update',
   'pokemon.ruleset.set',
   'campaign.encounter_table.upsert',
@@ -98,13 +102,18 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         'This workshop loader requires a native project document.');
   }
   final raw = Map<String, dynamic>.from(decoded);
+  final presentationImport = actionId == 'presentationMedia.import';
   final guided = actionId == 'event_v2.template.apply' ||
       actionId == 'narrative.publish_document';
-  final sections = <String>{'pokemon', if (guided) 'settings'};
+  final sections = <String>{if (!presentationImport) 'pokemon', if (guided || const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) 'settings'};
   final ids = <String, Set<String>>{};
   final indexes = <String, Map<String, List<Map<String, dynamic>>>>{};
   final selected = <String, Map<String, Map<String, dynamic>>>{};
-  final candidates = <Object?>[parameters];
+  final surfConfiguration = parameters['configuration'];
+  final candidates = <Object?>[
+    if (actionId != 'surf.configure') parameters
+    else if (surfConfiguration is Map && surfConfiguration['accessMode'] == 'condition') surfConfiguration['condition'],
+  ];
   void add(String field, Iterable<String> values) {
     final clean = values.where((id) => id.isNotEmpty).toSet();
     if (clean.isEmpty) return;
@@ -185,6 +194,24 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   for (final entry in readDependencies.entries) {
     await read(entry.key, entry.value);
   }
+  if (presentationImport) {
+    await read(assetCatalogResourceIdentity, assetCatalogStorageKey);
+    await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    final handle = parameters['artifactHandle'];
+    if (handle is String) {
+      final match = RegExp(r'^artifact://sha256/([0-9a-f]{64})$').firstMatch(handle);
+      if (match != null) {
+        final digest = match.group(1)!;
+        await read(assetBlobResourceIdentity('sha256:$digest'), 'assets/.pokemap-store/$digest.blob');
+      }
+    }
+  }
+  if (actionId == 'project.audio.cue.configure') {
+    if (parameters['binding'] case final Map binding when binding['source'] == 'custom') {
+      await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey, required: true);
+      await read(assetCatalogResourceIdentity, assetCatalogStorageKey);
+    }
+  }
   final field = switch (actionId) {
     'campaign.trainer.upsert' => 'trainers',
     'campaign.shop.upsert' => 'shops',
@@ -233,11 +260,11 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     'version': raw['version'],
     'maps': <Object?>[],
     'tilesets': <Object?>[],
-    if (raw.containsKey('pokemon')) 'pokemon': raw['pokemon'],
+    'pokemon': presentationImport ? {'ruleset': (raw['pokemon'] as Map?)?['ruleset']} : raw['pokemon'],
   };
   final rawSettings = raw['settings'];
   if (rawSettings is Map) {
-    projected['settings'] = guided
+    projected['settings'] = guided || const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)
         ? rawSettings
         : {
             for (final key in const {
@@ -428,8 +455,8 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     }
     for (final entry in _nativeWorkshopReferences.entries) {
       if (!guided &&
-          const {
-            'maps',
+          {
+            if (!const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) 'maps',
             'tilesets',
             'models3d',
             'trainers',

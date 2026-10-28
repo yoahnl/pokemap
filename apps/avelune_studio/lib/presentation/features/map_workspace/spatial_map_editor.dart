@@ -25,6 +25,7 @@ import 'map_character_gesture.dart';
 import 'map_canvas_stroke.dart';
 import 'map_encounter_cell_stroke.dart';
 import 'map_workspace_view_state.dart';
+import 'map_workspace_tool_strip_selection.dart';
 import 'map_workspace_visuals.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 part 'spatial_map_editor_guidance.dart';
@@ -245,7 +246,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   SpatialSceneAuthoringTarget? resolveAuthoringTarget(int x, int z) {
     final controller = exterior;
-    if (!editingExterior || controller == null || !widget.exteriorContextReady) {
+    if (!editingExterior ||
+        controller == null ||
+        !widget.exteriorContextReady) {
       return null;
     }
     final activeGesture =
@@ -796,21 +799,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   }
 
   bool start(int x, int z, [SpatialSceneContentHit? hit]) {
-    if (editingExterior &&
-        {
-          StudioMapTool.character,
-          StudioMapTool.warp,
-          StudioMapTool.connection,
-          StudioMapTool.spawn,
-          StudioMapTool.sign,
-          StudioMapTool.fieldObstacle,
-          StudioMapTool.zone,
-          StudioMapTool.gameplayZone,
-          StudioMapTool.encounterPaint,
-          StudioMapTool.encounterErase,
-          StudioMapTool.collisionPaint,
-          StudioMapTool.collisionErase,
-        }.contains(widget.view.tool)) {
+    if (editingExterior && !isExteriorDecorationTool(widget.view.tool)) {
       widget.document.error =
           'Le décor extérieur accepte uniquement les outils visuels.';
       widget.onChanged();

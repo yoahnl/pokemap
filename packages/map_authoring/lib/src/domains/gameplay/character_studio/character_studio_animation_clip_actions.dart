@@ -378,9 +378,13 @@ CharacterAnimationState _systemState(String value) {
     'climb' => CharacterAnimationState.climb,
     'bicycle_idle' => CharacterAnimationState.bicycleIdle,
     'bicycle' => CharacterAnimationState.bicycle,
+    'surf_idle' => CharacterAnimationState.surfIdle,
+    'surf' => CharacterAnimationState.surf,
+    'surf_enter' => CharacterAnimationState.surfEnter,
+    'surf_exit' => CharacterAnimationState.surfExit,
     _ => throw CharacterStudioActionException(
         'character_studio.animation.state_invalid',
-        'state must be base, walk, run, climb, bicycle_idle, or bicycle.',
+        'state must be base, walk, run, climb, bicycle_idle, bicycle, surf_idle, surf, surf_enter, or surf_exit.',
         details: <String, Object?>{'state': value},
       ),
   };

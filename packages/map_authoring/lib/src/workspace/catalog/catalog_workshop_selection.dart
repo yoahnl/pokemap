@@ -21,6 +21,7 @@ import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';
 
 part 'catalog_gameplay_workshop_selection.dart';
+part 'catalog_surf_selection.dart';
 part 'catalog_guided_workshop_selection.dart';
 part 'catalog_model_light_selection.dart';
 part 'catalog_audio_media_selection.dart';
@@ -74,7 +75,11 @@ final class CatalogWorkshopSelection {
           parameters.containsKey('light') &&
           parameters.keys.every((key) => {'modelId', 'light'}.contains(key))) ||
       (action == 'map.update_metadata' && parameters != null && !parameters.containsKey('escapeRopeDungeonId')) ||
+      action == 'surf.configure' ||
+      action == 'field_ability.configure' ||
+      action == 'project.audio.cue.configure' ||
       action == 'scene.dialogue.audioMedia.import' ||
+      action == 'presentationMedia.import' ||
       action == 'asset.import' ||
       action == 'asset.import_batch' ||
       action == 'project.battle_audio.update' ||
@@ -152,6 +157,10 @@ final class CatalogWorkshopSelection {
         !supports(actionId, parameters: parameters)) {
       unsupported(actionId);
     }
+    if (const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readSurfWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
     if (actionId == 'map.update_metadata') {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readMapMetadataWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
@@ -176,7 +185,7 @@ final class CatalogWorkshopSelection {
       return _readModelLightWorkshop(
           reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
-    if (actionId == 'scene.dialogue.audioMedia.import' || actionId == 'project.battle_audio.update' ||
+    if (actionId == 'presentationMedia.import' || actionId == 'scene.dialogue.audioMedia.import' || actionId == 'project.battle_audio.update' ||
         actionId == 'asset.import' || actionId == 'asset.import_batch') {
       return _readAudioMediaWorkshop(
           actionId: actionId,

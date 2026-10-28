@@ -22,6 +22,7 @@ import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_scene_preparation.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
 import 'package:map_render_3d/src/spatial_scene_neighbor.dart';
+import 'package:map_render_3d/src/spatial_scene_decoration.dart';
 import 'package:map_render_3d/src/spatial_weather_material.dart';
 
 void main() {
@@ -1037,6 +1038,59 @@ void main() {
     );
   }
 
+  test('pending exterior ground survives active scene texture pruning', () async {
+    final f = _Fixture(4);
+    final started = Completer<void>();
+    final delayed = Completer<Uint8List>();
+    final game = f.game(
+      (_) async => f.png,
+      sourceMap: f.map.copyWith(layers: const []),
+      decorations: [
+        SpatialSceneDecoration(
+          ownerMapId: f.map.id,
+          offset: Offset.zero,
+          project: f.project,
+          loadModel: (_) async => throw StateError('No models'),
+          loadGroundImage: (id) async {
+            if (id == 'page-0') {
+              if (!started.isCompleted) started.complete();
+              return delayed.future;
+            }
+            return f.png;
+          },
+          decoration: MapExteriorDecoration(
+            mapId: f.map.id,
+            playableWidth: 1,
+            playableDepth: 1,
+            west: 1,
+            sectors: [
+              ExteriorDecorationSector(
+                id: 'west',
+                originX: -1,
+                originZ: 0,
+                scene: f.map.spatialScene!,
+                layers: f.map.layers,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    addTearDown(game.onRemove);
+    final pending = game.refresh();
+    await started.future;
+    expect(game.refreshing, isFalse);
+    game.update(0);
+    delayed.complete(f.png);
+    expect(await pending, isTrue);
+    await Future.wait(List.of(game.groundTextureCache.values));
+    expect(game.decorationStats.ready, isTrue);
+    expect(game.groundReservations, contains('page-0'));
+    expect(game.resourceBudget.activeDecodes, 0);
+    game.onRemove();
+    expect(game.resourceBudget.residentBytes, 0);
+  });
+
   test(
     'pending encountered pages finish after leaving the texture window',
     () async {
@@ -1601,6 +1655,7 @@ final class _Fixture {
   SpatialSceneGame game(
     Future<Uint8List> Function(String) load, {
     List<SpatialSceneNeighbor> neighbors = const [],
+    List<SpatialSceneDecoration> decorations = const [],
     int Function(String, String, int, int, int)? clock,
     void Function(Object?)? onStatus,
     MapData? sourceMap,
@@ -1626,6 +1681,7 @@ final class _Fixture {
               resourceBudget: budget,
               resourceIdentity: 'fixture',
               neighbors: neighbors,
+              decorations: decorations,
               rasterAnimationElapsedMsForCell: clock,
               renderPreparationPaused: renderPreparationPaused,
               presentationPaused: presentationPaused,

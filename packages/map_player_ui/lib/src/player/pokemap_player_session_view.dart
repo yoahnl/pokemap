@@ -10,6 +10,9 @@ import 'package:gamepads/gamepads.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
+import '../foundation/player_feedback.dart';
+import '../foundation/project_player_feedback_port.dart';
+import '../preferences/player_preferences.dart';
 import '../foundation/player_input_scope.dart';
 import '../foundation/player_image.dart';
 import '../foundation/player_overworld_components.dart';
@@ -173,6 +176,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.battlePresentation,
     this.onBattleCommand,
     this.hapticFeedback,
+    this.projectAudio,
     this.controlProfile,
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
@@ -246,6 +250,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final ValueListenable<BattleCommandOverlaySnapshot?>? battlePresentation;
   final ValueChanged<BattlePresentationCommand>? onBattleCommand;
   final Future<void> Function()? hapticFeedback;
+  final RuntimeProjectAudioController? Function()? projectAudio;
   final PlayerControlProfile? controlProfile;
   final FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
@@ -263,6 +268,27 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
     with WidgetsBindingObserver {
   final _sessionSurfaceKey = GlobalKey();
   final _touchMenuKey = GlobalKey();
+  late final _feedback = PlayerFeedbackController(
+    port: ProjectPlayerFeedbackPort(audio: () => widget.projectAudio?.call()),
+  );
+  int _feedbackEvents = 0;
+  Future<void> _sound(PlayerFeedbackSound sound, {String? identity}) async {
+    if (!mounted) return;
+    final snapshot = _latestSnapshot;
+    final mix = snapshot.preferences?.audioMix ?? const RuntimeAudioMix();
+    await _feedback.handle(
+      PlayerFeedbackEvent(
+        id: '${identityHashCode(widget.projectAudio?.call())}:${identity ?? 'ui:${_feedbackEvents++}'}',
+        sound: sound,
+      ),
+      PlayerPreferences(
+        masterVolume: mix.masterVolume,
+        effectsVolume: mix.effectsVolume,
+        hapticsEnabled: false,
+      ),
+    );
+  }
+
   final _overworldActionKey = GlobalKey();
   int _overworldActionEpoch = 0;
   ({int pointer, int cancellation, Object identity})? _overworldActionPointer;
@@ -1111,6 +1137,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
         dialogue?.mode == DialoguePresentationMode.line &&
         command.action == PlayerInputAction.confirm) {
       if (!command.isRepeat && dialogue!.isAdvanceAvailable) {
+        unawaited(_sound(PlayerFeedbackSound.dialogue, identity: 'dialogue:${identityHashCode(dialogue)}:${dialogue.revision}'));
         widget.onDialogueCommand?.call(
           DialogueAdvanceCommand(snapshotRevision: dialogue.revision),
         );
@@ -1171,9 +1198,12 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
 
   Future<void> _dispatchBack() async {
     final snapshot = _latestSnapshot;
-    await widget.controller.requestBack(
+    final result = await widget.controller.requestBack(
       snapshotRevision: snapshot.revision,
     );
+    if (result.status == RuntimePlayerCommandStatus.accepted) {
+      await _sound(PlayerFeedbackSound.cancel, identity: 'back:${snapshot.revision}');
+    }
   }
 
   Future<void> _dispatchAction(RuntimePlayerAction action) async {
@@ -1220,7 +1250,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
         safeMessage: 'Le menu est temporairement indisponible.',
       );
     }
-    final isMenuTransition = action == RuntimePlayerAction.openMenu ||
+    final isMenuTransition =
+        action == RuntimePlayerAction.openMenu ||
         action == RuntimePlayerAction.resume;
     if (isMenuTransition && _menuTransitionPending) {
       return const RuntimePlayerCommandResult(
@@ -1245,7 +1276,26 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
         ),
       );
       if (result.status == RuntimePlayerCommandStatus.accepted) {
+        final sound = switch (action) {
+          RuntimePlayerAction.cancel ||
+          RuntimePlayerAction.resume ||
+          RuntimePlayerAction.returnToPauseRoot ||
+          RuntimePlayerAction.returnToTitle ||
+          RuntimePlayerAction.returnToHost => PlayerFeedbackSound.cancel,
+          RuntimePlayerAction.save => PlayerFeedbackSound.notification,
+          RuntimePlayerAction.updatePreferences => PlayerFeedbackSound.select,
+          _ => PlayerFeedbackSound.confirm,
+        };
+        await _sound(
+          sound,
+          identity: 'command:${snapshot.revision}:${action.name}',
+        );
         await _performHaptic();
+      } else if (result.status == RuntimePlayerCommandStatus.failed) {
+        await _sound(
+          PlayerFeedbackSound.error,
+          identity: 'error:${snapshot.revision}:${action.name}',
+        );
       }
       return result;
     } finally {
@@ -1265,6 +1315,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
       },
       child: NotificationListener<RuntimePlayerLocalActionNotification>(
         onNotification: (_) {
+          unawaited(_sound(PlayerFeedbackSound.select));
           if (_pendingPointerKind == ui.PointerDeviceKind.touch) {
             _pendingPointerKind = null;
             _setActiveInputSource(PlayerInputSource.touch);
@@ -1571,7 +1622,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView>
               return PlayerDialogueOverlay(
                 paginationController: _dialoguePagination,
                 snapshot: presentation,
-                onCommand: onCommand,
+                onCommand: (command) {
+                  final current = widget.dialoguePresentation?.value;
+                  if (current != null && validateDialoguePresentationCommand(current, command).accepted) {
+                    unawaited(_sound(PlayerFeedbackSound.dialogue, identity: 'dialogue:${identityHashCode(current)}:${command.snapshotRevision}'));
+                  }
+                  onCommand(command);
+                },
               );
             },
           ),

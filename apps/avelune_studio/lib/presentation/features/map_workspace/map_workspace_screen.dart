@@ -1,4 +1,10 @@
+import '../../../features/project_cs/application/project_cs_controller.dart';
+import '../../../features/project_cs/domain/project_cs_port.dart';
+import '../../../features/project_audio/application/project_audio_controller.dart';
+import '../../../features/project_audio/domain/project_audio_port.dart';
 import 'dart:async';
+import '../../../features/project_surf/domain/project_surf_port.dart';
+import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../project_settings/project_settings_page.dart';
 import '../../../features/project_visuals/domain/project_visuals_port.dart';
 import '../../../features/project_visuals/application/project_visuals_controller.dart';
@@ -163,6 +169,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.worldPort,
     this.verificationPort,
     this.presentationMediaPicker,
+    this.audioPreview,
     this.gameExportPicker,
     this.gameExport,
     this.home,
@@ -191,6 +198,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   final WorldPort? worldPort;
   final VerificationPort? verificationPort;
   final PickPresentationMedia? presentationMediaPicker;
+  final ProjectAudioPreviewPort? audioPreview;
   final PickGameExportFile? gameExportPicker;
   final StudioGameExportPort? gameExport;
   final PickResourceImage? imagePicker;
@@ -266,6 +274,67 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   int _gestureGeneration = 0;
   int _navigationRequest = 0;
   late final WorkspaceActions _actions;
+  ProjectSurfController? _projectSurf;
+  ProjectSurfController? get _surfOwner {
+    final source = _controller.port;
+    if (source is! ProjectSurfPort) return null;
+    return _projectSurf ??= ProjectSurfController(
+      session: _controller.session,
+      port: source as ProjectSurfPort,
+      dimension: _controller.project!.settings.dimension,
+      onSaved: _acceptSurfConfiguration,
+      onRevisionChanged: _adoptSettingsRevision,
+    );
+  }
+
+  void _acceptSurfConfiguration(ProjectSurfSettings? configuration) {
+    _controller.acceptSurfConfiguration(configuration, notifyChange: false);
+    _visualCatalog = _controller.visualProject;
+    _controller.notify();
+  }
+
+  ProjectCsController? _projectCs;
+  ProjectAudioController? _projectAudio;
+  ProjectCsController? get _csOwner {
+    final source = _controller.port;
+    if (source is! ProjectCsPort) return null;
+    return _projectCs ??= ProjectCsController(
+      session: _controller.session,
+      port: source as ProjectCsPort,
+      onRevisionChanged: _adoptSettingsRevision,
+      onSaved: (configuration) {
+        _controller.acceptFieldAbilities(configuration, notifyChange: false);
+        _acceptSettingsVisuals();
+      },
+    );
+  }
+
+  ProjectAudioController? get _audioOwner {
+    final source = _controller.port;
+    if (source is! ProjectAudioPort) return null;
+    return _projectAudio ??= ProjectAudioController(
+      session: _controller.session,
+      port: source as ProjectAudioPort,
+      audition: widget.audioPreview,
+      onRevisionChanged: _adoptSettingsRevision,
+      onSaved: (configuration) {
+        _controller.acceptAudio(configuration, notifyChange: false);
+        _acceptSettingsVisuals();
+      },
+    );
+  }
+
+  void _adoptSettingsRevision(String before, String after) {
+    _projectSurf?.adoptRevision(before, after);
+    _projectCs?.adoptRevision(before, after);
+    _projectAudio?.adoptRevision(before, after);
+  }
+
+  void _acceptSettingsVisuals() {
+    _visualCatalog = _controller.visualProject;
+    _controller.notify();
+  }
+
   ProjectVisualsController? _projectVisuals;
   ProjectVisualsController get _visualOwner => _projectVisuals ??= ProjectVisualsController(session: _controller.session, port: _controller.port as ProjectVisualsPort);
   StudioGameExportPort? get _gameExport => widget.gameExport;
@@ -292,6 +361,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       regionalMap: () => _regionalMap,
       world: () => _world,
       projectVisuals: () => _projectVisuals,
+      projectSurf: () => _projectSurf,
+      projectCs: () => _projectCs,
+      projectAudio: () => _projectAudio,
       worldInputsValid: () => _worldView.invalidFields.isEmpty,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,

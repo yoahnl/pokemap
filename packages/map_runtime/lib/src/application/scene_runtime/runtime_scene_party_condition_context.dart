@@ -21,6 +21,7 @@ Future<ScenePartyConditionContext> loadRuntimeScenePartyConditionContext({
   required ProjectPokemonConfig pokemonConfig,
   Iterable<FieldAbility> supportedFieldAbilities = const [],
   RuntimeMoveCatalogLoader? moveCatalogLoader,
+  ProjectSettings? projectSettings,
 }) async {
   final moveIds = <String>{
     for (final node in scene.graph.nodes)
@@ -32,6 +33,7 @@ Future<ScenePartyConditionContext> loadRuntimeScenePartyConditionContext({
   if (moveIds.isEmpty) {
     return ScenePartyConditionContext(
       supportedFieldAbilities: supportedFieldAbilities,
+      projectSettings: projectSettings,
     );
   }
   final moves = await (moveCatalogLoader ?? RuntimeMoveCatalogLoader()).load(
@@ -46,5 +48,6 @@ Future<ScenePartyConditionContext> loadRuntimeScenePartyConditionContext({
   return ScenePartyConditionContext(
     availableMoveIds: moves.entriesById.keys,
     supportedFieldAbilities: supportedFieldAbilities,
+    projectSettings: projectSettings,
   );
 }

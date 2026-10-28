@@ -1244,6 +1244,23 @@ List<_QueryRecord> _records(
       return [_QueryRecord(summary: companionRecord, detail: companionRecord)];
     case 'itemDefinition':
       return _itemDefinitionRecords(snapshot);
+    case 'surfConfiguration':
+      final surfRecord = <String, Object?>{'id': 'project', 'resourceKind': 'surfConfiguration', 'configuration': snapshot.manifest.settings.surf?.toJson()};
+      return [_QueryRecord(summary: surfRecord, detail: surfRecord)];
+    case 'fieldAbilityConfiguration':
+      final record = <String, Object?>{'id': 'project', 'resourceKind': 'fieldAbilityConfiguration',
+        'configuration': snapshot.manifest.settings.fieldAbilities?.toJson(),
+        'surf': snapshot.manifest.settings.surf?.toJson(),
+        'abilities': [for (final ability in FieldAbility.values) {
+          'id': ability.moveId,
+          'enabled': isProjectFieldAbilityEnabled(snapshot.manifest.settings, ability),
+        }]};
+      return [_QueryRecord(summary: record, detail: record)];
+    case 'projectAudio':
+      final record = <String, Object?>{'id': 'project', 'resourceKind': 'projectAudio',
+        'configuration': snapshot.manifest.settings.audio?.toJson(),
+        'cues': [for (final cue in ProjectSoundCueCatalog.entries) cue.toJson()]};
+      return [_QueryRecord(summary: record, detail: record)];
     case 'contactDeviceConfiguration':
       final contactDeviceRecord = <String, Object?>{'id': 'project', 'resourceKind': 'contactDeviceConfiguration', 'configuration': snapshot.manifest.contactDevice?.toJson()};
       return [_QueryRecord(summary: contactDeviceRecord, detail: contactDeviceRecord)];

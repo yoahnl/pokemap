@@ -4,14 +4,18 @@ import '../../../features/map_workspace/application/map_exterior_decoration_cont
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
+import 'map_workspace_view_state.dart';
+import 'map_workspace_tool_strip_selection.dart';
 
 final class MapExteriorDecorationControls extends StatelessWidget {
   const MapExteriorDecorationControls({
     super.key,
     required this.controller,
+    required this.view,
     required this.onChanged,
   });
   final MapExteriorDecorationController controller;
+  final MapWorkspaceViewState view;
   final VoidCallback onChanged;
   void changeSide(String side, String value) {
     final current = controller.current;
@@ -47,6 +51,18 @@ final class MapExteriorDecorationControls extends StatelessWidget {
                 onChanged: controller.saving
                     ? null
                     : (value) {
+                        view.pendingMove = null;
+                        if (value == 'exterior') {
+                          if (!isExteriorDecorationTool(view.tool)) {
+                            view.tool = StudioMapTool.select;
+                          }
+                          if (!exteriorDecorationPaletteTabs.contains(
+                            view.paletteTab,
+                          )) {
+                            view.paletteTab = 'Décors';
+                            view.paletteTiles = false;
+                          }
+                        }
                         controller.setEditingExterior(value == 'exterior');
                         onChanged();
                       },
@@ -83,6 +99,19 @@ final class MapExteriorDecorationControls extends StatelessWidget {
         ),
         if (controller.editingExterior) ...[
           const SizedBox(height: 8),
+          if (controller.current case final decoration?)
+            if (decoration.west +
+                    decoration.east +
+                    decoration.north +
+                    decoration.south ==
+                0)
+              const StudioNotice(
+                'Définissez au moins une marge pour créer du décor extérieur.',
+              )
+            else if (controller.editingDocument == null)
+              const StudioNotice(
+                'Cliquez à l’extérieur de la zone jouable pour commencer à peindre ou placer un décor.',
+              ),
           const Text(
             'Peignez le sol, l’eau et les chemins, puis placez vos bordures et arbres en dehors de la zone jouable. Les pinceaux continus traversent les limites locales ; les rectangles et motifs restent limités à la zone de départ.',
           ),

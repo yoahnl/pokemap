@@ -1,7 +1,10 @@
+import 'dart:convert';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
+import 'project_media_library_query.dart';
 import '../workspace/catalog/catalog_project_reader.dart';
 import '../workspace/catalog/catalog_targeted_map_edit.dart';
+import '../workspace/catalog/catalog_workshop_selection.dart';
 
 import 'package:map_core/map_core.dart';
 
@@ -17,6 +20,7 @@ import '../registry/resource_kind_registry.dart';
 import '../workspace/project_open_service.dart';
 import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot_loader.dart';
+import '../workspace/project_snapshot.dart';
 import '../workspace/workspace_handle_store.dart';
 import 'authoring_read_contracts.dart';
 
@@ -149,7 +153,74 @@ final class AuthoringReadApi
         ),
       );
     }
+    if (const {'presentationMedia', 'asset'}.contains(request.resourceKind)) {
+      return queryProjectMediaLibrary(loader: _snapshotLoader, queries: _queryService,
+        projectHandle: projectHandle, request: request);
+    }
     final catalog = await _openService.catalogProject(projectHandle);
+    if (catalog == null && request.resourceKind == 'fact' && request.ids.isEmpty &&
+        request.extensions.isEmpty && request.filters.isEmpty && request.sort.isEmpty &&
+        const {AuthoringQueryOperation.list, AuthoringQueryOperation.summary}.contains(request.operation)) {
+      var offset = 0;
+      String? expectedRevision;
+      if (request.cursor != null) {
+        try {
+          final cursor = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(request.cursor!)))) as Map;
+          if (cursor['kind'] != 'nativeFacts') throw const FormatException();
+          offset = cursor['offset'] as int;
+          expectedRevision = cursor['revision'] as String;
+        } catch (_) {
+          throw const AuthoringQueryException('query.cursor_invalid', 'The Fact page cursor is invalid.');
+        }
+      }
+      final page = await _snapshotLoader.readNativeFactPage(projectHandle, offset: offset, limit: request.pageSize);
+      if (expectedRevision != null && expectedRevision != page.revision) throw const AuthoringQueryException('query.cursor_stale', 'The project changed after the previous Fact page.');
+      final snapshot = ProjectSnapshot(projectHandle: projectHandle, revision: page.revision,
+          manifest: ProjectManifest(name: 'Facts', maps: const [], tilesets: const [], facts: page.facts),
+          maps: const [], resourceFingerprints: const {});
+      final projected = await _queryService.queryAsync(snapshot, AuthoringQueryRequest(
+          resourceKind: 'fact', operation: AuthoringQueryOperation.list, view: request.view,
+          pageSize: request.pageSize, fieldMask: request.fieldMask));
+      return AuthoringQueryPage(snapshotRevision: page.revision, items: projected.items,
+          totalAvailable: page.total, nextCursor: offset + page.facts.length < page.total
+          ? base64Url.encode(utf8.encode(jsonEncode({'kind': 'nativeFacts', 'revision': page.revision, 'offset': offset + page.facts.length}))).replaceAll('=', '') : null);
+    }
+    if (catalog == null && request.resourceKind == 'fact' && request.ids.isNotEmpty &&
+        const {AuthoringQueryOperation.get, AuthoringQueryOperation.batchGet}.contains(request.operation)) {
+      final snapshot = await _snapshotLoader.loadWorkshop(projectHandle, actionId: 'surf.configure', parameters: {
+        'configuration': {'accessMode': 'condition', 'condition': {'type': 'allOf', 'children': [
+          for (final id in request.ids) {'type': 'factEquals', 'params': {'factId': id, 'valueType': 'bool', 'value': 'true'}}
+        ]}}
+      });
+      return _queryService.queryAsync(snapshot, request);
+    }
+    if (catalog != null && request.resourceKind == 'fact' &&
+        request.extensions.isEmpty && request.filters.isEmpty && request.sort.isEmpty &&
+        const {AuthoringQueryOperation.list, AuthoringQueryOperation.summary, AuthoringQueryOperation.get, AuthoringQueryOperation.batchGet}.contains(request.operation)) {
+      return catalog.queryFacts(request);
+    }
+    if (const {'surfConfiguration', 'fieldAbilityConfiguration', 'projectAudio'}.contains(request.resourceKind)) {
+      final defaultAction = switch (request.resourceKind) {
+        'fieldAbilityConfiguration' => 'field_ability.configure',
+        'projectAudio' => 'project.audio.cue.configure',
+        _ => 'surf.configure',
+      };
+      final action = request.extensions['actionId'] ?? defaultAction;
+      final allowed = {defaultAction, if (request.resourceKind == 'projectAudio') 'presentationMedia.import'};
+      final parameters = request.extensions['parameters'] ?? const <String, Object?>{};
+      if (!allowed.contains(action) || parameters is! Map ||
+          parameters.keys.any((key) => key is! String) ||
+          request.extensions.keys.any((key) => !const {'actionId', 'parameters'}.contains(key))) {
+        throw const AuthoringQueryException('query.action_resource_mismatch', 'Use the declared settings action and its parameters for a scoped revision.');
+      }
+      final snapshot = catalog == null
+          ? await _snapshotLoader.loadWorkshop(projectHandle,
+              actionId: action as String, parameters: Map<String, Object?>.from(parameters))
+          : (await CatalogWorkshopSelection.read(reader: catalog, projectHandle: projectHandle,
+              actionId: action as String, parameters: Map<String, Object?>.from(parameters))).snapshot;
+      final projectedRequest = AuthoringQueryRequest.fromJson(request.toJson()..['extensions'] = <String, Object?>{});
+      return _queryService.queryAsync(snapshot, projectedRequest);
+    }
     if (catalog != null &&
         request.resourceKind == 'map' &&
         request.extensions['materializeProject'] != true) {

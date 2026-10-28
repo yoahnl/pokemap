@@ -1056,12 +1056,14 @@ final class RuntimeProjectProjectionBuilder {
     Set<String> retainedSourceAssetIds = const {},
   }) async {
     final storedCatalog = await authorFiles.readProjectMediaCatalog(budget);
-    if (storedCatalog == null && project.presentationCinematics.isEmpty) {
+    if (storedCatalog == null && project.presentationCinematics.isEmpty &&
+        !(project.settings.audio?.cues.values.any((binding) => binding.source == ProjectSoundSource.custom) ?? false)) {
       return null;
     }
     final sourceCatalog = storedCatalog ?? ProjectMediaCatalog();
     final receipt = const PresentationMediaPublicationPreflight().inspect(
       catalog: sourceCatalog,
+      audio: project.settings.audio,
       cinematics: project.presentationCinematics,
       scenes: project.scenes,
     );

@@ -14,6 +14,7 @@ final class RuntimeCutObstacleInteraction {
     required MapData map,
     required GameState gameState,
     required int currentStateRevision,
+    ProjectSettings? projectSettings,
   }) {
     final currentTicket = ticket;
     if (outcomeId != 'cut-confirmed' || currentTicket == null) return null;
@@ -22,6 +23,7 @@ final class RuntimeCutObstacleInteraction {
       map: map,
       gameState: gameState,
       currentStateRevision: currentStateRevision,
+      projectSettings: projectSettings,
       confirmedEntityId: currentTicket.entityId,
     );
   }
@@ -32,11 +34,13 @@ RuntimeCutObstacleInteraction? prepareCutObstacleInteraction({
   required GameState gameState,
   required int stateRevision,
   required String entityId,
+  ProjectSettings? projectSettings,
 }) {
   final evaluation = evaluateCutObstacleAttempt(
     map: map,
     gameState: gameState,
     entityId: entityId,
+    projectSettings: projectSettings,
   );
   final String text;
   CutObstacleTicket? ticket;

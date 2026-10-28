@@ -300,6 +300,7 @@ class _StudioGamePlaytestViewState extends State<StudioGamePlaytestView>
             );
           },
           sessionBuilder: (_, _) => PokeMapPlayerSessionView(
+            projectAudio: () => _map?.projectAudio ?? _spatial?.projectAudio,
             controller: _playerController,
             imageLoader: _loadPlayerImage,
             imageScopeIdentity: _startupImageBudget,

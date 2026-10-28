@@ -17,6 +17,54 @@ void main() {
 
   for (final unrelated in [0, 2000]) {
     test(
+      'light changes retain scene geometry with $unrelated unrelated resources',
+      () async {
+        final fixture = _Fixture(
+          unrelated: unrelated,
+          extraInstances: unrelated,
+        );
+        addTearDown(fixture.dispose);
+        final entries = ProjectModel3dEntries.prepare(fixture.project.models3d);
+        fixture.game.configuration = fixture.configuration(models: entries);
+        expect(await fixture.game.refresh(), isTrue);
+        final before = fixture.game.renderedConfiguration!;
+        final component =
+            fixture.game.modelComponents['tree-instance']!.component;
+        final generation = fixture.game.generation;
+        final reads = Map.of(fixture.reads);
+        final changed = entries
+            .lookup('tree')!
+            .copyWith(
+              light: Model3dPointLight(
+                localPosition: Model3dVector3(x: 0, y: 1, z: 0),
+                flame: ModelLightFlame(),
+              ),
+            );
+        fixture.game.configuration = fixture.configuration(
+          models: entries.replaceSelected([changed]),
+        );
+        expect(fixture.game.syncLightDefinitions(before), isTrue);
+        expect(component.definition.light!.flame, isNotNull);
+        expect(
+          fixture.game.pointLightBindings.single.component,
+          same(component),
+        );
+        expect(fixture.game.generation, generation);
+        expect(fixture.reads, reads);
+        expect(fixture.game.modelSourceComponentBuilds, 0);
+        final current = fixture.game.renderedConfiguration!;
+        fixture.game.configuration = fixture.configuration(models: entries);
+        expect(fixture.game.syncLightDefinitions(current), isTrue);
+        expect(component.definition.light, isNull);
+        expect(fixture.game.pointLightBindings, isEmpty);
+        expect(fixture.game.generation, generation);
+        expect(fixture.reads, reads);
+      },
+    );
+  }
+
+  for (final unrelated in [0, 2000]) {
+    test(
       'revision replaces only its resident source with $unrelated unrelated definitions',
       () async {
         final fixture = _Fixture(unrelated: unrelated);
@@ -544,24 +592,28 @@ final class _Fixture {
     );
   }
 
-  SpatialSceneView configuration() => SpatialSceneView(
-    scene: map.spatialScene!,
-    groundMap: map,
-    decorations: decorations,
-    groundProject: project,
-    models: modelList,
-    modelSourceUpdates: useUpdates ? updates : null,
-    loadModel: load,
-    controller: controller,
-    resourceBudget: budget,
-    resourceIdentity: 'project',
-    modelSourceRevisions: {'tree-source': revision, 'house-source': 'house'},
-    onCell: (_, _) {},
-    background: const Color(0xff000000),
-    ground: const Color(0xff224422),
-    edge: const Color(0xff111111),
-    errorBuilder: (_, _) => const SizedBox(),
-  );
+  SpatialSceneView configuration({List<ProjectModel3dEntry>? models}) =>
+      SpatialSceneView(
+        scene: map.spatialScene!,
+        groundMap: map,
+        decorations: decorations,
+        groundProject: project,
+        models: models ?? modelList,
+        modelSourceUpdates: useUpdates ? updates : null,
+        loadModel: load,
+        controller: controller,
+        resourceBudget: budget,
+        resourceIdentity: 'project',
+        modelSourceRevisions: {
+          'tree-source': revision,
+          'house-source': 'house',
+        },
+        onCell: (_, _) {},
+        background: const Color(0xff000000),
+        ground: const Color(0xff224422),
+        edge: const Color(0xff111111),
+        errorBuilder: (_, _) => const SizedBox(),
+      );
   void dispose() {
     game.onRemove();
     controller.dispose();

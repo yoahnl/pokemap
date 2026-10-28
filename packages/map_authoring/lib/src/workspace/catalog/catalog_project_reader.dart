@@ -7,6 +7,7 @@ import '../../catalog_storage/working_project_catalog.dart';
 import '../../contracts/query_page.dart';
 import '../../contracts/query_request.dart';
 import '../project_query_service.dart';
+import 'catalog_metadata_documents.dart';
 
 const catalogResourceKinds = <String, CatalogDefinitionKind>{
   'tileset': CatalogDefinitionKind.tileset,
@@ -212,6 +213,44 @@ final class CatalogProjectReader {
                     .replaceAll('=', '')
                 : null);
       });
+
+  Future<AuthoringQueryPage> queryFacts(AuthoringQueryRequest request) => read((catalog) async {
+    if (request.extensions.isNotEmpty || request.filters.isNotEmpty || request.sort.isNotEmpty ||
+        !const {AuthoringQueryOperation.list, AuthoringQueryOperation.summary, AuthoringQueryOperation.get, AuthoringQueryOperation.batchGet}.contains(request.operation)) {
+      throw const AuthoringQueryException('query.catalog_fact_scope_unsupported', 'Catalog facts support bounded pages or direct identity selection.');
+    }
+    await store.requireMetadataIndexAdmission(catalog.snapshot);
+    final rootRevision = 'sha256:${catalog.snapshot.root.sha256}';
+    final records = <Map<String, dynamic>>[];
+    var total = 0;
+    var offset = 0;
+    String? next;
+    if (request.ids.isNotEmpty) {
+      final selected = await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot, project: catalog.projectMetadata, ids: {'facts': request.ids.toSet()});
+      records.addAll(selected.project.facts.map((fact) => fact.toJson()));
+      total = records.length;
+      if (records.length != request.ids.length) throw const AuthoringQueryException('query.resource_missing', 'A requested Fact does not exist.');
+    } else {
+      if (request.cursor != null) {
+        try {
+          final cursor = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(request.cursor!)))) as Map;
+          if (cursor['revision'] != rootRevision || cursor['kind'] != 'fact') throw const FormatException();
+          offset = cursor['offset'] as int;
+        } catch (_) {
+          throw const AuthoringQueryException('query.cursor_invalid', 'The Fact page cursor is invalid or stale.');
+        }
+      }
+      final page = await CatalogMetadataDocuments.readPage(snapshot: catalog.snapshot, field: 'facts', offset: offset, limit: request.pageSize);
+      records.addAll(page.records);
+      total = page.total;
+      if (offset + records.length < total) next = base64Url.encode(utf8.encode(jsonEncode({'revision': rootRevision, 'kind': 'fact', 'offset': offset + records.length}))).replaceAll('=', '');
+    }
+    return AuthoringQueryPage(snapshotRevision: rootRevision, items: [for (final value in records)
+      _mask(request.view == AuthoringQueryView.detail ? {'resourceKind': 'fact', ...value} : {
+        'resourceKind': 'fact', 'id': value['id'], 'name': value['label'],
+        'category': value['category'], 'valueKind': NarrativeFactDefinition.fromJson(value).valueKind.wireName,
+      }, request.fieldMask)], totalAvailable: total, nextCursor: next);
+  });
 
   Future<AuthoringQueryPage> query(AuthoringQueryRequest request) =>
       read((catalog) async {

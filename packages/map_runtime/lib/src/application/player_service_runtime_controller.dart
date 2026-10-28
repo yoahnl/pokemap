@@ -753,6 +753,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }
 
   String _flyUnavailableMessage(FlyBlockReason? reason) => switch (reason) {
+    FlyBlockReason.disabled => 'Vol est désactivé dans ce projet.',
     FlyBlockReason.underwater =>
       'Remontez à la surface avec Plongée avant d’utiliser Vol.',
     FlyBlockReason.indoor =>

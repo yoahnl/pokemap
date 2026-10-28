@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'character_studio_controller.dart';
+import 'character_studio_animation_select.dart';
 import '../../../features/characters/application/character_studio_draft.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../map_workspace/map_workspace_visuals.dart';
@@ -84,6 +85,7 @@ class _CharacterStudioAnimationPanelState
       );
       return CharacterStudioDedicatedOnlyPanel(
         hasAtlas: hasAtlas,
+        elapsedMs: widget.elapsedMs,
         draft: widget.draft,
         controller: widget.controller,
         visuals: widget.visuals,
@@ -119,33 +121,9 @@ class _CharacterStudioAnimationPanelState
       Row(
         children: [
           const Expanded(child: Text('Déposez une image dans chaque pose.')),
-          DropdownButton<CharacterAnimationState>(
-            value: state,
-            items: const [
-              DropdownMenuItem(
-                value: CharacterAnimationState.bicycleIdle,
-                child: Text('Vélo au repos'),
-              ),
-              DropdownMenuItem(
-                value: CharacterAnimationState.bicycle,
-                child: Text('Vélo'),
-              ),
-              DropdownMenuItem(
-                value: CharacterAnimationState.walk,
-                child: Text('Marche'),
-              ),
-              DropdownMenuItem(
-                value: CharacterAnimationState.idle,
-                child: Text('Repos'),
-              ),
-              DropdownMenuItem(
-                value: CharacterAnimationState.run,
-                child: Text('Course'),
-              ),
-            ],
-            onChanged: (value) {
-              if (value != null) widget.controller.setAnimationState(value);
-            },
+          SizedBox(
+            width: 225,
+            child: CharacterStudioAnimationSelect(controller: widget.controller),
           ),
         ],
       ),

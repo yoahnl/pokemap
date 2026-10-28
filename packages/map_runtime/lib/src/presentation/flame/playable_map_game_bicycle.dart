@@ -1,15 +1,30 @@
 part of 'playable_map_game.dart';
 
 extension _PlayableMapBicycle on PlayableMapGame {
-  double get _playerStepSeconds =>
-      _world.player.movementMode == MovementMode.bicycle
+  double get _playerStepSeconds {
+    final surf = _bundle.manifest.settings.surf;
+    if (_world.player.movementMode == MovementMode.surf && surf != null) {
+      final horizontal = _world.player.facing == Direction.east ||
+          _world.player.facing == Direction.west;
+      final tilePixels = horizontal
+          ? _bundle.manifest.settings.tileWidth
+          : _bundle.manifest.settings.tileHeight;
+      return PlayerCollisionConventionsV1.defaultMoveStepPixels /
+          tilePixels /
+          surf.speedCellsPerSecond;
+    }
+    return _world.player.movementMode == MovementMode.bicycle
       ? PlayerComponent.kBicycleStepSeconds
       : _sprintPressed
       ? PlayerComponent.kRunStepSeconds
       : PlayerComponent.kDefaultStepSeconds;
+  }
 
   CharacterAnimationState get _playerStepAnimation =>
-      _world.player.movementMode == MovementMode.bicycle
+      _world.player.movementMode == MovementMode.surf &&
+          _bundle.manifest.settings.surf != null
+      ? CharacterAnimationState.surf
+      : _world.player.movementMode == MovementMode.bicycle
       ? CharacterAnimationState.bicycle
       : _sprintPressed
       ? CharacterAnimationState.run

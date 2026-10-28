@@ -10,6 +10,7 @@ import 'package:avelune_studio/presentation/features/resources/resource_catalog.
 import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/characters/character_studio_dedicated_only_panel.dart';
+import 'package:avelune_studio/presentation/features/characters/character_studio_animation_select.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/map_tool_menu.dart';
@@ -158,7 +159,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Haut').last);
     await tester.pump();
-    await tester.tap(find.byType(DropdownButton<CharacterAnimationState>).last);
+    await tester.tap(find.byType(CharacterStudioAnimationSelect).last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Vélo').last);
     await tester.pump();

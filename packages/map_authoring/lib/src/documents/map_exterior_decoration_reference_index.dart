@@ -41,6 +41,7 @@ extension _ExteriorDecorationReferenceIndex
   Future<void> _prepareIncomingChanges(
       _DecorationContext context,
       _DecorationIndex index,
+      Map<String, List<int>?> beforeImages,
       Map<String, Map<String, dynamic>?> images,
       List<AuthoringResourceChange> changes,
       List<AuthoringDiffEntry> diffs,
@@ -85,8 +86,7 @@ extension _ExteriorDecorationReferenceIndex
                       ExteriorDecorationBorder.fromJson(json))
                   : exteriorSectorReferences(
                       ExteriorDecorationSector.fromJson(json));
-      final before = await _readBytes(
-          context, image.key, _storageLimit(context, image.key));
+      final before = beforeImages[image.key];
       final old = references(before == null ? null : _decode(before));
       final next = references(image.value);
       if (!repairing && old.length == next.length && old.containsAll(next)) {

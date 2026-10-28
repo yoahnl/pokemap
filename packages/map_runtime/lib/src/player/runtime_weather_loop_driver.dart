@@ -9,6 +9,7 @@ final class RuntimeWeatherLoopDriver
     this.driver, {
     this.duration = const Duration(microseconds: 15350023),
     this.overlap = const Duration(milliseconds: 1500),
+    this.crossfadePath,
     Duration Function()? clock,
     Timer Function(Duration, void Function(Timer))? timerFactory,
   }) : clock = clock ?? (Stopwatch()..start()).elapsedDuration,
@@ -20,6 +21,7 @@ final class RuntimeWeatherLoopDriver
 
   final FlameCinematicAudioDriver driver;
   final Duration duration, overlap;
+  final bool Function(String path)? crossfadePath;
   final Duration Function() clock;
   final Timer Function(Duration, void Function(Timer)) timerFactory;
 
@@ -29,6 +31,9 @@ final class RuntimeWeatherLoopDriver
     required double volume,
     required bool loop,
   }) async {
+    if (loop && crossfadePath?.call(path) == false) {
+      return driver.play(path, volume: volume, loop: true);
+    }
     final voice = await driver.play(path, volume: volume, loop: false);
     if (!loop) return voice;
     final state = _WeatherLoop(path, volume, voice, clock());

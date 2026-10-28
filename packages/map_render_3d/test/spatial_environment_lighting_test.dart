@@ -9,6 +9,26 @@ import 'package:map_render_3d/src/spatial_point_light.dart';
 import 'package:map_render_3d/src/spatial_authored_shadows.dart';
 
 void main() {
+  test('flame light moves gently with time and remains extinguished in daylight', () {
+    final light = Model3dPointLight(
+      localPosition: Model3dVector3(x: 0, y: 1.3, z: 0),
+      flame: ModelLightFlame(),
+    );
+    final values = [for (var i = 0; i < 120; i++)
+      spatialPlacedPointLight(light, Matrix4.identity(), daylight: 0,
+        elapsedSeconds: i / 30).intensity];
+    expect(values.toSet().length, greaterThan(100));
+    expect(values, everyElement(inInclusiveRange(.88, 1.12)));
+    for (var i = 1; i < values.length; i++) {
+      expect((values[i] - values[i - 1]).abs(), lessThan(.025));
+    }
+    expect(spatialPlacedPointLight(light, Matrix4.identity(), daylight: 1,
+      elapsedSeconds: 1).intensity, 0);
+    final fixed = light.copyWith(clearFlame: true);
+    expect(spatialPlacedPointLight(fixed, Matrix4.identity(), daylight: 0,
+      elapsedSeconds: 1).intensity, 1);
+  });
+
   test('real time and fixed time drive the same controller frame, cycle preview retains play and pause', () {
     var now = DateTime(2026, 10, 26, 22);
     final controller = SpatialSceneController(now: () => now);

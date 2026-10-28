@@ -6,6 +6,7 @@ const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
   'campaign.character.upsert': (CatalogDefinitionKind.character, 'value'),
   'resource.classify_batch': (CatalogDefinitionKind.resourceLibraryEntry, 'entries'),
   'smart_tile.atlas.upsert': (CatalogDefinitionKind.smartTileAtlas, 'atlas'),
+  'smart_tile.animation.upsert': (CatalogDefinitionKind.smartTileAnimation, 'animation'),
   'smart_tile.material.upsert_batch': (
     CatalogDefinitionKind.smartTileMaterial,
     'materials'

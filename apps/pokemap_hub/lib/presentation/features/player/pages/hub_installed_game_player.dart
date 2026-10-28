@@ -1454,6 +1454,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       }
     }
     return player_ui.PokeMapPlayerSessionView(
+      projectAudio: () => _mountedGame?.projectAudio ?? _mountedSpatial?.projectAudio,
       imageScopeIdentity:
           _mountedGame?.resourceBudget ??
           _mountedSpatial?.session?.bundle.resourceBudget ??

@@ -107,6 +107,25 @@ void main() {
       await tester.pump();
       expect(preview.light!.localPosition.y, 2.75);
       expect(saves, 0);
+      final flame = find.byKey(const ValueKey('model-light-flame'));
+      await tester.ensureVisible(flame);
+      await tester.tap(flame);
+      await tester.pump();
+      expect(preview.light!.flame, isNotNull);
+      final style = find.byKey(const ValueKey('model-light-flame-style'));
+      await tester.ensureVisible(style);
+      await tester.tap(style);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Brasier').last);
+      await tester.pumpAndSettle();
+      expect(preview.light!.flame!.style, ModelLightFlameStyle.brazier);
+      final crackle = find.descendant(of: find.byKey(const ValueKey('model-light-flame-crackle')), matching: find.byType(Slider));
+      await tester.ensureVisible(crackle);
+      tester.widget<Slider>(crackle).onChanged!(.75);
+      await tester.pump();
+      expect(preview.light!.flame!.crackleVolume, .75);
+      expect(saves, 0);
+      expect(saves, 0);
       preview.setLight(
         preview.light!.copyWith(
           localPosition: Model3dVector3(x: 1, y: 3, z: 2),
@@ -122,6 +141,13 @@ void main() {
       expect(persisted!.localPosition, Model3dVector3(x: 1, y: 3, z: 2));
       expect(persisted!.colorCycle, light.colorCycle);
       expect(persisted!.proximity, light.proximity);
+      expect(persisted!.flame, isNotNull);
+      expect(persisted!.flame!.crackleVolume, .75);
+      await tester.ensureVisible(flame);
+      await tester.tap(flame);
+      await tester.pump();
+      expect(preview.light!.flame, isNull);
+      expect(saves, 1);
       expect(find.byType(StudioSelect), findsWidgets);
       expect(tester.takeException(), isNull);
     },

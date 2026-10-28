@@ -25,7 +25,7 @@ void main() {
       );
     });
 
-    for (final state in ['bicycle_idle', 'bicycle', 'climb']) {
+    for (final state in ['bicycle_idle', 'bicycle', 'climb', 'surf_idle', 'surf', 'surf_enter', 'surf_exit']) {
       for (final direction in EntityFacing.values) {
         test('authors dedicated system slot $state/${direction.name}', () {
           final draft = const CharacterStudioAnimationClipActions().build(

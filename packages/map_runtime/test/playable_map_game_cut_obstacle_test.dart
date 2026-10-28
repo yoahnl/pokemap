@@ -16,6 +16,21 @@ import 'surface/surface_runtime_test_support.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final kind in [FieldObstacleKind.cutTree, FieldObstacleKind.strengthBoulder,
+    FieldObstacleKind.rockSmashRock]) {
+    testWidgets('disabled project ${kind.name} suppresses the native field action', (tester) async {
+      await tester.runAsync(() async {
+        final ability = MapEntityFieldObstacleData(kind: kind).ability!;
+        final mounted = await _mount(tester, obstacleKind: kind,
+          fieldAbilities: ProjectFieldAbilitiesSettings(disabledAbilities: [ability]));
+        expect(mounted.game.overworldInteractionSnapshot.primaryAction, isNull);
+        final before = mounted.game.gameStateSnapshot;
+        await _press(mounted.game, RuntimeInputControl.primary);
+        expect(mounted.game.gameStateSnapshot, before);
+      });
+    });
+  }
+
   testWidgets(
     'Strength activation and repeated directional pushes publish one movement each and survive fresh restore',
     (tester) async {
@@ -757,6 +772,7 @@ Future<({PlayableMapGame game, _Sfx sfx})> _mount(
   bool retainInstances = false,
   bool v2Only = false,
   bool declaredOwner = false,
+  ProjectFieldAbilitiesSettings? fieldAbilities,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-cut-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -927,6 +943,7 @@ Future<({PlayableMapGame game, _Sfx sfx})> _mount(
       ),
     ],
     settings: ProjectSettings(
+      fieldAbilities: fieldAbilities,
       mapInstanceRetentionPolicy: retainInstances
           ? MapInstanceRetentionPolicy(
               viewportWidthTiles: 20,

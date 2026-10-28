@@ -8,6 +8,7 @@ import 'game_package_manifest.dart';
 import 'game_package_security_policy.dart';
 import 'game_package_spatial_project_validator.dart';
 import 'game_package_exterior_decoration_validator.dart';
+import 'game_package_project_audio_validator.dart';
 
 /// Performs the pure project preflight available before staging/smoke.
 final class GamePackageProjectValidator {
@@ -77,6 +78,16 @@ final class GamePackageProjectValidator {
       var weatherEpisodes = WorldEnvironmentCapabilities.requiresEpisodesProject(project);
       var realWeather = WorldEnvironmentCapabilities.requiresRealProject(project);
       var lightWorkshop = SpatialLightWorkshopCapabilities.requiresProject(project);
+      if (SpatialLightWorkshopCapabilities.requiresCrackle(project) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(
+            SpatialLightWorkshopCapabilities.crackleCapabilityId)) {
+        _fail('Model flame crackling requires map3d.light-crackle@1.');
+      }
+      if (SpatialLightWorkshopCapabilities.requiresFlames(project) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(
+            SpatialLightWorkshopCapabilities.flameCapabilityId)) {
+        _fail('Animated model flames require map3d.light-flame@1.');
+      }
       for (final entry in visualPaths.entries) {
         if (!payloadPaths.contains(entry.key)) continue;
         visualProfiles = true;
@@ -226,6 +237,20 @@ final class GamePackageProjectValidator {
             guide.battleFormat != BattleFormat.singles || battle.defeatRecovery != SceneBattleDefeatRecovery.continueScene) {
           _fail('The battle demonstration requires an existing temporary singles team and wild encounter.');
         }
+      }
+      for (final requirement in {
+        if (FieldAbilityActivationCapabilities.requiresCapability(project)) FieldAbilityActivationCapabilities.capabilityId,
+        if (ProjectAudioCapabilities.requiresCapability(project)) ProjectAudioCapabilities.capabilityId,
+      }) {
+        if (!packageManifest.compatibility.requiredCapabilities.contains(requirement)) {
+          _fail('The project requires $requirement.');
+        }
+      }
+      validateGamePackageProjectAudio(project: project, policy: policy,
+        payloadPaths: payloadPaths, readPayload: readPayload);
+      if (SurfGameplayCapabilities.requiresCapability(project) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(SurfGameplayCapabilities.capabilityId)) {
+        _fail('Surf requires ${SurfGameplayCapabilities.capabilityId}.');
       }
       if (project.battleSavings != null &&
           !packageManifest.compatibility.requiredCapabilities

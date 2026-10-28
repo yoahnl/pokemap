@@ -1,3 +1,4 @@
+import '../ports/transaction_file_gateway.dart';
 import '../references/exterior_decoration_references.dart';
 import '../documents/map_element_order_authoring.dart';
 import '../documents/map_editor_authoring.dart';
@@ -69,6 +70,10 @@ import '../ports/file_backed_payload_store.dart';
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
 const _nativeLocalWorkshopActions = {
+  'surf.configure',
+  'field_ability.configure',
+  'project.audio.cue.configure',
+  'presentationMedia.import',
   'campaign.battle_savings.update',
   'pokemon.ruleset.set', 'campaign.encounter_table.upsert', 'campaign.trainer.upsert',
   'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update',
@@ -1582,6 +1587,7 @@ final class _LocalMapAuthoringSession {
         operation: AuthoringSecurityOperation.plan, actionId: 'workshop_prepare', actionVersion: 1,
         riskLevel: AuthoringRiskLevel.low, requestBytes: 0, touchedResources: 0,
         additionalPermissions: const [AuthoringPermissionScope.projectWrite]));
+    await preparePendingTransactionJournals(_mapAtmosphereGateway);
     await _idempotencyStore.prepareIncrementalStorage();
     final history = _history;
     if (history is FileAuthoringHistoryStore) await history.prepareLocalHistory();
@@ -1646,6 +1652,18 @@ final class _LocalMapAuthoringSession {
           repairRequest:
               _nativeLocalWorkshopActions.contains(request.actionId) || request.actionId == 'pokemon.catalog.write' ? request : null,
         );
+    var planningRequest = request;
+    if (suppliedSnapshot == null && request.actionId == 'presentationMedia.import' &&
+        request.expectedRevision != null && request.expectedRevision != snapshot.revision) {
+      if (!_snapshotLoader.acceptsObservedNativeRevision(projectHandle,
+          expectedRevision: request.expectedRevision,
+          resources: snapshot.scopedStorageRevisions ?? const {})) {
+        throw AuthoringPlanException(code: 'plan.stale',
+            message: 'This full revision was not observed in this workspace or its selected media dependencies changed.',
+            remediation: const ['Read the projectAudio resource with actionId presentationMedia.import and its parameters, then plan from that scoped revision.']);
+      }
+      planningRequest = AuthoringRequest.fromJson({...request.toJson(), 'expectedRevision': snapshot.revision});
+    }
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.plan,
     );
@@ -1657,7 +1675,7 @@ final class _LocalMapAuthoringSession {
           : AuthoringActionPlanner(
               store: _plans, tokenFactory: _catalogPlanIdentity);
       plan = await planner.plan(
-        request: request,
+        request: planningRequest,
         snapshot: snapshot,
         build: (context) async {
           final draft = await _dispatcher.build(context);
@@ -2135,7 +2153,16 @@ final class _LocalMapAuthoringSession {
   }) async {
     String? snapshotRevision;
     AuthoringSnapshotRefreshDiagnostic? diagnostic;
-    final scopedRequest = _workshopPlans[receipt.extensions['planId']];
+    var scopedRequest = _workshopPlans[receipt.extensions['planId']];
+    if (scopedRequest == null && receipt.actionId == 'presentationMedia.import') {
+      final artifacts = receipt.artifacts.where((artifact) => artifact.uri.startsWith('artifact://sha256/'));
+      if (artifacts.length == 1) {
+        scopedRequest = AuthoringRequest(requestId: receipt.requestId,
+            workspaceHandle: workspaceHandle.value, actionId: receipt.actionId,
+            actionVersion: receipt.actionVersion,
+            parameters: {'artifactHandle': artifacts.single.uri});
+      }
+    }
     if (snapshot == null && scopedRequest == null && _nativeLocalWorkshopActions.contains(receipt.actionId)) {
       refreshUnavailable = true;
     }

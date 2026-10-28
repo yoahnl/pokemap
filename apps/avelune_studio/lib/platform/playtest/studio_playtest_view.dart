@@ -33,6 +33,7 @@ class StudioPlaytestView extends StatefulWidget {
     this.testSession,
     this.previewVisuals,
     this.prepareProjectAssets,
+    this.spatialViewBuilder,
   });
 
   final ProjectSession session;
@@ -43,6 +44,13 @@ class StudioPlaytestView extends StatefulWidget {
   final StudioPlaytestSession? testSession;
   final ValueListenable<SpatialVisualPatch>? previewVisuals;
   final Future<void> Function(String projectRoot)? prepareProjectAssets;
+  final Widget Function(
+    BuildContext context,
+    StudioSpatialPlaytest playtest,
+    VoidCallback onReady,
+    void Function(Object) onError,
+  )?
+  spatialViewBuilder;
 
   @override
   State<StudioPlaytestView> createState() => _StudioPlaytestViewState();
@@ -119,8 +127,15 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       try {
         await playtest.runtime.load((_) {});
       } catch (_) {
+        if (mounted && identical(_spatialPlaytest, playtest)) {
+          setState(() {
+            _spatialPlaytest = null;
+            _spatial = null;
+            _ready = false;
+          });
+          await WidgetsBinding.instance.endOfFrame;
+        }
         await playtest.dispose();
-        if (identical(_spatialPlaytest, playtest)) _spatialPlaytest = null;
         rethrow;
       }
       if (!mounted) throw StateError('Test fermé');
@@ -276,21 +291,10 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   }
 
   Future<void> _resume() async {
+    if (_busy || !_ready) return;
     setState(() => _busy = true);
     if (_spatialPlaytest != null) {
-      final previous = _spatialPlaytest!;
-      setState(() {
-        _spatialPlaytest = null;
-        _spatial = null;
-        _ready = false;
-        _loading = Future<Object>.sync(() async {
-          await previous.dispose();
-          return _load(restoreSpatialSave: true);
-        });
-        _spatialPaused = false;
-        _busy = false;
-        _message = 'Sauvegarde du test reprise.';
-      });
+      _replaceTest(restoreSpatialSave: true);
       return;
     }
     final loaded = await _game?.loadGame() ?? false;
@@ -302,23 +306,40 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   }
 
   Future<void> _newGame() async {
-    setState(() => _busy = true);
+    if (_busy || !_ready) return;
+    _replaceTest(restoreSpatialSave: false);
+  }
+
+  void _replaceTest({required bool restoreSpatialSave}) {
+    final previous = _spatialPlaytest;
+    final services = _playerServices;
     _game?.pauseEngine();
-    await _playerServices?.dispose();
-    _playerServices = null;
-    _game = null;
-    final spatial = _spatialPlaytest;
-    _spatialPlaytest = null;
-    _spatial = null;
-    _ready = false;
-    await spatial?.dispose();
-    await _saves.delete();
-    if (!mounted) return;
     setState(() {
-      _loading = _load();
-      _busy = false;
+      _playerServices = null;
+      _playerBundle = null;
+      _game = null;
+      _spatialPlaytest = null;
+      _spatial = null;
+      _ready = false;
       _spatialPaused = false;
-      _message = 'Nouvelle partie : état de test réinitialisé.';
+      _busy = false;
+      _message = restoreSpatialSave
+          ? 'Reprise de la sauvegarde du test…'
+          : 'Préparation d’une nouvelle partie…';
+      _loading = () async {
+        await WidgetsBinding.instance.endOfFrame;
+        await services?.dispose();
+        await previous?.dispose();
+        if (!restoreSpatialSave) await _saves.delete();
+        if (!mounted) throw StateError('Test fermé');
+        final loaded = await _load(restoreSpatialSave: restoreSpatialSave);
+        if (mounted) {
+          setState(() => _message = restoreSpatialSave
+              ? 'Sauvegarde du test reprise.'
+              : 'Nouvelle partie : état de test réinitialisé.');
+        }
+        return loaded;
+      }();
     });
   }
 
@@ -507,12 +528,28 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
               if (!identical(game, _spatialPlaytest)) {
                 return const Center(child: CircularProgressIndicator());
               }
+              void ready() {
+                if (mounted && identical(game, _spatialPlaytest)) {
+                  _finishSpatialMount();
+                }
+              }
+
+              void failed(Object error) {
+                if (mounted && identical(game, _spatialPlaytest)) {
+                  _finishSpatialMount(error);
+                }
+              }
+
+              final builder = widget.spatialViewBuilder;
+              if (builder != null) {
+                return builder(context, game, ready, failed);
+              }
               return StudioSpatialPlaytestView(
                 key: ObjectKey(game),
                 runtime: game.runtime,
                 previewVisuals: widget.previewVisuals,
-                onReady: _finishSpatialMount,
-                onError: _finishSpatialMount,
+                onReady: ready,
+                onError: failed,
               );
             }
             return StudioPlaytestPlayerView(

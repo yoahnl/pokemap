@@ -52,7 +52,7 @@ final class CatalogPartitionPreparation {
       throw const CatalogStorageException('catalog.revision_conflict',
           'The project changed before its catalog partition was applied.');
     }
-    for (final journal in await store.gateway.listJournals()) {
+    for (final journal in await readPendingTransactionJournals(store.gateway, allowLegacyScan: true)) {
       if (journal.operationId != operationId &&
           journal.entries.any((entry) =>
               entry.storageKey == CatalogStorageStore.headStorageKey)) {
@@ -179,6 +179,7 @@ final class WorkingProjectCatalog {
     required ProjectManifest project,
     String? expectedProjectRevision,
   }) async {
+    await preparePendingTransactionJournals(store.gateway);
     final descriptor = WorkingProjectCatalogDescriptor(projectId: projectId);
     if (await store.gateway.readResourceRevision('project.json') !=
         expectedProjectRevision) {
@@ -334,7 +335,7 @@ final class WorkingProjectCatalog {
       'The catalog generation changed; reopen it before retrying this read.');
 
   static Future<void> _requireReadableStore(CatalogStorageStore store) async {
-    for (final journal in await store.gateway.listJournals()) {
+    for (final journal in await readPendingTransactionJournals(store.gateway, allowLegacyScan: true)) {
       if (journal.status != AuthoringTransactionStatus.committed &&
           journal.status != AuthoringTransactionStatus.compensated &&
           journal.entries.any((entry) =>

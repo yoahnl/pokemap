@@ -66,6 +66,7 @@ void main() {
         periodSeconds: 12,
       ),
       proximity: ModelLightProximity(mode: ModelLightProximityMode.near),
+      flame: ModelLightFlame(height: .3, flicker: .1, style: ModelLightFlameStyle.brazier, embers: .75, crackleVolume: .65),
     );
     final saved = await adapter.configureLight(
       before.entry,

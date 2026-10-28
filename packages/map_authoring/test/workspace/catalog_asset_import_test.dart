@@ -234,6 +234,23 @@ void main() {
           }
         ),
         (
+          'smart_tile.animation.upsert',
+          <String, Object?>{
+            'animation': {
+              'id': 'ground-cycle',
+              'name': 'Ground cycle',
+              'frames': [
+                {
+                  'frame': {'atlasId': 'ground-atlas', 'column': 0, 'row': 0},
+                  'durationMs': 120
+                }
+              ],
+              'sync': 'global',
+              'loop': 'repeat'
+            }
+          }
+        ),
+        (
           'smart_tile.material.upsert_batch',
           <String, Object?>{
             'materials': [
@@ -266,12 +283,8 @@ void main() {
                       'parts': [
                         {
                           'source': {
-                            'kind': 'frame',
-                            'frame': {
-                              'atlasId': 'ground-atlas',
-                              'column': 0,
-                              'row': 0
-                            }
+                            'kind': 'animation',
+                            'animationId': 'ground-cycle'
                           }
                         }
                       ]
@@ -329,6 +342,11 @@ void main() {
               CatalogDefinitionKind.smartTilePreset, 'ground')))!
           .payload['value'] as Map;
       expect(preset['status'], 'published');
+      final animation = (await root.lookup(CatalogDefinitionKey(
+              CatalogDefinitionKind.smartTileAnimation, 'ground-cycle')))!
+          .payload['value'] as Map;
+      expect((animation['frames'] as List).single['frame']['atlasId'],
+          'ground-atlas');
       expect((await root.lookup(CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'character:walker')))!.payload['value'], containsPair('familyId', 'characters'));
       for(var i=0;i<unrelated;i++) expect(await root.lookup(CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'tileset:foreign-$i')), isNotNull);
       final savedBorder = decodeBorderBlueprintRecordJson(

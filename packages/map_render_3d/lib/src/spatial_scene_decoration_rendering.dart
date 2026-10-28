@@ -80,6 +80,8 @@ extension _SpatialDecorationRendering on SpatialSceneGame {
     final wasLoading = _decorationLoading;
     final snapshot = configuration;
     final ticket = ++_decorationGeneration;
+    final pendingGroundImages = <String>{};
+    _pendingDecorationGroundImages = pendingGroundImages;
     if (configuration.decorations.isEmpty && decorationChunks.isEmpty) {
       _decorationLoading = false;
       _decorationCommittedRevision = ticket;
@@ -297,6 +299,7 @@ extension _SpatialDecorationRendering on SpatialSceneGame {
           decoration: projection,
           reuseModels: reuseModels ? previousModels : null,
           stillCurrent: current,
+          pendingGroundImages: pendingGroundImages,
           adjacentHeightAt: (x, z) =>
               heightAt(x + projection.offset.dx, z + projection.offset.dy),
         );
@@ -415,6 +418,10 @@ extension _SpatialDecorationRendering on SpatialSceneGame {
       }
       rethrow;
     } finally {
+      if (identical(_pendingDecorationGroundImages, pendingGroundImages)) {
+        _pendingDecorationGroundImages = {};
+        if (!closed) _pruneGroundTextures();
+      }
       if (ticket == _decorationGeneration) _decorationLoading = false;
     }
   }

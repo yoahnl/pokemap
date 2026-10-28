@@ -468,6 +468,7 @@ Future<PlayableMapGame> mountWhirlpool(
   void Function(RuntimeCommittedMovement)? onMovement,
   void Function(PlayableMapGameSessionRuntime)? onSession,
   bool intermediateWarp = false,
+  ProjectFieldAbilitiesSettings? fieldAbilities,
 }) async {
   final root = await Directory.systemTemp.createTemp('whirlpool-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -522,6 +523,7 @@ Future<PlayableMapGame> mountWhirlpool(
     map: map,
     manifest: ProjectManifest(
       name: 'Whirlpool Player',
+    settings: ProjectSettings(fieldAbilities: fieldAbilities),
       tilesets: const [],
       characters: const [
         ProjectCharacterEntry(

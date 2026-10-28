@@ -68,6 +68,9 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
   MapWorkspaceVisuals get visuals => widget.visuals;
   MapWorkspaceViewState get view => widget.view;
   VoidCallback get onChanged => widget.onChanged;
+  bool get editingExterior =>
+      document.exteriorDecoration?.editingExterior == true &&
+      identical(document.exteriorDecoration?.editingDocument, document);
   @override
   void initState() {
     super.initState();
@@ -88,6 +91,8 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
         .where((model) => model.id == instance.modelId)
         .firstOrNull;
     final commands = SpatialModelEditingCommands(document, project);
+    final originX = editingExterior ? document.exteriorDecoration!.originX : 0;
+    final originZ = editingExterior ? document.exteriorDecoration!.originZ : 0;
     final attached =
         model?.rampProfile != null ||
         document.current.spatialScene!.navigation.ramps.any(
@@ -155,26 +160,33 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
           ),
           const Text('Cette instance · décor placé sur la carte'),
           const SizedBox(height: 12),
-          SpatialModelEntityControls(
-            document: document,
-            project: project,
-            instance: instance,
-            onChanged: onChanged,
-          ),
-          const SizedBox(height: 12),
-          SpatialLiftControls(key:ValueKey('lift-${instance.id}'),document:document,instance:instance,onChanged:onChanged),
-          const SizedBox(height:12),
+          if (!editingExterior) ...[
+            SpatialModelEntityControls(
+              document: document,
+              project: project,
+              instance: instance,
+              onChanged: onChanged,
+            ),
+            const SizedBox(height: 12),
+            SpatialLiftControls(
+              key: ValueKey('lift-${instance.id}'),
+              document: document,
+              instance: instance,
+              onChanged: onChanged,
+            ),
+            const SizedBox(height: 12),
+          ],
           field(
             'x',
             'X',
-            instance.position.x,
-            (number) => commands.update(instance.id, x: number),
+            instance.position.x + originX,
+            (number) => commands.update(instance.id, x: number - originX),
           ),
           field(
             'y',
             'Y',
-            instance.position.z,
-            (number) => commands.update(instance.id, z: number),
+            instance.position.z + originZ,
+            (number) => commands.update(instance.id, z: number - originZ),
           ),
           if (attached) ...[
             Text(
@@ -239,7 +251,7 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             instance.scale,
             (number) => commands.update(instance.id, scale: number),
           ),
-          if (!attached)
+          if (!attached && !editingExterior)
             StudioToggleRow(
               label: 'Bloque le passage',
               value: instance.blocksMovement,
@@ -292,19 +304,20 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               'La pause et Rejouer ne modifient que l’aperçu. L’animation ne change pas le blocage du passage.',
             ),
           ],
-          StudioButton(
-            label: 'Événements de ce décor',
-            icon: Icons.account_tree_outlined,
-            secondary: true,
-            onPressed: widget.onEventSource == null
-                ? null
-                : () => widget.onEventSource!(
-                    NarrativeEventSourceRef.modelInteract(
-                      document.current.id,
-                      instance.id,
+          if (!editingExterior)
+            StudioButton(
+              label: 'Événements de ce décor',
+              icon: Icons.account_tree_outlined,
+              secondary: true,
+              onPressed: widget.onEventSource == null
+                  ? null
+                  : () => widget.onEventSource!(
+                      NarrativeEventSourceRef.modelInteract(
+                        document.current.id,
+                        instance.id,
+                      ),
                     ),
-                  ),
-          ),
+            ),
           const SizedBox(height: 8),
           StudioButton(
             label: 'Dupliquer',
@@ -403,21 +416,26 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   ),
                 ],
                 if (selected == null) ...[
-                  MapCatalogueProperties(
-                    map: document.current,
-                    onRename: widget.onRenameMap,
-                    onEscapeSettings: widget.onEscapeSettings,
-                  ),
-                  if (document.current.spatialScene != null)
+                  if (!editingExterior)
+                    MapCatalogueProperties(
+                      map: document.current,
+                      onRename: widget.onRenameMap,
+                      onEscapeSettings: widget.onEscapeSettings,
+                    ),
+                  if (!editingExterior && document.current.spatialScene != null)
                     MapCameraPanel(document: document, onChanged: onChanged),
-                  if (document.current.spatialScene != null)
+                  if (!editingExterior && document.current.spatialScene != null)
                     MapDayNightPanel(
                       project: project,
                       document: document,
                       controller: view.spatialSceneController,
                       onChanged: onChanged,
                     ),
-                  Text(mapToolHelp(widget.tool)),
+                  Text(
+                    editingExterior
+                        ? 'Sélectionnez un décor extérieur pour modifier ses propriétés. Les positions sont exprimées dans les coordonnées de la carte.'
+                        : mapToolHelp(widget.tool),
+                  ),
                 ],
                 if (selected != null) ...[
                   const SizedBox(height: 6),

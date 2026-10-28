@@ -4,9 +4,15 @@ import 'package:map_core/map_core.dart';
 
 import '../presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import 'runtime_audio_mixer.dart';
+import 'runtime_project_audio_controller.dart';
 
 final class RuntimeStormAudioController {
-  RuntimeStormAudioController({required this.mixer, required this.driver});
+  RuntimeStormAudioController({
+    required this.mixer,
+    required this.driver,
+    this.projectAudio,
+  });
+  final RuntimeProjectAudioController? projectAudio;
   final RuntimeAudioMixer mixer;
   final FlameCinematicAudioDriver driver;
   Future<void> _pending = Future.value();
@@ -32,7 +38,7 @@ final class RuntimeStormAudioController {
         settings.soundEnabled &&
         settings.lightning &&
         (settings.kind == SpatialWeatherKind.storm ||
-         settings.kind == SpatialWeatherKind.tempest ||
+            settings.kind == SpatialWeatherKind.tempest ||
             settings.kind == SpatialWeatherKind.hail) &&
         (!indoors || settings.indoors);
     if (!enabled) {
@@ -92,15 +98,20 @@ final class RuntimeStormAudioController {
     if (_disposed || generation != _generation) return;
     await _stop();
     _lastIntensity = intensity;
-    final volume = (.75 + .25 * intensity) * event.strength;
+    final builtinPath =
+        'packages/map_runtime/assets/audio/weather/thunder-recorded-${event.soundVariant}.wav';
+    final selected = projectAudio?.resolve(
+      ProjectSoundCue.weatherThunder,
+      builtinPath: builtinPath,
+    );
+    if (projectAudio != null && selected == null) return;
+    _bindingGain = selected?.gain ?? 1;
+    final volume = (.75 + .25 * intensity) * event.strength * _bindingGain;
     final handle = await driver.play(
-      'packages/map_runtime/assets/audio/weather/thunder-recorded-${event.soundVariant}.wav',
+      selected?.path ?? builtinPath,
       volume: _suspended
           ? 0
-          : mixer.mix.volumeFor(
-              RuntimeAudioRoute.ambience,
-              sourceVolume: volume,
-            ),
+          : mixer.volumeFor(RuntimeAudioRoute.ambience, sourceVolume: volume),
       loop: false,
     );
     if (_disposed || generation != _generation) {
@@ -162,15 +173,18 @@ final class RuntimeStormAudioController {
         handle,
         value
             ? 0
-            : mixer.mix.volumeFor(
+            : mixer.volumeFor(
                 RuntimeAudioRoute.ambience,
-                sourceVolume: (.75 + .25 * _lastIntensity) * event.strength,
+                sourceVolume:
+                    (.75 + .25 * _lastIntensity) *
+                    event.strength *
+                    _bindingGain,
               ),
       );
     });
   }
 
-  double _lastIntensity = 1;
+  double _lastIntensity = 1, _bindingGain = 1;
   Future<void> dispose() {
     if (_disposed) return _pending;
     _disposed = true;

@@ -796,6 +796,29 @@ void main() {
     });
   }
 
+  for (final waterAtTarget in [false, true]) {
+    test('Surf connection arrives on ${waterAtTarget ? 'water' : 'land'} with the correct mode', () async {
+      const connection = MapConnection(direction: MapConnectionDirection.east,
+        targetMapId: 'target');
+      final surf = source.manifest.copyWith(settings: source.manifest.settings.copyWith(
+        surf: const ProjectSurfSettings(requiresKnownMove: false, accessMode: ProjectSurfAccessMode.always)));
+      MapGameplayZone water() => const MapGameplayZone(id: 'sea', kind: GameplayZoneKind.movement,
+        area: MapRect(pos: GridPos(x: 0, y: 0), size: GridSize(width: 8, height: 8)),
+        movement: MovementZonePayload(requiredMode: MovementMode.surf));
+      source = source.copyWith(manifest: surf, map: source.map.copyWith(
+        connections: [connection], gameplayZones: [water()]));
+      target = target.copyWith(manifest: surf, map: target.map.copyWith(
+        gameplayZones: [if (waterAtTarget) water()]));
+      final session = await SpatialExplorationSession.load(source,
+        movementMode: MovementMode.surf, loadMap: (_) async => target);
+      addTearDown(session.dispose);
+      attemptExit(session, MapConnectionDirection.east);
+      await settle(session);
+      expect(session.bundle.map.id, 'target');
+      expect(session.movement.movementMode, waterAtTarget ? MovementMode.surf : MovementMode.walk);
+    });
+  }
+
   test('a public connection request requires an outward edge attempt',
       () async {
     const connection = MapConnection(

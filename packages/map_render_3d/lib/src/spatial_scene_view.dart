@@ -1,4 +1,5 @@
 import 'spatial_point_light.dart';
+import 'spatial_flame_effects.dart';
 import 'spatial_light_behavior.dart';
 
 import 'dart:async';
@@ -136,6 +137,7 @@ final class SpatialSceneContentPreview {
 }
 
 class SpatialSceneController extends ModelPreviewController {
+  double flameSoundGain = 0;
   SpatialSceneController({
     DateTime Function()? now,
     this.presentationEffectsEnabled = true,
@@ -908,6 +910,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       widget.animationPreview?.addListener(game.syncAnimations);
     }
     game.configuration = widget;
+    if (game.syncLightDefinitions(oldWidget)) return;
     if (game.canSyncModelSourceRevisions) {
       refresh();
       return;
@@ -1317,6 +1320,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   double get allReceiverMinY => decorationChunks.isEmpty ? authoredReceiverMinY : math.min(authoredReceiverMinY, decorationReceiverMinY);
   double get allReceiverMaxY => decorationChunks.isEmpty ? authoredReceiverMaxY : math.max(authoredReceiverMaxY, decorationReceiverMaxY);
 
+  bool syncLightDefinitions(SpatialSceneView before) => _syncLightDefinitions(before);
+
   void syncLighting() {
     if (visibleConfiguration.renderPreparationPaused?.call() == true) return;
     (context as SpatialRenderContext)
@@ -1369,12 +1374,6 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             receiverBounds: receiverBounds,
             sunDirection: sunDirection,
           );
-    if (frame == null &&
-        pointLightBindings.isEmpty &&
-        !configuration.controller.atmosphereProfile.fireflyLighting) {
-      (context as SpatialRenderContext).lighting = solarLighting;
-      return;
-    }
     final hero = actorVisual;
     final anchor = hero == null
         ? Vector3(
@@ -1401,6 +1400,22 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
             frame?.daylight ?? 1,
           ),
     ], anchor);
+    flameEffects.sync(
+      sources: [...pointLightBindings, ...decorationPointLights].map((binding) => SpatialFlameSource(
+        key: binding.component,
+        light: binding.definition,
+        transform: binding.component.worldTransformMatrix,
+        visible: binding.component.presentationVisible && binding.component.sourceGeometryVisible,
+        strength: _lightEmission[binding.component]?.$2 ?? 1,
+      )),
+      elapsedSeconds: configuration.presentationElapsedSeconds?.call() ?? atmosphereElapsed,
+      daylight: frame?.daylight ?? 1,
+      indoors: _isIndoor,
+      cameraPitch: billboardPitch,
+      cameraYaw: billboardYaw,
+      listenerPosition: anchor,
+    );
+    configuration.controller.flameSoundGain = flameEffects.soundGain;
     (context as SpatialRenderContext).lighting = spatialEnvironmentLighting(
       solarLighting,
       frame: frame,
@@ -1518,6 +1533,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   late final weatherEffects = SpatialWeatherEffects(world);
   late final atmosphereEffects = SpatialAtmosphereEffects(world);
   late final presentationEffects = SpatialPresentationEffects(world);
+  late final flameEffects = SpatialFlameEffects(world);
   double atmosphereElapsed = 0;
   Map<String, SpatialActorVisual> actorFrames = const {};
   SpatialActorVisual? actorVisual;
@@ -1528,6 +1544,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final _groundTextureErrors = <String, Object>{};
   final _reportedGroundTextureErrors = <String, Object>{};
   Set<String> _wantedGroundImages = {};
+  Set<String> _pendingDecorationGroundImages = {};
   final _retainedGroundImages = <String>{};
   static const _maximumRetainedGroundPages = 128;
   static const _maximumRetainedGroundBytes = 48 * 1024 * 1024;
@@ -1594,6 +1611,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     _groundTextureErrors.clear();
     _reportedGroundTextureErrors.clear();
     _wantedGroundImages.clear();
+    _pendingDecorationGroundImages.clear();
     _retainedGroundImages.clear();
     for (final lease in groundReservations.values) {
       lease.retainRequired();
@@ -1740,6 +1758,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       for (final ground in grounds) ...ground.renderedImageIds,
       ...?_destinationPreparation?.preparedGroundImageIds,
       ..._visibilityRetainedGroundImages,
+      ..._pendingDecorationGroundImages,
     };
     _protectWantedGroundTextures();
     for (final id in groundTextureCache.keys.toList()) {
@@ -3590,6 +3609,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     atmosphereEffects.clear();
     weatherEffects.clear();
     presentationEffects.clear();
+    flameEffects.clear();
+    configuration.controller.flameSoundGain = 0;
     sceneComponents.dispose();
     decorationSceneComponents.dispose();
     decorationChunks.clear();

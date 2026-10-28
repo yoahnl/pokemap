@@ -89,6 +89,9 @@ final class SpatialMovementController {
     MapEntity? Function(MapEntity entity)? entityProjection,
     SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
     SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+    MovementMode initialMovementMode = MovementMode.walk,
+    double surfSpeedCellsPerSecond = 4,
+    bool Function(double x, double z)? waterPredicate,
   }) : this._(
           scene: scene,
           models: models,
@@ -100,6 +103,9 @@ final class SpatialMovementController {
           spawn: scene.navigation.spawn,
           spawnFacing: EntityFacing.south,
           blockedCells: const {},
+          initialMovementMode: initialMovementMode,
+          surfSpeedCellsPerSecond: surfSpeedCellsPerSecond,
+          waterPredicate: waterPredicate,
         );
 
   factory SpatialMovementController.fromMap({
@@ -114,6 +120,9 @@ final class SpatialMovementController {
     MapEntity? Function(MapEntity entity)? entityProjection,
     SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
     SpatialActorRuntimeState? Function(String entityId)? actorStateProvider,
+    MovementMode initialMovementMode = MovementMode.walk,
+    double surfSpeedCellsPerSecond = 4,
+    bool Function(double x, double z)? waterPredicate,
   }) {
     final scene = map.spatialScene;
     if (scene == null ||
@@ -164,6 +173,9 @@ final class SpatialMovementController {
             if (layer.collisions[i]) i,
       },
       validateSpawn: validateSpawn,
+      initialMovementMode: initialMovementMode,
+      surfSpeedCellsPerSecond: surfSpeedCellsPerSecond,
+      waterPredicate: waterPredicate,
     );
   }
 
@@ -179,13 +191,20 @@ final class SpatialMovementController {
     required EntityFacing spawnFacing,
     required Set<int> blockedCells,
     bool validateSpawn = true,
-  })  : entities = List.unmodifiable(entities),
+    required MovementMode initialMovementMode,
+    required this.surfSpeedCellsPerSecond,
+    required this.waterPredicate,
+  })  : _movementMode = initialMovementMode,
+        entities = List.unmodifiable(entities),
         models = {for (final model in models) model.id: model},
         _spawn = spawn,
         _spawnFacing = spawnFacing,
         _blockedCells = Set.unmodifiable(blockedCells),
         _entityPresencePredicate = entityPresencePredicate,
         allowDiagonalMovement = scene.navigation.allowDiagonalMovement {
+    if (!surfSpeedCellsPerSecond.isFinite || surfSpeedCellsPerSecond <= 0) {
+      throw ArgumentError.value(surfSpeedCellsPerSecond, 'surfSpeedCellsPerSecond');
+    }
     for (final entity in this.entities) {
       _entitiesById.putIfAbsent(entity.id, () => entity);
     }
@@ -206,6 +225,27 @@ final class SpatialMovementController {
   late final SpatialMovementNeighbor _localMap =
       SpatialMovementNeighbor(controller: this, offsetX: 0, offsetZ: 0);
   final MapSpatialScene scene;
+  final double surfSpeedCellsPerSecond;
+  final bool Function(double x, double z)? waterPredicate;
+  MovementMode _movementMode;
+  bool _surfReachedWater = false;
+  MovementMode get movementMode => _movementMode;
+  set movementMode(MovementMode value) {
+    _movementMode = value;
+    _surfReachedWater = value == MovementMode.surf && isWaterAt(x, z);
+  }
+  bool isWaterAt(double x, double z) {
+    final owner = _connectedMapAt(x, z);
+    return owner?.controller.waterPredicate?.call(
+          x - owner.offsetX,
+          z - owner.offsetZ,
+        ) ?? false;
+  }
+  bool _playerWaterBlocked(PixelRect rect) =>
+      movementMode != MovementMode.surf &&
+      isWaterAt(rect.bottomCenterPx.xPx / pixelsPerCell,
+          rect.bottomCenterPx.yPx / pixelsPerCell);
+
   double? Function(double x, double z)? terrainHeightOverride;
   double heightAt(double x, double z) => terrainHeightOverride?.call(x,z) ?? scene.worldHeightAt(x,z);
   final List<MapEntity> entities;
@@ -241,7 +281,7 @@ final class SpatialMovementController {
   int inputEpoch = 0;
   EntityFacing facing = EntityFacing.south;
   double animationSeconds = 0;
-  bool get running => moving && _run;
+  bool get running => moving && _run && movementMode != MovementMode.surf;
   double get x => (_position.leftPx + 16) / pixelsPerCell;
   double get z => (_position.topPx + 31) / pixelsPerCell;
   PlayerSpatialPosition get spatialPosition =>
@@ -253,7 +293,8 @@ final class SpatialMovementController {
       z >= 0 &&
       x < scene.width &&
       z < scene.depth &&
-      !_connectedCollides(_hitbox(_position));
+      !_connectedCollides(_hitbox(_position)) &&
+      !_playerWaterBlocked(_hitbox(_position));
   PlayerSpatialPosition? findNpcOverlapRecovery() {
     final origin = spatialPosition;
     final footprint = _hitbox(_position);
@@ -356,6 +397,8 @@ final class SpatialMovementController {
       throw StateError('Le raccord 3D est bloqué.');
     }
     _position = candidate;
+    _movementMode = source.movementMode;
+    _surfReachedWater = source._surfReachedWater;
     _connectedTraversalEnabled = true;
     _remainderX = source._remainderX;
     _remainderZ = source._remainderZ;
@@ -558,10 +601,12 @@ final class SpatialMovementController {
       leftPx: (_spawn.x * pixelsPerCell).round() - 16,
       topPx: (_spawn.z * pixelsPerCell).round() - 31,
     );
-    if (validateSpawn && _collides(_hitbox(candidate))) {
+    if (validateSpawn && (_collides(_hitbox(candidate)) ||
+        _playerWaterBlocked(_hitbox(candidate)))) {
       throw StateError('Le point de départ 3D est bloqué.');
     }
     _position = candidate;
+    _surfReachedWater = movementMode == MovementMode.surf && isWaterAt(x, z);
     paused = false;
     facing = _spawnFacing;
     releaseInput();
@@ -609,8 +654,13 @@ final class SpatialMovementController {
                 : EntityFacing.east;
     if (nextFacing != facing) animationSeconds = 0;
     facing = nextFacing;
-    if ((dx == 0 || dz == 0) && _beginLedgeJump(dx, dz)) return;
-    final speed = (_run ? 6.0 : 3.0) *
+    if (movementMode != MovementMode.surf &&
+        (dx == 0 || dz == 0) && _beginLedgeJump(dx, dz)) {
+      return;
+    }
+    final speed = (movementMode == MovementMode.surf
+            ? surfSpeedCellsPerSecond
+            : (_run ? 6.0 : 3.0)) *
         pixelsPerCell *
         elapsed /
         (dx != 0 && dz != 0 ? math.sqrt2 : 1);
@@ -629,6 +679,10 @@ final class SpatialMovementController {
         spriteWidthPx: 32,
         spriteHeightPx: 32,
         worldStaticObstaclesCollidePixelRect: (rect) {
+          if (_playerWaterBlocked(rect)) {
+            collided = true;
+            return true;
+          }
           if (_connectedTraversalEnabled) {
             final blocked = _connectedCollides(rect) ||
                 !_canTraverseConnectedTerrain(
@@ -696,6 +750,13 @@ final class SpatialMovementController {
           _position.leftPx != before.leftPx || _position.topPx != before.topPx;
     }
     if (moving) {
+      if (waterPredicate != null && movementMode == MovementMode.surf) {
+        if (isWaterAt(x, z)) {
+          _surfReachedWater = true;
+        } else if (_surfReachedWater) {
+          movementMode = MovementMode.walk;
+        }
+      }
       animationSeconds += elapsed;
     } else if (stepX != 0 || stepZ != 0) {
       animationSeconds = 0;
@@ -750,8 +811,9 @@ final class SpatialMovementController {
 
   bool _ledgeLandingFree(SpatialLedge ledge) {
     final target = _actorFootprint(ledge.landingX + .5, ledge.landingZ + .5);
-    return !_collides(target.rect,
-        offsetX: target.offsetX, offsetZ: target.offsetZ);
+    return !_playerWaterBlocked(target.rect) &&
+        !_collides(target.rect,
+            offsetX: target.offsetX, offsetZ: target.offsetZ);
   }
 
   void _updateLedgeJump(double elapsed) {

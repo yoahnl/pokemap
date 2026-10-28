@@ -59,7 +59,7 @@ AuthoringActionDescriptor characterStudioActionDescriptor(
     extensions: {
       if (inputSchema != null) 'inputSchema': inputSchema,
       if (id.startsWith('characterStudio.animation'))
-        'systemStates': ['base', 'walk', 'run', 'bicycle_idle', 'bicycle', 'climb'],
+        'systemStates': ['base', 'walk', 'run', 'bicycle_idle', 'bicycle', 'climb', 'surf_idle', 'surf', 'surf_enter', 'surf_exit'],
     },
     guarantees: const <AuthoringGuarantee>[
       AuthoringGuarantee.dryRun,

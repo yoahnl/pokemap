@@ -1,5 +1,6 @@
 import '../models/presentation_cinematic_asset.dart';
 import '../models/project_media_catalog.dart';
+import '../models/project_audio_settings.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_interactive_command.dart';
 
@@ -330,6 +331,7 @@ final class PresentationMediaPublicationPreflight {
     required ProjectMediaCatalog catalog,
     required Iterable<PresentationCinematicAsset> cinematics,
     Iterable<SceneAsset> scenes = const [],
+    ProjectAudioSettings? audio,
     PresentationMediaBudgetPolicy policy =
         const PresentationMediaBudgetPolicy(),
     Set<PresentationMediaTargetPlatform> targetPlatforms =
@@ -362,6 +364,21 @@ final class PresentationMediaPublicationPreflight {
             ),
           );
         }
+      }
+    }
+    for (final entry in audio?.cues.entries ?? const <MapEntry<ProjectSoundCue, ProjectSoundBinding>>[]) {
+      final binding = entry.value;
+      if (binding.source != ProjectSoundSource.custom) continue;
+      final mediaId = binding.mediaId!;
+      allRoots.add(mediaId);
+      if (catalog.find(mediaId)?.kind != ProjectMediaKind.audio) {
+        diagnostics.add(PresentationMediaPublicationDiagnostic(
+          code: PresentationMediaPublicationDiagnosticCodes.mediaMissing,
+          constraint: PresentationMediaPublicationConstraints.mediaReference,
+          path: 'settings.audio.cues[${entry.key.wireName}].mediaId',
+          message: 'The project sound cue references a missing audio media.',
+          mediaId: mediaId,
+        ));
       }
     }
     for (final cinematic in orderedCinematics) {

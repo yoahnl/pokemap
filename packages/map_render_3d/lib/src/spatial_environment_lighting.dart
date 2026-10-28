@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 
 import 'spatial_lighting_preview.dart';
 import 'spatial_point_light.dart';
+import 'spatial_light_behavior.dart';
 
 final class SpatialDayNightFrame {
   const SpatialDayNightFrame(this.tint, this.daylight, {this.solarPhase = 0});
@@ -113,6 +114,12 @@ SpatialPointLight spatialPlacedPointLight(
 }) {
   final local = definition.localPosition;
   final position = transform.transform3(Vector3(local.x, local.y, local.z));
+  final flame = definition.flame;
+  final flicker = flame == null ? 1.0 : spatialFlameMotion(
+    elapsedSeconds,
+    phase: spatialFlamePhase(position.x, position.y, position.z),
+    flicker: flame.flicker,
+  ).intensity;
   return SpatialPointLight(
     position: (x: position.x, y: position.y, z: position.z),
     radius: definition.radius,
@@ -123,6 +130,7 @@ SpatialPointLight spatialPlacedPointLight(
     ),
     intensity:
         definition.intensity *
+        flicker *
         proximityStrength *
         (definition.nightOnly && !indoors ? 1 - daylight : 1),
   );

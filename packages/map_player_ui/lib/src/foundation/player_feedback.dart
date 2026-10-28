@@ -11,6 +11,7 @@ enum PlayerFeedbackSound {
   battleImpact,
   victory,
   error,
+  cancel,
 }
 
 enum PlayerFeedbackHaptic { selection, lightImpact, success, error }

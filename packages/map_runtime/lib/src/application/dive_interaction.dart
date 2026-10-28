@@ -42,6 +42,7 @@ RuntimeDiveInteraction prepareDiveInteraction({
   } else {
     ticket = null;
     text = switch ((evaluation as DiveUnavailable).reason) {
+      DiveBlockReason.disabled => 'Plongée est désactivée dans ce projet.',
       DiveBlockReason.missingMove =>
         'Un Pokémon apte à utiliser Plongée est nécessaire.',
       DiveBlockReason.locked =>

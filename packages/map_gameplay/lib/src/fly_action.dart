@@ -4,6 +4,7 @@ import 'field_ability_gate.dart';
 import 'field_action.dart';
 
 enum FlyBlockReason {
+  disabled,
   underwater,
   unsupportedMap,
   indoor,
@@ -60,6 +61,7 @@ FlyEvaluation evaluateFlyAttempt({
   required GameState gameState,
   required ProjectRegionalMapCatalog catalog,
   required String pointId,
+  ProjectSettings? projectSettings,
 }) {
   if (sourceMap.spatialScene != null ||
       sourceMap.version != ProjectVersion.v8 ||
@@ -119,9 +121,12 @@ FlyEvaluation evaluateFlyAttempt({
       supportedAbilities: const {FieldAbility.fly},
       unlockedFieldAbilities:
           gameState.progression.unlockedFieldAbilities.toSet(),
-      party: gameState.party);
+      party: gameState.party,
+      projectSettings: projectSettings);
   if (gate.status != FieldAbilityGateStatus.usable) {
-    return FlyUnavailable(gate.status == FieldAbilityGateStatus.locked
+    return FlyUnavailable(gate.status == FieldAbilityGateStatus.disabled
+        ? FlyBlockReason.disabled
+        : gate.status == FieldAbilityGateStatus.locked
         ? FlyBlockReason.locked
         : FlyBlockReason.missingMove);
   }
@@ -174,7 +179,8 @@ FlyCommit commitFlyAction(
     required MapData? targetMap,
     required GameState gameState,
     required ProjectRegionalMapCatalog catalog,
-    required int currentStateRevision}) {
+    required int currentStateRevision,
+    ProjectSettings? projectSettings}) {
   if (ticket.issuedAtStateRevision != currentStateRevision ||
       ticket.gameState != gameState) {
     return const FlyRefused(FieldActionRefusal.staleStateRevision);
@@ -190,7 +196,8 @@ FlyCommit commitFlyAction(
       targetMap: targetMap,
       gameState: gameState,
       catalog: catalog,
-      pointId: ticket.evaluation.pointId);
+      pointId: ticket.evaluation.pointId,
+      projectSettings: projectSettings);
   if (evaluation is! CanUseFly ||
       evaluation.arrival != ticket.evaluation.arrival) {
     return FlyRefused(FieldActionRefusal.noLongerAvailable,

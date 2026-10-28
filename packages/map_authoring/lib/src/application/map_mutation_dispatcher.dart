@@ -19,6 +19,8 @@ import '../domains/project/runtime_audio_actions.dart';
 import '../domains/project/project_identity_actions.dart';
 import '../domains/project/actor_contact_shadow_actions.dart';
 import '../domains/project/contact_device_actions.dart';
+import '../domains/project/surf_actions.dart';
+import '../domains/project/project_gameplay_settings_actions.dart';
 import '../domains/project/runtime_smoke_profile_actions.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/model3d_actions.dart';
@@ -425,6 +427,18 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: runtimeAudio.build,
         ),
+      MapMutationActionRegistration(
+        descriptor: SurfActions.descriptor,
+        build: const SurfActions().build,
+      ),
+      MapMutationActionRegistration(
+        descriptor: FieldAbilityConfigurationActions.descriptor,
+        build: const FieldAbilityConfigurationActions().build,
+      ),
+      MapMutationActionRegistration(
+        descriptor: ProjectAudioCueActions.descriptor,
+        build: const ProjectAudioCueActions().build,
+      ),
       MapMutationActionRegistration(
         descriptor: ActorContactShadowActions.descriptor,
         build: actorContactShadows.build,

@@ -45,6 +45,27 @@ final class ProjectModel3dEntries
     return position == null ? null : _tree[position];
   }
 
+  List<ProjectModel3dEntry>? changesSince(
+    ProjectModel3dEntries previous, {
+    void Function()? onNodeVisited,
+  }) {
+    if (!identical(_positions, previous._positions)) return null;
+    final changes = <ProjectModel3dEntry>[];
+    void visit(_ModelEntryNode? before, _ModelEntryNode? after) {
+      if (identical(before, after)) return;
+      onNodeVisited?.call();
+      if (after!.left == null) {
+        changes.add(after.value!);
+      } else {
+        visit(before!.left, after.left);
+        visit(before.right, after.right);
+      }
+    }
+
+    visit(previous._tree.root, _tree.root);
+    return changes;
+  }
+
   ProjectModel3dEntries replaceSelected(
     Iterable<ProjectModel3dEntry> selected, {
     void Function()? onNodeCopied,

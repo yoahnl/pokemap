@@ -11,6 +11,7 @@ import 'gameplay_step_result.dart';
 import 'gameplay_world_state.dart';
 
 enum FieldObstacleBlockReason {
+  disabled,
   invalidTarget,
   unsupportedMap,
   missingMapInstance,
@@ -126,7 +127,8 @@ final class FieldObstacleRefused extends FieldObstacleCommit {
 FieldObstacleEvaluation evaluateFieldObstacleAttempt(
     {required MapData map,
     required GameState gameState,
-    required String entityId}) {
+    required String entityId,
+    ProjectSettings? projectSettings}) {
   if (map.spatialScene != null || map.version == ProjectVersion.v9) {
     return const FieldObstacleUnavailable(
         FieldObstacleBlockReason.unsupportedMap);
@@ -203,8 +205,11 @@ FieldObstacleEvaluation evaluateFieldObstacleAttempt(
       },
       unlockedFieldAbilities:
           gameState.progression.unlockedFieldAbilities.toSet(),
-      party: gameState.party);
+      party: gameState.party,
+      projectSettings: projectSettings);
   return switch (gate.status) {
+    FieldAbilityGateStatus.disabled =>
+      const FieldObstacleUnavailable(FieldObstacleBlockReason.disabled),
     FieldAbilityGateStatus.unsupported =>
       throw StateError('Unsupported field obstacle ability.'),
     FieldAbilityGateStatus.missingMove =>
@@ -265,7 +270,8 @@ FieldObstacleRefused? _revalidate(
             FieldObstacleUnavailable(FieldObstacleBlockReason.invalidTarget));
   }
   final evaluation = evaluateFieldObstacleAttempt(
-      map: map, gameState: gameState, entityId: ticket.entityId);
+      map: map, gameState: gameState, entityId: ticket.entityId,
+      projectSettings: project?.settings);
   if (evaluation is! CanUseFieldObstacle) {
     return FieldObstacleRefused(FieldActionRefusal.noLongerAvailable,
         evaluation: evaluation);
@@ -481,7 +487,8 @@ FieldObstacleSlideResult stepFieldObstacleSlide({
                   supportedAbilities: const {FieldAbility.strength},
                   unlockedFieldAbilities:
                       gameState.progression.unlockedFieldAbilities.toSet(),
-                  party: gameState.party)
+                  party: gameState.party,
+                  projectSettings: project?.settings)
               .status !=
           FieldAbilityGateStatus.usable))) {
     return const FieldObstacleSlideRefused(

@@ -117,6 +117,26 @@ void main() {
       }
     });
 
+    test('subdivided quarter-second step completes exactly at its endpoint', () async {
+      final component = PlayerComponent(
+        bundle: _bundle(),
+        state: _stateAt(const GridPos(x: 0, y: 0)),
+        tileImages: const {},
+        mapOrigin: Vector2.zero(),
+      );
+      await component.onLoad();
+      final initialY = component.position.y;
+      component.startStep(_stateAt(const GridPos(x: 1, y: 0)), durationSeconds: .25);
+      for (var index = 0; index < 14; index++) {
+        component.update(1 / 60);
+      }
+      expect(component.isStepping, isTrue);
+      component.update(1 / 60);
+      expect(component.isStepping, isFalse);
+      expect(component.position.x, 16);
+      expect(component.position.y, initialY);
+    });
+
     test('cardinal step has stable frame deltas', () async {
       final component = PlayerComponent(
         bundle: _bundle(),

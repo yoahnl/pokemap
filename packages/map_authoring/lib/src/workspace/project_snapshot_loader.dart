@@ -238,10 +238,39 @@ final class ProjectSnapshotLoader {
   final ProjectSnapshotLoadProfileSink? profileSink;
   final int maxConcurrentSecondObservations;
   final _observedCatalogRevisions = <ProjectHandle, ({String revision, String rootRevision, String descriptorRevision, Map<String, String> resources})>{};
+  final _observedNativeRevisions = <ProjectHandle, ({String revision, Map<String, String> resources})>{};
+
+  int get retainedNativeRevisionCount => _observedNativeRevisions.length;
+
+  bool acceptsObservedNativeRevision(ProjectHandle projectHandle,
+      {required String? expectedRevision, required Map<String, String?> resources}) {
+    _handles.requireActiveProject(projectHandle);
+    final observed = _observedNativeRevisions[projectHandle];
+    return observed != null && observed.revision == expectedRevision &&
+        resources['project.json'] != null &&
+        resources.entries.every((entry) => observed.resources[entry.key] == entry.value);
+  }
+
+  void _rememberNativeRevision(ProjectSnapshot snapshot) {
+    final handle = snapshot.projectHandle;
+    _observedNativeRevisions.remove(handle);
+    if (snapshot.resourceStorageKeys.length > 4096 || snapshot.loadDiagnostics.isNotEmpty) return;
+    _handles.registerProjectCleanup(handle, this, () => invalidate(handle));
+    if (_observedNativeRevisions.length >= 8) {
+      _observedNativeRevisions.remove(_observedNativeRevisions.keys.first);
+    }
+    _observedNativeRevisions[handle] = (revision: snapshot.revision,
+      resources: Map.unmodifiable({for (final entry in snapshot.resourceStorageKeys.entries)
+        if (snapshot.resourceFingerprints[entry.key] case final String revision) entry.value: revision}));
+  }
 
   int get retainedCatalogRevisionCount => _observedCatalogRevisions.length;
 
   void _rememberCatalogRevision(ProjectSnapshot snapshot) {
+    if (!snapshot.materializedCatalogProject) {
+      _rememberNativeRevision(snapshot);
+      return;
+    }
     final bytes = snapshot.findResourceBytes('catalogHead');
     if (!snapshot.materializedCatalogProject || bytes == null) return;
     final head = jsonDecode(utf8.decode(bytes)) as Map;
@@ -271,6 +300,32 @@ final class ProjectSnapshotLoader {
 
   void requireActiveProject(ProjectHandle projectHandle) {
     _handles.requireActiveProject(projectHandle);
+  }
+
+  Future<({List<NarrativeFactDefinition> facts, int total, String revision})> readNativeFactPage(
+      ProjectHandle projectHandle, {required int offset, required int limit}) async {
+    final access = _handles.resolveProject(projectHandle);
+    await access.requireReadableProject();
+    final resource = await access.readResourceBytes('project.json');
+    final raw = jsonDecode(utf8.decode(resource.bytes));
+    if (raw is! Map || raw['storage'] != null || raw['format'] != null) {
+      throw const ProjectSnapshotException('project.native_workshop_required', 'Fact pages require a native project document.');
+    }
+    final values = raw['facts'] ?? const [];
+    if (values is! List || offset < 0 || offset > values.length || limit < 1 || limit > 200) {
+      throw const ProjectSnapshotException('project.fact_page_invalid', 'The requested Fact page is invalid.');
+    }
+    final end = offset + limit < values.length ? offset + limit : values.length;
+    final facts = <NarrativeFactDefinition>[
+      for (final value in values.sublist(offset, end))
+        NarrativeFactDefinition.fromJson(Map<String, dynamic>.from(value as Map))
+    ];
+    final revision = await _decodeExecutor.fingerprintResource(resource.bytes, relativePath: 'project.json');
+    if (!await access.matchesResourceBytes('project.json', resource.bytes)) {
+      throw const ProjectSnapshotException('project.changed_during_snapshot', 'The project changed while its Fact page was loading.');
+    }
+    await access.requireReadableProject();
+    return (facts: List<NarrativeFactDefinition>.unmodifiable(facts), total: values.length, revision: revision);
   }
 
   Future<ProjectSnapshot> loadWorkshop(
@@ -452,6 +507,7 @@ final class ProjectSnapshotLoader {
 
   void invalidate(ProjectHandle projectHandle) {
     _observedCatalogRevisions.remove(projectHandle);
+    _observedNativeRevisions.remove(projectHandle);
     _snapshotCache?.invalidateHandle(projectHandle);
     _resourceUsageSnapshotCache.invalidateHandle(projectHandle);
   }

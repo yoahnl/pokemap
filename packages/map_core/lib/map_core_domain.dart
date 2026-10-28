@@ -63,6 +63,8 @@ export 'src/models/project_battle_audio.dart';
 export 'src/models/project_battle_transitions.dart';
 export 'src/models/project_manifest.dart';
 export 'src/models/project_bag_capacity.dart';
+export 'src/models/project_surf_settings.dart';
+export 'src/models/project_field_abilities_settings.dart';
 export 'src/operations/bag_capacity_validation.dart';
 export 'src/models/resource_library_catalog.dart';
 export 'src/operations/resource_library_operations.dart';
@@ -478,3 +480,5 @@ export 'src/models/real_weather.dart';
 
 export 'src/models/spatial_lift.dart';
 export 'src/models/map_warp_ladder.dart';
+
+export 'src/models/project_audio_settings.dart';

@@ -34,6 +34,9 @@ export 'src/operations/validate_spatial_world_state.dart';
 export 'src/read_models/spatial_gameplay_capabilities.dart';
 export 'src/operations/spatial_actor_occlusion_capabilities.dart';
 export 'src/read_models/game_completion_party_capabilities.dart';
+export 'src/read_models/surf_gameplay_capabilities.dart';
+export 'src/read_models/project_audio_capabilities.dart';
+export 'src/read_models/field_ability_activation_capabilities.dart';
 
 export 'src/models/pokedex_species_range.dart';
 
@@ -81,3 +84,5 @@ export 'src/models/real_weather.dart';
 
 export 'src/models/spatial_lift.dart';
 export 'src/models/map_warp_ladder.dart';
+
+export 'src/models/project_audio_settings.dart';

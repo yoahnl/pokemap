@@ -6,6 +6,7 @@ import 'gameplay_world_state.dart';
 import 'movement_terrain_policy.dart';
 
 enum DiveBlockReason {
+  disabled,
   unsupportedMap,
   invalidTarget,
   inactivePair,
@@ -184,9 +185,12 @@ DiveEvaluation evaluateDiveAttempt(
       supportedAbilities: const {FieldAbility.dive},
       unlockedFieldAbilities:
           gameState.progression.unlockedFieldAbilities.toSet(),
-      party: gameState.party);
+      party: gameState.party,
+      projectSettings: expectedMode == MovementMode.dive ? null : project?.settings);
   if (gate.status != FieldAbilityGateStatus.usable) {
-    return DiveUnavailable(gate.status == FieldAbilityGateStatus.locked
+    return DiveUnavailable(gate.status == FieldAbilityGateStatus.disabled
+        ? DiveBlockReason.disabled
+        : gate.status == FieldAbilityGateStatus.locked
         ? DiveBlockReason.locked
         : DiveBlockReason.missingMove);
   }

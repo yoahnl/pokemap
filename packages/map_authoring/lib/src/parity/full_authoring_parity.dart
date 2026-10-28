@@ -699,6 +699,22 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/resource_catalog_batch_stdio.test.ts',
     };
   }
+  if (actionId == 'surf.configure') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/project/surf_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/project/surf_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/project_surf/project_surf_persistence_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/surf_stdio.test.ts',
+    };
+  }
+  if (const {'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/project/project_cs_audio_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/project/project_cs_audio_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/project_settings/project_cs_audio_controller_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/project_cs_audio_stdio.test.ts',
+    };
+  }
   if (actionId == 'contact_device.configure') {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/contact_device_actions_test.dart',
@@ -2196,6 +2212,14 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/project/project_identity_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['surf.configure'],
+    'test/domains/project/surf_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['field_ability.configure', 'project.audio.cue.configure'],
+    'test/domains/project/project_cs_audio_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['contact_device.configure'],
     'test/domains/project/contact_device_actions_test.dart',
   ),
@@ -2383,6 +2407,9 @@ const _semanticOwners = <String, String>{
   'bagCapacity': 'project',
   'partyCompanionConfiguration': 'project',
   'contactDeviceConfiguration': 'project',
+  'surfConfiguration': 'project',
+  'fieldAbilityConfiguration': 'project',
+  'projectAudio': 'project',
   'itemDefinition': 'itemCatalog',
   'itemUsage': 'itemCatalog',
   'itemReadiness': 'itemCatalog',
@@ -2399,6 +2426,9 @@ const _requiredDirectReadResourceKinds = <String>{
   'bagCapacity',
   'partyCompanionConfiguration',
   'contactDeviceConfiguration',
+  'surfConfiguration',
+  'fieldAbilityConfiguration',
+  'projectAudio',
   'trainerPokemonStats',
   'resourcePackJob',
   'resourcePackInspection',

@@ -5,7 +5,7 @@ class NativePresentationMediaPicker {
   const NativePresentationMediaPicker();
   Future<({String path, String label})?> choose(ProjectMediaKind kind) async {
     final extensions = kind == ProjectMediaKind.audio
-        ? ['mp3', 'wav', 'ogg', 'm4a']
+        ? ['mp3', 'wav', 'ogg', 'flac', 'm4a']
         : kind == ProjectMediaKind.video
         ? ['mp4', 'mov', 'webm']
         : kind == ProjectMediaKind.captions

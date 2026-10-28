@@ -113,6 +113,10 @@ final class RuntimeAudioMixer {
 
   RuntimeAudioMix get mix => _mix;
 
+  double volumeFor(RuntimeAudioRoute route, {double sourceVolume = 1}) =>
+      _mix.volumeFor(route, sourceVolume: sourceVolume) *
+      _duckingGainFor(route.bus);
+
   Future<void> register({
     required Object channel,
     required RuntimeAudioRoute route,

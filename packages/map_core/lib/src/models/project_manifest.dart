@@ -19,6 +19,9 @@ import 'project_defeat_recovery_config.dart';
 import 'project_battle_savings_config.dart';
 import 'pokemon_ruleset_profile.dart';
 import 'project_bag_capacity.dart';
+import 'project_surf_settings.dart';
+import 'project_field_abilities_settings.dart';
+import 'project_audio_settings.dart';
 import 'project_party_companion_config.dart';
 import 'project_contact_device_config.dart';
 import 'save_data.dart';
@@ -54,6 +57,9 @@ import '../serialization/presentation_cinematic_codec.dart';
 
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
+
+Map<String, dynamic>? _projectFieldAbilitiesToJson(ProjectFieldAbilitiesSettings? value) =>
+    value == null || value.isEmpty ? null : value.toJson();
 
 const Object _explicitNullProjectBorderCatalog = Object();
 const Object _explicitNullProjectBagCapacity = Object();
@@ -811,6 +817,10 @@ abstract class ProjectSettings with _$ProjectSettings {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectSettings({
     @Default(ProjectDimension.twoD) ProjectDimension dimension,
+    @JsonKey(includeIfNull: false) ProjectSurfSettings? surf,
+    @JsonKey(includeIfNull: false, toJson: _projectFieldAbilitiesToJson)
+    ProjectFieldAbilitiesSettings? fieldAbilities,
+    @JsonKey(includeIfNull: false) ProjectAudioSettings? audio,
     @JsonKey(includeIfNull: false) SpatialCameraProfile? spatialCamera,
     @JsonKey(includeIfNull: false)
     MapInstanceRetentionPolicy? mapInstanceRetentionPolicy,

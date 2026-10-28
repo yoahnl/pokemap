@@ -148,6 +148,7 @@ class _StudioMapWorkspaceHost extends ConsumerWidget {
       worldPort: ref.watch(worldPortProvider(session)),
       verificationPort: ref.watch(verificationPortProvider(session)),
       presentationMediaPicker: ref.watch(presentationMediaPickerProvider),
+      audioPreview: ref.watch(projectAudioPreviewProvider(session)),
       imagePicker: ref.watch(resourceImagePickerProvider),
       gameExport: ref.watch(gameExportPortProvider(session)),
       gameExportPicker: ref.watch(gameExportPickerProvider),

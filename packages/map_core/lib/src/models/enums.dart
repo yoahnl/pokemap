@@ -445,6 +445,14 @@ enum CharacterAnimationState {
   run,
   @JsonValue('climb')
   climb,
+  @JsonValue('surf_idle')
+  surfIdle,
+  @JsonValue('surf')
+  surf,
+  @JsonValue('surf_enter')
+  surfEnter,
+  @JsonValue('surf_exit')
+  surfExit,
 }
 
 enum CharacterPortraitFitMode {

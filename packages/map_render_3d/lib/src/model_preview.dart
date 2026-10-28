@@ -21,6 +21,7 @@ import 'package:map_core/map_core.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_environment_lighting.dart';
+import 'spatial_flame_effects.dart';
 import 'spatial_renderer_initialization.dart';
 
 class ModelPreviewController extends ChangeNotifier {
@@ -263,6 +264,7 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   AnimatedModelComponent? component;
   MeshComponent? _lightFloor;
   double _lightElapsed = 0;
+  late final _flames = SpatialFlameEffects(world);
   Offset? projectPoint(Model3dVector3 point) {
     if (size.x <= 0 || size.y <= 0 || component == null) return null;
     final clip = camera.viewProjectionMatrix.transform(
@@ -338,6 +340,14 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
     final light = controls.light;
     final renderContext = context as SpatialRenderContext;
     final night = controls.nightPreview;
+    _flames.sync(
+      sources: light == null ? const [] : [SpatialFlameSource(
+        key: controls, light: light, transform: Matrix4.identity())],
+      elapsedSeconds: _lightElapsed,
+      daylight: night ? 0 : 1,
+      cameraPitch: controls.pitch,
+      cameraYaw: controls.yaw,
+    );
     renderContext.lighting = light == null
         ? SpatialLightingProfile.disabled
         : SpatialLightingProfile.stylized(
@@ -397,7 +407,7 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   void update(double dt) {
     super.update(dt);
     if (dt.isFinite && dt > 0) _lightElapsed += dt;
-    if (controls.light?.colorCycle != null) _syncLight();
+    if (controls.light?.colorCycle != null || controls.light?.flame != null) _syncLight();
   }
 
   @override
@@ -409,6 +419,7 @@ class _ModelPreviewGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
   void onRemove() {
     closed = true;
+    _flames.clear();
     if (identical(controls._projectionGame, this))
       controls._projectionGame = null;
     controls.removeListener(_sync);

@@ -29,11 +29,15 @@ class ModelLightControls extends StatefulWidget {
 }
 
 class _ModelLightControlsState extends State<ModelLightControls> {
-  late bool enabled, nightOnly, cycle;
+  late bool enabled, nightOnly, cycle, flame;
   late int color;
   late List<String> values;
   late List<int> colors;
   late double period, enter, exit, fade;
+  late double flameHeight, flameFlicker;
+  late double flameEmbers;
+  late double flameCrackleVolume;
+  late ModelLightFlameStyle flameStyle;
   String proximity = 'always';
   bool saving = false;
   String? error;
@@ -100,6 +104,12 @@ class _ModelLightControlsState extends State<ModelLightControls> {
     enter = light?.proximity?.enterDistance ?? 3;
     exit = light?.proximity?.exitDistance ?? 4;
     fade = light?.proximity?.fadeSeconds ?? .35;
+    flame = light?.flame != null;
+    flameHeight = light?.flame?.height ?? .35;
+    flameFlicker = light?.flame?.flicker ?? .12;
+    flameEmbers = light?.flame?.embers ?? 0;
+    flameCrackleVolume = light?.flame?.crackleVolume ?? 0;
+    flameStyle = light?.flame?.style ?? ModelLightFlameStyle.candle;
     error = null;
   }
 
@@ -117,6 +127,7 @@ class _ModelLightControlsState extends State<ModelLightControls> {
       intensity: n[4]!,
       colorRgb: color,
       nightOnly: nightOnly,
+      flame: flame ? ModelLightFlame(height: flameHeight, flicker: flameFlicker, style: flameStyle, embers: flameEmbers, crackleVolume: flameCrackleVolume) : null,
       colorCycle: cycle
           ? ModelLightColorCycle(colors: colors, periodSeconds: period)
           : null,
@@ -286,6 +297,24 @@ class _ModelLightControlsState extends State<ModelLightControls> {
               ? null
               : (v) => change(() => cycle = v == 'cycle'),
         ),
+        StudioToggleRow(
+          key: const ValueKey('model-light-flame'),
+          label: 'Flamme animée',
+          description: 'Une bougie ou un brasier à la position de l’ampoule. Le feu et ses braises suivent les conditions d’allumage.',
+          value: flame,
+          onChanged: saving || widget.busy ? null : (v) => change(() => flame = v),
+        ),
+        if (flame) ...[
+          StudioSelect(key: const ValueKey('model-light-flame-style'), label: 'Style du feu',
+            value: flameStyle.name, options: const {'candle':'Bougie', 'brazier':'Brasier'},
+            onChanged: saving || widget.busy ? null : (value) => change(() => flameStyle = ModelLightFlameStyle.values.byName(value))),
+          slider('model-light-flame-height', 'Hauteur de la flamme', flameHeight,
+            .03, 8, (v) => flameHeight = v),
+          slider('model-light-flame-flicker', 'Vacillement de la flamme', flameFlicker,
+            0, .4, (v) => flameFlicker = v),
+          slider('model-light-flame-embers', 'Braises et étincelles', flameEmbers, 0, 1, (v) => flameEmbers = v),
+          slider('model-light-flame-crackle', 'Volume du crépitement', flameCrackleVolume, 0, 1, (v) => flameCrackleVolume = v),
+        ],
         if (cycle) ...[
           slider(
             'model-light-cycle-seconds',

@@ -223,6 +223,7 @@ export 'src/field_action.dart'
         AlreadySurfing,
         MissingSurfCapablePokemon,
         SurfNotUnlocked,
+        SurfDisabled,
         CanPromptSurf,
         FieldActionTicket,
         FieldActionRefusal,

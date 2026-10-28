@@ -24,9 +24,9 @@ Future<ResourceMutationReceipt> _importCharacterAnimation(
         'kind': 'animationClip',
         'slotKind': 'system',
         'characterId': request.characterId,
-        'state': request.state == CharacterAnimationState.bicycleIdle
-            ? 'bicycle_idle' : request.state.name,
+        'state': CharacterAnimation(state: request.state, direction: request.direction, frames: const []).toJson()['state'],
         'direction': request.direction.name,
+        if (request.state == CharacterAnimationState.surfEnter || request.state == CharacterAnimationState.surfExit) 'loop': false,
         'frames': <Object?>[
           for (var index = 0; index < (request.state == CharacterAnimationState.bicycle ||
               request.state == CharacterAnimationState.bicycleIdle ? 4 : 3); index++)
