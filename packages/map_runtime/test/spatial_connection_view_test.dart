@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
@@ -155,6 +156,34 @@ void main() {
     expect(restored.controller.waterAnimated, isTrue);
     expect(restored.controller.windowsLit, isTrue);
     expect(restored.controller.fireflies, isTrue);
+    expect(restored.adaptivePlaybackFraming, isFalse);
+    addTearDown(() {
+      debugDefaultTargetPlatformOverride = null;
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.view.devicePixelRatio = 1;
+    for (final platform in [TargetPlatform.iOS, TargetPlatform.android]) {
+      debugDefaultTargetPlatformOverride = platform;
+      for (final size in [const Size(390, 844), const Size(844, 390)]) {
+        tester.view.physicalSize = size;
+        await tester.pumpWidget(app(Brightness.light));
+        final phone = tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));
+        expect(phone.adaptivePlaybackFraming, isTrue);
+        expect(phone.controller, same(before.controller));
+        expect(phone.loadModel, same(before.loadModel));
+      }
+    }
+    tester.view.physicalSize = const Size(1024, 768);
+    await tester.pumpWidget(app(Brightness.light));
+    expect(tester.widget<SpatialSceneView>(find.byType(SpatialSceneView))
+        .adaptivePlaybackFraming, isFalse);
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpWidget(app(Brightness.light));
+    expect(tester.widget<SpatialSceneView>(find.byType(SpatialSceneView))
+        .adaptivePlaybackFraming, isFalse);
+    debugDefaultTargetPlatformOverride = null;
     await tester.pumpWidget(const SizedBox());
     expect(session.prepareNativeDoorDestination, isNull);
     session.dispose();

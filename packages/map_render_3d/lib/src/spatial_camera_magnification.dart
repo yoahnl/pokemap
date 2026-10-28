@@ -9,6 +9,7 @@ void applySpatialCameraProfile(
   required double magnification,
   double zoom = 1,
   double viewportAspectRatio = 1,
+  bool adaptivePlaybackFraming = false,
 }) {
   if (!magnification.isFinite ||
       magnification <= 0 ||
@@ -20,12 +21,16 @@ void applySpatialCameraProfile(
       'Camera zoom, magnification and aspect must be positive.',
     );
   }
+  final framingAspect = adaptivePlaybackFraming ? 1.0 : viewportAspectRatio;
+  final effectiveMagnification =
+      magnification *
+      (adaptivePlaybackFraming ? math.sqrt(viewportAspectRatio / 1.5) : 1);
   if (profile.projection == SpatialCameraProjection.orthographic) {
     final height =
         profile.orthographicHeight *
         zoom /
-        math.min(1.0, viewportAspectRatio) /
-        magnification;
+        math.min(1.0, framingAspect) /
+        effectiveMagnification;
     if (!height.isFinite || height <= 0) {
       throw ArgumentError(
         'Orthographic camera field is outside finite bounds.',
@@ -38,7 +43,7 @@ void applySpatialCameraProfile(
     applySpatialCameraMagnification(
       camera,
       baseFieldOfViewDegrees: profile.fieldOfViewDegrees,
-      magnification: magnification,
+      magnification: effectiveMagnification,
     );
   }
 }

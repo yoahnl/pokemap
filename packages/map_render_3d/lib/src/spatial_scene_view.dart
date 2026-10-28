@@ -540,6 +540,7 @@ class SpatialSceneView extends StatefulWidget {
     this.presentationElapsedSeconds,
     this.cameraPose,
     this.cameraMagnification,
+    this.adaptivePlaybackFraming = false,
     this.resourceBudget,
     this.renderResolutionScale = 1,
     this.resourceIdentity,
@@ -572,6 +573,7 @@ class SpatialSceneView extends StatefulWidget {
   final double Function()? presentationElapsedSeconds;
   final ({double x, double y, double z, double zoom})? Function()? cameraPose;
   final double Function()? cameraMagnification;
+  final bool adaptivePlaybackFraming;
   final Map<String, SpatialActorVisual> Function(double dt)? actorFrames;
   final VoidCallback? onReady;
   final ValueChanged<Set<String>>? onVisibleMapsChanged;
@@ -2896,6 +2898,9 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     camera.projection = CameraProjection.perspective;
     camera.fovY = 40;
     final aspect = size.y > 0 ? size.x / size.y : 1.0;
+    final adaptiveFraming =
+        configuration.adaptivePlaybackFraming &&
+        control.view == SpatialEditorView.game;
     var distance =
         math.max(math.max(scene.width, scene.depth), maximumHeight) /
         (2 * math.tan(math.pi / 9)) *
@@ -2918,6 +2923,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         profile: cameraProfile,
         zoom: zoom,
         viewportAspectRatio: aspect,
+        adaptivePlaybackFraming: adaptiveFraming,
         magnification: configuration.cameraMagnification?.call() ?? 1,
       );
     }
@@ -2930,10 +2936,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       pitch: pitch,
       yaw: yaw,
       distance:
-          control.lockVerticalFraming && control.view == SpatialEditorView.game
+          !adaptiveFraming &&
+              control.lockVerticalFraming &&
+              control.view == SpatialEditorView.game
           ? distance * math.min(1.0, aspect)
           : distance,
-      viewportAspectRatio: aspect,
+      viewportAspectRatio: adaptiveFraming ? 1 : aspect,
     );
   }
 

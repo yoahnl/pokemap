@@ -65,6 +65,27 @@ void main() {
     expect(effect.compositePasses, 1);
   });
 
+  test('rotation preserves blur radius and focus while render scale stays proportional', () {
+    final backend = _Backend();
+    final effect = SpatialDepthOfField(backend)
+      ..profile = SpatialDepthOfFieldProfile(enabled: true, strength: .5)
+      ..focusDepth = 42;
+    final color = _Target(secondary: true);
+    double radius(Size size) {
+      effect.compositeTexture(color, size);
+      final uniforms = backend.uniforms['DepthOfField']!;
+      expect(uniforms.getFloat32(0, Endian.little), 42);
+      expect(uniforms.getFloat32(4, Endian.little), 6);
+      return uniforms.getFloat32(8, Endian.little);
+    }
+
+    final landscape = radius(const Size(960, 540));
+    expect(landscape, closeTo(6, 1e-6));
+    expect(radius(const Size(540, 960)), closeTo(landscape, 1e-6));
+    expect(radius(const Size(270, 480)), closeTo(landscape / 2, 1e-6));
+    expect(radius(const Size(960, 540)), closeTo(landscape, 1e-6));
+  });
+
   test('without a depth attachment the scene is presented sharp', () {
     final backend = _Backend();
     final effect = SpatialDepthOfField(backend)

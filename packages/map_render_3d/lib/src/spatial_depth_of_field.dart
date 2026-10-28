@@ -87,7 +87,7 @@ final class SpatialDepthOfField {
     _uniforms
       ..[0] = focusDepth
       ..[1] = profile.focusRange / 2
-      ..[2] = 12 * profile.strength * size.width / 960
+      ..[2] = 12 * profile.strength * math.max(size.width, size.height) / 960
       ..[3] = math.max(100, focusDepth + profile.focusRange * 8)
       ..[4] = size.width
       ..[5] = size.height

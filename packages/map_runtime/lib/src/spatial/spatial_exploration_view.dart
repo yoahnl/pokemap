@@ -601,6 +601,10 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           children: [
             Positioned.fill(
               child: SpatialSceneView(
+                adaptivePlaybackFraming:
+                    (defaultTargetPlatform == TargetPlatform.iOS ||
+                        defaultTargetPlatform == TargetPlatform.android) &&
+                    MediaQuery.sizeOf(context).shortestSide < 600,
                 renderResolutionScale:
                     widget.session.graphics.value.renderScale ??
                     widget.renderResolutionScale,
