@@ -8,6 +8,13 @@ void main() {
   group('GamePackageInventoryBuilder', () {
     const builder = GamePackageInventoryBuilder();
 
+    test('caps the payload at the package security policy', () {
+      expect(
+        builder.maxTotalBytes,
+        GamePackageSecurityPolicy.maxTotalPayloadBytesV1,
+      );
+    });
+
     test('keeps a compact immutable snapshot of source bytes', () {
       final source = Uint8List.fromList(<int>[1, 2, 3]);
       final inventory = builder.buildWithSnapshot(<String, List<int>>{

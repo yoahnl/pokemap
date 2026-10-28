@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -53,6 +54,13 @@ void main() {
         (path) => path.contains('/.pokemap/') || path.contains('/catalog/'),
       ),
       isEmpty,
+    );
+  });
+
+  test('caps the projected payload at the package security policy', () {
+    expect(
+      const RuntimeProjectProjectionBuilder().maxTotalPayloadBytes,
+      GamePackageSecurityPolicy.maxTotalPayloadBytesV1,
     );
   });
 

@@ -1087,6 +1087,26 @@ void main() {
       }
     });
 
+    test('accepts a payload up to the two gibibyte package policy', () {
+      expect(GamePackageSecurityPolicy.maxTotalPayloadBytesV1, 2147483648);
+      expect(
+        () => codec.decodeJson(
+          _manifestWithPayload(
+              GamePackageSecurityPolicy.maxTotalPayloadBytesV1),
+        ),
+        returnsNormally,
+      );
+      _expectCode(
+        () => codec.decodeJson(
+          _manifestWithPayload(
+            GamePackageSecurityPolicy.maxTotalPayloadBytesV1 + 1,
+          ),
+        ),
+        'invalidTotalBytes',
+        r'$.content.totalBytes',
+      );
+    });
+
     test('rejects normalized case collisions and wrong branding roots', () {
       final collision = _minimalManifestJson();
       final content = collision['content']! as Map<String, Object?>;
@@ -1325,3 +1345,34 @@ String _treeHashFromJson(Object files) => ContentTreeHasher.sha256Hex(
         );
       }),
     );
+
+Map<String, Object?> _manifestWithPayload(int totalBytes) {
+  final manifest = _minimalManifestJson();
+  final content = manifest['content']! as Map<String, Object?>;
+  final files = <Object?>[...content['files']! as List<Object?>];
+  var remaining = totalBytes - 24;
+  var index = 0;
+  while (remaining > 0) {
+    final size = remaining < GamePackageSecurityPolicy.maxFileBytesV1
+        ? remaining
+        : GamePackageSecurityPolicy.maxFileBytesV1;
+    files.add(<String, Object?>{
+      'path': 'project/filler-$index.bin',
+      'size': size,
+      'sha256':
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    });
+    remaining -= size;
+    index++;
+  }
+  files.sort(
+    (left, right) => ((left! as Map)['path'] as String)
+        .compareTo((right! as Map)['path'] as String),
+  );
+  content
+    ..['fileCount'] = files.length
+    ..['totalBytes'] = totalBytes
+    ..['files'] = files
+    ..['treeSha256'] = _treeHashFromJson(files);
+  return manifest;
+}

@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'content_tree_hasher.dart';
 import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
+import 'game_package_security_policy.dart';
 import 'package_path_policy.dart';
 
 typedef PackageMediaTypeResolver = String? Function(String path);
@@ -24,7 +25,7 @@ final class GamePackageInventoryBuilder {
   const GamePackageInventoryBuilder({
     this.maxFileCount = 64999,
     this.maxFileBytes = 268435456,
-    this.maxTotalBytes = 1073741824,
+    this.maxTotalBytes = GamePackageSecurityPolicy.maxTotalPayloadBytesV1,
   });
 
   final int maxFileCount;

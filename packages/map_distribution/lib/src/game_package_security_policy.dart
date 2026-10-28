@@ -37,11 +37,11 @@ final class GamePackageSecurityPolicy {
         _maxProjectHierarchyEntries = maxProjectHierarchyEntries,
         _maxProjectHierarchyDepth = maxProjectHierarchyDepth;
 
-  static const int maxArchiveBytesV1 = 1073741824;
+  static const int maxArchiveBytesV1 = 2147483648;
   static const int maxManifestBytesV1 = 33554432;
   static const int maxPayloadEntriesV1 = 64999;
   static const int maxFileBytesV1 = 268435456;
-  static const int maxTotalPayloadBytesV1 = 1073741824;
+  static const int maxTotalPayloadBytesV1 = 2147483648;
   static const int maxJsonBytesV1 = 33554432;
   static const int maxImageDimensionV1 = 8192;
   static const int maxImagePixelsV1 = 67108864;

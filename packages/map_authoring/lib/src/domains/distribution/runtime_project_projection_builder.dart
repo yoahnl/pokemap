@@ -129,7 +129,8 @@ final class RuntimeProjectProjectionBuilder {
     this.maxPayloadEntries = 64999,
     this.maxFileBytes = 268435456,
     this.maxJsonSourceBytes = 268435456,
-    this.maxTotalPayloadBytes = 1073741824,
+    this.maxTotalPayloadBytes =
+        GamePackageSecurityPolicy.maxTotalPayloadBytesV1,
   });
 
   final int maxWorkspaceEntries;

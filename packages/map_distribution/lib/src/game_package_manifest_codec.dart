@@ -56,6 +56,7 @@ import 'canonical_json.dart';
 import 'content_tree_hasher.dart';
 import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
+import 'game_package_security_policy.dart';
 import 'package_path_policy.dart';
 import 'strict_json_structure_validator.dart';
 
@@ -2444,7 +2445,8 @@ final class GamePackageManifestCodec {
         'totalBytes does not match file sizes.',
       );
     }
-    if (totalBytes < 1 || totalBytes > 1073741824) {
+    if (totalBytes < 1 ||
+        totalBytes > GamePackageSecurityPolicy.maxTotalPayloadBytesV1) {
       _fail(
         'invalidTotalBytes',
         '$path.totalBytes',
