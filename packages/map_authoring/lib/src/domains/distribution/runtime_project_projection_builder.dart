@@ -723,8 +723,7 @@ final class RuntimeProjectProjectionBuilder {
     final pokemonCatalogPaths = projectedProject.pokemon.catalogFiles.values
         .map(_normalizeRelative)
         .toSet();
-    await for (final entity
-        in projectRoot.list(recursive: true, followLinks: false)) {
+    await for (final entity in _listWorkspace(projectRoot, projectRoot)) {
       budget.visitWorkspaceEntry();
       final type = await FileSystemEntity.type(entity.path, followLinks: false);
       final relative =
@@ -1631,6 +1630,33 @@ final class RuntimeProjectProjectionBuilder {
 
   static String _normalizePackagePath(String value) =>
       PackagePathPolicy.normalizeNfc(value);
+
+  static Stream<FileSystemEntity> _listWorkspace(
+    Directory directory,
+    Directory projectRoot,
+  ) async* {
+    await for (final entity in directory.list(followLinks: false)) {
+      yield entity;
+      if (entity is Directory &&
+          !_excludesEveryDescendant(_normalizeRelative(
+              p.relative(entity.path, from: projectRoot.path)))) {
+        yield* _listWorkspace(entity, projectRoot);
+      }
+    }
+  }
+
+  static bool _excludesEveryDescendant(String directory) {
+    final segments = directory.toLowerCase().split('/');
+    if (segments.length == 2 &&
+        segments[0] == 'assets' &&
+        segments[1] == '.pokemap-store') {
+      return false;
+    }
+    return segments.first == 'catalog' ||
+        segments.first == 'exports' ||
+        segments.any((segment) => segment.startsWith('.')) ||
+        _excludedSegments.any(segments.contains);
+  }
 
   static bool _isPokeMapStoreBlob(String path) {
     final segments = path.toLowerCase().split('/');
