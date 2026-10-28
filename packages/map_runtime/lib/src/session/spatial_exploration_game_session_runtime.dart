@@ -621,6 +621,8 @@ final class SpatialExplorationGameSessionRuntime
           );
           final partyConditionContext = await loadRuntimeScenePartyConditionContext(
             scene: scene,
+            supportedFieldAbilities: const {FieldAbility.surf},
+            conditionContext: ScriptEvaluationContext(narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(project.facts)),
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: project.pokemon,
             projectSettings: project.settings,
@@ -1056,6 +1058,7 @@ final class SpatialExplorationGameSessionRuntime
       for (final requirement in {
         if (manifest.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresCapability(manifest)) FieldAbilityActivationCapabilities.capabilityId,
+        if (FieldAbilityActivationCapabilities.requiresExtendedCapability(manifest)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(manifest)) ProjectAudioCapabilities.capabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(manifest)) SpatialGameplayCapabilities.npcTradeCapabilityId,

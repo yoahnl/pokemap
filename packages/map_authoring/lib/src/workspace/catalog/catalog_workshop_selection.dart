@@ -80,6 +80,7 @@ final class CatalogWorkshopSelection {
       action == 'project.audio.cue.configure' ||
       action == 'scene.dialogue.audioMedia.import' ||
       action == 'presentationMedia.import' ||
+      action == 'project.audio.media.adopt_asset' ||
       action == 'asset.import' ||
       action == 'asset.import_batch' ||
       action == 'project.battle_audio.update' ||
@@ -185,7 +186,7 @@ final class CatalogWorkshopSelection {
       return _readModelLightWorkshop(
           reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
-    if (actionId == 'presentationMedia.import' || actionId == 'scene.dialogue.audioMedia.import' || actionId == 'project.battle_audio.update' ||
+    if (actionId == 'project.audio.media.adopt_asset' || actionId == 'presentationMedia.import' || actionId == 'scene.dialogue.audioMedia.import' || actionId == 'project.battle_audio.update' ||
         actionId == 'asset.import' || actionId == 'asset.import_batch') {
       return _readAudioMediaWorkshop(
           actionId: actionId,

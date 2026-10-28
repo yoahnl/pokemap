@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/artifact_ref.dart';
@@ -11,6 +13,27 @@ String assetBlobResourceIdentity(String digest) => 'assetBlob:$digest';
 
 String assetBlobStorageKey(ContentArtifactRef artifact) =>
     'assets/.pokemap-store/${artifact.hexDigest}.blob';
+
+AssetRecord? readAssetRecordFromCatalogBytes(List<int>? bytes, String id) {
+  if (bytes == null) return null;
+  final raw = jsonDecode(utf8.decode(bytes));
+  if (raw is! Map || raw['schemaVersion'] != 1 || raw['records'] is! List) {
+    throw AssetCatalogException(
+        'asset.catalog_invalid', 'The asset catalog is invalid.');
+  }
+  final matches = (raw['records'] as List)
+      .whereType<Map>()
+      .where((row) => row['id'] == id)
+      .iterator;
+  if (!matches.moveNext()) return null;
+  final selected =
+      AssetRecord.fromJson(Map<String, dynamic>.from(matches.current));
+  if (matches.moveNext()) {
+    throw AssetCatalogException('asset.identity_ambiguous',
+        'The selected source has duplicate identities.');
+  }
+  return selected;
+}
 
 /// Computes references from canonical project/map payloads instead of trusting
 /// a caller-provided usage list. Stable owner/path strings are sufficient for

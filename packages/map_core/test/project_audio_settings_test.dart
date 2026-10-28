@@ -2,6 +2,22 @@ import 'package:map_core/src/models/project_audio_settings.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'generic legacy sources require probed audio metadata and never override contradictory audio MIME',
+    () {
+      expect(
+        projectAudioSourceMimeMatches('application/octet-stream', 'audio/wav'),
+        isTrue,
+      );
+      expect(projectAudioSourceMimeMatches('audio/wav', 'audio/wav'), isTrue);
+      expect(projectAudioSourceMimeMatches('audio/ogg', 'audio/wav'), isFalse);
+      expect(projectAudioSourceMimeMatches('image/png', 'audio/wav'), isFalse);
+      expect(
+        projectAudioSourceMimeMatches('application/octet-stream', 'image/png'),
+        isFalse,
+      );
+    },
+  );
   test('round trips stable cue bindings and gains', () {
     final value = ProjectAudioSettings.fromJson({
       'cues': {

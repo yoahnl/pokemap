@@ -91,17 +91,29 @@ FieldActionEvaluation evaluateFieldAction({
   if (gameState.playerMovementMode == fieldActionMovementMode(ability)) {
     return const AlreadySurfing();
   }
+  return evaluateSurfAccess(
+    gameState: gameState,
+    surfSettings: surfSettings,
+    conditionContext: conditionContext,
+  );
+}
+
+FieldActionEvaluation evaluateSurfAccess({
+  required GameState gameState,
+  ProjectSurfSettings? surfSettings,
+  ScriptEvaluationContext? conditionContext,
+}) {
   final settings = (surfSettings ?? const ProjectSurfSettings()).validated();
   if (!settings.enabled) {
     return const SurfDisabled();
   }
   if (settings.requiresKnownMove &&
-      !partyHasUsableFieldMove(gameState.party, ability)) {
+      !partyHasUsableFieldMove(gameState.party, FieldAbility.surf)) {
     return const MissingSurfCapablePokemon();
   }
   final unlocked = switch (settings.accessMode) {
     ProjectSurfAccessMode.progression =>
-      gameState.progression.unlockedFieldAbilities.contains(ability),
+      gameState.progression.unlockedFieldAbilities.contains(FieldAbility.surf),
     ProjectSurfAccessMode.always => true,
     ProjectSurfAccessMode.condition => const ScriptConditionEvaluator().evaluate(
       settings.condition!,

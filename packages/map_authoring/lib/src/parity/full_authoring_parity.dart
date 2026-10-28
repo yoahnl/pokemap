@@ -707,6 +707,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/surf_stdio.test.ts',
     };
   }
+  if (actionId == 'project.audio.media.adopt_asset') {
+    return const {
+      AuthoringTransport.directApi: 'test/workspace/audio_media_workshop_test.dart',
+      AuthoringTransport.cli: 'test/workspace/audio_media_workshop_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/project_surf/project_surf_persistence_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/project_cs_audio_stdio.test.ts',
+    };
+  }
   if (const {'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) {
     return const {
       AuthoringTransport.directApi: 'test/domains/project/project_cs_audio_actions_test.dart',
@@ -2230,6 +2238,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['presentationMedia.import'],
     'test/domains/assets/presentation_media_import_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['project.audio.media.adopt_asset'],
+    'test/workspace/audio_media_workshop_test.dart',
   ),
   _ContractEvidenceRule(
     ['presentationMedia.delete', 'presentationMedia.rename'],

@@ -12981,6 +12981,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         ? const ScenePartyConditionContext.unavailable()
         : await loadRuntimeScenePartyConditionContext(
             projectSettings: project.settings,
+            conditionContext: ScriptEvaluationContext(narrativeFactResolver: _narrativeFactResolver),
             scene: scene,
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: project.pokemon,

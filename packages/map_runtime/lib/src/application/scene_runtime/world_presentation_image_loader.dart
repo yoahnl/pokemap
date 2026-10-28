@@ -46,24 +46,62 @@ final class WorldPresentationImageLoader {
   Future<ProjectMediaCatalog> loadCatalog() async =>
       (await (_catalogs ??= _loadCatalogs())).$1;
 
-  Future<Map<String, (String, String)>> loadAudioFiles(Iterable<String> ids) async {
+  Future<Map<String, (String, String)>> loadAudioFiles(
+    Iterable<String> ids,
+  ) async {
     final selected = ids.toSet();
     if (selected.isEmpty) return const {};
     final (catalog, assets) = await (_catalogs ??= _loadCatalogs());
     final result = <String, (String, String)>{};
+    final verified = <String, (String, String, int)>{};
     for (final id in selected) {
       final media = catalog.find(id);
       final metadata = media?.technicalMetadata;
       final asset = media == null ? null : assets.find(media.sourceAssetId);
-      if (media?.kind != ProjectMediaKind.audio || metadata == null ||
-          !metadata.mediaType.startsWith('audio/') || asset == null) {
-        throw StateError('The project sound $id is unavailable or is not audio.');
+      if (media?.kind != ProjectMediaKind.audio ||
+          metadata == null ||
+          !metadata.mediaType.startsWith('audio/') ||
+          asset == null) {
+        throw StateError(
+          'The project sound $id is unavailable or is not audio.',
+        );
+      }
+      if (!projectAudioSourceMimeMatches(
+            asset.artifact.mediaType,
+            metadata.mediaType,
+          ) ||
+          asset.artifact.byteLength != metadata.sizeBytes) {
+        throw StateError(
+          'The project sound $id has contradictory source metadata.',
+        );
+      }
+      final cached = verified[asset.artifact.digest];
+      if (cached != null) {
+        if (cached.$2 != metadata.mediaType ||
+            cached.$3 != metadata.sizeBytes) {
+          throw StateError(
+            'The project sound $id contradicts its shared audio source.',
+          );
+        }
+        result[id] = (cached.$1, cached.$2);
+        continue;
       }
       final file = await _confinedFile(assetBlobStorageKey(asset.artifact));
       if (await file.length() != metadata.sizeBytes) {
         throw StateError('The project sound $id has changed since its import.');
       }
-      result[id] = (file.path, metadata.mediaType);
+      final inspected = probeProjectAudioSourceBytes(
+        await file.readAsBytes(),
+        artifact: asset.artifact,
+        media: media!,
+      );
+      final value = (file.path, inspected.mediaType);
+      verified[asset.artifact.digest] = (
+        value.$1,
+        value.$2,
+        inspected.sizeBytes,
+      );
+      result[id] = value;
     }
     return Map.unmodifiable(result);
   }

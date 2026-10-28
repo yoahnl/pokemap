@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 
 import 'field_ability_gate.dart';
+import 'field_action.dart';
+import 'script_condition_evaluator.dart';
 import 'game_state_mutations.dart';
 
 final class ScenePartyConditionContext {
@@ -8,6 +10,7 @@ final class ScenePartyConditionContext {
     Iterable<String>? availableMoveIds,
     Iterable<FieldAbility> supportedFieldAbilities = const [],
     this.projectSettings,
+    this.conditionContext,
   })  : availableMoveIds = availableMoveIds == null
             ? null
             : Set.unmodifiable(availableMoveIds),
@@ -16,11 +19,13 @@ final class ScenePartyConditionContext {
   const ScenePartyConditionContext.unavailable()
       : availableMoveIds = null,
         supportedFieldAbilities = const {},
-        projectSettings = null;
+        projectSettings = null,
+        conditionContext = null;
 
   final Set<String>? availableMoveIds;
   final Set<FieldAbility> supportedFieldAbilities;
   final ProjectSettings? projectSettings;
+  final ScriptEvaluationContext? conditionContext;
 }
 
 bool evaluateScenePartyCondition({
@@ -69,15 +74,27 @@ bool evaluateScenePartyCondition({
         matched = usable;
       }
     case ScenePartyConditionKind.canUseFieldAbility:
-      matched = evaluateFieldAbilityGate(
-            ability: source.partyFieldAbility!,
-            supportedAbilities: context.supportedFieldAbilities,
-            unlockedFieldAbilities:
-                gameState.progression.unlockedFieldAbilities.toSet(),
-            party: gameState.party,
-            projectSettings: context.projectSettings,
-          ).status ==
-          FieldAbilityGateStatus.usable;
+      final ability = source.partyFieldAbility!;
+      if (ability == FieldAbility.surf) {
+        matched = context.supportedFieldAbilities.contains(ability) &&
+            (context.projectSettings == null ||
+                isProjectFieldAbilityEnabled(context.projectSettings!, ability)) &&
+            evaluateSurfAccess(
+              gameState: gameState,
+              surfSettings: context.projectSettings?.surf,
+              conditionContext: context.conditionContext,
+            ) is CanPromptSurf;
+      } else {
+        matched = evaluateFieldAbilityGate(
+              ability: source.partyFieldAbility!,
+              supportedAbilities: context.supportedFieldAbilities,
+              unlockedFieldAbilities:
+                  gameState.progression.unlockedFieldAbilities.toSet(),
+              party: gameState.party,
+              projectSettings: context.projectSettings,
+            ).status ==
+            FieldAbilityGateStatus.usable;
+      }
   }
   return matched == expected;
 }

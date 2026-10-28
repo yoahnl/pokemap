@@ -396,6 +396,7 @@ final class _StudioGameSource implements RuntimeGameSource {
         'pokedex.v1',
         'map.v1',
         FieldAbilityActivationCapabilities.capabilityId,
+          FieldAbilityActivationCapabilities.extendedCapabilityId,
         ProjectAudioCapabilities.capabilityId,
         if (project.settings.dimension == ProjectDimension.threeD) ...{
           'map3d@1',

@@ -57,6 +57,18 @@ abstract interface class ProjectAudioPort {
     String label,
     String expectedRevision,
   );
+  Future<ProjectAudioPage> queryLegacyAudio(
+    ProjectSession session, {
+    String query = '',
+    String? cursor,
+  });
+  Future<ProjectAudioImport> adoptAudioAsset(
+    ProjectSession session,
+    String assetId,
+    String mediaId,
+    String label,
+    String expectedRevision,
+  );
   Future<ProjectAudioFile> resolveAudio(ProjectSession session, String mediaId);
 }
 

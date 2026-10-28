@@ -196,9 +196,11 @@ void main() {
           mapUpdates = visuals.mapUpdates;
       await tester.tap(find.text('CS'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('cs-dive')));
-      await tester.tap(find.byKey(const ValueKey('cs-dive')));
-      await tester.pump();
+      for (final id in ['rock_climb', 'defog']) {
+        await tester.ensureVisible(find.byKey(ValueKey('cs-$id')));
+        await tester.tap(find.byKey(ValueKey('cs-$id')));
+        await tester.pump();
+      }
       await tester.tap(find.text('Son'));
       await tester.pumpAndSettle();
       tester
@@ -217,9 +219,10 @@ void main() {
       await tester.ensureVisible(find.byKey(const ValueKey('save-project-cs')));
       await tester.tap(find.byKey(const ValueKey('save-project-cs')));
       await tester.pumpAndSettle();
-      expect(port.revision, 2);
-      expect(workspace.project!.settings.fieldAbilities!.disabledAbilities, {
-        FieldAbility.dive,
+      expect(port.revision, 3);
+      expect(workspace.project!.settings.fieldAbilities!.disabledAbilityIds, {
+        'rock_climb',
+        'defog',
       });
       expect(
         workspace
@@ -337,6 +340,20 @@ class _Visuals extends WorkspaceTestVisuals
 }
 
 class _CsAudioPort extends _Port implements ProjectCsPort, ProjectAudioPort {
+  @override
+  Future<ProjectAudioPage> queryLegacyAudio(
+    session, {
+    String query = '',
+    String? cursor,
+  }) async => const ProjectAudioPage(entries: []);
+  @override
+  Future<ProjectAudioImport> adoptAudioAsset(
+    session,
+    String assetId,
+    String mediaId,
+    String label,
+    String expectedRevision,
+  ) => throw UnimplementedError();
   int revision = 0;
   ProjectAudioSettings? audio;
   ProjectFieldAbilitiesSettings? cs;
@@ -355,11 +372,19 @@ class _CsAudioPort extends _Port implements ProjectCsPort, ProjectAudioPort {
     FieldAbility ability,
     bool enabled,
     String expectedRevision,
+  ) => saveFieldAbilityId(session, ability.moveId, enabled, expectedRevision);
+
+  @override
+  Future<ProjectCsState> saveFieldAbilityId(
+    session,
+    String abilityId,
+    bool enabled,
+    String expectedRevision,
   ) async {
     expect(expectedRevision, '$revision');
-    final disabled = {...?cs?.disabledAbilities};
-    enabled ? disabled.remove(ability) : disabled.add(ability);
-    cs = ProjectFieldAbilitiesSettings(disabledAbilities: disabled);
+    final disabled = {...?cs?.disabledAbilityIds};
+    enabled ? disabled.remove(abilityId) : disabled.add(abilityId);
+    cs = ProjectFieldAbilitiesSettings.fromIds(disabled);
     revision++;
     return ProjectCsState(configuration: cs, revision: '$revision');
   }

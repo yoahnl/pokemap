@@ -781,6 +781,8 @@ class HubInstalledGamePlayer extends StatefulWidget {
     required this.hostBranding,
     required this.splashLogo,
     this.splashWordmark,
+    this.splashMovieAsset = 'assets/avelune/splash/avelune_eclipse.mp4',
+    this.splashMoviePackage = 'pokemap_hub',
     this.splashAudioDriver,
     this.diagnosticLogFile,
     this.controller,
@@ -804,6 +806,8 @@ class HubInstalledGamePlayer extends StatefulWidget {
   final RuntimeHostSplashBranding hostBranding;
   final ImageProvider? splashLogo;
   final ImageProvider? splashWordmark;
+  final String splashMovieAsset;
+  final String? splashMoviePackage;
   final FlameCinematicAudioDriver? splashAudioDriver;
   final File? diagnosticLogFile;
   final HubInstalledGamePlayerController? controller;
@@ -939,8 +943,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (!mounted || _closing) return;
       if (_useSplashMovie) {
         final movie = VideoPlayerController.asset(
-          'assets/avelune/splash/avelune_eclipse.mp4',
-          package: 'pokemap_hub',
+          widget.splashMovieAsset,
+          package: widget.splashMoviePackage,
           videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
         );
         try {

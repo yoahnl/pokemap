@@ -7,6 +7,311 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('audio source probing preserves historical duration and codec metadata',
+      () {
+    final bytes = _wav();
+    final artifact = ContentArtifactRef.fromBytes(bytes,
+        mediaType: 'application/octet-stream');
+    final media = ProjectMediaAsset(
+        id: 'legacy',
+        label: 'Legacy',
+        kind: ProjectMediaKind.audio,
+        sourceAssetId: 'source',
+        technicalMetadata: ProjectMediaTechnicalMetadata(
+            mediaType: 'audio/wav',
+            container: 'wav',
+            codec: 'pcm_legacy',
+            sizeBytes: bytes.length,
+            durationMilliseconds: 17));
+    final inspected =
+        probeProjectAudioSourceBytes(bytes, artifact: artifact, media: media);
+    expect(inspected.mediaType, 'audio/wav');
+    expect(media.technicalMetadata!.durationMilliseconds, 17);
+    expect(media.technicalMetadata!.codec, 'pcm_legacy');
+  });
+  for (final catalog in [false, true]) {
+    for (final invalid in ['signature', 'mime', 'digest']) {
+      test('audio adoption rejects invalid $invalid catalog=$catalog',
+          () async {
+        final h = await _AudioHarness.create(
+            catalog: catalog, unrelated: 0, legacyReadable: !catalog);
+        addTearDown(h.close);
+        final bytes = invalid == 'signature' ? [1, 2, 3] : _wav();
+        final artifact = await h.api.artifacts.put(bytes,
+            declaredMediaType: invalid == 'signature'
+                ? 'application/octet-stream'
+                : 'audio/wav');
+        final params = <String, Object?>{
+          'artifactHandle': artifact.reference.handle,
+          'assetId': 'bad-source',
+          'logicalPath': 'assets/audio/bad.wav'
+        };
+        final before = catalog
+            ? await h.api.readWorkshopSnapshot(h.opened.projectHandle,
+                actionId: 'asset.import', parameters: params)
+            : await h.snapshots.load(h.opened.projectHandle);
+        final seed = await h.api.planMutation(
+            h.opened.projectHandle,
+            AuthoringRequest(
+                requestId: 'seed',
+                actionId: 'asset.import',
+                actionVersion: 1,
+                workspaceHandle: h.opened.workspaceHandle.value,
+                expectedRevision: before.revision,
+                idempotencyKey: 'seed',
+                parameters: params));
+        await h.api.applyMutation(h.opened.projectHandle,
+            planId: seed.planId, operationId: 'seed');
+        if (invalid != 'signature') {
+          final file = File('${h.root.path}/$assetCatalogStorageKey');
+          final old = AssetCatalog.fromJson(
+              jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+          final record = old.require('bad-source');
+          await file.writeAsString(jsonEncode(AssetCatalog(records: [
+            record.copyWith(
+                artifact: ContentArtifactRef(
+                    digest: record.artifact.digest,
+                    mediaType: invalid == 'mime'
+                        ? 'audio/ogg'
+                        : 'application/octet-stream',
+                    byteLength: record.artifact.byteLength))
+          ]).toJson()));
+        }
+        final assetsBefore =
+            await File('${h.root.path}/$assetCatalogStorageKey').readAsBytes();
+        if (invalid == 'digest') {
+          final changed = List<int>.of(bytes)..[bytes.length - 1] = 1;
+          await File(
+                  '${h.root.path}/${assetBlobStorageKey(artifact.reference)}')
+              .writeAsBytes(changed);
+        }
+        const adoption = <String, Object?>{
+          'assetId': 'bad-source',
+          'mediaId': 'bad',
+          'label': 'Bad'
+        };
+        final scoped = await h.api.readWorkshopSnapshot(h.opened.projectHandle,
+            actionId: 'project.audio.media.adopt_asset', parameters: adoption);
+        await expectLater(
+            h.api.planMutation(
+                h.opened.projectHandle,
+                AuthoringRequest(
+                    requestId: 'bad',
+                    actionId: 'project.audio.media.adopt_asset',
+                    actionVersion: 1,
+                    workspaceHandle: h.opened.workspaceHandle.value,
+                    expectedRevision: scoped.revision,
+                    idempotencyKey: 'bad',
+                    parameters: adoption)),
+            throwsA(anything));
+        expect(
+            await File('${h.root.path}/$projectMediaCatalogStorageKey')
+                .exists(),
+            isFalse);
+        expect(
+            await File('${h.root.path}/$assetCatalogStorageKey').readAsBytes(),
+            assetsBefore);
+      });
+    }
+  }
+  for (final catalog in [false, true]) {
+    for (final cinematic in [false, true]) {
+      test('adopt existing audio source catalog=$catalog cinematic=$cinematic',
+          () async {
+        final h = await _AudioHarness.create(
+            catalog: catalog, unrelated: 0, legacyReadable: !catalog);
+        addTearDown(h.close);
+        final policy = await WorkspacePolicy.create(
+            allowedRootPaths: [h.root.path], fileReader: h.reader);
+        final worker = JsonlWorker(
+            api: AuthoringReadApi(
+                openService: ProjectOpenService(
+                    policy: policy,
+                    fileReader: h.reader,
+                    handles: h.handles,
+                    workshopScope: true),
+                snapshotLoader: h.snapshots),
+            mutations: h.api);
+        Future<Map<String, Object?>> wire(
+            String command, Map<String, Object?> args) async {
+          final response = AuthoringResult.fromJson(jsonDecode(
+                  await worker.processLine(jsonEncode(
+                      {'id': command, 'command': command, 'args': args})))
+              as Map<String, dynamic>);
+          expect(response.status, AuthoringResultStatus.success,
+              reason: '${response.error?.toJson()}');
+          return response.data;
+        }
+
+        Future<Map<String, Object?>> plan(
+            String action, Map<String, Object?> params, String key,
+            {bool full = false, bool dryRun = false}) async {
+          final snapshot = full
+              ? await h.snapshots.load(h.opened.projectHandle)
+              : await h.api.readWorkshopSnapshot(h.opened.projectHandle,
+                  actionId: action, parameters: params);
+          final request = AuthoringRequest(
+              requestId: key,
+              actionId: action,
+              actionVersion: 1,
+              workspaceHandle: h.opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: key,
+              dryRun: dryRun,
+              parameters: params);
+          return cinematic
+              ? wire('plan', {
+                  'projectHandle': h.opened.projectHandle.value,
+                  'request': request.toJson()
+                })
+              : h.api.plan(h.opened.projectHandle, request);
+        }
+
+        Future<Map<String, Object?>> apply(
+                Map<String, Object?> planned, String key) =>
+            cinematic
+                ? wire('apply', {
+                    'projectHandle': h.opened.projectHandle.value,
+                    'planId': planned['planId'],
+                    'operationId': key
+                  })
+                : h.api.apply(h.opened.projectHandle,
+                    planId: planned['planId']! as String, operationId: key);
+        final artifact =
+            await h.api.artifacts.put(_wav(), declaredMediaType: 'audio/wav');
+        final legacy = await plan(
+            cinematic ? 'scene.dialogue.audioMedia.import' : 'asset.import',
+            {
+              'artifactHandle': artifact.reference.handle,
+              'assetId': 'old-source',
+              'logicalPath': 'assets/audio/old.wav',
+              if (cinematic) ...{
+                'mediaId': 'old-scene-sound',
+                'label': 'Old sound',
+                'mediaKind': 'sound'
+              },
+            },
+            'legacy-source',
+            full: !catalog);
+        await apply(legacy, 'legacy-source');
+        if (!cinematic) {
+          final file = File('${h.root.path}/$assetCatalogStorageKey');
+          final old = AssetCatalog.fromJson(
+              jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+          final record = old.require('old-source');
+          await file.writeAsString(jsonEncode(AssetCatalog(records: [
+            record.copyWith(
+                artifact: ContentArtifactRef(
+                    digest: record.artifact.digest,
+                    mediaType: 'application/octet-stream',
+                    byteLength: record.artifact.byteLength))
+          ]).toJson()));
+        }
+        final assetFile = File('${h.root.path}/$assetCatalogStorageKey');
+        final beforeAssets = await assetFile.readAsBytes();
+        final source = AssetCatalog.fromJson(
+                jsonDecode(utf8.decode(beforeAssets)) as Map<String, dynamic>)
+            .require('old-source');
+        final blob =
+            File('${h.root.path}/${assetBlobStorageKey(source.artifact)}');
+        final beforeBlob = await blob.readAsBytes();
+        final projectBefore =
+            await File('${h.root.path}/project.json').readAsBytes();
+        const params = <String, Object?>{
+          'assetId': 'old-source',
+          'mediaId': 'library-sound',
+          'label': 'Library sound'
+        };
+        final mediaFile = File('${h.root.path}/$projectMediaCatalogStorageKey');
+        final dry = await plan(
+            'project.audio.media.adopt_asset', params, 'dry-adopt',
+            dryRun: true);
+        expect(dry['applicable'], isFalse);
+        expect(await mediaFile.exists(), isFalse);
+        h.reader.paths.clear();
+        var adoptedPlan =
+            await plan('project.audio.media.adopt_asset', params, 'adopt');
+        if (!catalog && !cinematic) {
+          await mediaFile.writeAsBytes(
+              encodeProjectMediaCatalogBytes(ProjectMediaCatalog()));
+          await expectLater(
+              apply(adoptedPlan, 'stale-adopt'), throwsA(anything));
+          adoptedPlan = await plan(
+              'project.audio.media.adopt_asset', params, 'adopt-fresh');
+        }
+        if (catalog && !cinematic) {
+          final changed = List<int>.of(beforeBlob)..[beforeBlob.length - 1] = 1;
+          await blob.writeAsBytes(changed);
+          await expectLater(
+              apply(adoptedPlan, 'stale-source'), throwsA(anything));
+          expect(await mediaFile.exists(), isFalse);
+          await blob.writeAsBytes(beforeBlob);
+          adoptedPlan = await plan('project.audio.media.adopt_asset', params,
+              'adopt-restored-source');
+        }
+        final adopted = await apply(adoptedPlan, 'adopt');
+        expect((await apply(adoptedPlan, 'adopt')), adopted);
+        final entry =
+            decodeProjectMediaCatalogBytes(await mediaFile.readAsBytes())
+                .entries
+                .single;
+        expect(entry.id, 'library-sound');
+        expect(entry.sourceAssetId, 'old-source');
+        expect(entry.technicalMetadata!.mediaType, 'audio/wav');
+        final noOpScope = await h.api.readWorkshopSnapshot(
+            h.opened.projectHandle,
+            actionId: 'project.audio.media.adopt_asset',
+            parameters: params);
+        expect(
+            noOpScope
+                .hasResource(assetBlobResourceIdentity(source.artifact.digest)),
+            isFalse);
+        final repeated = await plan('project.audio.media.adopt_asset',
+            {...params, 'mediaId': 'ignored'}, 'already-adopted');
+        expect(repeated['applicable'], isFalse);
+        expect((repeated['plan'] as Map)['preview'],
+            containsPair('existingMediaId', 'library-sound'));
+        expect(await assetFile.readAsBytes(), beforeAssets);
+        expect(await blob.readAsBytes(), beforeBlob);
+        expect(await blob.parent.list().length, 1);
+        expect(await File('${h.root.path}/project.json').readAsBytes(),
+            projectBefore);
+        expect(
+            h.reader.paths.where((path) => path.startsWith('maps/')), isEmpty);
+        await h.api.undoMutation(h.opened.projectHandle,
+            entryId: (adopted['receipt'] as Map)['receiptId'] as String,
+            idempotencyKey: 'undo-adopt');
+        expect(await assetFile.readAsBytes(), beforeAssets);
+        expect(await blob.readAsBytes(), beforeBlob);
+        await apply(
+            await plan('project.audio.media.adopt_asset', params, 'readopt'),
+            'readopt');
+        await apply(
+            await plan(
+                'project.audio.cue.configure',
+                {
+                  'cueId': 'ui.confirm',
+                  'binding': {
+                    'source': 'custom',
+                    'mediaId': 'library-sound',
+                    'gain': .5
+                  }
+                },
+                'assign'),
+            'assign');
+        final reopened = await h.api.readWorkshopSnapshot(
+            h.opened.projectHandle,
+            actionId: 'project.audio.cue.configure');
+        expect(
+            reopened.manifest.settings.audio!
+                .bindingFor(ProjectSoundCue.uiConfirm)
+                .mediaId,
+            'library-sound');
+        expect(await assetFile.readAsBytes(), beforeAssets);
+        expect(await blob.readAsBytes(), beforeBlob);
+      });
+    }
+  }
   test(
       'native revision observations are bounded and released with their handles',
       () async {
@@ -247,6 +552,54 @@ void main() {
                 .entries
                 .map((entry) => entry.id),
             ['sound-0']);
+        final sourceAssets =
+            await File('${h.root.path}/$assetCatalogStorageKey').readAsBytes();
+        await File('${h.root.path}/$projectMediaCatalogStorageKey').delete();
+        final adoptionReads = <int>[];
+        const adoption = <String, Object?>{
+          'assetId': 'sound-0',
+          'mediaId': 'sound-0',
+          'label': 'Sound 0'
+        };
+        for (var repeat = 0; repeat < 2; repeat++) {
+          h.reader.paths.clear();
+          final scoped = await h.api.readWorkshopSnapshot(
+              h.opened.projectHandle,
+              actionId: 'project.audio.media.adopt_asset',
+              parameters: adoption);
+          final plan = await h.api.planMutation(
+              h.opened.projectHandle,
+              AuthoringRequest(
+                  requestId: 'adopt-$repeat',
+                  actionId: 'project.audio.media.adopt_asset',
+                  actionVersion: 1,
+                  workspaceHandle: h.opened.workspaceHandle.value,
+                  expectedRevision: scoped.revision,
+                  idempotencyKey: 'adopt-$repeat',
+                  parameters: adoption));
+          if (repeat == 0) {
+            await h.api.applyMutation(h.opened.projectHandle,
+                planId: plan.planId, operationId: 'adopt-$repeat');
+          } else {
+            expect(plan.applicable, isFalse);
+            final source = AssetCatalog.fromJson(
+                    jsonDecode(utf8.decode(sourceAssets))
+                        as Map<String, dynamic>)
+                .require('sound-0');
+            expect(
+                scoped.hasResource(
+                    assetBlobResourceIdentity(source.artifact.digest)),
+                isFalse);
+          }
+          adoptionReads.add(h.reader.paths.length);
+          expect(h.reader.paths.where((path) => path.startsWith('maps/')),
+              isEmpty);
+          expect(h.reader.paths.where(h.unrelatedPaths.contains), isEmpty);
+          expect(h.reader.paths.length, lessThan(240));
+        }
+        expect(
+            await File('${h.root.path}/$assetCatalogStorageKey').readAsBytes(),
+            sourceAssets);
         final gainReads = <int>[];
         final savedAssets =
             await File('${h.root.path}/$assetCatalogStorageKey').readAsBytes();
@@ -294,7 +647,8 @@ void main() {
           'audioImportCatalog': catalog,
           'unrelated': unrelated,
           'reads': counts,
-          'customGainReads': gainReads
+          'customGainReads': gainReads,
+          'adoptionReads': adoptionReads
         }));
       },
           timeout: const Timeout(Duration(minutes: 8)),

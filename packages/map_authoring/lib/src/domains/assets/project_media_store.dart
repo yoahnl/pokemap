@@ -15,3 +15,23 @@ ProjectMediaCatalog decodeProjectMediaCatalogBytes(List<int> bytes) {
 
 List<int> encodeProjectMediaCatalogBytes(ProjectMediaCatalog catalog) =>
     List<int>.unmodifiable(utf8.encode(jsonEncode(catalog.toJson())));
+
+Map<String, dynamic> readProjectMediaCatalogDocumentBytes(List<int>? bytes) {
+  final raw = bytes == null
+      ? {'schemaVersion': 1, 'entries': <Object?>[]}
+      : jsonDecode(utf8.decode(bytes));
+  if (raw is! Map || raw['schemaVersion'] != 1 || raw['entries'] is! List) {
+    throw const FormatException('The project media catalog is invalid.');
+  }
+  return Map<String, dynamic>.from(raw);
+}
+
+ProjectMediaAsset? findProjectAudioMediaForSource(
+    Map<String, dynamic> document, String assetId) {
+  final matches = (document['entries'] as List).whereType<Map>().where(
+      (entry) => entry['sourceAssetId'] == assetId && entry['kind'] == 'audio');
+  final first = matches.firstOrNull;
+  return first == null
+      ? null
+      : ProjectMediaAsset.fromJson(Map<String, Object?>.from(first));
+}

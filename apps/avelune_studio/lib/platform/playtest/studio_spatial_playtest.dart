@@ -185,6 +185,7 @@ final class StudioSpatialPlaytest {
           ProjectContactDeviceConfig.capabilityId,
           SurfGameplayCapabilities.capabilityId,
           FieldAbilityActivationCapabilities.capabilityId,
+          FieldAbilityActivationCapabilities.extendedCapabilityId,
           ProjectAudioCapabilities.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,

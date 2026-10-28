@@ -6,6 +6,95 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final dimension in ProjectDimension.values) {
+    test(
+        'eleven CS activation round trips without changing Surf or mechanics in $dimension',
+        () async {
+      final h = await _ProjectSettingsHarness.create(dimension: dimension);
+      addTearDown(h.dispose);
+      final initialSurf = ((await h.document())['settings'] as Map)['surf'];
+      for (final id in ['dive', 'rock_climb', 'defog']) {
+        await h.mutate(
+            'field_ability.configure', {'abilityId': id, 'enabled': false});
+      }
+      var settings = (await h.document())['settings'] as Map;
+      expect(settings['fieldAbilities'], {
+        'disabledAbilities': ['defog', 'dive', 'rock_climb']
+      });
+      expect(settings['surf'], initialSurf);
+      await h.mutate(
+          'field_ability.configure', {'abilityId': 'dive', 'enabled': true});
+      settings = (await h.document())['settings'] as Map;
+      expect(settings['fieldAbilities'], {
+        'disabledAbilities': ['defog', 'rock_climb']
+      });
+      final page = await h.read.queryProject(
+          h.opened.projectHandle,
+          AuthoringQueryRequest(
+              resourceKind: 'fieldAbilityConfiguration',
+              operation: AuthoringQueryOperation.get,
+              ids: const ['project']));
+      final abilities = page.items.single['abilities'] as List;
+      expect(abilities, hasLength(11));
+      for (final id in ['rock_climb', 'defog']) {
+        final entry =
+            abilities.singleWhere((entry) => entry['id'] == id) as Map;
+        expect(entry['activationOnly'], isTrue);
+        expect(entry['enabled'], isFalse);
+        expect(entry['label'], id == 'rock_climb' ? 'Escalade' : 'Anti-Brume');
+      }
+      final before = await h.document();
+      await expectLater(
+          h.mutate('field_ability.configure',
+              {'abilityId': 'unknown', 'enabled': false}),
+          throwsFormatException);
+      expect(await h.document(), before);
+      for (final id in ['rock_climb', 'defog']) {
+        await h.mutate(
+            'field_ability.configure', {'abilityId': id, 'enabled': true});
+      }
+      settings = (await h.document())['settings'] as Map;
+      expect(settings.containsKey('fieldAbilities'), isFalse);
+      expect(settings['surf'], initialSurf);
+      expect((await h.document())['customExtension'], {'preserve': true});
+    });
+  }
+
+  test(
+      'audio adoption revision read does not report unloaded settings as empty',
+      () async {
+    final h = await _ProjectSettingsHarness.create();
+    addTearDown(h.dispose);
+    await h.mutate('project.audio.cue.configure', {
+      'cueId': 'ui.confirm',
+      'binding': {'source': 'silent', 'gain': 1.0}
+    });
+    final settings = await h.read.queryProject(
+        h.opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'projectAudio',
+            operation: AuthoringQueryOperation.get,
+            ids: const ['project']));
+    expect(settings.items.single['configuration'], isNotNull);
+    final scoped = await h.read.queryProject(
+        h.opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'projectAudio',
+            operation: AuthoringQueryOperation.get,
+            ids: const [
+              'project'
+            ],
+            extensions: const {
+              'actionId': 'project.audio.media.adopt_asset',
+              'parameters': {
+                'assetId': 'missing',
+                'mediaId': 'new',
+                'label': 'New'
+              }
+            }));
+    expect(scoped.items.single.containsKey('configuration'), isFalse);
+    expect(scoped.items.single['configurationAvailable'], isFalse);
+  });
   test('JSONL configures CS and sound with discoverable scoped revisions',
       () async {
     final h = await _ProjectSettingsHarness.create();

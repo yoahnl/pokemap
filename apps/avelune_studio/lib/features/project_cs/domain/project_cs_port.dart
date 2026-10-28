@@ -16,4 +16,10 @@ abstract interface class ProjectCsPort {
     bool enabled,
     String expectedRevision,
   );
+  Future<ProjectCsState> saveFieldAbilityId(
+    ProjectSession session,
+    String abilityId,
+    bool enabled,
+    String expectedRevision,
+  );
 }

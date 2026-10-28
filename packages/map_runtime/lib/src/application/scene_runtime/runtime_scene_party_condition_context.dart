@@ -22,6 +22,7 @@ Future<ScenePartyConditionContext> loadRuntimeScenePartyConditionContext({
   Iterable<FieldAbility> supportedFieldAbilities = const [],
   RuntimeMoveCatalogLoader? moveCatalogLoader,
   ProjectSettings? projectSettings,
+  ScriptEvaluationContext? conditionContext,
 }) async {
   final moveIds = <String>{
     for (final node in scene.graph.nodes)
@@ -34,6 +35,7 @@ Future<ScenePartyConditionContext> loadRuntimeScenePartyConditionContext({
     return ScenePartyConditionContext(
       supportedFieldAbilities: supportedFieldAbilities,
       projectSettings: projectSettings,
+      conditionContext: conditionContext,
     );
   }
   final moves = await (moveCatalogLoader ?? RuntimeMoveCatalogLoader()).load(
@@ -49,5 +51,6 @@ Future<ScenePartyConditionContext> loadRuntimeScenePartyConditionContext({
     availableMoveIds: moves.entriesById.keys,
     supportedFieldAbilities: supportedFieldAbilities,
     projectSettings: projectSettings,
+    conditionContext: conditionContext,
   );
 }

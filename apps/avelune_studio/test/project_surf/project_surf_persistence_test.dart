@@ -1,3 +1,4 @@
+import 'package:image/image.dart' as image;
 import 'package:avelune_studio/features/project_audio/application/project_audio_controller.dart';
 import 'package:avelune_studio/features/project_cs/application/project_cs_controller.dart';
 import 'package:avelune_studio/presentation/features/project_settings/project_audio_panel.dart';
@@ -20,6 +21,296 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
+  for (final storage in [
+    ProjectSessionStorage.manifest,
+    ProjectSessionStorage.workingCatalog,
+  ]) {
+    test(
+      'configuration-only CS persist by ID without map reads for $storage',
+      () async {
+        final root = await Directory.systemTemp.createTemp('eleven-cs-');
+        addTearDown(() => root.delete(recursive: true));
+        const project = ProjectManifest(
+          name: 'Eleven CS',
+          maps: [],
+          tilesets: [],
+          settings: ProjectSettings(
+            surf: ProjectSurfSettings(speedCellsPerSecond: 6),
+          ),
+        );
+        if (storage == ProjectSessionStorage.workingCatalog) {
+          final store = await CatalogStorageStore.open(projectRoot: root.path);
+          await WorkingProjectCatalog.create(
+            store: store,
+            projectId: 'eleven',
+            project: project,
+          );
+        } else {
+          await File('${root.path}/project.json')
+              .writeAsString(jsonEncode(project.toJson()));
+        }
+        final session = ProjectSession(
+          sessionId: root.path,
+          name: 'Eleven CS',
+          directoryPath: root.path,
+          storage: storage,
+        );
+        final reader = _Reader();
+        final adapter = LocalMapWorkspaceAdapter(reader: reader);
+        if (storage == ProjectSessionStorage.manifest) {
+          await adapter.loadProject(session);
+        } else {
+          await adapter.loadCatalog(session);
+        }
+        final owner = ProjectCsController(session: session, port: adapter);
+        addTearDown(owner.dispose);
+        await owner.open();
+        reader.paths.clear();
+        owner.setEnabledId('rock_climb', false);
+        owner.setEnabledId('defog', false);
+        expect(reader.paths, isEmpty);
+        expect(await owner.save(), isTrue, reason: owner.error);
+        final reopened = await LocalMapWorkspaceAdapter().loadFieldAbilities(
+          session,
+        );
+        expect(reopened.configuration!.disabledAbilityIds, {
+          'rock_climb',
+          'defog',
+        });
+        owner.setEnabledId('rock_climb', true);
+        expect(await owner.save(), isTrue, reason: owner.error);
+        expect(
+          (await LocalMapWorkspaceAdapter().loadFieldAbilities(session))
+              .configuration!
+              .disabledAbilityIds,
+          {'defog'},
+        );
+        expect(
+          (await adapter.loadSurf(session)).configuration!.speedCellsPerSecond,
+          6,
+        );
+        expect(reader.paths.where((path) => path.startsWith('maps/')), isEmpty);
+      },
+    );
+  }
+
+  for (final storage in [
+    ProjectSessionStorage.manifest,
+    ProjectSessionStorage.workingCatalog,
+  ]) {
+    test(
+      'legacy AssetCatalog audio adopts the same blob once for $storage',
+      () async {
+        final root = await Directory.systemTemp.createTemp('legacy-audio-');
+        addTearDown(() => root.delete(recursive: true));
+        const project = ProjectManifest(
+          name: 'Historical audio',
+          maps: [],
+          tilesets: [],
+        );
+        if (storage == ProjectSessionStorage.workingCatalog) {
+          final store = await CatalogStorageStore.open(projectRoot: root.path);
+          await WorkingProjectCatalog.create(
+            store: store,
+            projectId: 'historical',
+            project: project,
+          );
+        } else {
+          await File('${root.path}/project.json')
+              .writeAsString(jsonEncode(project.toJson()));
+        }
+        final artifact = ContentArtifactRef.fromBytes(
+          _audioWav(),
+          mediaType: 'application/octet-stream',
+        );
+        final source = File('${root.path}/${assetBlobStorageKey(artifact)}');
+        await source.parent.create(recursive: true);
+        await source.writeAsBytes(_audioWav());
+        final assetCatalog = File('${root.path}/$assetCatalogStorageKey');
+        await assetCatalog.writeAsString(
+          jsonEncode(
+            AssetCatalog(
+              records: [
+                AssetRecord(
+                  id: 'old-bell',
+                  logicalPath: 'assets/audio/historical-bell.wav',
+                  artifact: artifact,
+                ),
+              ],
+            ).toJson(),
+          ),
+        );
+        final originalAssets = await assetCatalog.readAsBytes();
+        final originalBlob = await source.readAsBytes();
+        final session = ProjectSession(
+          sessionId: root.path,
+          name: 'Historical audio',
+          directoryPath: root.path,
+          storage: storage,
+        );
+        final reader = _Reader();
+        final adapter = LocalMapWorkspaceAdapter(reader: reader);
+        if (storage == ProjectSessionStorage.manifest) {
+          await adapter.loadProject(session);
+        } else {
+          await adapter.loadCatalog(session);
+        }
+        final state = await adapter.loadAudio(session);
+        reader.paths.clear();
+        expect((await adapter.queryAudio(session)).entries, isEmpty);
+        final legacy = await adapter.queryLegacyAudio(session);
+        expect(legacy.entries.single.id, 'old-bell');
+        expect(legacy.entries.single.label, 'historical-bell.wav');
+        final adopted = await adapter.adoptAudioAsset(
+          session,
+          'old-bell',
+          'adopted-bell',
+          'Ancienne cloche',
+          state.revision,
+        );
+        expect(adopted.entry.id, 'adopted-bell');
+        expect(adopted.entry.label, 'Ancienne cloche');
+        final mediaFile = File('${root.path}/$projectMediaCatalogStorageKey');
+        final firstMediaBytes = await mediaFile.readAsBytes();
+        final adoptionReads = [...reader.paths];
+        reader.paths.clear();
+        final duplicate = await adapter.adoptAudioAsset(
+          session,
+          'old-bell',
+          'unwanted-duplicate',
+          'Ignored label',
+          adopted.revision,
+        );
+        expect(reader.paths, isNot(contains(assetBlobStorageKey(artifact))));
+        expect(duplicate.entry.id, 'adopted-bell');
+        expect(duplicate.entry.label, 'Ancienne cloche');
+        expect(await mediaFile.readAsBytes(), firstMediaBytes);
+        expect(await assetCatalog.readAsBytes(), originalAssets);
+        expect(await source.readAsBytes(), originalBlob);
+        final catalog = decodeProjectMediaCatalogBytes(firstMediaBytes);
+        expect(catalog.entries, hasLength(1));
+        expect(catalog.entries.single.sourceAssetId, 'old-bell');
+        expect(
+          catalog.entries.single.technicalMetadata!.durationMilliseconds,
+          1000,
+        );
+        final resolved = await adapter.resolveAudio(
+          session,
+          duplicate.entry.id,
+        );
+        expect(resolved.path, source.path);
+        expect(resolved.mimeType, 'audio/wav');
+        expect(await File(resolved.path).readAsBytes(), originalBlob);
+        await adapter.saveAudioCue(
+          session,
+          ProjectSoundCue.uiConfirm,
+          ProjectSoundBinding(
+            source: ProjectSoundSource.custom,
+            mediaId: duplicate.entry.id,
+          ),
+          duplicate.revision,
+        );
+        final reopened = await LocalMapWorkspaceAdapter().loadAudio(session);
+        expect(
+          reopened.configuration!.cues[ProjectSoundCue.uiConfirm]!.mediaId,
+          'adopted-bell',
+        );
+        await assetCatalog.writeAsString(
+          jsonEncode(
+            AssetCatalog(
+              records: [
+                AssetRecord(
+                  id: 'old-bell',
+                  logicalPath: 'assets/audio/historical-bell.wav',
+                  artifact: ContentArtifactRef(
+                    digest: artifact.digest,
+                    mediaType: 'audio/ogg',
+                    byteLength: artifact.byteLength,
+                  ),
+                ),
+              ],
+            ).toJson(),
+          ),
+        );
+        await expectLater(
+          adapter.resolveAudio(session, duplicate.entry.id),
+          throwsStateError,
+        );
+        await assetCatalog.writeAsBytes(originalAssets);
+        await source.writeAsBytes(
+          originalBlob.sublist(0, originalBlob.length - 1),
+        );
+        await expectLater(
+          adapter.resolveAudio(session, duplicate.entry.id),
+          throwsStateError,
+        );
+        final corrupted = List<int>.of(originalBlob)
+          ..[originalBlob.length - 1] ^= 1;
+        await source.writeAsBytes(corrupted);
+        await expectLater(
+          adapter.resolveAudio(session, duplicate.entry.id),
+          throwsA(
+            isA<ProjectAudioSourceException>().having(
+              (error) => error.code,
+              'code',
+              'project_audio.source_digest_mismatch',
+            ),
+          ),
+        );
+        await source.writeAsBytes(originalBlob);
+        final png = image.encodePng(image.Image(width: 1, height: 1));
+        final pngArtifact = ContentArtifactRef.fromBytes(
+          png,
+          mediaType: 'application/octet-stream',
+        );
+        await File('${root.path}/${assetBlobStorageKey(pngArtifact)}')
+            .writeAsBytes(png);
+        await assetCatalog.writeAsString(
+          jsonEncode(
+            AssetCatalog(
+              records: [
+                AssetRecord(
+                  id: 'old-bell',
+                  logicalPath: 'assets/audio/historical-bell.wav',
+                  artifact: pngArtifact,
+                ),
+              ],
+            ).toJson(),
+          ),
+        );
+        final forged = ProjectMediaAsset.fromJson({
+          ...catalog.entries.single.toJson(),
+          'technicalMetadata': {
+            ...catalog.entries.single.technicalMetadata!.toJson(),
+            'sizeBytes': png.length,
+          },
+        });
+        await mediaFile.writeAsBytes(
+          encodeProjectMediaCatalogBytes(
+            ProjectMediaCatalog(entries: [forged]),
+          ),
+        );
+        await expectLater(
+          adapter.resolveAudio(session, duplicate.entry.id),
+          throwsA(
+            isA<ProjectAudioSourceException>().having(
+              (error) => error.code,
+              'code',
+              'presentation_media.mime_mismatch',
+            ),
+          ),
+        );
+        expect(
+          [
+            ...adoptionReads,
+            ...reader.paths,
+          ].where((path) => path.startsWith('maps/')),
+          isEmpty,
+        );
+      },
+    );
+  }
+
   testWidgets(
     'CS and Son widgets persist their drafts through canonical actions and reopen',
     (tester) async {
@@ -33,6 +324,28 @@ void main() {
             name: 'Settings',
             maps: [],
             tilesets: [],
+          ),
+        );
+        final oldArtifact = ContentArtifactRef.fromBytes(
+          _audioWav(),
+          mediaType: 'audio/wav',
+        );
+        final oldFile = File(
+          '${root.path}/${assetBlobStorageKey(oldArtifact)}',
+        );
+        await oldFile.parent.create(recursive: true);
+        await oldFile.writeAsBytes(_audioWav());
+        await File('${root.path}/$assetCatalogStorageKey').writeAsString(
+          jsonEncode(
+            AssetCatalog(
+              records: [
+                AssetRecord(
+                  id: 'widget-old',
+                  logicalPath: 'assets/audio/old-bell.wav',
+                  artifact: oldArtifact,
+                ),
+              ],
+            ).toJson(),
           ),
         );
         final session = ProjectSession(
@@ -58,6 +371,7 @@ void main() {
         await cs.open();
         await surf.open();
         await audio.open();
+        await audio.loadLegacyLibrary();
         return (
           root: root,
           session: session,
@@ -89,6 +403,17 @@ void main() {
       await tester.ensureVisible(find.byKey(const ValueKey('cs-dive')));
       await tester.tap(find.byKey(const ValueKey('cs-dive')));
       await tester.pump();
+      for (final id in ['rock_climb', 'defog']) {
+        final row = find.byKey(ValueKey('cs-$id'));
+        await tester.ensureVisible(row);
+        await tester.tap(row);
+        await tester.pump();
+      }
+      expect(fixture.cs.preview.value.disabledAbilityIds, {
+        'dive',
+        'rock_climb',
+        'defog',
+      });
       expect(fixture.reader.paths.length, reads);
       await tester.ensureVisible(find.byKey(const ValueKey('save-project-cs')));
       await tester.runAsync(() async {
@@ -120,20 +445,49 @@ void main() {
       await tester.pumpAndSettle();
       expect(fixture.audio.error, isNull);
       expect(fixture.audio.dirty, isFalse);
+      final adopt = find.byKey(
+        const ValueKey('adopt-project-audio-widget-old'),
+      );
+      await tester.ensureVisible(adopt);
+      await tester.runAsync(() async {
+        await tester.tap(adopt);
+        while (fixture.audio.busy) {
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+        }
+      });
+      await tester.pumpAndSettle();
+      expect(fixture.audio.error, isNull);
+      expect(fixture.audio.dirty, isTrue);
+      expect(
+        fixture.audio.preview.value.cues[ProjectSoundCue.uiConfirm]!.source,
+        ProjectSoundSource.custom,
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('save-project-audio')),
+      );
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const ValueKey('save-project-audio')));
+        while (fixture.audio.saving) {
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+        }
+      });
+      await tester.pumpAndSettle();
+      expect(fixture.audio.error, isNull);
+      expect(fixture.audio.dirty, isFalse);
       await tester.runAsync(() async {
         final reopened = LocalMapWorkspaceAdapter();
         expect(
           (await reopened.loadFieldAbilities(fixture.session))
               .configuration!
-              .disabledAbilities,
-          {FieldAbility.dive},
+              .disabledAbilityIds,
+          {'dive', 'rock_climb', 'defog'},
         );
         expect(
           (await reopened.loadAudio(fixture.session))
               .configuration!
               .cues[ProjectSoundCue.uiConfirm]!
               .source,
-          ProjectSoundSource.builtin,
+          ProjectSoundSource.custom,
         );
       });
       expect(

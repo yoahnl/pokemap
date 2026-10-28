@@ -8,7 +8,8 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
   required Map<String, String> readDependencies,
 }) async {
   final configuring = actionId == 'project.battle_audio.update';
-  final presentation = actionId == 'presentationMedia.import';
+  final adopting = actionId == 'project.audio.media.adopt_asset';
+  final presentation = actionId == 'presentationMedia.import' || adopting;
   final importingBytes =
       actionId == 'asset.import' || actionId == 'asset.import_batch';
   final sections = importingBytes || presentation
@@ -61,6 +62,25 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
     if (presentation) {
       await readFile(
           projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    }
+    if (adopting) {
+      final assetId = parameters['assetId'];
+      if (assetId is! String) {
+        throw const FormatException('Choose a source asset identity.');
+      }
+      final source = readAssetRecordFromCatalogBytes(
+          bytes[assetCatalogResourceIdentity], assetId);
+      final attached = findProjectAudioMediaForSource(
+          readProjectMediaCatalogDocumentBytes(
+              bytes[projectMediaCatalogResourceIdentity]),
+          assetId);
+      if (source != null &&
+          (source.artifact.mediaType.startsWith('audio/') ||
+              source.artifact.mediaType == 'application/octet-stream') &&
+          attached == null) {
+        await readFile(assetBlobResourceIdentity(source.artifact.digest),
+            assetBlobStorageKey(source.artifact));
+      }
     }
     final inputs =
         actionId == 'asset.import_batch' ? parameters['entries'] : [parameters];

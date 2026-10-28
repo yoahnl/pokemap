@@ -1088,12 +1088,31 @@ final class RuntimeProjectProjectionBuilder {
       }
       final metadata = media.technicalMetadata!;
       if (record.artifact.byteLength != metadata.sizeBytes ||
-          record.artifact.mediaType != metadata.mediaType) {
+          (media.kind == ProjectMediaKind.audio
+              ? !projectAudioSourceMimeMatches(record.artifact.mediaType, metadata.mediaType)
+              : record.artifact.mediaType != metadata.mediaType)) {
         throw GamePackageExportException(
           code: 'presentationMediaSourceMetadataMismatch',
           path: 'media[${media.id}].technicalMetadata',
           message: 'Presentation media metadata does not match its source.',
         );
+      }
+      if (media.kind == ProjectMediaKind.audio) {
+        final bytes = await authorFiles.read(record.logicalPath, budget);
+        try {
+          final observed = const PresentationMediaHeaderProbe().inspect(bytes,
+              declaredMediaType: metadata.mediaType);
+          if (!observed.mediaType.startsWith('audio/') || observed.sizeBytes != metadata.sizeBytes) {
+            throw const PresentationMediaProbeException('presentation_media.audio_required',
+                'The selected source does not contain the declared audio media.');
+          }
+        } on PresentationMediaProbeException catch (error) {
+          throw GamePackageExportException(
+              code: 'presentationMediaSourceContentMismatch',
+              path: 'media[${media.id}].sourceAssetId',
+              message: 'The selected source bytes do not contain the declared audio media.',
+              cause: error);
+        }
       }
       packagedSourceAssetIds.add(media.sourceAssetId);
     }

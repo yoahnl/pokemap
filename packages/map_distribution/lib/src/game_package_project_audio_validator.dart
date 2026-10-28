@@ -6,6 +6,7 @@ import 'game_package_format_exception.dart';
 import 'game_package_security_policy.dart';
 import 'game_package_spatial_project_validator.dart';
 import 'game_package_source_assets.dart';
+import 'presentation_media_probe.dart';
 
 void validateGamePackageProjectAudio({
   required ProjectManifest project,
@@ -63,7 +64,10 @@ void validateGamePackageProjectAudio({
     final metadata = entry.technicalMetadata!;
     if (source == null ||
         source.byteLength != metadata.sizeBytes ||
-        source.mediaType != metadata.mediaType) {
+        (entry.kind == ProjectMediaKind.audio
+            ? !projectAudioSourceMimeMatches(
+                source.mediaType, metadata.mediaType)
+            : source.mediaType != metadata.mediaType)) {
       fail('Project audio source metadata does not match its media.');
     }
     final digest = source.digest;
@@ -77,6 +81,20 @@ void validateGamePackageProjectAudio({
             ]) !=
             digest) {
       fail('Project audio source blob does not match its asset catalog.');
+    }
+    if (entry.kind == ProjectMediaKind.audio) {
+      try {
+        final observed = const PresentationMediaHeaderProbe()
+            .inspect(blob, declaredMediaType: metadata.mediaType);
+        if (!observed.mediaType.startsWith('audio/') ||
+            observed.sizeBytes != metadata.sizeBytes) {
+          fail(
+              'Project audio source bytes do not contain the declared audio media.');
+        }
+      } on PresentationMediaProbeException {
+        fail(
+            'Project audio source bytes do not contain the declared audio media.');
+      }
     }
   }
 }

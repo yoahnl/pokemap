@@ -5,6 +5,7 @@ const _nativeWorkshopActions = {
   'field_ability.configure',
   'project.audio.cue.configure',
   'presentationMedia.import',
+  'project.audio.media.adopt_asset',
   'campaign.battle_savings.update',
   'pokemon.ruleset.set',
   'campaign.encounter_table.upsert',
@@ -102,7 +103,8 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         'This workshop loader requires a native project document.');
   }
   final raw = Map<String, dynamic>.from(decoded);
-  final presentationImport = actionId == 'presentationMedia.import';
+  final adoptingAudio = actionId == 'project.audio.media.adopt_asset';
+  final presentationImport = actionId == 'presentationMedia.import' || adoptingAudio;
   final guided = actionId == 'event_v2.template.apply' ||
       actionId == 'narrative.publish_document';
   final sections = <String>{if (!presentationImport) 'pokemon', if (guided || const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) 'settings'};
@@ -197,6 +199,17 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   if (presentationImport) {
     await read(assetCatalogResourceIdentity, assetCatalogStorageKey);
     await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    if (adoptingAudio) {
+      final assetId = parameters['assetId'];
+      if (assetId is! String) throw const FormatException('Choose a source asset identity.');
+      List<int>? loaded(String identity) => resources.where((r) => r.identity == identity).firstOrNull?.bytes?.bytes;
+      final source = readAssetRecordFromCatalogBytes(loaded(assetCatalogResourceIdentity), assetId);
+      final attached = findProjectAudioMediaForSource(
+          readProjectMediaCatalogDocumentBytes(loaded(projectMediaCatalogResourceIdentity)), assetId);
+      if (source != null && (source.artifact.mediaType.startsWith('audio/') || source.artifact.mediaType == 'application/octet-stream') && attached == null) {
+        await read(assetBlobResourceIdentity(source.artifact.digest), assetBlobStorageKey(source.artifact));
+      }
+    }
     final handle = parameters['artifactHandle'];
     if (handle is String) {
       final match = RegExp(r'^artifact://sha256/([0-9a-f]{64})$').firstMatch(handle);

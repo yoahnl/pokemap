@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/application/scene_runtime/runtime_scene_party_condition_context.dart';
 
@@ -9,11 +10,15 @@ void main() {
     for (final source in [
       SceneConditionSource.partyCanReceivePokemon(),
       SceneConditionSource.partyCanUseFieldAbility(ability: FieldAbility.surf),
-      SceneConditionSource.partyCanUseFieldAbility(ability: FieldAbility.whirlpool),
+      SceneConditionSource.partyCanUseFieldAbility(
+        ability: FieldAbility.whirlpool,
+      ),
     ]) {
       final context = await loadRuntimeScenePartyConditionContext(
-        scene: _scene(source), projectRootDirectory: '/unused',
-        pokemonConfig: _config, moveCatalogLoader: loader,
+        scene: _scene(source),
+        projectRootDirectory: '/unused',
+        pokemonConfig: _config,
+        moveCatalogLoader: loader,
         supportedFieldAbilities: twoDSceneFieldAbilities,
       );
       expect(context.availableMoveIds, isNull);
@@ -23,11 +28,57 @@ void main() {
     expect(loader.reads, 0);
   });
 
+  test(
+    'Surf Scene passes project fact context without loading a Pokemon catalog',
+    () async {
+      final loader = _MoveLoader();
+      final source = SceneConditionSource.partyCanUseFieldAbility(
+        ability: FieldAbility.surf,
+      );
+      final context = await loadRuntimeScenePartyConditionContext(
+        scene: _scene(source),
+        projectRootDirectory: '/unused',
+        pokemonConfig: _config,
+        moveCatalogLoader: loader,
+        supportedFieldAbilities: const {FieldAbility.surf},
+        projectSettings: ProjectSettings(
+          surf: const ProjectSurfSettings(
+            requiresKnownMove: false,
+            accessMode: ProjectSurfAccessMode.condition,
+            condition: ScriptCondition(
+              type: ScriptConditionType.flagIsSet,
+              params: {'flagName': 'license'},
+            ),
+          ),
+        ),
+        conditionContext: ScriptEvaluationContext(
+          narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts([
+            NarrativeFactDefinition(
+              id: 'license',
+              label: 'License',
+              defaultValue: true,
+            ),
+          ]),
+        ),
+      );
+      expect(
+        evaluateScenePartyCondition(
+          source: source,
+          gameState: const GameState(saveId: 'surf-fact'),
+          context: context,
+        ),
+        isTrue,
+      );
+      expect(loader.reads, 0);
+    },
+  );
+
   test('a Scene without gifts receives the full active move catalog', () async {
     final loader = _MoveLoader();
     final context = await loadRuntimeScenePartyConditionContext(
       scene: _scene(SceneConditionSource.partyKnowsMove(moveId: 'selected')),
-      projectRootDirectory: '/unused', pokemonConfig: _config,
+      projectRootDirectory: '/unused',
+      pokemonConfig: _config,
       moveCatalogLoader: loader,
     );
     expect(loader.reads, 1);
@@ -38,34 +89,64 @@ void main() {
 
   test('an unknown move is refused while preparing the Scene', () async {
     final loader = _MoveLoader();
-    await expectLater(loadRuntimeScenePartyConditionContext(
-      scene: _scene(SceneConditionSource.partyHasUsableMove(moveId: 'missing')),
-      projectRootDirectory: '/unused', pokemonConfig: _config,
-      moveCatalogLoader: loader,
-    ), throwsFormatException);
+    await expectLater(
+      loadRuntimeScenePartyConditionContext(
+        scene: _scene(
+          SceneConditionSource.partyHasUsableMove(moveId: 'missing'),
+        ),
+        projectRootDirectory: '/unused',
+        pokemonConfig: _config,
+        moveCatalogLoader: loader,
+      ),
+      throwsFormatException,
+    );
     expect(loader.reads, 1);
   });
 }
 
-final _config = const ProjectManifest(name: 'Fixture', maps: [], tilesets: []).pokemon;
+final _config = const ProjectManifest(
+  name: 'Fixture',
+  maps: [],
+  tilesets: [],
+).pokemon;
 
 SceneAsset _scene(SceneConditionSource source) => SceneAsset(
-  id: 'party', name: 'Party context', graph: SceneGraph(startNodeId: 'start', nodes: [
-    SceneNode(id: 'start', kind: SceneNodeKind.start),
-    SceneNode(id: 'condition', kind: SceneNodeKind.condition, payload: SceneConditionPayload(conditionSource: source)),
-    SceneNode(id: 'end', kind: SceneNodeKind.end),
-  ], edges: const []),
+  id: 'party',
+  name: 'Party context',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'condition',
+        kind: SceneNodeKind.condition,
+        payload: SceneConditionPayload(conditionSource: source),
+      ),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ],
+    edges: const [],
+  ),
 );
 
 final class _MoveLoader extends RuntimeMoveCatalogLoader {
   var reads = 0;
 
   @override
-  Future<RuntimeMoveCatalog> load({required String projectRootDirectory, required ProjectPokemonConfig pokemonConfig}) async {
+  Future<RuntimeMoveCatalog> load({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+  }) async {
     reads++;
     return RuntimeMoveCatalog.fromEntries({
-      for (final id in ['selected', 'other']) id: PokemonMove(id: id, name: id, type: 'fixture-type',
-          category: PokemonMoveCategory.physical, accuracy: const PokemonMoveAccuracy.percent(value: 100), pp: 5),
+      for (final id in ['selected', 'other'])
+        id: PokemonMove(
+          id: id,
+          name: id,
+          type: 'fixture-type',
+          category: PokemonMoveCategory.physical,
+          accuracy: const PokemonMoveAccuracy.percent(value: 100),
+          pp: 5,
+        ),
     });
   }
 }

@@ -48,6 +48,7 @@ abstract final class AveluneRuntimeCompatibility {
           ProjectBattleSavingsConfig.capabilityId,
           SurfGameplayCapabilities.capabilityId,
           FieldAbilityActivationCapabilities.capabilityId,
+          FieldAbilityActivationCapabilities.extendedCapabilityId,
           ProjectAudioCapabilities.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,

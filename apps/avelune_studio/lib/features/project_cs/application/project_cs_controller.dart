@@ -48,19 +48,32 @@ final class ProjectCsController extends ChangeNotifier {
     }
   }
 
-  void setEnabled(FieldAbility ability, bool enabled) {
-    if (ability == FieldAbility.surf || saved == null || loading || saving) {
+  void setEnabled(FieldAbility ability, bool enabled) =>
+      setEnabledId(ability.moveId, enabled);
+
+  void setEnabledId(String abilityId, bool enabled) {
+    if (abilityId == FieldAbility.surf.moveId ||
+        saved == null ||
+        loading ||
+        saving) {
       return;
     }
-    final disabled = {...preview.value.disabledAbilities};
-    if (enabled) {
-      disabled.remove(ability);
-    } else {
-      disabled.add(ability);
+    if (!ProjectFieldAbilityRegistry.entries.any(
+      (entry) => entry.id == abilityId,
+    )) {
+      throw ArgumentError.value(
+        abilityId,
+        'abilityId',
+        'Unknown project field ability',
+      );
     }
-    final configuration = ProjectFieldAbilitiesSettings(
-      disabledAbilities: disabled,
-    );
+    final disabled = {...preview.value.disabledAbilityIds};
+    if (enabled) {
+      disabled.remove(abilityId);
+    } else {
+      disabled.add(abilityId);
+    }
+    final configuration = ProjectFieldAbilitiesSettings.fromIds(disabled);
     if (configuration == preview.value) return;
     _undo.add(preview.value);
     if (_undo.length > 100) _undo.removeAt(0);
@@ -114,18 +127,18 @@ final class ProjectCsController extends ChangeNotifier {
     notifyListeners();
     try {
       final draft = preview.value;
-      for (final ability in FieldAbility.values.where(
-        (ability) => ability != FieldAbility.surf,
+      for (final ability in ProjectFieldAbilityRegistry.entries.where(
+        (entry) => entry.id != 'surf',
       )) {
-        if (draft.disabledAbilities.contains(ability) ==
-            _base.disabledAbilities.contains(ability)) {
+        if (draft.disabledAbilityIds.contains(ability.id) ==
+            _base.disabledAbilityIds.contains(ability.id)) {
           continue;
         }
         final before = saved!.revision;
-        final state = await port.saveFieldAbility(
+        final state = await port.saveFieldAbilityId(
           session,
-          ability,
-          !draft.disabledAbilities.contains(ability),
+          ability.id,
+          !draft.disabledAbilityIds.contains(ability.id),
           before,
         );
         if (_disposed) return false;

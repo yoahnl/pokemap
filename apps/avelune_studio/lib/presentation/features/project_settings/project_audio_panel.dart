@@ -21,7 +21,7 @@ class ProjectAudioPanel extends StatefulWidget {
 
 class _ProjectAudioPanelState extends State<ProjectAudioPanel>
     with WidgetsBindingObserver {
-  String query = '';
+  String query = '', legacyQuery = '';
   ProjectSoundCue selected = ProjectSoundCue.uiConfirm;
   @override
   void initState() {
@@ -32,9 +32,11 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
 
   Future<void> open() async {
     await widget.owner.open();
-    if (mounted && widget.owner.library.isEmpty) {
-      await widget.owner.loadLibrary();
-    }
+    if (!mounted) return;
+    await Future.wait([
+      if (widget.owner.library.isEmpty) widget.owner.loadLibrary(),
+      if (widget.owner.legacyLibrary.isEmpty) widget.owner.loadLegacyLibrary(),
+    ]);
   }
 
   @override
@@ -271,6 +273,72 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                       : () => owner.loadLibrary(more: true),
                 ),
               if (owner.libraryError case final error?)
+                Text(
+                  error,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          StudioPanel(
+            title: 'Sons déjà présents dans le projet',
+            icon: Icons.audio_file_outlined,
+            children: [
+              const Text(
+                'Ces fichiers audio peuvent être ajoutés à la bibliothèque puis associés à une action. Leur fichier reste partagé, sans nouvelle copie.',
+              ),
+              const SizedBox(height: 10),
+              StudioDraftField(
+                label: 'Rechercher dans les sons du projet',
+                value: legacyQuery,
+                onChanged: (value) => legacyQuery = value,
+              ),
+              const SizedBox(height: 8),
+              StudioButton(
+                label: 'Rechercher dans le projet',
+                secondary: true,
+                icon: Icons.search,
+                onPressed: owner.legacyLoading
+                    ? null
+                    : () => owner.loadLegacyLibrary(query: legacyQuery),
+              ),
+              const SizedBox(height: 10),
+              for (final asset in owner.legacyLibrary.values)
+                StudioChoice(
+                  key: ValueKey('project-audio-legacy-${asset.id}'),
+                  onTap: null,
+                  label: asset.label,
+                  selected: false,
+                  subtitle: 'Ajouter et utiliser pour « ${descriptor.label} »',
+                  trailing: StudioButton(
+                    key: ValueKey('adopt-project-audio-${asset.id}'),
+                    label: owner.adoptingAssetId == asset.id
+                        ? 'Ajout du son…'
+                        : 'Ajouter à la bibliothèque',
+                    icon: Icons.library_add_outlined,
+                    onPressed: available
+                        ? () => owner.adopt(asset, selected)
+                        : null,
+                  ),
+                ),
+              if (owner.legacyLoading)
+                const Text('Chargement des sons du projet…'),
+              if (!owner.legacyLoading && owner.legacyLibrary.isEmpty)
+                const Text('Aucun autre son à ajouter sur cette page.'),
+              if (owner.legacyCursor != null)
+                StudioButton(
+                  label: 'Afficher les anciens sons suivants',
+                  secondary: true,
+                  onPressed: owner.legacyLoading
+                      ? null
+                      : () => owner.loadLegacyLibrary(more: true),
+                ),
+              if (owner.error case final error?)
+                Text(
+                  error,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              if (owner.legacyError case final error?)
                 Text(
                   error,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),

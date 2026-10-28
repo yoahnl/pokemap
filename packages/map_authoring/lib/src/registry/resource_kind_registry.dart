@@ -344,6 +344,7 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Asset',
         summary: 'Content-addressed project asset',
+        extensions: const {'filters': {'audioOnly': 'Boolean; audio MIME type or a known audio file extension. Metadata candidates require validation before adoption.'}},
       ),
       AuthoringResourceKindDescriptor(
         id: 'resourceUsage',
@@ -874,7 +875,7 @@ final class AuthoringResourceKindRegistry {
         id: 'projectAudio', version: 1, displayName: 'Game sound effects',
         summary: 'Project sound cue bindings and the canonical action cue catalog',
         extensions: const {'singletonId': 'project', 'mutationAction': 'project.audio.cue.configure',
-          'scopedActionIds': ['project.audio.cue.configure', 'presentationMedia.import'],
+          'scopedActionIds': ['project.audio.cue.configure', 'presentationMedia.import', 'project.audio.media.adopt_asset'],
           'scopedRevision': 'Pass extensions.actionId and extensions.parameters before planning a custom binding or media import.'},
       ),
       AuthoringResourceKindDescriptor(

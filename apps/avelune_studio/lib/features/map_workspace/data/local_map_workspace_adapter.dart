@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:map_authoring/map_authoring.dart'
-    show AssetRecord, assetBlobStorageKey;
+    show AssetRecord, assetBlobStorageKey, probeProjectAudioSourceBytes;
 import 'package:map_authoring/map_authoring_documents.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
@@ -69,11 +69,17 @@ final class LocalMapWorkspaceAdapter
   Future<ProjectAudioImport> importAudio(ProjectSession session, String sourcePath, String label, String expectedRevision) => withResourceMutation(() => _importAudio(session, sourcePath, label, expectedRevision));
   @override
   Future<ProjectAudioFile> resolveAudio(ProjectSession session, String mediaId) => _resolveAudio(session, mediaId);
+  @override
+  Future<ProjectAudioPage> queryLegacyAudio(ProjectSession session, {String query = '', String? cursor}) => _queryLegacyAudio(session, query: query, cursor: cursor);
+  @override
+  Future<ProjectAudioImport> adoptAudioAsset(ProjectSession session, String assetId, String mediaId, String label, String expectedRevision) => withResourceMutation(() => _adoptAudioAsset(session, assetId, mediaId, label, expectedRevision));
   var _settingsOperations = 0;
   @override
   Future<ProjectCsState> loadFieldAbilities(ProjectSession session) => _loadFieldAbilities(session);
   @override
-  Future<ProjectCsState> saveFieldAbility(ProjectSession session, FieldAbility ability, bool enabled, String expectedRevision) => withResourceMutation(() => _saveFieldAbility(session, ability, enabled, expectedRevision));
+  Future<ProjectCsState> saveFieldAbility(ProjectSession session, FieldAbility ability, bool enabled, String expectedRevision) => saveFieldAbilityId(session, ability.moveId, enabled, expectedRevision);
+  @override
+  Future<ProjectCsState> saveFieldAbilityId(ProjectSession session, String abilityId, bool enabled, String expectedRevision) => withResourceMutation(() => _saveFieldAbilityId(session, abilityId, enabled, expectedRevision));
   var _surfOperations = 0;
   @override
   Future<ProjectSurfState> loadSurf(ProjectSession session) => _loadSurf(session);

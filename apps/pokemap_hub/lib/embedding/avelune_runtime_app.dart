@@ -16,7 +16,18 @@ import 'avelune_debug_hud.dart';
 import 'avelune_runtime_diagnostics.dart';
 
 class AveluneRuntimeApp extends StatefulWidget {
-  const AveluneRuntimeApp({super.key});
+  const AveluneRuntimeApp({
+    super.key,
+    this.splashLogo,
+    this.splashWordmark,
+    this.splashMovieAsset = 'assets/avelune/splash/avelune_eclipse.mp4',
+    this.splashMoviePackage = 'pokemap_hub',
+  });
+
+  final ImageProvider? splashLogo;
+  final ImageProvider? splashWordmark;
+  final String splashMovieAsset;
+  final String? splashMoviePackage;
 
   @override
   State<AveluneRuntimeApp> createState() => _AveluneRuntimeAppState();
@@ -112,16 +123,22 @@ class _AveluneRuntimeAppState extends State<AveluneRuntimeApp> {
                 launchResolver: _bridge.launchResolver,
                 game: game,
                 hostBranding: aveluneRuntimeSplashBranding,
-                splashLogo: AssetImage(
-                  Platform.isAndroid
-                      ? 'assets/avelune/logo/avelune_symbol_android.png'
-                      : 'assets/avelune/logo/avelune_moon.png',
-                  package: 'pokemap_hub',
-                ),
-                splashWordmark: const AssetImage(
-                  'assets/avelune/logo/avelune_glass_wordmark.png',
-                  package: 'pokemap_hub',
-                ),
+                splashLogo:
+                    widget.splashLogo ??
+                    AssetImage(
+                      Platform.isAndroid
+                          ? 'assets/avelune/logo/avelune_symbol_android.png'
+                          : 'assets/avelune/logo/avelune_moon.png',
+                      package: 'pokemap_hub',
+                    ),
+                splashWordmark:
+                    widget.splashWordmark ??
+                    const AssetImage(
+                      'assets/avelune/logo/avelune_glass_wordmark.png',
+                      package: 'pokemap_hub',
+                    ),
+                splashMovieAsset: widget.splashMovieAsset,
+                splashMoviePackage: widget.splashMoviePackage,
                 diagnosticLogFile: File(
                   p.join(
                     _bridge.supportRoot.path,

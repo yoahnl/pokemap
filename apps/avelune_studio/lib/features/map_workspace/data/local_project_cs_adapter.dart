@@ -9,16 +9,16 @@ extension _LocalProjectCsAdapter on LocalMapWorkspaceAdapter {
           revision: revision,
         ),
       );
-  Future<ProjectCsState> _saveFieldAbility(
+  Future<ProjectCsState> _saveFieldAbilityId(
     ProjectSession session,
-    FieldAbility ability,
+    String abilityId,
     bool enabled,
     String expectedRevision,
   ) async {
     final result = await _configureProjectSettings(
       session,
       'field_ability.configure',
-      {'abilityId': ability.moveId, 'enabled': enabled},
+      {'abilityId': abilityId, 'enabled': enabled},
       expectedRevision,
       (current, projected) =>
           current.copyWith(fieldAbilities: projected.fieldAbilities),

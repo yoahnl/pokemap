@@ -370,6 +370,7 @@ final class CanonicalGamePackageExportService {
         if (projection.project.battleSavings != null) ProjectBattleSavingsConfig.capabilityId,
         if (SurfGameplayCapabilities.requiresCapability(projection.project)) SurfGameplayCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresCapability(projection.project)) FieldAbilityActivationCapabilities.capabilityId,
+        if (FieldAbilityActivationCapabilities.requiresExtendedCapability(projection.project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(projection.project)) ProjectAudioCapabilities.capabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(projection.project)) SpatialGameplayCapabilities.eggGiftCapabilityId,

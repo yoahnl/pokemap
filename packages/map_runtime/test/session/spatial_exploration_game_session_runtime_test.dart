@@ -1118,6 +1118,30 @@ void main() {
     });
   }
 
+  for (final id in ['rock_climb', 'defog']) {
+    for (final granted in [false, true]) {
+      test('activation-only $id startup requires v2 granted=$granted', () async {
+        bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(settings: bundle.manifest.settings.copyWith(
+          fieldAbilities: ProjectFieldAbilitiesSettings.fromIds([id]))));
+        await runtime.dispose();
+        runtime = SpatialExplorationGameSessionRuntime(
+          descriptor: descriptor(additionalCapabilities: {FieldAbilityActivationCapabilities.capabilityId,
+            if (granted) FieldAbilityActivationCapabilities.extendedCapabilityId}),
+          projectFilePath: () async => '${root.path}/project.json',
+          preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+          mountSession: (_) async => mounts++, unmountSession: (_) async => unmounts++);
+        if (granted) {
+          await runtime.load((_) {});
+          await runtime.gameplayReady;
+          expect(mounts, 1);
+        } else {
+          await expectLater(runtime.load((_) {}), throwsA(isA<StateError>().having((e) => e.message, 'capability', contains(FieldAbilityActivationCapabilities.extendedCapabilityId))));
+          expect(mounts, 0);
+        }
+      });
+    }
+  }
+
   test('Surf action confirms, persists its mode and exits at the shore', () async {
     bundle = bundle.copyWith(
       manifest: bundle.manifest.copyWith(settings: bundle.manifest.settings.copyWith(

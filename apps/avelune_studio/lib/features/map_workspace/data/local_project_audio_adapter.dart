@@ -57,6 +57,150 @@ extension _LocalProjectAudioAdapter on LocalMapWorkspaceAdapter {
       nextCursor: page.nextCursor,
     );
   });
+  Future<ProjectAudioPage> _queryLegacyAudio(
+    ProjectSession session, {
+    String query = '',
+    String? cursor,
+  }) => _withSurfAuthoring(session, (_, opened, _, reads) async {
+    final page = await reads.queryProject(
+      opened.projectHandle,
+      AuthoringQueryRequest(
+        resourceKind: 'asset',
+        operation: query.trim().isEmpty
+            ? AuthoringQueryOperation.list
+            : AuthoringQueryOperation.search,
+        filters: const {'audioOnly': true},
+        searchTerm: query,
+        pageSize: 50,
+        cursor: cursor,
+      ),
+    );
+    return ProjectAudioPage(
+      entries: [
+        for (final item in page.items)
+          ProjectAudioEntry(
+            id: item['id'] as String,
+            label: p.basename(item['name'] as String),
+          ),
+      ],
+      nextCursor: page.nextCursor,
+    );
+  });
+
+  Future<ProjectAudioImport> _adoptAudioAsset(
+    ProjectSession session,
+    String assetId,
+    String mediaId,
+    String label,
+    String expectedRevision,
+  ) async {
+    if (session.storage == ProjectSessionStorage.portableCatalog) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.unavailable,
+        'Créez une copie de travail pour ajouter ce son à la bibliothèque.',
+      );
+    }
+    return _withSurfAuthoring(session, (_, opened, api, reads) async {
+      if (_project(session).revision != expectedRevision ||
+          await resourceRevision(session) != expectedRevision) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le projet a changé. Vos sons restent en brouillon.',
+        );
+      }
+      await api.attachProject(
+        projectRootPath: session.directoryPath,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      const action = 'project.audio.media.adopt_asset';
+      final parameters = <String, Object?>{
+        'assetId': assetId,
+        'mediaId': mediaId,
+        'label': label,
+      };
+      final scoped = await reads.queryProject(
+        opened.projectHandle,
+        AuthoringQueryRequest(
+          resourceKind: 'projectAudio',
+          operation: AuthoringQueryOperation.get,
+          ids: const ['project'],
+          extensions: {'actionId': action, 'parameters': parameters},
+        ),
+      );
+      final id =
+          'studio_adopt_${DateTime.now().microsecondsSinceEpoch}_${_settingsOperations++}';
+      final planned = await api.planMutation(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: id,
+          actionId: action,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: parameters,
+          expectedRevision: scoped.snapshotRevision,
+          idempotencyKey: id,
+        ),
+      );
+      final existing = planned.plan.preview['existingMediaId'];
+      final noOp = planned.plan.preview['noOp'] == true;
+      if (noOp && existing is! String) {
+        throw StateError(
+          'La bibliothèque n’a pas renvoyé le son déjà enregistré.',
+        );
+      }
+      if (!noOp) {
+        await api.applyMutation(
+          opened.projectHandle,
+          planId: planned.planId,
+          operationId: id,
+          precondition: () async {
+            if (await resourceRevision(session) != expectedRevision) {
+              throw const MapWorkspaceFailure(
+                MapWorkspaceProblem.conflict,
+                'Le projet a changé pendant l’ajout du son.',
+              );
+            }
+          },
+        );
+      }
+      final selectedId = noOp ? existing as String : mediaId;
+      final result = await reads.queryProject(
+        opened.projectHandle,
+        AuthoringQueryRequest(
+          resourceKind: 'presentationMedia',
+          operation: AuthoringQueryOperation.get,
+          ids: [selectedId],
+          pageSize: 1,
+        ),
+      );
+      final item = result.items.single;
+      final revision = await resourceRevision(session);
+      if (noOp && revision != expectedRevision) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.conflict,
+          'Le projet a changé pendant la sélection du son existant. Vos réglages restent en brouillon.',
+        );
+      }
+      final current = _project(session);
+      _projects[session.sessionId] = _ProjectDocument(
+        current.root,
+        current.manifest,
+        revision,
+        complete: current.complete,
+        metadataFields: current.metadataFields,
+      );
+      return ProjectAudioImport(
+        entry: ProjectAudioEntry(
+          id: selectedId,
+          label: (item['name'] ?? item['label']) as String,
+        ),
+        beforeRevision: expectedRevision,
+        revision: revision,
+      );
+    });
+  }
+
   Future<ProjectAudioImport> _importAudio(
     ProjectSession session,
     String sourcePath,
@@ -198,8 +342,17 @@ extension _LocalProjectAudioAdapter on LocalMapWorkspaceAdapter {
         ..remove('unused')
         ..remove('preview'),
     );
-    if (!asset.artifact.mediaType.startsWith('audio/')) {
-      throw StateError('Le format de ce son n’est pas pris en charge.');
+    final metadata = media.technicalMetadata;
+    if (metadata == null ||
+        !projectAudioSourceMimeMatches(
+          asset.artifact.mediaType,
+          metadata.mediaType,
+        ) ||
+        asset.artifact.byteLength != metadata.sizeBytes ||
+        metadata.sizeBytes > maximumAuthoringArtifactBytesV1) {
+      throw StateError(
+        'Les métadonnées de ce son ne correspondent pas à sa source audio.',
+      );
     }
     final root = await Directory(session.directoryPath).resolveSymbolicLinks();
     final file = File(p.join(root, assetBlobStorageKey(asset.artifact)));
@@ -209,6 +362,15 @@ extension _LocalProjectAudioAdapter on LocalMapWorkspaceAdapter {
             FileSystemEntityType.file) {
       throw StateError('Le son doit rester dans le projet.');
     }
-    return ProjectAudioFile(path: resolved, mimeType: asset.artifact.mediaType);
+    final selectedFile = File(resolved);
+    if (await selectedFile.length() != metadata.sizeBytes) {
+      throw StateError('Le fichier de ce son a changé depuis son import.');
+    }
+    final inspected = probeProjectAudioSourceBytes(
+      await selectedFile.readAsBytes(),
+      artifact: asset.artifact,
+      media: media,
+    );
+    return ProjectAudioFile(path: resolved, mimeType: inspected.mediaType);
   });
 }

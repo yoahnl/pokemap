@@ -28,13 +28,12 @@ final class FieldAbilityConfigurationActions {
         parameters['enabled'] is! bool) {
       throw const FormatException('Expected abilityId and enabled only.');
     }
-    final matches = FieldAbility.values
-        .where((ability) => ability.moveId == parameters['abilityId']);
-    if (matches.isEmpty) throw const FormatException('Unknown field ability.');
-    final ability = matches.single;
+    final abilityId = parameters['abilityId']! as String;
+    final entry = ProjectFieldAbilityRegistry.find(abilityId);
+    if (entry == null) throw const FormatException('Unknown field ability.');
     final enabled = parameters['enabled']! as bool;
     final manifest = context.snapshot.manifest;
-    if (ability == FieldAbility.surf) {
+    if (abilityId == 'surf') {
       final surf = manifest.settings.surf ?? const ProjectSurfSettings();
       final configured = ProjectSurfSettings(
           enabled: enabled,
@@ -50,14 +49,14 @@ final class FieldAbilityConfigurationActions {
           manifest.copyWith(
               settings: manifest.settings.copyWith(surf: configured)));
     }
-    final disabled = {...?manifest.settings.fieldAbilities?.disabledAbilities};
+    final disabled = {...?manifest.settings.fieldAbilities?.disabledAbilityIds};
     if (enabled) {
-      disabled.remove(ability);
+      disabled.remove(abilityId);
     } else {
-      disabled.add(ability);
+      disabled.add(abilityId);
     }
     final configuration =
-        ProjectFieldAbilitiesSettings(disabledAbilities: disabled);
+        ProjectFieldAbilitiesSettings.fromIds(disabled);
     final next = configuration.isEmpty ? null : configuration;
     return _settingsDraft(
         context,
@@ -107,7 +106,7 @@ final class ProjectAudioCueActions {
       if (media.kind != ProjectMediaKind.audio ||
           metadata == null ||
           !metadata.mediaType.startsWith('audio/') ||
-          source.artifact.mediaType != metadata.mediaType ||
+          !projectAudioSourceMimeMatches(source.artifact.mediaType, metadata.mediaType) ||
           source.artifact.byteLength != metadata.sizeBytes) {
         throw const FormatException(
             'Choose an imported audio resource with a valid source for this sound.');
@@ -161,7 +160,8 @@ AuthoringActionDescriptor _descriptor(
         capabilityIds: id == 'field_ability.configure'
             ? [
                 'authoring.field_abilities',
-                FieldAbilityActivationCapabilities.capabilityId
+                FieldAbilityActivationCapabilities.capabilityId,
+                FieldAbilityActivationCapabilities.extendedCapabilityId
               ]
             : [
                 'authoring.project_audio',
@@ -186,8 +186,8 @@ AuthoringActionDescriptor _descriptor(
                     'abilityId': {
                       'type': 'string',
                       'enum': [
-                        for (final ability in FieldAbility.values)
-                          ability.moveId
+                        for (final entry in ProjectFieldAbilityRegistry.entries)
+                          entry.id
                       ]
                     },
                     'enabled': {'type': 'boolean'},

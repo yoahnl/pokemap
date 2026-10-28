@@ -65,6 +65,7 @@ export 'src/models/project_manifest.dart';
 export 'src/models/project_bag_capacity.dart';
 export 'src/models/project_surf_settings.dart';
 export 'src/models/project_field_abilities_settings.dart';
+export 'src/models/project_field_ability_registry.dart';
 export 'src/operations/bag_capacity_validation.dart';
 export 'src/models/resource_library_catalog.dart';
 export 'src/operations/resource_library_operations.dart';

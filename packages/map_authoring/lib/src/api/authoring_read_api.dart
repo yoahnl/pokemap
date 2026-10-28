@@ -206,7 +206,7 @@ final class AuthoringReadApi
         _ => 'surf.configure',
       };
       final action = request.extensions['actionId'] ?? defaultAction;
-      final allowed = {defaultAction, if (request.resourceKind == 'projectAudio') 'presentationMedia.import'};
+      final allowed = {defaultAction, if (request.resourceKind == 'projectAudio') ...['presentationMedia.import', 'project.audio.media.adopt_asset']};
       final parameters = request.extensions['parameters'] ?? const <String, Object?>{};
       if (!allowed.contains(action) || parameters is! Map ||
           parameters.keys.any((key) => key is! String) ||

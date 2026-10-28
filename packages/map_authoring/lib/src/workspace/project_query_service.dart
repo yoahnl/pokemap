@@ -1251,14 +1251,19 @@ List<_QueryRecord> _records(
       final record = <String, Object?>{'id': 'project', 'resourceKind': 'fieldAbilityConfiguration',
         'configuration': snapshot.manifest.settings.fieldAbilities?.toJson(),
         'surf': snapshot.manifest.settings.surf?.toJson(),
-        'abilities': [for (final ability in FieldAbility.values) {
-          'id': ability.moveId,
-          'enabled': isProjectFieldAbilityEnabled(snapshot.manifest.settings, ability),
+        'abilities': [for (final entry in ProjectFieldAbilityRegistry.entries) {
+          'id': entry.id,
+          'label': entry.label,
+          'activationOnly': entry.activationOnly,
+          'enabled': isProjectFieldAbilityIdEnabled(snapshot.manifest.settings, entry.id),
         }]};
       return [_QueryRecord(summary: record, detail: record)];
     case 'projectAudio':
       final record = <String, Object?>{'id': 'project', 'resourceKind': 'projectAudio',
-        'configuration': snapshot.manifest.settings.audio?.toJson(),
+        if (snapshot.availableProjectSections?.contains('settings') ?? true)
+          'configuration': snapshot.manifest.settings.audio?.toJson()
+        else
+          'configurationAvailable': false,
         'cues': [for (final cue in ProjectSoundCueCatalog.entries) cue.toJson()]};
       return [_QueryRecord(summary: record, detail: record)];
     case 'contactDeviceConfiguration':

@@ -8,9 +8,11 @@ import 'embedding/avelune_gameplay_companion_app.dart';
 export 'embedding/avelune_library_bridge.dart';
 export 'embedding/avelune_runtime_app.dart';
 
-void runAveluneEmbeddedRuntime() {
+void runAveluneEmbeddedRuntime({
+  AveluneRuntimeApp app = const AveluneRuntimeApp(),
+}) {
   AveluneWidgetsFlutterBinding.ensureInitialized();
-  runApp(const AveluneRuntimeApp());
+  runApp(app);
 }
 
 void runAveluneCompanionProbe() {

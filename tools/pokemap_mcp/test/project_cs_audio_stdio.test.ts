@@ -32,15 +32,22 @@ test("project CS and sound cues use scoped MCP settings actions", { timeout: 120
       maps: [], tilesets: [], pokemon: canonicalPokemonConfig(), customExtension: { preserve: true } }));
     await client.connect(transport);
     const catalog = await call("pokemap_describe", {});
-    for (const id of ["field_ability.configure", "project.audio.cue.configure"]) {
+    for (const id of ["field_ability.configure", "project.audio.cue.configure", "project.audio.media.adopt_asset"]) {
       assert.ok((catalog.mutationActions as JsonRecord[]).some(value => value.id === id));
     }
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     let sequence = 0;
     async function mutate(actionId: string, resourceKind: string, parameters: JsonRecord): Promise<JsonRecord> {
-      const query = await call("pokemap_query", { projectHandle: opened.projectHandle,
+      const query = resourceKind === "global" ? await call("pokemap_validate", {
+        projectHandle: opened.projectHandle,
+      }) : await call("pokemap_query", { projectHandle: opened.projectHandle,
         resourceKind, operation: "get", ids: ["project"], view: "detail",
         extensions: { actionId, parameters } });
+      if (["presentationMedia.import", "project.audio.media.adopt_asset"].includes(actionId)) {
+        const projection = record((query.items as unknown[])[0]);
+        assert.equal(projection.configurationAvailable, false);
+        assert.equal(Object.hasOwn(projection, "configuration"), false);
+      }
       const id = `settings-${++sequence}`;
       const planned = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
         requestId: id, idempotencyKey: id, workspaceHandle: opened.workspaceHandle,
@@ -49,6 +56,26 @@ test("project CS and sound cues use scoped MCP settings actions", { timeout: 120
       return call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
         planId: planned.planId, operationId: `apply-${id}` });
     }
+    for (const abilityId of ["rock_climb", "defog"]) {
+      await mutate("field_ability.configure", "fieldAbilityConfiguration", { abilityId, enabled: false });
+    }
+    assert.deepEqual(record(record(JSON.parse(await readFile(file, "utf8"))).settings).fieldAbilities,
+      { disabledAbilities: ["defog", "rock_climb"] });
+    await mutate("project.audio.cue.configure", "projectAudio", {
+      cueId: "ui.select", binding: { source: "silent", gain: 0.5 },
+    });
+    assert.deepEqual(record(record(JSON.parse(await readFile(file, "utf8"))).settings).fieldAbilities,
+      { disabledAbilities: ["defog", "rock_climb"] });
+    await mutate("project.audio.cue.configure", "projectAudio", { cueId: "ui.select", binding: null });
+    const abilities = await call("pokemap_query", { projectHandle: opened.projectHandle,
+      resourceKind: "fieldAbilityConfiguration", operation: "get", ids: ["project"] });
+    const entries = record((abilities.items as unknown[])[0]).abilities as JsonRecord[];
+    assert.equal(entries.length, 11);
+    for (const id of ["rock_climb", "defog"]) {
+      assert.ok(entries.some(entry => entry.id === id && entry.enabled === false && entry.activationOnly === true));
+      await mutate("field_ability.configure", "fieldAbilityConfiguration", { abilityId: id, enabled: true });
+    }
+    assert.equal(record(record(JSON.parse(await readFile(file, "utf8"))).settings).fieldAbilities, undefined);
     await mutate("field_ability.configure", "fieldAbilityConfiguration", { abilityId: "dive", enabled: false });
     assert.deepEqual(record(record(JSON.parse(await readFile(file, "utf8"))).settings).fieldAbilities,
       { disabledAbilities: ["dive"] });
@@ -85,6 +112,30 @@ test("project CS and sound cues use scoped MCP settings actions", { timeout: 120
     });
     const custom = record(record(JSON.parse(await readFile(file, "utf8"))).settings);
     assert.deepEqual(custom.audio, { cues: { "door.open": { source: "custom", mediaId: "click", gain: 0.6 } } });
+    const legacyStaged = await call("pokemap_artifact_stage", { sourcePath, declaredMediaType: "audio/wav" });
+    await mutate("asset.import", "global", {
+      artifactHandle: legacyStaged.artifactHandle, assetId: "legacy-click",
+      logicalPath: "assets/audio/legacy.WAV",
+    });
+    const assetsBefore = await readFile(join(root, "assets/.pokemap-assets.json"));
+    const candidates = await call("pokemap_query", { projectHandle: opened.projectHandle,
+      resourceKind: "asset", operation: "list", filters: { audioOnly: true } });
+    assert.ok((candidates.items as JsonRecord[]).some(value => value.id === "legacy-click"));
+    const adopted = await mutate("project.audio.media.adopt_asset", "projectAudio", {
+      assetId: "legacy-click", mediaId: "legacy", label: "Ancien clic",
+    });
+    assert.deepEqual(await readFile(join(root, "assets/.pokemap-assets.json")), assetsBefore);
+    await call("pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
+      entryId: record(adopted.receipt).receiptId, idempotencyKey: "undo-adoption" });
+    const afterUndo = record(JSON.parse(await readFile(join(root, "assets/.pokemap-media.json"), "utf8")));
+    assert.equal((afterUndo.entries as JsonRecord[]).some(value => value.id === "legacy"), false);
+    await mutate("project.audio.media.adopt_asset", "projectAudio", {
+      assetId: "legacy-click", mediaId: "legacy", label: "Ancien clic",
+    });
+    await mutate("project.audio.cue.configure", "projectAudio", {
+      cueId: "door.close", binding: { source: "custom", mediaId: "legacy", gain: 0.4 },
+    });
+    assert.deepEqual(await readFile(join(root, "assets/audio/legacy.WAV")), wave);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
     await client.close();

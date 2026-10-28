@@ -285,3 +285,11 @@ abstract final class ProjectSoundCueCatalog {
   static ProjectSoundCueDescriptor forCue(ProjectSoundCue cue) =>
       entries.firstWhere((entry) => entry.cue == cue);
 }
+
+bool projectAudioSourceMimeMatches(
+  String sourceMediaType,
+  String audioMediaType,
+) =>
+    audioMediaType.startsWith('audio/') &&
+    (sourceMediaType == audioMediaType ||
+        sourceMediaType == 'application/octet-stream');

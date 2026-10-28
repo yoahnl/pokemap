@@ -27,17 +27,6 @@ class ProjectCsPanel extends StatefulWidget {
 }
 
 class _ProjectCsPanelState extends State<ProjectCsPanel> {
-  static const labels = {
-    FieldAbility.fly: 'Vol',
-    FieldAbility.surf: 'Surf',
-    FieldAbility.cut: 'Coupe',
-    FieldAbility.strength: 'Force',
-    FieldAbility.flash: 'Flash',
-    FieldAbility.rockSmash: 'Éclate-Roc',
-    FieldAbility.waterfall: 'Cascade',
-    FieldAbility.whirlpool: 'Tourbillon',
-    FieldAbility.dive: 'Plongée',
-  };
   @override
   void initState() {
     super.initState();
@@ -76,26 +65,31 @@ class _ProjectCsPanelState extends State<ProjectCsPanel> {
                 'Choisissez les capacités de terrain autorisées dans ce jeu. Leur activation ne les débloque pas pour le joueur : les badges, la progression et les conditions restent applicables.',
               ),
               const SizedBox(height: 12),
-              for (final ability in FieldAbility.values)
+              for (final ability in ProjectFieldAbilityRegistry.entries)
                 StudioChoice(
-                  key: ValueKey('cs-${ability.moveId}'),
-                  label: labels[ability]!,
-                  selected: isProjectFieldAbilityEnabled(settings, ability),
-                  subtitle: settings.dimension == ProjectDimension.twoD
+                  key: ValueKey('cs-${ability.id}'),
+                  label: ability.label,
+                  selected: isProjectFieldAbilityIdEnabled(
+                    settings,
+                    ability.id,
+                  ),
+                  subtitle: ability.activationOnly
+                      ? 'Activation du projet · mécanique à implémenter en 2D et 3D'
+                      : settings.dimension == ProjectDimension.twoD
                       ? 'Mécanique disponible en 2D · déblocage du joueur séparé'
-                      : ability == FieldAbility.surf
+                      : ability.id == 'surf'
                       ? 'Disponible dans le profil 3D · déblocage du joueur séparé'
                       : 'Activation du projet · mécanique non certifiée dans ce profil 3D',
                   onTap: enabled
                       ? () {
-                          final next = !isProjectFieldAbilityEnabled(
+                          final next = !isProjectFieldAbilityIdEnabled(
                             settings,
-                            ability,
+                            ability.id,
                           );
-                          if (ability == FieldAbility.surf) {
+                          if (ability.id == 'surf') {
                             surf.change(enabled: next);
                           } else {
-                            owner.setEnabled(ability, next);
+                            owner.setEnabledId(ability.id, next);
                           }
                         }
                       : null,

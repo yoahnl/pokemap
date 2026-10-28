@@ -60,6 +60,43 @@ final class PresentationMediaImportActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable(
     <AuthoringActionDescriptor>[
       AuthoringActionDescriptor(
+        id: 'project.audio.media.adopt_asset',
+        version: 1,
+        summary:
+            'Adopt one existing audio source into the game sound library without copying its bytes',
+        inputSchemaId:
+            'pokemap.authoring.project.audio.media.adopt_asset.input.v1',
+        outputSchemaId:
+            'pokemap.authoring.project.audio.media.adopt_asset.output.v1',
+        riskLevel: AuthoringRiskLevel.low,
+        resourceKinds: const ['asset', 'presentationMedia', 'projectAudio'],
+        capabilityIds: const ['authoring.presentation_media'],
+        requiredPermissions: const [
+          AuthoringPermission.projectWrite,
+          AuthoringPermission.importRun
+        ],
+        guarantees: const [
+          AuthoringGuarantee.dryRun,
+          AuthoringGuarantee.idempotent,
+          AuthoringGuarantee.atomic,
+          AuthoringGuarantee.revisionChecked,
+          AuthoringGuarantee.undoable
+        ],
+        extensions: const {
+          'parameterNames': ['assetId', 'mediaId', 'label'],
+          'inputSchema': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['assetId', 'mediaId', 'label'],
+            'properties': {
+              'assetId': {'type': 'string', 'minLength': 1},
+              'mediaId': {'type': 'string', 'minLength': 1},
+              'label': {'type': 'string', 'minLength': 1}
+            }
+          }
+        },
+      ),
+      AuthoringActionDescriptor(
         id: 'presentationMedia.import',
         version: 1,
         summary: 'Import one probed Presentation media atomically',
@@ -84,6 +121,9 @@ final class PresentationMediaImportActions {
   );
 
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
+    if (context.request.actionId == 'project.audio.media.adopt_asset') {
+      return _adoptAudioAsset(context);
+    }
     if (context.request.actionId != 'presentationMedia.import') {
       throw PresentationMediaImportException(
         'presentation_media.action_unsupported',
@@ -107,6 +147,144 @@ final class PresentationMediaImportActions {
       await artifactStore.release(handle);
       rethrow;
     }
+  }
+
+  Future<AuthoringMutationDraft> _adoptAudioAsset(
+      AuthoringPlanningContext context) async {
+    final p = context.request.parameters;
+    const keys = {'assetId', 'mediaId', 'label'};
+    if (p.length != keys.length ||
+        !p.keys.toSet().containsAll(keys) ||
+        p.values.any((value) =>
+            value is! String || value.isEmpty || value.trim() != value)) {
+      throw PresentationMediaImportException(
+          'project_audio.adoption_request_invalid',
+          'Choose an existing source, a media identity and a nonblank label.');
+    }
+    final assetId = p['assetId']! as String;
+    final mediaId = p['mediaId']! as String;
+    final label = p['label']! as String;
+    final snapshot = context.snapshot;
+    final source = readAssetRecordFromCatalogBytes(
+        snapshot.findResourceBytes(assetCatalogResourceIdentity), assetId);
+    if (source == null ||
+        (!source.artifact.mediaType.startsWith('audio/') &&
+            source.artifact.mediaType != 'application/octet-stream')) {
+      throw PresentationMediaImportException(
+          'project_audio.audio_source_required',
+          'Choose an existing audio source from this project.');
+    }
+    final proposed = ProjectMediaAsset(
+        id: mediaId,
+        label: label,
+        kind: ProjectMediaKind.audio,
+        sourceAssetId: source.id);
+    final beforeBytes =
+        snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+    final document = readProjectMediaCatalogDocumentBytes(beforeBytes);
+    final existing = findProjectAudioMediaForSource(document, source.id);
+    if (existing != null) {
+      final metadata = existing.technicalMetadata;
+      if (metadata == null ||
+          !projectAudioSourceMimeMatches(
+              source.artifact.mediaType, metadata.mediaType) ||
+          metadata.sizeBytes != source.artifact.byteLength) {
+        throw PresentationMediaImportException(
+            'project_audio.existing_media_invalid',
+            'Repair the existing media definition before reusing this source.');
+      }
+      return AuthoringMutationDraft(
+          changeSet: AuthoringChangeSet.noChanges(),
+          preview: {
+            'operation': context.request.actionId,
+            'assetId': source.id,
+            'mediaId': mediaId,
+            'existingMediaId': existing.id,
+            'noOp': true,
+          });
+    }
+    final entries = document['entries'] as List;
+    if (entries.whereType<Map>().any((entry) => entry['id'] == mediaId)) {
+      throw PresentationMediaImportException('presentation_media.id_conflict',
+          'A media already owns this identity.',
+          details: {'mediaId': mediaId});
+    }
+    final bytes = snapshot
+        .findResourceBytes(assetBlobResourceIdentity(source.artifact.digest));
+    if (bytes == null) {
+      throw PresentationMediaImportException('project_audio.source_unavailable',
+          'The selected source bytes are missing. Restore the imported source before adopting it.');
+    }
+    final actual = ContentArtifactRef.fromBytes(bytes,
+        mediaType: source.artifact.mediaType);
+    if (actual.digest != source.artifact.digest ||
+        actual.byteLength != source.artifact.byteLength) {
+      throw PresentationMediaImportException('project_audio.source_mismatch',
+          'The selected source bytes differ from their imported content identity.');
+    }
+    await faultInjector?.call(PresentationMediaImportCheckpoint.beforeProbe);
+    final detected = source.artifact.mediaType == 'application/octet-stream'
+        ? detectAudioMediaFormat(bytes)
+        : null;
+    if (source.artifact.mediaType == 'application/octet-stream' &&
+        detected == null) {
+      throw PresentationMediaImportException(
+          'project_audio.audio_source_unsupported',
+          'The selected source does not contain a supported audio signature.');
+    }
+    final inspected = probe.inspect(bytes,
+        declaredMediaType: detected?.mediaType ?? source.artifact.mediaType);
+    await faultInjector?.call(PresentationMediaImportCheckpoint.afterProbe);
+    _requireKindMatchesProbe(ProjectMediaKind.audio, inspected);
+    if (!projectAudioSourceMimeMatches(
+            source.artifact.mediaType, inspected.mediaType) ||
+        inspected.durationMilliseconds == null ||
+        inspected.durationMilliseconds! < 1) {
+      throw PresentationMediaImportException(
+          'project_audio.audio_source_unsupported',
+          'This source needs a supported audio format with a finite duration.');
+    }
+    final media = ProjectMediaAsset.fromJson({
+      ...proposed.toJson(),
+      'technicalMetadata': inspected.toTechnicalMetadata().toJson()
+    });
+    final resource = AuthoringResourceRef(
+        kind: 'presentationMediaCatalog',
+        id: 'project',
+        revision:
+            snapshot.resourceFingerprints[projectMediaCatalogResourceIdentity]);
+    return AuthoringMutationDraft(
+        changeSet: AuthoringChangeSet(
+            changes: [
+              AuthoringResourceChange(
+                  resource: resource,
+                  storageKey: projectMediaCatalogStorageKey,
+                  beforeBytes: beforeBytes,
+                  afterBytes: utf8.encode(jsonEncode({
+                    ...document,
+                    'entries': [...entries, media.toJson()]
+                  }))),
+            ],
+            diff: AuthoringDiff([
+              AuthoringDiffEntry(
+                  operation: AuthoringDiffOperation.add,
+                  resource: resource,
+                  path: '/entries/$mediaId',
+                  after: media.toJson())
+            ])),
+        preview: {
+          'operation': context.request.actionId,
+          'assetId': source.id,
+          'sourceAssetId': source.id,
+          'mediaId': media.id,
+          'technicalMetadata': media.technicalMetadata!.toJson(),
+          'sourceUnchanged': true
+        },
+        referenceImpact: {
+          'mediaId': media.id,
+          'sourceAssetId': source.id,
+          'sourceUnchanged': true
+        });
   }
 
   Future<AuthoringMutationDraft> _buildStaged(

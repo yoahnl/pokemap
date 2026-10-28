@@ -24,6 +24,11 @@ final class ProjectAudioController extends ChangeNotifier {
   final preview = ValueNotifier(ProjectAudioSettings());
   ProjectAudioState? saved;
   final library = <String, ProjectAudioEntry>{};
+  final legacyLibrary = <String, ProjectAudioEntry>{};
+  String? legacyCursor, legacyError, adoptingAssetId;
+  bool legacyLoading = false;
+  int _legacyGeneration = 0, _adoptionSequence = 0;
+  String _legacyQuery = '';
   String? nextCursor, error, libraryError, playingId;
   final pendingSources = <ProjectSoundCue, String>{};
   final rawGains = <ProjectSoundCue, String>{};
@@ -40,7 +45,7 @@ final class ProjectAudioController extends ChangeNotifier {
       saved?.configuration ?? ProjectAudioSettings();
   bool get dirty =>
       saved != null && (preview.value != _base || fieldErrors.isNotEmpty);
-  bool get busy => loading || saving || importing;
+  bool get busy => loading || saving || importing || adoptingAssetId != null;
   bool get canUndo => _undo.isNotEmpty || fieldErrors.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
   Future<void> open() async {
@@ -116,8 +121,15 @@ final class ProjectAudioController extends ChangeNotifier {
 
   void assign(ProjectSoundCue cue, String mediaId) {
     if (busy) return;
-    fieldErrors.remove(cue);
     pendingSources.remove(cue);
+    final raw = rawGains[cue];
+    final gain = raw == null ? null : double.tryParse(raw);
+    if (raw != null &&
+        (gain == null || !gain.isFinite || gain < 0 || gain > 100)) {
+      fieldErrors[cue] = 'Saisissez un volume entre 0 et 100.';
+    } else {
+      fieldErrors.remove(cue);
+    }
     _edit(
       preview.value.withCue(
         cue,
@@ -256,6 +268,70 @@ final class ProjectAudioController extends ChangeNotifier {
     }
   }
 
+  Future<void> loadLegacyLibrary({String? query, bool more = false}) async {
+    if (legacyLoading || more && legacyCursor == null) return;
+    final generation = ++_legacyGeneration;
+    legacyLoading = true;
+    legacyError = null;
+    if (!more) _legacyQuery = query ?? _legacyQuery;
+    notifyListeners();
+    try {
+      final page = await port.queryLegacyAudio(
+        session,
+        query: _legacyQuery,
+        cursor: more ? legacyCursor : null,
+      );
+      if (_disposed || generation != _legacyGeneration) return;
+      if (!more) legacyLibrary.clear();
+      legacyLibrary.addEntries(
+        page.entries.map((entry) => MapEntry(entry.id, entry)),
+      );
+      legacyCursor = page.nextCursor;
+    } on Object catch (failure) {
+      if (!_disposed && generation == _legacyGeneration) {
+        legacyError = '$failure';
+      }
+    } finally {
+      if (!_disposed && generation == _legacyGeneration) {
+        legacyLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> adopt(ProjectAudioEntry asset, ProjectSoundCue cue) async {
+    if (busy || saved == null) return;
+    adoptingAssetId = asset.id;
+    error = null;
+    notifyListeners();
+    ProjectAudioImport? adopted;
+    try {
+      final mediaId =
+          'legacy_audio_${DateTime.now().microsecondsSinceEpoch}_${_adoptionSequence++}';
+      final result = await port.adoptAudioAsset(
+        session,
+        asset.id,
+        mediaId,
+        asset.label,
+        saved!.revision,
+      );
+      if (_disposed) return;
+      adoptRevision(result.beforeRevision, result.revision);
+      onRevisionChanged?.call(result.beforeRevision, result.revision);
+      library[result.entry.id] = result.entry;
+      legacyLibrary.remove(asset.id);
+      adopted = result;
+    } on Object catch (failure) {
+      if (!_disposed) error = '$failure';
+    } finally {
+      if (!_disposed) {
+        adoptingAssetId = null;
+        if (adopted != null) assign(cue, adopted.entry.id);
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> import(String path, String label) async {
     if (busy || saved == null) return;
     importing = true;
@@ -326,6 +402,7 @@ final class ProjectAudioController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _libraryGeneration++;
+    _legacyGeneration++;
     _previewGeneration++;
     audition?.playing.removeListener(_playbackChanged);
     unawaited(audition?.close());

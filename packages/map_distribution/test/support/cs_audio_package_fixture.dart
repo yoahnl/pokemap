@@ -80,8 +80,11 @@ List<int> csAudioWav() {
 }
 
 String addCsAudioMedia(Map<String, List<int>> files,
-    {ProjectMediaKind kind = ProjectMediaKind.audio}) {
-  final bytes = csAudioWav();
+    {ProjectMediaKind kind = ProjectMediaKind.audio,
+    String sourceMediaType = 'audio/wav',
+    List<int>? sourceBytes,
+    String logicalPath = 'assets/bell.wav'}) {
+  final bytes = sourceBytes ?? csAudioWav();
   final digest = computeNarrativeProjectFingerprint([
     NarrativeProjectFingerprintEntry(
         relativePath: 'artifact-content', bytes: bytes)
@@ -91,18 +94,18 @@ String addCsAudioMedia(Map<String, List<int>> files,
       jsonDecode(utf8.decode(files[catalogPath]!)) as Map<String, dynamic>;
   (catalog['records'] as List).add({
     'id': 'sound-source',
-    'logicalPath': 'assets/bell.wav',
+    'logicalPath': logicalPath,
     'artifact': {
       'digest': digest,
       'handle': 'artifact://sha256/${digest.substring(7)}',
-      'mediaType': 'audio/wav',
+      'mediaType': sourceMediaType,
       'byteLength': bytes.length
     },
     'usages': <String>[],
     'tags': <String>[],
   });
   files[catalogPath] = utf8.encode(jsonEncode(catalog));
-  files['project/assets/bell.wav'] = bytes;
+  files['project/$logicalPath'] = bytes;
   final blob = 'project/assets/.pokemap-store/${digest.substring(7)}.blob';
   files[blob] = bytes;
   files['project/assets/.pokemap-media.json'] =

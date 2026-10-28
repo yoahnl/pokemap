@@ -74,6 +74,7 @@ const _nativeLocalWorkshopActions = {
   'field_ability.configure',
   'project.audio.cue.configure',
   'presentationMedia.import',
+  'project.audio.media.adopt_asset',
   'campaign.battle_savings.update',
   'pokemon.ruleset.set', 'campaign.encounter_table.upsert', 'campaign.trainer.upsert',
   'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update',
@@ -2161,6 +2162,16 @@ final class _LocalMapAuthoringSession {
             workspaceHandle: workspaceHandle.value, actionId: receipt.actionId,
             actionVersion: receipt.actionVersion,
             parameters: {'artifactHandle': artifacts.single.uri});
+      }
+    }
+    if (scopedRequest == null && receipt.actionId == 'project.audio.media.adopt_asset') {
+      final after = receipt.diff.entries.map((entry) => entry.after).whereType<Map>()
+          .where((row) => row['sourceAssetId'] is String && row['id'] is String && row['label'] is String).firstOrNull;
+      if (after != null) {
+        scopedRequest = AuthoringRequest(requestId: receipt.requestId,
+            workspaceHandle: workspaceHandle.value, actionId: receipt.actionId,
+            actionVersion: receipt.actionVersion,
+            parameters: {'assetId': after['sourceAssetId'], 'mediaId': after['id'], 'label': after['label']});
       }
     }
     if (snapshot == null && scopedRequest == null && _nativeLocalWorkshopActions.contains(receipt.actionId)) {

@@ -38,10 +38,52 @@ Future<AuthoringQueryPage> queryProjectMediaLibrary({
         resourceFingerprints: {identity: revision},
         resourceBytes: {identity: content},
       );
-  if (request.sort.isNotEmpty ||
-      request.extensions.isNotEmpty ||
-      request.filters.keys.any((key) => key != 'kind')) {
-    return queries.queryAsync(snapshot(encoded), request);
+  Future<AuthoringQueryPage> advanced(
+      List<int> content, AuthoringQueryRequest projectedRequest) async {
+    final criteria = request.toJson()..remove('cursor');
+    final query = jsonEncode(criteria);
+    final projected = projectedRequest.toJson()..remove('cursor');
+    if (request.cursor case final cursor?) {
+      Map data;
+      try {
+        data = jsonDecode(
+            utf8.decode(base64Url.decode(base64Url.normalize(cursor)))) as Map;
+      } catch (_) {
+        throw const AuthoringQueryException(
+            'query.cursor_invalid', 'The media cursor is invalid.');
+      }
+      if (data['revision'] != revision || data['query'] != query) {
+        throw const AuthoringQueryException('query.cursor_stale',
+            'The media library or query changed. Restart this page.');
+      }
+      if (data['genericCursor'] is! String ||
+          (data['genericCursor'] as String).trim().isEmpty) {
+        throw const AuthoringQueryException(
+            'query.cursor_invalid', 'The media cursor is invalid.');
+      }
+      projected['cursor'] = data['genericCursor'];
+    }
+    final result = await queries.queryAsync(
+        snapshot(content), AuthoringQueryRequest.fromJson(projected));
+    return AuthoringQueryPage(
+        snapshotRevision: revision,
+        items: result.items,
+        totalAvailable: result.totalAvailable,
+        nextCursor: result.nextCursor == null
+            ? null
+            : base64Url
+                .encode(utf8.encode(jsonEncode({
+                  'revision': revision,
+                  'query': query,
+                  'genericCursor': result.nextCursor,
+                })))
+                .replaceAll('=', ''));
+  }
+
+  if (request.filters.containsKey('audioOnly') &&
+      request.filters['audioOnly'] is! bool) {
+    throw const AuthoringQueryException(
+        'query.filter_invalid', 'The audioOnly filter must be a boolean.');
   }
   final document = jsonDecode(utf8.decode(encoded));
   final field = media ? 'entries' : 'records';
@@ -50,6 +92,26 @@ Future<AuthoringQueryPage> queryProjectMediaLibrary({
       document[field] is! List) {
     throw const AuthoringQueryException('query.media_catalog_invalid',
         'The selected media catalog is invalid.');
+  }
+  if (request.sort.isNotEmpty ||
+      request.extensions.isNotEmpty ||
+      request.filters.keys
+          .any((key) => key != 'kind' && (media || key != 'audioOnly'))) {
+    if (!media && request.filters.containsKey('audioOnly')) {
+      final filtered = utf8.encode(jsonEncode({
+        'schemaVersion': 1,
+        field: (document[field] as List)
+            .whereType<Map>()
+            .where((row) =>
+                request.filters['audioOnly'] != true || _isAudioCandidate(row))
+            .toList(),
+      }));
+      final query = request.toJson();
+      query['filters'] = Map<String, Object?>.from(request.filters)
+        ..remove('audioOnly');
+      return advanced(filtered, AuthoringQueryRequest.fromJson(query));
+    }
+    return advanced(encoded, request);
   }
   final search = request.operation == AuthoringQueryOperation.search
       ? request.searchTerm!.toLowerCase()
@@ -61,6 +123,7 @@ Future<AuthoringQueryPage> queryProjectMediaLibrary({
             (request.ids.isEmpty || request.ids.contains(row['id'])) &&
             (!request.filters.containsKey('kind') ||
                 row['kind'] == request.filters['kind']) &&
+            (request.filters['audioOnly'] != true || _isAudioCandidate(row)) &&
             (search == null ||
                 '${row['id']}'.toLowerCase().contains(search) ||
                 '${media ? row['label'] : row['logicalPath']}'
@@ -125,4 +188,16 @@ Future<AuthoringQueryPage> queryProjectMediaLibrary({
               })))
               .replaceAll('=', '')
           : null);
+}
+
+bool _isAudioCandidate(Map row) {
+  final artifact = row['artifact'];
+  if (artifact is Map &&
+      artifact['mediaType'] is String &&
+      (artifact['mediaType'] as String).toLowerCase().startsWith('audio/')) {
+    return true;
+  }
+  final path = row['logicalPath'];
+  return path is String &&
+      RegExp(r'\.(wav|ogg|mp3|flac|m4a)$', caseSensitive: false).hasMatch(path);
 }

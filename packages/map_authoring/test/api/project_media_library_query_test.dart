@@ -6,6 +6,106 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('asset audio candidates include legacy extensions without opening maps',
+      () async {
+    final fixture = await _Library.create();
+    addTearDown(fixture.dispose);
+    final artifact = ContentArtifactRef.fromBytes([1, 2],
+        mediaType: 'application/octet-stream');
+    final catalog = File('${fixture.root.path}/$assetCatalogStorageKey');
+    await catalog.writeAsString(jsonEncode(AssetCatalog(records: [
+      AssetRecord(
+          id: 'legacy', logicalPath: 'audio/old.WAV', artifact: artifact),
+      AssetRecord(
+          id: 'image', logicalPath: 'images/other.png', artifact: artifact),
+      AssetRecord(
+          id: 'modern',
+          logicalPath: 'audio/no-extension',
+          artifact: ContentArtifactRef.fromBytes([3], mediaType: 'audio/ogg')),
+    ]).toJson()));
+    final page = await fixture.read.queryProject(
+        fixture.opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'asset',
+            operation: AuthoringQueryOperation.list,
+            filters: {'audioOnly': true},
+            pageSize: 1));
+    expect(page.items.single['id'], 'legacy');
+    expect(page.totalAvailable, 2);
+    final next = await fixture.read.queryProject(
+        fixture.opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'asset',
+            operation: AuthoringQueryOperation.list,
+            filters: const {'audioOnly': true},
+            pageSize: 1,
+            cursor: page.nextCursor));
+    expect(next.items.single['id'], 'modern');
+    final sorted = await fixture.read.queryProject(
+        fixture.opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'asset',
+            operation: AuthoringQueryOperation.list,
+            filters: const {'audioOnly': true},
+            sort: const [AuthoringQuerySort(field: 'id', descending: true)]));
+    expect(sorted.items.map((row) => row['id']), ['modern', 'legacy']);
+    final sortedFirst = await fixture.read.queryProject(
+        fixture.opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'asset',
+            operation: AuthoringQueryOperation.list,
+            filters: const {'audioOnly': true},
+            sort: const [AuthoringQuerySort(field: 'name')],
+            pageSize: 1));
+    await expectLater(
+        fixture.read.queryProject(
+            fixture.opened.projectHandle,
+            AuthoringQueryRequest(
+                resourceKind: 'asset',
+                operation: AuthoringQueryOperation.list,
+                filters: const {'audioOnly': false},
+                sort: const [AuthoringQuerySort(field: 'name')],
+                pageSize: 1,
+                cursor: sortedFirst.nextCursor)),
+        throwsA(isA<AuthoringQueryException>()
+            .having((error) => error.code, 'code', 'query.cursor_stale')));
+    final sortedNext = await fixture.read.queryProject(
+        fixture.opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'asset',
+            operation: AuthoringQueryOperation.list,
+            filters: const {'audioOnly': true},
+            sort: const [AuthoringQuerySort(field: 'name')],
+            pageSize: 1,
+            cursor: sortedFirst.nextCursor));
+    expect(sortedNext.items.single['id'], 'legacy');
+    final emptyCursor = jsonDecode(utf8.decode(
+            base64Url.decode(base64Url.normalize(sortedFirst.nextCursor!))))
+        as Map<String, dynamic>;
+    emptyCursor['genericCursor'] = ' ';
+    await expectLater(
+        fixture.read.queryProject(
+            fixture.opened.projectHandle,
+            AuthoringQueryRequest(
+                resourceKind: 'asset',
+                operation: AuthoringQueryOperation.list,
+                filters: const {'audioOnly': true},
+                sort: const [AuthoringQuerySort(field: 'name')],
+                pageSize: 1,
+                cursor:
+                    base64Url.encode(utf8.encode(jsonEncode(emptyCursor))))),
+        throwsA(isA<AuthoringQueryException>()
+            .having((error) => error.code, 'code', 'query.cursor_invalid')));
+    await expectLater(
+        fixture.read.queryProject(
+            fixture.opened.projectHandle,
+            AuthoringQueryRequest(
+                resourceKind: 'asset',
+                operation: AuthoringQueryOperation.list,
+                filters: {'audioOnly': 'true'})),
+        throwsA(isA<AuthoringQueryException>()
+            .having((e) => e.code, 'code', 'query.filter_invalid')));
+  });
   test('default identifier order precedes page slicing', () async {
     final fixture = await _Library.create();
     addTearDown(fixture.dispose);

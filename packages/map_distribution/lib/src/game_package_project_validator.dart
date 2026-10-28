@@ -240,6 +240,7 @@ final class GamePackageProjectValidator {
       }
       for (final requirement in {
         if (FieldAbilityActivationCapabilities.requiresCapability(project)) FieldAbilityActivationCapabilities.capabilityId,
+        if (FieldAbilityActivationCapabilities.requiresExtendedCapability(project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(project)) ProjectAudioCapabilities.capabilityId,
       }) {
         if (!packageManifest.compatibility.requiredCapabilities.contains(requirement)) {

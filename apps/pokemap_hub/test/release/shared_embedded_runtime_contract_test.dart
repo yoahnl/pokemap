@@ -11,7 +11,7 @@ void main() {
         entry.readAsStringSync(),
         contains('package:pokemap_hub/avelune_embedded_runtime.dart'),
       );
-      expect(entry.readAsStringSync(), contains('runAveluneEmbeddedRuntime()'));
+      expect(entry.readAsStringSync(), contains('runAveluneEmbeddedRuntime('));
       expect(
         entry.readAsStringSync(),
         isNot(contains('class AveluneLibraryBridge')),

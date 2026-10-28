@@ -81,6 +81,7 @@ export 'src/domains/gameplay/progression_actions.dart';
 export 'src/domains/assets/asset_actions.dart';
 export 'src/domains/assets/character_studio_asset_actions.dart';
 export 'src/domains/assets/asset_store.dart';
+export 'src/domains/assets/project_audio_source_probe.dart';
 export 'src/domains/assets/element_actions.dart';
 export 'src/domains/assets/image_collection_prop_preview.dart';
 export 'src/domains/assets/palette_actions.dart';
