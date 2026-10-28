@@ -124,6 +124,17 @@ final class _FlutterFrameBackend extends GpuBackend {
   );
 
   @override
+  GpuPipeline? createInstancedPipeline({
+    required GpuShader vertexShader,
+    required GpuShader fragmentShader,
+    required GpuInstanceLayout layout,
+  }) => delegate.createInstancedPipeline(
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    layout: layout,
+  );
+
+  @override
   GpuRenderTarget createRenderTarget({
     required int width,
     required int height,

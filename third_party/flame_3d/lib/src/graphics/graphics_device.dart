@@ -84,10 +84,12 @@ class GraphicsDevice({
       blend: blendState,
       depthStencil: depthStencilState,
     );
+    _supportsInstancing = _renderPass is GpuInstancedRenderPass;
   }
 
   /// Submit the render pass to the GPU and return the rendered [Image].
   Image endPass() {
+    _supportsInstancing = false;
     _renderPass.submit();
     return _renderTarget.colorTexture.asImage();
   }
@@ -100,6 +102,39 @@ class GraphicsDevice({
   /// Bind a render [pipeline] with the given [cullMode].
   void bindPipeline(GpuPipeline pipeline, CullMode cullMode) {
     _renderPass.bindPipeline(pipeline, cullMode);
+  }
+
+  bool _supportsInstancing = false;
+
+  bool get supportsInstancing => _supportsInstancing;
+
+  void bindInstancedGeometry(
+    Surface surface,
+    ByteData instances,
+    int instanceCount,
+  ) {
+    _renderPass
+      ..bindVertexBuffer(
+        GpuBufferView(
+          surface.resource,
+          offsetInBytes: 0,
+          lengthInBytes: surface.verticesBytes,
+        ),
+        surface.vertexCount,
+      )
+      ..bindIndexBuffer(
+        GpuBufferView(
+          surface.resource,
+          offsetInBytes: surface.verticesBytes,
+          lengthInBytes: surface.indicesBytes,
+        ),
+        GpuIndexType.uint16,
+        surface.indexCount,
+      );
+    (_renderPass as GpuInstancedRenderPass).drawInstances(
+      instances,
+      instanceCount,
+    );
   }
 
   /// Bind a [surface]'s geometry (vertex/index buffers) and draw.

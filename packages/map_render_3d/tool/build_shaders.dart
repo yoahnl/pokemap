@@ -63,6 +63,14 @@ Future<void> main() async {
       'type': 'vertex',
       'file': '${package.path}/shaders/pixel_lit_material.vert',
     },
+    'InstancedTextureVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/pixel_material_instanced.vert',
+    },
+    'InstancedLitTextureVertex': {
+      'type': 'vertex',
+      'file': '${package.path}/shaders/pixel_lit_material_instanced.vert',
+    },
     'ShadowDepthFragment': {
       'type': 'fragment',
       'file': '${package.path}/shaders/shadow_depth.frag',

@@ -183,6 +183,14 @@ final class SpatialAtmosphereProfile {
   SpatialWindowGlow? window(String? instance, String? material) =>
       _windows[instance ?? '']?[material ?? ''];
 
+  late final Set<String> _targetedMaterials = {
+    for (final target in waterTargets) target.materialName,
+    for (final window in windows) window.target.materialName,
+  };
+
+  bool targetsMaterial(String? material) =>
+      _targetedMaterials.contains(material ?? '');
+
   static Map<String, Set<String>> _waterIndex(
     List<SpatialAtmosphereTarget> targets,
   ) {

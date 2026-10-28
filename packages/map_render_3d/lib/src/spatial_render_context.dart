@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:flame_3d/core.dart';
@@ -288,9 +289,7 @@ class SpatialRenderContext extends RenderContext3D
           );
         }
       }
-      for (final entry in _captured) {
-        _withPose(entry, () => drawSurface(entry.surface));
-      }
+      _replayCaptured();
       shadowStats = SpatialShadowStats(
         casterDrawCount: casterDrawCount,
         receiverDrawCount: shadow == null
@@ -358,6 +357,86 @@ class SpatialRenderContext extends RenderContext3D
       _transparent.clear();
       _releaseSnapshots();
     }
+  }
+
+  int instancedDrawCount = 0;
+  final _instanceGroups = <Surface, _InstanceGroup>{};
+  final _instanceGroupPool = <_InstanceGroup>[];
+  Float32List _instanceData = Float32List(1024);
+
+  void _replayCaptured() {
+    instancedDrawCount = 0;
+    final instancing = device.supportsInstancing;
+    for (final entry in _captured) {
+      if (instancing && _instanceable(entry)) {
+        final group = _instanceGroups[entry.surface] ??= _takeGroup();
+        if (group.entries.isEmpty || group.accepts(entry)) {
+          group.entries.add(entry);
+          continue;
+        }
+      }
+      _withPose(entry, () => drawSurface(entry.surface));
+    }
+    for (final group in _instanceGroups.values) {
+      if (group.entries.length == 1) {
+        final entry = group.entries.single;
+        _withPose(entry, () => drawSurface(entry.surface));
+      } else {
+        _drawInstanced(group.entries);
+      }
+      group.entries.clear();
+      _instanceGroupPool.add(group);
+    }
+    _instanceGroups.clear();
+  }
+
+  _InstanceGroup _takeGroup() => _instanceGroupPool.isEmpty
+      ? _InstanceGroup()
+      : _instanceGroupPool.removeLast();
+
+  bool _instanceable(_TransparentSurface entry) {
+    final material = entry.material;
+    return material.instanceable &&
+        entry.joints.isEmpty &&
+        entry.surface.jointMap == null &&
+        !atmosphereProfile.targetsMaterial(material.sourceMaterialName);
+  }
+
+  void _drawInstanced(List<_TransparentSurface> entries) {
+    final first = entries.first;
+    final material = first.material;
+    material.prepareLighting(lighting);
+    final pipeline = material.instancedPipeline();
+    if (pipeline == null) {
+      for (final entry in entries) {
+        _withPose(entry, () => drawSurface(entry.surface));
+      }
+      return;
+    }
+    final floats = entries.length * 16;
+    if (_instanceData.length < floats) _instanceData = Float32List(floats * 2);
+    for (var index = 0; index < entries.length; index++) {
+      _instanceData.setRange(
+        index * 16,
+        index * 16 + 16,
+        entries[index].model.storage,
+      );
+    }
+    _withPose(first, () {
+      device
+        ..clearBindings()
+        ..bindPipeline(pipeline, material.cullMode);
+      material.vertexShader.resource;
+      material.apply(this);
+      material.bindInstancedVertex(this);
+      material.fragmentShader.bind(device);
+      device.bindInstancedGeometry(
+        first.surface,
+        ByteData.sublistView(_instanceData, 0, floats),
+        entries.length,
+      );
+      instancedDrawCount++;
+    });
   }
 
   void _drawWeather() {
@@ -428,6 +507,16 @@ class SpatialRenderContext extends RenderContext3D
   }
 }
 
+final class _InstanceGroup {
+  final entries = <_TransparentSurface>[];
+
+  bool accepts(_TransparentSurface entry) {
+    final first = entries.first;
+    return identical(first.material, entry.material) &&
+        first.pose.sameAs(entry.pose);
+  }
+}
+
 final class _TransparentSurface {
   Surface? _surface;
   SpatialPixelMaterial? _material;
@@ -490,6 +579,22 @@ final class _MaterialPose {
   void release() {
     _texture = null;
     shadowSamplePosition = null;
+  }
+
+  bool sameAs(_MaterialPose other) {
+    final sample = shadowSamplePosition,
+        otherSample = other.shadowSamplePosition;
+    return identical(_texture, other._texture) &&
+        color == other.color &&
+        cullMode == other.cullMode &&
+        wrapS == other.wrapS &&
+        wrapT == other.wrapT &&
+        rect == other.rect &&
+        u == other.u &&
+        v == other.v &&
+        (sample == null
+            ? otherSample == null
+            : otherSample != null && sample == otherSample);
   }
 
   bool matches(SpatialPixelMaterial material) {

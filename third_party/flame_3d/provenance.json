@@ -62,14 +62,14 @@
     {
       "path": "lib/src/graphics/backend/flutter_gpu/gpu_backend.dart",
       "upstream_sha256": "c8617bd69bb36822b1ab4df7f556c71650e4c06e69cbfa52c8ef9acb088f690a",
-      "local_sha256": "01cfb7740a5756857dfcd40f1c524f8fbf129cda4fe0d2885cc81b7c6b125b59",
-      "change": "Create an optional second RGBA8 color attachment, blended by source alpha, alongside the main color target."
+      "local_sha256": "c0eeae5496e52b1d73b4cef56f0757dfc33f9fb9c6fabc0e8f400fa987fb84e6",
+      "change": "Create an optional second RGBA8 color attachment, blended by source alpha, alongside the main color target; build instanced pipelines from an explicit two-buffer vertex layout and draw instances from host-buffer instance data."
     },
     {
       "path": "lib/src/graphics/backend/gpu_backend.dart",
       "upstream_sha256": "e6aa3adc42944f58663dc55729745e432d898f10bab8c593d305f3f3713425a9",
-      "local_sha256": "5580f01b457c60a85fa4b67ecdddcdc6593bcb2282dc0b2ef753e40e1d020f0d",
-      "change": "Accept an optional secondary color clear value when creating render targets."
+      "local_sha256": "3d128ab55bc516e0c99fa98837c808384b2f1e00e6f02eb37cc0070af999c187",
+      "change": "Accept an optional secondary color clear value when creating render targets; declare optional instanced pipelines, their vertex/instance layout and an instanced render pass interface."
     },
     {
       "path": "lib/src/graphics/backend/gpu_handles.dart",
@@ -86,8 +86,8 @@
     {
       "path": "lib/src/graphics/graphics_device.dart",
       "upstream_sha256": "c534a0d716adebf36484ce317681286727ce57d0f473a3e210c1abb9ff90c792",
-      "local_sha256": "df785a482909bfae053d1f5f5b9d17b4ef85b3a1953277ab62c21e49ccea9194",
-      "change": "Bind uniforms from ByteData and pool render targets by size and secondary color clear value."
+      "local_sha256": "fd5c95ff59f6d71225812becd6728e91f130c35e0ec8e68a6c007ef00982f494",
+      "change": "Bind uniforms from ByteData and pool render targets by size and secondary color clear value; report instancing support for the open pass and bind instanced geometry."
     },
     {
       "path": "lib/src/graphics/joints_info.dart",

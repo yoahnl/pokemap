@@ -99,6 +99,55 @@ base class GpuBackend({gpu.GpuContext? gpuContext}) extends base.GpuBackend {
   }
 
   @override
+  GpuPipeline createInstancedPipeline({
+    required GpuShader vertexShader,
+    required GpuShader fragmentShader,
+    required base.GpuInstanceLayout layout,
+  }) {
+    gpu.VertexBuffer buffer(
+      int stride,
+      List<base.GpuVertexAttribute> attributes,
+      gpu.VertexStepMode stepMode,
+    ) => gpu.VertexBuffer(
+      strideInBytes: stride,
+      stepMode: stepMode,
+      attributes: [
+        for (final attribute in attributes)
+          gpu.VertexAttribute(
+            name: attribute.name,
+            format: switch (attribute.components) {
+              1 => gpu.VertexFormat.float32,
+              2 => gpu.VertexFormat.float32x2,
+              3 => gpu.VertexFormat.float32x3,
+              _ => gpu.VertexFormat.float32x4,
+            },
+            offsetInBytes: attribute.offsetInBytes,
+          ),
+      ],
+    );
+    return _FlutterGpuPipeline(
+      _context.createRenderPipeline(
+        (vertexShader as _FlutterGpuShader).raw,
+        (fragmentShader as _FlutterGpuShader).raw,
+        vertexLayout: gpu.VertexLayout(
+          buffers: [
+            buffer(
+              layout.vertexStride,
+              layout.vertexAttributes,
+              gpu.VertexStepMode.vertex,
+            ),
+            buffer(
+              layout.instanceStride,
+              layout.instanceAttributes,
+              gpu.VertexStepMode.instance,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   GpuRenderTarget createRenderTarget({
     required int width,
     required int height,
@@ -301,7 +350,7 @@ class _FlutterGpuRenderPass(
   final GpuBackend _backend,
   final gpu.CommandBuffer _commandBuffer,
   final gpu.RenderPass _renderPass,
-) implements base.GpuRenderPass {
+) implements base.GpuRenderPass, base.GpuInstancedRenderPass {
   // `flutter_gpu` takes the counts in `draw`/`drawIndexed` rather than at
   // bind time, so they are recorded here until [draw] is called.
   int _vertexCount = 0;
@@ -366,6 +415,20 @@ class _FlutterGpuRenderPass(
       _renderPass.drawIndexed(indexCount);
     } else {
       _renderPass.draw(_vertexCount);
+    }
+  }
+
+  @override
+  void drawInstances(ByteData instances, int instanceCount) {
+    _renderPass.bindVertexBuffer(
+      _backend._hostBuffer.emplace(instances),
+      slot: 1,
+    );
+    final indexCount = _indexCount;
+    if (indexCount != null) {
+      _renderPass.drawIndexed(indexCount, instanceCount: instanceCount);
+    } else {
+      _renderPass.draw(_vertexCount, instanceCount: instanceCount);
     }
   }
 

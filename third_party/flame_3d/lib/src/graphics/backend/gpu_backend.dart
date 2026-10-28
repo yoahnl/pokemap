@@ -67,6 +67,12 @@ abstract base class GpuBackend() {
 
   /// Creates a [GpuRenderTarget] of [width]x[height], cleared to [clearValue]
   /// at the start of each pass.
+  GpuPipeline? createInstancedPipeline({
+    required GpuShader vertexShader,
+    required GpuShader fragmentShader,
+    required GpuInstanceLayout layout,
+  }) => null;
+
   GpuRenderTarget createRenderTarget({
     required int width,
     required int height,
@@ -98,6 +104,23 @@ abstract interface class GpuFrame() {
 /// Records the bind and draw commands of a single render pass.
 ///
 /// Obtain one via [GpuFrame.beginRenderPass] and submit it with [submit].
+final class GpuVertexAttribute({
+  required final String name,
+  required final int components,
+  required final int offsetInBytes,
+});
+
+final class GpuInstanceLayout({
+  required final int vertexStride,
+  required final List<GpuVertexAttribute> vertexAttributes,
+  required final int instanceStride,
+  required final List<GpuVertexAttribute> instanceAttributes,
+});
+
+abstract interface class GpuInstancedRenderPass() {
+  void drawInstances(ByteData instances, int instanceCount);
+}
+
 abstract interface class GpuRenderPass() {
   /// Binds the render [pipeline] and applies [cullMode].
   void bindPipeline(GpuPipeline pipeline, CullMode cullMode);

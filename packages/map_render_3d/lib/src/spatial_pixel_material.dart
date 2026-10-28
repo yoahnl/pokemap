@@ -67,6 +67,86 @@ class SpatialPixelMaterial extends UnlitMaterial {
     groundDepthOnly: false,
     lit: true,
   );
+  late final VertexShader _instancedUnlitVertexShader = VertexShader.fromAsset(
+    _shaderBundle,
+    entryPoint: 'InstancedTextureVertex',
+    slots: ['VertexInfo'],
+  );
+  late final VertexShader _instancedLitVertexShader = VertexShader.fromAsset(
+    _shaderBundle,
+    entryPoint: 'InstancedLitTextureVertex',
+    slots: ['VertexInfo'],
+  );
+  GpuPipeline? _instancedPipeline;
+  GpuShader? _instancedVertexResource;
+  GpuShader? _instancedFragmentResource;
+
+  bool get instanceable =>
+      !groundDepthOnly &&
+      lightingRole == SpatialPixelLightingRole.surface &&
+      alphaMode != Model3dAlphaMode.blend &&
+      shadowSamplePosition == null;
+
+  VertexShader get _instancedVertexShader =>
+      identical(vertexShader, _litVertexShader)
+      ? _instancedLitVertexShader
+      : _instancedUnlitVertexShader;
+
+  GpuPipeline? instancedPipeline() {
+    final vertex = _instancedVertexShader.resource;
+    final fragment = fragmentShader.resource;
+    if (!identical(vertex, _instancedVertexResource) ||
+        !identical(fragment, _instancedFragmentResource)) {
+      _instancedPipeline = GpuBackend.instance.createInstancedPipeline(
+        vertexShader: vertex,
+        fragmentShader: fragment,
+        layout: _instanceLayout,
+      );
+      _instancedVertexResource = vertex;
+      _instancedFragmentResource = fragment;
+    }
+    return _instancedPipeline;
+  }
+
+  void bindInstancedVertex(RenderContext3D context) {
+    _instancedVertexShader
+      ..setMatrix4('VertexInfo.view', context.view)
+      ..setMatrix4('VertexInfo.projection', context.projection)
+      ..bind(context.device);
+  }
+
+  static const _shaderBundle =
+      'packages/map_render_3d/assets/shaders/pixel_material.shaderbundle';
+  static final _instanceLayout = GpuInstanceLayout(
+    vertexStride: 80,
+    vertexAttributes: [
+      GpuVertexAttribute(
+        name: 'vertexPosition',
+        components: 3,
+        offsetInBytes: 0,
+      ),
+      GpuVertexAttribute(
+        name: 'vertexTexCoord',
+        components: 2,
+        offsetInBytes: 12,
+      ),
+      GpuVertexAttribute(name: 'vertexColor', components: 4, offsetInBytes: 20),
+      GpuVertexAttribute(
+        name: 'vertexNormal',
+        components: 3,
+        offsetInBytes: 36,
+      ),
+    ],
+    instanceStride: 64,
+    instanceAttributes: [
+      for (var column = 0; column < 4; column++)
+        GpuVertexAttribute(
+          name: 'instanceModel$column',
+          components: 4,
+          offsetInBytes: column * 16,
+        ),
+    ],
+  );
   bool _normalLightingEnabled = false;
   bool _lightingUniformsBound = false;
   SpatialLightingProfile? _boundLighting;
