@@ -68,7 +68,7 @@
     {
       "path": "lib/src/graphics/backend/gpu_backend.dart",
       "upstream_sha256": "e6aa3adc42944f58663dc55729745e432d898f10bab8c593d305f3f3713425a9",
-      "local_sha256": "3d128ab55bc516e0c99fa98837c808384b2f1e00e6f02eb37cc0070af999c187",
+      "local_sha256": "da36e23442c979faa612032af1153bf4a2c2c563362fb28041e53b261b3f8a8e",
       "change": "Accept an optional secondary color clear value when creating render targets; declare optional instanced pipelines, their vertex/instance layout and an instanced render pass interface."
     },
     {

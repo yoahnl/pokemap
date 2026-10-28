@@ -101,9 +101,6 @@ abstract interface class GpuFrame() {
   void end();
 }
 
-/// Records the bind and draw commands of a single render pass.
-///
-/// Obtain one via [GpuFrame.beginRenderPass] and submit it with [submit].
 final class GpuVertexAttribute({
   required final String name,
   required final int components,
@@ -121,6 +118,9 @@ abstract interface class GpuInstancedRenderPass() {
   void drawInstances(ByteData instances, int instanceCount);
 }
 
+/// Records the bind and draw commands of a single render pass.
+///
+/// Obtain one via [GpuFrame.beginRenderPass] and submit it with [submit].
 abstract interface class GpuRenderPass() {
   /// Binds the render [pipeline] and applies [cullMode].
   void bindPipeline(GpuPipeline pipeline, CullMode cullMode);
