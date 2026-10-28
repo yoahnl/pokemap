@@ -161,5 +161,203 @@
       "local_sha256": "d00e40f748dac2edd1bf298201266d53e1c352ad4b52dc8f3c877b06f332a25f",
       "change": "Add a rerunnable impellerc build of the unlit and spatial shader bundles from shaders/."
     }
-  ]
+  ],
+  "upstream_contributions": {
+    "as_of": "2026-10-28",
+    "upstream_main": "aee8f6f5",
+    "account": "yoahnl",
+    "proposed": [
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4147",
+        "kind": "pull_request",
+        "title": "fix(flame_3d): Stop caching a buffer for every color passed to Shader.setColor",
+        "local_paths": [
+          "lib/src/resources/shader/shader.dart"
+        ],
+        "local_commits": [
+          "103f86719"
+        ],
+        "status": "approved, not merged"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4148",
+        "kind": "pull_request",
+        "title": "perf(flame_3d): Pack surface vertices without boxed intermediate lists",
+        "local_paths": [
+          "lib/src/resources/mesh/surface.dart"
+        ],
+        "local_commits": [
+          "1ae748828"
+        ],
+        "status": "approved, not merged"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4149",
+        "kind": "pull_request",
+        "title": "perf(flame_3d): Resolve each uniform key once per shader",
+        "local_paths": [
+          "lib/src/resources/shader/shader.dart",
+          "lib/src/resources/material/unlit_material.dart"
+        ],
+        "local_commits": [
+          "c895aae61"
+        ],
+        "status": "review requested"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/issues/4150",
+        "kind": "issue",
+        "title": "[flame_3d] Allow rendering World3D at a fraction of the device resolution",
+        "local_paths": [
+          "lib/src/camera/world_3d.dart",
+          "lib/src/game/game_3d.dart"
+        ],
+        "local_commits": [
+          "07316aa1c"
+        ],
+        "status": "awaiting maintainer feedback"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4151",
+        "kind": "pull_request",
+        "title": "fix(flame_3d): Apply at most eight point lights in SpatialMaterial",
+        "local_paths": [],
+        "local_commits": [],
+        "status": "open; fork unchanged, Avelune replaces SpatialMaterial with SpatialPixelMaterial"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4152",
+        "kind": "pull_request",
+        "title": "perf(flame_3d): Compute the camera frustum once per render pass",
+        "local_paths": [
+          "lib/src/camera/camera_component_3d.dart",
+          "lib/src/camera/world_3d.dart"
+        ],
+        "local_commits": [
+          "8a2fbb2db"
+        ],
+        "status": "open"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4153",
+        "kind": "pull_request",
+        "title": "perf(flame_3d): Reuse one empty joint list for surfaces without joints",
+        "local_paths": [
+          "lib/src/graphics/joints_info.dart"
+        ],
+        "local_commits": [
+          "16ce3af48"
+        ],
+        "status": "open"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4154",
+        "kind": "pull_request",
+        "title": "perf(flame_3d): Order the nodes of a Model once",
+        "local_paths": [
+          "lib/src/model/model.dart"
+        ],
+        "local_commits": [
+          "8a2fbb2db"
+        ],
+        "status": "open; covers the node order only, the fork also caches the rest pose"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/pull/4156",
+        "kind": "pull_request",
+        "title": "fix(flame_3d): Sort the joints of a surface by their local index",
+        "local_paths": [],
+        "local_commits": [],
+        "status": "open; fork unchanged, harmless for joint maps built by the glTF parser"
+      },
+      {
+        "reference": "https://github.com/flame-engine/flame/issues/4157",
+        "kind": "issue",
+        "title": "[flame_3d] Support instanced drawing of repeated meshes",
+        "local_paths": [
+          "lib/src/graphics/backend/gpu_backend.dart",
+          "lib/src/graphics/backend/flutter_gpu/gpu_backend.dart",
+          "lib/src/graphics/graphics_device.dart"
+        ],
+        "local_commits": [
+          "4354dc038"
+        ],
+        "status": "awaiting maintainer feedback"
+      }
+    ],
+    "pending": [
+      {
+        "subject": "Bind shader slots from an ordered list and rebind a texture without a putIfAbsent closure",
+        "local_paths": [
+          "lib/src/resources/shader/shader.dart"
+        ],
+        "local_commits": [
+          "c895aae61",
+          "16ce3af48"
+        ],
+        "reason": "Changes the lines #4149 rewrites; propose once #4149 is merged."
+      }
+    ],
+    "not_proposed": [
+      {
+        "subject": "frustumCullTest without a list of planes",
+        "local_paths": [
+          "lib/src/extensions/aabb3.dart"
+        ],
+        "local_commits": [
+          "8a2fbb2db"
+        ],
+        "reason": "No measurable gain in JIT or AOT on 2026-10-28: the compiler already removes the six-plane list."
+      },
+      {
+        "subject": "Rest pose cache in Model.processNodes",
+        "local_paths": [
+          "lib/src/model/model.dart"
+        ],
+        "local_commits": [
+          "8a2fbb2db"
+        ],
+        "reason": "Unsafe upstream: ModelNode.transform is a mutable Matrix4 that games may edit by hand."
+      },
+      {
+        "subject": "Second color output carrying view depth for depth of field",
+        "local_paths": [
+          "shaders/",
+          "lib/src/graphics/backend/"
+        ],
+        "local_commits": [
+          "6eacf8e36"
+        ],
+        "reason": "Check first whether flutter_gpu can sample the depth texture directly."
+      },
+      {
+        "subject": "World3D presenting a post-processed image larger than the render size",
+        "local_paths": [
+          "lib/src/camera/world_3d.dart"
+        ],
+        "local_commits": [
+          "4b8deb6f2"
+        ],
+        "reason": "Depends on the outcome of issue #4150."
+      },
+      {
+        "subject": "Bounded cache of parsed uniform keys",
+        "local_paths": [
+          "lib/src/resources/shader/uniform_key_cache.dart"
+        ],
+        "local_commits": [
+          "926f40663"
+        ],
+        "reason": "Superseded by #4149."
+      }
+    ],
+    "outside_flame": [
+      {
+        "repository": "flutter/flutter",
+        "subject": "Reuse the resolved pipeline across draws in flutter_gpu RenderPass::Draw",
+        "reason": "GetOrCreatePipeline and binding metadata copies run on every draw and dominate the measured per-draw cost; needs an engine build to prove."
+      }
+    ],
+    "on_merge": "Remove the matching local modification, update its hashes above, and update this section."
+  }
 }
