@@ -512,6 +512,8 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
       if (a.direction == _facing) {
         if (a.state == _animState) exactFacing = a;
         switch (a.state) {
+          case CharacterAnimationState.cut:
+          case CharacterAnimationState.rockSmash:
           case CharacterAnimationState.surfIdle:
           case CharacterAnimationState.surf:
           case CharacterAnimationState.surfEnter:
@@ -532,6 +534,9 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
         }
       } else {
         switch (a.state) {
+          case CharacterAnimationState.cut:
+          case CharacterAnimationState.rockSmash:
+            break;
           case CharacterAnimationState.walk:
             walkAny ??= a;
             break;
