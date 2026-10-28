@@ -51,6 +51,8 @@ final class SpatialSmartTileAnimationController {
   final _smartTileLayersById = <String, SmartTileLayer>{};
   final _actorCells = <String, GridPos?>{};
   final _actorAnimations = <String, SmartTileAnimationActivationController>{};
+  final _occupiedCells = <GridPos>[];
+  final _occupiedAnimations = <SmartTileAnimationActivationController>[];
   final _instancesByCell = <GridPos, List<String>>{};
   final SmartTileAnimationActivationController _rasterAnimations;
   final _durations = <String, double>{};
@@ -107,6 +109,13 @@ final class SpatialSmartTileAnimationController {
       }
       _actorCells[entry.key] = cell;
     }
+    _occupiedCells.clear();
+    _occupiedAnimations.clear();
+    for (final MapEntry(key: id, value: cell) in _actorCells.entries) {
+      if (cell == null) continue;
+      _occupiedCells.add(cell);
+      _occupiedAnimations.add(_actorAnimations[id]!);
+    }
   }
 
   ({bool active, int elapsedMs}) actorOcclusionStateForCell({
@@ -120,9 +129,10 @@ final class SpatialSmartTileAnimationController {
       return (active: true, elapsedMs: globalElapsedMs);
     }
     int? elapsed;
-    for (final entry in _actorCells.entries) {
-      if (entry.value != GridPos(x: cellX, y: cellY)) continue;
-      final time = _actorAnimations[entry.key]!.elapsedMsForCell(
+    for (var index = 0; index < _occupiedCells.length; index++) {
+      final cell = _occupiedCells[index];
+      if (cell.x != cellX || cell.y != cellY) continue;
+      final time = _occupiedAnimations[index].elapsedMsForCell(
         layerId: layerId,
         cellX: cellX,
         cellY: cellY,
@@ -133,8 +143,10 @@ final class SpatialSmartTileAnimationController {
         elapsed = time;
       }
     }
-    return (active: elapsed != null, elapsedMs: elapsed ?? 0);
+    return elapsed == null ? _vacantCell : (active: true, elapsedMs: elapsed);
   }
+
+  static const _vacantCell = (active: false, elapsedMs: 0);
 
   int rasterElapsedMsForCell({
     required String layerId,

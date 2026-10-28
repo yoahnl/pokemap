@@ -34,14 +34,15 @@ extension Aabb3Extension on Aabb3 {
   CullResult frustumCullTest(Frustum frustum) {
     var allInside = true;
 
-    for (final plane in [
-      frustum.plane0,
-      frustum.plane1,
-      frustum.plane2,
-      frustum.plane3,
-      frustum.plane4,
-      frustum.plane5,
-    ]) {
+    for (var index = 0; index < 6; index++) {
+      final plane = switch (index) {
+        0 => frustum.plane0,
+        1 => frustum.plane1,
+        2 => frustum.plane2,
+        3 => frustum.plane3,
+        4 => frustum.plane4,
+        _ => frustum.plane5,
+      };
       final normal = plane.normal;
       final constant = plane.constant;
 

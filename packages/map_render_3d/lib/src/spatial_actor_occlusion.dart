@@ -146,16 +146,14 @@ final class SpatialActorOcclusionPlan {
               SmartTileAnimationActivation.onEnter &&
           stateForCell == null)
         continue;
-      final states = <(int, int), SpatialActorOcclusionState>{};
-      SpatialActorOcclusionState state(int x, int y) => states.putIfAbsent(
-        (x, y),
-        () =>
-            entry.layer.animationActivation ==
-                SmartTileAnimationActivation.always
-            ? (active: true, elapsedMs: elapsedMs)
-            : stateForCell?.call(entry.layer.id, x, y, elapsedMs) ??
-                  (active: false, elapsedMs: 0),
-      );
+      final always =
+          entry.layer.animationActivation == SmartTileAnimationActivation.always
+          ? (active: true, elapsedMs: elapsedMs)
+          : null;
+      SpatialActorOcclusionState state(int x, int y) =>
+          always ??
+          stateForCell?.call(entry.layer.id, x, y, elapsedMs) ??
+          _vacantCell;
       final visuals = entry.plan
           .resolveBatch(
             elapsedMs: elapsedMs,
@@ -196,6 +194,8 @@ final class SpatialActorOcclusionPlan {
     }
     return result;
   }
+
+  static const _vacantCell = (active: false, elapsedMs: 0);
 }
 
 final class SpatialActorOcclusionBillboards {

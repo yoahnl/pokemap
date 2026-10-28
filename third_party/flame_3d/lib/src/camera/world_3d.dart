@@ -48,7 +48,12 @@ class World3D({
       ..setCamera(camera.viewMatrix, camera.projectionMatrix);
 
     gameRef.device.beginPass(renderSize);
-    super.renderFromCamera(canvas);
+    camera.holdFrustum();
+    try {
+      super.renderFromCamera(canvas);
+    } finally {
+      camera.releaseFrustum();
+    }
     context.flush();
 
     final image = gameRef.device.endPass();

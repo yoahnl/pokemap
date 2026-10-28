@@ -328,9 +328,8 @@ class AnimatedModelComponent extends ModelComponent {
         if (mesh != null) {
           context
             ..jointsInfo.jointTransformsPerSurface = node.jointTransforms
-            ..model.setFrom(
-              worldTransformMatrix.multiplied(node.combinedTransform),
-            )
+            ..model.setFrom(worldTransformMatrix)
+            ..model.multiply(node.combinedTransform)
             ..drawMesh(mesh);
         }
       }

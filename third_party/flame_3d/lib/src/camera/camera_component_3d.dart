@@ -86,8 +86,18 @@ class CameraComponent3D({
   final Matrix4 _viewProjectionMatrix = Matrix4.zero();
 
   /// The frustum of the [viewProjectionMatrix].
-  Frustum get frustum => _frustum..setFromMatrix(viewProjectionMatrix);
+  Frustum get frustum => _frustumHolds > 0
+      ? _frustum
+      : (_frustum..setFromMatrix(viewProjectionMatrix));
   final Frustum _frustum = Frustum();
+  int _frustumHolds = 0;
+
+  void holdFrustum() {
+    if (_frustumHolds == 0) _frustum.setFromMatrix(viewProjectionMatrix);
+    _frustumHolds++;
+  }
+
+  void releaseFrustum() => _frustumHolds--;
 
   /// Rotates the camera's yaw and pitch.
   ///

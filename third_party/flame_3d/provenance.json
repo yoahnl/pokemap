@@ -36,10 +36,22 @@
       "change": "Rebuilt from shaders/ with tool/build_shaders.dart so the unlit fragment writes encoded view depth to a second color output."
     },
     {
+      "path": "lib/src/camera/camera_component_3d.dart",
+      "upstream_sha256": "2a50ae9df68b1c5b580a8dbdd9478357ec845259eb5c99f1da61d26f906646ac",
+      "local_sha256": "bf7ec152260d8bfcf4cdc92d4d3e56b40908ff8cc0cdcc720ed705d6797eca71",
+      "change": "Let a render pass hold the frustum so it is computed once per pass instead of once per culled component."
+    },
+    {
       "path": "lib/src/camera/world_3d.dart",
       "upstream_sha256": "c6397e2cf90984e6d72a25477aa7ab5fdf54e34d6b2a939d946c243aee80e29b",
-      "local_sha256": "ad1342c94d9d4cf5a592049665209f333c36aa790c2f3590c267ef1e55bb6c4e",
-      "change": "Add a render resolution scale and clamp the render size to [0.25, 1] of the viewport. Present a post-processed image larger than the render size, such as an upscaled one, through its full extent."
+      "local_sha256": "9ba72276fee298a36ccd014f5cf5f76fa0791b93540d2d558a7b91fa3aca23ec",
+      "change": "Add a render resolution scale and clamp the render size to [0.25, 1] of the viewport. Present a post-processed image larger than the render size, such as an upscaled one, through its full extent. Hold the camera frustum for the duration of the scene pass so each culled component reuses it."
+    },
+    {
+      "path": "lib/src/extensions/aabb3.dart",
+      "upstream_sha256": "bb987ce4cf3358019716663ea7cb989c55ff1ed6f96032b10962f69b31460a87",
+      "local_sha256": "ff8879243d53a3d2bea78527f0cb56649844fac8e2bd6b02cb458d97a0a04be2",
+      "change": "Walk the six frustum planes without allocating a list per cull test."
     },
     {
       "path": "lib/src/game/game_3d.dart",
@@ -76,6 +88,12 @@
       "upstream_sha256": "c534a0d716adebf36484ce317681286727ce57d0f473a3e210c1abb9ff90c792",
       "local_sha256": "df785a482909bfae053d1f5f5b9d17b4ef85b3a1953277ab62c21e49ccea9194",
       "change": "Bind uniforms from ByteData and pool render targets by size and secondary color clear value."
+    },
+    {
+      "path": "lib/src/model/model.dart",
+      "upstream_sha256": "28d93034562615d4841b27d88335ac6f9a912b990f8df216e67aad20a2154343",
+      "local_sha256": "b96e874fb2950f468aa472ca288e23ffc73090da0cd4a51fd16b4e0bb3896768",
+      "change": "Order the node hierarchy once per model and reuse the processed nodes of a model without a running animation."
     },
     {
       "path": "lib/src/resources/material/unlit_material.dart",

@@ -49,7 +49,25 @@ class Model {
   }
 
   Map<int, ProcessedNode> processNodes(AnimationState animation) {
+    if (animation.animationRef == null) {
+      return _restPose ??= _processNodes(animation);
+    }
+    return _processNodes(animation);
+  }
+
+  Map<int, ProcessedNode>? _restPose;
+  late final List<ModelNode> _processingOrder = _orderNodes();
+
+  Map<int, ProcessedNode> _processNodes(AnimationState animation) {
     final processedNodes = <int, ProcessedNode>{};
+    for (final node in _processingOrder) {
+      node.processNode(processedNodes, animation);
+    }
+    return processedNodes;
+  }
+
+  List<ModelNode> _orderNodes() {
+    final order = <ModelNode>[];
 
     final inDegree = <int, int>{};
     final adjacencyMap = <int, Set<int>>{};
@@ -72,8 +90,7 @@ class Model {
 
     while (queue.isNotEmpty) {
       final index = queue.removeFirst();
-      final node = nodes[index]!;
-      node.processNode(processedNodes, animation);
+      order.add(nodes[index]!);
       final adjacency = adjacencyMap[index] ?? {};
       for (final dependency in adjacency) {
         inDegree[dependency] = inDegree[dependency]! - 1;
@@ -83,10 +100,10 @@ class Model {
       }
     }
 
-    if (processedNodes.length != nodes.length) {
+    if (order.length != nodes.length) {
       throw StateError('Failed to process all nodes');
     }
 
-    return processedNodes;
+    return order;
   }
 }
