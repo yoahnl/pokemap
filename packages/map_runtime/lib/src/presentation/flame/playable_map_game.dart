@@ -3033,6 +3033,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         workingSession.gameState = _gameState;
         workingSession.registerCompensation(restoreSource);
       }
+      if (completed) unawaited(projectAudio?.play(ProjectSoundCue.fieldFly));
       return completed;
     } on Object {
       return false;

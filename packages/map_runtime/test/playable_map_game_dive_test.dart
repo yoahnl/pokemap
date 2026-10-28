@@ -70,8 +70,8 @@ void main() {
   testWidgets(
     'a newer destination pose during Dive fade in keeps ownership of the world',
     (tester) async {
-      await tester.runAsync(() async {
-        final game = await mountDive(tester);
+      await helpers.runWithFieldAudio(tester, (fieldAudio) async {
+        final game = await mountDive(tester, projectAudio: fieldAudio.audio);
         var done = false;
         final transfer = confirmDive(game).whenComplete(() => done = true);
         await helpers.tickUntil(
@@ -91,6 +91,11 @@ void main() {
         expect(game.debugIsMapLoaded('deep'), isTrue);
         expect(game.debugRenderedPlayerFootCell, changed.playerPosition);
         expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldDive'),
+          isEmpty,
+        );
       });
     },
   );
@@ -98,11 +103,26 @@ void main() {
     testWidgets(
       'native Dive dialogue $answer transfers modes, preserves PP and cold returns',
       (tester) async {
-        await tester.runAsync(() async {
+        await helpers.runWithFieldAudio(tester, (fieldAudio) async {
           final save = helpers.MemorySave();
-          final game = await mountDive(tester, save: save);
+          final game = await mountDive(
+            tester,
+            save: save,
+            projectAudio: fieldAudio.audio,
+          );
           final before = game.gameStateSnapshot;
           await confirmDive(game, answer: answer);
+          if (answer == 'yes') {
+            await helpers.tickUntil(
+              game,
+              () => fieldAudio.driver.paths.contains('fieldDive'),
+            );
+          }
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldDive'),
+            hasLength(answer == 'yes' ? 1 : 0),
+          );
           if (answer != 'yes') {
             expect(game.gameStateSnapshot.currentMapId, 'sea');
             expect(
@@ -153,14 +173,23 @@ void main() {
     testWidgets(
       'Dive $failure refuses and retains the complete source checkpoint',
       (tester) async {
-        await tester.runAsync(() async {
-          final game = await mountDive(tester, failure: failure);
+        await helpers.runWithFieldAudio(tester, (fieldAudio) async {
+          final game = await mountDive(
+            tester,
+            failure: failure,
+            projectAudio: fieldAudio.audio,
+          );
           final before = game.gameStateSnapshot;
           final activation = game.debugCompletedMapActivationDispatchCount;
           await confirmDive(game, available: failure == 'mount');
           expect(game.gameStateSnapshot, before);
           expect(game.debugIsMapLoaded('sea'), isTrue);
           expect(game.debugCompletedMapActivationDispatchCount, activation);
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldDive'),
+            isEmpty,
+          );
         });
       },
     );
@@ -169,13 +198,14 @@ void main() {
     testWidgets(
       'Dive revalidates a changed source during $stage and preserves it on rollback',
       (tester) async {
-        await tester.runAsync(() async {
+        await helpers.runWithFieldAudio(tester, (fieldAudio) async {
           final entered = Completer<void>(), gate = Completer<void>();
           addTearDown(() {
             if (!gate.isCompleted) gate.complete();
           });
           final game = await mountDive(
             tester,
+            projectAudio: fieldAudio.audio,
             visualGate: stage == 'visuals' ? gate : null,
             visualEntered: stage == 'visuals' ? entered : null,
             beforeMount: stage == 'mount'
@@ -204,6 +234,11 @@ void main() {
           expect(game.gameStateSnapshot.party, before.party);
           expect(game.debugIsMapLoaded('sea'), isTrue);
           expect(game.inputAuthoritySnapshot.acceptsOverworldInput, isTrue);
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldDive'),
+            isEmpty,
+          );
         });
       },
     );
@@ -353,6 +388,7 @@ Future<PlayableMapGame> mountDive(
   bool surfaceBlocked = false,
   MapData? seaOverride,
   ProjectFieldAbilitiesSettings? fieldAbilities,
+  RuntimeProjectAudioController? projectAudio,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-dive-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -406,6 +442,7 @@ Future<PlayableMapGame> mountDive(
     map: state.currentMapId == 'deep' ? deep : sea,
   );
   final game = PlayableMapGame(
+    projectAudio: projectAudio,
     bundle: bundle,
     projectFilePath: '${root.path}/project.json',
     saveData: saveDataFromGameState(state),

@@ -51,6 +51,7 @@ abstract final class AveluneRuntimeCompatibility {
           FieldAbilityActivationCapabilities.extendedCapabilityId,
           ProjectAudioCapabilities.capabilityId,
           ProjectAudioCapabilities.extendedCapabilityId,
+          FieldObstacleCapabilities.capabilityId,
           SpatialGameplayCapabilities.audioCapabilityId,
           SpatialGameplayCapabilities.sceneMusicCapabilityId,
           SpatialGameplayCapabilities.npcTradeCapabilityId,

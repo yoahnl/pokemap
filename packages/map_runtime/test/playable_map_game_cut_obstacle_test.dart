@@ -12,6 +12,7 @@ import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
 import 'package:map_runtime/src/presentation/flame/overworld_actor_component.dart';
 
 import 'surface/surface_runtime_test_support.dart';
+import 'playable_map_game_flash_test.dart' show runWithFieldAudio;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -34,12 +35,13 @@ void main() {
   testWidgets(
     'Strength activation and repeated directional pushes publish one movement each and survive fresh restore',
     (tester) async {
-      await tester.runAsync(() async {
+      await runWithFieldAudio(tester, (fieldAudio) async {
         final receipts = <RuntimeCommittedMovement>[];
         final fixture = await _mount(
           tester,
           obstacleKind: FieldObstacleKind.strengthBoulder,
           movementReceipts: receipts,
+          projectAudio: fieldAudio.audio,
         );
         final game = fixture.game;
         final request =
@@ -75,6 +77,11 @@ void main() {
         await _press(game, RuntimeInputControl.right);
         expect(game.debugPlayerGridPosition, const GridPos(x: 3, y: 1));
         expect(receipts, hasLength(2));
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldStrength'),
+          hasLength(1),
+        );
         expect(await game.saveGame(), isTrue);
         final saved = GameState.fromJson(game.gameStateSnapshot.toJson());
         final restored = await _mount(
@@ -107,13 +114,52 @@ void main() {
       });
     },
   );
+  for (final answer in ['no', 'cancel', 'stale']) {
+    testWidgets('Strength $answer leaves activation silent', (tester) async {
+      await runWithFieldAudio(tester, (fieldAudio) async {
+        final game = (await _mount(
+          tester,
+          obstacleKind: FieldObstacleKind.strengthBoulder,
+          projectAudio: fieldAudio.audio,
+        )).game;
+        final request =
+            game.overworldInteractionSnapshot.primaryAction!.request;
+        expect(game.dispatchOverworldInteraction(request), isTrue);
+        for (var i = 0; i < 8; i++) {
+          game.update(.016);
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+        }
+        await _press(game, RuntimeInputControl.primary);
+        if (answer == 'no') await _press(game, RuntimeInputControl.down);
+        if (answer == 'stale') game.setPlayerMovementMode(MovementMode.surf);
+        await _press(
+          game,
+          answer == 'cancel'
+              ? RuntimeInputControl.secondary
+              : RuntimeInputControl.primary,
+        );
+        await _tickUntil(game, () => game.debugFlowPhaseName == 'overworld');
+        await Future<void>.delayed(Duration.zero);
+        final instances = game.gameStateSnapshot.mapInstanceWorldState;
+        expect(
+          instances.isStrengthActive(instances.instanceRef('route')!),
+          isFalse,
+        );
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldStrength'),
+          isEmpty,
+        );
+      });
+    });
+  }
   for (final answer in ['yes', 'no', 'cancel', 'stale']) {
     testWidgets('native Rock Smash $answer uses the Player dialogue', (
       tester,
     ) async {
-      await tester.runAsync(() async {
+      await runWithFieldAudio(tester, (fieldAudio) async {
         final fixture = await _mount(
           tester,
+          projectAudio: fieldAudio.audio,
           obstacleKind: FieldObstacleKind.rockSmashRock,
         );
         final game = fixture.game;
@@ -139,6 +185,11 @@ void main() {
               : RuntimeInputControl.primary,
         );
         await _tickUntil(game, () => game.debugFlowPhaseName == 'overworld');
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldRockSmash'),
+          hasLength(answer == 'yes' ? 1 : 0),
+        );
         final instance = game.gameStateSnapshot.mapInstanceWorldState
             .instanceRef('route')!;
         expect(
@@ -327,16 +378,19 @@ void main() {
             );
           }
           if (corruption.startsWith('npc')) {
-            instances = instances.setNpcPoses(scope, _npcPoses({
-              corruption == 'npcMissing'
-                  ? 'ghost'
-                  : corruption == 'npcType'
-                  ? 'tree'
-                  : 'walker': GridPos(
-                x: corruption == 'npcBounds' ? 5 : 4,
-                y: 2,
-              ),
-            }));
+            instances = instances.setNpcPoses(
+              scope,
+              _npcPoses({
+                corruption == 'npcMissing'
+                    ? 'ghost'
+                    : corruption == 'npcType'
+                    ? 'tree'
+                    : 'walker': GridPos(
+                  x: corruption == 'npcBounds' ? 5 : 4,
+                  y: 2,
+                ),
+              }),
+            );
           }
           if (corruption == 'wrongKind') {
             instances = instances.clearFieldObstacle(scope, 'tree');
@@ -773,6 +827,7 @@ Future<({PlayableMapGame game, _Sfx sfx})> _mount(
   bool v2Only = false,
   bool declaredOwner = false,
   ProjectFieldAbilitiesSettings? fieldAbilities,
+  RuntimeProjectAudioController? projectAudio,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-cut-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -1060,7 +1115,10 @@ Future<({PlayableMapGame game, _Sfx sfx})> _mount(
         fieldObstacle: MapEntityFieldObstacleData(kind: obstacleKind),
       ),
     ],
-    warps: [_arrival('neighbor', 'safe', includeWalker ? 4 : 3), _arrival('neighbor', 'edge', 0)],
+    warps: [
+      _arrival('neighbor', 'safe', includeWalker ? 4 : 3),
+      _arrival('neighbor', 'edge', 0),
+    ],
     connections: connections
         ? const [
             MapConnection(
@@ -1078,6 +1136,7 @@ Future<({PlayableMapGame game, _Sfx sfx})> _mount(
     map: startNeighbor ? neighbor : route,
   );
   final game = PlayableMapGame(
+    projectAudio: projectAudio,
     bundle: bundle,
     projectFilePath: '${root.path}/project.json',
     saveData: saveDataFromGameState(state),
@@ -1256,5 +1315,8 @@ Future<void> _moveWalker(PlayableMapGame game) async {
 
 Map<String, MapInstanceNpcPose> _npcPoses(Map<String, GridPos> positions) => {
   for (final entry in positions.entries)
-    entry.key: MapInstanceNpcPose(position: entry.value, facing: EntityFacing.south),
+    entry.key: MapInstanceNpcPose(
+      position: entry.value,
+      facing: EntityFacing.south,
+    ),
 };

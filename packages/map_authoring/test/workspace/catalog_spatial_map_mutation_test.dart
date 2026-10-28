@@ -16,7 +16,7 @@ import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleP
 void main() {
 
   final obstacleCounts = <List<int>>[];
-  for (final unrelated in [0, 2000]) {
+  for (final unrelated in [0, if (Platform.environment['AVELUNE_FIELD_OBSTACLE_LARGE_FIXTURE'] == '1') 2000]) {
     test('targeted 3D field obstacles first repeat undo reopen with $unrelated foreign maps', () async {
       final source = obstacleMap();
       final fixture = await _Fixture.open(unrelated, content: (

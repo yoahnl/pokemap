@@ -844,6 +844,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/interactive_encounter_stdio.test.ts',
     };
   }
+  if (actionId == 'map3d.instance.configure_field_obstacle') {
+    return const {
+      AuthoringTransport.directApi: 'test/domains/maps/spatial_field_obstacle_actions_test.dart',
+      AuthoringTransport.cli: 'test/domains/maps/spatial_field_obstacle_actions_test.dart',
+      AuthoringTransport.editor: '../../apps/avelune_studio/test/map_workspace/spatial_field_obstacle_persistence_test.dart',
+      AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/spatial_field_obstacle_stdio.test.ts',
+    };
+  }
   if (actionId == 'entity.set_field_obstacle') {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/slide_zone_transport_test.dart',
@@ -1945,6 +1953,9 @@ String _contractTestFor(String actionId) {
     return 'test/domains/maps/healing_display_actions_test.dart';
   }
   if (actionId == 'entity.set_interactive_encounter') return 'test/domains/maps/interactive_encounter_actions_test.dart';
+  if (actionId == 'map3d.instance.configure_field_obstacle') {
+    return 'test/domains/maps/spatial_field_obstacle_actions_test.dart';
+  }
   if (actionId == 'entity.set_field_obstacle') {
     return 'test/domains/maps/field_obstacle_actions_test.dart';
   }

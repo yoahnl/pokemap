@@ -128,6 +128,7 @@ extension _PlayableMapDive on PlayableMapGame {
       lastCompletedMapActivation: _lastCompletedMapActivation,
     );
     GameState? destinationState;
+    GameState? destinationActivatedState;
     MapData? destinationMap;
     int? destinationRevision;
     String? destinationActivationId;
@@ -139,13 +140,26 @@ extension _PlayableMapDive on PlayableMapGame {
             _currentMapActivationId == destinationActivationId) &&
         _gameStateRevision == destinationRevision &&
         _world.map == destinationMap &&
-        gameStateSnapshot == destinationState;
+        (gameStateSnapshot == destinationState ||
+            gameStateSnapshot == destinationActivatedState);
 
     bool ownsDestination(MapActivation activation) {
       destinationState ??= gameStateSnapshot;
       destinationMap ??= _world.map;
       destinationRevision ??= _gameStateRevision;
       destinationActivationId ??= activation.activationId;
+      if (destinationActivatedState == null) {
+        final authority = _readInteractionAuthority(activation.occurrence);
+        if (authority is NarrativeEventDispatchAuthorityReady) {
+          destinationActivatedState = authority.applyMapActivationReset(
+            gameState: destinationState!,
+            activationId: activation.activationId,
+            mapId: activation.mapId,
+            resetEligible: activation.reason == MapActivationReason.warp ||
+                activation.reason == MapActivationReason.connection,
+          );
+        }
+      }
       return destinationCurrent();
     }
 
@@ -178,6 +192,7 @@ extension _PlayableMapDive on PlayableMapGame {
         completed =
             reverse is CanUseDive && reverse.targetMapId == source.activeMapId;
       }
+      if (completed) unawaited(projectAudio?.play(ProjectSoundCue.fieldDive));
       return completed;
     } on Object {
       return false;

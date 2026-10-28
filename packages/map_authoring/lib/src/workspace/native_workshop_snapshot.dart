@@ -1,6 +1,7 @@
 part of 'project_snapshot_loader.dart';
 
 const _nativeWorkshopActions = {
+  'map3d.instance.configure_field_obstacle',
   'surf.configure',
   'field_ability.configure',
   'project.audio.cue.configure',
@@ -103,6 +104,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         'This workshop loader requires a native project document.');
   }
   final raw = Map<String, dynamic>.from(decoded);
+  if (actionId == 'map3d.instance.configure_field_obstacle') {
+    return _loadNativeFieldObstacle(loader, projectHandle, raw, projectBytes, parameters);
+  }
   final adoptingAudio = actionId == 'project.audio.media.adopt_asset';
   final presentationImport = actionId == 'presentationMedia.import' || adoptingAudio;
   final guided = actionId == 'event_v2.template.apply' ||
@@ -648,4 +652,53 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
           ? null
           : decodeProjectItemCatalog(Map<String, dynamic>.from(
               jsonDecode(utf8.decode(itemBytes.bytes)) as Map)));
+}
+
+Future<ProjectSnapshot> _loadNativeFieldObstacle(
+  ProjectSnapshotLoader loader, ProjectHandle handle,
+  Map<String, dynamic> raw, ProjectResourceBytes projectBytes,
+  Map<String, Object?> parameters,
+) async {
+  final mapId = parameters['mapId'];
+  if (mapId is! String || mapId.isEmpty || mapId.trim() != mapId) {
+    throw const ProjectSnapshotException('project.map_invalid', 'A map identity is required.');
+  }
+  final entries = (raw['maps'] as List? ?? const []).whereType<Map>().where((entry) => entry['id'] == mapId).toList();
+  if (entries.length != 1) {
+    throw const ProjectSnapshotException('project.map_missing', 'The selected map is not declared exactly once.');
+  }
+  final declaration = ProjectMapEntry.fromJson(Map<String, dynamic>.from(entries.single));
+  final access = loader._handles.resolveProject(handle);
+  final mapBytes = await access.readResourceBytes(declaration.relativePath);
+  final map = await loader._decodeExecutor.decodeMap(mapBytes.bytes);
+  if (map.id != mapId || map.spatialScene == null) {
+    throw const ProjectSnapshotException('project.map_invalid', 'The selected spatial map identity differs.');
+  }
+  MapValidator.validate(map);
+  final instance = map.spatialScene!.instances.where((item) => item.id == parameters['instanceId']).firstOrNull;
+  final models = (raw['models3d'] as List? ?? const []).whereType<Map>().where((entry) => entry['id'] == instance?.modelId).toList();
+  if (models.length > 1) {
+    throw const ProjectSnapshotException('project.model_invalid', 'The selected model identity is duplicated.');
+  }
+  final version = raw['version'] == null ? ProjectVersion.v8 : ProjectVersion.values.where((value) => value.name == raw['version']).firstOrNull;
+  if (version == null) throw const ProjectSnapshotException('project.version_unsupported', 'The project version is unknown.');
+  final manifest = ProjectManifest(name: raw['name'] as String, version: version,
+    settings: raw['settings'] is Map ? ProjectSettings.fromJson(Map<String, dynamic>.from(raw['settings'] as Map)) : const ProjectSettings(),
+    tilesets: const [], maps: [declaration],
+    models3d: [for (final model in models) ProjectModel3dEntry.fromJson(Map<String, dynamic>.from(model))]);
+  if (!await access.matchesResourceBytes('project.json', projectBytes.bytes) ||
+      !await access.matchesResourceBytes(declaration.relativePath, mapBytes.bytes)) {
+    throw const ProjectSnapshotException('project.changed_during_snapshot', 'The selected map or project changed while reading.');
+  }
+  final projectRevision = await loader._decodeExecutor.fingerprintResource(projectBytes.bytes, relativePath: 'project.json');
+  final mapRevision = await loader._decodeExecutor.fingerprintResource(mapBytes.bytes, relativePath: declaration.relativePath);
+  await access.requireReadableProject();
+  return ProjectSnapshot(projectHandle: handle,
+    revision: computeAuthoringJsonFingerprint({'project': projectRevision, 'map:$mapId': mapRevision}, logicalName: 'native-field-obstacle-selection.json'),
+    manifest: manifest, maps: [map], availableProjectSections: const {'settings'},
+    availableProjectDocuments: {'maps': {mapId}, 'models3d': {if (instance != null) instance.modelId}},
+    resourceFingerprints: {'project': projectRevision, 'map:$mapId': mapRevision},
+    scopedStorageRevisions: {'project.json': projectRevision, declaration.relativePath: mapRevision},
+    ownedResourceBytes: {'project': projectBytes, 'map:$mapId': mapBytes},
+    resourceStorageKeys: {'project': 'project.json', 'map:$mapId': declaration.relativePath});
 }

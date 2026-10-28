@@ -39,7 +39,9 @@ MapEntity? findSpatialFieldObstacleTarget(
     required Iterable<ProjectModel3dEntry> models,
     required double x,
     required double z,
-    required EntityFacing facing}) {
+    required EntityFacing facing,
+    bool Function(String)? entityIsPresent,
+    SpatialActorRuntimeState? Function(String)? actorStateProvider}) {
   final scene = map.spatialScene;
   final instance = gameState.mapInstanceWorldState.instanceRef(map.id);
   if (scene == null || instance == null || map.id != gameState.currentMapId) {
@@ -48,13 +50,17 @@ MapEntity? findSpatialFieldObstacleTarget(
   bool cleared(String? id) =>
       id != null &&
       gameState.mapInstanceWorldState.isFieldObstacleCleared(instance, id);
-  final clearedModelIds = {
+  final absentModels = <String, String>{
     for (final model in scene.instances)
-      if (cleared(model.entityId)) model.id,
+      if (cleared(model.entityId) ||
+          model.entityId != null &&
+              !(entityIsPresent?.call(model.entityId!) ?? true))
+        model.id: model.modelId,
   };
   final targetIds = <String>{
     for (final entity in map.entities)
       if (!cleared(entity.id) &&
+          (entityIsPresent?.call(entity.id) ?? true) &&
           isValidSpatialFieldObstacle(map, entity) &&
           _isStaticLiveTarget(map, entity, gameState))
         entity.id,
@@ -62,14 +68,22 @@ MapEntity? findSpatialFieldObstacleTarget(
   final entityBlockers = [
     for (final entity in map.entities)
       if (entity.blocksMovement &&
+          entity.kind != MapEntityKind.spawn &&
+          (entityIsPresent?.call(entity.id) ?? true) &&
           !targetIds.contains(entity.id) &&
           !cleared(entity.id) &&
           !scene.instances.any((model) => model.entityId == entity.id))
         (
-          x: (gameState.spatialWorldState.actorState(map.id, entity.id)?.x ??
+          x: ((actorStateProvider?.call(entity.id) ??
+                          gameState.spatialWorldState
+                              .actorState(map.id, entity.id))
+                      ?.x ??
                   entity.pos.x + .5) -
               .5,
-          z: (gameState.spatialWorldState.actorState(map.id, entity.id)?.z ??
+          z: ((actorStateProvider?.call(entity.id) ??
+                          gameState.spatialWorldState
+                              .actorState(map.id, entity.id))
+                      ?.z ??
                   entity.pos.y + .5) -
               .5,
           width: entity.size.width,
@@ -84,9 +98,10 @@ MapEntity? findSpatialFieldObstacleTarget(
             .where((model) => targetIds.contains(model.entityId)),
         modelStateProvider: (id) {
           final saved = gameState.spatialWorldState.modelState(map.id, id);
-          if (!clearedModelIds.contains(id)) return saved;
+          final absentModelId = absentModels[id];
+          if (absentModelId == null) return saved;
           return SpatialModelRuntimeState(
-              modelId: saved?.modelId ?? id,
+              modelId: absentModelId,
               animationIndex: null,
               normalizedTime: 0,
               blocksMovement: false);
@@ -116,6 +131,8 @@ FieldObstacleEvaluation evaluateSpatialFieldObstacleAttempt(
     required double x,
     required double z,
     required EntityFacing facing,
+    bool Function(String)? entityIsPresent,
+    SpatialActorRuntimeState? Function(String)? actorStateProvider,
     ProjectSettings? projectSettings}) {
   if (map.spatialScene == null || map.version != ProjectVersion.v9) {
     return const FieldObstacleUnavailable(
@@ -150,7 +167,9 @@ FieldObstacleEvaluation evaluateSpatialFieldObstacleAttempt(
       models: models,
       x: x,
       z: z,
-      facing: facing);
+      facing: facing,
+      actorStateProvider: actorStateProvider,
+      entityIsPresent: entityIsPresent);
   if (target == null || target.id != entityId) {
     return const FieldObstacleUnavailable(
         FieldObstacleBlockReason.invalidTarget);
@@ -198,6 +217,8 @@ SpatialFieldObstacleTicket? issueSpatialFieldObstacleTicket(
     required double z,
     required EntityFacing facing,
     required int stateRevision,
+    bool Function(String)? entityIsPresent,
+    SpatialActorRuntimeState? Function(String)? actorStateProvider,
     ProjectSettings? projectSettings}) {
   final resources = models.toList();
   if (stateRevision < 0 ||
@@ -209,6 +230,8 @@ SpatialFieldObstacleTicket? issueSpatialFieldObstacleTicket(
           x: x,
           z: z,
           facing: facing,
+          actorStateProvider: actorStateProvider,
+          entityIsPresent: entityIsPresent,
           projectSettings: projectSettings) is! CanUseFieldObstacle) {
     return null;
   }
@@ -242,6 +265,8 @@ FieldObstacleCommit commitSpatialDestructibleFieldObstacleAction(
     required EntityFacing facing,
     required int currentStateRevision,
     required String confirmedEntityId,
+    bool Function(String)? entityIsPresent,
+    SpatialActorRuntimeState? Function(String)? actorStateProvider,
     ProjectSettings? projectSettings}) {
   if (ticket.issuedAtStateRevision != currentStateRevision) {
     return const FieldObstacleRefused(FieldActionRefusal.staleStateRevision);
@@ -280,6 +305,8 @@ FieldObstacleCommit commitSpatialDestructibleFieldObstacleAction(
       x: x,
       z: z,
       facing: facing,
+      actorStateProvider: actorStateProvider,
+      entityIsPresent: entityIsPresent,
       projectSettings: projectSettings);
   if (evaluation is! CanUseFieldObstacle) {
     return FieldObstacleRefused(FieldActionRefusal.noLongerAvailable,

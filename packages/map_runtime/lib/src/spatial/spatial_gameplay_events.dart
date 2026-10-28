@@ -470,7 +470,14 @@ final class SpatialGameplayEvents {
     return findSpatialModelInteraction(
       scene: map.spatialScene!,
       models: currentModelDefinitions?.call() ?? project.models3d,
-      modelStateProvider: (id) => state.spatialWorldState.modelState(map.id, id),
+      modelStateProvider: (id) {
+        final saved = state.spatialWorldState.modelState(map.id, id);
+        final model = map.spatialScene!.instances.where((model) => model.id == id).firstOrNull;
+        final entity = map.entities.where((entity) => entity.id == model?.entityId).firstOrNull;
+        if (entity == null || entityIsPresent(map.id, entity, gameStateOverride: state)) return saved;
+        return SpatialModelRuntimeState(modelId: saved?.modelId ?? model!.modelId,
+            animationIndex: null, normalizedTime: 0, blocksMovement: false);
+      },
       instances: candidates
           .where((candidate) => candidate.owner == null ||
               entityIsPresent(map.id, candidate.owner!, gameStateOverride: state))

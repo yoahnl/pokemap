@@ -1209,7 +1209,9 @@ void _assertFieldObstacleTarget(
     MapData map, ProjectManifest project, MapEntity entity) {
   if (map.spatialScene != null &&
       project.settings.dimension == ProjectDimension.threeD &&
-      isValidSpatialFieldObstacle(map, entity)) return;
+      isValidSpatialFieldObstacle(map, entity)) {
+    return;
+  }
   if (map.spatialScene != null ||
       map.version == ProjectVersion.v9 ||
       project.settings.dimension != ProjectDimension.twoD ||

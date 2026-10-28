@@ -31,6 +31,111 @@ void main() {
               position: Model3dVector3(x: 2.5, y: 0, z: 1.5))
         ]));
     final state = fixture.ready(ability);
+    test('$kind hidden bound models stop occluding the target', () {
+      final map = source.copyWith(
+          entities: [
+            ...source.entities,
+            const MapEntity(
+                id: 'hidden',
+                kind: MapEntityKind.custom,
+                pos: GridPos(x: 2, y: 1))
+          ],
+          spatialScene: source.spatialScene!.copyWith(instances: [
+            ...source.spatialScene!.instances,
+            SpatialModelInstance(
+                id: 'hidden-instance',
+                modelId: model.id,
+                entityId: 'hidden',
+                position: Model3dVector3(x: 2, y: 0, z: 1.5))
+          ]));
+      expect(
+          findSpatialFieldObstacleTarget(
+              map: map,
+              gameState: state,
+              models: [model],
+              x: 1.5,
+              z: 1.5,
+              facing: EntityFacing.east),
+          isNull);
+      expect(
+          findSpatialFieldObstacleTarget(
+              map: map,
+              gameState: state,
+              models: [model],
+              x: 1.5,
+              z: 1.5,
+              facing: EntityFacing.east,
+              entityIsPresent: (id) => id != 'hidden')?.id,
+          'rock');
+    });
+    test(
+        '$kind ignores spawn markers and hidden blockers but never targets hidden obstacles',
+        () {
+      final map = source.copyWith(entities: [
+        ...source.entities,
+        const MapEntity(
+            id: 'start',
+            kind: MapEntityKind.spawn,
+            pos: GridPos(x: 1, y: 1),
+            spawn: MapEntitySpawnData()),
+        const MapEntity(
+            id: 'walker',
+            kind: MapEntityKind.npc,
+            pos: GridPos(x: 1, y: 1),
+            npc: MapEntityNpcData(characterId: 'walker'))
+      ]);
+      expect(
+          findSpatialFieldObstacleTarget(
+              map: map,
+              gameState: state,
+              models: [model],
+              x: 1.5,
+              z: 1.5,
+              facing: EntityFacing.east,
+              entityIsPresent: (id) => id != 'walker')?.id,
+          'rock');
+      expect(
+          findSpatialFieldObstacleTarget(
+              map: map,
+              gameState: state,
+              models: [model],
+              x: 1.5,
+              z: 1.5,
+              facing: EntityFacing.east,
+              entityIsPresent: (id) => id != 'rock'),
+          isNull);
+    });
+    test('$kind uses live actor poses to block the action ray', () {
+      final map = source.copyWith(entities: [
+        ...source.entities,
+        const MapEntity(
+            id: 'walker',
+            kind: MapEntityKind.npc,
+            pos: GridPos(x: 5, y: 3),
+            npc: MapEntityNpcData(characterId: 'walker'))
+      ]);
+      expect(
+          findSpatialFieldObstacleTarget(
+                  map: map,
+                  gameState: state,
+                  models: [model],
+                  x: 1.5,
+                  z: 1.5,
+                  facing: EntityFacing.east)
+              ?.id,
+          'rock');
+      expect(
+          findSpatialFieldObstacleTarget(
+              map: map,
+              gameState: state,
+              models: [model],
+              x: 1.5,
+              z: 1.5,
+              facing: EntityFacing.east,
+              actorStateProvider: (_) => SpatialActorRuntimeState(
+                  x: 2, z: 1.5, facing: EntityFacing.west)),
+          isNull);
+    });
     SpatialFieldObstacleTicket issue() => issueSpatialFieldObstacleTicket(
         map: source,
         gameState: state,

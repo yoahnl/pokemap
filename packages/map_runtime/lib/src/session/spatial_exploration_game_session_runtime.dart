@@ -132,6 +132,7 @@ final class SpatialExplorationGameSessionRuntime
   SpatialBattleRuntime? get battle => _battle;
   final _runtimeIds = NarrativeEventIdGenerator();
   Map<String, MapData> _mapsById = const {};
+  bool _usesFieldObstacleInstances = false;
   int _gameplayOperations = 0;
   bool _materializingState = false;
   MapActivation? _pendingSceneMapActivation;
@@ -214,8 +215,10 @@ final class SpatialExplorationGameSessionRuntime
     final obstacle = !inputAuthority.value.acceptsOverworldInput ? null :
         findSpatialFieldObstacleTarget(map: session.bundle.map,
           gameState: gameStateSnapshot, models: session.bundle.manifest.models3d,
+          actorStateProvider: session.fieldObstacleActorState,
+          entityIsPresent: session.fieldObstacleIsPresent,
           x: session.movement.x, z: session.movement.z, facing: session.movement.facing);
-    final npc = obstacle ?? (!inputAuthority.value.acceptsOverworldInput
+    final interactionCandidate = !inputAuthority.value.acceptsOverworldInput
         ? null
         : _gameplay != null
             ? _gameplay!.interactionTarget
@@ -224,7 +227,8 @@ final class SpatialExplorationGameSessionRuntime
                 entities: session.bundle.map.entities,
                 x: session.movement.x,
                 z: session.movement.z,
-                facing: session.movement.facing));
+                facing: session.movement.facing);
+    final npc = obstacle ?? (interactionCandidate?.fieldObstacle == null ? interactionCandidate : null);
     final model = npc == null && inputAuthority.value.acceptsOverworldInput
         ? _gameplay?.modelInteractionTarget
         : null;
@@ -372,6 +376,8 @@ final class SpatialExplorationGameSessionRuntime
           models: session.bundle.manifest.models3d, entityId: request.targetId,
           x: session.movement.x, z: session.movement.z,
           facing: session.movement.facing, stateRevision: 0,
+          actorStateProvider: session.fieldObstacleActorState,
+          entityIsPresent: session.fieldObstacleIsPresent,
           projectSettings: session.bundle.manifest.settings);
       if (interaction == null) return false;
       unawaited(_runGameplay(() async {
@@ -385,13 +391,18 @@ final class SpatialExplorationGameSessionRuntime
             x: session.movement.x, z: session.movement.z, facing: session.movement.facing,
             currentStateRevision: identical(_gameState, initial) ? 0 : 1,
             confirmedEntityId: request.targetId,
+            actorStateProvider: session.fieldObstacleActorState,
+            entityIsPresent: session.fieldObstacleIsPresent,
             projectSettings: session.bundle.manifest.settings);
         if (validate() is! FieldObstacleApplied) return;
+        await session.prepareFieldObstacleEffect();
+        if (_disposed || _stopped || !identical(session, _session)) return;
         if (!await session.presentFieldAction(ticket.entity.fieldObstacle!.ability!)) return;
         if (_disposed || _stopped || !identical(session, _session)) return;
         final result = validate();
         if (result case FieldObstacleApplied(:final gameState)) {
           _gameState = gameState;
+          session.showFieldObstacleImpact(ticket);
           unawaited(projectAudio?.play(ProjectSoundCueCatalog.forFieldAbilityId(
               ticket.entity.fieldObstacle!.ability!.moveId)));
           _publishFrame();
@@ -449,6 +460,11 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     _gameState = state.copyWith(
+        mapInstanceWorldState: !_usesFieldObstacleInstances || state.currentMapId == session.bundle.map.id
+            ? state.mapInstanceWorldState
+            : setupDifferentMapInstance(state: state.mapInstanceWorldState,
+                targetMapId: session.bundle.map.id,
+                allocateId: (_) => _runtimeIds.generate(existingRecords: const [])),
         currentMapId: session.bundle.map.id,
         playerPosition: GridPos(x: position.x.floor(), y: position.z.floor()),
         playerSpatialPosition: position,
@@ -576,6 +592,12 @@ final class SpatialExplorationGameSessionRuntime
       validateSpatialWorldState(state: savedWorld, project: project, maps: maps.values);
     }
     _mapsById = Map.unmodifiable(maps);
+    _usesFieldObstacleInstances = maps.values.any((map) =>
+        map.entities.any((entity) => entity.fieldObstacle != null));
+    if (FieldObstacleCapabilities.requiresCapability(project, maps: maps.values) &&
+        !descriptor.grantedCapabilities.contains(FieldObstacleCapabilities.capabilityId)) {
+      throw StateError('The project requires ${FieldObstacleCapabilities.capabilityId}.');
+    }
     if (!SpatialGameplayCapabilities.requiresGameplay(project,
         maps: maps.values)) {
       return;
@@ -941,6 +963,11 @@ final class SpatialExplorationGameSessionRuntime
     if (restoreAvatar) await session.presentPlayerAvatar(state.trainerProfile.avatarCharacterId);
     _story?.synchronize(state.spatialWorldState);
     final changedMap = session.bundle.map.id != state.currentMapId;
+    if (_usesFieldObstacleInstances && state.mapInstanceWorldState.instanceRef(state.currentMapId) == null) {
+      state = state.copyWith(mapInstanceWorldState: setupDifferentMapInstance(
+          state: state.mapInstanceWorldState, targetMapId: state.currentMapId,
+          allocateId: (_) => _runtimeIds.generate(existingRecords: const [])));
+    }
     final position = state.playerSpatialPosition ??
         PlayerSpatialPosition(
             x: state.playerPosition.x + .5, z: state.playerPosition.y + .5);
@@ -1123,7 +1150,7 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError(
             'Spatial story playback requires ${SpatialGameplayCapabilities.storyCapabilityId}.');
       }
-      late final GameState state;
+      late GameState state;
       if (descriptor.launchMode == GameSessionLaunchMode.newGame) {
         final initial = descriptor.initialGameState;
         if (!manifest.newGame.enabled ||
@@ -1175,6 +1202,12 @@ final class SpatialExplorationGameSessionRuntime
       );
       reportProgress(const GameSessionLoadingProgress(
           stage: 'resources', current: 1, total: 3));
+      _usesFieldObstacleInstances = bundle.map.entities.any((entity) => entity.fieldObstacle != null);
+      if (_usesFieldObstacleInstances && state.mapInstanceWorldState.instanceRef(state.currentMapId) == null) {
+        state = state.copyWith(mapInstanceWorldState: setupDifferentMapInstance(
+            state: state.mapInstanceWorldState, targetMapId: state.currentMapId,
+            allocateId: (_) => _runtimeIds.generate(existingRecords: const [])));
+      }
       _gameState = state;
       _environmentClock = WorldEnvironmentClock(now: _now, initialState: state.environmentState);
       _environmentClock!.resolve(bundle.visualProfile);
@@ -1749,6 +1782,7 @@ final class SpatialExplorationGameSessionRuntime
     _story?.cancel();
     if (_disposed) return;
     _stopped = true;
+    _session?.cancelFieldAction();
     _weatherTimer?.cancel();
     final projectAudioStopped = projectAudio?.dispose();
     final sceneAudioStopped = _sceneAudio?.dispose();

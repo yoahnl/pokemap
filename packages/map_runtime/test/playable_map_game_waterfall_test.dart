@@ -15,9 +15,13 @@ void main() {
     testWidgets(
       'normal Cascade dialogue $answer uses finite steps and a single final arrival',
       (tester) async {
-        await tester.runAsync(() async {
+        await helpers.runWithFieldAudio(tester, (fieldAudio) async {
           final movements = <RuntimeCommittedMovement>[];
-          final game = await mountWaterfall(tester, onMovement: movements.add);
+          final game = await mountWaterfall(
+            tester,
+            onMovement: movements.add,
+            projectAudio: fieldAudio.audio,
+          );
           final before = game.gameStateSnapshot;
           final request =
               game.overworldInteractionSnapshot.primaryAction?.request;
@@ -49,6 +53,11 @@ void main() {
             answer == 'yes' ? const GridPos(x: 2, y: 1) : before.playerPosition,
           );
           expect(movements.length, answer == 'yes' ? 3 : 0);
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldWaterfall'),
+            hasLength(answer == 'yes' ? 1 : 0),
+          );
           expect(game.gameStateSnapshot.party, before.party);
           if (answer == 'yes') {
             expect(game.playerMovementMode, MovementMode.walk);
@@ -284,13 +293,14 @@ void main() {
   testWidgets(
     'interrupted traversal returns to the valid entry, counts completed steps and can restart',
     (tester) async {
-      await tester.runAsync(() async {
+      await helpers.runWithFieldAudio(tester, (fieldAudio) async {
         final movements = <RuntimeCommittedMovement>[];
         late PlayableMapGame game;
         Future<bool>? saveDuring;
         var interrupt = true;
         game = await mountWaterfall(
           tester,
+          projectAudio: fieldAudio.audio,
           repelState: RepelState.active(itemId: 'repel', steps: 100),
           onMovement: (movement) {
             movements.add(movement);
@@ -325,12 +335,22 @@ void main() {
         expect(game.gameStateSnapshot.repelState.remainingSteps, 99);
         expect(await saveDuring, isFalse);
         expect(game.gameStateSnapshot.party, party);
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldWaterfall'),
+          isEmpty,
+        );
         interrupt = false;
         await confirm();
         expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 1));
         expect(movements.length, 4);
         expect(game.gameStateSnapshot.repelState.remainingSteps, 96);
         expect(game.debugEncounterCheckCount, 1);
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldWaterfall'),
+          hasLength(1),
+        );
       });
     },
   );
@@ -344,6 +364,7 @@ Future<PlayableMapGame> mountWaterfall(
   RepelState? repelState,
   void Function(RuntimeCommittedMovement)? onMovement,
   ProjectFieldAbilitiesSettings? fieldAbilities,
+  RuntimeProjectAudioController? projectAudio,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-flash-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -468,6 +489,7 @@ Future<PlayableMapGame> mountWaterfall(
     map: cave,
   );
   final game = PlayableMapGame(
+    projectAudio: projectAudio,
     bundle: bundle,
     projectFilePath: '${root.path}/project.json',
     saveData: saveDataFromGameState(state),

@@ -37,6 +37,7 @@ final class SpatialFieldActionPresentation {
     final completion = _completion;
     _completion = null;
     state = null;
-    if (completion != null && !completion.isCompleted) completion.complete(completed);
+    if (completion != null && !completion.isCompleted)
+      completion.complete(completed);
   }
 }

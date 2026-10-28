@@ -10,6 +10,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import 'support/project_audio_test_driver.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
@@ -82,8 +84,8 @@ void main() {
     testWidgets(
       'mounted Flash $answer resolves through real Player dialogue and pixels',
       (tester) async {
-        await tester.runAsync(() async {
-          final game = await mountFlash(tester);
+        await runWithFieldAudio(tester, (fieldAudio) async {
+          final game = await mountFlash(tester, projectAudio: fieldAudio.audio);
           final state = game.gameStateSnapshot;
           expect(state.mapInstanceWorldState.instanceRef('cave'), isNotNull);
           expect(await worldPixelIntensity(game), lessThan(100));
@@ -105,6 +107,11 @@ void main() {
                 : RuntimeInputControl.primary,
           );
           await tickUntil(game, () => game.debugFlowPhaseName == 'overworld');
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldFlash'),
+            hasLength(answer == 'yes' ? 1 : 0),
+          );
           final saved = game.gameStateSnapshot;
           final scope = saved.mapInstanceWorldState.instanceRef('cave')!;
           expect(
@@ -118,6 +125,11 @@ void main() {
           );
           if (answer == 'yes') {
             expect(game.dispatchOverworldInteraction(request), isFalse);
+            await Future<void>.delayed(Duration.zero);
+            expect(
+              fieldAudio.driver.paths.where((path) => path == 'fieldFlash'),
+              hasLength(1),
+            );
             expect(await game.saveGame(), isTrue);
             final cold = GameState.fromJson(
               jsonDecode(jsonEncode(saved.toJson())) as Map<String, dynamic>,
@@ -163,6 +175,7 @@ Future<PlayableMapGame> mountFlash(
   GameState? restored,
   bool retainInstances = false,
   ProjectFieldAbilitiesSettings? fieldAbilities,
+  RuntimeProjectAudioController? projectAudio,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-flash-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -265,6 +278,7 @@ Future<PlayableMapGame> mountFlash(
     map: cave,
   );
   final game = PlayableMapGame(
+    projectAudio: projectAudio,
     bundle: bundle,
     projectFilePath: '${root.path}/project.json',
     saveData: saveDataFromGameState(state),
@@ -410,4 +424,43 @@ final class MemorySave implements GameSaveRepository {
   Future<void> delete() async {
     data = null;
   }
+}
+
+({RuntimeProjectAudioController audio, ProjectAudioTestDriver driver})
+_createFieldAudio() {
+  final driver = ProjectAudioTestDriver();
+  final audio = RuntimeProjectAudioController(
+    mixer: RuntimeAudioMixer(),
+    driver: driver,
+    settings: ProjectAudioSettings(
+      cues: {
+        for (final cue in ProjectSoundCue.values)
+          cue: ProjectSoundBinding(
+            source: ProjectSoundSource.custom,
+            mediaId: cue.name,
+          ),
+      },
+    ),
+    resolveMedia: (id) => RuntimeProjectAudioFile(path: id),
+  );
+  return (audio: audio, driver: driver);
+}
+
+typedef FieldAudioTestContext = ({
+  RuntimeProjectAudioController audio,
+  ProjectAudioTestDriver driver,
+});
+
+Future<void> runWithFieldAudio(
+  WidgetTester tester,
+  Future<void> Function(FieldAudioTestContext) body,
+) async {
+  await tester.runAsync(() async {
+    final fieldAudio = _createFieldAudio();
+    try {
+      await body(fieldAudio);
+    } finally {
+      await fieldAudio.audio.dispose();
+    }
+  });
 }

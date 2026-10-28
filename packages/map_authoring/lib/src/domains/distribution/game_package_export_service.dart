@@ -373,6 +373,10 @@ final class CanonicalGamePackageExportService {
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(projection.project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(projection.project)) ProjectAudioCapabilities.capabilityId,
         if (ProjectAudioCapabilities.requiresExtendedCapability(projection.project)) ProjectAudioCapabilities.extendedCapabilityId,
+        if (FieldObstacleCapabilities.requiresCapability(projection.project, maps: [
+          for (final entry in projection.project.maps) MapData.fromJson(jsonDecode(utf8.decode(
+              projection.payloadFiles['project/${entry.relativePath}']!)) as Map<String, dynamic>)
+        ])) FieldObstacleCapabilities.capabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(projection.project)) SpatialGameplayCapabilities.eggGiftCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,

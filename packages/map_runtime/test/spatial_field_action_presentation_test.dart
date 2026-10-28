@@ -18,16 +18,22 @@ void main() {
     expect(action.isActive, isFalse);
   });
 
-  test('cancelled actions complete without an impact and can be restarted', () async {
-    final action = SpatialFieldActionPresentation();
-    final cancelled = action.play(FieldAbility.rockSmash, durationMs: 200);
-    action.update(double.nan);
-    action.cancel();
-    expect(await cancelled, isFalse);
-    final next = action.play(FieldAbility.rockSmash, durationMs: 200);
-    expect(action.state, CharacterAnimationState.rockSmash);
-    action.update(.2);
-    expect(await next, isTrue);
-    expect(() => action.play(FieldAbility.fly, durationMs: 200), throwsArgumentError);
-  });
+  test(
+    'cancelled actions complete without an impact and can be restarted',
+    () async {
+      final action = SpatialFieldActionPresentation();
+      final cancelled = action.play(FieldAbility.rockSmash, durationMs: 200);
+      action.update(double.nan);
+      action.cancel();
+      expect(await cancelled, isFalse);
+      final next = action.play(FieldAbility.rockSmash, durationMs: 200);
+      expect(action.state, CharacterAnimationState.rockSmash);
+      action.update(.2);
+      expect(await next, isTrue);
+      expect(
+        () => action.play(FieldAbility.fly, durationMs: 200),
+        throwsArgumentError,
+      );
+    },
+  );
 }

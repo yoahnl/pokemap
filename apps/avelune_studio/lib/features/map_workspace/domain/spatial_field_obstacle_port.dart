@@ -8,9 +8,11 @@ final class SpatialFieldObstacleReceipt {
     required this.document,
     required this.receiptId,
     required this.instanceId,
+    this.fieldObstacle,
   });
   final MapWorkspaceDocument document;
   final String receiptId, instanceId;
+  final MapEntityFieldObstacleData? fieldObstacle;
 }
 
 abstract interface class SpatialFieldObstaclePort {

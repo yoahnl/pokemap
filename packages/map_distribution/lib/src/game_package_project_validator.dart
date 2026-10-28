@@ -238,7 +238,10 @@ final class GamePackageProjectValidator {
           _fail('The battle demonstration requires an existing temporary singles team and wild encounter.');
         }
       }
+      final obstacleMaps = project.maps.map((entry) => MapData.fromJson(
+          jsonDecode(utf8.decode(readPayload('project/${entry.relativePath}')!)) as Map<String, dynamic>)).toList();
       for (final requirement in {
+        if (FieldObstacleCapabilities.requiresCapability(project, maps: obstacleMaps)) FieldObstacleCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresCapability(project)) FieldAbilityActivationCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(project)) ProjectAudioCapabilities.capabilityId,

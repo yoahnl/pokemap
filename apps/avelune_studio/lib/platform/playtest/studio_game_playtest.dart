@@ -399,6 +399,7 @@ final class _StudioGameSource implements RuntimeGameSource {
           FieldAbilityActivationCapabilities.extendedCapabilityId,
         ProjectAudioCapabilities.capabilityId,
         ProjectAudioCapabilities.extendedCapabilityId,
+        FieldObstacleCapabilities.capabilityId,
         if (project.settings.dimension == ProjectDimension.threeD) ...{
           'map3d@1',
           SpatialGameplayCapabilities.capabilityId,

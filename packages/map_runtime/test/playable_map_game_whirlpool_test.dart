@@ -17,9 +17,13 @@ void main() {
     testWidgets(
       'Whirlpool $answer crosses the canonical route through physical steps',
       (tester) async {
-        await tester.runAsync(() async {
+        await helpers.runWithFieldAudio(tester, (fieldAudio) async {
           final movements = <RuntimeCommittedMovement>[];
-          final game = await mountWhirlpool(tester, onMovement: movements.add);
+          final game = await mountWhirlpool(
+            tester,
+            onMovement: movements.add,
+            projectAudio: fieldAudio.audio,
+          );
           final before = game.gameStateSnapshot;
           await openWhirlpool(game);
           if (answer == 'no') {
@@ -53,6 +57,11 @@ void main() {
                 : isEmpty,
           );
           expect(game.gameStateSnapshot.party, before.party);
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldWhirlpool'),
+            hasLength(answer == 'yes' ? 1 : 0),
+          );
           if (answer == 'yes') {
             expect(game.playerMovementMode, MovementMode.surf);
             expect(game.gameStateSnapshot.progression, before.progression);
@@ -196,12 +205,13 @@ void main() {
   testWidgets(
     'Whirlpool interruption restores only the entry pose and can restart',
     (tester) async {
-      await tester.runAsync(() async {
+      await helpers.runWithFieldAudio(tester, (fieldAudio) async {
         final movements = <RuntimeCommittedMovement>[];
         late PlayableMapGame game;
         var interrupt = true;
         game = await mountWhirlpool(
           tester,
+          projectAudio: fieldAudio.audio,
           initial: whirlpoolState().copyWith(
             repelState: RepelState.active(itemId: 'repel', steps: 100),
           ),
@@ -221,6 +231,11 @@ void main() {
         expect(game.gameStateSnapshot.repelState.remainingSteps, 99);
         expect(game.canCapturePlayerCheckpoint, isTrue);
         expect(await game.saveGame(), isTrue);
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldWhirlpool'),
+          isEmpty,
+        );
         interrupt = false;
         await startWhirlpool(game);
         await helpers.tickUntil(
@@ -232,6 +247,11 @@ void main() {
         expect(movements, hasLength(4));
         expect(game.gameStateSnapshot.repelState.remainingSteps, 96);
         expect(game.debugEncounterCheckCount, 1);
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldWhirlpool'),
+          hasLength(1),
+        );
       });
     },
   );
@@ -469,6 +489,7 @@ Future<PlayableMapGame> mountWhirlpool(
   void Function(PlayableMapGameSessionRuntime)? onSession,
   bool intermediateWarp = false,
   ProjectFieldAbilitiesSettings? fieldAbilities,
+  RuntimeProjectAudioController? projectAudio,
 }) async {
   final root = await Directory.systemTemp.createTemp('whirlpool-player-');
   addTearDown(() => root.delete(recursive: true));
@@ -651,6 +672,7 @@ Future<PlayableMapGame> mountWhirlpool(
     onSession(runtime);
   } else {
     game = PlayableMapGame(
+      projectAudio: projectAudio,
       bundle: bundle,
       projectFilePath: '${root.path}/project.json',
       saveData: saveDataFromGameState(initial ?? whirlpoolState()),

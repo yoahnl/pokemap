@@ -9,7 +9,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'player/support/runtime_player_test_harness.dart';
-import 'playable_map_game_flash_test.dart' show MemorySave, tickUntil;
+import 'playable_map_game_flash_test.dart'
+    show MemorySave, tickUntil, runWithFieldAudio;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -183,13 +184,14 @@ void main() {
   testWidgets(
     'Fly revalidates after target loading and preserves a newer source state without saving',
     (tester) async {
-      await tester.runAsync(() async {
+      await runWithFieldAudio(tester, (fieldAudio) async {
         final gate = Completer<void>(), entered = Completer<void>();
         addTearDown(() {
           if (!gate.isCompleted) gate.complete();
         });
         final mounted = await mountFly(
           tester,
+          projectAudio: fieldAudio.audio,
           save: MemorySave(),
           targetImagesGate: gate,
           targetImagesEntered: entered,
@@ -222,6 +224,11 @@ void main() {
         expect(
           (await result).status,
           RuntimeWorldServiceCommandStatus.unavailable,
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          fieldAudio.driver.paths.where((path) => path == 'fieldFly'),
+          isEmpty,
         );
         expect(game.gameStateSnapshot, newer);
         expect(game.debugIsMapLoaded('source'), isTrue);
@@ -376,10 +383,11 @@ void main() {
     testWidgets(
       'mounted Fly refuses $rejection and restores the complete source checkpoint',
       (tester) async {
-        await tester.runAsync(() async {
+        await runWithFieldAudio(tester, (fieldAudio) async {
           var sawTarget = false;
           final mounted = await mountFly(
             tester,
+            projectAudio: fieldAudio.audio,
             save: MemorySave(),
             rejection: rejection == 'same-map-activation'
                 ? 'activation'
@@ -420,6 +428,11 @@ void main() {
               RuntimeWorldServiceCommandStatus.unavailable,
             );
           }
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldFly'),
+            isEmpty,
+          );
           expect(game.gameStateSnapshot, before);
           expect(game.debugIsMapLoaded('source'), isTrue);
           expect(
@@ -442,13 +455,50 @@ void main() {
       },
     );
   }
+  testWidgets('closing selected Fly destination stays silent', (tester) async {
+    await runWithFieldAudio(tester, (fieldAudio) async {
+      final mounted = await mountFly(
+        tester,
+        save: MemorySave(),
+        projectAudio: fieldAudio.audio,
+      );
+      final game = mounted.game, controller = mounted.controller;
+      final before = game.gameStateSnapshot;
+      final opening = (await game.openPlayerRegionalMap())!;
+      await controller.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.select,
+          targetId: 'town',
+          snapshotRevision: controller.worldServiceSnapshot!.revision,
+        ),
+      );
+      await controller.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: RuntimeWorldServiceAction.close,
+          snapshotRevision: controller.worldServiceSnapshot!.revision,
+        ),
+      );
+      expect(await opening.completed, RuntimeRegionalMapClosing.closed);
+      await Future<void>.delayed(Duration.zero);
+      expect(game.gameStateSnapshot, before);
+      expect(
+        fieldAudio.driver.paths.where((path) => path == 'fieldFly'),
+        isEmpty,
+      );
+    });
+  });
   for (final blocked in [false, true]) {
     testWidgets(
       'mounted Player Fly ${blocked ? 'refuses occupied arrival and keeps source' : 'transfers to the authored spawn in walk and saves cold'}',
       (tester) async {
-        await tester.runAsync(() async {
+        await runWithFieldAudio(tester, (fieldAudio) async {
           final saved = MemorySave();
-          final mounted = await mountFly(tester, blocked: blocked, save: saved);
+          final mounted = await mountFly(
+            tester,
+            blocked: blocked,
+            save: saved,
+            projectAudio: fieldAudio.audio,
+          );
           final game = mounted.game;
           final before = game.gameStateSnapshot;
           game.pauseEngine();
@@ -481,6 +531,11 @@ void main() {
             blocked
                 ? RuntimeWorldServiceCommandStatus.unavailable
                 : RuntimeWorldServiceCommandStatus.accepted,
+          );
+          await Future<void>.delayed(Duration.zero);
+          expect(
+            fieldAudio.driver.paths.where((path) => path == 'fieldFly'),
+            hasLength(blocked ? 0 : 1),
           );
           if (blocked) {
             expect(game.gameStateSnapshot, before);
@@ -542,6 +597,7 @@ mountFly(
   bool retainInstances = false,
   bool sameMapDestination = false,
   ProjectFieldAbilitiesSettings? fieldAbilities,
+  RuntimeProjectAudioController? projectAudio,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-fly-');
   addTearDown(() => root.delete(recursive: true));
@@ -692,6 +748,7 @@ mountFly(
   );
   var gameMounted = false;
   final game = PlayableMapGame(
+    projectAudio: projectAudio,
     bundle: bundle,
     projectFilePath: '${root.path}/project.json',
     beforeMapMount: beforeMapMount,

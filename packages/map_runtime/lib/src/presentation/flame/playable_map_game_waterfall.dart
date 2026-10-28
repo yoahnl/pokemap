@@ -233,6 +233,9 @@ extension _PlayableMapFieldTraversal on PlayableMapGame {
         publishMovement: false,
       );
       completed = true;
+      unawaited(projectAudio?.play(
+        ProjectSoundCueCatalog.forFieldAbilityId(ticket.fieldAction.ability.moveId),
+      ));
       return true;
     } on Object catch (error) {
       debugPrint('[field-traversal] traversal interrupted: $error');

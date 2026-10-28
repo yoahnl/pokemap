@@ -659,6 +659,7 @@ extension _PlayableMapInteractions on PlayableMapGame {
         } else if (result is FlashApplied) {
           _replaceLogicalMapInstances(result.gameState.mapInstanceWorldState);
           _gameStateRevision += 1;
+          unawaited(projectAudio?.play(ProjectSoundCue.fieldFlash));
           _showNotification('Votre Pokémon utilise Flash ! Cette zone est éclairée.');
           _publishOverworldInteractions();
         }
@@ -771,6 +772,10 @@ extension _PlayableMapInteractions on PlayableMapGame {
       } else {
         unawaited(projectAudio?.play(ProjectSoundCue.fieldCut));
       }
+    } else {
+      unawaited(projectAudio?.play(
+        ProjectSoundCueCatalog.forFieldAbilityId(ability.moveId),
+      ));
     }
     _showNotification(switch (ability) {
       FieldAbility.cut => 'Votre Pokémon utilise Coupe !',

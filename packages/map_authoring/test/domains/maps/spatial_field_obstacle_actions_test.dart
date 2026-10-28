@@ -63,50 +63,148 @@ MapData resultMap(AuthoringMutationDraft draft) => MapData.fromJson(
         as Map<String, dynamic>);
 
 void main() {
-  test('model obstacle action is discoverable and persists through JSONL', () async {
-    final root = Directory('/Users/karim/Library/Caches/AveluneQA/field-actions-3d/authoring-cli');
+  test('native obstacle workshop reads only its selected map and model',
+      () async {
+    final root = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/field-actions-3d/authoring-native');
     await root.create(recursive: true);
-    addTearDown(() async { if (await root.exists()) await root.delete(recursive: true); });
-    final store = await CatalogStorageStore.open(projectRoot: root.path);
-    await WorkingProjectCatalog.create(store: store, projectId: 'field-cli', project: obstacleProject());
+    addTearDown(() => root.delete(recursive: true));
+    await File('${root.path}/project.json')
+        .writeAsString(jsonEncode(obstacleProject().toJson()));
     final file = File('${root.path}/maps/route.json');
     await file.parent.create(recursive: true);
     await file.writeAsString(jsonEncode(obstacleMap().toJson()));
-    final process = await Process.start('dart', ['run', 'bin/pokemap_authoring.dart', '--root', root.path]);
-    final errors = process.stderr.transform(utf8.decoder).join();
-    final lines = StreamIterator(process.stdout.transform(utf8.decoder).transform(const LineSplitter()));
-    var sequence = 0;
-    Future<Map<String, Object?>> send(String command, Map<String, Object?> args) async {
-      process.stdin.writeln(jsonEncode({'id': 'field-cli-${sequence++}', 'command': command, 'args': args}));
-      await process.stdin.flush();
-      expect(await lines.moveNext().timeout(const Duration(seconds: 20)), isTrue);
-      final result = AuthoringResult.fromJson(jsonDecode(lines.current) as Map<String, dynamic>);
-      expect(result.status, AuthoringResultStatus.success, reason: result.toJson().toString());
-      return result.data;
-    }
-    try {
-      final catalog = await send('describe', {});
-      expect((catalog['mutationActions'] as List).where((item) => item['id'] == actionId), hasLength(1));
-      final opened = await send('open', {'projectRoot': root.path});
-      final parameters = <String, Object?>{'mapId': 'route', 'instanceId': 'oak-1', 'fieldObstacle': {'kind': 'cutTree', 'resetPolicy': 'persistent'}};
-      final snapshot = await send('workshop_snapshot', {'projectHandle': opened['projectHandle'], 'actionId': actionId, 'parameters': parameters});
-      final planned = await send('plan', {'projectHandle': opened['projectHandle'], 'request': AuthoringRequest(
-        requestId: 'field-cli', actionId: actionId, actionVersion: 1,
-        workspaceHandle: opened['workspaceHandle'] as String, expectedRevision: snapshot['snapshotRevision'] as String,
-        idempotencyKey: 'field-cli', parameters: parameters, extensions: const {'workshopScope': true}).toJson()});
-      await send('apply', {'projectHandle': opened['projectHandle'], 'planId': planned['planId'], 'operationId': 'field-cli'});
-      final after = MapData.fromJson(jsonDecode(await file.readAsString()) as Map<String, dynamic>);
-      expect(isValidSpatialFieldObstacle(after, after.entities.single), isTrue);
-      expect(after.entities.single.fieldObstacle!.resetPolicy, FieldObstacleResetPolicy.persistent);
-      await send('close', {'workspaceHandle': opened['workspaceHandle']});
-    } finally {
-      await process.stdin.close();
-      await process.exitCode.timeout(const Duration(seconds: 20), onTimeout: () { process.kill(); return -1; });
-      await lines.cancel();
-      expect(await errors, isEmpty);
-    }
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path],
+        fileReader: const LocalProjectFileReader());
+    final handles = WorkspaceHandleStore();
+    final opener = ProjectOpenService(
+        policy: policy,
+        fileReader: const LocalProjectFileReader(),
+        handles: handles,
+        catalogMetadataFields: const {},
+        workshopScope: true);
+    final opened = await opener.openProject(root.path);
+    final api = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: ProjectSnapshotLoader(handles: handles));
+    addTearDown(() async {
+      await api.detachWorkspace(opened.workspaceHandle);
+      opener.closeWorkspace(opened.workspaceHandle);
+    });
+    await api.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    final snapshot = await api.readWorkshopSnapshot(opened.projectHandle,
+        actionId: actionId,
+        parameters: {
+          'mapId': 'route',
+          'instanceId': 'oak-1',
+          'fieldObstacle': null
+        });
+    expect(snapshot.maps.single.id, 'route');
+    expect(snapshot.manifest.models3d.single.id, 'oak');
   });
 
+  for (final catalogStorage in [false, true]) {
+    test(
+        'model obstacle action is discoverable and persists through JSONL catalog=$catalogStorage',
+        () async {
+      final root = Directory(
+          '/Users/karim/Library/Caches/AveluneQA/field-actions-3d/authoring-cli');
+      await root.create(recursive: true);
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      if (catalogStorage) {
+        final store = await CatalogStorageStore.open(projectRoot: root.path);
+        await WorkingProjectCatalog.create(
+            store: store, projectId: 'field-cli', project: obstacleProject());
+      } else {
+        await File('${root.path}/project.json')
+            .writeAsString(jsonEncode(obstacleProject().toJson()));
+      }
+      final file = File('${root.path}/maps/route.json');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(obstacleMap().toJson()));
+      final process = await Process.start(
+          'dart', ['run', 'bin/pokemap_authoring.dart', '--root', root.path]);
+      final errors = process.stderr.transform(utf8.decoder).join();
+      final lines = StreamIterator(process.stdout
+          .transform(utf8.decoder)
+          .transform(const LineSplitter()));
+      var sequence = 0;
+      Future<Map<String, Object?>> send(
+          String command, Map<String, Object?> args) async {
+        process.stdin.writeln(jsonEncode({
+          'id': 'field-cli-${sequence++}',
+          'command': command,
+          'args': args
+        }));
+        await process.stdin.flush();
+        expect(await lines.moveNext().timeout(const Duration(seconds: 20)),
+            isTrue);
+        final result = AuthoringResult.fromJson(
+            jsonDecode(lines.current) as Map<String, dynamic>);
+        expect(result.status, AuthoringResultStatus.success,
+            reason: result.toJson().toString());
+        return result.data;
+      }
+
+      try {
+        final catalog = await send('describe', {});
+        expect(
+            (catalog['mutationActions'] as List)
+                .where((item) => item['id'] == actionId),
+            hasLength(1));
+        final opened = await send('open', {'projectRoot': root.path});
+        final parameters = <String, Object?>{
+          'mapId': 'route',
+          'instanceId': 'oak-1',
+          'fieldObstacle': {'kind': 'cutTree', 'resetPolicy': 'persistent'}
+        };
+        final snapshot = await send('workshop_snapshot', {
+          'projectHandle': opened['projectHandle'],
+          'actionId': actionId,
+          'parameters': parameters
+        });
+        final planned = await send('plan', {
+          'projectHandle': opened['projectHandle'],
+          'request': AuthoringRequest(
+              requestId: 'field-cli',
+              actionId: actionId,
+              actionVersion: 1,
+              workspaceHandle: opened['workspaceHandle'] as String,
+              expectedRevision: snapshot['snapshotRevision'] as String,
+              idempotencyKey: 'field-cli',
+              parameters: parameters,
+              extensions: const {'workshopScope': true}).toJson()
+        });
+        await send('apply', {
+          'projectHandle': opened['projectHandle'],
+          'planId': planned['planId'],
+          'operationId': 'field-cli'
+        });
+        final after = MapData.fromJson(
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+        expect(
+            isValidSpatialFieldObstacle(after, after.entities.single), isTrue);
+        expect(after.entities.single.fieldObstacle!.resetPolicy,
+            FieldObstacleResetPolicy.persistent);
+        await send('close', {'workspaceHandle': opened['workspaceHandle']});
+      } finally {
+        await process.stdin.close();
+        await process.exitCode.timeout(const Duration(seconds: 20),
+            onTimeout: () {
+          process.kill();
+          return -1;
+        });
+        await lines.cancel();
+        expect(await errors, isEmpty);
+      }
+    });
+  }
   test(
       'model obstacle action creates one bound canonical entity in one map change',
       () {

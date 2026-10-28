@@ -35,7 +35,7 @@ extension _LocalSpatialFieldObstacleAdapter on LocalMapWorkspaceAdapter {
       final parameters = <String, Object?>{
         'mapId': base.mapId,
         'instanceId': instanceId ?? undo!.instanceId,
-        'fieldObstacle': fieldObstacle?.toJson(),
+        'fieldObstacle': (redo ? undo?.fieldObstacle : fieldObstacle)?.toJson(),
       };
       final snapshot = await api.readWorkshopSnapshot(
         opened.projectHandle,
@@ -54,18 +54,12 @@ extension _LocalSpatialFieldObstacleAdapter on LocalMapWorkspaceAdapter {
       final id =
           'studio_obstacle_${DateTime.now().microsecondsSinceEpoch}_${_editorOperations++}';
       late final AuthoringMutationResult result;
-      if (undo != null) {
-        result = redo
-            ? await api.redoMutation(
-                opened.projectHandle,
-                entryId: undo.receiptId,
-                idempotencyKey: id,
-              )
-            : await api.undoMutation(
-                opened.projectHandle,
-                entryId: undo.receiptId,
-                idempotencyKey: id,
-              );
+      if (undo != null && !redo) {
+        result = await api.undoMutation(
+          opened.projectHandle,
+          entryId: undo.receiptId,
+          idempotencyKey: id,
+        );
       } else {
         final planned = await api.planMutation(
           opened.projectHandle,
@@ -114,8 +108,11 @@ extension _LocalSpatialFieldObstacleAdapter on LocalMapWorkspaceAdapter {
           revision: narrativeEventBytesFingerprint(bytes),
           mapId: base.mapId,
         ),
-        receiptId: undo?.receiptId ?? result.receipt.receiptId,
+        receiptId: redo
+            ? result.receipt.receiptId
+            : undo?.receiptId ?? result.receipt.receiptId,
         instanceId: instanceId ?? undo!.instanceId,
+        fieldObstacle: undo?.fieldObstacle ?? fieldObstacle,
       );
     });
   }

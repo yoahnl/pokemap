@@ -33,6 +33,7 @@ import 'spatial_cinematic_emote_visuals.dart';
 import 'spatial_smart_tile_animation_controller.dart';
 import 'spatial_surf_water.dart';
 import 'spatial_field_action_presentation.dart';
+import 'spatial_field_obstacle_burst.dart';
 import '../application/field_move_dialogue.dart';
 
 final class SpatialExplorationSession {
@@ -58,6 +59,20 @@ final class SpatialExplorationSession {
       SpatialSurfWater.fromMap(bundle.map);
   VoidCallback? _surfConfirmation;
   final _fieldAction = SpatialFieldActionPresentation();
+  bool get fieldActionActive => _fieldAction.isActive;
+  void cancelFieldAction() => _fieldAction.cancel();
+  SpatialFieldObstacleBurst? _fieldBurst;
+
+  Future<void> prepareFieldObstacleEffect() async {
+    final burst = _fieldBurst ??= SpatialFieldObstacleBurst(bundle.resourceBudget);
+    await burst.prepare();
+  }
+
+  void showFieldObstacleImpact(SpatialFieldObstacleTicket ticket) {
+    _fieldBurst?.start(ticket.entity.fieldObstacle!.ability!, mapId: ticket.instance.mapId,
+        x: ticket.modelInstance.position.x, y: ticket.modelInstance.position.y,
+        z: ticket.modelInstance.position.z);
+  }
 
   Future<SceneDialogueRuntimeAwaitableResult> showFieldObstaclePrompt(
       DialogueSession dialogue) async {
@@ -455,6 +470,16 @@ final class SpatialExplorationSession {
     return pose == null
         ? worldStateProvider?.call().actorState(bundle.map.id, entity.id)
         : SpatialActorRuntimeState(x: pose.x, z: pose.z, facing: pose.facing);
+  }
+
+  SpatialActorRuntimeState? fieldObstacleActorState(String entityId) {
+    final entity = bundle.map.entities.where((entity) => entity.id == entityId).firstOrNull;
+    return entity == null ? null : actorRuntimeState(entity);
+  }
+
+  bool fieldObstacleIsPresent(String entityId) {
+    final entity = bundle.map.entities.where((entity) => entity.id == entityId).firstOrNull;
+    return entity != null && (entityIsPresent?.call(bundle.map.id, entity) ?? true);
   }
 
   bool modelIsPresent(String mapId, String instanceId) {
@@ -1323,6 +1348,8 @@ final class SpatialExplorationSession {
     }
     final hero = frame(dt);
     final result = <String, SpatialActorVisual>{
+      ...?_fieldBurst?.frames(dt, mapId: bundle.map.id,
+          paused: presentationPaused || transitioning.value),
       if (nativeDoorHeroVisible) 'hero': hero,
       'party-companion': ?_companionFrame(),
     };
@@ -2345,6 +2372,7 @@ final class SpatialExplorationSession {
   void dispose() {
     if (_disposed) return;
     _fieldAction.cancel();
+    _fieldBurst?.dispose();
     if (_dialogueSound case final sound?) unawaited(sound.dispose());
     if (_dialogueMusic case final music?) unawaited(music.dispose());
     _completeDialogue(const SceneDialogueRuntimeAwaitableResult.failed(
