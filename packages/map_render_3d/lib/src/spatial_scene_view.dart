@@ -2,7 +2,7 @@ import 'spatial_point_light.dart';
 import 'spatial_light_behavior.dart';
 
 import 'dart:async';
-import 'dart:ui' as ui show Gradient;
+import 'dart:ui' as ui show Gradient, Image;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -56,6 +56,7 @@ import 'spatial_environment_lighting.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
 import 'spatial_depth_of_field.dart';
+import 'spatial_upscaler.dart';
 import 'spatial_weather_effects.dart';
 import 'spatial_renderer_initialization.dart';
 
@@ -360,6 +361,14 @@ class SpatialSceneController extends ModelPreviewController {
   set shadowsEnabled(bool value) {
     if (_shadowsEnabled == value) return;
     _shadowsEnabled = value;
+    notifyListeners();
+  }
+
+  SpatialUpscaling _upscaling = SpatialUpscaling.nearest;
+  SpatialUpscaling get upscaling => _upscaling;
+  set upscaling(SpatialUpscaling value) {
+    if (_upscaling == value) return;
+    _upscaling = value;
     notifyListeners();
   }
 
@@ -1153,6 +1162,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   late final FlutterFrameGraphicsDevice device = FlutterFrameGraphicsDevice();
 
   SpatialDepthOfField? _depthOfField;
+  SpatialUpscaler? _upscaler;
+  SpatialDepthOfField? _activeDepthOfField;
+  SpatialUpscaler? _activeUpscaler;
+  late final ui.Image Function(GpuRenderTarget, Size) _postProcess = _process;
   int renderedFrameCount = 0;
 
   Map<String, Object?> get depthOfFieldFrame => {
@@ -1212,19 +1225,42 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   void syncDepthOfField() {
     final profile = visibleConfiguration.controller.depthOfFieldProfile;
-    if (profile.active && !_isIndoor) {
-      final focus = _depthOfField ??= SpatialDepthOfField(device.backend);
-      focus
-        ..profile = profile
-        ..focusDepth = (camera.position - camera.target).length;
-      device
-        ..postProcess = focus.composite
-        ..secondaryColorClearValue = SpatialDepthOfField.depthClearValue;
-    } else {
-      device
-        ..postProcess = null
-        ..secondaryColorClearValue = null;
-    }
+    final focus = profile.active && !_isIndoor
+        ? ((_depthOfField ??= SpatialDepthOfField(device.backend))
+            ..profile = profile
+            ..focusDepth = (camera.position - camera.target).length)
+        : null;
+    final upscaler =
+        visibleConfiguration.controller.upscaling == SpatialUpscaling.fsr1 &&
+            renderResolutionScale < 1
+        ? _upscaler ??= SpatialUpscaler(device.backend)
+        : null;
+    _activeDepthOfField = focus;
+    _activeUpscaler = upscaler;
+    device
+      ..postProcess = focus == null && upscaler == null ? null : _postProcess
+      ..secondaryColorClearValue = focus == null
+          ? null
+          : SpatialDepthOfField.depthClearValue;
+  }
+
+  ui.Image _process(GpuRenderTarget target, Size size) {
+    final scene =
+        _activeDepthOfField?.compositeTexture(target, size) ??
+        target.colorTexture;
+    final upscaler = _activeUpscaler;
+    if (upscaler == null) return scene.asImage();
+    return upscaler
+        .upscale(
+          scene,
+          size,
+          World3D.renderSizeFor(
+            camera.viewport.virtualSize,
+            devicePixelRatio: MediaQuery.devicePixelRatioOf(buildContext!),
+            resolutionScale: 1,
+          ),
+        )
+        .asImage();
   }
 
   @override
@@ -1235,6 +1271,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     required this.onPreviewStatus,
     required this.onSurfaceChanged,
   }) : super(world: World3D(), camera: AdaptiveCamera3D(fovY: 40)) {
+    SpatialUpscaler.registerLicense();
     _bindModelSourceUpdates();
   }
   SpatialSceneView configuration;

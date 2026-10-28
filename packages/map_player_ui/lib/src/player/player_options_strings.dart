@@ -56,8 +56,8 @@ final class PlayerOptionsStrings {
             'Choisissez la vitesse d’affichage des dialogues.',
             'Choose how quickly dialogue text appears.'),
         PlayerOptionsCategory.display => text(
-            'Une limite d’images plus basse réduit la consommation. La fréquence réelle dépend de l’écran et de l’appareil. Les effets du menu : Réduit limite leurs animations ; Sans transparence utilise des panneaux opaques. La résolution 3D garde le format de l’image ; plus basse, elle soulage l’appareil. Les effets du décor restent ceux du jeu tant que vous ne les désactivez pas.',
-            'A lower frame rate limit reduces power use. The actual rate depends on the display and device. Menu effects: Reduced limits their animations; Opaque uses solid panels. 3D resolution keeps the image format; lower values lighten the load. Scene effects stay as the game intends until you turn them off.'),
+            'Une limite d’images plus basse réduit la consommation. La fréquence réelle dépend de l’écran et de l’appareil. Les effets du menu : Réduit limite leurs animations ; Sans transparence utilise des panneaux opaques. La résolution 3D garde le format de l’image ; plus basse, elle soulage l’appareil, et la mise à l’échelle choisit comment l’image est agrandie jusqu’à l’écran. Les effets du décor restent ceux du jeu tant que vous ne les désactivez pas.',
+            'A lower frame rate limit reduces power use. The actual rate depends on the display and device. Menu effects: Reduced limits their animations; Opaque uses solid panels. 3D resolution keeps the image format; lower values lighten the load, and upscaling chooses how the image is enlarged to the screen. Scene effects stay as the game intends until you turn them off.'),
         PlayerOptionsCategory.audio => text(
             'Le volume principal règle tous les canaux. À 0 %, le son est coupé. Les touches gauche et droite ajustent le volume par pas de 5 %.',
             'Master volume controls every channel. At 0%, sound is muted. Left and right adjust volume in steps of 5%.'),
@@ -91,6 +91,11 @@ final class PlayerOptionsStrings {
   String renderScaleValue(int? percent) => switch (percent) {
         final value? => '$value %',
         _ => text('Auto (selon l’appareil)', 'Auto (per device)'),
+      };
+  String get upscaling => text('Mise à l’échelle 3D', '3D upscaling');
+  String upscalingValue(RuntimeUpscaling value) => switch (value) {
+        RuntimeUpscaling.nearest => text('Pixels nets', 'Sharp pixels'),
+        RuntimeUpscaling.fsr1 => 'FSR 1 (AMD)',
       };
   String get depthOfField => text('Profondeur de champ', 'Depth of field');
   String get shadows => text('Ombres', 'Shadows');

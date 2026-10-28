@@ -3,6 +3,7 @@ export 'src/model_preview.dart';
 export 'src/model_playback.dart';
 export 'src/spatial_scene_view.dart' hide SpatialSceneGame;
 export 'src/spatial_depth_of_field.dart' show SpatialDepthOfFieldProfile;
+export 'src/spatial_upscaler.dart' show SpatialUpscaling;
 export 'src/spatial_scene_preparation.dart' show SpatialScenePreparation;
 export 'src/spatial_scene_neighbor.dart';
 export 'src/spatial_cell_overlay.dart';

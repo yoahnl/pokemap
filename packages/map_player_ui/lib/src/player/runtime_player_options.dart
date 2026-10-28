@@ -937,6 +937,32 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             }
           },
         ),
+        _choiceRow(
+          _strings.upscaling,
+          _strings.upscalingValue(preferences.graphics.upscaling),
+          'upscaling',
+          compact,
+          () async {
+            final value = await _choose(
+              _strings.upscaling,
+              preferences.graphics.upscaling,
+              {
+                for (final value in RuntimeUpscaling.values)
+                  value: _strings.upscalingValue(value),
+              },
+              (value) => value.name,
+              focusAfterClose: _choiceNode('upscaling'),
+            );
+            if (value != null) {
+              await _save(
+                _confirmed.copyWith(
+                  graphics: _confirmed.graphics.copyWith(upscaling: value),
+                ),
+                focusAfterSave: _choiceNode('upscaling'),
+              );
+            }
+          },
+        ),
         _toggle(
           _strings.depthOfField,
           'runtime-player-depth-of-field-toggle',

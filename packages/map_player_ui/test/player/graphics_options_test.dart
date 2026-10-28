@@ -108,6 +108,17 @@ void main() {
       saved.last.graphics,
       const RuntimeGraphicsPreferences(renderScalePercent: 75, shadows: false),
     );
+
+    await tester.tap(await reveal(const ValueKey('options-upscaling-choice')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      (await reveal(const ValueKey('options-choice-fsr1'))).last,
+    );
+    await tester.pumpAndSettle();
+    await pump();
+    await tester.pumpAndSettle();
+    expect(saved.last.graphics.upscaling, RuntimeUpscaling.fsr1);
+    expect(find.text('FSR 1 (AMD)'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

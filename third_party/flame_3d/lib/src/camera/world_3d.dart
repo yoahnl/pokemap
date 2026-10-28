@@ -54,7 +54,10 @@ class World3D({
     final image = gameRef.device.endPass();
     canvas.drawImageRect(
       image,
-      Offset.zero & renderSize,
+      image.width > renderSize.width.toInt() ||
+              image.height > renderSize.height.toInt()
+          ? Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble())
+          : Offset.zero & renderSize,
       Rect.fromLTWH(-size.x / 2, -size.y / 2, size.x, size.y),
       _paint,
     );

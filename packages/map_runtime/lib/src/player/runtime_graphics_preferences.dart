@@ -1,8 +1,11 @@
 import 'package:map_core/map_core.dart';
 
+enum RuntimeUpscaling { nearest, fsr1 }
+
 final class RuntimeGraphicsPreferences {
   const RuntimeGraphicsPreferences({
     this.renderScalePercent,
+    this.upscaling = RuntimeUpscaling.nearest,
     this.depthOfField = true,
     this.shadows = true,
     this.fogAndHalos = true,
@@ -19,6 +22,7 @@ final class RuntimeGraphicsPreferences {
   factory RuntimeGraphicsPreferences.fromJson(Map<String, Object?> json) {
     const keys = {
       'renderScalePercent',
+      'upscaling',
       'depthOfField',
       'shadows',
       'fogAndHalos',
@@ -30,12 +34,22 @@ final class RuntimeGraphicsPreferences {
       final bool value => value,
       _ => throw FormatException('Invalid graphics preference: $key.'),
     };
+    final upscaling = switch (json['upscaling']) {
+      null => RuntimeUpscaling.nearest,
+      final String name =>
+        RuntimeUpscaling.values
+            .where((value) => value.name == name)
+            .firstOrNull,
+      _ => null,
+    };
     if (json.keys.any((key) => !keys.contains(key)) ||
-        scale != null && !renderScaleChoices.contains(scale)) {
+        scale != null && !renderScaleChoices.contains(scale) ||
+        upscaling == null) {
       throw const FormatException('Invalid graphics preferences.');
     }
     return RuntimeGraphicsPreferences(
       renderScalePercent: scale as int?,
+      upscaling: upscaling,
       depthOfField: flag('depthOfField'),
       shadows: flag('shadows'),
       fogAndHalos: flag('fogAndHalos'),
@@ -46,6 +60,7 @@ final class RuntimeGraphicsPreferences {
   static const renderScaleChoices = [50, 67, 75, 100];
 
   final int? renderScalePercent;
+  final RuntimeUpscaling upscaling;
   final bool depthOfField;
   final bool shadows;
   final bool fogAndHalos;
@@ -73,6 +88,7 @@ final class RuntimeGraphicsPreferences {
 
   RuntimeGraphicsPreferences copyWith({
     int? Function()? renderScalePercent,
+    RuntimeUpscaling? upscaling,
     bool? depthOfField,
     bool? shadows,
     bool? fogAndHalos,
@@ -81,6 +97,7 @@ final class RuntimeGraphicsPreferences {
     renderScalePercent: renderScalePercent == null
         ? this.renderScalePercent
         : renderScalePercent(),
+    upscaling: upscaling ?? this.upscaling,
     depthOfField: depthOfField ?? this.depthOfField,
     shadows: shadows ?? this.shadows,
     fogAndHalos: fogAndHalos ?? this.fogAndHalos,
@@ -89,6 +106,7 @@ final class RuntimeGraphicsPreferences {
 
   Map<String, Object?> toJson() => {
     if (renderScalePercent != null) 'renderScalePercent': renderScalePercent,
+    if (upscaling != RuntimeUpscaling.nearest) 'upscaling': upscaling.name,
     if (!depthOfField) 'depthOfField': false,
     if (!shadows) 'shadows': false,
     if (!fogAndHalos) 'fogAndHalos': false,
@@ -99,6 +117,7 @@ final class RuntimeGraphicsPreferences {
   bool operator ==(Object other) =>
       other is RuntimeGraphicsPreferences &&
       renderScalePercent == other.renderScalePercent &&
+      upscaling == other.upscaling &&
       depthOfField == other.depthOfField &&
       shadows == other.shadows &&
       fogAndHalos == other.fogAndHalos &&
@@ -107,6 +126,7 @@ final class RuntimeGraphicsPreferences {
   @override
   int get hashCode => Object.hash(
     renderScalePercent,
+    upscaling,
     depthOfField,
     shadows,
     fogAndHalos,

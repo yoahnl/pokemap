@@ -39,6 +39,14 @@ Future<void> main() async {
       'type': 'fragment',
       'file': '${package.path}/shaders/depth_of_field.frag',
     },
+    'FsrEasuFragment': {
+      'type': 'fragment',
+      'file': '${package.path}/shaders/fsr_easu.frag',
+    },
+    'FsrRcasFragment': {
+      'type': 'fragment',
+      'file': '${package.path}/shaders/fsr_rcas.frag',
+    },
     'TextureFragment': {
       'type': 'fragment',
       'file': '${package.path}/shaders/pixel_material.frag',

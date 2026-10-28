@@ -38,8 +38,8 @@
     {
       "path": "lib/src/camera/world_3d.dart",
       "upstream_sha256": "c6397e2cf90984e6d72a25477aa7ab5fdf54e34d6b2a939d946c243aee80e29b",
-      "local_sha256": "98ed0b225c934fc6482a24b7cc81d7f377e8c2818f4919cc6d66ca1e14c62abc",
-      "change": "Add a render resolution scale and clamp the render size to [0.25, 1] of the viewport."
+      "local_sha256": "ad1342c94d9d4cf5a592049665209f333c36aa790c2f3590c267ef1e55bb6c4e",
+      "change": "Add a render resolution scale and clamp the render size to [0.25, 1] of the viewport. Present a post-processed image larger than the render size, such as an upscaled one, through its full extent."
     },
     {
       "path": "lib/src/game/game_3d.dart",

@@ -9,6 +9,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 import '../application/runtime_map_bundle.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_weather_audio_controller.dart';
+import '../player/runtime_graphics_preferences.dart';
 import '../player/runtime_world_time_preferences.dart';
 import '../presentation/map_warp_transition_overlay.dart';
 import 'spatial_exploration_session.dart';
@@ -89,7 +90,11 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
         widget.session.environmentClock.elapsedSeconds;
     camera
       ..visualProfile = profile.overriddenBy(_graphicsOverrides)
-      ..shadowsEnabled = widget.session.graphics.value.shadows;
+      ..shadowsEnabled = widget.session.graphics.value.shadows
+      ..upscaling = switch (widget.session.graphics.value.upscaling) {
+        RuntimeUpscaling.nearest => SpatialUpscaling.nearest,
+        RuntimeUpscaling.fsr1 => SpatialUpscaling.fsr1,
+      };
     var weather = profile
         .applyAtmosphere(activeBundle.spatialAtmosphereSettings)
         .weather;

@@ -56,6 +56,7 @@ void main() {
   test('persisted graphics round-trip and reject invalid data', () {
     const chosen = RuntimeGraphicsPreferences(
       renderScalePercent: 67,
+      upscaling: RuntimeUpscaling.fsr1,
       depthOfField: false,
       shadows: false,
       fogAndHalos: false,
@@ -70,6 +71,8 @@ void main() {
       {'renderScalePercent': 60},
       {'renderScalePercent': '50'},
       {'shadows': 'no'},
+      {'upscaling': 'fsr3'},
+      {'upscaling': 1},
       {'bloom': false},
     ]) {
       expect(
