@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -80,9 +81,11 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
         }
         diagnostics.setMethodCallHandler { call, result ->
             if (call.method == "processSample") {
-                runCatching { NativeProcessMetrics.read(context.applicationContext) }
-                    .onSuccess(result::success)
-                    .onFailure { result.error("metricsUnavailable", "Mesures du processus indisponibles.", null) }
+                scope.launch {
+                    withContext(Dispatchers.IO) { runCatching { NativeProcessMetrics.read(context.applicationContext) } }
+                        .onSuccess(result::success)
+                        .onFailure { result.error("metricsUnavailable", "Mesures du processus indisponibles.", null) }
+                }
             } else {
                 result.notImplemented()
             }
