@@ -312,7 +312,7 @@ final class _Sequence {
     if (previousSize == size && device.currentRenderTarget != null) {
       final target =
           (device.currentRenderTarget as dynamic).raw as gpu.RenderTarget;
-      target.colorAttachments.single.clearValue = f3d.Vector4(
+      target.colorAttachments.first.clearValue = f3d.Vector4(
         color.rgba[0] / 255,
         color.rgba[1] / 255,
         color.rgba[2] / 255,
@@ -326,16 +326,12 @@ final class _Sequence {
     late ui.Image output;
     device.guardFrame(() {
       device.begin();
-      device.beginPass(size);
       if (dof) {
-        effect.renderDepth(
-          size: size,
-          view: f3d.Matrix4.identity(),
-          projection: f3d.Matrix4.identity(),
-          draw: (_, _) {},
-        );
-        device.postProcess = effect.composite;
+        device
+          ..secondaryColorClearValue = SpatialDepthOfField.depthClearValue
+          ..postProcess = effect.composite;
       }
+      device.beginPass(size);
       output = device.endPass();
     });
     previousSize = size;
