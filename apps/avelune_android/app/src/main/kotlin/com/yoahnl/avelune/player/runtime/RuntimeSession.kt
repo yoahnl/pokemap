@@ -4,6 +4,7 @@ import android.content.Context
 import android.hardware.input.InputManager
 import android.os.Handler
 import android.os.StatFs
+import android.util.Log
 import com.yoahnl.avelune.host.InstalledGame
 import com.yoahnl.avelune.player.display.DisplayCapabilityAdapter
 import io.flutter.embedding.engine.FlutterEngine
@@ -233,6 +234,7 @@ class RuntimeSession(context: Context, displays: DisplayCapabilityAdapter) : Run
                 }
 
                 override fun error(code: String, message: String?, details: Any?) {
+                    Log.w("AveluneRuntime", "$method a échoué : $code $details")
                     if (continuation.isActive) continuation.resumeWithException(RuntimeException(message ?: code))
                 }
 

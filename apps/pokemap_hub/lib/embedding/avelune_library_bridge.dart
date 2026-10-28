@@ -155,7 +155,10 @@ class AveluneLibraryBridge {
         PlatformException(
           code: 'installation.${error.diagnostic.code.name}',
           message: gameInstallationMessage(error.diagnostic),
-          details: error.diagnostic.toJson(),
+          details: <String, Object?>{
+            ...error.diagnostic.toJson(),
+            if (error.cause != null) 'cause': '${error.cause}',
+          },
         ),
         error.stackTrace ?? stackTrace,
       );

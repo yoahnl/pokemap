@@ -21,6 +21,43 @@ void main() {
     expect(message, isNot(contains('checkingCompatibility')));
   });
 
+  test('explains every failure instead of a generic fallback', () {
+    for (final code in GameInstallationErrorCode.values) {
+      final message = gameInstallationMessage(
+        GameInstallationDiagnostic(
+          code: code,
+          stage: GameInstallStage.smokeLoading,
+          retryable: true,
+          repairSuggested: false,
+        ),
+      );
+      expect(
+        message,
+        isNot('L’installation n’a pas pu être terminée.'),
+        reason: code.name,
+      );
+    }
+  });
+
+  test('reassures that a failed install keeps the current game', () {
+    for (final code in [
+      GameInstallationErrorCode.extractionFailed,
+      GameInstallationErrorCode.smokeFailed,
+      GameInstallationErrorCode.savePreparationFailed,
+    ]) {
+      final message = gameInstallationMessage(
+        GameInstallationDiagnostic(
+          code: code,
+          stage: GameInstallStage.smokeLoading,
+          retryable: true,
+          repairSuggested: false,
+        ),
+      );
+      expect(message, contains('ton jeu actuel'), reason: code.name);
+      expect(message, contains('sauvegardes'), reason: code.name);
+    }
+  });
+
   test('keeps installation failure messages free from internal details', () {
     for (final code in GameInstallationErrorCode.values) {
       final message = gameInstallationMessage(

@@ -133,11 +133,22 @@ void main() {
               .having(
                 (error) => error.details,
                 'details',
-                isA<Map>().having(
-                  (details) => details['code'],
-                  'diagnostic',
-                  'integrityFailed',
-                ),
+                isA<Map>()
+                    .having(
+                      (details) => details['code'],
+                      'diagnostic',
+                      'integrityFailed',
+                    )
+                    .having(
+                      (details) => details['stage'],
+                      'stage',
+                      'inspecting',
+                    )
+                    .having(
+                      (details) => details['cause'],
+                      'cause',
+                      contains('regular file'),
+                    ),
               ),
         ),
       );

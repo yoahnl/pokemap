@@ -1,5 +1,6 @@
 import Flutter
 import Foundation
+import OSLog
 
 /// Native side of the runtime channel.
 ///
@@ -9,6 +10,7 @@ import Foundation
 final class FlutterGameDataSource {
     private let channel: FlutterMethodChannel
     private let diagnostics: FlutterMethodChannel
+    private let logger = Logger(subsystem: "com.yoahnl.avelune.player", category: "Runtime")
 
     var onPlayerExit: (() -> Void)?
 
@@ -76,9 +78,11 @@ final class FlutterGameDataSource {
     }
 
     private func invoke(_ method: String, arguments: [String: Any]?) async throws -> Any? {
-        try await withCheckedThrowingContinuation { continuation in
+        let logger = logger
+        return try await withCheckedThrowingContinuation { continuation in
             channel.invokeMethod(method, arguments: arguments) { result in
                 if let error = result as? FlutterError {
+                    logger.error("\(method, privacy: .public) failed: \(error.code, privacy: .public) \(String(describing: error.details), privacy: .private)")
                     continuation.resume(
                         throwing: RuntimeChannelError.runtime(
                             error.message ?? error.code
