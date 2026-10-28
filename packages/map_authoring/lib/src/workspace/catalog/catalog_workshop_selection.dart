@@ -29,6 +29,7 @@ part 'catalog_map_creation_selection.dart';
 part 'catalog_map_metadata_selection.dart';
 part 'catalog_asset_import_selection.dart';
 part 'catalog_native_resource_selection.dart';
+part 'catalog_presentation_reset_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
@@ -76,6 +77,7 @@ final class CatalogWorkshopSelection {
           parameters.keys.every((key) => {'modelId', 'light'}.contains(key))) ||
       (action == 'map.update_metadata' && parameters != null && !parameters.containsKey('escapeRopeDungeonId')) ||
       action == 'surf.configure' ||
+      const {'presentation.delete', 'presentation.reset_interface'}.contains(action) ||
       action == 'field_ability.configure' ||
       action == 'project.audio.cue.configure' ||
       action == 'scene.dialogue.audioMedia.import' ||
@@ -161,6 +163,10 @@ final class CatalogWorkshopSelection {
     if (const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readSurfWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
+    if (const {'presentation.delete', 'presentation.reset_interface'}.contains(actionId)) {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readPresentationResetWorkshop(reader: reader, projectHandle: projectHandle);
     }
     if (actionId == 'map.update_metadata') {
       if (readDependencies.isNotEmpty) unsupported(actionId);

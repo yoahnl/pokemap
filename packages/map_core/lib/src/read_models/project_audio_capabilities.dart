@@ -4,6 +4,7 @@ import '../models/project_audio_settings.dart';
 abstract final class ProjectAudioCapabilities {
   static const capabilityId = 'audio.project-sfx@1';
   static const extendedCapabilityId = 'audio.project-sfx@2';
+  static const fieldMovementCapabilityId = 'audio.project-sfx@3';
 
   static const extendedCues = {
     ProjectSoundCue.fieldFly, ProjectSoundCue.fieldStrength,
@@ -12,6 +13,9 @@ abstract final class ProjectAudioCapabilities {
     ProjectSoundCue.fieldDive, ProjectSoundCue.fieldRockClimb,
     ProjectSoundCue.fieldDefog,
   };
+
+  static bool requiresFieldMovementCapability(ProjectManifest project) =>
+      project.settings.audio?.cues.containsKey(ProjectSoundCue.fieldStrengthPush) ?? false;
 
   static bool requiresCapability(ProjectManifest project) =>
       project.settings.audio?.cues.isNotEmpty ?? false;

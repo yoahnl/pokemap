@@ -1,7 +1,95 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('existing schema 6 and 7 save bytes remain exact after typed reading', () {
+    final base = _state();
+    final scope = base.instanceRef('source')!;
+    for (final old in [base, base.clearFieldObstacle(scope, 'tree', resetPolicy: FieldObstacleResetPolicy.persistent)]) {
+      final encoded = jsonEncode(old.toJson());
+      expect(jsonEncode(MapInstanceWorldState.fromJson(jsonDecode(encoded) as Map<String, dynamic>).toJson()), encoded);
+      expect(old.toJson().containsKey('persistentFieldObstaclePositions'), isFalse);
+    }
+  });
+
+  test('persistent positions have one immutable authority and stale scopes fail', () {
+    final positions = <String, GridPos>{'boulder': const GridPos(x: 4, y: 2)};
+    final maps = <String, Map<String, GridPos>>{'source': positions};
+    final original = _state();
+    final scope = original.instanceRef('source')!;
+    final retained = MapInstanceWorldState(instancesByMapId: original.instancesByMapId,
+      persistentFieldObstaclePositions: maps);
+    positions.clear();
+    maps.clear();
+    expect(retained.fieldObstaclePosition(scope, 'boulder'), const GridPos(x: 4, y: 2));
+    expect(() => retained.persistentFieldObstaclePositions.clear(), throwsUnsupportedError);
+    expect(() => retained.persistentFieldObstaclePositions['source']!.clear(), throwsUnsupportedError);
+    final moved = retained.moveFieldObstacle(scope, 'boulder', const GridPos(x: 5, y: 2),
+      resetPolicy: FieldObstacleResetPolicy.persistent);
+    expect(moved.instancesByMapId['source']!.fieldObstaclePositions, isEmpty);
+    expect(moved.fieldObstaclePositionForMap('source', 'boulder'), const GridPos(x: 5, y: 2));
+    final temporary = moved.moveFieldObstacle(scope, 'boulder', const GridPos(x: 6, y: 2));
+    expect(temporary.persistentFieldObstaclePositions, isEmpty);
+    expect(temporary.fieldObstaclePosition(scope, 'boulder'), const GridPos(x: 6, y: 2));
+    expect(() => moved.fieldObstaclePosition(MapInstanceRef(mapId: 'source', instanceId: 'stale'), 'boulder'), throwsStateError);
+    final mutations = [
+      moved.setEventBoolean(scope, 'door', 'A', true),
+      moved.clearFieldObstacle(scope, 'tree'),
+      moved.clearFieldObstacle(scope, 'tree', resetPolicy: FieldObstacleResetPolicy.persistent),
+      moved.consumeInteractiveEncounter(scope, 'encounter'),
+      moved.illuminateZone(scope, 'room'),
+      moved.activateStrength(scope),
+      moved.moveFieldObstacle(scope, 'other', const GridPos(x: 6, y: 2)),
+      moved.setNpcPoses(scope, {'npc': MapInstanceNpcPose(position: const GridPos(x: 1, y: 1), facing: EntityFacing.south)}),
+    ];
+    for (final mutation in mutations) {
+      expect(mutation.persistentFieldObstaclePositions, moved.persistentFieldObstaclePositions);
+      expect(MapInstanceWorldState.fromJson(mutation.toJson()), mutation);
+    }
+  });
+
+  test('schema 8 rejects corrupt positions, duplicate authorities and cells', () {
+    for (final raw in [
+      null, <String, dynamic>{}, {'source': <String, dynamic>{}},
+      {' source': {'rock': {'x': 1, 'y': 1}}},
+      {'source': {' rock': {'x': 1, 'y': 1}}},
+      {'source': {'rock': {'x': -1, 'y': 1}}},
+      {'source': {'rock': {'x': 1.0, 'y': 1}}},
+      {'source': {'rock': {'x': 1, 'y': 1, 'z': 0}}},
+      {'source': {'rock': {'x': 1, 'y': 1}, 'other': {'x': 1, 'y': 1}}},
+    ]) {
+      expect(() => MapInstanceWorldState.fromJson({'schemaVersion': 8,
+        'instancesByMapId': <String, dynamic>{}, 'persistentClearedObstacles': <String, dynamic>{},
+        'persistentFieldObstaclePositions': raw}), throwsFormatException);
+    }
+    for (final transient in [
+      {'rock': const GridPos(x: 2, y: 1)},
+      {'other': const GridPos(x: 1, y: 1)},
+    ]) {
+      expect(() => MapInstanceWorldState(instancesByMapId: {'source': MapInstanceRuntimeState(instanceId: 'one',
+        fieldObstaclePositions: transient)}, persistentFieldObstaclePositions: {'source': {'rock': const GridPos(x: 1, y: 1)}}), throwsArgumentError);
+    }
+  });
+
+  test('schema 8 restores persistent obstacle positions and exact old wire', () {
+    final raw = <String, dynamic>{
+      'schemaVersion': 8,
+      'persistentClearedObstacles': <String, dynamic>{},
+      'persistentFieldObstaclePositions': {'source': {'boulder': {'x': 4, 'y': 2}}},
+      'instancesByMapId': <String, dynamic>{},
+    };
+    final restored = MapInstanceWorldState.fromJson(raw);
+    expect(restored.toJson(), raw);
+    for (final old in [
+      <String, dynamic>{'schemaVersion': 6, 'instancesByMapId': <String, dynamic>{}},
+      <String, dynamic>{'schemaVersion': 7, 'persistentClearedObstacles': {'source': ['tree']}, 'instancesByMapId': <String, dynamic>{}},
+    ]) {
+      expect(MapInstanceWorldState.fromJson(old).toJson(), old);
+    }
+  });
+
   test(
     'round-trips the empty typed instance state with its explicit schema',
     () {

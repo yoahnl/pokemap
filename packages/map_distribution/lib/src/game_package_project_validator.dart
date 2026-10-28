@@ -242,10 +242,12 @@ final class GamePackageProjectValidator {
           jsonDecode(utf8.decode(readPayload('project/${entry.relativePath}')!)) as Map<String, dynamic>)).toList();
       for (final requirement in {
         if (FieldObstacleCapabilities.requiresCapability(project, maps: obstacleMaps)) FieldObstacleCapabilities.capabilityId,
+        if (FieldObstacleCapabilities.requiresExtendedCapability(project, maps: obstacleMaps)) FieldObstacleCapabilities.extendedCapabilityId,
         if (FieldAbilityActivationCapabilities.requiresCapability(project)) FieldAbilityActivationCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(project)) ProjectAudioCapabilities.capabilityId,
         if (ProjectAudioCapabilities.requiresExtendedCapability(project)) ProjectAudioCapabilities.extendedCapabilityId,
+        if (ProjectAudioCapabilities.requiresFieldMovementCapability(project)) ProjectAudioCapabilities.fieldMovementCapabilityId,
       }) {
         if (!packageManifest.compatibility.requiredCapabilities.contains(requirement)) {
           _fail('The project requires $requirement.');

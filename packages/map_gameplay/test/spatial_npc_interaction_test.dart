@@ -5,6 +5,52 @@ import 'package:test/test.dart';
 import 'spatial_movement_controller_test.dart' show plateau;
 
 void main() {
+  test('runtime geometry offsets compose once after pivot rotation and scale', () {
+    final model = ProjectModel3dEntry(id: 'rock', name: 'Rock', sourceAssetId: 'rock',
+      relativePath: 'assets/models3d/rock.glb', scale: 2,
+      pivot: Model3dVector3(x: .25, y: .5, z: -.25),
+      collisionBounds: Model3dBounds(min: Model3dVector3(x: -.1, y: 0, z: -.2), max: Model3dVector3(x: .2, y: .5, z: .3)),
+      inspection: Model3dInspection(meshCount: 1, triangleCount: 1,
+        bounds: Model3dBounds(min: Model3dVector3(x: -.5, y: 0, z: -.5), max: Model3dVector3(x: .5, y: 1, z: .5))));
+    final instance = SpatialModelInstance(id: 'rock', modelId: model.id, position: Model3dVector3(x: 4, y: 1, z: 5),
+      rotationDegrees: 37, scale: 1.5);
+    final pose = SpatialModelRuntimeState(modelId: model.id, animationIndex: null, normalizedTime: 0, blocksMovement: true,
+      translationX: 2, translationY: 3, translationZ: -1);
+    for (final collision in [false, true]) {
+      final original = spatialModelWorldGeometry(instance, model, useCollisionBounds: collision);
+      final shifted = spatialModelWorldGeometry(instance, model, useCollisionBounds: collision, runtimeState: pose);
+      for (var i = 0; i < original.polygon.length; i++) {
+        expect(shifted.polygon[i].x, closeTo(original.polygon[i].x + 2, .000001));
+        expect(shifted.polygon[i].z, closeTo(original.polygon[i].z - 1, .000001));
+      }
+      expect(shifted.minY, original.minY + 3);
+      expect(shifted.maxY, original.maxY + 3);
+      expect(shifted.cos, original.cos);
+      expect(shifted.sin, original.sin);
+    }
+  });
+
+  test('model interaction follows translated target and translated occluder geometry', () {
+    final model = ProjectModel3dEntry(id: 'rock', name: 'Rock', sourceAssetId: 'rock',
+      relativePath: 'assets/models3d/rock.glb', inspection: Model3dInspection(meshCount: 1, triangleCount: 1,
+        bounds: Model3dBounds(min: Model3dVector3(x: -.2, y: 0, z: -.2), max: Model3dVector3(x: .2, y: 1, z: .2))));
+    final target = SpatialModelInstance(id: 'target', modelId: model.id,
+      position: Model3dVector3(x: 6.5, y: 0, z: 2.5));
+    final blocker = SpatialModelInstance(id: 'blocker', modelId: model.id,
+      position: Model3dVector3(x: 4.5, y: 0, z: 4.5), blocksMovement: true);
+    final pose = SpatialModelRuntimeState(modelId: model.id, animationIndex: null, normalizedTime: 0,
+      blocksMovement: true, translationX: -3);
+    final scene = MapSpatialScene(width: 10, depth: 10, instances: [target, blocker]);
+    SpatialModelInstance? find(Map<String, SpatialModelRuntimeState> poses) => findSpatialModelInteraction(
+      scene: scene, models: [model], instances: [target], x: 2.5, z: 2.5, facing: EntityFacing.east,
+      modelStateProvider: (id) => poses[id]);
+    expect(find({}), isNull);
+    expect(find({'target': pose}), target);
+    expect(find({'target': pose.copyWith(translationY: 3)}), isNull);
+    expect(find({'target': pose, 'blocker': pose.copyWith(translationX: -1.5, translationZ: -2)}), isNull);
+    expect(find({'target': pose, 'blocker': pose.copyWith(translationX: -1.5, translationZ: -2, translationY: 3)}), target);
+  });
+
   SpatialMovementController recoveryFixture({List<SpatialBlockedArea> blocked = const [],
       List<MapEntity> others = const [], MapEntity? owner,
       List<ProjectModel3dEntry> models = const [], List<SpatialModelInstance> instances = const [],

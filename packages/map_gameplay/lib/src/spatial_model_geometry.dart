@@ -10,7 +10,7 @@ import 'package:map_core/map_core.dart';
   double sin,
 }) spatialModelWorldGeometry(
     SpatialModelInstance instance, ProjectModel3dEntry model,
-    {bool useCollisionBounds = false}) {
+    {bool useCollisionBounds = false, SpatialModelRuntimeState? runtimeState}) {
   final scale = model.scale * instance.scale;
   final bounds = useCollisionBounds
       ? model.collisionBounds ?? model.inspection.bounds
@@ -26,16 +26,16 @@ import 'package:map_core/map_core.dart';
         (bounds.min.x, bounds.max.z),
       ])
         (
-          x: instance.position.x +
+          x: instance.position.x + (runtimeState?.translationX ?? 0) +
               cos * (corner.$1 - model.pivot.x) * scale +
               sin * (corner.$2 - model.pivot.z) * scale,
-          z: instance.position.z -
+          z: instance.position.z + (runtimeState?.translationZ ?? 0) -
               sin * (corner.$1 - model.pivot.x) * scale +
               cos * (corner.$2 - model.pivot.z) * scale,
         ),
     ],
-    minY: instance.position.y + (bounds.min.y - model.pivot.y) * scale,
-    maxY: instance.position.y + (bounds.max.y - model.pivot.y) * scale,
+    minY: instance.position.y + (runtimeState?.translationY ?? 0) + (bounds.min.y - model.pivot.y) * scale,
+    maxY: instance.position.y + (runtimeState?.translationY ?? 0) + (bounds.max.y - model.pivot.y) * scale,
     cos: cos,
     sin: sin,
   );

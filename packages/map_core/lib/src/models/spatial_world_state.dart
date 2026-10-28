@@ -50,10 +50,12 @@ final class SpatialModelRuntimeState {
     required this.animationIndex,
     required num normalizedTime,
     required this.blocksMovement,
+    this.translationX = 0,
     this.translationY = 0,
+    this.translationZ = 0,
   }) : modelId = _identity(modelId),
        normalizedTime = normalizedTime.toDouble() {
-    if (!translationY.isFinite || translationY.abs() > 1024 || (animationIndex != null && animationIndex! < 0) ||
+    if ([translationX, translationY, translationZ].any((offset) => !offset.isFinite || offset.abs() > 1024) || (animationIndex != null && animationIndex! < 0) ||
         !this.normalizedTime.isFinite ||
         this.normalizedTime < 0 ||
         this.normalizedTime > 1 ||
@@ -62,7 +64,7 @@ final class SpatialModelRuntimeState {
     }
   }
 
-  final double translationY;
+  final double translationX, translationY, translationZ;
   final String modelId;
   final int? animationIndex;
   final double normalizedTime;
@@ -71,24 +73,31 @@ final class SpatialModelRuntimeState {
   SpatialModelRuntimeState copyWith({
     double? normalizedTime,
     bool? blocksMovement,
+    double? translationX,
     double? translationY,
+    double? translationZ,
   }) => SpatialModelRuntimeState(
     modelId: modelId,
+    translationX: translationX ?? this.translationX,
     translationY: translationY ?? this.translationY,
+    translationZ: translationZ ?? this.translationZ,
     animationIndex: animationIndex,
     normalizedTime: normalizedTime ?? this.normalizedTime,
     blocksMovement: blocksMovement ?? this.blocksMovement,
   );
 
   factory SpatialModelRuntimeState.fromJson(Map<String, dynamic> json) {
-    final offset = json.containsKey('translationY') ? json['translationY'] : 0;
-    if (offset is! num) throw const FormatException('Invalid model vertical offset.');
-    _keys({...json, 'translationY': offset}, {
+    final offsets = {for (final key in ['translationX', 'translationY', 'translationZ'])
+      key: json.containsKey(key) ? json[key] : 0};
+    if (offsets.values.any((offset) => offset is! num)) throw const FormatException('Invalid model translation.');
+    _keys({...json, ...offsets}, {
       'modelId',
       'animationIndex',
       'normalizedTime',
       'blocksMovement',
+      'translationX',
       'translationY',
+      'translationZ',
     });
     final index = json['animationIndex'];
     final time = json['normalizedTime'];
@@ -98,7 +107,9 @@ final class SpatialModelRuntimeState {
     }
     return SpatialModelRuntimeState(
       modelId: _identity(json['modelId']),
-      translationY: offset.toDouble(),
+      translationX: (offsets['translationX'] as num).toDouble(),
+      translationY: (offsets['translationY'] as num).toDouble(),
+      translationZ: (offsets['translationZ'] as num).toDouble(),
       animationIndex: index as int?,
       normalizedTime: time,
       blocksMovement: blocks,
@@ -107,7 +118,9 @@ final class SpatialModelRuntimeState {
 
   Map<String, dynamic> toJson() => {
     'modelId': modelId,
+    if (translationX != 0) 'translationX': translationX,
     if (translationY != 0) 'translationY': translationY,
+    if (translationZ != 0) 'translationZ': translationZ,
     'animationIndex': animationIndex,
     'normalizedTime': normalizedTime,
     'blocksMovement': blocksMovement,
@@ -118,14 +131,16 @@ final class SpatialModelRuntimeState {
       identical(this, other) ||
       other is SpatialModelRuntimeState &&
           other.modelId == modelId &&
+          other.translationX == translationX &&
           other.translationY == translationY &&
+          other.translationZ == translationZ &&
           other.animationIndex == animationIndex &&
           other.normalizedTime == normalizedTime &&
           other.blocksMovement == blocksMovement;
 
   @override
   int get hashCode =>
-      Object.hash(modelId, animationIndex, normalizedTime, blocksMovement, translationY);
+      Object.hash(modelId, animationIndex, normalizedTime, blocksMovement, translationX, translationY, translationZ);
 }
 
 final class SpatialWorldState {
@@ -214,11 +229,18 @@ final class SpatialWorldState {
 
   factory SpatialWorldState.fromJson(Map<String, dynamic> json) {
     _keys(json, {'schemaVersion', 'modelsByMap', 'actorsByMap'});
-    if (json['schemaVersion'] != 1) {
+    final version = json['schemaVersion'];
+    if (version is! int || (version != 1 && version != 2)) {
       throw const FormatException('Unsupported spatial world state version.');
     }
     final maps = _object(json['modelsByMap']);
     final actors = _object(json['actorsByMap']);
+    if (version == 1 && maps.values.any((instances) => _object(instances).values.any((raw) {
+      final pose = _object(raw);
+      return pose.containsKey('translationX') || pose.containsKey('translationZ');
+    }))) {
+      throw const FormatException('Horizontal model translations require spatial world state schema 2.');
+    }
     return SpatialWorldState(
       modelsByMap: {
         for (final entry in maps.entries)
@@ -245,7 +267,7 @@ final class SpatialWorldState {
     final maps = modelsByMap.keys.toList()..sort();
     final actorMaps = actorsByMap.keys.toList()..sort();
     return {
-      'schemaVersion': 1,
+      'schemaVersion': modelsByMap.values.any((models) => models.values.any((state) => state.translationX != 0 || state.translationZ != 0)) ? 2 : 1,
       'modelsByMap': {
         for (final mapId in maps)
           mapId: {

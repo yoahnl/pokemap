@@ -55,6 +55,25 @@ GameplayWorldState world(MapData map, GameState state) =>
       playerFacing: Direction.east,
     );
 void main() {
+  test('persistent Strength push projects after save reload and a fresh instance', () {
+    final original = obstacleMap(FieldObstacleKind.strengthBoulder);
+    final map = original.copyWith(entities: [original.entities.single.copyWith(fieldObstacle:
+      const MapEntityFieldObstacleData(kind: FieldObstacleKind.strengthBoulder, resetPolicy: FieldObstacleResetPolicy.persistent))]);
+    final before = ready(FieldAbility.strength);
+    final scope = before.mapInstanceWorldState.instanceRef(map.id)!;
+    final active = before.copyWith(mapInstanceWorldState: before.mapInstanceWorldState.activateStrength(scope));
+    final result = commitStrengthPush(ticket: ticket(active, FieldAbility.strength), world: world(map, active),
+      gameState: active, currentStateRevision: 4) as StrengthPushApplied;
+    expect(result.gameState.mapInstanceWorldState.instancesByMapId[map.id]!.fieldObstaclePositions, isEmpty);
+    expect(result.gameState.mapInstanceWorldState.persistentFieldObstaclePositions[map.id]?['rock'], const GridPos(x: 3, y: 1));
+    final restored = GameState.fromJson(result.gameState.toJson());
+    final fresh = setupDifferentMapInstance(state: restored.mapInstanceWorldState, targetMapId: map.id, allocateId: (_) => 'fresh');
+    final projected = applyFieldObstacleWorldStateToMap(map: map, authoringMap: map, instances: fresh, instance: fresh.instanceRef(map.id)!);
+    expect(projected.entities.single.pos, const GridPos(x: 3, y: 1));
+    expect(applyFieldObstacleWorldStateToMap(map: projected, authoringMap: map, instances: fresh, instance: fresh.instanceRef(map.id)!), projected);
+    expect(map.entities.single.pos, const GridPos(x: 2, y: 1));
+  });
+
   for (final invalid in [
     'missing',
     'wrongKind',

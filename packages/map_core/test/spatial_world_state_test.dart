@@ -2,6 +2,43 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('horizontal offsets require schema 2 while old pose bytes remain schema 1', () {
+    final legacy = SpatialModelRuntimeState(modelId: 'rock', animationIndex: null, normalizedTime: 0, blocksMovement: true);
+    final oldWorld = SpatialWorldState(modelsByMap: {'map': {'rock': legacy}});
+    expect(oldWorld.toJson()['schemaVersion'], 1);
+    expect(legacy.toJson().keys, isNot(contains('translationX')));
+    expect(legacy.toJson().keys, isNot(contains('translationZ')));
+    expect(SpatialWorldState.fromJson(oldWorld.toJson()).toJson(), oldWorld.toJson());
+    final moved = legacy.copyWith(translationX: 2, translationY: .5, translationZ: -1);
+    expect(moved, isNot(legacy));
+    expect(moved.copyWith(), moved);
+    final world = oldWorld.setModelState('map', 'rock', moved);
+    expect(world.toJson()['schemaVersion'], 2);
+    expect(SpatialWorldState.fromJson(world.toJson()), world);
+    final save = GameState(saveId: 'offset-save', currentMapId: 'map', spatialWorldState: world);
+    expect(gameStateFromStrictSaveJson(strictGameStateSaveJson(save)).spatialWorldState, world);
+    expect(gameStateFromSaveData(saveDataFromGameState(save)).spatialWorldState, world);
+    expect(() => SpatialWorldState.fromJson({...world.toJson(), 'schemaVersion': 1}), throwsFormatException);
+  });
+
+  test('horizontal offsets are finite bounded and strictly typed', () {
+    final legacy = SpatialModelRuntimeState(modelId: 'rock', animationIndex: null, normalizedTime: 0, blocksMovement: true);
+    for (final key in ['translationX', 'translationZ']) {
+      for (final invalid in [null, '1', true, double.nan, double.infinity, 1024.1, -1024.1]) {
+        expect(() => SpatialModelRuntimeState.fromJson({...legacy.toJson(), key: invalid}), throwsFormatException);
+      }
+    }
+    expect(legacy.copyWith(translationX: 1024, translationZ: -1024).translationX, 1024);
+  });
+
+  test('runtime model pose round trips horizontal translation', () {
+    final raw = <String, dynamic>{'modelId': 'rock', 'animationIndex': null,
+      'normalizedTime': 0.0, 'blocksMovement': true, 'translationX': 2.0,
+      'translationY': .5, 'translationZ': -1.0};
+    final pose = SpatialModelRuntimeState.fromJson(raw);
+    expect(pose.toJson(), raw);
+  });
+
   SpatialModelRuntimeState opened({String modelId = 'door'}) =>
       SpatialModelRuntimeState(
         modelId: modelId,
@@ -81,7 +118,7 @@ void main() {
           ...json,
           'spatialWorldState': {
             ...original.spatialWorldState.toJson(),
-            'schemaVersion': 2,
+            'schemaVersion': 3,
           },
         }),
         throwsFormatException,
@@ -140,7 +177,7 @@ void main() {
     final valid = const SpatialWorldState.empty().toJson();
     for (final json in [
       <String, dynamic>{},
-      {...valid, 'schemaVersion': 2},
+      {...valid, 'schemaVersion': 3},
       {...valid, 'extra': true},
       {
         ...valid,

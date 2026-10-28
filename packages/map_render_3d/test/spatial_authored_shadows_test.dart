@@ -42,6 +42,17 @@ SpatialAuthoredShadowCaster? caster(
 );
 
 void main() {
+  test('a moving caster updates its existing corners for shadow fitting', () {
+    final moving = caster(model(true), instance())!;
+    final corners = moving.worldCorners;
+    moving.updateWorldTransform(Matrix4.translationValues(11, 3, 14));
+    expect(identical(moving.worldCorners, corners), isTrue);
+    expect(corners.first, Vector3(11, 3, 14));
+    expect(corners.last, Vector3(14, 8, 16));
+    moving.updateWorldTransform(Matrix4.translationValues(10, 2, 12));
+    expect(corners.first, Vector3(10, 2, 12));
+    expect(corners.last, Vector3(13, 7, 14));
+  });
   test('a fixed camera keeps one solar texel scale throughout daylight', () {
     final near = caster(model(true), instance())!;
     final remote = SpatialAuthoredShadowCaster(

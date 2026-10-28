@@ -406,7 +406,7 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
           final offset = dependent.chunk.signature.$4;
           final component = _SceneModelComponent(
             instanceId: instance.id,
-            initialAnchorY: instance.position.y,
+            initialAnchor: instance.position,
             shadowId: previous.component.shadowId,
             model: clipped?.model ?? model,
             visibleBounds: clipped?.bounds ?? definition.inspection.bounds,
@@ -452,6 +452,7 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
         component.visibleBounds = next.visibleBounds;
         component.sourceGeometryVisible = next.sourceGeometryVisible;
         component.position.setFrom(next.position);
+        component.runtimeTransform.rebase(position: next.position, anchor: dependent.instance.position);
         component.initialPositionY = next.position.y;
         final preview = snapshot.contentPreview;
         if (preview?.kind == SpatialSceneContentKind.model &&

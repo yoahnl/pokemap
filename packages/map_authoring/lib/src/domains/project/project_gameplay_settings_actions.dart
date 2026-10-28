@@ -166,7 +166,8 @@ AuthoringActionDescriptor _descriptor(
             : [
                 'authoring.project_audio',
                 ProjectAudioCapabilities.capabilityId,
-                ProjectAudioCapabilities.extendedCapabilityId
+                ProjectAudioCapabilities.extendedCapabilityId,
+                ProjectAudioCapabilities.fieldMovementCapabilityId
               ],
         requiredPermissions: const [AuthoringPermission.projectWrite],
         guarantees: const [

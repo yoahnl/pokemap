@@ -284,5 +284,7 @@ String _animationLabel(CharacterAnimationState? state) => switch (state) {
   CharacterAnimationState.surfExit => 'Sortie de l’eau',
   CharacterAnimationState.cut => 'Coupe',
   CharacterAnimationState.rockSmash => 'Éclate-Roc',
+  CharacterAnimationState.strength => 'Activation de Force',
+  CharacterAnimationState.push => 'Poussée',
   null => 'L’animation',
 };

@@ -306,6 +306,8 @@ final class RuntimeProjectAudioController {
         'packages/map_runtime/assets/audio/battle/se/132-wind01.ogg',
     ProjectSoundCue.fieldStrength:
         'packages/map_runtime/assets/audio/battle/se/045-push01.ogg',
+    ProjectSoundCue.fieldStrengthPush:
+        'packages/map_runtime/assets/audio/battle/se/045-push03.ogg',
     ProjectSoundCue.fieldFlash:
         'packages/map_runtime/assets/audio/battle/se/136-light02.ogg',
     ProjectSoundCue.fieldRockSmash:

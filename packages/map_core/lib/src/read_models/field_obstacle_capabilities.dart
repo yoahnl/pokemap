@@ -5,6 +5,7 @@ import '../models/project_manifest.dart';
 
 abstract final class FieldObstacleCapabilities {
   static const capabilityId = 'gameplay.field-obstacles@1';
+  static const extendedCapabilityId = 'gameplay.field-obstacles@2';
 
   static const animationStates = {
     CharacterAnimationState.cut,
@@ -19,6 +20,7 @@ abstract final class FieldObstacleCapabilities {
         (map) => map.entities.any(
           (entity) =>
               entity.fieldObstacle != null &&
+              !entity.fieldObstacle!.isPushable &&
               (entity.fieldObstacle!.resetPolicy ==
                       FieldObstacleResetPolicy.persistent ||
                   map.spatialScene != null &&
@@ -30,6 +32,14 @@ abstract final class FieldObstacleCapabilities {
           (animation) => animationStates.contains(animation.state),
         ),
       );
+  static bool requiresExtendedCapability(
+    ProjectManifest project, {
+    required Iterable<MapData> maps,
+  }) => maps.any((map) => map.entities.any((entity) =>
+      entity.fieldObstacle?.kind == FieldObstacleKind.strengthBoulder &&
+      (map.spatialScene != null || entity.fieldObstacle!.resetPolicy == FieldObstacleResetPolicy.persistent))) ||
+      project.characters.any((character) => character.animations.any((animation) =>
+          animation.state == CharacterAnimationState.strength || animation.state == CharacterAnimationState.push));
 }
 
 bool isValidSpatialFieldObstacle(MapData map, MapEntity entity) {
@@ -37,7 +47,7 @@ bool isValidSpatialFieldObstacle(MapData map, MapEntity entity) {
   final scene = map.spatialScene;
   if (scene == null ||
       obstacle == null ||
-      obstacle.isPushable ||
+      obstacle.kind == FieldObstacleKind.iceBlock ||
       entity.kind != MapEntityKind.custom ||
       !entity.blocksMovement ||
       entity.size.width != 1 ||

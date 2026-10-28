@@ -202,6 +202,7 @@ MapData applyFieldObstacleWorldStateToMap(
         'Field obstacle projection requires matching authored map geometry.');
   }
   final saved = instances.instancesByMapId[map.id]!;
+  final positions = {...saved.fieldObstaclePositions, ...?instances.persistentFieldObstaclePositions[map.id]};
   MapEntity entityFor(String id) {
     final matches = source.entities.where((entity) => entity.id == id).toList();
     if (matches.length != 1 || matches.single.fieldObstacle == null) {
@@ -234,12 +235,15 @@ MapData applyFieldObstacleWorldStateToMap(
 
   for (final id in {...saved.clearedFieldObstacleIds, ...?instances.persistentClearedObstacles[map.id]}) {
     if (entityFor(id).fieldObstacle!.isPushable ||
-        saved.fieldObstaclePositions.containsKey(id)) {
+        positions.containsKey(id)) {
       throw StateError('A Strength boulder cannot be cleared.');
     }
   }
-  for (final entry in saved.fieldObstaclePositions.entries) {
-    if (!entityFor(entry.key).fieldObstacle!.isPushable ||
+  for (final entry in positions.entries) {
+    final obstacle = entityFor(entry.key).fieldObstacle!;
+    final persistent = instances.persistentFieldObstaclePositions[map.id]?.containsKey(entry.key) ?? false;
+    if (!obstacle.isPushable ||
+        persistent && (obstacle.kind != FieldObstacleKind.strengthBoulder || obstacle.resetPolicy != FieldObstacleResetPolicy.persistent) ||
         entry.value.x < 0 ||
         entry.value.y < 0 ||
         entry.value.x >= map.size.width ||
@@ -257,8 +261,8 @@ MapData applyFieldObstacleWorldStateToMap(
   final entities = [
     for (final entity in candidates)
       if (!instances.isFieldObstacleCleared(instance, entity.id))
-        saved.fieldObstaclePositions.containsKey(entity.id)
-            ? entity.copyWith(pos: saved.fieldObstaclePositions[entity.id]!)
+        positions.containsKey(entity.id)
+            ? entity.copyWith(pos: instances.fieldObstaclePositionForMap(map.id, entity.id)!)
             : entity,
   ];
   final projected = applyNpcInstancePosesToMap(
@@ -273,7 +277,7 @@ MapData applyFieldObstacleWorldStateToMap(
     mapEntityPresencePredicate: mapEntityPresencePredicate,
   );
   for (final id in {
-    ...saved.fieldObstaclePositions.keys
+    ...positions.keys
   }) {
     final entity = entities.singleWhere((entity) => entity.id == id);
     if (entity.kind == MapEntityKind.npc &&

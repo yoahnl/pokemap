@@ -45,8 +45,8 @@ final class MapEntityFieldObstacleData {
   }
 
   void _validatePolicy() {
-    if (isPushable && resetPolicy == FieldObstacleResetPolicy.persistent) {
-      throw const FormatException('Persistent clearing requires a destructible obstacle.');
+    if (kind == FieldObstacleKind.iceBlock && resetPolicy == FieldObstacleResetPolicy.persistent) {
+      throw const FormatException('Ice blocks cannot retain persistent positions.');
     }
   }
 

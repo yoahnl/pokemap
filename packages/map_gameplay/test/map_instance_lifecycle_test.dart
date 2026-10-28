@@ -3,6 +3,26 @@ import 'package:map_gameplay/src/map_instance_lifecycle.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('persistent Strength positions survive save reload and map return', () {
+    var state = _state();
+    state = state.moveFieldObstacle(state.instanceRef('active')!, 'rock', const GridPos(x: 3, y: 2), resetPolicy: FieldObstacleResetPolicy.persistent);
+    state = MapInstanceWorldState.fromJson(state.toJson());
+    final originalBytes = state.toJson().toString();
+    final away = setupDifferentMapInstance(state: state, targetMapId: 'neighbor', allocateId: (_) => 'away');
+    expect(away.fieldObstaclePositionForMap('active', 'rock'), const GridPos(x: 3, y: 2));
+    final returned = setupDifferentMapInstance(state: away, targetMapId: 'active', allocateId: (_) => 'return');
+    expect(returned.fieldObstaclePosition(returned.instanceRef('active')!, 'rock'), const GridPos(x: 3, y: 2));
+    expect(returned.isStrengthActive(returned.instanceRef('active')!), isFalse);
+    final retained = retainMapInstance(state: returned, mapId: 'extra', allocateId: (_) => 'extra');
+    expect(retained.persistentFieldObstaclePositions, state.persistentFieldObstaclePositions);
+    final trimmed = updateMapInstanceRetention(state: retained,
+      activeMap: MapInstanceMapGeometry(mapId: 'active', originTiles: const GridPos(x: 0, y: 0), sizeTiles: const GridSize(width: 8, height: 8)),
+      directConnectedMaps: [], logicalViewport: MapInstanceLogicalViewport(leftTiles: 0, topTiles: 0),
+      policy: MapInstanceRetentionPolicy(viewportWidthTiles: 8, viewportHeightTiles: 8, marginTiles: 1), settled: true, allocateId: (_) => 'unexpected');
+    expect(trimmed.persistentFieldObstaclePositions, state.persistentFieldObstaclePositions);
+    expect(state.toJson().toString(), originalBytes);
+  });
+
   test(
       'different-map setup clears every previous instance and creates a fresh target',
       () {

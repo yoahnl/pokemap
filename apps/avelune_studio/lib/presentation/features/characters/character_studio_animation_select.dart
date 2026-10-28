@@ -22,6 +22,8 @@ class CharacterStudioAnimationSelect extends StatelessWidget {
     CharacterAnimationState.surfExit: 'Sortie de l’eau',
     CharacterAnimationState.cut: 'Coupe',
     CharacterAnimationState.rockSmash: 'Éclate-Roc',
+    CharacterAnimationState.strength: 'Activation de Force',
+    CharacterAnimationState.push: 'Poussée',
   };
 
   @override

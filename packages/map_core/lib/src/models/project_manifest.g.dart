@@ -1132,6 +1132,8 @@ const _$CharacterAnimationStateEnumMap = {
   CharacterAnimationState.surfExit: 'surf_exit',
   CharacterAnimationState.cut: 'cut',
   CharacterAnimationState.rockSmash: 'rock_smash',
+  CharacterAnimationState.strength: 'strength',
+  CharacterAnimationState.push: 'push',
 };
 
 const _$EntityFacingEnumMap = {

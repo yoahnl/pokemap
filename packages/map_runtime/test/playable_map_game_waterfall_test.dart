@@ -200,7 +200,7 @@ void main() {
     });
   });
   testWidgets(
-    'completed physical Cascade step survives invalidation before publication',
+    'completed Cascade step remains accounted when following step invalidates',
     (tester) async {
       await tester.runAsync(() async {
         final movements = <RuntimeCommittedMovement>[];
@@ -227,9 +227,12 @@ void main() {
         expect(game.debugIsPlayerStepping, isTrue);
         expect(movements, isEmpty);
         game.update(.25);
-        expect(game.debugIsPlayerStepping, isFalse);
+        expect(game.debugIsPlayerStepping, isTrue);
         expect(game.debugRenderedPlayerFootCell, const GridPos(x: 2, y: 3));
-        expect(movements, isEmpty);
+        expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 3));
+        expect(movements, hasLength(1));
+        expect(movements.single.movement.fromCell, const GridPos(x: 2, y: 4));
+        expect(movements.single.movement.toCell, const GridPos(x: 2, y: 3));
         game.setPlayerMovementMode(MovementMode.walk);
         await helpers.tickUntil(
           game,
@@ -240,7 +243,7 @@ void main() {
         expect(
           movements.length,
           1,
-          reason: 'One physical step finished before invalidation; pose rollback must not erase its accounting.',
+          reason: 'Pose rollback must preserve the completed step and must not count the unfinished following step.',
         );
       });
     },

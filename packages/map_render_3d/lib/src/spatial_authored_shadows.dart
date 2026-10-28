@@ -80,14 +80,25 @@ final class SpatialAuthoredShadowCaster {
     required this.id,
     required Model3dBounds bounds,
     required Matrix4 worldTransform,
-  }) : worldCorners = List.unmodifiable([
+  }) : _localCorners = List.unmodifiable([
+         for (final x in [bounds.min.x, bounds.max.x])
+           for (final y in [bounds.min.y, bounds.max.y])
+             for (final z in [bounds.min.z, bounds.max.z]) Vector3(x, y, z),
+       ]), worldCorners = List.unmodifiable([
          for (final x in [bounds.min.x, bounds.max.x])
            for (final y in [bounds.min.y, bounds.max.y])
              for (final z in [bounds.min.z, bounds.max.z])
                worldTransform.transform3(Vector3(x, y, z)),
        ]);
   final String id;
+  final List<Vector3> _localCorners;
   final List<Vector3> worldCorners;
+
+  void updateWorldTransform(Matrix4 transform) {
+    for (var i = 0; i < worldCorners.length; i++) {
+      worldCorners[i].setFrom(transform.transformed3(_localCorners[i]));
+    }
+  }
 }
 
 SpatialAuthoredShadowCaster? spatialAuthoredShadowCaster({

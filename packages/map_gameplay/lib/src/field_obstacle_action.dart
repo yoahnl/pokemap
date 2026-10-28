@@ -415,7 +415,7 @@ FieldObstacleCommit commitStrengthPush(
               x: player.playerPositionPx.leftPx,
               y: player.playerPositionPx.topPx),
           mapInstanceWorldState: gameState.mapInstanceWorldState
-              .moveFieldObstacle(ticket.instance, ticket.entityId, target)),
+              .moveFieldObstacle(ticket.instance, ticket.entityId, target, resetPolicy: world.map.entities.singleWhere((entity) => entity.id == ticket.entityId).fieldObstacle!.resetPolicy)),
       movement,
       ticket.entityId,
       slide: resolveGameplaySlideEffectAt(world.map, target, direction) == null
@@ -536,7 +536,7 @@ FieldObstacleSlideResult stepFieldObstacleSlide({
   return FieldObstacleSlideMoved(
     gameState: gameState.copyWith(
         mapInstanceWorldState: gameState.mapInstanceWorldState
-            .moveFieldObstacle(slide.instance, slide.entityId, target)),
+            .moveFieldObstacle(slide.instance, slide.entityId, target, resetPolicy: matches.single.fieldObstacle!.resetPolicy)),
     world: moved,
     from: source,
     to: target,

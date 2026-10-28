@@ -48,6 +48,7 @@ import 'spatial_scene_authoring_target.dart';
 import 'spatial_scene_components.dart';
 import 'spatial_model_placement_preview.dart';
 import 'spatial_runtime_model_index.dart';
+import 'spatial_runtime_model_transform.dart';
 import 'spatial_clipped_model_cache.dart';
 import 'spatial_model_source_clip.dart';
 import 'spatial_scene_preparation.dart';
@@ -1298,7 +1299,13 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final _cameraHeightCache = SpatialSceneHeightCache();
   SpatialLightingProfile? previewLighting;
   SpatialLightingProfile authoredLighting = SpatialLightingProfile.disabled;
-  List<SpatialAuthoredShadowCaster> authoredShadowCasters = const [];
+  List<SpatialAuthoredShadowCaster> _authoredShadowCasters = const [];
+  Map<String, SpatialAuthoredShadowCaster> _runtimeShadowCasters = const {};
+  List<SpatialAuthoredShadowCaster> get authoredShadowCasters => _authoredShadowCasters;
+  set authoredShadowCasters(List<SpatialAuthoredShadowCaster> value) {
+    _authoredShadowCasters = value;
+    _runtimeShadowCasters = {for (final caster in value) caster.id: caster};
+  }
   double authoredReceiverMinY = 0;
   double authoredReceiverMaxY = 0;
   List<({Model3dPointLight definition, _SceneModelComponent component})>
@@ -3077,6 +3084,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   void syncRuntimeModels() {
     final provider = visibleConfiguration.modelRuntimeState;
+    var movedCaster = false;
     for (final entry in animationModels.entries) {
       final component = entry.value;
       component.presentationVisible =
@@ -3089,10 +3097,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       final state = provider?.call(entry.key.$1, entry.key.$2);
       final instance = runtimeModelIndex.instance(entry.key.$1, entry.key.$2);
       if (instance == null) continue;
-      final offsetY = state?.translationY ?? 0;
-      final targetY = component.initialPositionY + instance.position.y - component.initialAnchorY + offsetY;
-      if (component.position.y != targetY) {
-        component.position.y = targetY;
+      if (component.runtimeTransform.apply(component.position, instance, state)) {
+        final caster = _runtimeShadowCasters[component.shadowId];
+        if (caster != null) {
+          caster.updateWorldTransform(component.worldTransformMatrix);
+          movedCaster = true;
+        }
       }
       component.bindRuntimeState(
         state,
@@ -3105,6 +3115,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
                 false),
       );
     }
+    if (movedCaster) _refreshVisibilityLighting();
     for (final component in decorationAnimationModels.values) {
       component.playback.paused = (visibleConfiguration.presentationPaused?.call() ?? false) ||
           (visibleConfiguration.animationPreview?.isPaused(component.instanceId) ?? false);
@@ -4051,7 +4062,7 @@ class _SceneActorComponent extends MeshComponent {
 class _SceneModelComponent extends AnimatedModelComponent {
   _SceneModelComponent({
     required this.instanceId,
-    required this.initialAnchorY,
+    required Model3dVector3 initialAnchor,
     required this.shadowId,
     required super.model,
     required this.visibleBounds,
@@ -4062,13 +4073,15 @@ class _SceneModelComponent extends AnimatedModelComponent {
     super.playback,
     super.runtimePoseBefore,
   }) {
-    initialPositionY = position.y;
+    runtimeTransform = SpatialRuntimeModelTransform(position: position, anchor: initialAnchor);
   }
   Model3dBounds visibleBounds;
   ProjectModel3dEntry definition;
   final String instanceId;
-  final double initialAnchorY;
-  late double initialPositionY;
+  late final SpatialRuntimeModelTransform runtimeTransform;
+  double get initialAnchorY => runtimeTransform.initialAnchorY;
+  double get initialPositionY => runtimeTransform.initialPositionY;
+  set initialPositionY(double value) => runtimeTransform.initialPositionY = value;
   final String shadowId;
   bool presentationVisible = true;
 

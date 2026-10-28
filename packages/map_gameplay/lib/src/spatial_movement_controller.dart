@@ -1105,10 +1105,11 @@ final class SpatialMovementController {
         }
         if (!(_entityPresencePredicate?.call(entity) ?? true)) continue;
       }
-      final blocks = modelStateProvider?.call(instance.id)?.blocksMovement ??
+      final runtimeState = modelStateProvider?.call(instance.id);
+      final blocks = runtimeState?.blocksMovement ??
           instance.blocksMovement;
       if (!blocks) continue;
-      if (_modelCollides(rect, instance, offsetX: offsetX, offsetZ: offsetZ)) {
+      if (_modelCollides(rect, instance, offsetX: offsetX, offsetZ: offsetZ, runtimeState: runtimeState)) {
         return true;
       }
     }
@@ -1153,7 +1154,7 @@ final class SpatialMovementController {
   }
 
   bool _modelCollides(PixelRect rect, SpatialModelInstance instance,
-      {double offsetX = 0, double offsetZ = 0}) {
+      {double offsetX = 0, double offsetZ = 0, SpatialModelRuntimeState? runtimeState}) {
     final left = rect.leftPx / pixelsPerCell + offsetX,
         top = rect.topPx / pixelsPerCell + offsetZ,
         right = (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX,
@@ -1163,7 +1164,7 @@ final class SpatialMovementController {
       throw StateError('Modèle de collision absent : ${instance.modelId}');
     }
     final geometry =
-        spatialModelWorldGeometry(instance, model, useCollisionBounds: true);
+        spatialModelWorldGeometry(instance, model, useCollisionBounds: true, runtimeState: runtimeState);
     final actorHeight = heightAt(
         rect.bottomCenterPx.xPx / pixelsPerCell + offsetX,
         rect.bottomCenterPx.yPx / pixelsPerCell + offsetZ);

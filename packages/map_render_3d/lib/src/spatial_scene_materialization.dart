@@ -270,7 +270,7 @@ extension _SpatialSceneMaterialization on SpatialSceneGame {
           decorationAnimationModels[animationKey];
       final component = _SceneModelComponent(
         instanceId: instance.id,
-        initialAnchorY: instance.position.y,
+        initialAnchor: instance.position,
         shadowId: spatialShadowInstanceId(mapId, instance.id),
         model: model,
         visibleBounds: visibleBounds,

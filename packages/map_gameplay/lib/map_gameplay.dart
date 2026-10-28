@@ -387,6 +387,7 @@ export 'src/spatial_door_traversal_controller.dart';
 export 'src/spatial_warp_controller.dart';
 
 export 'src/spatial_npc_interaction.dart';
+export 'src/spatial_model_geometry.dart';
 
 export 'src/scene_player_facing_condition_evaluator.dart';
 

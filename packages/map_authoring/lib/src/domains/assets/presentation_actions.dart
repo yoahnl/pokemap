@@ -243,6 +243,11 @@ final class PresentationActions {
       'Remove the project presentation profile',
       AuthoringRiskLevel.high,
     ),
+    _descriptor(
+      'presentation.reset_interface',
+      'Reset in-game interface overrides while preserving startup presentation',
+      AuthoringRiskLevel.medium,
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
@@ -280,6 +285,41 @@ final class PresentationActions {
           before: context.snapshot.manifest.presentation?.toJson(),
           preview: const {'configuredCategories': <String>[]},
         );
+      case 'presentation.reset_interface':
+        parameters.allow(const {});
+        final current = context.snapshot.manifest.presentation;
+        if (current == null) {
+          throw PresentationAuthoringException('presentation.not_configured',
+              'The project has no presentation profile to reset.');
+        }
+        final defaults = suggestedProjectPresentationLayouts(current.branding.layoutVariant);
+        final profile = current.copyWith(
+          theme: null,
+          dialogue: null,
+          pause: null,
+          battle: null,
+          menuLabels: null,
+          windows: null,
+          typography: current.typography == null ? null : ProjectTypographyProfile(display: current.typography!.display),
+          surfacePalettes: current.surfacePalettes?.title == null ? null : ProjectPresentationSurfacePalettesProfile(title: current.surfacePalettes!.title),
+          layouts: current.layouts == null ? null : ProjectPresentationLayoutsProfile(title: current.layouts!.title, pauseMenu: defaults.pauseMenu, dialogue: defaults.dialogue),
+        );
+        if (profile == current) {
+          throw PresentationAuthoringException('presentation.no_change',
+              'The in-game interface already uses its defaults.');
+        }
+        final diagnostics = validateProjectPresentationProfile(profile);
+        if (diagnostics.any((d) => d.severity == ProjectPresentationDiagnosticSeverity.error)) {
+          throw PresentationAuthoringException('presentation.validation_failed',
+              'The retained startup presentation has blocking diagnostics.',
+              details: {'diagnostics': [for (final d in diagnostics) {'code': d.code, 'path': d.path}]});
+        }
+        return _draft(context.snapshot,
+            context.snapshot.manifest.copyWith(presentation: profile),
+            operation: context.request.actionId,
+            before: current.toJson(),
+            after: profile.toJson(),
+            preview: {'configuredCategories': profile.configuredCategories.map((c) => c.name).toList(), 'startupPreserved': true, 'resetSurfaces': ['pauseMenu', 'dialogue', 'battleHud', 'overworldHud']});
       default:
         throw PresentationAuthoringException(
           'presentation.action_unsupported',
@@ -368,7 +408,11 @@ AuthoringMutationDraft _draft(
   required Map<String, Object?> preview,
 }) {
   try {
-    ProjectValidator.validate(projected);
+    if (snapshot.materializedCatalogProject && const {'presentation.delete', 'presentation.reset_interface'}.contains(operation)) {
+      snapshot.requireProjectSections({'presentation'});
+    } else {
+      ProjectValidator.validate(projected);
+    }
   } on Object catch (error) {
     throw PresentationAuthoringException(
       'presentation.projected_state_invalid',

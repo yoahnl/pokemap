@@ -2,6 +2,19 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Strength push binding requires only the new movement audio capability', () {
+    expect(ProjectAudioCapabilities.fieldMovementCapabilityId, 'audio.project-sfx@3');
+    final old = ProjectManifest(name: 'Old', maps: const [], tilesets: const [],
+      settings: ProjectSettings(audio: ProjectAudioSettings.fromJson({'cues': {'field.strength': {'source': 'silent', 'gain': 1.0}}})));
+    expect(ProjectAudioCapabilities.requiresFieldMovementCapability(old), isFalse);
+    final current = old.copyWith(settings: old.settings.copyWith(audio: ProjectAudioSettings.fromJson({'cues': {
+      'field.strength.push': {'source': 'silent', 'gain': 1.0}}})));
+    expect(ProjectAudioCapabilities.requiresFieldMovementCapability(current), isTrue);
+    expect(ProjectAudioCapabilities.requiresExtendedCapability(current), isFalse);
+    expect(ProjectAudioCapabilities.requiresCapability(current), isTrue);
+    expect(current.settings.audio!.toJson()['cues'], contains('field.strength.push'));
+  });
+
   test('all eleven field actions have distinct configurable cues and keep silence by default', () {
     final cues = <ProjectSoundCue>{};
     for (final action in ProjectFieldAbilityRegistry.entries) {

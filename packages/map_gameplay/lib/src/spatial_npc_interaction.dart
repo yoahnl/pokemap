@@ -197,7 +197,7 @@ SpatialModelInstance? findSpatialModelInteraction({
     if (model == null) {
       throw StateError('Modèle d’interaction absent : ${instance.modelId}');
     }
-    final geometry = spatialModelWorldGeometry(instance, model);
+    final geometry = spatialModelWorldGeometry(instance, model, runtimeState: modelStateProvider?.call(instance.id));
     if (actorHeight >= geometry.maxY || actorHeight + 1.92 <= geometry.minY) {
       continue;
     }
@@ -323,15 +323,15 @@ bool _modelOccludesInteraction(MapSpatialScene scene,
     SpatialModelRuntimeState? Function(String instanceId)?
         modelStateProvider}) {
   for (final obstacle in scene.instances) {
-    final blocks = modelStateProvider?.call(obstacle.id)?.blocksMovement ??
-        obstacle.blocksMovement;
+    final runtimeState = modelStateProvider?.call(obstacle.id);
+    final blocks = runtimeState?.blocksMovement ?? obstacle.blocksMovement;
     if (obstacle.id == targetId || !blocks) continue;
     final model = models[obstacle.modelId];
     if (model == null) {
       throw StateError('Modèle d’interaction absent : ${obstacle.modelId}');
     }
     final geometry =
-        spatialModelWorldGeometry(obstacle, model, useCollisionBounds: true);
+        spatialModelWorldGeometry(obstacle, model, useCollisionBounds: true, runtimeState: runtimeState);
     if (actorHeight >= geometry.maxY || actorHeight + 1.92 <= geometry.minY) {
       continue;
     }

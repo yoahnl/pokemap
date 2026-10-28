@@ -1413,15 +1413,23 @@ final class _GoldenHarness {
       workspaceHandle: workspace,
       projectHandle: project,
     );
-    final snapshot = await snapshots.load(project);
+    final parameters = <String, Object?>{'value': _encounterTable.toJson()};
+    final workshop = await mutations.readWorkshopDocument(
+      project,
+      actionId: 'campaign.encounter_table.upsert',
+      parameters: parameters,
+      includeDocuments: false,
+    );
     final upsertPlan = await mutations.plan(
       project,
       _encounterRequest(
         workspaceHandle: workspace.value,
-        revision: snapshot.revision,
+        revision: workshop['snapshotRevision']! as String,
         actionId: 'campaign.encounter_table.upsert',
-        parameters: <String, Object?>{'value': _encounterTable.toJson()},
+        parameters: parameters,
         sequence: 'upsert',
+        extensions:
+            Map<String, Object?>.from(workshop['planExtensions']! as Map),
       ),
     );
     final upsert = await mutations.apply(
@@ -1431,11 +1439,12 @@ final class _GoldenHarness {
     );
     final afterUpsert = await _readManifest();
     final upsertReceipt = upsert['receipt']! as Map<String, Object?>;
+    final deleteSnapshot = await snapshots.load(project);
     final deletePlan = await mutations.plan(
       project,
       _encounterRequest(
         workspaceHandle: workspace.value,
-        revision: upsert['snapshotRevision']! as String,
+        revision: deleteSnapshot.revision,
         actionId: 'campaign.encounter_table.delete',
         parameters: const <String, Object?>{'id': 'route_one_grass'},
         sequence: 'delete',
@@ -1463,15 +1472,23 @@ final class _GoldenHarness {
     final opened = await _jsonl('open', {'projectRoot': root.path});
     final workspaceHandle = opened['workspaceHandle']! as String;
     final projectHandle = opened['projectHandle']! as String;
-    final snapshot = await snapshots.load(ProjectHandle(projectHandle));
+    final parameters = <String, Object?>{'value': _encounterTable.toJson()};
+    final workshop = await _jsonl('workshop_snapshot', <String, Object?>{
+      'projectHandle': projectHandle,
+      'actionId': 'campaign.encounter_table.upsert',
+      'parameters': parameters,
+      'includeDocuments': false,
+    });
     final upsertPlan = await _jsonl('plan', <String, Object?>{
       'projectHandle': projectHandle,
       'request': _encounterRequest(
         workspaceHandle: workspaceHandle,
-        revision: snapshot.revision,
+        revision: workshop['snapshotRevision']! as String,
         actionId: 'campaign.encounter_table.upsert',
-        parameters: <String, Object?>{'value': _encounterTable.toJson()},
+        parameters: parameters,
         sequence: 'upsert',
+        extensions:
+            Map<String, Object?>.from(workshop['planExtensions']! as Map),
       ).toJson(),
     });
     final upsert = await _jsonl('apply', <String, Object?>{
@@ -1481,11 +1498,18 @@ final class _GoldenHarness {
     });
     final afterUpsert = await _readManifest();
     final upsertReceipt = upsert['receipt']! as Map<String, Object?>;
+    final deleteSnapshot = await _jsonl('query', <String, Object?>{
+      'projectHandle': projectHandle,
+      'request': AuthoringQueryRequest(
+        resourceKind: 'project',
+        operation: AuthoringQueryOperation.summary,
+      ).toJson(),
+    });
     final deletePlan = await _jsonl('plan', <String, Object?>{
       'projectHandle': projectHandle,
       'request': _encounterRequest(
         workspaceHandle: workspaceHandle,
-        revision: upsert['snapshotRevision']! as String,
+        revision: deleteSnapshot['snapshotRevision']! as String,
         actionId: 'campaign.encounter_table.delete',
         parameters: const <String, Object?>{'id': 'route_one_grass'},
         sequence: 'delete',
@@ -1515,6 +1539,7 @@ final class _GoldenHarness {
     required String actionId,
     required Map<String, Object?> parameters,
     required String sequence,
+    Map<String, Object?> extensions = const {},
   }) =>
       AuthoringRequest(
         requestId: 'pmcp085-encounter-$sequence',
@@ -1525,6 +1550,7 @@ final class _GoldenHarness {
         expectedRevision: revision,
         idempotencyKey: 'pmcp085-encounter-$sequence',
         dryRun: false,
+        extensions: extensions,
       );
 
   Future<ProjectManifest> _readManifest() async => ProjectManifest.fromJson(

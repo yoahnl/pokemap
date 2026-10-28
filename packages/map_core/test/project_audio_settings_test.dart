@@ -2,6 +2,12 @@ import 'package:map_core/src/models/project_audio_settings.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Strength movement cue is silent and non looping by default', () {
+    final cue = ProjectSoundCue.fromWireName('field.strength.push');
+    expect(ProjectAudioSettings().bindingFor(cue).source, ProjectSoundSource.silent);
+    expect(ProjectSoundCueCatalog.forCue(cue).loop, isFalse);
+  });
+
   test(
     'generic legacy sources require probed audio metadata and never override contradictory audio MIME',
     () {

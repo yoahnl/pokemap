@@ -457,6 +457,10 @@ enum CharacterAnimationState {
   cut,
   @JsonValue('rock_smash')
   rockSmash,
+  @JsonValue('strength')
+  strength,
+  @JsonValue('push')
+  push,
 }
 
 enum CharacterPortraitFitMode {

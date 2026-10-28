@@ -598,6 +598,10 @@ final class SpatialExplorationGameSessionRuntime
         !descriptor.grantedCapabilities.contains(FieldObstacleCapabilities.capabilityId)) {
       throw StateError('The project requires ${FieldObstacleCapabilities.capabilityId}.');
     }
+    if (FieldObstacleCapabilities.requiresExtendedCapability(project, maps: maps.values) &&
+        !descriptor.grantedCapabilities.contains(FieldObstacleCapabilities.extendedCapabilityId)) {
+      throw StateError('The project requires ${FieldObstacleCapabilities.extendedCapabilityId}.');
+    }
     if (!SpatialGameplayCapabilities.requiresGameplay(project,
         maps: maps.values)) {
       return;
@@ -1128,6 +1132,7 @@ final class SpatialExplorationGameSessionRuntime
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(manifest)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(manifest)) ProjectAudioCapabilities.capabilityId,
         if (ProjectAudioCapabilities.requiresExtendedCapability(manifest)) ProjectAudioCapabilities.extendedCapabilityId,
+        if (ProjectAudioCapabilities.requiresFieldMovementCapability(manifest)) ProjectAudioCapabilities.fieldMovementCapabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(manifest)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(manifest)) SpatialGameplayCapabilities.eggGiftCapabilityId,
