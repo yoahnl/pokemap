@@ -1,11 +1,8 @@
-import 'dart:collection';
-import 'dart:typed_data';
 import 'dart:ui' show Color;
 
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/components.dart' show Object3D;
 import 'package:flame_3d/graphics.dart';
-import 'package:flame_3d/model.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
@@ -17,13 +14,7 @@ import 'spatial_shadow_coverage.dart';
 import 'spatial_point_shadow.dart';
 import 'spatial_atmosphere.dart';
 import 'spatial_presentation_effects.dart';
-import 'spatial_depth_of_field.dart';
 import 'spatial_weather_material.dart';
-import 'flutter_frame_graphics_device.dart';
-import 'glb_renderer_layout.dart';
-import 'spatial_model_source_admission.dart';
-
-part 'spatial_static_depth_batches.dart';
 
 class SpatialRenderContext extends RenderContext3D
     implements
@@ -56,7 +47,6 @@ class SpatialRenderContext extends RenderContext3D
   @override
   SpatialPresentationProfile presentationProfile =
       SpatialPresentationProfile.disabled;
-  SpatialDepthOfField? depthOfField;
   @override
   bool depthFogEnabled = false;
   @override
@@ -65,7 +55,6 @@ class SpatialRenderContext extends RenderContext3D
   String? sourceInstanceId;
   String? sourceShadowId;
   Object? sourceModelOwner;
-  SpatialStaticDepthBatches? staticDepthBatches;
   SpatialShadowStats shadowStats = const SpatialShadowStats();
   SpatialShadowMap? _shadowMap;
   bool _collecting = false;
@@ -73,24 +62,12 @@ class SpatialRenderContext extends RenderContext3D
   final _captured = <_TransparentSurface>[];
   final _casterSurfaces = <_TransparentSurface>[];
   bool _capturingShadowCasters = false;
-  bool _flushing = false;
-
-  Future<void> prepareStaticDepthBatches(
-    Iterable<SpatialStaticDepthOwner> owners, {
-    required RuntimeResourceBudget budget,
-  }) async {
-    if (_flushing)
-      throw StateError('Depth batches cannot prepare during flush.');
-    await staticDepthBatches?.prepare(owners, budget: budget);
-  }
 
   double weatherSkyFlash = 0;
   double weatherVeilOpacity = 0;
   int weatherDrawCount = 0;
   final _weather = <Surface>[];
   final _transparent = <_TransparentSurface>[];
-  final _unlitDepth = <_TransparentSurface>[];
-  final _depthProxies = Expando<SpatialPixelMaterial>();
 
   static final _staticJointTransform = Matrix4.identity();
 
@@ -115,20 +92,6 @@ class SpatialRenderContext extends RenderContext3D
     if (material is SpatialWeatherMaterial) {
       if (!_capturingShadowCasters) _weather.add(surface);
       return;
-    }
-    if (_collecting &&
-        material is UnlitMaterial &&
-        material is! SpatialPixelMaterial &&
-        depthOfField?.profile.active == true) {
-      final proxy = _depthProxies[material] ??= SpatialPixelMaterial(
-        material.albedoTexture,
-        preserveUnlitColor: true,
-      );
-      proxy
-        ..albedoTexture = material.albedoTexture
-        ..albedoColor = material.albedoColor
-        ..cullMode = material.cullMode;
-      _unlitDepth.add(_snapshot(surface, proxy, _unlitDepth.length));
     }
     if (material is SpatialPixelMaterial) {
       if (lighting.hiddenMaterialsByInstance[sourceInstanceId]?.contains(
@@ -182,7 +145,6 @@ class SpatialRenderContext extends RenderContext3D
 
   @override
   void flush() {
-    _flushing = true;
     final shadow = lighting.enabled ? lighting.shadow : null;
     final hasPointShadows =
         lighting.enabled &&
@@ -194,40 +156,9 @@ class SpatialRenderContext extends RenderContext3D
     _hiddenDrawCount = 0;
     weatherDrawCount = 0;
     try {
-      final focus = depthOfField;
-      final focusDevice = device;
-      final focusActive =
-          focus?.profile.active == true &&
-          focusDevice is FlutterFrameGraphicsDevice;
-      _collecting = shadow != null || hasPointShadows || focusActive;
+      _collecting = shadow != null || hasPointShadows;
       super.flush();
       _collecting = false;
-      if (focusActive) {
-        focus!.renderDepth(
-          size: focusDevice.renderSize,
-          view: view,
-          projection: projection,
-          draw: (depthContext, materialFor) {
-            final batches = staticDepthBatches;
-            try {
-              final depthEntries = batches?._select(_captured) ?? _captured;
-              for (final entry in [...depthEntries, ..._unlitDepth]) {
-                _withMaterialPose(entry, () {
-                  depthContext.model.setFrom(entry.model);
-                  depthContext.jointsInfo.jointTransforms = entry.joints;
-                  depthContext.device.clearBindings();
-                  depthContext.applyMaterial(
-                    materialFor(entry.material)..cullMode = entry.pose.cullMode,
-                  );
-                  depthContext.device.bindGeometry(entry.surface);
-                });
-              }
-            } finally {
-              batches?._finishFrame();
-            }
-          },
-        );
-      }
       if ((shadow != null || hasPointShadows) && shadowCasters.isNotEmpty) {
         final previousModel = model.clone();
         final previousJoints = jointsInfo.jointTransforms;
@@ -418,10 +349,8 @@ class SpatialRenderContext extends RenderContext3D
       _collecting = false;
       _capturingShadowCasters = false;
       _captured.clear();
-      _flushing = false;
       _casterSurfaces.clear();
       _transparent.clear();
-      _unlitDepth.clear();
     }
   }
 

@@ -4,6 +4,8 @@ in vec2 textureCoordinate;
 out vec4 outColor;
 uniform sampler2D sceneTexture;
 uniform sampler2D depthTexture;
+#include <flame_3d/depth_attachment.glsl>
+
 uniform DepthOfField {
     vec4 focus;
     vec4 viewport;
@@ -12,7 +14,11 @@ uniform DepthOfField {
 float depthAt(vec2 uv) {
     vec2 dimensions = depth_of_field.viewport.xy;
     vec2 sampleUv = (floor(clamp(uv, vec2(0.0), vec2(0.999999)) * dimensions) + 0.5) / dimensions;
-    return dot(texture(depthTexture, sampleUv).rgb, vec3(1.0, 1.0 / 255.0, 1.0 / 65025.0)) * depth_of_field.focus.w;
+    vec3 encoded = texture(depthTexture, sampleUv).rgb;
+    float depth = dot(encoded, vec3(1.0, 1.0 / 255.0, 1.0 / 65025.0));
+    return all(equal(encoded, vec3(1.0)))
+        ? depth * depth_of_field.focus.w
+        : min(depth * depthAttachmentRange, depth_of_field.focus.w * 0.999999);
 }
 
 float defocus(float depth) {

@@ -167,6 +167,7 @@ base class GpuBackend._(
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   }) {
     final canvas = OffscreenCanvas(width, height);
     final context = canvas.contextGPU()
@@ -441,6 +442,9 @@ class _WebGpuRenderTarget(
 
   @override
   GpuTexture get colorTexture => _colorTexture;
+
+  @override
+  GpuTexture? get secondaryColorTexture => null;
 }
 
 class _WebGpuColorTexture(final OffscreenCanvas _canvas, int width, int height)

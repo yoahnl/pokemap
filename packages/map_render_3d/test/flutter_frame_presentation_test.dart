@@ -122,6 +122,7 @@ final class _Backend extends GpuBackend {
     required int width,
     required int height,
     required ui.Color clearValue,
+    ui.Color? secondaryColorClearValue,
   }) => target;
 
   @override
@@ -137,6 +138,9 @@ final class _Target implements GpuRenderTarget {
 
   @override
   GpuTexture get colorTexture => texture;
+
+  @override
+  GpuTexture? get secondaryColorTexture => null;
 }
 
 final class _Texture implements GpuTexture {

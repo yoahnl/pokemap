@@ -31,10 +31,6 @@ Future<void> main() async {
       'type': 'fragment',
       'file': '${package.path}/shaders/weather.frag',
     },
-    'CameraDepthFragment': {
-      'type': 'fragment',
-      'file': '${package.path}/shaders/camera_depth.frag',
-    },
     'DepthOfFieldVertex': {
       'type': 'vertex',
       'file': '${package.path}/shaders/depth_of_field.vert',

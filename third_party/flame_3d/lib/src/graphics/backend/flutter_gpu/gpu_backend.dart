@@ -103,8 +103,9 @@ base class GpuBackend({gpu.GpuContext? gpuContext}) extends base.GpuBackend {
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   }) {
-    final colorTexture = _FlutterGpuTexture(
+    _FlutterGpuTexture colorAttachmentTexture() => _FlutterGpuTexture(
       _context.createTexture(
         gpu.StorageMode.devicePrivate,
         width,
@@ -112,6 +113,10 @@ base class GpuBackend({gpu.GpuContext? gpuContext}) extends base.GpuBackend {
         format: gpu.PixelFormat.r8g8b8a8UNormInt,
       ),
     );
+    final colorTexture = colorAttachmentTexture();
+    final secondaryColorTexture = secondaryColorClearValue == null
+        ? null
+        : colorAttachmentTexture();
     final depthTexture = _context.createTexture(
       gpu.StorageMode.deviceTransient,
       width,
@@ -120,16 +125,24 @@ base class GpuBackend({gpu.GpuContext? gpuContext}) extends base.GpuBackend {
     );
     return _FlutterGpuRenderTarget(
       colorTexture,
-      gpu.RenderTarget.singleColor(
-        gpu.ColorAttachment(
-          texture: colorTexture.raw,
-          clearValue: Vector4Utils.fromColor(clearValue),
-        ),
+      gpu.RenderTarget(
+        colorAttachments: [
+          gpu.ColorAttachment(
+            texture: colorTexture.raw,
+            clearValue: Vector4Utils.fromColor(clearValue),
+          ),
+          if (secondaryColorTexture != null)
+            gpu.ColorAttachment(
+              texture: secondaryColorTexture.raw,
+              clearValue: Vector4Utils.fromColor(secondaryColorClearValue!),
+            ),
+        ],
         depthStencilAttachment: gpu.DepthStencilAttachment(
           texture: depthTexture,
           depthClearValue: 1.0,
         ),
       ),
+      secondaryColorTexture,
     );
   }
 
@@ -209,9 +222,13 @@ class const _FlutterGpuPipeline(final gpu.RenderPipeline raw)
 class const _FlutterGpuRenderTarget(
   final _FlutterGpuTexture _colorTexture,
   final gpu.RenderTarget raw,
+  final _FlutterGpuTexture? _secondaryColorTexture,
 ) implements GpuRenderTarget {
   @override
   GpuTexture get colorTexture => _colorTexture;
+
+  @override
+  GpuTexture? get secondaryColorTexture => _secondaryColorTexture;
 }
 
 class const _FlutterGpuFrame(final GpuBackend _backend)
@@ -230,11 +247,23 @@ class const _FlutterGpuFrame(final GpuBackend _backend)
           ..setColorBlendEquation(_blendEquation(blend))
           ..setDepthWriteEnable(depthStencil == DepthStencilState.standard)
           ..setDepthCompareOperation(_depthCompare(depthStencil));
+    if (target.secondaryColorTexture != null) {
+      renderPass
+        ..setColorBlendEnable(true, colorAttachmentIndex: 1)
+        ..setColorBlendEquation(_coverageBlend, colorAttachmentIndex: 1);
+    }
     return _FlutterGpuRenderPass(_backend, commandBuffer, renderPass);
   }
 
   @override
   void end() => _backend._hostBuffer.reset();
+
+  static final _coverageBlend = gpu.ColorBlendEquation(
+    sourceColorBlendFactor: gpu.BlendFactor.sourceAlpha,
+    destinationColorBlendFactor: gpu.BlendFactor.oneMinusSourceAlpha,
+    sourceAlphaBlendFactor: gpu.BlendFactor.one,
+    destinationAlphaBlendFactor: gpu.BlendFactor.zero,
+  );
 
   static gpu.ColorBlendEquation _blendEquation(BlendState blend) {
     return switch (blend) {

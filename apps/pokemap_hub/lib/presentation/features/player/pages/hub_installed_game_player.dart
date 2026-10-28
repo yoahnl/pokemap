@@ -1524,7 +1524,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 SpatialOverworldPresentation(
                   battle: spatial.battle,
                   child: SpatialExplorationView(
-                    staticDepthBatchesEnabled: true,
                     renderResolutionScale: hubSpatialRenderResolutionScale(
                       platform: defaultTargetPlatform,
                       devicePixelRatio: MediaQuery.devicePixelRatioOf(context),

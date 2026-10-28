@@ -504,7 +504,6 @@ class SpatialSceneView extends StatefulWidget {
     this.cameraPose,
     this.cameraMagnification,
     this.resourceBudget,
-    this.staticDepthBatchesEnabled = false,
     this.renderResolutionScale = 1,
     this.resourceIdentity,
     this.modelSourceRevisions = const {},
@@ -513,7 +512,6 @@ class SpatialSceneView extends StatefulWidget {
     this.modelSourceUpdates,
   });
   final RuntimeResourceBudget? resourceBudget;
-  final bool staticDepthBatchesEnabled;
   final double renderResolutionScale;
   final String? resourceIdentity;
   final Map<String, String> modelSourceRevisions;
@@ -877,10 +875,6 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
       widget.animationPreview?.addListener(game.syncAnimations);
     }
     game.configuration = widget;
-    if (oldWidget.staticDepthBatchesEnabled != widget.staticDepthBatchesEnabled &&
-        game.sceneReady) {
-      unawaited(game.prepareStaticDepthBatches());
-    }
     if (game.canSyncModelSourceRevisions) {
       refresh();
       return;
@@ -1155,11 +1149,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   Map<String, Object?> get depthOfFieldFrame => {
     'render': renderedFrameCount,
-    'enabled': (context as SpatialRenderContext).depthOfField != null,
+    'enabled': device.postProcess != null,
     'strength': _depthOfField?.profile.strength,
     'focusRange': _depthOfField?.profile.focusRange,
     'focusDepth': _depthOfField?.focusDepth,
-    'depthPasses': _depthOfField?.depthPasses ?? 0,
     'compositePasses': _depthOfField?.compositePasses ?? 0,
     'targetAllocations': _depthOfField?.targetAllocations ?? 0,
   };
@@ -1210,18 +1203,19 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   }
 
   void syncDepthOfField() {
-    final renderContext = context as SpatialRenderContext;
     final profile = visibleConfiguration.controller.depthOfFieldProfile;
     if (profile.active && !_isIndoor) {
       final focus = _depthOfField ??= SpatialDepthOfField(device.backend);
       focus
         ..profile = profile
         ..focusDepth = (camera.position - camera.target).length;
-      renderContext.depthOfField = focus;
-      device.postProcess = focus.composite;
+      device
+        ..postProcess = focus.composite
+        ..secondaryColorClearValue = SpatialDepthOfField.depthClearValue;
     } else {
-      renderContext.depthOfField = null;
-      device.postProcess = null;
+      device
+        ..postProcess = null
+        ..secondaryColorClearValue = null;
     }
   }
 
@@ -1396,57 +1390,8 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
   double get renderResolutionScale => configuration.renderResolutionScale;
   bool refreshing = false;
-  Future<bool> syncDecorations() async {
-    final accepted = await _syncDecorations();
-    if (accepted) await prepareStaticDepthBatches();
-    return accepted;
-  }
+  Future<bool> syncDecorations() => _syncDecorations();
 
-  RuntimeResourceBudget? _staticDepthBudget;
-
-  Future<void> prepareStaticDepthBatches() async {
-    final renderContext = context as SpatialRenderContext;
-    if (closed || !configuration.staticDepthBatchesEnabled) {
-      renderContext.staticDepthBatches?.dispose();
-      renderContext.staticDepthBatches = null;
-      _staticDepthBudget = null;
-      return;
-    }
-    if (!identical(_staticDepthBudget, resourceBudget)) {
-      renderContext.staticDepthBatches?.dispose();
-      renderContext.staticDepthBatches = null;
-      _staticDepthBudget = resourceBudget;
-    }
-    renderContext.staticDepthBatches ??= SpatialStaticDepthBatches();
-    final owners = <SpatialStaticDepthOwner>[];
-    for (final component in [
-      ...animationModels.values,
-      ...decorationAnimationModels.values,
-    ]) {
-      component.staticDepthBatches = renderContext.staticDepthBatches;
-      final source = component.model;
-      final assetId = component.definition.sourceAssetId;
-      final revision = configuration.modelSourceRevisions[assetId];
-      bool current() =>
-          !closed &&
-          identical(component.model, source) &&
-          identical(loadedModelSources[assetId], source) &&
-          configuration.modelSourceRevisions[assetId] == revision &&
-          component.runtimePoseBefore == null &&
-          component.playback.animationRef == null &&
-          component.playback.materialAnimationRef == null;
-      if (!current()) continue;
-      owners.add(
-        SpatialStaticDepthOwner(
-          owner: component,
-          source: source,
-          transform: component.worldTransformMatrix,
-          isCurrent: current,
-        ),
-      );
-    }
-    await renderContext.prepareStaticDepthBatches(owners, budget: resourceBudget);
-  }
   int decorationUpdates = 0;
   int _decorationCommittedRevision = 0;
   bool _decorationLoading = false;
@@ -2557,10 +2502,6 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         groups,
         isCurrent: () => ticket == generation && !closed,
         onCommit: () {
-          (context as SpatialRenderContext).staticDepthBatches?.retainOwners([
-            ...nextAnimationModels.values,
-            ...decorationAnimationModels.values,
-          ]);
           for (final entry in actorSelections.entries) {
             actors[entry.key]?.mesh.removeAll(entry.value);
           }
@@ -3067,7 +3008,6 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
       final offsetY = state?.translationY ?? 0;
       final targetY = component.initialPositionY + instance.position.y - component.initialAnchorY + offsetY;
       if (component.position.y != targetY) {
-        component.staticDepthBatches?.invalidateOwner(component);
         component.position.y = targetY;
       }
       component.bindRuntimeState(
@@ -3579,9 +3519,6 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     _destinationPreparation?.discard();
     _destinationPreparation = null;
     closed = true;
-    (context as SpatialRenderContext).staticDepthBatches?.dispose();
-    (context as SpatialRenderContext).staticDepthBatches = null;
-    _staticDepthBudget = null;
     _modelSourceUpdates?.removeListener(_modelSourceUpdateListener);
     _modelSourceUpdates = null;
     _pendingVisualOrder?.complete(false);
@@ -4030,20 +3967,6 @@ class _SceneModelComponent extends AnimatedModelComponent {
   late double initialPositionY;
   final String shadowId;
   bool presentationVisible = true;
-  SpatialStaticDepthBatches? staticDepthBatches;
-
-  @override
-  void replaceModelFrom(AnimatedModelComponent source) {
-    staticDepthBatches?.invalidateOwner(this);
-    super.replaceModelFrom(source);
-  }
-
-  @override
-  void onRemove() {
-    staticDepthBatches?.invalidateOwner(this);
-    staticDepthBatches = null;
-    super.onRemove();
-  }
 
   @override
   void draw(RenderContext3D context) {

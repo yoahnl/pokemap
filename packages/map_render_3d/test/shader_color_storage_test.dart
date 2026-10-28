@@ -233,6 +233,7 @@ final class _RecordingBackend extends GpuBackend {
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   }) => _RenderTarget();
 
   @override

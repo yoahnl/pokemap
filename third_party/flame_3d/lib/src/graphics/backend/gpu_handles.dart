@@ -63,4 +63,6 @@ abstract interface class GpuPipeline();
 abstract interface class GpuRenderTarget() {
   /// The color attachment's texture, holding the rendered output.
   GpuTexture get colorTexture;
+
+  GpuTexture? get secondaryColorTexture;
 }

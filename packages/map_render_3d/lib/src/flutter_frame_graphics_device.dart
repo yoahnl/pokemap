@@ -128,10 +128,12 @@ final class _FlutterFrameBackend extends GpuBackend {
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   }) => delegate.createRenderTarget(
     width: width,
     height: height,
     clearValue: clearValue,
+    secondaryColorClearValue: secondaryColorClearValue,
   );
 }
 

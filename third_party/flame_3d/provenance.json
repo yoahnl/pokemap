@@ -13,19 +13,87 @@
     "included_paths": [
       "lib/",
       "assets/",
+      "shaders/",
+      "tool/",
       "pubspec.yaml",
       "LICENSE"
     ],
-    "file_count": 133,
+    "file_count": 140,
     "source_verified_against_archive": true,
-    "shader_assets_byte_identical": true
+    "shader_assets_byte_identical": false
   },
   "local_modifications": [
     {
+      "path": "assets/shaders/spatial_material.shaderbundle",
+      "upstream_sha256": "c471099c8648328d2bef7eabe13304f702a75276f63916d40ea00ae650e2726f",
+      "local_sha256": "83b0679f4b401b76bf2c6bc661bb0d11a3c686050069cecfcf3660be87f47179",
+      "change": "Rebuilt from shaders/ with tool/build_shaders.dart so the lit fragment declares a second color output."
+    },
+    {
+      "path": "assets/shaders/unlit_material.shaderbundle",
+      "upstream_sha256": "99a266eeb07565fc3d310d2720f552eadced579dad9baf07a0e68c2f9baed4fa",
+      "local_sha256": "adc4e6c579aa4ab8bf99fe376c10f76b0ce5c1f633983ebc856ae8408c1c9fe4",
+      "change": "Rebuilt from shaders/ with tool/build_shaders.dart so the unlit fragment writes encoded view depth to a second color output."
+    },
+    {
+      "path": "lib/src/camera/world_3d.dart",
+      "upstream_sha256": "c6397e2cf90984e6d72a25477aa7ab5fdf54e34d6b2a939d946c243aee80e29b",
+      "local_sha256": "98ed0b225c934fc6482a24b7cc81d7f377e8c2818f4919cc6d66ca1e14c62abc",
+      "change": "Add a render resolution scale and clamp the render size to [0.25, 1] of the viewport."
+    },
+    {
+      "path": "lib/src/game/game_3d.dart",
+      "upstream_sha256": "82fc98374ba3b9a1016f3a94908fb0d81f7ed2d0daecfe0645fd041d4b4311a2",
+      "local_sha256": "6555e60daa3107b33b22c36c1e471b78e19c5e6c65a20bce6e77e015c0d26147",
+      "change": "Expose the render resolution scale used by World3D."
+    },
+    {
+      "path": "lib/src/graphics/backend/flutter_gpu/gpu_backend.dart",
+      "upstream_sha256": "c8617bd69bb36822b1ab4df7f556c71650e4c06e69cbfa52c8ef9acb088f690a",
+      "local_sha256": "01cfb7740a5756857dfcd40f1c524f8fbf129cda4fe0d2885cc81b7c6b125b59",
+      "change": "Create an optional second RGBA8 color attachment, blended by source alpha, alongside the main color target."
+    },
+    {
+      "path": "lib/src/graphics/backend/gpu_backend.dart",
+      "upstream_sha256": "e6aa3adc42944f58663dc55729745e432d898f10bab8c593d305f3f3713425a9",
+      "local_sha256": "5580f01b457c60a85fa4b67ecdddcdc6593bcb2282dc0b2ef753e40e1d020f0d",
+      "change": "Accept an optional secondary color clear value when creating render targets."
+    },
+    {
+      "path": "lib/src/graphics/backend/gpu_handles.dart",
+      "upstream_sha256": "360ffbc2a62719389e6ac7affcecfec03c7c2757afa47dacda53c82749abd73f",
+      "local_sha256": "fed84e62f594d8ada8eaca3cd8626b7597019dd9c02fa14bdff4992a41bb7ca1",
+      "change": "Expose the optional secondary color texture of a render target."
+    },
+    {
+      "path": "lib/src/graphics/backend/web_gpu/gpu_backend.dart",
+      "upstream_sha256": "189ee417b13bc13228ff45e4210dc965ae9f086d84f565628bc14211b8bcfcf4",
+      "local_sha256": "f56d93c1699960f438335c9a72f12575e27a4ff355c2e36eaa84ee5bc3c69a80",
+      "change": "Accept the secondary color clear value; WebGPU targets report no secondary attachment."
+    },
+    {
+      "path": "lib/src/graphics/graphics_device.dart",
+      "upstream_sha256": "c534a0d716adebf36484ce317681286727ce57d0f473a3e210c1abb9ff90c792",
+      "local_sha256": "df785a482909bfae053d1f5f5b9d17b4ef85b3a1953277ab62c21e49ccea9194",
+      "change": "Bind uniforms from ByteData and pool render targets by size and secondary color clear value."
+    },
+    {
+      "path": "lib/src/resources/material/unlit_material.dart",
+      "upstream_sha256": "43655e0cc279760c29f44653aa73362faf031bfa131ad8f5528fb607ebb348e6",
+      "local_sha256": "0851a28cf3e6a637c842313a92cd9306152728fa096b5dd65907429dbf348233",
+      "change": "Reuse precomputed joint uniform keys instead of interpolating them per draw."
+    },
+    {
+      "path": "lib/src/resources/mesh/surface.dart",
+      "upstream_sha256": "f6ee03588411dc7924342cd3678f2c79f41ac2c50468885df2ae63de2779b2b9",
+      "local_sha256": "e04eceac7a6ba24431a2cb3c4da0bd354467ae8c22028e3a1799e87aa4db77ca",
+      "change": "Pack vertex attributes directly into a Float32List without boxed intermediate lists."
+    },
+    {
       "path": "lib/src/resources/shader/shader.dart",
       "upstream_sha256": "52164266420a1b472ee0b69774ea13c92ba3b1b6f62b41040459aaf0f18d5a12",
-      "local_sha256": "804e7efac960a152a63eab34fb0f2448879c8d2c80afcd177498cc4b2d2edad5",
-      "change": "Replace the unbounded process-wide Color cache with one reusable four-float Vector4 per Shader; retain exact RGBA Float32 uploads. Replace unbounded RegExpMatch retention with a shared FIFO cache of at most 256 fully parsed uniform keys; preserve grammar, errors and resource-local GPU bindings."
+      "local_sha256": "17c957b38d5a47c123340638f741e58c4e0bc6095d41029e1573f71548290f4e",
+      "change": "Replace the unbounded process-wide Color cache with one reusable four-float Vector4 per Shader; retain exact RGBA Float32 uploads. Replace unbounded RegExpMatch retention with a shared FIFO cache of at most 256 fully parsed uniform keys; preserve grammar, errors and resource-local GPU bindings. Resolve each uniform key once per shader into its binding and offset, and bind a stable ByteData view."
     },
     {
       "path": "lib/src/resources/shader/uniform_key_cache.dart",
@@ -38,6 +106,36 @@
       "upstream_sha256": "eb5dba5b29800d27bbe1ad11288b4b2526c8391def5653a7592862c17123da41",
       "local_sha256": "0d033adc03dbd9c3f8a6f23ff32c1f683f389d500859723bca5ea3b935232f2c",
       "change": "Remove workspace resolution so this runtime snapshot resolves as a standalone path dependency."
+    },
+    {
+      "path": "shaders/flame_3d/depth_attachment.glsl",
+      "upstream_sha256": null,
+      "local_sha256": "05dfba5c2aa62672304049e0b7a82cfffd9b3b7d437fe20b51ba01aa140f8903",
+      "change": "Add the shared encoder for view depth written to the secondary color attachment."
+    },
+    {
+      "path": "shaders/spatial_material.frag",
+      "upstream_sha256": "229e6a0e7c5f22ccdba7160011d5589fe8cfe1052e1a968aad47ae5285e1235c",
+      "local_sha256": "5b6fbfc6e60307ebfc2c544fd4b053906aaa73c50201b0127c67958fa34cb87a",
+      "change": "Declare a second color output that leaves the secondary attachment unchanged."
+    },
+    {
+      "path": "shaders/unlit_material.frag",
+      "upstream_sha256": "b812240cc0280985be8d7d8d291ca034946e6acd37fad3c768f047722bcb186a",
+      "local_sha256": "2afdd32e710f9249ba2d37b7ecb2e2a45714b4c75d39baee4f9c3f0ee240d506",
+      "change": "Write encoded view depth to the second color output."
+    },
+    {
+      "path": "shaders/unlit_material.vert",
+      "upstream_sha256": "ef83011c65428013d5e4d7807f747abc8b65f98f0eec37e006abe18ddc91dd06",
+      "local_sha256": "e33edcd78720042c9677897e993ab4ef2918cf8a84ef541c67061dc0eb23bde4",
+      "change": "Pass view-space depth to the fragment stage."
+    },
+    {
+      "path": "tool/build_shaders.dart",
+      "upstream_sha256": null,
+      "local_sha256": "d00e40f748dac2edd1bf298201266d53e1c352ad4b52dc8f3c877b06f332a25f",
+      "change": "Add a rerunnable impellerc build of the unlit and spatial shader bundles from shaders/."
     }
   ]
 }

@@ -357,10 +357,6 @@ extension _SpatialDecorationRendering on SpatialSceneGame {
               for (final model in chunk.value.models.entries)
                 (chunk.key, model.key): model.value.component,
           };
-          (context as SpatialRenderContext).staticDepthBatches?.retainOwners([
-            ...animationModels.values,
-            ...decorationAnimationModels.values,
-          ]);
           decorationShadowCasters = List.unmodifiable(casters);
           if (casters.isNotEmpty) _enableDecorationShadowReceivers();
           decorationPointLights = lights;

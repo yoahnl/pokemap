@@ -6,11 +6,13 @@ in vec3 fragPosition;
 in vec3 fragNormal;
 in float fragViewDepth;
 
-out vec4 outColor;
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outDepth;
 
 #include "pixel_sampling.glsl"
 #include "point_shadow_cube.glsl"
 #include "shadow_filter.glsl"
+#include <flame_3d/depth_attachment.glsl>
 
 uniform sampler2D pointShadowTexture;
 uniform PointShadows {
@@ -181,6 +183,11 @@ void main() {
     outColor = color * material.albedoColor * (material.alphaMode == 4.0 ? vec4(1.0) : fragColor);
     if (material.alphaMode == 0.0 && color.a < material.alphaCutoff) discard;
     if (material.alphaMode == 2.0 && outColor.a < material.alphaCutoff) discard;
+    float depthAlpha = color.a * material.albedoColor.a * fragColor.a;
+    bool depthHidden = (material.depthAlphaMode == 0.0 && color.a < material.alphaCutoff)
+        || (material.depthAlphaMode == 2.0 && depthAlpha < material.alphaCutoff)
+        || (material.depthAlphaMode == 3.0 && depthAlpha < 0.1);
+    outDepth = encodeDepthAttachment(fragViewDepth, depthHidden ? 0.0 : 1.0);
     if (atmosphere.options.z < 0.5 && material.lightingOptions.x > 0.5) {
         vec3 normal = vec3(0.0, 1.0, 0.0);
         if (material.lightingOptions.y > 0.5 && dot(fragNormal, fragNormal) > 0.000001) {

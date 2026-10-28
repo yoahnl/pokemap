@@ -8,6 +8,7 @@ uniform Material {
     vec2 wrapModes;
     float alphaMode;
     float alphaCutoff;
+    float depthAlphaMode;
     vec4 lightingAmbient;
     vec4 lightingSun;
     vec4 lightingDirection;

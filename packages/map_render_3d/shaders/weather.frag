@@ -5,7 +5,8 @@ in vec4 fragTint;
 in float fragShape;
 in float fragVariation;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
+layout(location = 1) out vec4 outDepth;
 
 vec2 momiji(vec2 point) {
     vec2 hub = point - vec2(0.0, -0.32);
@@ -74,4 +75,5 @@ void main() {
     alpha *= fragTint.a;
     if (alpha < 0.005) discard;
     fragColor = vec4(color * alpha, alpha);
+    outDepth = vec4(0.0);
 }

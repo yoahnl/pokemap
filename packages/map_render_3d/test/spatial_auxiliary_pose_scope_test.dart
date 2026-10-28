@@ -8,7 +8,6 @@ import 'package:flame_3d/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/flutter_frame_graphics_device.dart';
-import 'package:map_render_3d/src/spatial_depth_of_field.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_point_light.dart';
@@ -19,7 +18,7 @@ import 'package:map_render_3d/src/spatial_shadow_profile.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  for (var flags = 1; flags < 8; flags++) {
+  for (final flags in [2, 4, 6]) {
     test('auxiliary passes $flags avoid copying the outer pose', () {
       final baseline = _Fixture(0)..render();
       final fixture = _Fixture(flags)..render();
@@ -43,7 +42,7 @@ void main() {
 
   test('mask and blend keep pass filtering, uniforms and color order', () {
     final baseline = _Fixture(0, mixedAlpha: true)..render();
-    final fixture = _Fixture(7, mixedAlpha: true)..render();
+    final fixture = _Fixture(6, mixedAlpha: true)..render();
     expect(baseline.context.countedModel.clones, 5);
     expect(
       fixture.context.countedModel.clones -
@@ -55,12 +54,12 @@ void main() {
           baseline.context.countedModel.copies,
       0,
     );
-    _expectDraws(fixture, 7, blended: true);
+    _expectDraws(fixture, 6, blended: true);
     _expectRestored(fixture);
   });
 
   test('instance and shadow IDs select only the eligible auxiliary draws', () {
-    final fixture = _Fixture(7, filterCasters: true)..render();
+    final fixture = _Fixture(6, filterCasters: true)..render();
     final draws = fixture.backend.draws;
     expect(
       draws.where((draw) => draw.path == 'shadow').map((draw) => draw.name),
@@ -70,7 +69,6 @@ void main() {
       draws.where((draw) => draw.path == 'point').map((draw) => draw.name),
       List.filled(6, 'pose-1'),
     );
-    expect(draws.where((draw) => draw.path == 'depth'), hasLength(3));
     expect(draws.where((draw) => draw.path == 'color'), hasLength(3));
     expect(fixture.context.shadowStats.casterDrawCount, 1);
     expect(fixture.context.shadowStats.pointCasterDrawCount, 6);
@@ -78,26 +76,8 @@ void main() {
     _expectRestored(fixture);
   });
 
-  test('unlit depth proxies retain static and skinned transforms', () {
-    final fixture = _Fixture(1, unlit: true)..render();
-    expect(fixture.context.countedModel.clones, 3);
-    final depth = fixture.backend.draws.where((draw) => draw.path == 'depth');
-    expect(depth.map((draw) => draw.name), ['pose-0', 'pose-1', 'pose-2']);
-    for (final draw in depth) {
-      final index = int.parse(draw.name.substring(5));
-      _expectMatrix(draw.field('VertexInfo', 'model', 16), _model(index));
-      _expectMatrix(
-        draw.field('JointMatrices', 'joints', 16),
-        index == 0 ? Matrix4.identity() : _joint(index),
-      );
-      _expectVector(draw.field('Material', 'albedoColor', 4), _color(index));
-      expect(draw.cull, _cull(index));
-    }
-    _expectRestored(fixture);
-  });
-
   for (final failure in ['pipeline', 'geometry']) {
-    for (final flags in [1, 2, 4]) {
+    for (final flags in [2, 4]) {
       test(
         'failed $failure in auxiliary pass $flags restores the next frame',
         () {
@@ -127,10 +107,6 @@ void _expectDraws(_Fixture fixture, int flags, {bool blended = false}) {
   expect(color.map((draw) => draw.name), ['pose-0', 'pose-1', 'pose-2']);
   expect(fixture.context.drawCount, 1);
   final casters = blended ? 2 : 3;
-  expect(
-    draws.where((draw) => draw.path == 'depth'),
-    hasLength(flags & 1 == 0 ? 0 : 3),
-  );
   expect(
     draws.where((draw) => draw.path == 'shadow'),
     hasLength(flags & 2 == 0 ? 0 : casters),
@@ -274,12 +250,7 @@ CullMode _cull(int index) =>
     [CullMode.backFace, CullMode.none, CullMode.frontFace][index];
 
 class _Fixture {
-  _Fixture(
-    int flags, {
-    bool mixedAlpha = false,
-    bool filterCasters = false,
-    this.unlit = false,
-  }) {
+  _Fixture(int flags, {bool mixedAlpha = false, bool filterCasters = false}) {
     device = _Device(backend)..renderSize = const Size(64, 64);
     context = _Context(device)
       ..setCamera(Matrix4.identity(), Matrix4.identity());
@@ -310,10 +281,6 @@ class _Fixture {
             ? []
             : [SpatialPointLight(position: (x: 0, y: 3, z: -4), radius: 20)],
       );
-    if (flags & 1 != 0) {
-      context.depthOfField = SpatialDepthOfField(device.backend)
-        ..profile = SpatialDepthOfFieldProfile(enabled: true);
-    }
     final shared = SpatialPixelMaterial(
       restingTexture,
       alphaMode: Model3dAlphaMode.opaque,
@@ -321,9 +288,7 @@ class _Fixture {
     );
     materials = [
       for (var index = 0; index < 3; index++)
-        if (unlit)
-          UnlitMaterial(albedoTexture: restingTexture)
-        else if (mixedAlpha)
+        if (mixedAlpha)
           SpatialPixelMaterial(
             restingTexture,
             alphaMode: Model3dAlphaMode.values[index],
@@ -347,7 +312,6 @@ class _Fixture {
   final restingSurfaceMaterial = UnlitMaterial();
   final outerModel = Matrix4.translationValues(11, 12, 13);
   final outerJoints = [Matrix4.translationValues(21, 22, 23)];
-  final bool unlit;
   late final _Device device;
   late final _Context context;
   late final List<UnlitMaterial> materials;
@@ -368,9 +332,7 @@ class _Fixture {
     try {
       for (var index = 0; index < 3; index++) {
         context.model.setFrom(_model(index));
-        context.jointsInfo.jointTransforms = unlit && index == 0
-            ? []
-            : [_joint(index)];
+        context.jointsInfo.jointTransforms = [_joint(index)];
         context
           ..sourceInstanceId = 'instance-$index'
           ..sourceShadowId = 'shadow-$index';
@@ -517,6 +479,7 @@ final class _Backend extends GpuBackend {
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   }) => _Target();
   @override
   GpuShaderLibrary loadShaderLibrary(String assetName) => _Library(this);
@@ -582,9 +545,7 @@ class _Pass implements GpuRenderPass {
   @override
   void bindPipeline(GpuPipeline pipeline, CullMode cullMode) {
     final entry = (pipeline as _Pipeline).entry;
-    path = entry == 'CameraDepthFragment'
-        ? 'depth'
-        : entry == 'ShadowDepthFragment'
+    path = entry == 'ShadowDepthFragment'
         ? 'shadow'
         : entry == 'PointShadowDepthFragment'
         ? 'point'
@@ -675,6 +636,9 @@ class _Buffer implements GpuBuffer {
 class _Target implements GpuRenderTarget {
   @override
   final colorTexture = _Texture();
+
+  @override
+  GpuTexture? get secondaryColorTexture => null;
 }
 
 class _Texture implements GpuTexture {

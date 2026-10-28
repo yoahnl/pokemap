@@ -71,6 +71,7 @@ abstract base class GpuBackend() {
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   });
 
   /// Begins a new frame.

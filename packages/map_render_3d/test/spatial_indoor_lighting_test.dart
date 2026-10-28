@@ -36,8 +36,8 @@ void main() {
 
       fixture.game.syncDepthOfField();
 
-      expect(fixture.context.depthOfField, isNull);
       expect(fixture.game.device.postProcess, isNull);
+      expect(fixture.game.device.secondaryColorClearValue, isNull);
       expect(fixture.controller.depthOfFieldProfile, same(profile));
       expect(fixture.game.depthOfFieldFrame['targetAllocations'], 0);
     });
@@ -55,27 +55,38 @@ void main() {
       fixture.controller.depthOfFieldProfile = profile;
       final exterior = fixture.game.configuration;
       final interior = fixture.view(const MapMetadata(isIndoor: true));
+      void expectActive() {
+        expect(fixture.game.device.postProcess, isNotNull);
+        expect(
+          fixture.game.device.secondaryColorClearValue,
+          SpatialDepthOfField.depthClearValue,
+        );
+        expect(fixture.game.depthOfFieldFrame['enabled'], isTrue);
+        expect(fixture.game.depthOfFieldFrame['strength'], profile.strength);
+        expect(
+          fixture.game.depthOfFieldFrame['focusRange'],
+          profile.focusRange,
+        );
+      }
+
       fixture.game.syncDepthOfField();
-      final effect = fixture.context.depthOfField;
-      expect(effect, isNotNull);
-      expect(effect!.profile, same(profile));
+      expectActive();
 
       fixture.game.renderedConfiguration = exterior;
       fixture.game.configuration = interior;
       fixture.game.syncDepthOfField();
-      expect(fixture.context.depthOfField, same(effect));
+      expectActive();
 
       fixture.game.renderedConfiguration = interior;
       fixture.game.syncDepthOfField();
-      expect(fixture.context.depthOfField, isNull);
       expect(fixture.game.device.postProcess, isNull);
+      expect(fixture.game.device.secondaryColorClearValue, isNull);
+      expect(fixture.game.depthOfFieldFrame['enabled'], isFalse);
       expect(fixture.controller.depthOfFieldProfile, same(profile));
 
       fixture.game.renderedConfiguration = exterior;
       fixture.game.syncDepthOfField();
-      expect(fixture.context.depthOfField, same(effect));
-      expect(effect.profile, same(profile));
-      expect(fixture.game.device.postProcess, isNotNull);
+      expectActive();
     },
   );
 

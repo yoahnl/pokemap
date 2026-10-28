@@ -28,14 +28,16 @@ class GraphicsDevice({
   /// Depth/stencil state applied to each render pass.
   DepthStencilState depthStencilState = DepthStencilState.standard;
 
+  Color? secondaryColorClearValue;
+
   late GpuFrame _frame;
   late GpuRenderPass _renderPass;
   late GpuRenderTarget _renderTarget;
 
   // Render target pool: keyed by (width, height), each entry is a list of
   // targets. _poolIndex tracks how many have been handed out this frame.
-  final _pool = <(int, int), List<GpuRenderTarget>>{};
-  final _poolIndex = <(int, int), int>{};
+  final _pool = <(int, int, Color?), List<GpuRenderTarget>>{};
+  final _poolIndex = <(int, int, Color?), int>{};
 
   /// Begin a new frame.
   ///
@@ -138,7 +140,11 @@ class GraphicsDevice({
   /// Multiple passes at the same size within a frame get distinct targets.
   /// Targets are reused across frames.
   GpuRenderTarget _acquireRenderTarget(Size size) {
-    final key = (size.width.toInt(), size.height.toInt());
+    final key = (
+      size.width.toInt(),
+      size.height.toInt(),
+      secondaryColorClearValue,
+    );
     final targets = _pool.putIfAbsent(key, () => []);
     final index = _poolIndex.putIfAbsent(key, () => 0);
 
@@ -152,6 +158,7 @@ class GraphicsDevice({
       width: key.$1,
       height: key.$2,
       clearValue: clearValue,
+      secondaryColorClearValue: key.$3,
     );
 
     targets.add(target);

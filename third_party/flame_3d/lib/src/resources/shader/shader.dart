@@ -174,7 +174,6 @@ class _UniformBinding(super.slot) extends _SlotBinding<ByteBuffer> {
   );
   late final ByteData data = _data.buffer.asByteData();
 
-  /// The float offset of a struct [member] within the buffer.
   int memberOffset(String member) {
     final bytes = slot.getMemberOffsetInBytes(member);
     if (bytes == null) {

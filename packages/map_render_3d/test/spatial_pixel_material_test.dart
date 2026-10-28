@@ -1007,19 +1007,19 @@ void main() {
       blue: .875,
     );
     material.apply(context);
-    expect(shader.pixelWrites, 16);
+    expect(shader.pixelWrites, 17);
     expect(shader.albedoWrites, 1);
 
     for (var frame = 0; frame < 120; frame++) {
       material.apply(context);
     }
 
-    expect(shader.pixelWrites, 16);
+    expect(shader.pixelWrites, 17);
     expect(shader.albedoWrites, 121);
     expect(shader.albedoSnapshots, everyElement([.125, .625, .875, .375]));
     material.uvRect.x = .25;
     material.apply(context);
-    expect(shader.pixelWrites, 23);
+    expect(shader.pixelWrites, 25);
     expect(shader.albedoWrites, 122);
     material.fragmentShader.bind(device);
     expect(device.uniforms['Material']!.sublist(0, 4), [
@@ -1100,9 +1100,9 @@ void main() {
     shader.resource;
     material.fragmentShader = shader;
     material.apply(context);
-    expect(shader.pixelWrites, 16);
+    expect(shader.pixelWrites, 17);
     material.apply(context);
-    expect(shader.pixelWrites, 16);
+    expect(shader.pixelWrites, 17);
   });
 
   test('skeletal surfaces retain their actual joint transforms', () {
@@ -1238,12 +1238,12 @@ void main() {
       final litContext = SpatialRenderContext(device)
         ..lighting = SpatialLightingProfile.stylized(sunStrength: .2);
       material.apply(litContext);
-      expect(shader.pixelWrites, 16);
+      expect(shader.pixelWrites, 17);
       material.apply(litContext);
-      expect(shader.pixelWrites, 16);
+      expect(shader.pixelWrites, 17);
       litContext.lighting = SpatialLightingProfile.stylized(sunStrength: .5);
       material.apply(litContext);
-      expect(shader.pixelWrites, 20);
+      expect(shader.pixelWrites, 21);
       material.fragmentShader.bind(device);
       expect(device.uniforms['Material']![28], closeTo(.5, 1e-6));
     },
@@ -1443,6 +1443,7 @@ final class _ShaderBackend extends GpuBackend {
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   }) => _PointTarget();
   @override
   GpuFrame beginFrame() => _PointFrame(this);
@@ -1507,6 +1508,7 @@ final class _Shader implements GpuShader {
       'wrapModes': 72,
       'alphaMode': 80,
       'alphaCutoff': 84,
+      'depthAlphaMode': 88,
       'lightingAmbient': 96,
       'lightingSun': 112,
       'lightingDirection': 128,
@@ -1591,6 +1593,9 @@ final class _OffscreenPointCaster extends Object3D {
 final class _PointTarget implements GpuRenderTarget {
   @override
   final colorTexture = _PointTexture();
+
+  @override
+  GpuTexture? get secondaryColorTexture => null;
 }
 
 final class _PointTexture implements GpuTexture {

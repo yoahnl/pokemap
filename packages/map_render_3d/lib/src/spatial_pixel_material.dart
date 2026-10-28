@@ -210,18 +210,18 @@ class SpatialPixelMaterial extends UnlitMaterial {
       'Material.wrapModes',
       Vector2(_activeWrapS.toDouble(), _activeWrapT.toDouble()),
     );
+    final sourceAlphaMode = switch (alphaMode) {
+      null => 0.0,
+      Model3dAlphaMode.opaque => 1.0,
+      Model3dAlphaMode.mask => 2.0,
+      Model3dAlphaMode.blend => 3.0,
+    };
     fragmentShader.setFloat(
       'Material.alphaMode',
-      preserveUnlitColor
-          ? 4
-          : switch (alphaMode) {
-              null => 0,
-              Model3dAlphaMode.opaque => 1,
-              Model3dAlphaMode.mask => 2,
-              Model3dAlphaMode.blend => 3,
-            },
+      preserveUnlitColor ? 4 : sourceAlphaMode,
     );
     fragmentShader.setFloat('Material.alphaCutoff', alphaCutoff);
+    fragmentShader.setFloat('Material.depthAlphaMode', sourceAlphaMode);
     _boundShader = shader;
     _boundResource = resource;
     _boundUvRect.setFrom(uvRect);

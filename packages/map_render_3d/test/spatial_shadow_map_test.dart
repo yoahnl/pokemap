@@ -112,6 +112,7 @@ final class _Backend extends GpuBackend {
     required int width,
     required int height,
     required Color clearValue,
+    Color? secondaryColorClearValue,
   }) {
     if (maximumSize != null && (width > maximumSize! || height > maximumSize!))
       throw Exception('Texture limit');
@@ -136,6 +137,9 @@ final class _Backend extends GpuBackend {
 final class _Target implements GpuRenderTarget {
   @override
   final GpuTexture colorTexture = _Texture();
+
+  @override
+  GpuTexture? get secondaryColorTexture => null;
 }
 
 final class _Texture implements GpuTexture {
