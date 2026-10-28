@@ -198,10 +198,10 @@ class _ShadowQualityGame extends FlameGame3D<World3D, CameraComponent3D> {
       focus
         ..profile = depthOfFieldProfile
         ..focusDepth = (camera.position - camera.target).length;
-      context.depthOfField = focus;
+      _device.secondaryColorClearValue = SpatialDepthOfField.depthClearValue;
       _device.postProcess = focus.composite;
     } else {
-      context.depthOfField = null;
+      _device.secondaryColorClearValue = null;
       _device.postProcess = null;
     }
     final direction = spatialDayNightSunDirection((

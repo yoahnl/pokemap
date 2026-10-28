@@ -87,6 +87,8 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
   Object? _neighborFailure;
   bool _neighborLoading = false;
 
+  void _updateSpatialNeighbors(VoidCallback action) => setState(action);
+
   @override
   void initState() {
     super.initState();

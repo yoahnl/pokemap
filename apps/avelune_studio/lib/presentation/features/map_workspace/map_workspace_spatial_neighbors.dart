@@ -18,8 +18,9 @@ final class _NeighborAssetSource {
 
   Future<Uint8List> loadGroundImage(String id) {
     final scoped = visuals;
-    if (scoped is! SpatialScopedWorkspaceVisuals)
+    if (scoped is! SpatialScopedWorkspaceVisuals) {
       return visuals.readGroundImage(id);
+    }
     final definition = project.tilesets
         .where((tileset) => tileset.id == id)
         .firstOrNull;
@@ -92,8 +93,9 @@ extension _WorkspaceSpatialNeighbors on _MapWorkspaceEditorPaneState {
         _neighborSources.putIfAbsent(key, () async {
           try {
             final neighbor = await controller.previewMap(entry.id);
-            if (neighbor == null || neighbor.spatialScene == null)
+            if (neighbor == null || neighbor.spatialScene == null) {
               throw StateError('Carte voisine 3D indisponible : ${entry.id}');
+            }
             final definitions =
                 controller.previewDefinitionsFor(entry.id) ?? project;
             final port = controller.port;
@@ -142,7 +144,7 @@ extension _WorkspaceSpatialNeighbors on _MapWorkspaceEditorPaneState {
                 loadModel: source.assets.loadModel,
               ),
             );
-            if (decoration != null)
+            if (decoration != null) {
               decorations.add(
                 SpatialSceneDecoration(
                   ownerMapId: current.id,
@@ -153,19 +155,21 @@ extension _WorkspaceSpatialNeighbors on _MapWorkspaceEditorPaneState {
                   loadModel: source.assets.loadModel,
                 ),
               );
+            }
           }
-          setState(() {
+          _updateSpatialNeighbors(() {
             _neighbors = List.unmodifiable(neighbors);
             _neighborDecorations = List.unmodifiable(decorations);
             _neighborLoading = false;
           });
         },
         onError: (Object error, StackTrace trace) {
-          if (mounted && ticket == _neighborGeneration)
-            setState(() {
+          if (mounted && ticket == _neighborGeneration) {
+            _updateSpatialNeighbors(() {
               _neighborFailure = error;
               _neighborLoading = false;
             });
+          }
         },
       ),
     );

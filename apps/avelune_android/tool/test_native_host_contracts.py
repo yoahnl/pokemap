@@ -132,7 +132,7 @@ class NativeHostContractsTest(unittest.TestCase):
                 self.assertRegex(module, r"(?m)^  pokemap_hub:\s*\n    path: ../../pokemap_hub\s*$")
                 entrypoint = source(f"apps/{host}/flutter_runtime/lib/main.dart")
                 self.assertIn("package:pokemap_hub/avelune_embedded_runtime.dart", entrypoint)
-                self.assertIn("runAveluneEmbeddedRuntime()", entrypoint)
+                self.assertRegex(entrypoint, r"\brunAveluneEmbeddedRuntime\s*\(")
         self.assertIn(
             "HubInstalledGamePlayer(",
             source("apps/pokemap_hub/lib/embedding/avelune_runtime_app.dart"),

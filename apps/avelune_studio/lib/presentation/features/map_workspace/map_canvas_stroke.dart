@@ -3,7 +3,6 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/map_editing_commands.dart';
 import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
-import '../../../features/terrains/application/terrain_brush.dart';
 import 'map_workspace_view_state.dart';
 import 'map_terrain_patterns.dart';
 

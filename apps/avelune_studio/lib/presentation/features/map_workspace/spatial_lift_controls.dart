@@ -36,8 +36,9 @@ class _SpatialLiftControlsState extends State<SpatialLiftControls> {
   void didUpdateWidget(SpatialLiftControls old) {
     super.didUpdateWidget(old);
     if (!identical(source, widget.document.current) ||
-        old.instance.id != widget.instance.id)
+        old.instance.id != widget.instance.id) {
       load();
+    }
   }
 
   void load() {
@@ -74,8 +75,9 @@ class _SpatialLiftControlsState extends State<SpatialLiftControls> {
     try {
       if (widget.document.saving ||
           !identical(source, widget.document.current) ||
-          widget.document.isElementLocked('model', widget.instance.id))
+          widget.document.isElementLocked('model', widget.instance.id)) {
         throw StateError('La carte a changé ou cet élément est verrouillé.');
+      }
       final definition = SpatialLiftDefinition(
         id: lift?.id ?? nextId(),
         name: values['name']!.trim(),
@@ -144,8 +146,9 @@ class _SpatialLiftControlsState extends State<SpatialLiftControls> {
                   if (widget.document.isElementLocked(
                     'model',
                     widget.instance.id,
-                  ))
+                  )) {
                     return;
+                  }
                   widget.document.commit(
                     const SpatialMapOperations().deleteLifts(
                       widget.document.current,
