@@ -13,6 +13,7 @@ dependencies:
   flame: 2.0.0-dev.1
   flame_3d:
     path: ../../third_party/flame_3d
+  crypto: ^3.0.7
   map_core:
     path: ../map_core
 dev_dependencies:

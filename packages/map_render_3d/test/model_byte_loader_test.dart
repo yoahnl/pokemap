@@ -301,6 +301,49 @@ void main() {
       expect(Flame.assets.cacheCount, 1);
     },
   );
+
+  test('models cached together share textures with identical bytes', () async {
+    SpatialPixelMaterial albedoOf(Model model) =>
+        model.nodes.values.single.mesh!.surfaces.single.material
+            as SpatialPixelMaterial;
+    final cache = <String, Future<Model>>{};
+    const grass = [
+      [10, 20, 30, 255],
+    ];
+
+    final first = await ModelByteLoader.loadCached(
+      cache,
+      'first',
+      () async => _texturedTriangle(grass, alphaMode: 'OPAQUE'),
+    );
+    final second = await ModelByteLoader.loadCached(
+      cache,
+      'second',
+      () async => _texturedTriangle(grass, alphaMode: 'BLEND'),
+    );
+    final other = await ModelByteLoader.loadCached(
+      cache,
+      'other',
+      () async => _texturedTriangle([
+        [40, 50, 60, 255],
+      ], alphaMode: 'OPAQUE'),
+    );
+    final separate = await ModelByteLoader.loadCached(
+      <String, Future<Model>>{},
+      'first',
+      () async => _texturedTriangle(grass, alphaMode: 'OPAQUE'),
+    );
+
+    expect(albedoOf(second).albedoTexture, same(albedoOf(first).albedoTexture));
+    expect(
+      albedoOf(other).albedoTexture,
+      isNot(same(albedoOf(first).albedoTexture)),
+    );
+    expect(
+      albedoOf(separate).albedoTexture,
+      isNot(same(albedoOf(first).albedoTexture)),
+    );
+  });
 }
 
 class _Bundle extends CachingAssetBundle {

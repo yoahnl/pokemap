@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:crypto/crypto.dart';
 import 'package:flame/cache.dart';
 import 'package:flame/flame.dart';
 import 'package:flame_3d/model.dart';
@@ -18,6 +19,7 @@ import 'spatial_resource_admission.dart';
 
 final class ModelByteLoader {
   static int _sequence = 0;
+  static final _texturesByModelCache = Expando<_SharedTextures>();
 
   static Future<bool> preloadCached(
     Map<String, Future<Model>> cache,
@@ -72,7 +74,7 @@ final class ModelByteLoader {
         reservation?.ensureCurrent();
         final bytes = await read();
         reservation?.ensureCurrent();
-        return await load(
+        return await _load(
           bytes,
           budget: budget,
           reservation: reservation,
@@ -80,6 +82,7 @@ final class ModelByteLoader {
           onResident: onResident == null
               ? null
               : (lease) => onResident(key, lease),
+          textures: _texturesByModelCache[cache] ??= _SharedTextures(),
         );
       } catch (_) {
         reservation?.release();
@@ -101,6 +104,23 @@ final class ModelByteLoader {
     bool Function()? isCurrent,
     void Function(RuntimeResourceReservation reservation)? onResident,
     Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
+  }) => _load(
+    bytes,
+    budget: budget,
+    reservation: reservation,
+    isCurrent: isCurrent,
+    onResident: onResident,
+    codecLoader: codecLoader,
+  );
+
+  static Future<Model> _load(
+    Uint8List bytes, {
+    RuntimeResourceBudget? budget,
+    RuntimeResourceReservation? reservation,
+    bool Function()? isCurrent,
+    void Function(RuntimeResourceReservation reservation)? onResident,
+    Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
+    _SharedTextures? textures,
   }) async {
     final controller = budget ?? RuntimeResourceBudget();
     final lease = reservation ?? await controller.acquire(isCurrent: isCurrent);
@@ -115,7 +135,7 @@ final class ModelByteLoader {
         residentBytes: estimate.resident,
         transientBytes: estimate.transient,
       );
-      final model = await _loadAdmitted(bytes, lease, codecLoader);
+      final model = await _loadAdmitted(bytes, lease, codecLoader, textures);
       lease.ensureCurrent();
       final retained = spatialRetainedModelResourceBytes(
         model,
@@ -144,6 +164,7 @@ final class ModelByteLoader {
     Uint8List bytes,
     RuntimeResourceReservation reservation,
     Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
+    _SharedTextures? textures,
   ) async {
     final current = Flame.assets;
     final cache = current is _ModelAssetsCache
@@ -173,6 +194,7 @@ final class ModelByteLoader {
             Map<String, Object?>.from(raw as Map),
             reservation,
             codecLoader,
+            textures,
           ),
       ]);
       for (final image in root.images) {
@@ -343,24 +365,40 @@ final class _OwnedGltfImage extends gltf.Image {
     Map<String, Object?> json,
     this.reservation,
     this.codecLoader,
+    this.textures,
   ) : super.parse(root, json);
   final RuntimeResourceReservation reservation;
   final Future<ui.Codec> Function(Uint8List bytes)? codecLoader;
+  final _SharedTextures? textures;
 
   @override
   Future<resources.ImageTexture> loadData() async {
     reservation.ensureCurrent();
     final bytes = await data();
     reservation.ensureCurrent();
+    final textures = this.textures;
+    if (textures == null) return _decode(bytes, reservation);
+    final texture = await textures.load(
+      sha256.convert(bytes).toString(),
+      () => _decode(bytes, null),
+    );
+    reservation.ensureCurrent();
+    return texture;
+  }
+
+  Future<resources.ImageTexture> _decode(
+    Uint8List bytes,
+    RuntimeResourceReservation? reservation,
+  ) async {
     final codec = await (codecLoader ?? ui.instantiateImageCodec)(bytes);
     ui.Image? image;
     try {
       image = (await codec.getNextFrame()).image;
-      reservation.ensureCurrent();
+      reservation?.ensureCurrent();
       final pixels = await image.toByteData(
         format: ui.ImageByteFormat.rawStraightRgba,
       );
-      reservation.ensureCurrent();
+      reservation?.ensureCurrent();
       if (pixels == null) {
         throw StateError('Model texture pixels are unavailable.');
       }
@@ -372,6 +410,27 @@ final class _OwnedGltfImage extends gltf.Image {
     } finally {
       image?.dispose();
       codec.dispose();
+    }
+  }
+}
+
+final class _SharedTextures {
+  final _pending = <String, Future<resources.ImageTexture>>{};
+  final _resident = <String, WeakReference<resources.ImageTexture>>{};
+
+  Future<resources.ImageTexture> load(
+    String key,
+    Future<resources.ImageTexture> Function() decode,
+  ) async {
+    final resident = _resident[key]?.target;
+    if (resident != null) return resident;
+    final pending = _pending[key] ??= decode();
+    try {
+      final texture = await pending;
+      _resident[key] = WeakReference(texture);
+      return texture;
+    } finally {
+      if (identical(_pending[key], pending)) _pending.remove(key);
     }
   }
 }
