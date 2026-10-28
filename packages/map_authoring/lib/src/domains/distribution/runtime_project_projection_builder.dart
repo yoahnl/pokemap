@@ -21,6 +21,7 @@ import 'game_package_export_profile.dart';
 import 'immutable_byte_snapshot.dart';
 import 'runtime_static_terrain_projection.dart';
 import 'runtime_regular_atlas_projection.dart';
+import 'runtime_unused_border_projection.dart';
 
 final class RuntimeProjectProjection {
   RuntimeProjectProjection({
@@ -822,6 +823,17 @@ final class RuntimeProjectProjectionBuilder {
                 .contains('item-capture-provenance') ??
             false,
       ));
+    }
+
+    if (projectedProject.borderCatalog.records.isNotEmpty) {
+      projectedProject = projectRuntimeBorderRecords(
+        project: projectedProject,
+        documents: [
+          for (final entry in payload.entries)
+            if (entry.key.endsWith('.json'))
+              _decodeJson(entry.value, entry.key),
+        ],
+      );
     }
 
     budget.addPayload(
