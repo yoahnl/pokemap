@@ -907,6 +907,72 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             }
           },
         ),
+        _choiceRow(
+          _strings.renderScale,
+          _strings.renderScaleValue(preferences.graphics.renderScalePercent),
+          'render-scale',
+          compact,
+          () async {
+            final value = await _choose(
+              _strings.renderScale,
+              preferences.graphics.renderScalePercent ?? 0,
+              {
+                0: _strings.renderScaleValue(null),
+                for (final percent
+                    in RuntimeGraphicsPreferences.renderScaleChoices)
+                  percent: _strings.renderScaleValue(percent),
+              },
+              (value) => value.toString(),
+              focusAfterClose: _choiceNode('render-scale'),
+            );
+            if (value != null) {
+              await _save(
+                _confirmed.copyWith(
+                  graphics: _confirmed.graphics.copyWith(
+                    renderScalePercent: () => value == 0 ? null : value,
+                  ),
+                ),
+                focusAfterSave: _choiceNode('render-scale'),
+              );
+            }
+          },
+        ),
+        _toggle(
+          _strings.depthOfField,
+          'runtime-player-depth-of-field-toggle',
+          preferences.graphics.depthOfField,
+          compact,
+          (value) => _save(_confirmed.copyWith(
+            graphics: _confirmed.graphics.copyWith(depthOfField: value),
+          )),
+        ),
+        _toggle(
+          _strings.shadows,
+          'runtime-player-shadows-toggle',
+          preferences.graphics.shadows,
+          compact,
+          (value) => _save(_confirmed.copyWith(
+            graphics: _confirmed.graphics.copyWith(shadows: value),
+          )),
+        ),
+        _toggle(
+          _strings.fogAndHalos,
+          'runtime-player-fog-and-halos-toggle',
+          preferences.graphics.fogAndHalos,
+          compact,
+          (value) => _save(_confirmed.copyWith(
+            graphics: _confirmed.graphics.copyWith(fogAndHalos: value),
+          )),
+        ),
+        _toggle(
+          _strings.ambientAnimation,
+          'runtime-player-ambient-animation-toggle',
+          preferences.graphics.ambientAnimation,
+          compact,
+          (value) => _save(_confirmed.copyWith(
+            graphics: _confirmed.graphics.copyWith(ambientAnimation: value),
+          )),
+        ),
       ],
       PlayerOptionsCategory.audio => [
         _slider(
@@ -1513,7 +1579,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         value.dialogueTextSpeed != defaults.dialogueTextSpeed,
       PlayerOptionsCategory.display =>
         value.menuEffects != defaults.menuEffects ||
-            value.targetFramesPerSecond != defaults.targetFramesPerSecond,
+            value.targetFramesPerSecond != defaults.targetFramesPerSecond ||
+            value.graphics != defaults.graphics,
       PlayerOptionsCategory.audio =>
         value.audioMix.masterVolume != defaults.audioMix.masterVolume ||
             value.audioMix.musicVolume != defaults.audioMix.musicVolume ||
@@ -1554,6 +1621,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       PlayerOptionsCategory.display => _confirmed.copyWith(
         menuEffects: defaults.menuEffects,
         targetFramesPerSecond: defaults.targetFramesPerSecond,
+        graphics: defaults.graphics,
       ),
       PlayerOptionsCategory.audio => _confirmed.copyWith(
         audioMix: defaults.audioMix,

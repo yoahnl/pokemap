@@ -25,6 +25,7 @@ import '../presentation/flame/dialogue_overlay_component.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import '../presentation/flame/flame_narrative_sound_playback_adapter.dart';
 import '../player/runtime_music_service.dart';
+import '../player/runtime_graphics_preferences.dart';
 import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_cinematic_emote_visuals.dart';
@@ -208,6 +209,7 @@ final class SpatialExplorationSession {
   SpatialCinematicCameraPose? Function()? storyCamera;
   SpatialVisualPatch visualOverrides = SpatialVisualPatch();
   SpatialVisualPatch worldTimeOverrides = SpatialVisualPatch();
+  final graphics = ValueNotifier(const RuntimeGraphicsPreferences());
   SpatialVisualPatch cinematicVisualOverrides = SpatialVisualPatch();
   final cinematicFadeOpacity = ValueNotifier(0.0);
   SpatialVisualPatch Function()? worldVisualProfile;
@@ -2156,6 +2158,7 @@ final class SpatialExplorationSession {
     _nativeDoor.clear();
     nativeDoorBlackout.dispose();
     cinematicFadeOpacity.dispose();
+    graphics.dispose();
     waitForNativeDoorBlackoutFrame = null;
     prepareNativeDoorDestination = null;
     _disposed = true;

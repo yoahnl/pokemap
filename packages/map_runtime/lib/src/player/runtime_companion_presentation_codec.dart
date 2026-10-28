@@ -17,6 +17,7 @@ import '../player/runtime_regional_map.dart';
 import '../presentation/flutter/battle_command_overlay_snapshot.dart';
 import '../session/game_session_contract.dart';
 import 'runtime_world_service_models.dart';
+import 'runtime_graphics_preferences.dart';
 import 'runtime_world_time_preferences.dart';
 
 part 'runtime_world_service_companion_codec.dart';
@@ -1325,6 +1326,8 @@ abstract final class RuntimeCompanionPresentationCodec {
         if (value.realWeather != const RealWeatherPreferences()) 'realWeather': value.realWeather.toJson(),
         if (value.worldTime != const RuntimeWorldTimePreferences())
           'worldTime': value.worldTime.toJson(),
+        if (value.graphics != const RuntimeGraphicsPreferences())
+          'graphics': value.graphics.toJson(),
       };
   static PlayerPreferencesSnapshot decodePlayerPreferencesSnapshot(
           Map<String, dynamic> data) =>
@@ -1348,6 +1351,9 @@ abstract final class RuntimeCompanionPresentationCodec {
         worldTime: data['worldTime'] == null
             ? const RuntimeWorldTimePreferences()
             : RuntimeWorldTimePreferences.fromJson(_map(data['worldTime'])),
+        graphics: data['graphics'] == null
+            ? const RuntimeGraphicsPreferences()
+            : RuntimeGraphicsPreferences.fromJson(_map(data['graphics'])),
       );
 
   static int _decodeTargetFramesPerSecond(Map<String, dynamic> data) {

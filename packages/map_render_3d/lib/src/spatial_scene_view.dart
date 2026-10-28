@@ -355,6 +355,14 @@ class SpatialSceneController extends ModelPreviewController {
     notifyListeners();
   }
 
+  bool _shadowsEnabled = true;
+  bool get shadowsEnabled => _shadowsEnabled;
+  set shadowsEnabled(bool value) {
+    if (_shadowsEnabled == value) return;
+    _shadowsEnabled = value;
+    notifyListeners();
+  }
+
   final _dayNightClock = SpatialDayNightPreviewClock();
   double? _dayNightMinute;
   double _dayNightNotificationElapsed = 0;
@@ -1258,8 +1266,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
 
   void syncLighting() {
     if (visibleConfiguration.renderPreparationPaused?.call() == true) return;
-    (context as SpatialRenderContext).pointLightShadowsEnabled =
-        this.configuration.controller.previewPointLightShadowsEnabled;
+    (context as SpatialRenderContext)
+      ..pointLightShadowsEnabled =
+          this.configuration.controller.previewPointLightShadowsEnabled
+      ..shadowsEnabled = this.configuration.controller.shadowsEnabled;
     final preview = previewLighting;
     if (preview != null) {
       (context as SpatialRenderContext).lighting = preview;

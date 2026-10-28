@@ -294,6 +294,17 @@ void main() {
     runtime.applyPlayerPreferences(real);
     expect(session.worldTimeOverrides.isEmpty, isTrue);
   });
+  test('graphics preferences reach the mounted session and follow later changes', () async {
+    const defaults = PlayerPreferencesSnapshot(locale: 'fr', accessibility: GameSessionAccessibilityOptions());
+    const graphics = RuntimeGraphicsPreferences(renderScalePercent: 75, shadows: false, depthOfField: false);
+    runtime.applyPlayerPreferences(defaults.copyWith(graphics: graphics));
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    expect(session.graphics.value, graphics);
+    runtime.applyPlayerPreferences(defaults);
+    expect(session.graphics.value, const RuntimeGraphicsPreferences());
+  });
   test('session frames checkpoint and Continue share one environment timeline', () async {
     bundle = bundle.copyWith(projectVisualProfile: SpatialVisualPatch.fromJson({
       'timeMode': 'cycle', 'dayDurationSeconds': 1200, 'minuteOfDay': 360,

@@ -235,6 +235,18 @@ void main() {
     expect(lighting.sunStrength, authored.sunStrength);
     expect(lighting.pointLights, hasLength(1));
   });
+
+  test('the scene shadow switch reaches the render context', () {
+    final fixture = _Fixture(const MapMetadata());
+    fixture.game.syncLighting();
+    expect(fixture.context.shadowsEnabled, isTrue);
+    fixture.controller.shadowsEnabled = false;
+    fixture.game.syncLighting();
+    expect(fixture.context.shadowsEnabled, isFalse);
+    fixture.controller.shadowsEnabled = true;
+    fixture.game.syncLighting();
+    expect(fixture.context.shadowsEnabled, isTrue);
+  });
 }
 
 final class _Fixture {

@@ -76,6 +76,24 @@ void main() {
     _expectRestored(fixture);
   });
 
+  test('disabled shadows skip every shadow pass and keep the color pass', () {
+    final fixture = _Fixture(6);
+    fixture.context.shadowsEnabled = false;
+    fixture.render();
+    final draws = fixture.backend.draws;
+    expect(draws.where((draw) => draw.path == 'shadow'), isEmpty);
+    expect(draws.where((draw) => draw.path == 'point'), isEmpty);
+    expect(
+      draws.where((draw) => draw.path == 'color').map((draw) => draw.name),
+      ['pose-0', 'pose-1', 'pose-2'],
+    );
+    expect(fixture.context.shadowStats.casterDrawCount, 0);
+    expect(fixture.context.shadowStats.pointCasterDrawCount, 0);
+    expect(fixture.context.shadowFrame, isNull);
+    expect(fixture.context.pointShadowFrame, isNull);
+    _expectRestored(fixture);
+  });
+
   for (final failure in ['pipeline', 'geometry']) {
     for (final flags in [2, 4]) {
       test(

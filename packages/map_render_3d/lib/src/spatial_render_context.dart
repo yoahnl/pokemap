@@ -41,6 +41,7 @@ class SpatialRenderContext extends RenderContext3D
   @override
   double atmosphereNight = 0;
   bool pointLightShadowsEnabled = true;
+  bool shadowsEnabled = true;
   bool shadowAntialiasingEnabled = true;
   bool preferMultisampledShadows = true;
   bool shadowCoverageEnabled = true;
@@ -145,9 +146,10 @@ class SpatialRenderContext extends RenderContext3D
 
   @override
   void flush() {
-    final shadow = lighting.enabled ? lighting.shadow : null;
+    final shadow = lighting.enabled && shadowsEnabled ? lighting.shadow : null;
     final hasPointShadows =
         lighting.enabled &&
+        shadowsEnabled &&
         pointLightShadowsEnabled &&
         lighting.pointShadowCasterInstanceIds.isNotEmpty &&
         lighting.pointLights.any((light) => light.intensity > 0);

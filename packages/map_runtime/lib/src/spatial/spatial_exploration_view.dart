@@ -87,7 +87,9 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     camera.worldEnvironment = environment;
     camera.weatherTimelineSeconds =
         widget.session.environmentClock.elapsedSeconds;
-    camera.visualProfile = profile;
+    camera
+      ..visualProfile = profile.overriddenBy(_graphicsOverrides)
+      ..shadowsEnabled = widget.session.graphics.value.shadows;
     var weather = profile
         .applyAtmosphere(activeBundle.spatialAtmosphereSettings)
         .weather;
@@ -108,6 +110,14 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
 
   final keys = <LogicalKeyboardKey>{};
   int inputEpoch = -1;
+  late SpatialVisualPatch _graphicsOverrides =
+      widget.session.graphics.value.visualOverrides;
+
+  void _graphicsChanged() {
+    final overrides = widget.session.graphics.value.visualOverrides;
+    setState(() => _graphicsOverrides = overrides);
+    applyVisuals();
+  }
   late RuntimeMapBundle activeBundle;
   RuntimeMapBundle? _loaderBundle;
   SpatialExplorationSession? _loaderSession;
@@ -210,6 +220,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     WidgetsBinding.instance.addObserver(this);
     widget.previewVisuals?.addListener(applyVisuals);
     widget.session.realWeather?.addListener(applyVisuals);
+    widget.session.graphics.addListener(_graphicsChanged);
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     activeBundle = widget.session.bundle;
@@ -386,6 +397,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     renderedFramesMapId = null;
     renderedFrames = const {};
     oldWidget.session.realWeather?.removeListener(applyVisuals);
+    oldWidget.session.graphics.removeListener(_graphicsChanged);
     oldWidget.session.mapRevision.removeListener(mapChanged);
     oldWidget.session.transitioning.removeListener(release);
     oldWidget.session.waitForNativeDoorBlackoutFrame = null;
@@ -393,6 +405,8 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     oldWidget.session.prepareNativeDoorDestination = null;
     keys.clear();
     widget.session.realWeather?.addListener(applyVisuals);
+    widget.session.graphics.addListener(_graphicsChanged);
+    _graphicsOverrides = widget.session.graphics.value.visualOverrides;
     widget.session.mapRevision.addListener(mapChanged);
     widget.session.transitioning.addListener(release);
     widget.session.waitForNativeDoorBlackoutFrame = waitForBlackoutFrame;
@@ -500,6 +514,7 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
     neighborGeneration++;
     release();
     widget.session.realWeather?.removeListener(applyVisuals);
+    widget.session.graphics.removeListener(_graphicsChanged);
     widget.session.mapRevision.removeListener(mapChanged);
     widget.session.waitForNativeDoorBlackoutFrame = null;
     widget.session.waitForNativeTraversalStartFrame = null;
@@ -539,7 +554,9 @@ class _SpatialExplorationViewState extends State<SpatialExplorationView>
           children: [
             Positioned.fill(
               child: SpatialSceneView(
-                renderResolutionScale: widget.renderResolutionScale,
+                renderResolutionScale:
+                    widget.session.graphics.value.renderScale ??
+                    widget.renderResolutionScale,
                 resourceBudget: renderedBundle.resourceBudget,
                 resourceIdentity: renderedBundle.projectCatalog?.identity,
                 key: ObjectKey(widget.session),

@@ -28,6 +28,7 @@ final class PlayerPreferences {
     this.menuEffects = RuntimePlayerMenuEffects.full,
     this.realWeather = const RealWeatherPreferences(),
     this.worldTime = const RuntimeWorldTimePreferences(),
+    this.graphics = const RuntimeGraphicsPreferences(),
     this.targetFramesPerSecond = AveluneFrameRate.defaultLimit,
   }) : assert(
           targetFramesPerSecond == 30 ||
@@ -60,6 +61,7 @@ final class PlayerPreferences {
       'targetFramesPerSecond',
       'realWeather',
       'worldTime',
+      'graphics',
     };
     if (json.keys.toSet().difference(keys).isNotEmpty ||
         json['schemaVersion'] != 1) {
@@ -137,7 +139,16 @@ final class PlayerPreferences {
     if (rawWorldTime != null && rawWorldTime is! Map) {
       throw const FormatException('Invalid world time preferences.');
     }
+    final rawGraphics = json['graphics'];
+    if (rawGraphics != null && rawGraphics is! Map) {
+      throw const FormatException('Invalid graphics preferences.');
+    }
     return PlayerPreferences(
+      graphics: rawGraphics == null
+          ? const RuntimeGraphicsPreferences()
+          : RuntimeGraphicsPreferences.fromJson(
+              Map<String, Object?>.from(rawGraphics as Map),
+            ),
       worldTime: rawWorldTime == null
           ? const RuntimeWorldTimePreferences()
           : RuntimeWorldTimePreferences.fromJson(
@@ -185,6 +196,7 @@ final class PlayerPreferences {
   final int targetFramesPerSecond;
   final RealWeatherPreferences realWeather;
   final RuntimeWorldTimePreferences worldTime;
+  final RuntimeGraphicsPreferences graphics;
 
   Locale? get locale => switch (language) {
         PlayerLanguage.system => null,
@@ -220,6 +232,7 @@ final class PlayerPreferences {
         menuEffects: menuEffects,
         realWeather: realWeather,
         worldTime: worldTime,
+        graphics: graphics,
         targetFramesPerSecond: targetFramesPerSecond,
       );
 
@@ -245,6 +258,7 @@ final class PlayerPreferences {
         menuEffects: snapshot.menuEffects,
         realWeather: snapshot.realWeather,
         worldTime: snapshot.worldTime,
+        graphics: snapshot.graphics,
         targetFramesPerSecond: snapshot.targetFramesPerSecond,
       );
 
@@ -268,11 +282,13 @@ final class PlayerPreferences {
     int? targetFramesPerSecond,
     RealWeatherPreferences? realWeather,
     RuntimeWorldTimePreferences? worldTime,
+    RuntimeGraphicsPreferences? graphics,
   }) =>
       PlayerPreferences(
         language: language ?? this.language,
         realWeather: realWeather ?? this.realWeather,
         worldTime: worldTime ?? this.worldTime,
+        graphics: graphics ?? this.graphics,
         dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
         menuEffects: menuEffects ?? this.menuEffects,
         targetFramesPerSecond:
@@ -299,6 +315,8 @@ final class PlayerPreferences {
         if (realWeather != const RealWeatherPreferences()) 'realWeather': realWeather.toJson(),
         if (worldTime != const RuntimeWorldTimePreferences())
           'worldTime': worldTime.toJson(),
+        if (graphics != const RuntimeGraphicsPreferences())
+          'graphics': graphics.toJson(),
         'language': language.name,
         'dialogueTextSpeed': dialogueTextSpeed.name,
         'menuEffects': menuEffects.name,
@@ -323,6 +341,7 @@ final class PlayerPreferences {
       other is PlayerPreferences &&
       realWeather == other.realWeather &&
       worldTime == other.worldTime &&
+      graphics == other.graphics &&
       schemaVersion == other.schemaVersion &&
       language == other.language &&
       dialogueTextSpeed == other.dialogueTextSpeed &&
@@ -343,9 +362,10 @@ final class PlayerPreferences {
       launchMostRecentGameOnStartup == other.launchMostRecentGameOnStartup;
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
         realWeather,
         worldTime,
+        graphics,
         schemaVersion,
         language,
         dialogueTextSpeed,
@@ -364,5 +384,5 @@ final class PlayerPreferences {
         leftHandedTouchControls,
         touchRunMode,
         launchMostRecentGameOnStartup,
-      );
+      ]);
 }

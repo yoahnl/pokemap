@@ -192,6 +192,7 @@ final class SpatialExplorationGameSessionRuntime
     if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
     _session?.worldTimeOverrides = preferences.worldTime.visualOverrides;
+    _session?.graphics.value = preferences.graphics;
     _configureRealWeather();
   }
 
@@ -1168,6 +1169,7 @@ final class SpatialExplorationGameSessionRuntime
       if (_preferences case final preferences?) {
         loaded.setTextSpeed(preferences.dialogueTextSpeed);
         loaded.worldTimeOverrides = preferences.worldTime.visualOverrides;
+        loaded.graphics.value = preferences.graphics;
       }
       _syncMovement();
       _mounted = true;

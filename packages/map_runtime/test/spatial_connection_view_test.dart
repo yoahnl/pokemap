@@ -126,6 +126,32 @@ void main() {
     expect(after.controller.atmosphereProfile, same(atmosphereProfile));
     expect(after.background, Colors.black);
     expect(session.prepareNativeDoorDestination, preparation);
+    session.graphics.value = const RuntimeGraphicsPreferences(
+      renderScalePercent: 75,
+      depthOfField: false,
+      shadows: false,
+      ambientAnimation: false,
+    );
+    await tester.pump();
+    final reduced = tester.widget<SpatialSceneView>(
+      find.byType(SpatialSceneView),
+    );
+    expect(reduced.renderResolutionScale, .75);
+    expect(reduced.controller.shadowsEnabled, isFalse);
+    expect(reduced.controller.depthOfFieldEnabled, isFalse);
+    expect(reduced.controller.waterAnimated, isFalse);
+    expect(reduced.controller.windowsLit, isFalse);
+    expect(reduced.controller.fireflies, isFalse);
+    session.graphics.value = const RuntimeGraphicsPreferences();
+    await tester.pump();
+    final restored = tester.widget<SpatialSceneView>(
+      find.byType(SpatialSceneView),
+    );
+    expect(restored.renderResolutionScale, 1);
+    expect(restored.controller.shadowsEnabled, isTrue);
+    expect(restored.controller.waterAnimated, isTrue);
+    expect(restored.controller.windowsLit, isTrue);
+    expect(restored.controller.fireflies, isTrue);
     await tester.pumpWidget(const SizedBox());
     expect(session.prepareNativeDoorDestination, isNull);
     session.dispose();
