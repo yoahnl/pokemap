@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core.dart' hide SpatialMapOperations;
@@ -36,6 +38,44 @@ class SpatialModelEntityControls extends StatelessWidget {
           },
         );
     if (generated) return const SizedBox.shrink();
+    final bound = map.entities
+        .where((entity) => entity.id == instance.entityId)
+        .firstOrNull;
+    final obstacle = bound?.fieldObstacle;
+    final model = project.models3d
+        .where((model) => model.id == instance.modelId)
+        .firstOrNull;
+    final canConfigure =
+        obstacle != null ||
+        instance.blocksMovement &&
+            instance.animationIndex == null &&
+            instance.clip == null &&
+            model != null &&
+            model.inspection.animations.isEmpty &&
+            model.rampProfile == null &&
+            (instance.entityId == null || bound?.kind == MapEntityKind.custom);
+    void configure(MapEntityFieldObstacleData? value) {
+      final publish = document.configureSpatialFieldObstacle;
+      if (publish != null) {
+        unawaited(publish(instance.id, value).then((_) => onChanged()));
+        return;
+      }
+      try {
+        document.commit(
+          const SpatialMapActions().configureFieldObstacle(
+            document.current,
+            project: project,
+            instanceId: instance.id,
+            fieldObstacle: value,
+          ),
+        );
+        document.error = null;
+      } on Object {
+        document.error = 'Choisissez un décor statique bloquant sans autre rôle de jeu pour Coupe ou Éclate-Roc.';
+      }
+      onChanged();
+    }
+
     final occupied = {
       for (final model in map.spatialScene!.instances)
         if (model.id != instance.id && model.entityId != null) model.entityId!,
@@ -52,6 +92,51 @@ class SpatialModelEntityControls extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioSelect(
+          key: const ValueKey('spatial-model-field-obstacle'),
+          label: 'Obstacle CS',
+          value: obstacle?.kind.name ?? '',
+          options: const {
+            '': 'Aucun',
+            'cutTree': 'Coupe',
+            'rockSmashRock': 'Éclate-Roc',
+          },
+          onChanged: document.saving || !canConfigure
+              ? null
+              : (value) => configure(
+                  value.isEmpty
+                      ? null
+                      : MapEntityFieldObstacleData(
+                          kind: FieldObstacleKind.values.byName(value),
+                          resetPolicy:
+                              obstacle?.resetPolicy ??
+                              FieldObstacleResetPolicy.mapInstance,
+                        ),
+                ),
+        ),
+        if (obstacle != null) ...[
+          const SizedBox(height: 8),
+          StudioSelect(
+            key: const ValueKey('spatial-model-field-obstacle-reset'),
+            label: 'Après utilisation',
+            value: obstacle.resetPolicy.name,
+            options: const {
+              'persistent': 'Conservé dans la sauvegarde',
+              'mapInstance': 'Réapparaît à la nouvelle instance',
+            },
+            onChanged: document.saving
+                ? null
+                : (value) => configure(
+                    MapEntityFieldObstacleData(
+                      kind: obstacle.kind,
+                      resetPolicy: FieldObstacleResetPolicy.values.byName(
+                        value,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+        const SizedBox(height: 8),
+        StudioSelect(
           key: const ValueKey('spatial-model-entity-binding'),
           label: 'Élément du jeu lié',
           value: instance.entityId ?? '',
@@ -62,7 +147,7 @@ class SpatialModelEntityControls extends StatelessWidget {
                   ? 'Élément en X ${entity.pos.x}, Y ${entity.pos.y}'
                   : entity.name,
           },
-          onChanged: document.saving
+          onChanged: document.saving || obstacle != null
               ? null
               : (id) {
                   try {

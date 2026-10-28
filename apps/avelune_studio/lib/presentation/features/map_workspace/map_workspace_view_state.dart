@@ -80,6 +80,7 @@ class MapWorkspaceViewState {
   );
   ProjectElementEntry? brush;
   FieldObstacleKind fieldObstacleKind = FieldObstacleKind.cutTree;
+  FieldObstacleResetPolicy fieldObstacleResetPolicy = FieldObstacleResetPolicy.mapInstance;
   ProjectModel3dEntry? model3d;
   TileLayerPaletteEntry? tile;
   ProjectSmartTilePreset? terrain;

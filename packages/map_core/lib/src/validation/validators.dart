@@ -1,4 +1,5 @@
 import '../models/project_media_catalog.dart';
+import '../read_models/field_obstacle_capabilities.dart';
 import '../diagnostics/scene_diagnostics.dart';
 import '../encounters/encounter_contract.dart';
 import '../exceptions/map_exceptions.dart';
@@ -3213,9 +3214,11 @@ class MapValidator {
           (map.spatialScene != null || map.version == ProjectVersion.v9)) {
         throw ValidationException('Healing displays require a 2D map.');
       }
-      if ((entity.fieldObstacle != null || entity.interactiveEncounter != null) &&
-          (map.spatialScene != null || map.version == ProjectVersion.v9)) {
-        throw ValidationException('Field obstacles require a 2D map.');
+      if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+        if (entity.interactiveEncounter != null ||
+            entity.fieldObstacle != null && !isValidSpatialFieldObstacle(map, entity)) {
+          throw ValidationException('3D field obstacles require a static bound Cut or Rock Smash model.');
+        }
       }
       final movementArea = entity.npc?.movement.movementArea;
       if (movementArea != null &&

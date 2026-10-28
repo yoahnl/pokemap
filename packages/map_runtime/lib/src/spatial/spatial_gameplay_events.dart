@@ -421,6 +421,12 @@ final class SpatialGameplayEvents {
     final map = mapsById[mapId];
     if (map == null) return false;
     final state = gameStateOverride ?? _readGameState();
+    final instance = state.mapInstanceWorldState.instanceRef(mapId);
+    if (entity.fieldObstacle != null &&
+        (state.mapInstanceWorldState.persistentClearedObstacles[mapId]?.contains(entity.id) == true ||
+        instance != null && state.mapInstanceWorldState.isFieldObstacleCleared(instance, entity.id))) {
+      return false;
+    }
     if (entity.item != null &&
         spatialItemIsCollected(gameState: state, mapId: mapId, entity: entity)) {
       return false;

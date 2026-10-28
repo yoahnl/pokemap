@@ -5,6 +5,7 @@ import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_entity_editing_commands.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import 'healing_display_controls.dart';
 import 'interactive_encounter_controls.dart';
@@ -279,16 +280,26 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                   entity.id,
                   entity.fieldObstacle?.kind == kind
                       ? null
-                      : MapEntityFieldObstacleData(kind: kind),
+                      : MapEntityFieldObstacleData(kind: kind, resetPolicy: kind == FieldObstacleKind.cutTree || kind == FieldObstacleKind.rockSmashRock ? entity.fieldObstacle?.resetPolicy ?? FieldObstacleResetPolicy.mapInstance : FieldObstacleResetPolicy.mapInstance),
                 ),
               ),
             ),
+          if (entity.fieldObstacle?.kind == FieldObstacleKind.cutTree || entity.fieldObstacle?.kind == FieldObstacleKind.rockSmashRock) ...[
+            const SizedBox(height: 8),
+            StudioSelect(
+              key: const ValueKey('field-obstacle-reset'),
+              label: 'Après utilisation', value: entity.fieldObstacle!.resetPolicy.name,
+              options: const {'persistent': 'Conservé dans la sauvegarde', 'mapInstance': 'Réapparaît à la nouvelle instance'},
+              onChanged: (value) => _change(() => _commands.setFieldObstacle(entity.id,
+                MapEntityFieldObstacleData(kind: entity.fieldObstacle!.kind, resetPolicy: FieldObstacleResetPolicy.values.byName(value)))),
+            ),
+          ],
           if (entity.fieldObstacle != null) ...[
             const SizedBox(height: 6),
             Text(
               entity.fieldObstacle?.kind == FieldObstacleKind.strengthBoulder
                   ? 'Position et activation de Force : réinitialisées avec la carte.'
-                  : 'Réapparition : à la réinitialisation de la carte.',
+                  : entity.fieldObstacle!.resetPolicy == FieldObstacleResetPolicy.persistent ? 'L’obstacle utilisé reste retiré dans la sauvegarde.' : 'Réapparition : à la réinitialisation de la carte.',
             ),
           ],
         ],

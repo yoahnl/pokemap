@@ -36,6 +36,7 @@ import '../presentation/flame/battle_music_resolver.dart';
 import '../player/runtime_world_service_models.dart';
 import '../player/runtime_world_time_preferences.dart';
 import '../application/runtime_overworld_interaction.dart';
+import '../application/spatial_field_obstacle_interaction.dart';
 import 'runtime_overworld_interaction_port.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import '../presentation/flame/runtime_input_authority.dart';
@@ -210,7 +211,11 @@ final class SpatialExplorationGameSessionRuntime
     if (_disposed) return;
     final session = _session;
     if (session == null) return;
-    final npc = !inputAuthority.value.acceptsOverworldInput
+    final obstacle = !inputAuthority.value.acceptsOverworldInput ? null :
+        findSpatialFieldObstacleTarget(map: session.bundle.map,
+          gameState: gameStateSnapshot, models: session.bundle.manifest.models3d,
+          x: session.movement.x, z: session.movement.z, facing: session.movement.facing);
+    final npc = obstacle ?? (!inputAuthority.value.acceptsOverworldInput
         ? null
         : _gameplay != null
             ? _gameplay!.interactionTarget
@@ -219,7 +224,7 @@ final class SpatialExplorationGameSessionRuntime
                 entities: session.bundle.map.entities,
                 x: session.movement.x,
                 z: session.movement.z,
-                facing: session.movement.facing);
+                facing: session.movement.facing));
     final model = npc == null && inputAuthority.value.acceptsOverworldInput
         ? _gameplay?.modelInteractionTarget
         : null;
@@ -281,7 +286,7 @@ final class SpatialExplorationGameSessionRuntime
         movementContinuityId:
             '${descriptor.sessionId}:${session.movement.inputEpoch}',
         primaryAction: npc == null ||
-                (_gameplay == null && npc.npc?.dialogue == null)
+                (obstacle == null && _gameplay == null && npc.npc?.dialogue == null)
             ? surfAction
             : RuntimeOverworldInteractionAction(
                 request: RuntimeOverworldInteractionRequest(
@@ -290,7 +295,7 @@ final class SpatialExplorationGameSessionRuntime
                     mapId: session.bundle.map.id,
                     targetKind: RuntimeOverworldInteractionTargetKind.entity,
                     targetId: npc.id,
-                    actionId: 'talk'),
+                    actionId: obstacle != null ? 'field-obstacle' : 'talk'),
                 verb: switch (npc.kind) {
                   MapEntityKind.npc => RuntimeOverworldInteractionVerb.talk,
                   MapEntityKind.sign => RuntimeOverworldInteractionVerb.read,
@@ -354,6 +359,41 @@ final class SpatialExplorationGameSessionRuntime
             session.beginSurf(target);
           }
           _syncGameState();
+          _publishFrame();
+        }
+      }));
+      return true;
+    }
+    if (request.actionId == 'field-obstacle') {
+      final session = _session!;
+      final initial = gameStateSnapshot;
+      final interaction = prepareSpatialFieldObstacleInteraction(
+          map: session.bundle.map, gameState: initial,
+          models: session.bundle.manifest.models3d, entityId: request.targetId,
+          x: session.movement.x, z: session.movement.z,
+          facing: session.movement.facing, stateRevision: 0,
+          projectSettings: session.bundle.manifest.settings);
+      if (interaction == null) return false;
+      unawaited(_runGameplay(() async {
+        final answer = await session.showFieldObstaclePrompt(interaction.session);
+        final ticket = interaction.ticket;
+        if (!answer.success || answer.outcomeId != 'field-obstacle-confirmed' ||
+            ticket == null || _disposed || _stopped || !identical(session, _session)) return;
+        FieldObstacleCommit validate() => commitSpatialDestructibleFieldObstacleAction(
+            ticket: ticket, map: session.bundle.map, gameState: _gameState!,
+            models: session.bundle.manifest.models3d,
+            x: session.movement.x, z: session.movement.z, facing: session.movement.facing,
+            currentStateRevision: identical(_gameState, initial) ? 0 : 1,
+            confirmedEntityId: request.targetId,
+            projectSettings: session.bundle.manifest.settings);
+        if (validate() is! FieldObstacleApplied) return;
+        if (!await session.presentFieldAction(ticket.entity.fieldObstacle!.ability!)) return;
+        if (_disposed || _stopped || !identical(session, _session)) return;
+        final result = validate();
+        if (result case FieldObstacleApplied(:final gameState)) {
+          _gameState = gameState;
+          unawaited(projectAudio?.play(ProjectSoundCueCatalog.forFieldAbilityId(
+              ticket.entity.fieldObstacle!.ability!.moveId)));
           _publishFrame();
         }
       }));
@@ -621,7 +661,7 @@ final class SpatialExplorationGameSessionRuntime
           );
           final partyConditionContext = await loadRuntimeScenePartyConditionContext(
             scene: scene,
-            supportedFieldAbilities: const {FieldAbility.surf},
+            supportedFieldAbilities: const {FieldAbility.surf, FieldAbility.cut, FieldAbility.rockSmash},
             conditionContext: ScriptEvaluationContext(narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(project.facts)),
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: project.pokemon,
@@ -1060,6 +1100,7 @@ final class SpatialExplorationGameSessionRuntime
         if (FieldAbilityActivationCapabilities.requiresCapability(manifest)) FieldAbilityActivationCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(manifest)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(manifest)) ProjectAudioCapabilities.capabilityId,
+        if (ProjectAudioCapabilities.requiresExtendedCapability(manifest)) ProjectAudioCapabilities.extendedCapabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(manifest)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(manifest)) SpatialGameplayCapabilities.eggGiftCapabilityId,

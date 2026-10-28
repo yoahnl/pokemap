@@ -70,12 +70,13 @@ void main() {
         .singleWhere((action) => action.id == 'entity.set_field_obstacle');
     expect(action.extensions['fieldObstacle'], {
       'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock', 'iceBlock'],
-      'resetPolicies': ['mapInstance'],
+      'resetPolicies': ['mapInstance', 'persistent'],
       'entityKind': 'custom',
       'blocksMovement': true,
       'footprint': {'width': 1, 'height': 1},
-      'mapMode': '2d',
-      'visual': 'existingProjectElement',
+      'mapMode': '2d_and_3d',
+      'visual': 'existingProjectElement_or_boundStaticModel',
+      'spatialKinds': ['cutTree', 'rockSmashRock'],
       'clearValue': null,
       'parameters': ['mapId', 'entityId', 'fieldObstacle'],
       'iceBlock': {

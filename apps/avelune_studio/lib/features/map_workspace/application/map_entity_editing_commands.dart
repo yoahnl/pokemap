@@ -79,6 +79,7 @@ class MapEntityEditingCommands {
     required GridPos position,
     required String elementId,
     required FieldObstacleKind kind,
+    FieldObstacleResetPolicy resetPolicy = FieldObstacleResetPolicy.mapInstance,
   }) {
     final entity = MapEntity(
       id: _id(MapEntityKind.custom),
@@ -99,7 +100,7 @@ class MapEntityEditingCommands {
       placed,
       project: project,
       entityId: entity.id,
-      fieldObstacle: MapEntityFieldObstacleData(kind: kind),
+      fieldObstacle: MapEntityFieldObstacleData(kind: kind, resetPolicy: resetPolicy),
     );
     document.commit(configured);
     return configured.entities.singleWhere((item) => item.id == entity.id);

@@ -20,6 +20,8 @@ class CharacterStudioAnimationSelect extends StatelessWidget {
     CharacterAnimationState.surf: 'Surf en déplacement',
     CharacterAnimationState.surfEnter: 'Entrée dans l’eau',
     CharacterAnimationState.surfExit: 'Sortie de l’eau',
+    CharacterAnimationState.cut: 'Coupe',
+    CharacterAnimationState.rockSmash: 'Éclate-Roc',
   };
 
   @override

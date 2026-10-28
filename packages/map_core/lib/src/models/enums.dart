@@ -453,6 +453,10 @@ enum CharacterAnimationState {
   surfEnter,
   @JsonValue('surf_exit')
   surfExit,
+  @JsonValue('cut')
+  cut,
+  @JsonValue('rock_smash')
+  rockSmash,
 }
 
 enum CharacterPortraitFitMode {

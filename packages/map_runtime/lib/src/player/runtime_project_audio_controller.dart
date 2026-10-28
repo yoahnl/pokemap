@@ -302,6 +302,24 @@ final class RuntimeProjectAudioController {
   static const builtinPaths = <ProjectSoundCue, String>{
     ProjectSoundCue.fieldCut:
         'packages/map_runtime/assets/audio/battle/se/063-swing02.ogg',
+    ProjectSoundCue.fieldFly:
+        'packages/map_runtime/assets/audio/battle/se/132-wind01.ogg',
+    ProjectSoundCue.fieldStrength:
+        'packages/map_runtime/assets/audio/battle/se/045-push01.ogg',
+    ProjectSoundCue.fieldFlash:
+        'packages/map_runtime/assets/audio/battle/se/136-light02.ogg',
+    ProjectSoundCue.fieldRockSmash:
+        'packages/map_runtime/assets/audio/battle/se/131-earth03.ogg',
+    ProjectSoundCue.fieldWaterfall:
+        'packages/map_runtime/assets/audio/battle/se/126-water01.ogg',
+    ProjectSoundCue.fieldWhirlpool:
+        'packages/map_runtime/assets/audio/battle/se/128-water03.ogg',
+    ProjectSoundCue.fieldDive:
+        'packages/map_runtime/assets/audio/battle/se/021-dive01.ogg',
+    ProjectSoundCue.fieldRockClimb:
+        'packages/map_runtime/assets/audio/battle/se/045-push03.ogg',
+    ProjectSoundCue.fieldDefog:
+        'packages/map_runtime/assets/audio/battle/se/132-wind01.ogg',
     ProjectSoundCue.uiSelect:
         'packages/map_runtime/assets/audio/battle/se/001-system01.ogg',
     ProjectSoundCue.uiConfirm:

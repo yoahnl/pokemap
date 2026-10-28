@@ -3,6 +3,7 @@ export 'src/models/npc_pokemon_trade_offer.dart';
 export 'src/models/narrative_map_view.dart';
 export 'src/models/narrative_map_projection.dart';
 export 'src/models/map_entity_field_obstacle.dart';
+export 'src/read_models/field_obstacle_capabilities.dart';
 export 'map_core_domain.dart';
 export 'src/runtime/runtime_resource_budget.dart';
 export 'src/runtime/playtest_speed.dart';

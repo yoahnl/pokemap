@@ -29,6 +29,10 @@ class MapFieldObstaclePlacementControls extends StatelessWidget {
       },
       onChanged: (value) {
         view.fieldObstacleKind = FieldObstacleKind.values.byName(value);
+        if (view.fieldObstacleKind == FieldObstacleKind.strengthBoulder ||
+            view.fieldObstacleKind == FieldObstacleKind.iceBlock) {
+          view.fieldObstacleResetPolicy = FieldObstacleResetPolicy.mapInstance;
+        }
         onChanged();
       },
     );
@@ -56,6 +60,23 @@ class MapFieldObstaclePlacementControls extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(child: visual),
               ],
+            ),
+          const SizedBox(height: 8),
+          if (view.fieldObstacleKind == FieldObstacleKind.cutTree ||
+              view.fieldObstacleKind == FieldObstacleKind.rockSmashRock)
+            StudioSelect(
+              key: const ValueKey('field-obstacle-placement-reset'),
+              label: 'Après utilisation',
+              value: view.fieldObstacleResetPolicy.name,
+              options: const {
+                'persistent': 'Conservé dans la sauvegarde',
+                'mapInstance': 'Réapparaît à la nouvelle instance',
+              },
+              onChanged: (value) {
+                view.fieldObstacleResetPolicy = FieldObstacleResetPolicy.values
+                    .byName(value);
+                onChanged();
+              },
             ),
           const SizedBox(height: 6),
           Text(

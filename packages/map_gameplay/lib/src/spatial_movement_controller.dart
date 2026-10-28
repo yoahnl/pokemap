@@ -818,6 +818,7 @@ final class SpatialMovementController {
 
   void _updateLedgeJump(double elapsed) {
     final jump = _ledgeJump!;
+    animationSeconds += elapsed;
     jump.elapsed = math.min(
         jump.elapsed + elapsed * 1000, jump.ledge.durationMs.toDouble());
     final t = jump.progress;

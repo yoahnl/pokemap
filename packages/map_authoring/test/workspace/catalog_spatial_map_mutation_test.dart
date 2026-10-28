@@ -11,9 +11,55 @@ import '../domains/maps/border_spatial_actions_test.dart'
 import '../domains/maps/environment_spatial_actions_test.dart'
     show spatialEnvironmentFixture;
 import '../domains/maps/healing_display_fixture.dart';
+import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleProject, obstacleMap;
 
 void main() {
 
+  final obstacleCounts = <List<int>>[];
+  for (final unrelated in [0, 2000]) {
+    test('targeted 3D field obstacles first repeat undo reopen with $unrelated foreign maps', () async {
+      final source = obstacleMap();
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: obstacleProject().copyWith(maps: const [ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json')]),
+        map: source.copyWith(id: 'map'),
+      ));
+      addTearDown(fixture.close);
+      final counts = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final timer = Stopwatch()..start();
+        final applied = await fixture.apply('map3d.instance.configure_field_obstacle', {
+          'mapId': 'map', 'instanceId': 'oak-1', 'fieldObstacle': {
+            'kind': repeat == 0 ? 'cutTree' : 'rockSmashRock', 'resetPolicy': 'persistent',
+          },
+        }, 'obstacle-$repeat');
+        timer.stop();
+        counts.add(fixture.reader.paths.length);
+        expect(applied.receipt.diff.entries.map((entry) => entry.resource.kind).toSet(), {'catalogHead', 'map'});
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.where((p) => p.endsWith('.glb') || p.endsWith('history.jsonl')), isEmpty);
+        final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+        expect(isValidSpatialFieldObstacle(after, after.entities.single), isTrue);
+        expect(after.entities.single.fieldObstacle!.resetPolicy, FieldObstacleResetPolicy.persistent);
+        print('field-obstacle foreign=$unrelated repeat=$repeat reads=${counts.last} elapsedUs=${timer.elapsedMicroseconds}');
+      }
+      obstacleCounts.add(counts);
+      expect(counts.every((count) => count <= 90), isTrue, reason: '$counts');
+      await fixture.reopen();
+      final scope = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+        actionId: 'map3d.instance.configure_field_obstacle', parameters: {'mapId': 'map', 'instanceId': 'oak-1', 'fieldObstacle': null});
+      expect(scope.manifest.models3d.map((m) => m.id), ['oak']);
+      expect(scope.maps.single.entities.single.fieldObstacle!.kind, FieldObstacleKind.rockSmashRock);
+      final beforeClear = await fixture.mapFile.readAsBytes();
+      final clear = await fixture.apply('map3d.instance.configure_field_obstacle', {'mapId': 'map', 'instanceId': 'oak-1', 'fieldObstacle': null}, 'clear');
+      final cleared = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+      expect(cleared.entities.single.fieldObstacle, isNull);
+      expect(cleared.spatialScene!.instances.single.entityId, cleared.entities.single.id);
+      await fixture.api.undoMutation(fixture.opened.projectHandle, entryId: clear.receipt.receiptId, idempotencyKey: 'undo-clear');
+      expect(await fixture.mapFile.readAsBytes(), beforeClear);
+    }, timeout: const Timeout(Duration(minutes: 3)));
+  }
   for (final unrelated in [0, 90]) {
     test('targeted spatial Border reorder preserves full feature and instances with $unrelated foreign maps', () async {
       final base = spatialBorderAuthoringFixture(published: true);

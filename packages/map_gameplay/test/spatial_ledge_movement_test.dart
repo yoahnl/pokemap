@@ -28,6 +28,18 @@ MapSpatialScene ledgeScene({bool blocked = false, bool reverse = false}) =>
     );
 
 void main() {
+  test('jump advances the character animation clock and pause freezes it', () {
+    final player = SpatialMovementController(scene: ledgeScene(), models: []);
+    player.setInput(x: 0, z: 1);
+    player.update(.025);
+    final started = player.animationSeconds;
+    player.update(.05);
+    expect(player.animationSeconds, closeTo(started + .05, .000001));
+    player.setPaused(true);
+    final paused = player.animationSeconds;
+    player.update(.05);
+    expect(player.animationSeconds, paused);
+  });
   test(
       'jump reserves the landing against autonomous actors and freezes when paused',
       () {

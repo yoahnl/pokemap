@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../domains/maps/semantic_map_action_support.dart';
 import '../../domains/maps/warp_connection_actions.dart';
+import '../../domains/maps/spatial_map_actions.dart';
 import '../../contracts/resource_ref.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/resource_library_scope_guard.dart';
@@ -77,6 +78,7 @@ final class CatalogSpatialMapSelection {
       'border_layer.feature_set_transform',
       'border_layer.feature_set_suppressed',
       'border_layer.feature_clear_slot_override',
+      'map3d.instance.configure_field_obstacle',
       'map3d.instance.upsert',
       'map3d.instance.upsert_batch',
       'smart_tile.layer.create',
@@ -135,10 +137,18 @@ final class CatalogSpatialMapSelection {
           throw const FormatException('catalog.map_properties: map identity or dimension mismatch');
         }
         MapValidator.validate(map);
-        final projectBytes = utf8.encode(jsonEncode(documents.project.toJson()));
+        var definitions = documents.project;
+        if (actionId == 'map3d.instance.configure_field_obstacle') {
+          final instance = map.spatialScene?.instances.where((item) => item.id == parameters['instanceId']).firstOrNull;
+          if (instance != null) {
+            final unit = await catalog.lookup(CatalogDefinitionKey(CatalogDefinitionKind.model3d, instance.modelId));
+            if (unit != null) definitions = definitions.copyWith(models3d: [ProjectModel3dEntry.fromJson(Map<String, dynamic>.from(unit.payload['value'] as Map))]);
+          }
+        }
+        final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
         final snapshot = ProjectSnapshot(projectHandle: projectHandle,
             revision: fingerprint(selected.revision, mapId, payload.resourceRevision),
-            manifest: documents.project, materializedCatalogProject: true,
+            manifest: definitions, materializedCatalogProject: true,
             availableProjectSections: const {}, scopedStorageRevisions: {entry.relativePath: payload.resourceRevision},
             maps: [map], resourceFingerprints: {'project': computeAuthoringBytesFingerprint(projectBytes, logicalName: 'project.json'),
               'map:$mapId': payload.resourceRevision},
@@ -165,7 +175,7 @@ final class CatalogSpatialMapSelection {
       throw const FormatException('catalog.spatial: unsupported action');
     }
     if (actionId == 'map.update_metadata' || actionId == 'map3d.camera.configure' ||
-        actionId == 'warp.ladder.configure') {
+        actionId == 'warp.ladder.configure' || actionId == 'map3d.instance.configure_field_obstacle') {
       return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
     if (const {'warp.update', 'warp.create', 'connection.upsert',
@@ -637,6 +647,15 @@ final class CatalogSpatialMapSelection {
         if (projected != expectedMaps[id]) {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
               message: 'The relation changed data outside its validated update.');
+        }
+      } else if (action == 'map3d.instance.configure_field_obstacle') {
+        final parameters = plan.request.parameters;
+        final value = parameters['fieldObstacle'];
+        final expected = const SpatialMapActions().configureFieldObstacle(snapshot.mapById(mapId)!,
+          project: snapshot.manifest, instanceId: parameters['instanceId'] as String,
+          fieldObstacle: value == null ? null : MapEntityFieldObstacleData.fromJson(Map<String, dynamic>.from(value as Map)));
+        if (projected != expected) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The obstacle action changed unrelated map content.');
         }
       } else if (action == 'warp.ladder.configure') {
         final parameters = plan.request.parameters;

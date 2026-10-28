@@ -172,6 +172,7 @@ SpatialModelInstance? findSpatialModelInteraction({
   required double z,
   required EntityFacing facing,
   SpatialModelRuntimeState? Function(String instanceId)? modelStateProvider,
+  bool Function(double x, double z)? additionalPositionBlocked,
 }) {
   if (!x.isFinite ||
       !z.isFinite ||
@@ -233,6 +234,7 @@ SpatialModelInstance? findSpatialModelInteraction({
         z,
         x + forwardAxis.x * distance - forwardAxis.z * lateral,
         z + forwardAxis.z * distance + forwardAxis.x * lateral,
+        additionalPositionBlocked: additionalPositionBlocked,
         ignoreBlockedAt: (px, pz) =>
             _polygonOverlapsCell(geometry.polygon, px.floor(), pz.floor()))) {
       continue;
@@ -354,7 +356,8 @@ bool _modelOccludesInteraction(MapSpatialScene scene,
 
 bool _hasNavigableTerrainBetween(
     MapSpatialScene scene, double ax, double az, double bx, double bz,
-    {bool Function(double x, double z)? ignoreBlockedAt}) {
+    {bool Function(double x, double z)? ignoreBlockedAt,
+    bool Function(double x, double z)? additionalPositionBlocked}) {
   final steps = (math.max((bx - ax).abs(), (bz - az).abs()) *
           SpatialMovementController.pixelsPerCell)
       .ceil();
@@ -366,6 +369,7 @@ bool _hasNavigableTerrainBetween(
         x >= scene.width ||
         z < 0 ||
         z >= scene.depth ||
+        additionalPositionBlocked?.call(x, z) == true ||
         (ignoreBlockedAt?.call(x, z) != true &&
             scene.navigation.blockedAreas.any((area) =>
                 x >= area.x &&

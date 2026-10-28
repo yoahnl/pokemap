@@ -33,6 +33,7 @@ import 'spatial_render_context.dart';
 import 'spatial_actor_visual.dart';
 import 'spatial_actor_occlusion.dart';
 import 'spatial_actor_contact_shadow.dart';
+import 'spatial_actor_landing_dust.dart';
 import 'spatial_game_surface.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_ground.dart';
@@ -1530,6 +1531,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   final actors =
       <String, ({MeshComponent mesh, SpatialPixelMaterial material})>{};
   late final actorContactShadows = SpatialActorContactShadows(world);
+  late final actorLandingDust = SpatialActorLandingDust(world);
   late final weatherEffects = SpatialWeatherEffects(world);
   late final atmosphereEffects = SpatialAtmosphereEffects(world);
   late final presentationEffects = SpatialPresentationEffects(world);
@@ -3235,6 +3237,23 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
         );
     }
     syncCamera();
+    actorLandingDust.sync(
+      _actorsVisibilityFiltered
+          ? {
+              for (final entry in frames.entries)
+                if ((configuration.visibility ?? SpatialSceneVisibility.all)
+                    .contentVisible(SpatialSceneContentKind.actor, entry.key))
+                  entry.key: entry.value,
+            }
+          : frames,
+      mapId: configuration.groundMap?.id ?? '__scene__',
+      dt: dt,
+      paused: configuration.presentationPaused?.call() ?? false,
+      sceneOffset: configuration.sceneOffset,
+      cameraPitch: billboardPitch,
+      cameraYaw: billboardYaw,
+      topView: configuration.controller.view == SpatialEditorView.top,
+    );
   }
 
   void syncActorOcclusions([Iterable<_SceneGround>? affected]) {
@@ -3643,6 +3662,7 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     _smartTileProjectionCache.clear();
     actorSelections.clear();
     actorContactShadows.clear();
+    actorLandingDust.clear();
     actorFrames = const {};
     super.onRemove();
   }

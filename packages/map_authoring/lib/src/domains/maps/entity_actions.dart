@@ -227,12 +227,13 @@ final class EntityActions {
         'rawTilesetRequired': false,
         'fieldObstacle': {
           'kinds': ['cutTree', 'strengthBoulder', 'rockSmashRock', 'iceBlock'],
-          'resetPolicies': ['mapInstance'],
+          'resetPolicies': ['mapInstance', 'persistent'],
           'entityKind': 'custom',
           'blocksMovement': true,
           'footprint': {'width': 1, 'height': 1},
-          'mapMode': '2d',
-          'visual': 'existingProjectElement',
+          'mapMode': '2d_and_3d',
+          'visual': 'existingProjectElement_or_boundStaticModel',
+          'spatialKinds': ['cutTree', 'rockSmashRock'],
           'clearValue': null,
           'parameters': ['mapId', 'entityId', 'fieldObstacle'],
           'iceBlock': {
@@ -547,7 +548,7 @@ final class EntityActions {
   }) {
     final entity = _entityById(map, entityId);
     if (fieldObstacle != null) {
-      _assertFieldObstacleTarget(map, project, entity);
+      _assertFieldObstacleTarget(map, project, entity.copyWith(fieldObstacle: fieldObstacle));
     }
     return updateEntityOnMap(map,
         entityId: entityId, fieldObstacle: fieldObstacle);
@@ -1206,6 +1207,9 @@ void _assertHealingDisplayTarget(
 
 void _assertFieldObstacleTarget(
     MapData map, ProjectManifest project, MapEntity entity) {
+  if (map.spatialScene != null &&
+      project.settings.dimension == ProjectDimension.threeD &&
+      isValidSpatialFieldObstacle(map, entity)) return;
   if (map.spatialScene != null ||
       map.version == ProjectVersion.v9 ||
       project.settings.dimension != ProjectDimension.twoD ||

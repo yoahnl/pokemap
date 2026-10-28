@@ -4,7 +4,7 @@ import 'enums.dart';
 
 enum FieldObstacleKind { cutTree, strengthBoulder, rockSmashRock, iceBlock }
 
-enum FieldObstacleResetPolicy { mapInstance }
+enum FieldObstacleResetPolicy { mapInstance, persistent }
 
 @immutable
 final class MapEntityFieldObstacleData {
@@ -30,20 +30,33 @@ final class MapEntityFieldObstacleData {
     if (json.length != 2 ||
         !json.keys.every(const {'kind', 'resetPolicy'}.contains) ||
         !FieldObstacleKind.values.any((kind) => kind.name == json['kind']) ||
-        json['resetPolicy'] != 'mapInstance') {
+        !FieldObstacleResetPolicy.values.any((policy) => policy.name == json['resetPolicy'])) {
       throw const FormatException('Unsupported field obstacle contract.');
     }
-    return MapEntityFieldObstacleData(
+    final value = MapEntityFieldObstacleData(
       kind: FieldObstacleKind.values.singleWhere(
         (kind) => kind.name == json['kind'],
       ),
+      resetPolicy: FieldObstacleResetPolicy.values.singleWhere(
+        (policy) => policy.name == json['resetPolicy']),
     );
+    value._validatePolicy();
+    return value;
   }
 
-  Map<String, dynamic> toJson() => {
+  void _validatePolicy() {
+    if (isPushable && resetPolicy == FieldObstacleResetPolicy.persistent) {
+      throw const FormatException('Persistent clearing requires a destructible obstacle.');
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    _validatePolicy();
+    return {
     'kind': kind.name,
     'resetPolicy': resetPolicy.name,
   };
+  }
 
   @override
   bool operator ==(Object other) =>

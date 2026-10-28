@@ -1,5 +1,7 @@
 library map_gameplay;
 
+export 'src/spatial_field_obstacle_action.dart';
+
 export 'src/spatial_trainer_spotting.dart';
 export 'src/contact_device_access.dart';
 

@@ -13,6 +13,7 @@ final class SpatialMapActions {
     'map3d.terrain.configure_height': 'levelHeight',
     'map3d.terrain.configure_appearance': 'cliffFrame',
     'map3d.instance.upsert': 'instance',
+    'map3d.instance.configure_field_obstacle': 'fieldObstacle',
     'map3d.instance.upsert_batch': 'instances',
     'map3d.instance.delete': 'instanceId',
     'map3d.instance.delete_batch': 'instanceIds',
@@ -27,6 +28,7 @@ final class SpatialMapActions {
         id: entry.key,
         version: 1,
         summary: switch (entry.value) {
+          'fieldObstacle' => 'Configure Cut or Rock Smash on a selected static blocking 3D model',
           'cells' => 'Set discrete terrain levels on a 3D map',
           'levelHeight' =>
             'Configure physical terrain level height and preserve instance offsets',
@@ -91,10 +93,11 @@ final class SpatialMapActions {
           'inputSchema': {
             'type': 'object',
             'additionalProperties': false,
-            'required': ['mapId', entry.value],
+            'required': ['mapId', entry.value, if (entry.value == 'fieldObstacle') 'instanceId'],
             'properties': {
               'mapId': {'type': 'string', 'minLength': 1},
               entry.value: _schema(entry.value),
+              if (entry.value == 'fieldObstacle') 'instanceId': _schema('instanceId'),
               if (entry.value == 'cliffFrame')
                 'generateCliffs': {'type': 'boolean'},
             }
@@ -102,6 +105,82 @@ final class SpatialMapActions {
         },
       ),
   ];
+
+  MapData configureFieldObstacle(
+    MapData map, {
+    required ProjectManifest project,
+    required String instanceId,
+    required MapEntityFieldObstacleData? fieldObstacle,
+  }) {
+    if (map.spatialScene == null ||
+        project.settings.dimension != ProjectDimension.threeD) {
+      throw semanticFailure('map3d.dimension_required',
+          'Field obstacles require a 3D project and map.');
+    }
+    _requireAuthoredInstance(map, instanceId, requireExisting: true);
+    final instance = map.spatialScene!.instances
+        .singleWhere((item) => item.id == instanceId);
+    final existing = map.entities
+        .where((entity) => entity.id == instance.entityId)
+        .firstOrNull;
+    if (fieldObstacle == null) {
+      if (existing == null || existing.fieldObstacle == null) return map;
+      return map.copyWith(entities: [
+        for (final entity in map.entities)
+          if (entity.id == existing.id)
+            entity.copyWith(fieldObstacle: null)
+          else
+            entity
+      ]);
+    }
+    final model = project.models3d
+        .where((model) => model.id == instance.modelId)
+        .firstOrNull;
+    if (model == null ||
+        model.inspection.animations.isNotEmpty ||
+        model.rampProfile != null ||
+        existing != null && existing.kind != MapEntityKind.custom ||
+        instance.entityId != null && existing == null) {
+      throw semanticFailure('entity.field_obstacle_invalid',
+          'Choose an independent static blocking model with no other gameplay role.');
+    }
+    var id = existing?.id ?? 'field_';
+    if (existing == null) {
+      final base =
+          'field_${instance.id}'.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+      id = base.length > 116 ? base.substring(0, 116) : base;
+      var suffix = 1;
+      final ids = map.entities.map((entity) => entity.id).toSet();
+      while (ids.contains(id)) {
+        id = '${base.length > 116 ? base.substring(0, 116) : base}_${suffix++}';
+      }
+    }
+    final entity = (existing ??
+            MapEntity(
+                id: id,
+                name: model.name,
+                kind: MapEntityKind.custom,
+                pos: GridPos(
+                    x: instance.position.x.floor(),
+                    y: instance.position.z.floor()),
+                blocksMovement: true))
+        .copyWith(fieldObstacle: fieldObstacle);
+    final after = map.copyWith(
+        entities: [
+          for (final item in map.entities)
+            if (item.id == id) entity else item,
+          if (existing == null) entity,
+        ],
+        spatialScene: map.spatialScene!.copyWith(instances: [
+          for (final item in map.spatialScene!.instances)
+            if (item.id == instanceId) item.copyWith(entityId: id) else item,
+        ]));
+    if (!isValidSpatialFieldObstacle(after, entity)) {
+      throw semanticFailure('entity.field_obstacle_invalid',
+          'A Cut or Rock Smash obstacle requires exactly one static blocking model and a blocking custom object on the same cell.');
+    }
+    return after;
+  }
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     final action = planning.request.actionId;
@@ -112,6 +191,7 @@ final class SpatialMapActions {
     }
     final context = SemanticMapActionContext.read(planning, allowedParameters: {
       field,
+      if (field == 'fieldObstacle') 'instanceId',
       if (field == 'cliffFrame') 'generateCliffs',
     });
     if (context.manifest.settings.dimension != ProjectDimension.threeD ||
@@ -148,6 +228,9 @@ final class SpatialMapActions {
     const operations = SpatialMapOperations();
     try {
       final after = switch (field) {
+        'fieldObstacle' => configureFieldObstacle(context.map, project: context.manifest,
+          instanceId: context.parameters.string('instanceId'),
+          fieldObstacle: context.parameters.value(field) == null ? null : MapEntityFieldObstacleData.fromJson(_object(context.parameters.value(field), {'kind', 'resetPolicy'}))),
         'instances' => _upsertInstances(context),
         'instanceIds' => _deleteInstances(context, planning.snapshot.maps),
         'levelHeight' =>
@@ -190,8 +273,8 @@ final class SpatialMapActions {
             }))),
       };
       return context.draftMap(
-          validateProjectReferences: field != 'camera' || !planning.snapshot.materializedCatalogProject ||
-              planning.snapshot.availableProjectSections == null,
+          validateProjectReferences: field != 'fieldObstacle' && (field != 'camera' || !planning.snapshot.materializedCatalogProject ||
+              planning.snapshot.availableProjectSections == null),
           after: after,
           operation: action,
           changedItems: switch (field) {
@@ -482,6 +565,12 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 }
 
 Map<String, Object?> _schema(String field) => switch (field) {
+      'fieldObstacle' => {
+        'type': ['object', 'null'], 'additionalProperties': false,
+        'required': ['kind', 'resetPolicy'],
+        'properties': {'kind': {'enum': ['cutTree', 'rockSmashRock']},
+          'resetPolicy': {'enum': ['mapInstance', 'persistent']}},
+      },
       'cycle' => {
         'type': ['object', 'null'], 'additionalProperties': false,
         'properties': {

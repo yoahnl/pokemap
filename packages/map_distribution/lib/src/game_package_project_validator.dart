@@ -242,6 +242,7 @@ final class GamePackageProjectValidator {
         if (FieldAbilityActivationCapabilities.requiresCapability(project)) FieldAbilityActivationCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(project)) ProjectAudioCapabilities.capabilityId,
+        if (ProjectAudioCapabilities.requiresExtendedCapability(project)) ProjectAudioCapabilities.extendedCapabilityId,
       }) {
         if (!packageManifest.compatibility.requiredCapabilities.contains(requirement)) {
           _fail('The project requires $requirement.');

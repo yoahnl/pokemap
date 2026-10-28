@@ -38,7 +38,7 @@ MapInstanceWorldState setupDifferentMapInstance({
   _identity(targetMapId);
   final instance =
       _createInstance(targetMapId, allocateId, _instanceIds(state));
-  return MapInstanceWorldState(instancesByMapId: {targetMapId: instance});
+  return MapInstanceWorldState(persistentClearedObstacles: state.persistentClearedObstacles, instancesByMapId: {targetMapId: instance});
 }
 
 MapInstanceWorldState preserveSameMapInstance({
@@ -59,7 +59,7 @@ MapInstanceWorldState retainMapInstance({
   _identity(mapId);
   if (state.instancesByMapId.containsKey(mapId)) return state;
   final instance = _createInstance(mapId, allocateId, _instanceIds(state));
-  return MapInstanceWorldState(instancesByMapId: {
+  return MapInstanceWorldState(persistentClearedObstacles: state.persistentClearedObstacles, instancesByMapId: {
     ...state.instancesByMapId,
     mapId: instance,
   });
@@ -127,7 +127,7 @@ MapInstanceWorldState updateMapInstanceRetention({
           identical(entry.value, state.instancesByMapId[entry.key]))) {
     return state;
   }
-  return MapInstanceWorldState(instancesByMapId: result);
+  return MapInstanceWorldState(persistentClearedObstacles: state.persistentClearedObstacles, instancesByMapId: result);
 }
 
 Set<String> _instanceIds(MapInstanceWorldState state) => {

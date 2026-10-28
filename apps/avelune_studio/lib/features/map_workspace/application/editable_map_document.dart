@@ -93,6 +93,8 @@ class EditableMapDocument {
   GridPos? stackPosition;
   PixelPosition? stackPixelPosition;
   bool saving = false;
+  bool spatialFieldObstacleSaving = false;
+  Future<bool> Function(String instanceId, MapEntityFieldObstacleData? value)? configureSpatialFieldObstacle;
   bool elementOrderSaving = false;
   String? error;
   final _history = const MapHistoryCoordinator();
@@ -126,7 +128,7 @@ class EditableMapDocument {
       .firstOrNull;
 
   void commit(MapData next) {
-    if (elementOrderSaving) return;
+    if (elementOrderSaving || spatialFieldObstacleSaving) return;
     if (next == current) return;
     final result = _history.recordMutation(
       before: current,

@@ -4,8 +4,10 @@ import 'package:meta/meta.dart' show immutable;
 
 import 'geometry.dart';
 import 'enums.dart';
+import 'map_entity_field_obstacle.dart';
 
 const currentMapInstanceWorldStateSchemaVersion = 6;
+const persistentMapInstanceWorldStateSchemaVersion = 7;
 const _collectionEquality = DeepCollectionEquality();
 
 Object? readMapInstanceWorldStateJson(Map<dynamic, dynamic> json, String key) {
@@ -242,11 +244,16 @@ final class MapInstanceRuntimeState {
 
 @immutable
 final class MapInstanceWorldState {
-  const MapInstanceWorldState.empty() : instancesByMapId = const {};
+  const MapInstanceWorldState.empty() : instancesByMapId = const {}, persistentClearedObstacles = const {};
 
   MapInstanceWorldState({
     required Map<String, MapInstanceRuntimeState> instancesByMapId,
-  }) : instancesByMapId = Map.unmodifiable({
+    Map<String, Set<String>> persistentClearedObstacles = const {},
+  }) : persistentClearedObstacles = Map.unmodifiable({
+         for (final entry in persistentClearedObstacles.entries)
+           _identity(entry.key, 'mapId'): Set<String>.unmodifiable(
+             entry.value.map((id) => _identity(id, 'fieldObstacleId'))),
+       }), instancesByMapId = Map.unmodifiable({
          for (final entry in instancesByMapId.entries)
            _identity(entry.key, 'mapId'): entry.value,
        }) {
@@ -259,12 +266,14 @@ final class MapInstanceWorldState {
   }
 
   final Map<String, MapInstanceRuntimeState> instancesByMapId;
+  final Map<String, Set<String>> persistentClearedObstacles;
 
   factory MapInstanceWorldState.fromJson(Map<String, dynamic> json) {
-    _keys(json, {'schemaVersion', 'instancesByMapId'});
     final version = json['schemaVersion'];
+    final persistent = version == persistentMapInstanceWorldStateSchemaVersion;
+    _keys(json, {'schemaVersion', 'instancesByMapId', if (persistent) 'persistentClearedObstacles'});
     if (version is! int ||
-        version != currentMapInstanceWorldStateSchemaVersion) {
+        version != currentMapInstanceWorldStateSchemaVersion && !persistent) {
       throw FormatException('Unsupported map instance state schema: $version.');
     }
     final maps = _object(json['instancesByMapId'], 'instancesByMapId');
@@ -275,7 +284,17 @@ final class MapInstanceWorldState {
       );
     }
     try {
-      return MapInstanceWorldState(instancesByMapId: instances);
+      final cleared = <String, Set<String>>{};
+      if (persistent) {
+        for (final entry in _object(json['persistentClearedObstacles'], 'persistentClearedObstacles').entries) {
+          final ids = entry.value;
+          if (ids is! List || ids.any((id) => id is! String) || ids.toSet().length != ids.length) {
+            throw const FormatException('Persistent obstacles must be unique string lists.');
+          }
+          cleared[entry.key] = ids.cast<String>().toSet();
+        }
+      }
+      return MapInstanceWorldState(instancesByMapId: instances, persistentClearedObstacles: cleared);
     } on ArgumentError catch (error) {
       throw FormatException(error.message?.toString() ?? 'Invalid instances.');
     }
@@ -310,6 +329,7 @@ final class MapInstanceWorldState {
       return this;
     }
     return MapInstanceWorldState(
+      persistentClearedObstacles: persistentClearedObstacles,
       instancesByMapId: {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
@@ -329,19 +349,29 @@ final class MapInstanceWorldState {
     );
   }
 
-  bool isFieldObstacleCleared(MapInstanceRef scope, String entityId) =>
-      _currentInstance(scope).clearedFieldObstacleIds.contains(
-        _identity(entityId, 'fieldObstacleId'),
-      );
+  bool isFieldObstacleCleared(MapInstanceRef scope, String entityId) {
+    final instance = _currentInstance(scope);
+    _identity(entityId, 'fieldObstacleId');
+    return instance.clearedFieldObstacleIds.contains(entityId) ||
+      (persistentClearedObstacles[scope.mapId]?.contains(entityId) ?? false);
+  }
 
   MapInstanceWorldState clearFieldObstacle(
     MapInstanceRef scope,
-    String entityId,
-  ) {
+    String entityId, {
+    FieldObstacleResetPolicy resetPolicy = FieldObstacleResetPolicy.mapInstance,
+  }) {
     final instance = _currentInstance(scope);
     _identity(entityId, 'fieldObstacleId');
+    if (resetPolicy == FieldObstacleResetPolicy.persistent) {
+      if (persistentClearedObstacles[scope.mapId]?.contains(entityId) ?? false) return this;
+      return MapInstanceWorldState(instancesByMapId: instancesByMapId,
+        persistentClearedObstacles: {...persistentClearedObstacles,
+          scope.mapId: {...?persistentClearedObstacles[scope.mapId], entityId}});
+    }
     if (instance.clearedFieldObstacleIds.contains(entityId)) return this;
     return MapInstanceWorldState(
+      persistentClearedObstacles: persistentClearedObstacles,
       instancesByMapId: {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
@@ -368,7 +398,7 @@ final class MapInstanceWorldState {
     final instance = _currentInstance(scope);
     _identity(entityId, 'interactiveEncounterEntityId');
     if (instance.consumedInteractiveEncounterEntityIds.contains(entityId)) return this;
-    return MapInstanceWorldState(instancesByMapId: {
+    return MapInstanceWorldState(persistentClearedObstacles: persistentClearedObstacles, instancesByMapId: {
       ...instancesByMapId,
       scope.mapId: MapInstanceRuntimeState(
         instanceId: instance.instanceId,
@@ -396,6 +426,7 @@ final class MapInstanceWorldState {
     _identity(zoneId, 'zoneId');
     if (instance.illuminatedZoneIds.contains(zoneId)) return this;
     return MapInstanceWorldState(
+      persistentClearedObstacles: persistentClearedObstacles,
       instancesByMapId: {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
@@ -419,6 +450,7 @@ final class MapInstanceWorldState {
     final instance = _currentInstance(scope);
     if (instance.strengthActive) return this;
     return MapInstanceWorldState(
+      persistentClearedObstacles: persistentClearedObstacles,
       instancesByMapId: {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
@@ -445,6 +477,7 @@ final class MapInstanceWorldState {
     _position(position);
     if (instance.fieldObstaclePositions[entityId] == position) return this;
     return MapInstanceWorldState(
+      persistentClearedObstacles: persistentClearedObstacles,
       instancesByMapId: {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
@@ -473,6 +506,7 @@ final class MapInstanceWorldState {
       return this;
     }
     return MapInstanceWorldState(
+      persistentClearedObstacles: persistentClearedObstacles,
       instancesByMapId: {
         ...instancesByMapId,
         scope.mapId: MapInstanceRuntimeState(
@@ -502,7 +536,12 @@ final class MapInstanceWorldState {
   Map<String, dynamic> toJson() {
     final mapIds = instancesByMapId.keys.toList()..sort();
     return {
-      'schemaVersion': currentMapInstanceWorldStateSchemaVersion,
+      'schemaVersion': persistentClearedObstacles.isEmpty
+        ? currentMapInstanceWorldStateSchemaVersion : persistentMapInstanceWorldStateSchemaVersion,
+      if (persistentClearedObstacles.isNotEmpty) 'persistentClearedObstacles': {
+        for (final mapId in persistentClearedObstacles.keys.toList()..sort())
+          mapId: persistentClearedObstacles[mapId]!.toList()..sort(),
+      },
       'instancesByMapId': {
         for (final mapId in mapIds) mapId: instancesByMapId[mapId]!.toJson(),
       },
@@ -513,10 +552,11 @@ final class MapInstanceWorldState {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is MapInstanceWorldState &&
+          _collectionEquality.equals(other.persistentClearedObstacles, persistentClearedObstacles) &&
           _collectionEquality.equals(other.instancesByMapId, instancesByMapId);
 
   @override
-  int get hashCode => _collectionEquality.hash(instancesByMapId);
+  int get hashCode => Object.hash(_collectionEquality.hash(instancesByMapId), _collectionEquality.hash(persistentClearedObstacles));
 }
 
 String _identity(String value, String field) {

@@ -1130,6 +1130,8 @@ const _$CharacterAnimationStateEnumMap = {
   CharacterAnimationState.surf: 'surf',
   CharacterAnimationState.surfEnter: 'surf_enter',
   CharacterAnimationState.surfExit: 'surf_exit',
+  CharacterAnimationState.cut: 'cut',
+  CharacterAnimationState.rockSmash: 'rock_smash',
 };
 
 const _$EntityFacingEnumMap = {

@@ -14,6 +14,15 @@ enum ProjectSoundCue {
   surfEnter('surf.enter'),
   surfExit('surf.exit'),
   fieldCut('field.cut'),
+  fieldFly('field.fly'),
+  fieldStrength('field.strength'),
+  fieldFlash('field.flash'),
+  fieldRockSmash('field.rock_smash'),
+  fieldWaterfall('field.waterfall'),
+  fieldWhirlpool('field.whirlpool'),
+  fieldDive('field.dive'),
+  fieldRockClimb('field.rock_climb'),
+  fieldDefog('field.defog'),
   weatherRain('weather.rain'),
   weatherWind('weather.wind'),
   weatherThunder('weather.thunder'),
@@ -254,6 +263,15 @@ abstract final class ProjectSoundCueCatalog {
       'Couper',
       'Déplacements',
     ),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldFly, 'Vol', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldStrength, 'Force', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldFlash, 'Flash', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldRockSmash, 'Éclate-Roc', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldWaterfall, 'Cascade', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldWhirlpool, 'Siphon', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldDive, 'Plongée', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldRockClimb, 'Escalade · mécanique à venir', 'CS'),
+    ProjectSoundCueDescriptor(ProjectSoundCue.fieldDefog, 'Anti-Brume · mécanique à venir', 'CS'),
     ProjectSoundCueDescriptor(
       ProjectSoundCue.weatherRain,
       'Pluie',
@@ -284,6 +302,21 @@ abstract final class ProjectSoundCueCatalog {
   ];
   static ProjectSoundCueDescriptor forCue(ProjectSoundCue cue) =>
       entries.firstWhere((entry) => entry.cue == cue);
+
+  static ProjectSoundCue forFieldAbilityId(String id) => switch (id) {
+    'surf' => ProjectSoundCue.surfEnter,
+    'cut' => ProjectSoundCue.fieldCut,
+    'fly' => ProjectSoundCue.fieldFly,
+    'strength' => ProjectSoundCue.fieldStrength,
+    'flash' => ProjectSoundCue.fieldFlash,
+    'rock_smash' => ProjectSoundCue.fieldRockSmash,
+    'waterfall' => ProjectSoundCue.fieldWaterfall,
+    'whirlpool' => ProjectSoundCue.fieldWhirlpool,
+    'dive' => ProjectSoundCue.fieldDive,
+    'rock_climb' => ProjectSoundCue.fieldRockClimb,
+    'defog' => ProjectSoundCue.fieldDefog,
+    _ => throw ArgumentError.value(id, 'id', 'Unknown field ability.'),
+  };
 }
 
 bool projectAudioSourceMimeMatches(

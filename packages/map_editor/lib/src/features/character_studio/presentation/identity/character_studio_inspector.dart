@@ -278,5 +278,11 @@ String _animationLabel(CharacterAnimationState? state) => switch (state) {
   CharacterAnimationState.walk => 'La marche',
   CharacterAnimationState.run => 'La course',
   CharacterAnimationState.idle => 'L’animation de base',
+  CharacterAnimationState.surfIdle => 'Surf au repos',
+  CharacterAnimationState.surf => 'Surf',
+  CharacterAnimationState.surfEnter => 'Entrée dans l’eau',
+  CharacterAnimationState.surfExit => 'Sortie de l’eau',
+  CharacterAnimationState.cut => 'Coupe',
+  CharacterAnimationState.rockSmash => 'Éclate-Roc',
   null => 'L’animation',
 };

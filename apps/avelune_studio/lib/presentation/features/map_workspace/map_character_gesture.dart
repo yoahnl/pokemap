@@ -106,6 +106,7 @@ class MapCharacterGesture {
             position: origin,
             elementId: brush.id,
             kind: view.fieldObstacleKind,
+            resetPolicy: view.fieldObstacleResetPolicy,
           );
       view.select(document, MapSelectionFamily.marker, entity.id);
       return holding(null);

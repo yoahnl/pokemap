@@ -11,6 +11,7 @@ import '../domain/map_atmosphere_port.dart';
 import '../domain/map_exterior_decoration_port.dart';
 import '../../project_visuals/domain/project_visuals_port.dart';
 import '../domain/map_editor_port.dart';
+import '../domain/spatial_field_obstacle_port.dart';
 
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -34,6 +35,7 @@ part 'local_project_cs_adapter.dart';
 part 'local_project_audio_adapter.dart';
 part 'local_project_settings_mutation.dart';
 part 'local_map_editor_adapter.dart';
+part 'local_spatial_field_obstacle_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
 part 'local_map_workspace_scoped_catalog.dart';
@@ -52,7 +54,12 @@ final class LocalMapWorkspaceAdapter
         ProjectCsPort,
         ProjectAudioPort,
         MapEditorPort,
-        MapElementOrderPort {
+        MapElementOrderPort,
+        SpatialFieldObstaclePort {
+  @override
+  Future<SpatialFieldObstacleReceipt> configureSpatialFieldObstacle(ProjectSession session, MapWorkspaceDocument base, String instanceId, MapEntityFieldObstacleData? fieldObstacle) => withResourceMutation(() => _configureSpatialFieldObstacle(session, base, instanceId, fieldObstacle));
+  @override
+  Future<SpatialFieldObstacleReceipt> undoSpatialFieldObstacle(ProjectSession session, MapWorkspaceDocument base, SpatialFieldObstacleReceipt receipt, {required bool redo}) => withResourceMutation(() => _mutateSpatialFieldObstacle(session, base, undo: receipt, redo: redo));
   LocalMapWorkspaceAdapter({
     ProjectFileReader? reader,
     AtomicMapDocumentPersistence? persistence,

@@ -329,6 +329,10 @@ void main() {
         ),
       );
       session.frames(0);
+      expect(session.companionCharacterId, isNull);
+      expect(session.frames(0), isNot(contains('party-companion')));
+      state = state.copyWith(party: PlayerParty(members: state.party.members.reversed.toList()));
+      session.frames(0);
       expect(session.companionCharacterId, next.$4);
       expect(session.companionPosition, isNull);
     }

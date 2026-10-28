@@ -125,6 +125,13 @@ final class PartyCompanionTrail {
           airborne: airborne,
           traversalSpeed: traversalSpeed));
       _distance += distance;
+    } else if (last.airborne != airborne ||
+        last.y != y || last.groundY != groundY) {
+      _points[_points.length - 1] = PartyCompanionTrailPoint(x, z,
+          y: y,
+          groundY: groundY,
+          airborne: airborne,
+          traversalSpeed: traversalSpeed);
     }
     bool traverse(PartyCompanionTrailPoint from, PartyCompanionTrailPoint to) =>
         (from.airborne || to.airborne) ||
@@ -143,15 +150,15 @@ final class PartyCompanionTrail {
         remainingTravel > 0) {
       final first = _points.first, next = _points[1];
       final segment = _length(first, next);
-      if (_distance - segment >= _followingDistance &&
-          segment <= remainingTravel) {
+      if (_distance - segment >= _followingDistance - 1e-9 &&
+          segment <= remainingTravel + 1e-9) {
         if (!traverse(first, next)) {
           blocked = true;
           break;
         }
         _points.removeAt(0);
-        _distance -= segment;
-        remainingTravel -= segment;
+        _distance = math.max(0, _distance - segment);
+        remainingTravel = math.max(0, remainingTravel - segment);
       } else {
         final advance =
             math.min(_distance - _followingDistance, remainingTravel);

@@ -90,6 +90,8 @@ final class SpatialActorVisual {
     this.height = 1.92,
     this.billboardVerticalOffset = 0,
     this.contactShadow = false,
+    this.airborne = false,
+    this.landingDust = false,
   }) : assert(width == null || width > 0),
        assert(height > 0);
   final double x, y, z;
@@ -100,6 +102,8 @@ final class SpatialActorVisual {
   final double height;
   final double billboardVerticalOffset;
   final bool contactShadow;
+  final bool airborne;
+  final bool landingDust;
   double get resolvedWidth => width ?? height * frame.width / frame.height;
   ({double x, double y})? get contactShadowFootAnchor =>
       texture.footAnchor(frame);

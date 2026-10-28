@@ -170,7 +170,7 @@ CutObstacleCommit commitCutObstacleAction(
   return CutObstacleApplied(
       gameState.copyWith(
           mapInstanceWorldState: gameState.mapInstanceWorldState
-              .clearFieldObstacle(ticket.instance, ticket.entityId)),
+              .clearFieldObstacle(ticket.instance, ticket.entityId, resetPolicy: map.entities.singleWhere((entity) => entity.id == ticket.entityId).fieldObstacle!.resetPolicy)),
       ticket.entityId);
 }
 
@@ -226,13 +226,13 @@ MapData applyFieldObstacleWorldStateToMap(
     final matches = source.entities.where((entity) => entity.id == id).toList();
     if (source.version != ProjectVersion.v8 || source.spatialScene != null || matches.length != 1 ||
         matches.single.interactiveEncounter?.reusePolicy != InteractiveEncounterReusePolicy.oncePerMapInstance ||
-        (matches.single.interactiveEncounter?.trigger == InteractiveEncounterTrigger.afterRockSmash && !saved.clearedFieldObstacleIds.contains(id))) {
+        (matches.single.interactiveEncounter?.trigger == InteractiveEncounterTrigger.afterRockSmash && !instances.isFieldObstacleCleared(instance, id))) {
       throw StateError('Saved interactive encounter ${map.id}/$id is absent or incompatible.');
     }
     assertValidMapEntityTypedPayloads(matches.single);
   }
 
-  for (final id in saved.clearedFieldObstacleIds) {
+  for (final id in {...saved.clearedFieldObstacleIds, ...?instances.persistentClearedObstacles[map.id]}) {
     if (entityFor(id).fieldObstacle!.isPushable ||
         saved.fieldObstaclePositions.containsKey(id)) {
       throw StateError('A Strength boulder cannot be cleared.');
@@ -256,7 +256,7 @@ MapData applyFieldObstacleWorldStateToMap(
         ];
   final entities = [
     for (final entity in candidates)
-      if (!saved.clearedFieldObstacleIds.contains(entity.id))
+      if (!instances.isFieldObstacleCleared(instance, entity.id))
         saved.fieldObstaclePositions.containsKey(entity.id)
             ? entity.copyWith(pos: saved.fieldObstaclePositions[entity.id]!)
             : entity,

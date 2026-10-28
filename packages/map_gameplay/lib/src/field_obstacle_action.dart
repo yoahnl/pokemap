@@ -305,7 +305,7 @@ FieldObstacleCommit commitDestructibleFieldObstacleAction(
   return FieldObstacleApplied(
       gameState.copyWith(
           mapInstanceWorldState: gameState.mapInstanceWorldState
-              .clearFieldObstacle(ticket.instance, ticket.entityId)),
+              .clearFieldObstacle(ticket.instance, ticket.entityId, resetPolicy: map.entities.singleWhere((entity) => entity.id == ticket.entityId).fieldObstacle!.resetPolicy)),
       ticket.entityId);
 }
 

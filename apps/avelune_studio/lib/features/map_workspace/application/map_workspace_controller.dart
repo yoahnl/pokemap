@@ -9,6 +9,8 @@ import 'map_editor_controller.dart';
 import 'dart:async';
 
 import '../domain/map_editor_port.dart';
+import '../domain/spatial_field_obstacle_port.dart';
+import 'package:map_authoring/map_authoring_editing.dart' show SpatialMapActions;
 import '../domain/map_atmosphere_port.dart';
 import '../domain/map_exterior_decoration_port.dart';
 
@@ -24,6 +26,7 @@ part 'map_workspace_catalog_preparation.dart';
 part 'map_workspace_history_destinations.dart';
 part 'map_workspace_resource_references.dart';
 part 'map_workspace_element_order.dart';
+part 'map_workspace_field_obstacles.dart';
 
 class MapWorkspaceController {
   MapWorkspaceController(this.session, this.port, {this.catalogPort})
@@ -44,6 +47,7 @@ class MapWorkspaceController {
   final Map<String, EditableMapDocument> retiredDocuments = {};
   final _elementOrderReceipts =
       <String, Map<Object, MapElementOrderWorkspaceReceipt>>{};
+  final _fieldObstacleReceipts = <String, Map<Object, SpatialFieldObstacleReceipt>>{};
   bool catalogBusy = false;
   MapCatalogReceipt? pendingCatalogReceipt;
   String? _catalogTargetId;
@@ -517,6 +521,7 @@ class MapWorkspaceController {
         });
       }
       final document = cached ?? await pending!;
+      document.configureSpatialFieldObstacle = (instanceId, value) => configureFieldObstacle(document, instanceId, value);
       final source = port;
       if (cached != null &&
           !hasCompleteProject &&
@@ -740,6 +745,11 @@ class MapWorkspaceController {
       return;
     }
     final token = redo ? document.redoToken : document.undoToken;
+    final obstacle = _fieldObstacleReceipts[document.base.mapId]?[token];
+    if (obstacle != null && document.base.revision == obstacle.document.revision) {
+      unawaited(_restoreFieldObstacle(document, obstacle, redo: redo));
+      return;
+    }
     final order = _elementOrderReceipts[document.base.mapId]?[token];
     if (order != null &&
         !document.dirty &&

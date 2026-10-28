@@ -32,6 +32,7 @@ import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_cinematic_emote_visuals.dart';
 import 'spatial_smart_tile_animation_controller.dart';
 import 'spatial_surf_water.dart';
+import 'spatial_field_action_presentation.dart';
 import '../application/field_move_dialogue.dart';
 
 final class SpatialExplorationSession {
@@ -56,6 +57,27 @@ final class SpatialExplorationSession {
   SpatialSurfWater get surfWater => _surfWaterMaps[bundle.map] ??=
       SpatialSurfWater.fromMap(bundle.map);
   VoidCallback? _surfConfirmation;
+  final _fieldAction = SpatialFieldActionPresentation();
+
+  Future<SceneDialogueRuntimeAwaitableResult> showFieldObstaclePrompt(
+      DialogueSession dialogue) async {
+    final completion = Completer<SceneDialogueRuntimeAwaitableResult>();
+    await _openDialogue(const DialogueRef(dialogueId: 'system:field-obstacle'),
+        providedSession: dialogue, completion: completion);
+    return completion.future;
+  }
+
+  Future<bool> presentFieldAction(FieldAbility ability) {
+    if (_disposed || transitioning.value || _fieldAction.isActive) {
+      return Future.value(false);
+    }
+    final state = ability == FieldAbility.cut
+        ? CharacterAnimationState.cut : CharacterAnimationState.rockSmash;
+    final clip = character.animations.where((clip) => clip.state == state &&
+        clip.direction == movement.facing && clip.frames.isNotEmpty).firstOrNull;
+    final duration = clip?.frames.fold<int>(0, (sum, frame) => sum + frame.durationMs) ?? 300;
+    return _fieldAction.play(ability, durationMs: duration);
+  }
   MovementMode _surfMode;
   CharacterAnimationState? _surfTransition;
   double _surfAnimationSeconds = 0;
@@ -324,11 +346,15 @@ final class SpatialExplorationSession {
   PartyCompanionTrailPoint? get companionPosition => _companionTrail.position;
   String? get companionCharacterId => _companionCharacter?.id;
 
+  PlayerPokemon? get _companionLead {
+    final first = presentationStateProvider?.call().party.members.firstOrNull;
+    return first != null && !first.isFainted && !first.isEgg ? first : null;
+  }
+
   PartyCompanionTrail captureCompanionTrail() => _companionTrail.capture();
 
   void restoreCompanionTrail(PartyCompanionTrail snapshot) {
-    final lead = presentationStateProvider?.call().party.members
-        .where((pokemon) => !pokemon.isFainted && !pokemon.isEgg).firstOrNull;
+    final lead = _companionLead;
     if (snapshot.mapId == bundle.map.id && snapshot.individualId == lead?.individualId) {
       _companionTrail.restore(snapshot);
     }
@@ -336,10 +362,7 @@ final class SpatialExplorationSession {
 
   void _updateCompanion(double dt) {
     final config = bundle.manifest.partyCompanion;
-    final state = presentationStateProvider?.call();
-    final lead = state?.party.members
-        .where((pokemon) => !pokemon.isFainted && !pokemon.isEgg)
-        .firstOrNull;
+    final lead = _companionLead;
     final visual = lead == null
         ? null
         : config.resolve(lead.speciesId, lead.formId);
@@ -420,6 +443,8 @@ final class SpatialExplorationSession {
       y: (liftHeightAt?.call(bundle.map.id,position.x,position.z) ?? position.groundY) + position.y - position.groundY,
       groundY: liftHeightAt?.call(bundle.map.id,position.x,position.z) ?? position.groundY,
       contactShadow: actor.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault,
+      airborne: position.airborne,
+      landingDust: true,
       texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
     );
@@ -1107,6 +1132,7 @@ final class SpatialExplorationSession {
       (throw StateError('Source d’animation du héros indisponible.'));
   SpatialActorVisual frame(double dt) {
     if (!_disposed) {
+      _fieldAction.update(dt, paused: presentationPaused || transitioning.value);
       final previousMapId = bundle.map.id;
       final previousCell = GridPos(
         x: movement.x.floor(),
@@ -1196,7 +1222,7 @@ final class SpatialExplorationSession {
         _nativeDoor.isClimbing && _nativeDoor.playerPoseMapId == bundle.map.id;
     final state = climbing
         ? CharacterAnimationState.climb
-        : story?.motion ?? _surfTransition ??
+        : story?.motion ?? _fieldAction.state ?? _surfTransition ??
         (movement.movementMode == MovementMode.surf
             ? (movement.moving ? CharacterAnimationState.surf : CharacterAnimationState.surfIdle)
             :
@@ -1224,7 +1250,7 @@ final class SpatialExplorationSession {
       (sum, frame) => sum + frame.durationMs,
     );
     var remaining =
-        ((story?.animationSeconds ?? (_surfClipActive ? _surfAnimationSeconds : movement.animationSeconds)) * 1000).floor();
+        ((story?.animationSeconds ?? (_fieldAction.isActive ? _fieldAction.elapsedSeconds : _surfClipActive ? _surfAnimationSeconds : movement.animationSeconds)) * 1000).floor();
     remaining =
         animation.loop ? remaining % total : remaining.clamp(0, total - 1);
     var selected = animation.frames.last;
@@ -1242,6 +1268,8 @@ final class SpatialExplorationSession {
         contactShadow:
           !climbing &&
           (character.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault),
+        airborne: !climbing && (story == null ? movement.isJumping : story.liftCells > .000001),
+        landingDust: !climbing,
         y: story == null
             ? movement.y + (climbing ? _nativeDoor.playerPose!.liftCells : 0)
           : cinematicHeightAt(story.x, story.z) + story.liftCells,
@@ -1307,7 +1335,7 @@ final class SpatialExplorationSession {
       occupants[bundle.map.id]!['hero'] = occupiedCell(hero);
     }
     final companion = result['party-companion'];
-    final lead = presentationStateProvider?.call().party.members.where((p) => !p.isFainted && !p.isEgg).firstOrNull;
+    final lead = _companionLead;
     if (companion != null && lead != null) {
       final actorId = 'companion:${lead.individualId}';
       occupants[bundle.map.id]![actorId] = occupiedCell(companion);
@@ -1371,6 +1399,8 @@ final class SpatialExplorationSession {
             z: visual.z + offset.dy,
             groundY: visual.groundY,
             contactShadow: visual.contactShadow,
+            airborne: visual.airborne,
+            landingDust: visual.landingDust,
             texture: visual.texture,
             frame: visual.frame,
             width: visual.width,
@@ -1455,6 +1485,8 @@ final class SpatialExplorationSession {
         y: groundY + (pose?.liftCells ?? 0),
         groundY: groundY,
         contactShadow: actor.contactShadow ?? source.manifest.settings.actorContactShadowsByDefault,
+        airborne: (pose?.liftCells ?? 0) > .000001,
+        landingDust: true,
         texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
     );
@@ -2312,6 +2344,7 @@ final class SpatialExplorationSession {
   }
   void dispose() {
     if (_disposed) return;
+    _fieldAction.cancel();
     if (_dialogueSound case final sound?) unawaited(sound.dispose());
     if (_dialogueMusic case final music?) unawaited(music.dispose());
     _completeDialogue(const SceneDialogueRuntimeAwaitableResult.failed(

@@ -17,3 +17,5 @@ export 'package:map_core/map_core_domain.dart'
 
 export 'src/editing/native_terrain_brush.dart';
 export 'src/editing/exterior_decoration_native_editing.dart';
+
+export 'src/domains/maps/spatial_map_actions.dart' show SpatialMapActions;

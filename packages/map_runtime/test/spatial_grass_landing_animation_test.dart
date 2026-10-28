@@ -13,6 +13,60 @@ import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final dt in [1 / 120, 1 / 60, 1 / 30, .05]) {
+    test('companion lands and resumes following with dt=$dt', () async {
+      final session = await _session(companion: true);
+      session.frames(0);
+      session.movement.setInput(x: 0, z: 1);
+      var jumped = false;
+      var companionJumped = false;
+      for (var i = 0; i < (1.5 / dt).ceil(); i++) {
+        final visuals = session.frames(dt);
+        expect(visuals['hero']!.landingDust, isTrue);
+        expect(visuals['hero']!.airborne, session.movement.isJumping);
+        if (visuals['party-companion'] case final companion?) {
+          expect(companion.landingDust, isTrue);
+          expect(companion.airborne, session.companionPosition!.airborne);
+        }
+        jumped |= session.movement.isJumping;
+        companionJumped |= session.companionPosition?.airborne == true;
+      }
+      expect(jumped, isTrue);
+      expect(companionJumped, isTrue);
+      expect(session.movement.isJumping, isFalse);
+      final companion = session.frames(0)['party-companion']!;
+      expect(session.companionPosition!.airborne, isFalse);
+      expect(companion.y, companion.groundY);
+      expect(companion.z, session.movement.z);
+      session.movement.setInput(x: 0, z: 1);
+      for (var i = 0; i < (.5 / dt).ceil(); i++) {
+        session.frames(dt);
+      }
+      final resumed = session.frames(0)['party-companion']!;
+      expect(resumed.z, greaterThan(companion.z));
+      expect(session.movement.z - resumed.z, closeTo(1, .000001));
+    });
+  }
+
+  test('hero sprite frames advance during a ledge jump and pause freezes them', () async {
+    final session = await _session(animated: true);
+    session.movement.setInput(x: 0, z: 1);
+    final first = session.frame(.025);
+    expect(session.movement.isJumping, isTrue);
+    final frames = {first.frame};
+    for (var i = 0; i < 4; i++) {
+      final visual = session.frame(.05);
+      expect(session.movement.isJumping, isTrue);
+      expect(visual.y, greaterThan(visual.groundY!));
+      frames.add(visual.frame);
+    }
+    expect(frames, hasLength(2));
+    session.setLifecyclePaused(true);
+    final paused = session.frame(0);
+    expect(session.frame(.5).frame, paused.frame);
+    expect(session.frame(.5).y, paused.y);
+  });
+
   test(
     'landing starts exactly one grass reaction and none during the jump',
     () async {
@@ -162,6 +216,7 @@ void main() {
 Future<SpatialExplorationSession> _session({
   bool companion = false,
   bool occlusion = false,
+  bool animated = false,
 }) async {
   final root = await Directory.systemTemp.createTemp('grass-landing-');
   addTearDown(() => root.delete(recursive: true));
@@ -187,8 +242,8 @@ Future<SpatialExplorationSession> _session({
                 state: state,
                 direction: facing,
                 sourceAssetId: 'actors',
-                frames: const [
-                  CharacterAnimationFrame(
+                frames: [
+                  const CharacterAnimationFrame(
                     source: TilesetSourceRect(
                       x: 0,
                       y: 0,
@@ -197,6 +252,11 @@ Future<SpatialExplorationSession> _session({
                     ),
                     durationMs: 100,
                   ),
+                  if (animated && state == CharacterAnimationState.walk)
+                    const CharacterAnimationFrame(
+                      source: TilesetSourceRect(x: 32, y: 0, width: 32, height: 32),
+                      durationMs: 100,
+                    ),
                 ],
               ),
         ],
