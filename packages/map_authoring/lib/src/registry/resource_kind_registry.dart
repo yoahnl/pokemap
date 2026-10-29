@@ -534,6 +534,31 @@ final class AuthoringResourceKindRegistry {
         summary: 'Editable and published procedural Border definition',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'borderFeature',
+        version: 1,
+        displayName: 'Border feature',
+        summary:
+            'Map-owned Border feature with its placed slots and resolution diagnostics',
+        extensions: const {
+          'query': {
+            'operations': ['list', 'get', 'batch_get'],
+            'requiredFilters': ['mapId'],
+            'optionalFilters': ['layerId'],
+            'idFormat': '<layerId>/<featureId>',
+            'detailView': [
+              'diagnostics',
+              'slots',
+            ],
+            'catalogProjectRead': 'selectedMapAndReferences',
+            'legacyProjectRead': 'fullSnapshot',
+            'summaryCost': 'resolvesEachFeatureOnTheMap',
+            'batchGetLimit': 'pageSize',
+            'twoDimensionalFeatures': 'listedAsNotInspected',
+            'maximumDiagnostics': 512,
+          },
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'borderSnapshot',
         version: 1,
         displayName: 'Border visual snapshot',
@@ -990,6 +1015,7 @@ final class AuthoringResourceKindRegistry {
         'asset',
         'resourceUsage',
         'borderBlueprint',
+        'borderFeature',
         'borderSnapshot',
         'characterStudioCatalog',
         'characterStudioCharacter',

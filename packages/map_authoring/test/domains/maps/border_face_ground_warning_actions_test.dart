@@ -13,7 +13,7 @@ const _target = {'layerId': 'border', 'featureId': 'fence'};
 void main() {
   test('materialization plans expose face warnings with their slots',
       () async {
-    final fixture = _directedCliffFixture(levels: List.filled(24, 1));
+    final fixture = directedCliffAuthoringFixture(levels: List.filled(24, 1));
     final single = await _build(fixture, 'border_layer.materialize_apply',
         {'mapId': 'map', ..._target});
     expect(single.preview['warningCount'], 3);
@@ -53,7 +53,7 @@ void main() {
   });
 
   test('faces that bridge their step report an empty warning list', () async {
-    final fixture = _directedCliffFixture(levels: [
+    final fixture = directedCliffAuthoringFixture(levels: [
       for (var z = 0; z < 4; z++)
         for (var x = 0; x < 6; x++) z >= 1 ? 1 : 0,
     ]);
@@ -67,6 +67,61 @@ void main() {
     });
     expect(batch.preview['warningCount'], 0);
     expect(batch.preview['warnings'], isEmpty);
+  });
+
+  test('materialization failures name the failing slot', () async {
+    final fixture = directedCliffAuthoringFixture(levels: List.filled(24, 1));
+    final layer = fixture.map.layers.whereType<BorderLayer>().single;
+    final base = layer.content.features.single;
+    const missingSlot = 'border3d-slot:missing';
+    final broken = (
+      project: fixture.project,
+      map: upsertBorderFeature(fixture.map,
+          layerId: 'border',
+          feature: BorderFeature(
+              id: base.id,
+              name: base.name,
+              blueprintId: base.blueprintId,
+              seed: base.seed,
+              geometry: base.geometry,
+              overrides: [
+                BorderSlotOverride(
+                    slotKey: missingSlot,
+                    variationSalt: BorderSignedInt64.fromInt(0),
+                    suppressed: true,
+                    locked: false),
+              ],
+              keepOutRegions: const [])),
+    );
+    await expectLater(
+        _build(broken, 'border_layer.materialize_apply',
+            {'mapId': 'map', ..._target}),
+        throwsA(isA<MapAuthoringException>()
+            .having((e) => e.code, 'code', 'border.materialization_failed')
+            .having(
+                (e) => (e.details['diagnostics'] as List)
+                    .cast<Map>()
+                    .where((d) =>
+                        d['code'] == 'border.spatial.override_slot_missing')
+                    .single['slotKey'],
+                'slotKey',
+                missingSlot)));
+    await expectLater(
+        _build(broken, 'border_layer.materialize_batch_apply', {
+          'mapId': 'map',
+          'features': [_target],
+        }),
+        throwsA(isA<MapAuthoringException>()
+            .having((e) => e.details['diagnostics'], 'codes',
+                contains('border.spatial.override_slot_missing'))
+            .having(
+                (e) => (e.details['diagnosticDetails'] as List)
+                    .cast<Map>()
+                    .where((d) =>
+                        d['code'] == 'border.spatial.override_slot_missing')
+                    .single['slotKey'],
+                'slotKey',
+                missingSlot)));
   });
 }
 
@@ -85,7 +140,7 @@ Future<AuthoringMutationDraft> _build(
 MapData _decode(AuthoringMutationDraft draft) => MapData.fromJson(
     jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!)));
 
-({ProjectManifest project, MapData map}) _directedCliffFixture(
+({ProjectManifest project, MapData map}) directedCliffAuthoringFixture(
     {required List<int> levels}) {
   final fixture = spatialBorderAuthoringFixture(published: true);
   final raw = encodeBorderBlueprintRecordJson(

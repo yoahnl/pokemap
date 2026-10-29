@@ -17,6 +17,7 @@ import '../domains/maps/warp_connection_actions.dart';
 import '../domains/maps/world_graph_queries.dart';
 import '../domains/narrative/dialogue_authoring_service.dart';
 import '../domains/narrative/scene_party_move_catalog.dart';
+import '../api/border_feature_query.dart';
 import '../domains/narrative/narrative_authoring_exception.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
@@ -56,6 +57,7 @@ final class ProjectQueryService {
         'trainerPokemonStats' => queryTrainerPokemonStats(snapshot, request),
         'pokemonDocument' => queryPokemonDocuments(snapshot, request),
         'scene' => queryScenes(snapshot, request),
+        'borderFeature' => queryBorderFeaturesInSnapshot(snapshot, request),
         _ => Future.value(query(snapshot, request)),
       };
 
@@ -293,6 +295,10 @@ final class ProjectQueryService {
     if (request.resourceKind == 'trainerPokemonStats') {
       throw const AuthoringQueryException('query.async_required',
           'Trainer Pokemon stats require queryAsync.');
+    }
+    if (request.resourceKind == 'borderFeature') {
+      throw const AuthoringQueryException('query.async_required',
+          'Border features require queryAsync.');
     }
     if (request.resourceKind == 'pokemonDocument' &&
         request.view == AuthoringQueryView.detail &&

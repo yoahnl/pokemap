@@ -132,6 +132,20 @@ final class BorderMaterializationBatchActions {
                   .take(20)
                   .map((diagnostic) => diagnostic.code)
                   .toList(),
+              'diagnosticDetails': [
+                for (final diagnostic in artifact.result.diagnostics.take(20))
+                  {
+                    'code': diagnostic.code,
+                    'severity': diagnostic.severity.name,
+                    if (diagnostic.slotKey != null)
+                      'slotKey': diagnostic.slotKey,
+                    if (diagnostic.cell case final cell?)
+                      'cell': {'x': cell.x, 'y': cell.y},
+                    if (diagnostic.parameters.isNotEmpty)
+                      'parameters': diagnostic.parameters,
+                    'suggestedAction': diagnostic.suggestedAction,
+                  },
+              ],
             });
       }
       warnings.addAll(artifact.warningPreview);

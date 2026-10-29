@@ -121,6 +121,7 @@ void main() {
           'assetCatalog',
           'battleProgression',
           'borderBlueprint',
+          'borderFeature',
           'borderSnapshot',
           'campaignContent',
           'character',

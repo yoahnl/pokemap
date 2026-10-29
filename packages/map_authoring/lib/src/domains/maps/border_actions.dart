@@ -951,6 +951,12 @@ final class BorderActions {
                       'blueprintId': diagnostic.blueprintId,
                     if (diagnostic.featureId != null)
                       'featureId': diagnostic.featureId,
+                    if (diagnostic.slotKey != null)
+                      'slotKey': diagnostic.slotKey,
+                    if (diagnostic.cell case final cell?)
+                      'cell': {'x': cell.x, 'y': cell.y},
+                    if (diagnostic.parameters.isNotEmpty)
+                      'parameters': diagnostic.parameters,
                     'suggestedAction': diagnostic.suggestedAction,
                   }
               ],

@@ -267,8 +267,28 @@ void main() {
         args: {'projectRoot': setup.fixture.path},
       );
       final projectHandle = opened.data['projectHandle']! as String;
+      final maps = await _request(
+        setup.worker,
+        id: 'query-map-scope',
+        command: 'query',
+        args: {
+          'projectHandle': projectHandle,
+          'request': AuthoringQueryRequest(
+            resourceKind: 'map',
+            operation: AuthoringQueryOperation.list,
+          ).toJson(),
+        },
+      );
+      final mapItems = maps.data['items']! as List;
+      final firstMapId =
+          mapItems.isEmpty ? null : (mapItems.first as Map)['id'] as String?;
+      final registry = AuthoringResourceKindRegistry.canonical();
 
       for (final resourceKind in canonicalQueryableResourceKindIds) {
+        final query = registry.find(resourceKind)?.extensions['query'];
+        final requiredFilters =
+            query is Map ? query['requiredFilters'] as List? : null;
+        final mapScoped = requiredFilters?.contains('mapId') ?? false;
         final result = await _request(
           setup.worker,
           id: 'query-$resourceKind',
@@ -279,11 +299,20 @@ void main() {
               resourceKind: resourceKind,
               operation: AuthoringQueryOperation.list,
               view: AuthoringQueryView.summary,
+              filters: {
+                if (mapScoped && firstMapId != null) 'mapId': firstMapId,
+              },
             ).toJson(),
           },
         );
 
-        if (resourcePackTemporaryKinds.contains(resourceKind)) {
+        if (mapScoped && firstMapId == null) {
+          expect(result.status, AuthoringResultStatus.failure,
+              reason: resourceKind);
+          expect(result.error?.details['domainCode'],
+              'query.border_feature_map_required',
+              reason: resourceKind);
+        } else if (resourcePackTemporaryKinds.contains(resourceKind)) {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);
           expect(result.error?.details['domainCode'], 'worker.command_unsupported');
         } else {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
+import 'border_feature_query.dart';
 import 'project_media_library_query.dart';
 import '../workspace/catalog/catalog_project_reader.dart';
 import '../workspace/catalog/catalog_targeted_map_edit.dart';
@@ -220,6 +221,40 @@ final class AuthoringReadApi
               actionId: action as String, parameters: Map<String, Object?>.from(parameters))).snapshot;
       final projectedRequest = AuthoringQueryRequest.fromJson(request.toJson()..['extensions'] = <String, Object?>{});
       return _queryService.queryAsync(snapshot, projectedRequest);
+    }
+    if (request.resourceKind == 'borderFeature') {
+      return queryBorderFeatures(
+        request: request,
+        readMap: (mapId) async {
+          if (catalog != null) {
+            final CatalogTargetedMapSelection selection;
+            try {
+              selection = await CatalogTargetedMapSelection.read(
+                  reader: catalog, mapId: mapId);
+            } on StateError {
+              throw const AuthoringQueryException('query.resource_not_found',
+                  'The requested map does not exist in this project.');
+            }
+            return (
+              map: selection.map,
+              manifest: selection.definitions,
+              revision: selection.snapshotRevision,
+            );
+          }
+          final snapshot = await _snapshotLoader.load(projectHandle,
+              policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+          final map = snapshot.maps.where((map) => map.id == mapId).firstOrNull;
+          if (map == null) {
+            throw const AuthoringQueryException('query.resource_not_found',
+                'The requested map does not exist in this project.');
+          }
+          return (
+            map: map,
+            manifest: snapshot.manifest,
+            revision: snapshot.revision,
+          );
+        },
+      );
     }
     if (catalog != null &&
         request.resourceKind == 'map' &&
