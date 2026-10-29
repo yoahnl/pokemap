@@ -11,6 +11,7 @@ import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.j
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import {
   createNativeRender3dExecutor,
+  createNativeScan3dExecutor,
   createRenderHostBinaryResolver,
   NativeRenderHost,
 } from "../src/native_render_host.js";
@@ -33,6 +34,14 @@ createInterface({ input: process.stdin }).on("line", (line) => {
   const { id, command, args = {} } = JSON.parse(line);
   const reply = (body) => process.stdout.write(JSON.stringify({ id, command, ...body }) + "\\n");
   if (command === "shutdown") { reply({ status: "success", data: {} }); process.exit(0); }
+  if (command === "scan") {
+    const views = ["groundGap", "borderObjectOverlap"].map((kind, index) => {
+      const outputPath = args.outputDirectory + "/" + kind + "-" + index + ".png";
+      writeFileSync(outputPath, Buffer.from(process.env.FAKE_HOST_PNG, "base64"));
+      return { kind, center: { x: 32.5, z: 72 }, holeRatio: index === 0 ? 0.02 : 0, backgroundRatio: 0.03, target: {}, outputPath };
+    });
+    return reply({ status: "success", data: { mapId: args.mapId, groundGapCount: 14, viewCount: 2, maxViews: args.maxViews, views } });
+  }
   if (args.mapId === "crash") process.exit(3);
   if (args.mapId === "hang") return;
   if (args.mapId === "flat") return reply({ status: "failure", error: { code: "render.map_not_spatial", message: "No 3D scene." } });
@@ -132,6 +141,32 @@ test("closing the host stops its process and refuses later renders", async () =>
   }
 });
 
+test("a scan registers one PNG per view without leaking host paths", async () => {
+  const fixture = await fakeHostFixture();
+  const host = new NativeRenderHost({ resolveBinary: async () => fixture.binary });
+  const artifacts = new MemoryArtifactReader();
+  try {
+    const scanned = await createNativeScan3dExecutor({ artifacts, host })("/games/jeu", {
+      projectHandle: "unused",
+      mapId: "route-32",
+      maxViews: 5,
+      magnification: 4,
+    });
+    assert.equal(scanned.data.groundGapCount, 14);
+    assert.equal(scanned.data.maxViews, 5);
+    const views = scanned.data.views as JsonRecord[];
+    assert.deepEqual(views.map((view) => view.kind), ["groundGap", "borderObjectOverlap"]);
+    assert.ok(views.every((view) => view.outputPath === undefined));
+    assert.equal(scanned.artifacts.length, 2);
+    assert.equal(views[0]?.artifactUri, scanned.artifacts[0]?.uri);
+    const read = await artifacts.read(String(views[1]?.artifactUri));
+    assert.ok(Buffer.from(String(read.blob), "base64").equals(png));
+  } finally {
+    await host.close();
+    await fixture.cleanup();
+  }
+});
+
 test("the host resolver refuses platforms without Metal", async () => {
   const resolveBinary = createRenderHostBinaryResolver({
     hostRoot: "/nowhere",
@@ -158,6 +193,7 @@ test("pokemap_render_3d renders the opened project and returns a readable artifa
     runtimeHostRoot: resolve(repositoryRoot, "examples/playable_runtime_host"),
     repositoryRoot,
     render3dExecutor: createNativeRender3dExecutor({ artifacts, host }),
+    scan3dExecutor: createNativeScan3dExecutor({ artifacts, host }),
   });
   const server = createPokeMapMcpServer({ authoring, artifacts, runtime });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -183,6 +219,13 @@ test("pokemap_render_3d renders the opened project and returns a readable artifa
     assert.equal(rendered.data.view, "game");
     const artifact = await call("pokemap_artifact", { uri: String(rendered.artifacts[0]?.uri) });
     assert.equal(artifact.data.mediaType, "image/png");
+    const scan = await call("pokemap_render_3d_scan", {
+      projectHandle: opened.data.projectHandle,
+      mapId: "golden_town",
+    });
+    assert.equal(scan.ok, true, JSON.stringify(scan));
+    assert.equal(scan.data.maxViews, 12);
+    assert.equal(scan.artifacts.length, 2);
     const invalid = await call("pokemap_render_3d", {
       projectHandle: opened.data.projectHandle,
       mapId: "golden_town",

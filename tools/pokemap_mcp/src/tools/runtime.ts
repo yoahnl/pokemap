@@ -88,6 +88,34 @@ export function registerRuntimeTools(
   );
 
   server.registerTool(
+    "pokemap_render_3d_scan",
+    {
+      title: "Scan a PokeMap 3D map for holes",
+      description:
+        "Loads a 3D map once in the native renderer, frames every cluster of cells whose ground nothing proves and every placed object crossing Border modules (the spatialMapIntegrity report), and measures where the background shows through the map. holeRatio counts background patches the scene encloses; backgroundRatio also counts the map's outer void and sky. Returns one PNG artifact per view: look at each overlap view, since crossing geometry is not a hole. macOS only; about one second per view after loading.",
+      inputSchema: z
+        .object({
+          projectHandle: z.string().min(1),
+          mapId: z.string().min(1),
+          maxViews: z.number().int().min(1).max(32).default(12),
+          magnification: z.number().min(2).max(8).default(4),
+        })
+        .strict(),
+      outputSchema: toolEnvelopeSchema,
+      annotations: readOnlyAnnotations,
+    },
+    async (request) =>
+      toolResult(() =>
+        runtime.scan3d({
+          projectHandle: request.projectHandle,
+          mapId: request.mapId,
+          maxViews: request.maxViews,
+          magnification: request.magnification,
+        }),
+      ),
+  );
+
+  server.registerTool(
     "pokemap_playtest",
     {
       title: "Start a sandboxed PokeMap playtest",

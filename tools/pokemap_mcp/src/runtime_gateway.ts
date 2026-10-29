@@ -20,10 +20,13 @@ import type {
 } from "./playtest_projection.js";
 import {
   createNativeRender3dExecutor,
+  createNativeScan3dExecutor,
   createRenderHostBinaryResolver,
   NativeRenderHost,
   type Render3dExecutor,
   type Render3dToolRequest,
+  type Scan3dExecutor,
+  type Scan3dToolRequest,
 } from "./native_render_host.js";
 import { PokeMapToolError } from "./tool_error.js";
 
@@ -52,6 +55,7 @@ export interface RuntimeToolResult {
 export interface RuntimeGateway {
   render(request: RenderToolRequest): Promise<RuntimeToolResult>;
   render3d(request: Render3dToolRequest): Promise<RuntimeToolResult>;
+  scan3d(request: Scan3dToolRequest): Promise<RuntimeToolResult>;
   startPlaytest(request: PlaytestToolRequest): Promise<RuntimeToolResult>;
   getJob(jobId: string): Promise<RuntimeToolResult>;
   jobEvents(jobId: string, afterSequence: number): Promise<RuntimeToolResult>;
@@ -90,6 +94,7 @@ export interface LocalRuntimeGatewayOptions {
   flutterExecutable?: string;
   renderExecutor?: RenderExecutor;
   render3dExecutor?: Render3dExecutor;
+  scan3dExecutor?: Scan3dExecutor;
   renderHostRoot?: string;
   playtestExecutor?: PlaytestExecutor;
   playtestProjectionFactory?: PlaytestProjectionFactory;
@@ -132,6 +137,7 @@ export class LocalRuntimeGateway implements RuntimeGateway {
   readonly #roots: ProjectRootResolver;
   readonly #renderExecutor: RenderExecutor;
   readonly #render3dExecutor: Render3dExecutor;
+  readonly #scan3dExecutor: Scan3dExecutor;
   readonly #renderHost?: NativeRenderHost;
   readonly #playtestExecutor: PlaytestExecutor;
   readonly #playtestProjectionFactory: PlaytestProjectionFactory;
@@ -148,9 +154,8 @@ export class LocalRuntimeGateway implements RuntimeGateway {
         flutterExecutable: options.flutterExecutable ?? "flutter",
         runtimePackageRoot: options.runtimePackageRoot,
       });
-    if (options.render3dExecutor) {
-      this.#render3dExecutor = options.render3dExecutor;
-    } else {
+    const needsHost = !options.render3dExecutor || !options.scan3dExecutor;
+    if (needsHost) {
       this.#renderHost = new NativeRenderHost({
         resolveBinary: createRenderHostBinaryResolver({
           hostRoot:
@@ -160,11 +165,13 @@ export class LocalRuntimeGateway implements RuntimeGateway {
           flutterExecutable: options.flutterExecutable ?? "flutter",
         }),
       });
-      this.#render3dExecutor = createNativeRender3dExecutor({
-        artifacts: options.artifacts,
-        host: this.#renderHost,
-      });
     }
+    this.#render3dExecutor =
+      options.render3dExecutor ??
+      createNativeRender3dExecutor({ artifacts: options.artifacts, host: this.#renderHost! });
+    this.#scan3dExecutor =
+      options.scan3dExecutor ??
+      createNativeScan3dExecutor({ artifacts: options.artifacts, host: this.#renderHost! });
     this.#playtestExecutor =
       options.playtestExecutor ??
       createLocalPlaytestExecutor({
@@ -189,6 +196,14 @@ export class LocalRuntimeGateway implements RuntimeGateway {
   async render3d(request: Render3dToolRequest): Promise<RuntimeToolResult> {
     this.#ensureOpen();
     return this.#render3dExecutor(
+      this.#roots.resolveProjectRoot(request.projectHandle),
+      request,
+    );
+  }
+
+  async scan3d(request: Scan3dToolRequest): Promise<RuntimeToolResult> {
+    this.#ensureOpen();
+    return this.#scan3dExecutor(
       this.#roots.resolveProjectRoot(request.projectHandle),
       request,
     );

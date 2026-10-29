@@ -19,6 +19,18 @@ export interface Render3dToolRequest {
   minuteOfDay: number;
 }
 
+export interface Scan3dToolRequest {
+  projectHandle: string;
+  mapId: string;
+  maxViews: number;
+  magnification: number;
+}
+
+export type Scan3dExecutor = (
+  projectRoot: string,
+  request: Scan3dToolRequest,
+) => Promise<{ data: JsonRecord; artifacts: JsonRecord[] }>;
+
 export type Render3dExecutor = (
   projectRoot: string,
   request: Render3dToolRequest,
@@ -296,6 +308,55 @@ export function createNativeRender3dExecutor(options: {
           sha256: digest,
         }],
       };
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true });
+    }
+  };
+}
+
+/** Frames every gap cluster and Border/object overlap, measuring see-through holes. */
+export function createNativeScan3dExecutor(options: {
+  artifacts: MemoryArtifactReader;
+  host: NativeRenderHost;
+}): Scan3dExecutor {
+  return async (projectRoot, request) => {
+    const temporaryRoot = await mkdtemp(join(tmpdir(), "pokemap-scan3d-"));
+    try {
+      const response = await options.host.request("scan", {
+        projectRoot,
+        mapId: request.mapId,
+        outputDirectory: temporaryRoot,
+        maxViews: request.maxViews,
+        magnification: request.magnification,
+      });
+      if (response.status !== "success") {
+        const error = isRecord(response.error) ? response.error : {};
+        throw new PokeMapToolError(
+          typeof error.code === "string" ? error.code : "render3d.scan_failed",
+          typeof error.message === "string" ? error.message : "The 3D scan failed.",
+        );
+      }
+      const data = isRecord(response.data) ? { ...response.data } : {};
+      const artifacts: JsonRecord[] = [];
+      const views: JsonRecord[] = [];
+      for (const [index, raw] of (Array.isArray(data.views) ? data.views : []).entries()) {
+        if (!isRecord(raw) || typeof raw.outputPath !== "string") continue;
+        const bytes = await readFile(resolve(temporaryRoot, raw.outputPath));
+        const digest = createHash("sha256").update(bytes).digest("hex");
+        const uri = `artifact://sha256/${digest}`;
+        options.artifacts.registerBlob(uri, "image/png", bytes.toString("base64"));
+        artifacts.push({
+          id: `scan3d-${request.mapId}-${index}`,
+          mediaType: "image/png",
+          uri,
+          byteLength: bytes.byteLength,
+          sha256: digest,
+        });
+        const view: JsonRecord = { ...raw, artifactUri: uri };
+        delete view.outputPath;
+        views.push(view);
+      }
+      return { data: { ...data, views }, artifacts };
     } finally {
       await rm(temporaryRoot, { recursive: true, force: true });
     }

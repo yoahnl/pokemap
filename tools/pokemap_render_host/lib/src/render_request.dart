@@ -118,3 +118,54 @@ double _number(Object? value, String field, double fallback) {
   }
   return value.toDouble();
 }
+
+final class ScanRequest {
+  const ScanRequest({
+    required this.projectRoot,
+    required this.mapId,
+    required this.outputDirectory,
+    this.maxViews = 12,
+    this.magnification = 4,
+  });
+
+  factory ScanRequest.fromJson(Map<String, Object?> json) {
+    const allowed = {'projectRoot', 'mapId', 'outputDirectory', 'maxViews', 'magnification'};
+    final unknown = json.keys.where((key) => !allowed.contains(key)).toList();
+    if (unknown.isNotEmpty) {
+      throw RenderRequestException('Unknown scan fields: ${unknown.join(', ')}.');
+    }
+    final mapId = json['mapId'];
+    if (mapId is! String || mapId.isEmpty) {
+      throw const RenderRequestException('mapId must be a non-empty string.');
+    }
+    final maxViews = json['maxViews'] ?? 12;
+    if (maxViews is! int || maxViews < 1 || maxViews > 32) {
+      throw const RenderRequestException('maxViews must be an integer within 1 to 32.');
+    }
+    final magnification = _number(json['magnification'], 'magnification', 4);
+    if (magnification < 2 || magnification > 8) {
+      throw const RenderRequestException('magnification must be within 2 to 8.');
+    }
+    return ScanRequest(
+      projectRoot: _absolutePath(json['projectRoot'], 'projectRoot'),
+      mapId: mapId,
+      outputDirectory: _absolutePath(json['outputDirectory'], 'outputDirectory'),
+      maxViews: maxViews,
+      magnification: magnification,
+    );
+  }
+
+  final String projectRoot;
+  final String mapId;
+  final String outputDirectory;
+  final int maxViews;
+  final double magnification;
+
+  String projectFile(String relativePath) {
+    final resolved = p.normalize(p.join(projectRoot, relativePath));
+    if (!p.isWithin(projectRoot, resolved)) {
+      throw RenderRequestException('Project file escapes the project root: $relativePath');
+    }
+    return resolved;
+  }
+}

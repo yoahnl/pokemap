@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_render_host/src/render_host.dart';
@@ -63,7 +64,63 @@ void main() {
     });
   });
 
+  group('ScanRequest', () {
+    test('defaults to twelve views at magnification four', () {
+      final request = ScanRequest.fromJson(const {
+        'projectRoot': '/games/jeu',
+        'mapId': 'route-32',
+        'outputDirectory': '/tmp/scan',
+      });
+      expect((request.maxViews, request.magnification), (12, 4.0));
+    });
+
+    for (final (label, json) in [
+      ('a relative output directory', {'projectRoot': '/jeu', 'mapId': 'm', 'outputDirectory': 'scan'}),
+      ('too many views', {'projectRoot': '/jeu', 'mapId': 'm', 'outputDirectory': '/tmp/s', 'maxViews': 40}),
+      ('a fractional view count', {'projectRoot': '/jeu', 'mapId': 'm', 'outputDirectory': '/tmp/s', 'maxViews': 2.5}),
+      ('a wide magnification', {'projectRoot': '/jeu', 'mapId': 'm', 'outputDirectory': '/tmp/s', 'magnification': 1}),
+      ('an unknown field', {'projectRoot': '/jeu', 'mapId': 'm', 'outputDirectory': '/tmp/s', 'view': 'top'}),
+    ]) {
+      test('rejects $label', () {
+        expect(() => ScanRequest.fromJson(json), throwsA(isA<RenderRequestException>()));
+      });
+    }
+  });
+
+  test('holes are sentinel patches the scene encloses; edge-connected void is not', () {
+    const width = 10, height = 10;
+    final rgba = Uint8List(width * height * 4);
+    void paint(int x, int y) => rgba.setAll((y * width + x) * 4, const [255, 0, 255, 255]);
+    paint(5, 5);
+    paint(5, 6);
+    for (var y = 0; y < height; y++) {
+      paint(0, y);
+    }
+    paint(1, 4);
+    final ratios = seeThroughRatios(rgba, width, height);
+    expect(ratios.background, closeTo(.13, 1e-9));
+    expect(ratios.holes, closeTo(.02, 1e-9));
+  });
+
   group('RenderHost', () {
+    test('dispatches scans only when the host provides them', () async {
+      final scanned = <ScanRequest>[];
+      final host = RenderHost((_) async => const {}, scan: (request) async {
+        scanned.add(request);
+        return {'viewCount': 0};
+      });
+      final args = {'projectRoot': '/jeu', 'mapId': 'route-32', 'outputDirectory': '/tmp/s'};
+      final responses = await _exchange(host, [
+        {'id': 'scan', 'command': 'scan', 'args': args},
+      ]);
+      expect(responses.single['status'], 'success');
+      expect(scanned.single.mapId, 'route-32');
+      final plain = await _exchange(RenderHost((_) async => const {}), [
+        {'id': 'scan', 'command': 'scan', 'args': args},
+      ]);
+      expect((plain.single['error'] as Map)['code'], 'render.request_invalid');
+    });
+
     test('answers each JSON line with the matching id', () async {
       final rendered = <RenderRequest>[];
       final host = RenderHost((request) async {

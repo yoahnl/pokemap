@@ -14,7 +14,7 @@ import type {
   RuntimeGateway,
   RuntimeToolResult,
 } from "./runtime_gateway.js";
-import type { Render3dToolRequest } from "./native_render_host.js";
+import type { Render3dToolRequest, Scan3dToolRequest } from "./native_render_host.js";
 import { PokeMapToolError } from "./tool_error.js";
 
 export interface PokeMapRequestGuardOptions {
@@ -133,6 +133,9 @@ export function guardRuntimeGateway(
     },
     render3d(request: Render3dToolRequest): Promise<RuntimeToolResult> {
       return guard.run("runtime.render3d", request, () => gateway.render3d(request));
+    },
+    scan3d(request: Scan3dToolRequest): Promise<RuntimeToolResult> {
+      return guard.run("runtime.scan3d", request, () => gateway.scan3d(request));
     },
     startPlaytest(request: PlaytestToolRequest): Promise<RuntimeToolResult> {
       return guard.run("runtime.playtest", request, () =>

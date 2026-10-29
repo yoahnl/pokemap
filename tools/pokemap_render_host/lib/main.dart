@@ -26,6 +26,6 @@ Future<void> main() async {
     ),
   ));
   final renderer = SpatialMapRenderer(boundaryKey: _boundaryKey, content: _content, errors: errors);
-  await RenderHost(renderer.render).serve(stdin, stdout);
+  await RenderHost(renderer.render, scan: renderer.scan).serve(stdin, stdout);
   exit(0);
 }
