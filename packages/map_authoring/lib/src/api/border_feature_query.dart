@@ -7,9 +7,13 @@ import '../contracts/query_request.dart';
 import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot.dart';
 
-typedef BorderFeatureMapRead
-    = Future<({MapData map, ProjectManifest manifest, String revision})>
-        Function(String mapId);
+typedef AuthoringMapView = ({
+  MapData map,
+  ProjectManifest manifest,
+  String revision,
+});
+
+typedef BorderFeatureMapRead = Future<AuthoringMapView> Function(String mapId);
 
 const maximumBorderFeatureQueryDiagnostics = 512;
 

@@ -124,6 +124,36 @@ final class AuthoringReadApi
   @override
   Map<String, Object?> describe() => describeRead().toJson();
 
+  Future<AuthoringMapView> readMapView(
+    ProjectHandle projectHandle,
+    String mapId,
+  ) async {
+    final catalog = await _openService.catalogProject(projectHandle);
+    if (catalog != null) {
+      final CatalogTargetedMapSelection selection;
+      try {
+        selection =
+            await CatalogTargetedMapSelection.read(reader: catalog, mapId: mapId);
+      } on StateError {
+        throw const AuthoringQueryException('query.resource_not_found',
+            'The requested map does not exist in this project.');
+      }
+      return (
+        map: selection.map,
+        manifest: selection.definitions,
+        revision: selection.snapshotRevision,
+      );
+    }
+    final snapshot = await _snapshotLoader.load(projectHandle,
+        policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+    final map = snapshot.maps.where((map) => map.id == mapId).firstOrNull;
+    if (map == null) {
+      throw const AuthoringQueryException('query.resource_not_found',
+          'The requested map does not exist in this project.');
+    }
+    return (map: map, manifest: snapshot.manifest, revision: snapshot.revision);
+  }
+
   @override
   Future<OpenedProject> openProject(String projectRootPath) async =>
       await _openService.openProject(projectRootPath);
@@ -225,35 +255,7 @@ final class AuthoringReadApi
     if (request.resourceKind == 'borderFeature') {
       return queryBorderFeatures(
         request: request,
-        readMap: (mapId) async {
-          if (catalog != null) {
-            final CatalogTargetedMapSelection selection;
-            try {
-              selection = await CatalogTargetedMapSelection.read(
-                  reader: catalog, mapId: mapId);
-            } on StateError {
-              throw const AuthoringQueryException('query.resource_not_found',
-                  'The requested map does not exist in this project.');
-            }
-            return (
-              map: selection.map,
-              manifest: selection.definitions,
-              revision: selection.snapshotRevision,
-            );
-          }
-          final snapshot = await _snapshotLoader.load(projectHandle,
-              policy: ProjectSnapshotLoadPolicy.editorReadProjection);
-          final map = snapshot.maps.where((map) => map.id == mapId).firstOrNull;
-          if (map == null) {
-            throw const AuthoringQueryException('query.resource_not_found',
-                'The requested map does not exist in this project.');
-          }
-          return (
-            map: map,
-            manifest: snapshot.manifest,
-            revision: snapshot.revision,
-          );
-        },
+        readMap: (mapId) => readMapView(projectHandle, mapId),
       );
     }
     if (catalog != null &&

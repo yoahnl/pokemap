@@ -1,0 +1,29 @@
+name: pokemap_render_host
+description: Native macOS host that renders PokeMap 3D maps for the PokeMap MCP.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+  flutter: '>=3.47.5'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  avelune_rendering:
+    path: ../../packages/avelune_rendering
+  map_authoring:
+    path: ../../packages/map_authoring
+  map_core:
+    path: ../../packages/map_core
+  map_render_3d:
+    path: ../../packages/map_render_3d
+  path: ^1.9.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: false

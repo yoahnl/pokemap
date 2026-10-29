@@ -56,6 +56,38 @@ export function registerRuntimeTools(
   );
 
   server.registerTool(
+    "pokemap_render_3d",
+    {
+      title: "Render a PokeMap 3D map",
+      description:
+        "Renders a 3D map at its current authored revision through the native Metal renderer (terrain, Border faces, GLB models, lighting) and returns an opaque PNG artifact handle. Use it to see Border reliefs, joints and holes that pokemap_render cannot show. view game uses the player camera, top looks straight down and orbit gives an oblique overview; center pans to world cells and magnification zooms in every view. macOS only; a small floating window appears while rendering; the first call may build the host and load the map for one to two minutes.",
+      inputSchema: z
+        .object({
+          projectHandle: z.string().min(1),
+          mapId: z.string().min(1),
+          center: z.object({ x: z.number(), z: z.number() }).strict().optional(),
+          magnification: z.number().min(0.5).max(8).default(2),
+          view: z.enum(["game", "top", "orbit"]).default("game"),
+          minuteOfDay: z.number().min(0).max(1439).default(720),
+        })
+        .strict(),
+      outputSchema: toolEnvelopeSchema,
+      annotations: readOnlyAnnotations,
+    },
+    async (request) =>
+      toolResult(() =>
+        runtime.render3d({
+          projectHandle: request.projectHandle,
+          mapId: request.mapId,
+          ...(request.center ? { center: request.center } : {}),
+          magnification: request.magnification,
+          view: request.view,
+          minuteOfDay: request.minuteOfDay,
+        }),
+      ),
+  );
+
+  server.registerTool(
     "pokemap_playtest",
     {
       title: "Start a sandboxed PokeMap playtest",

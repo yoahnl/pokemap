@@ -29,7 +29,9 @@ Use the canonical PokeMap authoring API. Treat editor, API, and MCP parity as on
 3. Query content, follow `nextCursor`, never invent handles or URIs.
 4. For changes, call `pokemap_plan`, inspect the preview, then `pokemap_apply` with a unique
    operation ID. Obtain the exact confirmation for destructive operations.
-5. Validate, re-query, and render or playtest when runtime or visuals change.
+5. Validate, re-query, and render or playtest when runtime or visuals change. On a 3D map,
+   `pokemap_render` shows no GLB, terrain surface or Border face: inspect reliefs, joints
+   and holes with `pokemap_render_3d` (macOS, floating window, first call is slow).
 6. Close the workspace when finished.
 
 Do not bypass MCP by editing project JSON. Filesystem work remains valid for source and

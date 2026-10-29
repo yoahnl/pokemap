@@ -44,6 +44,7 @@ function start(config: PokeMapMcpConfig): void {
     artifacts,
     runtimePackageRoot: config.runtimePackageRoot,
     runtimeHostRoot: config.runtimeHostRoot,
+    renderHostRoot: config.renderHostRoot,
     repositoryRoot: config.repositoryRoot,
     dartExecutable: config.dartExecutable,
     flutterExecutable: config.flutterExecutable,

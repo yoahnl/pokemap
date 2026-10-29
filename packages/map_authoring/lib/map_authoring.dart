@@ -12,6 +12,7 @@ export 'src/catalog_storage/catalog_generation_retention.dart';
 export 'src/catalog_storage/working_project_catalog.dart';
 
 export 'src/api/authoring_read_api.dart';
+export 'src/api/border_feature_query.dart' show AuthoringMapView;
 export 'src/api/authoring_read_contracts.dart';
 export 'src/api/authoring_mutation_api.dart';
 export 'src/api/authoring_mutation_contracts.dart';

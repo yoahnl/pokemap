@@ -10,6 +10,7 @@ export interface PokeMapMcpConfig {
   repositoryRoot: string;
   runtimePackageRoot: string;
   runtimeHostRoot: string;
+  renderHostRoot: string;
   dartExecutable: string;
   flutterExecutable: string;
   authoringTimeoutMs?: number;
@@ -31,6 +32,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   let repositoryRoot: string | undefined;
   let runtimePackageRoot: string | undefined;
   let runtimeHostRoot: string | undefined;
+  let renderHostRoot: string | undefined;
   let dartExecutable = "dart";
   let flutterExecutable = "flutter";
   let authoringTimeoutMs: number | undefined;
@@ -82,6 +84,9 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
       case "--runtime-host":
         runtimeHostRoot = resolve(value);
         break;
+      case "--render-host":
+        renderHostRoot = resolve(value);
+        break;
       default:
         throw new PokeMapMcpConfigError("An unknown configuration option was provided.");
     }
@@ -112,6 +117,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     repositoryRoot: repository,
     runtimePackageRoot: runtimePackage,
     runtimeHostRoot: runtimeHost,
+    renderHostRoot: renderHostRoot ?? resolve(repository, "tools/pokemap_render_host"),
     dartExecutable,
     flutterExecutable,
     ...(authoringTimeoutMs === undefined ? {} : {authoringTimeoutMs}),

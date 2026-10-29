@@ -18,6 +18,13 @@ import type {
   CertifiedPlaytestProjection,
   PlaytestProjectionFactory,
 } from "./playtest_projection.js";
+import {
+  createNativeRender3dExecutor,
+  createRenderHostBinaryResolver,
+  NativeRenderHost,
+  type Render3dExecutor,
+  type Render3dToolRequest,
+} from "./native_render_host.js";
 import { PokeMapToolError } from "./tool_error.js";
 
 export interface RenderToolRequest {
@@ -44,6 +51,7 @@ export interface RuntimeToolResult {
 
 export interface RuntimeGateway {
   render(request: RenderToolRequest): Promise<RuntimeToolResult>;
+  render3d(request: Render3dToolRequest): Promise<RuntimeToolResult>;
   startPlaytest(request: PlaytestToolRequest): Promise<RuntimeToolResult>;
   getJob(jobId: string): Promise<RuntimeToolResult>;
   jobEvents(jobId: string, afterSequence: number): Promise<RuntimeToolResult>;
@@ -81,6 +89,8 @@ export interface LocalRuntimeGatewayOptions {
   dartExecutable?: string;
   flutterExecutable?: string;
   renderExecutor?: RenderExecutor;
+  render3dExecutor?: Render3dExecutor;
+  renderHostRoot?: string;
   playtestExecutor?: PlaytestExecutor;
   playtestProjectionFactory?: PlaytestProjectionFactory;
   jobIdFactory?: () => string;
@@ -121,6 +131,8 @@ interface JobRecord {
 export class LocalRuntimeGateway implements RuntimeGateway {
   readonly #roots: ProjectRootResolver;
   readonly #renderExecutor: RenderExecutor;
+  readonly #render3dExecutor: Render3dExecutor;
+  readonly #renderHost?: NativeRenderHost;
   readonly #playtestExecutor: PlaytestExecutor;
   readonly #playtestProjectionFactory: PlaytestProjectionFactory;
   readonly #jobIdFactory: () => string;
@@ -136,6 +148,23 @@ export class LocalRuntimeGateway implements RuntimeGateway {
         flutterExecutable: options.flutterExecutable ?? "flutter",
         runtimePackageRoot: options.runtimePackageRoot,
       });
+    if (options.render3dExecutor) {
+      this.#render3dExecutor = options.render3dExecutor;
+    } else {
+      this.#renderHost = new NativeRenderHost({
+        resolveBinary: createRenderHostBinaryResolver({
+          hostRoot:
+            options.renderHostRoot ??
+            resolve(options.repositoryRoot, "tools/pokemap_render_host"),
+          repositoryRoot: options.repositoryRoot,
+          flutterExecutable: options.flutterExecutable ?? "flutter",
+        }),
+      });
+      this.#render3dExecutor = createNativeRender3dExecutor({
+        artifacts: options.artifacts,
+        host: this.#renderHost,
+      });
+    }
     this.#playtestExecutor =
       options.playtestExecutor ??
       createLocalPlaytestExecutor({
@@ -152,6 +181,14 @@ export class LocalRuntimeGateway implements RuntimeGateway {
   async render(request: RenderToolRequest): Promise<RuntimeToolResult> {
     this.#ensureOpen();
     return this.#renderExecutor(
+      this.#roots.resolveProjectRoot(request.projectHandle),
+      request,
+    );
+  }
+
+  async render3d(request: Render3dToolRequest): Promise<RuntimeToolResult> {
+    this.#ensureOpen();
+    return this.#render3dExecutor(
       this.#roots.resolveProjectRoot(request.projectHandle),
       request,
     );
@@ -235,11 +272,12 @@ export class LocalRuntimeGateway implements RuntimeGateway {
     for (const record of this.#jobs.values()) {
       if (!isTerminal(record.state)) record.controller.abort();
     }
-    await Promise.all(
-      [...this.#jobs.values()].flatMap((record) =>
+    await Promise.all([
+      ...[...this.#jobs.values()].flatMap((record) =>
         record.completion ? [record.completion] : [],
       ),
-    );
+      this.#renderHost?.close(),
+    ]);
   }
 
   #createJob(

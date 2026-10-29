@@ -565,6 +565,35 @@ void main() {
     expect(await fixture.mapFile.readAsBytes(), external);
   });
 
+  test('the map view reads the targeted catalog map at its scoped revision',
+      () async {
+    final fixture = await _Fixture.open(3);
+    addTearDown(fixture.close);
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [fixture.root.path], fileReader: fixture.reader);
+    final read = AuthoringReadApi(
+        openService: ProjectOpenService(
+            policy: policy,
+            fileReader: fixture.reader,
+            handles: fixture.handles),
+        snapshotLoader: ProjectSnapshotLoader(handles: fixture.handles));
+    final opened = await read.openProject(fixture.root.path);
+    final view = await read.readMapView(opened.projectHandle, 'map');
+    expect(view.map.id, 'map');
+    expect(view.manifest.maps.map((entry) => entry.id), contains('map'));
+    final page = await read.queryProject(
+        opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'borderFeature',
+            operation: AuthoringQueryOperation.list,
+            filters: const {'mapId': 'map'}));
+    expect(view.revision, page.snapshotRevision);
+    await expectLater(
+        read.readMapView(opened.projectHandle, 'nowhere'),
+        throwsA(isA<AuthoringQueryException>()
+            .having((error) => error.code, 'code', 'query.resource_not_found')));
+  });
+
   test('JSONL story trigger creation undo and reopen preserve the original map',
       () async {
     final fixture = await _Fixture.open(0);

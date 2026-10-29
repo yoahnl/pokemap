@@ -154,6 +154,7 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
         "pokemap_project_create",
         "pokemap_resource_pack",
         "pokemap_render",
+        "pokemap_render_3d",
         "pokemap_playtest",
         "pokemap_job",
       ],
