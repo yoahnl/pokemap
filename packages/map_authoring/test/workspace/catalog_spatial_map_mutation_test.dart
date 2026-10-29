@@ -142,6 +142,66 @@ void main() {
   }
 
 
+  final geometryReadCounts = <int, List<int>>{};
+  for (final unrelated in [0, 90]) {
+    test('targeted spatial Border geometry edits stay map-scoped with $unrelated foreign maps', () async {
+      final base = spatialBorderAuthoringFixture(published: true);
+      final layer = base.map.layers.single as BorderLayer;
+      final fence = layer.content.features.single;
+      final width = base.map.size.width, height = base.map.size.height;
+      final mass = BorderFeature(id: 'mass', name: 'Mass', blueprintId: fence.blueprintId, seed: fence.seed,
+          geometry: BorderRegionGeometry(width: width, height: height, cells: List.filled(width * height, false)),
+          overrides: const [], keepOutRegions: const []);
+      final beforeMap = base.map.copyWith(layers: [layer.copyWith(content: BorderLayerContent(formatVersion: 4, features: [fence, mass]))]);
+      final fixture = await _Fixture.open(unrelated, content: (project: base.project, map: beforeMap));
+      addTearDown(fixture.close);
+      final operations = <(String, Map<String, Object?>)>[
+        ('border_layer.stroke_add', {'featureId': 'fence', 'strokeId': 'extra', 'points': [{'x': 1, 'y': 3}, {'x': 2, 'y': 3}, {'x': 3, 'y': 3}]}),
+        ('border_layer.stroke_update', {'featureId': 'fence', 'strokeId': 'extra', 'points': [{'x': 1, 'y': 3}, {'x': 2, 'y': 3}]}),
+        ('border_layer.stroke_delete', {'featureId': 'fence', 'strokeId': 'extra'}),
+        ('border_layer.stroke_erase', {'featureId': 'fence', 'points': [{'x': 1, 'y': 1}]}),
+        ('border_layer.region_fill', {'featureId': 'mass', 'x': 1, 'y': 2, 'width': 2, 'height': 1}),
+        ('border_layer.region_clear', {'featureId': 'mass', 'x': 1, 'y': 2, 'width': 1, 'height': 1}),
+      ];
+      final counts = <int>[];
+      Future<AuthoringMutationResult> scoped(String action, Map<String, Object?> parameters, String operation) async {
+        fixture.reader.paths.clear();
+        final timer = Stopwatch()..start();
+        final result = await fixture.apply(action, {'mapId': 'map', 'layerId': 'border', ...parameters}, operation);
+        timer.stop();
+        counts.add(fixture.reader.paths.length);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty, reason: action);
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json' || p.endsWith('.glb') || p.endsWith('history.jsonl')), isEmpty, reason: action);
+        print('border-geometry foreign=$unrelated action=$action reads=${counts.last} elapsedUs=${timer.elapsedMicroseconds}');
+        return result;
+      }
+      for (final (action, parameters) in operations) {
+        await scoped(action, parameters, 'first-$action');
+      }
+      final edited = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+      final features = (edited.layers.single as BorderLayer).content.features;
+      final fenceGeometry = features.firstWhere((f) => f.id == 'fence').geometry as BorderStrokeGeometry;
+      expect(fenceGeometry.strokes.map((stroke) => stroke.id), isNot(contains('extra')));
+      final massCells = (features.firstWhere((f) => f.id == 'mass').geometry as BorderRegionGeometry).cells;
+      expect([for (var i = 0; i < massCells.length; i++) if (massCells[i]) i], [2 * width + 2]);
+      await fixture.reopen();
+      await scoped('border_layer.region_fill', {'featureId': 'mass', 'x': 3, 'y': 2, 'width': 1, 'height': 1}, 'reopened-fill');
+      final beforeRepeat = await fixture.mapFile.readAsBytes();
+      final repeated = await scoped('border_layer.region_fill', {'featureId': 'mass', 'x': 4, 'y': 2, 'width': 1, 'height': 1}, 'repeated-fill');
+      await fixture.api.undoMutation(fixture.opened.projectHandle, entryId: repeated.receipt.receiptId, idempotencyKey: 'undo-repeated-fill');
+      expect(await fixture.mapFile.readAsBytes(), beforeRepeat);
+      expect(counts.every((n) => n < 150), isTrue, reason: '$counts');
+      geometryReadCounts[unrelated] = counts;
+      final baseline = geometryReadCounts[0];
+      if (baseline != null && unrelated != 0) {
+        for (var index = 0; index < counts.length; index++) {
+          expect(counts[index] - baseline[index], inInclusiveRange(0, 16),
+              reason: 'Unrelated maps may only deepen the catalog index walk: $baseline -> $counts');
+        }
+      }
+    });
+  }
+
   for (final usage in [SmartTileUsage.path, SmartTileUsage.terrain]) {
     for (final action in ['smart_tile.pattern.paint', 'smart_tile.pattern.paint_batch']) {
       for (final unrelated in [0, 90]) {
