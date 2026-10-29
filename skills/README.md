@@ -38,6 +38,7 @@ If instructions conflict, use the stricter safe rule and report the conflict.
 | `using-pokemap-mcp` | Inspecting or modifying PokeMap projects, automating authoring, checking MCP parity, or diagnosing PokeMap MCP path errors. | Enforces canonical API use, narrow workspace roots, and live parity proof. |
 | [`avelune-packages`](</Users/karim/Project/Avelune Package/skills/avelune-packages/SKILL.md>) | Working on a `.aveluneassets` library, the shared Avelune Packages website, galleries, classification, deduplication or releases. | Canonical skill lives in the separate packages repository; preserve its shared dark theme, official identity and release evidence. |
 | `creating-pokemap-maps-from-reference` | Authoring, rebuilding, or reviewing an editable PokeMap map from a screenshot, bible, concept image, or full-map render. | Enforces scale boards, connected routes, modular bounds-safe assets, edge independence, runtime proof, and visual acceptance gates. |
+| `authoring-pokemap-3d-reliefs` | Building or repairing 3D maps with terrain surfaces and spatial Border cliffs, ledges or shores; faces floating or sinking, corner holes, broken joints. | Contour must sit on the terrain step; no offset compensation; verify with `borderFeature` and `pokemap_render_3d`. |
 
 ## PokeMap-Specific Guidance
 
@@ -57,6 +58,7 @@ For visual/editor/runtime work, choose skills based on the task type:
 | Runtime or editor implementation lot | `writing-plans` or `executing-plans` | `verification-before-completion`, `requesting-code-review` |
 | Broken tests or regressions | `systematic-debugging` | `test-driven-development` |
 | PokeMap project authoring or MCP parity | `using-pokemap-mcp` | `verification-before-completion` |
+| 3D reliefs, cliffs, shores, terrain surfaces | `authoring-pokemap-3d-reliefs` | `using-pokemap-mcp` |
 | Large multi-lot implementation | `subagent-driven-development` | `requesting-code-review` |
 | Final status/lot closure | `verification-before-completion` | `requesting-code-review` |
 

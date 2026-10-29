@@ -12,7 +12,8 @@ Require three truths at once: spatial logic, visual credibility at player scale,
 native PokeMap editability.
 
 **REQUIRED SUB-SKILL:** Use `using-pokemap-mcp` for project inspection, authoring,
-validation, rendering, and MCP parity handling. Do not edit project JSON directly when
+validation, rendering, and MCP parity handling. On a 3D map, also use
+`authoring-pokemap-3d-reliefs` before tracing any terrain surface or Border relief. Do not edit project JSON directly when
 the canonical MCP contract supports the operation.
 
 ## Required references

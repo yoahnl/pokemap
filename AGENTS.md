@@ -114,6 +114,7 @@ Common triggers:
 | Branch/worktree flow explicitly requested | `using-git-worktrees` or `finishing-a-development-branch` |
 | Creating or editing skills | `writing-skills` |
 | PokeMap project authoring, MCP usage, or authoring parity | `using-pokemap-mcp` |
+| 3D map reliefs: terrain surfaces, spatial Border cliffs, shores | `authoring-pokemap-3d-reliefs` |
 
 For mechanics work, use both the relevant skill and `pokemap_roadmap_mecaniques_fangame.md`.
 
