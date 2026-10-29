@@ -8,7 +8,7 @@ const _base = 'border.spatial.face_base_mismatch';
 
 void main() {
   test('crown-anchored faces that bridge their step stay silent', () {
-    final fixture = _cliffFixture(geometry: _plateauRegion());
+    final fixture = spatialCliffFixture(geometry: _plateauRegion());
     final resolved = _resolve(fixture);
     expect(resolved.result.canApply, isTrue);
     expect(resolved.modelInstances, isNotEmpty);
@@ -16,7 +16,7 @@ void main() {
   });
 
   test('flat ground reports every sunken face base without blocking', () {
-    final fixture = _cliffFixture(
+    final fixture = spatialCliffFixture(
       geometry: _plateauRegion(),
       levels: List.filled(36, 1),
     );
@@ -44,7 +44,7 @@ void main() {
 
   test('faces buried by less than half their height stay silent', () {
     final skirt = _resolve(
-      _cliffFixture(
+      spatialCliffFixture(
         geometry: _plateauRegion(),
         face: (minY: -1.4, maxY: 0, anchorY: 0),
       ),
@@ -53,7 +53,7 @@ void main() {
     expect(_faceDiagnostics(skirt), isEmpty);
 
     final floating = _resolve(
-      _cliffFixture(
+      spatialCliffFixture(
         geometry: _plateauRegion(),
         face: (minY: -.6, maxY: 0, anchorY: 0),
       ),
@@ -79,13 +79,13 @@ void main() {
       for (var z = 0; z < 6; z++)
         for (var x = 0; x < 6; x++) z >= 3 ? 1 : 0,
     ];
-    final bridged = _resolve(_cliffFixture(geometry: stroke, levels: levels));
+    final bridged = _resolve(spatialCliffFixture(geometry: stroke, levels: levels));
     expect(bridged.result.canApply, isTrue);
     expect(bridged.modelInstances, hasLength(4));
     expect(_faceDiagnostics(bridged), isEmpty);
 
     final lifted = _resolve(
-      _cliffFixture(
+      spatialCliffFixture(
         geometry: stroke,
         levels: levels,
         offset: Model3dVector3(x: 0, y: 1, z: 0),
@@ -98,7 +98,7 @@ void main() {
   });
 
   test('contexts without modeled ground never read extra heights', () {
-    final fixture = _cliffFixture(
+    final fixture = spatialCliffFixture(
       geometry: _plateauRegion(),
       levels: List.filled(36, 1),
     );
@@ -133,7 +133,7 @@ void main() {
   });
 
   test('crowns lifted above the upper ground are reported', () {
-    final fixture = _cliffFixture(
+    final fixture = spatialCliffFixture(
       geometry: _plateauRegion(),
       offset: Model3dVector3(x: 0, y: 1, z: 0),
     );
@@ -162,13 +162,13 @@ void main() {
       ],
     );
     final offset = Model3dVector3(x: 0, y: 1, z: 0);
-    final compensated = _cliffFixture(geometry: stroke, offset: offset);
+    final compensated = spatialCliffFixture(geometry: stroke, offset: offset);
     final silent = _resolve(compensated);
     expect(silent.result.canApply, isTrue);
     expect(silent.modelInstances, hasLength(4));
     expect(_faceDiagnostics(silent), isEmpty);
 
-    final raised = _cliffFixture(
+    final raised = spatialCliffFixture(
       geometry: stroke,
       offset: offset,
       surfaces: SpatialTerrainSurfaceSet.fromJson({
@@ -207,9 +207,9 @@ void main() {
   });
 
   test('unmodeled ground beside a face is never compared', () {
-    final plateau = _surface('plateau', height: 1, left: 1, top: 1, size: 4);
+    final plateau = spatialTestSurface('plateau', height: 1, left: 1, top: 1, size: 4);
     final lifted = _resolve(
-      _cliffFixture(
+      spatialCliffFixture(
         geometry: _plateauRegion(),
         levels: List.filled(36, 0),
         offset: Model3dVector3(x: 0, y: 1, z: 0),
@@ -222,7 +222,7 @@ void main() {
     expect(diagnostics.map((d) => d.code).toSet(), {_crown});
 
     final unsupported = _resolve(
-      _cliffFixture(
+      spatialCliffFixture(
         geometry: BorderStrokeGeometry(
           alignment: BorderStrokeAlignment.gridEdges,
           strokes: [
@@ -236,7 +236,7 @@ void main() {
         levels: List.filled(36, 0),
         offset: Model3dVector3(x: 0, y: 1, z: 0),
         surfaces: SpatialTerrainSurfaceSet(
-          surfaces: [_surface('far', height: 1, left: 5, top: 0, size: 1)],
+          surfaces: [spatialTestSurface('far', height: 1, left: 5, top: 0, size: 1)],
         ),
       ),
     );
@@ -246,7 +246,7 @@ void main() {
   });
 
   test('modules that are not crown-anchored faces are never checked', () {
-    final fixture = _cliffFixture(
+    final fixture = spatialCliffFixture(
       geometry: _plateauRegion(),
       levels: List.filled(36, 1),
       face: (minY: 0, maxY: 1, anchorY: 2),
@@ -257,7 +257,7 @@ void main() {
   });
 
   test('undirected blueprints are never checked', () {
-    final fixture = _cliffFixture(
+    final fixture = spatialCliffFixture(
       geometry: BorderStrokeGeometry(
         alignment: BorderStrokeAlignment.gridEdges,
         strokes: [
@@ -278,7 +278,7 @@ void main() {
   });
 
   test('edges on the map boundary skip their missing outside ground', () {
-    final fixture = _cliffFixture(
+    final fixture = spatialCliffFixture(
       geometry: BorderStrokeGeometry(
         alignment: BorderStrokeAlignment.gridEdges,
         strokes: [
@@ -313,7 +313,7 @@ SpatialBorderResolutionResult _resolve(
   featureId: 'fence',
 );
 
-SpatialTerrainSurface _surface(
+SpatialTerrainSurface spatialTestSurface(
   String id, {
   required double height,
   required double left,
@@ -345,7 +345,7 @@ BorderRegionGeometry _plateauRegion() => BorderRegionGeometry(
   ],
 );
 
-({ProjectManifest project, MapData map}) _cliffFixture({
+({ProjectManifest project, MapData map}) spatialCliffFixture({
   required BorderFeatureGeometry geometry,
   List<int>? levels,
   Model3dVector3? offset,

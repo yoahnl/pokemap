@@ -1779,6 +1779,99 @@ List<BorderDiagnostic> _spatialBorderFaceGroundDiagnostics({
   return diagnostics;
 }
 
+({MapData map, List<String> refreshed, List<String> stale})
+refreshSpatialBordersForTerrainChange({
+  required ProjectManifest manifest,
+  required MapData before,
+  required MapData after,
+}) {
+  final previousScene = before.spatialScene;
+  final nextScene = after.spatialScene;
+  if (previousScene == null || nextScene == null) {
+    return (map: after, refreshed: const [], stale: const []);
+  }
+  final previous = {
+    for (final surface in previousScene.terrainSurfaces.surfaces)
+      surface.id: surface,
+  };
+  final next = {
+    for (final surface in nextScene.terrainSurfaces.surfaces)
+      surface.id: surface,
+  };
+  final points = [
+    for (final id in {...previous.keys, ...next.keys})
+      if (previous[id] != next[id])
+        for (final surface in [previous[id], next[id]])
+          if (surface != null)
+            for (final footprint in surface.footprints)
+              for (final point in footprint.points) point,
+  ];
+  if (points.isEmpty) return (map: after, refreshed: const [], stale: const []);
+  const margin = 2.0;
+  final left = points.map((point) => point.x).reduce(math.min) - margin;
+  final right = points.map((point) => point.x).reduce(math.max) + margin;
+  final top = points.map((point) => point.z).reduce(math.min) - margin;
+  final bottom = points.map((point) => point.z).reduce(math.max) + margin;
+  final instances = {
+    for (final instance in nextScene.instances) instance.id: instance,
+  };
+  var map = after;
+  final refreshed = <String>[];
+  final stale = <String>[];
+  for (final layer in after.layers.whereType<BorderLayer>()) {
+    for (final feature in layer.content.features) {
+      final materialization = feature.materialization;
+      if (materialization == null || !materialization.targetsSpatialScene) {
+        continue;
+      }
+      final stored = [
+        for (final placement in materialization.spatialPlacements)
+          instances[placement.instanceId],
+      ];
+      if (!stored.any(
+        (instance) =>
+            instance != null &&
+            instance.position.x >= left &&
+            instance.position.x <= right &&
+            instance.position.z >= top &&
+            instance.position.z <= bottom,
+      )) {
+        continue;
+      }
+      final key = '${layer.id}/${feature.id}';
+      final resolved = resolveSpatialBorderFeature(
+        manifest: manifest,
+        map: map,
+        layerId: layer.id,
+        featureId: feature.id,
+      );
+      if (!resolved.result.canApply) {
+        stale.add(key);
+        continue;
+      }
+      if (resolved.result.materialization == materialization &&
+          stored.every((instance) => instance != null) &&
+          _sameInstances(
+            resolved.modelInstances,
+            stored.cast<SpatialModelInstance>(),
+          )) {
+        continue;
+      }
+      map = applySpatialBorderFeaturePreview(
+        map,
+        manifest: manifest,
+        proposedResult: resolved,
+      );
+      refreshed.add(key);
+    }
+  }
+  return (
+    map: map,
+    refreshed: List.unmodifiable(refreshed),
+    stale: List.unmodifiable(stale),
+  );
+}
+
 MapData applySpatialBorderFeaturePreview(
   MapData map, {
   required ProjectManifest manifest,

@@ -36,6 +36,8 @@ final class SpatialTerrainSurfaceActions {
           'batchAtomicity': 'all_or_nothing',
           'undoBoundary': 'batch',
           'duplicateSurfaceIds': 'reject',
+          'dependentSpatialBorders':
+              'rematerializedInTheSameChange; preview lists refreshedBorderFeatures and staleBorderFeatures',
           'inputSchema': {
             'type': 'object',
             'additionalProperties': false,
@@ -94,7 +96,8 @@ final class SpatialTerrainSurfaceActions {
         ];
         ids = [for (final surface in surfaces) surface.id];
         after = operations.upsertTerrainSurfaces(context.map, surfaces,
-            reanchorInstances: reanchorInstances);
+            reanchorInstances: reanchorInstances,
+            pinBorderOwnedInstances: true);
       } else {
         ids = [
           for (final item in raw)
@@ -105,8 +108,14 @@ final class SpatialTerrainSurfaceActions {
                   'Terrain surface IDs must be strings.'),
         ];
         after = operations.deleteTerrainSurfaces(context.map, ids,
-            reanchorInstances: reanchorInstances);
+            reanchorInstances: reanchorInstances,
+            pinBorderOwnedInstances: true);
       }
+      final refresh = refreshSpatialBordersForTerrainChange(
+        manifest: context.manifest,
+        before: context.map,
+        after: after,
+      );
       final before = context.map.spatialScene!;
       final next = after.spatialScene!;
       final previous = {
@@ -119,7 +128,7 @@ final class SpatialTerrainSurfaceActions {
               .where((surface) => previous[surface.id] != surface)
               .length;
       return context.draftMap(
-        after: after,
+        after: refresh.map,
         operation: action,
         changedItems: changed,
         preview: {
@@ -127,6 +136,8 @@ final class SpatialTerrainSurfaceActions {
           'surfaceCount': next.terrainSurfaces.surfaces.length,
           'changedSurfaceCount': changed,
           'reanchorInstances': reanchorInstances,
+          'refreshedBorderFeatures': refresh.refreshed,
+          'staleBorderFeatures': refresh.stale,
           'reanchoredInstanceCount': [
             for (var index = 0; index < before.instances.length; index++)
               if (before.instances[index] != next.instances[index]) index,

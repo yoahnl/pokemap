@@ -3,6 +3,7 @@ import '../models/spatial_lift.dart';
 import '../models/geometry.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/map_data.dart';
+import '../models/map_layer.dart';
 import '../models/map_spatial_scene.dart';
 import '../models/spatial_day_night_cycle.dart';
 import '../models/spatial_navigation.dart';
@@ -40,6 +41,7 @@ final class SpatialMapOperations {
     MapData map,
     List<SpatialTerrainSurface> surfaces, {
     bool reanchorInstances = true,
+    bool pinBorderOwnedInstances = false,
   }) {
     final scene = _scene(map);
     _surfaceIds(surfaces.map((surface) => surface.id).toList());
@@ -58,7 +60,15 @@ final class SpatialMapOperations {
       ),
     );
     return map.copyWith(
-      spatialScene: reanchorInstances ? _reanchor(scene, after) : after,
+      spatialScene: reanchorInstances
+          ? _reanchor(
+              scene,
+              after,
+              pinned: pinBorderOwnedInstances
+                  ? _borderOwnedInstanceIds(map)
+                  : const {},
+            )
+          : after,
     );
   }
 
@@ -66,6 +76,7 @@ final class SpatialMapOperations {
     MapData map,
     List<String> surfaceIds, {
     bool reanchorInstances = true,
+    bool pinBorderOwnedInstances = false,
   }) {
     final scene = _scene(map);
     _surfaceIds(surfaceIds);
@@ -86,7 +97,15 @@ final class SpatialMapOperations {
       ),
     );
     return map.copyWith(
-      spatialScene: reanchorInstances ? _reanchor(scene, after) : after,
+      spatialScene: reanchorInstances
+          ? _reanchor(
+              scene,
+              after,
+              pinned: pinBorderOwnedInstances
+                  ? _borderOwnedInstanceIds(map)
+                  : const {},
+            )
+          : after,
     );
   }
 
@@ -331,10 +350,17 @@ final class SpatialMapOperations {
     return map.copyWith(spatialScene: _reanchor(scene, after));
   }
 
+  Set<String> _borderOwnedInstanceIds(MapData map) => {
+    for (final layer in map.layers.whereType<BorderLayer>())
+      for (final feature in layer.content.features)
+        ...feature.generatedPlacementIds,
+  };
+
   MapSpatialScene _reanchor(
     MapSpatialScene before,
     MapSpatialScene after, {
     bool reanchorAttached = true,
+    Set<String> pinned = const {},
   }) {
     final attached = {
       ...before.navigation.ramps,
@@ -384,7 +410,9 @@ final class SpatialMapOperations {
     );
     return positioned.copyWith(
       instances: positioned.instances.map((instance) {
-        if (attached.contains(instance.id)) return instance;
+        if (attached.contains(instance.id) || pinned.contains(instance.id)) {
+          return instance;
+        }
         final p = instance.position;
         final support = instance.supportPosition;
         final delta =
