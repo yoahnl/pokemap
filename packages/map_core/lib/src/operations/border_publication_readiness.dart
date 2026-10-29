@@ -472,10 +472,19 @@ BorderPublicationReadinessResult assessBorderPublicationReadiness({
   _requireStableId(blueprintId, 'blueprintId');
   if (definition.isSpatial) {
     return BorderPublicationReadinessResult._(
-      diagnosticReport: validateSpatialBorderBlueprint(
-        blueprintId: blueprintId,
-        definition: definition,
-        manifest: project,
+      diagnosticReport: BorderDiagnosticsReport(
+        diagnostics: [
+          ...validateSpatialBorderBlueprint(
+            blueprintId: blueprintId,
+            definition: definition,
+            manifest: project,
+          ).diagnostics,
+          ...validateSpatialDirectedFaceOrientation(
+            blueprintId: blueprintId,
+            definition: definition,
+            manifest: project,
+          ),
+        ],
       ),
     );
   }

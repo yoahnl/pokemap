@@ -1779,6 +1779,83 @@ List<BorderDiagnostic> _spatialBorderFaceGroundDiagnostics({
   return diagnostics;
 }
 
+List<BorderDiagnostic> validateSpatialDirectedFaceOrientation({
+  required String blueprintId,
+  required BorderBlueprintPublishedDefinition definition,
+  required ProjectManifest manifest,
+}) {
+  if (!definition.isSpatial || !definition.followContourDirection) {
+    return const [];
+  }
+  final models = {for (final model in manifest.models3d) model.id: model};
+  final diagnostics = <BorderDiagnostic>[];
+  for (final primitive in definition.primitives) {
+    if (primitive.weight <= 0 ||
+        (primitive.role != BorderPrimitiveRole.lineStraight &&
+            primitive.role != BorderPrimitiveRole.lineCap)) {
+      continue;
+    }
+    final model = models[primitive.sourceModelId];
+    if (model == null) continue;
+    final bounds = model.inspection.bounds;
+    final anchor = primitive.anchorWorld ?? model.pivot;
+    final span = (bounds.max.y - bounds.min.y) * model.scale;
+    final faceHeight = (anchor.y - bounds.min.y) * model.scale;
+    final headroom = (bounds.max.y - anchor.y) * model.scale;
+    if (span <= 0 || faceHeight < span * .75 || headroom < -span * .25) {
+      continue;
+    }
+    final (leftX, leftZ) = switch (primitive.authoredOrientation) {
+      BorderPrimitiveOrientation.legacyAxis ||
+      BorderPrimitiveOrientation.east => (0, -1),
+      BorderPrimitiveOrientation.south => (1, 0),
+      BorderPrimitiveOrientation.west => (0, 1),
+      BorderPrimitiveOrientation.north => (-1, 0),
+    };
+    double outside(double x, double z) =>
+        ((x - anchor.x) * leftX + (z - anchor.z) * leftZ) * model.scale;
+    final footprintPoints = [
+      for (final footprint in primitive.groundFootprints) ...footprint.points,
+    ];
+    final declared = definition.replacesGround && footprintPoints.isNotEmpty;
+    final offset = declared
+        ? outside(
+            footprintPoints.map((p) => p.x).reduce((a, b) => a + b) /
+                footprintPoints.length,
+            footprintPoints.map((p) => p.z).reduce((a, b) => a + b) /
+                footprintPoints.length,
+          )
+        : outside(
+            (bounds.min.x + bounds.max.x) / 2,
+            (bounds.min.z + bounds.max.z) / 2,
+          );
+    if (offset >= -.05) continue;
+    diagnostics.add(
+      BorderDiagnostic(
+        code: declared
+            ? 'border.spatial.face_on_land_side'
+            : 'border.spatial.face_mass_on_land_side',
+        severity: declared
+            ? BorderDiagnosticSeverity.error
+            : BorderDiagnosticSeverity.warning,
+        phase: BorderDiagnosticPhase.publication,
+        scope: BorderDiagnosticScope.primitive,
+        blueprintId: blueprintId,
+        parameters: {
+          'primitiveId': primitive.id,
+          'authoredOrientation': primitive.authoredOrientation.name,
+          'landSideOffset': -offset,
+          'evidence': declared ? 'groundFootprints' : 'modelBounds',
+        },
+        suggestedAction: declared
+            ? 'border.action.turn_face_towards_lower_ground'
+            : 'border.action.confirm_module_side',
+      ),
+    );
+  }
+  return diagnostics;
+}
+
 ({MapData map, List<String> refreshed, List<String> stale})
 refreshSpatialBordersForTerrainChange({
   required ProjectManifest manifest,
