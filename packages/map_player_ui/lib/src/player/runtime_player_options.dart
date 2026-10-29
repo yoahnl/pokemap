@@ -1,4 +1,5 @@
 import 'runtime_real_weather_options.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -59,6 +60,7 @@ class RuntimePlayerOptions extends StatefulWidget {
     this.hardwareGamepadEnabled = true,
     this.onControlProfileChanged,
     this.activeInputSource = PlayerInputSource.keyboard,
+    this.availability = const RuntimePlayerOptionsAvailability(),
   });
 
   final PlayerPreferencesSnapshot preferences;
@@ -71,6 +73,7 @@ class RuntimePlayerOptions extends StatefulWidget {
   final bool hardwareGamepadEnabled;
   final FutureOr<void> Function(PlayerControlProfile)? onControlProfileChanged;
   final PlayerInputSource activeInputSource;
+  final RuntimePlayerOptionsAvailability availability;
 
   @override
   State<RuntimePlayerOptions> createState() => _RuntimePlayerOptionsState();
@@ -98,6 +101,20 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   DialogRoute<dynamic>? _dialogRoute;
 
   PlayerOptionsStrings get _strings => PlayerOptionsStrings.of(context);
+  List<PlayerOptionsCategory> get _availableCategories => [
+    for (final category in PlayerOptionsCategory.values)
+      if ((category != PlayerOptionsCategory.weather ||
+              widget.availability.weather) &&
+          (category != PlayerOptionsCategory.time ||
+              widget.availability.worldTime))
+        category,
+  ];
+  PlayerOptionsCategory _adjacentCategory(int delta) {
+    final categories = _availableCategories;
+    return categories[(categories.indexOf(_category) + delta) %
+        categories.length];
+  }
+
   bool get _enabled => widget.onChanged != null && !_pending;
   bool get _hapticsSupported => switch (Theme.of(context).platform) {
     TargetPlatform.android || TargetPlatform.iOS => true,
@@ -124,6 +141,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   @override
   void didUpdateWidget(RuntimePlayerOptions oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!_availableCategories.contains(_category)) {
+      _category = PlayerOptionsCategory.general;
+      _showCategories = false;
+    }
     if (oldWidget.navigation != widget.navigation) {
       oldWidget.navigation?._back = null;
       oldWidget.navigation?._actions = null;
@@ -260,7 +281,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   }
 
   void _select(PlayerOptionsCategory category) {
-    if (_pending) return;
+    if (_pending || !_availableCategories.contains(category)) return;
     RuntimePlayerLocalActionNotification().dispatch(context);
     setState(() {
       _category = category;
@@ -271,10 +292,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
 
   void _stepCategory(int delta) {
     if (_pending) return;
-    _select(
-      PlayerOptionsCategory.values[(_category.index + delta) %
-          PlayerOptionsCategory.values.length],
-    );
+    _select(_adjacentCategory(delta));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _settingsFocus.requestFocus();
     });
@@ -427,29 +445,27 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     height: 48,
     child: Row(
       children: [
-        for (var i = 0; i < PlayerOptionsCategory.values.length; i++) ...[
+        for (var i = 0; i < _availableCategories.length; i++) ...[
           if (i > 0) const SizedBox(width: 8),
           Expanded(
             flex: _strings
-                .category(PlayerOptionsCategory.values[i])
+                .category(_availableCategories[i])
                 .length
                 .clamp(5, 14),
             child: PlayerMenuSelectableRow(
-              key: ValueKey(
-                'options-category-${PlayerOptionsCategory.values[i].name}',
-              ),
-              id: 'options-category-${PlayerOptionsCategory.values[i].name}',
-              label: _strings.category(PlayerOptionsCategory.values[i]),
+              key: ValueKey('options-category-${_availableCategories[i].name}'),
+              id: 'options-category-${_availableCategories[i].name}',
+              label: _strings.category(_availableCategories[i]),
               tab: true,
               labelMaxLines: 1,
               labelStyle: context.playerMenuTheme.label.copyWith(fontSize: 14),
               reserveFocusMarker: false,
               integrated: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 2),
-              selected: _category == PlayerOptionsCategory.values[i],
+              selected: _category == _availableCategories[i],
               onPressed: _pending
                   ? null
-                  : () => _select(PlayerOptionsCategory.values[i]),
+                  : () => _select(_availableCategories[i]),
             ),
           ),
         ],
@@ -495,9 +511,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
   );
 
   Widget _categoryStepButton(int delta) {
-    final category =
-        PlayerOptionsCategory.values[(_category.index + delta) %
-            PlayerOptionsCategory.values.length];
+    final category = _adjacentCategory(delta);
     final label = _strings.category(category);
     final direction = delta < 0 ? 'previous' : 'next';
     final announcement = delta < 0
@@ -536,9 +550,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       final neighbourWidth = (constraints.maxWidth - returnWidth - 16) / 2;
       bool fits(int delta) {
         if (neighbourWidth < 48) return false;
-        final category =
-            PlayerOptionsCategory.values[(_category.index + delta) %
-                PlayerOptionsCategory.values.length];
+        final category = _adjacentCategory(delta);
         final painter = TextPainter(
           text: TextSpan(
             text: _strings.category(category),
@@ -609,7 +621,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             ? 3
             : 1;
         final entries = <Widget>[
-          for (final category in PlayerOptionsCategory.values)
+          for (final category in _availableCategories)
             PlayerMenuSelectableRow(
               key: ValueKey('options-category-${category.name}'),
               id: 'options-category-${category.name}',
@@ -797,8 +809,13 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     final preferences = _confirmed;
     return switch (_category) {
       PlayerOptionsCategory.weather => [
-        ...RuntimeRealWeatherOptions(preferences: preferences.realWeather, service: widget.weatherService,
-          onChanged: !_enabled ? null : (weather) => _save(_confirmed.copyWith(realWeather: weather))).sections(context),
+        ...RuntimeRealWeatherOptions(
+          preferences: preferences.realWeather,
+          service: widget.weatherService,
+          onChanged: !_enabled
+              ? null
+              : (weather) => _save(_confirmed.copyWith(realWeather: weather)),
+        ).sections(context),
       ],
       PlayerOptionsCategory.time => [
         _choiceRow(
@@ -832,7 +849,6 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         ),
       ],
       PlayerOptionsCategory.general => [
-
         _choiceRow(
           _strings.textSpeed,
           _strings.speed(preferences.dialogueTextSpeed),
@@ -907,98 +923,108 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
             }
           },
         ),
-        _choiceRow(
-          _strings.renderScale,
-          _strings.renderScaleValue(preferences.graphics.renderScalePercent),
-          'render-scale',
-          compact,
-          () async {
-            final value = await _choose(
-              _strings.renderScale,
-              preferences.graphics.renderScalePercent ?? 0,
-              {
-                0: _strings.renderScaleValue(null),
-                for (final percent
-                    in RuntimeGraphicsPreferences.renderScaleChoices)
-                  percent: _strings.renderScaleValue(percent),
-              },
-              (value) => value.toString(),
-              focusAfterClose: _choiceNode('render-scale'),
-            );
-            if (value != null) {
-              await _save(
-                _confirmed.copyWith(
-                  graphics: _confirmed.graphics.copyWith(
-                    renderScalePercent: () => value == 0 ? null : value,
+        if (widget.availability.graphics3d) ...[
+          _choiceRow(
+            _strings.renderScale,
+            _strings.renderScaleValue(preferences.graphics.renderScalePercent),
+            'render-scale',
+            compact,
+            () async {
+              final value = await _choose(
+                _strings.renderScale,
+                preferences.graphics.renderScalePercent ?? 0,
+                {
+                  0: _strings.renderScaleValue(null),
+                  for (final percent
+                      in RuntimeGraphicsPreferences.renderScaleChoices)
+                    percent: _strings.renderScaleValue(percent),
+                },
+                (value) => value.toString(),
+                focusAfterClose: _choiceNode('render-scale'),
+              );
+              if (value != null) {
+                await _save(
+                  _confirmed.copyWith(
+                    graphics: _confirmed.graphics.copyWith(
+                      renderScalePercent: () => value == 0 ? null : value,
+                    ),
                   ),
-                ),
-                focusAfterSave: _choiceNode('render-scale'),
+                  focusAfterSave: _choiceNode('render-scale'),
+                );
+              }
+            },
+          ),
+          _choiceRow(
+            _strings.upscaling,
+            _strings.upscalingValue(preferences.graphics.upscaling),
+            'upscaling',
+            compact,
+            () async {
+              final value = await _choose(
+                _strings.upscaling,
+                preferences.graphics.upscaling,
+                {
+                  for (final value in RuntimeUpscaling.values)
+                    value: _strings.upscalingValue(value),
+                },
+                (value) => value.name,
+                focusAfterClose: _choiceNode('upscaling'),
               );
-            }
-          },
-        ),
-        _choiceRow(
-          _strings.upscaling,
-          _strings.upscalingValue(preferences.graphics.upscaling),
-          'upscaling',
-          compact,
-          () async {
-            final value = await _choose(
-              _strings.upscaling,
-              preferences.graphics.upscaling,
-              {
-                for (final value in RuntimeUpscaling.values)
-                  value: _strings.upscalingValue(value),
-              },
-              (value) => value.name,
-              focusAfterClose: _choiceNode('upscaling'),
-            );
-            if (value != null) {
-              await _save(
-                _confirmed.copyWith(
-                  graphics: _confirmed.graphics.copyWith(upscaling: value),
-                ),
-                focusAfterSave: _choiceNode('upscaling'),
-              );
-            }
-          },
-        ),
-        _toggle(
-          _strings.depthOfField,
-          'runtime-player-depth-of-field-toggle',
-          preferences.graphics.depthOfField,
-          compact,
-          (value) => _save(_confirmed.copyWith(
-            graphics: _confirmed.graphics.copyWith(depthOfField: value),
-          )),
-        ),
-        _toggle(
-          _strings.shadows,
-          'runtime-player-shadows-toggle',
-          preferences.graphics.shadows,
-          compact,
-          (value) => _save(_confirmed.copyWith(
-            graphics: _confirmed.graphics.copyWith(shadows: value),
-          )),
-        ),
-        _toggle(
-          _strings.fogAndHalos,
-          'runtime-player-fog-and-halos-toggle',
-          preferences.graphics.fogAndHalos,
-          compact,
-          (value) => _save(_confirmed.copyWith(
-            graphics: _confirmed.graphics.copyWith(fogAndHalos: value),
-          )),
-        ),
-        _toggle(
-          _strings.ambientAnimation,
-          'runtime-player-ambient-animation-toggle',
-          preferences.graphics.ambientAnimation,
-          compact,
-          (value) => _save(_confirmed.copyWith(
-            graphics: _confirmed.graphics.copyWith(ambientAnimation: value),
-          )),
-        ),
+              if (value != null) {
+                await _save(
+                  _confirmed.copyWith(
+                    graphics: _confirmed.graphics.copyWith(upscaling: value),
+                  ),
+                  focusAfterSave: _choiceNode('upscaling'),
+                );
+              }
+            },
+          ),
+          _toggle(
+            _strings.depthOfField,
+            'runtime-player-depth-of-field-toggle',
+            preferences.graphics.depthOfField,
+            compact,
+            (value) => _save(
+              _confirmed.copyWith(
+                graphics: _confirmed.graphics.copyWith(depthOfField: value),
+              ),
+            ),
+          ),
+          _toggle(
+            _strings.shadows,
+            'runtime-player-shadows-toggle',
+            preferences.graphics.shadows,
+            compact,
+            (value) => _save(
+              _confirmed.copyWith(
+                graphics: _confirmed.graphics.copyWith(shadows: value),
+              ),
+            ),
+          ),
+          _toggle(
+            _strings.fogAndHalos,
+            'runtime-player-fog-and-halos-toggle',
+            preferences.graphics.fogAndHalos,
+            compact,
+            (value) => _save(
+              _confirmed.copyWith(
+                graphics: _confirmed.graphics.copyWith(fogAndHalos: value),
+              ),
+            ),
+          ),
+          _toggle(
+            _strings.ambientAnimation,
+            'runtime-player-ambient-animation-toggle',
+            preferences.graphics.ambientAnimation,
+            compact,
+            (value) => _save(
+              _confirmed.copyWith(
+                graphics: _confirmed.graphics.copyWith(ambientAnimation: value),
+              ),
+            ),
+          ),
+        ],
       ],
       PlayerOptionsCategory.audio => [
         _slider(
@@ -1599,14 +1625,16 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     final value = _confirmed;
     final defaults = widget.defaultPreferences;
     return switch (_category) {
-      PlayerOptionsCategory.weather => value.realWeather != defaults.realWeather,
+      PlayerOptionsCategory.weather =>
+        value.realWeather != defaults.realWeather,
       PlayerOptionsCategory.time => value.worldTime != defaults.worldTime,
       PlayerOptionsCategory.general =>
         value.dialogueTextSpeed != defaults.dialogueTextSpeed,
       PlayerOptionsCategory.display =>
         value.menuEffects != defaults.menuEffects ||
             value.targetFramesPerSecond != defaults.targetFramesPerSecond ||
-            value.graphics != defaults.graphics,
+            widget.availability.graphics3d &&
+                value.graphics != defaults.graphics,
       PlayerOptionsCategory.audio =>
         value.audioMix.masterVolume != defaults.audioMix.masterVolume ||
             value.audioMix.musicVolume != defaults.audioMix.musicVolume ||
@@ -1639,15 +1667,21 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     }
     final defaults = widget.defaultPreferences;
     await _save(switch (category) {
-      PlayerOptionsCategory.weather => _confirmed.copyWith(realWeather: defaults.realWeather),
-      PlayerOptionsCategory.time => _confirmed.copyWith(worldTime: defaults.worldTime),
+      PlayerOptionsCategory.weather => _confirmed.copyWith(
+        realWeather: defaults.realWeather,
+      ),
+      PlayerOptionsCategory.time => _confirmed.copyWith(
+        worldTime: defaults.worldTime,
+      ),
       PlayerOptionsCategory.general => _confirmed.copyWith(
         dialogueTextSpeed: defaults.dialogueTextSpeed,
       ),
       PlayerOptionsCategory.display => _confirmed.copyWith(
         menuEffects: defaults.menuEffects,
         targetFramesPerSecond: defaults.targetFramesPerSecond,
-        graphics: defaults.graphics,
+        graphics: widget.availability.graphics3d
+            ? defaults.graphics
+            : _confirmed.graphics,
       ),
       PlayerOptionsCategory.audio => _confirmed.copyWith(
         audioMix: defaults.audioMix,

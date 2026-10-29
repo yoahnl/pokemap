@@ -14,6 +14,7 @@ import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_bootstrap.dart';
 import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
@@ -178,7 +179,7 @@ void main() {
           gameId: manifest.gameId,
           gameVersion: manifest.gameVersion.toString(),
           projectFormat: ProjectFormat.v8,
-          saveFormat: 1,
+          saveFormat: SaveEnvelopeCodec.currentSaveFormat,
           compatibilityId: manifest.compatibility.compatibilityId,
         ),
         assets: assets,
@@ -189,6 +190,7 @@ void main() {
             .toSet(),
       );
       final stages = <runtime.RuntimeStartupBootstrapStage>[];
+      runtime.PlayableMapGame? mountedGame;
       final bootstrap = HubRuntimeStartupBootstrap(
         supportRoot: supportRoot,
         saveRepositoryFactory: (root, identity) =>
@@ -200,7 +202,7 @@ void main() {
         launchResolver: _FixedLaunchResolver(launch),
         game: game,
         onHubRequested: () async {},
-        mountGame: (_) async => fail('Bootstrap must not mount a session'),
+        mountGame: (game) async => mountedGame = game,
         unmountGame: (_) async {},
         stopIntroPlayback: () async {},
         defaultProfileDisplayNameForLocale: (_) => 'Joueur',
@@ -217,6 +219,16 @@ void main() {
           });
       addTearDown(prepared.graph.dispose);
       expect(stages.last, runtime.RuntimeStartupBootstrapStage.runtimeGraph);
+      final player = prepared.graph.playerCoordinator;
+      if (player.snapshot.optionsAvailability.worldTime) {
+        await player.snapshots.firstWhere(
+          (snapshot) => !snapshot.optionsAvailability.worldTime,
+        ).timeout(const Duration(seconds: 10));
+      }
+      final options = player.snapshot.optionsAvailability;
+      expect(options.graphics3d, isFalse);
+      expect(options.weather, isFalse);
+      expect(options.worldTime, isFalse);
       final progress = <runtime.RuntimeInitialMapPreloadProgress>[];
       await prepared.graph.initialMapPreloadPort.preloadInitialMap(
         const runtime.RuntimeInitialMapPreloadRequest.newGame(),
@@ -261,6 +273,43 @@ void main() {
         budget.acquire(residentBytes: 257 * 1024 * 1024),
         throwsA(isA<RuntimeResourceAdmissionException>()),
       );
+
+      preloader.clear();
+      final store = HubSaveStore(
+        supportRoot: supportRoot,
+        identity: launch.identity,
+      );
+      final selection = await HubSaveProfileManager(store: store)
+          .ensureDefaultSelection();
+      final timestamp = DateTime.utc(2026, 10, 29);
+      final save = const GameStateSaveEnvelopeMapper().create(
+        identity: launch.identity,
+        profileId: selection.profileId,
+        slotId: selection.slotId,
+        saveId: '123e4567-e89b-42d3-a456-426614174020',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        status: SaveStatus.active,
+        playTimeSeconds: 0,
+        gameState: GameState(
+          saveId: '123e4567-e89b-42d3-a456-426614174020',
+          currentMapId: _map.id,
+        ),
+      );
+      await store.writeVerified(save);
+      await player.initialize();
+      final result = await player.dispatch(
+        runtime.RuntimePlayerCommand(
+          action: runtime.RuntimePlayerAction.continueGame,
+          snapshotRevision: player.snapshot.revision,
+        ),
+      );
+      expect(result.status, runtime.RuntimePlayerCommandStatus.accepted);
+      final resumedBudget = mountedGame!.resourceBudget;
+      final resumedReservation = await resumedBudget.acquire(
+        residentBytes: 80 * 1024 * 1024,
+      );
+      resumedReservation.release();
     },
   );
 
@@ -387,7 +436,7 @@ GamePackageBuildResult _build({ProjectManifest project = _project}) =>
           minHubVersion: Version.parse('0.1.0'),
           runtimeApiExpression: '>=1.0.0 <2.0.0',
           projectFormat: 'v8',
-          saveFormat: 1,
+          saveFormat: SaveEnvelopeCodec.currentSaveFormat,
           compatibilityId: 'partitioned',
           requiredCapabilities: const ['map@1'],
         ),

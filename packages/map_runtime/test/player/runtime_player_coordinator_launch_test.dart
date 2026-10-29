@@ -7,6 +7,38 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test('starts another new game after returning to the title', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    final returned = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.returnToTitle,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerExitRequest(saveBeforeExit: false),
+      ),
+    );
+    expect(returned.status, RuntimePlayerCommandStatus.accepted);
+
+    final restarted = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    expect(
+      restarted.status,
+      RuntimePlayerCommandStatus.accepted,
+      reason: harness.coordinator.snapshot.failure?.diagnosticCode,
+    );
+    expect(harness.source.requests, hasLength(2));
+  });
+
   test('initializes a title without save and explains unavailable actions',
       () async {
     final harness = RuntimePlayerTestHarness();

@@ -13,6 +13,7 @@ import 'package:pokemap_hub/features/preferences/domain/repositories/player_pref
 import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_save_gateway.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_game_options_availability.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_in_process_session_factory.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_installed_presentation_runtime.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_game_source.dart';
@@ -251,6 +252,7 @@ final class HubRuntimeStartupBootstrap
         launch: launch,
         preferencesGateway: preferencesGateway,
       );
+      final resourceProfile = hubRuntimeResourceProfile(spatial: spatial);
       final initialMapPreloader = RuntimeInitialMapPreloader(
         preparedProjectCatalog: metadataCatalog,
         preparedNarrativeMapsLoader: (_) async {
@@ -268,7 +270,7 @@ final class HubRuntimeStartupBootstrap
         expectedIdentity: launch.identity,
         projectFilePath: () async => projectFile.path,
         loadSave: saveGateway.readLaunchableEnvelope,
-        resourceProfile: hubRuntimeResourceProfile(spatial: spatial),
+        resourceProfile: resourceProfile,
       );
       ownedPreloader = initialMapPreloader;
       preparedCatalog = null;
@@ -288,6 +290,7 @@ final class HubRuntimeStartupBootstrap
         mountSpatialSession: mountSpatialSession,
         unmountSpatialSession: unmountSpatialSession,
         preloadedInitialMap: initialMapPreloader.resolveForSession,
+        resourceProfile: resourceProfile,
         commitCheckpoint: saveGateway.commit,
         audioMixer: configuredAudioMixer,
         presentationCinematicPlayer: presentationRuntime?.controller,
@@ -307,6 +310,10 @@ final class HubRuntimeStartupBootstrap
           ),
         ),
         sessionController: sessions,
+        optionsAvailability: RuntimePlayerOptionsAvailability(
+          graphics3d: spatial,
+          weather: spatial,
+        ),
         externalExit: HubRuntimeExternalExit(onHubRequested),
         defaultSaveSlot: RuntimePlayerLoadSlot(
           profileId: saveSelection.profileId,
@@ -331,6 +338,12 @@ final class HubRuntimeStartupBootstrap
         ),
         reducedMotion: preferences.reducedMotion,
         stopIntroPlayback: stopIntroPlayback,
+      );
+      unawaited(
+        resolveHubGameOptionsAvailability(
+          projectFilePath: projectFile.path,
+          capabilities: launch.grantedCapabilities,
+        ).then(coordinator.updateOptionsAvailability, onError: (Object _) {}),
       );
       onStageCompleted(RuntimeStartupBootstrapStage.runtimeGraph);
       return RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>(

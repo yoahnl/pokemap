@@ -29,6 +29,8 @@ final class RuntimePlayerCoordinator {
     RuntimePlayerLoadSlot? defaultSaveSlot,
     PlayerInventoryPreferencesGateway? inventoryPreferencesGateway,
     this.explorationOnly = false,
+    RuntimePlayerOptionsAvailability optionsAvailability =
+        const RuntimePlayerOptionsAvailability(),
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
@@ -41,6 +43,7 @@ final class RuntimePlayerCoordinator {
           revision: 0,
           phase: RuntimePlayerPhase.boot,
           gameTitle: gameSource.displayTitle,
+          optionsAvailability: optionsAvailability,
           defaultPreferences: preferencesGateway.defaultPreferences,
         ) {
     if (gameSource.identity != saveGateway.identity) {
@@ -82,8 +85,6 @@ final class RuntimePlayerCoordinator {
   Future<bool>? _activeSaveBoundary;
   HeadlessSceneInteractionPort? _preSessionInteractions;
   StreamSubscription<SceneInteractionRequest>? _preSessionSubscription;
-  NewGameSeedCommitJournal _newGameCommitJournal =
-      NewGameSeedCommitJournal.empty();
   int _launchGeneration = 0;
   int _frameRateRevision = 0;
   bool _lifecycleActive = true;
@@ -95,6 +96,11 @@ final class RuntimePlayerCoordinator {
   PlayerPreferencesSnapshot? get preferences => _preferences;
   PlayerSaveSummary? get latestSave => _latestSave;
   bool get isDisposed => _disposed;
+
+  void updateOptionsAvailability(RuntimePlayerOptionsAvailability value) {
+    if (_disposed) return;
+    _publish(_snapshot.next(optionsAvailability: value));
+  }
 
   Future<RuntimePlayerSnapshot?> readCompanionMenu() async {
     final snapshot = _snapshot;
@@ -118,6 +124,7 @@ final class RuntimePlayerCoordinator {
       revision: snapshot.revision,
       phase: RuntimePlayerPhase.paused,
       gameTitle: snapshot.gameTitle,
+      optionsAvailability: snapshot.optionsAvailability,
       pauseSection: RuntimePlayerPauseSection.root,
       pauseMenuState: data.pauseMenuState,
       pauseDetails: data.pauseDetails,
@@ -1242,7 +1249,7 @@ final class RuntimePlayerCoordinator {
           await _newGameFlow.readCurrentProjectRevision();
       if (generation != _launchGeneration) return _finishCancelledLaunch();
       final commit = commitNewGameDraft(
-        journal: _newGameCommitJournal,
+        journal: NewGameSeedCommitJournal.empty(),
         operationId: '$runId:commit',
         currentProjectRevision: currentProjectRevision,
         expectedDraftRevision: draft.revision,
@@ -1261,7 +1268,6 @@ final class RuntimePlayerCoordinator {
                       'La partie n’a pas été créée.',
         );
       }
-      _newGameCommitJournal = commit.journal;
       preparationStage = 'initial_state';
       final initialGameState = createNewGameStateFromSeed(
         project: preparation.project,

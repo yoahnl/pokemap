@@ -17,6 +17,7 @@ final class HubInProcessSessionFactory {
     required this.mountGame,
     required this.unmountGame,
     this.preloadedInitialMap,
+    this.resourceProfile = const RuntimeResourceProfile(),
     this.audioMixer,
     this.presentationCinematicPlayer,
     this.now,
@@ -31,6 +32,7 @@ final class HubInProcessSessionFactory {
   final PlayableMapGameMount mountGame;
   final PlayableMapGameUnmount unmountGame;
   final SessionPreloadedInitialMapLoader? preloadedInitialMap;
+  final RuntimeResourceProfile resourceProfile;
   final RuntimeAudioMixer? audioMixer;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final DateTime Function()? now;
@@ -96,6 +98,7 @@ final class HubInProcessSessionFactory {
             mountGame: mountGame,
             unmountGame: unmountGame,
             preloadedInitialMap: preloadedInitialMap,
+            resourceProfile: resourceProfile,
             audioMixer: audioMixer,
             presentationCinematicPlayer: presentationCinematicPlayer,
             now: now,

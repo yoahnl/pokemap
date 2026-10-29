@@ -8,6 +8,33 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('game option availability survives companion and legacy transport', () {
+    final snapshot = RuntimePlayerSnapshot(
+      revision: 1,
+      phase: RuntimePlayerPhase.title,
+      gameTitle: 'Test',
+      optionsAvailability: const RuntimePlayerOptionsAvailability(
+        graphics3d: false,
+        weather: false,
+        worldTime: false,
+      ),
+    );
+    final encoded = RuntimeCompanionPresentationCodec.encodePlayer(snapshot);
+    final decoded = RuntimeCompanionPresentationCodec.decodePlayer(
+      _crossTransport(encoded),
+    );
+    expect(decoded.optionsAvailability.graphics3d, isFalse);
+    expect(decoded.optionsAvailability.weather, isFalse);
+    expect(decoded.optionsAvailability.worldTime, isFalse);
+    final legacy = {...encoded}..remove('optionsAvailability');
+    final defaults = RuntimeCompanionPresentationCodec.decodePlayer(
+      _crossTransport(legacy),
+    ).optionsAvailability;
+    expect(defaults.graphics3d, isTrue);
+    expect(defaults.weather, isTrue);
+    expect(defaults.worldTime, isTrue);
+  });
+
   RuntimePokemonSummarySnapshot summary(bool isEgg) => RuntimePokemonSummarySnapshot(
     targetId: 'party.one', individualId: 'one', speciesLabel: isEgg ? 'Œuf' : 'Bird',
     nickname: '', level: 1, currentHp: 1, maxHp: 1, natureLabel: '',

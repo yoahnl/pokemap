@@ -85,6 +85,7 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         child: RuntimePlayerOptions(
           navigation: optionsNavigation,
           preferences: preferences,
+          availability: snapshot.optionsAvailability,
           defaultPreferences: snapshot.defaultPreferences,
           onReturnToTitle: onReturnToTitle,
           controlProfile: controlProfile,

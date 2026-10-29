@@ -72,6 +72,7 @@ final class PlayableMapGameSessionRuntime
     required PlayableMapGameUnmount unmountGame,
     SessionPreloadedInitialMapLoader? preloadedInitialMap,
     GameSessionCheckpointCommitter? commitCheckpoint,
+    this.resourceProfile = const RuntimeResourceProfile(),
     this.audioMixer,
     this.presentationCinematicPlayer,
     DateTime Function()? now,
@@ -90,6 +91,7 @@ final class PlayableMapGameSessionRuntime
   final PlayableMapGameUnmount _unmountGame;
   final SessionPreloadedInitialMapLoader? _preloadedInitialMap;
   final GameSessionCheckpointCommitter? _commitCheckpoint;
+  final RuntimeResourceProfile resourceProfile;
   final RuntimeAudioMixer? audioMixer;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
   final DateTime Function() _now;
@@ -279,6 +281,7 @@ final class PlayableMapGameSessionRuntime
           mapId: mapId,
           preloadedManifest: manifest,
           projectCatalog: catalog,
+          resourceBudget: RuntimeResourceBudget(profile: resourceProfile),
           additionalCharacterIds: {
             if (initialState.trainerProfile.avatarCharacterId
                 case final String id when id.isNotEmpty)

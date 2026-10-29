@@ -45,6 +45,11 @@ abstract final class RuntimeCompanionPresentationCodec {
         'worldService': value.worldService == null ? null : encodeWorldService(value.worldService!),
         'phase': value.phase.name,
         'gameTitle': value.gameTitle,
+        'optionsAvailability': {
+          'graphics3d': value.optionsAvailability.graphics3d,
+          'weather': value.optionsAvailability.weather,
+          'worldTime': value.optionsAvailability.worldTime,
+        },
         'pauseSection': value.pauseSection?.name,
         'actions': value.actions
             .map((action) => {
@@ -83,6 +88,13 @@ abstract final class RuntimeCompanionPresentationCodec {
         worldService: data['worldService'] == null ? null : decodeWorldService(_map(data['worldService'])),
         phase: RuntimePlayerPhase.values.byName(data['phase'] as String),
         gameTitle: data['gameTitle'] as String,
+        optionsAvailability: data['optionsAvailability'] == null
+            ? const RuntimePlayerOptionsAvailability()
+            : RuntimePlayerOptionsAvailability(
+                graphics3d: _map(data['optionsAvailability'])['graphics3d'] as bool,
+                weather: _map(data['optionsAvailability'])['weather'] as bool,
+                worldTime: _map(data['optionsAvailability'])['worldTime'] as bool,
+              ),
         pauseSection: data['pauseSection'] == null
             ? null
             : RuntimePlayerPauseSection.values

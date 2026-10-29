@@ -198,6 +198,18 @@ final class RuntimePlayerCommandResult {
   final RuntimePlayerSaveReceipt? saveReceipt;
 }
 
+final class RuntimePlayerOptionsAvailability {
+  const RuntimePlayerOptionsAvailability({
+    this.graphics3d = true,
+    this.weather = true,
+    this.worldTime = true,
+  });
+
+  final bool graphics3d;
+  final bool weather;
+  final bool worldTime;
+}
+
 /// Immutable presentation state owned by the runtime player coordinator.
 final class RuntimePlayerSnapshot {
   RuntimePlayerSnapshot({
@@ -216,6 +228,7 @@ final class RuntimePlayerSnapshot {
     this.activeInputSource,
     this.worldService,
     this.preferences,
+    this.optionsAvailability = const RuntimePlayerOptionsAvailability(),
     this.defaultPreferences = const PlayerPreferencesSnapshot(
       locale: 'fr',
       accessibility: GameSessionAccessibilityOptions(),
@@ -283,6 +296,7 @@ final class RuntimePlayerSnapshot {
   final PlayerInputSource? activeInputSource;
   final RuntimeWorldServiceSnapshot? worldService;
   final PlayerPreferencesSnapshot? preferences;
+  final RuntimePlayerOptionsAvailability optionsAvailability;
   final PlayerPreferencesSnapshot defaultPreferences;
   final bool hasDiscoveredSave;
   final PlayerSaveSummary? continueSave;
@@ -315,6 +329,7 @@ final class RuntimePlayerSnapshot {
   RuntimePlayerSnapshot next({
     RuntimePlayerPhase? phase,
     String? gameTitle,
+    RuntimePlayerOptionsAvailability? optionsAvailability,
     RuntimePlayerPauseSection? pauseSection,
     bool clearPauseSection = false,
     SceneInteractionRequest? preSessionRequest,
@@ -359,6 +374,7 @@ final class RuntimePlayerSnapshot {
       bagFavoritesAvailable: bagFavoritesAvailable ?? this.bagFavoritesAvailable,
       phase: phase ?? this.phase,
       gameTitle: gameTitle ?? this.gameTitle,
+      optionsAvailability: optionsAvailability ?? this.optionsAvailability,
       pauseSection:
           clearPauseSection ? null : pauseSection ?? this.pauseSection,
       preSessionRequest: clearPreSessionRequest
