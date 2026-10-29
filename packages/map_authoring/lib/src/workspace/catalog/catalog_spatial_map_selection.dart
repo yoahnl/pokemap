@@ -69,6 +69,8 @@ final class CatalogSpatialMapSelection {
       'map3d.lift.delete_batch',
       'map3d.terrain.surface.delete_batch',
       'border_layer.feature_create',
+      'border_layer.feature_set_blueprint',
+      'border_layer.relink_apply',
       'border_layer.feature_delete',
       'border_layer.feature_update',
       'border_layer.feature_move',

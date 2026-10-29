@@ -14,6 +14,61 @@ import '../domains/maps/healing_display_fixture.dart';
 import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleProject, obstacleMap;
 
 void main() {
+  final relinkReads = <List<int>>[];
+  for (final unrelated in [0, 90]) {
+    test('spatial relink stays targeted on first repeat and undo with $unrelated foreign maps', () async {
+      final base = spatialBorderAuthoringFixture(published: true);
+      final encoded = encodeBorderBlueprintRecordJson(base.project.borderCatalog.records.single,
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+      encoded['id'] = 'replacement';
+      final project = base.project.copyWith(borderCatalog: ProjectBorderCatalog(
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+          records: [...base.project.borderCatalog.records,
+            decodeBorderBlueprintRecordJson(encoded,
+                formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion)]));
+      final fixture = await _Fixture.open(unrelated, content: (project: project, map: base.map));
+      addTearDown(fixture.close);
+      final counts = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final before = await fixture.mapFile.readAsBytes();
+        final timer = Stopwatch()..start();
+        final result = await fixture.apply('border_layer.relink_apply', {
+          'mapId': 'map', 'layerId': 'border', 'featureId': 'fence',
+          'targetBlueprintId': repeat == 0 ? 'replacement' : 'fence',
+          'reverseStrokes': true, 'clearVerticalOffset': true,
+        }, 'relink-$repeat');
+        timer.stop();
+        counts.add(fixture.reader.paths.length);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json' || path.endsWith('.glb') || path.endsWith('history.jsonl')), isEmpty);
+        expect(counts.last, lessThan(170));
+        print('spatial-relink foreign=$unrelated repeat=$repeat reads=${counts.last} elapsedUs=${timer.elapsedMicroseconds}');
+        final after = await fixture.mapFile.readAsBytes();
+        await fixture.api.undoMutation(fixture.opened.projectHandle,
+            entryId: result.receipt.receiptId, idempotencyKey: 'undo-relink-$repeat');
+        expect(await fixture.mapFile.readAsBytes(), before);
+        if (repeat == 0) {
+          await fixture.apply('border_layer.relink_apply', {
+            'mapId': 'map', 'layerId': 'border', 'featureId': 'fence',
+            'targetBlueprintId': 'replacement', 'reverseStrokes': true,
+            'clearVerticalOffset': true,
+          }, 'relink-again');
+          expect(await fixture.mapFile.readAsBytes(), after);
+        }
+      }
+      relinkReads.add(counts);
+      if (relinkReads.length == 2) {
+        for (var index = 0; index < counts.length; index++) {
+          expect(counts[index] - relinkReads.first[index], inInclusiveRange(0, 16),
+              reason: 'Only the bounded catalog index walk may deepen; foreign definitions and maps must remain unread');
+        }
+      }
+      await fixture.reopen();
+      final map = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+      expect((map.layers.single as BorderLayer).content.features.single.blueprintId, 'replacement');
+    });
+  }
   for (final unrelated in [0, 90]) {
     test('targeted spatial field route first repeat undo reopen ignores $unrelated foreign maps', () async {
       final base = spatialEnvironmentFixture();

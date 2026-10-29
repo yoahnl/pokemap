@@ -12,6 +12,374 @@ import 'environment_spatial_actions_test.dart'
     show spatialEnvironmentFixture, environmentModelGlb;
 
 void main() {
+  test(
+      'spatial reversal preserves alternating visual phases on an even open contour',
+      () async {
+    final base = spatialBorderAuthoringFixture(
+        published: true, straightOnly: true, includeCorner: false);
+    final raw = encodeBorderBlueprintRecordJson(
+        base.project.borderCatalog.records.single,
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+    for (final section in ['draft', 'latestPublished']) {
+      final definition = (raw[section] as Map)['definition'] as Map;
+      definition['followContourDirection'] = true;
+      definition['sequenceLength'] = 2;
+      definition['primitives'] = [
+        for (final p in definition['primitives'] as List)
+          for (var phase = 0; phase < 2; phase++)
+            {...p as Map, 'id': '${p['id']}-$phase', 'sequenceIndex': phase}
+      ];
+    }
+    final source = decodeBorderBlueprintRecordJson(raw,
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+    raw['id'] = 'replacement';
+    final target = decodeBorderBlueprintRecordJson(raw,
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+    final project = base.project.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+            formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+            records: [source, target]));
+    final map = updateBorderFeatureGeometry(base.map,
+        layerId: 'border',
+        featureId: 'fence',
+        geometry: BorderStrokeGeometry(strokes: [
+          BorderStroke(id: 'line', closed: false, points: const [
+            GridPos(x: 1, y: 1),
+            GridPos(x: 2, y: 1),
+            GridPos(x: 3, y: 1),
+            GridPos(x: 4, y: 1)
+          ])
+        ]));
+    final before = resolveSpatialBorderFeature(
+        manifest: project, map: map, layerId: 'border', featureId: 'fence');
+    final after = relinkSpatialBorderFeature(map,
+        manifest: project,
+        layerId: 'border',
+        featureId: 'fence',
+        targetBlueprintId: 'replacement',
+        reverseStrokes: true);
+    final feature =
+        (after.layers.single as BorderLayer).content.features.single;
+    expect({
+      for (final p in feature.materialization!.spatialPlacements)
+        p.slotKey: p.primitiveId
+    }, {
+      for (final p in before.result.materialization!.spatialPlacements)
+        p.slotKey: p.primitiveId
+    });
+    final stroke = (feature.geometry as BorderStrokeGeometry).strokes.single;
+    final edit = await MapMutationDispatcher.canonical().build(context(
+        librarySnapshot([after], project: project),
+        'border_layer.stroke_update', {
+      'mapId': 'map',
+      'layerId': 'border',
+      'featureId': 'fence',
+      'strokeId': stroke.id,
+      'points': stroke.points.skip(1).map((p) => {'x': p.x, 'y': p.y}).toList(),
+    }));
+    final edited = MapData.fromJson(
+        jsonDecode(utf8.decode(edit.changeSet.changes.single.afterBytes!)));
+    expect(
+        resolveSpatialBorderFeature(
+                manifest: project,
+                map: edited,
+                layerId: 'border',
+                featureId: 'fence')
+            .result
+            .canApply,
+        isTrue);
+  });
+  for (final action in [
+    'border_layer.relink_apply',
+    'border_layer.feature_set_blueprint'
+  ]) {
+    test(
+        '$action atomically reverses spatial contours and retains authored corrections',
+        () async {
+      final base = spatialBorderAuthoringFixture(published: true);
+      final record = encodeBorderBlueprintRecordJson(
+          base.project.borderCatalog.records.single,
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+      record['id'] = 'replacement';
+      final target = decodeBorderBlueprintRecordJson(record,
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+      final project = base.project.copyWith(
+          borderCatalog: ProjectBorderCatalog(
+              formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+              records: [...base.project.borderCatalog.records, target]));
+      var map = applySpatialBorderFeaturePreview(base.map,
+          manifest: project,
+          proposedResult: resolveSpatialBorderFeature(
+              manifest: project,
+              map: base.map,
+              layerId: 'border',
+              featureId: 'fence'));
+      final layer = map.layers.single as BorderLayer;
+      final source = layer.content.features.single;
+      final placements = source.materialization!.spatialPlacements;
+      final overrides = [
+        BorderSlotOverride(
+            slotKey: placements.first.slotKey,
+            variationSalt: BorderSignedInt64.fromInt(5),
+            suppressed: true,
+            locked: false),
+        BorderSlotOverride(
+            slotKey: placements[1].slotKey,
+            variationSalt: BorderSignedInt64.fromInt(8),
+            suppressed: false,
+            locked: false,
+            replacementPrimitiveId: placements[1].primitiveId),
+      ];
+      final authored = BorderFeature(
+          id: source.id,
+          name: source.name,
+          blueprintId: source.blueprintId,
+          seed: source.seed,
+          geometry: source.geometry,
+          lineSide: source.lineSide,
+          spatialOffsetWorld: Model3dVector3(x: .01, y: 2, z: -.01),
+          paramsOverride: source.paramsOverride,
+          overrides: overrides,
+          keepOutRegions: [
+            BorderKeepOutRegion(
+                id: 'retained-opening',
+                region: BorderRegionGeometry(
+                    width: map.size.width,
+                    height: map.size.height,
+                    cells: List.generate(
+                        map.size.width * map.size.height,
+                        (index) =>
+                            index == map.size.width * map.size.height - 1)))
+          ],
+          materialization: source.materialization);
+      map = upsertBorderFeature(map, layerId: 'border', feature: authored);
+      final sentinel = SpatialModelInstance(
+          id: 'unrelated-tree',
+          modelId: 'tree',
+          position: Model3dVector3(x: 0, y: 0, z: 0));
+      map = map.copyWith(
+          spatialScene: map.spatialScene!
+              .copyWith(instances: [...map.spatialScene!.instances, sentinel]));
+      final before = jsonEncode(map.toJson());
+      final mutation = await MapMutationDispatcher.canonical()
+          .build(context(librarySnapshot([map], project: project), action, {
+        'mapId': 'map',
+        'layerId': 'border',
+        'featureId': 'fence',
+        'targetBlueprintId': 'replacement',
+        'reverseStrokes': true,
+        'clearVerticalOffset': true,
+        'replacementPrimitiveIdsBySlot': {
+          placements[1].slotKey: placements[1].primitiveId
+        },
+      }));
+      expect(jsonEncode(map.toJson()), before);
+      final after = MapData.fromJson(jsonDecode(
+          utf8.decode(mutation.changeSet.changes.single.afterBytes!)));
+      final feature =
+          (after.layers.single as BorderLayer).content.features.single;
+      expect(feature.id, authored.id);
+      expect(feature.name, authored.name);
+      expect(feature.seed, authored.seed);
+      expect(feature.keepOutRegions, authored.keepOutRegions);
+      expect(feature.overrides, overrides);
+      expect(feature.blueprintId, 'replacement');
+      expect(feature.spatialOffsetWorld, Model3dVector3(x: .01, y: 0, z: -.01));
+      expect(
+          (feature.geometry as BorderStrokeGeometry).strokes.single.points,
+          (source.geometry as BorderStrokeGeometry)
+              .strokes
+              .single
+              .points
+              .reversed
+              .toList());
+      expect(feature.materialization!.spatialPlacements, hasLength(2));
+      expect(after.spatialScene!.instances.map((i) => i.id).toSet(),
+          {...feature.generatedPlacementIds, sentinel.id});
+      expect(
+          after.spatialScene!.instances.firstWhere((i) => i.id == sentinel.id),
+          sentinel);
+      expect(
+          diagnoseSpatialBorderFeature(
+                  manifest: project,
+                  map: after,
+                  layerId: 'border',
+                  featureId: 'fence')
+              .hasErrors,
+          isFalse);
+    });
+  }
+
+  test(
+      'spatial relink refuses missing and foreign override mappings without mutation',
+      () async {
+    final base = spatialBorderAuthoringFixture(published: true);
+    final record = encodeBorderBlueprintRecordJson(
+        base.project.borderCatalog.records.single,
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+    record['id'] = 'replacement';
+    final project = base.project.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+            formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+            records: [
+          ...base.project.borderCatalog.records,
+          decodeBorderBlueprintRecordJson(record,
+              formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion)
+        ]));
+    final resolved = resolveSpatialBorderFeature(
+        manifest: project,
+        map: base.map,
+        layerId: 'border',
+        featureId: 'fence');
+    final placement = resolved.result.materialization!.spatialPlacements[1];
+    final map = updateBorderFeatureOverrides(base.map,
+        layerId: 'border',
+        featureId: 'fence',
+        overrides: [
+          BorderSlotOverride(
+              slotKey: placement.slotKey,
+              variationSalt: BorderSignedInt64.fromInt(0),
+              suppressed: false,
+              locked: false,
+              replacementPrimitiveId: placement.primitiveId)
+        ]);
+    final before = jsonEncode(map.toJson());
+    for (final mapping in <Map<String, String>>[
+      {},
+      {'foreign-slot': placement.primitiveId},
+      {placement.slotKey: 'missing-primitive'},
+    ]) {
+      await expectLater(
+          () => MapMutationDispatcher.canonical().build(context(
+                  librarySnapshot([map], project: project),
+                  'border_layer.relink_apply', {
+                'mapId': 'map',
+                'layerId': 'border',
+                'featureId': 'fence',
+                'targetBlueprintId': 'replacement',
+                'reverseStrokes': true,
+                'clearVerticalOffset': true,
+                'replacementPrimitiveIdsBySlot': mapping,
+              })),
+          throwsA(
+              anyOf(isA<MapAuthoringException>(), isA<ValidationException>())));
+      expect(jsonEncode(map.toJson()), before);
+    }
+  });
+
+  test(
+      'spatial relink reverses a closed contour while retaining its first vertex',
+      () {
+    final base = spatialBorderAuthoringFixture(published: true);
+    final record = encodeBorderBlueprintRecordJson(
+        base.project.borderCatalog.records.single,
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+    record['id'] = 'replacement';
+    final project = base.project.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+            formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+            records: [
+          ...base.project.borderCatalog.records,
+          decodeBorderBlueprintRecordJson(record,
+              formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion)
+        ]));
+    final points = const [
+      GridPos(x: 1, y: 1),
+      GridPos(x: 2, y: 1),
+      GridPos(x: 3, y: 1),
+      GridPos(x: 3, y: 2),
+      GridPos(x: 3, y: 3),
+      GridPos(x: 2, y: 3),
+      GridPos(x: 1, y: 3),
+      GridPos(x: 1, y: 2)
+    ];
+    final map = updateBorderFeatureGeometry(base.map,
+        layerId: 'border',
+        featureId: 'fence',
+        geometry: BorderStrokeGeometry(strokes: [
+          BorderStroke(id: 'closed', points: points, closed: true)
+        ]));
+    final before = jsonEncode(map.toJson());
+    final after = relinkSpatialBorderFeature(map,
+        manifest: project,
+        layerId: 'border',
+        featureId: 'fence',
+        targetBlueprintId: 'replacement',
+        reverseStrokes: true);
+    final feature =
+        (after.layers.single as BorderLayer).content.features.single;
+    final stroke = (feature.geometry as BorderStrokeGeometry).strokes.single;
+    expect(stroke.closed, isTrue);
+    expect(stroke.points, [points.first, ...points.skip(1).toList().reversed]);
+    expect(feature.id, 'fence');
+    expect(feature.materialization!.spatialPlacements, isNotEmpty);
+    expect(jsonEncode(map.toJson()), before);
+    expect(
+        diagnoseSpatialBorderFeature(
+                manifest: project,
+                map: after,
+                layerId: 'border',
+                featureId: 'fence')
+            .hasErrors,
+        isFalse);
+  });
+
+  for (final correction in ['locked', 'transform', 'offset']) {
+    test('spatial relink refuses a $correction correction without mutation',
+        () {
+      final base = spatialBorderAuthoringFixture(published: true);
+      final record = encodeBorderBlueprintRecordJson(
+          base.project.borderCatalog.records.single,
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+      record['id'] = 'replacement';
+      final project = base.project.copyWith(
+          borderCatalog: ProjectBorderCatalog(
+              formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+              records: [
+            ...base.project.borderCatalog.records,
+            decodeBorderBlueprintRecordJson(record,
+                formatVersion:
+                    ProjectBorderCatalog.latestSupportedFormatVersion)
+          ]));
+      final resolved = resolveSpatialBorderFeature(
+          manifest: project,
+          map: base.map,
+          layerId: 'border',
+          featureId: 'fence');
+      final slot =
+          resolved.result.materialization!.spatialPlacements.first.slotKey;
+      final map = updateBorderFeatureOverrides(base.map,
+          layerId: 'border',
+          featureId: 'fence',
+          overrides: [
+            BorderSlotOverride(
+                slotKey: slot,
+                variationSalt: BorderSignedInt64.fromInt(0),
+                suppressed: false,
+                locked: correction == 'locked',
+                lockedInstanceId:
+                    correction == 'locked' ? 'locked-native-instance' : null,
+                transformOverride: correction == 'transform'
+                    ? BorderSpriteTransform(quarterTurns: 1, flipX: false)
+                    : null,
+                offsetDeltaPx: correction == 'offset'
+                    ? const BorderPixelOffset(x: 1, y: 0)
+                    : null)
+          ]);
+      final before = jsonEncode(map.toJson());
+      expect(
+          () => relinkSpatialBorderFeature(map,
+              manifest: project,
+              layerId: 'border',
+              featureId: 'fence',
+              targetBlueprintId: 'replacement',
+              reverseStrokes: true),
+          throwsA(isA<ValidationException>().having((error) => error.message,
+              'message', contains('Locked or transformed'))));
+      expect(jsonEncode(map.toJson()), before);
+    });
+  }
+
   for (final jsonl in [false, true]) {
     test(
         'inverted repeated native Border persists through ${jsonl ? 'JSONL' : 'direct API'} and rejects turns without writes',

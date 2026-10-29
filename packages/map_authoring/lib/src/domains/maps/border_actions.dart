@@ -527,6 +527,9 @@ final class BorderActions {
           'tileHeightPx',
           'resolverVersion',
           'confirmFamilyReset',
+          'reverseStrokes',
+          'clearVerticalOffset',
+          'replacementPrimitiveIdsBySlot',
         },
       'border_layer.feature_set_variation' => const {
           'layerId',
@@ -610,13 +613,9 @@ final class BorderActions {
             'Stroke actions require linear Border geometry.',
           );
         }
-        final stroke = BorderStroke(
-          id: parameters.string('strokeId'),
-          points: _points(parameters.list('points')),
-          closed: parameters.contains('closed') && parameters.boolean('closed'),
-        );
+        final strokeId = parameters.string('strokeId');
         final index = geometry.strokes
-            .indexWhere((candidate) => candidate.id == stroke.id);
+            .indexWhere((candidate) => candidate.id == strokeId);
         if (actionId == 'border_layer.stroke_add' && index >= 0) {
           throw semanticFailure(
             'border.stroke_exists',
@@ -629,6 +628,18 @@ final class BorderActions {
             'The requested Border stroke does not exist.',
           );
         }
+        final points = _points(parameters.list('points'));
+        final lineage = index < 0 ? null
+            : resolveBorderStrokeLineageIdentityV1(geometry.strokes[index]);
+        final stroke = BorderStroke(
+          id: lineage?.preserveTraversal == true
+              ? buildBorderPreservedStrokeIdV1(authoredStrokeId: lineage!.authoredStrokeId,
+                  sourceEdgeOffset: lineage.sourceEdgeOffset, wrapLength: lineage.wrapLength,
+                  orderedPoints: points)
+              : strokeId,
+          points: points,
+          closed: parameters.contains('closed') && parameters.boolean('closed'),
+        );
         final strokes = List<BorderStroke>.from(geometry.strokes);
         if (index < 0) {
           strokes.add(stroke);
@@ -813,6 +824,35 @@ final class BorderActions {
         );
       case 'border_layer.feature_set_blueprint':
       case 'border_layer.relink_apply':
+        if (context.map.spatialScene != null) {
+          final mapping = parameters.contains('replacementPrimitiveIdsBySlot')
+              ? parameters.object('replacementPrimitiveIdsBySlot') : <String, Object?>{};
+          if (mapping.values.any((value) => value is! String || value.isEmpty)) {
+            throw semanticFailure('border.relink_mapping_invalid', 'Replacement mappings require nonempty primitive identities.');
+          }
+          updated = relinkSpatialBorderFeature(context.map, manifest: context.manifest,
+              layerId: layerId, featureId: parameters.string('featureId'),
+              targetBlueprintId: parameters.string('targetBlueprintId'),
+              reverseStrokes: parameters.contains('reverseStrokes') && parameters.boolean('reverseStrokes'),
+              clearVerticalOffset: parameters.contains('clearVerticalOffset') && parameters.boolean('clearVerticalOffset'),
+              replacementPrimitiveIdsBySlot: mapping.cast<String, String>(),
+              resolverVersion: parameters.contains('resolverVersion')
+                  ? parameters.integer('resolverVersion') : borderResolverVersion);
+          final artifact = preview(manifest: context.manifest, map: updated,
+              layerId: layerId, featureId: parameters.string('featureId'),
+              projectRevision: context.resource.revision!, tileSizePx: const GridSize(width: 1, height: 1),
+              resolverVersion: parameters.contains('resolverVersion')
+                  ? parameters.integer('resolverVersion') : borderResolverVersion);
+          extraPreview['relinkKind'] = 'spatial';
+          extraPreview['warningCount'] = artifact.warningPreview.length;
+          extraPreview['warnings'] = artifact.warningPreview.take(BorderPreviewArtifact.maximumWarningPreviewCount).toList();
+          extraPreview['remappedOverrideCount'] = mapping.length;
+          break;
+        }
+        if (parameters.contains('reverseStrokes') || parameters.contains('clearVerticalOffset') ||
+            parameters.contains('replacementPrimitiveIdsBySlot')) {
+          throw semanticFailure('border.spatial_map_required', 'Contour conversion options require a spatial Border.');
+        }
         final relink = planRelink(
           manifest: context.manifest,
           map: context.map,
@@ -1133,6 +1173,22 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           AuthoringGuarantee.undoable
         ],
         extensions: {
+          if (id == 'border_layer.relink_apply' || id == 'border_layer.feature_set_blueprint')
+            'inputSchema': {
+              'type': 'object', 'additionalProperties': false,
+              'required': ['mapId', 'layerId', 'featureId', 'targetBlueprintId'],
+              'properties': {
+                for (final key in ['mapId', 'layerId', 'featureId', 'targetBlueprintId'])
+                  key: const {'type': 'string', 'minLength': 1},
+                for (final key in ['tileWidthPx', 'tileHeightPx', 'resolverVersion'])
+                  key: const {'type': 'integer', 'minimum': 1},
+                for (final key in ['confirmFamilyReset', 'reverseStrokes', 'clearVerticalOffset'])
+                  key: const {'type': 'boolean'},
+                'replacementPrimitiveIdsBySlot': const {
+                  'type': 'object', 'additionalProperties': {'type': 'string', 'minLength': 1},
+                },
+              },
+            },
           if (id == 'border_layer.set_foreground') 'inputSchema': {
             'type': 'object', 'additionalProperties': false,
             'required': ['mapId', 'layerId', 'renderInForeground'],

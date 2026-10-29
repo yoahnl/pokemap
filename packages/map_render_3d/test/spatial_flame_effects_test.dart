@@ -10,6 +10,40 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_flame_effects.dart';
 
 void main() {
+  test('flying embers remain readable at normal perspective framing', () {
+    final world = World3D();
+    final effects = SpatialFlameEffects(world);
+    effects.sync(
+      sources: [
+        SpatialFlameSource(
+          key: 'small-hearth',
+          light: Model3dPointLight(
+            localPosition: Model3dVector3.zero,
+            flame: ModelLightFlame(
+              height: .36,
+              style: ModelLightFlameStyle.brazier,
+              embers: 1,
+            ),
+          ),
+          transform: Matrix4.identity(),
+        ),
+      ],
+      elapsedSeconds: 1.5,
+      daylight: 0,
+      cameraPitch: .6,
+      cameraYaw: 0,
+    );
+    final flame = effects.components.single;
+    final pixelsPerWorldUnit = 600 / (2 * 40 * math.tan(20 * math.pi / 360));
+    final readable = world.children.where((child) {
+      if (identical(child, flame)) return false;
+      final ember = child as dynamic;
+      return (ember.scale.x as double) * pixelsPerWorldUnit >= 1 &&
+          (ember.material.albedoColor as ui.Color).a >= .25;
+    });
+    expect(readable.length, greaterThanOrEqualTo(3));
+    effects.clear();
+  });
   test('embers stay near the source and never drift toward the camera', () {
     final world = World3D();
     final effects = SpatialFlameEffects(world);
@@ -50,15 +84,52 @@ void main() {
       for (var index = 0; index < embers.length; index++) {
         final ember = embers[index] as dynamic;
         expect(ember.position, positions[index]);
-        expect(ember.position.y, inInclusiveRange(1.18, 1.18 + .36 * 1.15));
+        expect(ember.position.y, inInclusiveRange(1.18, 1.18 + .36 * 2.3));
         expect(
           (ember.position.z as double) - .2,
-          inInclusiveRange(-.36 * .04, .36 * .04),
+          inInclusiveRange(-.36 * 2, .36 * 2),
         );
-        expect(ember.scale.x, lessThanOrEqualTo(.36 * .035));
+        expect(ember.scale.x, lessThanOrEqualTo(.36 * .12));
       }
     }
     expect(effects.allocations, 1);
+    effects.clear();
+  });
+  test('flying embers disperse beyond the flame instead of hiding in its core', () {
+    final world = World3D();
+    final effects = SpatialFlameEffects(world);
+    effects.sync(
+      sources: [
+        SpatialFlameSource(
+          key: 'hearth',
+          light: Model3dPointLight(
+            localPosition: Model3dVector3.zero,
+            flame: ModelLightFlame(
+              height: .36,
+              style: ModelLightFlameStyle.brazier,
+              embers: 1,
+            ),
+          ),
+          transform: Matrix4.identity(),
+        ),
+      ],
+      elapsedSeconds: 1.5,
+      daylight: 0,
+      cameraPitch: .6,
+      cameraYaw: 0,
+    );
+    final flame = effects.components.single;
+    final escaping = world.children.where((child) {
+      if (identical(child, flame)) return false;
+      final ember = child as dynamic;
+      final distance = math.sqrt(
+        (ember.position.x as double) * (ember.position.x as double) +
+            (ember.position.z as double) * (ember.position.z as double),
+      );
+      return distance > .36 * .55 &&
+          (ember.material.albedoColor as ui.Color).a >= .25;
+    });
+    expect(escaping.length, greaterThanOrEqualTo(3));
     effects.clear();
   });
   test('crackle gain follows visible night fire and listener distance without summing voices', () {

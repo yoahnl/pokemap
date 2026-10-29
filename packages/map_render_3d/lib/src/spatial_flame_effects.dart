@@ -118,16 +118,16 @@ final class SpatialFlameEffects {
                 spatialFlamePhase(position.x, position.y, position.z) +
                 index * .23) %
             1;
+        final angle = index * 2.4 +
+            spatialFlamePhase(position.x, position.y, position.z) * math.pi * 2;
+        final spread = size * (.08 + 1.9 * math.sqrt(phase));
         ember.position.setValues(
-          position.x +
-              size *
-                  (.1 * math.sin(phase * 6 + index) +
-                      phase * .1 * (index.isEven ? 1 : -1)),
-          position.y + size * (.25 + phase * .9),
-          position.z + size * .04 * math.sin(phase * 4 + index),
+          position.x + math.cos(angle + phase * .2) * spread,
+          position.y + size * (.18 + phase * 2.1),
+          position.z + math.sin(angle + phase * .2) * spread,
         );
         ember.rotation.setEuler(cameraYaw, -cameraPitch, phase * 2);
-        final radius = size * (.035 - phase * .02);
+        final radius = size * (.105 - phase * .06);
         ember.scale.setValues(radius, radius * 1.5, radius);
         ember.material.albedoColor = Color(0xff000000 | color).withValues(
           alpha: (strength * math.min(1, phase * 12) * math.pow(1 - phase, 1.3))

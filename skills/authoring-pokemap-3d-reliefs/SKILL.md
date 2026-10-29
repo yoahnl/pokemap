@@ -79,10 +79,15 @@ hang on the lower side. Publication now refuses `border.spatial.face_on_land_sid
 declared ground footprints are on the land side, and warns
 `border.spatial.face_mass_on_land_side` from model bounds alone.
 
-On a **catalog** project, a published spatial profile cannot get a new revision, and
-`feature_set_blueprint` / `relink_apply` are refused in 3D. A wrong-handed profile there is a
-product gap to report, not something to work around with offsets or by deleting and
-recreating features.
+On a **catalog** project, a published spatial profile cannot get a new revision. Publish a
+separate corrected profile, then use targeted `border_layer.relink_apply` or
+`border_layer.feature_set_blueprint`. A handedness conversion requires explicit
+`reverseStrokes: true` and `clearVerticalOffset: true` in the same plan. Supply
+`replacementPrimitiveIdsBySlot` for every replacement override; suppression and variation
+stay attached to their stable slots. Locked or transformed corrections that cannot be
+preserved are refused. Never delete and recreate a feature to bypass a refused conversion.
+Open two-phase strokes retain their visual alternation after reversal. Simulate the change
+and compare models, positions and rotations beyond the repaired area before applying it.
 
 ### 5. Plan with the right revision
 

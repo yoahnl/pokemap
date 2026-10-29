@@ -51,6 +51,7 @@ test("live MCP moves native Border variations and suppression through materializ
     const projectRoot = String(created.projectPath);
     let opened = await call("pokemap_workspace", { operation: "open", projectRoot });
     let projectHandle = String(opened.projectHandle), workspaceHandle = String(opened.workspaceHandle), serial = 0;
+    await call("pokemap_workshop", { operation: "prepare", projectHandle });
     const manifest = record(JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")));
     const entry = record((manifest.maps as unknown[])[0]), mapId = String(entry.id);
     const mapPath = join(projectRoot, String(entry.relativePath));
@@ -77,6 +78,24 @@ test("live MCP moves native Border variations and suppression through materializ
     await mutate("border_layer.feature_create", { ...target, blueprintId: "fence", name: "Fence", seed: "1",
       geometry: { kind: "stroke", strokes: [{ id: "line", closed: false, points: [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }] }] } });
     await mutate("border_layer.materialize_apply", target);
+    const relinkDescriptor = (catalog.mutationActions as JsonRecord[]).find(action => action.id === "border_layer.relink_apply")!;
+    const relinkSchema = record(record(relinkDescriptor.extensions).inputSchema);
+    assert.ok(record(relinkSchema.properties).reverseStrokes);
+    await mutate("border.blueprint.draft.upsert", { record: { id: "replacement", draft: { baseRevision: 0, definition } } });
+    await mutate("border.blueprint.publish", { blueprintId: "replacement" });
+    const beforeRelink = record(JSON.parse(await readFile(mapPath, "utf8")));
+    await mutate("border_layer.relink_apply", { ...target, targetBlueprintId: "replacement", reverseStrokes: true, clearVerticalOffset: true });
+    const relinkedMap = record(JSON.parse(await readFile(mapPath, "utf8")));
+    const sourceFeature = record((record((beforeRelink.layers as JsonRecord[])[0]!.content).features as JsonRecord[])[0]);
+    const relinkedFeature = record((record((relinkedMap.layers as JsonRecord[])[0]!.content).features as JsonRecord[])[0]);
+    assert.equal(relinkedFeature.id, sourceFeature.id);
+    assert.equal(relinkedFeature.seed, sourceFeature.seed);
+    assert.equal(relinkedFeature.blueprintId, "replacement");
+    assert.deepEqual(relinkedFeature.keepOutRegions, sourceFeature.keepOutRegions);
+    const sourceStroke = record((record(sourceFeature.geometry).strokes as JsonRecord[])[0]);
+    const relinkedStroke = record((record(relinkedFeature.geometry).strokes as JsonRecord[])[0]);
+    assert.deepEqual(relinkedStroke.points, [...sourceStroke.points as unknown[]].reverse());
+    await mutate("border_layer.relink_apply", { ...target, targetBlueprintId: "fence", reverseStrokes: true });
     const base = record(JSON.parse(await readFile(mapPath, "utf8")));
     const featureOf = (map: JsonRecord) => record((record((map.layers as JsonRecord[]).find(layer => layer.id === "border")!.content).features as unknown[])[0]);
     const placements = record(featureOf(base).materialization).spatialPlacements as JsonRecord[];
