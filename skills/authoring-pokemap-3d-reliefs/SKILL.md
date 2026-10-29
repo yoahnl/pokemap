@@ -23,6 +23,15 @@ hidden with an offset. Make them agree; never paper over the gap.
   If both sides of the contour have the same height, the contour is on the wrong edge or the
   terrain support is wrong. No profile or offset fixes that.
 
+## Where the ground comes from
+
+A cell shows ground only if a visible Smart Tile layer paints it (and no Border masks it), or
+a Border with `replacesGround` draws it, or a Smart Tile model replaces it. Imported maps often
+leave the cells under a shore or a cliff **unpainted** because the Border draws them. Deleting
+or retracing that Border then leaves a hole you can see through. A placed object (an islet
+rock, a pier, stairs) over an unpainted cell hides the hole only where its mesh happens to be:
+its bounding box proves nothing.
+
 ## Iron laws
 
 - Never set or keep `spatialOffsetWorld.y` to raise or lower a face. An offset only matches
@@ -33,6 +42,8 @@ hidden with an offset. Make them agree; never paper over the gap.
 - Never republish a shared profile to fix one map. Check who uses it first.
 - Never report done while a touched feature is `stale`, has errors, or has an unexplained
   warning.
+- Never delete or retrace a Border, or erase paint, without first giving its cells their own
+  ground. Paint the sea or the floor first, then remove the Border.
 
 ## Workflow
 
@@ -41,6 +52,12 @@ hidden with an offset. Make them agree; never paper over the gap.
 `pokemap_query` `resourceKind: borderFeature`, `operation: list`, `filters: {mapId}`. For each
 item, read `status`, `materialization` (`fresh` / `stale` / `missing`), `errorCount` and
 `warningCount`. Then use `get`, `view: detail` on the suspicious ids for the diagnostics.
+
+Then `pokemap_query` `resourceKind: spatialMapIntegrity`, `operation: get`, `ids: [mapId]`,
+`view: detail`. `groundGaps` are enclosed cells whose ground nothing proves: `exposed` cells are
+holes for certain, `unproven` cells are hidden only by an object's bounds or a partial Border
+cover. `borderObjectOverlaps` lists placed objects whose bounds cross Border modules. Keep the
+counts as the baseline.
 
 Render the problem area before changing anything: `pokemap_render_3d` with `view: orbit` for
 the overview, and `view: game`, `magnification` 3 to 4, `center` on the exact spot. Keep these
@@ -96,17 +113,30 @@ and `parameters` you are about to plan. Pass its `snapshotRevision` as `expected
 its `planExtensions` as `extensions` to `pokemap_plan`. A revision taken from another action
 or from a query is rejected as `plan.stale`. Re-read it after every apply.
 
-### 6. Materialize and read the warnings before applying
+### 6. Read every preview before applying
+
+Every map action on a 3D map adds `groundGapsIntroduced` (with `groundGapsIntroducedCount`)
+when it opens or worsens a ground gap, and `borderObjectOverlapsIntroduced` when it makes a
+Border module cross an object. Either key means the plan breaks the map: do not apply it.
+Plan the deletion first if you need to know which cells a Border provides, then paint them.
+
+### 7. Materialize and read the warnings before applying
 
 Stroke, offset, move and override edits change the geometry only: the feature becomes
 `stale`. Rematerialize every touched feature with `border_layer.materialize_batch_apply`. Its
 plan preview lists `warningCount` and `warnings`, with the slot, cell and heights. Read them
 **before** applying; a warning on the edited segment means the fix is wrong.
 
-### 7. Prove it
+### 8. Prove it on the whole map
 
 - `borderFeature` list again: every touched feature `fresh`, `errorCount: 0`, and each
   remaining warning explained in the report (code, cell, why it is acceptable).
+- `spatialMapIntegrity` again: no `exposed` cell, and no more `unproven` cells or overlaps
+  than the baseline.
+- `pokemap_render_3d_scan` on the map: it frames every gap cluster and overlap and measures
+  `holeRatio`, the share of background the scene encloses. Every view must read `0`; a
+  `backgroundRatio` alone is the map's outer void. Look at each overlap image yourself: a
+  shore drawn across a pier deck is not a hole but is still a defect.
 - `pokemap_render_3d` at the same `center`, `view` and `magnification` as the "before"
   images, plus one `orbit` overview. Compare them yourself: crest flush with the upper
   ground, foot on the lower ground, corners closed, no slit of grass or void.
@@ -122,3 +152,6 @@ plan preview lists `warningCount` and `warnings`, with the slot, cell and height
 - "The feature says stale but the picture looks right."
 - "One more override on that slot will hide the gap."
 - "I'll fix the JSON directly, the action is too strict."
+- "This shore looks spurious, deleting it is harmless."
+- "The diagnostics are green, so the map is fine."
+- "The rock sits on these cells, so they are covered."
