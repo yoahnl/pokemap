@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:pokemap_render_host/src/render_host.dart';
 import 'package:pokemap_render_host/src/render_request.dart';
 
@@ -100,6 +101,34 @@ void main() {
     final ratios = seeThroughRatios(rgba, width, height);
     expect(ratios.background, closeTo(.13, 1e-9));
     expect(ratios.holes, closeTo(.02, 1e-9));
+  });
+
+  test('the grid tiles the painted area, not the outer margin', () {
+    const width = 48, depth = 30;
+    final map = MapData(
+      id: 'm',
+      name: 'M',
+      size: const GridSize(width: width, height: depth),
+      spatialScene: MapSpatialScene(width: width, depth: depth, heightLevels: List.filled(width * depth, 0)),
+      layers: [
+        SmartTileLayer(
+          id: 'ground',
+          name: 'Ground',
+          presetId: 'grass',
+          usage: SmartTileUsage.terrain,
+          materialPalette: const ['', 'grass'],
+          field: SmartTileField.cell(semanticCells: [
+            for (var z = 0; z < depth; z++)
+              for (var x = 0; x < width; x++) x >= 8 && x < 40 && z >= 2 ? 1 : 0,
+          ]),
+        ),
+      ],
+    );
+    final centres = gridViewCenters(map);
+    expect(centres, hasLength(2 * 3));
+    expect(centres.map((c) => c.$1).toSet(), {16.0, 32.0});
+    expect(centres.every((c) => c.$2 > 2 && c.$2 < depth), isTrue);
+    expect(gridViewCenters(map.copyWith(spatialScene: null)), isEmpty);
   });
 
   group('RenderHost', () {

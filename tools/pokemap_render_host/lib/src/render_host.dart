@@ -252,40 +252,52 @@ final class SpatialMapRenderer {
     final report = inspectSpatialMapIntegrity(manifest: view.manifest, map: view.map);
     final targets = [
       for (final cluster in report.gapClusters)
-        (kind: 'groundGap', x: cluster.centerX, z: cluster.centerZ, detail: cluster.toJson()),
+        (kind: 'groundGap', x: cluster.centerX, z: cluster.centerZ, magnification: request.magnification, detail: cluster.toJson()),
       for (final overlap in report.borderObjectOverlaps)
         (
           kind: 'borderObjectOverlap',
           x: (overlap.firstCell.x + overlap.lastCell.x) / 2 + .5,
           z: (overlap.firstCell.y + overlap.lastCell.y) / 2 + .5,
+          magnification: request.magnification,
           detail: overlap.toJson(),
         ),
     ].take(request.maxViews).toList();
+    if (request.grid) {
+      for (final (x, z) in gridViewCenters(view.map)) {
+        targets.add((kind: 'grid', x: x, z: z, magnification: gridMagnification, detail: const {}));
+      }
+    }
     final views = <Map<String, Object?>>[];
     if (targets.isNotEmpty) {
       final controller = _controller(MapRenderView.game, request.magnification, 720);
       _panTo(controller, view.map, targets.first.x, targets.first.z);
+      var magnification = targets.first.magnification;
       await _mount(view, scene, controller, request.projectFile,
-          background: scanSentinel, magnification: () => request.magnification);
+          background: scanSentinel, magnification: () => magnification);
       await Future<void>.delayed(const Duration(milliseconds: 1300));
       for (final (index, target) in targets.indexed) {
         _panTo(controller, view.map, target.x, target.z);
+        magnification = target.magnification;
         await Future<void>.delayed(const Duration(milliseconds: 500));
         await WidgetsBinding.instance.endOfFrame;
         final image = await _snapshot();
         try {
           final pixels = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
           final ratios = seeThroughRatios(pixels.buffer.asUint8List(), image.width, image.height);
+          final kept = target.kind != 'grid' || ratios.holes > 0;
           final outputPath = '${request.outputDirectory}/${target.kind}-$index.png';
-          final png = await image.toByteData(format: ui.ImageByteFormat.png);
-          await File(outputPath).writeAsBytes(png!.buffer.asUint8List(), flush: true);
+          if (kept) {
+            final png = await image.toByteData(format: ui.ImageByteFormat.png);
+            await File(outputPath).writeAsBytes(png!.buffer.asUint8List(), flush: true);
+          }
           views.add({
             'kind': target.kind,
             'center': {'x': target.x, 'z': target.z},
+            'magnification': target.magnification,
             'holeRatio': ratios.holes,
             'backgroundRatio': ratios.background,
-            'target': target.detail,
-            'outputPath': outputPath,
+            if (target.detail.isNotEmpty) 'target': target.detail,
+            if (kept) 'outputPath': outputPath,
           });
         } finally {
           image.dispose();
@@ -301,7 +313,11 @@ final class SpatialMapRenderer {
       'gapClusterCount': report.gapClusters.length,
       'borderObjectOverlapCount': report.borderObjectOverlaps.length,
       'viewCount': views.length,
-      'skippedTargetCount': report.gapClusters.length + report.borderObjectOverlaps.length - views.length,
+      'gridViewCount': views.where((view) => view['kind'] == 'grid').length,
+      'holeViewCount': views.where((view) => (view['holeRatio'] as double) > 0).length,
+      'skippedTargetCount': report.gapClusters.length +
+          report.borderObjectOverlaps.length -
+          views.where((view) => view['kind'] != 'grid').length,
       'magnification': request.magnification,
       'views': views,
       'loadMilliseconds': loadedAt,
@@ -312,6 +328,37 @@ final class SpatialMapRenderer {
 }
 
 const scanSentinel = Color(0xffff00ff);
+const gridMagnification = 2.0;
+const _gridStepX = 20, _gridStepZ = 11;
+
+/// Game-view centres tiling the cells any Smart Tile layer paints, so a
+/// scan also looks where the integrity report finds nothing to frame.
+List<(double, double)> gridViewCenters(MapData map) {
+  final scene = map.spatialScene;
+  if (scene == null) return const [];
+  var minX = scene.width, maxX = -1, minZ = scene.depth, maxZ = -1;
+  for (final layer in map.layers.whereType<SmartTileLayer>()) {
+    final cells = layer.field.semanticCells;
+    for (var index = 0; index < cells.length && index < scene.width * scene.depth; index++) {
+      if (cells[index] == 0) continue;
+      final x = index % scene.width, z = index ~/ scene.width;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (z < minZ) minZ = z;
+      if (z > maxZ) maxZ = z;
+    }
+  }
+  if (maxX < 0) return const [];
+  List<double> axis(int min, int max, int step) {
+    final span = max - min + 1;
+    final count = (span / step).ceil();
+    return [for (var i = 0; i < count; i++) min + span * (i + .5) / count];
+  }
+  return [
+    for (final z in axis(minZ, maxZ, _gridStepZ))
+      for (final x in axis(minX, maxX, _gridStepX)) (x, z),
+  ];
+}
 
 /// Share of pixels showing the sentinel background: over the whole frame,
 /// and only in patches the scene encloses. The map's outer void and the sky

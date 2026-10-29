@@ -40,7 +40,8 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       writeFileSync(outputPath, Buffer.from(process.env.FAKE_HOST_PNG, "base64"));
       return { kind, center: { x: 32.5, z: 72 }, holeRatio: index === 0 ? 0.02 : 0, backgroundRatio: 0.03, target: {}, outputPath };
     });
-    return reply({ status: "success", data: { mapId: args.mapId, groundGapCount: 14, viewCount: 2, maxViews: args.maxViews, views } });
+    views.push({ kind: "grid", center: { x: 24, z: 80 }, holeRatio: 0, backgroundRatio: 0 });
+    return reply({ status: "success", data: { mapId: args.mapId, groundGapCount: 14, viewCount: 3, maxViews: args.maxViews, grid: args.grid, views } });
   }
   if (args.mapId === "crash") process.exit(3);
   if (args.mapId === "hang") return;
@@ -151,11 +152,14 @@ test("a scan registers one PNG per view without leaking host paths", async () =>
       mapId: "route-32",
       maxViews: 5,
       magnification: 4,
+      grid: true,
     });
     assert.equal(scanned.data.groundGapCount, 14);
     assert.equal(scanned.data.maxViews, 5);
     const views = scanned.data.views as JsonRecord[];
-    assert.deepEqual(views.map((view) => view.kind), ["groundGap", "borderObjectOverlap"]);
+    assert.deepEqual(views.map((view) => view.kind), ["groundGap", "borderObjectOverlap", "grid"]);
+    assert.equal(scanned.data.grid, true);
+    assert.equal(views[2]?.artifactUri, undefined);
     assert.ok(views.every((view) => view.outputPath === undefined));
     assert.equal(scanned.artifacts.length, 2);
     assert.equal(views[0]?.artifactUri, scanned.artifacts[0]?.uri);

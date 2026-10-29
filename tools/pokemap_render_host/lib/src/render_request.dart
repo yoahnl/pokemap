@@ -126,10 +126,11 @@ final class ScanRequest {
     required this.outputDirectory,
     this.maxViews = 12,
     this.magnification = 4,
+    this.grid = true,
   });
 
   factory ScanRequest.fromJson(Map<String, Object?> json) {
-    const allowed = {'projectRoot', 'mapId', 'outputDirectory', 'maxViews', 'magnification'};
+    const allowed = {'projectRoot', 'mapId', 'outputDirectory', 'maxViews', 'magnification', 'grid'};
     final unknown = json.keys.where((key) => !allowed.contains(key)).toList();
     if (unknown.isNotEmpty) {
       throw RenderRequestException('Unknown scan fields: ${unknown.join(', ')}.');
@@ -146,12 +147,17 @@ final class ScanRequest {
     if (magnification < 2 || magnification > 8) {
       throw const RenderRequestException('magnification must be within 2 to 8.');
     }
+    final grid = json['grid'] ?? true;
+    if (grid is! bool) {
+      throw const RenderRequestException('grid must be a boolean.');
+    }
     return ScanRequest(
       projectRoot: _absolutePath(json['projectRoot'], 'projectRoot'),
       mapId: mapId,
       outputDirectory: _absolutePath(json['outputDirectory'], 'outputDirectory'),
       maxViews: maxViews,
       magnification: magnification,
+      grid: grid,
     );
   }
 
@@ -160,6 +166,7 @@ final class ScanRequest {
   final String outputDirectory;
   final int maxViews;
   final double magnification;
+  final bool grid;
 
   String projectFile(String relativePath) {
     final resolved = p.normalize(p.join(projectRoot, relativePath));

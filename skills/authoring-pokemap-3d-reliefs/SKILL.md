@@ -133,10 +133,13 @@ plan preview lists `warningCount` and `warnings`, with the slot, cell and height
   remaining warning explained in the report (code, cell, why it is acceptable).
 - `spatialMapIntegrity` again: no `exposed` cell, and no more `unproven` cells or overlaps
   than the baseline.
-- `pokemap_render_3d_scan` on the map: it frames every gap cluster and overlap and measures
-  `holeRatio`, the share of background the scene encloses. Every view must read `0`; a
-  `backgroundRatio` alone is the map's outer void. Look at each overlap image yourself: a
-  shore drawn across a pier deck is not a hole but is still a defect.
+- `pokemap_render_3d_scan` on the map, `grid` left on: it frames every gap cluster and
+  overlap, then tiles the whole painted area, and measures `holeRatio`, the share of
+  background the scene encloses. Every view must read `0`; a `backgroundRatio` alone is the
+  map's outer void. The integrity report cannot see an unbridged height step (water against
+  grass with no face over the gap) or a hole joined to the map's margin; only the grid does.
+  Look at each overlap image yourself: a shore drawn across a pier deck is not a hole but is
+  still a defect.
 - `pokemap_render_3d` at the same `center`, `view` and `magnification` as the "before"
   images, plus one `orbit` overview. Compare them yourself: crest flush with the upper
   ground, foot on the lower ground, corners closed, no slit of grass or void.

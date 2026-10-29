@@ -24,6 +24,7 @@ export interface Scan3dToolRequest {
   mapId: string;
   maxViews: number;
   magnification: number;
+  grid: boolean;
 }
 
 export type Scan3dExecutor = (
@@ -328,6 +329,7 @@ export function createNativeScan3dExecutor(options: {
         outputDirectory: temporaryRoot,
         maxViews: request.maxViews,
         magnification: request.magnification,
+        grid: request.grid,
       });
       if (response.status !== "success") {
         const error = isRecord(response.error) ? response.error : {};
@@ -340,7 +342,11 @@ export function createNativeScan3dExecutor(options: {
       const artifacts: JsonRecord[] = [];
       const views: JsonRecord[] = [];
       for (const [index, raw] of (Array.isArray(data.views) ? data.views : []).entries()) {
-        if (!isRecord(raw) || typeof raw.outputPath !== "string") continue;
+        if (!isRecord(raw)) continue;
+        if (typeof raw.outputPath !== "string") {
+          views.push(raw);
+          continue;
+        }
         const bytes = await readFile(resolve(temporaryRoot, raw.outputPath));
         const digest = createHash("sha256").update(bytes).digest("hex");
         const uri = `artifact://sha256/${digest}`;
