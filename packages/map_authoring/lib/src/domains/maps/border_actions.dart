@@ -42,6 +42,24 @@ final class BorderPreviewArtifact {
   bool get isSpatial => result.materialization?.targetsSpatialScene == true;
   late final String fingerprint;
 
+  static const maximumWarningPreviewCount = 128;
+
+  List<Map<String, Object?>> get warningPreview => [
+        for (final diagnostic in result.diagnostics)
+          if (diagnostic.severity == BorderDiagnosticSeverity.warning)
+            {
+              'layerId': layerId,
+              'featureId': featureId,
+              'code': diagnostic.code,
+              if (diagnostic.slotKey != null) 'slotKey': diagnostic.slotKey,
+              if (diagnostic.cell case final cell?)
+                'cell': {'x': cell.x, 'y': cell.y},
+              if (diagnostic.parameters.isNotEmpty)
+                'parameters': diagnostic.parameters,
+              'suggestedAction': diagnostic.suggestedAction,
+            },
+      ];
+
   Map<String, Object?> _payload() => {
         'schema': 'pokemap.border-preview.v1',
         'mapId': mapId,
@@ -938,6 +956,14 @@ final class BorderActions {
               ],
             },
           );
+        }
+        final warnings = artifact.warningPreview;
+        extraPreview['warningCount'] = warnings.length;
+        extraPreview['warnings'] = warnings
+            .take(BorderPreviewArtifact.maximumWarningPreviewCount)
+            .toList();
+        if (warnings.length > BorderPreviewArtifact.maximumWarningPreviewCount) {
+          extraPreview['warningsTruncated'] = true;
         }
         if (artifact.isSpatial) {
           updated = applySpatialBorderFeaturePreview(context.map,

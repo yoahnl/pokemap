@@ -105,6 +105,7 @@ final class BorderMaterializationBatchActions {
     }
     var updated = context.map;
     var changedItems = 0;
+    final warnings = <Map<String, Object?>>[];
     const border = BorderActions();
     for (final target in targets) {
       final artifact = border.preview(
@@ -133,6 +134,7 @@ final class BorderMaterializationBatchActions {
                   .toList(),
             });
       }
+      warnings.addAll(artifact.warningPreview);
       if (artifact.isSpatial) {
         updated = applySpatialBorderFeaturePreview(updated,
             manifest: context.manifest,
@@ -173,6 +175,14 @@ final class BorderMaterializationBatchActions {
         after: updated,
         operation: planning.request.actionId,
         changedItems: changedItems,
-        preview: {'featureCount': targets.length});
+        preview: {
+          'featureCount': targets.length,
+          'warningCount': warnings.length,
+          'warnings': warnings
+              .take(BorderPreviewArtifact.maximumWarningPreviewCount)
+              .toList(),
+          if (warnings.length > BorderPreviewArtifact.maximumWarningPreviewCount)
+            'warningsTruncated': true,
+        });
   }
 }

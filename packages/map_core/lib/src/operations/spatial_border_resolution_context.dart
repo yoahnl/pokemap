@@ -14,6 +14,7 @@ final class SpatialBorderResolutionContext {
     required this.worldHeightAt,
     required this.fingerprintContext,
     this.paintsFirstLayerInFront = true,
+    this.groundModeledAt,
   }) : layers = List.unmodifiable(layers),
        instances = List.unmodifiable(instances),
        isSpatial = true {
@@ -37,6 +38,7 @@ final class SpatialBorderResolutionContext {
     required this.fingerprintContext,
     required this.paintsFirstLayerInFront,
     required this.isSpatial,
+    required this.groundModeledAt,
   });
 
   factory SpatialBorderResolutionContext.fromMap(MapData map) {
@@ -47,6 +49,9 @@ final class SpatialBorderResolutionContext {
       layers: map.layers,
       instances: scene?.instances ?? const [],
       worldHeightAt: (x, z) => scene?.worldHeightAt(x, z) ?? 0,
+      groundModeledAt: scene == null
+          ? null
+          : (x, z) => _sceneGroundModeledAt(scene, x, z),
       paintsFirstLayerInFront: mapPaintsFirstLayerInFront(map),
       isSpatial: map.version == ProjectVersion.v9 && scene != null,
       fingerprintContext: () => {
@@ -67,7 +72,18 @@ final class SpatialBorderResolutionContext {
   final List<MapLayer> layers;
   final List<SpatialModelInstance> instances;
   final double Function(double x, double z) worldHeightAt;
+  final bool Function(double x, double z)? groundModeledAt;
   final Map<String, dynamic> Function() fingerprintContext;
   final bool paintsFirstLayerInFront;
   final bool isSpatial;
 }
+
+bool _sceneGroundModeledAt(MapSpatialScene scene, double x, double z) =>
+    scene.terrainSurfaces.surfaces.isEmpty ||
+    scene.terrainSurfaces.heightAt(x, z) != null ||
+    scene.navigation.ramps.any((ramp) => ramp.contains(x, z)) ||
+    scene.heightAt(
+          x.floor().clamp(0, scene.width - 1),
+          z.floor().clamp(0, scene.depth - 1),
+        ) !=
+        0;

@@ -53,6 +53,16 @@ typedef _SpatialBorderNode = ({
   GridPos? terrainCell,
 });
 
+typedef _SpatialFaceProbe = ({
+  String slotKey,
+  GridPos cell,
+  GridPos landCell,
+  GridPos outsideCell,
+  SpatialModelInstance instance,
+  ProjectModel3dEntry model,
+  Model3dVector3 anchor,
+});
+
 final class SpatialBorderGroundReplacement {
   const SpatialBorderGroundReplacement({
     required this.left,
@@ -1019,6 +1029,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeatureInContext({
   }
   final slots = <String>{};
   final reservedSlots = <String>{};
+  final faceProbes = <_SpatialFaceProbe>[];
   final overridesBySlot = {
     for (final override in feature.overrides) override.slotKey: override,
   };
@@ -1238,6 +1249,21 @@ SpatialBorderResolutionResult resolveSpatialBorderFeatureInContext({
         ),
       );
       instances.add(instance);
+      if (terrainCell != null) {
+        faceProbes.add((
+          slotKey: slotKey,
+          cell: node.cell,
+          landCell: terrainCell,
+          outsideCell: _strokeOutsideCell(
+            node,
+            alignment: alignment,
+            landCell: terrainCell,
+          ),
+          instance: instance,
+          model: model,
+          anchor: anchor,
+        ));
+      }
       if (primitive.cornerJoinCells > 0) {
         wideCorners[node.index] = primitive.cornerJoinCells;
       }
@@ -1290,6 +1316,16 @@ SpatialBorderResolutionResult resolveSpatialBorderFeatureInContext({
   )) {
     return failed();
   }
+  diagnostics.addAll(
+    _spatialBorderFaceGroundDiagnostics(
+      context: context,
+      blueprintId: feature.blueprintId,
+      featureId: featureId,
+      probes: faceProbes.where(
+        (probe) => !reservedSlots.contains(probe.slotKey),
+      ),
+    ),
+  );
   if (context.instances.length -
           feature.generatedPlacementIds.length +
           instances.length >
@@ -1625,6 +1661,122 @@ GridPos _strokeLandCell(
     BorderCardinalDirection.north => (0, isEnd ? 0 : -1),
   };
   return GridPos(x: node.cell.x + dx, y: node.cell.y + dz);
+}
+
+GridPos _strokeOutsideCell(
+  _SpatialBorderNode node, {
+  required BorderStrokeAlignment alignment,
+  required GridPos landCell,
+}) {
+  if (alignment == BorderStrokeAlignment.cellCenters) {
+    return GridPos(
+      x: 2 * node.cell.x - landCell.x,
+      y: 2 * node.cell.y - landCell.y,
+    );
+  }
+  final (dx, dz) = switch (node.outgoingDirection ?? node.incomingDirection!) {
+    BorderCardinalDirection.east => (0, 1),
+    BorderCardinalDirection.south => (-1, 0),
+    BorderCardinalDirection.west => (0, -1),
+    BorderCardinalDirection.north => (1, 0),
+  };
+  return GridPos(x: landCell.x - dx, y: landCell.y - dz);
+}
+
+List<BorderDiagnostic> _spatialBorderFaceGroundDiagnostics({
+  required SpatialBorderResolutionContext context,
+  required String blueprintId,
+  required String featureId,
+  required Iterable<_SpatialFaceProbe> probes,
+}) {
+  final groundModeledAt = context.groundModeledAt;
+  if (groundModeledAt == null) return const [];
+  bool inside(GridPos cell) =>
+      cell.x >= 0 &&
+      cell.y >= 0 &&
+      cell.x < context.size.width &&
+      cell.y < context.size.height;
+  final diagnostics = <BorderDiagnostic>[];
+  for (final probe in probes) {
+    if (!inside(probe.landCell) || !inside(probe.outsideCell)) continue;
+    final model = probe.model;
+    final bounds = model.inspection.bounds;
+    final scale = model.scale * probe.instance.scale;
+    final span = (bounds.max.y - bounds.min.y) * scale;
+    final faceHeight = (probe.anchor.y - bounds.min.y) * scale;
+    final headroom = (bounds.max.y - probe.anchor.y) * scale;
+    if (span <= 0 || faceHeight < span * .75 || headroom < -span * .25) {
+      continue;
+    }
+    final crown =
+        probe.instance.position.y + (probe.anchor.y - model.pivot.y) * scale;
+    final base = crown - faceHeight;
+    final land = context.worldHeightAt(
+      probe.landCell.x + .5,
+      probe.landCell.y + .5,
+    );
+    final outside = context.worldHeightAt(
+      probe.outsideCell.x + .5,
+      probe.outsideCell.y + .5,
+    );
+    final landIsUpper = land >= outside;
+    final upper = landIsUpper ? land : outside;
+    final lower = landIsUpper ? outside : land;
+    final upperCell = landIsUpper ? probe.landCell : probe.outsideCell;
+    final lowerCell = landIsUpper ? probe.outsideCell : probe.landCell;
+    final tolerance = faceHeight * .25;
+    for (final (code, measured, expected, below, groundCell, action) in [
+      (
+        'border.spatial.face_crown_mismatch',
+        crown,
+        upper,
+        tolerance,
+        upperCell,
+        'border.action.align_contour_with_upper_ground',
+      ),
+      (
+        'border.spatial.face_base_mismatch',
+        base,
+        lower,
+        faceHeight * .5,
+        lowerCell,
+        'border.action.support_lower_ground',
+      ),
+    ]) {
+      if ((measured >= expected
+              ? measured - expected <= tolerance + .000001
+              : expected - measured <= below + .000001) ||
+          !groundModeledAt(groundCell.x + .5, groundCell.y + .5)) {
+        continue;
+      }
+      diagnostics.add(
+        BorderDiagnostic(
+          code: code,
+          severity: BorderDiagnosticSeverity.warning,
+          phase: BorderDiagnosticPhase.resolution,
+          scope: BorderDiagnosticScope.slot,
+          blueprintId: blueprintId,
+          featureId: featureId,
+          slotKey: probe.slotKey,
+          cell: probe.cell,
+          parameters: {
+            'crownHeight': crown,
+            'baseHeight': base,
+            'upperGroundHeight': upper,
+            'lowerGroundHeight': lower,
+            'tolerance': measured >= expected ? tolerance : below,
+            'landCell': {'x': probe.landCell.x, 'y': probe.landCell.y},
+            'outsideCell': {
+              'x': probe.outsideCell.x,
+              'y': probe.outsideCell.y,
+            },
+          },
+          suggestedAction: action,
+        ),
+      );
+    }
+  }
+  return diagnostics;
 }
 
 MapData applySpatialBorderFeaturePreview(
