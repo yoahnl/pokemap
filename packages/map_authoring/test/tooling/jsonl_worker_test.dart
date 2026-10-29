@@ -310,7 +310,7 @@ void main() {
           expect(result.status, AuthoringResultStatus.failure,
               reason: resourceKind);
           expect(result.error?.details['domainCode'],
-              'query.border_feature_map_required',
+              endsWith('_map_required'),
               reason: resourceKind);
         } else if (resourcePackTemporaryKinds.contains(resourceKind)) {
           expect(result.status, AuthoringResultStatus.failure, reason: resourceKind);

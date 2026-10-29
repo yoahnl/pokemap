@@ -2,6 +2,7 @@ import 'dart:convert';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
 import 'border_feature_query.dart';
+import 'spatial_map_integrity_query.dart';
 import 'project_media_library_query.dart';
 import '../workspace/catalog/catalog_project_reader.dart';
 import '../workspace/catalog/catalog_targeted_map_edit.dart';
@@ -254,6 +255,12 @@ final class AuthoringReadApi
     }
     if (request.resourceKind == 'borderFeature') {
       return queryBorderFeatures(
+        request: request,
+        readMap: (mapId) => readMapView(projectHandle, mapId),
+      );
+    }
+    if (request.resourceKind == 'spatialMapIntegrity') {
+      return querySpatialMapIntegrity(
         request: request,
         readMap: (mapId) => readMapView(projectHandle, mapId),
       );

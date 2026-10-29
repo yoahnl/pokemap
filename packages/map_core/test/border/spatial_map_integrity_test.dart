@@ -88,6 +88,19 @@ void main() {
     expect(overlaps.single.toJson()['layerId'], 'border');
   });
 
+  test('gaps group into clusters that frame one view each', () {
+    final fixture = _ground(
+      unpainted: {(1, 1), (2, 2), (4, 4)},
+      objects: [_instance('rock', 'unit', 4.5, 4.5)],
+    );
+    final clusters = inspectSpatialMapIntegrity(manifest: fixture.project, map: fixture.map).gapClusters;
+    expect(clusters.map((cluster) => cluster.cells.length), [2, 1]);
+    expect((clusters.first.centerX, clusters.first.centerZ), (2.0, 2.0));
+    expect(clusters.first.exposedCellCount, 2);
+    expect(clusters.last.coveringInstanceIds, ['rock']);
+    expect(clusters.last.toJson()['center'], {'x': 4.5, 'z': 4.5});
+  });
+
   test('a map without a 3D scene has nothing to inspect', () {
     final fixture = _ground(unpainted: {(3, 3)});
     final flat = fixture.map.copyWith(spatialScene: null);

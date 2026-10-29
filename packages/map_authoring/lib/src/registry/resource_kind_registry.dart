@@ -559,6 +559,33 @@ final class AuthoringResourceKindRegistry {
         },
       ),
       AuthoringResourceKindDescriptor(
+        id: 'spatialMapIntegrity',
+        version: 1,
+        displayName: 'Spatial map integrity',
+        summary:
+            'Enclosed cells of a 3D map whose ground nothing proves, and placed objects crossing Border modules',
+        extensions: const {
+          'query': {
+            'operations': ['get', 'list'],
+            'requiredFilters': ['mapId'],
+            'idFormat': '<mapId>',
+            'listShape': 'one item for filters.mapId; get takes ids: [mapId]',
+            'twoDimensionalMaps': 'statusNotApplicable',
+            'detailView': ['gapClusters', 'groundGaps', 'borderObjectOverlaps'],
+            'gapStates': {
+              'exposed': 'no paint, Border ground or object covers any sample',
+              'unproven': 'only object bounds or a partial Border cover hide the cell; check it visually',
+            },
+            'overlapBasis': 'axisAlignedModelBounds',
+            'catalogProjectRead': 'selectedMapAndReferences',
+            'legacyProjectRead': 'fullSnapshot',
+            'maximumItems': 512,
+            'actionPreview':
+                'map actions on 3D maps add groundGapsIntroduced and borderObjectOverlapsIntroduced when they create or worsen one',
+          },
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'borderSnapshot',
         version: 1,
         displayName: 'Border visual snapshot',
@@ -1016,6 +1043,7 @@ final class AuthoringResourceKindRegistry {
         'resourceUsage',
         'borderBlueprint',
         'borderFeature',
+        'spatialMapIntegrity',
         'borderSnapshot',
         'characterStudioCatalog',
         'characterStudioCharacter',

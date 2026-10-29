@@ -1095,6 +1095,7 @@ final Set<String> _approvedResourceKinds = {
   'borderBlueprint',
   'borderSnapshot',
   'borderFeature',
+  'spatialMapIntegrity',
   'encounterTable',
   'encounterEntry',
   'dialogueFolder',

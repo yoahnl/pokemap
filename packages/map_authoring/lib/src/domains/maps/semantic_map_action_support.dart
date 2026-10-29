@@ -179,6 +179,7 @@ final class SemanticMapActionContext {
         'seed': planning.seed,
         'changedCellCount': edit.changedCells,
         ...edit.preview,
+        ..._introducedIntegrityPreview(edit.map),
       },
     );
   }
@@ -289,10 +290,33 @@ final class SemanticMapActionContext {
         'seed': planning.seed,
         'changedItemCount': changedItems,
         ...preview,
+        ..._introducedIntegrityPreview(after),
       },
     );
   }
+
+  Map<String, Object?> _introducedIntegrityPreview(MapData after) {
+    if (map.spatialScene == null || after.spatialScene == null) return const {};
+    final introduced = inspectSpatialMapIntegrity(manifest: manifest, map: after)
+        .introducedSince(inspectSpatialMapIntegrity(manifest: manifest, map: map));
+    return {
+      if (introduced.groundGaps.isNotEmpty) ...{
+        'groundGapsIntroducedCount': introduced.groundGaps.length,
+        'groundGapsIntroduced': [
+          for (final gap in introduced.groundGaps.take(maximumIntegrityPreviewCount))
+            gap.toJson(),
+        ],
+      },
+      if (introduced.borderObjectOverlaps.isNotEmpty)
+        'borderObjectOverlapsIntroduced': [
+          for (final overlap in introduced.borderObjectOverlaps.take(maximumIntegrityPreviewCount))
+            overlap.toJson(),
+        ],
+    };
+  }
 }
+
+const maximumIntegrityPreviewCount = 128;
 
 MapValidationIssue? _inspectMapDeltaValidation({
   required MapData before,

@@ -187,6 +187,7 @@ void main() {
           'smartTileMaterial',
           'smartTilePattern',
           'smartTilePreset',
+          'spatialMapIntegrity',
           'storyline',
           'tileLayer',
           'tileset',

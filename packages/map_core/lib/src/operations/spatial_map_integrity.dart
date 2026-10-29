@@ -60,6 +60,29 @@ final class SpatialBorderObjectOverlap {
   };
 }
 
+final class SpatialGroundGapCluster {
+  const SpatialGroundGapCluster({
+    required this.cells,
+    required this.centerX,
+    required this.centerZ,
+    required this.exposedCellCount,
+    required this.coveringInstanceIds,
+  });
+
+  final List<GridPos> cells;
+  final double centerX, centerZ;
+  final int exposedCellCount;
+  final List<String> coveringInstanceIds;
+
+  Map<String, Object?> toJson() => {
+    'center': {'x': centerX, 'z': centerZ},
+    'cellCount': cells.length,
+    'exposedCellCount': exposedCellCount,
+    'firstCell': {'x': cells.first.x, 'y': cells.first.y},
+    if (coveringInstanceIds.isNotEmpty) 'coveringInstanceIds': coveringInstanceIds,
+  };
+}
+
 final class SpatialMapIntegrityReport {
   const SpatialMapIntegrityReport({
     required this.groundGaps,
@@ -74,6 +97,39 @@ final class SpatialMapIntegrityReport {
   int get exposedCellCount =>
       groundGaps.where((gap) => gap.state == SpatialGroundGapState.exposed).length;
   int get unprovenCellCount => groundGaps.length - exposedCellCount;
+
+  /// Gaps grouped by 8-connectivity, largest first, to frame one view each.
+  List<SpatialGroundGapCluster> get gapClusters {
+    final byCell = {for (final gap in groundGaps) (gap.cell.x, gap.cell.y): gap};
+    final seen = <(int, int)>{};
+    final clusters = <SpatialGroundGapCluster>[];
+    for (final gap in groundGaps) {
+      final start = (gap.cell.x, gap.cell.y);
+      if (!seen.add(start)) continue;
+      final members = <SpatialGroundGap>[];
+      final pending = [start];
+      while (pending.isNotEmpty) {
+        final (x, z) = pending.removeLast();
+        members.add(byCell[(x, z)]!);
+        for (var dz = -1; dz <= 1; dz++) {
+          for (var dx = -1; dx <= 1; dx++) {
+            final next = (x + dx, z + dz);
+            if (byCell.containsKey(next) && seen.add(next)) pending.add(next);
+          }
+        }
+      }
+      members.sort((a, b) => a.cell.y != b.cell.y ? a.cell.y - b.cell.y : a.cell.x - b.cell.x);
+      clusters.add(SpatialGroundGapCluster(
+        cells: [for (final member in members) member.cell],
+        centerX: members.fold<double>(0, (sum, m) => sum + m.cell.x + .5) / members.length,
+        centerZ: members.fold<double>(0, (sum, m) => sum + m.cell.y + .5) / members.length,
+        exposedCellCount: members.where((m) => m.state == SpatialGroundGapState.exposed).length,
+        coveringInstanceIds: ({for (final m in members) ...m.coveringInstanceIds}.toList()..sort()),
+      ));
+    }
+    clusters.sort((a, b) => b.cells.length - a.cells.length);
+    return clusters;
+  }
 
   /// Gaps and overlaps of [this] that [before] did not already report.
   SpatialMapIntegrityReport introducedSince(SpatialMapIntegrityReport before) {

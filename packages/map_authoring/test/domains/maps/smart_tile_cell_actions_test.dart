@@ -240,6 +240,29 @@ void main() {
     expect(erased.changeSet.changes, hasLength(1));
   });
 
+  test('erasing enclosed 3D ground reports the gap it opens in the preview', () {
+    ProjectSnapshot painted(bool spatial) => _fixture(
+          spatial: spatial,
+          mapSize: const GridSize(width: 3, height: 3),
+          field: SmartTileField.cell(semanticCells: List.filled(9, 1)),
+        ).snapshot;
+    AuthoringMutationDraft erase(bool spatial, int x, int y) =>
+        _build(painted(spatial), actionId: 'smart_tile.cell.erase', parameters: {
+          'mapId': 'map',
+          'layerId': 'ground',
+          'cells': [
+            {'x': x, 'y': y}
+          ],
+        });
+    final enclosed = erase(true, 1, 1);
+    expect(enclosed.preview['groundGapsIntroducedCount'], 1);
+    expect(enclosed.preview['groundGapsIntroduced'], [
+      {'cell': {'x': 1, 'y': 1}, 'state': 'exposed'}
+    ]);
+    expect(erase(true, 0, 0).preview.containsKey('groundGapsIntroduced'), isFalse);
+    expect(erase(false, 1, 1).preview.containsKey('groundGapsIntroduced'), isFalse);
+  });
+
   group('pattern paint batch', () {
     Map<String, Object?> stroke(String id, int x, int y) => {
           'patternId': 'rock-stamp',
