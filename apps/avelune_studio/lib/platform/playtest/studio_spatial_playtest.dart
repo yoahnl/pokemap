@@ -196,6 +196,7 @@ final class StudioSpatialPlaytest {
           SpatialGameplayCapabilities.npcTradeCapabilityId,
           SpatialGameplayCapabilities.eggGiftCapabilityId,
           SpatialGameplayCapabilities.liftCapabilityId,
+          SpatialGameplayCapabilities.fieldTraversalCapabilityId,
           SpatialGameplayCapabilities.ladderCapabilityId,
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
           SpatialGameplayCapabilities.cinematicConnectedCapabilityId,

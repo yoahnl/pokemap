@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -9,19 +11,89 @@ class GameplayZoneEditingCommands {
   final ProjectManifest project;
   static int _sequence = 0;
 
+  void _commit(MapData next) {
+    final publish = document.configureFieldTraversal;
+    final changed = <String>{
+      for (final zone in [
+        ...document.current.gameplayZones,
+        ...next.gameplayZones,
+      ])
+        if (findGameplayZoneById(document.current, zone.id) !=
+            findGameplayZoneById(next, zone.id))
+          zone.id,
+    };
+    if (publish != null && changed.length == 1) {
+      final id = changed.single;
+      final previous = findGameplayZoneById(document.current, id);
+      final zone = findGameplayZoneById(next, id);
+      final action = previous == null
+          ? 'gameplay_zone.create'
+          : zone == null
+          ? 'gameplay_zone.delete'
+          : 'gameplay_zone.update';
+      final parameters = <String, Object?>{
+        if (zone != null) 'zone': zone.toJson(),
+        if (previous != null) 'zoneId': id,
+      };
+      if (TriggerZoneActions.isFieldTraversalMutation(
+        document.current,
+        action,
+        parameters,
+      )) {
+        unawaited(publish(next));
+        return;
+      }
+    }
+    document.commit(next);
+  }
+
+  FieldActionZonePayload _initialFieldAction(MapRect area) {
+    if (supportsDarkness) {
+      return const FieldActionZonePayload(
+        actionKind: FieldActionZoneKind.darkness,
+        darkness: DarknessZonePayload(opacity: .7),
+      );
+    }
+    final horizontal = area.size.width >= 3;
+    if (!horizontal && area.size.height < 3) {
+      throw const ValidationException(
+        'Dessinez au moins trois cases pour un passage Cascade ou Tourbillon.',
+      );
+    }
+    return FieldActionZonePayload(
+      actionKind: FieldActionZoneKind.waterfall,
+      waterfall: WaterfallZonePayload(
+        entry: const GridPos(x: 0, y: 0),
+        path: [
+          horizontal ? const GridPos(x: 1, y: 0) : const GridPos(x: 0, y: 1),
+        ],
+        exit: horizontal
+            ? const GridPos(x: 2, y: 0)
+            : const GridPos(x: 0, y: 2),
+        direction: horizontal
+            ? MapConnectionDirection.east
+            : MapConnectionDirection.south,
+      ),
+    );
+  }
+
   bool get supportsDarkness =>
       document.current.spatialScene == null &&
       document.current.version != ProjectVersion.v9;
-  List<GameplayZoneKind> get availableKinds => studioGameplayZoneKinds
-      .where((kind) => supportsDarkness || kind != GameplayZoneKind.fieldAction)
-      .toList(growable: false);
+  List<GameplayZoneKind> get availableKinds => studioGameplayZoneKinds;
 
   List<GameplayZoneKind> availableKindsFor(MapGameplayZone zone) =>
       availableKinds
           .where(
             (kind) =>
-                zone.smartTileProvenance == null ||
-                kind != GameplayZoneKind.fieldAction,
+                (zone.smartTileProvenance == null ||
+                    kind != GameplayZoneKind.fieldAction) &&
+                (supportsDarkness ||
+                    kind != GameplayZoneKind.fieldAction ||
+                    fieldTraversalDirections(zone).isNotEmpty) &&
+                (supportsDarkness ||
+                    zone.kind != GameplayZoneKind.fieldAction ||
+                    kind == GameplayZoneKind.fieldAction),
           )
           .toList(growable: false);
 
@@ -53,7 +125,11 @@ class GameplayZoneEditingCommands {
     if (zone.kind == GameplayZoneKind.fieldAction &&
         (document.current.spatialScene != null ||
             document.current.version == ProjectVersion.v9)) {
-      return 'Les actions de terrain sont disponibles sur les cartes 2D uniquement.';
+      final action = zone.fieldAction?.actionKind;
+      if (action != FieldActionZoneKind.waterfall &&
+          action != FieldActionZoneKind.whirlpool) {
+        return 'Choisissez un passage Cascade ou Tourbillon sur une carte 3D.';
+      }
     }
     if (zone.kind != GameplayZoneKind.encounter) return null;
     final id = zone.encounter?.encounterTableId;
@@ -89,10 +165,7 @@ class GameplayZoneEditingCommands {
           ? const MovementEffectZonePayload()
           : null,
       fieldAction: kind == GameplayZoneKind.fieldAction
-          ? const FieldActionZonePayload(
-              actionKind: FieldActionZoneKind.darkness,
-              darkness: DarknessZonePayload(opacity: .7),
-            )
+          ? _initialFieldAction(area)
           : null,
       hazard: kind == GameplayZoneKind.hazard
           ? const HazardZonePayload()
@@ -101,7 +174,7 @@ class GameplayZoneEditingCommands {
           ? const SpecialZonePayload()
           : null,
     );
-    document.commit(
+    _commit(
       const TriggerZoneActions().createZone(document.current, zone: zone),
     );
     return zone;
@@ -119,7 +192,7 @@ class GameplayZoneEditingCommands {
         : selected(selectedZoneId);
     if (selectedZone != null &&
         selectedZone.kind == GameplayZoneKind.encounter) {
-      document.commit(
+      _commit(
         paintEncounterZoneCells(
           document.current,
           zoneId: selectedZone.id,
@@ -139,14 +212,14 @@ class GameplayZoneEditingCommands {
       cellMask: paintedEncounterMask(positions, area),
       encounter: const EncounterZonePayload(),
     );
-    document.commit(addGameplayZoneToMap(document.current, zone: zone));
+    _commit(addGameplayZoneToMap(document.current, zone: zone));
     return zone;
   }
 
   void retype(String id, GameplayZoneKind kind) {
     final zone = selected(id);
     if (zone == null || zone.kind == kind) return;
-    document.commit(
+    _commit(
       updateGameplayZoneOnMap(
         document.current,
         zoneId: id,
@@ -165,11 +238,7 @@ class GameplayZoneEditingCommands {
             ? (zone.movementEffect ?? const MovementEffectZonePayload())
             : null,
         fieldAction: kind == GameplayZoneKind.fieldAction
-            ? (zone.fieldAction ??
-                  const FieldActionZonePayload(
-                    actionKind: FieldActionZoneKind.darkness,
-                    darkness: DarknessZonePayload(opacity: .7),
-                  ))
+            ? (zone.fieldAction ?? _initialFieldAction(zone.area))
             : null,
         hazard: kind == GameplayZoneKind.hazard
             ? (zone.hazard ?? const HazardZonePayload())
@@ -181,31 +250,27 @@ class GameplayZoneEditingCommands {
     );
   }
 
-  void rename(String id, String name) => document.commit(
+  void rename(String id, String name) => _commit(
     updateGameplayZoneOnMap(document.current, zoneId: id, name: name),
   );
 
-  void setPriority(String id, int priority) => document.commit(
+  void setPriority(String id, int priority) => _commit(
     updateGameplayZoneOnMap(document.current, zoneId: id, priority: priority),
   );
 
   void move(String id, GridPos pos) {
     if (document.isElementUnavailable('zone', id)) return;
-    document.commit(
-      moveGameplayZoneOnMap(document.current, zoneId: id, pos: pos),
-    );
+    _commit(moveGameplayZoneOnMap(document.current, zoneId: id, pos: pos));
   }
 
   void resize(String id, GridSize size) {
     if (document.isElementUnavailable('zone', id)) return;
-    document.commit(
-      resizeGameplayZoneOnMap(document.current, zoneId: id, size: size),
-    );
+    _commit(resizeGameplayZoneOnMap(document.current, zoneId: id, size: size));
   }
 
   void delete(String id) {
     if (document.isElementUnavailable('zone', id)) return;
-    document.commit(removeGameplayZoneFromMap(document.current, zoneId: id));
+    _commit(removeGameplayZoneFromMap(document.current, zoneId: id));
   }
 
   void updateEncounter(
@@ -219,7 +284,7 @@ class GameplayZoneEditingCommands {
         ? null
         : encounterTables().where((table) => table.id == tableId).firstOrNull;
     if (tableId != null && selectedTable == null) return;
-    document.commit(
+    _commit(
       updateGameplayZoneOnMap(
         document.current,
         zoneId: id,
@@ -237,7 +302,7 @@ class GameplayZoneEditingCommands {
   void updateMovement(String id, {MovementMode? requiredMode}) {
     final payload = selected(id)?.movement;
     if (payload == null) return;
-    document.commit(
+    _commit(
       const TriggerZoneActions().setMovementPayload(
         document.current,
         zoneId: id,
@@ -255,7 +320,7 @@ class GameplayZoneEditingCommands {
   }) {
     final payload = selected(id)?.movementEffect;
     if (payload == null) return;
-    document.commit(
+    _commit(
       const TriggerZoneActions().setMovementEffectPayload(
         document.current,
         zoneId: id,
@@ -376,7 +441,7 @@ class GameplayZoneEditingCommands {
       for (var i = start + (forward ? 1 : -1); i != end; i += forward ? 1 : -1)
         cell(i),
     ];
-    document.commit(
+    _commit(
       const TriggerZoneActions().setFieldActionPayload(
         document.current,
         zoneId: id,
@@ -413,7 +478,7 @@ class GameplayZoneEditingCommands {
         'Déliez les deux points avant de modifier leur configuration.',
       );
     }
-    document.commit(
+    _commit(
       const TriggerZoneActions().setFieldActionPayload(
         document.current,
         zoneId: id,
@@ -429,7 +494,7 @@ class GameplayZoneEditingCommands {
   }
 
   void configureDarkness(String id) {
-    document.commit(
+    _commit(
       const TriggerZoneActions().setFieldActionPayload(
         document.current,
         zoneId: id,
@@ -444,7 +509,7 @@ class GameplayZoneEditingCommands {
   void updateDarkness(String id, {required double opacity}) {
     final payload = selected(id)?.fieldAction;
     if (payload == null) return;
-    document.commit(
+    _commit(
       const TriggerZoneActions().setFieldActionPayload(
         document.current,
         zoneId: id,
@@ -458,7 +523,7 @@ class GameplayZoneEditingCommands {
   void updateHazard(String id, {HazardKind? hazardKind, int? damagePerStep}) {
     final payload = selected(id)?.hazard;
     if (payload == null) return;
-    document.commit(
+    _commit(
       updateGameplayZoneOnMap(
         document.current,
         zoneId: id,

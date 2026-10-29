@@ -1,3 +1,4 @@
+import '../domains/maps/trigger_zone_actions.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../references/exterior_decoration_references.dart';
 import '../documents/map_element_order_authoring.dart';
@@ -70,6 +71,7 @@ import '../ports/file_backed_payload_store.dart';
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
 const _nativeLocalWorkshopActions = {
+  ...TriggerZoneActions.fieldTraversalActions,
   'map3d.instance.configure_field_obstacle',
   'surf.configure',
   'field_ability.configure',
@@ -1655,7 +1657,7 @@ final class _LocalMapAuthoringSession {
               _nativeLocalWorkshopActions.contains(request.actionId) || request.actionId == 'pokemon.catalog.write' ? request : null,
         );
     var planningRequest = request;
-    if (suppliedSnapshot == null && request.actionId == 'presentationMedia.import' &&
+    if (suppliedSnapshot == null && (request.actionId == 'presentationMedia.import' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
         request.expectedRevision != null && request.expectedRevision != snapshot.revision) {
       if (!_snapshotLoader.acceptsObservedNativeRevision(projectHandle,
           expectedRevision: request.expectedRevision,
@@ -1838,7 +1840,13 @@ final class _LocalMapAuthoringSession {
       refreshUnavailable = plan.payloadCleanupFailed;
       try {
         if (_workshopPlans.containsKey(plan.planId)) {
-          projected = await _loadSnapshot(repairRequest: _workshopPlans[plan.planId]);
+          final request = _workshopPlans[plan.planId]!;
+          if (request.actionId == 'gameplay_zone.delete' &&
+              (_workshopPreconditions[plan.planId]?.isNotEmpty ?? false)) {
+            refreshUnavailable = true;
+          } else {
+            projected = await _loadSnapshot(repairRequest: request);
+          }
         } else {
         projected = !refreshUnavailable &&
                 receipt.status == AuthoringReceiptStatus.applied &&
@@ -2322,9 +2330,13 @@ final class _LocalMapAuthoringSession {
     );
     try {
       if (repairRequest != null && _nativeLocalWorkshopActions.contains(repairRequest.actionId)) {
-        return await _snapshotLoader.loadWorkshop(projectHandle, actionId: repairRequest.actionId,
-            parameters: repairRequest.parameters, readDependencies: Map<String, String>.from(
-                repairRequest.extensions['workshopReadDependencies'] as Map? ?? const {}));
+        try {
+          return await _snapshotLoader.loadWorkshop(projectHandle, actionId: repairRequest.actionId,
+              parameters: repairRequest.parameters, readDependencies: Map<String, String>.from(
+                  repairRequest.extensions['workshopReadDependencies'] as Map? ?? const {}));
+        } on ProjectSnapshotException catch (error) {
+          if (error.code != 'project.field_traversal_scope_required') rethrow;
+        }
       }
       final snapshot = await _snapshotLoader.load(
         projectHandle,

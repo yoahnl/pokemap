@@ -8,6 +8,25 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final unrelated in [0, 900]) {
+    test('native field routes load their map without unrelated definitions $unrelated', () async {
+      final f = _Fixture(unrelated: unrelated);
+      final map = MapData(id: 'owner', name: 'Owner', version: ProjectVersion.v9,
+        size: const GridSize(width: 4, height: 4), spatialScene: MapSpatialScene(width: 4, depth: 4));
+      f.resources['maps/owner.json'] = utf8.encode(jsonEncode(map.toJson()));
+      f.raw['settings'] = {'unrelatedInvalidSettings': true};
+      f.updateProject();
+      for (var repeat = 0; repeat < 2; repeat++) {
+        f.reads.clear();
+        final snapshot = await f.loader.loadWorkshop(f.handle, actionId: 'gameplay_zone.set_field_action_payload',
+          parameters: const {'mapId': 'owner', 'zoneId': 'route', 'payload': {'actionKind': 'waterfall'}});
+        expect(snapshot.maps.single, map);
+        expect(snapshot.manifest.models3d, isEmpty);
+        expect(snapshot.availableProjectSections, isEmpty);
+        expect(f.reads.toSet(), {'project.json', 'maps/owner.json'});
+      }
+    });
+  }
   test('savings native scope includes conflicting Fact runtime identities only', () async {
     final f = _Fixture(unrelated: 900);
     f.raw['facts'] = [

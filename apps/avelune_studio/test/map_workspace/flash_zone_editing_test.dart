@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
+import '../support/spatial_environment_fixture.dart';
 
 const area = MapRect(
   pos: GridPos(x: 2, y: 2),
@@ -19,6 +20,74 @@ const area = MapRect(
 );
 
 void main() {
+  for (final spatial in [false, true]) {
+    for (final width in [1, 2]) {
+      testWidgets(
+        'small ${width}x$width zone retype remains guided in ${spatial ? '3D' : '2D'}',
+        (tester) async {
+          final document = EditableMapDocument(
+            MapWorkspaceDocument(
+              map: spatial ? spatialEnvironmentMap() : workspaceMap('a'),
+              revision: 'initial',
+              mapId: 'a',
+            ),
+          );
+          final commands = GameplayZoneEditingCommands(
+            document,
+            spatial ? spatialEnvironmentProject() : workspaceProject,
+          );
+          final zone = commands.place(
+            GameplayZoneKind.movement,
+            MapRect(
+              pos: const GridPos(x: 1, y: 1),
+              size: GridSize(width: width, height: width),
+            ),
+          );
+          final before = document.current;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(
+                  child: SizedBox(
+                    width: 500,
+                    child: MapZoneInspector(
+                      document: document,
+                      project: commands.project,
+                      zone: zone,
+                      onChanged: () {},
+                      onDeleted: () {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.tap(
+            find.byKey(ValueKey('zone-kind-${zone.id}-movement')),
+          );
+          await tester.pumpAndSettle();
+          if (spatial) {
+            expect(find.text('Action de terrain'), findsNothing);
+            expect(
+              find.textContaining('au moins trois cases sur un axe'),
+              findsOneWidget,
+            );
+            expect(document.current, same(before));
+            expect(document.error, isNull);
+          } else {
+            expect(find.text('Action de terrain (2D)'), findsOneWidget);
+            await tester.tap(find.text('Action de terrain (2D)'));
+            await tester.pumpAndSettle();
+            expect(
+              document.current.gameplayZones.single.fieldAction!.darkness,
+              isNotNull,
+            );
+          }
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
   test('the native zone canvas offers darkness as a typed gameplay kind', () {
     expect(
       studioGameplayZoneKinds.map((kind) => kind.name),

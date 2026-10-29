@@ -123,7 +123,7 @@ final class SpatialStoryPlayback {
     );
     session.worldStateProvider = () => models.worldState;
     session.heroStoryPose = () {
-      if (session.nativeDoorTraversalActive) return null;
+      if (session.nativeDoorTraversalActive || session.fieldMotionActive) return null;
       final animated = _poses['player'];
       if (cinematics.isPlaying && animated != null) return animated;
       final pose = _playerPose();

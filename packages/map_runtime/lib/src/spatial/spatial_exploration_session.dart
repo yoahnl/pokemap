@@ -31,9 +31,9 @@ import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_cinematic_emote_visuals.dart';
 import 'spatial_smart_tile_animation_controller.dart';
-import 'spatial_surf_water.dart';
 import 'spatial_field_action_presentation.dart';
 import 'spatial_field_obstacle_burst.dart';
+import 'spatial_field_motion.dart';
 import '../application/field_move_dialogue.dart';
 
 final class SpatialExplorationSession {
@@ -59,8 +59,57 @@ final class SpatialExplorationSession {
       SpatialSurfWater.fromMap(bundle.map);
   VoidCallback? _surfConfirmation;
   final _fieldAction = SpatialFieldActionPresentation();
+  final _fieldMotion = SpatialFieldMotion();
+  String? _fieldMotionMapId;
+  String? _fieldMotionEntityId;
+  VoidCallback? _fieldMotionRollback;
+  SpatialFieldTraversalStep? _fieldMotionStep;
+  EntityFacing _fieldMotionFacing = EntityFacing.south;
+  bool get fieldMotionActive => _fieldMotion.isActive;
+  Future<bool> presentFieldMotion({required FieldAbility ability,
+      required PlayerSpatialPosition from, required PlayerSpatialPosition to,
+      required EntityFacing facing, required int durationMs,
+      SpatialFieldTraversalStep? fieldTraversalStep,
+      String? modelInstanceId, double modelDeltaX = 0, double modelDeltaZ = 0}) {
+    if (_disposed || transitioning.value || _fieldAction.isActive || _fieldMotion.isActive ||
+        movement.spatialPosition != from) {
+      return Future.value(false);
+    }
+    if (fieldTraversalStep != null && (fieldTraversalStep.ability != ability ||
+        fieldTraversalStep.from != from || fieldTraversalStep.to != to ||
+        !fieldTraversalStep.permits(bundle.map, from.x, from.z, to.x, to.z))) {
+      return Future.value(false);
+    }
+    if (ability != FieldAbility.strength && fieldTraversalStep == null) return Future.value(false);
+    _fieldMotionMapId = bundle.map.id;
+    _fieldMotionFacing = facing;
+    final index = _modelPresenceIndices[bundle.map] ??= _SpatialModelPresenceIndex(bundle.map);
+    _fieldMotionEntityId = ability == FieldAbility.strength ? index.entityIdsByInstanceId[modelInstanceId] : null;
+    if (ability == FieldAbility.strength && _fieldMotionEntityId == null) {
+      _fieldMotionMapId = null;
+      return Future.value(false);
+    }
+    movement.setPaused(true);
+    _fieldMotionStep = fieldTraversalStep;
+    _fieldMotionRollback = movement.captureNativeTraversalRollback();
+    return _fieldMotion.play(ability: ability, from: from, to: to, durationMs: durationMs,
+        modelInstanceId: modelInstanceId, modelDeltaX: modelDeltaX, modelDeltaZ: modelDeltaZ);
+  }
+  void finishFieldMotion({bool committed = false}) {
+    final rollback = _fieldMotionRollback;
+    _fieldMotionRollback = null;
+    if (!committed) rollback?.call();
+    movement.clearNativeFieldTraversal();
+    _fieldMotionStep = null;
+    _fieldMotion.release();
+    _fieldMotionMapId = null;
+    _fieldMotionEntityId = null;
+  }
   bool get fieldActionActive => _fieldAction.isActive;
-  void cancelFieldAction() => _fieldAction.cancel();
+  void cancelFieldAction() {
+    _fieldAction.cancel();
+    finishFieldMotion();
+  }
   SpatialFieldObstacleBurst? _fieldBurst;
 
   Future<void> prepareFieldObstacleEffect() async {
@@ -86,8 +135,12 @@ final class SpatialExplorationSession {
     if (_disposed || transitioning.value || _fieldAction.isActive) {
       return Future.value(false);
     }
-    final state = ability == FieldAbility.cut
-        ? CharacterAnimationState.cut : CharacterAnimationState.rockSmash;
+    final state = switch (ability) {
+      FieldAbility.cut => CharacterAnimationState.cut,
+      FieldAbility.rockSmash => CharacterAnimationState.rockSmash,
+      FieldAbility.strength => CharacterAnimationState.strength,
+      _ => throw ArgumentError.value(ability, 'ability'),
+    };
     final clip = character.animations.where((clip) => clip.state == state &&
         clip.direction == movement.facing && clip.frames.isNotEmpty).firstOrNull;
     final duration = clip?.frames.fold<int>(0, (sum, frame) => sum + frame.durationMs) ?? 300;
@@ -102,6 +155,7 @@ final class SpatialExplorationSession {
   bool get _surfClipActive => _surfTransition != null;
 
   void _resetSurfPresentation() {
+    finishFieldMotion();
     _surfMode = movement.movementMode;
     _surfTransition = null;
     _surfEntryTarget = null;
@@ -474,7 +528,13 @@ final class SpatialExplorationSession {
 
   SpatialActorRuntimeState? fieldObstacleActorState(String entityId) {
     final entity = bundle.map.entities.where((entity) => entity.id == entityId).firstOrNull;
-    return entity == null ? null : actorRuntimeState(entity);
+    if (entity == null) return null;
+    final projected = _fieldObstacleEntityProjection(bundle.map.id, entity);
+    if (projected.pos != entity.pos) {
+      return SpatialActorRuntimeState(x: projected.pos.x + .5,
+          z: projected.pos.y + .5, facing: EntityFacing.south);
+    }
+    return actorRuntimeState(entity);
   }
 
   bool fieldObstacleIsPresent(String entityId) {
@@ -498,14 +558,28 @@ final class SpatialExplorationSession {
   SpatialModelRuntimeState? modelRuntimeState(
     String mapId,
     String instanceId,
-  ) =>
-      _nativeDoor.poseFor(mapId, instanceId) ??
+  ) {
+    final base = _nativeDoor.poseFor(mapId, instanceId) ??
       liftModelPose?.call(mapId, instanceId) ??
       worldStateProvider?.call().modelState(mapId, instanceId) ??
       (mapId == bundle.map.id
               ? _smartTileAnimations
               : _preparedMaps[mapId]?.animations)
           ?.stateFor(instanceId);
+    final source = mapId == bundle.map.id ? bundle : _preparedMaps[mapId]?.bundle;
+    if (source == null) return base;
+    final index = _modelPresenceIndices[source.map] ??= _SpatialModelPresenceIndex(source.map);
+    final instance = index.instancesById[instanceId];
+    if (instance == null) return base;
+    final world = presentationStateProvider?.call().mapInstanceWorldState;
+    var pose = world == null ? base : spatialFieldObstacleModelPose(mapId: mapId,
+        entity: index.entitiesById[instance.entityId], instance: instance, world: world, baseState: base);
+    final motion = mapId == _fieldMotionMapId ? _fieldMotion.modelTranslation(instanceId) : null;
+    if (motion == null) return pose;
+    pose ??= SpatialModelRuntimeState(modelId: instance.modelId, animationIndex: null,
+        normalizedTime: 0, blocksMovement: instance.blocksMovement);
+    return pose.copyWith(translationX: pose.translationX + motion.x, translationZ: pose.translationZ + motion.z);
+  }
 
   int rasterAnimationElapsedMsForCell(
     String mapId,
@@ -533,15 +607,22 @@ final class SpatialExplorationSession {
     return animations.actorOcclusionStateForCell(layerId: layerId, cellX: cellX, cellY: cellY, globalElapsedMs: elapsedMs);
   }
 
-  void attachWorldStateProviders() {
+  MapEntity _fieldObstacleEntityProjection(String mapId, MapEntity entity) {
+    final projected = entityProjection?.call(mapId, entity) ?? entity;
+    if (entity.fieldObstacle?.kind != FieldObstacleKind.strengthBoulder) return projected;
+    final position = presentationStateProvider?.call().mapInstanceWorldState
+        .fieldObstaclePositionForMap(mapId, entity.id);
+    return position == null || position == projected.pos ? projected : projected.copyWith(pos: position);
+  }
+
+  void attachWorldStateProviders({SpatialModelRuntimeState? Function(String mapId, String instanceId)? modelPoseProvider}) {
     final source = bundle;
     final index = _modelPresenceIndices[source.map] ??=
         _SpatialModelPresenceIndex(source.map);
     movement.terrainHeightOverride = (x,z) => liftHeightAt?.call(source.map.id,x,z);
-    movement.entityProjection = (entity) => entityProjection == null ? entity :
-      entityProjection!(source.map.id, entity);
+    movement.entityProjection = (entity) => _fieldObstacleEntityProjection(source.map.id, entity);
     movement.setRuntimeStateProviders(
-      modelStateProvider: (id) => modelRuntimeState(source.map.id, id),
+      modelStateProvider: (id) => modelPoseProvider?.call(source.map.id, id) ?? modelRuntimeState(source.map.id, id),
       actorStateProvider: (id) {
         final entity = index.entitiesById[id];
         return entity == null
@@ -582,7 +663,8 @@ final class SpatialExplorationSession {
     onLifecyclePausedChanged?.call(paused);
     if (paused && transitioning.value) cancelPendingTransition();
     movement.setPaused(
-      presentationPaused || interactionActive.value || transitioning.value,
+      presentationPaused || interactionActive.value || transitioning.value ||
+          _fieldMotion.isActive || _fieldAction.isActive,
     );
   }
 
@@ -1023,6 +1105,34 @@ final class SpatialExplorationSession {
     }
     final surf = bundle.manifest.settings.surf;
     final water = surf != null ? SpatialSurfWater.fromMap(bundle.map) : null;
+    final initialPresentation = presentationStateProvider?.call();
+    if (initialPresentation != null && initialPresentation.currentMapId == bundle.map.id) {
+      validateSpatialStrengthSavedPositions(map: bundle.map,
+        gameState: initialPresentation, models: bundle.manifest.models3d,
+        entityIsPresent: (id) {
+          final entity = bundle.map.entities.where((entity) => entity.id == id).firstOrNull;
+          return entity != null && (entityIsPresent?.call(bundle.map.id, entity) ?? true);
+        }, actorStateProvider: (id) => worldStateProvider?.call().actorState(bundle.map.id, id));
+    }
+    final entitiesById = {for (final entity in bundle.map.entities) entity.id: entity};
+    final instancesById = {for (final instance in scene.instances) instance.id: instance};
+    MapEntity projectedEntity(MapEntity entity) {
+      final projected = entityProjection?.call(bundle.map.id, entity) ?? entity;
+      if (entity.fieldObstacle?.kind != FieldObstacleKind.strengthBoulder) return projected;
+      final position = presentationStateProvider?.call().mapInstanceWorldState
+          .fieldObstaclePositionForMap(bundle.map.id, entity.id);
+      return position == null || position == projected.pos ? projected : projected.copyWith(pos: position);
+    }
+    SpatialModelRuntimeState? projectedModel(String id) {
+      final supplied = modelPoseProvider?.call(bundle.map.id, id);
+      if (supplied != null) return supplied;
+      final base = worldStateProvider?.call().modelState(bundle.map.id, id);
+      final instance = instancesById[id];
+      final world = presentationStateProvider?.call().mapInstanceWorldState;
+      return instance == null || world == null ? base : spatialFieldObstacleModelPose(
+          mapId: bundle.map.id, entity: entitiesById[instance.entityId],
+          instance: instance, world: world, baseState: base);
+    }
     SpatialMovementController movementAt(PlayerSpatialPosition? position) => SpatialMovementController.fromMap(
         map: bundle.map,
         models: bundle.manifest.models3d,
@@ -1030,11 +1140,8 @@ final class SpatialExplorationSession {
         spatialArrival: position,
         entityPresencePredicate: (entity) =>
             entityIsPresent?.call(bundle.map.id, entity) ?? true,
-        entityProjection: (entity) => entityProjection == null ? entity :
-          entityProjection(bundle.map.id, entity),
-        modelStateProvider: (id) =>
-          modelPoseProvider?.call(bundle.map.id, id) ??
-            worldStateProvider?.call().modelState(bundle.map.id, id),
+        entityProjection: projectedEntity,
+        modelStateProvider: projectedModel,
         actorStateProvider: (id) =>
             worldStateProvider?.call().actorState(bundle.map.id, id),
         validateSpawn: validateSpawn && position == null,
@@ -1049,8 +1156,7 @@ final class SpatialExplorationSession {
       if (recovered != null) movement = movementAt(recovered);
     }
     final entityVisuals = SpatialEntityVisualPlan(bundle.map, bundle.manifest);
-    movement.entityProjection = (entity) => entityProjection == null ? entity :
-      entityProjection(bundle.map.id, entity);
+    movement.entityProjection = projectedEntity;
     final assets = sharedAssets ?? _SpatialActorAssets(bundle.resourceBudget);
     final session = SpatialExplorationSession._(
         bundle,
@@ -1127,6 +1233,7 @@ final class SpatialExplorationSession {
           }
         }
       }
+      session.attachWorldStateProviders(modelPoseProvider: modelPoseProvider);
       session.frames(0);
       session._preparedMaps[bundle.map.id] = session._capturePrepared();
       session._mapOrigins[bundle.map.id] = ui.Offset.zero;
@@ -1158,6 +1265,8 @@ final class SpatialExplorationSession {
   SpatialActorVisual frame(double dt) {
     if (!_disposed) {
       _fieldAction.update(dt, paused: presentationPaused || transitioning.value);
+      if (_fieldMotionMapId != null && _fieldMotionMapId != bundle.map.id) finishFieldMotion();
+      _fieldMotion.update(dt, paused: presentationPaused || transitioning.value);
       final previousMapId = bundle.map.id;
       final previousCell = GridPos(
         x: movement.x.floor(),
@@ -1172,6 +1281,7 @@ final class SpatialExplorationSession {
         }
       }
       if (!presentationPaused &&
+          !_fieldMotion.isActive &&
           !storyInputLocked &&
           !interactionActive.value &&
           !transitioning.value) {
@@ -1196,6 +1306,17 @@ final class SpatialExplorationSession {
       _updateSurfTransition(dt);
       _updateSurfEntry(dt);
       movement.update(_surfClipActive ? 0 : dt);
+      if (_fieldMotion.position case final pose?) {
+        try {
+          movement.setNativeTraversalPose(x: pose.x, z: pose.z, facing: _fieldMotionFacing,
+            moving: _fieldMotion.progress < 1, animationSeconds: _fieldMotion.elapsedSeconds,
+            fieldTraversalStep: _fieldMotionStep,
+            ignoredEntityId: _fieldMotionEntityId);
+        } on Object catch (error) {
+          interactionError.value = error;
+          finishFieldMotion();
+        }
+      }
       if (!wasJumping && movement.isJumping &&
           projectAudio?.settings?.cues.containsKey(ProjectSoundCue.overworldJump) == true) {
         unawaited(projectAudio?.play(ProjectSoundCue.overworldJump));
@@ -1204,6 +1325,7 @@ final class SpatialExplorationSession {
       _updateSurfTransition(0);
       _updateCompanion(dt);
       if (!presentationPaused &&
+          !_fieldMotion.isActive &&
           !storyInputLocked &&
           !movement.isJumping &&
           !interactionActive.value &&
@@ -1226,6 +1348,7 @@ final class SpatialExplorationSession {
       }
       final cell = GridPos(x: movement.x.floor(), y: movement.z.floor());
       if (!presentationPaused &&
+          !_fieldMotion.isActive &&
           !storyInputLocked &&
           !transitioning.value &&
           !movement.isJumping &&
@@ -1247,7 +1370,7 @@ final class SpatialExplorationSession {
         _nativeDoor.isClimbing && _nativeDoor.playerPoseMapId == bundle.map.id;
     final state = climbing
         ? CharacterAnimationState.climb
-        : story?.motion ?? _fieldAction.state ?? _surfTransition ??
+        : story?.motion ?? _fieldMotion.state ?? _fieldAction.state ?? _surfTransition ??
         (movement.movementMode == MovementMode.surf
             ? (movement.moving ? CharacterAnimationState.surf : CharacterAnimationState.surfIdle)
             :
@@ -1275,7 +1398,7 @@ final class SpatialExplorationSession {
       (sum, frame) => sum + frame.durationMs,
     );
     var remaining =
-        ((story?.animationSeconds ?? (_fieldAction.isActive ? _fieldAction.elapsedSeconds : _surfClipActive ? _surfAnimationSeconds : movement.animationSeconds)) * 1000).floor();
+        ((story?.animationSeconds ?? (_fieldMotion.isActive ? _fieldMotion.elapsedSeconds : _fieldAction.isActive ? _fieldAction.elapsedSeconds : _surfClipActive ? _surfAnimationSeconds : movement.animationSeconds)) * 1000).floor();
     remaining =
         animation.loop ? remaining % total : remaining.clamp(0, total - 1);
     var selected = animation.frames.last;
@@ -2372,6 +2495,7 @@ final class SpatialExplorationSession {
   void dispose() {
     if (_disposed) return;
     _fieldAction.cancel();
+    finishFieldMotion();
     _fieldBurst?.dispose();
     if (_dialogueSound case final sound?) unawaited(sound.dispose());
     if (_dialogueMusic case final music?) unawaited(music.dispose());
@@ -2436,6 +2560,10 @@ final class SpatialExplorationSession {
 
   void resetPosition() {
     if (_disposed || transitioning.value) return;
+    if (_fieldMotion.isActive) {
+      cancelFieldAction();
+      return;
+    }
     closeDialogue();
     movement.reset();
     movement.setPaused(presentationPaused);
@@ -2450,6 +2578,7 @@ final class SpatialExplorationSession {
 final class _SpatialModelPresenceIndex {
   _SpatialModelPresenceIndex(MapData map) {
     for (final instance in map.spatialScene!.instances) {
+      instancesById.putIfAbsent(instance.id, () => instance);
       entityIdsByInstanceId.putIfAbsent(instance.id, () => instance.entityId);
     }
     for (final entity in map.entities) {
@@ -2458,6 +2587,7 @@ final class _SpatialModelPresenceIndex {
   }
 
   final entityIdsByInstanceId = <String, String?>{};
+  final instancesById = <String, SpatialModelInstance>{};
   final entitiesById = <String, MapEntity>{};
 }
 

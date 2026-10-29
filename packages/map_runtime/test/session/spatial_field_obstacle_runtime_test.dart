@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.dart';
 
 import '../support/project_audio_test_driver.dart';
 import 'spatial_exploration_game_session_runtime_test.dart' as support;
@@ -13,6 +14,7 @@ void main() {
   for (final kind in [
     FieldObstacleKind.cutTree,
     FieldObstacleKind.rockSmashRock,
+    FieldObstacleKind.strengthBoulder,
   ]) {
     for (final scenario in [
       'no',
@@ -22,9 +24,16 @@ void main() {
       'hidden',
       'stop',
       'pause',
+      if (kind == FieldObstacleKind.strengthBoulder) 'push',
+      if (kind == FieldObstacleKind.strengthBoulder) 'push-pause',
+      if (kind == FieldObstacleKind.strengthBoulder) 'push-stop',
+      if (kind == FieldObstacleKind.strengthBoulder) 'push-lifecycle',
+      if (kind == FieldObstacleKind.strengthBoulder) 'push-obstructed',
     ]) {
-      final confirmed = scenario == 'yes' || scenario == 'pause';
+      final pushing = scenario.startsWith('push');
+      final confirmed = scenario == 'yes' || scenario == 'pause' || pushing;
       final startsAnimation = confirmed || scenario == 'stop';
+      final strength = kind == FieldObstacleKind.strengthBoulder;
       test(
         '$kind $scenario removes only after animation and sounds once',
         () async {
@@ -57,6 +66,8 @@ void main() {
             version: ProjectVersion.v9,
             size: const GridSize(width: 8, height: 8),
             entities: [
+              if (scenario == 'push-obstructed') const MapEntity(id: 'guard',
+                kind: MapEntityKind.npc, pos: GridPos(x: 6, y: 6), npc: MapEntityNpcData(characterId: 'hero')),
               MapEntity(
                 id: 'obstacle',
                 kind: MapEntityKind.custom,
@@ -95,6 +106,8 @@ void main() {
                   cue: const ProjectSoundBinding(
                     source: ProjectSoundSource.builtin,
                   ),
+                  if (strength) ProjectSoundCue.fieldStrengthPush: const ProjectSoundBinding(
+                    source: ProjectSoundSource.builtin),
                 },
               ),
             ),
@@ -118,6 +131,7 @@ void main() {
                       CharacterAnimationState.walk,
                       CharacterAnimationState.cut,
                       CharacterAnimationState.rockSmash,
+                      CharacterAnimationState.strength,
                     ])
                       CharacterAnimation(
                         state: state,
@@ -140,6 +154,7 @@ void main() {
             ],
           );
           final state = support.descriptor().initialGameState!.copyWith(
+            repelState: RepelState.active(itemId: 'repel', steps: 20),
             playerPosition: const GridPos(x: 2, y: 3),
             playerSpatialPosition: PlayerSpatialPosition(x: 2.5, z: 3.5),
             playerFacing: EntityFacing.east,
@@ -166,13 +181,17 @@ void main() {
             driver: driver,
             settings: project.settings.audio,
           );
+          final recorded = <RuntimeCommittedMovement>[];
           final runtime = SpatialExplorationGameSessionRuntime(
+            onCommittedMovement: recorded.add,
             descriptor: support.descriptor(
               initialState: state,
               additionalCapabilities: {
                 FieldObstacleCapabilities.capabilityId,
+                FieldObstacleCapabilities.extendedCapabilityId,
                 ProjectAudioCapabilities.capabilityId,
                 ProjectAudioCapabilities.extendedCapabilityId,
+                ProjectAudioCapabilities.fieldMovementCapabilityId,
               },
             ),
             projectFilePath: () async => '${root.path}/project.json',
@@ -230,6 +249,10 @@ void main() {
             await Future<void>.delayed(Duration.zero);
           }
           final choice = runtime.dialoguePresentationListenable.value!;
+          if (strength) {
+            expect(choice.fullText, contains('Force'));
+            expect(choice.fullText, contains('poussé'));
+          }
           expect(choice.choices, hasLength(2));
           if (scenario == 'cancel') {
             session.cancelDialogue();
@@ -280,24 +303,85 @@ void main() {
           expect(session.modelIsPresent('field', 'instance'), isTrue);
           session.frames(.11);
           await Future<void>.delayed(const Duration(milliseconds: 10));
-          expect(session.modelIsPresent('field', 'instance'), !confirmed);
+          expect(session.modelIsPresent('field', 'instance'), strength || !confirmed);
           expect(
             session.movement.canTraverseActor(2.5, 3.5, 3.5, 3.5),
-            confirmed,
+            confirmed && !strength,
           );
           expect(driver.paths, hasLength(confirmed ? 1 : 0));
           if (confirmed) {
             final restored = const GameStateSaveEnvelopeMapper().restore(
               support.spatialSave(runtime.gameStateSnapshot),
             );
-            expect(
-              restored
-                  .mapInstanceWorldState
-                  .persistentClearedObstacles['field'],
-              {'obstacle'},
-            );
-            expect(runtime.dispatchOverworldInteraction(request), isFalse);
+            if (strength) {
+              expect(restored.mapInstanceWorldState.isStrengthActive(
+                restored.mapInstanceWorldState.instanceRef('field')!), isTrue);
+              expect(restored.mapInstanceWorldState.persistentClearedObstacles, isEmpty);
+            } else {
+              expect(restored.mapInstanceWorldState.persistentClearedObstacles['field'], {'obstacle'});
+              expect(runtime.dispatchOverworldInteraction(request), isFalse);
+            }
             expect(map.spatialScene!.instances, hasLength(1));
+          }
+          if (pushing) {
+            final before = runtime.gameStateSnapshot;
+            session.movement.setInput(x: 1, z: 0, run: false);
+            session.frames(.01);
+            expect(session.fieldMotionActive, isTrue);
+            expect(recorded, isEmpty);
+            expect(runtime.gameStateSnapshot.mapInstanceWorldState.fieldObstaclePositionForMap('field', 'obstacle'), isNull);
+            session.frames(.1);
+            final visual = session.frame(0);
+            expect(visual.x, session.movement.x);
+            expect(visual.z, session.movement.z);
+            if (scenario == 'push-lifecycle') {
+              final pose = session.movement.spatialPosition;
+              session.setLifecyclePaused(true);
+              session.frames(1);
+              expect(session.movement.spatialPosition, pose);
+              session.setLifecyclePaused(false);
+            }
+            if (scenario == 'push-obstructed') {
+              session.npcAutonomousPose = (_) => const SpatialCinematicActorPose(x: 4.5, z: 3.5, facing: EntityFacing.west);
+            }
+            if (scenario == 'push-pause') {
+              final pose = session.movement.spatialPosition;
+              await runtime.pause();
+              session.frames(1);
+              expect(session.movement.spatialPosition, pose);
+              await runtime.resume();
+            }
+            if (scenario == 'push-stop') {
+              await runtime.stop(GameSessionExitReason.title);
+              expect(session.fieldMotionActive, isFalse);
+              expect(session.movement.spatialPosition, before.playerSpatialPosition);
+              expect(driver.paths, hasLength(1));
+              expect(recorded, isEmpty);
+              return;
+            }
+            session.frames(.3);
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+            expect(session.interactionError.value, isNull);
+            expect(session.fieldMotionActive, isFalse);
+            final pushed = runtime.gameStateSnapshot;
+            if (scenario == 'push-obstructed') {
+              expect(pushed.playerSpatialPosition, before.playerSpatialPosition);
+              expect(pushed.mapInstanceWorldState.fieldObstaclePositionForMap('field', 'obstacle'), isNull);
+              expect(recorded, hasLength(1));
+              expect(pushed.repelState.remainingSteps, 19);
+              expect(driver.paths, hasLength(1));
+              return;
+            }
+            expect(pushed.mapInstanceWorldState.fieldObstaclePositionForMap('field', 'obstacle'), const GridPos(x: 4, y: 3));
+            expect(pushed.playerSpatialPosition!.x, before.playerSpatialPosition!.x + 1);
+            expect(session.modelRuntimeState('field', 'instance')!.translationX, 1);
+            expect(driver.paths, hasLength(2));
+            expect(recorded, hasLength(1));
+            expect(recorded.single.movement.fromCell, before.playerPosition);
+            expect(recorded.single.movement.toCell, pushed.playerPosition);
+            expect(pushed.repelState.remainingSteps, 19);
+            final saved = const GameStateSaveEnvelopeMapper().restore(support.spatialSave(pushed));
+            expect(saved.mapInstanceWorldState.fieldObstaclePositionForMap('field', 'obstacle'), const GridPos(x: 4, y: 3));
           }
         },
       );

@@ -4,6 +4,7 @@ import 'field_ability_gate.dart';
 import 'field_action.dart';
 import 'field_obstacle_action.dart';
 import 'spatial_npc_interaction.dart';
+import 'spatial_field_obstacle_pose.dart';
 
 final class SpatialFieldObstacleTicket {
   const SpatialFieldObstacleTicket._(
@@ -17,7 +18,9 @@ final class SpatialFieldObstacleTicket {
       required this.playerPosition,
       required this.playerPixelPosition,
       required this.playerSpatialPosition,
-      required this.issuedAtStateRevision});
+      required this.issuedAtStateRevision,
+      required this.obstaclePosition,
+      required this.modelRuntimeState});
 
   final MapInstanceRef instance;
   final MapEntity entity;
@@ -29,6 +32,8 @@ final class SpatialFieldObstacleTicket {
   final PixelOffset? playerPixelPosition;
   final PlayerSpatialPosition? playerSpatialPosition;
   final int issuedAtStateRevision;
+  final GridPos? obstaclePosition;
+  final SpatialModelRuntimeState? modelRuntimeState;
   String get entityId => entity.id;
   FieldObstacleKind get kind => entity.fieldObstacle!.kind;
 }
@@ -42,6 +47,7 @@ MapEntity? findSpatialFieldObstacleTarget(
     required EntityFacing facing,
     bool Function(String)? entityIsPresent,
     SpatialActorRuntimeState? Function(String)? actorStateProvider}) {
+  final resources = models.toList();
   final scene = map.spatialScene;
   final instance = gameState.mapInstanceWorldState.instanceRef(map.id);
   if (scene == null || instance == null || map.id != gameState.currentMapId) {
@@ -62,7 +68,8 @@ MapEntity? findSpatialFieldObstacleTarget(
       if (!cleared(entity.id) &&
           (entityIsPresent?.call(entity.id) ?? true) &&
           isValidSpatialFieldObstacle(map, entity) &&
-          _isStaticLiveTarget(map, entity, gameState))
+          _isStaticLiveTarget(map, entity, gameState) &&
+          _hasSupportedStrengthModel(map, entity, resources))
         entity.id,
   };
   final entityBlockers = [
@@ -93,13 +100,24 @@ MapEntity? findSpatialFieldObstacleTarget(
   try {
     final hit = findSpatialModelInteraction(
         scene: scene,
-        models: models,
+        models: resources,
         instances: scene.instances
             .where((model) => targetIds.contains(model.entityId)),
         modelStateProvider: (id) {
           final saved = gameState.spatialWorldState.modelState(map.id, id);
           final absentModelId = absentModels[id];
-          if (absentModelId == null) return saved;
+          if (absentModelId == null) {
+            final instance =
+                scene.instances.singleWhere((entry) => entry.id == id);
+            return spatialFieldObstacleModelPose(
+                mapId: map.id,
+                entity: map.entities
+                    .where((entity) => entity.id == instance.entityId)
+                    .firstOrNull,
+                instance: instance,
+                world: gameState.mapInstanceWorldState,
+                baseState: saved);
+          }
           return SpatialModelRuntimeState(
               modelId: absentModelId,
               animationIndex: null,
@@ -177,7 +195,11 @@ FieldObstacleEvaluation evaluateSpatialFieldObstacleAttempt(
   final obstacle = target.fieldObstacle!;
   final gate = evaluateFieldAbilityGate(
       ability: obstacle.ability!,
-      supportedAbilities: const {FieldAbility.cut, FieldAbility.rockSmash},
+      supportedAbilities: const {
+        FieldAbility.cut,
+        FieldAbility.rockSmash,
+        FieldAbility.strength
+      },
       unlockedFieldAbilities:
           gameState.progression.unlockedFieldAbilities.toSet(),
       party: gameState.party,
@@ -196,6 +218,18 @@ FieldObstacleEvaluation evaluateSpatialFieldObstacleAttempt(
   };
 }
 
+bool _hasSupportedStrengthModel(
+    MapData map, MapEntity entity, List<ProjectModel3dEntry> models) {
+  if (entity.fieldObstacle!.kind != FieldObstacleKind.strengthBoulder) {
+    return true;
+  }
+  final instance = map.spatialScene!.instances
+      .singleWhere((entry) => entry.entityId == entity.id);
+  final matches =
+      models.where((model) => model.id == instance.modelId).toList();
+  return matches.length == 1 && matches.single.rampProfile == null;
+}
+
 bool _isStaticLiveTarget(MapData map, MapEntity entity, GameState gameState) {
   final model = map.spatialScene!.instances
       .singleWhere((model) => model.entityId == entity.id);
@@ -205,7 +239,9 @@ bool _isStaticLiveTarget(MapData map, MapEntity entity, GameState gameState) {
           live.blocksMovement &&
           live.animationIndex == null &&
           live.normalizedTime == 0 &&
-          live.translationY == 0;
+          live.translationY == 0 &&
+          (entity.fieldObstacle?.kind != FieldObstacleKind.strengthBoulder ||
+              live.translationX == 0 && live.translationZ == 0);
 }
 
 SpatialFieldObstacleTicket? issueSpatialFieldObstacleTicket(
@@ -252,7 +288,11 @@ SpatialFieldObstacleTicket? issueSpatialFieldObstacleTicket(
       playerPosition: gameState.playerPosition,
       playerPixelPosition: gameState.playerPixelPosition,
       playerSpatialPosition: gameState.playerSpatialPosition,
-      issuedAtStateRevision: stateRevision);
+      issuedAtStateRevision: stateRevision,
+      obstaclePosition: gameState.mapInstanceWorldState
+          .fieldObstaclePositionForMap(map.id, entityId),
+      modelRuntimeState:
+          gameState.spatialWorldState.modelState(map.id, modelInstance.id));
 }
 
 FieldObstacleCommit commitSpatialDestructibleFieldObstacleAction(
@@ -265,6 +305,74 @@ FieldObstacleCommit commitSpatialDestructibleFieldObstacleAction(
     required EntityFacing facing,
     required int currentStateRevision,
     required String confirmedEntityId,
+    bool Function(String)? entityIsPresent,
+    SpatialActorRuntimeState? Function(String)? actorStateProvider,
+    ProjectSettings? projectSettings}) {
+  if (ticket.kind != FieldObstacleKind.cutTree &&
+      ticket.kind != FieldObstacleKind.rockSmashRock) {
+    return const FieldObstacleRefused(FieldActionRefusal.targetChanged);
+  }
+  return _commitSpatialFieldObstacle(
+      ticket: ticket,
+      map: map,
+      gameState: gameState,
+      models: models,
+      x: x,
+      z: z,
+      facing: facing,
+      currentStateRevision: currentStateRevision,
+      confirmedEntityId: confirmedEntityId,
+      entityIsPresent: entityIsPresent,
+      actorStateProvider: actorStateProvider,
+      projectSettings: projectSettings,
+      activateStrength: false);
+}
+
+FieldObstacleCommit commitSpatialStrengthActivation(
+    {required SpatialFieldObstacleTicket ticket,
+    required MapData map,
+    required GameState gameState,
+    required Iterable<ProjectModel3dEntry> models,
+    required double x,
+    required double z,
+    required EntityFacing facing,
+    required int currentStateRevision,
+    required String confirmedEntityId,
+    bool Function(String)? entityIsPresent,
+    SpatialActorRuntimeState? Function(String)? actorStateProvider,
+    ProjectSettings? projectSettings}) {
+  if (ticket.kind != FieldObstacleKind.strengthBoulder ||
+      ticket.instance != gameState.mapInstanceWorldState.instanceRef(map.id) ||
+      gameState.mapInstanceWorldState.isStrengthActive(ticket.instance)) {
+    return const FieldObstacleRefused(FieldActionRefusal.targetChanged);
+  }
+  return _commitSpatialFieldObstacle(
+      ticket: ticket,
+      map: map,
+      gameState: gameState,
+      models: models,
+      x: x,
+      z: z,
+      facing: facing,
+      currentStateRevision: currentStateRevision,
+      confirmedEntityId: confirmedEntityId,
+      entityIsPresent: entityIsPresent,
+      actorStateProvider: actorStateProvider,
+      projectSettings: projectSettings,
+      activateStrength: true);
+}
+
+FieldObstacleCommit _commitSpatialFieldObstacle(
+    {required SpatialFieldObstacleTicket ticket,
+    required MapData map,
+    required GameState gameState,
+    required Iterable<ProjectModel3dEntry> models,
+    required double x,
+    required double z,
+    required EntityFacing facing,
+    required int currentStateRevision,
+    required String confirmedEntityId,
+    required bool activateStrength,
     bool Function(String)? entityIsPresent,
     SpatialActorRuntimeState? Function(String)? actorStateProvider,
     ProjectSettings? projectSettings}) {
@@ -288,6 +396,13 @@ FieldObstacleCommit commitSpatialDestructibleFieldObstacleAction(
       ticket.playerPosition != gameState.playerPosition ||
       ticket.playerPixelPosition != gameState.playerPixelPosition ||
       ticket.playerSpatialPosition != gameState.playerSpatialPosition ||
+      ticket.kind == FieldObstacleKind.strengthBoulder &&
+          (ticket.obstaclePosition !=
+                  gameState.mapInstanceWorldState
+                      .fieldObstaclePositionForMap(map.id, ticket.entityId) ||
+              ticket.modelRuntimeState !=
+                  gameState.spatialWorldState
+                      .modelState(map.id, ticket.modelInstance.id)) ||
       targets.length != 1 ||
       targets.single != ticket.entity ||
       bindings == null ||
@@ -314,8 +429,11 @@ FieldObstacleCommit commitSpatialDestructibleFieldObstacleAction(
   }
   return FieldObstacleApplied(
       gameState.copyWith(
-          mapInstanceWorldState: gameState.mapInstanceWorldState
-              .clearFieldObstacle(ticket.instance, ticket.entityId,
+          mapInstanceWorldState: activateStrength
+              ? gameState.mapInstanceWorldState
+                  .activateStrength(ticket.instance)
+              : gameState.mapInstanceWorldState.clearFieldObstacle(
+                  ticket.instance, ticket.entityId,
                   resetPolicy: ticket.entity.fieldObstacle!.resetPolicy)),
       ticket.entityId);
 }

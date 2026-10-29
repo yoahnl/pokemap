@@ -1,3 +1,4 @@
+import '../../domains/maps/trigger_zone_actions.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/exterior_decoration_references.dart';
 import 'dart:convert';
@@ -381,7 +382,11 @@ final class CatalogAuthoringSession {
     }
     if (actionId != 'map.update_metadata' && CatalogSpatialMapSelection.supports(actionId, parameters: parameters)) {
       if (readDependencies.isNotEmpty) throw const FormatException('catalog.spatial: external read dependencies are unsupported');
-      return (await CatalogSpatialMapSelection.read(reader: current, projectHandle: projectHandle, actionId: actionId, parameters: parameters)).snapshot;
+      try {
+        return (await CatalogSpatialMapSelection.read(reader: current, projectHandle: projectHandle, actionId: actionId, parameters: parameters)).snapshot;
+      } on ProjectSnapshotException catch (error) {
+        if (error.code != 'project.field_traversal_scope_required') rethrow;
+      }
     }
     return (await CatalogWorkshopSelection.read(reader: current,
         projectHandle: projectHandle, actionId: actionId,
@@ -656,13 +661,17 @@ final class CatalogAuthoringSession {
         store: reader.store,
         descriptor: reader.descriptor,
         metadataFields: {}))!;
-    final selection = await CatalogSpatialMapSelection.read(
-        reader: current,
-        projectHandle: projectHandle,
-        actionId: request.actionId,
-        parameters: request.parameters);
+    final CatalogSpatialMapSelection selection;
+    try {
+      selection = await CatalogSpatialMapSelection.read(reader: current,
+          projectHandle: projectHandle, actionId: request.actionId, parameters: request.parameters);
+    } on ProjectSnapshotException catch (error) {
+      if (error.code != 'project.field_traversal_scope_required') rethrow;
+      return request.extensions['workshopScope'] == true || CatalogWorkshopSelection.supports(request.actionId, parameters: request.parameters)
+          ? _planWorkshop(request) : _planProject(request);
+    }
     var scopedRequest = request;
-    if (const {'map3d.camera.configure', 'warp.create', 'connection.upsert', 'connection.create_bidirectional_apply'}.contains(request.actionId) && request.expectedRevision != selection.snapshot.revision &&
+    if ((const {'map3d.camera.configure', 'warp.create', 'connection.upsert', 'connection.create_bidirectional_apply'}.contains(request.actionId) || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) && request.expectedRevision != selection.snapshot.revision &&
         await acceptObservedCatalogRevision?.call(request.expectedRevision, current.revision,
             selection.snapshot.scopedStorageRevisions!) == true) {
       scopedRequest = AuthoringRequest(requestId: request.requestId,

@@ -138,7 +138,7 @@ void main() {
             await tester.runAsync(() async {
               final persistence = Stopwatch()..start();
               final feedback = Stopwatch()..start();
-              select.onChanged!(repeat == 0 ? 'cutTree' : 'rockSmashRock');
+              select.onChanged!(repeat == 0 ? 'strengthBoulder' : 'rockSmashRock');
               feedbackUs = feedback.elapsedMicroseconds;
               expect(document.undoCount, repeat + 1);
               expect(
@@ -190,7 +190,7 @@ void main() {
             expect(document.error, isNull);
             expect(
               document.saved.entities.single.fieldObstacle!.kind,
-              FieldObstacleKind.cutTree,
+              FieldObstacleKind.strengthBoulder,
             );
             controller.restore(redo: false);
             while (document.saving) {
@@ -203,7 +203,7 @@ void main() {
               await Future<void>.delayed(const Duration(milliseconds: 5));
             }
             expect(document.error, isNull);
-            expect(document.saved.entities.single.fieldObstacle!.kind, FieldObstacleKind.cutTree);
+            expect(document.saved.entities.single.fieldObstacle!.kind, FieldObstacleKind.strengthBoulder);
             controller.restore(redo: true);
             while (document.saving) {
               await Future<void>.delayed(const Duration(milliseconds: 5));

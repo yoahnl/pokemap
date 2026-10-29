@@ -14,6 +14,7 @@ final class SpatialFieldActionPresentation {
     final next = switch (ability) {
       FieldAbility.cut => CharacterAnimationState.cut,
       FieldAbility.rockSmash => CharacterAnimationState.rockSmash,
+      FieldAbility.strength => CharacterAnimationState.strength,
       _ => throw ArgumentError.value(ability, 'ability'),
     };
     if (durationMs <= 0) throw ArgumentError.value(durationMs, 'durationMs');

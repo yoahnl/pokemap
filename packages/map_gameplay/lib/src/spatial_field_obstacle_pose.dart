@@ -8,7 +8,9 @@ SpatialModelRuntimeState? spatialFieldObstacleModelPose({
   SpatialModelRuntimeState? baseState,
 }) {
   if (entity?.fieldObstacle?.kind != FieldObstacleKind.strengthBoulder ||
-      instance.entityId != entity!.id) return baseState;
+      instance.entityId != entity!.id) {
+    return baseState;
+  }
   final position = world.fieldObstaclePositionForMap(mapId, entity.id);
   if (position == null) return baseState;
   final dx = position.x - entity.pos.x;

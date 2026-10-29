@@ -130,6 +130,17 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         }
         roots.add(key);
         replacements.add(key);
+      } else if (actionId == 'border.blueprint.draft.upsert' && existing != null) {
+        final before = decodeBorderBlueprintRecordJson(
+            existing.payload['value'],
+            formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+        if (before.latestPublished != null || !before.draft.definition.isSpatial) {
+          CatalogWorkshopSelection.unsupported(
+              actionId, 'an unpublished spatial Border draft');
+        }
+        drafts.add(before);
+        replacements.add(key);
+        candidates.add(existing.payload['value']);
       } else if (clip) {
         throw const FormatException('catalog.character_clip: character missing');
       } else if (existing != null) {

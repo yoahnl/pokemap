@@ -9,8 +9,12 @@ import 'package:map_core/map_core.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-  testWidgets(
-    'guided 3D obstacle creates a bound entity with reset policy and one undo',
+  for (final choice in {
+    'Coupe': FieldObstacleKind.cutTree,
+    'Éclate-Roc': FieldObstacleKind.rockSmashRock,
+    'Force · rocher à pousser': FieldObstacleKind.strengthBoulder,
+  }.entries) testWidgets(
+    '${choice.key} guided 3D obstacle creates a bound entity with reset policy and one undo',
     (tester) async {
       final original = spatialEnvironmentMap();
       final instance = SpatialModelInstance(
@@ -50,11 +54,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Coupe').last);
+      await tester.tap(find.text(choice.key).last);
       await tester.pumpAndSettle();
       expect(
         document.current.entities.single.fieldObstacle!.kind,
-        FieldObstacleKind.cutTree,
+        choice.value,
       );
       expect(
         isValidSpatialFieldObstacle(

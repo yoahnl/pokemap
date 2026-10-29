@@ -304,6 +304,10 @@ final class CanonicalGamePackageExportService {
         if (entry.key.endsWith('.atmosphere.json')) return SpatialAtmosphereDocument.fromJson(Map<String,dynamic>.from(jsonDecode(utf8.decode(entry.value)) as Map)).settings.weather.kind.isExtended;
         return false;
       });
+      final fieldObstacleMaps = projection.project.settings.dimension == ProjectDimension.threeD
+          ? spatialMaps
+          : [for (final entry in projection.project.maps) MapData.fromJson(jsonDecode(utf8.decode(
+              projection.payloadFiles['project/${entry.relativePath}']!)) as Map<String, dynamic>)];
       final requiredCapabilities = <String>{
         if (exteriorDecoration) MapExteriorDecoration.capabilityId,
         if (extendedWeather) SpatialWeatherCapabilities.extendedCapabilityId,
@@ -363,6 +367,7 @@ final class CanonicalGamePackageExportService {
             SpatialGameplayCapabilities.requiresCinematicFade(projection.project))
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
         if (SpatialGameplayCapabilities.requiresLifts(spatialMaps)) SpatialGameplayCapabilities.liftCapabilityId,
+        if (SpatialGameplayCapabilities.requiresFieldTraversals(spatialMaps)) SpatialGameplayCapabilities.fieldTraversalCapabilityId,
         if (SpatialGameplayCapabilities.requiresLadders(spatialMaps))
           SpatialGameplayCapabilities.ladderCapabilityId,
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
@@ -373,10 +378,9 @@ final class CanonicalGamePackageExportService {
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(projection.project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(projection.project)) ProjectAudioCapabilities.capabilityId,
         if (ProjectAudioCapabilities.requiresExtendedCapability(projection.project)) ProjectAudioCapabilities.extendedCapabilityId,
-        if (FieldObstacleCapabilities.requiresCapability(projection.project, maps: [
-          for (final entry in projection.project.maps) MapData.fromJson(jsonDecode(utf8.decode(
-              projection.payloadFiles['project/${entry.relativePath}']!)) as Map<String, dynamic>)
-        ])) FieldObstacleCapabilities.capabilityId,
+        if (ProjectAudioCapabilities.requiresFieldMovementCapability(projection.project)) ProjectAudioCapabilities.fieldMovementCapabilityId,
+        if (FieldObstacleCapabilities.requiresCapability(projection.project, maps: fieldObstacleMaps)) FieldObstacleCapabilities.capabilityId,
+        if (FieldObstacleCapabilities.requiresExtendedCapability(projection.project, maps: fieldObstacleMaps)) FieldObstacleCapabilities.extendedCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(projection.project)) SpatialGameplayCapabilities.eggGiftCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,

@@ -124,6 +124,14 @@ final class FieldObstacleRefused extends FieldObstacleCommit {
   final FieldObstacleEvaluation? evaluation;
 }
 
+Iterable<MapEntity> persistentFieldObstacleResetBlockers({
+  required MapData authoringMap,
+  required String movingEntityId,
+}) => authoringMap.entities.where((entity) =>
+    entity.id != movingEntityId &&
+    entity.blocksMovement &&
+    entity.fieldObstacle?.resetPolicy != FieldObstacleResetPolicy.persistent);
+
 FieldObstacleEvaluation evaluateFieldObstacleAttempt(
     {required MapData map,
     required GameState gameState,
@@ -373,6 +381,8 @@ FieldObstacleCommit commitStrengthPush(
             FieldObstacleBlockReason.inactiveStrength));
   }
   final direction = world.player.facing, source = ticket.fieldAction.targetCell;
+  final obstacle = world.map.entities
+      .singleWhere((entity) => entity.id == ticket.entityId).fieldObstacle!;
   final target =
       GridPos(x: source.x + direction.dx, y: source.y + direction.dy);
   final rect = PixelRect(
@@ -387,6 +397,14 @@ FieldObstacleCommit commitStrengthPush(
       target.y >= world.map.size.height ||
       world.isWaterCell(target.x, target.y) ||
       world.worldStaticObstaclesCollidePixelRect(rect) ||
+      _persistentFieldObstacleResetBlocked(
+        resetPolicy: obstacle.resetPolicy,
+        authoringMap: authoringMap,
+        entityId: ticket.entityId,
+        destination: rect,
+        tileWidthPx: world.tileWidthPx,
+        tileHeightPx: world.tileHeightPx,
+      ) ||
       reservations.any((other) => _overlap(rect, other))) {
     return const FieldObstacleRefused(FieldActionRefusal.noLongerAvailable,
         evaluation: FieldObstacleUnavailable(
@@ -415,7 +433,7 @@ FieldObstacleCommit commitStrengthPush(
               x: player.playerPositionPx.leftPx,
               y: player.playerPositionPx.topPx),
           mapInstanceWorldState: gameState.mapInstanceWorldState
-              .moveFieldObstacle(ticket.instance, ticket.entityId, target, resetPolicy: world.map.entities.singleWhere((entity) => entity.id == ticket.entityId).fieldObstacle!.resetPolicy)),
+              .moveFieldObstacle(ticket.instance, ticket.entityId, target, resetPolicy: obstacle.resetPolicy)),
       movement,
       ticket.entityId,
       slide: resolveGameplaySlideEffectAt(world.map, target, direction) == null
@@ -526,6 +544,14 @@ FieldObstacleSlideResult stepFieldObstacleSlide({
       target.y >= map.size.height ||
       world.isWaterCell(target.x, target.y) ||
       world.worldStaticObstaclesCollidePixelRect(rect) ||
+      _persistentFieldObstacleResetBlocked(
+        resetPolicy: matches.single.fieldObstacle!.resetPolicy,
+        authoringMap: authoringMap,
+        entityId: slide.entityId,
+        destination: rect,
+        tileWidthPx: world.tileWidthPx,
+        tileHeightPx: world.tileHeightPx,
+      ) ||
       _overlap(rect, world.player.playerCollisionRectPx) ||
       characterReservations.any((reservation) => _overlap(rect, reservation))) {
     return const FieldObstacleSlideStopped(
@@ -550,6 +576,26 @@ FieldObstacleSlideResult stepFieldObstacleSlide({
             expectedPosition: target,
             remainingSteps: remaining),
   );
+}
+
+bool _persistentFieldObstacleResetBlocked({
+  required FieldObstacleResetPolicy resetPolicy,
+  required MapData? authoringMap,
+  required String entityId,
+  required PixelRect destination,
+  required int tileWidthPx,
+  required int tileHeightPx,
+}) {
+  if (resetPolicy != FieldObstacleResetPolicy.persistent) return false;
+  if (authoringMap == null) return true;
+  return persistentFieldObstacleResetBlockers(
+    authoringMap: authoringMap,
+    movingEntityId: entityId,
+  ).any((entity) => _overlap(destination, resolveEntityCollisionRectPx(
+    entity,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
+  )));
 }
 
 bool _overlap(PixelRect a, PixelRect b) =>

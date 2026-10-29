@@ -8,6 +8,8 @@ import 'spatial_terrain_navigation.dart';
 import 'spatial_model_geometry.dart';
 import 'direction.dart';
 import 'player_spawn_resolver.dart';
+import 'field_traversal_geometry.dart';
+import 'spatial_field_traversal_action.dart';
 
 ({PlayerSpatialPosition position, EntityFacing facing})
     resolveSpatialPlayerSpawn({
@@ -172,6 +174,8 @@ final class SpatialMovementController {
               i++)
             if (layer.collisions[i]) i,
       },
+      traversalZones: map.gameplayZones.where(isFieldTraversalZone),
+      sourceMap: map,
       validateSpawn: validateSpawn,
       initialMovementMode: initialMovementMode,
       surfSpeedCellsPerSecond: surfSpeedCellsPerSecond,
@@ -190,11 +194,14 @@ final class SpatialMovementController {
     required SpatialSpawn spawn,
     required EntityFacing spawnFacing,
     required Set<int> blockedCells,
+    Iterable<MapGameplayZone> traversalZones = const [],
+    MapData? sourceMap,
     bool validateSpawn = true,
     required MovementMode initialMovementMode,
     required this.surfSpeedCellsPerSecond,
     required this.waterPredicate,
-  })  : _movementMode = initialMovementMode,
+  })  : _sourceMap = sourceMap,
+        _movementMode = initialMovementMode,
         entities = List.unmodifiable(entities),
         models = {for (final model in models) model.id: model},
         _spawn = spawn,
@@ -211,11 +218,21 @@ final class SpatialMovementController {
     for (final instance in scene.instances) {
       _instancesById.putIfAbsent(instance.id, () => instance);
     }
+    for (final zone in traversalZones) {
+      final route = fieldTraversalRouteCells(zone);
+      for (final cell in route.skip(1).take(route.length - 2)) {
+        (_fieldTraversalBodies[cell.y * scene.width + cell.x] ??= {}).add(zone.id);
+      }
+    }
     _reset(validateSpawn: validateSpawn);
   }
   final SpatialSpawn _spawn;
   final EntityFacing _spawnFacing;
   final Set<int> _blockedCells;
+  final Map<int, Set<String>> _fieldTraversalBodies = {};
+  final MapData? _sourceMap;
+  SpatialFieldTraversalStep? _nativeFieldTraversalStep;
+  void clearNativeFieldTraversal() => _nativeFieldTraversalStep = null;
   bool Function(MapEntity entity)? _entityPresencePredicate;
   GridPos? bumpedCell;
   MapConnectionDirection? edgeExitDirection;
@@ -270,7 +287,7 @@ final class SpatialMovementController {
       ? 0
       : math.sin(math.pi * _ledgeJump!.progress) * _ledgeJump!.ledge.height;
   double get groundY => _ledgeJump == null
-      ? heightAt(x, z)
+      ? _nativeFieldTraversalStep?.groundYAt(x, z) ?? heightAt(x, z)
       : _ledgeJump!.sourceY +
           (_ledgeJump!.landingY - _ledgeJump!.sourceY) * _ledgeJump!.progress;
   double _remainderX = 0, _remainderZ = 0;
@@ -424,6 +441,7 @@ final class SpatialMovementController {
 
   bool canTraverseActor(double fromX, double fromZ, double toX, double toZ,
       {String? ignoredEntityId,
+      SpatialFieldTraversalStep? fieldTraversalStep,
       Set<String> ignoredEntityIds = const {},
       bool collideWithPlayer = false,
       bool allowConnectedMaps = false,
@@ -439,6 +457,10 @@ final class SpatialMovementController {
         x < scene.width &&
         z < scene.depth;
     if (!fromX.isFinite || !fromZ.isFinite || !toX.isFinite || !toZ.isFinite) {
+      return false;
+    }
+    if (fieldTraversalStep != null && (_sourceMap == null || allowConnectedMaps ||
+        !fieldTraversalStep.permits(_sourceMap!, fromX, fromZ, toX, toZ))) {
       return false;
     }
     final neighbors = connectedMaps ?? _connectedNeighbors.values;
@@ -469,6 +491,7 @@ final class SpatialMovementController {
                   ignoredEntityIds: ignoredEntityIds,
                   actorStateProvider: actorStateProvider)
               : _collides(footprint.rect,
+                  fieldTraversalStep: fieldTraversalStep,
                   offsetX: footprint.offsetX,
                   offsetZ: footprint.offsetZ,
                   ignoredEntityId: ignoredEntityId,
@@ -481,7 +504,7 @@ final class SpatialMovementController {
                   playerPosition: playerPosition) ||
           !(allowConnectedMaps
               ? _canTraverseConnectedTerrain(previousX, previousZ, x, z, neighbors: neighbors)
-              : canTraverseSpatialTerrainStep(scene, previousX, previousZ, x, z, heightAt: heightAt))) {
+              : _canTraverseFieldTerrain(previousX, previousZ, x, z, fieldTraversalStep))) {
         return false;
       }
       previousX = x;
@@ -548,7 +571,9 @@ final class SpatialMovementController {
       required double z,
       required EntityFacing facing,
       required bool moving,
-      required double animationSeconds}) {
+      required double animationSeconds,
+      SpatialFieldTraversalStep? fieldTraversalStep,
+      String? ignoredEntityId}) {
     if (!paused ||
         !x.isFinite ||
         !z.isFinite ||
@@ -558,14 +583,16 @@ final class SpatialMovementController {
     }
     final targetX = (x * pixelsPerCell).round() / pixelsPerCell;
     final targetZ = (z * pixelsPerCell).round() / pixelsPerCell;
-    if ((this.x != targetX || this.z != targetZ) &&
-        !canTraverseActor(this.x, this.z, targetX, targetZ)) {
+    if ((this.x != targetX || this.z != targetZ || fieldTraversalStep != null) &&
+        !canTraverseActor(this.x, this.z, targetX, targetZ, ignoredEntityId: ignoredEntityId,
+            fieldTraversalStep: fieldTraversalStep)) {
       throw StateError('La sortie de la porte est bloquée.');
     }
     _position = PixelPosition(
         leftPx: (targetX * pixelsPerCell).round() - 16,
         topPx: (targetZ * pixelsPerCell).round() - 31);
     this.facing = facing;
+    _nativeFieldTraversalStep = fieldTraversalStep;
     this.moving = moving;
     this.animationSeconds = animationSeconds;
   }
@@ -577,6 +604,7 @@ final class SpatialMovementController {
     final position = _position;
     final originalFacing = facing;
     final originalAnimationSeconds = animationSeconds;
+    final originalFieldTraversalStep = _nativeFieldTraversalStep;
     return () {
       if (!paused) {
         throw StateError('Une traversée native doit posséder le déplacement.');
@@ -585,6 +613,7 @@ final class SpatialMovementController {
       _position = position;
       facing = originalFacing;
       animationSeconds = originalAnimationSeconds;
+      _nativeFieldTraversalStep = originalFieldTraversalStep;
     };
   }
 
@@ -597,6 +626,7 @@ final class SpatialMovementController {
 
   void _reset({required bool validateSpawn}) {
     _ledgeJump = null;
+    _nativeFieldTraversalStep = null;
     final candidate = PixelPosition(
       leftPx: (_spawn.x * pixelsPerCell).round() - 16,
       topPx: (_spawn.z * pixelsPerCell).round() - 31,
@@ -1051,6 +1081,7 @@ final class SpatialMovementController {
 
   bool _collides(PixelRect rect,
       {bool ignoreBounds = false,
+      SpatialFieldTraversalStep? fieldTraversalStep,
       double offsetX = 0,
       double offsetZ = 0,
       String? ignoredEntityId,
@@ -1065,14 +1096,19 @@ final class SpatialMovementController {
         (left < 0 || top < 0 || right > scene.width || bottom > scene.depth)) {
       return true;
     }
-    if (_terrainCollides(rect, offsetX: offsetX, offsetZ: offsetZ)) return true;
+    if (_terrainCollides(rect, offsetX: offsetX, offsetZ: offsetZ,
+        fieldTraversalStep: fieldTraversalStep)) {
+      return true;
+    }
     for (var z = top.floor(); z < bottom.ceil(); z++) {
       for (var x = left.floor(); x < right.ceil(); x++) {
         if (x >= 0 &&
             x < scene.width &&
             z >= 0 &&
             z < scene.depth &&
-            _blockedCells.contains(z * scene.width + x)) {
+            (_blockedCells.contains(z * scene.width + x) ||
+                (_fieldTraversalBodies[z * scene.width + x]?.any(
+                    (id) => id != fieldTraversalStep?.zone.id) ?? false))) {
           return true;
         }
       }
@@ -1099,6 +1135,7 @@ final class SpatialMovementController {
     }
     for (final instance in scene.instances) {
       if (instance.entityId case final entityId?) {
+        if (entityId == ignoredEntityId || ignoredEntityIds.contains(entityId)) continue;
         final entity = _entitiesById[entityId];
         if (entity == null) {
           throw StateError('The bound 3D entity does not exist.');
@@ -1109,7 +1146,8 @@ final class SpatialMovementController {
       final blocks = runtimeState?.blocksMovement ??
           instance.blocksMovement;
       if (!blocks) continue;
-      if (_modelCollides(rect, instance, offsetX: offsetX, offsetZ: offsetZ, runtimeState: runtimeState)) {
+      if (_modelCollides(rect, instance, offsetX: offsetX, offsetZ: offsetZ, runtimeState: runtimeState,
+          fieldTraversalStep: fieldTraversalStep)) {
         return true;
       }
     }
@@ -1154,7 +1192,8 @@ final class SpatialMovementController {
   }
 
   bool _modelCollides(PixelRect rect, SpatialModelInstance instance,
-      {double offsetX = 0, double offsetZ = 0, SpatialModelRuntimeState? runtimeState}) {
+      {double offsetX = 0, double offsetZ = 0, SpatialModelRuntimeState? runtimeState,
+      SpatialFieldTraversalStep? fieldTraversalStep}) {
     final left = rect.leftPx / pixelsPerCell + offsetX,
         top = rect.topPx / pixelsPerCell + offsetZ,
         right = (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX,
@@ -1165,7 +1204,7 @@ final class SpatialMovementController {
     }
     final geometry =
         spatialModelWorldGeometry(instance, model, useCollisionBounds: true, runtimeState: runtimeState);
-    final actorHeight = heightAt(
+    final actorHeight = (fieldTraversalStep?.groundYAt ?? heightAt)(
         rect.bottomCenterPx.xPx / pixelsPerCell + offsetX,
         rect.bottomCenterPx.yPx / pixelsPerCell + offsetZ);
     if (actorHeight >= geometry.maxY || actorHeight + 1.92 <= geometry.minY) {
@@ -1232,18 +1271,17 @@ final class SpatialMovementController {
   }
 
   bool _terrainCollides(PixelRect rect,
-      {double offsetX = 0, double offsetZ = 0}) {
+      {double offsetX = 0, double offsetZ = 0, SpatialFieldTraversalStep? fieldTraversalStep}) {
     final left = rect.leftPx,
         top = rect.topPx,
         right = left + rect.widthPx - 1,
         bottom = top + rect.heightPx - 1;
     bool traversable(int ax, int az, int bx, int bz) =>
-        canTraverseSpatialTerrainStep(
-            scene,
+        _canTraverseFieldTerrain(
             ax / pixelsPerCell + offsetX,
             az / pixelsPerCell + offsetZ,
             bx / pixelsPerCell + offsetX,
-            bz / pixelsPerCell + offsetZ, heightAt:heightAt);
+            bz / pixelsPerCell + offsetZ, fieldTraversalStep);
     for (var x = left; x < right; x++) {
       if (!traversable(x, top, x + 1, top) ||
           !traversable(x, bottom, x + 1, bottom)) {
@@ -1257,6 +1295,15 @@ final class SpatialMovementController {
       }
     }
     return false;
+  }
+
+  bool _canTraverseFieldTerrain(double ax, double az, double bx, double bz,
+      SpatialFieldTraversalStep? step) {
+    if (step?.ability == FieldAbility.waterfall) {
+      return !scene.navigation.ledges.any((ledge) =>
+          ledge.containsBarrier(ax, az) || ledge.containsBarrier(bx, bz));
+    }
+    return canTraverseSpatialTerrainStep(scene, ax, az, bx, bz, heightAt: heightAt);
   }
 }
 

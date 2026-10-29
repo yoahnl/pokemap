@@ -14,6 +14,52 @@ import '../domains/maps/healing_display_fixture.dart';
 import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleProject, obstacleMap;
 
 void main() {
+  for (final unrelated in [0, 90]) {
+    test('targeted spatial field route first repeat undo reopen ignores $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final fixture = await _Fixture.open(unrelated, content: base);
+      addTearDown(fixture.close);
+      final zone = MapGameplayZone(id: 'cascade', kind: GameplayZoneKind.fieldAction,
+        area: const MapRect(pos: GridPos(x: 0, y: 0), size: GridSize(width: 3, height: 1)),
+        fieldAction: const FieldActionZonePayload(actionKind: FieldActionZoneKind.waterfall,
+          waterfall: WaterfallZonePayload(entry: GridPos(x: 0, y: 0), path: [GridPos(x: 1, y: 0)],
+            exit: GridPos(x: 2, y: 0), direction: MapConnectionDirection.east)));
+      final counts = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final action = repeat == 0 ? 'gameplay_zone.create' : 'gameplay_zone.update';
+        final parameters = <String, Object?>{'mapId': 'map', 'zone': zone.copyWith(name: 'Route $repeat').toJson(), if (repeat != 0) 'zoneId': zone.id};
+        final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: action, parameters: parameters);
+        expect(selected.manifest.models3d, isEmpty);
+        final timer = Stopwatch()..start();
+        await fixture.apply(action, parameters, 'route-$repeat', revision: selected.revision);
+        timer.stop();
+        counts.add(fixture.reader.paths.length);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json' || p.endsWith('.glb') || p.endsWith('history.jsonl')), isEmpty);
+        print('field-route foreign=$unrelated repeat=$repeat reads=${counts.last} elapsedUs=${timer.elapsedMicroseconds}');
+      }
+      expect(counts.every((n) => n < 90), isTrue, reason: '$counts');
+      await fixture.reopen();
+      for (final operation in <(String, Map<String, Object?>)>[
+        ('gameplay_zone.move', {'zoneId': zone.id, 'x': 1, 'y': 1}),
+        ('gameplay_zone.resize', {'zoneId': zone.id, 'width': 4, 'height': 1}),
+        ('gameplay_zone.set_priority', {'zoneId': zone.id, 'priority': 2}),
+        ('gameplay_zone.clone', {'zoneId': zone.id, 'newId': 'copy', 'x': 1, 'y': 2}),
+        ('gameplay_zone.delete', {'zoneId': 'copy'}),
+      ]) {
+        fixture.reader.paths.clear();
+        await fixture.apply(operation.$1, {'mapId': 'map', ...operation.$2}, 'route-${operation.$1}-${operation.$2['zoneId']}');
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json' || p.endsWith('.glb') || p.endsWith('history.jsonl')), isEmpty);
+      }
+      final before = await fixture.mapFile.readAsBytes();
+      final deleted = await fixture.apply('gameplay_zone.delete', {'mapId': 'map', 'zoneId': zone.id}, 'delete-route');
+      await fixture.api.undoMutation(fixture.opened.projectHandle, entryId: deleted.receipt.receiptId, idempotencyKey: 'undo-route');
+      expect(await fixture.mapFile.readAsBytes(), before);
+    });
+  }
+
 
   final obstacleCounts = <List<int>>[];
   for (final unrelated in [0, if (Platform.environment['AVELUNE_FIELD_OBSTACLE_LARGE_FIXTURE'] == '1') 2000]) {
@@ -1015,6 +1061,54 @@ void main() {
             'instances': [result.spatialScene!.instances.single.toJson()]
           });
       expect(reopened.maps.single, result);
+    });
+  }
+
+  for (final unrelated in [0, 90]) {
+    test('Environment preset changes and manual removals stay map-local with $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final originalPreset = base.project.environmentPresets.single;
+      final alternative = EnvironmentPreset(id: 'alternative', name: 'Alternative forest', templateId: originalPreset.templateId, palette: originalPreset.palette, defaultParams: originalPreset.defaultParams, sortOrder: 0);
+      final first = SpatialModelInstance(id: 'tree-a', modelId: 'tree', position: Model3dVector3(x: 1, y: 1, z: 1));
+      final second = SpatialModelInstance(id: 'tree-b', modelId: 'tree', position: Model3dVector3(x: 2, y: 1, z: 1));
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(environmentPresets: [...base.project.environmentPresets, alternative]),
+        map: base.map.copyWith(spatialScene: base.map.spatialScene!.copyWith(instances: [first, second])),
+      ));
+      addTearDown(fixture.close);
+      await fixture.apply('environment.generated_placement_adopt_batch', {'mapId': 'map', 'layerId': 'env', 'areaId': 'forest', 'placementIds': ['tree-a', 'tree-b']}, 'adopt-local-trees');
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final presetId = repeat == 0 ? 'alternative' : 'forest';
+        await fixture.apply('environment.area_set_preset', {'mapId': 'map', 'layerId': 'env', 'areaId': 'forest', 'presetId': presetId}, 'preset-$repeat');
+        final changed = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+        final area = (changed.layers.single as EnvironmentLayer).content.areas.single;
+        expect(area.presetId, presetId);
+        expect(area.manualPlacementIds, ['tree-a', 'tree-b']);
+        expect(changed.spatialScene!.instances, [first, second]);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.where((p) => p.endsWith('.glb') || p.endsWith('history.jsonl')), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(240));
+      }
+      final beforeRemoval = await fixture.mapFile.readAsBytes();
+      fixture.reader.paths.clear();
+      final removed = await fixture.apply('environment.generated_placement_delete', {'mapId': 'map', 'layerId': 'env', 'areaId': 'forest', 'placementId': 'tree-b'}, 'remove-duplicate-tree');
+      final changed = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+      final area = (changed.layers.single as EnvironmentLayer).content.areas.single;
+      expect(changed.spatialScene!.instances, [first]);
+      expect(area.manualPlacementIds, ['tree-a']);
+      expect(area.generatedPlacementIds, ['tree-a']);
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+      expect(fixture.reader.paths.where((p) => p.startsWith('maps/') && p != 'maps/map.json'), isEmpty);
+      expect(fixture.reader.paths.where((p) => p.endsWith('.glb') || p.endsWith('history.jsonl')), isEmpty);
+      expect(fixture.reader.paths.length, lessThan(240));
+      await fixture.reopen();
+      final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: 'environment.generated_placement_delete', parameters: {'mapId': 'map', 'layerId': 'env', 'areaId': 'forest', 'placementId': 'tree-a'});
+      expect(selected.maps.single.toJson(), changed.toJson());
+      await fixture.api.undoMutation(fixture.opened.projectHandle, entryId: removed.receipt.receiptId, idempotencyKey: 'undo-duplicate-removal');
+      expect(await fixture.mapFile.readAsBytes(), beforeRemoval);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
     });
   }
 

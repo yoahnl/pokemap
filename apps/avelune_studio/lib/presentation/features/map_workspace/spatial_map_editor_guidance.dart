@@ -49,6 +49,9 @@ extension _SpatialMapEditorGuidance on _SpatialMapEditorState {
           ? 'Bordures · Choisissez un modèle puis cliquez pour commencer le tracé.'
           : 'Bordures · Clic : ajouter un angle · Départ : fermer · Entrée : appliquer · Échap : annuler';
     }
+    if (widget.view.tool == StudioMapTool.gameplayZone) {
+      return 'Passage Cascade ou Tourbillon · Glissez sur au moins trois cases, puis choisissez le parcours dans les propriétés. Un clic sur un passage le sélectionne. Échap : annuler';
+    }
     if (widget.view.tool == StudioMapTool.environment) {
       final session = widget.view.environment;
       if (session == null) {

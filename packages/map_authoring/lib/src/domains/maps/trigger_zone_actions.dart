@@ -9,6 +9,33 @@ import 'semantic_map_action_support.dart';
 final class TriggerZoneActions {
   const TriggerZoneActions();
 
+  static const fieldTraversalActions = {
+    'gameplay_zone.create', 'gameplay_zone.update', 'gameplay_zone.move',
+    'gameplay_zone.resize', 'gameplay_zone.clone', 'gameplay_zone.delete',
+    'gameplay_zone.set_field_action_payload', 'gameplay_zone.set_priority',
+  };
+
+  static bool isFieldTraversalMutation(MapData map, String action,
+      Map<String, Object?> parameters) {
+    if (!fieldTraversalActions.contains(action)) return false;
+    bool route(Object? value) => value is Map &&
+        const {'waterfall', 'whirlpool'}.contains(value['actionKind']);
+    if (action == 'gameplay_zone.set_field_action_payload') {
+      final payload = parameters['payload'];
+      if (route(payload)) return true;
+      if (payload is Map && const {'darkness', 'dive'}.contains(payload['actionKind'])) return false;
+    }
+    if (action == 'gameplay_zone.create' || action == 'gameplay_zone.update') {
+      final zone = parameters['zone'];
+      return zone is Map && zone['kind'] == 'fieldAction' && route(zone['fieldAction']);
+    }
+    final id = parameters['zoneId'];
+    if (id is! String) return false;
+    final zone = findGameplayZoneById(map, id);
+    return zone?.kind == GameplayZoneKind.fieldAction &&
+        const {FieldActionZoneKind.waterfall, FieldActionZoneKind.whirlpool}.contains(zone?.fieldAction?.actionKind);
+  }
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     for (final entry in const <(String, String)>[
       ('trigger.create', 'Create a map trigger'),
@@ -50,7 +77,7 @@ final class TriggerZoneActions {
       ),
       (
         'gameplay_zone.set_field_action_payload',
-        'Set a typed Flash, Cascade, Dive or Whirlpool payload (2D)'
+        'Set a typed Flash, Cascade, Dive or Whirlpool payload'
       ),
       ('gameplay_zone.clear_payload', 'Clear a gameplay-zone payload'),
       ('gameplay_zone.set_priority', 'Set gameplay-zone priority'),
@@ -62,7 +89,8 @@ final class TriggerZoneActions {
             'semanticIds': true,
             'rawTilesetRequired': false,
             'fieldActionZone': {
-              'mapMode': '2d',
+              'mapModesByActionKind': {'darkness': ['2d'], 'dive': ['2d'], 'waterfall': ['2d', '3d'], 'whirlpool': ['2d', '3d']},
+              'spatialTraversal': {'capability': 'map3d.field-traversal@1', 'heights': 'nativeTerrain', 'collision': 'boundedValidatedSegment', 'defaultBody': 'blocking', 'checkpointDuringTraversal': false, 'interruption': 'rollbackEntry'},
               'actionKinds': ['darkness', 'waterfall', 'dive', 'whirlpool'],
               'dive': {
                 'roles': ['surface', 'underwater'],
@@ -459,6 +487,7 @@ final class TriggerZoneActions {
       after: updated,
       operation: actionId,
       changedItems: 1,
+      validateProjectReferences: !isFieldTraversalMutation(context.map, actionId, planning.request.parameters),
     );
   }
 }

@@ -652,6 +652,9 @@ class SpatialSceneView extends StatefulWidget {
       scene.camera == other.scene.camera &&
       listEquals(scene.heightLevels, other.scene.heightLevels);
 
+  bool groundMapRenderingMatches(SpatialSceneView other) =>
+      _sameGroundRenderingMap(groundMap, other.groundMap);
+
   @override
   State<SpatialSceneView> createState() => _SpatialSceneViewState();
 }
@@ -946,7 +949,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
     }
     if (widget.placementPreview == null) game.placementRenderer.clear();
     if (!identical(oldWidget.scene, widget.scene) ||
-        !identical(oldWidget.groundMap, widget.groundMap) ||
+        !widget.groundMapRenderingMatches(oldWidget) ||
         !identical(oldWidget.groundProject, widget.groundProject) ||
         modelSourcesChanged ||
         !widget.lightingDefaultsMatch(oldWidget) ||
@@ -969,6 +972,7 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
           return false;
         }));
       }
+      game._adoptUnchangedGroundMap(oldWidget.groundMap, widget.groundMap);
       game.renderedConfiguration = widget;
       game.syncVisibility();
       game.syncContentSelection(oldWidget, widget);
@@ -1179,6 +1183,10 @@ class _SpatialSceneViewState extends State<SpatialSceneView> {
   }
 }
 
+bool _sameGroundRenderingMap(MapData? first, MapData? second) =>
+    identical(first, second) || first != null && second != null &&
+        first.copyWith(gameplayZones: second.gameplayZones) == second;
+
 @visibleForTesting
 class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
   @override
@@ -1298,6 +1306,12 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
     _bindModelSourceUpdates();
   }
   SpatialSceneView configuration;
+  void _adoptUnchangedGroundMap(MapData? before, MapData? after) {
+    if (before == null || after == null || identical(before, after) ||
+        !_sameGroundRenderingMap(before, after)) return;
+    final cached = _smartTileProjectionCache.remove(before);
+    if (cached != null) _smartTileProjectionCache[after] = cached;
+  }
   final _cameraHeightCache = SpatialSceneHeightCache();
   SpatialLightingProfile? previewLighting;
   SpatialLightingProfile authoredLighting = SpatialLightingProfile.disabled;
@@ -2666,8 +2680,10 @@ class SpatialSceneGame extends FlameGame3D<World3D, CameraComponent3D> {
           cellOverlayComponents = nextCellOverlays;
           refreshing = false;
           if (identical(snapshot.scene, configuration.scene) &&
-              identical(snapshot.groundMap, configuration.groundMap) &&
-              snapshot.visibility != configuration.visibility) {
+              _sameGroundRenderingMap(snapshot.groundMap, configuration.groundMap) &&
+              (snapshot.visibility != configuration.visibility ||
+                  !identical(snapshot.groundMap, configuration.groundMap))) {
+            _adoptUnchangedGroundMap(snapshot.groundMap, configuration.groundMap);
             renderedConfiguration = configuration;
             syncContentSelection(snapshot, configuration);
           }

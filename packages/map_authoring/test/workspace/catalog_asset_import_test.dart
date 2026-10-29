@@ -13,6 +13,58 @@ import '../domains/maps/border_spatial_actions_test.dart'
 
 void main() {
   for (final unrelated in [0, 80]) {
+    test('unpublished Border draft edits stay local with $unrelated foreign units',
+        () async {
+      final fixture = await _Fixture.open(unrelated,
+          rootPath: '/Users/karim/Library/Caches/AveluneQA/chapter7-native-construction/api/unpublished-border-$unrelated');
+      addTearDown(fixture.close);
+      final artifact = await fixture.api.artifacts
+          .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
+      final imported = await fixture.plan('model3d.import', {
+        'modelId': 'tree',
+        'name': 'Tree',
+        'artifactHandle': artifact.reference.handle,
+      }, 'import-source');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: imported.planId, operationId: 'import-source');
+      final border = jsonDecode(jsonEncode(encodeBorderBlueprintRecordJson(
+          spatialBorderAuthoringFixture().project.borderCatalog.records.single,
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion))) as Map<String, dynamic>;
+      final created = await fixture.plan('border.blueprint.draft.upsert',
+          {'record': border}, 'create-draft');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: created.planId, operationId: 'create-draft');
+      await fixture.reopen();
+      for (var repeat = 0; repeat < 2; repeat++) {
+        (border['draft']['definition'] as Map)['name'] = 'Contact $repeat';
+        fixture.reader.paths.clear();
+        fixture.reader.probes.clear();
+        final edited = await fixture.plan('border.blueprint.draft.upsert',
+            {'record': border}, 'edit-draft-$repeat');
+        await fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: edited.planId, operationId: 'edit-draft-$repeat');
+        expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.endsWith('history.jsonl')), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(220));
+        expect(fixture.reader.probes.length, lessThan(160));
+      }
+      await fixture.reopen();
+      final snapshot = (await fixture.store.openRoot((await fixture.store.readHead())!)).snapshot;
+      final saved = decodeBorderBlueprintRecordJson(
+          (await snapshot.lookup(CatalogDefinitionKey(CatalogDefinitionKind.borderRecord, border['id'] as String)))!.payload['value'],
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+      expect(saved.draft.definition.name, 'Contact 1');
+      expect(saved.latestPublished, isNull);
+      final published = await fixture.plan('border.blueprint.publish',
+          {'blueprintId': border['id']}, 'publish-draft');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: published.planId, operationId: 'publish-draft');
+      await expectLater(fixture.plan('border.blueprint.draft.upsert',
+          {'record': border}, 'published-edit'), throwsA(anything));
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+  for (final unrelated in [0, 80]) {
     test('new model and tileset imports preserve $unrelated unread resources',
         () async {
       final fixture = await _Fixture.open(unrelated);
@@ -377,12 +429,13 @@ final class _Fixture {
 
   static Future<_Fixture> open(
     int unrelated, {
+    String? rootPath,
     List<ProjectMapEntry> extraMaps = const [],
     AuthoringTransactionFaultInjector? faultInjector,
     bool legacyPositions = false,
     bool categoryFamilies = false,
   }) async {
-    final root = Directory(
+    final root = Directory(rootPath ??
         '/Users/karim/Library/Caches/AveluneQA/hgss-mauville-maps/api/assets-fixture');
     await root.create(recursive: true);
     final project = ProjectManifest(

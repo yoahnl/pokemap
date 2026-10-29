@@ -289,6 +289,7 @@ final class GamePackageProjectValidator {
           _fail('A 3D party companion requires ${SpatialGameplayCapabilities.companionCapabilityId}.');
         }
         GamePackageSpatialProjectValidator(policy: policy, gameplay: gameplay,
+          surf: packageManifest.compatibility.requiredCapabilities.contains(SurfGameplayCapabilities.capabilityId),
           trainerSpotting: packageManifest.compatibility.requiredCapabilities
             .contains(SpatialGameplayCapabilities.trainerSpottingCapabilityId))
             .validate(project, readPayload, payloadPaths: payloadPaths);
@@ -309,6 +310,10 @@ final class GamePackageProjectValidator {
           _fail('Spatial ladders require map3d.ladder@1.');
         }
         if (SpatialGameplayCapabilities.requiresLifts(maps) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) _fail('Spatial lifts require map3d.lift@1.');
+        if (SpatialGameplayCapabilities.requiresFieldTraversals(maps) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.fieldTraversalCapabilityId)) {
+          _fail('Spatial field traversals require ${SpatialGameplayCapabilities.fieldTraversalCapabilityId}.');
+        }
         final hasModelShadows = exterior.modelShadows || SpatialModelShadowCapabilities.requiresCapability(project, maps: maps);
         final hasPointLights = exterior.pointLights || SpatialSceneLightingCapabilities.requiresPointLights(project, maps: maps);
         if (SpatialGameplayCapabilities.requiresConnectedCinematics(project,

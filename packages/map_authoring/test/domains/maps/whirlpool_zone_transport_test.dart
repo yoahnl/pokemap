@@ -52,8 +52,7 @@ void main() {
     });
   });
 
-  test('Whirlpool semantic action refuses 3D and preserves the closed payload',
-      () {
+  test('Whirlpool semantic action supports 3D while darkness remains 2D', () {
     final zone = _fixture();
     final map = _map().copyWith(
         version: ProjectVersion.v9,
@@ -67,212 +66,249 @@ void main() {
                   darkness: DarknessZonePayload(opacity: .7)))
         ]);
     expect(
+        const TriggerZoneActions()
+            .setFieldActionPayload(map,
+                zoneId: zone.id, payload: zone.fieldAction!)
+            .gameplayZones
+            .single,
+        zone);
+    expect(
         () => const TriggerZoneActions().setFieldActionPayload(map,
-            zoneId: zone.id, payload: zone.fieldAction!),
+            zoneId: zone.id,
+            payload: const FieldActionZonePayload(
+                actionKind: FieldActionZoneKind.darkness,
+                darkness: DarknessZonePayload(opacity: .7))),
         throwsA(isA<Exception>()));
   });
 
-  for (final jsonl in [false, true]) {
-    test(
-        'Whirlpool ${jsonl ? 'JSONL' : 'direct API'} requery refusal stale undo and cold reopen feed real movement',
-        () async {
-      final root =
-          await Directory.systemTemp.createTemp('whirlpool-authoring-');
-      addTearDown(() => root.delete(recursive: true));
-      final zone = _fixture();
-      final seed = zone.copyWith(
-          fieldAction: const FieldActionZonePayload(
-              actionKind: FieldActionZoneKind.darkness,
-              darkness: DarknessZonePayload(opacity: .7)));
-      final map = _map();
-      final file = File('${root.path}/whirls.json');
-      final projectFile = File('${root.path}/project.json');
-      await file.writeAsString(jsonEncode(map.toJson()));
-      await projectFile.writeAsString(jsonEncode(const ProjectManifest(
-          name: 'Tourbillon',
-          tilesets: [],
-          maps: [
-            ProjectMapEntry(
-                id: 'whirls', name: 'Tourbillon', relativePath: 'whirls.json')
-          ]).toJson()));
-      final projectBefore = await projectFile.readAsBytes();
-      const reader = LocalProjectFileReader();
-      final policy = await WorkspacePolicy.create(
-          allowedRootPaths: [root.path], fileReader: reader);
-      final handles = WorkspaceHandleStore();
-      final loader = ProjectSnapshotLoader(handles: handles);
-      final api = AuthoringReadApi(
-          openService: ProjectOpenService(
-              policy: policy, fileReader: reader, handles: handles),
-          snapshotLoader: loader);
-      final mutations =
-          LocalMapAuthoringMutationApi(policy: policy, snapshotLoader: loader);
-      final worker = JsonlWorker(api: api, mutations: mutations);
-      var sequence = 0;
-      Future<AuthoringResult> wire(
-              String command, Map<String, Object?> args) async =>
-          AuthoringResult.fromJson(jsonDecode(await worker.processLine(
-              jsonEncode({
-            'id': 'whirlpool-${sequence++}',
-            'command': command,
-            'args': args
-          }))) as Map<String, dynamic>);
-      final opened =
-          jsonl ? (await wire('open', {'projectRoot': root.path})).data : null;
-      final direct = jsonl ? null : await api.openProject(root.path);
-      final projectHandle = jsonl
-          ? ProjectHandle(opened!['projectHandle'] as String)
-          : direct!.projectHandle;
-      final workspaceHandle = jsonl
-          ? WorkspaceHandle(opened!['workspaceHandle'] as String)
-          : direct!.workspaceHandle;
-      if (!jsonl) {
-        await mutations.attachProject(
-            projectRootPath: root.path,
-            workspaceHandle: workspaceHandle,
-            projectHandle: projectHandle);
-      }
-      Future<Map<String, Object?>> call(
-          String command, Map<String, Object?> args) async {
-        if (jsonl) {
-          final result = await wire(
-              command, {'projectHandle': projectHandle.value, ...args});
-          expect(result.status, AuthoringResultStatus.success,
-              reason: '${result.toJson()}');
-          return result.data;
+  for (final spatial in [false, true]) {
+    for (final jsonl in [false, true]) {
+      test(
+          'Whirlpool ${spatial ? '3D' : '2D'} ${jsonl ? 'JSONL' : 'direct API'} requery refusal stale undo and cold reopen feed real movement',
+          () async {
+        final root =
+            await Directory.systemTemp.createTemp('whirlpool-authoring-');
+        addTearDown(() => root.delete(recursive: true));
+        final zone = _fixture();
+        final seed = spatial
+            ? zone.copyWith(
+                fieldAction: FieldActionZonePayload(
+                    actionKind: FieldActionZoneKind.waterfall,
+                    waterfall: WaterfallZonePayload(
+                        entry: zone.fieldAction!.whirlpool!.entry,
+                        path: zone.fieldAction!.whirlpool!.path,
+                        exit: zone.fieldAction!.whirlpool!.exit,
+                        direction: zone.fieldAction!.whirlpool!.direction)))
+            : zone.copyWith(
+                fieldAction: const FieldActionZonePayload(
+                    actionKind: FieldActionZoneKind.darkness,
+                    darkness: DarknessZonePayload(opacity: .7)));
+        final map = spatial
+            ? _map().copyWith(
+                version: ProjectVersion.v9,
+                layers: const [],
+                visualStack: null,
+                spatialScene: MapSpatialScene(width: 8, depth: 8))
+            : _map();
+        final file = File('${root.path}/whirls.json');
+        final projectFile = File('${root.path}/project.json');
+        await file.writeAsString(jsonEncode(map.toJson()));
+        await projectFile.writeAsString(jsonEncode(ProjectManifest(
+            settings: ProjectSettings(
+                dimension:
+                    spatial ? ProjectDimension.threeD : ProjectDimension.twoD),
+            version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+            name: 'Tourbillon',
+            tilesets: [],
+            maps: [
+              ProjectMapEntry(
+                  id: 'whirls', name: 'Tourbillon', relativePath: 'whirls.json')
+            ]).toJson()));
+        final projectBefore = await projectFile.readAsBytes();
+        const reader = LocalProjectFileReader();
+        final policy = await WorkspacePolicy.create(
+            allowedRootPaths: [root.path], fileReader: reader);
+        final handles = WorkspaceHandleStore();
+        final loader = ProjectSnapshotLoader(handles: handles);
+        final api = AuthoringReadApi(
+            openService: ProjectOpenService(
+                policy: policy, fileReader: reader, handles: handles),
+            snapshotLoader: loader);
+        final mutations = LocalMapAuthoringMutationApi(
+            policy: policy, snapshotLoader: loader);
+        final worker = JsonlWorker(api: api, mutations: mutations);
+        var sequence = 0;
+        Future<AuthoringResult> wire(
+                String command, Map<String, Object?> args) async =>
+            AuthoringResult.fromJson(jsonDecode(await worker.processLine(
+                jsonEncode({
+              'id': 'whirlpool-${sequence++}',
+              'command': command,
+              'args': args
+            }))) as Map<String, dynamic>);
+        final opened = jsonl
+            ? (await wire('open', {'projectRoot': root.path})).data
+            : null;
+        final direct = jsonl ? null : await api.openProject(root.path);
+        final projectHandle = jsonl
+            ? ProjectHandle(opened!['projectHandle'] as String)
+            : direct!.projectHandle;
+        final workspaceHandle = jsonl
+            ? WorkspaceHandle(opened!['workspaceHandle'] as String)
+            : direct!.workspaceHandle;
+        if (!jsonl) {
+          await mutations.attachProject(
+              projectRootPath: root.path,
+              workspaceHandle: workspaceHandle,
+              projectHandle: projectHandle);
         }
-        return switch (command) {
-          'plan' => mutations.plan(
-              projectHandle,
-              AuthoringRequest.fromJson(
-                  Map<String, dynamic>.from(args['request'] as Map))),
-          'apply' => mutations.apply(projectHandle,
-              planId: args['planId'] as String,
-              operationId: args['operationId'] as String),
-          'history' => mutations.history(projectHandle, limit: 1),
-          'undo' => mutations.undo(projectHandle,
-              entryId: args['entryId'] as String,
-              idempotencyKey: args['idempotencyKey'] as String),
-          'query' => api.query(
-              projectHandle,
-              AuthoringQueryRequest.fromJson(
-                  Map<String, dynamic>.from(args['request'] as Map))),
-          _ => throw StateError(command),
-        };
-      }
+        Future<Map<String, Object?>> call(
+            String command, Map<String, Object?> args) async {
+          if (jsonl) {
+            final result = await wire(
+                command, {'projectHandle': projectHandle.value, ...args});
+            expect(result.status, AuthoringResultStatus.success,
+                reason: '${result.toJson()}');
+            return result.data;
+          }
+          return switch (command) {
+            'plan' => mutations.plan(
+                projectHandle,
+                AuthoringRequest.fromJson(
+                    Map<String, dynamic>.from(args['request'] as Map))),
+            'apply' => mutations.apply(projectHandle,
+                planId: args['planId'] as String,
+                operationId: args['operationId'] as String),
+            'history' => mutations.history(projectHandle, limit: 1),
+            'undo' => mutations.undo(projectHandle,
+                entryId: args['entryId'] as String,
+                idempotencyKey: args['idempotencyKey'] as String),
+            'query' => api.query(
+                projectHandle,
+                AuthoringQueryRequest.fromJson(
+                    Map<String, dynamic>.from(args['request'] as Map))),
+            _ => throw StateError(command),
+          };
+        }
 
-      Future<AuthoringRequest> request(String action, Map<String, Object?> args,
-              {String? revision}) async =>
-          AuthoringRequest(
-              requestId: 'whirlpool-${sequence++}',
-              actionId: action,
-              actionVersion: 1,
-              workspaceHandle: workspaceHandle.value,
-              expectedRevision:
-                  revision ?? (await loader.load(projectHandle)).revision,
-              idempotencyKey: 'whirlpool-${sequence++}',
-              parameters: Map<String, Object?>.from(
-                  jsonDecode(jsonEncode({'mapId': 'whirls', ...args})) as Map));
-      Future<void> apply(String action, Map<String, Object?> args) async {
-        final before = await file.readAsBytes();
-        final plan = await call(
-            'plan', {'request': (await request(action, args)).toJson()});
-        expect(await file.readAsBytes(), before);
-        await call('apply', {
-          'planId': plan['planId'],
-          'operationId': 'whirlpool-${sequence++}'
-        });
-      }
+        Future<AuthoringRequest> request(
+                String action, Map<String, Object?> args,
+                {String? revision}) async =>
+            AuthoringRequest(
+                requestId: 'whirlpool-${sequence++}',
+                actionId: action,
+                actionVersion: 1,
+                workspaceHandle: workspaceHandle.value,
+                expectedRevision:
+                    revision ?? (await loader.load(projectHandle)).revision,
+                idempotencyKey: 'whirlpool-${sequence++}',
+                parameters: Map<String, Object?>.from(
+                    jsonDecode(jsonEncode({'mapId': 'whirls', ...args}))
+                        as Map));
+        Future<void> apply(String action, Map<String, Object?> args) async {
+          final before = await file.readAsBytes();
+          final plan = await call(
+              'plan', {'request': (await request(action, args)).toJson()});
+          expect(await file.readAsBytes(), before);
+          await call('apply', {
+            'planId': plan['planId'],
+            'operationId': 'whirlpool-${sequence++}'
+          });
+        }
 
-      Future<MapData> query() async {
-        final data = await call('query', {
-          'request': AuthoringQueryRequest(
-              resourceKind: 'map',
-              operation: AuthoringQueryOperation.get,
-              view: AuthoringQueryView.detail,
-              ids: ['whirls']).toJson()
-        });
-        return MapData.fromJson(
-            Map<String, dynamic>.from((data['items'] as List).single as Map));
-      }
+        Future<MapData> query() async {
+          final data = await call('query', {
+            'request': AuthoringQueryRequest(
+                resourceKind: 'map',
+                operation: AuthoringQueryOperation.get,
+                view: AuthoringQueryView.detail,
+                ids: ['whirls']).toJson()
+          });
+          return MapData.fromJson(
+              Map<String, dynamic>.from((data['items'] as List).single as Map));
+        }
 
-      await apply('gameplay_zone.create', {'zone': seed.toJson()});
-      final previousRevision = (await loader.load(projectHandle)).revision;
-      await apply('gameplay_zone.set_field_action_payload',
-          {'zoneId': zone.id, 'payload': zone.fieldAction!.toJson()});
-      final expected =
-          map.copyWith(gameplayZones: [...map.gameplayZones, zone]);
-      expect(await query(), expected);
-      final stable = await file.readAsBytes();
-      final route = zone.fieldAction!.whirlpool!.toJson();
-      for (final payload in [
-        {
-          'actionKind': 'whirlpool',
-          'whirlpool': {...route, 'requiresSurf': false}
-        },
-        {
-          'actionKind': 'whirlpool',
-          'whirlpool': {...route, 'extra': true}
-        },
-        {
-          'actionKind': 'whirlpool',
-          'whirlpool': {...route, 'path': []}
-        },
-        {
-          'actionKind': 'whirlpool',
-          'whirlpool': {...route, 'direction': 'east'}
-        },
-        {
-          'actionKind': 'whirlpool',
-          'whirlpool': route,
-          'darkness': {'opacity': .7}
-        },
-      ]) {
-        final invalid = await request('gameplay_zone.set_field_action_payload',
-            {'zoneId': zone.id, 'payload': payload});
+        await apply('gameplay_zone.create', {'zone': seed.toJson()});
+        final previousRevision = (await loader.load(projectHandle)).revision;
+        await apply('gameplay_zone.set_field_action_payload',
+            {'zoneId': zone.id, 'payload': zone.fieldAction!.toJson()});
+        final expected =
+            map.copyWith(gameplayZones: [...map.gameplayZones, zone]);
+        expect(await query(), expected);
+        final stable = await file.readAsBytes();
+        final route = zone.fieldAction!.whirlpool!.toJson();
+        for (final payload in [
+          {
+            'actionKind': 'whirlpool',
+            'whirlpool': {...route, 'requiresSurf': false}
+          },
+          {
+            'actionKind': 'whirlpool',
+            'whirlpool': {...route, 'extra': true}
+          },
+          {
+            'actionKind': 'whirlpool',
+            'whirlpool': {...route, 'path': []}
+          },
+          {
+            'actionKind': 'whirlpool',
+            'whirlpool': {...route, 'direction': 'east'}
+          },
+          {
+            'actionKind': 'whirlpool',
+            'whirlpool': route,
+            'darkness': {'opacity': .7}
+          },
+        ]) {
+          final invalid = await request(
+              'gameplay_zone.set_field_action_payload',
+              {'zoneId': zone.id, 'payload': payload});
+          if (jsonl) {
+            final result = await wire('plan', {
+              'projectHandle': projectHandle.value,
+              'request': invalid.toJson()
+            });
+            expect(result.status, AuthoringResultStatus.failure);
+            expect(result.error!.code, isNot(AuthoringErrorCode.internal));
+          } else {
+            await expectLater(mutations.plan(projectHandle, invalid),
+                throwsA(isA<Exception>()));
+          }
+          expect(await file.readAsBytes(), stable);
+        }
+        final stale = await request('gameplay_zone.set_field_action_payload',
+            {'zoneId': zone.id, 'payload': seed.fieldAction!.toJson()},
+            revision: previousRevision);
         if (jsonl) {
           final result = await wire('plan', {
             'projectHandle': projectHandle.value,
-            'request': invalid.toJson()
+            'request': stale.toJson()
           });
           expect(result.status, AuthoringResultStatus.failure);
-          expect(result.error!.code, isNot(AuthoringErrorCode.internal));
+          expect(result.error!.details['domainCode'], 'plan.stale');
         } else {
-          await expectLater(mutations.plan(projectHandle, invalid),
-              throwsA(isA<Exception>()));
+          await expectLater(
+              mutations.plan(projectHandle, stale),
+              throwsA(isA<AuthoringPlanException>()
+                  .having((error) => error.code, 'code', 'plan.stale')));
         }
         expect(await file.readAsBytes(), stable);
-      }
-      final stale = await request('gameplay_zone.set_field_action_payload',
-          {'zoneId': zone.id, 'payload': seed.fieldAction!.toJson()},
-          revision: previousRevision);
-      if (jsonl) {
-        final result = await wire('plan',
-            {'projectHandle': projectHandle.value, 'request': stale.toJson()});
-        expect(result.status, AuthoringResultStatus.failure);
-        expect(result.error!.details['domainCode'], 'plan.stale');
-      } else {
-        await expectLater(
-            mutations.plan(projectHandle, stale),
-            throwsA(isA<AuthoringPlanException>()
-                .having((error) => error.code, 'code', 'plan.stale')));
-      }
-      expect(await file.readAsBytes(), stable);
-      final history = await call('history', {'limit': 1});
-      await call('undo', {
-        'entryId': ((history['entries'] as List).single as Map)['entryId'],
-        'idempotencyKey': 'undo-whirlpool'
+        final history = await call('history', {'limit': 1});
+        await call('undo', {
+          'entryId': ((history['entries'] as List).single as Map)['entryId'],
+          'idempotencyKey': 'undo-whirlpool'
+        });
+        expect((await query()).gameplayZones.last, seed);
+        await apply('gameplay_zone.set_field_action_payload',
+            {'zoneId': zone.id, 'payload': zone.fieldAction!.toJson()});
+        await mutations.detachWorkspace(workspaceHandle);
+        await api.closeWorkspace(workspaceHandle);
+        final cold = await _coldRead(root, jsonl: jsonl);
+        expect(cold, expected);
+        _verifyMovement(cold, zone);
+        expect(await projectFile.readAsBytes(), projectBefore);
       });
-      expect((await query()).gameplayZones.last, seed);
-      await apply('gameplay_zone.set_field_action_payload',
-          {'zoneId': zone.id, 'payload': zone.fieldAction!.toJson()});
-      await mutations.detachWorkspace(workspaceHandle);
-      await api.closeWorkspace(workspaceHandle);
-      final cold = await _coldRead(root, jsonl: jsonl);
-      expect(cold, expected);
-      _verifyMovement(cold, zone);
-      expect(await projectFile.readAsBytes(), projectBefore);
-    });
+    }
   }
 }
 
@@ -295,6 +331,40 @@ void _verifyMovement(MapData map, MapGameplayZone zone) {
       ]),
       progression: const PlayerProgression(
           unlockedFieldAbilities: [FieldAbility.whirlpool]));
+  if (map.spatialScene != null) {
+    var live = state.copyWith(
+        playerSpatialPosition: PlayerSpatialPosition(x: 2.5, z: 4.5),
+        mapInstanceWorldState: MapInstanceWorldState(instancesByMapId: {
+          map.id: MapInstanceRuntimeState(instanceId: 'route-instance')
+        }));
+    final ticket = issueSpatialFieldTraversalTicket(
+        ability: FieldAbility.whirlpool,
+        map: map,
+        gameState: live,
+        models: const [],
+        zoneId: zone.id,
+        stateRevision: 0)!;
+    for (var index = 0; index < ticket.route.length - 1; index++) {
+      final step = planSpatialFieldTraversalStep(
+          ticket: ticket,
+          map: map,
+          gameState: live,
+          models: const [],
+          routeIndex: index,
+          currentStateRevision: index)!;
+      live = (commitSpatialFieldTraversalStep(
+              step: step,
+              map: map,
+              gameState: live,
+              models: const [],
+              currentStateRevision: index) as SpatialFieldTraversalApplied)
+          .gameState;
+    }
+    expect(live.playerPosition, const GridPos(x: 2, y: 1));
+    expect(live.playerMovementMode, MovementMode.surf);
+    expect(GameState.fromJson(live.toJson()), live);
+    return;
+  }
   var world = GameplayWorldState.initial(
       map: map,
       playerPos: state.playerPosition,

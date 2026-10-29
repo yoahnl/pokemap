@@ -3,6 +3,13 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/spatial/spatial_field_action_presentation.dart';
 
 void main() {
+  test('Strength activation uses its own Character animation', () async {
+    final action = SpatialFieldActionPresentation();
+    final playing = action.play(FieldAbility.strength, durationMs: 180);
+    expect(action.state, CharacterAnimationState.strength);
+    action.update(.18);
+    expect(await playing, isTrue);
+  });
   test('field animation pauses and completes one native cycle once', () async {
     final action = SpatialFieldActionPresentation();
     final playing = action.play(FieldAbility.cut, durationMs: 160);

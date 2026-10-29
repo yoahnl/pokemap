@@ -59,6 +59,7 @@ abstract final class AveluneRuntimeCompatibility {
           SpatialGameplayCapabilities.npcTradeCapabilityId,
           SpatialGameplayCapabilities.eggGiftCapabilityId,
           SpatialGameplayCapabilities.liftCapabilityId,
+          SpatialGameplayCapabilities.fieldTraversalCapabilityId,
           SpatialGameplayCapabilities.ladderCapabilityId,
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
           SpatialGameplayCapabilities.cinematicConnectedCapabilityId,

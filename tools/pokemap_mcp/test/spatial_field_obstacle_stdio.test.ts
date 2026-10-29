@@ -53,7 +53,11 @@ test("fresh MCP configures a bound spatial obstacle, rejects stale plans, undoes
     await client.connect(transport);
     const description = await call("pokemap_describe", {});
     const actionId = "map3d.instance.configure_field_obstacle";
-    assert.ok((description.mutationActions as JsonRecord[]).find(value => value.id === actionId));
+    const action = (description.mutationActions as JsonRecord[]).find(value => value.id === actionId);
+    assert.ok(action);
+    const schema = record(record(action.extensions).inputSchema);
+    const obstacleSchema = record(record(schema.properties).fieldObstacle);
+    assert.ok((record(record(obstacleSchema.properties).kind).enum as string[]).includes("strengthBoulder"));
     const workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     await call("pokemap_workshop", { operation: "prepare", projectHandle: workspace.projectHandle });
     async function setup(action: string, parameters: JsonRecord) {
@@ -100,10 +104,17 @@ test("fresh MCP configures a bound spatial obstacle, rejects stale plans, undoes
     const revision = await read();
     const rock = await plan({ kind: "rockSmashRock", resetPolicy: "mapInstance" }, revision.snapshotRevision);
     await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: rock.planId, operationId: "rock" });
+    const strengthRevision = await read();
+    const strength = await plan({ kind: "strengthBoulder", resetPolicy: "persistent" }, strengthRevision.snapshotRevision);
+    await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
+      planId: strength.planId, operationId: "strength" });
+    assert.deepEqual(record((record(JSON.parse(await readFile(mapFile, "utf8"))).entities as unknown[])[0]).fieldObstacle,
+      { kind: "strengthBoulder", resetPolicy: "persistent" });
+    assert.deepEqual(await readFile(projectFile), originalProject);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     const reopened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     assert.deepEqual(record((record(JSON.parse(await readFile(mapFile, "utf8"))).entities as unknown[])[0]).fieldObstacle,
-      { kind: "rockSmashRock", resetPolicy: "mapInstance" });
+      { kind: "strengthBoulder", resetPolicy: "persistent" });
     await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
   } finally {
     await client.close();

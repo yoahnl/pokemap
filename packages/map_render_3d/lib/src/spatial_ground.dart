@@ -139,6 +139,9 @@ final class SpatialGroundPlan {
                   y: z,
                 )];
             if (material == null || material.isEmpty) continue;
+            if (material.pathSurfaceKind == PathSurfaceKind.tallGrass) {
+              _anchoredPlantCells.putIfAbsent(layer.id, () => {}).add((x, z));
+            }
             _bridgeUpdates.putIfAbsent(layer.id, () => {})[(x, z)] =
                 material.pathSurfaceKind == PathSurfaceKind.bridge;
             if (material.pathSurfaceKind == PathSurfaceKind.bridge) {
@@ -223,6 +226,7 @@ final class SpatialGroundPlan {
       }
     }
     _bridgeUpdates.addAll(source._bridgeUpdates);
+    _anchoredPlantCells.addAll(source._anchoredPlantCells);
     final byId = {for (final (i, id) in source._layerIds.indexed) id: i};
     final orderedIds = reorderedMap == null
         ? source._layerIds
@@ -335,6 +339,7 @@ final class SpatialGroundPlan {
   final _borderReplacementLayers =
       <String, List<SpatialBorderGroundReplacement>>{};
   final _bridgeUpdates = <String, Map<(int, int), bool>>{};
+  final _anchoredPlantCells = <String, Set<(int, int)>>{};
   late final SpatialBorderGroundReplacementIndex borderGroundReplacements;
   late final Set<(int, int)> bridgeCells;
   late final Set<(int, int)> groundReplacementCells;
@@ -808,9 +813,32 @@ final class SpatialGroundPlan {
       final visuals = layers[_flatPlans.length + index];
       final paint = _paintRanksFor(_plans[index], visuals);
       for (var part = 0; part < visuals.length; part++) {
-        _visualExclusions[visuals[part]] = _layerExclusions[index];
+        final visual = visuals[part];
+        _visualExclusions[visual] = _layerExclusions[index];
+        if (scene != null &&
+            visual.spatialFollowTerrain &&
+            (_anchoredPlantCells[_layerIds[index]]?.contains((
+                  visual.cellX,
+                  visual.cellY,
+                )) ??
+                false)) {
+          final bounds = visual.geometry.visualBounds;
+          _flatVisualSurfaces[visual] = SpatialFlatGroundSurface(
+            height: scene!.worldHeightAt(visual.cellX + .5, visual.cellY + .5),
+            footprints: [
+              BorderGroundFootprint(
+                points: [
+                  BorderGroundPoint(x: bounds.left, z: bounds.top),
+                  BorderGroundPoint(x: bounds.right, z: bounds.top),
+                  BorderGroundPoint(x: bounds.right, z: bounds.bottom),
+                  BorderGroundPoint(x: bounds.left, z: bounds.bottom),
+                ],
+              ),
+            ],
+          );
+        }
         result.add((
-          visual: visuals[part],
+          visual: visual,
           height:
               spatialSmartTileLayerPaintStep *
               (_planRanks[index] + paint.ranks[part] / (paint.maximum + 1)),

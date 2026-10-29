@@ -6,6 +6,7 @@ import '../../contracts/authoring_diff.dart';
 import '../../domains/maps/semantic_map_action_support.dart';
 import '../../domains/maps/warp_connection_actions.dart';
 import '../../domains/maps/spatial_map_actions.dart';
+import '../../domains/maps/trigger_zone_actions.dart';
 import '../../contracts/resource_ref.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/resource_library_scope_guard.dart';
@@ -33,6 +34,7 @@ final class CatalogSpatialMapSelection {
 
   static bool supports(String action,
       {Map<String, Object?> parameters = const {}}) {
+    if (TriggerZoneActions.fieldTraversalActions.contains(action)) return true;
     if (action == 'map.update_metadata' && parameters.containsKey('escapeRopeDungeonId')) return false;
     if (action == 'map.apply_operations') {
       final operations = parameters['operations'];
@@ -57,8 +59,10 @@ final class CatalogSpatialMapSelection {
       'map.update_metadata',
       'environment.attach_to_spatial_terrain',
       'environment.area_create',
+      'environment.area_set_preset',
       'environment.generated_placement_add',
       'environment.generated_placement_adopt_batch',
+      'environment.generated_placement_delete',
       'map3d.terrain.configure_appearance',
       'map3d.terrain.surface.upsert_batch',
       'map3d.lift.upsert_batch',
@@ -112,7 +116,8 @@ final class CatalogSpatialMapSelection {
     if (mapId is! String || mapId.isEmpty || mapId.trim() != mapId) {
       throw const FormatException('catalog.map_properties: mapId required');
     }
-    final selected = await reader.withMetadataFields({'settings'});
+    final route = TriggerZoneActions.fieldTraversalActions.contains(actionId);
+    final selected = await reader.withMetadataFields(route ? const {} : {'settings'});
     return selected.read((catalog) async {
       await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
       final settings = catalog.projectMetadata.settings;
@@ -135,6 +140,9 @@ final class CatalogSpatialMapSelection {
         final map = MapData.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
         if (map.id != mapId || (actionId == 'map3d.camera.configure' && map.spatialScene == null)) {
           throw const FormatException('catalog.map_properties: map identity or dimension mismatch');
+        }
+        if (route && !TriggerZoneActions.isFieldTraversalMutation(map, actionId, parameters)) {
+          throw const ProjectSnapshotException('project.field_traversal_scope_required', 'This zone mutation needs its existing reference scope.');
         }
         MapValidator.validate(map);
         var definitions = documents.project;
@@ -175,7 +183,7 @@ final class CatalogSpatialMapSelection {
       throw const FormatException('catalog.spatial: unsupported action');
     }
     if (actionId == 'map.update_metadata' || actionId == 'map3d.camera.configure' ||
-        actionId == 'warp.ladder.configure' || actionId == 'map3d.instance.configure_field_obstacle') {
+        actionId == 'warp.ladder.configure' || actionId == 'map3d.instance.configure_field_obstacle' || TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
       return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
     if (const {'warp.update', 'warp.create', 'connection.upsert',
@@ -648,6 +656,13 @@ final class CatalogSpatialMapSelection {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
               message: 'The relation changed data outside its validated update.');
         }
+      } else if (TriggerZoneActions.fieldTraversalActions.contains(action)) {
+        final original = snapshot.mapById(mapId)!;
+        if (projected.copyWith(gameplayZones: original.gameplayZones) != original ||
+            !TriggerZoneActions.isFieldTraversalMutation(original, action, plan.request.parameters)) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The route action changed unrelated map content.');
+        }
+        MapValidator.validate(projected);
       } else if (action == 'map3d.instance.configure_field_obstacle') {
         final parameters = plan.request.parameters;
         final value = parameters['fieldObstacle'];

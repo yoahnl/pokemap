@@ -22,6 +22,15 @@ abstract final class SpatialGameplayCapabilities {
   static const cinematicFadeCapabilityId = 'map3d.cinematic-fade@1';
   static const cinematicConnectedCapabilityId = 'map3d.cinematic-connected@1';
   static const ladderCapabilityId = 'map3d.ladder@1';
+  static const fieldTraversalCapabilityId = 'map3d.field-traversal@1';
+
+  static bool requiresFieldTraversals(Iterable<MapData> maps) => maps.any(
+    (map) => map.spatialScene != null && map.gameplayZones.any(
+      (zone) => zone.kind == GameplayZoneKind.fieldAction &&
+          const {FieldActionZoneKind.waterfall, FieldActionZoneKind.whirlpool}
+              .contains(zone.fieldAction?.actionKind),
+    ),
+  );
   static bool requiresLadders(Iterable<MapData> maps) =>
       maps.any((map) => map.warps.any((warp) => warp.ladder != null));
   static const liftCapabilityId = 'map3d.lift@1';

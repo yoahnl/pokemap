@@ -41,113 +41,123 @@ class _MapZoneInspectorState extends State<MapZoneInspector> {
     final owner = '${widget.document.current.id}/${zone.id}';
     final problem = _commands.coverageProblem(zone);
     final area = zone.area;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text('Zone de jeu', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 6),
-        Text(
-          '${area.size.width} × ${area.size.height} cases '
-          'depuis ${area.pos.x}, ${area.pos.y}',
-        ),
-        if (zone.cellMask != null)
-          Text('${zone.cellMask!.length} cases actives, avec trous possibles'),
-        const SizedBox(height: 12),
-        StudioCommitField(
-          key: ValueKey('zone-name-$owner'),
-          label: 'Nom',
-          value: zone.name,
-          onCommit: (value) => _change(() => _commands.rename(zone.id, value)),
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<GameplayZoneKind>(
-          key: ValueKey('zone-kind-${zone.id}-${zone.kind.name}'),
-          initialValue: _commands.availableKindsFor(zone).contains(zone.kind)
-              ? zone.kind
-              : null,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Type'),
-          items: [
-            for (final kind in _commands.availableKindsFor(zone))
-              DropdownMenuItem(
-                value: kind,
-                child: Text(
-                  zoneKindLabel(kind),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+    return IgnorePointer(
+      ignoring: widget.document.fieldTraversalSaving,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Zone de jeu', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          Text(
+            '${area.size.width} × ${area.size.height} cases '
+            'depuis ${area.pos.x}, ${area.pos.y}',
+          ),
+          if (zone.cellMask != null)
+            Text(
+              '${zone.cellMask!.length} cases actives, avec trous possibles',
+            ),
+          const SizedBox(height: 12),
+          StudioCommitField(
+            key: ValueKey('zone-name-$owner'),
+            label: 'Nom',
+            value: zone.name,
+            onCommit: (value) =>
+                _change(() => _commands.rename(zone.id, value)),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<GameplayZoneKind>(
+            key: ValueKey('zone-kind-${zone.id}-${zone.kind.name}'),
+            initialValue: _commands.availableKindsFor(zone).contains(zone.kind)
+                ? zone.kind
+                : null,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Type'),
+            items: [
+              for (final kind in _commands.availableKindsFor(zone))
+                DropdownMenuItem(
+                  value: kind,
+                  child: Text(
+                    zoneKindLabel(kind, spatial: !_commands.supportsDarkness),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
+            ],
+            onChanged: (kind) => kind == null
+                ? null
+                : _change(() => _commands.retype(zone.id, kind)),
+          ),
+          if (zone.smartTileProvenance != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour une action de terrain.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
-          onChanged: (kind) => kind == null
-              ? null
-              : _change(() => _commands.retype(zone.id, kind)),
-        ),
-        if (zone.smartTileProvenance != null) ...[
-          const SizedBox(height: 6),
+          if (!_commands.supportsDarkness) ...[
+            const SizedBox(height: 6),
+            Text(
+              _commands.fieldTraversalDirections(zone).isEmpty
+                  ? 'Pour Cascade ou Tourbillon, dessinez une zone d’au moins trois cases sur un axe. Flash et Plongée sont disponibles sur les cartes 2D.'
+                  : 'Cascade et Tourbillon utilisent les hauteurs du terrain. Flash et Plongée sont disponibles sur les cartes 2D.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+          if (problem != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              problem,
+              key: const ValueKey('zone-coverage-problem'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+          const SizedBox(height: 12),
+          ...zonePayloadFields(
+            context: context,
+            zone: zone,
+            commands: _commands,
+            onChanged: _change,
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            key: ValueKey('zone-priority-${zone.id}-${zone.priority}'),
+            initialValue: zone.priority.clamp(0, 3),
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Priorité'),
+            items: const [
+              DropdownMenuItem(value: 0, child: Text('Normale')),
+              DropdownMenuItem(value: 1, child: Text('Au-dessus')),
+              DropdownMenuItem(value: 2, child: Text('Haute')),
+              DropdownMenuItem(value: 3, child: Text('Maximale')),
+            ],
+            onChanged: (priority) => priority == null
+                ? null
+                : _change(() => _commands.setPriority(zone.id, priority)),
+          ),
+          const SizedBox(height: 8),
           Text(
-            'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour une action de terrain.',
+            zone.fieldAction?.actionKind == FieldActionZoneKind.waterfall
+                ? 'L’entrée et la sortie restent accessibles. Le trajet est réservé à Cascade ; un passage occupé est refusé avant le départ puis revérifié à chaque pas.'
+                : zone.fieldAction?.actionKind == FieldActionZoneKind.whirlpool
+                ? 'Surf est obligatoire. Le trajet est réservé à Tourbillon et reste bloquant après la traversée ; chaque pas et la sortie sont vérifiés.'
+                : zone.fieldAction?.actionKind == FieldActionZoneKind.dive
+                ? 'Les deux points de Plongée relient une arrivée de surface à une arrivée sous-marine. Enregistrez les deux cartes avant de les lier ; Délier annule cette publication.'
+                : zone.kind == GameplayZoneKind.fieldAction
+                ? 'Les zones sombres superposées restent indépendantes. Le voile le plus sombre s’applique ; Flash éclaire une seule zone à la fois.'
+                : 'Quand deux zones se superposent, la priorité la plus haute gagne.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-        ],
-        if (!_commands.supportsDarkness) ...[
-          const SizedBox(height: 6),
-          Text(
-            'Les actions de terrain sont disponibles sur les cartes 2D uniquement.',
-            style: Theme.of(context).textTheme.bodySmall,
+          const SizedBox(height: 16),
+          StudioTool(
+            label: 'Supprimer la zone',
+            icon: Icons.delete_outline,
+            onPressed: () {
+              _change(() => _commands.delete(zone.id));
+              widget.onDeleted();
+            },
           ),
         ],
-        if (problem != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            problem,
-            key: const ValueKey('zone-coverage-problem'),
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ],
-        const SizedBox(height: 12),
-        ...zonePayloadFields(
-          context: context,
-          zone: zone,
-          commands: _commands,
-          onChanged: _change,
-        ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<int>(
-          key: ValueKey('zone-priority-${zone.id}-${zone.priority}'),
-          initialValue: zone.priority.clamp(0, 3),
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Priorité'),
-          items: const [
-            DropdownMenuItem(value: 0, child: Text('Normale')),
-            DropdownMenuItem(value: 1, child: Text('Au-dessus')),
-            DropdownMenuItem(value: 2, child: Text('Haute')),
-            DropdownMenuItem(value: 3, child: Text('Maximale')),
-          ],
-          onChanged: (priority) => priority == null
-              ? null
-              : _change(() => _commands.setPriority(zone.id, priority)),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          zone.fieldAction?.actionKind == FieldActionZoneKind.waterfall
-              ? 'L’entrée et la sortie restent accessibles. Le trajet est réservé à Cascade ; un passage occupé est refusé avant le départ puis revérifié à chaque pas.'
-              : zone.fieldAction?.actionKind == FieldActionZoneKind.dive
-              ? 'Les deux points de Plongée relient une arrivée de surface à une arrivée sous-marine. Enregistrez les deux cartes avant de les lier ; Délier annule cette publication.'
-              : zone.kind == GameplayZoneKind.fieldAction
-              ? 'Les zones sombres superposées restent indépendantes. Le voile le plus sombre s’applique ; Flash éclaire une seule zone à la fois.'
-              : 'Quand deux zones se superposent, la priorité la plus haute gagne.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        const SizedBox(height: 16),
-        StudioTool(
-          label: 'Supprimer la zone',
-          icon: Icons.delete_outline,
-          onPressed: () {
-            _change(() => _commands.delete(zone.id));
-            widget.onDeleted();
-          },
-        ),
-      ],
+      ),
     );
   }
 }

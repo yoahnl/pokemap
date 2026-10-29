@@ -9,6 +9,52 @@ import '../../../../map_distribution/test/support/spatial_feature_capabilities_f
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  for (final whirlpool in [false, true]) {
+    test('canonical export preserves a spatial water route with Surf $whirlpool', () async {
+      final root = await Directory.systemTemp.createTemp('spatial-field-export-');
+      addTearDown(() => root.delete(recursive: true));
+      final files = spatialPayload();
+      final project = ProjectManifest.fromJson(jsonDecode(utf8.decode(files['project/project.json']!)));
+      final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+      files['project/project.json'] = utf8.encode(jsonEncode(project.copyWith(
+        settings: project.settings.copyWith(surf: const ProjectSurfSettings()),
+      ).toJson()));
+      files['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(gameplayZones: [
+        MapGameplayZone(id: 'route', kind: GameplayZoneKind.fieldAction,
+          area: const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 3, height: 1)),
+          fieldAction: whirlpool
+            ? const FieldActionZonePayload(actionKind: FieldActionZoneKind.whirlpool,
+                whirlpool: WhirlpoolZonePayload(entry: GridPos(x: 0, y: 0),
+                  path: [GridPos(x: 1, y: 0)], exit: GridPos(x: 2, y: 0),
+                  direction: MapConnectionDirection.east))
+            : const FieldActionZonePayload(actionKind: FieldActionZoneKind.waterfall,
+                waterfall: WaterfallZonePayload(entry: GridPos(x: 0, y: 0),
+                  path: [GridPos(x: 1, y: 0)], exit: GridPos(x: 2, y: 0),
+                  direction: MapConnectionDirection.east))),
+        const MapGameplayZone(id: 'water', kind: GameplayZoneKind.movement,
+          area: MapRect(pos: GridPos(x: 0, y: 0), size: GridSize(width: 5, height: 5)),
+          movement: MovementZonePayload(requiredMode: MovementMode.surf)),
+      ]).toJson()));
+      for (final entry in files.entries) {
+        final file = File('${root.path}/${entry.key.substring('project/'.length)}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value);
+      }
+      final result = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: GamePackageExportProfile(gameId: 'games.example.fieldroute',
+          gameVersion: '0.1.0', title: 'Field route', authorName: 'Yoahn',
+          defaultLocale: 'fr', supportedLocales: ['fr']),
+        mode: GamePackageExportMode.localTest);
+      expect(result.manifest.compatibility.requiredCapabilities, containsAll([
+        SpatialGameplayCapabilities.fieldTraversalCapabilityId,
+        SurfGameplayCapabilities.capabilityId,
+      ]));
+      for (final entry in files.entries) {
+        expect(await File('${root.path}/${entry.key.substring('project/'.length)}').readAsBytes(), entry.value);
+      }
+    });
+  }
   test('local cinematic in connected maps does not require a newer Player', () async {
     final root = await Directory.systemTemp.createTemp('connected-local-export-');
     addTearDown(() => root.delete(recursive: true));

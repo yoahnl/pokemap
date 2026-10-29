@@ -341,8 +341,7 @@ void main() {
     expect(const MapInstanceWorldState.empty().toJson(),
         {'schemaVersion': 6, 'instancesByMapId': {}});
   });
-  test(
-      '3D validation requires a single static bound model and keeps Strength 2D',
+  test('3D validation requires a single static bound model and rejects Ice',
       () {
     MapData map(FieldObstacleKind kind, List<SpatialModelInstance> instances) =>
         fixture.obstacleMap(kind).copyWith(
@@ -356,10 +355,13 @@ void main() {
         position: Model3dVector3(x: 2.5, y: 0, z: 1.5));
     expect(() => MapValidator.validate(map(FieldObstacleKind.cutTree, [bound])),
         returnsNormally);
+    expect(
+        () => MapValidator.validate(
+            map(FieldObstacleKind.strengthBoulder, [bound])),
+        returnsNormally);
     for (final bad in [
       map(FieldObstacleKind.cutTree, []),
       map(FieldObstacleKind.cutTree, [bound.copyWith(animationIndex: 0)]),
-      map(FieldObstacleKind.strengthBoulder, [bound]),
       map(FieldObstacleKind.iceBlock, [bound]),
     ]) {
       expect(() => MapValidator.validate(bad),

@@ -44,7 +44,11 @@ SpatialFieldObstacleInteraction? prepareSpatialFieldObstacleInteraction({
       .singleWhere((entity) => entity.id == entityId)
       .fieldObstacle!
       .ability!;
-  final name = ability == FieldAbility.cut ? 'Coupe' : 'Éclate-Roc';
+  final name = switch (ability) {
+    FieldAbility.cut => 'Coupe',
+    FieldAbility.strength => 'Force',
+    _ => 'Éclate-Roc',
+  };
   final object = ability == FieldAbility.cut ? 'Cet arbre' : 'Ce rocher';
   final ticket = issueSpatialFieldObstacleTicket(
     map: map,
@@ -61,7 +65,7 @@ SpatialFieldObstacleInteraction? prepareSpatialFieldObstacleInteraction({
   );
   final text = switch (evaluation) {
     CanUseFieldObstacle() =>
-      '$object peut ${ability == FieldAbility.cut ? 'être coupé' : 'être brisé'}. Voulez-vous utiliser $name ?',
+      '$object peut ${switch (ability) { FieldAbility.cut => 'être coupé', FieldAbility.strength => 'être poussé', _ => 'être brisé' }}. Voulez-vous utiliser $name ?',
     FieldObstacleUnavailable(reason: FieldObstacleBlockReason.missingMove) =>
       '$object bloque le passage. Un Pokémon apte à utiliser $name est nécessaire.',
     _ =>

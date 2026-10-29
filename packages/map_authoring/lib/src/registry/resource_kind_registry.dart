@@ -297,7 +297,8 @@ final class AuthoringResourceKindRegistry {
             'battleRuleOutsideWindow': 'npcDialogueOnly', 'clearValue': null},
           'interactiveEncounters': {'field': 'entities[].interactiveEncounter', 'query': 'map:get:detail', 'action': 'entity.set_interactive_encounter', 'triggers': ['headbutt','afterRockSmash'], 'reusePolicies': ['repeatable','oncePerMapInstance'], 'consumption': 'battlePrepared', 'mapMode': '2d'},
           'documentedFieldMasks': ['connections', 'gameplayZones'],
-          'gameplayZoneFieldActions': ['darkness', 'waterfall', 'dive'],
+          'gameplayZoneFieldActions': ['darkness', 'waterfall', 'dive', 'whirlpool'],
+          'gameplayZoneFieldActionMapModes': {'darkness': ['2d'], 'dive': ['2d'], 'waterfall': ['2d', '3d'], 'whirlpool': ['2d', '3d']},
           'divePair': {
             'shape': '1x1',
             'mapMode': '2d',

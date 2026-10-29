@@ -6,15 +6,17 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_dive_zone_panel.dart';
 
-String zoneKindLabel(GameplayZoneKind kind) => switch (kind) {
-  GameplayZoneKind.encounter => 'Rencontres',
-  GameplayZoneKind.movement => 'Déplacement requis',
-  GameplayZoneKind.movementEffect => 'Effet de surface',
-  GameplayZoneKind.fieldAction => 'Action de terrain (2D)',
-  GameplayZoneKind.hazard => 'Danger',
-  GameplayZoneKind.special => 'Spéciale',
-  GameplayZoneKind.custom => 'Héritée',
-};
+String zoneKindLabel(GameplayZoneKind kind, {bool spatial = false}) =>
+    switch (kind) {
+      GameplayZoneKind.encounter => 'Rencontres',
+      GameplayZoneKind.movement => 'Déplacement requis',
+      GameplayZoneKind.movementEffect => 'Effet de surface',
+      GameplayZoneKind.fieldAction =>
+        spatial ? 'Action de terrain' : 'Action de terrain (2D)',
+      GameplayZoneKind.hazard => 'Danger',
+      GameplayZoneKind.special => 'Spéciale',
+      GameplayZoneKind.custom => 'Héritée',
+    };
 
 List<Widget> zonePayloadFields({
   required BuildContext context,
@@ -32,12 +34,16 @@ List<Widget> zonePayloadFields({
           label: 'Action de terrain',
           value: fieldAction.actionKind.name,
           options: {
-            'darkness': 'Zone sombre (Flash · 2D)',
-            if (zone.area.size == const GridSize(width: 1, height: 1))
+            if (commands.supportsDarkness)
+              'darkness': 'Zone sombre (Flash · 2D)',
+            if (commands.supportsDarkness &&
+                zone.area.size == const GridSize(width: 1, height: 1))
               'dive': 'Plongée · 2D',
             if (commands.fieldTraversalDirections(zone).isNotEmpty) ...{
-              'waterfall': 'Cascade · 2D',
-              'whirlpool': 'Tourbillon · 2D',
+              'waterfall':
+                  'Cascade · ${commands.supportsDarkness ? '2D' : '3D'}',
+              'whirlpool':
+                  'Tourbillon · ${commands.supportsDarkness ? '2D' : '3D'}',
             },
           },
           onChanged: (kind) => onChanged(

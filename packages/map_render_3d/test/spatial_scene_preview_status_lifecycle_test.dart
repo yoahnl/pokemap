@@ -7,6 +7,34 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
 
 void main() {
+  testWidgets('gameplay-zone edits retain the materialized scene and only update overlays', (tester) async {
+    final key = GlobalKey();
+    final controller = SpatialSceneController();
+    addTearDown(controller.dispose);
+    final before = MapData(id: 'map', name: 'Map', version: ProjectVersion.v9,
+      size: const GridSize(width: 4, height: 4), spatialScene: MapSpatialScene(width: 4, depth: 4));
+    Future<Uint8List> loadModel(String _) async => Uint8List(0);
+    Widget view(MapData map) => Directionality(textDirection: TextDirection.ltr,
+      child: SpatialSceneView(key: key, scene: map.spatialScene!, groundMap: map,
+        models: const [], loadModel: loadModel, controller: controller, onCell: (_, _) {},
+        errorBuilder: (_, error) => Text('$error'),
+        background: const Color(0xff000000), ground: const Color(0xff000000), edge: const Color(0xff000000)));
+    await tester.pumpWidget(view(before));
+    _UnusedBackend();
+    final dynamic state = key.currentState;
+    final game = _RecordingSceneGame(tester.widget<SpatialSceneView>(find.byType(SpatialSceneView)));
+    state.game = game;
+    state.failure = StateError('No GPU needed to observe invalidation');
+    final after = before.copyWith(gameplayZones: const [MapGameplayZone(id: 'water', kind: GameplayZoneKind.movement,
+      area: MapRect(pos: GridPos(x: 0, y: 0), size: GridSize(width: 2, height: 2)),
+      movement: MovementZonePayload(requiredMode: MovementMode.surf))]);
+    await tester.pumpWidget(view(after));
+    expect(game.refreshCalls, 0);
+    expect(game.configuration.groundMap, same(after));
+    final raised = after.copyWith(spatialScene: after.spatialScene!.copyWith(heightLevels: List.filled(16, 1)));
+    await tester.pumpWidget(view(raised));
+    expect(game.refreshCalls, 1);
+  });
   testWidgets('placement preview recovery can clear its error from layout', (
     tester,
   ) async {
@@ -98,6 +126,14 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
+}
+
+final class _RecordingSceneGame extends SpatialSceneGame {
+  _RecordingSceneGame(SpatialSceneView configuration) : super(configuration,
+    onPreviewStatus: (_) {}, onSurfaceChanged: () {});
+  int refreshCalls = 0;
+  @override
+  Future<bool> refresh() async { refreshCalls++; return false; }
 }
 
 final class _UnusedBackend extends GpuBackend {

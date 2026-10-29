@@ -47,6 +47,7 @@ final class GamePackageGameplayReadinessGate {
                     projection.payloadFiles['project/${entry.relativePath}']!)
             ]);
         GamePackageSpatialProjectValidator(gameplay: gameplay,
+          surf: SurfGameplayCapabilities.requiresCapability(project),
           trainerSpotting: SpatialGameplayCapabilities.requiresTrainerSpotting(project, maps: maps))
             .validate(project, (path) => projection.payloadFiles[path],
                 payloadPaths: projection.payloadFiles.keys);

@@ -3,6 +3,20 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('an owned boulder motion ignores only its own bound collision', () {
+    final model = ProjectModel3dEntry(id: 'rock', name: 'Rock', sourceAssetId: 'source',
+        relativePath: 'assets/models3d/rock.glb', inspection: Model3dInspection(bounds: Model3dBounds(
+          min: Model3dVector3(x: -.35, y: 0, z: -.35), max: Model3dVector3(x: .35, y: 1, z: .35)), meshCount: 1, triangleCount: 1));
+    final map = MapData(id: 'field', name: 'Field', version: ProjectVersion.v9,
+        size: const GridSize(width: 8, height: 8), entities: const [MapEntity(id: 'rock', kind: MapEntityKind.custom,
+          pos: GridPos(x: 2, y: 1), fieldObstacle: MapEntityFieldObstacleData(kind: FieldObstacleKind.strengthBoulder))],
+        spatialScene: MapSpatialScene(width: 8, depth: 8, instances: [
+          SpatialModelInstance(id: 'rock', modelId: 'rock', entityId: 'rock', position: Model3dVector3(x: 2.5, y: 0, z: 1.5)),
+          SpatialModelInstance(id: 'wall', modelId: 'rock', position: Model3dVector3(x: 3.5, y: 0, z: 1.5))]));
+    final controller = SpatialMovementController.fromMap(map: map, models: [model], spatialArrival: PlayerSpatialPosition(x: 1.5, z: 1.5));
+    expect(controller.canTraverseActor(1.5, 1.5, 2.5, 1.5, ignoredEntityId: 'rock'), isTrue);
+    expect(controller.canTraverseActor(2.5, 1.5, 3.5, 1.5, ignoredEntityId: 'rock'), isFalse);
+  });
   test('a translated model frees its old footprint and blocks its live footprint', () {
     final model = ProjectModel3dEntry(id: 'rock', name: 'Rock', sourceAssetId: 'rock-source',
         relativePath: 'assets/models3d/rock.glb', inspection: Model3dInspection(

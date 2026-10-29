@@ -995,6 +995,7 @@ final class RuntimeProjectProjectionBuilder {
               .decodeUtf8(payload['project/${entry.relativePath}']!)
       ]);
       GamePackageSpatialProjectValidator(gameplay: gameplay,
+        surf: SurfGameplayCapabilities.requiresCapability(projectedProject),
         trainerSpotting: SpatialGameplayCapabilities.requiresTrainerSpotting(projectedProject, maps: maps)).validate(
           projectedProject, (path) => payload[path],
           payloadPaths: payload.keys);

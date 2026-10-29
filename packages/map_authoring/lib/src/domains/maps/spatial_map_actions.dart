@@ -28,7 +28,7 @@ final class SpatialMapActions {
         id: entry.key,
         version: 1,
         summary: switch (entry.value) {
-          'fieldObstacle' => 'Configure Cut or Rock Smash on a selected static blocking 3D model',
+          'fieldObstacle' => 'Configure Cut, Strength or Rock Smash on a selected static blocking 3D model',
           'cells' => 'Set discrete terrain levels on a 3D map',
           'levelHeight' =>
             'Configure physical terrain level height and preserve instance offsets',
@@ -177,7 +177,7 @@ final class SpatialMapActions {
         ]));
     if (!isValidSpatialFieldObstacle(after, entity)) {
       throw semanticFailure('entity.field_obstacle_invalid',
-          'A Cut or Rock Smash obstacle requires exactly one static blocking model and a blocking custom object on the same cell.');
+          'A Cut, Strength or Rock Smash obstacle requires exactly one static blocking model and a blocking custom object on the same cell.');
     }
     return after;
   }
@@ -568,7 +568,7 @@ Map<String, Object?> _schema(String field) => switch (field) {
       'fieldObstacle' => {
         'type': ['object', 'null'], 'additionalProperties': false,
         'required': ['kind', 'resetPolicy'],
-        'properties': {'kind': {'enum': ['cutTree', 'rockSmashRock']},
+        'properties': {'kind': {'enum': ['cutTree', 'strengthBoulder', 'rockSmashRock']},
           'resetPolicy': {'enum': ['mapInstance', 'persistent']}},
       },
       'cycle' => {

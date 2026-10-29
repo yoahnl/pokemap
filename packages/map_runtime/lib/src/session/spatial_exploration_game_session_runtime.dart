@@ -16,6 +16,7 @@ import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/battle_start_request.dart';
 import '../application/map_activation.dart';
+import '../application/runtime_committed_movement.dart';
 import '../application/narrative_event_runtime_snapshot.dart';
 import '../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
 import '../application/scene_runtime/scene_consequence_runtime_writer.dart';
@@ -37,6 +38,7 @@ import '../player/runtime_world_service_models.dart';
 import '../player/runtime_world_time_preferences.dart';
 import '../application/runtime_overworld_interaction.dart';
 import '../application/spatial_field_obstacle_interaction.dart';
+import '../application/spatial_field_traversal_interaction.dart';
 import 'runtime_overworld_interaction_port.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import '../presentation/flame/runtime_input_authority.dart';
@@ -83,6 +85,7 @@ final class SpatialExplorationGameSessionRuntime
     RealWeatherService? realWeatherService,
     DateTime Function()? now,
     RuntimeAudioMixer? audioMixer,
+    this.onCommittedMovement,
     @visibleForTesting this.projectAudio,
     @visibleForTesting FlameCinematicAudioDriver Function()? sceneAudioDriverFactory,
     @visibleForTesting RuntimeMusicService Function(RuntimeAudioMixer)? musicServiceFactory,
@@ -102,6 +105,8 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   final GameSessionDescriptor descriptor;
+  final RuntimeCommittedMovementSink? onCommittedMovement;
+  int _committedMovementRevision = 0;
   final RuntimeAudioMixer _audioMixer;
   RuntimeAudioMixer get audioMixer => _audioMixer;
   final bool _ownsAudioMixer;
@@ -264,6 +269,20 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     final npcPose = npc == null ? null : session.actorRuntimeState(npc);
+    final traversal = npc != null || !inputAuthority.value.acceptsOverworldInput ? null :
+      session.bundle.map.gameplayZones.where((zone) => isFieldTraversalZone(zone) &&
+        fieldTraversalRouteCells(zone).first == _gameState?.playerPosition).firstOrNull;
+    final traversalCell = traversal == null ? null : fieldTraversalRouteCells(traversal).first;
+    final traversalAction = traversalCell == null ? null : RuntimeOverworldInteractionAction(
+      request: RuntimeOverworldInteractionRequest(sessionId: descriptor.sessionId,
+        mapActivationId: _mapActivationId, mapId: session.bundle.map.id,
+        targetKind: RuntimeOverworldInteractionTargetKind.gameplayZone,
+        targetId: traversal!.id, actionId: 'field-traversal'),
+      verb: RuntimeOverworldInteractionVerb.interact, targetCell: traversalCell,
+      targetBounds: PixelRect(leftPx: traversalCell.x * session.bundle.manifest.settings.tileWidth,
+        topPx: traversalCell.y * session.bundle.manifest.settings.tileHeight,
+        widthPx: session.bundle.manifest.settings.tileWidth,
+        heightPx: session.bundle.manifest.settings.tileHeight));
     final surfCell = npc == null && inputAuthority.value.acceptsOverworldInput
         ? session.surfTarget : null;
     final surfAction = surfCell == null ? null : RuntimeOverworldInteractionAction(
@@ -291,7 +310,7 @@ final class SpatialExplorationGameSessionRuntime
             '${descriptor.sessionId}:${session.movement.inputEpoch}',
         primaryAction: npc == null ||
                 (obstacle == null && _gameplay == null && npc.npc?.dialogue == null)
-            ? surfAction
+            ? traversalAction ?? surfAction
             : RuntimeOverworldInteractionAction(
                 request: RuntimeOverworldInteractionRequest(
                     sessionId: descriptor.sessionId,
@@ -368,6 +387,29 @@ final class SpatialExplorationGameSessionRuntime
       }));
       return true;
     }
+    if (request.actionId == 'field-traversal') {
+      final session = _session!;
+      final initial = gameStateSnapshot;
+      final zone = findGameplayZoneById(session.bundle.map, request.targetId);
+      if (zone == null || !isFieldTraversalZone(zone)) return false;
+      final ability = zone.fieldAction!.actionKind == FieldActionZoneKind.waterfall
+          ? FieldAbility.waterfall : FieldAbility.whirlpool;
+      final interaction = prepareSpatialFieldTraversalInteraction(ability: ability,
+          map: session.bundle.map, gameState: initial, models: session.bundle.manifest.models3d,
+          zoneId: zone.id, stateRevision: 0, projectSettings: session.bundle.manifest.settings,
+          entityIsPresent: session.fieldObstacleIsPresent,
+          actorStateProvider: session.fieldObstacleActorState);
+      if (interaction == null) return false;
+      unawaited(_runGameplay(() async {
+        final answer = await session.showFieldObstaclePrompt(interaction.session);
+        if (!answer.success || answer.outcomeId != 'field-traversal-confirmed' ||
+            interaction.ticket == null || !identical(_gameState, initial)) {
+          return;
+        }
+        await _traverseFieldRoute(session, interaction.ticket!);
+      }));
+      return true;
+    }
     if (request.actionId == 'field-obstacle') {
       final session = _session!;
       final initial = gameStateSnapshot;
@@ -384,8 +426,12 @@ final class SpatialExplorationGameSessionRuntime
         final answer = await session.showFieldObstaclePrompt(interaction.session);
         final ticket = interaction.ticket;
         if (!answer.success || answer.outcomeId != 'field-obstacle-confirmed' ||
-            ticket == null || _disposed || _stopped || !identical(session, _session)) return;
-        FieldObstacleCommit validate() => commitSpatialDestructibleFieldObstacleAction(
+            ticket == null || _disposed || _stopped || !identical(session, _session)) {
+          return;
+        }
+        final strength = ticket.kind == FieldObstacleKind.strengthBoulder;
+        final commit = strength ? commitSpatialStrengthActivation : commitSpatialDestructibleFieldObstacleAction;
+        FieldObstacleCommit validate() => commit(
             ticket: ticket, map: session.bundle.map, gameState: _gameState!,
             models: session.bundle.manifest.models3d,
             x: session.movement.x, z: session.movement.z, facing: session.movement.facing,
@@ -395,14 +441,14 @@ final class SpatialExplorationGameSessionRuntime
             entityIsPresent: session.fieldObstacleIsPresent,
             projectSettings: session.bundle.manifest.settings);
         if (validate() is! FieldObstacleApplied) return;
-        await session.prepareFieldObstacleEffect();
+        if (!strength) await session.prepareFieldObstacleEffect();
         if (_disposed || _stopped || !identical(session, _session)) return;
         if (!await session.presentFieldAction(ticket.entity.fieldObstacle!.ability!)) return;
         if (_disposed || _stopped || !identical(session, _session)) return;
         final result = validate();
         if (result case FieldObstacleApplied(:final gameState)) {
           _gameState = gameState;
-          session.showFieldObstacleImpact(ticket);
+          if (!strength) session.showFieldObstacleImpact(ticket);
           unawaited(projectAudio?.play(ProjectSoundCueCatalog.forFieldAbilityId(
               ticket.entity.fieldObstacle!.ability!.moveId)));
           _publishFrame();
@@ -496,8 +542,173 @@ final class SpatialExplorationGameSessionRuntime
                 ? EncounterKind.surf : EncounterKind.walk)));
       }
     }
+    _tryStrengthPush();
     _publishInteractions();
     _trySpotTrainer();
+  }
+
+  Object? _strengthAttempt;
+
+  Future<bool> _traverseFieldRoute(SpatialExplorationSession session,
+      SpatialFieldTraversalTicket ticket) async {
+    final activation = _mapActivationId;
+    final entry = ticket.entryState;
+    var expected = _gameState!;
+    var revision = ticket.issuedAtStateRevision;
+    var completed = false;
+    bool sameScope() => !_disposed && identical(session, _session) &&
+        _mapActivationId == activation && session.bundle.map == ticket.map;
+    bool current() => sameScope() && !_stopped;
+    final rollback = session.movement.captureNativeTraversalRollback();
+    try {
+      for (var index = 0; index < ticket.route.length - 1; index++) {
+        if (!current() || !identical(_gameState, expected)) return false;
+        final step = planSpatialFieldTraversalStep(ticket: ticket,
+            map: session.bundle.map, gameState: expected,
+            models: session.bundle.manifest.models3d, routeIndex: index,
+            currentStateRevision: revision, projectSettings: session.bundle.manifest.settings,
+            entityIsPresent: session.fieldObstacleIsPresent,
+            actorStateProvider: session.fieldObstacleActorState);
+        if (step == null) return false;
+        final moved = await session.presentFieldMotion(ability: ticket.ability,
+            from: step.from, to: step.to, facing: fieldTraversalFacing(ticket.zone),
+            durationMs: 250, fieldTraversalStep: step);
+        if (!current() || !moved || !session.fieldMotionActive ||
+            session.movement.spatialPosition != step.to) {
+          return false;
+        }
+        final result = commitSpatialFieldTraversalStep(step: step,
+            map: session.bundle.map, gameState: _gameState!,
+            models: session.bundle.manifest.models3d,
+            currentStateRevision: identical(_gameState, expected) ? revision : revision + 1,
+            projectSettings: session.bundle.manifest.settings,
+            entityIsPresent: session.fieldObstacleIsPresent,
+            actorStateProvider: session.fieldObstacleActorState);
+        if (result case SpatialFieldTraversalApplied(:final gameState)) {
+          _gameState = gameState;
+          session.finishFieldMotion(committed: true);
+          _lastCell = gameState.playerPosition;
+          _publishForcedMovement(ticket.route[index], ticket.route[index + 1]);
+          expected = _gameState!;
+          revision++;
+        } else {
+          _publishForcedMovement(ticket.route[index], ticket.route[index + 1]);
+          return false;
+        }
+      }
+      if (!current()) return false;
+      completed = true;
+      unawaited(projectAudio?.play(ProjectSoundCueCatalog.forFieldAbilityId(ticket.ability.moveId)));
+      await _gameplay?.playerEnteredCell(previousPosition: entry.playerPosition,
+          currentPosition: _gameState!.playerPosition,
+          encounterKind: _gameState!.playerMovementMode == MovementMode.surf
+              ? EncounterKind.surf : EncounterKind.walk);
+      _publishFrame();
+      return true;
+    } finally {
+      session.finishFieldMotion(committed: completed);
+      if (!completed && sameScope()) {
+        rollback();
+        session.movement.movementMode = entry.playerMovementMode;
+        _gameState = _gameState!.copyWith(playerPosition: entry.playerPosition,
+            playerSpatialPosition: entry.playerSpatialPosition,
+            playerPixelPosition: entry.playerPixelPosition,
+            playerFacing: entry.playerFacing, playerMovementMode: entry.playerMovementMode);
+        _lastCell = entry.playerPosition;
+      }
+    }
+  }
+
+  void _tryStrengthPush() {
+    final session = _session;
+    final state = _gameState;
+    if (session == null || state == null || _disposed || _stopped ||
+        _gameplayOperations > 0 || _materializingState ||
+        (_gameplay?.isBusy ?? false) || session.fieldMotionActive ||
+        session.interactionActive.value || session.transitioning.value ||
+        !inputAuthority.value.acceptsOverworldInput) {
+      return;
+    }
+    final input = session.movement.inputDirection;
+    if ((input.x == 0) == (input.z == 0)) {
+      _strengthAttempt = null;
+      return;
+    }
+    final scope = state.mapInstanceWorldState.instanceRef(state.currentMapId);
+    if (scope == null || !state.mapInstanceWorldState.isStrengthActive(scope)) return;
+    final attempt = (session.bundle.map, state, session.movement.spatialPosition,
+        session.movement.facing, session.movement.inputEpoch);
+    if (_strengthAttempt == attempt) return;
+    _strengthAttempt = attempt;
+    final target = findSpatialFieldObstacleTarget(map: session.bundle.map,
+        gameState: state, models: session.bundle.manifest.models3d,
+        x: session.movement.x, z: session.movement.z, facing: session.movement.facing,
+        entityIsPresent: session.fieldObstacleIsPresent,
+        actorStateProvider: session.fieldObstacleActorState);
+    if (target?.fieldObstacle?.kind != FieldObstacleKind.strengthBoulder) return;
+    final ticket = issueSpatialStrengthPushTicket(map: session.bundle.map,
+        gameState: state, models: session.bundle.manifest.models3d,
+        entityId: target!.id, x: session.movement.x, z: session.movement.z,
+        facing: session.movement.facing, stateRevision: 0,
+        entityIsPresent: session.fieldObstacleIsPresent,
+        actorStateProvider: session.fieldObstacleActorState,
+        projectSettings: session.bundle.manifest.settings);
+    if (ticket == null) return;
+    unawaited(_runGameplay(() async {
+      FieldObstacleCommit validate() => commitSpatialStrengthPush(ticket: ticket,
+          map: session.bundle.map, gameState: _gameState!,
+          models: session.bundle.manifest.models3d,
+          currentStateRevision: identical(_gameState, state) ? 0 : 1,
+          entityIsPresent: session.fieldObstacleIsPresent,
+          actorStateProvider: session.fieldObstacleActorState,
+          projectSettings: session.bundle.manifest.settings);
+      if (validate() is! FieldObstacleApplied) return;
+      var committed = false;
+      try {
+        final completed = await session.presentFieldMotion(ability: FieldAbility.strength,
+            from: ticket.playerFrom, to: ticket.playerTo, facing: ticket.facing,
+            durationMs: 300, modelInstanceId: ticket.instanceId,
+            modelDeltaX: (ticket.to.x - ticket.from.x).toDouble(),
+            modelDeltaZ: (ticket.to.y - ticket.from.y).toDouble());
+        if (!completed || _disposed || _stopped || !identical(session, _session) ||
+            !session.fieldMotionActive || session.movement.spatialPosition != ticket.playerTo) {
+          return;
+        }
+        final result = validate();
+        if (result case FieldObstacleApplied(:final gameState)) {
+          _gameState = gameState;
+          committed = true;
+          session.finishFieldMotion(committed: true);
+          _lastCell = gameState.playerPosition;
+          _publishForcedMovement(state.playerPosition, gameState.playerPosition);
+          unawaited(projectAudio?.play(ProjectSoundCue.fieldStrengthPush));
+          await _gameplay?.playerEnteredCell(previousPosition: state.playerPosition,
+              currentPosition: gameState.playerPosition, encounterKind: EncounterKind.walk);
+          _publishFrame();
+        } else if (_gameState!.currentMapId == ticket.instance.mapId) {
+          _publishForcedMovement(state.playerPosition,
+              GridPos(x: ticket.playerTo.x.floor(), y: ticket.playerTo.z.floor()));
+        }
+      } finally {
+        if (!committed) session.finishFieldMotion();
+      }
+    }));
+  }
+
+  void _publishForcedMovement(GridPos from, GridPos to) {
+    final movement = CommittedMovement(kind: CommittedMovementKind.forced,
+        fromCell: from, toCell: to);
+    final units = const CommittedMovementStepPolicy(forcedMovement: ForcedMovementStepPolicy.include)
+        .unitsFor(movement);
+    if (units != 1 || _gameState == null) return;
+    _gameState = _gameState!.copyWith(repelState: _gameState!.repelState.advance(units));
+    try {
+      onCommittedMovement?.call(RuntimeCommittedMovement(mapId: _gameState!.currentMapId,
+          mapActivationId: _mapActivationId, revision: ++_committedMovementRevision,
+          movement: movement));
+    } on Object catch (error) {
+      debugPrint('[movement] spatial movement sink failed: $error');
+    }
   }
 
   String? _trainerSpotLatch;
@@ -593,7 +804,7 @@ final class SpatialExplorationGameSessionRuntime
     }
     _mapsById = Map.unmodifiable(maps);
     _usesFieldObstacleInstances = maps.values.any((map) =>
-        map.entities.any((entity) => entity.fieldObstacle != null));
+        map.entities.any((entity) => entity.fieldObstacle != null) || map.gameplayZones.any(isFieldTraversalZone));
     if (FieldObstacleCapabilities.requiresCapability(project, maps: maps.values) &&
         !descriptor.grantedCapabilities.contains(FieldObstacleCapabilities.capabilityId)) {
       throw StateError('The project requires ${FieldObstacleCapabilities.capabilityId}.');
@@ -601,6 +812,10 @@ final class SpatialExplorationGameSessionRuntime
     if (FieldObstacleCapabilities.requiresExtendedCapability(project, maps: maps.values) &&
         !descriptor.grantedCapabilities.contains(FieldObstacleCapabilities.extendedCapabilityId)) {
       throw StateError('The project requires ${FieldObstacleCapabilities.extendedCapabilityId}.');
+    }
+    if (SpatialGameplayCapabilities.requiresFieldTraversals(maps.values) &&
+        !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.fieldTraversalCapabilityId)) {
+      throw StateError('The project requires ${SpatialGameplayCapabilities.fieldTraversalCapabilityId}.');
     }
     if (!SpatialGameplayCapabilities.requiresGameplay(project,
         maps: maps.values)) {
@@ -1207,7 +1422,8 @@ final class SpatialExplorationGameSessionRuntime
       );
       reportProgress(const GameSessionLoadingProgress(
           stage: 'resources', current: 1, total: 3));
-      _usesFieldObstacleInstances = bundle.map.entities.any((entity) => entity.fieldObstacle != null);
+      _usesFieldObstacleInstances = bundle.map.entities.any((entity) => entity.fieldObstacle != null) ||
+          bundle.map.gameplayZones.any(isFieldTraversalZone);
       if (_usesFieldObstacleInstances && state.mapInstanceWorldState.instanceRef(state.currentMapId) == null) {
         state = state.copyWith(mapInstanceWorldState: setupDifferentMapInstance(
             state: state.mapInstanceWorldState, targetMapId: state.currentMapId,

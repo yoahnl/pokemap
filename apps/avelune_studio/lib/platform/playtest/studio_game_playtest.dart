@@ -417,6 +417,7 @@ final class _StudioGameSource implements RuntimeGameSource {
           SpatialGameplayCapabilities.npcTradeCapabilityId,
           SpatialGameplayCapabilities.eggGiftCapabilityId,
           SpatialGameplayCapabilities.liftCapabilityId,
+          SpatialGameplayCapabilities.fieldTraversalCapabilityId,
           SpatialGameplayCapabilities.ladderCapabilityId,
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
           SpatialGameplayCapabilities.cinematicConnectedCapabilityId,

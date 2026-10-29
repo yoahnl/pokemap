@@ -22,6 +22,7 @@ import 'project_snapshot_fingerprint_cache.dart';
 import 'workspace_handle_store.dart';
 import '../domains/narrative/standard_event_template.dart';
 import '../domains/narrative/scene_party_move_catalog.dart';
+import '../domains/maps/trigger_zone_actions.dart';
 
 part 'native_workshop_snapshot.dart';
 

@@ -14,7 +14,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("live MCP authors the canonical Whirlpool route with strict gates, undo and a fresh server", { timeout: 120_000 }, async () => {
+for (const spatial of [false, true]) test(`live MCP authors the canonical ${spatial ? "3D" : "2D"} Whirlpool route with strict gates, undo and a fresh server`, { timeout: 120_000 }, async () => {
   const fixtureFile = resolve("../../packages/map_core/test/fixtures/whirlpool_field_zone.json");
   const fixtureBytes = await readFile(fixtureFile);
   const fixture = record(JSON.parse(fixtureBytes.toString("utf8")));
@@ -33,7 +33,8 @@ test("live MCP authors the canonical Whirlpool route with strict gates, undo and
   await mkdir(join(root, "maps"));
   await writeFile(projectFile, JSON.stringify({
     name: "Field traversal MCP",
-    version: "v8",
+    version: spatial ? "v9" : "v8",
+    ...(spatial ? { settings: { dimension: "threeD" } } : {}),
     pokemon: canonicalPokemonConfig(),
     maps: [{ id: "field", name: "Field", relativePath: "maps/field.json" }],
     tilesets: [],
@@ -41,9 +42,12 @@ test("live MCP authors the canonical Whirlpool route with strict gates, undo and
   await writeFile(mapFile, JSON.stringify({
     id: "field",
     name: "Field",
-    version: "v8",
+    version: spatial ? "v9" : "v8",
     size: { width: 8, height: 8 },
     layers: [],
+    ...(spatial ? { spatialScene: { schemaVersion: 1, width: 8, depth: 8, levelHeight: 1, heightLevels: Array(64).fill(0),
+      camera: { mode: "fixed", projection: "perspective", pitchDegrees: 48.7, yawDegrees: 0, fieldOfViewDegrees: 16.2, distance: 42, orthographicHeight: 12 },
+      navigation: { spawn: { x: .5, z: .5 }, allowDiagonalMovement: false, ramps: [], blockedAreas: [] }, instances: [] } } : {}),
   }));
   const projectBefore = await readFile(projectFile);
   let active: { client: Client; transport: StdioClientTransport } | undefined;
@@ -87,7 +91,8 @@ test("live MCP authors the canonical Whirlpool route with strict gates, undo and
 
   async function plan(parameters: JsonRecord, failure = false, revision?: unknown): Promise<JsonRecord> {
     assert.ok(workspace);
-    const validation = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+    const validation = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
+      actionId: "gameplay_zone.set_field_action_payload", parameters: { mapId: "field", zoneId: fixture.id, ...parameters }, includeDocuments: false });
     const before = await readFile(mapFile);
     const id = "whirlpool-" + ++sequence;
     const result = await call("pokemap_plan", {
@@ -149,6 +154,8 @@ test("live MCP authors the canonical Whirlpool route with strict gates, undo and
     assert.ok(action);
     const contract = record(record(action.extensions).fieldActionZone);
     assert.ok((contract.actionKinds as string[]).includes("whirlpool"));
+    assert.deepEqual(record(contract.mapModesByActionKind).whirlpool, ["2d", "3d"]);
+    assert.equal(record(contract.spatialTraversal).capability, "map3d.field-traversal@1");
     const whirlpool = record(contract.whirlpool);
     assert.equal(whirlpool.fieldAbility, "whirlpool");
     assert.equal(whirlpool.requiresSurf, true);
@@ -210,6 +217,17 @@ test("live MCP authors the canonical Whirlpool route with strict gates, undo and
       idempotencyKey: "undo-whirlpool",
     });
     assert.deepEqual(record((await fieldZone()).fieldAction), payload);
+    const deleteArgs = { mapId: "field", zoneId: fixture.id };
+    const deleteRead = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
+      actionId: "gameplay_zone.delete", parameters: deleteArgs, includeDocuments: false });
+    const deletion = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
+      requestId: "delete-route", actionId: "gameplay_zone.delete", actionVersion: 1, idempotencyKey: "delete-route",
+      workspaceHandle: workspace.workspaceHandle, expectedRevision: deleteRead.snapshotRevision, parameters: deleteArgs } });
+    const deleted = await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle, planId: deletion.planId, operationId: "delete-route" });
+    assert.equal((record(JSON.parse(await readFile(mapFile, "utf8"))).gameplayZones as JsonRecord[]).some(zone => zone.id === fixture.id), false);
+    await call("pokemap_history", { operation: "undo", projectHandle: workspace.projectHandle,
+      entryId: record(deleted.receipt).receiptId, idempotencyKey: "undo-delete-route" });
+    assert.deepEqual(record((await fieldZone()).fieldAction), payload);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     workspace = undefined;
     await active!.client.close();
@@ -233,7 +251,7 @@ test("live MCP authors the canonical Whirlpool route with strict gates, undo and
     assert.deepEqual(waterReopened.area, water.area);
     assert.equal(record(waterReopened.movement).requiredMode, "surf");
     assert.deepEqual(await readFile(projectFile), projectBefore);
-    const receiptPath = process.env.POKEMAP_TEST_WHIRLPOOL_RECEIPT;
+    const receiptPath = spatial ? process.env.POKEMAP_TEST_WHIRLPOOL_3D_RECEIPT : process.env.POKEMAP_TEST_WHIRLPOOL_RECEIPT;
     if (receiptPath) {
       await writeFile(receiptPath, JSON.stringify({
         action,

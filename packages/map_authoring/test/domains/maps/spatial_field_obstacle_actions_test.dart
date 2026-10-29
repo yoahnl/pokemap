@@ -107,9 +107,10 @@ void main() {
     expect(snapshot.manifest.models3d.single.id, 'oak');
   });
 
+  for (final kind in ['cutTree', 'rockSmashRock', 'strengthBoulder'])
   for (final catalogStorage in [false, true]) {
     test(
-        'model obstacle action is discoverable and persists through JSONL catalog=$catalogStorage',
+        '$kind model obstacle action is discoverable and persists through JSONL catalog=$catalogStorage',
         () async {
       final root = Directory(
           '/Users/karim/Library/Caches/AveluneQA/field-actions-3d/authoring-cli');
@@ -162,7 +163,7 @@ void main() {
         final parameters = <String, Object?>{
           'mapId': 'route',
           'instanceId': 'oak-1',
-          'fieldObstacle': {'kind': 'cutTree', 'resetPolicy': 'persistent'}
+          'fieldObstacle': {'kind': kind, 'resetPolicy': 'persistent'}
         };
         final snapshot = await send('workshop_snapshot', {
           'projectHandle': opened['projectHandle'],
@@ -192,6 +193,7 @@ void main() {
             isValidSpatialFieldObstacle(after, after.entities.single), isTrue);
         expect(after.entities.single.fieldObstacle!.resetPolicy,
             FieldObstacleResetPolicy.persistent);
+        expect(after.entities.single.fieldObstacle!.kind.name, kind);
         await send('close', {'workspaceHandle': opened['workspaceHandle']});
       } finally {
         await process.stdin.close();
@@ -266,7 +268,7 @@ void main() {
         FieldObstacleKind.rockSmashRock);
   });
 
-  for (final kind in ['strengthBoulder', 'iceBlock']) {
+  for (final kind in ['iceBlock']) {
     test('3D model obstacle refuses $kind', () {
       expect(
           () => configureDraft(

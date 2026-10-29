@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
@@ -55,6 +57,192 @@ GameplayWorldState world(MapData map, GameState state) =>
       playerFacing: Direction.east,
     );
 void main() {
+  test('persistent Strength reserves a temporary boulder origin after its push', () {
+    final map = _persistentStrengthMap(const MapEntity(
+      id: 'temporary',
+      kind: MapEntityKind.custom,
+      pos: GridPos(x: 3, y: 1),
+      fieldObstacle: MapEntityFieldObstacleData(kind: FieldObstacleKind.strengthBoulder),
+    ));
+    var state = _activeStrength().copyWith(
+      playerPosition: const GridPos(x: 3, y: 0),
+      playerFacing: EntityFacing.south,
+    );
+    final movedTemporary = commitStrengthPush(
+      ticket: _strengthTicket(state, 'temporary', const GridPos(x: 3, y: 1)),
+      world: GameplayWorldState.initial(map: map, playerPos: state.playerPosition, playerFacing: Direction.south),
+      gameState: state,
+      currentStateRevision: 4,
+      authoringMap: map,
+    ) as StrengthPushApplied;
+    expect(movedTemporary.gameState.mapInstanceWorldState.fieldObstaclePosition(
+      state.mapInstanceWorldState.instanceRef(map.id)!, 'temporary'), const GridPos(x: 3, y: 2));
+    state = movedTemporary.gameState.copyWith(
+      playerPosition: const GridPos(x: 1, y: 1),
+      playerPixelPosition: null,
+      playerFacing: EntityFacing.east,
+    );
+    final before = state.toJson();
+    final result = commitStrengthPush(
+      ticket: ticket(state, FieldAbility.strength),
+      world: world(movedTemporary.movement.world.map, state),
+      gameState: state,
+      currentStateRevision: 4,
+      authoringMap: map,
+    );
+    _expectBlockedPersistentPush(result);
+    expect(state.toJson(), before);
+    final returned = setupDifferentMapInstance(state: state.mapInstanceWorldState,
+      targetMapId: map.id, allocateId: (_) => 'returned');
+    expect(applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+      instances: returned, instance: returned.instanceRef(map.id)!).entities, unorderedEquals(map.entities));
+  });
+
+  for (final kind in ['cut', 'npc']) {
+    test('persistent Strength reserves the authored $kind footprint after temporary removal', () {
+      final blocker = MapEntity(
+        id: 'temporary',
+        kind: kind == 'npc' ? MapEntityKind.npc : MapEntityKind.custom,
+        pos: const GridPos(x: 3, y: 1),
+        npc: kind == 'npc' ? const MapEntityNpcData(displayName: 'Walker') : null,
+        fieldObstacle: kind == 'cut' ? const MapEntityFieldObstacleData() : null,
+      );
+      final map = _persistentStrengthMap(blocker);
+      var state = _activeStrength();
+      final scope = state.mapInstanceWorldState.instanceRef(map.id)!;
+      state = state.copyWith(mapInstanceWorldState: kind == 'cut'
+        ? state.mapInstanceWorldState.clearFieldObstacle(scope, blocker.id)
+        : state.mapInstanceWorldState.setNpcPoses(scope, {
+          blocker.id: MapInstanceNpcPose(position: const GridPos(x: 4, y: 2), facing: EntityFacing.south),
+        }));
+      final live = applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+        instances: state.mapInstanceWorldState, instance: scope);
+      final before = state.toJson();
+      final result = commitStrengthPush(ticket: ticket(state, FieldAbility.strength),
+        world: world(live, state), gameState: state, currentStateRevision: 4, authoringMap: map);
+      _expectBlockedPersistentPush(result);
+      expect(state.toJson(), before);
+      final returned = setupDifferentMapInstance(state: state.mapInstanceWorldState,
+        targetMapId: map.id, allocateId: (_) => 'returned');
+      expect(applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+        instances: returned, instance: returned.instanceRef(map.id)!).entities, unorderedEquals(map.entities));
+    });
+  }
+
+  test('reset reservations use authored collision footprints and allow touching edges', () {
+    for (final offsetY in [0, 1]) {
+      final blocker = MapEntity(id: 'walker', kind: MapEntityKind.npc,
+        pos: const GridPos(x: 3, y: 0), size: const GridSize(width: 1, height: 2),
+        properties: {'collision.width': '1', 'collision.height': '1', 'collision.offsetY': '$offsetY'},
+        npc: const MapEntityNpcData(displayName: 'Walker'));
+      final map = _persistentStrengthMap(blocker);
+      var state = _activeStrength();
+      final scope = state.mapInstanceWorldState.instanceRef(map.id)!;
+      state = state.copyWith(mapInstanceWorldState: state.mapInstanceWorldState.setNpcPoses(scope, {
+        blocker.id: MapInstanceNpcPose(position: const GridPos(x: 4, y: 2), facing: EntityFacing.south),
+      }));
+      final live = applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+        instances: state.mapInstanceWorldState, instance: scope);
+      final result = commitStrengthPush(ticket: ticket(state, FieldAbility.strength),
+        world: world(live, state), gameState: state, currentStateRevision: 4, authoringMap: map);
+      if (offsetY == 1) {
+        _expectBlockedPersistentPush(result);
+      } else {
+        expect(result, isA<StrengthPushApplied>());
+        final returned = setupDifferentMapInstance(state: (result as StrengthPushApplied).gameState.mapInstanceWorldState,
+          targetMapId: map.id, allocateId: (_) => 'returned');
+        expect(() => applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+          instances: returned, instance: returned.instanceRef(map.id)!), returnsNormally);
+      }
+    }
+  });
+
+  test('reset blocker selection retains authored blockers and excludes durable or nonblocking identities', () {
+    final map = _persistentStrengthMap().copyWith(entities: [
+      ..._persistentStrengthMap().entities,
+      const MapEntity(id: 'npc', kind: MapEntityKind.npc, pos: GridPos(x: 3, y: 1), npc: MapEntityNpcData()),
+      const MapEntity(id: 'cut', kind: MapEntityKind.custom, pos: GridPos(x: 4, y: 1), fieldObstacle: MapEntityFieldObstacleData()),
+      const MapEntity(id: 'durable', kind: MapEntityKind.custom, pos: GridPos(x: 3, y: 2), fieldObstacle: MapEntityFieldObstacleData(
+        kind: FieldObstacleKind.strengthBoulder, resetPolicy: FieldObstacleResetPolicy.persistent)),
+      const MapEntity(id: 'visual', kind: MapEntityKind.custom, pos: GridPos(x: 4, y: 2), blocksMovement: false),
+    ]);
+    expect(persistentFieldObstacleResetBlockers(authoringMap: map, movingEntityId: 'rock').map((entity) => entity.id), ['npc', 'cut']);
+  });
+
+  test('persistent Strength requires the authored map before any movement', () {
+    final map = _persistentStrengthMap();
+    final state = _activeStrength();
+    final before = state.toJson();
+    _expectBlockedPersistentPush(commitStrengthPush(
+      ticket: ticket(state, FieldAbility.strength), world: world(map, state),
+      gameState: state, currentStateRevision: 4));
+    expect(state.toJson(), before);
+  });
+
+  test('persistent Strength may occupy a durable vacated obstacle origin', () {
+    for (final kind in [FieldObstacleKind.strengthBoulder, FieldObstacleKind.cutTree]) {
+      final map = _persistentStrengthMap(MapEntity(id: 'durable', kind: MapEntityKind.custom,
+        pos: const GridPos(x: 3, y: 1), fieldObstacle: MapEntityFieldObstacleData(
+          kind: kind, resetPolicy: FieldObstacleResetPolicy.persistent)));
+      var state = _activeStrength();
+      final scope = state.mapInstanceWorldState.instanceRef(map.id)!;
+      state = state.copyWith(mapInstanceWorldState: kind == FieldObstacleKind.cutTree
+        ? state.mapInstanceWorldState.clearFieldObstacle(scope, 'durable', resetPolicy: FieldObstacleResetPolicy.persistent)
+        : state.mapInstanceWorldState.moveFieldObstacle(scope, 'durable', const GridPos(x: 3, y: 2), resetPolicy: FieldObstacleResetPolicy.persistent));
+      final live = applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+        instances: state.mapInstanceWorldState, instance: scope);
+      final result = commitStrengthPush(ticket: ticket(state, FieldAbility.strength),
+        world: world(live, state), gameState: state, currentStateRevision: 4, authoringMap: map) as StrengthPushApplied;
+      final returned = setupDifferentMapInstance(state: result.gameState.mapInstanceWorldState,
+        targetMapId: map.id, allocateId: (_) => 'returned');
+      final projected = applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+        instances: returned, instance: returned.instanceRef(map.id)!);
+      expect(projected.entities.singleWhere((entity) => entity.id == 'rock').pos, const GridPos(x: 3, y: 1));
+    }
+  });
+
+  test('persistent Strength slide stops before a temporary cut footprint reappears', () {
+    final map = _persistentStrengthMap(const MapEntity(id: 'temporary', kind: MapEntityKind.custom,
+      pos: GridPos(x: 4, y: 1), fieldObstacle: MapEntityFieldObstacleData())).copyWith(gameplayZones: [
+        MapGameplayZone(id: 'ice', kind: GameplayZoneKind.movementEffect,
+          area: const MapRect(pos: GridPos(x: 0, y: 0), size: GridSize(width: 6, height: 4)),
+          movementEffect: const MovementEffectZonePayload(effectKind: MovementEffectZoneKind.slide)),
+      ]);
+    var state = _activeStrength();
+    final scope = state.mapInstanceWorldState.instanceRef(map.id)!;
+    state = state.copyWith(mapInstanceWorldState: state.mapInstanceWorldState.clearFieldObstacle(scope, 'temporary'));
+    final live = applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+      instances: state.mapInstanceWorldState, instance: scope);
+    final pushed = commitStrengthPush(ticket: ticket(state, FieldAbility.strength),
+      world: world(live, state), gameState: state, currentStateRevision: 4, authoringMap: map) as StrengthPushApplied;
+    final before = pushed.gameState.toJson();
+    final sourceUnavailable = stepFieldObstacleSlide(slide: pushed.slide!, world: pushed.movement.world,
+      gameState: pushed.gameState);
+    expect(sourceUnavailable, isA<FieldObstacleSlideRefused>());
+    expect((sourceUnavailable as FieldObstacleSlideRefused).refusal, FieldActionRefusal.noLongerAvailable);
+    final stopped = stepFieldObstacleSlide(slide: pushed.slide!, world: pushed.movement.world,
+      gameState: pushed.gameState, authoringMap: map);
+    expect(stopped, isA<FieldObstacleSlideStopped>());
+    expect((stopped as FieldObstacleSlideStopped).reason, FieldObstacleBlockReason.blockedDestination);
+    expect(pushed.gameState.toJson(), before);
+    expect(pushed.movement.world.map.entities.single.pos, const GridPos(x: 3, y: 1));
+  });
+
+  test('an old persistent position overlapping a reset footprint still fails without changing its bytes', () {
+    final map = _persistentStrengthMap(const MapEntity(id: 'temporary', kind: MapEntityKind.custom,
+      pos: GridPos(x: 3, y: 1), fieldObstacle: MapEntityFieldObstacleData()));
+    var state = _activeStrength();
+    final scope = state.mapInstanceWorldState.instanceRef(map.id)!;
+    state = state.copyWith(mapInstanceWorldState: state.mapInstanceWorldState
+      .moveFieldObstacle(scope, 'rock', const GridPos(x: 3, y: 1), resetPolicy: FieldObstacleResetPolicy.persistent));
+    final original = jsonEncode(state.toJson());
+    final returned = setupDifferentMapInstance(state: state.mapInstanceWorldState,
+      targetMapId: map.id, allocateId: (_) => 'returned');
+    expect(() => applyFieldObstacleWorldStateToMap(map: map, authoringMap: map,
+      instances: returned, instance: returned.instanceRef(map.id)!), throwsStateError);
+    expect(jsonEncode(state.toJson()), original);
+  });
+
   test('persistent Strength push projects after save reload and a fresh instance', () {
     final original = obstacleMap(FieldObstacleKind.strengthBoulder);
     final map = original.copyWith(entities: [original.entities.single.copyWith(fieldObstacle:
@@ -63,7 +251,7 @@ void main() {
     final scope = before.mapInstanceWorldState.instanceRef(map.id)!;
     final active = before.copyWith(mapInstanceWorldState: before.mapInstanceWorldState.activateStrength(scope));
     final result = commitStrengthPush(ticket: ticket(active, FieldAbility.strength), world: world(map, active),
-      gameState: active, currentStateRevision: 4) as StrengthPushApplied;
+      gameState: active, currentStateRevision: 4, authoringMap: map) as StrengthPushApplied;
     expect(result.gameState.mapInstanceWorldState.instancesByMapId[map.id]!.fieldObstaclePositions, isEmpty);
     expect(result.gameState.mapInstanceWorldState.persistentFieldObstaclePositions[map.id]?['rock'], const GridPos(x: 3, y: 1));
     final restored = GameState.fromJson(result.gameState.toJson());
@@ -571,3 +759,29 @@ Map<String, MapInstanceNpcPose> _npcPoses(Map<String, GridPos> positions) => {
   for (final entry in positions.entries)
     entry.key: MapInstanceNpcPose(position: entry.value, facing: EntityFacing.south),
 };
+
+MapData _persistentStrengthMap([MapEntity? blocker]) {
+  final base = obstacleMap(FieldObstacleKind.strengthBoulder);
+  return base.copyWith(entities: [
+    base.entities.single.copyWith(fieldObstacle: const MapEntityFieldObstacleData(
+      kind: FieldObstacleKind.strengthBoulder, resetPolicy: FieldObstacleResetPolicy.persistent)),
+    if (blocker != null) blocker,
+  ]);
+}
+
+GameState _activeStrength() {
+  final state = ready(FieldAbility.strength);
+  return state.copyWith(mapInstanceWorldState: state.mapInstanceWorldState.activateStrength(
+    state.mapInstanceWorldState.instanceRef('route')!));
+}
+
+FieldObstacleTicket _strengthTicket(GameState state, String id, GridPos source) => FieldObstacleTicket(
+  fieldAction: FieldActionTicket(ability: FieldAbility.strength, targetCell: source, issuedAtStateRevision: 4),
+  instance: state.mapInstanceWorldState.instanceRef(state.currentMapId)!, entityId: id,
+  playerPosition: state.playerPosition, playerPixelPosition: state.playerPixelPosition, playerFacing: state.playerFacing);
+
+void _expectBlockedPersistentPush(FieldObstacleCommit result) {
+  expect(result, isA<FieldObstacleRefused>());
+  expect((result as FieldObstacleRefused).refusal, FieldActionRefusal.noLongerAvailable);
+  expect((result.evaluation as FieldObstacleUnavailable).reason, FieldObstacleBlockReason.blockedDestination);
+}

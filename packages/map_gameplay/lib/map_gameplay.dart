@@ -1,6 +1,10 @@
 library map_gameplay;
 
+export 'src/spatial_strength_action.dart';
+export 'src/spatial_surf_water.dart';
+
 export 'src/spatial_field_obstacle_action.dart';
+export 'src/spatial_field_obstacle_pose.dart';
 
 export 'src/spatial_trainer_spotting.dart';
 export 'src/contact_device_access.dart';
@@ -406,6 +410,7 @@ export 'src/waterfall_action.dart';
 export 'src/whirlpool_action.dart';
 export 'src/field_traversal_action.dart';
 export 'src/field_traversal_geometry.dart';
+export 'src/spatial_field_traversal_action.dart';
 
 export 'src/narrative_parallel_scheduler.dart';
 

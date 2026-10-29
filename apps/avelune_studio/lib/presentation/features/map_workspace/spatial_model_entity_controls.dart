@@ -71,7 +71,7 @@ class SpatialModelEntityControls extends StatelessWidget {
         );
         document.error = null;
       } on Object {
-        document.error = 'Choisissez un décor statique bloquant sans autre rôle de jeu pour Coupe ou Éclate-Roc.';
+        document.error = 'Choisissez un décor statique bloquant sans autre rôle de jeu pour Coupe, Force ou Éclate-Roc.';
       }
       onChanged();
     }
@@ -98,6 +98,7 @@ class SpatialModelEntityControls extends StatelessWidget {
           options: const {
             '': 'Aucun',
             'cutTree': 'Coupe',
+            'strengthBoulder': 'Force · rocher à pousser',
             'rockSmashRock': 'Éclate-Roc',
           },
           onChanged: document.saving || !canConfigure
@@ -121,7 +122,7 @@ class SpatialModelEntityControls extends StatelessWidget {
             value: obstacle.resetPolicy.name,
             options: const {
               'persistent': 'Conservé dans la sauvegarde',
-              'mapInstance': 'Réapparaît à la nouvelle instance',
+              'mapInstance': 'Réinitialisé à la nouvelle instance',
             },
             onChanged: document.saving
                 ? null

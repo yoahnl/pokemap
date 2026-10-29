@@ -12,6 +12,7 @@ import '../domain/map_exterior_decoration_port.dart';
 import '../../project_visuals/domain/project_visuals_port.dart';
 import '../domain/map_editor_port.dart';
 import '../domain/spatial_field_obstacle_port.dart';
+import '../domain/field_traversal_zone_port.dart';
 
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -36,6 +37,7 @@ part 'local_project_audio_adapter.dart';
 part 'local_project_settings_mutation.dart';
 part 'local_map_editor_adapter.dart';
 part 'local_spatial_field_obstacle_adapter.dart';
+part 'local_field_traversal_zone_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
 part 'local_map_workspace_scoped_catalog.dart';
@@ -55,7 +57,12 @@ final class LocalMapWorkspaceAdapter
         ProjectAudioPort,
         MapEditorPort,
         MapElementOrderPort,
-        SpatialFieldObstaclePort {
+        SpatialFieldObstaclePort,
+        FieldTraversalZonePort {
+  @override
+  Future<FieldTraversalZoneReceipt> publishFieldTraversalZone(ProjectSession session, MapWorkspaceDocument base, String actionId, Map<String, Object?> parameters) => withResourceMutation(() => _publishFieldTraversalZone(session, base, actionId, parameters));
+  @override
+  Future<FieldTraversalZoneReceipt> restoreFieldTraversalZone(ProjectSession session, MapWorkspaceDocument base, FieldTraversalZoneReceipt receipt, {required bool redo}) => withResourceMutation(() => _publishFieldTraversalZone(session, base, receipt.actionId, receipt.parameters, undo: receipt, redo: redo));
   @override
   Future<SpatialFieldObstacleReceipt> configureSpatialFieldObstacle(ProjectSession session, MapWorkspaceDocument base, String instanceId, MapEntityFieldObstacleData? fieldObstacle) => withResourceMutation(() => _configureSpatialFieldObstacle(session, base, instanceId, fieldObstacle));
   @override

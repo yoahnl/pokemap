@@ -392,7 +392,11 @@ void validateFieldActionZone(MapData map, MapGameplayZone zone) {
       'Field-action zones require their exclusive typed payload.',
     );
   }
-  if (map.spatialScene != null || map.version == ProjectVersion.v9) {
+  if ((map.spatialScene != null || map.version == ProjectVersion.v9) &&
+      !const {
+        FieldActionZoneKind.waterfall,
+        FieldActionZoneKind.whirlpool,
+      }.contains(payload.actionKind)) {
     throw const ValidationException(
       'Field-action zones are supported on 2D maps only.',
     );

@@ -18,11 +18,13 @@ final class GamePackageSpatialProjectValidator {
     this.policy = const GamePackageSecurityPolicy(),
     this.gameplay = false,
     this.trainerSpotting = false,
+    this.surf = false,
   });
 
   final GamePackageSecurityPolicy policy;
   final bool gameplay;
   final bool trainerSpotting;
+  final bool surf;
 
   bool _connectionCellIsClosed(MapData map, GridPos position) =>
       map.spatialScene!.navigation.blockedAreas.any((area) =>
@@ -382,7 +384,13 @@ final class GamePackageSpatialProjectValidator {
 
   void _validateGameplayMap(MapData map, String path) {
     for (final zone in map.gameplayZones) {
-      if (zone.kind != GameplayZoneKind.encounter) {
+      final traversal = zone.kind == GameplayZoneKind.fieldAction &&
+          const {FieldActionZoneKind.waterfall, FieldActionZoneKind.whirlpool}
+              .contains(zone.fieldAction?.actionKind);
+      final surfWater = surf && zone.kind == GameplayZoneKind.movement &&
+          (zone.movement?.requiredMode == MovementMode.surf ||
+              zone.movement?.allowedModes.contains(MovementMode.surf) == true);
+      if (zone.kind != GameplayZoneKind.encounter && !traversal && !surfWater) {
         _unsupported('$path.gameplayZones.${zone.id}');
       }
     }
