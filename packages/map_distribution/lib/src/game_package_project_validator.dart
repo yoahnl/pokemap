@@ -384,9 +384,20 @@ final class GamePackageProjectValidator {
                 .contains(SpatialTerrainSurfaceSet.capabilityId)) {
           _fail('Continuous 3D terrain requires map3d.terrain-surfaces@1.');
         }
-        if (maps.any((map) => map.spatialScene!.instances.any((instance) => instance.entityId != null)) &&
-            !packageManifest.compatibility.requiredCapabilities.contains(SpatialModelInstance.entityBindingCapabilityId)) {
-          _fail('Entity-linked 3D models require ${SpatialModelInstance.entityBindingCapabilityId}.');
+        if (maps.any((map) => map.spatialScene!.instances
+                .any((instance) => instance.entityId != null)) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialModelInstance.entityBindingCapabilityId)) {
+          _fail(
+              'Entity-linked 3D models require ${SpatialModelInstance.entityBindingCapabilityId}.');
+        }
+        if (maps.any((map) =>
+                map.spatialScene!.navigation.maximumFishingDropWorld !=
+                SpatialNavigationProfile.defaultMaximumFishingDropWorld) &&
+            !packageManifest.compatibility.requiredCapabilities
+                .contains(SpatialNavigationProfile.fishingDropCapabilityId)) {
+          _fail(
+              'Custom fishing drop requires ${SpatialNavigationProfile.fishingDropCapabilityId}.');
         }
         if (maps.any((map) => map.spatialScene!.navigation.ledges.isNotEmpty) &&
             !packageManifest.compatibility.requiredCapabilities.contains(SpatialLedge.capabilityId)) {

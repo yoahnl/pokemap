@@ -444,6 +444,40 @@ final class SpatialMovementController {
     return !_collides(PixelRect(leftPx: 0, topPx: 0, widthPx: (platform.width * pixelsPerCell).ceil(), heightPx: (platform.depth * pixelsPerCell).ceil()), offsetX: platform.x + offsetX, offsetZ: platform.z + offsetZ, ignoreTerrain: true, groundHeightOverride: platform.height);
   }
 
+  bool canCastFishingLine(double fromX, double fromZ, double toX, double toZ,
+      {bool Function(double x, double z)? surfWaterPredicate}) {
+    if ([fromX, fromZ, toX, toZ].any((value) => !value.isFinite) ||
+        fromX < 0 ||
+        fromZ < 0 ||
+        toX < 0 ||
+        toZ < 0 ||
+        fromX >= scene.width ||
+        toX >= scene.width ||
+        fromZ >= scene.depth ||
+        toZ >= scene.depth ||
+        (toX - fromX).abs() + (toZ - fromZ).abs() > 1 + 1e-6) {
+      return false;
+    }
+    final fromHeight = scene.worldHeightAt(fromX, fromZ);
+    final toHeight = scene.worldHeightAt(toX, toZ);
+    for (var step = 1; step <= pixelsPerCell; step++) {
+      final t = step / pixelsPerCell;
+      final x = fromX + (toX - fromX) * t;
+      final z = fromZ + (toZ - fromZ) * t;
+      if (scene.navigation.ledges.any((ledge) => ledge.containsBarrier(x, z)) ||
+          _collides(
+              const PixelRect(leftPx: 0, topPx: 0, widthPx: 1, heightPx: 1),
+              offsetX: x,
+              offsetZ: z,
+              ignoreTerrain: true,
+              surfWaterPredicate: surfWaterPredicate,
+              groundHeightOverride: fromHeight + (toHeight - fromHeight) * t)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   bool canTraverseActor(double fromX, double fromZ, double toX, double toZ,
       {String? ignoredEntityId,
       SpatialFieldTraversalStep? fieldTraversalStep,
@@ -1087,6 +1121,7 @@ final class SpatialMovementController {
   bool _collides(PixelRect rect,
       {bool ignoreBounds = false,
       bool ignoreTerrain = false,
+      bool Function(double x, double z)? surfWaterPredicate,
       double? groundHeightOverride,
       SpatialFieldTraversalStep? fieldTraversalStep,
       double offsetX = 0,
@@ -1113,7 +1148,8 @@ final class SpatialMovementController {
             x < scene.width &&
             z >= 0 &&
             z < scene.depth &&
-            (_blockedCells.contains(z * scene.width + x) ||
+            (_blockedCells.contains(z * scene.width + x) &&
+                    !(surfWaterPredicate?.call(x + .5, z + .5) ?? false) ||
                 (_fieldTraversalBodies[z * scene.width + x]?.any(
                     (id) => id != fieldTraversalStep?.zone.id) ?? false))) {
           return true;
@@ -1125,7 +1161,18 @@ final class SpatialMovementController {
           right > area.x &&
           top < area.z + area.depth &&
           bottom > area.z) {
-        return true;
+        if (surfWaterPredicate == null) return true;
+        final clippedLeft = math.max(left, area.x),
+            clippedRight = math.min(right, area.x + area.width),
+            clippedTop = math.max(top, area.z),
+            clippedBottom = math.min(bottom, area.z + area.depth);
+        for (var z = clippedTop.floor(); z < clippedBottom.ceil(); z++) {
+          for (var x = clippedLeft.floor(); x < clippedRight.ceil(); x++) {
+            if (!surfWaterPredicate(x + .5, z + .5)) {
+              return true;
+            }
+          }
+        }
       }
     }
     for (final sourceEntity in entities) {

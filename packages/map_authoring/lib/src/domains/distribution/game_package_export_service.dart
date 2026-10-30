@@ -353,6 +353,10 @@ final class CanonicalGamePackageExportService {
         if (continuousTerrain) SpatialTerrainSurfaceSet.capabilityId,
         if (fractionalRamps) SpatialRamp.fractionalLevelsCapabilityId,
         if (directionalLedges) SpatialLedge.capabilityId,
+        if (spatialMaps.any((map) =>
+            map.spatialScene!.navigation.maximumFishingDropWorld !=
+            SpatialNavigationProfile.defaultMaximumFishingDropWorld))
+          SpatialNavigationProfile.fishingDropCapabilityId,
         if (entityModels) SpatialModelInstance.entityBindingCapabilityId,
         if (actorOcclusion) SpatialActorOcclusionCapabilities.capabilityId,
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
@@ -374,7 +378,7 @@ final class CanonicalGamePackageExportService {
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
         if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
         if (projection.project.battleSavings != null) ProjectBattleSavingsConfig.capabilityId,
-        if (SurfGameplayCapabilities.requiresCapability(projection.project)) SurfGameplayCapabilities.capabilityId,
+        if (SurfGameplayCapabilities.requiresCapability(projection.project, maps: spatialMaps)) SurfGameplayCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresCapability(projection.project)) FieldAbilityActivationCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresExtendedCapability(projection.project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresCapability(projection.project)) ProjectAudioCapabilities.capabilityId,

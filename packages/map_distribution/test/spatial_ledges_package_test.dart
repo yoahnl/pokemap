@@ -6,6 +6,45 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test(
+      'non-default fishing drop requires capability and current player supports it',
+      () {
+    final payload = spatialPayload();
+    final map = MapData.fromJson(
+        jsonDecode(utf8.decode(payload['project/maps/map.json']!)));
+    payload['project/maps/map.json'] = utf8.encode(jsonEncode(map
+        .copyWith(
+            spatialScene: map.spatialScene!.copyWith(
+                navigation: map.spatialScene!.navigation
+                    .copyWith(maximumFishingDropWorld: .5)))
+        .toJson()));
+    expect(
+        () => const GamePackageBuilder().build(
+            manifest: spatialManifest(capabilities: ['map3d@1']),
+            payloadFiles: payload),
+        throwsA(isA<GamePackageFormatException>().having(
+            (e) => e.message, 'message', contains('map3d.fishing-drop@1'))));
+    final built = const GamePackageBuilder().build(
+        manifest:
+            spatialManifest(capabilities: ['map3d@1', 'map3d.fishing-drop@1']),
+        payloadFiles: payload);
+    expect(() => const GamePackageInspector().inspect(built.packageBytes),
+        returnsNormally);
+    expect(AveluneRuntimeCompatibility.host().capabilities,
+        contains('map3d.fishing-drop@1'));
+    final older = GamePackageHostCompatibility(
+        hubVersion: Version.parse('1.2.0'),
+        runtimeApiVersion: Version.parse('1.4.0'),
+        capabilities: const {'map3d@1'},
+        supportedProjectFormats: const {'v9'},
+        currentProjectFormat: 'v9',
+        supportedSaveFormats: const {1});
+    expect(
+        () => GamePackageInspector(hostCompatibility: older)
+            .inspect(built.packageBytes),
+        throwsA(isA<GamePackageFormatException>()
+            .having((e) => e.code, 'code', 'capabilityUnsupported')));
+  });
   test('directional jumps fail closed without capability and on older players',
       () {
     final payload = spatialPayload();

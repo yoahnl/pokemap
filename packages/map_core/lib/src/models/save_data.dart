@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'world_environment.dart';
 import 'gameplay_calendar.dart';
 import 'deferred_crafting.dart';
+import 'periodic_reward.dart';
 import 'image_puzzle.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -836,6 +837,8 @@ abstract class SaveData with _$SaveData {
     @Default(GameplayCalendarState.empty()) GameplayCalendarState gameplayCalendarState,
     @JsonKey(readValue: readDeferredCraftingStateJson)
     @Default(DeferredCraftingState.empty()) DeferredCraftingState deferredCraftingState,
+    @JsonKey(readValue: readPeriodicRewardStateJson)
+    @Default(PeriodicRewardState.empty()) PeriodicRewardState periodicRewardState,
     @JsonKey(readValue: readImagePuzzleStateJson)
     @Default(ImagePuzzleState.empty()) ImagePuzzleState imagePuzzleState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
@@ -884,6 +887,7 @@ abstract class SaveData with _$SaveData {
 
   SaveData normalized() {
     deferredCraftingState.validateCalendar(gameplayCalendarState);
+    periodicRewardState.validateCalendar(gameplayCalendarState);
     final normalizedSaveId = saveId.trim();
     final normalizedCurrentMapId = currentMapId.trim();
     playerSpatialPosition?.validateGridPosition(playerPosition);
@@ -972,5 +976,6 @@ SaveData _decodeSaveData(Map<String, dynamic> json) {
   }
   final state = _$SaveDataFromJson(json);
   state.deferredCraftingState.validateCalendar(state.gameplayCalendarState);
+  state.periodicRewardState.validateCalendar(state.gameplayCalendarState);
   return state;
 }

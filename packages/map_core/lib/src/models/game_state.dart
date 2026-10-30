@@ -3,6 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'world_environment.dart';
 import 'gameplay_calendar.dart';
 import 'deferred_crafting.dart';
+import 'periodic_reward.dart';
 import 'image_puzzle.dart';
 import 'enums.dart';
 import 'geometry.dart';
@@ -101,6 +102,8 @@ abstract class GameState with _$GameState {
     @Default(GameplayCalendarState.empty()) GameplayCalendarState gameplayCalendarState,
     @JsonKey(readValue: readDeferredCraftingStateJson)
     @Default(DeferredCraftingState.empty()) DeferredCraftingState deferredCraftingState,
+    @JsonKey(readValue: readPeriodicRewardStateJson)
+    @Default(PeriodicRewardState.empty()) PeriodicRewardState periodicRewardState,
     @JsonKey(readValue: readImagePuzzleStateJson)
     @Default(ImagePuzzleState.empty()) ImagePuzzleState imagePuzzleState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
@@ -165,5 +168,6 @@ abstract class GameState with _$GameState {
 GameState _decodeGameState(Map<String, dynamic> json) {
   final state = _$GameStateFromJson(json);
   state.deferredCraftingState.validateCalendar(state.gameplayCalendarState);
+  state.periodicRewardState.validateCalendar(state.gameplayCalendarState);
   return state;
 }

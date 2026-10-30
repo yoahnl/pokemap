@@ -99,6 +99,7 @@ void main() {
       final before = await mapFile.readAsBytes();
       final navigation = map.spatialScene!.navigation.toJson();
       (navigation['ramps'] as List).single['surfaceInstanceId'] = 'stairs';
+      navigation['maximumFishingDropWorld'] = .5;
       final applied = await mutate('map3d.navigation.configure', {
         'mapId': 'map',
         'navigation': navigation,
@@ -111,6 +112,7 @@ void main() {
         'stairs',
       );
       expect(saved().spatialScene!.navigation.ramps.single.x, 1.25);
+      expect(saved().spatialScene!.navigation.maximumFishingDropWorld, .5);
       final linked = saved();
       await mutations.closeProject(path);
       await queries.closeAll();

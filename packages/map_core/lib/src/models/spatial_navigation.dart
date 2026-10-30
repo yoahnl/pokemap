@@ -275,6 +275,7 @@ final class SpatialNavigationProfile {
   SpatialNavigationProfile({
     SpatialSpawn? spawn,
     this.allowDiagonalMovement = false,
+    this.maximumFishingDropWorld = defaultMaximumFishingDropWorld,
     Iterable<SpatialRamp> ramps = const [],
     Iterable<SpatialLedge> ledges = const [],
     Iterable<SpatialBlockedArea> blockedAreas = const [],
@@ -282,6 +283,13 @@ final class SpatialNavigationProfile {
        ramps = List.unmodifiable(ramps),
        ledges = List.unmodifiable(ledges),
        blockedAreas = List.unmodifiable(blockedAreas) {
+    if (!maximumFishingDropWorld.isFinite ||
+        maximumFishingDropWorld < 0 ||
+        maximumFishingDropWorld > 4) {
+      throw const FormatException(
+        'Fishing drop must be finite and between 0 and 4.',
+      );
+    }
     if (this.ledges.length > 4096 ||
         this.ledges.map((ledge) => ledge.id).toSet().length !=
             this.ledges.length ||
@@ -308,6 +316,9 @@ final class SpatialNavigationProfile {
       }
     }
   }
+  static const defaultMaximumFishingDropWorld = .25;
+  static const fishingDropCapabilityId = 'map3d.fishing-drop@1';
+  final double maximumFishingDropWorld;
   final SpatialSpawn spawn;
   final bool allowDiagonalMovement;
   final List<SpatialRamp> ramps;
@@ -316,11 +327,14 @@ final class SpatialNavigationProfile {
   SpatialNavigationProfile copyWith({
     SpatialSpawn? spawn,
     bool? allowDiagonalMovement,
+    double? maximumFishingDropWorld,
     Iterable<SpatialRamp>? ramps,
     Iterable<SpatialLedge>? ledges,
     Iterable<SpatialBlockedArea>? blockedAreas,
   }) => SpatialNavigationProfile(
     spawn: spawn ?? this.spawn,
+    maximumFishingDropWorld:
+        maximumFishingDropWorld ?? this.maximumFishingDropWorld,
     allowDiagonalMovement: allowDiagonalMovement ?? this.allowDiagonalMovement,
     ramps: ramps ?? this.ramps,
     ledges: ledges ?? this.ledges,
@@ -332,6 +346,9 @@ final class SpatialNavigationProfile {
           Map<String, dynamic>.from(json['spawn'] as Map),
         ),
         allowDiagonalMovement: json['allowDiagonalMovement'] as bool,
+        maximumFishingDropWorld:
+            (json['maximumFishingDropWorld'] as num?)?.toDouble() ??
+            defaultMaximumFishingDropWorld,
         ramps: (json['ramps'] as List).map(
           (v) => SpatialRamp.fromJson(Map<String, dynamic>.from(v as Map)),
         ),
@@ -346,6 +363,8 @@ final class SpatialNavigationProfile {
       );
   Map<String, dynamic> toJson() => {
     'spawn': spawn.toJson(),
+    if (maximumFishingDropWorld != defaultMaximumFishingDropWorld)
+      'maximumFishingDropWorld': maximumFishingDropWorld,
     'allowDiagonalMovement': allowDiagonalMovement,
     'ramps': ramps.map((v) => v.toJson()).toList(),
     if (ledges.isNotEmpty) 'ledges': ledges.map((v) => v.toJson()).toList(),
@@ -355,6 +374,7 @@ final class SpatialNavigationProfile {
   bool operator ==(Object other) =>
       other is SpatialNavigationProfile &&
       spawn == other.spawn &&
+      maximumFishingDropWorld == other.maximumFishingDropWorld &&
       allowDiagonalMovement == other.allowDiagonalMovement &&
       const DeepCollectionEquality().equals(ramps, other.ramps) &&
       const DeepCollectionEquality().equals(ledges, other.ledges) &&
@@ -362,6 +382,7 @@ final class SpatialNavigationProfile {
   @override
   int get hashCode => Object.hash(
     spawn,
+    maximumFishingDropWorld,
     allowDiagonalMovement,
     const DeepCollectionEquality().hash(ramps),
     const DeepCollectionEquality().hash(ledges),

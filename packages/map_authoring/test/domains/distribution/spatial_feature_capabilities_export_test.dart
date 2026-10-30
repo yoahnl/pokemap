@@ -9,6 +9,55 @@ import '../../../../map_distribution/test/support/spatial_feature_capabilities_f
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('fishing height capability is exported only for non-default maps',
+      () async {
+    final configuredRoot = Platform.environment['AVELUNE_QA_ROOT'];
+    final home = Platform.environment['HOME'];
+    final qaRoot = configuredRoot ?? (Platform.isMacOS && home != null
+        ? '$home/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/fishing-height'
+        : null);
+    final owner = qaRoot == null ? Directory.systemTemp : Directory(qaRoot);
+    await owner.create(recursive: true);
+    final root = await owner.createTemp('avelune-fishing-export-');
+    addTearDown(() => root.delete(recursive: true));
+    for (final drop in [.25, .5]) {
+      final files = spatialPayload();
+      final map = MapData.fromJson(
+          jsonDecode(utf8.decode(files['project/maps/map.json']!)));
+      files['project/maps/map.json'] = utf8.encode(jsonEncode(map
+          .copyWith(
+              spatialScene: map.spatialScene!.copyWith(
+                  navigation: map.spatialScene!.navigation
+                      .copyWith(maximumFishingDropWorld: drop)))
+          .toJson()));
+      for (final entry in files.entries) {
+        final file =
+            File('${root.path}/${entry.key.substring('project/'.length)}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value);
+      }
+      final result = await const CanonicalGamePackageExportService().build(
+          projectRoot: root,
+          profile: GamePackageExportProfile(
+              gameId: 'games.example.fishing',
+              gameVersion: '0.1.0',
+              title: 'Fishing',
+              authorName: 'Yoahn',
+              defaultLocale: 'fr',
+              supportedLocales: ['fr']),
+          mode: GamePackageExportMode.localTest);
+      expect(
+          result.manifest.compatibility.requiredCapabilities
+              .contains('map3d.fishing-drop@1'),
+          drop != .25);
+      for (final entry in files.entries) {
+        expect(
+            await File('${root.path}/${entry.key.substring('project/'.length)}')
+                .readAsBytes(),
+            entry.value);
+      }
+    }
+  });
   for (final whirlpool in [false, true]) {
     test('canonical export preserves a spatial water route with Surf $whirlpool', () async {
       final root = await Directory.systemTemp.createTemp('spatial-field-export-');

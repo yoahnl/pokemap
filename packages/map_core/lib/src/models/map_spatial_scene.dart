@@ -462,6 +462,26 @@ final class MapSpatialScene {
       }
     }
   }
+  MapSpatialScene._withMaximumFishingDropWorld(
+    MapSpatialScene source,
+    double value,
+  ) : width = source.width,
+      depth = source.depth,
+      heightLevels = source.heightLevels,
+      levelHeight = source.levelHeight,
+      cliffFrame = source.cliffFrame,
+      generateCliffs = source.generateCliffs,
+      instances = source.instances,
+      lifts = source.lifts,
+      platforms = source.platforms,
+      camera = source.camera,
+      dayNightCycle = source.dayNightCycle,
+      terrainSurfaces = source.terrainSurfaces,
+      navigation = source.navigation.copyWith(maximumFishingDropWorld: value);
+
+  MapSpatialScene withMaximumFishingDropWorld(double value) =>
+      MapSpatialScene._withMaximumFishingDropWorld(this, value);
+
   final int width, depth;
   final List<int> heightLevels;
   final double levelHeight;

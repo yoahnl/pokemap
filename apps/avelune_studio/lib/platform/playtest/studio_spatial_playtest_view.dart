@@ -196,6 +196,16 @@ class _StudioSpatialPlaytestViewState extends State<StudioSpatialPlaytestView>
                                 snapshot: service,
                                 onCommand: command,
                               ),
+                            RuntimeWorldServiceKind.crafting =>
+                              PlayerCraftingOverlay(
+                                snapshot: service,
+                                onCommand: command,
+                              ),
+                            RuntimeWorldServiceKind.imagePuzzle =>
+                              PlayerImagePuzzleOverlay(
+                                snapshot: service,
+                                onCommand: command,
+                              ),
                           };
                         },
                       ),

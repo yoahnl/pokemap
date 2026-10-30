@@ -9,6 +9,7 @@ import 'items/bag_operations.dart';
 import 'movement_terrain_policy.dart';
 import 'script_condition_evaluator.dart';
 import 'spatial_fishing_target.dart';
+import 'spatial_movement_controller.dart';
 
 enum FishingBlockReason {
   unsupportedMap,
@@ -55,6 +56,7 @@ FishingAttemptEvaluation evaluateFishingAttempt({
   required ProjectItemDefinition item,
   ScriptEvaluationContext? conditionContext,
   EncounterEvaluationContext? encounterContext,
+  SpatialMovementController? spatialMovement,
 }) {
   final map = world.map;
   final spatial = map.version == ProjectVersion.v9 && map.spatialScene != null;
@@ -82,7 +84,8 @@ FishingAttemptEvaluation evaluateFishingAttempt({
         reason: FishingBlockReason.insufficientQuantity);
   }
   final target = spatial
-      ? spatialFishingTarget(map, gameState)
+      ? spatialFishingTarget(world, gameState,
+          models: project.models3d, movement: spatialMovement)
       : GridPos(
           x: world.player.pos.x + world.player.facing.dx,
           y: world.player.pos.y + world.player.facing.dy,
@@ -181,6 +184,7 @@ FishingAttemptResult resolveFishingAttempt({
   required String? mapActivationId,
   ScriptEvaluationContext? conditionContext,
   EncounterEvaluationContext? encounterContext,
+  SpatialMovementController? spatialMovement,
   Random? random,
 }) {
   if (!isFishingAttemptCurrent(
@@ -199,7 +203,8 @@ FishingAttemptResult resolveFishingAttempt({
       gameState: gameState,
       item: item,
       conditionContext: conditionContext,
-      encounterContext: encounterContext);
+      encounterContext: encounterContext,
+      spatialMovement: spatialMovement);
   if (!evaluation.isReady) {
     return FishingAttemptResult(
         reason: evaluation.reason, encounterCheck: evaluation.encounterCheck);

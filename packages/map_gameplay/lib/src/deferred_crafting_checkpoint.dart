@@ -32,6 +32,10 @@ Future<GameState> checkpointDeferredCrafting(
         if (sameDeferredCraftingCheckpointFields(candidate, base)) {
           return _project(candidate, durable);
         }
+        if (sameDeferredCraftingCheckpointFields(
+            candidate, owner.latestCheckpointState)) {
+          return candidate;
+        }
         if (candidate.saveId != durable.saveId ||
             candidate.gameplayCalendarState.dayRevision <
                 durable.gameplayCalendarState.dayRevision ||

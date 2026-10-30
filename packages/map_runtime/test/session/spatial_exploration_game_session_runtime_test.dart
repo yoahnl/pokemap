@@ -120,9 +120,15 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  Future<void> configureFishing({double chance = 0, MovementMode mode = MovementMode.walk,
-      bool battleData = false, FlameCinematicAudioDriver? musicDriver,
-      GameSessionCheckpointCommitter? commitCheckpoint}) async {
+  Future<void> configureFishing({
+    double chance = 0,
+    MovementMode mode = MovementMode.walk,
+    MapSpatialScene? fishingScene,
+    List<MapEntity> fishingObstacles = const [],
+    bool battleData = false,
+    FlameCinematicAudioDriver? musicDriver,
+    GameSessionCheckpointCommitter? commitCheckpoint,
+  }) async {
     var state = descriptor().initialGameState!;
     if (battleData) {
       final reference = Directory('../../examples/playable_runtime_host/golden_battle_slice');
@@ -142,25 +148,74 @@ void main() {
         const ProjectItemCatalog(schemaVersion: 1, entries: [fishingTool]).toJson()));
     bundle = bundle.copyWith(
       manifest: bundle.manifest.copyWith(
-        battleAudio: musicDriver == null ? bundle.manifest.battleAudio : const ProjectBattleAudioConfig(wildBattleMusicPath: 'fishing-battle.ogg'),
-        pokemon: bundle.manifest.pokemon.copyWith(catalogFiles: {
-          ...bundle.manifest.pokemon.catalogFiles, 'items': 'items.json'}),
-        encounterTables: [ProjectEncounterTable(id: 'rod', name: 'Rod',
-          encounterKind: EncounterKind.oldRod, chancePerStep: chance,
-          entries: const [ProjectEncounterEntry(speciesId: 'sparkitten', minLevel: 5, maxLevel: 5)])]),
-      map: bundle.map.copyWith(entities: [], gameplayZones: const [
-        MapGameplayZone(id: 'water', kind: GameplayZoneKind.movement,
-          area: MapRect(pos: GridPos(x: 4, y: 3), size: GridSize(width: 1, height: 1)),
-          movement: MovementZonePayload(requiredMode: MovementMode.surf)),
-        MapGameplayZone(id: 'fish', kind: GameplayZoneKind.encounter,
-          area: MapRect(pos: GridPos(x: 4, y: 3), size: GridSize(width: 1, height: 1)),
-          encounter: EncounterZonePayload(encounterKind: EncounterKind.oldRod, encounterTableId: 'rod')),
-      ]));
+        battleAudio: musicDriver == null
+            ? bundle.manifest.battleAudio
+            : const ProjectBattleAudioConfig(
+                wildBattleMusicPath: 'fishing-battle.ogg',
+              ),
+        pokemon: bundle.manifest.pokemon.copyWith(
+          catalogFiles: {
+            ...bundle.manifest.pokemon.catalogFiles,
+            'items': 'items.json',
+          },
+        ),
+        encounterTables: [
+          ProjectEncounterTable(
+            id: 'rod',
+            name: 'Rod',
+            encounterKind: EncounterKind.oldRod,
+            chancePerStep: chance,
+            entries: const [
+              ProjectEncounterEntry(
+                speciesId: 'sparkitten',
+                minLevel: 5,
+                maxLevel: 5,
+              ),
+            ],
+          ),
+        ],
+      ),
+      map: bundle.map.copyWith(
+        entities: fishingObstacles,
+        spatialScene: fishingScene ?? bundle.map.spatialScene,
+        gameplayZones: const [
+          MapGameplayZone(
+            id: 'water',
+            kind: GameplayZoneKind.movement,
+            area: MapRect(
+              pos: GridPos(x: 4, y: 3),
+              size: GridSize(width: 1, height: 1),
+            ),
+            movement: MovementZonePayload(requiredMode: MovementMode.surf),
+          ),
+          MapGameplayZone(
+            id: 'fish',
+            kind: GameplayZoneKind.encounter,
+            area: MapRect(
+              pos: GridPos(x: 4, y: 3),
+              size: GridSize(width: 1, height: 1),
+            ),
+            encounter: EncounterZonePayload(
+              encounterKind: EncounterKind.oldRod,
+              encounterTableId: 'rod',
+            ),
+          ),
+        ],
+      ),
+    );
     await runtime.dispose();
     runtime = SpatialExplorationGameSessionRuntime(
-      descriptor: descriptor(initialState: state.copyWith(
-        playerFacing: EntityFacing.north, playerMovementMode: mode,
-        bag: const Bag(entries: [BagEntry(itemId: 'tool', quantity: 1)]))),
+      descriptor: descriptor(
+        initialState: state.copyWith(
+          playerFacing: EntityFacing.north,
+          playerMovementMode: mode,
+          playerSpatialPosition:
+              fishingScene == null && fishingObstacles.isEmpty
+              ? state.playerSpatialPosition
+              : PlayerSpatialPosition(x: 4.5, z: 4.5),
+          bag: const Bag(entries: [BagEntry(itemId: 'tool', quantity: 1)]),
+        ),
+      ),
       projectFilePath: () async => '${root.path}/project.json',
       preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
       commitCheckpoint: commitCheckpoint,
@@ -172,7 +227,119 @@ void main() {
 
   Future<RuntimePlayerPauseCommandResult> useFishingRod() async {
     await runtime.pause();
-    return runtime.dispatchPauseCommand(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'));
+    return runtime.dispatchPauseCommand(
+      const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'),
+    );
+  }
+
+  for (final limit in [.25, .5]) {
+    test(
+      'spatial fishing half-unit bank uses configured maximum $limit end to end',
+      () async {
+        final source = bundle.map.spatialScene!;
+        final scene = MapSpatialScene(
+          width: 8,
+          depth: 8,
+          levelHeight: .25,
+          heightLevels: [
+            for (var z = 0; z < 8; z++)
+              for (var x = 0; x < 8; x++) z < 4 ? 2 : 4,
+          ],
+          navigation: source.navigation.copyWith(
+            maximumFishingDropWorld: limit,
+            blockedAreas: [SpatialBlockedArea(x: 4, z: 3, width: 1, depth: 1)],
+          ),
+        );
+        await configureFishing(fishingScene: scene);
+        final result = await useFishingRod();
+        expect(
+          result.status,
+          limit == .5
+              ? RuntimePlayerPauseCommandStatus.accepted
+              : RuntimePlayerPauseCommandStatus.unavailable,
+        );
+        if (limit == .5) {
+          await runtime.resume();
+          runtime.session!.frames(.4);
+          runtime.session!.frames(1.1);
+          expect(
+            runtime.dialoguePresentationListenable.value?.text,
+            'Pas de touche…',
+          );
+        }
+        expect(runtime.battle!.isActive, isFalse);
+      },
+    );
+  }
+
+  test('spatial fishing high drop still refuses a separate raised support', () async {
+    final scene = bundle.map.spatialScene!.withMaximumFishingDropWorld(4);
+    await configureFishing(chance: 1, fishingScene: scene);
+    runtime.session!.movement.terrainHeightOverride = (_, _) => 2;
+    expect((await useFishingRod()).status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    await runtime.resume();
+    runtime.session!.frames(5);
+    expect(runtime.battle!.isActive, isFalse);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(await runtime.captureCheckpoint(), isNotNull);
+  });
+
+  for (final phase in ['reservation', 'waiting', 'handoff']) {
+    test('spatial fishing rechecks an appearing obstacle at $phase', () async {
+      final driver = phase == 'handoff' ? _DelayedFishingMusicDriver() : null;
+      if (driver != null) {
+        addTearDown(() {
+          if (!driver.release.isCompleted) driver.release.complete();
+        });
+      }
+      await configureFishing(
+        chance: 1,
+        battleData: driver != null,
+        musicDriver: driver,
+        fishingObstacles: [
+          MapEntity(
+            id: 'cast-blocker',
+            kind: MapEntityKind.custom,
+            pos: const GridPos(x: 4, y: 3),
+            blocksMovement: true,
+          ),
+        ],
+      );
+      var visible = phase == 'reservation';
+      runtime.session!.movement.setEntityPresencePredicate((_) => visible);
+      final result = await useFishingRod();
+      if (phase == 'reservation') {
+        expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
+      } else {
+        expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+        await runtime.resume();
+        runtime.session!.frames(.4);
+        if (driver == null) {
+          visible = true;
+          runtime.session!.frames(1.1);
+        } else {
+          runtime.session!.frames(1.1);
+          runtime.session!.frames(.7);
+          await driver.entered.future.timeout(const Duration(seconds: 3));
+          visible = true;
+          driver.release.complete();
+          for (var i = 0; i < 200; i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 2));
+            try {
+              await runtime.captureCheckpoint();
+              break;
+            } on StateError {
+              continue;
+            }
+          }
+        }
+        runtime.session!.frames(5);
+      }
+      expect(runtime.battle!.isActive, isFalse);
+      expect(runtime.dialoguePresentationListenable.value, isNull);
+      expect(await runtime.captureCheckpoint(), isNotNull);
+    });
   }
 
   test('spatial fishing is usable from the real companion bag action', () async {

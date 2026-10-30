@@ -2,6 +2,59 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test(
+    'fishing drop defaults preserve JSON and configured drop has value semantics',
+    () {
+      final original = SpatialNavigationProfile();
+      expect(original.toJson().containsKey('maximumFishingDropWorld'), isFalse);
+      final configured = SpatialNavigationProfile.fromJson({
+        ...original.toJson(),
+        'maximumFishingDropWorld': .5,
+      });
+      expect(configured.toJson()['maximumFishingDropWorld'], .5);
+      expect(configured, isNot(original));
+      expect(configured.copyWith(), configured);
+      expect(configured.copyWith().hashCode, configured.hashCode);
+      final map = MapData(
+        id: 'fishing',
+        name: 'Fishing',
+        version: ProjectVersion.v9,
+        size: const GridSize(width: 8, height: 8),
+        spatialScene: MapSpatialScene(width: 8, depth: 8),
+      );
+      final next = const SpatialMapOperations().configureNavigation(
+        map,
+        configured,
+      );
+      expect(
+        identical(
+          next.spatialScene!.heightLevels,
+          map.spatialScene!.heightLevels,
+        ),
+        isTrue,
+      );
+      expect(
+        identical(next.spatialScene!.instances, map.spatialScene!.instances),
+        isTrue,
+      );
+      expect(
+        identical(
+          next.spatialScene!.terrainSurfaces,
+          map.spatialScene!.terrainSurfaces,
+        ),
+        isTrue,
+      );
+      for (final invalid in [-.1, 4.1, double.nan, double.infinity]) {
+        expect(
+          () => SpatialNavigationProfile.fromJson({
+            ...original.toJson(),
+            'maximumFishingDropWorld': invalid,
+          }),
+          throwsFormatException,
+        );
+      }
+    },
+  );
   test('ramp levels share the terrain ceiling and roundtrip above level 32', () {
     SpatialRamp ramp(int highLevel) => SpatialRamp(id: 'upper', x: 1, z: 1,
         width: 1, depth: 1, lowLevel: 28, highLevel: highLevel,

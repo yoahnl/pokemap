@@ -108,6 +108,7 @@ export 'src/models/save_data.dart';
 export 'src/models/game_state.dart';
 export 'src/models/gameplay_calendar.dart';
 export 'src/models/deferred_crafting.dart';
+export 'src/models/periodic_reward.dart';
 export 'src/models/game_completion_party_journal.dart';
 export 'src/models/repel_state.dart';
 export 'src/models/escape_return_point.dart';

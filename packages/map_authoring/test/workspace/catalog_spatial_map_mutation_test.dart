@@ -1223,7 +1223,7 @@ void main() {
   final navigationReadCounts = <int, List<int>>{};
   for (final unrelated in [0, 80]) {
     test(
-        'navigation spawn stays local with $unrelated unrelated maps and preserves CAS',
+        'navigation spawn and fishing drop stay local with $unrelated unrelated maps and preserve CAS',
         () async {
       final fixture = await _Fixture.open(unrelated);
       addTearDown(fixture.close);
@@ -1236,7 +1236,8 @@ void main() {
             'mapId': 'map',
             'navigation': {
               ...before.spatialScene!.navigation.toJson(),
-              'spawn': {'x': x, 'z': 1.5}
+              'spawn': {'x': x, 'z': 1.5},
+              'maximumFishingDropWorld': .5
             }
           };
       for (var repeat = 0; repeat < 2; repeat++) {
@@ -1275,8 +1276,9 @@ void main() {
           jsonDecode(utf8.decode(afterBytes)) as Map<String, dynamic>);
       final expected = before.copyWith(
           spatialScene: before.spatialScene!.copyWith(
-              navigation: before.spatialScene!.navigation
-                  .copyWith(spawn: SpatialSpawn(x: 3.5, z: 1.5))));
+              navigation: before.spatialScene!.navigation.copyWith(
+                  spawn: SpatialSpawn(x: 3.5, z: 1.5),
+                  maximumFishingDropWorld: .5)));
       expect(after.toJson(), expected.toJson());
       await expectLater(
           fixture.apply('map3d.navigation.configure', parameters(6.5),

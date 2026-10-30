@@ -300,6 +300,18 @@ final class SpatialMapOperations {
     Iterable<ProjectModel3dEntry> models = const [],
   }) {
     final scene = _scene(map);
+    if (navigation.maximumFishingDropWorld !=
+            scene.navigation.maximumFishingDropWorld &&
+        navigation.copyWith(
+              maximumFishingDropWorld: scene.navigation.maximumFishingDropWorld,
+            ) ==
+            scene.navigation) {
+      return map.copyWith(
+        spatialScene: scene.withMaximumFishingDropWorld(
+          navigation.maximumFishingDropWorld,
+        ),
+      );
+    }
     final result = map.copyWith(
       spatialScene: _reanchor(
         scene,

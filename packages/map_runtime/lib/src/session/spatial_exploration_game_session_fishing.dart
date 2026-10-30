@@ -27,6 +27,7 @@ extension _SpatialSessionFishing on SpatialExplorationGameSessionRuntime {
     GameState state,
   ) => evaluateFishingAttempt(
     world: _fishingWorld(state),
+    spatialMovement: _session!.movement,
     project: _session!.bundle.manifest,
     gameState: state,
     item: item,
@@ -194,6 +195,7 @@ extension _SpatialSessionFishing on SpatialExplorationGameSessionRuntime {
             _worldNow(),
           ),
           random: _fishingRandom,
+          spatialMovement: _session!.movement,
         ),
       );
       if (previous != flow.phase) {
@@ -235,6 +237,10 @@ extension _SpatialSessionFishing on SpatialExplorationGameSessionRuntime {
                         _paused ||
                         _locks.isNotEmpty ||
                         !_fishingTicketIsCurrent(ticket) ||
+                        !_evaluateSpatialFishing(
+                          ticket.item,
+                          gameStateSnapshot,
+                        ).isReady ||
                         _session!.transitioning.value ||
                         _session!.interactionActive.value ||
                         _battle!.isActive) {

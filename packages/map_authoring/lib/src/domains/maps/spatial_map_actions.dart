@@ -63,6 +63,14 @@ final class SpatialMapActions {
         extensions: {
           if (mapActionInputExample(entry.key) case final example?)
             'inputExample': example,
+          if (entry.value == 'navigation')
+            'fishingDrop': {
+              'capability': SpatialNavigationProfile.fishingDropCapabilityId,
+              'default':
+                  SpatialNavigationProfile.defaultMaximumFishingDropWorld,
+              'units': 'world',
+              'maximumRiseWorld': .25
+            },
           if (entry.value == 'ledges')
             'directionalTraversal': {
               'capability': SpatialLedge.capabilityId,
@@ -409,7 +417,14 @@ MapData _upsertInstance(SemanticMapActionContext context) {
 MapData _configureNavigation(SemanticMapActionContext context) {
   final navigation = SpatialNavigationProfile.fromJson(_object(
     context.parameters.object('navigation'),
-    {'spawn', 'allowDiagonalMovement', 'ramps', 'blockedAreas', 'ledges'},
+    {
+      'spawn',
+      'allowDiagonalMovement',
+      'ramps',
+      'blockedAreas',
+      'ledges',
+      'maximumFishingDropWorld'
+    },
   ));
   for (final ramp in navigation.ramps) {
     final surfaceId = ramp.surfaceInstanceId;
@@ -742,6 +757,14 @@ Map<String, Object?> _schema(String field) => switch (field) {
             },
             'ledges': _schema('ledges'),
             'allowDiagonalMovement': {'type': 'boolean'},
+            'maximumFishingDropWorld': {
+              'type': 'number',
+              'minimum': 0,
+              'maximum': 4,
+              'default': .25,
+              'description':
+                  'Maximum downward fishing cast height in world units; upward limit remains 0.25.'
+            },
             'ramps': {
               'type': 'array',
               'maxItems': 256,

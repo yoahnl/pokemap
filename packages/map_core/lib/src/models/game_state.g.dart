@@ -107,6 +107,13 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
           readDeferredCraftingStateJson(json, 'deferredCraftingState')
               as Map<String, dynamic>,
         ),
+  periodicRewardState:
+      readPeriodicRewardStateJson(json, 'periodicRewardState') == null
+      ? const PeriodicRewardState.empty()
+      : PeriodicRewardState.fromJson(
+          readPeriodicRewardStateJson(json, 'periodicRewardState')
+              as Map<String, dynamic>,
+        ),
   imagePuzzleState: readImagePuzzleStateJson(json, 'imagePuzzleState') == null
       ? const ImagePuzzleState.empty()
       : ImagePuzzleState.fromJson(
@@ -234,6 +241,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'environmentState': ?instance.environmentState?.toJson(),
       'gameplayCalendarState': instance.gameplayCalendarState.toJson(),
       'deferredCraftingState': instance.deferredCraftingState.toJson(),
+      'periodicRewardState': instance.periodicRewardState.toJson(),
       'imagePuzzleState': instance.imagePuzzleState.toJson(),
       'movingPlatformWorldState': instance.movingPlatformWorldState.toJson(),
       'movingPropWorldState': instance.movingPropWorldState.toJson(),

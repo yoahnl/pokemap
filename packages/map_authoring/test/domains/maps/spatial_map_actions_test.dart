@@ -9,7 +9,62 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' as border;
 
 void main() {
-  test('spatial route platforms share API JSONL and exact undo without changing lifts', () async {
+  test('fishing drop matches direct API JSONL save reopen undo and schema',
+      () async {
+    final descriptor = MapMutationDispatcher.canonical()
+        .descriptors
+        .singleWhere((d) => d.id == 'map3d.navigation.configure');
+    final navigationSchema = ((descriptor.extensions['inputSchema']
+        as Map)['properties'] as Map)['navigation'] as Map;
+    expect((navigationSchema['properties'] as Map)['maximumFishingDropWorld'],
+        containsPair('maximum', 4));
+    for (final direct in [true, false]) {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      await f.request('workshop_prepare', {'projectHandle': f.project.value});
+      final before = (await f.snapshots.load(f.project)).mapById('first-map')!;
+      final file = File('${f.root.path}/maps/first-map.json');
+      final beforeBytes = await file.readAsBytes();
+      final navigation = {
+        ...before.spatialScene!.navigation.toJson(),
+        'maximumFishingDropWorld': .5
+      };
+      await f.executeAction('map3d.navigation.configure',
+          {'mapId': 'first-map', 'navigation': navigation},
+          direct: direct);
+      final stored = MapData.fromJson(jsonDecode(await file.readAsString()));
+      expect(
+          stored.spatialScene!.navigation.toJson()['maximumFishingDropWorld'],
+          .5);
+      expect(
+          stored.spatialScene!.heightLevels, before.spatialScene!.heightLevels);
+      expect(stored.spatialScene!.instances, before.spatialScene!.instances);
+      final bytes = await file.readAsBytes();
+      for (final invalid in [-1, 4.1, '0.5']) {
+        final rejected = await f.planAction('map3d.navigation.configure', {
+          'mapId': 'first-map',
+          'navigation': {...navigation, 'maximumFishingDropWorld': invalid}
+        });
+        expect(rejected.status, AuthoringResultStatus.failure);
+        expect(await file.readAsBytes(), bytes);
+      }
+      final history = await f
+          .request('history', {'projectHandle': f.project.value, 'limit': 1});
+      final entry = (history.data['entries'] as List).single as Map;
+      expect(
+          (await f.request('undo', {
+            'projectHandle': f.project.value,
+            'entryId': entry['entryId'],
+            'idempotencyKey': 'undo-fishing'
+          }))
+              .status,
+          AuthoringResultStatus.success);
+      expect(await file.readAsBytes(), beforeBytes);
+    }
+  });
+  test(
+      'spatial route platforms share API JSONL and exact undo without changing lifts',
+      () async {
     for (final direct in [true, false]) {
       final f = await _Fixture.create();
       addTearDown(f.dispose);

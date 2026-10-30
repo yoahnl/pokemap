@@ -29,6 +29,7 @@ abstract final class AveluneRuntimeCompatibility {
           SpatialTerrainSurfaceSet.capabilityId,
           SpatialRamp.fractionalLevelsCapabilityId,
           SpatialLedge.capabilityId,
+          SpatialNavigationProfile.fishingDropCapabilityId,
           SpatialModelInstance.entityBindingCapabilityId,
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,
