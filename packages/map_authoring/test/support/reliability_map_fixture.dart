@@ -171,7 +171,7 @@ final class ReliabilityMapContent {
                       ? []
                       : [feature])),
         ]);
-    final project = base.project.copyWith(
+    var project = base.project.copyWith(
         name: 'Synthetic map reliability',
         smartTileCatalog: catalog,
         tilesets: const [
@@ -180,6 +180,37 @@ final class ReliabilityMapContent {
               name: 'Synthetic ground',
               relativePath: 'assets/ground.png')
         ]);
+    if (variant == ReliabilityMapVariant.shoreGap) {
+      final raw = encodeBorderBlueprintRecordJson(
+          project.borderCatalog.records.single,
+          formatVersion: 9);
+      for (final key in ['draft', 'latestPublished']) {
+        final definition = (raw[key] as Map)['definition'] as Map;
+        definition['replacesGround'] = true;
+        for (final primitive
+            in (definition['primitives'] as List).cast<Map>()) {
+          primitive['groundSurfaces'] = [
+            {
+              'sourceSmartTilePresetId': 'ground',
+              'materialId': 'grass',
+              'height': 0,
+              'footprints': [
+                [
+                  {'x': -.5, 'z': -.5},
+                  {'x': .5, 'z': -.5},
+                  {'x': .5, 'z': .5},
+                  {'x': -.5, 'z': .5},
+                ]
+              ],
+            }
+          ];
+        }
+      }
+      project = project.copyWith(
+          borderCatalog: ProjectBorderCatalog(formatVersion: 9, records: [
+        decodeBorderBlueprintRecordJson(raw, formatVersion: 9)
+      ]));
+    }
     if (variant != ReliabilityMapVariant.missingCliff) {
       final resolution = resolveSpatialBorderFeature(
           manifest: project, map: map, layerId: 'border', featureId: 'fence');
@@ -214,7 +245,8 @@ final class ReliabilityMapContent {
 }
 
 final class ReliabilityMapFixture {
-  ReliabilityMapFixture._(this.root, this.content, this.storage, this.reader);
+  ReliabilityMapFixture._(this.root, this.content, this.storage, this.reader,
+      this.dispatcher, this.faultInjector);
 
   static const defaultQaRoot =
       '/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r0';
@@ -222,6 +254,8 @@ final class ReliabilityMapFixture {
   final ReliabilityMapContent content;
   final ReliabilityStorage storage;
   final ReliabilityCountingReader reader;
+  final MapMutationDispatcher? dispatcher;
+  final AuthoringTransactionFaultInjector? faultInjector;
   final handles = WorkspaceHandleStore();
   late OpenedProject opened;
   late LocalMapAuthoringMutationApi api;
@@ -239,14 +273,16 @@ final class ReliabilityMapFixture {
     ReliabilityStorage storage = ReliabilityStorage.classic,
     int reservedVariant = 0,
     String qaRoot = defaultQaRoot,
+    MapMutationDispatcher? dispatcher,
+    AuthoringTransactionFaultInjector? faultInjector,
   }) async {
     final owner = Directory(qaRoot);
     await owner.create(recursive: true);
     final root = await owner.createTemp('${storage.name}-${variant.name}-');
     final content =
         ReliabilityMapContent.create(variant, reservedVariant: reservedVariant);
-    final fixture = ReliabilityMapFixture._(
-        root, content, storage, ReliabilityCountingReader());
+    final fixture = ReliabilityMapFixture._(root, content, storage,
+        ReliabilityCountingReader(), dispatcher, faultInjector);
     try {
       if (storage == ReliabilityStorage.catalog) {
         await WorkingProjectCatalog.create(
@@ -304,7 +340,11 @@ final class ReliabilityMapFixture {
         catalogMetadataFields: {});
     opened = await opener.openProject(root.path);
     api = LocalMapAuthoringMutationApi(
-        policy: policy, snapshotLoader: loader, catalogFileReader: reader);
+        policy: policy,
+        snapshotLoader: loader,
+        catalogFileReader: reader,
+        dispatcher: dispatcher,
+        faultInjector: faultInjector);
     await api.attachProject(
         projectRootPath: root.path,
         workspaceHandle: opened.workspaceHandle,

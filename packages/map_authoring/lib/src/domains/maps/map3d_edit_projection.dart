@@ -48,7 +48,10 @@ final class Map3dEditProjection {
   }) {
     final action = operation['actionId'] as String;
     if (!admittedActions.contains(action)) {
-      throw semanticFailure('map3d.edit_batch.action_not_admitted',
+      throw semanticFailure(
+          action == 'map3d.edit_batch'
+              ? 'map3d.edit_batch.action_not_admitted'
+              : 'map3d.edit_batch.foreign_resource',
           'This action is not admitted in an atomic map edit.',
           details: {'actionId': action});
     }

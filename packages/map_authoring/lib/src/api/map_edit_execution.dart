@@ -13,13 +13,14 @@ abstract interface class AuthoringMapEditPort {
       {bool Function()? isCancelled});
 }
 
-String mapEditReceiptDisposition(AuthoringReceipt receipt, MapEditBinding binding) {
+String mapEditReceiptDisposition(
+    AuthoringReceipt receipt, MapEditBinding binding) {
   if (receipt.extensions['recoveryOutcome'] == 'compensated') {
     return 'compensated';
   }
   if (receipt.status == AuthoringReceiptStatus.planned ||
       receipt.status == AuthoringReceiptStatus.recovered &&
-      receipt.extensions['recoveryOutcome'] != 'resumed') {
+          receipt.extensions['recoveryOutcome'] != 'resumed') {
     return 'recovery_required';
   }
   return binding.unchanged ? 'unchanged' : 'applied';
@@ -39,22 +40,26 @@ final class MapEditExecution {
   final Future<Map<String, Object?>?> Function(MapEditOperation) inspect;
   final Future<AuthoringMutationPlanResult> Function(MapEditOperation, int)
       plan;
-  final Future<Map<String, Object?>> Function(AuthoringMutationPlanResult, void Function())
-      apply;
+  final Future<Map<String, Object?>> Function(
+      AuthoringMutationPlanResult, void Function()) apply;
   final Future<Map<String, Object?>> Function(AuthoringMutationPlanResult)
       project;
   final Future<void> Function(AuthoringMutationPlanResult) discard;
   final Duration deadline;
   final Future<void> Function(Duration) _delay;
 
-  Future<Map<String, Object?>> execute(MapEditOperation operation, {bool Function()? isCancelled}) async {
+  Future<Map<String, Object?>> execute(MapEditOperation operation,
+      {bool Function()? isCancelled}) async {
     final timer = Stopwatch()..start();
     void requireActive() {
       if (isCancelled?.call() == true || timer.elapsed >= deadline) {
-        throw AuthoringPlanException(code:'map_edit.cancelled',
-            message:'The map edit was cancelled or its preparation deadline expired.');
+        throw AuthoringPlanException(
+            code: 'map_edit.cancelled',
+            message:
+                'The map edit was cancelled or its preparation deadline expired.');
       }
     }
+
     requireActive();
     final existing = await inspect(operation);
     if (existing != null && !operation.dryRun) return existing;
@@ -73,7 +78,7 @@ final class MapEditExecution {
             ...await project(prepared)
           };
         }
-        return await apply(prepared,requireActive);
+        return await apply(prepared, requireActive);
       } on AuthoringAuthorizationException catch (error) {
         if (error.code != 'confirmation.required' || prepared == null) rethrow;
         preservePlan = true;

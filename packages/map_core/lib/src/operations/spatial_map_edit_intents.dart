@@ -24,13 +24,15 @@ MaterialNameResolution resolveMaterialByName(
   String name,
 ) {
   final normalized = _name(name);
-  if (normalized.isEmpty)
+  if (normalized.isEmpty) {
     throw const FormatException('Choose a material name.');
+  }
   final exact = manifest.smartTileCatalog.materials
       .where((value) => value.id == name.trim())
       .toList();
-  if (exact.isNotEmpty)
+  if (exact.isNotEmpty) {
     return MaterialNameResolution(exact.map((value) => value.id));
+  }
   final presets = manifest.smartTileCatalog.presets.where(
     (preset) =>
         _name(preset.id) == normalized || _name(preset.name) == normalized,
@@ -101,10 +103,12 @@ GroundFillSuggestion suggestGroundFill(
             (layerId == null || layer.id == layerId),
       )
       .toList();
-  if (layerId != null && layers.isEmpty)
+  if (layerId != null && layers.isEmpty) {
     throw const FormatException('The selected ground layer is unavailable.');
-  if (materialId != null && materialId.trim().isEmpty)
+  }
+  if (materialId != null && materialId.trim().isEmpty) {
     throw const FormatException('Choose a material identity.');
+  }
   final groups = <(String, String), List<GridPos>>{};
   final ambiguous = <GridPos>[];
   final missing = <GridPos>[];
@@ -126,8 +130,9 @@ GroundFillSuggestion suggestGroundFill(
       for (final layer in layers) {
         for (final (dx, dy) in const [(0, -1), (-1, 0), (1, 0), (0, 1)]) {
           final x = cell.x + dx, y = cell.y + dy;
-          if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height)
+          if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
             continue;
+          }
           final material = smartTileMaterialIdAt(
             layer,
             mapSize: map.size,
@@ -213,8 +218,12 @@ HeightStepContours computeHeightStepEdges(
       'Height steps require a 3D map and ordered finite heights.',
     );
   }
-  final area = (x:region?.pos.x ?? 0,y:region?.pos.y ?? 0,
-      width:region?.size.width ?? scene.width,height:region?.size.height ?? scene.depth);
+  final area = (
+    x: region?.pos.x ?? 0,
+    y: region?.pos.y ?? 0,
+    width: region?.size.width ?? scene.width,
+    height: region?.size.height ?? scene.depth,
+  );
   final right = area.x + area.width, bottom = area.y + area.height;
   if (area.x < 0 ||
       area.y < 0 ||
@@ -255,10 +264,21 @@ HeightStepContours computeHeightStepEdges(
         if (upper(x, y) && lower(x - 1, y)) edges.add((b, a));
         if (lower(x, y) && upper(x - 1, y)) edges.add((a, b));
       }
+      if (x == right - 1 && right < scene.width) {
+        final a = GridPos(x: right, y: y), b = GridPos(x: right, y: y + 1);
+        if (upper(right, y) && lower(right - 1, y)) edges.add((b, a));
+        if (lower(right, y) && upper(right - 1, y)) edges.add((a, b));
+      }
+      if (y == bottom - 1 && bottom < scene.depth) {
+        final a = GridPos(x: x, y: bottom), b = GridPos(x: x + 1, y: bottom);
+        if (upper(x, bottom) && lower(x, bottom - 1)) edges.add((a, b));
+        if (lower(x, bottom) && upper(x, bottom - 1)) edges.add((b, a));
+      }
     }
   }
-  if (edges.isEmpty)
+  if (edges.isEmpty) {
     return HeightStepContours(SpatialIntentResolutionState.noSource, []);
+  }
   final outgoing = <GridPos, List<GridPos>>{}, incoming = <GridPos, int>{};
   for (final edge in edges) {
     outgoing.putIfAbsent(edge.$1, () => []).add(edge.$2);
@@ -270,13 +290,14 @@ HeightStepContours computeHeightStepEdges(
     for (final entry in incoming.entries)
       if (entry.value > 1) entry.key,
   }.toList()..sort(_compareCells);
-  if (ambiguous.isNotEmpty)
+  if (ambiguous.isNotEmpty) {
     return HeightStepContours(
       SpatialIntentResolutionState.ambiguous,
       [],
       ambiguousVertices: ambiguous,
       reason: 'branching_height_step',
     );
+  }
   final remaining = Set<(GridPos, GridPos)>.from(edges),
       strokes = <List<GridPos>>[];
   final starts = outgoing.keys.toList()

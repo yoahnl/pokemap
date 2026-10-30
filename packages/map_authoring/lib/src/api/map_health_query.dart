@@ -83,6 +83,7 @@ Future<AuthoringQueryPage> queryMapHealth({
             'operation': 'get',
             'ids': [read.map.id],
             'view': 'detail',
+            'fieldMask':const [],'filters':const {},'sort':const [],'pageSize':100,
             'extensions': {
               'issueOffset': next,
               'expectedReportRevision': read.revision
@@ -98,6 +99,7 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
   final scene = read.map.spatialScene;
   var failed = false;
   var borderFailed = false;
+  var borderIncomplete = scene == null;
   var incomplete = false;
   var features = 0, stale = 0, errors = 0, warnings = 0;
   if (scene == null) {
@@ -114,7 +116,7 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
                 manifest: read.manifest,
                 map: read.map,
                 layerId: layer.id,
-                featureId: feature.id)
+                featureId: feature.id, requireMaterialization:true)
             .diagnostics;
         for (final diagnostic in diagnostics) {
           final error = diagnostic.severity == BorderDiagnosticSeverity.error;
@@ -156,6 +158,7 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
         }
       } on Object {
         incomplete = true;
+        borderIncomplete = true;
         issues.add({
           'code': 'map_health.border_inspection_failed',
           'severity': 'unknown',
@@ -165,9 +168,17 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
       }
     }
   }
-  final report =
-      inspectSpatialMapIntegrity(manifest: read.manifest, map: read.map);
-  for (final gap in report.groundGaps) {
+  SpatialMapIntegrityReport? report;
+  try {
+    report = inspectSpatialMapIntegrity(manifest: read.manifest, map: read.map);
+  } on Object {
+    incomplete = true;
+    issues.add({
+      'code': 'map_health.integrity_inspection_failed',
+      'severity': 'unknown'
+    });
+  }
+  for (final gap in report?.groundGaps ?? <SpatialGroundGap>[]) {
     final exposed = gap.state == SpatialGroundGapState.exposed;
     if (exposed) {
       failed = true;
@@ -180,7 +191,8 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
       ...gap.toJson()
     });
   }
-  for (final overlap in report.borderObjectOverlaps) {
+  for (final overlap
+      in report?.borderObjectOverlaps ?? <SpatialBorderObjectOverlap>[]) {
     incomplete = true;
     issues.add({
       'code': 'map.border_object_overlap.unexplained',
@@ -208,16 +220,16 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
     'verdict': verdict,
     'checks': {
       'structure': {
-        'status': report.exposedCellCount > 0
+        'status': (report?.exposedCellCount ?? 0) > 0
             ? 'fail'
-            : scene == null
+            : scene == null || report == null
                 ? 'incomplete'
                 : 'pass'
       },
       'borders': {
         'status': borderFailed
             ? 'fail'
-            : warnings > 0
+            : warnings > 0 || borderIncomplete
                 ? 'incomplete'
                 : 'pass',
         'count': features,
@@ -231,15 +243,18 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
             .toList()
       },
       'integrity': {
-        'exposedCellCount': report.exposedCellCount,
-        'unprovenCellCount': report.unprovenCellCount,
-        'borderObjectOverlapCount': report.borderObjectOverlaps.length
+        'status': report == null ? 'incomplete' : 'complete',
+        'exposedCellCount': report?.exposedCellCount,
+        'unprovenCellCount': report?.unprovenCellCount,
+        'borderObjectOverlapCount': report?.borderObjectOverlaps.length
       },
       'visual': {'status': 'not_run'},
     },
     'coverage': {
       'kind': 'structural',
       'mapRevision': read.revision,
+      'width': read.map.size.width,
+      'depth': read.map.size.height,
       'visualProof': false,
       'inspectionScope': 'selectedMapAndReferences'
     },

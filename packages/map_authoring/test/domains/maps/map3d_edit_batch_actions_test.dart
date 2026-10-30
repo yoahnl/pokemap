@@ -185,6 +185,405 @@ void main() {
     expect(draft.preview['work'], containsPair('mapEncodings', 1));
     expect(draft.preview['work'], containsPair('integrityInspections', 2));
   });
+  for (final count in [1, 3, 64]) {
+    test(
+        '$count operations invoke the real final codec once and integrity twice',
+        () {
+      final fixture =
+          ReliabilityMapContent.create(ReliabilityMapVariant.healthy);
+      var encodes = 0, inspections = 0;
+      final actions = Map3dEditBatchActions(encodeMap: (map) {
+        encodes++;
+        return encodeMapAuthoringDocument(map);
+      }, inspectIntegrity: ({required manifest, required map}) {
+        inspections++;
+        return inspectSpatialMapIntegrity(manifest: manifest, map: map);
+      });
+      final snapshot = librarySnapshot([fixture.map], project: fixture.project);
+      actions.build(context(snapshot, 'map3d.edit_batch', {
+        'mapId': fixture.map.id,
+        'operations': [for (var i = 0; i < count; i++) _paint(10, 8, 'sea')],
+      }));
+      expect(encodes, 1);
+      expect(inspections, 2);
+    });
+  }
+
+  test('multiple edits rematerialize the same touched Border once', () {
+    final fixture = ReliabilityMapContent.create(ReliabilityMapVariant.healthy);
+    final slot =
+        fixture.feature.materialization!.spatialPlacements.first.slotKey;
+    final draft = _build(fixture, [
+      {
+        'actionId': 'border_layer.feature_update',
+        'actionVersion': 1,
+        'parameters': {
+          'layerId': 'border',
+          'featureId': 'fence',
+          'name': 'Renamed'
+        }
+      },
+      {
+        'actionId': 'border_layer.feature_set_suppressed',
+        'actionVersion': 1,
+        'parameters': {
+          'layerId': 'border',
+          'featureId': 'fence',
+          'slotKey': slot,
+          'suppressed': true
+        }
+      },
+      for (var i = 0; i < 2; i++)
+        {
+          'actionId': 'border_layer.materialize_batch_apply',
+          'actionVersion': 1,
+          'parameters': {
+            'features': [
+              {'layerId': 'border', 'featureId': 'fence'}
+            ],
+            'tileWidthPx': 32,
+            'tileHeightPx': 32,
+            'resolverVersion': borderResolverVersion
+          }
+        },
+    ], guards: {
+      'groundGaps': 'report'
+    });
+    expect(draft.preview['rematerializedFeatures'], hasLength(1));
+    final after = _decode(draft);
+    final feature =
+        after.layers.whereType<BorderLayer>().single.content.features.single;
+    expect(feature.name, 'Renamed');
+    expect(feature.overrides.single.suppressed, isTrue);
+    expect(
+        diagnoseSpatialBorderFeature(
+                manifest: fixture.project,
+                map: after,
+                layerId: 'border',
+                featureId: 'fence')
+            .diagnostics
+            .where((d) => d.code == 'border.spatial.materialization_stale'),
+        isEmpty);
+  });
+
+  test('already absent semantic deletions are accepted as unchanged', () {
+    final fixture =
+        ReliabilityMapContent.create(ReliabilityMapVariant.missingCliff);
+    final draft = _build(fixture, [
+      {
+        'actionId': 'border_layer.feature_delete',
+        'actionVersion': 1,
+        'parameters': {'layerId': 'border', 'featureId': 'fence'}
+      },
+      {
+        'actionId': 'map3d.instance.delete_batch',
+        'actionVersion': 1,
+        'parameters': {
+          'instanceIds': ['already-absent']
+        }
+      },
+    ]);
+    expect(draft.changeSet.changes, isEmpty);
+    expect(draft.preview['operations'],
+        everyElement(containsPair('status', 'unchanged')));
+  });
+  test('every admitted operation runs its shared raw semantic projection', () {
+    final fixture = ReliabilityMapContent.create(ReliabilityMapVariant.healthy);
+    final source = fixture.feature;
+    final slot = source.materialization!.spatialPlacements.first;
+    final replacement = encodeBorderBlueprintRecordJson(
+        fixture.project.borderCatalog.records.single,
+        formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion)
+      ..['id'] = 'replacement';
+    final project = fixture.project.copyWith(
+        borderCatalog: ProjectBorderCatalog(
+            formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion,
+            records: [
+          ...fixture.project.borderCatalog.records,
+          decodeBorderBlueprintRecordJson(replacement,
+              formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion)
+        ]));
+    final surface = SpatialTerrainSurface(
+        id: 'plateau',
+        x: 10,
+        z: 10,
+        height: 1,
+        footprints: [
+          BorderGroundFootprint(points: [
+            BorderGroundPoint(x: 0, z: 0),
+            BorderGroundPoint(x: 2, z: 0),
+            BorderGroundPoint(x: 2, z: 2),
+            BorderGroundPoint(x: 0, z: 2),
+          ])
+        ]);
+    final base = const SpatialMapOperations()
+        .upsertTerrainSurfaces(fixture.map, [surface]);
+    final operations = <String, Map<String, Object?>>{
+      'smart_tile.cell.paint': {
+        'layerId': 'terrain',
+        'materialId': 'sea',
+        'cells': [
+          {'x': 10, 'y': 8}
+        ]
+      },
+      'smart_tile.cell.paint_batch': {
+        'layerId': 'terrain',
+        'strokes': [
+          {
+            'materialId': 'sea',
+            'cells': [
+              {'x': 10, 'y': 8}
+            ]
+          }
+        ]
+      },
+      'smart_tile.cell.erase': {
+        'layerId': 'terrain',
+        'cells': [
+          {'x': 10, 'y': 8}
+        ]
+      },
+      'map3d.terrain.surface.upsert_batch': {
+        'surfaces': [surface.copyWith(height: 2).toJson()]
+      },
+      'map3d.terrain.surface.delete_batch': {
+        'surfaceIds': ['plateau']
+      },
+      'map3d.instance.upsert_batch': {
+        'instances': [
+          SpatialModelInstance(
+                  id: 'new-object',
+                  modelId: 'tree',
+                  position: Model3dVector3(x: 15, y: 1, z: 12))
+              .toJson()
+        ]
+      },
+      'map3d.instance.delete_batch': {
+        'instanceIds': ['unrelated-object']
+      },
+      'border_layer.feature_create': {
+        'layerId': 'border',
+        'featureId': 'new-feature',
+        'name': 'New',
+        'blueprintId': 'fence',
+        'seed': 17,
+        'geometry': encodeBorderFeatureGeometryJson(source.geometry)
+      },
+      'border_layer.feature_update': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'name': 'Renamed'
+      },
+      'border_layer.feature_delete': {
+        'layerId': 'border',
+        'featureId': 'fence'
+      },
+      'border_layer.feature_move': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'dx': 1,
+        'dy': 0
+      },
+      'border_layer.stroke_add': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'strokeId': 'new-stroke',
+        'points': [
+          {'x': 8, 'y': 4},
+          {'x': 9, 'y': 4}
+        ]
+      },
+      'border_layer.stroke_update': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'strokeId': 'step',
+        'points': [
+          {'x': 3, 'y': 4},
+          {'x': 4, 'y': 4},
+          {'x': 5, 'y': 4}
+        ]
+      },
+      'border_layer.stroke_delete': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'strokeId': 'step'
+      },
+      'border_layer.stroke_erase': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'points': [
+          {'x': 3, 'y': 4}
+        ]
+      },
+      'border_layer.region_fill': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'x': 3,
+        'y': 4,
+        'width': 2,
+        'height': 1
+      },
+      'border_layer.region_clear': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'x': 3,
+        'y': 4,
+        'width': 2,
+        'height': 1
+      },
+      'border_layer.feature_set_replacement': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'slotKey': slot.slotKey,
+        'primitiveId': slot.primitiveId
+      },
+      'border_layer.feature_set_suppressed': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'slotKey': slot.slotKey,
+        'suppressed': true
+      },
+      'border_layer.feature_clear_slot_override': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'slotKey': slot.slotKey
+      },
+      'border_layer.feature_set_keep_out': {
+        'layerId': 'border',
+        'featureId': 'fence',
+        'regions': [
+          {
+            'id': 'keepout',
+            'region': {
+              'width': 24,
+              'height': 16,
+              'cells': List.filled(24 * 16, false)..[4 * 24 + 3] = true
+            }
+          }
+        ]
+      },
+      for (final action in [
+        'border_layer.relink_apply',
+        'border_layer.feature_set_blueprint'
+      ])
+        action: {
+          'layerId': 'border',
+          'featureId': 'fence',
+          'targetBlueprintId': 'replacement'
+        },
+      'border_layer.materialize_batch_apply': {
+        'features': [
+          {'layerId': 'border', 'featureId': 'fence'}
+        ],
+        'tileWidthPx': 32,
+        'tileHeightPx': 32,
+        'resolverVersion': borderResolverVersion
+      },
+    };
+    expect(operations.keys.toSet(), Map3dEditProjection.admittedActions);
+    for (final operation in operations.entries) {
+      var map = base;
+      if (operation.key.startsWith('border_layer.region_')) {
+        map = updateBorderFeatureGeometry(map,
+            layerId: 'border',
+            featureId: 'fence',
+            geometry: BorderRegionGeometry(
+                width: 24, height: 16, cells: List.filled(24 * 16, false)));
+      }
+      final snapshot = librarySnapshot([map], project: project);
+      final planning = context(snapshot, 'map3d.edit_batch', {'mapId': 'map'});
+      final result = const Map3dEditProjection().project(
+          planning: planning,
+          map: map,
+          operation: {
+            'actionId': operation.key,
+            'actionVersion': 1,
+            'parameters': operation.value
+          },
+          operationIndex: 0,
+          seed: 0);
+      expect(result.operation, operation.key, reason: operation.key);
+      expect(result.map.id, map.id, reason: operation.key);
+    }
+  });
+  for (final size in [
+    const GridSize(width: 24, height: 16),
+    const GridSize(width: 48, height: 32)
+  ]) {
+    for (final unrelated in [0, 900]) {
+      test(
+          'fixed-region edit reports the unclosed whole-map cost for $size and $unrelated foreign objects',
+          () {
+        final fixture =
+            ReliabilityMapContent.create(ReliabilityMapVariant.healthy);
+        final original = fixture.map;
+        final ground = original.layers.whereType<SmartTileLayer>().single;
+        final cells = [
+          for (var y = 0; y < size.height; y++)
+            for (var x = 0; x < size.width; x++)
+              x < original.size.width && y < original.size.height
+                  ? ground.field.semanticCells[y * original.size.width + x]
+                  : 1
+        ];
+        final map = original.copyWith(
+            size: size,
+            layers: [
+              for (final layer in original.layers)
+                layer is SmartTileLayer
+                    ? layer.copyWith(
+                        field: SmartTileField.cell(semanticCells: cells))
+                    : layer,
+            ],
+            spatialScene: MapSpatialScene(
+                width: size.width,
+                depth: size.height,
+                heightLevels: [
+                  for (var y = 0; y < size.height; y++)
+                    for (var x = 0; x < size.width; x++) y >= 4 ? 1 : 0
+                ],
+                instances: [
+                  ...original.spatialScene!.instances,
+                  for (var i = 0; i < unrelated; i++)
+                    SpatialModelInstance(
+                        id: 'foreign-object-$i',
+                        modelId: 'tree',
+                        position: Model3dVector3(x: 20, y: 1, z: 12))
+                ]));
+        final inspectedAreas = <int>[], inspectedObjects = <int>[];
+        final actions = Map3dEditBatchActions(
+            inspectIntegrity: ({required manifest, required map}) {
+          inspectedAreas.add(map.spatialScene!.width * map.spatialScene!.depth);
+          inspectedObjects.add(map.spatialScene!.instances.length);
+          return inspectSpatialMapIntegrity(manifest: manifest, map: map);
+        });
+        final planning = context(
+            librarySnapshot([map], project: fixture.project),
+            'map3d.edit_batch', {
+          'mapId': 'map',
+          'operations': [_paint(12, 8, 'sea')]
+        });
+        final timer = Stopwatch()..start();
+        final draft = actions.build(planning);
+        timer.stop();
+        expect(inspectedAreas,
+            [size.width * size.height, size.width * size.height]);
+        expect(inspectedObjects, [
+          map.spatialScene!.instances.length,
+          map.spatialScene!.instances.length
+        ]);
+        expect(draft.preview['work'],
+            containsPair('localCostAcceptance', 'PARTIAL'));
+        expect(draft.preview['work'],
+            containsPair('integrityScope', 'whole_selected_map'));
+        final after = _decode(draft);
+        expect(after.spatialScene, map.spatialScene);
+        expect(after.layers.whereType<BorderLayer>().single,
+            original.layers.whereType<BorderLayer>().single);
+        print(
+            'R3 projection-only cells=${size.width * size.height} unrelatedObjects=$unrelated elapsedUs=${timer.elapsedMicroseconds}');
+      });
+    }
+  }
 }
 
 Map<String, Object?> _paint(int x, int y, String material) => {

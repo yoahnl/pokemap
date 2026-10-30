@@ -1015,6 +1015,15 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/border_spatial_stdio.test.ts',
     };
   }
+  if (actionId == 'map3d.edit_batch') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/workspace/map3d_edit_batch_targeted_test.dart',
+      AuthoringTransport.cli: 'test/tooling/jsonl_map_edit_operation_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/map_edit_stdio.test.ts',
+    };
+  }
   if (actionId.startsWith('map3d.lift.')) {
     return const {
       AuthoringTransport.directApi: 'test/domains/maps/spatial_map_actions_test.dart',
@@ -1934,6 +1943,7 @@ String _contractTestFor(String actionId) {
   }
   if(actionId=='project.catalog.partition') return 'test/workspace/catalog_partition_action_test.dart';
   if(actionId=='catalog.definition.update') return 'test/catalog_storage/catalog_project_transport_test.dart';
+  if(actionId=='map3d.edit_batch') return 'test/domains/maps/map3d_edit_batch_actions_test.dart';
   if (_eventV2TransportCertifiedActionIds.contains(actionId)) {
     return 'test/domains/narrative/event_record_batch_transport_test.dart';
   }

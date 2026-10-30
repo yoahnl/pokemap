@@ -200,6 +200,7 @@ final class SpatialMapRenderer {
     String Function(String relativePath) projectFile, {
     required Color background,
     required double Function() magnification,
+    double? presentationSeconds,
   }) async {
     final map = view.map;
     final project = view.manifest;
@@ -222,7 +223,7 @@ final class SpatialMapRenderer {
       loadGroundImage: (id) => File(projectFile(
               project.tilesets.singleWhere((tileset) => tileset.id == id).relativePath))
           .readAsBytes(),
-      presentationElapsedSeconds: () => elapsed.elapsedMicroseconds / 1000000,
+      presentationElapsedSeconds: () => presentationSeconds ?? elapsed.elapsedMicroseconds / 1000000,
       cameraMagnification: magnification,
       errorBuilder: (_, error) {
         errors.add('$error');
@@ -273,7 +274,8 @@ final class SpatialMapRenderer {
       _panTo(controller, view.map, targets.first.x, targets.first.z);
       var magnification = targets.first.magnification;
       await _mount(view, scene, controller, request.projectFile,
-          background: scanSentinel, magnification: () => magnification);
+          background: scanSentinel, magnification: () => magnification,
+          presentationSeconds: 0);
       await Future<void>.delayed(const Duration(milliseconds: 1300));
       for (final (index, target) in targets.indexed) {
         _panTo(controller, view.map, target.x, target.z);
@@ -307,6 +309,10 @@ final class SpatialMapRenderer {
     return {
       'mapId': view.map.id,
       'revision': view.revision,
+      'coverage': {'kind':request.grid?'mapExtent':'diagnosticTargets',
+        'width':scene.width,'depth':scene.depth},
+      'minuteOfDay':720,
+      'presentationSeconds':0,
       'groundGapCount': report.groundGaps.length,
       'exposedCellCount': report.exposedCellCount,
       'unprovenCellCount': report.unprovenCellCount,
@@ -331,32 +337,18 @@ const scanSentinel = Color(0xffff00ff);
 const gridMagnification = 2.0;
 const _gridStepX = 20, _gridStepZ = 11;
 
-/// Game-view centres tiling the cells any Smart Tile layer paints, so a
-/// scan also looks where the integrity report finds nothing to frame.
 List<(double, double)> gridViewCenters(MapData map) {
   final scene = map.spatialScene;
   if (scene == null) return const [];
-  var minX = scene.width, maxX = -1, minZ = scene.depth, maxZ = -1;
-  for (final layer in map.layers.whereType<SmartTileLayer>()) {
-    final cells = layer.field.semanticCells;
-    for (var index = 0; index < cells.length && index < scene.width * scene.depth; index++) {
-      if (cells[index] == 0) continue;
-      final x = index % scene.width, z = index ~/ scene.width;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (z < minZ) minZ = z;
-      if (z > maxZ) maxZ = z;
-    }
-  }
-  if (maxX < 0) return const [];
+  if(scene.width<1||scene.depth<1) return const [];
   List<double> axis(int min, int max, int step) {
     final span = max - min + 1;
     final count = (span / step).ceil();
     return [for (var i = 0; i < count; i++) min + span * (i + .5) / count];
   }
   return [
-    for (final z in axis(minZ, maxZ, _gridStepZ))
-      for (final x in axis(minX, maxX, _gridStepX)) (x, z),
+    for (final z in axis(0, scene.depth-1, _gridStepZ))
+      for (final x in axis(0, scene.width-1, _gridStepX)) (x, z),
   ];
 }
 

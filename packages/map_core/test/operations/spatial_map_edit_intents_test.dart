@@ -152,4 +152,71 @@ void main() {
       );
     },
   );
+  test('an exact plateau region includes its east and south boundary', () {
+    final source = map(List.filled(9, 1), heights: [0, 0, 0, 0, 1, 0, 0, 0, 0]);
+    final selected = computeHeightStepEdges(
+      source,
+      lowerHeight: 0,
+      upperHeight: 1,
+      region: const MapRect(
+        pos: GridPos(x: 1, y: 1),
+        size: GridSize(width: 1, height: 1),
+      ),
+    );
+    final full = computeHeightStepEdges(source, lowerHeight: 0, upperHeight: 1);
+    expect(selected.strokes, full.strokes);
+    expect(selected.strokes.single.length, 5);
+  });
+  test(
+    'effective continuous surfaces are traced and ramps refuse explicitly',
+    () {
+      var source = map(List.filled(9, 1));
+      source = const SpatialMapOperations().upsertTerrainSurfaces(source, [
+        SpatialTerrainSurface.fromJson({
+          'id': 'plateau',
+          'x': 0,
+          'z': 1,
+          'height': 1,
+          'footprints': [
+            [
+              {'x': 0, 'z': 0},
+              {'x': 3, 'z': 0},
+              {'x': 3, 'z': 2},
+              {'x': 0, 'z': 2},
+            ],
+          ],
+        }),
+      ]);
+      final result = computeHeightStepEdges(
+        source,
+        lowerHeight: 0,
+        upperHeight: 1,
+      );
+      expect(result.status, SpatialIntentResolutionState.resolved);
+      expect(result.strokes.single.every((point) => point.y == 1), isTrue);
+      final rampSource=map(List.filled(9,1),heights:[1,1,1,0,0,0,0,0,0]);
+      final ramp = rampSource.copyWith(
+        spatialScene: rampSource.spatialScene!.copyWith(
+          navigation: SpatialNavigationProfile(
+            ramps: [
+              SpatialRamp(
+                id: 'ramp',
+                x: 1,
+                z: 1,
+                width: 1,
+                depth: 1,
+                lowLevel: 0,
+                highLevel: 1,
+                direction: SpatialRampDirection.north,
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(
+        computeHeightStepEdges(ramp, lowerHeight: 0, upperHeight: 1).status,
+        SpatialIntentResolutionState.unsupported,
+      );
+    },
+  );
 }

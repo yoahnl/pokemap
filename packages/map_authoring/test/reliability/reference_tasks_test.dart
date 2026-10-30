@@ -50,6 +50,7 @@ void main() {
         final host = await fixture(ReliabilityMapVariant.shoreGap);
         final original = await host.readMap();
         final cells = host.content.contour;
+        expect(inspectSpatialMapIntegrity(manifest:host.content.project,map:original).exposedCellCount,0);
         expect(
             cells.every((cell) => _materialAt(original, cell) == ''), isTrue);
         await _paint(host, cells, 'grass');

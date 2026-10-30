@@ -4,6 +4,8 @@ import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_core/map_core.dart';
 
 import '../../catalog_storage/catalog_storage_store.dart';
+import '../../support/authoring_fingerprint.dart';
+import '../../catalog_storage/trusted_catalog_admissions.dart';
 
 abstract final class CatalogNarrativeEventDocuments {
   static final indexKey = CatalogDefinitionKey(
@@ -19,6 +21,92 @@ abstract final class CatalogNarrativeEventDocuments {
     final raw = _decode(byKey);
     return _project(raw);
   }
+
+  static CatalogDefinitionKey sceneOwnerKey(String sceneId) =>
+      CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
+          jsonEncode(['sceneEventOwners', sceneId]));
+
+  static Map<String, Set<String>> _sceneOwners(
+      Iterable<NarrativeEventRecord> records) {
+    final result = <String, Set<String>>{};
+    for (final record in records) {
+      final sceneId =
+          record.definitionOrNull?.sceneId ?? record.draftOrNull?.sceneId;
+      if (sceneId != null && sceneId.isNotEmpty) {
+        result.putIfAbsent(sceneId, () => {}).add(record.id);
+      }
+    }
+    return result;
+  }
+
+  static Future<void> initializeSceneOwners(
+      CatalogSnapshot snapshot, String projectRoot) async {
+    final marker = await snapshot.lookup(indexKey);
+    if (marker?.payload['sceneOwnersVersion'] == 1 ||
+        marker?.payload['present'] == false) {
+      return;
+    }
+    final digest = await _registryDigest(snapshot);
+    final cache = TrustedCatalogAdmissions(projectRoot: projectRoot);
+    if (await cache.sceneOwnerCacheReady(digest)) return;
+    final project = await PortableProjectCatalog.fromSnapshot(snapshot,
+        metadataFields: {'eventRegistry'});
+    final owners = _sceneOwners(
+        project.projectMetadata.eventRegistry?.records ?? const []);
+    await cache.publishSceneOwnerCache(digest, owners,
+        maximumBytes: snapshot.limits.maxUnitBytes);
+  }
+
+  static Future<Set<String>> readSceneOwnerIds(CatalogSnapshot snapshot,
+      String projectRoot, Set<String> sceneIds) async {
+    final marker = await snapshot.lookup(indexKey);
+    if (marker?.payload['present'] == false) return const {};
+    final result = <String>{};
+    if (marker?.payload['sceneOwnersVersion'] == 1) {
+      for (final sceneId in sceneIds) {
+        final owner = await snapshot.lookup(sceneOwnerKey(sceneId));
+        final ids = owner?.payload['eventIds'] ?? const <String>[];
+        if (ids is! List || ids.any((id) => id is! String)) {
+          throw const FormatException(
+              'catalog.scene_owners: invalid owner ids');
+        }
+        result.addAll(ids.cast<String>());
+      }
+    } else {
+      final digest = await _registryDigest(snapshot);
+      final cache = TrustedCatalogAdmissions(projectRoot: projectRoot);
+      for (final sceneId in sceneIds) {
+        result.addAll(await cache.readSceneOwnerCache(digest, sceneId,
+            maximumBytes: snapshot.limits.maxUnitBytes));
+      }
+    }
+    if (result.length > snapshot.limits.maxClosureNodes) {
+      throw const FormatException(
+          'catalog.scene_owners: dependency budget exceeded');
+    }
+    return result;
+  }
+
+  static Future<String> _registryDigest(CatalogSnapshot snapshot) async {
+    final header =
+        await snapshot.lookup(_aggregateKey('projectAggregateHeader'));
+    if (header != null) {
+      return (header.payload['value'] as Map)['sha256'] as String;
+    }
+    final shell = await snapshot.lookup(CatalogDefinitionKey(
+        CatalogDefinitionKind.catalogMetadata, 'publication-shell'));
+    return crypto.sha256
+        .convert(utf8.encode(canonicalAuthoringJson(
+            (shell?.payload['value'] as Map?)?['eventRegistry'])))
+        .toString();
+  }
+
+  static CatalogDefinitionUnit _sceneOwnerUnit(
+          String sceneId, Set<String> ids) =>
+      CatalogDefinitionUnit(key: sceneOwnerKey(sceneId), payload: {
+        'id': sceneOwnerKey(sceneId).id,
+        'eventIds': ids.toList()..sort()
+      });
 
   static Future<bool> prepared(CatalogSnapshot snapshot) async =>
       (await snapshot.lookup(indexKey))?.payload['indexVersion'] == 2;
@@ -149,6 +237,18 @@ abstract final class CatalogNarrativeEventDocuments {
             payload: {'id': recordKey(id).id, 'eventId': id, 'deleted': true}));
       }
     }
+    final previousOwners = _sceneOwners([
+      for (final record in before?['records'] as List? ?? const [])
+        NarrativeEventRecord.fromJson(record)
+    ]);
+    final nextOwners = _sceneOwners([
+      for (final record in after?['records'] as List? ?? const [])
+        NarrativeEventRecord.fromJson(record)
+    ]);
+    for (final sceneId in previousOwners.keys
+        .where((sceneId) => !nextOwners.containsKey(sceneId))) {
+      next.add(_sceneOwnerUnit(sceneId, const {}));
+    }
     return next;
   }
 
@@ -157,12 +257,18 @@ abstract final class CatalogNarrativeEventDocuments {
     return [
       CatalogDefinitionUnit(key: indexKey, payload: {
         'indexVersion': 2,
+        'sceneOwnersVersion': 1,
         'present': raw != null,
         if (raw != null) 'schemaVersion': raw['schemaVersion'],
         if (raw != null) 'mode': raw['mode'],
       }),
       for (final record in raw?['records'] as List? ?? const [])
         ..._recordUnits(record),
+      for (final entry in _sceneOwners([
+        for (final record in raw?['records'] as List? ?? const [])
+          NarrativeEventRecord.fromJson(record)
+      ]).entries)
+        _sceneOwnerUnit(entry.key, entry.value),
     ];
   }
 

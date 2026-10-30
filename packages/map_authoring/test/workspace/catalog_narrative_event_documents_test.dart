@@ -10,6 +10,92 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Scene owner facets follow relocation and deletion without stale owners',
+      () async {
+    final first = _source(
+        _registry([_record(1, sceneId: 'a'), _record(2, sceneId: 'b')]));
+    final before = {
+      for (final unit in [
+        ...first,
+        ...CatalogNarrativeEventDocuments.initialize(first)
+      ])
+        unit.key: unit
+    };
+    final after = _source(
+        _registry([_record(1, sceneId: 'b'), _record(3, sceneId: 'b')]));
+    final afterKeys = after.map((unit) => unit.key).toSet();
+    final removals = first
+        .map((unit) => unit.key)
+        .where((key) => !afterKeys.contains(key))
+        .toList();
+    final delta = await CatalogNarrativeEventDocuments.maintain(
+        lookup: (key) async => before[key], upserts: after, removals: removals);
+    final next = {...before}..removeWhere((key, _) => removals.contains(key));
+    for (final unit in [...after, ...delta]) {
+      next[unit.key] = unit;
+    }
+    final committed = await _snapshot(next.values);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            committed, '/not-read', {'a'}),
+        isEmpty);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            committed, '/not-read', {'b'}),
+        {_id(1), _id(3)});
+    final original = await _snapshot(before.values);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            original, '/not-read', {'a'}),
+        {_id(1)});
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            original, '/not-read', {'b'}),
+        {_id(2)});
+  });
+  test('legacy owner cache rejects changed registry until explicit reopen',
+      () async {
+    final qa = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle-authoring');
+    await qa.create(recursive: true);
+    final root = await qa.createTemp('owner-cache-');
+    addTearDown(() => root.delete(recursive: true));
+    final before =
+        await _snapshot(_source(_registry([_record(1, sceneId: 'a')])));
+    await CatalogNarrativeEventDocuments.initializeSceneOwners(
+        before, root.path);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            before, root.path, {'a'}),
+        {_id(1)});
+    final changed =
+        await _snapshot(_source(_registry([_record(1, sceneId: 'b')])));
+    await expectLater(
+        CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            changed, root.path, {'a'}),
+        throwsA(isA<CatalogStorageException>().having(
+            (error) => error.code, 'code', 'catalog.scene_owner_cache_stale')));
+    await expectLater(
+        CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            changed, root.path, {'b'}),
+        throwsA(isA<CatalogStorageException>().having(
+            (error) => error.code, 'code', 'catalog.scene_owner_cache_stale')));
+    await CatalogNarrativeEventDocuments.initializeSceneOwners(
+        changed, root.path);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            changed, root.path, {'a'}),
+        isEmpty);
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            changed, root.path, {'b'}),
+        {_id(1)});
+    expect(
+        await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            before, root.path, {'a'}),
+        {_id(1)});
+    expect(await root.list().toList(), isEmpty);
+  });
   for (final count in [2, 400]) {
     test(
         'event document index follows shared registry changes with $count records',
@@ -163,10 +249,11 @@ void main() {
 
 String _id(int value) =>
     'evt_018f0f8c-7b8a-7def-8000-${value.toString().padLeft(12, '0')}';
-NarrativeEventRecord _record(int id, {String? name}) =>
+NarrativeEventRecord _record(int id, {String? name, String? sceneId}) =>
     NarrativeEventRecord.draft(NarrativeEventDraft(
         id: _id(id),
         name: name ?? 'Event $id',
+        sceneId: sceneId,
         conditions: const [],
         priority: 0,
         order: id));

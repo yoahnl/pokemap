@@ -30,7 +30,7 @@ export const mapReliabilityCases: readonly MapReliabilityCase[] = [
   { id: "T5", fixture: "dockOverlap", instruction: "Dégager le ponton sans retirer les modules voisins.",
     criteria: ["conflicting_slots_absent", "unaffected_modules_preserved", "dock_preserved", "reopened_values_match"],
     baseline: "manual_actions", reservedVariants: [] },
-  { id: "T6", fixture: "healthy", instruction: "Peindre la cellule demandée avec le matériau nommé Mer.",
+  { id: "T6", fixture: "healthy", instruction: "Peindre la cellule et le nom de matériau indiqués dans le contexte public de la tâche.",
     criteria: ["expected_ground_material", "outside_region_unchanged", "reopened_values_match"],
     baseline: "partial", baselineLimit: "Reference resolves the name manually and supplies its ID. Canonical name resolution is not certified.", reservedVariants: [1, 2, 3] },
   { id: "T7", fixture: "noWorkingMap", instruction: "Créer une carte native avec terrain peint et relief à partir des ressources existantes.",

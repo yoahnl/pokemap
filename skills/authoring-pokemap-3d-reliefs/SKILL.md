@@ -86,7 +86,8 @@ one row away from the contour.
   `refreshedBorderFeatures` and `staleBorderFeatures` in the plan preview.
 - **The contour is wrong** when the terrain matches the intended relief. Use
   `border_layer.stroke_update` (or `stroke_add`, `stroke_erase`, `region_fill`). A
-  one-cell jog in a contour raises `corner_join_conflict`; prefer fixing the terrain then.
+  one-cell jog is profile-dependent: inspect the real resolver diagnostics before changing
+  the terrain. It is not a universal reason to reject a contour.
 - Ask the owner when either could be the intent. Say which cells disagree.
 
 ### 4. Check the profile's side before tracing with it
@@ -107,6 +108,26 @@ Open two-phase strokes retain their visual alternation after reversal. Simulate 
 and compare models, positions and rotations beyond the repaired area before applying it.
 
 ### 5. Plan with the right revision
+
+For admitted edits of one existing map, discover `map3d.edit_batch` then use
+`pokemap_map_edit` with a retained logical `operationId`. Its intentions include
+`intent.ground.fill`, `intent.border.remove_keeping_ground`,
+`intent.border.trace_step` and `intent.border.clear_over_object`. Read their exact schemas;
+the step intent needs explicit lower/upper heights, profile and optional region. It uses
+effective heights and the real profile resolver, and refuses unsupported ramps/ambiguity.
+It does not decide whether an absent step should be created in the terrain.
+
+Use `dryRun` to inspect concrete expanded operations when the provenance is uncertain.
+Choose explicit material/layer IDs on ambiguity. Removing a Border must preserve its real
+ground contribution even along a map edge; the interior-hole detector alone cannot prove
+that. Clearing object overlaps can remove ground too: inspect the final guards and render.
+The default batch reports new warnings; an applied edit is not a healthy-map certificate.
+Run `pokemap_map_check` and examine any `fail` or `incomplete`, then review the affected views.
+
+After a lost response, reuse the same operation identity and semantic content. Follow the
+recovery rules in `using-pokemap-mcp`; never obtain a second application by changing its ID.
+New intentions after undo require new IDs. The advanced workflow below remains applicable
+to creation and actions outside the batch.
 
 On a catalog project, call `pokemap_workshop` with `operation: read`, the **same** `actionId`
 and `parameters` you are about to plan. Pass its `snapshotRevision` as `expectedRevision` and
@@ -134,10 +155,11 @@ plan preview lists `warningCount` and `warnings`, with the slot, cell and height
 - `spatialMapIntegrity` again: no `exposed` cell, and no more `unproven` cells or overlaps
   than the baseline.
 - `pokemap_render_3d_scan` on the map, `grid` left on: it frames every gap cluster and
-  overlap, then tiles the whole painted area, and measures `holeRatio`, the share of
+  overlap, then tiles the whole map including unpainted areas, and measures `holeRatio`, the share of
   background the scene encloses. Every view must read `0`; a `backgroundRatio` alone is the
-  map's outer void. The integrity report cannot see an unbridged height step (water against
-  grass with no face over the gap) or a hole joined to the map's margin; only the grid does.
+  map's outer void. The grid expands coverage beyond the integrity report, including
+  unbridged height steps. Openings connected to an image edge escape `holeRatio`; inspect
+  the views before concluding that a hole joined to the map margin is absent.
   Look at each overlap image yourself: a shore drawn across a pier deck is not a hole but is
   still a defect.
 - `pokemap_render_3d` at the same `center`, `view` and `magnification` as the "before"

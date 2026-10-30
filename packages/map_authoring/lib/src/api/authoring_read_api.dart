@@ -146,8 +146,8 @@ final class AuthoringReadApi
         revision: selection.snapshotRevision,
       );
     }
-    final snapshot = await _snapshotLoader.load(projectHandle,
-        policy: ProjectSnapshotLoadPolicy.editorReadProjection);
+    final snapshot = await _snapshotLoader.loadWorkshop(projectHandle,
+        actionId: 'map3d.edit_batch', parameters: {'mapId':mapId,'operations':const []});
     final map = snapshot.maps.where((map) => map.id == mapId).firstOrNull;
     if (map == null) {
       throw const AuthoringQueryException('query.resource_not_found',

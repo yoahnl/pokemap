@@ -45,67 +45,63 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     final starterIds = <String>{};
     final journeyIds = <String>{};
     final imageIds = <String>{};
-    void includePayload(SceneNodePayload? payload) {
-      if (payload is SceneConditionPayload && payload.conditionSource != null) {
-        final source = payload.conditionSource!;
-        switch (source.sourceKind) {
-          case SceneConditionSourceKind.fact:
-            add('facts', [source.sourceId]);
-          case SceneConditionSourceKind.badge:
-            add('badges', [source.sourceId]);
-          case SceneConditionSourceKind.trainerDefeated:
-            add('trainers', [source.sourceId]);
-          case SceneConditionSourceKind.worldState:
-            add('worldRules', [source.sourceId]);
-          case SceneConditionSourceKind.inventoryItem:
-            itemIds.add(source.sourceId);
-          case SceneConditionSourceKind.storyStepCompletion:
-          case SceneConditionSourceKind.storyStepActive:
-            stepIds.add(source.sourceId);
-          default:
+    final eventIds = <String>{};
+    final ownerScenes = <String>{};
+    void includeDependencies(ProjectManifest project) {
+      final index = buildNarrativeDependencyIndex(
+          project: project, additionalSceneNodes: incomingNodes);
+      for (final usage in index.usages) {
+        final target = usage.target;
+        switch (target.kind) {
+          case NarrativeDependencyTargetKind.fact:
+            add('facts', [target.id]);
+          case NarrativeDependencyTargetKind.badge:
+            add('badges', [target.id]);
+          case NarrativeDependencyTargetKind.item:
+            itemIds.add(target.id);
+          case NarrativeDependencyTargetKind.scene:
+            add('scenes', [target.id]);
+          case NarrativeDependencyTargetKind.dialogue:
+            add('dialogues', [target.id]);
+          case NarrativeDependencyTargetKind.cinematic:
+            add('cinematics', [target.id]);
+          case NarrativeDependencyTargetKind.media:
+            add('cinematicMediaAssets', [target.id]);
+          case NarrativeDependencyTargetKind.storyline:
+            add('storylines', [target.id]);
+          case NarrativeDependencyTargetKind.step:
+            stepIds.add(target.id);
+          case NarrativeDependencyTargetKind.worldRule:
+            add('worldRules', [target.id]);
+          case NarrativeDependencyTargetKind.railJourney:
+            journeyIds.add(target.id);
+          case NarrativeDependencyTargetKind.sourceMap:
+            if (target.physicalMapId case final String mapId) {
+              add('maps', [mapId]);
+            }
+            switch (target.sourceKind) {
+              case 'encounterTable':
+                add('encounterTables', [target.id]);
+              case 'presentationCinematic':
+                add('presentationCinematics', [target.id]);
+              case 'starterOption':
+                starterIds.add(target.id);
+              case 'projectMedia':
+                imageIds.add(target.id);
+              case 'shop':
+                add('shops', [target.id]);
+              case 'battle':
+                for (final prefix in ['trainer:', 'static:']) {
+                  if (target.id.startsWith(prefix)) {
+                    add('trainers', [target.id.substring(prefix.length)]);
+                  }
+                }
+            }
+          case NarrativeDependencyTargetKind.eventV2:
+            eventIds.add(target.id);
+          case NarrativeDependencyTargetKind.chapter:
             break;
         }
-      }
-      if (payload is SceneYarnDialoguePayload) {
-        add(
-            'cinematicMediaAssets',
-            CatalogWorkshopSelection._referenceIds(
-                payload.toJson(), {'mediaAssetId'}));
-      }
-      if (payload is! SceneActionPayload) return;
-      final consequence = payload.consequence;
-      if (consequence is SceneCompleteStoryStepConsequence) {
-        stepIds.add(consequence.stepId);
-      }
-      if (consequence is SceneGiveConfiguredStarterConsequence) {
-        starterIds.add(consequence.starterOptionId);
-      }
-      final command = payload.interactiveCommand;
-      if (command is SceneOpenImagePuzzleInteractiveCommand) {
-        imageIds.add(command.definition.imageResourceId);
-      }
-      if (command is SceneWorldPresentationInteractiveCommand &&
-          command.operation == SceneWorldPresentationOperation.showPicture) {
-        imageIds.add(command.mediaAssetId!);
-      }
-      if (command is SceneRailJourneyInteractiveCommand) {
-        journeyIds.add(command.journeyId);
-      }
-      if (command is SceneMusicInteractiveCommand &&
-          command.mediaAssetId != null) {
-        add('cinematicMediaAssets', [command.mediaAssetId!]);
-      }
-      if (command is ScenePlaySoundEffectInteractiveCommand) {
-        add('cinematicMediaAssets', [command.mediaAssetId]);
-      }
-      if (command is ScenePlayMusicEffectInteractiveCommand) {
-        add('cinematicMediaAssets', [command.mediaAssetId]);
-      }
-      if (command is SceneActorRouteInteractiveCommand) {
-        add('cinematicMediaAssets', [
-          for (final step in command.steps)
-            if (step is SceneActorSoundStep) step.mediaAssetId
-        ]);
       }
     }
 
@@ -119,31 +115,31 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     var journeyCatalogLoaded = false;
     var documents = await CatalogMetadataDocuments.readDocuments(
         snapshot: catalog.snapshot, project: base, ids: ids);
-    final candidates = <Object?>[parameters];
+    final candidates = <Object?>[];
     var previous = -1;
     int dependencyCount() =>
         ids.values.fold<int>(0, (total, values) => total + values.length) +
         stepIds.length +
         starterIds.length +
-        journeyIds.length;
+        journeyIds.length +
+        eventIds.length;
     while (previous != dependencyCount()) {
       previous = dependencyCount();
-      for (final node in [
-        for (final scene in documents.project.scenes) ...scene.graph.nodes,
-        ...incomingNodes
-      ]) {
-        includePayload(node.payload);
+      final pendingOwners =
+          (ids['scenes'] ?? const <String>{}).difference(ownerScenes);
+      if (pendingOwners.isNotEmpty) {
+        ownerScenes.addAll(pendingOwners);
+        eventIds.addAll(await CatalogNarrativeEventDocuments.readSceneOwnerIds(
+            catalog.snapshot, reader.store.projectRoot, pendingOwners));
       }
-      for (final rule in documents.project.worldRules) {
-        switch (rule.source.kind) {
-          case WorldRuleSourceKind.fact:
-            add('facts', [rule.source.sourceId]);
-          case WorldRuleSourceKind.storyStepCompletion:
-            stepIds.add(rule.source.sourceId);
-          case WorldRuleSourceKind.consumedEvent:
-            break;
-        }
+      if (eventIds.isNotEmpty) {
+        base = base.copyWith(
+            eventRegistry: await CatalogNarrativeEventDocuments.read(
+                catalog.snapshot, eventIds));
+        documents = await CatalogMetadataDocuments.readDocuments(
+            snapshot: catalog.snapshot, project: base, ids: ids);
       }
+      includeDependencies(documents.project);
       final sharedFields = {
         if (starterIds.isNotEmpty && starterCatalog == null) 'newGame',
         if (journeyIds.isNotEmpty && !journeyCatalogLoaded)
@@ -175,7 +171,8 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
         ]));
         candidates.add(base.railJourneyCatalog!.toJson());
       }
-      candidates.add(documents.project.toJson());
+      final selectedDefinitions = documents.project.toJson()..remove('scenes');
+      candidates.add(selectedDefinitions);
       for (final entry in const {
         'scenes': {'sceneId', 'preSessionSceneId'},
         'maps': {
@@ -218,6 +215,11 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
           snapshot: catalog.snapshot, project: base, ids: ids);
     }
     var manifest = documents.project;
+    final visualCandidates = [
+      parameters,
+      for (final scene in manifest.scenes) scene.toJson(),
+      ...candidates
+    ];
     final roots = <CatalogDefinitionKey>{};
     for (final entry in const {
       CatalogDefinitionKind.character: {
@@ -234,8 +236,8 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
       CatalogDefinitionKind.tileset: {'tilesetId', 'portraitTilesetId'},
       CatalogDefinitionKind.model3d: {'modelId'},
     }.entries) {
-      for (final id
-          in CatalogWorkshopSelection._referenceIds(candidates, entry.value)) {
+      for (final id in CatalogWorkshopSelection._referenceIds(
+          visualCandidates, entry.value)) {
         final key = CatalogDefinitionKey(entry.key, id);
         if (await catalog.snapshot.indexEntry(key) != null) roots.add(key);
       }
@@ -271,7 +273,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
           projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
     }
     final assetIds = CatalogWorkshopSelection._referenceIds(
-        candidates, {'assetId', 'modelId', 'elementId', 'characterId'});
+        visualCandidates, {'assetId', 'modelId', 'elementId', 'characterId'});
     if (assetIds.isNotEmpty) {
       await readFile(assetCatalogResourceIdentity, assetCatalogStorageKey);
     }

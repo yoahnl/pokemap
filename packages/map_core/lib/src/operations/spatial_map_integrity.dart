@@ -43,12 +43,14 @@ final class SpatialBorderObjectOverlap {
     required this.firstCell,
     required this.lastCell,
     this.contacts = const {},
+    this.slotKeys = const [],
   });
 
   final String layerId, featureId, instanceId, modelId;
   final int moduleCount;
   final GridPos firstCell, lastCell;
   final Map<String, double> contacts;
+  final List<String> slotKeys;
 
   String get key => '$layerId/$featureId|$instanceId';
 
@@ -59,6 +61,7 @@ final class SpatialBorderObjectOverlap {
     'modelId': modelId,
     'moduleCount': moduleCount,
     if (contacts.isNotEmpty) 'contacts': contacts,
+    if (slotKeys.isNotEmpty) 'slotKeys': slotKeys,
     'firstCell': {'x': firstCell.x, 'y': firstCell.y},
     'lastCell': {'x': lastCell.x, 'y': lastCell.y},
   };
@@ -176,21 +179,24 @@ final class SpatialMapIntegrityReport {
       ],
       borderObjectOverlaps: [
         for (final overlap in borderObjectOverlaps)
-          if (overlaps[overlap.key] case final previous?
-              when overlap.modelId == previous.modelId &&
-                  overlap.moduleCount <= previous.moduleCount &&
-                  overlap.contacts.entries.every(
-                    (entry) =>
-                        previous.contacts[entry.key] != null &&
-                        entry.value <= previous.contacts[entry.key]! + 1e-9,
-                  ))
-            ...const <SpatialBorderObjectOverlap>[]
-          else
-            overlap,
+          if (_isNewOrWorsenedOverlap(overlap, overlaps[overlap.key])) overlap,
       ],
     );
   }
 }
+
+bool _isNewOrWorsenedOverlap(
+  SpatialBorderObjectOverlap overlap,
+  SpatialBorderObjectOverlap? previous,
+) =>
+    previous == null ||
+    overlap.modelId != previous.modelId ||
+    overlap.moduleCount > previous.moduleCount ||
+    overlap.contacts.entries.any(
+      (entry) =>
+          previous.contacts[entry.key] == null ||
+          entry.value > previous.contacts[entry.key]! + 1e-9,
+    );
 
 const _samples = [.2, .5, .8];
 
@@ -414,6 +420,7 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
         })
       >{};
   final contacts = <String, Map<String, double>>{};
+  final slotsByPair = <String, Set<String>>{};
   for (final object in objectBoxes) {
     for (final (module, owner) in moduleBoxes) {
       final ix =
@@ -441,6 +448,7 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
           '${owner.slotKey}|${owner.primitiveId}|${module.modelId}|'
           '${module.minX},${module.maxX},${module.minY},${module.maxY},${module.minZ},${module.maxZ}';
       contacts.putIfAbsent(key, () => {})[contact] = ix * iy * iz;
+      slotsByPair.putIfAbsent(key, () => {}).add(owner.slotKey);
       final current = overlaps[key];
       overlaps[key] = current == null
           ? (
@@ -486,6 +494,9 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
           modelId: entry.value.first.modelId,
           moduleCount: entry.value.count,
           contacts: Map.unmodifiable(contacts[entry.key] ?? const {}),
+          slotKeys: List.unmodifiable(
+            (slotsByPair[entry.key] ?? {}).toList()..sort(),
+          ),
           firstCell: GridPos(x: entry.value.minX, y: entry.value.minZ),
           lastCell: GridPos(x: entry.value.maxX, y: entry.value.maxZ),
         ),

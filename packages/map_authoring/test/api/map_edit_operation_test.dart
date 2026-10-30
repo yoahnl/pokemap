@@ -8,6 +8,75 @@ import 'package:test/test.dart';
 import '../support/reliability_map_fixture.dart';
 
 void main() {
+  test('a facade confirmation continues through canonical apply with selected dependencies',() async {
+    final canonical=MapMutationDispatcher.canonical();
+    final descriptor=AuthoringActionDescriptor.fromJson({
+      ...canonical.descriptor('map3d.edit_batch').toJson(),'riskLevel':'high'});
+    final fixture=await ReliabilityMapFixture.create(variant:ReliabilityMapVariant.interiorHole,
+      qaRoot:'${ReliabilityMapFixture.defaultQaRoot}/confirmation',dispatcher:MapMutationDispatcher([
+        MapMutationActionRegistration(descriptor:descriptor,build:canonical.build),
+      ]));
+    addTearDown(fixture.dispose);
+    await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
+    final before=await fixture.mapFile.readAsBytes();
+    final operation=MapEditOperation(operationId:'confirmed-edit',mapId:'map',operations:[{
+      'actionId':'smart_tile.cell.paint','actionVersion':1,'parameters':{
+        'layerId':'terrain','materialId':'grass','cells':[{'x':12,'y':8}]}}]);
+    final result=await fixture.api.mapEdit(fixture.opened.projectHandle,operation);
+    expect(result['status'],'confirmation_required');
+    expect(await fixture.mapFile.readAsBytes(),before);
+    final planId=result['planId'] as String;
+    final confirmation=await fixture.api.confirmMutation(fixture.opened.projectHandle,planId:planId);
+    final applied=await fixture.api.applyMutation(fixture.opened.projectHandle,planId:planId,
+      operationId:operation.operationId,confirmationToken:confirmation.confirmationToken);
+    expect(applied.receipt.status,AuthoringReceiptStatus.applied);
+    await fixture.reopen();
+    final replay=await fixture.api.mapEdit(fixture.opened.projectHandle,operation);
+    expect(replay['status'],'applied');
+    expect((replay['receipt'] as Map)['receiptId'],applied.receipt.receiptId);
+  });
+  for (final storage in ReliabilityStorage.values) {
+    test(
+        '$storage cancellation during staging cannot reserve or promote a map edit',
+        () async {
+      var cancelled = false;
+      final fixture = await ReliabilityMapFixture.create(
+          variant: ReliabilityMapVariant.interiorHole,
+          storage: storage,
+          qaRoot: '${ReliabilityMapFixture.defaultQaRoot}/cancel',
+          faultInjector: (checkpoint) {
+            if (checkpoint.checkpoint ==
+                AuthoringTransactionCheckpoint.afterJournalStaged) {
+              cancelled = true;
+            }
+          });
+      addTearDown(fixture.dispose);
+      await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
+      final before = await fixture.mapFile.readAsBytes();
+      await expectLater(fixture.api.mapEdit(
+          fixture.opened.projectHandle,
+          MapEditOperation(
+              operationId: 'cancel-stage-${storage.name}',
+              mapId: 'map',
+              operations: [
+                {
+                  'actionId': 'smart_tile.cell.paint',
+                  'actionVersion': 1,
+                  'parameters': {
+                    'layerId': 'terrain',
+                    'materialId': 'grass',
+                    'cells': [
+                      {'x': 12, 'y': 8}
+                    ]
+                  },
+                }
+              ]),
+          isCancelled: () => cancelled),throwsA(isA<AuthoringPlanException>()
+            .having((error)=>error.code,'code','map_edit.cancelled')));
+      expect(cancelled, isTrue);
+      expect(await fixture.mapFile.readAsBytes(), before);
+    });
+  }
   test('semantic identity normalizes defaults and excludes transport identity',
       () {
     final base = _operation();
@@ -88,7 +157,7 @@ void main() {
           attempts++;
           throw AuthoringPlanException(code: 'plan.stale', message: 'changed');
         },
-        apply: (_,__) async => throw StateError('must not apply'),
+        apply: (_, __) async => throw StateError('must not apply'),
         project: (_) async => throw StateError('must not project'),
         discard: (_) async {},
         delay: (duration) async {
@@ -106,12 +175,48 @@ void main() {
           attempts++;
           throw StateError('must not plan');
         },
-        apply: (_,__) async => throw StateError('must not apply'),
+        apply: (_, __) async => throw StateError('must not apply'),
         project: (_) async => throw StateError('must not project'),
         discard: (_) async {});
     expect(
         (await pending.execute(_operation()))['status'], 'recovery_required');
     expect(attempts, 0);
+  });
+
+  test('cancelled or over-budget preparation cannot start an application',
+      () async {
+    for (final cancel in [true, false]) {
+      var cancelled = false, applies = 0;
+      final plan = _plan(DateTime.utc(2026, 10, 30));
+      final execution = MapEditExecution(
+          inspect: (_) async => null,
+          plan: (_, __) async {
+            if (cancel) {
+              cancelled = true;
+            } else {
+              await Future<void>.delayed(const Duration(milliseconds: 10));
+            }
+            return AuthoringMutationPlanResult(
+                plan: plan,
+                snapshotRevision: _revision,
+                receipt: plan.toPlannedReceipt());
+          },
+          apply: (_, requireActive) async {
+            requireActive();
+            applies++;
+            return {};
+          },
+          project: (_) async => {},
+          discard: (_) async {},
+          deadline: cancel
+              ? const Duration(seconds: 5)
+              : const Duration(milliseconds: 1));
+      await expectLater(
+          execution.execute(_operation(), isCancelled: () => cancelled),
+          throwsA(isA<AuthoringPlanException>()
+              .having((error) => error.code, 'code', 'map_edit.cancelled')));
+      expect(applies, 0);
+    }
   });
 
   for (final jsonl in [false, true]) {
@@ -162,6 +267,102 @@ void main() {
           .preparePendingJournalIndex();
     });
     tearDown(() => root.delete(recursive: true));
+
+    test(
+        'a published pending pointer without its scope is recoverable, not expired',
+        () async {
+      final plan = _plan(now)
+        ..bindMapEdit(_binding(_plan(now), unchanged: true));
+      final gateway =
+          await LocalTransactionFileGateway.open(projectRoot: root.path);
+      final store = FileIdempotencyStore(filePath: ledgerPath);
+      final transaction = JournaledAuthoringTransaction(
+          plans: AuthoringPlanStore(clock: () => now)..save(plan),
+          gateway: gateway,
+          idempotency:
+              AuthoringIdempotencyLedger(store: store, clock: () => now),
+          clock: () => now,
+          faultInjector: (context) {
+            if (context.checkpoint ==
+                AuthoringTransactionCheckpoint.afterReservation) {
+              throw const AuthoringTransactionSimulatedCrash();
+            }
+          });
+      await expectLater(
+          transaction.apply(
+              planId: plan.planId,
+              request: plan.request,
+              currentProjectRevision: plan.baseRevision,
+              scope: _scope(),
+              operationId: 'edit'),
+          throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+      final scopes =
+          await Directory('${root.path}/.pokemap/authoring/idempotency-scopes')
+              .list()
+              .where((entry) => entry.path.endsWith('.jsonl'))
+              .toList();
+      expect(scopes.length, 1);
+      await scopes.single.delete();
+      final lookup = await FileIdempotencyStore(filePath: ledgerPath)
+          .lookupOperation(
+              actorId: 'actor',
+              projectId: 'project',
+              operationId: 'edit',
+              now: now,
+              targetedOnly: true);
+      expect(lookup, isNotNull);
+      expect(lookup!.expired, isFalse);
+      expect(lookup.completed, isNull);
+      expect(await gateway.readJournal('edit'), isNotNull);
+    });
+
+    test('compensation stays terminal and cannot be presented as applied',
+        () async {
+      final plan = _plan(now, changed: true);
+      plan.bindMapEdit(_binding(plan, unchanged: false));
+      final gateway =
+          await LocalTransactionFileGateway.open(projectRoot: root.path);
+      final store = FileIdempotencyStore(filePath: ledgerPath);
+      final ledger = AuthoringIdempotencyLedger(store: store, clock: () => now);
+      final transaction = JournaledAuthoringTransaction(
+          plans: AuthoringPlanStore(clock: () => now)..save(plan),
+          gateway: gateway,
+          idempotency: ledger,
+          clock: () => now,
+          faultInjector: (context) {
+            if (context.checkpoint ==
+                AuthoringTransactionCheckpoint.afterResourcePromoted) {
+              throw const AuthoringTransactionSimulatedCrash();
+            }
+          });
+      await expectLater(
+          transaction.apply(
+              planId: plan.planId,
+              request: plan.request,
+              currentProjectRevision: plan.baseRevision,
+              scope: _scope(),
+              operationId: 'edit'),
+          throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+      final recovery = AuthoringRecoveryService(
+          gateway: gateway, idempotency: ledger, clock: () => now);
+      final receipt = await recovery.compensate('edit');
+      expect(await File('${root.path}/maps/field.json').readAsString(),
+          '{"value":1}');
+      expect(
+          mapEditReceiptDisposition(receipt, _binding(plan, unchanged: false)),
+          'compensated');
+      final found = await FileIdempotencyStore(filePath: ledgerPath)
+          .lookupOperation(
+              actorId: 'actor',
+              projectId: 'project',
+              operationId: 'edit',
+              now: now,
+              targetedOnly: true);
+      expect(
+          mapEditReceiptDisposition(
+              found!.completed!.receipt!, _binding(plan, unchanged: false)),
+          'compensated');
+    });
 
     test(
         'map edits require explicit pending index preparation before any intent',

@@ -103,7 +103,7 @@ void main() {
     expect(ratios.holes, closeTo(.02, 1e-9));
   });
 
-  test('the grid tiles the painted area, not the outer margin', () {
+  test('the grid covers the whole map including unpainted areas', () {
     const width = 48, depth = 30;
     final map = MapData(
       id: 'm',
@@ -125,9 +125,10 @@ void main() {
       ],
     );
     final centres = gridViewCenters(map);
-    expect(centres, hasLength(2 * 3));
-    expect(centres.map((c) => c.$1).toSet(), {16.0, 32.0});
-    expect(centres.every((c) => c.$2 > 2 && c.$2 < depth), isTrue);
+    expect(centres, hasLength((width/20).ceil() * (depth/11).ceil()));
+    expect(centres.map((c) => c.$1).toSet(), {8.0, 24.0, 40.0});
+    expect(centres.every((c) => c.$2 > 0 && c.$2 < depth), isTrue);
+    expect(gridViewCenters(map.copyWith(layers:const [])),centres);
     expect(gridViewCenters(map.copyWith(spatialScene: null)), isEmpty);
   });
 

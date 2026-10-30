@@ -24,15 +24,47 @@ Use the canonical PokeMap authoring API. Treat editor, API, and MCP parity as on
 
 ## Project workflow
 
-1. Call `pokemap_describe`; never assume action IDs, versions, kinds, or parameters.
+1. Call `pokemap_describe` with `domain: map3d`, `view: compact` for map work. Follow
+   `nextRequest`; request full details by `actionIds` before using an action. The unfiltered
+   default remains the full catalogue. Never assume versions, kinds or parameters.
 2. Open the absolute project directory and retain its opaque handles.
 3. Query content, follow `nextCursor`, never invent handles or URIs.
-4. For changes, call `pokemap_plan`, inspect the preview, then `pokemap_apply` with a unique
-   operation ID. Obtain the exact confirmation for destructive operations.
+4. For admitted edits of one existing 3D map, prefer `pokemap_map_edit`. Create and retain
+   `operationId` before calling; provide versioned operations and a stable seed (default 0).
+   Inspect a `dryRun` when needed, then send the same intent with `dryRun: false`.
+   Discover `map3d.edit_batch` details for admitted actions, intent schemas and guards.
+   Explicit workshop preparation admits editing indexes when requested; it may inspect the
+   project and must stay separate from routine edits. Creation of maps/layers and other
+   actions still use `pokemap_workshop read`, `pokemap_plan` and `pokemap_apply`.
+   Obtain the exact confirmation when required; the facade does not auto-confirm.
 5. Validate, re-query, and render or playtest when runtime or visuals change. On a 3D map,
    `pokemap_render` shows no GLB, terrain surface or Border face: inspect reliefs, joints
    and holes with `pokemap_render_3d` (macOS, floating window, first call is slow).
 6. Close the workspace when finished.
+
+After a lost `map_edit` response, reopen the same project and repeat the exact semantic
+request with the same `operationId` and new opaque handle. Do not reread a revision into
+that request or invent another operation identity. The facade consults the durable result
+first. `recovery_required`, `busy`, `expired` and `compensated` are not successful edits;
+inspect the returned status and use canonical recovery when appropriate. Retention is
+30 days; an expired recognized identity is never permission to apply it again. A new
+intention, including identical painting after undo, gets a new identity. Dry runs reserve
+nothing.
+
+Inside a batch, Smart Tile operations can select `material: {name: "mer"}` instead of
+`materialId`. Ambiguous names or ground suggestions return candidates without writing;
+choose explicit IDs and submit the corrected intention. Never automatically apply a
+suggestion copied from an old report.
+
+Use `pokemap_map_check` for a revision-bound `pass`, `fail` or `incomplete` verdict.
+`visual: none` covers only requested structural checks; default `full` also asks for a
+native scan. Read `coverage`, issues and pagination. `incomplete` requires resolving a
+missing proof, not repeating calls until green. A zero hole ratio proves only absence of
+enclosed sentinel background in those views. Keep independent visual/editability checks.
+
+The batch bounds repeated composition, but final integrity still scans the selected map.
+Do not claim constant local cost, the UI latency targets, or large-project acceptance from
+the small headless fixtures. `--profile map-builder` is optional; default full tools remain.
 
 Do not bypass MCP by editing project JSON. Filesystem work remains valid for source and
 assets. If an action is absent, report a parity gap instead of simulating it.

@@ -12,6 +12,7 @@ import 'workspace_policy.dart';
 import '../catalog_storage/catalog_storage_store.dart';
 import '../transactions/local_transaction_file_gateway.dart';
 import 'catalog/catalog_project_reader.dart';
+import 'catalog/catalog_narrative_event_documents.dart';
 import 'catalog_project_materialization.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/transaction_journal.dart';
@@ -66,10 +67,12 @@ final class ProjectOpenService {
     required WorkspaceHandleStore handles,
     Set<String>? catalogMetadataFields,
     bool workshopScope = false,
+    bool initializeSceneOwners = true,
   })  : _policy = policy,
         _fileReader = fileReader,
         _handles = handles,
         _workshopScope = workshopScope,
+        _initializeSceneOwners = initializeSceneOwners,
         _catalogMetadataFields = catalogMetadataFields == null
             ? null
             : Set.unmodifiable(catalogMetadataFields);
@@ -78,6 +81,7 @@ final class ProjectOpenService {
   final ProjectFileReader _fileReader;
   final WorkspaceHandleStore _handles;
   final bool _workshopScope;
+  final bool _initializeSceneOwners;
   final Set<String>? _catalogMetadataFields;
   final Map<ProjectHandle, Future<CatalogProjectReader?> Function()>
       _catalogReaders = {};
@@ -134,6 +138,9 @@ final class ProjectOpenService {
           metadataFields: _catalogMetadataFields);
     }
     final catalog = await catalogReader();
+    if (_initializeSceneOwners && catalog != null && !catalog.recoveryRequired) {
+      await catalog.read((current) => CatalogNarrativeEventDocuments.initializeSceneOwners(current.snapshot, canonicalRoot));
+    }
     final ownedBytes = manifestBytes is Uint8List
         ? manifestBytes
         : Uint8List.fromList(manifestBytes);

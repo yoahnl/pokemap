@@ -2,6 +2,31 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('every Scene payload kind exposes its external references even before targets load', () {
+    final payloads = <SceneNodePayload>[
+      SceneStartPayload(), SceneEndPayload(), SceneMergePayload(), SceneBranchByOutcomePayload(),
+      SceneYarnDialoguePayload(dialogueId: 'dialogue', yarnNodeName: 'Start'),
+      SceneConditionPayload(conditionSource: SceneConditionSource.fromJson({'sourceKind': 'badge', 'sourceId': 'wing', 'operator': 'isTrue'})),
+      SceneActionPayload.interactive(SceneInteractiveCommand.openImagePuzzle(definition: ImagePuzzleDefinition(puzzleId: 'mosaic', imageResourceId: 'image', rows: 2, columns: 2))),
+      SceneBattlePayload(battleKind: 'wild', battleTemplateId: 'target', demonstration: SceneBattleDemonstration(playerTrainerId: 'guide', bagItems: const [BagEntry(itemId: 'fruit', quantity: 1)], choices: [SceneBattleDemonstrationChoice.fight(0)])),
+      SceneCinematicPayload(cinematicId: 'cinematic'),
+      ScenePresentationCinematicPayload(presentationCinematicId: 'presentation'),
+    ];
+    expect(payloads.map((payload) => payload.kind).toSet(), SceneNodeKind.values.toSet());
+    final scene = SceneAsset(id: 'scene', name: 'Scene', graph: SceneGraph(startNodeId: 'node-0', nodes: [for (final (index, payload) in payloads.indexed) SceneNode(id: 'node-$index', kind: payload.kind, payload: payload)]));
+    final index = buildNarrativeDependencyIndex(project: const ProjectManifest(name: 'Partial', maps: [], tilesets: []).copyWith(scenes: [scene]));
+    final targets = index.usages.map((usage) => usage.target).toSet();
+    expect(targets, containsAll([
+      const NarrativeDependencyKey(NarrativeDependencyTargetKind.dialogue, 'dialogue'),
+      const NarrativeDependencyKey(NarrativeDependencyTargetKind.badge, 'wing'),
+      const NarrativeDependencyKey.synthetic(sourceKind: 'projectMedia', sourceId: 'image'),
+      const NarrativeDependencyKey.synthetic(sourceKind: 'encounterTable', sourceId: 'target'),
+      const NarrativeDependencyKey.synthetic(sourceKind: 'battle', sourceId: 'trainer:guide'),
+      const NarrativeDependencyKey(NarrativeDependencyTargetKind.item, 'fruit'),
+      const NarrativeDependencyKey(NarrativeDependencyTargetKind.cinematic, 'cinematic'),
+      const NarrativeDependencyKey.synthetic(sourceKind: 'presentationCinematic', sourceId: 'presentation'),
+    ]));
+  });
   group('NarrativeDependencyIndex contract', () {
     test('integer adjustment is a blocking typed Fact dependency', () {
       final scene = SceneAsset(id: 'scene.adjust', name: 'Adjust',

@@ -187,11 +187,76 @@ final class TrustedCatalogAdmissions {
         'limits': _limitValues(limits),
       };
 
-  Future<void> _publishRecord(File file, List<int> bytes) async {
+  Future<bool> sceneOwnerCacheReady(String digest) async {
+    final record = await _sceneOwnerRecord(digest, null);
+    final file = await _file(record);
+    if (!await file.exists()) return false;
+    await _requireFile(file);
+    return await file.readAsString() == canonicalAuthoringJson(record);
+  }
+
+  Future<Set<String>> readSceneOwnerCache(String digest, String sceneId,
+      {required int maximumBytes}) async {
+    if (!await sceneOwnerCacheReady(digest)) {
+      throw const CatalogStorageException('catalog.scene_owner_cache_stale',
+          'Reopen the project to refresh its Event Scene owners. The draft is preserved.');
+    }
+    final record = await _sceneOwnerRecord(digest, sceneId);
+    final file = await _file(record);
+    if (!await file.exists()) return const {};
+    await _requireFile(file);
+    if (await file.length() > maximumBytes) {
+      throw const FormatException(
+          'catalog.scene_owners: oversized cached owners');
+    }
+    final value = jsonDecode(await file.readAsString()) as Map;
+    final ids = value['eventIds'];
+    if (value['projectRoot'] != record['projectRoot'] ||
+        value['registryDigest'] != digest ||
+        value['sceneId'] != sceneId ||
+        ids is! List ||
+        ids.any((id) => id is! String)) {
+      throw const FormatException(
+          'catalog.scene_owners: invalid cached owners');
+    }
+    return Set<String>.unmodifiable(ids.cast<String>());
+  }
+
+  Future<void> publishSceneOwnerCache(
+      String digest, Map<String, Set<String>> owners,
+      {required int maximumBytes}) async {
+    for (final entry in owners.entries) {
+      final record = await _sceneOwnerRecord(digest, entry.key);
+      final ids = entry.value.toList()..sort();
+      final bytes =
+          utf8.encode(canonicalAuthoringJson({...record, 'eventIds': ids}));
+      if (bytes.length > maximumBytes) {
+        throw const FormatException(
+            'catalog.scene_owners: too many cached owners');
+      }
+      await _publishRecord(await _file(record), bytes,
+          maximumBytes: maximumBytes);
+    }
+    final marker = await _sceneOwnerRecord(digest, null);
+    await _publishRecord(
+        await _file(marker), utf8.encode(canonicalAuthoringJson(marker)));
+  }
+
+  Future<Map<String, Object?>> _sceneOwnerRecord(
+          String digest, String? sceneId) async =>
+      {
+        'sceneOwnerIndexVersion': 1,
+        'projectRoot': await Directory(projectRoot).resolveSymbolicLinks(),
+        'registryDigest': digest,
+        if (sceneId != null) 'sceneId': sceneId,
+      };
+
+  Future<void> _publishRecord(File file, List<int> bytes,
+      {int maximumBytes = 8192}) async {
     final type = await FileSystemEntity.type(file.path, followLinks: false);
     if (type != FileSystemEntityType.notFound) {
       await _requireFile(file);
-      if (await file.length() > 8192 ||
+      if (await file.length() > maximumBytes ||
           await file.readAsString() != utf8.decode(bytes)) {
         throw const FormatException(
             'catalog.admission: conflicting trusted record');

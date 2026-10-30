@@ -295,7 +295,8 @@ final class LocalMapAuthoringMutationApi
         'operationId': operation.operationId,
         'semanticFingerprint': binding.fingerprint,
         'retentionDays': 30,
-        'revisionScope': binding.unchanged ? 'selected_dependencies' : 'projected_change_set',
+        'revisionScope': disposition == 'compensated' ? 'transaction_resource_set'
+            : binding.unchanged ? 'selected_dependencies' : 'projected_change_set',
         if (disposition == 'compensated') 'transactionRevision': receipt.afterRevision,
         ...projection};
     }
@@ -375,6 +376,8 @@ final class LocalMapAuthoringMutationApi
       project: (prepared) async => prepared.toJson(),
       discard: (prepared) async {
         snapshots.remove(prepared.planId);
+        session._workshopPlans.remove(prepared.planId);
+        session._workshopPreconditions.remove(prepared.planId);
         if (catalogPlansWithChanges.remove(prepared.planId)) return;
         await session._plans.discard(prepared.planId);
       },
@@ -384,7 +387,8 @@ final class LocalMapAuthoringMutationApi
         if (catalog != null && plan.changeSet.changes.isNotEmpty) {
           final result = await catalog.apply(planId: plan.planId,
               operationId: operation.operationId,
-              precondition: () async { requireActive(); });
+              precondition: () async { requireActive(); },
+              beforeReservation: requireActive, preparationCheck: requireActive);
           return projectReceipt(result.receipt);
         }
         final snapshot = snapshots[plan.planId]!;
@@ -394,10 +398,13 @@ final class LocalMapAuthoringMutationApi
             scope: AuthoringIdempotencyScope(actorId: _actor.actorId,
               projectId: session.projectId, actionId: descriptor.id,
               actionVersion: descriptor.version, key: plan.request.idempotencyKey!),
-            operationId: operation.operationId, precondition: () async {
+            operationId: operation.operationId,
+            beforeReservation: requireActive, preparationCheck: requireActive,
+            precondition: () async {
               requireActive();
               final current = await readWorkshopSnapshot(projectHandle,
                   actionId: 'map3d.edit_batch', parameters: operation.toBatchParameters());
+              requireActive();
               if (current.revision != snapshot.revision) {
                 throw AuthoringPlanException(code: 'plan.stale', message: 'A selected dependency changed.');
               }
@@ -1843,7 +1850,8 @@ final class _LocalMapAuthoringSession {
     } finally {
       span?.finish();
     }
-    if (suppliedSnapshot == null && _nativeLocalWorkshopActions.contains(request.actionId)) {
+    if (_nativeLocalWorkshopActions.contains(request.actionId) &&
+        (suppliedSnapshot == null || _logicalMapEdits.containsKey(request.requestId))) {
       _workshopPlans[plan.planId] = request;
       _workshopPreconditions[plan.planId] = snapshot.scopedStorageRevisions ?? const {};
     }
@@ -1921,11 +1929,13 @@ final class _LocalMapAuthoringSession {
       ),
     );
     if (replay != null) return _mutationResult(replay);
-    await traceAuthoringPhase(
-      'authoring.apply.recovery',
-      _requireReconciled,
-    );
     final plan = await _plans.resolveActive(safePlanId);
+    if (plan.mapEditBinding == null) {
+      await traceAuthoringPhase(
+        'authoring.apply.recovery',
+        _requireReconciled,
+      );
+    }
     _requireApplicablePlan(plan);
     _requireWorkspace(plan.request.workspaceHandle);
     final key = plan.request.idempotencyKey;

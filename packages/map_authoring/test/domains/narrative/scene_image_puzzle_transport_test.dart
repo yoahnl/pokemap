@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_narrative_event_documents.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -127,6 +128,25 @@ void main() {
       }
       expect(
           snapshot.manifest.facts.any((fact) => fact.id == sourceId), isFalse);
+      if (kind == 'worldState') {
+        expect(buildSceneRuntimePlan(mixed).canBuild, isFalse);
+        final before = await fixture.bytes();
+        await expectLater(
+            () => fixture.plan('scene.interactive_command.set', parameters),
+            throwsA(isA<NarrativeAuthoringException>()
+                .having((error) => error.details['runtimePlanBuildable'],
+                    'runtimePlanBuildable', false)
+                .having(
+                    (error) => (error.details['diagnostics'] as List)
+                        .whereType<Map>()
+                        .any((diagnostic) =>
+                            diagnostic['code'] ==
+                            'conditionWorldRuleRefUnknown'),
+                    'unknownWorldRule',
+                    false)));
+        expect(await fixture.bytes(), before);
+        return;
+      }
       await fixture.apply(
           await fixture.plan('scene.interactive_command.set', parameters));
       await fixture.reopen();
@@ -243,6 +263,13 @@ void main() {
               snapshot.manifest.railJourneyCatalog?.journeys
                   .map((journey) => journey.id),
               ['T1']);
+          expect(
+              snapshot.maps.map((map) => map.id),
+              unorderedEquals([
+                'map_origin_station',
+                'map_destination_station',
+                'map_train_car'
+              ]));
         case 'music':
           expect(
               snapshot.manifest.cinematicMediaAssets.map((media) => media.id),
@@ -259,13 +286,366 @@ void main() {
         case 'mapVariants':
           expect(snapshot.manifest.characters.map((character) => character.id),
               unorderedEquals(['actor-character', 'second-character']));
+          expect(snapshot.maps.map((map) => map.id), ['room']);
       }
+      await fixture.apply(
+          await fixture.plan('scene.interactive_command.set', parameters));
+      await fixture.reopen();
+      expect(await fixture.storedCommand(), next);
+      if (const {'starter', 'journey', 'music', 'sound'}.contains(dependency)) {
+        final store =
+            await CatalogStorageStore.open(projectRoot: fixture.root.path);
+        final reopened = await WorkingProjectCatalog.open(
+            store: store,
+            descriptor: WorkingProjectCatalogDescriptor.fromJson(
+                Map<String, dynamic>.from(
+                    jsonDecode(await fixture.file.readAsString()) as Map)),
+            metadataFields: {
+              'newGame',
+              'railJourneyCatalog',
+              'cinematicMediaAssets'
+            });
+        expect(reopened.catalog.projectMetadata.newGame, seed.newGame);
+        expect(reopened.catalog.projectMetadata.railJourneyCatalog,
+            seed.railJourneyCatalog);
+        expect(reopened.catalog.projectMetadata.cinematicMediaAssets,
+            seed.cinematicMediaAssets);
+      }
+    });
+  }
+  for (final demonstration in [false, true]) {
+    test('mixed puzzle resolves wild battle and demonstration=$demonstration',
+        () async {
+      final battle = SceneBattlePayload(
+          battleKind: 'wild',
+          battleTemplateId: 'target',
+          declaredOutcomes: ['victory', 'defeat', 'captured', 'runaway'],
+          demonstration: demonstration
+              ? SceneBattleDemonstration(
+                  playerTrainerId: 'rival',
+                  bagItems: const [],
+                  choices: [SceneBattleDemonstrationChoice.fight(0)])
+              : null);
+      final seed = _dependencyProject().copyWith(
+          version: demonstration ? ProjectVersion.v9 : ProjectVersion.v8,
+          settings: ProjectSettings(
+              dimension: demonstration
+                  ? ProjectDimension.threeD
+                  : ProjectDimension.twoD),
+          encounterTables: const [
+            ProjectEncounterTable(
+                id: 'target',
+                name: 'Target',
+                encounterKind: EncounterKind.walk,
+                entries: [
+                  ProjectEncounterEntry(
+                      speciesId: 'bird', minLevel: 2, maxLevel: 2)
+                ]),
+            ProjectEncounterTable(
+                id: 'unused-table',
+                name: 'Unused',
+                encounterKind: EncounterKind.walk)
+          ]);
+      final mixed = _mixedScene(actions: [battle]);
+      final fixture = await _PuzzleFixture.create(
+          jsonl: false,
+          catalog: true,
+          mixedProject: seed,
+          sceneValue: mixed,
+          resources: _dependencyResources());
+      addTearDown(fixture.dispose);
+      final next = command();
+      (next['definition'] as Map)['allowReset'] = false;
+      final parameters = {
+        'sceneId': 'puzzle',
+        'nodeId': 'puzzle-node',
+        'command': next
+      };
+      final snapshot = await fixture.mutations.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'scene.interactive_command.set',
+          parameters: parameters);
+      expect(snapshot.manifest.encounterTables.map((table) => table.id),
+          ['target']);
+      expect(snapshot.manifest.trainers.map((trainer) => trainer.id),
+          demonstration ? ['rival'] : isEmpty);
       await fixture.apply(
           await fixture.plan('scene.interactive_command.set', parameters));
       await fixture.reopen();
       expect(await fixture.storedCommand(), next);
     });
   }
+  for (final unrelated in [0, 128]) {
+    test(
+        'parallel Scene owner blocks puzzle publication with $unrelated unrelated events',
+        () async {
+      final initial = SceneAsset(
+          id: 'puzzle',
+          name: 'Initial',
+          graph: SceneGraph(startNodeId: 'start', nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(id: 'end', kind: SceneNodeKind.end)
+          ], edges: [
+            SceneEdge(
+                id: 'enter',
+                fromNodeId: 'start',
+                fromPortId: 'completed',
+                toNodeId: 'end',
+                kind: SceneEdgeKind.defaultFlow)
+          ]));
+      final owner = _parallelOwner(1, 'puzzle');
+      final seed = _dependencyProject().copyWith(
+          maps: const [
+            ProjectMapEntry(
+                id: 'room', name: 'Room', relativePath: 'maps/room.json')
+          ],
+          eventRegistry: NarrativeEventRegistry(
+              schemaVersion: 1,
+              mode: EventSystemMode.v2Only,
+              legacyClaims: const [],
+              records: [
+                owner,
+                for (var i = 0; i < unrelated; i++)
+                  _parallelOwner(i + 2, 'unrelated-$i')
+              ]));
+      final fixture = await _PuzzleFixture.create(
+          jsonl: false,
+          catalog: true,
+          mixedProject: seed,
+          sceneValue: initial,
+          resources: {
+            'maps/room.json': MapData(
+                    id: 'room',
+                    name: 'Room',
+                    size: const GridSize(width: 8, height: 8))
+                .toJson()
+          });
+      addTearDown(fixture.dispose);
+      fixture.reader.paths.clear();
+      final parameters = {'scene': scene()};
+      final snapshot = await fixture.mutations.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'scene.upsert',
+          parameters: parameters);
+      expect(
+          snapshot.manifest.eventRegistry?.records.map((record) => record.id),
+          [owner.id]);
+      final before = await fixture.bytes();
+      await expectLater(
+          () => fixture.plan('scene.upsert', parameters),
+          throwsA(isA<NarrativeAuthoringException>().having(
+              (error) => (error.details['diagnostics'] as List)
+                  .whereType<Map>()
+                  .any((diagnostic) =>
+                      diagnostic['code'] == 'capabilityForbiddenForProfile'),
+              'parallel restriction',
+              true)));
+      expect(await fixture.bytes(), before);
+      expect(
+          fixture.reader.paths.where(
+              (path) => path.startsWith('maps/') || path.startsWith('assets/')),
+          isEmpty);
+      expect(fixture.reader.paths.length, lessThan(180));
+    });
+  }
+  for (final unrelated in [0, 128]) {
+    test(
+        'legacy owner cache initializes before first save with $unrelated unrelated events',
+        () async {
+      final initial = _emptyScene('puzzle');
+      final owner = _parallelOwner(1, 'puzzle');
+      final seed = _dependencyProject().copyWith(
+          maps: const [
+            ProjectMapEntry(
+                id: 'room', name: 'Room', relativePath: 'maps/room.json')
+          ],
+          eventRegistry: NarrativeEventRegistry(
+              schemaVersion: 1,
+              mode: EventSystemMode.v2Only,
+              legacyClaims: const [],
+              records: [
+                owner,
+                for (var i = 0; i < unrelated; i++)
+                  _parallelOwner(i + 2, 'other-$i')
+              ]));
+      final fixture = await _PuzzleFixture.create(
+          jsonl: false,
+          catalog: true,
+          mixedProject: seed,
+          sceneValue: initial,
+          legacyOwners: true,
+          resources: {
+            'maps/room.json': MapData(
+                    id: 'room',
+                    name: 'Room',
+                    size: const GridSize(width: 8, height: 8))
+                .toJson()
+          });
+      addTearDown(fixture.dispose);
+      final initialPaths = [...fixture.reader.paths];
+      expect(
+          initialPaths.where(
+              (path) => path.startsWith('maps/') || path.startsWith('assets/')),
+          isEmpty);
+      final store =
+          await CatalogStorageStore.open(projectRoot: fixture.root.path);
+      final snapshot =
+          (await store.openRoot((await store.readHead())!)).snapshot;
+      final chunkPaths = <String>{};
+      for (var i = 0; i < 512; i++) {
+        final entry = await snapshot.indexEntry(CatalogDefinitionKey(
+            CatalogDefinitionKind.catalogMetadata,
+            jsonEncode(['projectAggregateChunk', 'eventRegistry', i])));
+        if (entry == null) break;
+        chunkPaths.add('catalog/objects/${entry.reference.sha256}.json');
+      }
+      if (unrelated > 0) {
+        expect(initialPaths.toSet().intersection(chunkPaths), isNotEmpty);
+      }
+      expect(await _nativeBytes(fixture.root), fixture.initialNativeBytes);
+      await File('${fixture.root.parent.path}/measurements.jsonl')
+          .writeAsString(
+              '${jsonEncode({
+                    'operation': 'legacyOwnersInitialOpen',
+                    'unrelatedEvents': unrelated,
+                    'elapsedMicros': fixture.initialOpenDuration.inMicroseconds,
+                    'fileReads': initialPaths.length
+                  })}\n',
+              mode: FileMode.append);
+      for (var attempt = 0; attempt < 2; attempt++) {
+        fixture.reader.paths.clear();
+        final changed =
+            SceneAsset.fromJson({...initial.toJson(), 'name': 'Safe $attempt'});
+        await fixture.apply(
+            await fixture.plan('scene.upsert', {'scene': changed.toJson()}));
+        expect(fixture.reader.paths.toSet().intersection(chunkPaths), isEmpty);
+      }
+      await fixture.mutations.undoMutation(fixture.opened.projectHandle,
+          entryId: fixture.lastReceiptId!, idempotencyKey: 'legacy-undo');
+      await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+      await fixture.reopen();
+      await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+    });
+  }
+  test('parallel owner relocation and undo preserve Scene restrictions',
+      () async {
+    final seed = _dependencyProject().copyWith(
+        maps: const [
+          ProjectMapEntry(
+              id: 'room', name: 'Room', relativePath: 'maps/room.json')
+        ],
+        scenes: [
+          _emptyScene('other')
+        ],
+        eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            legacyClaims: const [],
+            records: [_parallelOwner(1, 'puzzle')]));
+    final fixture = await _PuzzleFixture.create(
+        jsonl: false,
+        catalog: true,
+        mixedProject: seed,
+        sceneValue: _emptyScene('puzzle'),
+        resources: {
+          'maps/room.json': MapData(
+                  id: 'room',
+                  name: 'Room',
+                  size: const GridSize(width: 8, height: 8))
+              .toJson()
+        });
+    addTearDown(fixture.dispose);
+    await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+    await fixture.apply(await fixture.plan('event_v2.record_upsert',
+        {'record': _parallelOwner(1, 'other').toJson()}));
+    await fixture.plan('scene.upsert', {'scene': scene()});
+    await fixture.expectRefusal('scene.upsert', {
+      'scene': {...scene(), 'id': 'other'}
+    });
+    await fixture.mutations.undoMutation(fixture.opened.projectHandle,
+        entryId: fixture.lastReceiptId!, idempotencyKey: 'owner-undo');
+    await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+    await fixture.plan('scene.upsert', {
+      'scene': {...scene(), 'id': 'other'}
+    });
+    await fixture.reopen();
+    await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+    await fixture.apply(await fixture.plan('event_v2.record_upsert', {
+      'record': NarrativeEventRecord.draft(NarrativeEventDraft(
+        id: _parallelOwner(1, 'puzzle').id,
+        name: 'Detached owner',
+        conditions: const [],
+        priority: 0,
+        order: 1,
+      )).toJson(),
+    }));
+    await fixture.plan('scene.upsert', {'scene': scene()});
+    await fixture.mutations.undoMutation(fixture.opened.projectHandle,
+        entryId: fixture.lastReceiptId!, idempotencyKey: 'owner-detach-undo');
+    await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+  });
+  test('interrupted owner relocation recovers and undo restores owner facets',
+      () async {
+    var failed = false;
+    final seed = _dependencyProject().copyWith(
+        maps: const [
+          ProjectMapEntry(
+              id: 'room', name: 'Room', relativePath: 'maps/room.json')
+        ],
+        scenes: [
+          _emptyScene('other')
+        ],
+        eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            legacyClaims: const [],
+            records: [_parallelOwner(1, 'puzzle')]));
+    final fixture = await _PuzzleFixture.create(
+        jsonl: false,
+        catalog: true,
+        mixedProject: seed,
+        sceneValue: _emptyScene('puzzle'),
+        resources: {
+          'maps/room.json': MapData(
+                  id: 'room',
+                  name: 'Room',
+                  size: const GridSize(width: 8, height: 8))
+              .toJson()
+        },
+        faultInjector: (context) {
+          if (!failed &&
+              context.checkpoint ==
+                  AuthoringTransactionCheckpoint.afterResourcePromoted) {
+            failed = true;
+            throw StateError('owned Scene owner rollback probe');
+          }
+        });
+    addTearDown(fixture.dispose);
+    final plan = await fixture.plan('event_v2.record_upsert',
+        {'record': _parallelOwner(1, 'other').toJson()});
+    await expectLater(() => fixture.apply(plan),
+        throwsA(isA<JournaledAuthoringTransactionException>()));
+    expect(failed, true);
+    final operationId = 'puzzle-apply-${fixture.sequence}';
+    await fixture.reopen();
+    expect(fixture.opened.recoveryRequired, true);
+    final recovered = await fixture.mutations.recoverMutation(
+        fixture.opened.projectHandle,
+        operationId: operationId);
+    await fixture.plan('scene.upsert', {'scene': scene()});
+    await fixture.expectRefusal('scene.upsert', {
+      'scene': {...scene(), 'id': 'other'}
+    });
+    await fixture.mutations.undoMutation(fixture.opened.projectHandle,
+        entryId: recovered.receipt.receiptId,
+        idempotencyKey: 'recovered-owner-undo');
+    await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+    await fixture.plan('scene.upsert', {
+      'scene': {...scene(), 'id': 'other'}
+    });
+    await fixture.reopen();
+    await fixture.expectRefusal('scene.upsert', {'scene': scene()});
+  });
   final readCounts = <int>[];
   for (final unrelated in [0, 128]) {
     test('catalog puzzle edits stay scoped with $unrelated unrelated scenes',
@@ -433,6 +813,8 @@ final class _PuzzleFixture {
   late OpenedProject opened;
   var sequence = 0;
   String? lastReceiptId;
+  late Map<String, String> initialNativeBytes;
+  late Duration initialOpenDuration;
 
   File get file => File('${root.path}/project.json');
 
@@ -442,7 +824,9 @@ final class _PuzzleFixture {
       int unrelated = 0,
       ProjectManifest? mixedProject,
       SceneAsset? sceneValue,
-      Map<String, Object?> resources = const {}}) async {
+      Map<String, Object?> resources = const {},
+      bool legacyOwners = false,
+      AuthoringTransactionFaultInjector? faultInjector}) async {
     final qaRoot = Directory(Platform.environment['AVELUNE_QA_ROOT'] ??
         '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle-authoring');
     await qaRoot.create(recursive: true);
@@ -480,6 +864,7 @@ final class _PuzzleFixture {
                   const ProjectManifest(name: 'Puzzle', maps: [], tilesets: []))
               .copyWith(scenes: [
             sceneValue ?? SceneAsset.fromJson(scene()),
+            ...?mixedProject?.scenes.where((value) => value.id != 'puzzle'),
             for (var i = 0; i < unrelated; i++)
               SceneAsset(
                   id: 'unrelated-$i',
@@ -493,6 +878,9 @@ final class _PuzzleFixture {
             CatalogMetadataDocuments.definitionKey('scenes', position)))!;
         unrelatedObjects.add('catalog/objects/${entry.reference.sha256}.json');
       }
+    }
+    if (legacyOwners) {
+      await _legacyOwnerLayout(root);
     }
     final reader = _CountingReader();
     final policy = await WorkspacePolicy.create(
@@ -514,10 +902,15 @@ final class _PuzzleFixture {
       policy: policy,
       snapshotLoader: snapshots,
       catalogFileReader: reader,
+      faultInjector: faultInjector,
     );
     final fixture = _PuzzleFixture(root, api, mutations, snapshots, jsonl,
         catalog, reader, unrelatedObjects);
+    fixture.initialNativeBytes = await _nativeBytes(root);
+    final initialTimer = Stopwatch()..start();
     await fixture.reopen();
+    fixture.initialOpenDuration = initialTimer.elapsed;
+    expect(await _nativeBytes(root), fixture.initialNativeBytes);
     return fixture;
   }
 
@@ -707,7 +1100,9 @@ ProjectManifest _dependencyProject() => ProjectManifest.fromJson({
       ],
       'facts': [
         NarrativeFactDefinition(id: 'world-enabled', label: 'World enabled')
-            .toJson()
+            .toJson(),
+        for (final id in ['wing', 'fruit', 'rival', 'weather'])
+          NarrativeFactDefinition(id: id, label: 'Unrelated Fact $id').toJson(),
       ],
       'worldRules': [
         WorldRuleDefinition(
@@ -753,7 +1148,7 @@ SceneInteractiveCommand _giftCommand({List<String>? moves}) =>
     });
 SceneAsset _mixedScene(
     {SceneConditionSource? condition,
-    List<SceneActionPayload> actions = const []}) {
+    List<SceneNodePayload> actions = const []}) {
   final targets = [
     for (var i = 0; i < actions.length; i++) 'extra-$i',
     'puzzle-node'
@@ -769,8 +1164,7 @@ SceneAsset _mixedScene(
               kind: SceneNodeKind.condition,
               payload: SceneConditionPayload(conditionSource: condition)),
         for (final (index, payload) in actions.indexed)
-          SceneNode(
-              id: 'extra-$index', kind: SceneNodeKind.action, payload: payload),
+          SceneNode(id: 'extra-$index', kind: payload.kind, payload: payload),
         SceneNode(
             id: 'puzzle-node',
             kind: SceneNodeKind.action,
@@ -795,14 +1189,19 @@ SceneAsset _mixedScene(
                     ? SceneEdgeKind.conditionTrue
                     : SceneEdgeKind.conditionFalse),
         for (final (index, payload) in actions.indexed)
-          for (final port
-              in payload.interactiveCommand?.outputPortIds ?? ['completed'])
+          for (final port in _payloadPorts(payload))
             SceneEdge(
                 id: 'extra-$index-$port',
                 fromNodeId: 'extra-$index',
                 fromPortId: port,
                 toNodeId: targets[index + 1],
-                kind: SceneEdgeKind.actionCompleted),
+                kind: payload is SceneBattlePayload
+                    ? switch (port) {
+                        'victory' => SceneEdgeKind.battleVictory,
+                        'defeat' => SceneEdgeKind.battleDefeat,
+                        _ => SceneEdgeKind.branchOutcome
+                      }
+                    : SceneEdgeKind.actionCompleted),
         for (final port in ['solved', 'quit'])
           SceneEdge(
               id: port,
@@ -971,4 +1370,76 @@ Map<String, Object?> _mapDependencyResources() => {
                             blocksMovement: true)
                     ]))
             ]).toJson(),
+    };
+
+List<String> _payloadPorts(SceneNodePayload payload) => switch (payload) {
+      SceneActionPayload() =>
+        payload.interactiveCommand?.outputPortIds ?? ['completed'],
+      SceneBattlePayload() => payload.declaredOutcomes,
+      _ => ['completed'],
+    };
+
+NarrativeEventRecord _parallelOwner(int id, String sceneId) =>
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+        NarrativeEventDefinition(
+            id: 'evt_018f0f8c-7b8a-7def-8000-${id.toString().padLeft(12, '0')}',
+            name: 'Owner $id',
+            source: NarrativeEventSourceRef.mapEnter('room'),
+            conditions: const [],
+            sceneId: sceneId,
+            reusePolicy: NarrativeEventReusePolicy.reusable,
+            priority: 0,
+            order: id,
+            parallelPolicy: NarrativeEventParallelPolicy(cadenceMs: 100)),
+        enabled: true);
+
+SceneAsset _emptyScene(String id) => SceneAsset(
+    id: id,
+    name: 'Initial',
+    graph: SceneGraph(startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(id: 'end', kind: SceneNodeKind.end)
+    ], edges: [
+      SceneEdge(
+          id: 'enter',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.defaultFlow)
+    ]));
+Future<void> _legacyOwnerLayout(Directory root) async {
+  final store = await CatalogStorageStore.open(projectRoot: root.path);
+  final current = (await store.openRoot((await store.readHead())!)).snapshot;
+  final units = await current.readAllUnits();
+  final legacy = CatalogStorageBuilder().build([
+    for (final unit in units)
+      if (!unit.key.id.startsWith('["sceneEventOwners",'))
+        if (unit.key == CatalogNarrativeEventDocuments.indexKey)
+          CatalogDefinitionUnit(
+              key: unit.key,
+              payload: {...unit.payload}..remove('sceneOwnersVersion'))
+        else
+          unit,
+  ]);
+  await store.gateway.withExclusiveWriteLock(() async {
+    await store.publishObjectsUnderLock(legacy.objects);
+    await File('${root.path}/catalog/HEAD.json')
+        .writeAsBytes(CatalogStorageStore.encodeHead(legacy.root));
+    final snapshot = (await store.openRoot(legacy.root)).snapshot;
+    await snapshot.validate();
+    await store.publishIndexAdmissionUnderLock(snapshot);
+    await store.publishMetadataIndexAdmissionUnderLock(snapshot);
+  });
+}
+
+Future<Map<String, String>> _nativeBytes(Directory root) async => {
+      for (final entity in await root
+          .list(recursive: true)
+          .where((entity) =>
+              entity is File &&
+              (entity.path.endsWith('/project.json') ||
+                  entity.path.contains('/catalog/')))
+          .toList())
+        entity.path.substring(root.path.length):
+            base64Encode(await File(entity.path).readAsBytes()),
     };

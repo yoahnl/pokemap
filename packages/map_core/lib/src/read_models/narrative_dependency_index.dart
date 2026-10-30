@@ -488,8 +488,9 @@ NarrativeDependencyIndex buildNarrativeDependencyIndex({
   List<MapData> maps = const <MapData>[],
   ProjectItemCatalog? itemCatalog,
   Map<String, RuntimeDialogueDocument> dialogueDocuments = const {},
+  Iterable<SceneNode> additionalSceneNodes = const [],
 }) {
-  return _NarrativeDependencyIndexBuilder(project, maps, itemCatalog, dialogueDocuments).build();
+  return _NarrativeDependencyIndexBuilder(project, maps, itemCatalog, dialogueDocuments, additionalSceneNodes).build();
 }
 
 final class _NarrativeDependencyIndexBuilder {
@@ -498,11 +499,13 @@ final class _NarrativeDependencyIndexBuilder {
     List<MapData> maps,
     this.itemCatalog,
     this.dialogueDocuments,
-  ) : maps = List<MapData>.unmodifiable(maps);
+    Iterable<SceneNode> additionalSceneNodes,
+  ) : additionalSceneNodes = List.unmodifiable(additionalSceneNodes), maps = List<MapData>.unmodifiable(maps);
 
   final ProjectManifest project;
   final ProjectItemCatalog? itemCatalog;
   final List<MapData> maps;
+  final List<SceneNode> additionalSceneNodes;
   final Map<String, RuntimeDialogueDocument> dialogueDocuments;
   final List<NarrativeDependencyDefinition> _definitions = [];
   final List<NarrativeDependencyUsage> _usages = [];
@@ -521,6 +524,9 @@ final class _NarrativeDependencyIndexBuilder {
     _collectEvents();
     _collectLegacyClaims();
     _collectScenes();
+    for (final (index, node) in additionalSceneNodes.indexed) {
+      _collectSceneNode(const NarrativeDependencyKey.scene('authoring-incoming'), 'authoring-incoming', node, index);
+    }
     for (final entry in dialogueDocuments.entries) {
       final owner = NarrativeDependencyKey(NarrativeDependencyTargetKind.dialogue, entry.key);
       for (final id in dialogueDocumentFactIds(entry.value)) {
@@ -620,6 +626,15 @@ final class _NarrativeDependencyIndexBuilder {
         scope: 'synthetic',
         sourceKind: 'battle',
       );
+    }
+    for (final table in project.encounterTables) {
+      _definition(NarrativeDependencyTargetKind.sourceMap, table.id, table.name, scope: 'synthetic', sourceKind: 'encounterTable', path: 'encounterTables[${table.id}]');
+    }
+    for (final option in project.newGame.starterOptions) {
+      _definition(NarrativeDependencyTargetKind.sourceMap, option.id, option.label, scope: 'synthetic', sourceKind: 'starterOption', path: 'newGame.starterOptions[${option.id}]');
+    }
+    for (final cinematic in project.presentationCinematics) {
+      _definition(NarrativeDependencyTargetKind.sourceMap, cinematic.id, cinematic.title, scope: 'synthetic', sourceKind: 'presentationCinematic', path: 'presentationCinematics[${cinematic.id}]');
     }
     for (final cinematic in project.cinematics) {
       _definition(
@@ -2413,6 +2428,21 @@ final class _NarrativeDependencyIndexBuilder {
         path: '$path.cinematicId',
         criticality: NarrativeDependencyCriticality.runtimeBlocking,
       );
+    } else if (payload is SceneBattlePayload) {
+      if (payload.battleKind == 'wild' && payload.battleTemplateId != null) {
+        _usage(target: NarrativeDependencyKey.synthetic(sourceKind: 'encounterTable', sourceId: payload.battleTemplateId!), owner: owner, path: '$path.battleTemplateId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+      }
+      if (payload.trainerId != null) {
+        _usage(target: NarrativeDependencyKey.synthetic(sourceKind: 'battle', sourceId: '${payload.battleKind}:${payload.trainerId}'), owner: owner, path: '$path.trainerId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+      }
+      if (payload.demonstration case final demonstration?) {
+        _usage(target: NarrativeDependencyKey.synthetic(sourceKind: 'battle', sourceId: 'trainer:${demonstration.playerTrainerId}'), owner: owner, path: '$path.demonstration.playerTrainerId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        for (final item in demonstration.bagItems) {
+          _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.item, item.itemId), owner: owner, path: '$path.demonstration.bagItems', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        }
+      }
+    } else if (payload is ScenePresentationCinematicPayload) {
+      _usage(target: NarrativeDependencyKey.synthetic(sourceKind: 'presentationCinematic', sourceId: payload.presentationCinematicId), owner: owner, path: '$path.presentationCinematicId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
     } else if (payload is SceneConditionPayload) {
       final source = payload.conditionSource;
       if (source != null) {
@@ -2552,6 +2582,12 @@ final class _NarrativeDependencyIndexBuilder {
     String path,
   ) {
     switch (command) {
+      case SceneInputTextToFactInteractiveCommand(:final factId):
+        _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, factId), owner: owner, path: '$path.factId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+      case SceneOpenImagePuzzleInteractiveCommand(:final definition):
+        _usage(target: NarrativeDependencyKey.synthetic(sourceKind: 'projectMedia', sourceId: definition.imageResourceId), owner: owner, path: '$path.definition.imageResourceId', criticality: NarrativeDependencyCriticality.runtimeBlocking, resolution: NarrativeDependencyResolution.legacyExternal);
+      case SceneWorldPresentationInteractiveCommand(:final mediaAssetId) when mediaAssetId != null:
+        _usage(target: NarrativeDependencyKey.synthetic(sourceKind: 'projectMedia', sourceId: mediaAssetId), owner: owner, path: '$path.mediaAssetId', criticality: NarrativeDependencyCriticality.runtimeBlocking, resolution: NarrativeDependencyResolution.legacyExternal);
       case SceneInputIntegerToFactInteractiveCommand(:final factId):
         _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, factId), owner: owner,
           path: '$path.factId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
@@ -2897,6 +2933,12 @@ final class _NarrativeDependencyIndexBuilder {
         path: '$path.factId',
         criticality: NarrativeDependencyCriticality.runtimeBlocking,
       );
+    } else if (consequence is SceneGiveConfiguredStarterConsequence) {
+      _usage(target: NarrativeDependencyKey.synthetic(sourceKind: 'starterOption', sourceId: consequence.starterOptionId), owner: owner, path: '$path.starterOptionId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+    } else if (consequence is SceneAwardBadgeConsequence) {
+      _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.badge, consequence.badgeId), owner: owner, path: '$path.badgeId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+    } else if (consequence is SceneSetNpcPoseConsequence) {
+      _collectMapInstanceOwner(owner, consequence.mapId, consequence.entityId, path, 'entityId');
     } else if (consequence is SceneMarkEventConsumedConsequence) {
       _usage(
         target: _mapKey(consequence.mapId),

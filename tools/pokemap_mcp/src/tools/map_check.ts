@@ -17,7 +17,8 @@ export async function checkMapHealth(
 ): Promise<RuntimeToolResult> {
   const response = await authoring.request("query", {
     projectHandle: request.projectHandle,
-    request: {resourceKind:"mapHealth",operation:"get",ids:[request.mapId],view:"detail"},
+    request: {resourceKind:"mapHealth",operation:"get",ids:[request.mapId],view:"detail",
+      fieldMask:[],filters:{},sort:[],pageSize:100},
   });
   const item = Array.isArray(response.data.items) ? response.data.items[0] : undefined;
   if (!isRecord(item) || !["pass","fail","incomplete"].includes(String(item.verdict))) {
@@ -34,7 +35,7 @@ export async function checkMapHealth(
   let artifacts: JsonRecord[] = [];
   function issue(code: string, severity: "error" | "unknown", details: JsonRecord = {}): void {
     count++;
-    if (issues.length < 20) issues.push({code,severity,...details});
+    issues.push({code,severity,...details});
     if (severity === "error") failed = true; else incomplete = true;
   }
   if (request.visual !== "none") {
@@ -47,10 +48,14 @@ export async function checkMapHealth(
         const data = scan.data;
         const views = Array.isArray(data.views) ? data.views.filter(isRecord) : [];
         const sameRevision = data.revision === health.revision;
+        const scanCoverage=isRecord(data.coverage)?data.coverage:{};
+        const fullExtent=scanCoverage.kind==="mapExtent"&&
+          scanCoverage.width===coverage.width&&scanCoverage.depth===coverage.depth&&
+          typeof scanCoverage.width==="number"&&typeof scanCoverage.depth==="number";
         const complete = sameRevision && Array.isArray(data.errors) && data.errors.length === 0 &&
           data.skippedTargetCount === 0 && typeof data.viewCount === "number" &&
           data.viewCount > 0 && data.viewCount === views.length &&
-          (request.visual !== "full" || typeof data.gridViewCount === "number" && data.gridViewCount > 0);
+          (request.visual !== "full" || fullExtent&&typeof data.gridViewCount === "number" && data.gridViewCount > 0);
         const visualIssues: JsonRecord[] = [];
         for (const view of views) {
           if (typeof view.holeRatio !== "number" || !Number.isFinite(view.holeRatio) ||
@@ -69,9 +74,11 @@ export async function checkMapHealth(
           view.kind === "borderObjectOverlap" || view.kind === "groundGap")
           .map(view => view.artifactUri));
         artifacts = (scan.artifacts ?? []).filter(artifact => retained.has(artifact.uri));
-        checks.visual = {status:!complete || visualIssues.some(problem => problem.severity === "unknown")
-          ? "incomplete" : visualIssues.length > 0 ? "fail" : "pass"};
+        checks.visual = {status:visualIssues.some(problem => problem.severity === "error")
+          ? "fail" : !complete || visualIssues.some(problem => problem.severity === "unknown")
+          ? "incomplete" : "pass"};
         Object.assign(coverage, {scanRevision:data.revision,viewCount:data.viewCount,
+          scanCoverage,
           skippedTargetCount:data.skippedTargetCount,gridViewCount:data.gridViewCount,
           visualProof:"enclosed sentinel-background pixels in the requested views; no universal geometry or fidelity proof"});
       } catch {
@@ -83,7 +90,7 @@ export async function checkMapHealth(
   issues.sort((left,right) => (left.severity === "error" ? 0 : 1) -
     (right.severity === "error" ? 0 : 1) || String(left.code).localeCompare(String(right.code)));
   return {data:{...health,verdict:failed ? "fail" : incomplete ? "incomplete" : "pass",
-    checks,coverage,issues,issueCount:count},artifacts};
+    checks,coverage,issues:issues.slice(0,20),issueCount:count},artifacts};
 }
 
 export function registerMapCheckTool(server: McpServer, authoring: AuthoringGateway,

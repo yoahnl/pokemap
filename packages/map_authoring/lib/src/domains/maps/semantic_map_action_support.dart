@@ -271,8 +271,9 @@ final class SemanticMapActionContext {
           targetPos: updated.targetPos,
         ) ==
         updated;
-    if (!destinationOnly)
+    if (!destinationOnly) {
       validateMapWarpDoor(after, updated, models: manifest.models3d);
+    }
     return _draftMap(
       after: after,
       operation: 'warp.update',

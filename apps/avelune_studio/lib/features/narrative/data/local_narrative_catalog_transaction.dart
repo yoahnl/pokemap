@@ -44,6 +44,7 @@ class LocalNarrativeCatalogTransaction {
       policy: policy,
       fileReader: reader,
       handles: handles,
+      initializeSceneOwners: false,
       catalogMetadataFields:
           session.storage == ProjectSessionStorage.workingCatalog
           ? const {}

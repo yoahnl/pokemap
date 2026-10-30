@@ -1693,6 +1693,11 @@ final class JsonlWorker {
     }
     final mutation = mutations?.describeMutations();
     final commands = <Map<String, Object?>>[
+      if (mutations is AuthoringMapEditPort)
+        const {'id':'map_edit','actionId':'map3d.edit_batch','actionVersion':1,
+          'summary':'Edit one map with a durable logical operation identity.',
+          'contractVersion':1,'retentionDays':30,'defaultSeed':0,
+          'maximumOperations':64,'dryRunReservesIdentity':false},
       for (final command in read['commands']! as List)
         Map<String, Object?>.from(command as Map),
       if (mutation != null)

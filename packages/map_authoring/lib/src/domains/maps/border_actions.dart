@@ -551,6 +551,7 @@ final class BorderActions {
       'border_layer.feature_update' => const {
           'layerId',
           'featureId',
+          'geometry',
           'name',
           'seed',
           'lineSide',
@@ -867,6 +868,14 @@ final class BorderActions {
             ? _generationParams(parameters.object('paramsOverride'))
             : feature.paramsOverride;
         final lineSide = parameters.optionalString('lineSide');
+        final geometry = parameters.contains('geometry')
+            ? _geometry(parameters.object('geometry'))
+            : feature.geometry;
+        if ((geometry is BorderStrokeGeometry) !=
+            (feature.geometry is BorderStrokeGeometry)) {
+          throw semanticFailure('border.geometry_kind_mismatch',
+              'Updating a feature must preserve its geometry kind.');
+        }
         _requireSequenceSide(
             context.manifest.borderCatalog
                 .recordById(feature.blueprintId)
@@ -879,6 +888,7 @@ final class BorderActions {
           feature: _copyFeature(
             feature,
             name: parameters.optionalString('name'),
+            geometry: geometry,
             seed: parameters.contains('seed')
                 ? _seed(parameters.value('seed'))
                 : null,
@@ -1599,7 +1609,7 @@ Map<String, Object?> _featureInputSchema(bool create) => {
           ]
         },
         if (create) 'blueprintId': const {'type': 'string', 'minLength': 1},
-        if (create) 'geometry': const {'type': 'object'},
+        'geometry': const {'type': 'object'},
         if (!create) 'paramsOverride': const {'type': 'object'},
         if (!create) 'clearParamsOverride': const {'type': 'boolean'},
       },

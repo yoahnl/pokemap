@@ -646,15 +646,9 @@ Map<String, Object?> _cellInputSchema(bool erase) {
     'oneOf': [
       {
         'required': ['cells'],
-        'not': {
-          'required': ['selection']
-        }
       },
       {
         'required': ['selection'],
-        'not': {
-          'required': ['cells']
-        }
       },
     ],
     'properties': {

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { test } from "node:test";
-import { z } from "zod";
+import { Ajv } from "ajv";
 import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.js";
 
 test("real JSONL discovery is compact, targeted and preserves schema details", async () => {
@@ -33,6 +33,7 @@ test("real JSONL discovery is compact, targeted and preserves schema details", a
     assert.deepEqual(schema.required, ["mapId", "layerId", "featureId"]);
     assert.equal(schema.additionalProperties, false);
     const examples = await authoring.request("describe", {actionIds:[
+      "map3d.edit_batch",
       "map.create", "smart_tile.layer.create", "smart_tile.cell.paint", "smart_tile.cell.paint_batch", "smart_tile.cell.erase",
       "map3d.terrain.surface.upsert_batch", "map3d.terrain.surface.delete_batch", "map3d.instance.upsert_batch", "map3d.instance.delete_batch",
       "border_layer.feature_create", "border_layer.feature_update", "border_layer.feature_delete", "border_layer.feature_move",
@@ -45,8 +46,14 @@ test("real JSONL discovery is compact, targeted and preserves schema details", a
       const extensions = descriptor.extensions as JsonRecord;
       assert.ok(extensions.inputSchema, String(descriptor.id));
       assert.ok(extensions.inputExample, String(descriptor.id));
-      const validator = z.fromJSONSchema(extensions.inputSchema as Parameters<typeof z.fromJSONSchema>[0]);
-      assert.equal(validator.safeParse(extensions.inputExample).success,true,String(descriptor.id));
+      const validator = new Ajv({strict:false}).compile(extensions.inputSchema as object);
+      assert.equal(validator(extensions.inputExample),true,`${descriptor.id}: ${JSON.stringify(validator.errors)}`);
+      if(extensions.intentContracts) {
+        for(const contract of Object.values(extensions.intentContracts as Record<string,JsonRecord>)) {
+          const validateIntent=new Ajv({strict:false}).compile(contract.inputSchema as object);
+          assert.equal(validateIntent(contract.inputExample),true,JSON.stringify(validateIntent.errors));
+        }
+      }
     }
     await assert.rejects(authoring.request("describe", {domain:"unknown"}));
     await assert.rejects(authoring.request("describe", {actionIds:["missing"]}));

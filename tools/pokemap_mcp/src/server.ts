@@ -32,6 +32,7 @@ import { registerMapAtmosphereTools } from "./tools/map_atmosphere.js";
 import { registerMapExteriorDecorationTools } from "./tools/map_exterior_decoration.js";
 import { registerCharacterContactShadowTools } from "./tools/character_contact_shadows.js";
 import { registerMapCheckTool } from "./tools/map_check.js";
+import { registerMapEditTool } from "./tools/map_edit.js";
 
 export interface PokeMapMcpServerDependencies {
   profile?: "full" | "map-builder";
@@ -63,6 +64,7 @@ export function createPokeMapMcpServer(
   registerReadOnlyTools(server, authoring, artifacts, compact);
   registerMutationTools(server, authoring, compact);
   registerMapCheckTool(server, authoring, runtime);
+  registerMapEditTool(server, authoring);
   if (!compact) {
   registerCharacterContactShadowTools(server, authoring);
   registerMapAtmosphereTools(server, authoring);

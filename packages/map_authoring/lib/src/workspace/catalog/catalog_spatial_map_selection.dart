@@ -1,3 +1,4 @@
+import '../../domains/maps/map3d_edit_intents.dart';
 import '../../domains/maps/map3d_edit_projection.dart';
 import 'dart:convert';
 
@@ -40,7 +41,7 @@ final class CatalogSpatialMapSelection {
       final operations = parameters['operations'];
       return operations is List && operations.isNotEmpty && operations.length <= 64 &&
           operations.every((operation) => operation is Map &&
-            Map3dEditProjection.admittedActions.contains(operation['actionId']) &&
+            (Map3dEditProjection.admittedActions.contains(operation['actionId']) || mapEditIntentActionIds.contains(operation['actionId'])) &&
             operation['actionVersion'] == 1 && operation['parameters'] is Map &&
             (!(operation['parameters'] as Map).containsKey('mapId') ||
               (operation['parameters'] as Map)['mapId'] == parameters['mapId']));
@@ -312,10 +313,11 @@ final class CatalogSpatialMapSelection {
                 batchOperations.any((operation) => operation is Map && operation['actionId'] == 'map3d.instance.delete_batch');
         if (deletingInstances) {
           final incoming = await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot,
-              project: base, ids: {'scenes': {}, 'cinematics': {}, 'presentationCinematics': {}});
-          if (incoming.counts.values.any((count) => count > 0)) {
+              project: base, ids: {'scenes': {}, 'cinematics': {}, 'presentationCinematics': {}, 'worldRules': {}});
+          final events = await catalog.snapshot.lookup(CatalogNarrativeEventDocuments.indexKey);
+          if (incoming.counts.values.any((count) => count > 0) || events?.payload['present'] == true) {
             throw AuthoringPlanException(code: 'catalog.mutation_scope_required',
-                message: 'Deleting a model instance requires an incoming narrative source index when scenes or cinematics exist.');
+                message: 'Deleting a model instance requires an incoming narrative source index when narrative source documents exist.');
           }
         }
         final ids = <String, Set<String>>{
@@ -407,6 +409,27 @@ final class CatalogSpatialMapSelection {
                   catalog.snapshot, consumedEventIds));
         }
         final roots = <CatalogDefinitionKey>{};
+        final requestedNames = requestedMapEditMaterialNames(parameters);
+        if (requestedNames.isNotEmpty) {
+          for (final kind in [CatalogDefinitionKind.smartTileMaterial, CatalogDefinitionKind.smartTilePreset]) {
+            String? cursor;
+            do {
+              final page = await catalog.snapshot.page(kind: kind,
+                  limit: catalog.snapshot.limits.indexPageSize, cursor: cursor);
+              for (final entry in page.items) {
+                if (requestedNames.contains(normalizeMapEditMaterialName(entry.key.id)) ||
+                    requestedNames.contains(normalizeMapEditMaterialName(entry.summary.name))) {
+                  roots.add(entry.key);
+                }
+              }
+              cursor = page.nextCursor;
+            } while (cursor != null);
+          }
+          if (roots.length > catalog.snapshot.limits.maxClosureNodes) {
+            throw const FormatException('catalog.spatial: material name dependency budget exceeded');
+          }
+        }
+
         for (final field in const {
           CatalogDefinitionKind.environmentPreset: {'presetId'},
           CatalogDefinitionKind.borderRecord: {

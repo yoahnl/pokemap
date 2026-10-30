@@ -52,8 +52,12 @@ void main() {
       addTearDown(fixture.dispose);
       await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
       fixture.reader.paths.clear();
+      final firstTimer = Stopwatch()..start();
       final result = await fixture.api.mapEdit(
           fixture.opened.projectHandle, _operation('persist-${storage.name}'));
+      firstTimer.stop();
+      print(
+          'R3 durable headless storage=${storage.name} phase=first elapsedUs=${firstTimer.elapsedMicroseconds} readerCalls=${fixture.reader.paths.length}');
       expect(result['status'], 'applied');
       expect(
           fixture.reader.paths.where((path) =>
@@ -61,6 +65,30 @@ void main() {
               path.endsWith('.png') ||
               path.startsWith('maps/') && path != 'maps/map.json'),
           isEmpty);
+      fixture.reader.paths.clear();
+      final repeatedTimer = Stopwatch()..start();
+      final repeated = await fixture.api.mapEdit(
+          fixture.opened.projectHandle,
+          MapEditOperation(
+              operationId: 'repeated-${storage.name}',
+              mapId: 'map',
+              operations: const [
+                {
+                  'actionId': 'smart_tile.cell.paint',
+                  'actionVersion': 1,
+                  'parameters': {
+                    'layerId': 'terrain',
+                    'materialId': 'sea',
+                    'cells': [
+                      {'x': 11, 'y': 8}
+                    ],
+                  }
+                }
+              ]));
+      repeatedTimer.stop();
+      expect(repeated['status'], 'applied');
+      print(
+          'R3 durable headless storage=${storage.name} phase=repeated elapsedUs=${repeatedTimer.elapsedMicroseconds} readerCalls=${fixture.reader.paths.length}');
       await fixture.reopen();
       final map = await fixture.readMap();
       final terrain = map.layers.whereType<SmartTileLayer>().single;
@@ -70,6 +98,16 @@ void main() {
           fixture.opened.projectHandle, _operation('persist-${storage.name}'));
       expect(replay['status'], 'applied');
       expect(replay['operationId'], result['operationId']);
+      expect(
+          smartTileMaterialIdAt(
+              (await fixture.readMap())
+                  .layers
+                  .whereType<SmartTileLayer>()
+                  .single,
+              mapSize: map.size,
+              x: 11,
+              y: 8),
+          'sea');
     });
 
     test('$storage unchanged edits produce no map writes and survive reopen',
@@ -92,6 +130,172 @@ void main() {
       expect(await fixture.mapFile.readAsBytes(), before);
     });
   }
+
+  test(
+      'native deletion refuses an incoming model-interaction source without reading foreign maps',
+      () async {
+    final fixture = await ReliabilityMapFixture.create(
+        variant: ReliabilityMapVariant.healthy, qaRoot: qaRoot);
+    addTearDown(fixture.dispose);
+    final file = File('${fixture.root.path}/project.json');
+    final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    raw['eventRegistry'] = {
+      'records': [
+        {
+          'source': {
+            'kind': 'modelInteract',
+            'mapId': 'map',
+            'instanceId': 'unrelated-object'
+          }
+        },
+      ]
+    };
+    await file.writeAsString(jsonEncode(raw));
+    final before = await fixture.mapFile.readAsBytes();
+    fixture.reader.paths.clear();
+    await expectLater(
+        fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+            actionId: 'map3d.edit_batch',
+            parameters: MapEditOperation(
+                operationId: 'delete-referenced',
+                mapId: 'map',
+                operations: const [
+                  {
+                    'actionId': 'map3d.instance.delete_batch',
+                    'actionVersion': 1,
+                    'parameters': {
+                      'instanceIds': ['unrelated-object']
+                    }
+                  }
+                ]).toBatchParameters()),
+        throwsA(isA<ProjectSnapshotException>().having(
+            (error) => error.code, 'code', 'map3d.instance_referenced')));
+    expect(await fixture.mapFile.readAsBytes(), before);
+    expect(fixture.reader.paths.toSet(), {'project.json', 'maps/map.json'});
+  });
+
+  for (final storage in ReliabilityStorage.values) {
+    test(
+        '$storage material names load unreferenced matches and preserve ambiguity',
+        () async {
+      final fixture = await ReliabilityMapFixture.create(
+          variant: ReliabilityMapVariant.healthy, qaRoot: qaRoot);
+      addTearDown(fixture.dispose);
+      final file = File('${fixture.root.path}/project.json');
+      final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final materials = (raw['smartTileCatalog'] as Map)['materials'] as List;
+      materials.addAll([
+        const ProjectSmartTileMaterial(
+                id: 'library-ice',
+                name: 'Cristal lunaire',
+                connectionGroupId: 'ice')
+            .toJson(),
+        const ProjectSmartTileMaterial(
+                id: 'library-ice-other',
+                name: 'Cristal   lunaire',
+                connectionGroupId: 'ice')
+            .toJson(),
+        const ProjectSmartTileMaterial(
+                id: 'library-sand',
+                name: 'Sable chaud',
+                connectionGroupId: 'sand')
+            .toJson(),
+      ]);
+      await file.writeAsString(jsonEncode(raw));
+      if (storage == ReliabilityStorage.catalog) {
+        final store =
+            await CatalogStorageStore.open(projectRoot: fixture.root.path);
+        await WorkingProjectCatalog.create(
+            store: store,
+            expectedProjectRevision:
+                await store.gateway.readResourceRevision('project.json'),
+            projectId: 'material-name-scope',
+            project: ProjectManifest.fromJson(raw));
+      }
+      await fixture.reopen();
+      await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
+      MapEditOperation operation(String id, String name) => MapEditOperation(
+              operationId: id,
+              mapId: 'map',
+              dryRun: true,
+              operations: [
+                {
+                  'actionId': 'smart_tile.cell.paint',
+                  'actionVersion': 1,
+                  'parameters': {
+                    'layerId': 'terrain',
+                    'material': {'name': name},
+                    'cells': [
+                      {'x': 12, 'y': 8}
+                    ],
+                  }
+                }
+              ]);
+      final unreferenced = operation('unreferenced-name', 'SABLE   CHAUD');
+      final selected = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'map3d.edit_batch',
+          parameters: unreferenced.toBatchParameters());
+      expect(
+          resolveMaterialByName(selected.manifest, ' SABLE   CHAUD ')
+              .materialId,
+          'library-sand');
+      final before = await fixture.mapFile.readAsBytes();
+      await expectLater(
+          fixture.api.mapEdit(fixture.opened.projectHandle, unreferenced),
+          throwsA(isA<MapAuthoringException>().having(
+              (error) => (error.details['cause'] as Map)['code'],
+              'resolved material parser',
+              'smart_tile.cell.material_not_allowed')));
+      final ambiguous = operation('ambiguous-name', 'CRISTAL LUNAIRE');
+      final matches = await fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'map3d.edit_batch',
+          parameters: ambiguous.toBatchParameters());
+      expect(
+          resolveMaterialByName(matches.manifest, 'CRISTAL LUNAIRE').candidates,
+          unorderedEquals(['library-ice', 'library-ice-other']));
+      await expectLater(
+          fixture.api.mapEdit(fixture.opened.projectHandle, ambiguous),
+          throwsA(isA<MapAuthoringException>().having(
+              (error) => (error.details['cause'] as Map)['code'],
+              'ambiguity',
+              'intent.material_ambiguous')));
+      expect(await fixture.mapFile.readAsBytes(), before);
+    });
+  }
+
+  test('native selected-map reads support 2D while the 3D mutation refuses it',
+      () async {
+    final fixture = await ReliabilityMapFixture.create(
+        variant: ReliabilityMapVariant.healthy, qaRoot: qaRoot);
+    addTearDown(fixture.dispose);
+    final projectFile = File('${fixture.root.path}/project.json');
+    final raw =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    raw['version'] = 'v8';
+    (raw['settings'] as Map)['dimension'] = 'twoD';
+    await projectFile.writeAsString(jsonEncode(raw));
+    final twoD = MapData(
+        id: 'map',
+        name: '2D read',
+        version: ProjectVersion.v8,
+        size: const GridSize(width: 24, height: 16));
+    await fixture.mapFile.writeAsString(jsonEncode(twoD.toJson()));
+    final before = await fixture.mapFile.readAsBytes();
+    final selected = await fixture.api.readWorkshopSnapshot(
+        fixture.opened.projectHandle,
+        actionId: 'map3d.edit_batch',
+        parameters: const {'mapId': 'map', 'operations': []});
+    expect(selected.maps.single, twoD);
+    await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
+    await expectLater(
+        fixture.api
+            .mapEdit(fixture.opened.projectHandle, _operation('reject-2d')),
+        throwsA(isA<MapAuthoringException>().having(
+            (error) => error.code, 'code', 'map3d.dimension_required')));
+    expect(await fixture.mapFile.readAsBytes(), before);
+  });
 
   for (final unrelated in [0, 90]) {
     test(

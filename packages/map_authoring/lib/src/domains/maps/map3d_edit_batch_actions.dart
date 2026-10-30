@@ -10,6 +10,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'border_actions.dart';
 import 'map3d_edit_projection.dart';
+import 'map3d_edit_intents.dart';
 import 'map_lifecycle_adapter.dart' show encodeMapAuthoringDocument;
 import 'map_validation_diagnostics.dart';
 import 'semantic_map_action_support.dart';
@@ -45,6 +46,23 @@ final class Map3dEditBatchActions {
     extensions: {
       'maximumOperationCount': 64,
       'admittedActions': Map3dEditProjection.admittedActions.toList()..sort(),
+      'admittedIntents': mapEditIntentActionIds.toList()..sort(),
+      'intentContracts': mapEditIntentContracts(),
+      'materialNameSelector': {
+        'scope': 'smart_tile operations inside edit_batch only',
+        'field': 'material',
+        'schema': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['name'],
+          'properties': {
+            'name': {'type': 'string', 'minLength': 1}
+          }
+        },
+        'resolution':
+            'normalized exact ID, label or preset default; ambiguity refuses without writes'
+      },
+      'maximumExpandedOperationCount': 64,
       'batchAtomicity': 'all_or_nothing',
       'undoBoundary': 'batch',
       'defaultSeed': 0,
@@ -88,7 +106,11 @@ final class Map3dEditBatchActions {
               'properties': {
                 'actionId': {
                   'type': 'string',
-                  'enum': Map3dEditProjection.admittedActions.toList()..sort()
+                  'enum': {
+                    ...Map3dEditProjection.admittedActions,
+                    ...mapEditIntentActionIds
+                  }.toList()
+                    ..sort()
                 },
                 'actionVersion': {'type': 'integer', 'const': 1},
                 'parameters': {'type': 'object'},
@@ -128,8 +150,9 @@ final class Map3dEditBatchActions {
         operationId: 'batch',
         mapId: context.map.id,
         operations: context.parameters.list('operations').map((value) {
-          if (value is! Map)
+          if (value is! Map) {
             throw const FormatException('Each operation must be an object.');
+          }
           return Map<String, Object?>.from(value);
         }),
         seed: context.parameters.optionalInteger('seed') ?? 0,
@@ -143,31 +166,53 @@ final class Map3dEditBatchActions {
     var map = context.map;
     final operations = <Map<String, Object?>>[];
     final materializations = <(String, String), Map<String, Object?>>{};
+    var expandedCount = 0, intentIntegrityInspections = 0;
     for (final (index, operation) in request.operations.indexed) {
       try {
-        final projected = const Map3dEditProjection().project(
-            planning: planning,
-            map: map,
-            operation: operation,
-            operationIndex: index,
-            seed: request.seed);
-        final deferred = projected.preview['deferredMaterializationTargets'];
-        if (deferred is List) {
-          for (final target in deferred.whereType<Map>()) {
-            materializations[(
-              target['layerId'] as String,
-              target['featureId'] as String
-            )] = Map<String, Object?>.from(target);
-          }
+        if (operation['actionId'] == 'intent.border.clear_over_object') {
+          intentIntegrityInspections++;
         }
-        final unchanged = projected.map == map;
+        final expanded = expandMapEditIntent(
+            manifest: context.manifest, map: map, operation: operation);
+        expandedCount += expanded.length;
+        if (expandedCount > 64) {
+          throw semanticFailure('map3d.edit_batch.expansion_limit',
+              'The atomic edit expands beyond 64 semantic operations.',
+              details: {'maximumExpandedOperationCount': 64});
+        }
+        final beforeOperation = map;
+        var changedItems = 0, deferredCount = 0;
+        for (final (subindex, suboperation) in expanded.indexed) {
+          final projected = const Map3dEditProjection().project(
+              planning: planning,
+              map: map,
+              operation: suboperation,
+              operationIndex: index * 64 + subindex,
+              seed: request.seed);
+          final deferred = projected.preview['deferredMaterializationTargets'];
+          if (deferred is List) {
+            deferredCount += deferred.length;
+            for (final target in deferred.whereType<Map>()) {
+              materializations[(
+                target['layerId'] as String,
+                target['featureId'] as String
+              )] = Map<String, Object?>.from(target);
+            }
+          }
+          if (projected.map != map) changedItems += projected.changedItems;
+          map = projected.map;
+        }
         operations.add({
           'index': index,
-          'actionId': projected.operation,
-          'status': unchanged ? 'unchanged' : 'changed',
-          'changedItems': unchanged ? 0 : projected.changedItems
+          'actionId': operation['actionId'],
+          'status': map != beforeOperation
+              ? 'changed'
+              : deferredCount > 0
+                  ? 'deferred'
+                  : 'unchanged',
+          'changedItems': changedItems,
+          'expandedOperationCount': expanded.length
         });
-        map = projected.map;
       } on MapAuthoringException catch (error) {
         throw semanticFailure('map3d.edit_batch.operation_failed',
             'An operation failed; the entire atomic map edit was rejected.',
@@ -213,7 +258,9 @@ final class Map3dEditBatchActions {
       for (final key in touched) {
         final materialization = materializations[key];
         if (request.guards['staleBorders'] != 'rematerialize' &&
-            materialization == null) continue;
+            materialization == null) {
+          continue;
+        }
         final feature = _feature(map, key);
         if (feature == null) continue;
         final diagnostics = _diagnostics(context.manifest, map, [key]);
@@ -260,39 +307,83 @@ final class Map3dEditBatchActions {
         manifest: context.manifest,
         fallbackCode: 'map.semantic_projected_state_invalid',
         fallbackMessage: 'The atomic edit would produce invalid map data.');
-    if (validation != null)
+    if (validation != null) {
       throw validation.toFailure(validationState: 'projected');
+    }
     final beforeIntegrity =
         inspectIntegrity(manifest: context.manifest, map: context.map);
     final afterIntegrity =
-        inspectSpatialMapIntegrity(manifest: context.manifest, map: map);
+        inspectIntegrity(manifest: context.manifest, map: map);
     final introduced = afterIntegrity.introducedSince(beforeIntegrity);
     final afterDiagnostics = _diagnostics(context.manifest, map, touched);
+    final tracedFeatures = {
+      for (final operation in request.operations)
+        if (operation['actionId'] == 'intent.border.trace_step')
+          (
+            (operation['parameters'] as Map)['layerId'],
+            (operation['parameters'] as Map)['featureId']
+          )
+    };
+    final unsupportedTrace = afterDiagnostics
+        .where((diagnostic) =>
+            tracedFeatures
+                .contains((diagnostic['layerId'], diagnostic['featureId'])) &&
+            (diagnostic['severity'] == 'error' ||
+                const {
+                  'border.spatial.face_crown_mismatch',
+                  'border.spatial.face_base_mismatch',
+                  'border.spatial.face_on_land_side',
+                  'border.spatial.face_mass_on_land_side',
+                }.contains(diagnostic['code'])))
+        .toList();
+    if (unsupportedTrace.isNotEmpty) {
+      throw semanticFailure('intent.step_profile_incompatible',
+          'The selected profile does not resolve this height step safely.',
+          details: {
+            'diagnostics': unsupportedTrace.take(20).toList(),
+            'diagnosticCount': unsupportedTrace.length
+          });
+    }
     final previousIssues = beforeDiagnostics.map(_diagnosticIdentity).toSet();
     final newDiagnostics = afterDiagnostics
         .where((d) => !previousIssues.contains(_diagnosticIdentity(d)))
         .toList();
     final failures = <String>[];
     if (request.guards['groundGaps'] == 'refuse' &&
-        introduced.exposedCellCount > 0) failures.add('groundGaps');
+        introduced.exposedCellCount > 0) {
+      failures.add('groundGaps');
+    }
     if (request.guards['borderObjectOverlaps'] == 'refuse' &&
-        introduced.borderObjectOverlaps.isNotEmpty)
+        introduced.borderObjectOverlaps.isNotEmpty) {
       failures.add('borderObjectOverlaps');
+    }
     if (request.guards['staleBorders'] != 'report' &&
-        afterDiagnostics.any(_stale)) failures.add('staleBorders');
+        afterDiagnostics.any(_stale)) {
+      failures.add('staleBorders');
+    }
     if (request.guards['newBorderErrors'] == 'refuse' &&
-        afterDiagnostics.any((d) => d['severity'] == 'error'))
+        afterDiagnostics.any((d) => d['severity'] == 'error')) {
       failures.add('newBorderErrors');
+    }
     if (request.guards['newBorderWarnings'] == 'refuse' &&
-        newDiagnostics.any((d) => d['severity'] == 'warning'))
+        newDiagnostics.any((d) => d['severity'] == 'warning')) {
       failures.add('newBorderWarnings');
+    }
     final preview = <String, Object?>{
       'operation': actionId,
       'mapId': map.id,
       'seed': request.seed,
       'operationCount': operations.length,
       'operations': operations,
-      'rematerializedFeatures': rematerialized,
+      'rematerializedFeatureCount': rematerialized.length,
+      'rematerializedFeatures':
+          rematerialized.take(maximumIntegrityPreviewCount).toList(),
+      'detailQuery': {
+        'resourceKind': 'spatialMapIntegrity',
+        'operation': 'get',
+        'ids': [map.id],
+        'view': 'detail'
+      },
       'groundGapsIntroducedCount': introduced.groundGaps.length,
       'groundGapsIntroduced': introduced.groundGaps
           .take(maximumIntegrityPreviewCount)
@@ -310,8 +401,10 @@ final class Map3dEditBatchActions {
         'overlapCount': afterIntegrity.borderObjectOverlaps.length
       },
       'work': {
-        'mapEncodings': map == context.map ? 0 : 1,
-        'integrityInspections': 2,
+        'mapEncodings': 0,
+        'integrityInspections': 2 + intentIntegrityInspections,
+        'finalIntegrityInspections': 2,
+        'intentIntegrityInspections': intentIntegrityInspections,
         'integrityScope': 'whole_selected_map',
         'localCostAcceptance': 'PARTIAL',
         'borderResolutions': 'not_measured',
@@ -328,6 +421,7 @@ final class Map3dEditBatchActions {
           changeSet: AuthoringChangeSet.noChanges(),
           preview: {...preview, 'status': 'unchanged'});
     }
+    (preview['work'] as Map<String, Object?>)['mapEncodings'] = 1;
     final afterBytes = encodeMap(map);
     if (computeAuthoringBytesFingerprint(afterBytes,
             logicalName: context.storageKey) ==
@@ -363,11 +457,12 @@ Set<(String, String)> _touchedFeatures(MapData before, MapData after) {
       for (final feature in layer.content.features)
         (layer.id, feature.id): feature
   };
-  final terrainChanged =
-      before.spatialScene?.heightLevels != after.spatialScene?.heightLevels ||
-          before.spatialScene?.levelHeight != after.spatialScene?.levelHeight ||
-          before.spatialScene?.terrainSurfaces !=
-              after.spatialScene?.terrainSurfaces;
+  final previousScene = before.spatialScene!, nextScene = after.spatialScene!;
+  final terrainChanged = previousScene.levelHeight != nextScene.levelHeight ||
+      previousScene.heightLevels.length != nextScene.heightLevels.length ||
+      previousScene.heightLevels.indexed
+          .any((entry) => entry.$2 != nextScene.heightLevels[entry.$1]) ||
+      previousScene.terrainSurfaces != nextScene.terrainSurfaces;
   return {
     for (final layer in after.layers.whereType<BorderLayer>())
       for (final feature in layer.content.features)

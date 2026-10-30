@@ -9,7 +9,7 @@ function gateway(verdict = "pass"): AuthoringGateway {
   return {close: async () => {}, request: async () => ({requestId:"health",
     artifacts: [], data: {snapshotRevision:revision, items:[{
       mapId:"map", revision, verdict, issueCount:0, issues:[],
-      checks:{visual:{status:"not_run"}}, coverage:{kind:"structural"},
+      checks:{visual:{status:"not_run"}}, coverage:{kind:"structural",width:24,depth:16},
     }]}})};
 }
 
@@ -25,7 +25,7 @@ test("none reports only the requested structural scope", async () => {
 test("full passes only a same-revision complete scan and states its detector limit", async () => {
   const result = await checkMapHealth(gateway(), {scan3d:async () => ({data:{
     revision, views:[{kind:"grid",holeRatio:0}], errors:[], skippedTargetCount:0,
-    viewCount:1,gridViewCount:1},artifacts:[]})}, request);
+    viewCount:1,gridViewCount:1,coverage:{kind:"mapExtent",width:24,depth:16}},artifacts:[]})}, request);
   assert.equal(result.data.verdict,"pass");
   assert.match(String((result.data.coverage as JsonRecord).visualProof),/sentinel/);
 });
@@ -58,4 +58,23 @@ test("missing coverage, skipped views, failures and changed revisions are incomp
 
 test("a proved structural failure remains failed when visuals are unavailable", async () => {
   assert.equal((await checkMapHealth(gateway("fail"),undefined,request)).data.verdict,"fail");
+});
+
+test("a visual defect stays visible after twenty structural unknowns and incomplete coverage",async()=>{
+  const authoring=gateway("incomplete");
+  const original=authoring.request.bind(authoring);
+  authoring.request=async(command,args)=>{
+    const response=await original(command,args);
+    const health=(response.data.items as JsonRecord[])[0]!;
+    health.issues=Array.from({length:20},(_,index)=>({code:`unknown-${index}`,severity:"unknown"}));
+    health.issueCount=30;
+    return response;
+  };
+  const result=await checkMapHealth(authoring,{scan3d:async()=>({data:{revision,views:[{holeRatio:.1}],
+    errors:["some other view failed"],viewCount:1,skippedTargetCount:1,gridViewCount:0}})},request);
+  assert.equal(result.data.verdict,"fail");
+  assert.equal(((result.data.checks as JsonRecord).visual as JsonRecord).status,"fail");
+  assert.equal((result.data.issues as JsonRecord[]).length,20);
+  assert.equal((result.data.issues as JsonRecord[])[0]!.code,"map_check.enclosed_background");
+  assert.equal(result.data.issueCount,32);
 });

@@ -1,4 +1,5 @@
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 import '../support/reliability_map_fixture.dart';
@@ -7,6 +8,28 @@ const _revision =
     'sha256:0000000000000000000000000000000000000000000000000000000000000002';
 
 void main() {
+  test('issue pagination keeps total and refuses a different revision',() async {
+    final f=ReliabilityMapContent.create(ReliabilityMapVariant.healthy);
+    final feature=f.feature;
+    final map=f.map.copyWith(layers:[for(final layer in f.map.layers)
+      if(layer is BorderLayer) layer.copyWith(content:BorderLayerContent(features:[
+        for(var index=0;index<25;index++) BorderFeature(id:'feature-$index',name:'Feature $index',
+          blueprintId:feature.blueprintId,seed:feature.seed,geometry:feature.geometry,
+          overrides:const [],keepOutRegions:const []),
+      ])) else layer]);
+    Future<AuthoringQueryPage> query(AuthoringQueryRequest request,{String revision=_revision})=>
+      queryMapHealth(request:request,readMap:(_) async =>(map:map,manifest:f.project,revision:revision));
+    final first=(await query(AuthoringQueryRequest(resourceKind:'mapHealth',operation:AuthoringQueryOperation.get,
+      ids:const ['map']))).items.single;
+    expect(first['issueCount'],greaterThan(20));
+    expect(first['issues'],hasLength(20));
+    final request=AuthoringQueryRequest.fromJson(Map<String,dynamic>.from(first['nextIssueRequest'] as Map));
+    final second=(await query(request)).items.single;
+    expect(second['issueCount'],first['issueCount']);
+    expect(second['issueOffset'],20);
+    await expectLater(query(request,revision:'changed'),throwsA(isA<AuthoringQueryException>()
+      .having((error)=>error.code,'code','query.cursor_stale')));
+  });
   Future<Map<String, Object?>> health(ReliabilityMapVariant variant,
       {Map<String, Object?> extensions = const {}}) async {
     final content = ReliabilityMapContent.create(variant);

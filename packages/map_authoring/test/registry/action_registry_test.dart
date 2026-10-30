@@ -148,6 +148,7 @@ void main() {
           'layer',
           'map',
           'mapConnection',
+          'mapHealth',
           'model3d',
           'pokemonDocument',
           'pokemonRuleset',

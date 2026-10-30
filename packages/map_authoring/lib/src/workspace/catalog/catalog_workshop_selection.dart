@@ -16,6 +16,7 @@ import '../project_snapshot.dart';
 import '../workspace_handle_store.dart';
 import 'catalog_project_reader.dart';
 import 'catalog_metadata_documents.dart';
+import 'catalog_narrative_event_documents.dart';
 import 'catalog_resource_positions.dart';
 import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';

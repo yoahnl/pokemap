@@ -107,9 +107,10 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         'This workshop loader requires a native project document.');
   }
   final raw = Map<String, dynamic>.from(decoded);
-  if (mapEdit)
+  if (mapEdit) {
     return _loadNativeMapEdit(
         loader, projectHandle, raw, projectBytes, parameters);
+  }
   if (actionId == 'map3d.instance.configure_field_obstacle' ||
       TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
     return _loadNativeMapProperties(
@@ -228,8 +229,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
     if (adoptingAudio) {
       final assetId = parameters['assetId'];
-      if (assetId is! String)
+      if (assetId is! String) {
         throw const FormatException('Choose a source asset identity.');
+      }
       List<int>? loaded(String identity) => resources
           .where((r) => r.identity == identity)
           .firstOrNull
@@ -342,8 +344,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   if (actionId == 'campaign.battle_savings.update') {
     sections.add('battleSavings');
-    if (raw.containsKey('battleSavings'))
+    if (raw.containsKey('battleSavings')) {
       projected['battleSavings'] = raw['battleSavings'];
+    }
     candidates.add(raw['battleSavings']);
   }
   if (actionId == 'bag.capacity.set') {
@@ -766,9 +769,10 @@ Future<ProjectSnapshot> _loadNativeMapProperties(
       : ProjectVersion.values
           .where((value) => value.name == raw['version'])
           .firstOrNull;
-  if (version == null)
+  if (version == null) {
     throw const ProjectSnapshotException(
         'project.version_unsupported', 'The project version is unknown.');
+  }
   final manifest = ProjectManifest(
       name: raw['name'] as String,
       version: version,
@@ -847,11 +851,30 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
   final access = loader._handles.resolveProject(handle);
   final mapBytes = await access.readResourceBytes(declaration.relativePath);
   final map = await loader._decodeExecutor.decodeMap(mapBytes.bytes);
-  if (map.id != mapId || map.spatialScene == null) {
+  if (map.id != mapId) {
     throw const ProjectSnapshotException(
-        'project.map_invalid', 'The selected spatial map identity differs.');
+        'project.map_invalid', 'The selected map identity differs.');
   }
   final candidates = <Object?>[map.toJson(), parameters];
+  final requestedNames = requestedMapEditMaterialNames(parameters);
+  if (requestedNames.isNotEmpty) {
+    final catalog = raw['smartTileCatalog'];
+    if (catalog is Map) {
+      for (final field in ['materials', 'presets']) {
+        for (final row
+            in (catalog[field] as List? ?? const []).whereType<Map>()) {
+          if (requestedNames.contains(
+                  normalizeMapEditMaterialName(row['id'] as String? ?? '')) ||
+              requestedNames.contains(
+                  normalizeMapEditMaterialName(row['name'] as String? ?? ''))) {
+            candidates.add(
+                {field == 'materials' ? 'materialId' : 'presetId': row['id']});
+          }
+        }
+      }
+    }
+  }
+
   final selected = <String, dynamic>{
     'name': raw['name'],
     'version': raw['version'],
@@ -919,8 +942,9 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
         final source = definition.value.source;
         if (source is List) {
           for (final value in source.whereType<Map>()) {
-            if (value['id'] is String)
+            if (value['id'] is String) {
               result.putIfAbsent(value['id'] as String, () => []).add(value);
+            }
           }
         }
         return result;
@@ -971,11 +995,14 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
       grew = false;
       for (final family
           in (library['families'] as List? ?? const []).whereType<Map>()) {
-        if (!familyIds.contains(family['id']) || families.contains(family))
+        if (!familyIds.contains(family['id']) || families.contains(family)) {
           continue;
+        }
         families.add(family);
         if (family['parentId'] is String &&
-            familyIds.add(family['parentId'] as String)) grew = true;
+            familyIds.add(family['parentId'] as String)) {
+          grew = true;
+        }
       }
     }
     selected['resourceLibraryCatalog'] = {
@@ -987,33 +1014,37 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
   final deletedIds = <String>{};
   void deleted(Object? operation) {
     if (operation is! Map ||
-        operation['actionId'] != 'map3d.instance.delete_batch') return;
+        operation['actionId'] != 'map3d.instance.delete_batch') {
+      return;
+    }
     final values = operation['parameters'];
-    if (values is Map && values['instanceIds'] is List)
+    if (values is Map && values['instanceIds'] is List) {
       deletedIds.addAll((values['instanceIds'] as List).whereType<String>());
+    }
   }
 
   if (parameters['operations'] is List) {
-    for (final operation in parameters['operations'] as List)
+    for (final operation in parameters['operations'] as List) {
       deleted(operation);
+    }
   } else if (parameters['instanceIds'] is List) {
     deletedIds.addAll((parameters['instanceIds'] as List).whereType<String>());
   }
   if (deletedIds.isNotEmpty) {
-    for (final field in ['scenes', 'cinematics', 'presentationCinematics']) {
-      final incoming = (raw[field] as List? ?? const [])
-          .whereType<Map>()
-          .where((record) => _nativeReferenceIds(
-                  record, {'instanceId', 'sourceId', 'modelInstanceId'})
-              .intersection(deletedIds)
-              .isNotEmpty)
-          .toList();
-      if (incoming.isNotEmpty)
-        selected[field] = [
-          ...((selected[field] as List?) ?? const []),
-          ...incoming.where((record) =>
-              !((selected[field] as List?) ?? const []).contains(record)),
-        ];
+    for (final field in [
+      'scenes',
+      'cinematics',
+      'presentationCinematics',
+      'worldRules',
+      'eventRegistry'
+    ]) {
+      final referenced = _nativeReferenceIds(
+              raw[field], {'instanceId', 'sourceId', 'modelInstanceId'})
+          .intersection(deletedIds);
+      if (referenced.isNotEmpty) {
+        throw ProjectSnapshotException('map3d.instance_referenced',
+            'A model instance is referenced by a narrative document and cannot be deleted.');
+      }
     }
   }
   final manifest = ProjectManifest.fromJson(selected);
