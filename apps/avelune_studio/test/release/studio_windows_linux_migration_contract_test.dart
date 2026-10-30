@@ -32,6 +32,10 @@ void main() {
         final script = File('${directory.path}/build.ps1');
         await script.writeAsString(
           r'Set-Alias -Name flutter -Value $env:AVELUNE_RELEASE_TEST_FLUTTER -ErrorAction Stop'
+          '\n'
+          r'Set-Alias -Name npm -Value $env:AVELUNE_RELEASE_TEST_NPM -ErrorAction Stop'
+          '\n'
+          r'Set-Alias -Name node -Value $env:AVELUNE_RELEASE_TEST_NODE -ErrorAction Stop'
           '\n${_windowsReleaseBuildScript()}',
         );
         final bundle = Directory(
@@ -40,18 +44,38 @@ void main() {
         await bundle.create(recursive: true);
         await File('${bundle.path}/PokeMap.exe').writeAsString('fixture');
         final flutter = File('${directory.path}/flutter.cmd');
-        for (final failingCommand in ['pub', 'test', 'analyze', 'build', '']) {
+        final npm = File('${directory.path}/npm.cmd');
+        final node = File('${directory.path}/node.cmd');
+        for (final failingCommand in [
+          'pub',
+          'test',
+          'analyze',
+          'build',
+          'npm',
+          'node',
+          '',
+        ]) {
           await flutter.writeAsString(
             '@echo off\r\n'
             'if "%1"=="$failingCommand" exit /b 23\r\n'
             'exit /b 0\r\n',
           );
+          for (final entry in {'npm': npm, 'node': node}.entries) {
+            await entry.value.writeAsString(
+              '@echo off\r\n'
+              'if "${entry.key}"=="$failingCommand" exit /b 23\r\n'
+              'exit /b 0\r\n',
+            );
+          }
           final result = await Process.run(
             'pwsh',
             ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', script.path],
             workingDirectory: directory.path,
             environment: {
-              'AVELUNE_RELEASE_TEST_FLUTTER': await flutter.resolveSymbolicLinks(),
+              'AVELUNE_RELEASE_TEST_FLUTTER': await flutter
+                  .resolveSymbolicLinks(),
+              'AVELUNE_RELEASE_TEST_NPM': await npm.resolveSymbolicLinks(),
+              'AVELUNE_RELEASE_TEST_NODE': await node.resolveSymbolicLinks(),
               'RELEASE_VERSION': '0.3.27',
               'RELEASE_BUILD_NUMBER': '327',
             },
