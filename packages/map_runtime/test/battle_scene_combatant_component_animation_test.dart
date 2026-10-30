@@ -130,8 +130,10 @@ void main() {
 
       expect(
         component.currentRenderedSpriteRect.left,
-        closeTo(neutralBefore.left + 36, 0.01),
+        closeTo(neutralBefore.left * 1.12 + 36, 0.01),
       );
+      expect(component.currentRenderedSpriteRect.width,
+          closeTo(neutralBefore.width * 1.12, .01));
       expect(component.currentCameraNeutralRenderedSpriteRect.left,
           closeTo(neutralBefore.left, 0.01));
       expect(component.currentCameraNeutralRenderedSpriteRect.top,

@@ -21,6 +21,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
     required Vector2 size,
     this.visualAssetCache,
     this.artworkRect,
+    this.perspectiveGround = false,
     BattleBackgroundSpec backgroundSpec =
         const BattleBackgroundSpec.fallbackField(),
   }) : _backgroundSpec = backgroundSpec,
@@ -29,6 +30,8 @@ class BattleSceneBackdropComponent extends PositionComponent {
   BattleBackgroundSpec _backgroundSpec;
   final BattleVisualAssetCache? visualAssetCache;
   Rect? artworkRect;
+  Offset cameraParallax = Offset.zero;
+  final bool perspectiveGround;
   ui.Image? _explicitImage;
   String? _explicitImageSourcePath;
   bool _didExplicitImageLoadFail = false;
@@ -87,6 +90,18 @@ class BattleSceneBackdropComponent extends PositionComponent {
       _cachedArtworkRect = artworkRect;
     }
     canvas.drawPicture(_cachedBackdrop!);
+    if (cameraParallax == Offset.zero) return;
+    canvas.save();
+    final frame = artworkRect ?? (Offset.zero & currentSize);
+    canvas.clipRect(frame);
+    canvas.translate(frame.center.dx + cameraParallax.dx,
+        frame.center.dy + cameraParallax.dy);
+    final overscan = 1 + 2 * (cameraParallax.dx.abs() / frame.width +
+        cameraParallax.dy.abs() / frame.height);
+    canvas.scale(overscan);
+    canvas.translate(-frame.center.dx, -frame.center.dy);
+    canvas.drawPicture(_cachedBackdrop!);
+    canvas.restore();
   }
 
   @override
@@ -129,9 +144,15 @@ class BattleSceneBackdropComponent extends PositionComponent {
       );
     canvas.drawRect(rect, horizonGlowPaint);
 
-    _renderMidground(canvas, palette);
-    _renderFloor(canvas, palette);
-    _renderForegroundAccent(canvas, palette);
+    if (perspectiveGround && _backgroundSpec.key == BattleBackgroundKey.fallbackField) {
+      _renderWildHills(canvas, palette);
+    } else {
+      _renderMidground(canvas, palette);
+    }
+    if (!perspectiveGround) {
+      _renderFloor(canvas, palette);
+      _renderForegroundAccent(canvas, palette);
+    }
   }
 
   Future<void> _syncExplicitImage() async {

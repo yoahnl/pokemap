@@ -28,9 +28,14 @@ final class PokeMapPlayerBattleChrome
     this.moveDisabledText = const Color(0xFFEEF0F4),
     this.moveMuted = const Color(0xFF727986),
     this.hudEdge = const Color(0xFFD6DBE0),
-    this.hudHpLabel = const Color(0xFFB28A22),
-    this.hpHealthy = const Color(0xFF32CB55),
-    this.experience = const Color(0xFF238FF3),
+    this.hudHpLabel = const Color(0xFFFAFCF8),
+    this.hudLevel = const Color(0xFFF3CC50),
+    this.narrationSurface = const Color(0xFFFFFFFF),
+    this.narrationText = const Color(0xFF070A10),
+    this.hpHealthy = const Color(0xFF4DD968),
+    this.hpWarning = const Color(0xFFF2BD37),
+    this.hpDanger = const Color(0xFFEF6756),
+    this.experience = const Color(0xFF36B8ED),
     this.typeGrass = const Color(0xFF438856),
     this.typePoison = const Color(0xFF91629A),
     this.typeWater = const Color(0xFF447C9B),
@@ -54,8 +59,8 @@ final class PokeMapPlayerBattleChrome
     focus: Color(0xFFFD443E),
     water: Color(0xFF3E9FE8),
     normal: Color(0xFFA99F8E),
-    hudSurface: Color(0xFFFFFFFF),
-    hudText: Color(0xFF070A10),
+    hudSurface: Color(0xFF171D23),
+    hudText: Color(0xFFFFFFFF),
     moveSurface: Color(0xFFFFFFFF),
     moveSelected: Color(0xFF070A10),
     moveText: Color(0xFF070A10),
@@ -87,7 +92,12 @@ final class PokeMapPlayerBattleChrome
   final Color moveMuted;
   final Color hudEdge;
   final Color hudHpLabel;
+  final Color hudLevel;
+  final Color narrationSurface;
+  final Color narrationText;
   final Color hpHealthy;
+  final Color hpWarning;
+  final Color hpDanger;
   final Color experience;
   final Color typeGrass;
   final Color typePoison;
@@ -135,7 +145,12 @@ final class PokeMapPlayerBattleChrome
     Color? moveMuted,
     Color? hudEdge,
     Color? hudHpLabel,
+    Color? hudLevel,
+    Color? narrationSurface,
+    Color? narrationText,
     Color? hpHealthy,
+    Color? hpWarning,
+    Color? hpDanger,
     Color? experience,
     Color? typeGrass,
     Color? typePoison,
@@ -172,7 +187,12 @@ final class PokeMapPlayerBattleChrome
     moveMuted: moveMuted ?? this.moveMuted,
     hudEdge: hudEdge ?? this.hudEdge,
     hudHpLabel: hudHpLabel ?? this.hudHpLabel,
+    hudLevel: hudLevel ?? this.hudLevel,
+    narrationSurface: narrationSurface ?? this.narrationSurface,
+    narrationText: narrationText ?? this.narrationText,
     hpHealthy: hpHealthy ?? this.hpHealthy,
+    hpWarning: hpWarning ?? this.hpWarning,
+    hpDanger: hpDanger ?? this.hpDanger,
     experience: experience ?? this.experience,
     typeGrass: typeGrass ?? this.typeGrass,
     typePoison: typePoison ?? this.typePoison,
@@ -221,7 +241,16 @@ final class PokeMapPlayerBattleChrome
       moveMuted: Color.lerp(moveMuted, other.moveMuted, t)!,
       hudEdge: Color.lerp(hudEdge, other.hudEdge, t)!,
       hudHpLabel: Color.lerp(hudHpLabel, other.hudHpLabel, t)!,
+      hudLevel: Color.lerp(hudLevel, other.hudLevel, t)!,
+      narrationSurface: Color.lerp(
+        narrationSurface,
+        other.narrationSurface,
+        t,
+      )!,
+      narrationText: Color.lerp(narrationText, other.narrationText, t)!,
       hpHealthy: Color.lerp(hpHealthy, other.hpHealthy, t)!,
+      hpWarning: Color.lerp(hpWarning, other.hpWarning, t)!,
+      hpDanger: Color.lerp(hpDanger, other.hpDanger, t)!,
       experience: Color.lerp(experience, other.experience, t)!,
       typeGrass: Color.lerp(typeGrass, other.typeGrass, t)!,
       typePoison: Color.lerp(typePoison, other.typePoison, t)!,

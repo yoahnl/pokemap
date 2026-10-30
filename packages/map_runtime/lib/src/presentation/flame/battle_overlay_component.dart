@@ -26,6 +26,8 @@ import 'battle_ball_flash_component.dart';
 import 'battle_ball_throw_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_camera_rig.dart';
+import 'battle_perspective_camera.dart';
+import 'battle_perspective_ground_component.dart';
 import 'battle_debug_panel_component.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_fx_layer_component.dart';
@@ -496,7 +498,7 @@ String _defaultBattleMoveDisplayName(String moveId, String fallbackName) =>
 /// visible et non oublié.
 const double battleReducedMotionSpeedFactor = 2.5;
 
-class BattleOverlayComponent extends PositionComponent {
+class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleOverlayComponent({
     required BattleSession session,
     required Vector2 viewportSize,
@@ -743,7 +745,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCombatant? _displayedPlayerCombatant;
   int _presentationGeneration = 0;
   final BattleCameraRig _battleCameraRig = BattleCameraRig();
-  final Vector2 _cameraScaleScratch = Vector2.all(1);
+  BattlePerspectiveCamera? _perspectiveCamera;
 
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
@@ -1670,9 +1672,23 @@ class BattleOverlayComponent extends PositionComponent {
     );
     _sceneLayout = layout;
 
+    _perspectiveCamera = BattlePerspectiveCamera(viewport: layout.stageRect);
+    add(BattlePerspectiveGroundComponent(
+      camera: _perspectiveCamera!,
+      paintFloor: !backgroundSpec.hasExplicitImage,
+      clipRect: () => currentSceneLayout.arenaRect,
+      groundRects: () => [
+        for (final slot in [const BattleSlotRef.active(BattleSideId.enemy),
+          const BattleSlotRef.active(BattleSideId.player), ..._additionalCombatants.keys])
+          _geometryFor(slot).platformRect.shift(
+            _geometryFor(slot).footAnchor - _geometryFor(slot).platformRect.center),
+      ],
+    ));
+
     final backdropStopwatch = Stopwatch()..start();
     _backdrop = BattleSceneBackdropComponent(
       size: Vector2(size.x, size.y),
+      perspectiveGround: true,
       backgroundSpec: backgroundSpec,
       visualAssetCache: visualAssetCache,
       artworkRect: layout.backdropArtworkRect,
@@ -1740,6 +1756,8 @@ class BattleOverlayComponent extends PositionComponent {
       }
       _applyViewportLayout(size);
     }
+
+    _applyViewportLayout(size, syncPanels: false);
 
     // BETA-BAT-022 : la planche de Poké Ball se charge au montage — l'intro
     // ET les remplacements en vivent. Si elle manque, l'intro retombe sur le
@@ -2036,6 +2054,7 @@ class BattleOverlayComponent extends PositionComponent {
     );
     _sceneLayout = layout;
 
+    _perspectiveCamera?.viewport = layout.stageRect;
     _backdrop?.size = Vector2(size.x, size.y);
     _backdrop?.artworkRect = layout.backdropArtworkRect;
     _fxLayer?.size = viewportSize.clone();
@@ -2391,6 +2410,15 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   void update(double dt) {
+    _advanceScene(dt, updateChildren: false);
+  }
+
+  @override
+  void updateSubtree(double dt) {
+    _advanceScene(dt, updateChildren: true);
+  }
+
+  void _advanceScene(double dt, {required bool updateChildren}) {
     if (_introTrainerExitPending &&
         (_introTrainerSprite?.isMotionComplete ?? false)) {
       _introTrainerExitPending = false;
@@ -2405,12 +2433,22 @@ class BattleOverlayComponent extends PositionComponent {
     // désynchronise. Scaler la seule durée de phase du runner couperait les
     // effets en cours, ce qui reviendrait à les sauter.
     final scaledDt = dt * (motionScale <= 0 ? 1.0 : motionScale);
-    _animationRunner?.update(scaledDt);
-    if (isBattleCameraActive) {
-      _battleCameraRig.update(scaledDt);
-      _applyBattleCameraTransform();
+    var remaining = scaledDt;
+    while (remaining > .000001) {
+      final phaseRemaining = _animationRunner?.secondsUntilNextPhase ?? double.infinity;
+      final tick = math.min(remaining, math.min(1 / 60,
+          phaseRemaining > .000001 ? phaseRemaining : 1 / 60));
+      if (_battleCameraRig.isActive || (_perspectiveCamera?.isMoving ?? false)) {
+        _battleCameraRig.update(tick);
+        _perspectiveCamera?.update(tick);
+        _applyBattleCameraTransform();
+      }
+      if (updateChildren) {
+        for (final child in children) { child.updateTree(tick); }
+      }
+      _animationRunner?.update(tick);
+      remaining -= tick;
     }
-    super.update(scaledDt);
   }
 
   Future<void> _syncVisualState({
@@ -2892,6 +2930,13 @@ class BattleOverlayComponent extends PositionComponent {
       slot: targetSide,
       combatantId: displayedIdentity ?? combatantId,
       isRevealed: _teamInfoRevealed,
+      isVisible:
+          !(_animationRunner?.areGaugesHidden ?? false) &&
+          !(_perspectiveCamera?.isMoving ?? false),
+      remainingTeamCount: !isPlayerSide && _session.setup.isTrainerBattle
+          ? _remainingEnemyTeamCount() : null,
+      teamSize: !isPlayerSide && _session.setup.isTrainerBattle
+          ? 1 + _session.setup.enemyReservePokemon.length : null,
       ownerLabel: ownerLabel,
       speciesLabel: resolveSpeciesDisplayName(combatant.speciesId),
       level: combatant.level,
@@ -2919,6 +2964,24 @@ class BattleOverlayComponent extends PositionComponent {
       xpTweenDurationMs: xpStep?.durationMs,
       xpTweenRevision: xpStep == null ? 0 : _xpTweenRevisionFor(xpStep),
     );
+  }
+
+  int _remainingEnemyTeamCount() {
+    final hpByLineup = {
+      for (final combatant in [_session.state.enemy, ..._session.state.enemyReserve])
+        combatant.lineupIndex: combatant.currentHp,
+    };
+    for (final entry in _presentationHeldHp.entries) {
+      if (entry.key.side != BattleSideId.enemy) continue;
+      final displayed = _displayedCombatantsBySlot[entry.key] ??
+          (entry.key.slotIndex == 0 ? _displayedEnemyCombatant : null);
+      if (displayed != null) {
+        final tween = _animationRunner?.currentHpTweenStep;
+        hpByLineup[displayed.lineupIndex] = tween?.slot == entry.key
+            ? tween!.fromHp : entry.value;
+      }
+    }
+    return hpByLineup.values.where((hp) => hp > 0).length;
   }
 
   List<BattleCommandOverlayEntry> _buildCommandOverlayEntries({
@@ -4095,6 +4158,19 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleCameraFocusStep(CameraFocusStep step) {
+    if (motionScale > 1) return;
+    if (step.target == BattleCameraFocusTarget.scene) {
+      _perspectiveCamera?.reset(durationSeconds: step.durationSeconds);
+    } else {
+      final side = step.side ?? (step.target == BattleCameraFocusTarget.user
+          ? BattleSideId.player : BattleSideId.enemy);
+      final geometry = _geometryFor(BattleSlotRef(side: side, slotIndex: step.slotIndex));
+      _perspectiveCamera?.focus(geometry.footAnchor,
+        playerSide: side == BattleSideId.player,
+        durationSeconds: step.durationSeconds,
+        strength: _isDoubles ? .65 : 1,
+      );
+    }
     switch (step.target) {
       case BattleCameraFocusTarget.user:
         _battleCameraRig.focusUser(durationSeconds: step.durationSeconds);
@@ -4107,6 +4183,14 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleBattleCameraMoveStep(BattleCameraMoveStep step) {
+    if (motionScale > 1) return;
+    _perspectiveCamera?.moveTo(
+      eye: BattlePerspectiveCamera.homeEye + BattleCameraPoint(
+        step.offsetX / 12, -step.offsetY / 12, (1 - step.scale) * 20,
+      ),
+      aim: BattlePerspectiveCamera.homeAim,
+      durationSeconds: step.durationSeconds,
+    );
     _battleCameraRig.moveTo(
       offset: Vector2(step.offsetX, step.offsetY),
       scale: step.scale,
@@ -4117,38 +4201,39 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _handleBattleCameraResetStep(BattleCameraResetStep step) {
+    if (motionScale > 1) {
+      _resetBattleCamera();
+      return;
+    }
+    _perspectiveCamera?.reset(durationSeconds: motionScale > 1 ? 0 : step.durationSeconds);
     _battleCameraRig.reset(durationSeconds: step.durationSeconds);
     _applyBattleCameraTransform();
   }
 
   void _resetBattleCamera() {
+    _perspectiveCamera?.reset(durationSeconds: 0);
     _battleCameraRig.cancel();
     _applyBattleCameraTransform();
   }
 
   void _applyBattleCameraTransform() {
-    // Tourne à chaque frame quand la caméra battle est active : les setters
-    // Flame copient déjà (setFrom), aucun clone nécessaire.
-    final offset = _battleCameraRig.offset;
-    final scale = _battleCameraRig.scale;
-    _cameraScaleScratch.setValues(scale, scale);
-    _backdrop
-      ?..position = offset
-      ..scale = _cameraScaleScratch;
-    _fxLayer
-      ?..position = offset
-      ..scale = _cameraScaleScratch;
-    _enemyCombatant?.applyBattleCameraTransform(
-      offset: offset,
-      scale: scale,
-    );
-    _playerCombatant?.applyBattleCameraTransform(
-      offset: offset,
-      scale: scale,
-    );
-    for (final component in _additionalCombatants.values) {
-      component.applyBattleCameraTransform(offset: offset, scale: scale);
+    final camera = _perspectiveCamera;
+    if (camera == null) return;
+    _backdrop?.cameraParallax = camera.backdropOffset;
+    void apply(BattleSlotRef slot, BattleSceneCombatantComponent? component) {
+      final foot = _geometryFor(slot).footAnchor;
+      final projected = camera.billboardAt(foot);
+      component?.applyBattleCameraTransform(
+        offset: Vector2(
+          projected.position.dx - foot.dx * projected.scale,
+          projected.position.dy - foot.dy * projected.scale,
+        ),
+        scale: projected.scale,
+      );
     }
+    apply(const BattleSlotRef.active(BattleSideId.enemy), _enemyCombatant);
+    apply(const BattleSlotRef.active(BattleSideId.player), _playerCombatant);
+    for (final entry in _additionalCombatants.entries) { apply(entry.key, entry.value); }
   }
 
   void _handleFaintCombatantStep(FaintCombatantStep step) {
@@ -4225,7 +4310,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   Rect? _combatantRenderedRectForSlot(BattleSlotRef slot) =>
-      _combatantForSlot(slot)?.currentCameraNeutralRenderedSpriteRect;
+      _combatantForSlot(slot)?.currentRenderedSpriteRect;
 
   void _syncFieldAmbientState() {
     _fxLayer?.syncFieldAmbient(
@@ -4294,8 +4379,11 @@ class BattleOverlayComponent extends PositionComponent {
     }) {
       final combatant = _combatantForSlot(slot);
       if (combatant != null) {
-        return combatant.currentCameraNeutralImpactAnchorToward(
-          opponentCenter: opponentCenter,
+        final spriteRect = combatant.currentRenderedSpriteRect;
+        final facingSign = opponentCenter.dx >= spriteRect.center.dx ? 1.0 : -1.0;
+        return Offset(
+          spriteRect.center.dx + facingSign * spriteRect.width * .16,
+          spriteRect.top + spriteRect.height * .42,
         );
       }
       final effectiveRect = rect ?? fallbackRect;
@@ -4308,7 +4396,7 @@ class BattleOverlayComponent extends PositionComponent {
 
     Offset footFor(BattleSlotRef slot, Rect? rect, Rect fallbackRect) {
       final footAnchor =
-          _combatantForSlot(slot)?.currentCameraNeutralFootAnchor;
+          _combatantForSlot(slot)?.currentFootAnchor;
       if (footAnchor != null) {
         return footAnchor;
       }

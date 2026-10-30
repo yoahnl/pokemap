@@ -108,12 +108,18 @@ final class PlayerBattleHudViewData {
     this.xpTweenDuration,
     this.xpTweenRevision = 0,
     this.isRevealed = true,
+    this.isVisible = true,
+    this.remainingTeamCount,
+    this.teamSize,
   });
 
   /// BETA-BAT-028 : la barre est-elle entrée en scène ? Pendant l'intro, la
   /// référence les fait glisser après le message d'apparition — l'ennemi
   /// depuis le haut, le joueur depuis le bas.
   final bool isRevealed;
+  final bool isVisible;
+  final int? remainingTeamCount;
+  final int? teamSize;
 
   final String ownerLabel;
   final String speciesLabel;
@@ -377,9 +383,9 @@ class PlayerBattleSurface extends StatelessWidget {
                     ? Duration.zero
                     : const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
-                child: GestureDetector(
+                child: _BattleHudTarget(
                   key: const ValueKey<String>('battle-hud-target-enemy'),
-                  behavior: HitTestBehavior.opaque,
+                  isVisible: data.enemy.isVisible,
                   onTap: onHudTargeted,
                   child: _BattleHud(
                     data: data.enemy,
@@ -401,9 +407,9 @@ class PlayerBattleSurface extends StatelessWidget {
                     ? Duration.zero
                     : const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
-                child: GestureDetector(
+                child: _BattleHudTarget(
                   key: const ValueKey<String>('battle-hud-target-player'),
-                  behavior: HitTestBehavior.opaque,
+                  isVisible: data.player.isVisible,
                   onTap: onHudTargeted,
                   child: _BattleHud(
                     data: data.player,
@@ -529,9 +535,9 @@ class PlayerBattleSurface extends StatelessWidget {
                     battle?.enemyHudPosition ??
                         ProjectBattleHudPosition.topStart,
                   ),
-                  child: GestureDetector(
+                  child: _BattleHudTarget(
                     key: const ValueKey<String>('battle-hud-target-enemy'),
-                    behavior: HitTestBehavior.opaque,
+                    isVisible: data.enemy.isVisible,
                     onTap: onHudTargeted,
                     child: SizedBox(
                       width: hudWidth,
@@ -563,9 +569,9 @@ class PlayerBattleSurface extends StatelessWidget {
                           _ => _hudAlignment(battle.playerHudPosition),
                         }
                       : _hudAlignment(battle.playerHudPosition),
-                  child: GestureDetector(
+                  child: _BattleHudTarget(
                     key: const ValueKey<String>('battle-hud-target-player'),
-                    behavior: HitTestBehavior.opaque,
+                    isVisible: data.player.isVisible,
                     onTap: onHudTargeted,
                     child: SizedBox(
                       width: hudWidth,
@@ -675,6 +681,32 @@ class _BattlePanelTransitionState extends State<_BattlePanelTransition>
   );
 }
 
+class _BattleHudTarget extends StatelessWidget {
+  const _BattleHudTarget({
+    super.key,
+    required this.isVisible,
+    required this.onTap,
+    required this.child,
+  });
+
+  final bool isVisible;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Visibility(
+    visible: isVisible,
+    maintainState: true,
+    maintainAnimation: true,
+    maintainSize: true,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: child,
+    ),
+  );
+}
+
 class _BattleHud extends StatelessWidget {
   const _BattleHud({
     required this.data,
@@ -691,24 +723,47 @@ class _BattleHud extends StatelessWidget {
   final bool dense;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Visibility(
+    visible: data.isVisible,
+    maintainState: true,
+    maintainAnimation: true,
+    maintainSize: true,
+    child: _buildContent(context),
+  );
+
+  Widget _buildContent(BuildContext context) {
     final chrome = context.playerBattleChrome;
     final hpRatio = data.maxHp <= 0
         ? 0.0
         : (data.effectiveTargetDisplayedHp / data.maxHp).clamp(0.0, 1.0);
-    final hpColor = hpRatio > .5 && profile?.hpHealthyColor == null
-        ? chrome.hpHealthy
-        : playerHpColorFor(
-            context,
-            hpRatio,
-            healthyHex: profile?.hpHealthyColor,
-            warningHex: profile?.hpWarningColor,
-            dangerHex: profile?.hpDangerColor,
-          );
+    final hpColor = switch (playerHpToneFor(hpRatio)) {
+      PlayerHpTone.healthy =>
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+              profile?.hpHealthyColor,
+            ) ??
+            chrome.hpHealthy,
+      PlayerHpTone.warning =>
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+              profile?.hpWarningColor,
+            ) ??
+            chrome.hpWarning,
+      PlayerHpTone.danger =>
+        PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+              profile?.hpDangerColor,
+            ) ??
+            chrome.hpDanger,
+    };
     final usesLigueShape =
         profile == null || profile?.hudShape == ProjectWindowShape.rounded;
     final showExactHp = profile?.showExactHp ?? sideId == 'player';
     final hpBarShape = profile?.hpBarShape ?? ProjectBattleHpBarShape.rounded;
+    final teamSize = data.teamSize;
+    final remainingTeamCount = data.remainingTeamCount;
+    final showTrainerGauge =
+        sideId == 'enemy' &&
+        teamSize != null &&
+        teamSize > 0 &&
+        remainingTeamCount != null;
     final experience = data.experienceProgress?.clamp(0.0, 1.0);
     final text = context.playerTypography
         .combatStyle(const TextStyle())
@@ -737,213 +792,406 @@ class _BattleHud extends StatelessWidget {
       textScaler: MediaQuery.textScalerOf(context),
       textDirection: Directionality.of(context),
     )..layout();
-    final minimumHudWidth = (profile?.showLevel ?? true)
-        ? levelPainter.width +
-              8 +
-              MediaQuery.textScalerOf(context)
-                  .scale(data.genderSymbol == null ? 16 : 32)
-        : 0.0;
+    final exactHpLabel = usesLigueShape
+        ? '${data.maxHp} / ${data.maxHp}'
+        : context.playerL10n.hpFraction(data.maxHp, data.maxHp);
+    double measure(String label, TextStyle style) {
+      final painter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: DefaultTextStyle.of(context).style.merge(style),
+        ),
+        textScaler: MediaQuery.textScalerOf(context),
+        textDirection: Directionality.of(context),
+      )..layout();
+      final width = painter.width;
+      painter.dispose();
+      return width;
+    }
+
+    final minimumHudWidth = math.max(
+      (profile?.showLevel ?? true)
+          ? levelPainter.width +
+                8 +
+                MediaQuery.textScalerOf(context)
+                    .scale(data.genderSymbol == null ? 16 : 32)
+          : 0.0,
+      28 +
+          14 +
+          36 +
+          measure(
+            context.playerL10n.hpAbbreviation,
+            number.copyWith(
+              fontWeight: FontWeight.w900,
+              fontStyle: FontStyle.italic,
+            ),
+          ) +
+          (showExactHp ? measure(exactHpLabel, number) : 0),
+    );
     levelPainter.dispose();
-    return Material(
-      color: chrome.hudSurface,
-      shape: switch (profile?.hudShape) {
-        ProjectWindowShape.rectangle => const RoundedRectangleBorder(),
-        ProjectWindowShape.capsule => const StadiumBorder(),
-        ProjectWindowShape.cutCorner => const BeveledRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-        ProjectWindowShape.speech => const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
-        _ => _BattleBevelShape(accent: chrome.focus, leading: true),
-      },
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(25, 6, 20, 6),
-        child: LayoutBuilder(
-          builder: (context, constraints) => FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: math.max(constraints.maxWidth, minimumHudWidth),
-              child: Semantics(
-                key: ValueKey<String>(
-                  'battle-hud-semantics-${identity ?? sideId}',
-                ),
-                container: true,
-                label:
-                    '${data.ownerLabel}, ${data.speciesLabel}, ${context.playerL10n.levelLabel(data.level)}, ${context.playerL10n.hpLabel(data.currentHp, data.maxHp)}${experience == null ? '' : ', ${(experience * 100).round()} %'}',
-                child: ExcludeSemantics(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    data.speciesLabel,
-                                    key: ValueKey<String>(
-                                      'battle-species-${identity ?? sideId}',
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: text,
-                                  ),
-                                ),
-                                if (data.genderSymbol case final gender?) ...[
-                                  const SizedBox(width: 6),
-                                  _BattleGenderSymbol(
-                                    key: ValueKey<String>(
-                                      'battle-gender-${identity ?? sideId}',
-                                    ),
-                                    symbol: gender,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          if (profile?.showLevel ?? true)
-                            const SizedBox(width: 8),
-                          if (profile?.showLevel ?? true)
-                            Text(
-                              levelLabel,
-                              key: ValueKey<String>(
-                                'battle-level-${identity ?? sideId}',
-                              ),
-                              style: number,
-                            ),
-                        ],
-                      ),
-                      SizedBox(
-                        key: ValueKey<String>(
-                          'battle-hud-divider-${identity ?? sideId}',
-                        ),
-                        height: 3,
-                      ),
-                      TweenAnimationBuilder<double>(
-                        key: ValueKey<int>(data.hpTweenRevision),
-                        tween: Tween<double>(
-                          begin: data.effectiveDisplayedHp.toDouble(),
-                          end: data.effectiveTargetDisplayedHp.toDouble(),
-                        ),
-                        duration: context.playerMotion.standard == Duration.zero
-                            ? Duration.zero
-                            : data.hpTweenDuration ??
-                                  context.playerMotion.standard,
-                        builder: (context, hp, _) => Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _BattleHpBar(
-                                    key: ValueKey<String>(
-                                      'battle-hp-${hpBarShape.name}-$sideId',
-                                    ),
-                                    value: data.maxHp <= 0
-                                        ? 0
-                                        : (hp / data.maxHp).clamp(0.0, 1.0),
-                                    shape: hpBarShape,
-                                    color: hpColor,
-                                    backgroundColor: chrome.hudEdge.withValues(
-                                      alpha: .25,
-                                    ),
-                                    height: 6,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (showExactHp) ...[
-                              const SizedBox(height: 3),
-                              Text(
-                                usesLigueShape
-                                    ? '${hp.round()} / ${data.maxHp}'
-                                    : context.playerL10n.hpFraction(
-                                        hp.round(),
-                                        data.maxHp,
-                                      ),
-                                key: ValueKey<String>(
-                                  'battle-exact-hp-${identity ?? sideId}',
-                                ),
-                                textAlign: TextAlign.left,
-                                style: number.copyWith(fontSize: 15),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (data.statusLabel case final status?) ...[
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: _BattleStatusBadge(
-                            key: ValueKey<String>(
-                              'battle-status-badge-$sideId',
-                            ),
-                            label: status,
-                            color:
-                                PokeMapPlayerProjectColorResolver.tryOpaqueHex(
-                                  profile?.statusColor,
-                                ) ??
-                                context.playerColors.warning,
-                            dense: true,
-                          ),
-                        ),
-                      ],
-                      if (experience case final progress?) ...[
-                        const SizedBox(height: 3),
-                        TweenAnimationBuilder<double>(
-                          key: ValueKey<String>(
-                            'battle-xp-tween-$sideId-${data.xpTweenRevision}',
-                          ),
-                          tween: Tween<double>(
-                            begin: progress,
-                            end:
-                                (data.effectiveTargetExperienceProgress ??
-                                        progress)
-                                    .clamp(0.0, 1.0),
-                          ),
-                          duration:
-                              context.playerMotion.standard == Duration.zero
-                              ? Duration.zero
-                              : data.xpTweenDuration ??
-                                    context.playerMotion.standard,
-                          builder: (context, xp, _) => Row(
+    final shape = switch (profile?.hudShape) {
+      ProjectWindowShape.rectangle => const RoundedRectangleBorder(),
+      ProjectWindowShape.capsule => const StadiumBorder(),
+      ProjectWindowShape.speech => const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      _ => const BeveledRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: LayoutBuilder(
+        builder: (context, constraints) => Stack(
+          fit: StackFit.passthrough,
+          clipBehavior: Clip.none,
+          children: [
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: math.max(constraints.maxWidth, minimumHudWidth),
+                child: Semantics(
+                  key: ValueKey<String>(
+                    'battle-hud-semantics-${identity ?? sideId}',
+                  ),
+                  container: true,
+                  label:
+                      '${data.ownerLabel}, ${data.speciesLabel}, ${context.playerL10n.levelLabel(data.level)}, ${context.playerL10n.hpLabel(data.currentHp, data.maxHp)}${experience == null ? '' : ', ${(experience * 100).round()} %'}',
+                  child: ExcludeSemantics(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Row(
                             children: [
-                              Text(
-                                context.playerL10n.experienceAbbreviation,
-                                style: number.copyWith(
-                                  fontSize: 9,
-                                  color: chrome.experience,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
                               Expanded(
-                                child: _BattleExperienceBar(
-                                  key: ValueKey<String>(
-                                    'battle-xp-${identity ?? sideId}',
-                                  ),
-                                  value: xp,
-                                  color: chrome.experience,
-                                  backgroundColor: chrome.hudEdge.withValues(
-                                    alpha: .18,
-                                  ),
-                                  height: 4,
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        data.speciesLabel,
+                                        key: ValueKey<String>(
+                                          'battle-species-${identity ?? sideId}',
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: text.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          shadows: [
+                                            Shadow(
+                                              color: chrome.underplate,
+                                              offset: const Offset(1, 1),
+                                              blurRadius: 2,
+                                            ),
+                                            Shadow(
+                                              color: chrome.underplate,
+                                              offset: const Offset(-1, -1),
+                                              blurRadius: 2,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    if (data.genderSymbol
+                                        case final gender?) ...[
+                                      const SizedBox(width: 4),
+                                      _BattleGenderSymbol(
+                                        key: ValueKey<String>(
+                                          'battle-gender-${identity ?? sideId}',
+                                        ),
+                                        symbol: gender,
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ),
+                              if (profile?.showLevel ?? true) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  levelLabel,
+                                  key: ValueKey<String>(
+                                    'battle-level-${identity ?? sideId}',
+                                  ),
+                                  style: number.copyWith(
+                                    color: chrome.hudLevel,
+                                    fontWeight: FontWeight.w900,
+                                    shadows: [
+                                      Shadow(
+                                        color: chrome.underplate,
+                                        offset: const Offset(1, 1),
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
+                        SizedBox(
+                          key: ValueKey<String>(
+                            'battle-hud-divider-${identity ?? sideId}',
+                          ),
+                          height: 3,
+                        ),
+                        Material(
+                          key: ValueKey<String>(
+                            'battle-hp-plate-${identity ?? sideId}',
+                          ),
+                          color: chrome.hudSurface,
+                          shape: shape,
+                          clipBehavior: Clip.antiAlias,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.symmetric(
+                                horizontal: BorderSide(
+                                  color: chrome.hudEdge.withValues(alpha: .28),
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
+                              child: TweenAnimationBuilder<double>(
+                                key: ValueKey<int>(data.hpTweenRevision),
+                                tween: Tween<double>(
+                                  begin: data.effectiveDisplayedHp.toDouble(),
+                                  end: data.effectiveTargetDisplayedHp
+                                      .toDouble(),
+                                ),
+                                duration:
+                                    context.playerMotion.standard ==
+                                        Duration.zero
+                                    ? Duration.zero
+                                    : data.hpTweenDuration ??
+                                          context.playerMotion.standard,
+                                builder: (context, hp, _) => Row(
+                                  children: [
+                                    Text(
+                                      context.playerL10n.hpAbbreviation,
+                                      style: number.copyWith(
+                                        color: chrome.hudHpLabel,
+                                        fontWeight: FontWeight.w900,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 7),
+                                    Expanded(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: chrome.hudEdge,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(1),
+                                          child: _BattleHpBar(
+                                            key: ValueKey<String>(
+                                              'battle-hp-${hpBarShape.name}-$sideId',
+                                            ),
+                                            value: data.maxHp <= 0
+                                                ? 0
+                                                : (hp / data.maxHp).clamp(
+                                                    0.0,
+                                                    1.0,
+                                                  ),
+                                            shape: hpBarShape,
+                                            color: hpColor,
+                                            backgroundColor: chrome.hudEdge
+                                                .withValues(alpha: .25),
+                                            height: 6,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (showExactHp) ...[
+                                      const SizedBox(width: 7),
+                                      Text(
+                                        usesLigueShape
+                                            ? '${hp.round()} / ${data.maxHp}'
+                                            : context.playerL10n.hpFraction(
+                                                hp.round(),
+                                                data.maxHp,
+                                              ),
+                                        key: ValueKey<String>(
+                                          'battle-exact-hp-${identity ?? sideId}',
+                                        ),
+                                        style: number,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (experience case final progress?)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Material(
+                              color: chrome.hudSurface,
+                              shape: const BeveledRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  bottom: Radius.circular(7),
+                                ),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 3, 8, 4),
+                                child: TweenAnimationBuilder<double>(
+                                  key: ValueKey<String>(
+                                    'battle-xp-tween-$sideId-${data.xpTweenRevision}',
+                                  ),
+                                  tween: Tween<double>(
+                                    begin: progress,
+                                    end:
+                                        (data.effectiveTargetExperienceProgress ??
+                                                progress)
+                                            .clamp(0.0, 1.0),
+                                  ),
+                                  duration:
+                                      context.playerMotion.standard ==
+                                          Duration.zero
+                                      ? Duration.zero
+                                      : data.xpTweenDuration ??
+                                            context.playerMotion.standard,
+                                  builder: (context, xp, _) => Row(
+                                    children: [
+                                      Text(
+                                        context
+                                            .playerL10n
+                                            .experienceAbbreviation,
+                                        style: number.copyWith(
+                                          fontSize: 9,
+                                          color: chrome.experience,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: _BattleExperienceBar(
+                                          key: ValueKey<String>(
+                                            'battle-xp-${identity ?? sideId}',
+                                          ),
+                                          value: xp,
+                                          color: chrome.experience,
+                                          backgroundColor: chrome.hudEdge
+                                              .withValues(alpha: .18),
+                                          height: 4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (data.statusLabel case final status?) ...[
+                          const SizedBox(height: 3),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: _BattleStatusBadge(
+                                key: ValueKey<String>(
+                                  'battle-status-badge-$sideId',
+                                ),
+                                label: status,
+                                color:
+                                    PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                                      profile?.statusColor,
+                                    ) ??
+                                    context.playerColors.warning,
+                                dense: true,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
+            if (showTrainerGauge)
+              Positioned(
+                left: 10,
+                right: 10,
+                bottom: -MediaQuery.textScalerOf(context).scale(9) - 8,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _BattleTrainerGauge(
+                    key: ValueKey<String>(
+                      'battle-trainer-gauge-${identity ?? sideId}',
+                    ),
+                    remaining: remainingTeamCount,
+                    total: teamSize,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BattleTrainerGauge extends StatelessWidget {
+  const _BattleTrainerGauge({
+    super.key,
+    required this.remaining,
+    required this.total,
+  });
+
+  final int remaining;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final chrome = context.playerBattleChrome;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight,
+      child: Material(
+        color: chrome.hudSurface,
+        shape: const BeveledRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(4)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < math.min(total, 6); index++) ...[
+                Icon(
+                  Icons.catching_pokemon,
+                  size: 9,
+                  color: index < remaining
+                      ? chrome.hudText
+                      : chrome.hudEdge.withValues(alpha: .35),
+                ),
+                const SizedBox(width: 2),
+              ],
+              const SizedBox(width: 4),
+              Text(
+                '$remaining / $total',
+                style: context.playerTypography
+                    .numbersStyle(const TextStyle())
+                    .copyWith(
+                      color: chrome.hudText,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1058,18 +1306,18 @@ class _BattlePrimaryDialogue extends StatelessWidget {
       final chrome = context.playerBattleChrome;
       return Material(
         key: const ValueKey<String>('battle-dialogue-panel'),
-        color: chrome.hudSurface,
+        color: chrome.narrationSurface,
         shape: _BattleBevelShape(accent: chrome.focus, leading: true),
         clipBehavior: Clip.antiAlias,
         child: DefaultTextStyle.merge(
-          style: TextStyle(color: chrome.hudText),
+          style: TextStyle(color: chrome.narrationText),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 8, 20, 8),
             child: _BattleDialoguePane(
               data: data,
               onBack: null,
               showChrome: false,
-              foregroundColor: chrome.hudText,
+              foregroundColor: chrome.narrationText,
             ),
           ),
         ),
@@ -1100,9 +1348,9 @@ class _BattlePrimaryDialogue extends StatelessWidget {
         showChrome: false,
         foregroundColor: _battleReadableForeground(
           PokeMapPlayerProjectColorResolver.tryOpaqueHex(panel.surfaceColor) ??
-              context.playerBattleChrome.hudSurface,
+              context.playerBattleChrome.narrationSurface,
           PokeMapPlayerProjectColorResolver.tryOpaqueHex(panel.textColor) ??
-              context.playerBattleChrome.hudText,
+              context.playerBattleChrome.narrationText,
           context.playerBattleChrome,
         ),
       ),
@@ -1740,7 +1988,7 @@ class _BattleContinueDock extends StatelessWidget {
         style: context.playerTypography
             .combatStyle(DefaultTextStyle.of(context).style)
             .copyWith(
-              color: chrome.hudText,
+              color: chrome.narrationText,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
@@ -1751,7 +1999,7 @@ class _BattleContinueDock extends StatelessWidget {
           height: math.min(constraints.maxHeight, wide ? 96 : 96 + 42 * scale),
           child: Material(
             key: const ValueKey('battle-dialogue-panel'),
-            color: chrome.hudSurface,
+            color: chrome.narrationSurface,
             shape: _BattleBevelShape(accent: chrome.focus, leading: true),
             clipBehavior: Clip.antiAlias,
             child: Padding(
@@ -5012,7 +5260,11 @@ Color _battleReadableForeground(
   }
 
   if (contrast(preferred) >= 4.5) return preferred;
-  final alternatives = [chrome.hudText, chrome.underplate, chrome.textPrimary];
+  final alternatives = [
+    chrome.narrationText,
+    chrome.underplate,
+    chrome.textPrimary,
+  ];
   return alternatives.reduce((a, b) => contrast(a) >= contrast(b) ? a : b);
 }
 

@@ -357,10 +357,14 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(initialized, isFalse);
+    overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.bottom,
+        portraitTouchLayout: true);
 
     imageReady.complete(await _fakeBattleFxImage());
     await loading;
     expect(initialized, isTrue);
+    expect((overlay.debugPlayerCombatant!.currentFootAnchor -
+        overlay.currentSceneLayout.playerFootAnchor).distance, lessThan(.001));
     expect(
       overlay.children
           .whereType<BattleSceneBackdropComponent>()
@@ -1403,7 +1407,7 @@ void main() {
       final fxLayer =
           overlay.children.whereType<BattleFxLayerComponent>().single;
       for (var i = 0;
-          i < 12 &&
+          i < 40 &&
               fxLayer.children
                   .whereType<BattleRmxpAnimationComponent>()
                   .isEmpty;
@@ -1601,6 +1605,11 @@ void main() {
       overlay.update(0.22);
       overlay.update(0.14);
 
+      for (var i = 0; i < 160 &&
+          overlay.currentCommandOverlaySnapshot!.enemyHud.targetDisplayedHp == null; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
       final snapshot = overlay.currentCommandOverlaySnapshot!;
       expect(snapshot.interactionsEnabled, isFalse);
       expect(
@@ -3831,6 +3840,11 @@ void main() {
       overlay.updateTree(0.13);
       overlay.updateTree(0.01);
 
+      for (var i = 0; i < 160 &&
+          overlay.currentCommandOverlaySnapshot!.enemyHud.hpTweenDurationMs == null; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
       expect(
           overlay.currentCommandOverlaySnapshot!.enemyHud.hpTweenDurationMs !=
               null,
@@ -3947,7 +3961,7 @@ void main() {
       overlay.updateTree(0.42);
       overlay.updateTree(0.14);
       overlay.updateTree(0.01);
-      for (var i = 0; i < 6 && overlay.activeBattleFxCount == 0; i++) {
+      for (var i = 0; i < 80 && overlay.activeBattleFxCount == 0; i++) {
         await Future<void>.delayed(Duration.zero);
         overlay.updateTree(0.02);
       }
@@ -3992,6 +4006,118 @@ void main() {
       expect(enemyCombatant.currentVisualOpacity, closeTo(1, 0.001));
     });
 
+    test('reduced motion advances visual children once on the shared clock without camera', () async {
+      final initial = _session(
+        player: _combatant(speciesId: 'sproutle', lineupIndex: 0, moves: [_tackle()]),
+        enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0, moves: [_waitingMove()]),
+      );
+      final overlay = BattleOverlayComponent(session: initial,
+        viewportSize: Vector2(390, 844), motionScale: 2, onPlayerChoice: (_) {});
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      final probe = _BattleClockProbe();
+      overlay.add(probe);
+      await probe.loaded;
+      overlay.updateTree(.125);
+      expect(probe.elapsed, closeTo(.25, .00001));
+      final rect = overlay.debugEnemyCombatant!.currentCameraNeutralRenderedSpriteRect;
+      overlay.updateState(initial.applyChoice(const PlayerBattleChoiceFight(0)));
+      await overlay.waitForPendingVisualSync();
+      for (var i = 0; i < 240 && overlay.isTurnPresentationActive; i++) {
+        overlay.updateTree(.013);
+        await Future<void>.delayed(Duration.zero);
+        expect(overlay.isBattleCameraActive, isFalse);
+        expect(overlay.debugEnemyCombatant!.scale.x, 1);
+      }
+      expect(overlay.debugEnemyCombatant!.currentRenderedSpriteRect.size, rect.size);
+    });
+
+    test('trainer count follows presented faint while wild count stays absent', () async {
+      final initial = _session(
+        isTrainerBattle: true,
+        player: _combatant(speciesId: 'sproutle', lineupIndex: 0,
+          stats: _stats(speed: 120, attack: 180), moves: [_tackle(power: 180)]),
+        enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0,
+          currentHp: 1, moves: [_waitingMove()]),
+        enemyReserve: [_combatant(speciesId: 'reserve', lineupIndex: 1,
+          moves: [_waitingMove()])],
+      );
+      final overlay = BattleOverlayComponent(session: initial,
+        viewportSize: Vector2(390, 844), onPlayerChoice: (_) {});
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      expect(overlay.currentCommandOverlaySnapshot!.enemyHud.remainingTeamCount, 2);
+      expect(overlay.currentCommandOverlaySnapshot!.enemyHud.teamSize, 2);
+      expect(overlay.currentCommandOverlaySnapshot!.playerHud.remainingTeamCount, isNull);
+      overlay.updateState(initial.applyChoice(const PlayerBattleChoiceFight(0)));
+      await overlay.waitForPendingVisualSync();
+      var sawDrain = false;
+      var sawFaintCount = false;
+      for (var i = 0; i < 800 && overlay.isTurnPresentationActive; i++) {
+        overlay.updateTree(.013);
+        await Future<void>.delayed(Duration.zero);
+        final hud = overlay.currentCommandOverlaySnapshot!.enemyHud;
+        if (hud.hpTweenDurationMs != null && hud.targetDisplayedHp == 0) {
+          sawDrain = true;
+          expect(hud.remainingTeamCount, 2);
+        } else if (sawDrain && hud.remainingTeamCount == 1) {
+          sawFaintCount = true;
+        }
+      }
+      expect(sawDrain, isTrue);
+      expect(sawFaintCount, isTrue);
+    });
+
+    for (final size in [Vector2(390, 844), Vector2(844, 390)]) {
+      for (final frameDt in [1 / 60, .013, .031]) {
+      test('perspective hides HUD until overview before HP at $size dt=$frameDt', () async {
+        final initial = _session(
+          player: _combatant(speciesId: 'sproutle', lineupIndex: 0,
+            moves: [_tackle()]),
+          enemy: _combatant(speciesId: 'sparkitten', lineupIndex: 0,
+            moves: [_waitingMove()]),
+        );
+        final overlay = BattleOverlayComponent(itemCapabilityResolver: _itemResolver,
+          session: initial, viewportSize: size, onPlayerChoice: (_) {});
+        await loadFlameComponent(overlay);
+        await overlay.waitForPendingVisualSync();
+        final after = initial.applyChoice(const PlayerBattleChoiceFight(0));
+        overlay.updateState(after);
+        await overlay.waitForPendingVisualSync();
+        var sawHidden = false;
+        var sawDepth = false;
+        var sawHp = false;
+        for (var frame = 0; frame < 600 && overlay.isTurnPresentationActive; frame++) {
+          overlay.updateTree(frameDt);
+          await Future<void>.delayed(Duration.zero);
+          final snapshot = overlay.currentCommandOverlaySnapshot!;
+          if (!snapshot.enemyHud.isVisible) {
+            sawHidden = true;
+            expect(snapshot.playerHud.isVisible, isFalse);
+          }
+          if (overlay.debugEnemyCombatant!.scale.x != 1) {
+            sawDepth = true;
+          }
+          if (snapshot.enemyHud.hpTweenDurationMs != null) {
+            sawHp = true;
+            expect(snapshot.enemyHud.isVisible, isTrue);
+            expect(snapshot.playerHud.isVisible, isTrue);
+            expect(overlay.isBattleCameraActive, isFalse);
+            expect(overlay.debugEnemyCombatant!.currentRenderedSpriteRect,
+                overlay.debugEnemyCombatant!.currentCameraNeutralRenderedSpriteRect);
+          }
+          if (frame == 32) {
+            overlay.onGameResize(Vector2(size.y, size.x));
+          }
+        }
+        expect(sawHidden, isTrue);
+        expect(sawDepth, isTrue);
+        expect(sawHp, isTrue);
+        expect(overlay.currentCommandOverlaySnapshot!.enemyHud.isVisible, isTrue);
+      });
+      }
+    }
+
     test('SDK camera focus moves only the battle scene and resets after play',
         () async {
       final initialSession = _session(
@@ -4027,6 +4153,7 @@ void main() {
       overlay.updateTree(0.42);
 
       expect(overlay.isBattleCameraFocusActive, isTrue);
+      overlay.updateTree(1 / 60);
       expect(overlay.battleCameraOffset.length, greaterThan(0));
       expect(overlay.battleCameraScale, greaterThan(1));
       expect(overlay.currentCommandOverlaySnapshot!.panelRect,
@@ -4201,3 +4328,10 @@ void main() {
 
 final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
 final _itemResolver = ItemCapabilityResolver(_itemCatalog);
+
+final class _BattleClockProbe extends Component {
+  double elapsed = 0;
+
+  @override
+  void update(double dt) { elapsed += dt; }
+}

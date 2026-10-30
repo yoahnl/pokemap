@@ -837,10 +837,14 @@ final class CameraFocusStep extends BattleAnimationStep {
   const CameraFocusStep({
     required this.target,
     required this.durationSeconds,
+    this.side,
+    this.slotIndex = 0,
   });
 
   final BattleCameraFocusTarget target;
   final double durationSeconds;
+  final BattleSideId? side;
+  final int slotIndex;
 }
 
 final class BattleCameraMoveStep extends BattleAnimationStep {

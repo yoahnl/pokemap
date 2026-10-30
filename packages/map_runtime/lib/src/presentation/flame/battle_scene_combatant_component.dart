@@ -132,11 +132,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Rect get currentPlatformRect =>
       _platformRect.shift(Offset(position.x, position.y));
 
-  @visibleForTesting
-  Offset get currentFootAnchor => _footAnchor.translate(position.x, position.y);
+  Offset get currentFootAnchor => Offset(
+    position.x + _footAnchor.dx * _sceneCameraScale,
+    position.y + _footAnchor.dy * _sceneCameraScale,
+  );
 
   Rect get currentRenderedSpriteRect =>
-      _currentRenderedSpriteRectLocal().shift(Offset(position.x, position.y));
+      _projectLocalRect(_currentRenderedSpriteRectLocal());
+
+  Rect _projectLocalRect(Rect rect) => Rect.fromLTWH(
+    position.x + rect.left * _sceneCameraScale,
+    position.y + rect.top * _sceneCameraScale,
+    rect.width * _sceneCameraScale,
+    rect.height * _sceneCameraScale,
+  );
 
   Rect get currentCameraNeutralRenderedSpriteRect =>
       _currentRenderedSpriteRectLocal().shift(_cameraNeutralPosition);
@@ -1136,8 +1145,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
     // Appelé à chaque frame d'animation et de caméra : mutation in place,
     // aucune allocation de Vector2.
     position.setValues(
-      _basePosition.x + _visualOffset.dx + _sceneCameraOffset.x,
-      _basePosition.y + _visualOffset.dy + _sceneCameraOffset.y,
+      (_basePosition.x + _visualOffset.dx) * _sceneCameraScale + _sceneCameraOffset.x,
+      (_basePosition.y + _visualOffset.dy) * _sceneCameraScale + _sceneCameraOffset.y,
     );
     scale.setValues(_sceneCameraScale, _sceneCameraScale);
     _updateTextOpacity();

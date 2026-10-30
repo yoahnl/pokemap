@@ -161,6 +161,9 @@ class BattleCommandOverlayHudSnapshot {
     this.xpTweenDurationMs,
     this.xpTweenRevision = 0,
     this.isRevealed = true,
+    this.isVisible = true,
+    this.remainingTeamCount,
+    this.teamSize,
     this.slot,
     this.combatantId = '',
   });
@@ -172,6 +175,9 @@ class BattleCommandOverlayHudSnapshot {
   /// en 0,2 s. Elles ne sont donc pas à l'écran au lever du rideau. Vrai par
   /// défaut : tout appelant qui l'ignore garde l'ancien comportement.
   final bool isRevealed;
+  final bool isVisible;
+  final int? remainingTeamCount;
+  final int? teamSize;
 
   final Rect rect;
   final BattleSlotRef? slot;
@@ -251,7 +257,8 @@ class BattleCommandOverlayHudSnapshot {
         // Sans ce champ dans l'égalité, la révélation des barres ne
         // produirait aucun nouveau snapshot : le notifier compare avant de
         // publier, et l'apparition ne serait jamais notifiée.
-        other.isRevealed == isRevealed;
+        other.isRevealed == isRevealed && other.isVisible == isVisible &&
+        other.remainingTeamCount == remainingTeamCount && other.teamSize == teamSize;
   }
 
   @override
@@ -268,6 +275,9 @@ class BattleCommandOverlayHudSnapshot {
     hpTweenDurationMs,
     hpTweenRevision,
     isRevealed,
+    isVisible,
+    remainingTeamCount,
+    teamSize,
     genderSymbol,
     statusLabel,
     experienceProgress,

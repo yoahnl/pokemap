@@ -97,6 +97,8 @@ final class BattleAnimationRunner {
   double _phaseElapsed = 0;
   double _phaseDuration = 0;
   bool _active = false;
+  bool _cameraSequenceActive = false;
+  bool _cameraResetPending = false;
   String? _currentMessage;
   HudHpTweenStep? _currentHpTweenStep;
   HudXpTweenStep? _currentXpTweenStep;
@@ -105,6 +107,9 @@ final class BattleAnimationRunner {
       <_ScheduledAccentStep>[];
 
   bool get isActive => _active;
+  double get secondsUntilNextPhase =>
+      _active ? math.max(0, _phaseDuration - _phaseElapsed) : double.infinity;
+  bool get areGaugesHidden => _cameraSequenceActive;
 
   String? get currentMessage => _currentMessage;
 
@@ -143,6 +148,8 @@ final class BattleAnimationRunner {
     _phaseElapsed = 0;
     _phaseDuration = 0;
     _active = false;
+    _cameraSequenceActive = false;
+    _cameraResetPending = false;
     _currentHpTweenStep = null;
     _currentXpTweenStep = null;
     _scheduledAccentSteps.clear();
@@ -175,6 +182,10 @@ final class BattleAnimationRunner {
   }
 
   void _beginNextPhase() {
+    if (_cameraResetPending) {
+      _cameraSequenceActive = false;
+      _cameraResetPending = false;
+    }
     _currentHpTweenStep = null;
     _currentXpTweenStep = null;
     _phaseElapsed = 0;
@@ -185,6 +196,7 @@ final class BattleAnimationRunner {
       final plan = _plan;
       if (plan == null || _nextStepIndex >= plan.steps.length) {
         _active = false;
+        _cameraSequenceActive = false;
         _currentMessage = null;
         _currentHpTweenStep = null;
         _currentXpTweenStep = null;
@@ -614,10 +626,13 @@ final class BattleAnimationRunner {
       case CombatantEllipseStep():
         onCombatantEllipse?.call(step);
       case CameraFocusStep():
+        _cameraSequenceActive = true;
         onCameraFocus?.call(step);
       case BattleCameraMoveStep():
+        _cameraSequenceActive = true;
         onBattleCameraMove?.call(step);
       case BattleCameraResetStep():
+        _cameraResetPending = true;
         onBattleCameraReset?.call(step);
       case BarrierPulseStep():
         onBarrierPulse(step);

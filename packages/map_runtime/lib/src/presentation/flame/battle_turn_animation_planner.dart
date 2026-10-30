@@ -234,7 +234,44 @@ final class BattleTurnAnimationPlanner {
                     step.slot == targetSideForFlash,
               );
             }
-            steps.addAll(recipeSteps);
+            final focusSlot = execution.targetSlot ?? execution.attackerSlot;
+            final moveKey = execution.move.id.toLowerCase().replaceAll(RegExp(r'[-_ ]'), '');
+            if (!recipeSteps.any((step) => step is CameraFocusStep || step is BattleCameraMoveStep)) {
+              if (moveKey == 'shadowball') {
+                steps.add(const AnimationGroupStep(
+                  mode: BattleAnimationGroupMode.parallel,
+                  steps: [BattleCameraMoveStep(offsetX: 36, offsetY: 0,
+                    scale: .85, durationSeconds: 16 / 60)],
+                ));
+              } else if (moveKey == 'flamethrower') {
+                steps.add(const AnimationGroupStep(
+                  mode: BattleAnimationGroupMode.parallel,
+                  steps: [CameraFocusStep(target: BattleCameraFocusTarget.scene,
+                    durationSeconds: 24 / 60)],
+                ));
+              }
+              steps.add(AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: [CameraFocusStep(
+                  target: BattleCameraFocusTarget.target,
+                  side: focusSlot.side,
+                  slotIndex: focusSlot.slotIndex,
+                  durationSeconds: 16 / 60,
+                )],
+              ));
+            }
+            steps.addAll(recipeSteps.map((step) {
+              if (step is! CameraFocusStep || step.side != null) return step;
+              final slot = step.target == BattleCameraFocusTarget.user
+                  ? execution.attackerSlot : focusSlot;
+              return CameraFocusStep(target: step.target,
+                side: slot.side, slotIndex: slot.slotIndex,
+                durationSeconds: step.durationSeconds);
+            }));
+            steps.add(const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [BattleCameraResetStep(durationSeconds: 16 / 60)],
+            ));
           }
           // Recette du 2026-08-24 : une attaque qui rate se dit — la
           // référence affiche « [cible] évite l'attaque ! » et ne joue ni
