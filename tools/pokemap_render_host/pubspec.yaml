@@ -18,6 +18,10 @@ dependencies:
     path: ../../packages/map_core
   map_render_3d:
     path: ../../packages/map_render_3d
+  map_runtime:
+    path: ../../packages/map_runtime
+  pokemap_loader:
+    path: ../../examples/playable_runtime_host
   path: ^1.9.1
 
 dev_dependencies:
@@ -26,4 +30,10 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
 flutter:
-  uses-material-design: false
+  uses-material-design: true
+
+dependency_overrides:
+  gamepads_darwin:
+    path: ../../packages/gamepads_darwin
+  gamepads_ios:
+    path: ../../packages/gamepads_ios

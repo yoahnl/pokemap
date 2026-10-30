@@ -314,6 +314,8 @@ export 'src/application/load_runtime_map_bundle.dart'
         loadProjectManifestFromFile,
         loadMapDataFiles,
         loadMapDataFromFile;
+export 'src/application/authoring_preview/runtime_authoring_asset_render_worker.dart'
+    show renderRuntimeAuthoringAssetRequest;
 export 'src/application/authoring_preview/runtime_authoring_asset_map_capture_service.dart'
     show
         RuntimeAuthoringAssetMapCaptureResult,

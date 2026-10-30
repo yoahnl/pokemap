@@ -741,8 +741,8 @@ async function jsonFiles(root: string): Promise<string[]> {
   return files.sort();
 }
 
-async function collectEvaluationArtifacts(
-  options: PlaytestExecutorOptions,
+export async function collectEvaluationArtifacts(
+  options: Pick<PlaytestExecutorOptions,"artifacts"|"repositoryRoot">,
   receiptPath: string,
 ): Promise<{ receipt: JsonRecord; artifacts: JsonRecord[] }> {
   const root = await realpath(options.repositoryRoot);

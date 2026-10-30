@@ -176,3 +176,157 @@ Pour chaque lot : fichiers/hunks concernés, Git d’entrée/sortie, commandes e
 La certification finale distingue : tests unitaires, client MCP réel, bundle installé, accès natif signé, performance mesurée et headless. Fin de livraison en `TO REVIEW`, jamais `DONE` sans décision de Yoahn.
 
 La rédaction seule n’exécute aucun de ces essais. L’ordre convenu reste : fiabilisation MCP d’abord, intégration Studio ensuite.
+
+## 11. Exécution du chantier 2 — 30 octobre 2026
+
+L'intégration est implémentée dans les sources et les scripts de distribution. La qualification demeure `PARTIAL` : macOS signé est exercé hors checkout avec un `PATH` vide ; Windows/Linux et les budgets UI 100/500 ms sur projet représentatif ne sont pas certifiés. Les capacités du plan 1 et ses limites de coût demeurent conservées. Les checklists précédentes définissent les critères ; leur absence de coche ne remplace pas les preuves ci-dessous.
+
+Git d'entrée et de sortie de l'implémentation : `main`, `85fc0968b596cc4100bb765ba9a9dbbe42115204`, worktree partagé déjà modifié puis enrichi par les sessions concurrentes. Aucun add, commit, push, rebase ou changement de branche pour ce chantier. Les changements étrangers de récompenses, dialogues, captures et scènes sont préservés. Le barrel `map_runtime.dart` est partagé : seul l'export de `renderRuntimeAuthoringAssetRequest` appartient ici au lot.
+
+### Inventaire des chemins du lot et zones de responsabilité
+
+Les contrôleurs Studio coordonnent les propriétaires de brouillons, historiques et sidecars ; les adaptateurs actualisent la carte, ses dépendances et les métadonnées ciblées. Les arbres persistants limitent les copies d'index. Les fichiers API portent la découverte sans accès, les identités de ressources dérivées du reçu/diff et l'accès natif transmis. Le MCP partage sa fabrique entre stdio et HTTP ; ses nouveaux fichiers couvrent manifeste, signatures, workers précompilés, autorisations, arrêt et qualification. Le lecteur ajoute des paramètres optionnels de provenance/identité et une sortie d'évaluation contrôlée, sans changer les formats de jeu ou de sauvegarde.
+
+**Studio — supervision, injection, réglages et coordination locale**
+
+- `apps/avelune_studio/lib/app/di/map_workspace_providers.dart`
+- `apps/avelune_studio/lib/app/di/studio_mcp_providers.dart`
+- `apps/avelune_studio/lib/app/studio_app.dart`
+- `apps/avelune_studio/lib/app/studio_bootstrap.dart`
+- `apps/avelune_studio/lib/dev/mcp_integration_qa.dart`
+- `apps/avelune_studio/lib/features/map_workspace/application/map_atmosphere_controller.dart`
+- `apps/avelune_studio/lib/features/map_workspace/application/map_editor_controller.dart`
+- `apps/avelune_studio/lib/features/map_workspace/application/map_exterior_decoration_controller.dart`
+- `apps/avelune_studio/lib/features/map_workspace/application/map_workspace_controller.dart`
+- `apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_adapter.dart`
+- `apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_catalog.dart`
+- `apps/avelune_studio/lib/features/map_workspace/data/local_map_workspace_scoped_catalog.dart`
+- `apps/avelune_studio/lib/features/map_workspace/domain/map_workspace_port.dart`
+- `apps/avelune_studio/lib/features/project_visuals/application/project_visuals_controller.dart`
+- `apps/avelune_studio/lib/features/updates/studio_update_host.dart`
+- `apps/avelune_studio/lib/platform/mcp/studio_mcp_process.dart`
+- `apps/avelune_studio/lib/platform/mcp/studio_mcp_project_access.dart`
+- `apps/avelune_studio/lib/platform/mcp/studio_mcp_service.dart`
+- `apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart`
+- `apps/avelune_studio/lib/presentation/features/map_workspace/workspace_lifecycle_binding.dart`
+- `apps/avelune_studio/lib/presentation/features/settings/studio_mcp_connection_panel.dart`
+- `apps/avelune_studio/lib/presentation/shared/widgets/layout/studio_application_frame.dart`
+- `apps/avelune_studio/macos/Runner/Release.entitlements`
+- `apps/avelune_studio/macos/Runner/StudioProjectAccessBridge.swift`
+- `apps/avelune_studio/pubspec.lock`
+- `apps/avelune_studio/pubspec.yaml`
+- `apps/avelune_studio/test/app/studio_bootstrap_test.dart`
+- `apps/avelune_studio/test/platform/mcp/studio_mcp_app_lifecycle_test.dart`
+- `apps/avelune_studio/test/platform/mcp/studio_mcp_launch_configuration_test.dart`
+- `apps/avelune_studio/test/platform/mcp/studio_mcp_project_coordination_test.dart`
+- `apps/avelune_studio/test/platform/mcp/studio_mcp_service_test.dart`
+- `apps/avelune_studio/test/presentation/studio_mcp_connection_panel_test.dart`
+
+**API canonique — découverte, notifications et sélection ciblée**
+
+- `packages/map_authoring/bin/pokemap_authoring.dart`
+- `packages/map_authoring/lib/map_authoring_local.dart`
+- `packages/map_authoring/lib/src/api/authoring_result_projection.dart`
+- `packages/map_authoring/lib/src/support/companion_process_access.dart`
+- `packages/map_authoring/lib/src/tooling/jsonl_worker.dart`
+- `packages/map_authoring/lib/src/workspace/catalog/catalog_targeted_map_edit.dart`
+- `packages/map_authoring/lib/src/workspace/workspace_policy.dart`
+- `packages/map_authoring/test/api/resource_pack_compact_result_test.dart`
+- `packages/map_authoring/test/support/create_reliability_transport_fixture.dart`
+- `packages/map_authoring/test/tooling/discovery_cli_test.dart`
+- `packages/map_authoring/test/tooling/discovery_jsonl_worker_test.dart`
+- `packages/map_authoring/test/workspace/discovery_workspace_policy_test.dart`
+
+**Modèles persistants et export du rendu canonique**
+
+- `packages/map_core/lib/map_core.dart`
+- `packages/map_core/lib/src/models/project_entry_tree.dart`
+- `packages/map_core/lib/src/models/project_map_entries.dart`
+- `packages/map_core/lib/src/models/project_model3d_entries.dart`
+- `packages/map_core/test/project_map_entries_test.dart`
+- `packages/map_runtime/lib/map_runtime.dart`
+
+**Lecteur — provenance et évaluation embarquée**
+
+- `examples/playable_runtime_host/lib/evaluation.dart`
+- `examples/playable_runtime_host/lib/main.dart`
+- `examples/playable_runtime_host/lib/src/evaluation/contracts/evaluation_build_provenance.dart`
+- `examples/playable_runtime_host/lib/src/evaluation/driver/runtime_evaluation_driver.dart`
+- `examples/playable_runtime_host/lib/src/evaluation/interactive/interactive_evaluation_bridge.dart`
+- `examples/playable_runtime_host/lib/src/evaluation/interactive/interactive_worker_client.dart`
+- `examples/playable_runtime_host/lib/src/evaluation/worker/evaluation_headless_worker.dart`
+- `examples/playable_runtime_host/test/support/create_studio_mcp_evaluation_fixture.dart`
+
+**MCP — composants installés, transports et essais**
+
+- `tools/pokemap_mcp/native/authoring-headless.entitlements`
+- `tools/pokemap_mcp/native/authoring-helper.entitlements`
+- `tools/pokemap_mcp/native/headless.entitlements`
+- `tools/pokemap_mcp/native/helper.entitlements`
+- `tools/pokemap_mcp/native/parent_watchdog/CMakeLists.txt`
+- `tools/pokemap_mcp/native/parent_watchdog/parent_watchdog.cc`
+- `tools/pokemap_mcp/native/project_access.mm`
+- `tools/pokemap_mcp/native/project_access_addon.cc`
+- `tools/pokemap_mcp/package-lock.json`
+- `tools/pokemap_mcp/package.json`
+- `tools/pokemap_mcp/src/authoring_client.ts`
+- `tools/pokemap_mcp/src/config.ts`
+- `tools/pokemap_mcp/src/http_transport.ts`
+- `tools/pokemap_mcp/src/index.ts`
+- `tools/pokemap_mcp/src/installed_runtime.ts`
+- `tools/pokemap_mcp/src/native_render_host.ts`
+- `tools/pokemap_mcp/src/packaged_runtime.ts`
+- `tools/pokemap_mcp/src/project_access.ts`
+- `tools/pokemap_mcp/src/runtime_gateway.ts`
+- `tools/pokemap_mcp/src/server.ts`
+- `tools/pokemap_mcp/src/server_runtime.ts`
+- `tools/pokemap_mcp/src/studio_companion.ts`
+- `tools/pokemap_mcp/src/tools/runtime.ts`
+- `tools/pokemap_mcp/test/authoring_client.test.ts`
+- `tools/pokemap_mcp/test/authoring_mutation_observer.test.ts`
+- `tools/pokemap_mcp/test/config.test.ts`
+- `tools/pokemap_mcp/test/http_transport.test.ts`
+- `tools/pokemap_mcp/test/installed_distribution.test.ts`
+- `tools/pokemap_mcp/test/native_render_host.test.ts`
+- `tools/pokemap_mcp/test/packaged_runtime.test.ts`
+- `tools/pokemap_mcp/test/parent_watchdog.test.ts`
+- `tools/pokemap_mcp/test/service_bootstrap.test.ts`
+- `tools/pokemap_mcp/test/studio_installed_integration.test.ts`
+- `tools/pokemap_mcp/tool/build_runtime.mjs`
+- `tools/pokemap_mcp/tool/package_runtime.mjs`
+
+**Hôte natif et distribution desktop**
+
+- `.github/workflows/pokemap_desktop_release.yml`
+- `tools/pokemap_render_host/lib/main.dart`
+- `tools/pokemap_render_host/lib/src/installed_evaluation.dart`
+- `tools/pokemap_render_host/lib/src/render_host.dart`
+- `tools/pokemap_render_host/macos/Flutter/GeneratedPluginRegistrant.swift`
+- `tools/pokemap_render_host/pubspec.yaml`
+- `tools/release/sign_macos_app.sh`
+
+Le présent plan est également actualisé ; les sources, leurs hunks Git et les tests constituent l'inventaire technique de référence.
+
+### Preuves fraîches et verdict par lot
+
+- I0/I4 : `build_runtime.mjs --work-root <QA>/package --output <QA>/installed-mcp-release` a construit le helper Release (`pokemap_render_host.app`, 129,0 MB), installé le moteur Release avec fence GPU vérifiée, puis produit les manifestes arm64 et x64 et leurs composants embarqués. `flutter build macos --release --target lib/dev/mcp_integration_qa.dart --dart-define=AVELUNE_MCP_QA_CONNECTION_FILE=<conteneur-QA>/connection.json` a construit Studio (`Avelune Studio.app`, 1054,7 MB avant le dernier remplacement des ressources). Les chemins QA exacts et commandes figurent dans les logs retenus sous `/Users/karim/Library/Caches/AveluneQA/mcp-studio-integration/`.
+- Signature : `bash tools/release/sign_macos_app.sh --app <bundle-QA> --identity 'Developer ID Application: Yoahn Linard (NLNMNV3B3S)' --entitlements apps/avelune_studio/macos/Runner/Release.entitlements` : `team_consistent=true`, `signature_verified=true`. Les permissions d'exécution nécessaires à l'AOT et à Node Intel sont distinctes de l'héritage sandbox ; la validation des bibliothèques reste active. Tous les manifestes sont rehashés après signature.
+- I1 : `npm run check` et `npm run build` : exit 0. `node --import tsx --test test/config.test.ts test/packaged_runtime.test.ts test/http_transport.test.ts test/service_bootstrap.test.ts` : 19 réussis, 0 échec. `test/protocol_compatibility.test.ts` : 6 réussis en relance isolée. Un premier passage pendant les builds concurrents avait renvoyé `isError=true` sur le describe stdio ; sa cause exacte n'a pas été collectée. Aucune assertion ni délai n'a été assoupli. Stdio négocie 2026-07-28 et son fallback ; HTTP annonce explicitement 2025-11-25.
+- I2 : `flutter test test/platform/mcp/studio_mcp_service_test.dart test/platform/mcp/studio_mcp_launch_configuration_test.dart test/platform/mcp/studio_mcp_app_lifecycle_test.dart test/presentation/studio_mcp_connection_panel_test.dart` : 15 réussis, 1 qualification installée ignorée dans cette commande. Accueil natif sans projet : prêt automatiquement. Crash volontaire du seul Node possédé avec cinq workers AOT actifs : aucun de ces PID restant au contrôle suivant ; erreur visible, clic Réessayer, connexion de nouveau prête, vrai client connecté et 59 outils découverts. Fermeture normale finale : exit 0, aucun enfant restant et aucune intervention du reaper.
+- I3 : les neuf fichiers Flutter de coordination, création/catalogue, périmètre ressources, modèles, visuals, ambiance, éditeur, extérieur et cycle des providers : `00:30 +79: All tests passed!` ; commande complète dans `i3/final.log`. `dart test test/api/resource_pack_compact_result_test.dart` : 18 réussis. `node --import tsx --test test/authoring_client.test.ts test/authoring_mutation_observer.test.ts` : 10 réussis. `dart test test/project_map_entries_test.dart test/project_model3d_entries_test.dart` : 15 réussis, notamment 10 000 entrées, permutations et partage structurel.
+- I3 natif : fixture classique ouverte avec le picker, nom de dossier accentué en NFD et client utilisant NFC. Erase explicite : applied et check fail ; remplissage : applied, rejeu identique, check pass. Mutation canonique du nom en `Synchronisation MCP vérifiée` : cette valeur apparaît dans le contrôle de carte actif du Studio déjà ouvert, vérifié via accessibilité sans réouverture du projet. Les dernières captures système ne fournissaient qu'une vignette 101×120 : elles ne certifient ni la fidélité graphique de l'aperçu ni sa latence.
+- I0/I5 natif : `test/studio_installed_integration.test.ts`, activé par les variables `POKEMAP_STUDIO_QA_CONNECTION` et `POKEMAP_STUDIO_QA_PROJECT` : 1 réussi, l'autre scénario opt-in ignoré. Vrai HTTP, édition/rejeu/contrôle, rendus 2D/3D, scan et lecture des PNG par handles. Le scan de la fixture synthétique conserve des défauts visuels connus ; succès du transport ne signifie pas carte visuellement saine.
+- Headless installé : `test/installed_distribution.test.ts` avec `POKEMAP_INSTALLED_MCP_MANIFEST` : 1 réussi en arm64 ; 1 réussi avec Node x64/Rosetta et `--test dist/test/installed_distribution.test.js`. Exécution hors checkout, `PATH=""`, aucun SDK invoqué par le serveur livré. Le premier essai x64 a révélé la permission V8 manquante, corrigée ; le passage via tsx était inadapté aux dépendances esbuild arm64 du poste, d'où l'usage des tests JS compilés.
+- Évaluation : les cibles headless et interactive du helper final réussissent avec reçus scellés sur la fixture minimale activant le nouveau jeu. Deux essais réels sont conservés dans `signed-current-evaluation.log` ; le helper démarre depuis la même distribution signée sans PATH SDK, en coexistence avec Studio. Changer de projet dans Studio invalide bien les anciens handles HTTP.
+- Analyses : `flutter analyze` dans le render host, analyses ciblées des nouveaux modèles core, de Studio MCP et des chemins I3 : aucun problème. L'analyse des fichiers d'évaluation existants retourne 19 infos de lint, sans erreur ; elle n'est pas annoncée entièrement propre. Découverte pure Dart : 3 réussis, 3 opt-in AOT ignorés ; l'AOT réel est couvert séparément par les essais installés.
+- Scripts : `bash -n tools/release/sign_macos_app.sh`, `node --check` des deux builders et parsing Ruby YAML du workflow : exit 0 ; 13 jobs existants conservés, aucune nouvelle machine CI ni campagne native obligatoire.
+
+### Critique et limites conservées
+
+L'audit initial avait identifié les dépendances au checkout, stdio non attachable, absence de supervision et risque de brouillons écrasés. Les revues indépendantes ont fait corriger les écritures de chemins de frameworks pendant les copies, les droits AOT/Node, les remplacements adjacents d'entrées, les propriétaires de sidecars, la suppression externe d'une carte propre, les métadonnées seules, les overlays Surf/CS/audio et les faux conflits sur rejeu. La recette native a ajouté les correctifs Unicode de transfert d'autorisation et de rattachement des notifications. La dernière revue packaging n'a identifié aucun blocage dans ces correctifs.
+
+La concurrence préserve les brouillons et refuse les préconditions périmées ; elle ne promet pas un historique partagé UI/MCP. Un client catalogue ayant déjà écrit peut devoir rouvrir sa session après un save Studio externe : l'ancien CatalogEditingSession refuse avec `plan.stale`. Les panneaux Surf/CS/audio déjà ouverts conservent leurs propriétaires et leur CAS ; leur rafraîchissement visuel automatique complet n'est pas certifié. Les inspections d'intégrité du plan 1 restent proportionnelles à la carte sélectionnée, et ses autres limites demeurent ouvertes.
+
+Les cibles de 100 ms d'affichage / 500 ms de persistance sur un projet représentatif, la distribution exécutée sous Windows/Linux et l'ensemble des jeux/sauvegardes historiques ne sont pas certifiés. Aucun format de jeu/sauvegarde n'est modifié. Aucune publication ni installation remplaçant l'application habituelle n'a été effectuée. Verdict : implémentation livrée pour revue, qualification globale PARTIAL ; TO REVIEW dans le ticket existant du domaine Systèmes transverses, DONE réservé à Yoahn.
+
+Nettoyage final : aucun processus possédé vivant ni fichier ouvert par un consommateur dans les environnements QA. Bundles, copies de sources, SDK téléchargés, snapshots, fixtures, exports et caches temporaires supprimés ; conteneur `dev.avelune.mcpStudioQA` et son dossier Application Scripts supprimés, ainsi que les deux bytecodes Python produits dans le dépôt. Il reste seulement `qualification.json` et les journaux sélectionnés, environ 96 KiB alloués, sous `/Users/karim/Library/Caches/AveluneQA/mcp-studio-integration/` ; aucun environnement exécutable conservé. L'espace SSD relevé séparément est de 21 GiB libres ; aucun gain APFS exact n'est attribué au nettoyage. Le reçu contient l'inventaire des chemins, résultats, propriétaires et limites. Dernier état Git observé : 121 fichiers suivis modifiés, 63 non suivis, aucun chemin stagé ; le travail concurrent continue. Markdown hygiene et diff-check restent verts.

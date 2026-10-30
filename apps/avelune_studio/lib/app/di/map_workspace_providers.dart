@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'studio_mcp_providers.dart';
 import '../../features/project_audio/domain/project_audio_port.dart';
 import '../../presentation/features/project_settings/project_settings_page.dart';
 
@@ -34,7 +37,21 @@ final mapWorkspaceControllerProvider = Provider.autoDispose
         ref.watch(mapWorkspacePortProvider(session)),
         catalogPort: ref.watch(mapCatalogPortProvider(session)),
       );
-      ref.onDispose(controller.dispose);
+      final changes = ref.watch(studioMcpServiceProvider).mutations.listen((
+        mutation,
+      ) {
+        if (mutation.projectRoot != session.directoryPath) return;
+        unawaited(
+          controller.acceptExternalMutation({
+            for (final resource in mutation.resources)
+              (kind: resource.kind, id: resource.id),
+          }),
+        );
+      });
+      ref.onDispose(() {
+        unawaited(changes.cancel());
+        controller.dispose();
+      });
       return controller;
     });
 
@@ -55,4 +72,5 @@ final workspaceVisualTestBuilderProvider =
       StudioVisualTestBuilder Function(ProjectSession, MapWorkspacePort)?
     >((ref) => null);
 
-final projectAudioPreviewProvider = Provider.autoDispose.family<ProjectAudioPreviewPort?, ProjectSession>((ref, session) => null);
+final projectAudioPreviewProvider = Provider.autoDispose
+    .family<ProjectAudioPreviewPort?, ProjectSession>((ref, session) => null);

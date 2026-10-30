@@ -87,6 +87,57 @@ if [[ "$timestamp_enabled" == true ]]; then
 fi
 codesign_arguments+=(--sign "$identity")
 
+mcp_path="$app_path/Contents/Resources/mcp"
+if [[ -f "$mcp_path/runtime-manifest.json" ]]; then
+  helper_entitlements="$(cd "$(dirname "${BASH_SOURCE[0]}")/../pokemap_mcp/native" && pwd)/helper.entitlements"
+  headless_entitlements="$(dirname "$helper_entitlements")/headless.entitlements"
+  while IFS= read -r -d '' binary; do
+    if [[ "$binary" == */Contents/MacOS/* ]]; then
+      continue
+    fi
+    if ! /usr/bin/file -b "$binary" | /usr/bin/grep -q 'Mach-O'; then
+      continue
+    fi
+    if /usr/bin/file -b "$binary" | /usr/bin/grep -q 'executable'; then
+      binary_entitlements="$helper_entitlements"
+      if [[ "$binary" == */bin/*-headless* ]]; then binary_entitlements="$headless_entitlements"; fi
+      if [[ "$binary" == */bin/authoring-* || "$binary" == */bin/node-*x64 ]]; then
+        binary_entitlements="$(dirname "$helper_entitlements")/authoring-helper.entitlements"
+        if [[ "$binary" == */bin/authoring-headless-* || "$binary" == */bin/node-headless-x64 ]]; then
+          binary_entitlements="$(dirname "$helper_entitlements")/authoring-headless.entitlements"
+        fi
+      fi
+      /usr/bin/codesign "${codesign_arguments[@]}" --entitlements "$binary_entitlements" "$binary"
+    else
+      /usr/bin/codesign "${codesign_arguments[@]}" "$binary"
+    fi
+  done < <(/usr/bin/find "$mcp_path" -type f -print0)
+  while IFS= read -r -d '' bundle; do
+    if [[ "$bundle" == *.app ]]; then
+      bundle_entitlements="$helper_entitlements"
+      if [[ "$bundle" == */runtime-headless.app ]]; then bundle_entitlements="$headless_entitlements"; fi
+      /usr/bin/codesign "${codesign_arguments[@]}" --entitlements "$bundle_entitlements" "$bundle"
+    else
+      /usr/bin/codesign "${codesign_arguments[@]}" "$bundle"
+    fi
+  done < <(/usr/bin/find "$mcp_path" -depth -type d \( -name '*.framework' -o -name '*.app' \) -print0)
+  python3 - "$mcp_path/runtime-manifest.json" <<'PY'
+import hashlib
+import json
+import pathlib
+import sys
+root = pathlib.Path(sys.argv[1]).resolve(strict=True).parent
+for manifest_path in root.glob('runtime-manifest*.json'):
+    manifest = json.loads(manifest_path.read_text())
+    for component in manifest['components']:
+        source = (root / component['path']).resolve(strict=True)
+        source.relative_to(root)
+        with source.open('rb') as stream:
+            component['sha256'] = hashlib.file_digest(stream, 'sha256').hexdigest()
+    manifest_path.write_text(json.dumps(manifest, indent=2) + '\n')
+PY
+fi
+
 frameworks_path="$app_path/Contents/Frameworks"
 if [[ -d "$frameworks_path" ]]; then
   while IFS= read -r -d '' binary; do

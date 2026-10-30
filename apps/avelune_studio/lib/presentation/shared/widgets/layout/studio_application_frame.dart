@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/rendering/studio_display_preferences.dart';
+import '../../../features/settings/studio_mcp_connection_panel.dart';
 import '../inputs/studio_search_field.dart';
 import 'studio_primary_navigation.dart';
 
@@ -100,6 +101,7 @@ class StudioApplicationFrame extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(width: 12),
+                  const StudioMcpConnectionButton(),
                   const StudioDisplayPreferencesButton(),
                 ],
               ),

@@ -101,6 +101,18 @@ test("one persistent host serves successive renders and registers PNG artifacts"
   }
 });
 
+test("explicit close rejects an active request and concurrent closers await the same child",async()=>{
+  const fixture=await fakeHostFixture();
+  const host=new NativeRenderHost({resolveBinary:async()=>fixture.binary,requestTimeoutMs:60_000});
+  const pending=host.request("render",{mapId:"hang"});
+  const rejected=assert.rejects(pending,error=>error instanceof PokeMapToolError&&error.code==="render3d.host_exited");
+  try {
+    while(!host.running) await new Promise<void>(accept=>setImmediate(accept));
+    await Promise.all([host.close(),host.close(),rejected]);
+    assert.equal(host.running,false);
+  } finally {await host.close();await fixture.cleanup();}
+});
+
 test("host failures, crashes and timeouts surface as tool errors and recover", async () => {
   const fixture = await fakeHostFixture();
   const host = new NativeRenderHost({ resolveBinary: async () => fixture.binary, requestTimeoutMs: 400 });

@@ -336,7 +336,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   }
 
   ProjectVisualsController? _projectVisuals;
-  ProjectVisualsController get _visualOwner => _projectVisuals ??= ProjectVisualsController(session: _controller.session, port: _controller.port as ProjectVisualsPort);
+  ProjectVisualsController get _visualOwner {
+    final owner = _projectVisuals ??= ProjectVisualsController(session: _controller.session, port: _controller.port as ProjectVisualsPort);
+    _controller.settingsVisualsOwner = owner;
+    return owner;
+  }
   StudioGameExportPort? get _gameExport => widget.gameExport;
   MapWorkspaceController get _controller => widget.controller;
   @override

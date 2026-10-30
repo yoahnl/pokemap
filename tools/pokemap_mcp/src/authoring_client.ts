@@ -1,6 +1,8 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { resolve } from "node:path";
+import { stat } from "node:fs/promises";
+import { isAbsolute, resolve } from "node:path";
 import { createInterface, type Interface as ReadLineInterface } from "node:readline";
+import type { PackagedWorkerCommand } from "./packaged_runtime.js";
 
 export type JsonRecord = Record<string, unknown>;
 
@@ -50,11 +52,46 @@ export class AuthoringClientError extends Error {
   }
 }
 
+export interface AuthoringMutationNotification {
+  type: "mutation";
+  projectRoot: string;
+  revision: string;
+  operationId?: string;
+  resources: {kind: string; id: string}[];
+}
+
+function canonicalMutationResources(receipt: JsonRecord): unknown {
+  if (!Array.isArray(receipt.affectedResources)) return receipt.affectedResources;
+  const resources = [...receipt.affectedResources];
+  const add = (kind: string, id: string): void => {
+    if (!resources.some(value => isRecord(value) && value.kind === kind && value.id === id)) resources.push({kind,id});
+  };
+  const entries = isRecord(receipt.diff) ? receipt.diff.entries : undefined;
+  if (!Array.isArray(entries)) return resources;
+  for (const entry of entries) {
+    if (!isRecord(entry) || !isRecord(entry.resource) ||
+        !["project", "catalogHead"].includes(String(entry.resource.kind)) || typeof entry.path !== "string") continue;
+    const segments = entry.path.split("/");
+    if (segments.length >= 3 && segments[1] === "maps" && segments[2]) {
+      add("mapMetadata", segments[2].replaceAll("~1", "/").replaceAll("~0", "~"));
+    }
+    for (const field of ["surf", "fieldAbilities", "audio"]) {
+      if (entry.path === `/settings/${field}` || entry.path.startsWith(`/settings/${field}/`) ||
+          entry.path === "/settings" && isRecord(entry.before) && isRecord(entry.after) &&
+          JSON.stringify(entry.before[field]) !== JSON.stringify(entry.after[field])) add("projectSettings", field);
+    }
+  }
+  return resources;
+}
+
 export interface LocalAuthoringClientOptions {
   allowedRoots: readonly string[];
+  onMutation?: (event: AuthoringMutationNotification) => void;
   artifactRoots?: readonly string[];
   exportRoots?: readonly string[];
-  authoringPackageRoot: string;
+  authoringPackageRoot?: string;
+  workerCommand?: PackagedWorkerCommand;
+  discoveryOnly?: boolean;
   dartExecutable?: string;
   requestTimeoutMs?: number;
   workerTimeoutMs?: number;
@@ -72,7 +109,9 @@ interface PendingRequest {
 export class LocalAuthoringClient
   implements AuthoringGateway, ProjectRootResolver
 {
-  readonly #options: Required<LocalAuthoringClientOptions>;
+  readonly #options: Required<Omit<LocalAuthoringClientOptions, "workerCommand" | "onMutation">>;
+  readonly #onMutation: LocalAuthoringClientOptions["onMutation"];
+  readonly #workerCommand: PackagedWorkerCommand;
   readonly #pending = new Map<string, PendingRequest>();
   readonly #projectRoots = new Map<string, string>();
   readonly #projectsByWorkspace = new Map<string, string>();
@@ -82,17 +121,37 @@ export class LocalAuthoringClient
   #closing: Promise<void> | undefined;
 
   constructor(options: LocalAuthoringClientOptions) {
-    if (options.allowedRoots.length === 0) {
+    if (options.allowedRoots.length === 0 && !options.discoveryOnly) {
       throw new AuthoringClientError(
         "configuration.allowed_roots_required",
         "At least one allowed project root is required.",
       );
     }
+    if (options.discoveryOnly && (options.allowedRoots.length > 0 ||
+        (options.artifactRoots?.length ?? 0) > 0 || (options.exportRoots?.length ?? 0) > 0)) {
+      throw new AuthoringClientError("configuration.discovery_roots_forbidden", "Discovery-only workers cannot authorize filesystem roots.");
+    }
+    if (options.workerCommand && (!isAbsolute(options.workerCommand.executable) || !isAbsolute(options.workerCommand.cwd))) {
+      throw new AuthoringClientError("configuration.worker_command_invalid", "Packaged worker executables and working directories must be absolute.");
+    }
+    if (!options.workerCommand && !options.authoringPackageRoot) {
+      throw new AuthoringClientError("configuration.authoring_package_required", "The development Authoring package is required.");
+    }
+    this.#onMutation = options.onMutation;
+    this.#workerCommand = options.workerCommand
+      ? { ...options.workerCommand, args: [...options.workerCommand.args] }
+      : {
+          executable: options.dartExecutable ?? "dart",
+          args: ["run", "bin/pokemap_authoring.dart"],
+          cwd: options.authoringPackageRoot!,
+        };
     this.#options = {
       ...options,
       allowedRoots: [...options.allowedRoots],
       artifactRoots: [...(options.artifactRoots ?? [])],
       exportRoots: [...(options.exportRoots ?? [])],
+      authoringPackageRoot: options.authoringPackageRoot ?? this.#workerCommand.cwd,
+      discoveryOnly: options.discoveryOnly ?? false,
       dartExecutable: options.dartExecutable ?? "dart",
       requestTimeoutMs: options.requestTimeoutMs ?? 15_000,
       workerTimeoutMs: options.workerTimeoutMs ?? 10_000,
@@ -120,6 +179,13 @@ export class LocalAuthoringClient
     command: string,
     args: JsonRecord = {},
   ): Promise<AuthoringWorkerSuccess> {
+    if (this.#options.discoveryOnly && command !== "describe") {
+      throw new AuthoringClientError("workspace.path_outside_allowed_roots", "Discovery-only workers cannot access projects or files.");
+    }
+    const projectHandle = typeof args.projectHandle === "string" ? args.projectHandle : undefined;
+    const boundRoot = projectHandle ? this.#projectRoots.get(projectHandle) :
+      typeof args.projectRoot === "string" && this.#options.allowedRoots.includes(resolve(args.projectRoot))
+      ? resolve(args.projectRoot) : undefined;
     const child = this.#ensureStarted();
     const requestId = `mcp-${++this.#nextRequestId}`;
     const line = `${JSON.stringify({ id: requestId, command, args })}\n`;
@@ -159,8 +225,65 @@ export class LocalAuthoringClient
         );
       });
     });
-    this.#trackWorkspace(command, args, result.data);
+    await this.#trackWorkspace(command, args, result.data);
+    if (this.#onMutation && boundRoot && this.#mutationBindingCurrent(projectHandle, boundRoot)) {
+      try {
+        await this.#publishMutation(result.data, projectHandle, boundRoot, command);
+      } catch {}
+    }
     return result;
+  }
+
+  #mutationBindingCurrent(projectHandle: string | undefined, root: string): boolean {
+    return !this.#closing && (projectHandle ? this.#projectRoots.get(projectHandle) === root : this.#options.allowedRoots.includes(root));
+  }
+
+  async #publishMutation(data: JsonRecord, projectHandle: string | undefined, projectRoot: string, command: string): Promise<void> {
+    if (["describe", "open", "close", "query", "validate", "plan", "confirm", "history", "projection", "recovery_status"].includes(command)) return;
+    if (isRecord(data.result) && isRecord(data.snapshot) && data.snapshot.state === "succeeded") {
+      await this.#publishMutation(data.result, projectHandle, projectRoot, command);
+      return;
+    }
+    let notification = data.changeNotification;
+    if (!isRecord(notification) && isRecord(data.receipt) &&
+        /(?:_set|_undo|_edit|_configure|_save|_remove|_upsert|_import|_adopt|_reorder|_recover|_redo|_revert|_publish|_apply)$/.test(command)) {
+      const receipt = data.receipt;
+      const extension = isRecord(receipt.extensions) ? receipt.extensions : {};
+      const status = receipt.status === "applied" ? "applied" :
+        receipt.status === "recovered" && ["resumed", "compensated"].includes(String(extension.recoveryOutcome))
+        ? extension.recoveryOutcome : undefined;
+      notification = {revision:receipt.afterRevision,revisionScope:"transaction_resource_set",status,
+        resources:canonicalMutationResources(receipt),...(typeof extension.operationId === "string" ? {operationId:extension.operationId} : {})};
+    }
+    if (!isRecord(notification) || notification.revisionScope !== "transaction_resource_set" ||
+        !["applied", "resumed", "compensated"].includes(String(notification.status)) ||
+        typeof notification.revision !== "string") return;
+    let resources = notification.resources;
+    if (isRecord(resources) && resources.projectionType === "jsonPayload" &&
+        typeof resources.payloadRef === "string" && typeof resources.byteLength === "number" && projectHandle) {
+      const chunks: Buffer[] = [];
+      let offset = 0;
+      while (offset < resources.byteLength) {
+        if (!this.#mutationBindingCurrent(projectHandle, projectRoot)) return;
+        const page = await this.request("projection", {operation:"payload", projectHandle,
+          payloadRef: resources.payloadRef, offset});
+        const chunk = page.data;
+        if (typeof chunk.bytesBase64 !== "string" || typeof chunk.nextOffset !== "number" ||
+            chunk.nextOffset <= offset || chunk.nextOffset > resources.byteLength) return;
+        chunks.push(Buffer.from(chunk.bytesBase64, "base64"));
+        offset = chunk.nextOffset;
+      }
+      resources = JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+    }
+    if (!Array.isArray(resources) || !resources.every(resource => isRecord(resource) &&
+        typeof resource.kind === "string" && typeof resource.id === "string")) return;
+    if (!this.#mutationBindingCurrent(projectHandle, projectRoot)) return;
+    for (let start = 0; start < resources.length; start += 100) {
+      this.#onMutation?.({type:"mutation",projectRoot,revision:notification.revision,
+        ...(typeof notification.operationId === "string" ? {operationId:notification.operationId} : {}),
+        resources: resources.slice(start, start + 100).map(resource => ({kind:resource.kind as string,id:resource.id as string})),
+      });
+    }
   }
 
   resolveProjectRoot(projectHandle: string): string {
@@ -203,10 +326,10 @@ export class LocalAuthoringClient
       root,
     ]);
     const child = spawn(
-      this.#options.dartExecutable,
+      this.#workerCommand.executable,
       [
-        "run",
-        "bin/pokemap_authoring.dart",
+        ...this.#workerCommand.args,
+        ...(this.#options.discoveryOnly ? ["--discovery-only"] : []),
         ...rootArgs,
         ...artifactRootArgs,
         ...exportRootArgs,
@@ -218,7 +341,8 @@ export class LocalAuthoringClient
         String(this.#options.maxInputBytes),
       ],
       {
-        cwd: this.#options.authoringPackageRoot,
+        cwd: this.#workerCommand.cwd,
+        env: {...process.env,...this.#workerCommand.environment},
         stdio: ["pipe", "pipe", "pipe"],
       },
     );
@@ -318,15 +442,36 @@ export class LocalAuthoringClient
     this.#pending.clear();
   }
 
-  #trackWorkspace(command: string, args: JsonRecord, data: JsonRecord): void {
+  async #authorizedRootSpelling(requestedRoot: string): Promise<string> {
+    if (this.#options.allowedRoots.includes(requestedRoot)) return requestedRoot;
+    try {
+      const requested = await stat(requestedRoot, { bigint: true });
+      if (!requested.isDirectory() || requested.ino === 0n) return requestedRoot;
+      for (const allowedRoot of this.#options.allowedRoots) {
+        try {
+          const allowed = await stat(allowedRoot, { bigint: true });
+          if (allowed.isDirectory() && allowed.dev === requested.dev && allowed.ino === requested.ino) return allowedRoot;
+        } catch {}
+      }
+    } catch {}
+    return requestedRoot;
+  }
+
+  async #trackWorkspace(command: string, args: JsonRecord, data: JsonRecord): Promise<void> {
     if (
       command === "open" &&
       typeof args.projectRoot === "string" &&
       typeof data.projectHandle === "string" &&
       typeof data.workspaceHandle === "string"
     ) {
-      this.#projectRoots.set(data.projectHandle, resolve(args.projectRoot));
+      const requestedRoot = resolve(args.projectRoot);
+      this.#projectRoots.set(data.projectHandle, requestedRoot);
       this.#projectsByWorkspace.set(data.workspaceHandle, data.projectHandle);
+      const boundRoot = await this.#authorizedRootSpelling(requestedRoot);
+      if (!this.#closing && this.#projectsByWorkspace.get(data.workspaceHandle) === data.projectHandle &&
+          this.#projectRoots.get(data.projectHandle) === requestedRoot) {
+        this.#projectRoots.set(data.projectHandle, boundRoot);
+      }
       return;
     }
     if (command === "close" && typeof args.workspaceHandle === "string") {

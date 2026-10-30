@@ -44,8 +44,9 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
   void didUpdateWidget(SpatialPlatformControls old) {
     super.didUpdateWidget(old);
     if (!identical(source, widget.document.current) ||
-        old.instance.id != widget.instance.id)
+        old.instance.id != widget.instance.id) {
       load();
+    }
   }
 
   void load() {
@@ -74,12 +75,14 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
   double number(String value) => double.parse(value.replaceAll(',', '.'));
   void apply() {
     try {
-      if (widget.instance.blocksMovement)
+      if (widget.instance.blocksMovement) {
         throw StateError(
           'Désactivez la collision du modèle complet avant de créer le support mobile.',
         );
-      if (!enabled || !identical(source, widget.document.current))
+      }
+      if (!enabled || !identical(source, widget.document.current)) {
         throw StateError('La carte a changé ou cet élément est verrouillé.');
+      }
       var serial = 1;
       while (source!.spatialScene!.platforms.any(
             (value) => value.id == 'route-platform-$serial',

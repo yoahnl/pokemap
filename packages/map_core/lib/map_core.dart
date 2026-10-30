@@ -19,6 +19,7 @@ export 'src/operations/tiled_map_compilation.dart';
 
 export 'src/models/project_model3d.dart';
 export 'src/models/project_model3d_entries.dart';
+export 'src/models/project_map_entries.dart';
 export 'src/models/model3d_ramp_profile.dart';
 export 'src/models/model3d_material_animation.dart';
 

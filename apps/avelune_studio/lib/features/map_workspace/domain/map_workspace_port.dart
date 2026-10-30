@@ -100,6 +100,15 @@ class MapWorkspaceFailure implements Exception {
   String toString() => message;
 }
 
+abstract interface class MapWorkspaceExternalMutationPort {
+  Future<String?> readExternalMapRevision(ProjectSession session, String mapId);
+
+  Future<MapWorkspaceCatalog> refreshExternalBaseline(
+    ProjectSession session, {
+    required Set<({String kind, String id})> resources,
+  });
+}
+
 abstract interface class MapWorkspaceModelLightPort {
   Future<void> acceptModelLight(
     ProjectSession session,

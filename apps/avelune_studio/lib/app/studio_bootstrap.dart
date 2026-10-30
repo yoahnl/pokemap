@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import '../platform/mcp/studio_mcp_project_access.dart';
 
 import '../platform/rendering/studio_project_audio_preview.dart';
 
@@ -35,6 +36,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'di/home_providers.dart';
 import 'di/rendering_providers.dart';
+import 'di/studio_mcp_providers.dart';
+import '../platform/mcp/studio_mcp_process.dart';
+import '../platform/mcp/studio_mcp_service.dart';
 import '../features/rendering/application/studio_rendering_preferences.dart';
 import '../platform/files/local_rendering_preferences_store.dart';
 import '../features/scenes/data/local_scene_adapter.dart';
@@ -64,16 +68,25 @@ class StudioBootstrap extends StatelessWidget {
     this.templateCatalog = const ProjectTemplateCatalog.empty(),
     this.readTemplate,
     this.renderingPreferences,
+    this.mcpService,
   });
 
   final ProjectSessionController? debugSession;
   final ProjectTemplateCatalog templateCatalog;
   final Future<List<int>> Function(Uri)? readTemplate;
   final StudioRenderingPreferences? renderingPreferences;
+  final StudioMcpService? mcpService;
 
   @override
   Widget build(BuildContext context) => ProviderScope(
     overrides: [
+      studioMcpServiceProvider.overrideWith((ref) {
+        final service =
+            mcpService ?? StudioMcpService(launch: launchStudioMcpProcess,
+              projectBookmark: Platform.isMacOS ? createStudioMcpProjectBookmark : null);
+        ref.onDispose(service.dispose);
+        return service;
+      }),
       studioRenderingPreferencesProvider.overrideWith((ref) {
         final supplied = renderingPreferences;
         if (supplied != null) return supplied;

@@ -55,6 +55,7 @@ final class MapExteriorDecorationController extends ChangeNotifier {
   bool editingExterior = false;
   bool saving = false;
   bool _disposed = false;
+  bool _externalConflict = false;
   String? error;
   String? lastReceiptId;
   String get revision => _revision;
@@ -477,9 +478,20 @@ final class MapExteriorDecorationController extends ChangeNotifier {
     }
   }
 
+  void rejectExternalChange() {
+    if (_disposed) return;
+    _externalConflict = true;
+    error = 'Une modification externe concerne ce décor extérieur. Votre brouillon et son historique sont conservés. Rouvrez la carte avant de publier.';
+    notifyListeners();
+  }
+
   Future<bool> save() async {
     if (_disposed || saving || _gesture != null) return false;
     if (!dirty) return true;
+    if (_externalConflict) {
+      rejectExternalChange();
+      return false;
+    }
     final definition = _definition;
     final changes = {for (final id in _pending) id: _sectors[id]};
     final borderChanges = {for (final id in _pendingBorders) id: _borders[id]};

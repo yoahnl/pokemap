@@ -59,8 +59,11 @@ final class InteractiveEvaluationBridge {
     EvaluationPlayerShellAutomation? playerShell,
     required InteractiveEvaluationSurfaceCapture captureSurface,
     InteractiveEvaluationEventSink? eventSink,
+    Directory? outputRoot,
+    String? projectIdentity,
   }) async {
     final driver = RuntimeEvaluationDriver.attach(
+      projectIdentity: projectIdentity,
       game: game,
       project: project,
       projectRoot: projectRoot,
@@ -72,7 +75,7 @@ final class InteractiveEvaluationBridge {
       config: config,
       driver: driver,
       eventSink: eventSink,
-      repositoryRoot: projectRoot.parent,
+      repositoryRoot: outputRoot ?? projectRoot.parent,
       captureSurface: captureSurface,
     );
     try {

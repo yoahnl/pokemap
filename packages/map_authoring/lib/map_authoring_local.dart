@@ -99,3 +99,4 @@ export 'src/api/authoring_capability_discovery.dart';
 export 'src/api/map_health_query.dart';
 export 'src/api/map_edit_execution.dart';
 export 'src/contracts/map_edit_operation.dart';
+export 'src/support/companion_process_access.dart';

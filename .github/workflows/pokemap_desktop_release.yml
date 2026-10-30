@@ -110,6 +110,9 @@ jobs:
     if: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v') }}
     runs-on: macos-15
     timeout-minutes: 60
+    env:
+      FLUTTER_VERSION: 3.47.5
+      FLUTTER_REVISION: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -128,6 +131,14 @@ jobs:
           flutter test test/release
           flutter analyze
           flutter build macos --release
+          APP_PATH="build/macos/Build/Products/Release/Avelune Studio.app"
+          npm --prefix ../../tools/pokemap_mcp ci
+          node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
+            --work-root "$RUNNER_TEMP/studio-mcp" \
+            --output "$APP_PATH/Contents/Resources/mcp"
+          bash ../../tools/release/sign_macos_app.sh \
+            --app "$APP_PATH" --identity - --no-timestamp \
+            --entitlements macos/Runner/Release.entitlements
           ../../packages/map_editor/tool/release/package_macos_preview.sh \
             --app "build/macos/Build/Products/Release/Avelune Studio.app" \
             --dmg build/release/PokeMap-macos-preview.dmg
@@ -144,6 +155,9 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 90
     environment: pokemap-release
+    env:
+      FLUTTER_VERSION: 3.47.5
+      FLUTTER_REVISION: 6a19cca56475dbfba1478ee68d7bd0c2ef891da1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -203,6 +217,10 @@ jobs:
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
           APP_PATH="build/macos/Build/Products/Release/Avelune Studio.app"
+          npm --prefix ../../tools/pokemap_mcp ci
+          node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
+            --work-root "$RUNNER_TEMP/studio-mcp" \
+            --output "$APP_PATH/Contents/Resources/mcp"
           test "$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Contents/Info.plist")" = com.yoahnl.pokemap.editor
           test "$(plutil -extract CFBundleName raw "$APP_PATH/Contents/Info.plist")" = 'Avelune Studio'
           test "$(plutil -extract CFBundleVersion raw "$APP_PATH/Contents/Info.plist")" = "$RELEASE_BUILD_NUMBER"
@@ -299,6 +317,12 @@ jobs:
           flutter analyze
           flutter build windows --release
           $bundle = "build/windows/x64/runner/Release"
+          npm --prefix ../../tools/pokemap_mcp ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ../../tools/pokemap_mcp/tool/build_runtime.mjs `
+            --work-root "$env:RUNNER_TEMP/studio-mcp" `
+            --output "$bundle/mcp"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (-not (Test-Path "$bundle/PokeMap.exe")) {
             throw "PokeMap Windows executable is missing."
           }
@@ -370,6 +394,12 @@ jobs:
             "--build-number=$env:RELEASE_BUILD_NUMBER"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $bundle = "build/windows/x64/runner/Release"
+          npm --prefix ../../tools/pokemap_mcp ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ../../tools/pokemap_mcp/tool/build_runtime.mjs `
+            --work-root "$env:RUNNER_TEMP/studio-mcp" `
+            --output "$bundle/mcp"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           foreach ($file in @("PokeMap.exe")) {
             if (-not (Test-Path "$bundle/$file")) {
               throw "PokeMap Windows bundle is missing $file."
@@ -425,6 +455,10 @@ jobs:
           flutter test test/release
           flutter analyze
           flutter build linux --release
+          npm --prefix ../../tools/pokemap_mcp ci
+          node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
+            --work-root "$RUNNER_TEMP/studio-mcp" \
+            --output build/linux/x64/release/bundle/mcp
           test -x build/linux/x64/release/bundle/pokemap
           mkdir -p build/release
           tar -C build/linux/x64/release/bundle -czf \
@@ -481,6 +515,10 @@ jobs:
           flutter build linux --release \
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
+          npm --prefix ../../tools/pokemap_mcp ci
+          node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
+            --work-root "$RUNNER_TEMP/studio-mcp" \
+            --output build/linux/x64/release/bundle/mcp
           tool/release/package_linux_release.sh \
             --version "$RELEASE_VERSION" \
             --bundle build/linux/x64/release/bundle \
@@ -566,6 +604,10 @@ jobs:
             --build-name="$RELEASE_VERSION" \
             --build-number="$RELEASE_BUILD_NUMBER"
           APP_PATH="build/macos/Build/Products/Release/Avelune Studio.app"
+          npm --prefix ../../tools/pokemap_mcp ci
+          node ../../tools/pokemap_mcp/tool/build_runtime.mjs \
+            --work-root "$RUNNER_TEMP/studio-mcp" \
+            --output "$APP_PATH/Contents/Resources/mcp"
           python3 ../../tools/scripts/install_studio_release_engine.py \
             --app "$APP_PATH" \
             --archive "$RUNNER_TEMP/avelune-macos-release-engine.tar.gz" \

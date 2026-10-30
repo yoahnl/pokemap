@@ -26,7 +26,9 @@ final class MapEditorController extends ChangeNotifier {
   final _redo = <MapEditorState>[];
   Future<bool>? _pending;
   bool _disposed = false;
+  bool _externalConflict = false;
   String? error;
+  String get revision => _revision;
   bool get dirty => current != _saved;
   bool get saving => _pending != null;
   bool get canUndo => _undo.isNotEmpty;
@@ -154,11 +156,22 @@ final class MapEditorController extends ChangeNotifier {
     return save();
   }
 
+  void rejectExternalChange() {
+    if (_disposed) return;
+    _externalConflict = true;
+    error = 'Une modification externe concerne cet état de l’éditeur. Votre brouillon et son historique sont conservés. Rouvrez la carte avant de publier.';
+    notifyListeners();
+  }
+
   Future<bool> save() {
     if (_disposed || !canWrite) return Future.value(false);
     final pending = _pending;
     if (pending != null) return pending;
     if (!dirty) return Future.value(true);
+    if (_externalConflict) {
+      rejectExternalChange();
+      return Future.value(false);
+    }
     final operation = Future<bool>.microtask(_persist);
     _pending = operation;
     notifyListeners();

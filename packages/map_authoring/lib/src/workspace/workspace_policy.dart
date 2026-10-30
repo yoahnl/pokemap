@@ -11,9 +11,10 @@ final class WorkspacePolicy {
   static Future<WorkspacePolicy> create({
     required Iterable<String> allowedRootPaths,
     required ProjectFileReader fileReader,
+    bool allowEmptyRoots = false,
   }) async {
     final requestedRoots = allowedRootPaths.toList(growable: false);
-    if (requestedRoots.isEmpty) {
+    if (requestedRoots.isEmpty && !allowEmptyRoots) {
       throw const WorkspaceAccessException(
         'workspace.allowed_roots_required',
         'At least one allowed workspace root is required.',
@@ -34,6 +35,12 @@ final class WorkspacePolicy {
   final List<String> _canonicalAllowedRoots;
 
   Future<String> authorizeProjectRoot(String projectRootPath) async {
+    if (_canonicalAllowedRoots.isEmpty) {
+      throw const WorkspaceAccessException(
+        'workspace.path_outside_allowed_roots',
+        'The requested project is outside the allowed workspace roots.',
+      );
+    }
     _rejectTraversal(projectRootPath);
     final canonicalProjectRoot =
         await _fileReader.canonicalizeDirectory(projectRootPath);

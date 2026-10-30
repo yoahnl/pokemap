@@ -1,13 +1,14 @@
 part of 'local_map_workspace_adapter.dart';
 
 class _ProjectDocument {
-  const _ProjectDocument(
+  _ProjectDocument(
     this.root,
-    this.manifest,
+    ProjectManifest manifest,
     this.revision, {
     this.complete = true,
     this.metadataFields,
-  });
+    void Function()? onMapEntryRead,
+  }) : manifest = manifest.copyWith(maps: ProjectMapEntries.prepare(manifest.maps, onEntryRead: onMapEntryRead));
 
   final String root;
   final ProjectManifest manifest;

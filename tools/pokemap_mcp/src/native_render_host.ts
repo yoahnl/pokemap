@@ -41,6 +41,7 @@ export interface NativeRenderHostOptions {
   resolveBinary: () => Promise<string>;
   requestTimeoutMs?: number;
   idleTimeoutMs?: number;
+  environment?:Record<string,string>;
 }
 
 interface PendingRequest {
@@ -54,17 +55,20 @@ export class NativeRenderHost {
   readonly #resolveBinary: () => Promise<string>;
   readonly #requestTimeoutMs: number;
   readonly #idleTimeoutMs: number;
+  readonly #environment:Record<string,string>|undefined;
   readonly #pending = new Map<string, PendingRequest>();
   #process: ChildProcessWithoutNullStreams | undefined;
   #stderrTail = "";
   #queue: Promise<unknown> = Promise.resolve();
   #idleTimer: NodeJS.Timeout | undefined;
   #closed = false;
+  #stopping:Promise<void>|undefined;
 
   constructor(options: NativeRenderHostOptions) {
     this.#resolveBinary = options.resolveBinary;
     this.#requestTimeoutMs = options.requestTimeoutMs ?? 240_000;
     this.#idleTimeoutMs = options.idleTimeoutMs ?? 600_000;
+    this.#environment=options.environment;
   }
 
   get running(): boolean {
@@ -113,7 +117,9 @@ export class NativeRenderHost {
   async #ensureStarted(): Promise<ChildProcessWithoutNullStreams> {
     if (this.#process) return this.#process;
     const binary = await this.#resolveBinary();
-    const child = spawn(binary, [], { stdio: ["pipe", "pipe", "pipe"] });
+    await this.#stopping;
+    if(this.#closed) throw new PokeMapToolError("render3d.host_closed","The owned runtime host is closed.");
+    const child = spawn(binary, [], { stdio: ["pipe", "pipe", "pipe"],env:{...process.env,...this.#environment} });
     this.#process = child;
     this.#stderrTail = "";
     child.stderr.setEncoding("utf8");
@@ -156,10 +162,14 @@ export class NativeRenderHost {
     }
   }
 
-  async #stop(): Promise<void> {
+  #stop():Promise<void> {
+    return this.#stopping??=this.#stopOwned().finally(()=>{this.#stopping=undefined;});
+  }
+
+  async #stopOwned(): Promise<void> {
     const child = this.#process;
     if (!child) return;
-    this.#process = undefined;
+    this.#fail(child,"The owned host is stopping.");
     if (child.exitCode !== null || child.signalCode !== null) return;
     const exited = new Promise<void>((resolveExit) => child.once("exit", () => resolveExit()));
     child.stdin.end(`${JSON.stringify({ id: "shutdown", command: "shutdown" })}\n`);

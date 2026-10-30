@@ -18,6 +18,7 @@ final class ProjectVisualsController extends ChangeNotifier {
   final _redo = <SpatialVisualPatch>[];
   int _generation = 0;
   bool _disposed = false;
+  bool _externalConflict = false;
   SpatialVisualPatch? _gestureStart;
   void beginGesture() {
     _gestureStart ??= preview.value;
@@ -37,6 +38,28 @@ final class ProjectVisualsController extends ChangeNotifier {
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
+  void rejectExternalChange() {
+    if (_disposed) return;
+    _externalConflict = true;
+    error = 'Une modification externe concerne ces réglages visuels. Votre brouillon et son historique sont conservés. Rechargez ces réglages avant de publier.';
+    notifyListeners();
+  }
+
+  bool acceptExternalState(ProjectVisualsState state) {
+    if (_disposed || loading || saved == null) return false;
+    if (state.revision == saved!.revision) return true;
+    if (dirty || saving || canUndo || canRedo || _gestureStart != null) {
+      rejectExternalChange();
+      return false;
+    }
+    saved = state;
+    preview.value = state.profile;
+    _externalConflict = false;
+    error = null;
+    notifyListeners();
+    return true;
+  }
+
   Future<void> open({ProjectMapEntry? map}) async {
     final generation = ++_generation;
     _gestureStart = null;
@@ -48,6 +71,7 @@ final class ProjectVisualsController extends ChangeNotifier {
       if (_disposed || generation != _generation) return;
       scope = map;
       saved = value;
+      _externalConflict = false;
       preview.value = value.profile;
       _undo.clear();
       _redo.clear();
@@ -99,6 +123,10 @@ final class ProjectVisualsController extends ChangeNotifier {
   Future<bool> save() async {
     if (saved == null || saving || loading) return false;
     if (!dirty) return true;
+    if (_externalConflict) {
+      rejectExternalChange();
+      return false;
+    }
     saving = true;
     error = null;
     notifyListeners();

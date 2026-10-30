@@ -32,6 +32,8 @@ final class StudioProjectAccessBridge {
         result(resolveLastProjectManifestPath())
       case "activateProjectDirectory":
         result(activateProjectDirectory(call.arguments))
+      case "createMcpProjectBookmark":
+        result(createMcpProjectBookmark(call.arguments))
       case "rememberProjectDirectory":
         result(rememberProjectDirectory(call.arguments))
       case "chooseProjectCreationParent":
@@ -226,6 +228,17 @@ final class StudioProjectAccessBridge {
     } catch {
       return false
     }
+  }
+
+  private static func createMcpProjectBookmark(_ arguments: Any?) -> String? {
+    guard let directory = projectDirectoryURL(from: arguments) else { return nil }
+    let scoped = activeRecentScopedURLs[directory.path] ??
+      (activeScopedURL?.standardizedFileURL == directory ? activeScopedURL : nil)
+    guard let scoped else { return nil }
+    do {
+      return try scoped.bookmarkData(options: [], includingResourceValuesForKeys: nil,
+        relativeTo: nil).base64EncodedString()
+    } catch { return nil }
   }
 
   private static func rememberProjectDirectory(_ arguments: Any?) -> Bool {

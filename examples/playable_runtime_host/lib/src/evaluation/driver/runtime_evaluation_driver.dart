@@ -40,6 +40,7 @@ final class RuntimeEvaluationDriver
     required this.checkpointCache,
     required this.checkpointProvenance,
     required List<GameCompletionRequest> gameCompletionRequests,
+    this.projectIdentity,
   })  : _attachedServices = attachedServices,
         _playerServiceController = playerServiceController,
         _ownsGame = ownsGame,
@@ -49,6 +50,7 @@ final class RuntimeEvaluationDriver
   final PlayableMapGame game;
   final ProjectManifest project;
   final Directory projectRoot;
+  final String? projectIdentity;
   final EvaluationPlayerServiceHost? playerServices;
   final PlayerServiceRuntimeController? _playerServiceController;
   final EvaluationPlayerServiceAutomation? _attachedServices;
@@ -117,6 +119,7 @@ final class RuntimeEvaluationDriver
   }
 
   factory RuntimeEvaluationDriver.attach({
+    String? projectIdentity,
     required PlayableMapGame game,
     required ProjectManifest project,
     required Directory projectRoot,
@@ -136,6 +139,7 @@ final class RuntimeEvaluationDriver
       game: game,
       project: project,
       projectRoot: projectRoot,
+      projectIdentity: projectIdentity,
       playerServices: null,
       playerServiceController: null,
       attachedServices: services,
@@ -150,6 +154,7 @@ final class RuntimeEvaluationDriver
   }
 
   static Future<RuntimeEvaluationDriver> start({
+    String? projectIdentity,
     required Directory projectRoot,
     String runId = 'evaluation-run',
     EvaluationCheckpointCache? checkpointCache,
@@ -216,6 +221,7 @@ final class RuntimeEvaluationDriver
       game: game,
       project: bundle.manifest,
       projectRoot: projectRoot,
+      projectIdentity: projectIdentity,
       playerServices: playerServices,
       playerServiceController: playerServiceController,
       attachedServices: null,
@@ -250,7 +256,7 @@ final class RuntimeEvaluationDriver
       );
     }
     return EvaluationStateSnapshot(
-      projectId: p.basename(projectRoot.path),
+      projectId: projectIdentity ?? p.basename(projectRoot.path),
       runId: runId,
       mapId: current.currentMapId,
       x: current.playerPosition.x,

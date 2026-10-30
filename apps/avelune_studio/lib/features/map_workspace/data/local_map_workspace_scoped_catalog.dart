@@ -19,8 +19,9 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       result.revision,
       complete: false,
       metadataFields: _mapCatalogMetadataFields,
+      onMapEntryRead: onMapMetadataEntryRead,
     );
-    return result;
+    return MapWorkspaceCatalog(metadata: _project(session).manifest, revision: result.revision);
   }
 
   Future<MapWorkspaceCatalog> _loadWorkshop(
@@ -202,11 +203,12 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
           revision: narrativeEventBytesFingerprint(source.mapBytes),
           mapId: entry.id,
         ),
-        definitions: source.definitions,
+        definitions: mergeProjectMetadataSections(source.definitions,
+          project.manifest, project.metadataFields ?? _mapCatalogMetadataFields),
         catalogRevision: source.catalogRevision,
         snapshotRevision: source.snapshotRevision,
       );
-    });
+    }, metadataFields: _mapCatalogMetadataFields.difference({'maps'}));
     _loadedPaths[(session.sessionId, entry.id)] = path;
     return selection;
   }
@@ -272,7 +274,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       policy: policy,
       fileReader: _reader,
       handles: handles,
-      catalogMetadataFields: _mapCatalogMetadataFields,
+      catalogMetadataFields: _mapCatalogMetadataFields.difference({'maps'}),
     );
     final opened = await service.openProject(session.directoryPath);
     try {

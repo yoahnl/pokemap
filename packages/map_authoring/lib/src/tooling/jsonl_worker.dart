@@ -100,6 +100,7 @@ final class JsonlWorker {
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
     this.gameExportTimeout = const Duration(minutes: 2),
+    this.discoveryOnly = false,
   })  : _api = api,
         _mutations = mutations,
         _resourcePacks = resourcePacks,
@@ -156,6 +157,7 @@ final class JsonlWorker {
   final int maxInputBytes;
   final Duration commandTimeout;
   final Duration gameExportTimeout;
+  final bool discoveryOnly;
 
   Future<void> close() => _closing ??= _closeWorkspaces();
 
@@ -194,6 +196,12 @@ final class JsonlWorker {
       rejectUnknownContractKeys(decoded, const {'id', 'command', 'args'});
       requestId = requireContractString(decoded['id'], 'id');
       final command = requireContractString(decoded['command'], 'command');
+      if (discoveryOnly && command != 'describe') {
+        throw const WorkspaceAccessException(
+          'workspace.path_outside_allowed_roots',
+          'Discovery-only workers cannot access projects or files.',
+        );
+      }
       creationCommand =
           command == 'project_create' || command == 'project_native_publish';
       final args = _jsonObject(decoded['args'], 'args');

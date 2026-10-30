@@ -4,6 +4,29 @@ import { test } from "node:test";
 
 import { parseConfig } from "../src/config.js";
 
+test("stdio remains the default and rootless discovery requires the Studio companion",()=>{
+  assert.equal(parseConfig(["--root","/fixture"]).transport,"stdio");
+  assert.equal(parseConfig(["--root","/fixture"]).companion,false);
+  assert.throws(()=>parseConfig([]));
+  assert.throws(()=>parseConfig(["--transport","http"]));
+  assert.throws(()=>parseConfig(["--companion","true"]));
+  const companion=parseConfig(["--transport","http","--companion","true"]);
+  assert.deepEqual(companion.allowedRoots,[]);
+  assert.deepEqual(companion.artifactRoots,[]);
+  assert.deepEqual(companion.exportRoots,[]);
+  assert.equal(companion.port,0);
+});
+
+test("installed configuration never accepts checkout or executable overrides",()=>{
+  const args=["--runtime-manifest","/installed/runtime-manifest.json","--root","/fixture"];
+  assert.equal(parseConfig(args).repositoryRoot,"/installed");
+  for(const option of ["--authoring-package","--repository-root","--runtime-package","--runtime-host","--render-host","--dart","--flutter"]) {
+    assert.throws(()=>parseConfig([...args,option,"/checkout/override"]));
+  }
+  for(const value of ["-1","65536","1.5","NaN"]) assert.throws(()=>parseConfig(["--root","/fixture","--port",value]));
+  assert.throws(()=>parseConfig(["--root","/fixture","--transport","websocket"]));
+});
+
 test("parses artifact roots separately from project roots", () => {
   const repositoryRoot = resolve(process.cwd(), "../..");
   const projectRoot = resolve(repositoryRoot, "examples/playable_runtime_host");

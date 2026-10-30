@@ -1,5 +1,5 @@
 import '../../project_visuals/application/project_visuals_controller.dart';
-import 'package:map_core/map_core.dart' show ProjectModel3dEntry, ProjectModel3dEntries;
+import 'package:map_core/map_core.dart' show ProjectModel3dEntry, ProjectModel3dEntries, ProjectMapEntries;
 
 import '../../project_visuals/domain/project_visuals_port.dart';
 import 'map_atmosphere_controller.dart';
@@ -61,6 +61,23 @@ class MapWorkspaceController {
   ProjectManifest? project;
   MapWorkspaceProjectScope projectScope;
   final Map<String, MapWorkspaceSelection> _selections = {};
+  final _visualScopeMapIds = <String, String>{};
+
+  void _indexVisualScope(String id) {
+    try {
+      _visualScopeMapIds[SpatialVisualDocument.relativePathForMap(id)] = id;
+    } on FormatException {
+      return;
+    }
+  }
+  void _forgetVisualScope(String id) {
+    try {
+      _visualScopeMapIds.remove(SpatialVisualDocument.relativePathForMap(id));
+    } on FormatException {
+      return;
+    }
+  }
+
   final _selectionMapsByModel = <String, Set<String>>{};
   final _previewMapsByModel = <String, Set<String>>{};
   final _acceptedModelDefinitions = <String, ({int epoch, ProjectModel3dEntry definition})>{};
@@ -72,6 +89,7 @@ class MapWorkspaceController {
 
   ProjectManifest _prepareModelProjection(ProjectManifest value, {int? sourceEpoch}) {
     final entries = ProjectModel3dEntries.prepare(value.models3d);
+    final maps = ProjectMapEntries.prepare(value.maps);
     final replacements = <ProjectModel3dEntry>[];
     if (sourceEpoch != null && _acceptedModelDefinitions.isNotEmpty) {
       for (final entry in entries) {
@@ -82,7 +100,8 @@ class MapWorkspaceController {
       }
     }
     final models = replacements.isEmpty ? entries : entries.replaceSelected(replacements);
-    return identical(models, value.models3d) ? value : value.copyWith(models3d: models);
+    return identical(models, value.models3d) && identical(maps, value.maps)
+        ? value : value.copyWith(models3d: models, maps: maps);
   }
 
   ProjectManifest _replaceModelProjection(ProjectManifest value, Map<String, ProjectModel3dEntry> changed) {
@@ -116,12 +135,14 @@ class MapWorkspaceController {
   }
 
   void _cacheSelection(String mapId, MapWorkspaceSelection selection, int sourceEpoch) {
+    _indexVisualScope(mapId);
     final definitions = _prepareModelProjection(selection.definitions, sourceEpoch: sourceEpoch);
     _indexModelProjection(mapId, _selections[mapId]?.definitions, definitions, _selectionMapsByModel);
     _selections[mapId] = _selectionWithDefinitions(selection, definitions);
   }
 
   void _cachePreviewDefinitions(String mapId, ProjectManifest value, int sourceEpoch) {
+    _indexVisualScope(mapId);
     final definitions = _prepareModelProjection(value, sourceEpoch: sourceEpoch);
     _indexModelProjection(mapId, _previewDefinitions[mapId], definitions, _previewMapsByModel);
     _previewDefinitions[mapId] = definitions;
@@ -230,6 +251,7 @@ class MapWorkspaceController {
   }
 
   EditableMapDocument? active;
+  ProjectVisualsController? settingsVisualsOwner;
   SpatialVisualPatch? _projectVisualProfile;
   SpatialVisualPatch get inheritedVisualProfile => _projectVisualProfile ?? SpatialVisualPatch();
   ProjectVisualsController? weatherDraftFor(EditableMapDocument document) {
@@ -621,6 +643,7 @@ class MapWorkspaceController {
 
   Future<MapData?> previewMap(String id) {
     if (_disposed) return Future.value(null);
+    _indexVisualScope(id);
     final entry = project?.maps.where((map) => map.id == id).firstOrNull;
     if (entry == null) return Future.value(null);
     final cached = _previews[id];
@@ -647,6 +670,523 @@ class MapWorkspaceController {
     }();
     _previews[id] = pending;
     return pending;
+  }
+
+  void _unindexExternalProjection(
+    String id,
+    ProjectManifest? definitions,
+    Map<String, Set<String>> index,
+  ) {
+    for (final model
+        in definitions?.models3d ?? const <ProjectModel3dEntry>[]) {
+      final ids = index[model.id];
+      ids?.remove(id);
+      if (ids?.isEmpty == true) index.remove(model.id);
+    }
+  }
+
+  void _closeExternallyRemovedDocument(
+    String id,
+    EditableMapDocument document,
+  ) {
+    documents.remove(id);
+    _forgetVisualScope(id);
+    final selection = _selections.remove(id);
+    _unindexExternalProjection(
+      id,
+      selection?.definitions,
+      _selectionMapsByModel,
+    );
+    _externalConflicts.remove(id);
+    _mapVisualProfiles.remove(id);
+    _elementOrderReceipts.remove(id);
+    _fieldObstacleReceipts.remove(id);
+    _fieldTraversalReceipts.remove(id);
+    document.weatherVisuals?.dispose();
+    document.atmosphere?.dispose();
+    document.exteriorDecoration?.dispose();
+    document.editor?.dispose();
+    if (active == document) active = null;
+  }
+
+  Future<void> _refreshExternalVisualStates(
+    Set<({String kind, String id})> resources,
+  ) async {
+    final source = port;
+    if (source is! ProjectVisualsPort) return;
+    for (final resource in resources.where(
+      (resource) => resource.kind == 'visualSettings',
+    )) {
+      if (_disposed) return;
+      if (resource.id == SpatialVisualDocument.projectRelativePath) {
+        final state = await (source as ProjectVisualsPort).loadVisuals(session);
+        if (_disposed) return;
+        final owner = settingsVisualsOwner;
+        if (owner != null && owner.scope == null) {
+          owner.acceptExternalState(state);
+        }
+        _projectVisualProfile = state.profile;
+        for (final document in documents.values) {
+          document.visualProfile = state.profile.overriddenBy(
+            document.weatherVisuals?.preview.value ??
+                _mapVisualProfiles[document.base.mapId] ??
+                SpatialVisualPatch(),
+          );
+        }
+        continue;
+      }
+      final settingsScope = settingsVisualsOwner?.scope;
+      final id =
+          settingsScope != null &&
+              resource.id ==
+                  SpatialVisualDocument.relativePathForMap(settingsScope.id)
+          ? settingsScope.id
+          : _visualScopeMapIds[resource.id];
+      if (id != null) {
+        final maps = project!.maps;
+        final entry = maps is ProjectMapEntries
+            ? maps.lookup(id)
+            : maps.where((entry) => entry.id == id).firstOrNull;
+        if (entry == null) continue;
+        final state = await (source as ProjectVisualsPort).loadVisuals(
+          session,
+          map: entry,
+        );
+        if (_disposed) return;
+        _mapVisualProfiles[id] = state.profile;
+        final document = documents[id];
+        final owners = <ProjectVisualsController>{
+          ?document?.weatherVisuals,
+          if (settingsVisualsOwner?.scope?.id == id) settingsVisualsOwner!,
+        };
+        for (final owner in owners) {
+          owner.acceptExternalState(state);
+        }
+        if (document != null) {
+          document.visualProfile = inheritedVisualProfile.overriddenBy(
+            document.weatherVisuals?.preview.value ?? state.profile,
+          );
+        }
+      }
+    }
+  }
+
+  Future<Set<String>> _refreshExternalSecondaryStates(
+    Set<({String kind, String id})> resources,
+  ) async {
+    final definitionsChanged = <String>{};
+    final source = port;
+    for (final resource in resources) {
+      if (_disposed) return definitionsChanged;
+      final document = documents[resource.id];
+      if (document == null) continue;
+      switch (resource.kind) {
+        case 'mapAtmosphere':
+          if (source is! MapAtmospherePort) continue;
+          final previous = document.atmosphere;
+          final next = await MapAtmosphereController.open(
+            session,
+            resource.id,
+            source as MapAtmospherePort,
+          );
+          if (_disposed ||
+              document != documents[resource.id] ||
+              document.atmosphere != previous) {
+            next.dispose();
+            continue;
+          }
+          if (previous != null && previous.revision == next.revision) {
+            next.dispose();
+            continue;
+          }
+          if (previous != null &&
+              (previous.dirty ||
+                  previous.saving ||
+                  previous.canUndo ||
+                  previous.canRedo)) {
+            previous.rejectExternalChange();
+            next.dispose();
+            continue;
+          }
+          document.atmosphere = next;
+          previous?.dispose();
+        case 'mapEditor':
+          if (source is! MapEditorPort) continue;
+          final previous = document.editor;
+          final next = await MapEditorController.open(
+            session,
+            resource.id,
+            source as MapEditorPort,
+          );
+          if (_disposed ||
+              document != documents[resource.id] ||
+              document.editor != previous) {
+            next.dispose();
+            continue;
+          }
+          if (previous != null && previous.revision == next.revision) {
+            next.dispose();
+            continue;
+          }
+          if (previous != null &&
+              (previous.dirty ||
+                  previous.saving ||
+                  previous.canUndo ||
+                  previous.canRedo)) {
+            previous.rejectExternalChange();
+            next.dispose();
+            continue;
+          }
+          document.editor = next;
+          previous?.dispose();
+        case 'mapExteriorDecoration':
+          if (source is! MapExteriorDecorationPort) continue;
+          final previous = document.exteriorDecoration;
+          final next = await MapExteriorDecorationController.open(
+            session,
+            document.current,
+            source as MapExteriorDecorationPort,
+          );
+          if (_disposed ||
+              document != documents[resource.id] ||
+              document.exteriorDecoration != previous) {
+            next.dispose();
+            continue;
+          }
+          if (previous != null && previous.revision == next.revision) {
+            next.dispose();
+            continue;
+          }
+          if (previous != null &&
+              (previous.dirty ||
+                  previous.saving ||
+                  previous.canUndo ||
+                  previous.canRedo)) {
+            previous.rejectExternalChange();
+            next.dispose();
+            continue;
+          }
+          document.exteriorDecoration = next;
+          previous?.dispose();
+          definitionsChanged.add(resource.id);
+      }
+    }
+    return definitionsChanged;
+  }
+
+  Future<void> _externalMutations = Future.value();
+  final _externalConflicts = <String>{};
+
+  Future<void> acceptExternalMutation(
+    Set<({String kind, String id})> resources,
+  ) {
+    final operation = _externalMutations.then(
+      (_) => _acceptExternalMutation(resources),
+    );
+    _externalMutations = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return operation;
+  }
+
+  bool _hasLocalWork(EditableMapDocument document) =>
+      document.dirty ||
+      document.saving ||
+      document.spatialFieldObstacleSaving ||
+      document.fieldTraversalSaving ||
+      document.elementOrderSaving ||
+      document.canUndo ||
+      document.canRedo ||
+      document.atmosphere?.dirty == true ||
+      document.atmosphere?.saving == true ||
+      document.atmosphere?.canUndo == true ||
+      document.atmosphere?.canRedo == true ||
+      document.exteriorDecoration?.dirty == true ||
+      document.exteriorDecoration?.saving == true ||
+      document.exteriorDecoration?.canUndo == true ||
+      document.exteriorDecoration?.canRedo == true ||
+      document.weatherVisuals?.dirty == true ||
+      document.weatherVisuals?.saving == true ||
+      document.weatherVisuals?.canUndo == true ||
+      document.weatherVisuals?.canRedo == true ||
+      document.editor?.dirty == true ||
+      document.editor?.saving == true ||
+      document.editor?.canUndo == true ||
+      document.editor?.canRedo == true;
+
+  bool _usesExternalResource(
+    ProjectManifest definitions,
+    ({String kind, String id}) resource,
+  ) {
+    final id = resource.id;
+    return switch (resource.kind) {
+      'model3d' => definitions.models3d.any((entry) => entry.id == id),
+      'tileset' => definitions.tilesets.any((entry) => entry.id == id),
+      'element' => definitions.elements.any((entry) => entry.id == id),
+      'character' => definitions.characters.any((entry) => entry.id == id),
+      'environmentPreset' => definitions.environmentPresets.any(
+        (entry) => entry.id == id,
+      ),
+      'smartTilePreset' => definitions.smartTileCatalog.presets.any(
+        (entry) => entry.id == id,
+      ),
+      'smartTileMaterial' => definitions.smartTileCatalog.materials.any(
+        (entry) => entry.id == id,
+      ),
+      'smartTilePattern' => definitions.smartTileCatalog.patterns.any(
+        (entry) => entry.id == id,
+      ),
+      'smartTileAtlas' => definitions.smartTileCatalog.atlases.any(
+        (entry) => entry.id == id,
+      ),
+      'smartTileAnimation' => definitions.smartTileCatalog.animations.any(
+        (entry) => entry.id == id,
+      ),
+      'borderBlueprint' || 'borderRecord' =>
+        definitions.borderCatalog.records.any((entry) => entry.id == id),
+      'dialogue' => definitions.dialogues.any((entry) => entry.id == id),
+      'fact' => definitions.facts.any((entry) => entry.id == id),
+      _ => false,
+    };
+  }
+
+  Future<void> _acceptExternalMutation(
+    Set<({String kind, String id})> resources,
+  ) async {
+    if (_disposed || project == null || resources.isEmpty) return;
+    try {
+      final source = port;
+      if (source is! MapWorkspaceExternalMutationPort) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.unavailable,
+          'La modification externe exige de rouvrir ce projet. Vos brouillons restent conservés.',
+        );
+      }
+      final catalog = await (source as MapWorkspaceExternalMutationPort)
+          .refreshExternalBaseline(session, resources: resources);
+      if (_disposed) return;
+      if (session.storage == ProjectSessionStorage.workingCatalog &&
+          source is MapWorkspaceScopedPort) {
+        projectScope = MapWorkspaceProjectScope.mapSelection;
+      }
+      final changed = <String>{
+        for (final resource in resources)
+          if (resource.kind == 'map') resource.id,
+      };
+      final documentChanges = {...changed};
+      final dependencies = resources
+          .where(
+            (resource) => !const {
+              'map',
+              'mapAtmosphere',
+              'mapEditor',
+              'mapExteriorDecoration',
+              'project',
+              'projectSettings',
+              'mapMetadata',
+              'visualSettings',
+            }.contains(resource.kind),
+          )
+          .toList();
+      if (dependencies.isNotEmpty) {
+        for (final entry in _selections.entries) {
+          if (dependencies.any(
+            (resource) =>
+                _usesExternalResource(entry.value.definitions, resource),
+          )) {
+            changed.add(entry.key);
+          }
+        }
+        for (final entry in _previewDefinitions.entries) {
+          if (dependencies.any(
+            (resource) => _usesExternalResource(entry.value, resource),
+          )) {
+            changed.add(entry.key);
+          }
+        }
+      }
+      await _refreshExternalVisualStates(resources);
+      if (_disposed) return;
+      final exteriorDefinitionsChanged = await _refreshExternalSecondaryStates(
+        resources,
+      );
+      changed.addAll(exteriorDefinitionsChanged);
+      if (_disposed) return;
+      final settingsFields = {
+        for (final resource in resources)
+          if (resource.kind == 'projectSettings') resource.id,
+      };
+      if (settingsFields.contains('surf')) {
+        _surfConfigurationAccepted = true;
+        _acceptedSurfConfiguration = catalog.metadata.settings.surf;
+      }
+      if (settingsFields.contains('fieldAbilities')) {
+        _fieldAbilitiesAccepted = true;
+        _acceptedFieldAbilities = catalog.metadata.settings.fieldAbilities;
+      }
+      if (settingsFields.contains('audio')) {
+        _audioAccepted = true;
+        _acceptedAudio = catalog.metadata.settings.audio;
+      }
+      if (settingsFields.isNotEmpty) {
+        _surfProjections = Expando<ProjectManifest>();
+      }
+      if (resources.any((resource) => resource.kind == 'project')) {
+        project = _withSurfConfiguration(catalog.metadata);
+        if (_workshopDefinitions case final loaded?) {
+          _workshopDefinitions = mergeProjectMetadataSections(
+            loaded,
+            catalog.metadata,
+            {for (final workshop in _workshops) ...workshop.metadataFields},
+          );
+        }
+      } else {
+        if (resources.any(
+          (resource) =>
+              resource.kind == 'map' || resource.kind == 'mapMetadata',
+        )) {
+          project = project!.copyWith(maps: catalog.metadata.maps);
+        }
+        if (settingsFields.isNotEmpty) {
+          project = _withSurfConfiguration(
+            project!.copyWith(settings: catalog.metadata.settings),
+          );
+        }
+      }
+      final affectedFields = <String>{
+        for (final resource in resources)
+          ...switch (resource.kind) {
+            'character' => {'characterStudioCatalog'},
+            'fact' => {'facts'},
+            'dialogue' => {'dialogues'},
+            'script' => {'scripts'},
+            'scene' => {'scenes'},
+            'cinematic' => {'cinematics'},
+            'trainer' => {'trainers'},
+            'encounterTable' => {'encounterTables'},
+            'shop' => {'shops'},
+            'badge' => {'badges'},
+            'storyline' => {'storylines'},
+            'scenario' => {'scenarios'},
+            'worldRule' => {'worldRules'},
+            _ => const <String>{},
+          },
+      };
+      if (affectedFields.isNotEmpty) {
+        _workshops.removeWhere(
+          (workshop) => workshop.metadataFields.any(affectedFields.contains),
+        );
+      }
+      final family = _resourceVisualDefinitions;
+      if (family != null &&
+          resources.any(
+            (resource) => _usesExternalResource(family, resource),
+          )) {
+        _resourceKind = null;
+        _resourceVisualDefinitions = null;
+      }
+      for (final id in changed) {
+        final document = documents[id];
+        if (document != null &&
+            documentChanges.contains(id) &&
+            _hasLocalWork(document)) {
+          final revision = await (source as MapWorkspaceExternalMutationPort)
+              .readExternalMapRevision(session, id);
+          if (_disposed) return;
+          if (documents[id] != document) continue;
+          if (revision == document.base.revision) {
+            documentChanges.remove(id);
+            if (dependencies.isEmpty &&
+                !exteriorDefinitionsChanged.contains(id)) {
+              continue;
+            }
+          }
+        }
+        _mapEpochs[id] = (_mapEpochs[id] ?? 0) + 1;
+        _previews.remove(id);
+        final previewDefinitions = _previewDefinitions.remove(id);
+        _unindexExternalProjection(id, previewDefinitions, _previewMapsByModel);
+        _loading.remove(id);
+        if (document != null &&
+            documentChanges.contains(id) &&
+            _hasLocalWork(document)) {
+          _externalConflicts.add(id);
+          document.error = 'Une modification externe concerne cette carte. Votre brouillon et son historique sont conservés. Rouvrez le projet avant de publier ou d’annuler.';
+          error = document.error;
+          continue;
+        }
+        final maps = catalog.metadata.maps;
+        final entry = maps is ProjectMapEntries
+            ? maps.lookup(id)
+            : maps.where((entry) => entry.id == id).firstOrNull;
+        if (document == null) continue;
+        if (entry == null) {
+          _closeExternallyRemovedDocument(id, document);
+          continue;
+        }
+        final sourceEpoch = _modelSourceEpoch;
+        final selection = source is MapWorkspaceScopedPort
+            ? await source.loadMapSelection(session, entry)
+            : null;
+        if (_disposed || document != documents[id]) return;
+        if (!documentChanges.contains(id)) {
+          if (selection != null &&
+              selection.document.revision == document.base.revision) {
+            _cacheSelection(id, selection, sourceEpoch);
+            if (active == document && !hasCompleteProject) {
+              project = _withWorkshops(selection.definitions);
+            }
+            continue;
+          }
+          if (_hasLocalWork(document)) {
+            _externalConflicts.add(id);
+            document.error = 'Une modification externe concerne aussi le document de cette carte. Votre brouillon et son historique sont conservés.';
+            error = document.error;
+            continue;
+          }
+        }
+        final updated = await _prepareAtmosphere(
+          EditableMapDocument(
+            selection?.document ?? await port.loadMap(session, entry),
+          ),
+          entry,
+        );
+        if (_disposed) return;
+        if (document != documents[id] || _hasLocalWork(document)) {
+          updated.weatherVisuals?.dispose();
+          updated.atmosphere?.dispose();
+          updated.exteriorDecoration?.dispose();
+          updated.editor?.dispose();
+          _externalConflicts.add(id);
+          document.error = 'Une modification externe concerne cette carte. Votre brouillon et son historique sont conservés.';
+          error = document.error;
+          continue;
+        }
+        document.weatherVisuals?.dispose();
+        document.atmosphere?.dispose();
+        document.exteriorDecoration?.dispose();
+        document.editor?.dispose();
+        if (selection != null) _cacheSelection(id, selection, sourceEpoch);
+        documents[id] = updated;
+        _externalConflicts.remove(id);
+        _elementOrderReceipts.remove(id);
+        _fieldObstacleReceipts.remove(id);
+        _fieldTraversalReceipts.remove(id);
+        if (active == document) {
+          active = updated;
+          if (selection != null && !hasCompleteProject) {
+            project = _withWorkshops(selection.definitions);
+          }
+        }
+      }
+      notify();
+    } catch (failure) {
+      if (!_disposed) {
+        error = _message(failure);
+        notify();
+      }
+    }
   }
 
   Future<void> refreshSavedMaps(Set<String> mapIds) async {
@@ -676,6 +1216,11 @@ class MapWorkspaceController {
 
   Future<bool> save(EditableMapDocument document) async {
     if (_disposed || document.saving) return false;
+    if (_externalConflicts.contains(document.base.mapId)) {
+      document.error = 'Une modification externe concerne cette carte. Votre brouillon reste conservé ; rouvrez le projet avant de publier.';
+      notify();
+      return false;
+    }
     if (catalogLocks(document.base.mapId)) {
       document.error = 'Une publication du catalogue concerne cette carte.';
       notify();
@@ -736,6 +1281,11 @@ class MapWorkspaceController {
   void restore({required bool redo}) {
     final document = active;
     final manifest = project;
+    if (document != null && _externalConflicts.contains(document.base.mapId)) {
+      document.error = 'Une modification externe concerne cette carte. Votre historique reste conservé ; rouvrez le projet avant de l’utiliser.';
+      notify();
+      return;
+    }
     if (document == null ||
         manifest == null ||
         document.saving ||
@@ -926,8 +1476,10 @@ class MapWorkspaceController {
 
   void dispose() {
     _disposed = true;
+    settingsVisualsOwner = null;
     _generation++;
     _previews.clear();
+    _visualScopeMapIds.clear();
     _previewDefinitions.clear();
     _previewMapsByModel.clear();
     _clearSelections();

@@ -10,9 +10,9 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
 
 export const MCP_COMPATIBILITY = {
   sdk: {
-    server: "@modelcontextprotocol/server@2.0.0",
-    client: "@modelcontextprotocol/client@2.0.0",
-    core: "@modelcontextprotocol/core@2.0.0",
+    server: "@modelcontextprotocol/server@2.4.0",
+    client: "@modelcontextprotocol/client@2.4.0",
+    core: "@modelcontextprotocol/core@2.4.0",
   },
   node: ">=20",
   transports: {

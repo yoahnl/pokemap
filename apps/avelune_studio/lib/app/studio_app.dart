@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'di/home_providers.dart';
 import 'di/rendering_providers.dart';
+import 'di/studio_mcp_providers.dart';
+import '../platform/mcp/studio_mcp_service.dart';
 import '../features/rendering/application/studio_rendering_preferences.dart';
 import '../features/project_session/data/local_project_history_maintenance_adapter.dart';
 import '../presentation/features/rendering/studio_display_preferences.dart';
@@ -37,20 +39,26 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   late final ProjectSessionController _session;
   late final StudioRenderingPreferences _renderingPreferences;
   late final AppLifecycleListener _lifecycle;
+  late final StudioMcpService _mcp;
   Future<bool> Function()? _exitGuard;
   String? _guardSession;
   bool _creatorVisible = false;
   bool _historyMaintenanceBusy = false;
+  bool _updatePrepared = false;
 
   @override
   void initState() {
     super.initState();
     _session = ref.read(projectSessionControllerProvider);
+    _mcp = ref.read(studioMcpServiceProvider);
+    _session.addListener(_synchronizeMcpProject);
+    _synchronizeMcpProject();
+    unawaited(_mcp.start());
     _renderingPreferences = ref.read(studioRenderingPreferencesProvider);
     unawaited(_renderingPreferences.load());
     _lifecycle = AppLifecycleListener(
       onExitRequested: () async {
-        return await _prepareForUpdate()
+        return await _prepareForExit()
             ? AppExitResponse.exit
             : AppExitResponse.cancel;
       },
@@ -59,8 +67,28 @@ class _StudioAppState extends ConsumerState<StudioApp> {
 
   Future<bool> _prepareForUpdate() async {
     if (!await _canRestartUpdate()) return false;
+    await _mcp.stop();
+    if (_mcp.state != StudioMcpState.stopped) return false;
+    _updatePrepared = true;
+    return true;
+  }
+
+  Future<void> _resumeAfterUpdateFailure() async {
+    if (!_updatePrepared) return;
+    _updatePrepared = false;
+    await _mcp.start();
+  }
+
+  Future<bool> _prepareForExit() async {
+    if (!await _canRestartUpdate()) return false;
+    await _mcp.stop();
+    if (_mcp.state != StudioMcpState.stopped) return false;
     await _session.dispose();
     return true;
+  }
+
+  void _synchronizeMcpProject() {
+    unawaited(_mcp.setProjectRoot(_session.state.project?.directoryPath));
   }
 
   Future<bool> _canRestartUpdate() async {
@@ -70,6 +98,8 @@ class _StudioAppState extends ConsumerState<StudioApp> {
 
   @override
   void dispose() {
+    _session.removeListener(_synchronizeMcpProject);
+    unawaited(_mcp.stop());
     _lifecycle.dispose();
     super.dispose();
   }
@@ -87,7 +117,8 @@ class _StudioAppState extends ConsumerState<StudioApp> {
       child: child ?? const SizedBox(),
     ),
     home: StudioUpdateHost(
-      onRestartRequested: _canRestartUpdate,
+      onRestartRequested: _prepareForUpdate,
+      onRestartAborted: _resumeAfterUpdateFailure,
       child: ProjectSessionScreen(
         recentProjects: ref.watch(recentProjectsPortProvider),
         session: _session,

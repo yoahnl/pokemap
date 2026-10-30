@@ -35,6 +35,7 @@ import { registerMapCheckTool } from "./tools/map_check.js";
 import { registerMapEditTool } from "./tools/map_edit.js";
 
 export interface PokeMapMcpServerDependencies {
+  protocolVersions?: readonly string[];
   profile?: "full" | "map-builder";
   authoring: AuthoringGateway;
   artifacts: ArtifactReader;
@@ -55,7 +56,7 @@ export function createPokeMapMcpServer(
   const server = new McpServer(
     { name: MCP_SERVER_NAME, version: MCP_SERVER_VERSION },
     {
-      supportedProtocolVersions: [...SUPPORTED_PROTOCOL_VERSIONS],
+      supportedProtocolVersions: [...dependencies.protocolVersions??SUPPORTED_PROTOCOL_VERSIONS],
       instructions:
         "Open only configured roots, plan before apply, keep opaque handles, use exact confirmations, follow nextCursor, and never invent artifact or resource URIs.",
     },

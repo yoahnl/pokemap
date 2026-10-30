@@ -124,9 +124,11 @@ final class AuthoringResultProjectionStore {
           required String? snapshotRevision,
           Map<String, Object?>? diagnostic}) =>
       _prepare(() async {
+        final change = _committedChangeNotification(receipt);
         final full = {
           'receipt': receipt.toJson(),
           'snapshotRevision': snapshotRevision,
+          if (change != null) 'changeNotification': change,
           if (diagnostic != null) 'diagnostic': diagnostic
         };
         if (_mutationInlineFits(receipt, full)) return full;
@@ -134,7 +136,10 @@ final class AuthoringResultProjectionStore {
           ...full,
           'snapshotRevision': await _boundedValue(snapshotRevision),
           if (diagnostic != null) 'diagnostic': await _boundedValue(diagnostic),
-          'receipt': await _receipt(receipt)
+          'receipt': await _receipt(receipt),
+          if (change != null) 'changeNotification': {
+            ...change, 'resources': await _boundedValue(change['resources'])
+          }
         });
       });
 
@@ -577,6 +582,63 @@ const projectionUnavailableDiagnostic = {
   'message':
       'The mutation result is retained. Reload its canonical receipt to prepare a new projection.'
 };
+
+Map<String, Object?>? _committedChangeNotification(AuthoringReceipt receipt) {
+  final outcome = receipt.extensions['recoveryOutcome'];
+  final status = receipt.status == AuthoringReceiptStatus.applied
+      ? 'applied'
+      : receipt.status == AuthoringReceiptStatus.recovered &&
+            (outcome == 'resumed' || outcome == 'compensated')
+      ? outcome as String
+      : null;
+  if (status == null ||
+      receipt.afterRevision == null ||
+      receipt.affectedResources.isEmpty) {
+    return null;
+  }
+  final resources = <({String kind, String id})>{
+    for (final resource in receipt.affectedResources)
+      (kind: resource.kind, id: resource.id),
+  };
+  for (final entry in receipt.diff.entries) {
+    if (entry.resource.kind != 'project' &&
+        entry.resource.kind != 'catalogHead') {
+      continue;
+    }
+    final segments = entry.path.split('/');
+    if (segments.length >= 3 &&
+        segments[1] == 'maps' &&
+        segments[2].isNotEmpty) {
+      resources.add((
+        kind: 'mapMetadata',
+        id: segments[2].replaceAll('~1', '/').replaceAll('~0', '~'),
+      ));
+    }
+    for (final field in const ['surf', 'fieldAbilities', 'audio']) {
+      if (entry.path == '/settings/$field' ||
+          entry.path.startsWith('/settings/$field/')) {
+        resources.add((kind: 'projectSettings', id: field));
+      } else if (entry.path == '/settings' &&
+          entry.before is Map &&
+          entry.after is Map &&
+          jsonEncode((entry.before as Map)[field]) !=
+              jsonEncode((entry.after as Map)[field])) {
+        resources.add((kind: 'projectSettings', id: field));
+      }
+    }
+  }
+  return {
+    'revision': receipt.afterRevision,
+    'revisionScope': 'transaction_resource_set',
+    'status': status,
+    if (receipt.extensions['operationId'] case final String operationId)
+      'operationId': operationId,
+    'resources': [
+      for (final resource in resources)
+        {'kind': resource.kind, 'id': resource.id},
+    ],
+  };
+}
 
 Map<String, Object?> compactAuthoringReceiptSummary(AuthoringReceipt receipt) {
   final summary = <String, Object?>{

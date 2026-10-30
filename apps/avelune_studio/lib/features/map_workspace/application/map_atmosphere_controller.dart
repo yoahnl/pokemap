@@ -23,6 +23,7 @@ final class MapAtmosphereController extends ChangeNotifier {
   final _redo = <SpatialAtmosphereSettings>[];
   bool saving = false;
   bool _disposed = false;
+  bool _externalConflict = false;
   String? error;
   SpatialAtmosphereSettings get saved => _saved;
   String get revision => _revision;
@@ -72,9 +73,20 @@ final class MapAtmosphereController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void rejectExternalChange() {
+    if (_disposed) return;
+    _externalConflict = true;
+    error = 'Une modification externe concerne cette ambiance. Votre brouillon et son historique sont conservés. Rouvrez la carte avant de publier.';
+    notifyListeners();
+  }
+
   Future<bool> save() async {
     if (_disposed || saving) return false;
     if (!dirty) return true;
+    if (_externalConflict) {
+      rejectExternalChange();
+      return false;
+    }
     final snapshot = current;
     saving = true;
     error = null;

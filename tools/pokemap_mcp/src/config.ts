@@ -3,6 +3,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface PokeMapMcpConfig {
+  transport: "stdio" | "http";
+  companion: boolean;
+  port: number;
+  runtimeManifest?: string;
   profile: "full" | "map-builder";
   allowedRoots: string[];
   artifactRoots: string[];
@@ -39,6 +43,8 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   let authoringTimeoutMs: number | undefined;
   let exportTimeoutMs: number | undefined;
   let profile: PokeMapMcpConfig["profile"] = "full";
+  let transport:PokeMapMcpConfig["transport"]="stdio",companion=false,port=0;
+  let runtimeManifest:string|undefined;
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
     const value = args[index + 1];
@@ -47,6 +53,21 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     }
     index += 1;
     switch (option) {
+      case "--transport":
+        if(value!=="stdio"&&value!=="http") throw new PokeMapMcpConfigError("Transport must be stdio or http.");
+        transport=value;
+        break;
+      case "--companion":
+        if(value!=="true"&&value!=="false") throw new PokeMapMcpConfigError("Companion must be true or false.");
+        companion=value==="true";
+        break;
+      case "--port":
+        port=Number(value);
+        if(!Number.isInteger(port)||port<0||port>65535) throw new PokeMapMcpConfigError("Port must be between 0 and 65535.");
+        break;
+      case "--runtime-manifest":
+        runtimeManifest=resolve(value);
+        break;
       case "--profile":
         if (value !== "full" && value !== "map-builder") {
           throw new PokeMapMcpConfigError("Profile must be full or map-builder.");
@@ -99,25 +120,31 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
         throw new PokeMapMcpConfigError("An unknown configuration option was provided.");
     }
   }
-  if (allowedRoots.length === 0) {
+  if(companion&&transport!=="http") throw new PokeMapMcpConfigError("The Studio companion requires the local HTTP transport.");
+  if (allowedRoots.length === 0 && !companion) {
     throw new PokeMapMcpConfigError("At least one --root option is required.");
   }
-  const packageRoot = authoringPackageRoot ?? findAuthoringPackageRoot();
-  if (!existsSync(resolve(packageRoot, "pubspec.yaml"))) {
+  const installedRoot=runtimeManifest?dirname(runtimeManifest):undefined;
+  if(installedRoot&&(authoringPackageRoot||repositoryRoot||runtimePackageRoot||runtimeHostRoot||renderHostRoot||dartExecutable!=="dart"||flutterExecutable!=="flutter")) {
+    throw new PokeMapMcpConfigError("Installed runtimes cannot use development command or checkout overrides.");
+  }
+  const packageRoot = installedRoot??authoringPackageRoot ?? findAuthoringPackageRoot();
+  if (!installedRoot&&!existsSync(resolve(packageRoot, "pubspec.yaml"))) {
     throw new PokeMapMcpConfigError("The map_authoring package is unavailable.");
   }
-  const repository = repositoryRoot ?? resolve(packageRoot, "../..");
+  const repository = installedRoot??repositoryRoot ?? resolve(packageRoot, "../..");
   const runtimePackage =
     runtimePackageRoot ?? resolve(repository, "packages/map_runtime");
   const runtimeHost =
     runtimeHostRoot ?? resolve(repository, "examples/playable_runtime_host");
-  if (!existsSync(resolve(runtimePackage, "tool/pokemap_render_worker_test.dart"))) {
+  if (!installedRoot&&!existsSync(resolve(runtimePackage, "tool/pokemap_render_worker_test.dart"))) {
     throw new PokeMapMcpConfigError("The map_runtime render worker is unavailable.");
   }
-  if (!existsSync(resolve(runtimeHost, "tool/pokemap_eval.dart"))) {
+  if (!installedRoot&&!existsSync(resolve(runtimeHost, "tool/pokemap_eval.dart"))) {
     throw new PokeMapMcpConfigError("The playable runtime host is unavailable.");
   }
   return {
+    transport,companion,port,...(runtimeManifest?{runtimeManifest}:{}),
     profile,
     allowedRoots,
     artifactRoots,

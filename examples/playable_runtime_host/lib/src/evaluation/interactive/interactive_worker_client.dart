@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../contracts/evaluation_event.dart';
+import '../contracts/evaluation_build_provenance.dart';
 import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../scenario/evaluation_scenario_parser.dart';
@@ -15,10 +16,7 @@ import '../../project_tree_digest.dart';
 
 const _interactiveProtocolVersion = 1;
 
-enum EvaluationBuildMode {
-  debug,
-  profile,
-}
+enum EvaluationBuildMode { debug, profile }
 
 abstract interface class InteractiveProcessRunner {
   Future<InteractiveChildProcess> start(
@@ -69,19 +67,21 @@ final class InteractiveWorkerClient {
     this.readyTimeout = const Duration(seconds: 120),
     void Function(String chunk)? stderrSink,
     this.flutterExecutable = 'flutter',
-  })  : repositoryRoot = repositoryRoot.absolute,
-        packageRoot = (packageRoot ??
-                Directory(
-                  p.join(
-                    repositoryRoot.path,
-                    'examples',
-                    'playable_runtime_host',
-                  ),
-                ))
-            .absolute,
-        _processRunner = processRunner,
-        _tokenGenerator = tokenGenerator ?? _secureToken,
-        _stderrSink = stderrSink ?? stderr.write;
+    this.buildProvenance,
+  }) : repositoryRoot = repositoryRoot.absolute,
+       packageRoot =
+           (packageRoot ??
+                   Directory(
+                     p.join(
+                       repositoryRoot.path,
+                       'examples',
+                       'playable_runtime_host',
+                     ),
+                   ))
+               .absolute,
+       _processRunner = processRunner,
+       _tokenGenerator = tokenGenerator ?? _secureToken,
+       _stderrSink = stderrSink ?? stderr.write;
 
   final Directory repositoryRoot;
   final Directory packageRoot;
@@ -90,6 +90,7 @@ final class InteractiveWorkerClient {
   final Duration readyTimeout;
   final void Function(String chunk) _stderrSink;
   final String flutterExecutable;
+  final EvaluationBuildProvenance? buildProvenance;
 
   Future<InteractiveWorkerLaunch> launch({
     required String projectFile,
@@ -140,6 +141,7 @@ final class InteractiveWorkerClient {
         token: token,
         readyTimeout: readyTimeout,
         stderrSink: _stderrSink,
+        buildProvenance: buildProvenance,
       );
     } catch (_) {
       await listener.close();
@@ -189,7 +191,8 @@ final class InteractiveWorkerClient {
     } on TimeoutException catch (failure) {
       return EvaluationWorkerResult.infrastructureFailure(
         runId: request.runId,
-        message: 'Timed out waiting for the interactive runtime: '
+        message:
+            'Timed out waiting for the interactive runtime: '
             '${failure.message ?? 'no bridge.ready envelope'}',
       );
     } on Object catch (failure) {
@@ -211,18 +214,21 @@ final class InteractiveWorkerLaunch {
     required String token,
     required Duration readyTimeout,
     required void Function(String chunk) stderrSink,
-  })  : _listener = listener,
-        _child = child,
-        _token = token,
-        _readyTimeout = readyTimeout {
+    this.buildProvenance,
+  }) : _listener = listener,
+       _child = child,
+       _token = token,
+       _readyTimeout = readyTimeout {
     _stdoutSubscription = child.stdout.listen((_) {});
-    _stderrSubscription =
-        child.stderr.transform(utf8.decoder).listen(stderrSink);
+    _stderrSubscription = child.stderr
+        .transform(utf8.decoder)
+        .listen(stderrSink);
   }
 
   final ServerSocket _listener;
   final InteractiveChildProcess _child;
   final Directory repositoryRoot;
+  final EvaluationBuildProvenance? buildProvenance;
   final String _token;
   final Duration _readyTimeout;
   late final StreamSubscription<List<int>> _stdoutSubscription;
@@ -240,10 +246,12 @@ final class InteractiveWorkerLaunch {
     final socket = await _listener.first.timeout(_readyTimeout);
     _socket = socket;
     if (!socket.remoteAddress.isLoopback) {
-      socket.writeln(jsonEncode(const <String, Object?>{
-        'type': 'bridge.rejected',
-        'reason': 'interactive bridge must originate from loopback',
-      }));
+      socket.writeln(
+        jsonEncode(const <String, Object?>{
+          'type': 'bridge.rejected',
+          'reason': 'interactive bridge must originate from loopback',
+        }),
+      );
       throw const InteractiveWorkerAuthenticationException(
         'Interactive bridge did not originate from loopback.',
       );
@@ -258,19 +266,23 @@ final class InteractiveWorkerLaunch {
     _lines = lines;
     final hello = await _nextEnvelope(lines).timeout(_readyTimeout);
     if (!_validHello(hello)) {
-      socket.writeln(jsonEncode(const <String, Object?>{
-        'type': 'bridge.rejected',
-        'reason': 'invalid interactive authentication',
-      }));
+      socket.writeln(
+        jsonEncode(const <String, Object?>{
+          'type': 'bridge.rejected',
+          'reason': 'invalid interactive authentication',
+        }),
+      );
       throw const InteractiveWorkerAuthenticationException(
         'Interactive bridge authentication failed.',
       );
     }
 
-    socket.writeln(jsonEncode(const <String, Object?>{
-      'type': 'bridge.accepted',
-      'protocolVersion': _interactiveProtocolVersion,
-    }));
+    socket.writeln(
+      jsonEncode(const <String, Object?>{
+        'type': 'bridge.accepted',
+        'protocolVersion': _interactiveProtocolVersion,
+      }),
+    );
     final ready = await _nextEnvelope(lines).timeout(_readyTimeout);
     _validateReady(ready, expectedProjectId: expectedProjectId);
 
@@ -329,12 +341,7 @@ final class InteractiveWorkerLaunch {
   }
 
   bool _validHello(Map<String, Object?> envelope) {
-    const expectedKeys = <String>{
-      'type',
-      'token',
-      'target',
-      'protocolVersion',
-    };
+    const expectedKeys = <String>{'type', 'token', 'target', 'protocolVersion'};
     return envelope.keys.toSet().difference(expectedKeys).isEmpty &&
         expectedKeys.difference(envelope.keys.toSet()).isEmpty &&
         envelope['type'] == 'bridge.hello' &&
@@ -431,15 +438,17 @@ final class InteractiveWorkerLaunch {
     required DateTime startedAt,
     required DateTime finishedAt,
   }) async {
-    final scenario =
-        const EvaluationScenarioParser().parseString(scenarioSource);
+    final scenario = const EvaluationScenarioParser().parseString(
+      scenarioSource,
+    );
     final outputDirectory = Directory(
       p.join(repositoryRoot.path, request.outputDirectory),
     );
     await outputDirectory.create(recursive: true);
     final eventsFile = File(p.join(outputDirectory.path, 'events.jsonl'));
-    final eventsSource =
-        events.map((event) => jsonEncode(event.toJson())).join('\n');
+    final eventsSource = events
+        .map((event) => jsonEncode(event.toJson()))
+        .join('\n');
     await eventsFile.writeAsString(
       eventsSource.isEmpty ? '' : '$eventsSource\n',
       flush: true,
@@ -458,7 +467,7 @@ final class InteractiveWorkerLaunch {
         envelope['evidenceLevel'],
         'evidenceLevel',
       ),
-      'commit': await _gitHead(repositoryRoot),
+      'commit': buildProvenance?.commit ?? await _gitHead(repositoryRoot),
       'projectTreeHash': await const ProjectTreeDigest().compute(
         Directory(p.join(repositoryRoot.path, request.projectRoot)),
       ),
@@ -483,18 +492,18 @@ final class InteractiveWorkerLaunch {
       ),
       'diff': _requiredMap(envelope['diff'], 'diff'),
       'stepResults': _requiredList(envelope['stepResults'], 'stepResults'),
-      'shortcutsUsed': _stringList(
-        envelope['shortcutsUsed'],
-        'shortcutsUsed',
-      ),
+      'shortcutsUsed': _stringList(envelope['shortcutsUsed'], 'shortcutsUsed'),
       'checkpointProvenance': null,
       'artifacts': <String>['events.jsonl', ...artifacts],
       'error': envelope['error'],
       'relativeReceiptPath': receiptPath,
-      'declaredCriterionIds':
-          scenario.criteria.map((criterion) => criterion.id).toList(),
-      'productCriteria':
-          _requiredList(envelope['productCriteria'], 'productCriteria'),
+      'declaredCriterionIds': scenario.criteria
+          .map((criterion) => criterion.id)
+          .toList(),
+      'productCriteria': _requiredList(
+        envelope['productCriteria'],
+        'productCriteria',
+      ),
     };
     final receipt = EvaluationReceipt.fromJson(receiptJson);
     final destination = File(p.join(outputDirectory.path, 'receipt.json'));
@@ -636,9 +645,7 @@ final class _IoInteractiveChildProcess implements InteractiveChildProcess {
       process.kill(signal);
 }
 
-Future<Map<String, Object?>> _nextEnvelope(
-  StreamIterator<String> lines,
-) async {
+Future<Map<String, Object?>> _nextEnvelope(StreamIterator<String> lines) async {
   if (!await lines.moveNext()) {
     throw const FormatException(
       'Interactive runtime closed before sending an envelope.',
@@ -662,7 +669,9 @@ void _validatePortablePath(String value, String name) {
   final normalized = value.replaceAll(r'\', '/');
   if (normalized.trim().isEmpty ||
       normalized.startsWith('/') ||
-      normalized.split('/').any(
+      normalized
+          .split('/')
+          .any(
             (segment) => segment.isEmpty || segment == '.' || segment == '..',
           )) {
     throw ArgumentError.value(

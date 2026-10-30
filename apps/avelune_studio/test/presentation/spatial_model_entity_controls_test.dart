@@ -13,82 +13,84 @@ void main() {
     'Coupe': FieldObstacleKind.cutTree,
     'Éclate-Roc': FieldObstacleKind.rockSmashRock,
     'Force · rocher à pousser': FieldObstacleKind.strengthBoulder,
-  }.entries) testWidgets(
-    '${choice.key} guided 3D obstacle creates a bound entity with reset policy and one undo',
-    (tester) async {
-      final original = spatialEnvironmentMap();
-      final instance = SpatialModelInstance(
-        id: 'oak-1',
-        modelId: 'oak',
-        position: Model3dVector3(x: 2.5, y: 0, z: 3.5),
-        blocksMovement: true,
-      );
-      final map = original.copyWith(
-        spatialScene: original.spatialScene!.copyWith(instances: [instance]),
-      );
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: map, mapId: map.id, revision: 'initial'),
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, refresh) => SpatialModelEntityControls(
-                document: document,
-                project: spatialEnvironmentProject(),
-                instance: document.current.spatialScene!.instances.single,
-                onChanged: () => refresh(() {}),
+  }.entries) {
+    testWidgets(
+      '${choice.key} guided 3D obstacle creates a bound entity with reset policy and one undo',
+      (tester) async {
+        final original = spatialEnvironmentMap();
+        final instance = SpatialModelInstance(
+          id: 'oak-1',
+          modelId: 'oak',
+          position: Model3dVector3(x: 2.5, y: 0, z: 3.5),
+          blocksMovement: true,
+        );
+        final map = original.copyWith(
+          spatialScene: original.spatialScene!.copyWith(instances: [instance]),
+        );
+        final document = EditableMapDocument(
+          MapWorkspaceDocument(map: map, mapId: map.id, revision: 'initial'),
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, refresh) => SpatialModelEntityControls(
+                  document: document,
+                  project: spatialEnvironmentProject(),
+                  instance: document.current.spatialScene!.instances.single,
+                  onChanged: () => refresh(() {}),
+                ),
               ),
             ),
           ),
-        ),
-      );
-      final obstacle = find.byKey(
-        const ValueKey('spatial-model-field-obstacle'),
-      );
-      expect(obstacle, findsOneWidget);
-      await tester.tap(
-        find.descendant(
-          of: obstacle,
-          matching: find.byType(DropdownButtonFormField<String>),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(choice.key).last);
-      await tester.pumpAndSettle();
-      expect(
-        document.current.entities.single.fieldObstacle!.kind,
-        choice.value,
-      );
-      expect(
-        isValidSpatialFieldObstacle(
-          document.current,
-          document.current.entities.single,
-        ),
-        isTrue,
-      );
-      expect(document.undoCount, 1);
-      final reset = find.byKey(
-        const ValueKey('spatial-model-field-obstacle-reset'),
-      );
-      await tester.tap(
-        find.descendant(
-          of: reset,
-          matching: find.byType(DropdownButtonFormField<String>),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Conservé dans la sauvegarde').last);
-      await tester.pumpAndSettle();
-      expect(
-        document.current.entities.single.fieldObstacle!.resetPolicy,
-        FieldObstacleResetPolicy.persistent,
-      );
-      document.restore(redo: false);
-      document.restore(redo: false);
-      expect(document.current, map);
-    },
-  );
+        );
+        final obstacle = find.byKey(
+          const ValueKey('spatial-model-field-obstacle'),
+        );
+        expect(obstacle, findsOneWidget);
+        await tester.tap(
+          find.descendant(
+            of: obstacle,
+            matching: find.byType(DropdownButtonFormField<String>),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(choice.key).last);
+        await tester.pumpAndSettle();
+        expect(
+          document.current.entities.single.fieldObstacle!.kind,
+          choice.value,
+        );
+        expect(
+          isValidSpatialFieldObstacle(
+            document.current,
+            document.current.entities.single,
+          ),
+          isTrue,
+        );
+        expect(document.undoCount, 1);
+        final reset = find.byKey(
+          const ValueKey('spatial-model-field-obstacle-reset'),
+        );
+        await tester.tap(
+          find.descendant(
+            of: reset,
+            matching: find.byType(DropdownButtonFormField<String>),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Conservé dans la sauvegarde').last);
+        await tester.pumpAndSettle();
+        expect(
+          document.current.entities.single.fieldObstacle!.resetPolicy,
+          FieldObstacleResetPolicy.persistent,
+        );
+        document.restore(redo: false);
+        document.restore(redo: false);
+        expect(document.current, map);
+      },
+    );
+  }
   testWidgets('guided object binding uses map entities and supports undo', (
     tester,
   ) async {

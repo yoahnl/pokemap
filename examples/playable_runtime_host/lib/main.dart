@@ -52,6 +52,9 @@ void main() {
 void runRuntimeHost({
   String? initialProjectFilePath,
   ValueChanged<PlayableMapGame?>? onGameChanged,
+  InteractiveEvaluationConfig? evaluationConfig,
+  Directory? evaluationOutputRoot,
+  String? evaluationProjectIdentity,
 }) {
   runApp(
     MaterialApp(
@@ -59,6 +62,9 @@ void runRuntimeHost({
       home: _ProjectLoaderPage(
         initialProjectFilePath: initialProjectFilePath,
         onGameChanged: onGameChanged,
+        evaluationConfig: evaluationConfig,
+        evaluationOutputRoot: evaluationOutputRoot,
+        evaluationProjectIdentity: evaluationProjectIdentity,
       ),
     ),
   );
@@ -68,10 +74,19 @@ void runRuntimeHost({
 // 1. charger un projet et une map runtime ;
 // 2. exposer les surfaces minimales de debug/save/menu utiles aux phases 9-10.
 class _ProjectLoaderPage extends StatefulWidget {
-  const _ProjectLoaderPage({this.initialProjectFilePath, this.onGameChanged});
+  const _ProjectLoaderPage({
+    this.initialProjectFilePath,
+    this.onGameChanged,
+    this.evaluationConfig,
+    this.evaluationOutputRoot,
+    this.evaluationProjectIdentity,
+  });
 
   final String? initialProjectFilePath;
   final ValueChanged<PlayableMapGame?>? onGameChanged;
+  final InteractiveEvaluationConfig? evaluationConfig;
+  final Directory? evaluationOutputRoot;
+  final String? evaluationProjectIdentity;
 
   @override
   State<_ProjectLoaderPage> createState() => _ProjectLoaderPageState();
@@ -79,6 +94,8 @@ class _ProjectLoaderPage extends StatefulWidget {
 
 class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     with WidgetsBindingObserver {
+  InteractiveEvaluationConfig get _evaluationConfig =>
+      widget.evaluationConfig ?? interactiveEvaluationConfig;
   String _projectFilePath = '';
   List<ProjectMapEntry> _availableMaps = const [];
   ProjectManifest? _projectManifest;
@@ -104,9 +121,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   final RuntimeGamepadPresence _runtimeGamepadPresence =
       RuntimeGamepadPresence();
   late final PlayerServiceAutomationPort? _playerServiceAutomationPort =
-      interactiveEvaluationConfig.enabled
-      ? PlayerServiceAutomationPort()
-      : null;
+      _evaluationConfig.enabled ? PlayerServiceAutomationPort() : null;
   InteractiveEvaluationBridge? _interactiveBridge;
   final GlobalKey _interactiveGameSurfaceKey = GlobalKey();
   final _startupImageBudget = RuntimeResourceBudget();
@@ -262,7 +277,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       if (mounted) await _launchSelectedProject();
       return;
     }
-    if (interactiveEvaluationConfig.enabled) {
+    if (_evaluationConfig.enabled) {
       await _restoreInteractiveEvaluationProject();
       return;
     }
@@ -309,7 +324,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   }
 
   Future<void> _restoreInteractiveEvaluationProject() async {
-    final relativeProjectFile = interactiveEvaluationConfig.projectFile!;
+    final relativeProjectFile = _evaluationConfig.projectFile!;
     final projectFile = await _findInteractiveProjectFile(relativeProjectFile);
     if (projectFile == null || !mounted) {
       _runtimeHostLog(
@@ -365,8 +380,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   // Host session and presentation options remain local preferences, never
   // gameplay state. The versioned gameplay save stays in its own pipeline.
   Future<void> _persistLastSession() async {
-    if (interactiveEvaluationConfig.enabled ||
-        widget.initialProjectFilePath != null) {
+    if (_evaluationConfig.enabled || widget.initialProjectFilePath != null) {
       return;
     }
     try {
@@ -687,12 +701,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       _sessionPlayWatch = Stopwatch()..start();
       // Interactive evaluation never enables the expensive collision layers.
       nextGame.setCollisionOverlayVisible(
-        interactiveEvaluationConfig.enabled ? false : _showCollisionOverlay,
+        _evaluationConfig.enabled ? false : _showCollisionOverlay,
       );
       nextGame.setNpcCollisionDebugOverlayVisible(
-        interactiveEvaluationConfig.enabled
-            ? false
-            : _showNpcCollisionDebugOverlay,
+        _evaluationConfig.enabled ? false : _showNpcCollisionDebugOverlay,
       );
       nextGame.setFpsOverlayVisible(_showFpsOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
@@ -708,9 +720,11 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       if (!mounted || !identical(_game, nextGame)) {
         throw StateError('The runtime session changed before readiness.');
       }
-      if (interactiveEvaluationConfig.enabled) {
+      if (_evaluationConfig.enabled) {
         _interactiveBridge = await InteractiveEvaluationBridge.attach(
-          config: interactiveEvaluationConfig,
+          config: _evaluationConfig,
+          outputRoot: widget.evaluationOutputRoot,
+          projectIdentity: widget.evaluationProjectIdentity,
           game: nextGame,
           project: bundle.manifest,
           projectRoot: Directory(bundle.projectRootDirectory),

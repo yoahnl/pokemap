@@ -39,14 +39,48 @@ final class CatalogTargetedMapSelection {
         'mapRevision': mapRevision,
       }, logicalName: 'catalog-map-selection.json');
 
+  static Future<List<ProjectMapEntry>> readMapEntries({
+    required PortableProjectCatalog catalog,
+    required Set<String> mapIds,
+  }) async => (await readMapMetadata(catalog: catalog, mapIds: mapIds)).entries;
+
+  static Future<({List<ProjectMapEntry> entries, Map<String, int> positions})> readMapMetadata({
+    required PortableProjectCatalog catalog,
+    required Set<String> mapIds,
+  }) async {
+    final loaded = catalog.projectMetadata.maps;
+    if (loaded.isNotEmpty) {
+      final positions = <String, int>{};
+      final entries = <ProjectMapEntry>[];
+      for (var position = 0; position < loaded.length; position++) {
+        final entry = loaded[position];
+        if (mapIds.contains(entry.id)) {
+          entries.add(entry);
+          positions[entry.id] = position;
+        }
+      }
+      return (entries: entries, positions: positions);
+    }
+    if (await catalog.snapshot.lookup(CatalogMetadataDocuments.fieldKey('maps')) == null) {
+      final metadata = await PortableProjectCatalog.fromSnapshot(catalog.snapshot, metadataFields: const {'maps'});
+      return readMapMetadata(catalog: metadata, mapIds: mapIds);
+    }
+    final selected = await CatalogMetadataDocuments.readDocuments(
+      snapshot: catalog.snapshot, project: catalog.projectMetadata, ids: {'maps': mapIds});
+    return (entries: selected.project.maps, positions: {
+      for (final entry in selected.documents['maps']!.entries)
+        entry.key: entry.value.payload['position'] as int,
+    });
+  }
+
   static Future<CatalogTargetedMapSelection> read({
     required CatalogProjectReader reader,
     required String mapId,
     MapData? projectedMap,
   }) =>
       reader.read((catalog) async {
-        final entry =
-            catalog.projectMetadata.maps.where((m) => m.id == mapId).single;
+        final entries = await readMapEntries(catalog: catalog, mapIds: {mapId});
+        final entry = entries.single;
         final payload = await reader.store.gateway
             .captureResourcePayload(entry.relativePath);
         if (payload == null) {
@@ -98,6 +132,9 @@ final class CatalogTargetedMapSelection {
               ],
             ],
           );
+          if (definitions.maps.isEmpty) {
+            definitions = definitions.copyWith(maps: entries);
+          }
           final dependencyIds = <String, Set<String>>{
             'dialogues': {},
             'facts': {},

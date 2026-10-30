@@ -191,6 +191,9 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     _presentations?.dispose();
     _regionalMap?.dispose();
     _world?.dispose();
+    if (identical(_controller.settingsVisualsOwner, _projectVisuals)) {
+      _controller.settingsVisualsOwner = null;
+    }
     _projectVisuals?.dispose();
     _projectSurf?.dispose();
     _projectCs?.dispose();

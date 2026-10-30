@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 
 import '../contracts/evaluation_policy.dart';
+import '../contracts/evaluation_build_provenance.dart';
 import '../contracts/evaluation_event.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../contracts/evaluation_scenario.dart';
@@ -24,11 +25,11 @@ Future<EvaluationWorkerResult> runHeadlessEvaluationRequest(
   Directory? hostRoot,
   EvaluationRunControl? runControl,
   HeadlessEvaluationEventSink? eventSink,
+  EvaluationBuildProvenance? buildProvenance,
+  String? projectIdentity,
 }) async {
   final root = hostRoot ?? _hostRootFromEnvironment();
-  final outputDirectory = Directory(
-    p.join(root.path, request.outputDirectory),
-  );
+  final outputDirectory = Directory(p.join(root.path, request.outputDirectory));
   final resultFile = File(
     p.join(outputDirectory.path, evaluationWorkerResultFileName),
   );
@@ -42,6 +43,8 @@ Future<EvaluationWorkerResult> runHeadlessEvaluationRequest(
       outputDirectory: outputDirectory,
       runControl: runControl,
       eventSink: eventSink,
+      buildProvenance: buildProvenance,
+      projectIdentity: projectIdentity,
     );
   } on EvaluationScenarioFormatException catch (failure) {
     result = EvaluationWorkerResult.completed(
@@ -66,6 +69,8 @@ Future<EvaluationWorkerResult> _executeRequest(
   required Directory outputDirectory,
   EvaluationRunControl? runControl,
   HeadlessEvaluationEventSink? eventSink,
+  EvaluationBuildProvenance? buildProvenance,
+  String? projectIdentity,
 }) async {
   final scenarioFile = File(p.join(hostRoot.path, request.scenarioPath));
   final scenarioSource = await scenarioFile.readAsString();
@@ -78,17 +83,21 @@ Future<EvaluationWorkerResult> _executeRequest(
       '${request.expectedProjectTreeHash}, got $projectTreeHash.',
     );
   }
-  final commit = await _gitHead(hostRoot);
-  final evaluationCodeDigest = await _treeDigest(
-    Directory(p.join(
-      hostRoot.path,
-      'examples',
-      'playable_runtime_host',
-      'lib',
-      'src',
-      'evaluation',
-    )),
-  );
+  final commit = buildProvenance?.commit ?? await _gitHead(hostRoot);
+  final evaluationCodeDigest =
+      buildProvenance?.codeDigest ??
+      await _treeDigest(
+        Directory(
+          p.join(
+            hostRoot.path,
+            'examples',
+            'playable_runtime_host',
+            'lib',
+            'src',
+            'evaluation',
+          ),
+        ),
+      );
   final checkpointProvenance = EvaluationCheckpointProvenance(
     projectTreeHashSha256: projectTreeHash,
     evaluationCodeDigestSha256: evaluationCodeDigest,
@@ -97,12 +106,7 @@ Future<EvaluationWorkerResult> _executeRequest(
     saveSchemaVersion: 1,
   );
   final checkpointCache = EvaluationCheckpointCache(
-    root: Directory(p.join(
-      hostRoot.path,
-      'build',
-      'pokemap-eval',
-      'cache',
-    )),
+    root: Directory(p.join(hostRoot.path, 'build', 'pokemap-eval', 'cache')),
   );
   final eventsFile = File(p.join(outputDirectory.path, 'events.jsonl'));
   final eventsSink = eventsFile.openWrite(mode: FileMode.writeOnly);
@@ -111,6 +115,7 @@ Future<EvaluationWorkerResult> _executeRequest(
   EvaluationScenarioRunResult runResult;
   try {
     driver = await RuntimeEvaluationDriver.start(
+      projectIdentity: projectIdentity,
       projectRoot: projectRoot,
       runId: request.runId,
       checkpointCache: checkpointCache,
@@ -163,8 +168,9 @@ Future<EvaluationWorkerResult> _executeRequest(
     artifacts: const <String>['events.jsonl'],
     error: runResult.error,
     relativeReceiptPath: '${request.outputDirectory}/receipt.json',
-    declaredCriterionIds:
-        scenario.criteria.map((criterion) => criterion.id).toList(),
+    declaredCriterionIds: scenario.criteria
+        .map((criterion) => criterion.id)
+        .toList(),
     productCriteria: runResult.productCriteria,
   );
   final receiptFile = File(p.join(outputDirectory.path, 'receipt.json'));
@@ -180,11 +186,10 @@ Future<EvaluationWorkerResult> _executeRequest(
 }
 
 Future<String> _gitHead(Directory repositoryRoot) async {
-  final result = await Process.run(
-    'git',
-    const <String>['rev-parse', 'HEAD'],
-    workingDirectory: repositoryRoot.path,
-  );
+  final result = await Process.run('git', const <String>[
+    'rev-parse',
+    'HEAD',
+  ], workingDirectory: repositoryRoot.path);
   if (result.exitCode != 0) {
     throw StateError('Unable to resolve the evaluation commit.');
   }
@@ -204,8 +209,9 @@ Future<String> _treeDigest(Directory root) async {
   );
   final entries = <String>[];
   for (final file in files) {
-    final relative =
-        p.relative(file.path, from: root.path).replaceAll(r'\', '/');
+    final relative = p
+        .relative(file.path, from: root.path)
+        .replaceAll(r'\', '/');
     final digest = await sha256.bind(file.openRead()).first;
     entries.add('$relative\u0000$digest');
   }

@@ -1,96 +1,94 @@
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
+import { parseConfig, PokeMapMcpConfigError } from "./config.js";
+import { resolvePackagedRuntime } from "./packaged_runtime.js";
+import { createPokeMapServerRuntime } from "./server_runtime.js";
+import { startStudioCompanion } from "./studio_companion.js";
+import { startPokeMapHttp } from "./http_transport.js";
+import { AuthoringClientError } from "./authoring_client.js";
+import { PackagedRuntimeError } from "./packaged_runtime.js";
 
-import { LocalAuthoringClient } from "./authoring_client.js";
-import { MemoryArtifactReader } from "./artifacts.js";
-import {
-  parseConfig,
-  PokeMapMcpConfigError,
-  type PokeMapMcpConfig,
-} from "./config.js";
-import { createPokeMapMcpServer } from "./server.js";
-import { LocalRuntimeGateway } from "./runtime_gateway.js";
-import { createLocalPlaytestProjectionFactory } from "./playtest_projection.js";
+let companionControl = false;
 
-try {
-  start(parseConfig(process.argv.slice(2)));
-} catch (error) {
+async function main(): Promise<void> {
+  const config = parseConfig(process.argv.slice(2));
+  companionControl = config.companion;
+  let cleanup: (() => Promise<void>) | undefined;
+  let stopped = false;
+  const cancellation = new AbortController();
+  const stop = async () => {
+    stopped = true;
+    cancellation.abort();
+    await cleanup?.();
+  };
+  process.once("SIGINT", () => {
+    void stop();
+  });
+  process.once("SIGTERM", () => {
+    void stop();
+  });
+  const packaged = config.runtimeManifest
+    ? await resolvePackagedRuntime(config.runtimeManifest)
+    : undefined;
+  if (stopped) return;
+  if (config.companion) {
+    const owner = process.ppid;
+    const watchdog = setInterval(() => {
+      if (process.ppid !== owner) void stop();
+    }, 250);
+    watchdog.unref();
+    const service = await startStudioCompanion(config, {
+      input: process.stdin,
+      output: process.stdout,
+      signal: cancellation.signal,
+      ...(packaged ? { packaged } : {}),
+    });
+    cleanup = service.close;
+  } else if (config.transport === "http") {
+    const service = await startPokeMapHttp({
+      port: config.port,
+      createRuntime: () => createPokeMapServerRuntime(config, packaged),
+    });
+    cleanup = service.close;
+    process.stdout.write(
+      JSON.stringify({
+        type: "ready",
+        url: service.url,
+        token: service.token,
+      }) + "\n",
+    );
+  } else {
+    const runtime = createPokeMapServerRuntime(config, packaged);
+    const handle = serveStdio(() => runtime.createServer(), {
+      legacy: "serve",
+      onerror: () => {
+        process.stderr.write("[pokemap-mcp] Protocol request failed.\n");
+      },
+    });
+    cleanup = async () => {
+      await handle.close();
+      await runtime.close();
+    };
+    process.stdin.once("end", () => {
+      void stop();
+    });
+  }
+  if (stopped) await cleanup?.();
+}
+
+main().catch((error) => {
   const message =
     error instanceof PokeMapMcpConfigError
       ? error.message
-      : "Unable to initialize PokeMap MCP configuration.";
-  console.error(`[pokemap-mcp] ${message}`);
+      : "Unable to initialize PokeMap MCP.";
+  const code =
+    error instanceof AuthoringClientError ||
+    error instanceof PackagedRuntimeError
+      ? error.code
+      : typeof error?.code === "string" && /^E[A-Z_]+$/.test(error.code)
+        ? `launch.${error.code}`
+        : "companion.initialization_failed";
+  if (companionControl)
+    process.stdout.write(JSON.stringify({ type: "failed", code }) + "\n");
+  process.stderr.write("[pokemap-mcp] " + message + "\n");
   process.exitCode = 64;
-}
-
-function start(config: PokeMapMcpConfig): void {
-  const authoring = new LocalAuthoringClient({
-    allowedRoots: config.allowedRoots,
-    artifactRoots: config.artifactRoots,
-    exportRoots: config.exportRoots,
-    authoringPackageRoot: config.authoringPackageRoot,
-    dartExecutable: config.dartExecutable,
-    ...(config.exportTimeoutMs === undefined ? {} : {
-      exportWorkerTimeoutMs: config.exportTimeoutMs,
-      exportRequestTimeoutMs: config.exportTimeoutMs + 5_000,
-    }),
-    ...(config.authoringTimeoutMs === undefined ? {} : {
-      workerTimeoutMs: config.authoringTimeoutMs,
-      requestTimeoutMs: config.authoringTimeoutMs + 5_000,
-    }),
-  });
-  const artifacts = new MemoryArtifactReader();
-  const runtime = new LocalRuntimeGateway({
-    roots: authoring,
-    artifacts,
-    runtimePackageRoot: config.runtimePackageRoot,
-    runtimeHostRoot: config.runtimeHostRoot,
-    renderHostRoot: config.renderHostRoot,
-    repositoryRoot: config.repositoryRoot,
-    dartExecutable: config.dartExecutable,
-    flutterExecutable: config.flutterExecutable,
-    playtestProjectionFactory: createLocalPlaytestProjectionFactory({
-      authoring,
-      authoringPackageRoot: config.authoringPackageRoot,
-      repositoryRoot: config.repositoryRoot,
-      runtimeHostRoot: config.runtimeHostRoot,
-      dartExecutable: config.dartExecutable,
-    }),
-  });
-  const handle = serveStdio(
-    () =>
-      createPokeMapMcpServer({
-        profile: config.profile,
-        authoring,
-        projectRoots: authoring,
-        artifacts,
-        runtime,
-      }),
-    {
-      legacy: "serve",
-      onerror: (error) => {
-        console.error(`[pokemap-mcp] ${error.message}`);
-      },
-    },
-  );
-
-  let closing = false;
-  async function close(): Promise<void> {
-    if (closing) {
-      return;
-    }
-    closing = true;
-    await handle.close();
-    await runtime.close();
-    await authoring.close();
-  }
-
-  process.once("SIGINT", () => {
-    void close();
-  });
-  process.once("SIGTERM", () => {
-    void close();
-  });
-  process.stdin.once("end", () => {
-    void close();
-  });
-}
+});

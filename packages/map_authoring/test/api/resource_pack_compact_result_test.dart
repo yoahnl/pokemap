@@ -37,6 +37,71 @@ void main() {
     await sandbox.delete(recursive: true);
   });
 
+  test(
+      'committed notifications preserve canonical resources and scoped revision',
+      () async {
+    for (final count in [1, 5000]) {
+      final fixture = BulkTransactionFixture(count);
+      addTearDown(fixture.plans.dispose);
+      final receipt = _receipt(fixture.plan.changeSet.diff);
+      final result = await projections.prepareCommittedMutation(
+          receipt: receipt, snapshotRevision: 'unrelated-project-revision');
+      final notification = result['changeNotification'] as Map;
+      expect(notification['revision'], receipt.afterRevision);
+      expect(notification['revisionScope'], 'transaction_resource_set');
+      expect(notification['operationId'], 'operation');
+      expect(notification['status'], 'applied');
+      var resources = notification['resources'];
+      if (resources is Map) {
+        final bytes = BytesBuilder(copy: false);
+        var offset = 0;
+        while (offset < (resources['byteLength'] as int)) {
+          final chunk = await projections.readPayloadChunk(
+              payloadRef: resources['payloadRef'] as String, offset: offset);
+          bytes.add(chunk.bytes);
+          offset = chunk.nextOffset;
+        }
+        resources = jsonDecode(utf8.decode(bytes.takeBytes()));
+      }
+      expect(resources, [
+        for (final ref in receipt.affectedResources)
+          {'kind': ref.kind, 'id': ref.id}
+      ]);
+      expect(utf8.encode(jsonEncode(result)).length,
+          lessThanOrEqualTo(256 * 1024));
+    }
+  });
+
+  test('notifications identify map metadata and changed settings from canonical diff paths', () async {
+    for (final kind in ['project', 'catalogHead']) {
+      final resource = AuthoringResourceRef(kind: kind, id: 'project');
+      final receipt = _receipt(AuthoringDiff([
+        AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: resource,
+          path: '/maps/map-identity/role', before: 'exterior', after: 'interior'),
+        AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: resource,
+          path: '/settings/surf', before: {'enabled': true}, after: {'enabled': false}),
+        AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: resource,
+          path: '/settings/fieldAbilities/disabledAbilities', before: [], after: ['cut']),
+        AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: resource,
+          path: '/settings', before: {'audio': {'cues': {}}, 'tileWidth': 32},
+          after: {'audio': null, 'tileWidth': 64}),
+      ]));
+      final result = await projections.prepareCommittedMutation(receipt: receipt, snapshotRevision: 'snapshot');
+      expect((result['changeNotification'] as Map)['resources'], [
+        {'kind': kind, 'id': 'project'},
+        {'kind': 'mapMetadata', 'id': 'map-identity'},
+        {'kind': 'projectSettings', 'id': 'audio'},
+        {'kind': 'projectSettings', 'id': 'fieldAbilities'},
+        {'kind': 'projectSettings', 'id': 'surf'},
+      ]);
+    }
+    final result = await projections.prepareCommittedMutation(receipt: _receipt(AuthoringDiff([
+      AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: AuthoringResourceRef(kind: 'project', id: 'project'),
+        path: '/settings', before: {'surf': {'enabled': true}, 'tileWidth': 32},
+        after: {'surf': {'enabled': true}, 'tileWidth': 64})])), snapshotRevision: 'snapshot');
+    expect((result['changeNotification'] as Map)['resources'], [{'kind': 'project', 'id': 'project'}]);
+  });
+
   test('escaped pack receipt fields compact before exceeding a resources read envelope', () async {
     final fixture = BulkTransactionFixture(1);
     addTearDown(fixture.plans.dispose);

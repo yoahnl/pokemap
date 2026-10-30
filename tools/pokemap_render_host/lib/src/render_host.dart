@@ -9,8 +9,10 @@ import 'package:flutter/widgets.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 import 'render_request.dart';
+import 'installed_evaluation.dart';
 
 const renderPixelRatio = 2.0;
 const sceneReadyTimeout = Duration(minutes: 3);
@@ -58,11 +60,27 @@ final class RenderHost {
       if (args is! Map<String, Object?>) {
         throw const RenderRequestException('args must be a JSON object.');
       }
+      if (command == 'render-runtime') {
+        if (args.keys.any((key) => !{'projectRoot', 'request'}.contains(key)) ||
+            args['projectRoot'] is! String ||
+            args['request'] is! Map<String, Object?>) {
+          throw const RenderRequestException('Invalid runtime render request.');
+        }
+        return {
+          ...await renderRuntimeAuthoringAssetRequest(
+            projectRoot: args['projectRoot']! as String,
+            request: args['request']! as Map<String, Object?>,
+          ),
+          'id': id,
+          'command': command,
+        };
+      }
       final data = switch (command) {
         'ping' => const <String, Object?>{'ready': true},
         'shutdown' => const <String, Object?>{'stopping': true},
         'render' => await _render(RenderRequest.fromJson(args)),
         'scan' when scan != null => await scan!(ScanRequest.fromJson(args)),
+        'evaluate' => await evaluateInstalledRequest(args),
         _ => throw RenderRequestException('Unknown command: $command.'),
       };
       return {'id': id, 'command': command, 'status': 'success', 'data': data};

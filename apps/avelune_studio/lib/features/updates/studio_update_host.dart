@@ -15,11 +15,13 @@ class StudioUpdateHost extends StatefulWidget {
   const StudioUpdateHost({
     required this.child,
     required this.onRestartRequested,
+    this.onRestartAborted,
     super.key,
   });
 
   final Widget child;
   final Future<bool> Function() onRestartRequested;
+  final Future<void> Function()? onRestartAborted;
 
   @override
   State<StudioUpdateHost> createState() => _StudioUpdateHostState();
@@ -98,6 +100,7 @@ class _StudioUpdateHostState extends State<StudioUpdateHost> {
     } else if (event['kind'] == 'failed' ||
         event['kind'] == 'cancelled' ||
         event['kind'] == 'noUpdate') {
+      await widget.onRestartAborted?.call();
       if (!mounted) return;
       setState(() {
         _opening = false;

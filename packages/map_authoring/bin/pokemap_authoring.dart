@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_local.dart'
     show
+        initializeCompanionProcessAccess,
         LocalCharacterContactShadowAuthoring,
         LocalMapAtmosphereAuthoring,
         LocalMapExteriorDecorationAuthoring,
@@ -15,6 +16,7 @@ import 'src/tiled_image_collection_cli_png_codec.dart';
 import 'src/project_template_catalog_loader.dart';
 
 Future<void> main(List<String> arguments) async {
+  initializeCompanionProcessAccess();
   late final _CliOptions options;
   try {
     options = _CliOptions.parse(arguments);
@@ -32,6 +34,7 @@ Future<void> main(List<String> arguments) async {
     policy = await WorkspacePolicy.create(
       allowedRootPaths: options.allowedRoots,
       fileReader: fileReader,
+      allowEmptyRoots: options.discoveryOnly,
     );
   } on WorkspaceAccessException catch (error) {
     stderr.writeln(
@@ -59,13 +62,16 @@ Future<void> main(List<String> arguments) async {
     ),
     snapshotLoader: snapshots,
   );
-  final artifacts = LocalArtifactStore(
-    allowedSourceRoots: [
-      ...options.allowedRoots,
-      ...options.artifactRoots,
-    ],
-    maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
-  );
+  final ArtifactStore artifacts = options.discoveryOnly
+      ? MemoryArtifactStore(
+          maximumArtifactBytes: maximumAuthoringArtifactBytesV1)
+      : LocalArtifactStore(
+          allowedSourceRoots: [
+            ...options.allowedRoots,
+            ...options.artifactRoots,
+          ],
+          maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
+        );
   final mutations = LocalMapAuthoringMutationApi(
     policy: policy,
     snapshotLoader: snapshots,
@@ -108,6 +114,7 @@ Future<void> main(List<String> arguments) async {
   }
   final worker = JsonlWorker(
     api: api,
+    discoveryOnly: options.discoveryOnly,
     mutations: mutations,
     mapElementOrder:
         LocalMapElementOrderAuthoring(policy: policy, reader: fileReader),
@@ -152,7 +159,8 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
-const String _usage = 'Usage: pokemap_authoring --root <allowed-root> '
+const String _usage =
+    'Usage: pokemap_authoring [--discovery-only | --root <allowed-root>] '
     '[--root <allowed-root> ...] [--export-root <allowed-output-root> ...] '
     '[--artifact-root <allowed-artifact-root> ...] '
     '[--timeout-ms <positive-int>] '
@@ -167,6 +175,7 @@ final class _CliOptions {
     required this.commandTimeout,
     required this.gameExportTimeout,
     required this.maxInputBytes,
+    required this.discoveryOnly,
   });
 
   factory _CliOptions.parse(List<String> arguments) {
@@ -176,10 +185,13 @@ final class _CliOptions {
     var timeoutMs = 10000;
     var exportTimeoutMs = 120000;
     var maxInputBytes = defaultAuthoringJsonlMaxInputBytes;
+    var discoveryOnly = false;
     var index = 0;
     while (index < arguments.length) {
       final option = arguments[index++];
       switch (option) {
+        case '--discovery-only':
+          discoveryOnly = true;
         case '--root':
           roots.add(_nextValue(arguments, index++, option));
         case '--artifact-root':
@@ -205,7 +217,15 @@ final class _CliOptions {
           throw const _CliUsageException('Unknown command-line option.');
       }
     }
-    if (roots.isEmpty) {
+    if (discoveryOnly &&
+        (roots.isNotEmpty ||
+            artifactRoots.isNotEmpty ||
+            exportRoots.isNotEmpty)) {
+      throw const _CliUsageException(
+        'Discovery-only workers cannot authorize filesystem roots.',
+      );
+    }
+    if (roots.isEmpty && !discoveryOnly) {
       throw const _CliUsageException(
         'At least one --root option is required.',
       );
@@ -217,6 +237,7 @@ final class _CliOptions {
       commandTimeout: Duration(milliseconds: timeoutMs),
       gameExportTimeout: Duration(milliseconds: exportTimeoutMs),
       maxInputBytes: maxInputBytes,
+      discoveryOnly: discoveryOnly,
     );
   }
 
@@ -226,6 +247,7 @@ final class _CliOptions {
   final Duration commandTimeout;
   final Duration gameExportTimeout;
   final int maxInputBytes;
+  final bool discoveryOnly;
 }
 
 String _nextValue(List<String> arguments, int index, String option) {
