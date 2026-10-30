@@ -33,6 +33,7 @@ flutter:
   uses-material-design: true
 
 dependency_overrides:
+  video_player_avfoundation: 2.12.0
   gamepads_darwin:
     path: ../../packages/gamepads_darwin
   gamepads_ios:
