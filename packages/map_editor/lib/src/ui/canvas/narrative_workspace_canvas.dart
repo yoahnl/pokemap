@@ -39,6 +39,7 @@ import '../../features/gameplay/presentation/shop_editor_panel.dart';
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../features/narrative/state/narrative_workspace_providers.dart';
+import '../../features/narrative/state/scene_image_media_catalog_provider.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../../features/narrative/state/narrative_scene_focus_provider.dart';
 import '../../features/narrative/state/narrative_event_builder_v2_providers.dart';
@@ -1223,6 +1224,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             : _buildSceneActionPickerOptions(
                 editor.project!,
                 sceneConsequenceCatalogs,
+                imageCatalog: ref.watch(sceneImageMediaCatalogProvider(editor.projectRootPath)).asData?.value,
                 activeMap: editor.activeMap,
               ),
         loadWarpMap: (mapId) async {
@@ -5033,6 +5035,7 @@ Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
 _buildSceneActionPickerOptions(
   ProjectManifest project,
   SceneConsequenceCatalogs catalogs, {
+  ProjectMediaCatalog? imageCatalog,
   MapData? activeMap,
 }) {
   final eventOptions = _buildSceneConsequenceEventOptions(
@@ -5080,6 +5083,8 @@ _buildSceneActionPickerOptions(
             label: '${activeMap.name} · Plateforme ${activeMap.movingPlatforms.indexOf(platform) + 1}'),
       for (final lift in activeMap?.spatialScene?.lifts ?? const <SpatialLiftDefinition>[])
         SceneActionPickerOption(id:'${activeMap!.id}::${lift.id}',label:'${activeMap.name} · ${lift.name}'),
+          for (final platform in activeMap?.spatialScene?.platforms ?? const <SpatialPlatformDefinition>[])
+        SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}', label: '${activeMap.name} · ${platform.name}'),
     ],
     NarrativeCommandParameterKind.mapEntityReference: [
       for (final map in activeMap == null ? const <MapData>[] : [activeMap])
@@ -5144,6 +5149,7 @@ _buildSceneActionPickerOptions(
       for (final cinematic in project.cinematics)
         SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
     ],
+    NarrativeCommandParameterKind.imageMediaReference: buildSceneImageMediaPickerOptions(imageCatalog ?? ProjectMediaCatalog()),
     NarrativeCommandParameterKind.soundMediaReference:
         buildSceneSoundMediaPickerOptions(project),
     NarrativeCommandParameterKind.musicMediaReference:

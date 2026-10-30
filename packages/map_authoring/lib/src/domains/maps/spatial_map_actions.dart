@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
+import 'map_action_examples.dart';
 
 final class SpatialMapActions {
   const SpatialMapActions();
@@ -57,6 +58,7 @@ final class SpatialMapActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
+          if (mapActionInputExample(entry.key) case final example?) 'inputExample': example,
           if (entry.value == 'ledges') 'directionalTraversal': {'capability': SpatialLedge.capabilityId, 'coordinateOrigin': 'source_cell', 'landing': 'source_plus_direction_times_distance', 'blockedReverse': true},
           if (entry.value == 'cycle') 'visualClock': {
             'gameplayClockIndependent': true, 'capability': 'map3d.day-night@1',

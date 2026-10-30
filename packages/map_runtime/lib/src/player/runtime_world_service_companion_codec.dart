@@ -25,6 +25,8 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
     final request = _decodeRequest(_map(data['request']));
     final content = data['content'] == null ? null : _decodeContent(_map(data['content']));
     final compatible = switch (request.kind) {
+      RuntimeWorldServiceKind.imagePuzzle => content is RuntimeImagePuzzleServiceContent && request is OpenImagePuzzleService && content.progress.definition == request.definition,
+      RuntimeWorldServiceKind.crafting => content is RuntimeCraftingServiceContent,
       RuntimeWorldServiceKind.shop => content == null || content is RuntimeShopServiceContent,
       RuntimeWorldServiceKind.heal => content == null || content is RuntimeHealServiceContent,
       RuntimeWorldServiceKind.pc => content == null || content is RuntimePcServiceContent,
@@ -73,6 +75,8 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
     'requiredCapabilities': request.requiredCapabilities.toList(),
     'availabilityCondition': request.availabilityCondition?.toJson(),
     ...switch (request) {
+      OpenImagePuzzleService() => {'definition': request.definition.toJson()},
+      OpenCraftingService() => {'definition': request.definition.toJson()},
       OpenShopService() => {'shopId': request.shopId},
       OpenPcService() => {'storageId': request.storageId},
       OpenHealService() => {
@@ -113,6 +117,8 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
     return switch (RuntimeWorldServiceKind.values.byName(
       data['kind'] as String,
     )) {
+      RuntimeWorldServiceKind.imagePuzzle => OpenImagePuzzleService(interactionId: id, definition: ImagePuzzleDefinition.fromJson(_map(data['definition'])), requiredCapabilities: capabilities, availabilityCondition: condition),
+      RuntimeWorldServiceKind.crafting => OpenCraftingService(interactionId: id, definition: DeferredCraftingDefinition.fromJson(_map(data['definition'])), requiredCapabilities: capabilities, availabilityCondition: condition),
       RuntimeWorldServiceKind.shop => OpenShopService(
         interactionId: id,
         shopId: data['shopId'] as String,
@@ -229,6 +235,16 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
       'party': content.party.map(_pokemon).toList(),
       'stored': content.stored.map(_pokemon).toList(),
     },
+    RuntimeImagePuzzleServiceContent() => {'kind': 'imagePuzzle', 'progress': content.progress.toJson(), 'bytes': base64Encode(content.bitmap.bytes), 'width': content.bitmap.width, 'height': content.bitmap.height, 'selectedPieceId': content.selectedPieceId, 'message': content.message},
+    RuntimeCraftingServiceContent() => {
+      'kind': 'crafting', 'title': content.title, 'status': content.status.name,
+      'quantity': content.quantity, 'maximumQuantity': content.maximumQuantity, 'reviewing': content.reviewing,
+      'selectedRecipeId': content.selectedRecipeId, 'message': content.message,
+      'pendingOutputLabel': content.pendingOutputLabel, 'pendingOutputQuantity': content.pendingOutputQuantity,
+      'recipes': [for (final recipe in content.recipes) {'recipeId': recipe.recipeId, 'label': recipe.label,
+        'inputLabel': recipe.inputLabel, 'outputLabel': recipe.outputLabel, 'inputQuantity': recipe.inputQuantity,
+        'outputQuantity': recipe.outputQuantity, 'ownedQuantity': recipe.ownedQuantity}],
+    },
     RuntimePartyTradeServiceContent() => {
       'kind': 'partyTrade',
       'phase': content.phase.name,
@@ -287,6 +303,12 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
         for (final raw in data['stored'] as List) _decodePokemon(_map(raw)),
       ],
     ),
+    'imagePuzzle' => RuntimeImagePuzzleServiceContent(progress: ImagePuzzleProgress.fromJson(_map(data['progress'])), bitmap: RuntimeImagePuzzleBitmap(bytes: base64Decode(data['bytes'] as String), width: data['width'] as int, height: data['height'] as int), selectedPieceId: data['selectedPieceId'] as int?, message: data['message'] as String?),
+    'crafting' => RuntimeCraftingServiceContent(title: data['title'] as String, status: RuntimeCraftingStatus.values.byName(data['status'] as String),
+      quantity: data['quantity'] as int, maximumQuantity: data['maximumQuantity'] as int, reviewing: data['reviewing'] as bool,
+      selectedRecipeId: data['selectedRecipeId'] as String?, message: data['message'] as String?,
+      pendingOutputLabel: data['pendingOutputLabel'] as String?, pendingOutputQuantity: data['pendingOutputQuantity'] as int?,
+      recipes: [for (final raw in data['recipes'] as List) _craftingRecipe(_map(raw))]),
     'partyTrade' => RuntimePartyTradeServiceContent(
       phase: RuntimePartyTradePhase.values.byName(data['phase'] as String),
       firstIndividualId: data['firstIndividualId'] as String?,
@@ -298,6 +320,10 @@ abstract final class _RuntimeWorldServiceCompanionCodec {
     ),
     _ => throw const FormatException('Unsupported companion service content.'),
   };
+
+  static RuntimeCraftingRecipeSnapshot _craftingRecipe(Map<String, dynamic> data) => RuntimeCraftingRecipeSnapshot(
+    recipeId: data['recipeId'] as String, label: data['label'] as String, inputLabel: data['inputLabel'] as String,
+    outputLabel: data['outputLabel'] as String, inputQuantity: data['inputQuantity'] as int, outputQuantity: data['outputQuantity'] as int, ownedQuantity: data['ownedQuantity'] as int);
 
   static RuntimeShopEntrySnapshot _shopEntry(Map<String, dynamic> data) =>
       RuntimeShopEntrySnapshot(

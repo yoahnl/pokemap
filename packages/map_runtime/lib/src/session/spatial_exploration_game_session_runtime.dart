@@ -1,5 +1,6 @@
 import '../player/real_weather_service.dart';
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
@@ -15,6 +16,7 @@ import '../application/narrative_runtime_activity_gate.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_map_bundle.dart';
 import '../application/battle_start_request.dart';
+import '../application/encounter_to_battle_request.dart';
 import '../application/map_activation.dart';
 import '../application/runtime_committed_movement.dart';
 import '../application/narrative_event_runtime_snapshot.dart';
@@ -24,6 +26,7 @@ import '../application/scene_runtime/runtime_scene_pokemon_catalog.dart';
 import '../application/scene_runtime/runtime_scene_party_condition_context.dart';
 import '../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
+import '../application/scene_runtime/world_presentation_image_loader.dart';
 import '../application/scene_runtime/scene_wild_battle_request.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
@@ -58,6 +61,8 @@ import 'game_session_contract.dart';
 import 'in_process_game_session_adapter.dart';
 import 'playable_map_game_session_runtime.dart';
 import 'runtime_session_strings.dart';
+
+part 'spatial_exploration_game_session_fishing.dart';
 
 typedef SpatialExplorationSessionMount = Future<void> Function(
   SpatialExplorationGameSessionRuntime runtime,
@@ -139,6 +144,15 @@ final class SpatialExplorationGameSessionRuntime
   Map<String, MapData> _mapsById = const {};
   bool _usesFieldObstacleInstances = false;
   int _gameplayOperations = 0;
+  FishingActionTicket? _fishingTicket;
+  GameplayWorldState? _fishingWorldState;
+  MapData? _fishingSourceMap;
+  FishingAttemptFlow? _fishingFlow;
+  DialoguePresentationSnapshot? _fishingFeedback;
+  bool _fishingPreparing = false;
+  bool _fishingHandoffPending = false;
+  int _fishingSequence = 0;
+  final _fishingRandom = Random();
   bool _materializingState = false;
   MapActivation? _pendingSceneMapActivation;
   bool _hasUncommittedSceneWarp = false;
@@ -869,6 +883,7 @@ final class SpatialExplorationGameSessionRuntime
         isActive: () => !_disposed && !_stopped,
         canProcessInput: () =>
             !_paused &&
+            !_isFishingBusy &&
             _locks.isEmpty &&
             !(_session?.transitioning.value ?? false) &&
             !(_session?.interactionActive.value ?? false) &&
@@ -876,6 +891,7 @@ final class SpatialExplorationGameSessionRuntime
         runtimeIdFactory: (prefix) =>
             '$prefix${_runtimeIds.generate(existingRecords: const []).substring(3)}',
         narrativeSnapshot: narrativeSnapshot,
+        loadPresentationMediaCatalog: () => WorldPresentationImageLoader(bundle.projectRootDirectory).loadCatalog(),
         afterStateCommitted: _materializeState,
         onSceneTerminated: (owner) async {
           _story?.releaseScene(owner);
@@ -1031,6 +1047,8 @@ final class SpatialExplorationGameSessionRuntime
                       ),
                     OpenHealService() => openHealCenter(request: request),
                     OpenPcService() => openPc(request: request),
+                    OpenCraftingService() => _openSceneCrafting(request),
+                    OpenImagePuzzleService() => _openSceneImagePuzzle(request),
                     OpenPartyTradeService() => _playerServices!.openPartyTrade(request: request),
                     OpenRegionalMapService() => Future<PlayerServiceRuntimeResult>.value(
                         const PlayerServiceRuntimeResult.unavailable('La carte régionale en scène n’est pas disponible en 3D.')),
@@ -1042,6 +1060,11 @@ final class SpatialExplorationGameSessionRuntime
                   if (result.status == PlayerServiceRuntimeStatus.failed) {
                     throw StateError(
                         'The spatial world service failed: ${result.error}');
+                  }
+                  if (request is OpenImagePuzzleService) {
+                    final outcome = result.imagePuzzleOutcome;
+                    if (outcome == null) throw StateError(result.safeMessage ?? 'The image puzzle did not reach a durable outcome.');
+                    return outcome.name;
                   }
                   return result.status == PlayerServiceRuntimeStatus.completed
                       ? 'completed'
@@ -1094,7 +1117,8 @@ final class SpatialExplorationGameSessionRuntime
 
   Future<String> _startBattle(BattleStartRequest request,
       {SceneBattleDefeatRecovery defeatRecovery =
-          SceneBattleDefeatRecovery.returnToRecoveryPoint}) async {
+          SceneBattleDefeatRecovery.returnToRecoveryPoint,
+      bool Function()? claimStart}) async {
     _ensureGameplayActive();
     _sceneBattleOutcome = null;
     final bundle = _session!.bundle;
@@ -1106,6 +1130,7 @@ final class SpatialExplorationGameSessionRuntime
     try {
       await _applyMusicSelection();
       _ensureGameplayActive();
+      if (claimStart != null && !claimStart()) return 'blocked';
       final completed = await _battle!.start(
           bundle: bundle, request: request, defeatRecovery: defeatRecovery);
       _ensureGameplayActive();
@@ -1251,6 +1276,7 @@ final class SpatialExplorationGameSessionRuntime
 
   void _onMapActivated() {
     if (_disposed || _stopped) return;
+    _cancelSpatialFishing();
     _configureRealWeather();
     if (_audioMapId != _session?.bundle.map.id) {
       _audioMapId = _session?.bundle.map.id;
@@ -1349,6 +1375,7 @@ final class SpatialExplorationGameSessionRuntime
         if (ProjectAudioCapabilities.requiresExtendedCapability(manifest)) ProjectAudioCapabilities.extendedCapabilityId,
         if (ProjectAudioCapabilities.requiresFieldMovementCapability(manifest)) ProjectAudioCapabilities.fieldMovementCapabilityId,
         if (SpatialGameplayCapabilities.requiresSceneMusic(manifest)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
+        if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest)) SpatialGameplayCapabilities.deferredCraftingCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(manifest)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(manifest)) SpatialGameplayCapabilities.eggGiftCapabilityId,
         if (SpatialGameplayCapabilities.requiresAudio(manifest)) SpatialGameplayCapabilities.audioCapabilityId,
@@ -1385,6 +1412,9 @@ final class SpatialExplorationGameSessionRuntime
         state = const GameStateSaveEnvelopeMapper().restore(save!);
         _createdAt = save.createdAt;
         _basePlayTimeSeconds = save.playTimeSeconds;
+      }
+      if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest) || state.gameplayCalendarState.isInitialized) {
+        state = observeGameplayCalendar(state, localDay: runtimeCivilDay(_now()));
       }
       final mapId = state.currentMapId.trim();
       final position = state.playerSpatialPosition;
@@ -1443,6 +1473,7 @@ final class SpatialExplorationGameSessionRuntime
       if (bundle.map.spatialScene!.lifts.isNotEmpty && !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) {
         throw StateError('The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.');
       }
+      if (SpatialGameplayCapabilities.requiresPlatforms([bundle.map]) && !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.platformCapabilityId)) throw StateError('The map requires ${SpatialGameplayCapabilities.platformCapabilityId}.');
       if (bundle.map.spatialScene?.camera.projection == SpatialCameraProjection.orthographic && !descriptor.grantedCapabilities.contains(SpatialCameraProfile.orthographicCapabilityId)) throw StateError('The map requires ${SpatialCameraProfile.orthographicCapabilityId}.');
       if (SpatialActorOcclusionCapabilities.requiresCapability(manifest, maps: [bundle.map]) &&
           !descriptor.grantedCapabilities.contains(SpatialActorOcclusionCapabilities.capabilityId)) {
@@ -1490,6 +1521,7 @@ final class SpatialExplorationGameSessionRuntime
                 !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) {
               throw StateError('The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.');
             }
+            if (SpatialGameplayCapabilities.requiresPlatforms([next.map]) && !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.platformCapabilityId)) throw StateError('The map requires ${SpatialGameplayCapabilities.platformCapabilityId}.');
             return next;
           },
           knownMaps: _mapsById.values,
@@ -1537,6 +1569,10 @@ final class SpatialExplorationGameSessionRuntime
           }
         },
       );
+      loaded.onPresentationFrame = (dt, paused) {
+        _story?.update(dt, paused || _isFishingBusy);
+        _advanceSpatialFishing(dt);
+      };
       _initializePlayerServices(bundle);
       loaded.interactionActive.addListener(_syncMovement);
       loaded.transitioning.addListener(_syncMovement);
@@ -1604,6 +1640,13 @@ final class SpatialExplorationGameSessionRuntime
       return true;
     }
     if (!inputAuthority.value.acceptsRuntimeInput) return true;
+    if (_isFishingBusy) {
+      if (!_paused && event.isPress && !event.isRepeat &&
+          event.control == RuntimeInputControl.secondary) {
+        _cancelSpatialFishing();
+      }
+      return true;
+    }
     if (inputAuthority.value.context == RuntimeInputContext.battle) {
       return _battle?.handleInput(event) ?? true;
     }
@@ -1662,6 +1705,10 @@ final class SpatialExplorationGameSessionRuntime
     _ensureOpen();
     if (locked) {
       _transferPauseEpoch++;
+      if (owner == RuntimeExternalInputLock.lifecycle ||
+          owner == RuntimeExternalInputLock.gameCompletion) {
+        _cancelSpatialFishing();
+      }
       _locks.add(owner);
       if (_session?.transitioning.value ?? false) {
         _session!.cancelPendingTransition();
@@ -1683,9 +1730,10 @@ final class SpatialExplorationGameSessionRuntime
         (_session?.transitioning.value ?? false);
     final talking = _session?.interactionActive.value ?? false;
     final battling = _battle?.isActive ?? false;
-    if (paused || talking || battling) _pressed.clear();
+    final fishing = _isFishingBusy;
+    if (paused || talking || battling || fishing) _pressed.clear();
     final busy = _gameplayOperations > 0 || (_gameplay?.isBusy ?? false);
-    if (!_disposed && !_stopped && (paused || talking || battling || busy)) {
+    if (!_disposed && !_stopped && (paused || talking || battling || busy || fishing)) {
       _story?.autonomousNpcs.update(0, paused: true);
     }
     if (!paused || _stopped) {
@@ -1693,9 +1741,9 @@ final class SpatialExplorationGameSessionRuntime
       _materializationResumed = null;
     }
     _session?.dialoguePaused = _paused || _stopped || _locks.isNotEmpty;
-    _session?.movement.setPaused(paused || talking || battling || busy,
-        preserveInput: !paused && !talking && !battling);
-    if (!paused && !talking && !battling && !busy) {
+    _session?.movement.setPaused(paused || talking || battling || busy || fishing,
+        preserveInput: !paused && !talking && !battling && !fishing);
+    if (!paused && !talking && !battling && !busy && !fishing) {
       _session?.movement.setInput(
           x: (_pressed.contains(RuntimeInputControl.right) ? 1 : 0) -
               (_pressed.contains(RuntimeInputControl.left) ? 1 : 0),
@@ -1715,9 +1763,11 @@ final class SpatialExplorationGameSessionRuntime
                 ? RuntimeInputContext.battle
                 : talking
                     ? RuntimeInputContext.dialogue
+                    : fishing ? RuntimeInputContext.blocked
                     : RuntimeInputContext.overworld,
         externalLocks: Set.unmodifiable(_locks),
-        sprintAllowed: !paused && !talking && !battling);
+        canCancelWorldAction: fishing && !paused,
+        sprintAllowed: !paused && !talking && !battling && !fishing);
     _publishInteractions();
   }
 
@@ -1760,6 +1810,9 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   Future<GameSessionCheckpoint?> captureCheckpoint() async {
+    if (_isFishingBusy) {
+      throw StateError('A fishing attempt is still in progress.');
+    }
     if (_session?.surfTransitionActive ?? false) {
       throw StateError('A Surf transition is still in progress.');
     }
@@ -1782,7 +1835,7 @@ final class SpatialExplorationGameSessionRuntime
     });
   }
 
-  GameSessionCheckpoint _checkpointFromState(GameState state) {
+  GameSessionCheckpoint _checkpointFromState(GameState state, {bool captureEnvironment = true}) {
     ensureRuntimeBagCapacity(
       state: state,
       capacity: _session!.bundle.manifest.bagCapacity,
@@ -1793,16 +1846,19 @@ final class SpatialExplorationGameSessionRuntime
         createdAt: _createdAt!,
         updatedAt: _now().toUtc(),
         playTimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
-        state: strictGameStateSaveJson(state.copyWith(environmentState: _environmentClock?.checkpoint ?? state.environmentState)));
+        state: strictGameStateSaveJson(captureEnvironment ? state.copyWith(environmentState: _environmentClock?.checkpoint ?? state.environmentState) : state));
   }
 
   void _initializePlayerServices(RuntimeMapBundle bundle) {
     final services = PlayerServiceRuntimeController.contextual(
+        civilNow: _now,
         currentGameState: () {
           _story?.autonomousNpcs.flush();
           return _sceneStateReader?.call() ?? gameStateSnapshot;
         },
         commitAndSave: _commitPlayerServiceState,
+        commitCraftingAndSave: _commitCheckpoint == null ? null : _commitCraftingState,
+        commitImagePuzzleAndSave: _commitCheckpoint == null ? null : _commitImagePuzzleState,
         setInputLocked: (locked) {
           if (_disposed) return;
           if (locked) {
@@ -1828,8 +1884,10 @@ final class SpatialExplorationGameSessionRuntime
         bagCapacity: bundle.manifest.bagCapacity,
         itemCatalog: _bagItemCatalog,
         locale: descriptor.locale);
+    services.setFishingConsumer(_reserveSpatialFishing);
     services.setPauseMutationGuard(() =>
         _activityGate.activity == NarrativeRuntimeActivity.idle &&
+                !_isFishingBusy &&
                 !_stopped &&
                 _gameplayOperations == 0 &&
                 !_materializingState &&
@@ -1868,6 +1926,73 @@ final class SpatialExplorationGameSessionRuntime
       interaction: SceneMessageInteractionRequest(requestId: id, revision: 0,
         prompt: SceneInteractionPrompt(localizationKey: full ? 'overworld.item.bagFull' : 'overworld.item.received',
           fallbackText: full ? 'Le Sac est plein...' : 'Obtenu : $itemLabel × ${entity.item!.quantity} !'))));
+  }
+
+  NarrativeEventStateCheckpointOwner? _imagePuzzleCheckpointOwner;
+  NarrativeRuntimeSceneCheckpointOwner? _imagePuzzleActivityOwner;
+
+  Future<PlayerServiceRuntimeResult> _openSceneImagePuzzle(OpenImagePuzzleService request) async {
+    final reader = _sceneStateReader;
+    final owner = _gameplay?.activeSceneCheckpointOwner;
+    if (reader == null || owner == null || _sceneStateWriter == null) return const PlayerServiceRuntimeResult.unavailable('Ce puzzle nécessite une scène active.');
+    if (!sameImagePuzzleCheckpointFields(reader(), _gameplay?.projectedSceneGameState ?? reader())) throw StateError('Pending Scene puzzle changes must finish before opening.');
+    _imagePuzzleCheckpointOwner = owner;
+    _imagePuzzleActivityOwner = _activityGate.captureSceneCheckpointOwner();
+    try { return await _playerServices!.openImagePuzzle(request: request); }
+    finally { _imagePuzzleCheckpointOwner = null; _imagePuzzleActivityOwner = null; }
+  }
+
+  Future<void> _commitImagePuzzleState(GameState nextState) async {
+    final reader = _sceneStateReader;
+    final writer = _sceneStateWriter;
+    final owner = _imagePuzzleCheckpointOwner;
+    final activity = _imagePuzzleActivityOwner;
+    final persist = _commitCheckpoint;
+    if (reader == null || writer == null || owner == null || activity == null || persist == null || _disposed || _stopped) throw StateError('The puzzle Scene checkpoint owner is unavailable.');
+    final current = reader();
+    if (!sameImagePuzzleCheckpointFields(current, _gameplay?.projectedSceneGameState ?? current)) throw StateError('Pending Scene puzzle changes conflict with this checkpoint.');
+    final projected = await checkpointImagePuzzle(owner: owner, currentDraft: current, nextDraft: nextState, persist: (durable) async {
+      await _activityGate.runSceneCheckpoint(activity, () => persist(GameSessionCheckpointCommit(descriptor: descriptor.publicContext, checkpoint: _checkpointFromState(durable, captureEnvironment: false), status: SaveStatus.active, trigger: GameSessionCheckpointTrigger.pauseMutation)));
+      _gameState = durable;
+    });
+    writer(projected);
+  }
+
+  NarrativeEventStateCheckpointOwner? _craftingCheckpointOwner;
+  NarrativeRuntimeSceneCheckpointOwner? _craftingActivityOwner;
+
+  Future<PlayerServiceRuntimeResult> _openSceneCrafting(OpenCraftingService request) async {
+    final reader = _sceneStateReader;
+    final owner = _gameplay?.activeSceneCheckpointOwner;
+    if (reader == null || owner == null || _sceneStateWriter == null) return const PlayerServiceRuntimeResult.unavailable('Cet atelier nécessite une scène active.');
+    final projected = _gameplay?.projectedSceneGameState ?? reader();
+    if (!sameDeferredCraftingCheckpointFields(reader(), projected)) {
+      const message = 'Votre sac est en cours de modification. Terminez cette interaction puis réessayez.';
+      final id = 'crafting-unavailable:${request.interactionId}';
+      await _playerServices!.openSceneTextInteraction(request: OpenSceneTextInteractionService(interactionId: id,
+          interaction: SceneMessageInteractionRequest(requestId: id, revision: 0, prompt: SceneInteractionPrompt(localizationKey: 'crafting.unavailable', fallbackText: message))));
+      return const PlayerServiceRuntimeResult.unavailable(message);
+    }
+    _craftingCheckpointOwner = owner;
+    _craftingActivityOwner = _activityGate.captureSceneCheckpointOwner();
+    try { return await _playerServices!.openCrafting(request: request); }
+    finally { _craftingCheckpointOwner = null; _craftingActivityOwner = null; }
+  }
+
+  Future<void> _commitCraftingState(GameState nextState) async {
+    final reader = _sceneStateReader;
+    final writer = _sceneStateWriter;
+    final owner = _craftingCheckpointOwner;
+    final activity = _craftingActivityOwner;
+    final persist = _commitCheckpoint;
+    if (reader == null || writer == null || owner == null || activity == null || persist == null || _disposed || _stopped) throw StateError('The crafting Scene checkpoint owner is unavailable.');
+    final current = reader();
+    if (!sameDeferredCraftingCheckpointFields(current, _gameplay?.projectedSceneGameState ?? current)) throw StateError('Pending Scene inventory changes conflict with crafting.');
+    final projected = await checkpointDeferredCrafting(owner: owner, currentDraft: current, nextDraft: nextState, persist: (durable) async {
+      await _activityGate.runSceneCheckpoint(activity, () => persist(GameSessionCheckpointCommit(descriptor: descriptor.publicContext, checkpoint: _checkpointFromState(durable, captureEnvironment: false), status: SaveStatus.active, trigger: GameSessionCheckpointTrigger.pauseMutation)));
+      _gameState = durable;
+    });
+    writer(projected);
   }
 
   Future<void> _commitPlayerServiceState(GameState state) async {
@@ -1998,6 +2123,7 @@ final class SpatialExplorationGameSessionRuntime
 
   @override
   Future<void> stop(GameSessionExitReason reason) async {
+    _cancelSpatialFishing();
     _pendingContactId = null;
     _story?.autonomousNpcs.flush();
     _story?.cancel();
@@ -2046,6 +2172,7 @@ final class SpatialExplorationGameSessionRuntime
         itemCatalog: _bagItemCatalog,
         locale: descriptor.locale,
         uiLocale: _preferences?.locale,
+        supportsFishing: _playerServices?.supportsFishing ?? false,
         mapEnabled: descriptor.grantedCapabilities.contains('map3d@1'),
         projectMaps: manifest.maps,
         regionalMap: manifest.regionalMap,
@@ -2068,6 +2195,7 @@ final class SpatialExplorationGameSessionRuntime
   @override
   Future<void> dispose() async {
     if (_disposed) return;
+    _cancelSpatialFishing();
     _pendingContactId = null;
     _story?.autonomousNpcs.flush();
     _story?.cancel();

@@ -255,6 +255,37 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.actorRoute => throw const FormatException(
       'Actor routes require the typed target and steps builder.',
     ),
+    NarrativeCommandIds.openImagePuzzle => SceneActionPayload.interactive(
+      SceneInteractiveCommand.fromJson({
+        'kind': 'openImagePuzzle',
+        'definition': {
+          'schemaVersion': 1,
+          'puzzleId': parameters['puzzleId'],
+          'imageResourceId': parameters['imageResourceId'],
+          'rows': int.parse(parameters['rows'] ?? '4'),
+          'columns': int.parse(parameters['columns'] ?? '4'),
+          'trayCapacity': int.parse(parameters['trayCapacity'] ?? '1'),
+          'allowedQuarterTurns': parameters['allowRotation'] == 'false' ? [0] : [0, 1, 2, 3],
+          'fixedPieceIds': parameters['fixedPieceIds'] == null ? [] : jsonDecode(parameters['fixedPieceIds']!),
+          'allowReset': parameters['allowReset'] != 'false',
+          'allowSwap': parameters['allowSwap'] == 'true',
+          if (parameters['layout'] != null) ..._imagePuzzleLayout(parameters['layout']!),
+        },
+      }),
+    ),
+    NarrativeCommandIds.openCrafting => SceneActionPayload.interactive(
+      SceneInteractiveCommand.fromJson({
+        'kind': 'openCrafting',
+        'definition': {
+          'schemaVersion': 1,
+          'serviceId': parameters['serviceId'],
+          'label': parameters['label'],
+          'recipes': jsonDecode(parameters['recipes'] ?? '[]'),
+          'maximumBatchQuantity': int.parse(parameters['maximumBatchQuantity'] ?? '99'),
+          'requiredDayChanges': int.parse(parameters['requiredDayChanges'] ?? '1'),
+        },
+      }),
+    ),
     NarrativeCommandIds.openShop => SceneActionPayload.interactive(
       SceneInteractiveCommand.openShop(shopId: parameters['shopId']!),
     ),
@@ -661,4 +692,12 @@ SceneNodePayload _buildWorldPresentationPayload(Map<String, String> parameters) 
     json[entry.key] = entry.key == 'visualSettings' ? jsonDecode(entry.value) : integers.contains(entry.key) ? int.parse(entry.value) : numbers.contains(entry.key) ? double.parse(entry.value) : entry.key == 'waitForCompletion' ? entry.value == 'true' : entry.value;
   }
   return SceneActionPayload.interactive(SceneWorldPresentationInteractiveCommand.fromJson(json));
+}
+
+Map<String, dynamic> _imagePuzzleLayout(String encoded) {
+  final decoded = jsonDecode(encoded);
+  if (decoded is! Map || decoded.keys.any((key) => !const {'allowedQuarterTurns', 'fixedPieceIds', 'initialPieces'}.contains(key))) {
+    throw const FormatException('Invalid image puzzle layout fields.');
+  }
+  return Map<String, dynamic>.from(decoded);
 }

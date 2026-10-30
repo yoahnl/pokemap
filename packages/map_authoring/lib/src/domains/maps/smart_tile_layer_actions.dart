@@ -8,6 +8,7 @@ import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import 'map_lifecycle_adapter.dart';
 import 'semantic_map_action_support.dart';
+import 'map_action_examples.dart';
 import 'smart_tile_diff_support.dart';
 import 'smart_tile_native_transition_guard.dart';
 
@@ -893,6 +894,16 @@ AuthoringActionDescriptor _smartTileLayerDescriptor(
         'rawTilesetRequired': false,
         'projectWidePreflight': true,
         if (id == 'smart_tile.layer.create') ...{
+          'inputExample': mapActionInputExample(id),
+          'inputSchema': {
+            'type':'object','additionalProperties':false,
+            'required':['mapId','layerId','name','presetId'],
+            'properties':{
+              for (final key in ['mapId','layerId','name','presetId'])
+                key: const {'type':'string','minLength':1},
+              'insertIndex': const {'type':'integer','minimum':0},
+            },
+          },
           'diffProjection': 'semantic_catalog_binding',
           'maximumInlineCatalogDiffByteLength':
               maximumSmartTileInlineDiffByteLength,

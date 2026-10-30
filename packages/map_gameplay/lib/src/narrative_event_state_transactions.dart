@@ -45,7 +45,14 @@ typedef NarrativeEventAfterCommitCallback = FutureOr<void> Function(
 final Object _narrativeTransactionZoneKey = Object();
 
 final class _NarrativeEventTransactionContext {
-  _NarrativeEventTransactionContext(this.owner);
+  _NarrativeEventTransactionContext(this.owner, this.rollbackState);
+
+  GameState rollbackState;
+  bool active = true;
+  bool closing = false;
+  bool checkpointBusy = false;
+  Future<void>? pendingCheckpoint;
+  final rebases = <GameState Function(GameState)>[];
 
   final NarrativeEventStateTransactions owner;
   final List<NarrativeEventAfterCommitCallback> afterCommitCallbacks =
@@ -59,12 +66,13 @@ final class NarrativeEventStateTransactions {
   GameState _gameState;
   Future<void> _tail = Future<void>.value();
   Future<void> _outboxTail = Future<void>.value();
+  _NarrativeEventTransactionContext? _activeContext;
 
   Future<T> transact<T>(NarrativeEventStateTransactionCallback<T> callback) {
     final completer = Completer<T>();
     _tail = _tail.then((_) async {
-      final previousState = _gameState;
-      final context = _NarrativeEventTransactionContext(this);
+      final context = _NarrativeEventTransactionContext(this, _gameState);
+      _activeContext = context;
       try {
         final decision = await runZoned(
           () => callback(_gameState),
@@ -72,16 +80,27 @@ final class NarrativeEventStateTransactions {
             _narrativeTransactionZoneKey: context,
           },
         );
+        context.closing = true;
+        await context.pendingCheckpoint;
         if (decision is NarrativeEventStateTransactionCommit<T>) {
-          _gameState = decision.gameState;
+          var committed = decision.gameState;
+          for (final rebase in context.rebases) {
+            committed = rebase(committed);
+          }
+          _gameState = committed;
           for (final afterCommit in context.afterCommitCallbacks) {
             await afterCommit(_gameState);
           }
         }
         completer.complete(decision.value);
       } catch (error, stackTrace) {
-        _gameState = previousState;
+        context.closing = true;
+        await context.pendingCheckpoint;
+        _gameState = context.rollbackState;
         completer.completeError(error, stackTrace);
+      } finally {
+        context.active = false;
+        if (identical(_activeContext, context)) _activeContext = null;
       }
     });
     return completer.future;
@@ -103,6 +122,49 @@ final class NarrativeEventStateTransactions {
     return true;
   }
 
+  NarrativeEventStateCheckpointOwner? captureCheckpointOwner() {
+    final context = Zone.current[_narrativeTransactionZoneKey];
+    if (context is! _NarrativeEventTransactionContext ||
+        !identical(context.owner, this) ||
+        !context.active ||
+        context.closing ||
+        !identical(_activeContext, context)) {
+      return null;
+    }
+    return NarrativeEventStateCheckpointOwner._(this, context);
+  }
+
+  Future<void> _checkpoint(
+    NarrativeEventStateCheckpointOwner owner, {
+    required GameState expectedBase,
+    required GameState durableState,
+    required Future<void> Function(GameState) persist,
+    required GameState Function(GameState) rebase,
+  }) async {
+    final context = owner._context;
+    if (!identical(owner._owner, this) ||
+        !identical(_activeContext, context) ||
+        !context.active ||
+        context.closing ||
+        context.checkpointBusy ||
+        !identical(_gameState, expectedBase) ||
+        durableState.saveId != expectedBase.saveId) {
+      throw StateError('The narrative checkpoint owner or baseline is stale.');
+    }
+    context.checkpointBusy = true;
+    final settled = Completer<void>();
+    context.pendingCheckpoint = settled.future;
+    try {
+      await persist(durableState);
+      context.rollbackState = durableState;
+      context.rebases.add(rebase);
+      _gameState = durableState;
+    } finally {
+      context.checkpointBusy = false;
+      settled.complete();
+    }
+  }
+
   Future<T> serializeOutbox<T>(Future<T> Function() callback) {
     final completer = Completer<T>();
     _outboxTail = _outboxTail.then((_) async {
@@ -120,4 +182,37 @@ final class NarrativeEventStateTransactions {
       (gameState) => NarrativeEventStateTransaction.rollback(gameState),
     );
   }
+}
+
+final class NarrativeEventStateCheckpointOwner {
+  NarrativeEventStateCheckpointOwner._(this._owner, this._context);
+  final NarrativeEventStateTransactions _owner;
+  final _NarrativeEventTransactionContext _context;
+
+  GameState get latestCheckpointState {
+    if (!_context.active || !identical(_owner._activeContext, _context)) {
+      throw StateError('The narrative checkpoint owner is no longer active.');
+    }
+    return _context.rollbackState;
+  }
+
+  GameState get committedState {
+    if (!_context.active ||
+        _context.closing ||
+        !identical(_owner._activeContext, _context)) {
+      throw StateError('The narrative checkpoint owner is no longer active.');
+    }
+    return _owner._gameState;
+  }
+
+  Future<void> checkpoint(
+          {required GameState expectedBase,
+          required GameState durableState,
+          required Future<void> Function(GameState) persist,
+          required GameState Function(GameState) rebase}) =>
+      _owner._checkpoint(this,
+          expectedBase: expectedBase,
+          durableState: durableState,
+          persist: persist,
+          rebase: rebase);
 }

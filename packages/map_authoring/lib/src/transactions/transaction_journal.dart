@@ -1,3 +1,4 @@
+import '../contracts/map_edit_operation.dart';
 import '../catalog_storage/catalog_history_transition.dart';
 import '../catalog_storage/catalog_storage_store.dart';
 import '../contracts/authoring_receipt.dart';
@@ -132,7 +133,21 @@ final class AuthoringTransactionJournal {
         createdAt = createdAt.toUtc(),
         updatedAt = updatedAt.toUtc(),
         entries = _sortedEntries(entries) {
-    if (this.entries.isEmpty) {
+    final bindingJson = intendedReceipt.extensions['mapEdit'];
+    final binding = bindingJson is Map
+        ? MapEditBinding.fromJson(Map<String, dynamic>.from(bindingJson))
+        : null;
+    if (binding != null &&
+        (scope.actionId != 'map3d.edit_batch' ||
+            scope.actionVersion != 1 ||
+            binding.operationId != this.operationId ||
+            binding.unchanged != this.entries.isEmpty ||
+            (finalReceipt != null &&
+                canonicalAuthoringJson(finalReceipt!.extensions['mapEdit']) !=
+                    canonicalAuthoringJson(binding.toJson())))) {
+      throw const FormatException('Invalid journal map edit binding.');
+    }
+    if (this.entries.isEmpty && binding == null) {
       throw ArgumentError.value(entries, 'entries', 'must not be empty');
     }
     _requireCatalogHistoryBinding();

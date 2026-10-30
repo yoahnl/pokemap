@@ -23,6 +23,9 @@ import 'package:map_authoring/map_authoring_local.dart'
 
 import '../api/authoring_mutation_api.dart';
 import '../api/authoring_read_api.dart';
+import '../api/authoring_capability_discovery.dart';
+import '../api/map_edit_execution.dart';
+import '../contracts/map_edit_operation.dart';
 import '../api/authoring_result_projection.dart';
 import '../contracts/authoring_error.dart';
 import '../contracts/authoring_request.dart';
@@ -636,8 +639,18 @@ final class JsonlWorker {
     }
     switch (command) {
       case 'describe':
-        rejectUnknownContractKeys(args, const {});
-        return _combinedDescription();
+        rejectUnknownContractKeys(args, const {'domain', 'view', 'actionIds'});
+        final actionIds = args['actionIds'];
+        if (actionIds != null &&
+            (actionIds is! List || actionIds.any((id) => id is! String))) {
+          throw const FormatException('actionIds must be a string list.');
+        }
+        return describeAuthoringCapabilities(_combinedDescription(),
+            domain: args['domain'] == null
+                ? 'all' : requireContractString(args['domain'], 'domain'),
+            view: args['view'] == null
+                ? 'full' : requireContractString(args['view'], 'view'),
+            actionIds: actionIds == null ? const [] : (actionIds as List).cast<String>());
       case 'projection':
         final mutations = _mutations;
         if (mutations is! AuthoringResultProjectionPort) {
@@ -648,6 +661,15 @@ final class JsonlWorker {
           args,
           requestId: requestId,
         );
+      case 'map_edit':
+        final editor = _mutations;
+        if (editor is! AuthoringMapEditPort) {
+          throw const _UnsupportedWorkerCommand();
+        }
+        final project = _projectHandle(args);
+        final operation = MapEditOperation.fromJson(
+            Map<String, dynamic>.from(args)..remove('projectHandle'));
+        return (editor as AuthoringMapEditPort).mapEdit(project, operation);
       case 'open':
         rejectUnknownContractKeys(args, const {'projectRoot'});
         final projectRoot =

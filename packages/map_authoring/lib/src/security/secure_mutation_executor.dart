@@ -1,3 +1,4 @@
+import '../contracts/map_edit_operation.dart';
 import '../history/authoring_history.dart';
 import '../transactions/file_idempotency_store.dart';
 import '../transactions/idempotency_ledger.dart';
@@ -56,6 +57,11 @@ final class SecureAuthoringMutationExecutor {
       found = await lookup();
       if (found == null) return null;
       action = resolveAction(found.scope.actionId);
+      if (found.expired) {
+        throw AuthoringIdempotencyException(
+            code: 'map_edit.result_expired',
+            message: 'The durable result retention has expired.');
+      }
       final record = found.completed;
       if (record == null) {
         throw AuthoringIdempotencyException(
@@ -63,7 +69,15 @@ final class SecureAuthoringMutationExecutor {
             message: 'A durable reservation requires transaction recovery.');
       }
       receipt = record.receipt!;
-      final history = await readHistory(receipt.receiptId);
+      final rawBinding = receipt.extensions['mapEdit'];
+      final mapEditBinding = rawBinding is Map
+          ? MapEditBinding.fromJson(Map<String, dynamic>.from(rawBinding))
+          : null;
+      final independentReplay = action.id == 'map3d.edit_batch' &&
+          action.version == 1 &&
+          mapEditBinding?.operationId == operationId;
+      final history =
+          independentReplay ? null : await readHistory(receipt.receiptId);
       if (found.scope.actorId != actor.actorId ||
           found.scope.projectId != projectId ||
           found.operationId != operationId ||
@@ -78,20 +92,21 @@ final class SecureAuthoringMutationExecutor {
           action.version != found.scope.actionVersion ||
           receipt.actionId != action.id ||
           receipt.actionVersion != action.version ||
-          history == null ||
-          history.actorId != actor.actorId ||
-          history.projectId != projectId ||
-          history.planId != planId ||
-          history.operationId != operationId ||
-          !_matchesCanonicalHistoryReceipt(receipt, history.receipt) ||
-          (action.id == 'resource_pack.import' &&
-              history.bulkCapability == null)) {
+          (!independentReplay &&
+              (history == null ||
+                  history.actorId != actor.actorId ||
+                  history.projectId != projectId ||
+                  history.planId != planId ||
+                  history.operationId != operationId ||
+                  !_matchesCanonicalHistoryReceipt(receipt, history.receipt) ||
+                  (action.id == 'resource_pack.import' &&
+                      history.bulkCapability == null)))) {
         throw const AuthoringAuthorizationException(
             code: 'authorization.replay_context_mismatch',
             message:
                 'The durable ledger, canonical history and requested replay disagree.');
       }
-      final capability = history.bulkCapability;
+      final capability = history?.bulkCapability;
       if (capability != null) {
         capability.requireBinding(
             actorId: actor.actorId,
@@ -102,7 +117,7 @@ final class SecureAuthoringMutationExecutor {
             actionVersion: action.version,
             diff: receipt.diff,
             actualInventory: [
-              for (final change in history.changes)
+              for (final change in history!.changes)
                 ResourcePackBulkInventoryEntry(
                     resource: change.resource,
                     storageKey: change.storageKey,
@@ -354,10 +369,21 @@ final class SecureAuthoringMutationExecutor {
     return receipt;
   }
 
-  Future<int> prepareFinalizedJournals({required Future<void> Function(AuthoringTransactionJournal) requireHistory}) =>
+  Future<int> prepareFinalizedJournals(
+          {required Future<void> Function(AuthoringTransactionJournal)
+              requireHistory}) =>
       _transaction.prepareFinalizedJournals(requireHistory: requireHistory);
 
-  Future<void> cleanupRecoveredMutation({required AuthoringIdempotencyScope scope,required String planId,required String operationId,required AuthoringReceipt receipt}) => _transaction.cleanupCompletedReplay(scope:scope,planId:planId,operationId:operationId,receipt:receipt);
+  Future<void> cleanupRecoveredMutation(
+          {required AuthoringIdempotencyScope scope,
+          required String planId,
+          required String operationId,
+          required AuthoringReceipt receipt}) =>
+      _transaction.cleanupCompletedReplay(
+          scope: scope,
+          planId: planId,
+          operationId: operationId,
+          receipt: receipt);
 
   Future<void> auditMutationOutcome({
     required AuthoringActor actor,

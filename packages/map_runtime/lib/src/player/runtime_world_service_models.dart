@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
 
@@ -6,7 +7,7 @@ import 'runtime_pokemon_summary.dart';
 import 'runtime_player_pause_data.dart';
 
 enum RuntimeWorldServiceKind { shop, heal, pc, textInput, regionalMap,
-  partyTrade, pokemonGift,
+  partyTrade, pokemonGift, crafting, imagePuzzle,
 }
 
 /// Typed request emitted by an interaction in the running world.
@@ -194,6 +195,8 @@ enum RuntimeWorldServiceStage {
 }
 
 enum RuntimeWorldServiceAction {
+  rotate,
+  reset,
   select,
   showPurchases,
   showSales,
@@ -623,4 +626,53 @@ final class OpenPokemonGiftInteractionService
   final bool isNewPokedexEntry;
   @override
   RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.pokemonGift;
+}
+
+final class OpenCraftingService extends RuntimeWorldServiceRequest {
+  const OpenCraftingService({required super.interactionId, required this.definition, super.requiredCapabilities, super.availabilityCondition});
+  final DeferredCraftingDefinition definition;
+  @override
+  RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.crafting;
+}
+
+final class RuntimeCraftingRecipeSnapshot {
+  const RuntimeCraftingRecipeSnapshot({required this.recipeId, required this.label, required this.inputLabel, required this.outputLabel, required this.inputQuantity, required this.outputQuantity, required this.ownedQuantity});
+  final String recipeId, label, inputLabel, outputLabel;
+  final int inputQuantity, outputQuantity, ownedQuantity;
+}
+
+enum RuntimeCraftingStatus { idle, working, ready }
+
+final class RuntimeCraftingServiceContent {
+  RuntimeCraftingServiceContent({required this.title, required this.status, required Iterable<RuntimeCraftingRecipeSnapshot> recipes, required this.quantity, required this.maximumQuantity, required this.reviewing, this.selectedRecipeId, this.message, this.pendingOutputLabel, this.pendingOutputQuantity}) : recipes = List.unmodifiable(recipes);
+  final String title;
+  final RuntimeCraftingStatus status;
+  final List<RuntimeCraftingRecipeSnapshot> recipes;
+  final int quantity, maximumQuantity;
+  final bool reviewing;
+  final String? selectedRecipeId, message, pendingOutputLabel;
+  final int? pendingOutputQuantity;
+}
+
+final class OpenImagePuzzleService extends RuntimeWorldServiceRequest {
+  const OpenImagePuzzleService({required super.interactionId, required this.definition, super.requiredCapabilities, super.availabilityCondition});
+  final ImagePuzzleDefinition definition;
+  @override
+  RuntimeWorldServiceKind get kind => RuntimeWorldServiceKind.imagePuzzle;
+}
+
+final class RuntimeImagePuzzleBitmap {
+  RuntimeImagePuzzleBitmap({required Uint8List bytes, required this.width, required this.height}) : bytes = Uint8List.fromList(bytes).asUnmodifiableView() {
+    if (bytes.isEmpty || bytes.length > 32 * 1024 * 1024 || width < 1 || height < 1 || width * height > 16 * 1024 * 1024) throw const FormatException('Invalid puzzle image.');
+  }
+  final Uint8List bytes;
+  final int width, height;
+}
+
+final class RuntimeImagePuzzleServiceContent {
+  const RuntimeImagePuzzleServiceContent({required this.progress, required this.bitmap, this.selectedPieceId, this.message});
+  final ImagePuzzleProgress progress;
+  final RuntimeImagePuzzleBitmap bitmap;
+  final int? selectedPieceId;
+  final String? message;
 }

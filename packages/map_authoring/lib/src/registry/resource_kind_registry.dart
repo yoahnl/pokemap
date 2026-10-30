@@ -586,6 +586,20 @@ final class AuthoringResourceKindRegistry {
         },
       ),
       AuthoringResourceKindDescriptor(
+        id: 'mapHealth', version: 1, displayName: 'Map health',
+        summary: 'Revision-bound structural checks with explicit unknowns and visual coverage',
+        extensions: const {'query': {
+          'operations': ['get', 'list'], 'idFormat': '<mapId>',
+          'listShape': 'one item for filters.mapId; get takes ids:[mapId]',
+          'catalogProjectRead': 'selectedMapAndReferences',
+          'legacyProjectRead': 'fullSnapshot',
+          'verdicts': ['pass', 'fail', 'incomplete'],
+          'visualProof': false, 'maximumIssuesPerPage': 20,
+          'extensions': ['issueOffset', 'expectedReportRevision'],
+          'nextPage': 'nextIssueRequest contains a revision-bound query',
+        }},
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'borderSnapshot',
         version: 1,
         displayName: 'Border visual snapshot',
@@ -1044,6 +1058,7 @@ final class AuthoringResourceKindRegistry {
         'borderBlueprint',
         'borderFeature',
         'spatialMapIntegrity',
+        'mapHealth',
         'borderSnapshot',
         'characterStudioCatalog',
         'characterStudioCharacter',

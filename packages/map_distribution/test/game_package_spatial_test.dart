@@ -9,6 +9,21 @@ import 'support/glb_fixture.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('route platform requires its capability and preserves all waypoints', () {
+    final files = spatialPayload();
+    final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);
+    final instance = map.spatialScene!.instances.single;
+    final updated = map.copyWith(spatialScene: map.spatialScene!.copyWith(instances: [instance.copyWith(blocksMovement: false)], platforms: [SpatialPlatformDefinition(id: 'ride', name: 'Ride', instanceId: instance.id, x: 0, z: 0, width: 1, depth: 1, height: 1, durationMs: 1000, routes: [SpatialPlatformRoute(id: 'main', waypoints: [SpatialPlatformStop(x: 0, z: 0), SpatialPlatformStop(x: 1, z: 1)])])]));
+    files['project/maps/map.json'] = utf8.encode(jsonEncode(updated.toJson()));
+    expect(() => const GamePackageBuilder().build(manifest: spatialManifest(), payloadFiles: files), throwsA(isA<GamePackageFormatException>().having((e) => e.message, 'capability', contains('map3d.platform@1'))));
+    final built = const GamePackageBuilder().build(manifest: spatialManifest(capabilities: ['map3d@1', 'map3d.platform@1']), payloadFiles: files);
+    final inspected = const GamePackageInspector().inspect(built.packageBytes);
+    expect(inspected.manifest.compatibility.requiredCapabilities, contains('map3d.platform@1'));
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final saved = MapData.fromJson(jsonDecode(utf8.decode(archive.findFile('project/maps/map.json')!.content)) as Map<String, dynamic>);
+    expect(saved.spatialScene!.platforms, updated.spatialScene!.platforms);
+  });
+
   test('native lift is preserved and requires an explicit supported capability', () {
     final files = spatialPayload();
     final map = MapData.fromJson(jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map<String, dynamic>);

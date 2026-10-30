@@ -11,6 +11,8 @@ void main() {
       for (final effectId in [
         'lum_berry',
         'metal_coat',
+        'miracle_seed',
+        'shell_bell',
         'sitrus_berry',
         'smoke_ball',
       ]) {

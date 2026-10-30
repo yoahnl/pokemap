@@ -9,6 +9,28 @@ import '../assets/resource_library_actions_test.dart' show librarySnapshot;
 import 'border_spatial_actions_test.dart' as border;
 
 void main() {
+  test('spatial route platforms share API JSONL and exact undo without changing lifts', () async {
+    for (final direct in [true, false]) {
+      final f = await _Fixture.create();
+      addTearDown(f.dispose);
+      await f.request('workshop_prepare', {'projectHandle': f.project.value});
+      await f.apply(await f.plan());
+      final deck = SpatialModelInstance(id: 'deck', modelId: 'house', position: Model3dVector3(x: 1.5, y: 0, z: 1.5), blocksMovement: false);
+      await f.executeAction('map3d.instance.upsert', {'mapId': 'first-map', 'instance': deck.toJson()}, direct: direct);
+      final file = File('${f.root.path}/maps/first-map.json');
+      final before = await file.readAsBytes();
+      final platform = SpatialPlatformDefinition(id: 'transport', name: 'Transport', instanceId: deck.id, x: 1, z: 1, width: 1, depth: 1, height: 0, durationMs: 500, routes: [SpatialPlatformRoute(id: 'main', waypoints: [SpatialPlatformStop(x: 0, z: 0), SpatialPlatformStop(x: 1, z: 0)])]);
+      await f.executeAction('map.platform.upsert', {'mapId': 'first-map', 'platform': {'kind': 'spatial', ...platform.toJson()}}, direct: direct);
+      final saved = (await f.snapshots.load(f.project)).mapById('first-map')!;
+      expect(saved.spatialScene!.platforms, [platform]);
+      expect(saved.spatialScene!.lifts, isEmpty);
+      final history = await f.request('history', {'projectHandle': f.project.value, 'limit': 1});
+      final entry = (history.data['entries'] as List).single as Map;
+      final undone = await f.request('undo', {'projectHandle': f.project.value, 'entryId': entry['entryId'], 'idempotencyKey': 'undo-route-platform'});
+      expect(undone.status, AuthoringResultStatus.success);
+      expect(await file.readAsBytes(), before);
+    }
+  });
   test('native vertical platforms preserve map content across API JSONL and undo', () async {
     for(final direct in [true,false]) {
       final f=await _Fixture.create();addTearDown(f.dispose);

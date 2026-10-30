@@ -854,6 +854,12 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
+  NarrativeEventStateCheckpointOwner? craftingCheckpointOwner;
+  NarrativeRuntimeSceneCheckpointOwner? craftingActivityOwner;
+  GameState? durableCraftingState;
+  NarrativeRuntimeSceneCheckpointOwner? imagePuzzleActivityOwner;
+  GameState? durableImagePuzzleState;
+  bool committed = false;
   RuntimeWorldAudioController? sceneAudio;
   RuntimeSceneMusicController? get sceneMusic => sceneAudio?.music;
   GameState Function()? stateProjection;
@@ -883,6 +889,7 @@ final class _NarrativeSceneWorkingSession {
   }
 
   void commit() {
+    committed = true;
     _compensations.clear();
   }
 

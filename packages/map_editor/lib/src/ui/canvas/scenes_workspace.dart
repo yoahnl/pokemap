@@ -952,6 +952,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onRemoveNodeDraft: _removeSelectedNodeDraft,
                     conditionSourceOptions: widget.conditionSourceOptions,
                     loadPartyMoves: widget.loadPartyMoves,
+                    actionPickerOptions: widget.actionPickerOptions,
                     partyProjectDimension: widget.partyProjectDimension,
                     onUpdateConditionSource: _updateConditionSource,
                     onUpdateEndPayload: _updateEndPayload,

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/authoring_diff.dart';
+import '../../domains/assets/asset_store.dart';
 import '../../domains/maps/semantic_map_action_support.dart';
 import '../../domains/maps/warp_connection_actions.dart';
 import '../../domains/maps/spatial_map_actions.dart';
@@ -35,6 +36,7 @@ final class CatalogSpatialMapSelection {
   static bool supports(String action,
       {Map<String, Object?> parameters = const {}}) {
     if (TriggerZoneActions.fieldTraversalActions.contains(action)) return true;
+    if (action == 'map.platform.upsert') return parameters['platform'] is Map && (parameters['platform'] as Map)['kind'] == 'spatial';
     if (action == 'map.update_metadata' && parameters.containsKey('escapeRopeDungeonId')) return false;
     if (action == 'map.apply_operations') {
       final operations = parameters['operations'];
@@ -47,6 +49,7 @@ final class CatalogSpatialMapSelection {
                       const {'environment', 'border'}.contains(op['layerKind']))));
     }
     return const {
+      'map.platform.delete',
       'warp.ladder.configure',
       'warp.update',
       'warp.create',
@@ -57,6 +60,7 @@ final class CatalogSpatialMapSelection {
       'map3d.navigation.configure',
       'map3d.camera.configure',
       'map.update_metadata',
+      'map.audio.update',
       'environment.attach_to_spatial_terrain',
       'environment.area_create',
       'environment.area_set_preset',
@@ -162,14 +166,32 @@ final class CatalogSpatialMapSelection {
           }
         }
         final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
+        final dependencyRevisions = <String, String>{};
+        final dependencyBytes = <String, List<int>>{};
+        final dependencyPaths = <String, String>{};
+        if (actionId == 'map.audio.update' &&
+            const ['musicPath', 'battleMusicPath'].any((field) =>
+                parameters[field] is String && (parameters[field] as String).trim().isNotEmpty)) {
+          final assets = await reader.store.gateway.captureResourcePayload(assetCatalogStorageKey);
+          if (assets != null) {
+            try {
+              dependencyRevisions[assetCatalogStorageKey] = assets.resourceRevision;
+              dependencyBytes[assetCatalogResourceIdentity] = await assets.readBytes();
+              dependencyPaths[assetCatalogResourceIdentity] = assetCatalogStorageKey;
+            } finally {
+              await assets.release();
+            }
+          }
+        }
         final snapshot = ProjectSnapshot(projectHandle: projectHandle,
-            revision: fingerprint(selected.revision, mapId, payload.resourceRevision),
+            revision: fingerprint(selected.revision, mapId, payload.resourceRevision, readDependencies: dependencyRevisions),
             manifest: definitions, materializedCatalogProject: true,
-            availableProjectSections: const {}, scopedStorageRevisions: {entry.relativePath: payload.resourceRevision},
+            availableProjectSections: const {}, scopedStorageRevisions: {entry.relativePath: payload.resourceRevision, ...dependencyRevisions},
             maps: [map], resourceFingerprints: {'project': computeAuthoringBytesFingerprint(projectBytes, logicalName: 'project.json'),
-              'map:$mapId': payload.resourceRevision},
-            resourceBytes: {'project': projectBytes, 'map:$mapId': bytes},
-            resourceStorageKeys: {'project': 'project.json', 'map:$mapId': entry.relativePath});
+              'map:$mapId': payload.resourceRevision,
+              for (final dependency in dependencyPaths.entries) dependency.key: dependencyRevisions[dependency.value]!},
+            resourceBytes: {'project': projectBytes, 'map:$mapId': bytes, ...dependencyBytes},
+            resourceStorageKeys: {'project': 'project.json', 'map:$mapId': entry.relativePath, ...dependencyPaths});
         final selection = CatalogSpatialMapSelection._(selected, snapshot,
             entry.relativePath, payload.resourceRevision, selected.revision, mapId);
         if (await selection.currentRevision() != snapshot.revision) {
@@ -190,7 +212,7 @@ final class CatalogSpatialMapSelection {
     if (!supports(actionId, parameters: parameters)) {
       throw const FormatException('catalog.spatial: unsupported action');
     }
-    if (actionId == 'map.update_metadata' || actionId == 'map3d.camera.configure' ||
+    if (actionId == 'map.update_metadata' || actionId == 'map.audio.update' || actionId == 'map3d.camera.configure' ||
         actionId == 'warp.ladder.configure' || actionId == 'map3d.instance.configure_field_obstacle' || TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
       return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
@@ -256,6 +278,9 @@ final class CatalogSpatialMapSelection {
             (map.spatialScene == null && !supportsTwoDimensions)) {
           throw const FormatException(
               'catalog.spatial: map identity or dimension mismatch');
+        }
+        if (actionId == 'map.platform.delete') {
+          throw AuthoringPlanException(code: 'catalog.mutation_scope_required', message: 'Deleting a platform requires an incoming Scene reference index. The original platform is unchanged.');
         }
         if (actionId == 'entity.upsert' && parameters['entity'] is Map) {
           final entity = MapEntity.fromJson(
@@ -680,6 +705,17 @@ final class CatalogSpatialMapSelection {
         if (projected != expected) {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The obstacle action changed unrelated map content.');
         }
+      } else if (action == 'map.audio.update') {
+        final original = snapshot.mapById(mapId)!;
+        final metadata = projected.mapMetadata.copyWith(
+            musicPath: original.mapMetadata.musicPath,
+            musicVolume: original.mapMetadata.musicVolume,
+            battleMusicPath: original.mapMetadata.battleMusicPath);
+        if (projected.copyWith(mapMetadata: metadata) != original) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
+              message: 'The audio action changed unrelated map content.');
+        }
+        MapValidator.validate(projected);
       } else if (action == 'warp.ladder.configure') {
         final parameters = plan.request.parameters;
         final ladder = parameters['ladder'];

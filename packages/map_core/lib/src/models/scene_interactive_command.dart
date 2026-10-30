@@ -1,4 +1,6 @@
 import 'spatial_visual_profile.dart';
+import 'deferred_crafting.dart';
+import 'image_puzzle.dart';
 import 'package:meta/meta.dart' show immutable;
 import 'package:characters/characters.dart';
 
@@ -38,6 +40,8 @@ enum SceneInteractiveCommandKind {
   moveNpc,
   movePlatform,
   setPropState,
+  openCrafting,
+  openImagePuzzle,
   openShop,
   openHeal,
   whiteOut,
@@ -212,6 +216,10 @@ abstract base class SceneInteractiveCommand {
     int durationMs,
   }) = SceneSetPropStateInteractiveCommand;
 
+  factory SceneInteractiveCommand.openImagePuzzle({required ImagePuzzleDefinition definition}) = SceneOpenImagePuzzleInteractiveCommand;
+
+  factory SceneInteractiveCommand.openCrafting({required DeferredCraftingDefinition definition}) = SceneOpenCraftingInteractiveCommand;
+
   factory SceneInteractiveCommand.openShop({required String shopId}) =
       SceneOpenShopInteractiveCommand;
 
@@ -326,6 +334,8 @@ abstract base class SceneInteractiveCommand {
       ),
       SceneInteractiveCommandKind.setPropState =>
         SceneSetPropStateInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.openImagePuzzle => SceneOpenImagePuzzleInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.openCrafting => SceneOpenCraftingInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
         shopId: _required(json, 'shopId'),
       ),
@@ -1856,4 +1866,48 @@ final class SceneReceivePokemonFromCatalogInteractiveCommand
     pokedexPresentationPolicy,
     moveIds == null ? null : Object.hashAll(moveIds!),
   );
+}
+
+final class SceneOpenCraftingInteractiveCommand extends SceneInteractiveCommand {
+  const SceneOpenCraftingInteractiveCommand({required this.definition});
+
+  factory SceneOpenCraftingInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    if (json.length != 2 || json['kind'] != 'openCrafting') {
+      throw const FormatException('Invalid crafting command fields.');
+    }
+    return SceneOpenCraftingInteractiveCommand(definition: DeferredCraftingDefinition.fromJson(_requiredObject(json, 'definition')));
+  }
+
+  final DeferredCraftingDefinition definition;
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.openCrafting;
+  @override
+  List<String> get outputPortIds => const ['completed', 'cancelled'];
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'definition': definition.toJson()};
+  @override
+  bool operator ==(Object other) => other is SceneOpenCraftingInteractiveCommand && definition == other.definition;
+  @override
+  int get hashCode => Object.hash(kind, definition);
+}
+
+final class SceneOpenImagePuzzleInteractiveCommand extends SceneInteractiveCommand {
+  const SceneOpenImagePuzzleInteractiveCommand({required this.definition});
+  factory SceneOpenImagePuzzleInteractiveCommand.fromJson(Map<String, dynamic> json) {
+    if (json.length != 2 || json['kind'] != 'openImagePuzzle') {
+      throw const FormatException('Invalid image puzzle command fields.');
+    }
+    return SceneOpenImagePuzzleInteractiveCommand(definition: ImagePuzzleDefinition.fromJson(_requiredObject(json, 'definition')));
+  }
+  final ImagePuzzleDefinition definition;
+  @override
+  SceneInteractiveCommandKind get kind => SceneInteractiveCommandKind.openImagePuzzle;
+  @override
+  List<String> get outputPortIds => const ['solved', 'quit'];
+  @override
+  Map<String, dynamic> toJson() => {'kind': kind.name, 'definition': definition.toJson()};
+  @override
+  bool operator ==(Object other) => other is SceneOpenImagePuzzleInteractiveCommand && definition == other.definition;
+  @override
+  int get hashCode => Object.hash(kind, definition);
 }

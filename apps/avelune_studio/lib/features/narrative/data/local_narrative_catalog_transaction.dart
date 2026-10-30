@@ -124,6 +124,7 @@ class LocalNarrativeCatalogTransaction {
               baseline.manifest,
               planned.projectedProject ?? snapshot.manifest,
               snapshot.availableProjectSections!,
+              documentIds: snapshot.availableProjectDocuments,
             )
           : ProjectManifest.fromJson(
               jsonDecode(utf8.decode(projectBytes!)) as Map<String, dynamic>,
@@ -180,6 +181,7 @@ class LocalNarrativeCatalogTransaction {
                   baseline.manifest,
                   reopened.manifest,
                   reopened.availableProjectSections!,
+                  documentIds: reopened.availableProjectDocuments,
                 ) !=
                 manifest) {
           throw const NarrativeCatalogFailure(

@@ -31,8 +31,10 @@ import { registerVisualSettingsTools } from "./tools/visual_settings.js";
 import { registerMapAtmosphereTools } from "./tools/map_atmosphere.js";
 import { registerMapExteriorDecorationTools } from "./tools/map_exterior_decoration.js";
 import { registerCharacterContactShadowTools } from "./tools/character_contact_shadows.js";
+import { registerMapCheckTool } from "./tools/map_check.js";
 
 export interface PokeMapMcpServerDependencies {
+  profile?: "full" | "map-builder";
   authoring: AuthoringGateway;
   artifacts: ArtifactReader;
   projectRoots?: ProjectRootResolver;
@@ -57,8 +59,11 @@ export function createPokeMapMcpServer(
         "Open only configured roots, plan before apply, keep opaque handles, use exact confirmations, follow nextCursor, and never invent artifact or resource URIs.",
     },
   );
-  registerReadOnlyTools(server, authoring, artifacts);
-  registerMutationTools(server, authoring);
+  const compact = dependencies.profile === "map-builder";
+  registerReadOnlyTools(server, authoring, artifacts, compact);
+  registerMutationTools(server, authoring, compact);
+  registerMapCheckTool(server, authoring, runtime);
+  if (!compact) {
   registerCharacterContactShadowTools(server, authoring);
   registerMapAtmosphereTools(server, authoring);
   registerMapExteriorDecorationTools(server, authoring);
@@ -69,8 +74,9 @@ export function createPokeMapMcpServer(
   registerNativeProjectCreationTools(server, authoring);
   registerResourcePackTool(server, authoring);
   registerProjectionTool(server, authoring);
+  }
   if (runtime) {
-    registerRuntimeTools(server, runtime);
+    registerRuntimeTools(server, runtime, compact);
   }
   registerReadOnlyResources(server, authoring);
   return server;

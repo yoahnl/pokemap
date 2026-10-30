@@ -106,6 +106,58 @@ final class WorldPresentationImageLoader {
     return Map.unmodifiable(result);
   }
 
+  Future<(Uint8List, int, int)> loadBitmap(String id) async {
+    final (catalog, assets) = await (_catalogs ??= _loadCatalogs());
+    final media = catalog.find(id);
+    final metadata = media?.technicalMetadata;
+    final asset = media == null ? null : assets.find(media.sourceAssetId);
+    if (media?.kind != ProjectMediaKind.image ||
+        metadata == null ||
+        metadata.width == null ||
+        metadata.height == null ||
+        metadata.width! * metadata.height! > 16 * 1024 * 1024 ||
+        !metadata.mediaType.startsWith('image/') ||
+        asset == null ||
+        asset.artifact.mediaType != metadata.mediaType ||
+        asset.artifact.byteLength != metadata.sizeBytes) {
+      throw StateError(
+        'L’image du puzzle ou ses métadonnées sont indisponibles. Réimportez cette image dans la médiathèque.',
+      );
+    }
+    final bytes = Uint8List.fromList(
+      await _read(assetBlobStorageKey(asset.artifact), 32 * 1024 * 1024),
+    );
+    final actual = ContentArtifactRef.fromBytes(
+      bytes,
+      mediaType: metadata.mediaType,
+    );
+    if (actual.digest != asset.artifact.digest ||
+        actual.byteLength != asset.artifact.byteLength) {
+      throw StateError(
+        'La source de l’image du puzzle a changé depuis son import. Réimportez cette image.',
+      );
+    }
+    final codec = await ui.instantiateImageCodec(bytes);
+    try {
+      if (codec.frameCount != 1) {
+        throw StateError('Le puzzle nécessite une image statique.');
+      }
+      final image = (await codec.getNextFrame()).image;
+      try {
+        if (image.width != metadata.width || image.height != metadata.height) {
+          throw StateError(
+            'Les dimensions de l’image du puzzle ont changé. Réimportez cette image.',
+          );
+        }
+        return (bytes, image.width, image.height);
+      } finally {
+        image.dispose();
+      }
+    } finally {
+      codec.dispose();
+    }
+  }
+
   Future<ui.Image> load(String id) async {
     final (mediaCatalog, assets) = await (_catalogs ??= _loadCatalogs());
     final media = mediaCatalog.find(id);

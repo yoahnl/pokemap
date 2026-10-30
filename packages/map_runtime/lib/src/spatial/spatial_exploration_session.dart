@@ -409,6 +409,7 @@ final class SpatialExplorationSession {
   VoidCallback? onCancelStory, onSkipStory, onBeforeMapChange;
   final storyActive = ValueNotifier(false);
   bool storyInputLocked = false;
+  bool platformTransportActive = false;
   final _companionTrail = PartyCompanionTrail();
   ProjectCharacterEntry? _companionCharacter;
 
@@ -430,6 +431,7 @@ final class SpatialExplorationSession {
   }
 
   void _updateCompanion(double dt) {
+    if (platformTransportActive) return;
     final config = bundle.manifest.partyCompanion;
     final lead = _companionLead;
     final visual = lead == null

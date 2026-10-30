@@ -34,11 +34,21 @@ abstract final class SpatialGameplayCapabilities {
   static bool requiresLadders(Iterable<MapData> maps) =>
       maps.any((map) => map.warps.any((warp) => warp.ladder != null));
   static const liftCapabilityId = 'map3d.lift@1';
+  static const platformCapabilityId = 'map3d.platform@1';
+  static bool requiresPlatforms(Iterable<MapData> maps) => maps.any((map) => map.spatialScene?.platforms.isNotEmpty ?? false);
   static bool requiresLifts(Iterable<MapData> maps) => maps.any((map) => map.spatialScene?.lifts.isNotEmpty ?? false);
 
   static const eggGiftCapabilityId = 'gameplay.egg-gift@1';
 
   static bool requiresEggGift(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand && ((node.payload as SceneActionPayload).interactiveCommand as SceneReceivePokemonFromCatalogInteractiveCommand).isEgg));
+
+  static const imagePuzzleCapabilityId = 'gameplay.image-puzzle@1';
+
+  static bool requiresImagePuzzle(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand));
+
+  static const deferredCraftingCapabilityId = 'gameplay.deferred-crafting@1';
+
+  static bool requiresDeferredCrafting(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenCraftingInteractiveCommand));
 
   static const npcTradeCapabilityId = 'gameplay.npc-trade@1';
 
@@ -126,6 +136,8 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.movePlatform,
     NarrativeCommandIds.awardBadge,
     NarrativeCommandIds.unlockFieldAbility,
+    NarrativeCommandIds.openCrafting,
+    NarrativeCommandIds.openImagePuzzle,
     NarrativeCommandIds.openShop,
     NarrativeCommandIds.openHeal,
     NarrativeCommandIds.openPc,

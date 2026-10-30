@@ -1,5 +1,6 @@
 import '../models/enums.dart';
 import '../models/spatial_lift.dart';
+import '../models/spatial_platform.dart';
 import '../models/geometry.dart';
 import '../exceptions/map_exceptions.dart';
 import '../models/map_data.dart';
@@ -23,6 +24,14 @@ final class SpatialCellLevel {
 
 final class SpatialMapOperations {
   const SpatialMapOperations();
+
+  MapData upsertPlatform(MapData map, SpatialPlatformDefinition platform) {
+    final scene = _scene(map);
+    return map.copyWith(spatialScene: scene.copyWith(platforms: [
+      for (final existing in scene.platforms) if (existing.id != platform.id) existing,
+      platform,
+    ]));
+  }
 
   MapData upsertLifts(MapData map, List<SpatialLiftDefinition> lifts) {
     final scene = _scene(map);

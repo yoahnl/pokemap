@@ -230,6 +230,9 @@ final class PlayableMapGameSessionRuntime
     _projectCatalog = catalog;
     try {
       final manifest = preloadedBundle?.manifest ?? catalog!.projectMetadata;
+      if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest) && !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.deferredCraftingCapabilityId)) {
+        throw StateError('Deferred crafting requires ${SpatialGameplayCapabilities.deferredCraftingCapabilityId}.');
+      }
 
       late final String mapId;
       SaveData? saveData;
@@ -266,6 +269,10 @@ final class PlayableMapGameSessionRuntime
         _basePlayTimeSeconds = envelope.playTimeSeconds;
       }
 
+      if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest) || initialState.gameplayCalendarState.isInitialized) {
+        initialState = observeGameplayCalendar(initialState, localDay: runtimeCivilDay(_now()));
+        if (saveData != null) saveData = saveDataFromGameState(initialState);
+      }
       if (initialState.playerSpatialPosition != null) {
         preloadedInitialMap?.dispose();
         throw StateError('A 2D session cannot consume spatial player state.');
@@ -336,7 +343,7 @@ final class PlayableMapGameSessionRuntime
           bundle: bundle,
           projectFilePath: projectFilePath,
           saveData: saveData,
-          initialGameState: descriptor.initialGameState,
+          initialGameState: descriptor.initialGameState == null ? null : initialState,
           saveRepository: memorySaves,
           overworldCheckpointWriter: _commitCheckpoint == null
               ? null
@@ -397,10 +404,13 @@ final class PlayableMapGameSessionRuntime
         game.applyPlayerPreferences(preferences);
       }
       final playerServices = PlayerServiceRuntimeController.contextual(
+        civilNow: _now,
         supportsRepel: true,
         healingDisplayMapReader: game.playerServiceHealingDisplayMap,
         currentGameState: () => game.playerServiceGameStateSnapshot,
         commitAndSave: game.commitAndSavePlayerServiceState,
+        commitCraftingAndSave: _commitCheckpoint == null ? null : game.commitAndSaveCraftingState,
+        commitImagePuzzleAndSave: _commitCheckpoint == null ? null : game.commitAndSaveImagePuzzleState,
         setInputLocked: (locked) => game.setExternalInputLock(
           RuntimeExternalInputLock.playerService,
           locked: locked,

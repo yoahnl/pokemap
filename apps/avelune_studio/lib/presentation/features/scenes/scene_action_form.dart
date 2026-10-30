@@ -19,6 +19,7 @@ import 'scene_world_visual_action_form.dart';
 import 'scene_npc_pose_action_form.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
 import 'scene_integer_authoring_fields.dart';
+import 'scene_image_puzzle_form.dart';
 
 part 'scene_action_references.dart';
 
@@ -194,6 +195,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _commandId = null;
       _loadReferenceMap();
       _loadGiftSpecies();
+      return;
+    }
+    if (_commandId == NarrativeCommandIds.openImagePuzzle && current.interactiveCommand is SceneOpenImagePuzzleInteractiveCommand) {
+      _unsupported = false;
       return;
     }
     if (_isActorCommand(_commandId)) {
@@ -672,6 +677,8 @@ class _SceneActionFormState extends State<SceneActionForm> {
           loadMap: widget.loadMap,
           onApply: widget.onApply,
         ),
+      if (_commandId == NarrativeCommandIds.openImagePuzzle)
+        SceneImagePuzzleForm(key: ValueKey(_commandId), current: widget.current is SceneActionPayload && (widget.current as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand ? (widget.current as SceneActionPayload).interactiveCommand as SceneOpenImagePuzzleInteractiveCommand : null, loadVisualMedia: widget.loadVisualMedia, onApply: widget.onApply),
       if (_commandId == NarrativeCommandIds.worldPresentation)
         SceneWorldVisualActionForm(key: ValueKey(_commandId),
           current: widget.current is SceneActionPayload ? widget.current as SceneActionPayload : null,
@@ -684,7 +691,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
         const StudioNotice(
           'La portée Scène restaure les canaux à sa fin. La portée Carte conserve les changements jusqu’au transfert. Le combat garde la priorité musicale et suspend l’ambiance sonore. La mémorisation conserve les pistes et volumes, sans leur position.',
         ),
-      if (!_isActorCommand(_commandId) && _commandId != NarrativeCommandIds.setNpcPose && _commandId != NarrativeCommandIds.worldPresentation) ...[
+      if (_commandId != NarrativeCommandIds.openImagePuzzle && !_isActorCommand(_commandId) && _commandId != NarrativeCommandIds.setNpcPose && _commandId != NarrativeCommandIds.worldPresentation) ...[
         for (final parameter
             in _command?.parameters ?? <NarrativeCommandParameterDescriptor>[])
           if (_warpFieldVisible(parameter)) Padding(

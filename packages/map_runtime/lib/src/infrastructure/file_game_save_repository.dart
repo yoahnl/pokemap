@@ -17,8 +17,8 @@ class FileGameSaveRepository implements GameSaveRepository {
   FileGameSaveRepository({
     NarrativeRuntimeActivityGate? activityGate,
     GameSaveCodecExecutor? codecExecutor,
-  })  : _activityGate = activityGate ?? NarrativeRuntimeActivityGate(),
-        _codecExecutor = codecExecutor ?? GameSaveCodecExecutor();
+  }) : _activityGate = activityGate ?? NarrativeRuntimeActivityGate(),
+       _codecExecutor = codecExecutor ?? GameSaveCodecExecutor();
 
   static const String _saveFileName = 'game_save.json';
   static const String _subDirectory = 'pokemonProject';
@@ -45,75 +45,79 @@ class FileGameSaveRepository implements GameSaveRepository {
 
   @override
   Future<void> save(GameState state) => _activityGate.runCheckpoint(
-        NarrativeRuntimeCheckpointOperation.save,
-        () async {
-          try {
-            final filePath = await _saveFilePath();
-            final normalizedSaveData = saveDataFromGameState(state);
-            final normalizedState = state.copyWith(
-              saveId: normalizedSaveData.saveId,
-              currentMapId: normalizedSaveData.currentMapId,
-              playerPosition: normalizedSaveData.playerPosition,
-              playerFacing: normalizedSaveData.playerFacing,
-              party: normalizedSaveData.party,
-              trainerProfile: normalizedSaveData.trainerProfile,
-              bag: normalizedSaveData.bag,
-              progression: normalizedSaveData.progression,
-              narrativeFactRuntimeState:
-                  normalizedSaveData.narrativeFactRuntimeState,
-              narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
-              metadata: normalizedSaveData.properties,
-            );
-            final json = strictGameStateSaveJson(normalizedState);
-            final encoded = await _codecExecutor.encodeJson(json);
-            if (kDebugMode) {
-              debugPrint(
-                '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
-              );
-            }
-            // Écriture atomique : un crash en pleine écriture ne doit jamais
-            // tronquer la sauvegarde courante.
-            final temporary = File('$filePath.tmp');
-            await temporary.writeAsString(encoded, flush: true);
-            await temporary.rename(filePath);
-            if (kDebugMode) {
-              debugPrint('[save] game saved to $filePath');
-              debugPrint(
-                '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
-              );
-            }
-          } catch (e, st) {
-            debugPrint('[save] failed: $e\n$st');
-            throw GameSaveException('Failed to save game: $e');
-          }
-        },
+    NarrativeRuntimeCheckpointOperation.save,
+    () => _persistState(state),
+  );
+
+  Future<void> saveOwnedSceneCheckpoint(
+    GameState state,
+    NarrativeRuntimeSceneCheckpointOwner owner,
+  ) => _activityGate.runSceneCheckpoint(owner, () => _persistState(state));
+
+  Future<void> _persistState(GameState state) async {
+    try {
+      final filePath = await _saveFilePath();
+      final normalizedSaveData = saveDataFromGameState(state);
+      final normalizedState = state.copyWith(
+        saveId: normalizedSaveData.saveId,
+        currentMapId: normalizedSaveData.currentMapId,
+        playerPosition: normalizedSaveData.playerPosition,
+        playerFacing: normalizedSaveData.playerFacing,
+        party: normalizedSaveData.party,
+        trainerProfile: normalizedSaveData.trainerProfile,
+        bag: normalizedSaveData.bag,
+        progression: normalizedSaveData.progression,
+        narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
+        narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
+        metadata: normalizedSaveData.properties,
       );
+      final json = strictGameStateSaveJson(normalizedState);
+      final encoded = await _codecExecutor.encodeJson(json);
+      if (kDebugMode) {
+        debugPrint(
+          '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
+        );
+      }
+      // Écriture atomique : un crash en pleine écriture ne doit jamais
+      // tronquer la sauvegarde courante.
+      final temporary = File('$filePath.tmp');
+      await temporary.writeAsString(encoded, flush: true);
+      await temporary.rename(filePath);
+      if (kDebugMode) {
+        debugPrint('[save] game saved to $filePath');
+        debugPrint(
+          '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
+        );
+      }
+    } catch (e, st) {
+      debugPrint('[save] failed: $e\n$st');
+      throw GameSaveException('Failed to save game: $e');
+    }
+  }
 
   @override
   Future<GameState?> load() => _activityGate.runCheckpoint(
-        NarrativeRuntimeCheckpointOperation.load,
-        () async {
-          try {
-            final filePath = await _saveFilePath();
-            final file = File(filePath);
-            if (!await file.exists()) {
-              debugPrint('[load] no save file found at $filePath');
-              return null;
-            }
-            final state = await _codecExecutor.decode(
-              await file.readAsBytes(),
-            );
-            debugPrint('[load] game loaded from $filePath');
-            return state;
-          } catch (e, st) {
-            debugPrint('[load] failed: $e\n$st');
-            throw GameSaveException(
-              'Failed to load game.',
-              diagnostic: describeGameSaveLoadFailure(e),
-            );
-          }
-        },
-      );
+    NarrativeRuntimeCheckpointOperation.load,
+    () async {
+      try {
+        final filePath = await _saveFilePath();
+        final file = File(filePath);
+        if (!await file.exists()) {
+          debugPrint('[load] no save file found at $filePath');
+          return null;
+        }
+        final state = await _codecExecutor.decode(await file.readAsBytes());
+        debugPrint('[load] game loaded from $filePath');
+        return state;
+      } catch (e, st) {
+        debugPrint('[load] failed: $e\n$st');
+        throw GameSaveException(
+          'Failed to load game.',
+          diagnostic: describeGameSaveLoadFailure(e),
+        );
+      }
+    },
+  );
 
   @override
   Future<bool> exists() async {

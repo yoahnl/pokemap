@@ -9,6 +9,7 @@ const _gameplayActions = {
   'campaign.shop.upsert',
   'bag.capacity.set',
   'contact_device.configure',
+  'party_companion.configure',
   'item.create',
   'item.update',
 };
@@ -25,7 +26,8 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
     if (actionId == 'campaign.battle_savings.update') 'battleSavings',
     if (actionId == 'bag.capacity.set') 'newGame',
     if (actionId == 'bag.capacity.set') 'bagCapacity',
-    if (actionId == 'contact_device.configure') 'contactDevice'
+    if (actionId == 'contact_device.configure') 'contactDevice',
+    if (actionId == 'party_companion.configure') ...{'partyCompanion', 'settings'}
   });
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
@@ -68,6 +70,7 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
     }
     if (actionId == 'bag.capacity.set') writable.add('bagCapacity');
     if (actionId == 'contact_device.configure') writable.add('contactDevice');
+    if (actionId == 'party_companion.configure') writable.add('partyCompanion');
     if (actionId == 'campaign.battle_savings.update') writable.add('battleSavings');
     if (actionId == 'item.update' && parameters['itemId'] is String) {
       add(
@@ -175,6 +178,12 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
 
     for (final entry in readDependencies.entries) {
       await readFile(entry.key, entry.value);
+    }
+    if (actionId == 'party_companion.configure') {
+      final configuration = ProjectPartyCompanionConfig.fromJson(Map<String, dynamic>.from(parameters));
+      for (final id in configuration.mappings.map((visual) => visual.speciesId).toSet()) {
+        await readFile(pokemonSpeciesResourceIdentity(id), '${manifest.pokemon.speciesDir}/$id.json');
+      }
     }
     final needsItems = actionId.startsWith('item.') ||
         actionId == 'campaign.shop.upsert' ||

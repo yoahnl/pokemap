@@ -1,3 +1,4 @@
+import 'spatial_platform_controls.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
@@ -167,6 +168,8 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               instance: instance,
               onChanged: onChanged,
             ),
+            const SizedBox(height: 12),
+            SpatialPlatformControls(key: ValueKey('platform-${instance.id}'), document: document, project: project, instance: instance, onChanged: onChanged),
             const SizedBox(height: 12),
             SpatialLiftControls(
               key: ValueKey('lift-${instance.id}'),

@@ -209,6 +209,52 @@ void main() {
             'psdk_battle_engine_method_not_ported:s_unknown')));
   });
 
+  test('preserves the historical typeless Curse contract', () {
+    final result = projector.project(
+      move: move.copyWith(
+        id: 'curse',
+        name: 'Malédiction',
+        type: ' UNKNOWN ',
+        category: PokemonMoveCategory.status,
+        basePower: 0,
+        pp: 10,
+        accuracy: const PokemonMoveAccuracy.alwaysHits(),
+      ),
+    );
+    expect(result.type, 'unknown');
+    expect(result.battleEngineMethod, 's_curse');
+    expect(result.category, PsdkBattleMoveCategory.status);
+    expect(result.power, 0);
+  });
+
+  test('rejects typeless moves outside the non-damaging Curse contract', () {
+    for (final candidate in [
+      move.copyWith(type: 'unknown'),
+      move.copyWith(
+        id: 'curse',
+        type: 'unknown',
+        category: PokemonMoveCategory.status,
+        basePower: 1,
+      ),
+      move.copyWith(id: 'curse', type: 'unknown', basePower: 0),
+      move.copyWith(
+        id: 'curse',
+        type: 'cosmic',
+        category: PokemonMoveCategory.status,
+        basePower: 0,
+      ),
+    ]) {
+      expect(
+        () => projector.project(move: candidate),
+        throwsA(isA<CanonicalPsdkMoveProjectionException>().having(
+          (error) => error.reason,
+          'reason',
+          'unsupported_type:${candidate.type}',
+        )),
+      );
+    }
+  });
+
   for (final entry in {
     ' ': 'invalid_type:empty',
     ' COSMIC ': 'unsupported_type:cosmic'

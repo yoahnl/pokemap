@@ -439,6 +439,9 @@ final class LocalMapWorkspaceAdapter
           'Ce projet publié est en lecture seule.',
         );
       }
+      if (base.map.spatialScene != null && current.spatialScene != null && jsonEncode(base.map.spatialScene!.platforms.map((value) => value.toJson()).toList()) != jsonEncode(current.spatialScene!.platforms.map((value) => value.toJson()).toList())) {
+        return await _saveSpatialPlatformChange(session, base, current);
+      }
       final project = _project(session);
       final entry = project.manifest.maps.singleWhere(
         (e) => e.id == base.mapId,

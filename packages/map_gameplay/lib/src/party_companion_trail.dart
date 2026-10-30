@@ -29,6 +29,26 @@ final class PartyCompanionTrail {
 
   PartyCompanionTrail capture() => PartyCompanionTrail()..restore(this);
 
+  void translate(double x, double z, {required double groundY}) {
+    if (![x, z, groundY].every((value) => value.isFinite)) throw const FormatException('Invalid companion transport.');
+    PartyCompanionTrailPoint moved(PartyCompanionTrailPoint point) => PartyCompanionTrailPoint(point.x + x, point.z + z, y: groundY, groundY: groundY, traversalSpeed: point.traversalSpeed);
+    final points = _points.map(moved).toList();
+    _points..clear()..addAll(points);
+    if (position != null) position = moved(position!);
+    moving = false;
+  }
+
+  void regroup(double x, double z, {required double groundY}) {
+    if (![x, z, groundY].every((value) => value.isFinite)) throw const FormatException('Invalid companion regroup.');
+    final point = PartyCompanionTrailPoint(x, z, y: groundY, groundY: groundY);
+    _points..clear()..add(point);
+    position = point;
+    _distance = 0;
+    _followingDistance = 1;
+    _recovering = false;
+    moving = false;
+  }
+
   void restore(PartyCompanionTrail snapshot) {
     if (identical(snapshot, this)) return;
     _points

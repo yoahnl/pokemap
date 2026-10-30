@@ -29,6 +29,8 @@ import 'player_control_profile.dart';
 import 'player_heal_confirmation.dart';
 import 'player_regional_map_overlay.dart';
 import 'player_party_trade_overlay.dart';
+import 'player_crafting_overlay.dart';
+import 'player_image_puzzle_overlay.dart';
 import 'player_pause_menu.dart';
 import 'player_pc_overlay.dart';
 import 'player_scene_interaction_surface.dart';
@@ -1837,6 +1839,8 @@ class _RuntimeWorldServiceOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (snapshot.request.kind) {
+      RuntimeWorldServiceKind.imagePuzzle => PlayerImagePuzzleOverlay(snapshot: snapshot, onCommand: (command) => onCommand(command), controlProfile: controlProfile, hardwareGamepadEnabled: hardwareGamepadEnabled),
+      RuntimeWorldServiceKind.crafting => PlayerCraftingOverlay(snapshot: snapshot, onCommand: (command) => onCommand(command), controlProfile: controlProfile, hardwareGamepadEnabled: hardwareGamepadEnabled),
       RuntimeWorldServiceKind.shop => PlayerShopOverlay(
           snapshot: snapshot,
           onCommand: (command) => onCommand(command),

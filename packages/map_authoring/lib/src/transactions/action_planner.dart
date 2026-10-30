@@ -27,12 +27,14 @@ final class AuthoringPlanningContext {
     required this.request,
     required this.planId,
     required this.seed,
+    this.logicalOperationId,
   });
 
   final ProjectSnapshot snapshot;
   final AuthoringRequest request;
   final String planId;
   final int seed;
+  final String? logicalOperationId;
   final Map<String, int> _nextIndexByNamespace = {};
 
   String generateId(String namespace) {
@@ -51,7 +53,8 @@ final class AuthoringPlanningContext {
     );
     final fingerprint = computeAuthoringJsonFingerprint(
       {
-        'planId': planId,
+        if (logicalOperationId == null) 'planId': planId,
+        if (logicalOperationId != null) 'operationId': logicalOperationId,
         'seed': seed,
         'namespace': normalized,
         'index': index,
@@ -81,6 +84,8 @@ final class AuthoringActionPlanner {
     required ProjectSnapshot snapshot,
     required AuthoringMutationBuilder build,
     ProjectedStateValidator? validateProjectedState,
+    String? logicalOperationId,
+    int? stableSeed,
   }) async {
     await _store.collectExpired();
     final expectedRevision = request.expectedRevision;
@@ -105,7 +110,7 @@ final class AuthoringActionPlanner {
 
     final planId = _nextUniquePlanId();
     final receiptId = _validatedToken('receipt_');
-    final seed = _seedFactory();
+    final seed = stableSeed ?? _seedFactory();
     if (seed < 0) {
       throw ArgumentError.value(seed, 'seedFactory', 'must not be negative');
     }
@@ -114,6 +119,7 @@ final class AuthoringActionPlanner {
         snapshot: snapshot.withPayloadOwner(owner),
         request: request,
         planId: planId,
+        logicalOperationId: logicalOperationId,
         seed: seed);
     try {
       final draft = await build(context);

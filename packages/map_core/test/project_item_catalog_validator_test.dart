@@ -3,6 +3,33 @@ import 'package:test/test.dart';
 
 void main() {
   group('validateProjectItemCatalog', () {
+    test('accepts executable Miracle Seed, Shell Bell and Charcoal held effects', () {
+      final report = validateProjectItemCatalog(
+        ProjectItemCatalog(schemaVersion: 1, entries: [
+          for (final effectId in ['miracle_seed', 'shell_bell', 'charcoal'])
+            ProjectItemDefinition(
+              id: effectId.replaceAll('_', '-'),
+              displayName: effectId,
+              pocketId: 'items',
+              heldEffectId: effectId,
+            ),
+        ]),
+        capabilityTruth: itemSystemV1CapabilityTruth,
+      );
+
+      expect(report.hasBlockingDiagnostics, isFalse);
+      for (final itemId in ['miracle-seed', 'shell-bell', 'charcoal']) {
+        expect(
+          report.assessmentFor(itemId)?.readiness,
+          ItemCapabilityReadiness.runtimeReady,
+        );
+      }
+      expect(
+        itemSystemV1CapabilityTruth.supportsHeldEffect('unimplemented_item'),
+        isFalse,
+      );
+    });
+
     test('existing Metal Coat does not block an evolution stone catalog', () {
       final report = validateProjectItemCatalog(
         ProjectItemCatalog(schemaVersion: 1, entries: [

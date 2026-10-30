@@ -113,11 +113,13 @@ final class AuthoringOperationReplayLookup {
       {required this.scope,
       required this.operationId,
       required this.payloadFingerprint,
-      this.completed});
+      this.completed,
+      this.expired = false});
   final AuthoringIdempotencyScope scope;
   final String operationId;
   final String payloadFingerprint;
   final AuthoringIdempotencyRecord? completed;
+  final bool expired;
 }
 
 final class _IndexedIdempotencyRecord {
@@ -499,12 +501,15 @@ final class FileIdempotencyStore implements IdempotencyStore {
       {required String actorId,
       required String projectId,
       required String operationId,
-      required DateTime now}) async {
+      required DateTime now,
+      bool targetedOnly = false}) async {
     if (_scopeKey == null && !_operationPointer) {
-      if (_incrementalWrites) {
-        await _ensureIncrementalStorage();
-      } else {
-        await _hasIncrementalMarker();
+      if (!targetedOnly) {
+        if (_incrementalWrites) {
+          await _ensureIncrementalStorage();
+        } else {
+          await _hasIncrementalMarker();
+        }
       }
       final pointer = _operationStore(actorId, projectId, operationId);
       final indexed = await pointer._withLock(() async {
@@ -527,13 +532,21 @@ final class FileIdempotencyStore implements IdempotencyStore {
             filePath: _file.path,
             scope: indexed.scope,
             allowLegacyAction: true);
-        return scoped.lookupOperation(
+        final found = await scoped.lookupOperation(
             actorId: actorId,
             projectId: projectId,
             operationId: operationId,
             now: now);
+        return found ??
+            (indexed.scope.actionId == 'map3d.edit_batch'
+                ? AuthoringOperationReplayLookup(
+                    scope: indexed.scope,
+                    operationId: indexed.operationId,
+                    payloadFingerprint: indexed.payloadFingerprint,
+                    expired: true)
+                : null);
       }
-      if (await _hasIncrementalMarker()) return null;
+      if (targetedOnly || await _hasIncrementalMarker()) return null;
     }
     return _withLock(() async {
       await _readIndexUnlocked();
@@ -547,7 +560,13 @@ final class FileIdempotencyStore implements IdempotencyStore {
       final indexed = matches.single;
       if (indexed.expiresAt != null &&
           !now.toUtc().isBefore(indexed.expiresAt!)) {
-        return null;
+        return indexed.scope.actionId == 'map3d.edit_batch'
+            ? AuthoringOperationReplayLookup(
+                scope: indexed.scope,
+                operationId: indexed.operationId,
+                payloadFingerprint: indexed.payloadFingerprint,
+                expired: true)
+            : null;
       }
       return AuthoringOperationReplayLookup(
           scope: indexed.scope,
@@ -718,7 +737,9 @@ final class FileIdempotencyStore implements IdempotencyStore {
       }
       await _compactUnlocked(records);
       for (final record in expired) {
-        await _removeOperationPointer(record);
+        if (record.scope.actionId != 'map3d.edit_batch') {
+          await _removeOperationPointer(record);
+        }
       }
     }
     return expired.length;
@@ -1092,6 +1113,7 @@ _FileIdempotencyDecodeResult _decodeIdempotencyEvents(Uint8List bytes) {
 }
 
 bool _usesScopedLedger(String actionId) => const {
+      'map3d.edit_batch',
       'characterStudio.contactShadow.set',
       'map.atmosphere.set',
       'map.exteriorDecoration.references.prepare',

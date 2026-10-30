@@ -77,3 +77,5 @@ export 'src/theme/pokemap_player_surface_palette_theme.dart';
 export 'src/theme/pokemap_player_window_theme.dart';
 
 export 'src/player/player_party_trade_overlay.dart';
+export 'src/player/player_crafting_overlay.dart';
+export 'src/player/player_image_puzzle_overlay.dart';

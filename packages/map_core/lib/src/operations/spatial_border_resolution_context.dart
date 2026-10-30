@@ -48,7 +48,8 @@ final class SpatialBorderResolutionContext {
       size: map.size,
       layers: map.layers,
       instances: scene?.instances ?? const [],
-      worldHeightAt: (x, z) => scene?.worldHeightAt(x, z) ?? 0,
+      worldHeightAt: (x, z) =>
+          scene == null ? 0 : _sceneTerrainHeightAt(scene, x, z),
       groundModeledAt: scene == null
           ? null
           : (x, z) => _sceneGroundModeledAt(scene, x, z),
@@ -78,10 +79,25 @@ final class SpatialBorderResolutionContext {
   final bool isSpatial;
 }
 
+double _sceneTerrainHeightAt(MapSpatialScene scene, double x, double z) {
+  for (final ramp in scene.navigation.ramps) {
+    if (ramp.surfaceInstanceId == null && ramp.contains(x, z)) {
+      return ramp.levelAt(x, z) * scene.levelHeight;
+    }
+  }
+  return scene.terrainSurfaces.heightAt(x, z) ??
+      scene.heightAt(
+        x.floor().clamp(0, scene.width - 1),
+        z.floor().clamp(0, scene.depth - 1),
+      );
+}
+
 bool _sceneGroundModeledAt(MapSpatialScene scene, double x, double z) =>
     scene.terrainSurfaces.surfaces.isEmpty ||
     scene.terrainSurfaces.heightAt(x, z) != null ||
-    scene.navigation.ramps.any((ramp) => ramp.contains(x, z)) ||
+    scene.navigation.ramps.any(
+      (ramp) => ramp.surfaceInstanceId == null && ramp.contains(x, z),
+    ) ||
     scene.heightAt(
           x.floor().clamp(0, scene.width - 1),
           z.floor().clamp(0, scene.depth - 1),

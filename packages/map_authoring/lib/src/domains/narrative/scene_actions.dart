@@ -202,6 +202,39 @@ final class SceneActions {
     'outputPorts': ['completed'],
   };
 
+  static const _openImagePuzzleContract = {
+    'interactiveCommandKind': 'openImagePuzzle',
+    'projectDimension': 'twoDOrThreeD',
+    'parameters': ['definition'],
+    'definition': {'schemaVersion': 1, 'fields': ['puzzleId', 'imageResourceId', 'rows', 'columns', 'trayCapacity', 'allowedQuarterTurns', 'fixedPieceIds', 'initialPieces?', 'allowReset', 'allowSwap']},
+    'imageReference': 'knownProjectMediaKindImage',
+    'maximumPieces': 1024,
+    'grid': 'positiveRowsAndColumnsWithProductAtMostMaximumPieces',
+    'reserve': 'zeroToMaximumPiecesRequiresSwapWhenZero',
+    'rotations': 'uniqueQuarterTurnsZeroToThreeIncludingZero',
+    'fixedPieces': 'uniqueInRangeAndNotAllPieces',
+    'initialPieces': 'optionalCompleteUniqueUnsolvedPlacementRespectingFixedPiecesRotationsAndReserve',
+    'completion': 'verifiedPlacementAfterDurableAtomicCheckpoint',
+    'persistence': 'definitionSnapshotAndFingerprintWithPlacement',
+    'persistent': true,
+    'outputPorts': ['solved', 'quit'],
+    'requiredCapability': 'gameplay.image-puzzle@1',
+  };
+
+  static const _openCraftingContract = {
+    'projectDimension': 'twoDOrThreeD',
+    'parameters': ['definition'],
+    'definition': {'fields': ['schemaVersion', 'serviceId', 'label', 'recipes', 'maximumBatchQuantity', 'requiredDayChanges'],
+      'recipes': 'inlineUniqueRecipesWithInputAndOutputItemReferences'},
+    'completion': 'closedAfterDurableAtomicCommit',
+    'calendar': 'nextObservedHostCivilDayNotElapsed24Hours',
+    'cancellation': 'noMutationBeforeConfirmation',
+    'bagFull': 'pendingOrderPreserved',
+    'persistenceFailure': 'bagAndOrderPreserved',
+    'persistent': true,
+    'outputPorts': ['completed', 'cancelled'],
+  };
+
   static const _openPartyTradeContract = {
     'projectDimension': 'twoDOrThreeD',
     'parameters': ['npcOffer?'],
@@ -610,6 +643,8 @@ final class SceneActions {
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
+        'openCrafting': _openCraftingContract,
+        'openImagePuzzle': _openImagePuzzleContract,
         'openPartyTrade': _openPartyTradeContract,
         'worldTone': _worldToneContract,
         'worldPresentation': _worldPresentationContract,
@@ -678,6 +713,8 @@ final class SceneActions {
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
+        'openCrafting': _openCraftingContract,
+        'openImagePuzzle': _openImagePuzzleContract,
         'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
@@ -758,6 +795,8 @@ final class SceneActions {
         'waitForActorRoutes': _waitForActorRoutesContract,
         'wait': _waitContract,
         'openRegionalMap': _openRegionalMapContract,
+        'openCrafting': _openCraftingContract,
+        'openImagePuzzle': _openImagePuzzleContract,
         'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,

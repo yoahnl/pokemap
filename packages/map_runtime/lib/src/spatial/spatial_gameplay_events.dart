@@ -17,6 +17,7 @@ import '../application/narrative_scene_runtime_execution.dart';
 import '../application/narrative_spatial_production_dispatch_bridge.dart';
 import '../application/npc_runtime_presence.dart';
 import '../application/story_flags_manager.dart';
+import '../application/runtime_trainer_lifecycle_policy.dart';
 import '../application/scene_runtime/scene_consequence_runtime_writer.dart';
 import '../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../application/step_studio_world_presence_runtime.dart';
@@ -159,6 +160,7 @@ final class SpatialGameplayEvents {
     presentItemPickup,
     ItemCatalogSnapshot? itemCatalog,
     NarrativeEventRuntimeSnapshot? narrativeSnapshot,
+    Future<ProjectMediaCatalog?> Function()? loadPresentationMediaCatalog,
     Random? random,
     DateTime Function()? now,
   }) async {
@@ -176,6 +178,7 @@ final class SpatialGameplayEvents {
         narrativeSnapshot ??
         await NarrativeEventRuntimeSnapshot.build(
           project: project,
+          loadPresentationMediaCatalog: loadPresentationMediaCatalog,
           loadMap: (id) async => (project: project, map: maps[id]!),
         );
     if (!snapshot.matchesProject(project)) {
@@ -493,7 +496,14 @@ final class SpatialGameplayEvents {
     final model = entity == null ? modelInteractionTarget : null;
     if (entity == null && model == null) return Future.value();
     final mapId = _map.id;
-    return _run(() async {
+    return _run<NarrativeSpatialProductionDispatchResult?>(() async {
+      final trainerPlan = entity == null ? null : _trainerInteractionPlan(entity);
+      if (trainerPlan != null && const {RuntimeTrainerInteractionDisposition.dialogueOnly, RuntimeTrainerInteractionDisposition.blocked}.contains(trainerPlan.disposition)) {
+        final dialogue = trainerPlan.dialogue;
+        if (dialogue != null) await _showEntityDialogue(entity!, dialogue);
+        await _settle();
+        return null;
+      }
       final result = await _dispatchSpatial(
         NarrativeEventOccurrence(
           source: entity != null
@@ -515,6 +525,20 @@ final class SpatialGameplayEvents {
       await _settle();
       return result;
     });
+  }
+
+  RuntimeTrainerInteractionPlan? _trainerInteractionPlan(MapEntity entity) {
+    final npc = entity.npc;
+    if (npc?.trainerId == null) return null;
+    final trainer = project.trainers.where((value) => value.id == npc!.trainerId).firstOrNull;
+    if (trainer == null) return null;
+    final state = _readGameState();
+    final now = _now();
+    final evaluator = MapEntityRuntimePredicateEvaluator(gameState: state, chapterIndex: _chapterIndex, localMinuteOfDay: now.hour * 60 + now.minute);
+    final override = const RuntimeWorldRuleProjectionHook().resolve(project: project, gameState: state, map: _map).dialogueOverrideForEntity(entity.id);
+    final authority = _prepareAuthority(NarrativeEventOccurrence(source: NarrativeEventSourceRef.entityInteract(_map.id, entity.id)));
+    final authoredScene = authority is NarrativeEventDispatchAuthorityReady && authority.plan(gameState: state) is NarrativeEventDispatchHandled;
+    return resolveRuntimeTrainerInteractionPlan(trainer: trainer, npc: npc!, isDefeated: !authoredScene && const StoryFlagsManager().isTrainerDefeated(state, trainer.id), battleAllowed: npc.trainerBattleWhen == null || evaluator.evaluatePredicate(npc.trainerBattleWhen!), battleReady: npc.trainerBattleReadyWhen == null || evaluator.evaluatePredicate(npc.trainerBattleReadyWhen!), nonBattleDialogue: override == null ? evaluator.resolveNpcDialogue(npc) : DialogueRef(dialogueId: override));
   }
 
   bool canSpotTrainer(MapEntity entity) {
@@ -863,6 +887,9 @@ final class SpatialGameplayEvents {
     }
   }
 
+  NarrativeEventStateCheckpointOwner? _activeSceneCheckpointOwner;
+  NarrativeEventStateCheckpointOwner? get activeSceneCheckpointOwner => _activeSceneCheckpointOwner;
+
   Future<NarrativeSceneExecutionResult> _executeScene(
     NarrativeSceneExecutionRequest request,
   ) async {
@@ -889,6 +916,8 @@ final class SpatialGameplayEvents {
     final outcomes = _sceneBattleOutcomes = <NarrativeOutcomeRef>[];
     final previousProjection = _sceneStateProjection;
     final readWorkingState = () => workingState;
+    final previousCheckpointOwner = _activeSceneCheckpointOwner;
+    _activeSceneCheckpointOwner = _transactions.captureCheckpointOwner();
     var retainCompletedProjection = false;
     try {
       final callbacks = _createSceneCallbacks(readWorkingState, (state) {
@@ -905,6 +934,7 @@ final class SpatialGameplayEvents {
         request: request,
         project: project,
         mapsById: mapsById,
+        presentationMediaCatalog: _snapshot.presentationMediaCatalog,
         currentGameState: () => workingState,
         consequenceWriter: writer,
         onSceneStateProjection: (projector) {
@@ -986,6 +1016,7 @@ final class SpatialGameplayEvents {
         if (!retainCompletedProjection || !current()) {
           _sceneStateProjection = current() ? previousProjection : null;
         }
+        _activeSceneCheckpointOwner = previousCheckpointOwner;
         if (identical(_sceneBattleAttempts, attempts)) {
           _sceneBattleAttempts = null;
           _sceneBattleOutcomes = null;

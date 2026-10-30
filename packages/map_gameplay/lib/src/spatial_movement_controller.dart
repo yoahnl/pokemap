@@ -439,6 +439,11 @@ final class SpatialMovementController {
 
   MapEntity? Function(MapEntity entity)? entityProjection;
 
+  bool canOccupyPlatform(SpatialPlatformDefinition platform, double offsetX, double offsetZ) {
+    if (!offsetX.isFinite || !offsetZ.isFinite) return false;
+    return !_collides(PixelRect(leftPx: 0, topPx: 0, widthPx: (platform.width * pixelsPerCell).ceil(), heightPx: (platform.depth * pixelsPerCell).ceil()), offsetX: platform.x + offsetX, offsetZ: platform.z + offsetZ, ignoreTerrain: true, groundHeightOverride: platform.height);
+  }
+
   bool canTraverseActor(double fromX, double fromZ, double toX, double toZ,
       {String? ignoredEntityId,
       SpatialFieldTraversalStep? fieldTraversalStep,
@@ -1081,6 +1086,8 @@ final class SpatialMovementController {
 
   bool _collides(PixelRect rect,
       {bool ignoreBounds = false,
+      bool ignoreTerrain = false,
+      double? groundHeightOverride,
       SpatialFieldTraversalStep? fieldTraversalStep,
       double offsetX = 0,
       double offsetZ = 0,
@@ -1096,7 +1103,7 @@ final class SpatialMovementController {
         (left < 0 || top < 0 || right > scene.width || bottom > scene.depth)) {
       return true;
     }
-    if (_terrainCollides(rect, offsetX: offsetX, offsetZ: offsetZ,
+    if (!ignoreTerrain && _terrainCollides(rect, offsetX: offsetX, offsetZ: offsetZ,
         fieldTraversalStep: fieldTraversalStep)) {
       return true;
     }
@@ -1147,7 +1154,7 @@ final class SpatialMovementController {
           instance.blocksMovement;
       if (!blocks) continue;
       if (_modelCollides(rect, instance, offsetX: offsetX, offsetZ: offsetZ, runtimeState: runtimeState,
-          fieldTraversalStep: fieldTraversalStep)) {
+          fieldTraversalStep: fieldTraversalStep, groundHeightOverride: groundHeightOverride)) {
         return true;
       }
     }
@@ -1193,7 +1200,7 @@ final class SpatialMovementController {
 
   bool _modelCollides(PixelRect rect, SpatialModelInstance instance,
       {double offsetX = 0, double offsetZ = 0, SpatialModelRuntimeState? runtimeState,
-      SpatialFieldTraversalStep? fieldTraversalStep}) {
+      SpatialFieldTraversalStep? fieldTraversalStep, double? groundHeightOverride}) {
     final left = rect.leftPx / pixelsPerCell + offsetX,
         top = rect.topPx / pixelsPerCell + offsetZ,
         right = (rect.leftPx + rect.widthPx) / pixelsPerCell + offsetX,
@@ -1204,7 +1211,7 @@ final class SpatialMovementController {
     }
     final geometry =
         spatialModelWorldGeometry(instance, model, useCollisionBounds: true, runtimeState: runtimeState);
-    final actorHeight = (fieldTraversalStep?.groundYAt ?? heightAt)(
+    final actorHeight = groundHeightOverride ?? (fieldTraversalStep?.groundYAt ?? heightAt)(
         rect.bottomCenterPx.xPx / pixelsPerCell + offsetX,
         rect.bottomCenterPx.yPx / pixelsPerCell + offsetZ);
     if (actorHeight >= geometry.maxY || actorHeight + 1.92 <= geometry.minY) {

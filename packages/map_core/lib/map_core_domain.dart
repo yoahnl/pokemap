@@ -106,6 +106,8 @@ export 'src/operations/new_game_entrypoint_migration.dart';
 export 'src/operations/new_game_seed_commit.dart';
 export 'src/models/save_data.dart';
 export 'src/models/game_state.dart';
+export 'src/models/gameplay_calendar.dart';
+export 'src/models/deferred_crafting.dart';
 export 'src/models/game_completion_party_journal.dart';
 export 'src/models/repel_state.dart';
 export 'src/models/escape_return_point.dart';
@@ -482,6 +484,9 @@ export 'src/validation/world_environment_capabilities.dart';
 export 'src/models/real_weather.dart';
 
 export 'src/models/spatial_lift.dart';
+export 'src/models/spatial_platform.dart';
 export 'src/models/map_warp_ladder.dart';
 
 export 'src/models/project_audio_settings.dart';
+
+export 'src/models/image_puzzle.dart';

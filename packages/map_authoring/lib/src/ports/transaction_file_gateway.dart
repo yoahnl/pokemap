@@ -120,7 +120,8 @@ abstract interface class TransactionFileGateway {
 
 abstract interface class PendingTransactionJournalGateway {
   Future<void> preparePendingJournalIndex();
-  Future<List<AuthoringTransactionJournal>> listPendingJournals();
+  Future<List<AuthoringTransactionJournal>> listPendingJournals(
+      {bool requirePrepared = false});
 }
 
 Future<void> preparePendingTransactionJournals(
@@ -133,17 +134,23 @@ Future<void> preparePendingTransactionJournals(
 
 Future<List<AuthoringTransactionJournal>> readPendingTransactionJournals(
     TransactionFileGateway gateway,
-    {bool allowLegacyScan = false}) async {
+    {bool allowLegacyScan = false,
+    bool requirePrepared = false}) async {
   if (gateway is PendingTransactionJournalGateway) {
     try {
       return await (gateway as PendingTransactionJournalGateway)
-          .listPendingJournals();
+          .listPendingJournals(requirePrepared: requirePrepared);
     } on TransactionFileGatewayException catch (error) {
       if (!allowLegacyScan ||
           error.code != 'transaction.pending_index_preparation_required') {
         rethrow;
       }
     }
+  }
+  if (requirePrepared) {
+    throw const TransactionFileGatewayException(
+        'transaction.pending_index_preparation_required',
+        'Prepare the bounded pending transaction index before map editing.');
   }
   return gateway.listJournals();
 }

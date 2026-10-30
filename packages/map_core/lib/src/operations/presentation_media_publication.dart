@@ -347,10 +347,12 @@ final class PresentationMediaPublicationPreflight {
         final payload = node.payload;
         if (payload is! SceneActionPayload) continue;
         final command = payload.interactiveCommand;
-        if (command is! SceneWorldPresentationInteractiveCommand ||
-            command.operation != SceneWorldPresentationOperation.showPicture)
-          continue;
-        final mediaId = command.mediaAssetId!;
+        final mediaId = switch (command) {
+          SceneOpenImagePuzzleInteractiveCommand() => command.definition.imageResourceId,
+          SceneWorldPresentationInteractiveCommand(operation: SceneWorldPresentationOperation.showPicture) => command.mediaAssetId,
+          _ => null,
+        };
+        if (mediaId == null) continue;
         allRoots.add(mediaId);
         if (catalog.find(mediaId)?.kind != ProjectMediaKind.image) {
           diagnostics.add(
@@ -358,7 +360,9 @@ final class PresentationMediaPublicationPreflight {
               code: PresentationMediaPublicationDiagnosticCodes.mediaMissing,
               constraint:
                   PresentationMediaPublicationConstraints.mediaReference,
-              path: 'scenes[${scene.id}].nodes[${node.id}].mediaAssetId',
+              path: command is SceneOpenImagePuzzleInteractiveCommand
+                  ? 'scenes[${scene.id}].nodes[${node.id}].definition.imageResourceId'
+                  : 'scenes[${scene.id}].nodes[${node.id}].mediaAssetId',
               message: 'The Scene references a missing image media.',
               mediaId: mediaId,
             ),

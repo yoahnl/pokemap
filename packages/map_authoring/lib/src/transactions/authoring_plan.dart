@@ -1,3 +1,4 @@
+import '../contracts/map_edit_operation.dart';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -61,6 +62,24 @@ final class AuthoringPlan {
     if (seed < 0) {
       throw ArgumentError.value(seed, 'seed', 'must not be negative');
     }
+  }
+
+  MapEditBinding? _mapEditBinding;
+  MapEditBinding? get mapEditBinding => _mapEditBinding;
+  Set<String> _mapEditReadStorageKeys = const {};
+  Set<String> get mapEditReadStorageKeys => _mapEditReadStorageKeys;
+  void bindMapEdit(MapEditBinding binding,
+      {Iterable<String> readStorageKeys = const []}) {
+    if (_mapEditBinding != null ||
+        request.actionId != 'map3d.edit_batch' ||
+        request.actionVersion != 1 ||
+        binding.seed != seed ||
+        binding.unchanged != changeSet.changes.isEmpty ||
+        binding.mapId != request.parameters['mapId']) {
+      throw StateError('The map edit binding differs from its frozen plan.');
+    }
+    _mapEditBinding = binding;
+    _mapEditReadStorageKeys = Set.unmodifiable(readStorageKeys);
   }
 
   NativeProjectCreationCapability? _nativeCreationCapability;
@@ -190,6 +209,8 @@ final class AuthoringPlan {
         preview: preview,
         referenceImpact: referenceImpact,
         artifacts: artifacts);
+    next._mapEditBinding = _mapEditBinding;
+    next._mapEditReadStorageKeys = _mapEditReadStorageKeys;
     _payloadOwner = AuthoringPayloadOwner();
     _changeSet = null;
     _reframed = true;

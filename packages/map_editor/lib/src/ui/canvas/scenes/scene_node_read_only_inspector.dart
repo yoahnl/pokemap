@@ -149,6 +149,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onRemoveNodeDraft,
     this.conditionSourceOptions = const [],
     this.loadPartyMoves,
+    this.actionPickerOptions = const {},
     this.partyProjectDimension = ProjectDimension.twoD,
     this.onUpdateConditionSource,
     this.onUpdateEndPayload,
@@ -180,6 +181,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final Future<Map<String, String>> Function()? loadPartyMoves;
+  final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>> actionPickerOptions;
   final ProjectDimension partyProjectDimension;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
   final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
@@ -234,6 +236,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               onRemoveNodeDraft: onRemoveNodeDraft,
               conditionSourceOptions: conditionSourceOptions,
               loadPartyMoves: loadPartyMoves,
+              actionPickerOptions: actionPickerOptions,
               partyProjectDimension: partyProjectDimension,
               onUpdateConditionSource: onUpdateConditionSource,
               onUpdateEndPayload: onUpdateEndPayload,
@@ -350,6 +353,7 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.onRemoveNodeDraft,
     required this.conditionSourceOptions,
     required this.loadPartyMoves,
+    required this.actionPickerOptions,
     required this.partyProjectDimension,
     required this.onUpdateConditionSource,
     required this.onUpdateEndPayload,
@@ -379,6 +383,7 @@ class _NodeInspectorBody extends StatelessWidget {
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final Future<Map<String, String>> Function()? loadPartyMoves;
+  final Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>> actionPickerOptions;
   final ProjectDimension partyProjectDimension;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
   final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
@@ -516,6 +521,15 @@ class _NodeInspectorBody extends StatelessWidget {
                 )
               else
                 const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour configurer le compteur.'),
+            ]),
+            const SizedBox(height: 10),
+          ] else if (node.payload case SceneActionPayload(
+            interactiveCommand: SceneOpenImagePuzzleInteractiveCommand(),
+          )) ...[
+            _InspectorSection(title: 'Puzzle d’image', children: [
+              if (onUpdateInteractiveCommand != null)
+                SceneActionBuilder(key: ValueKey('image-puzzle-inspector-${node.id}'), initialPayload: node.payload as SceneActionPayload, project: project, allowCommandSelection: false, pickerOptions: actionPickerOptions, onSubmit: (payload) => onUpdateInteractiveCommand!(nodeId: node.id, command: (payload as SceneActionPayload).interactiveCommand!))
+              else const _InspectorNote(label: 'Ouvrez un projet modifiable pour configurer ce puzzle.'),
             ]),
             const SizedBox(height: 10),
           ] else if (node.payload case SceneActionPayload(

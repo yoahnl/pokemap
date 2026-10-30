@@ -14,7 +14,7 @@ final class MovingPlatformActions {
           id: action,
           version: 1,
           summary: action.endsWith('upsert')
-              ? 'Create or replace a 2D moving platform with native orientation variants'
+              ? 'Create or replace a native 2D platform or a 3D route platform'
               : 'Delete an unreferenced 2D moving platform and retain its placed visual',
           inputSchemaId: 'schema.$action.input.v1',
           outputSchemaId: 'schema.map.semantic_mutation.output.v1',
@@ -54,7 +54,7 @@ final class MovingPlatformActions {
               ],
               'properties': {
                 'mapId': {'type': 'string', 'minLength': 1},
-                if (action.endsWith('upsert')) 'platform': _definitionSchema,
+                if (action.endsWith('upsert')) 'platform': {'oneOf': [_definitionSchema, _spatialDefinitionSchema]},
                 if (action.endsWith('delete'))
                   'platformId': {'type': 'string', 'minLength': 1},
               },
@@ -67,6 +67,24 @@ final class MovingPlatformActions {
     final context = SemanticMapActionContext.read(planning,
         allowedParameters: {upsert ? 'platform' : 'platformId'});
     try {
+      final spatial = context.map.spatialScene;
+      if (spatial != null) {
+        final raw = upsert ? Map<String, dynamic>.from(context.parameters.object('platform')) : null;
+        if (raw != null && raw.remove('kind') != 'spatial') throw const FormatException('A 3D map requires a spatial platform.');
+        final platform = raw == null ? null : SpatialPlatformDefinition.fromJson(raw);
+        final id = platform?.id ?? context.parameters.string('platformId');
+        if (platform != null) {
+          for (final condition in platform.routes.expand((route) => route.conditions)) {
+            if (!context.manifest.facts.any((fact) => fact.id == condition.factId && fact.valueKind == NarrativeValueKind.boolean)) throw const FormatException('Platform route requires a declared boolean fact.');
+          }
+        } else {
+          if (!spatial.platforms.any((value) => value.id == id)) throw semanticFailure('map.platform_not_found', 'The spatial platform does not exist.');
+          final usages = buildNarrativeDependencyIndex(project: context.manifest, maps: planning.snapshot.maps).usagesFor(NarrativeDependencyKey.mapSource(mapId: context.map.id, sourceKind: 'movingPlatform', sourceId: id));
+          if (usages.isNotEmpty) throw semanticFailure('map.platform_referenced', 'The platform is used by a Scene.');
+        }
+        final after = context.map.copyWith(spatialScene: spatial.copyWith(platforms: [for (final existing in spatial.platforms) if (existing.id != id) existing, if (platform != null) platform]));
+        return context.draftMap(after: after, operation: planning.request.actionId, changedItems: 1, preview: {'platformId': id, 'dimension': 'threeD'});
+      }
       final platform = upsert
           ? MovingPlatformDefinition.fromJson(
               Map<String, dynamic>.from(context.parameters.object('platform')))
@@ -110,6 +128,24 @@ final class MovingPlatformActions {
     }
   }
 }
+
+const _spatialDefinitionSchema = {
+  'type': 'object', 'additionalProperties': false,
+  'required': ['kind', 'id', 'name', 'instanceId', 'x', 'z', 'width', 'depth', 'height', 'durationMs', 'routes'],
+  'properties': {
+    'kind': {'const': 'spatial'},
+    'id': {'type': 'string', 'minLength': 1}, 'name': {'type': 'string', 'minLength': 1}, 'instanceId': {'type': 'string', 'minLength': 1},
+    'x': {'type': 'number', 'minimum': 0}, 'z': {'type': 'number', 'minimum': 0}, 'width': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 32}, 'depth': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 32},
+    'height': {'type': 'number', 'minimum': 0, 'maximum': 1024}, 'durationMs': {'type': 'integer', 'minimum': 100, 'maximum': 30000},
+    'routes': {'type': 'array', 'minItems': 1, 'maxItems': 16, 'items': {
+      'type': 'object', 'additionalProperties': false, 'required': ['id', 'waypoints'],
+      'properties': {'id': {'type': 'string', 'minLength': 1},
+        'conditions': {'type': 'array', 'maxItems': 8, 'items': {'type': 'object', 'additionalProperties': false, 'required': ['factId', 'value'], 'properties': {'factId': {'type': 'string', 'minLength': 1}, 'value': {'type': 'boolean'}}}},
+        'waypoints': {'type': 'array', 'minItems': 2, 'maxItems': 32, 'items': {'type': 'object', 'additionalProperties': false, 'required': ['x', 'z'], 'properties': {'x': {'type': 'number'}, 'z': {'type': 'number'}}}},
+      },
+    }},
+  },
+};
 
 const _pointSchema = {
   'type': 'object',

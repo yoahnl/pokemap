@@ -1,3 +1,4 @@
+import '../../contracts/map_edit_operation.dart';
 import '../../domains/maps/trigger_zone_actions.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/exterior_decoration_references.dart';
@@ -852,6 +853,14 @@ final class CatalogAuthoringSession {
 
   Future<AuthoringMutationResult> _result(AuthoringReceipt receipt,
       {bool? catalogOnly}) async {
+    final rawMapEdit = receipt.extensions['mapEdit'];
+    if (receipt.actionId == 'map3d.edit_batch' && rawMapEdit is Map) {
+      final binding = MapEditBinding.fromJson(Map<String, dynamic>.from(rawMapEdit));
+      return AuthoringMutationResult(receipt: receipt,
+          snapshotRevision: binding.snapshotRevision,
+          publicProjection: await projections?.prepareCommittedMutation(
+              receipt: receipt, snapshotRevision: binding.snapshotRevision));
+    }
     String? revision;
     try {
       revision = (catalogOnly ?? await _isCatalogOnlyReceipt(receipt))

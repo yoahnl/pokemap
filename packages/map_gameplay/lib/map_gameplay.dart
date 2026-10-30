@@ -322,7 +322,8 @@ export 'src/narrative_event_state_transactions.dart'
         NarrativeEventStateTransactionRollback,
         NarrativeEventStateTransactionCallback,
         NarrativeEventAfterCommitCallback,
-        NarrativeEventStateTransactions;
+        NarrativeEventStateTransactions,
+        NarrativeEventStateCheckpointOwner;
 export 'src/narrative_event_execution_coordinator.dart'
     show
         NarrativeEventActivity,
@@ -420,5 +421,13 @@ export 'src/party_companion_trail.dart';
 export 'src/spatial_item_pickup.dart';
 
 export 'src/world_environment_clock.dart';
+export 'src/gameplay_calendar.dart';
+export 'src/deferred_crafting_operations.dart';
 
 export 'src/spatial_lift_motion.dart';
+export 'src/spatial_platform_motion.dart';
+
+export 'src/deferred_crafting_checkpoint.dart';
+export 'src/image_puzzle_checkpoint.dart';
+
+export 'src/image_puzzle_operations.dart';

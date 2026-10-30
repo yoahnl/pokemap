@@ -1353,6 +1353,23 @@ void _diagnoseActionConsequenceAgainstProject(
       message: 'Marquer une espèce comme vue nécessite le catalogue Pokémon natif activé.', sceneId: scene.id, nodeId: node.id,
       target: SceneDiagnosticTarget.node, suggestedFixLabel: 'Activer le catalogue Pokémon du projet.'));
   }
+  if (interactiveCommand case SceneOpenImagePuzzleInteractiveCommand(:final definition)) {
+    if (presentationMediaCatalog?.find(definition.imageResourceId)?.kind != ProjectMediaKind.image) {
+      diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownPictureMedia,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'Choisir une image disponible dans la médiathèque pour le puzzle.',
+        sceneId: scene.id, nodeId: node.id, target: SceneDiagnosticTarget.node));
+    }
+  }
+  if (interactiveCommand case SceneOpenCraftingInteractiveCommand(:final definition)) {
+    for (final recipe in definition.recipes) {
+      for (final itemId in {recipe.inputItemId, recipe.outputItemId}) {
+        _diagnoseItemReference(scene, node, itemId: itemId, availableItemIds: availableItemIds,
+          unavailableCode: SceneDiagnosticCode.commandItemCatalogUnavailable,
+          unknownCode: SceneDiagnosticCode.commandUnknownItem, diagnostics: diagnostics);
+      }
+    }
+  }
   if (interactiveCommand case SceneGiveItemInteractiveCommand(:final itemId)) {
     _diagnoseItemReference(
       scene,
@@ -1719,7 +1736,7 @@ void _diagnoseActionConsequenceAgainstProject(
   }
   if (interactiveCommand is SceneMovePlatformInteractiveCommand) {
     final map = mapsById[interactiveCommand.mapId];
-    if (map == null || !(map.movingPlatforms.any((value) => value.id == interactiveCommand.platformId) || (map.spatialScene?.lifts.any((value) => value.id == interactiveCommand.platformId) ?? false))) {
+    if (map == null || !(map.movingPlatforms.any((value) => value.id == interactiveCommand.platformId) || (map.spatialScene?.lifts.any((value) => value.id == interactiveCommand.platformId) ?? false) || (map.spatialScene?.platforms.any((value) => value.id == interactiveCommand.platformId) ?? false))) {
       diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.commandUnknownPlatform,
           severity: SceneDiagnosticSeverity.error,
           message: 'La commande movePlatform cible une plateforme absente du projet.',

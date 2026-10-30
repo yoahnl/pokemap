@@ -592,10 +592,16 @@ final class LocalTransactionFileGateway
       });
 
   @override
-  Future<List<AuthoringTransactionJournal>> listPendingJournals() =>
+  Future<List<AuthoringTransactionJournal>> listPendingJournals(
+          {bool requirePrepared = false}) =>
       _guardIo(() async {
         final pending = await _readPendingIds();
         if (pending == null) {
+          if (requirePrepared) {
+            throw const TransactionFileGatewayException(
+                'transaction.pending_index_preparation_required',
+                'Prepare the bounded pending transaction index explicitly before map editing.');
+          }
           await _requireNoLegacyJournals();
           return const [];
         }

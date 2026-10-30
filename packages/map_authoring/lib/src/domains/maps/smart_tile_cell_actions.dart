@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
+import 'map_action_examples.dart';
 import 'smart_tile_native_transition_guard.dart';
 
 /// Canonical, transport-neutral Smart Tile material gesture actions.
@@ -415,7 +416,8 @@ AuthoringActionDescriptor _batchDescriptor() => AuthoringActionDescriptor(
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
-      extensions: const {
+      extensions: {
+        'inputExample': mapActionInputExample('smart_tile.cell.paint_batch'),
         'semanticIds': true,
         'materialPalettePolicy': 'append_catalog_material_allowed_by_preset',
         'rawTilesetRequired': false,
@@ -581,6 +583,8 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         'rawTilesetRequired': false,
         'gestureAtomic': true,
         'cellFieldOnly': false,
+        'inputExample': mapActionInputExample(id),
+        'inputSchema': _cellInputSchema(id.endsWith('.erase')),
         'supportedSelections': <String>[
           'cells',
           'line',
@@ -593,6 +597,37 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         'supportedFieldKinds': <String>['cell', 'edge', 'corner', 'mixed'],
       },
     );
+
+Map<String, Object?> _cellInputSchema(bool erase) {
+  const point = {
+    'type': 'object', 'additionalProperties': false,
+    'required': ['x', 'y'], 'properties': {
+      'x': {'type': 'integer', 'minimum': 0},
+      'y': {'type': 'integer', 'minimum': 0},
+    },
+  };
+  return {
+    'type': 'object', 'additionalProperties': false,
+    'required': ['mapId', 'layerId', if (!erase) 'materialId'],
+    'oneOf': [
+      {'required': ['cells'], 'not': {'required': ['selection']}},
+      {'required': ['selection'], 'not': {'required': ['cells']}},
+    ],
+    'properties': {
+      for (final field in ['mapId', 'layerId', if (!erase) 'materialId'])
+        field: const {'type': 'string', 'minLength': 1},
+      'cells': {'type': 'array', 'minItems': 1,
+        'maxItems': SmartTileCellActions.maximumExplicitCellsPerGesture, 'items': point},
+      'selection': {'oneOf': [
+        for (final kind in ['line', 'rectangle', 'floodFill'])
+          {'type': 'object', 'additionalProperties': false,
+            'required': ['kind', if (kind == 'floodFill') 'seed' else ...['start', 'end']],
+            'properties': {'kind': {'const': kind},
+              if (kind == 'floodFill') 'seed': point else ...{'start': point, 'end': point}}},
+      ]},
+    },
+  };
+}
 
 String _fieldKind(SmartTileField field) => switch (field) {
       SmartTileCellField() => 'cell',

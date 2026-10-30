@@ -30,6 +30,7 @@ part 'catalog_map_metadata_selection.dart';
 part 'catalog_asset_import_selection.dart';
 part 'catalog_native_resource_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
+part 'catalog_scene_workshop_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
@@ -86,6 +87,7 @@ final class CatalogWorkshopSelection {
       action == 'asset.import' ||
       action == 'asset.import_batch' ||
       action == 'project.battle_audio.update' ||
+      _sceneWorkshopActions.contains(action) ||
       _guidedActions.contains(action) ||
       _gameplayActions.contains(action) ||
       const {
@@ -200,6 +202,9 @@ final class CatalogWorkshopSelection {
           projectHandle: projectHandle,
           parameters: parameters,
           readDependencies: readDependencies);
+    }
+    if (_sceneWorkshopActions.contains(actionId)) {
+      return _readSceneWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);
     }
     if (_guidedActions.contains(actionId)) {
       return _readGuidedWorkshop(

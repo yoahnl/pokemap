@@ -569,6 +569,11 @@ final class _PresentationReferenceGraphBuilder {
             acceptedMediaTypes: {ProjectMediaKind.image},
           );
         }
+        if (command is SceneOpenImagePuzzleInteractiveCommand) {
+          _reference(owner: owner, target: PresentationReferenceKey.media(command.definition.imageResourceId),
+            path: 'scenes[${scene.id}].graph.nodes[${node.id}].payload.interactiveCommand.definition.imageResourceId',
+            relation: PresentationReferenceRelation.scenePicture, acceptedMediaTypes: {ProjectMediaKind.image});
+        }
         if (node.payload case final ScenePresentationCinematicPayload payload) {
           _reference(
             owner: owner,

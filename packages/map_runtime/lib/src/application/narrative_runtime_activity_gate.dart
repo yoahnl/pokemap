@@ -17,9 +17,9 @@ final class NarrativeRuntimeCheckpointBlockedException
     required this.activity,
     required this.reasonCode,
   }) : super(
-          'Narrative runtime checkpoint blocked: '
-          '${operation.name}/$reasonCode.',
-        );
+         'Narrative runtime checkpoint blocked: '
+         '${operation.name}/$reasonCode.',
+       );
 
   final NarrativeRuntimeCheckpointOperation operation;
   final NarrativeRuntimeActivity activity;
@@ -106,7 +106,44 @@ final class NarrativeRuntimeActivityGate {
     }
   }
 
+  NarrativeRuntimeSceneCheckpointOwner captureSceneCheckpointOwner() {
+    if (_checkpointInProgress ||
+        activity != NarrativeRuntimeActivity.sceneActive) {
+      throw StateError('An active Scene must own its service checkpoint.');
+    }
+    return NarrativeRuntimeSceneCheckpointOwner._(this, [
+      for (final entry in _activities) entry.$1,
+    ]);
+  }
+
+  Future<T> runSceneCheckpoint<T>(
+    NarrativeRuntimeSceneCheckpointOwner owner,
+    Future<T> Function() action,
+  ) async {
+    if (!identical(owner._gate, this) ||
+        _checkpointInProgress ||
+        activity != NarrativeRuntimeActivity.sceneActive ||
+        owner._tokens.length != _activities.length ||
+        Iterable<int>.generate(_activities.length).any(
+          (index) => !identical(owner._tokens[index], _activities[index].$1),
+        )) {
+      throw StateError('The Scene checkpoint activity owner is stale.');
+    }
+    _checkpointInProgress = true;
+    try {
+      return await action();
+    } finally {
+      _checkpointInProgress = false;
+    }
+  }
+
   void _leave(Object token) {
     _activities.removeWhere((entry) => identical(entry.$1, token));
   }
+}
+
+final class NarrativeRuntimeSceneCheckpointOwner {
+  NarrativeRuntimeSceneCheckpointOwner._(this._gate, this._tokens);
+  final NarrativeRuntimeActivityGate _gate;
+  final List<Object> _tokens;
 }

@@ -60,7 +60,12 @@ void main() {
               : RuntimePlayerPauseCommandStatus.unavailable,
         );
         expect(result.resumeGameplay, available);
-        if (!available) expect(result.safeMessage, contains('2D'));
+        if (!available) {
+          expect(
+            result.safeMessage,
+            'La pêche nécessite un runtime compatible.',
+          );
+        }
         expect(reservations, available ? 1 : 0);
         expect(commits, 0);
         expect(locks, 0);

@@ -3,6 +3,7 @@ import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
 import 'border_feature_query.dart';
 import 'spatial_map_integrity_query.dart';
+import 'map_health_query.dart';
 import 'project_media_library_query.dart';
 import '../workspace/catalog/catalog_project_reader.dart';
 import '../workspace/catalog/catalog_targeted_map_edit.dart';
@@ -231,10 +232,22 @@ final class AuthoringReadApi
         const {AuthoringQueryOperation.list, AuthoringQueryOperation.summary, AuthoringQueryOperation.get, AuthoringQueryOperation.batchGet}.contains(request.operation)) {
       return catalog.queryFacts(request);
     }
-    if (const {'surfConfiguration', 'fieldAbilityConfiguration', 'projectAudio'}.contains(request.resourceKind)) {
+    if (catalog != null && const {'partyCompanionConfiguration', 'contactDeviceConfiguration'}.contains(request.resourceKind) && request.extensions.isEmpty) {
+      final field = request.resourceKind == 'partyCompanionConfiguration' ? 'partyCompanion' : 'contactDevice';
+      final selected = await catalog.withMetadataFields({field});
+      return selected.read((projection) async {
+        final snapshot = ProjectSnapshot(projectHandle: projectHandle,
+            revision: CatalogWorkshopSelection.fingerprint(selected.revision, const {}),
+            manifest: projection.projectMetadata, maps: const [], availableProjectSections: {field}, resourceFingerprints: const {});
+        return _queryService.queryAsync(snapshot, request);
+      });
+    }
+    if (const {'surfConfiguration', 'fieldAbilityConfiguration', 'projectAudio'}.contains(request.resourceKind) || catalog != null && const {'partyCompanionConfiguration', 'contactDeviceConfiguration'}.contains(request.resourceKind)) {
       final defaultAction = switch (request.resourceKind) {
         'fieldAbilityConfiguration' => 'field_ability.configure',
         'projectAudio' => 'project.audio.cue.configure',
+        'partyCompanionConfiguration' => 'party_companion.configure',
+        'contactDeviceConfiguration' => 'contact_device.configure',
         _ => 'surf.configure',
       };
       final action = request.extensions['actionId'] ?? defaultAction;
@@ -255,6 +268,12 @@ final class AuthoringReadApi
     }
     if (request.resourceKind == 'borderFeature') {
       return queryBorderFeatures(
+        request: request,
+        readMap: (mapId) => readMapView(projectHandle, mapId),
+      );
+    }
+    if (request.resourceKind == 'mapHealth') {
+      return queryMapHealth(
         request: request,
         readMap: (mapId) => readMapView(projectHandle, mapId),
       );

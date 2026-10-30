@@ -56,3 +56,15 @@ apps/pavonnay_3d_sources/
 apps/unys_3d_sources/
 documentation/design/runtime-interface-2026-10-24/
 documentation/
+.tripo
+!/documentation/
+/documentation/*
+!/documentation/reports/
+/documentation/reports/*
+!/documentation/reports/mcp/
+/documentation/reports/mcp/*
+!/documentation/reports/mcp/plans/
+/documentation/reports/mcp/plans/*
+!/documentation/reports/mcp/plans/fiabilite_creation_cartes_mcp_v2.md
+!/documentation/reports/mcp/plans/integration_mcp_avelune_studio.md
+documentation/reports/mcp/plans/

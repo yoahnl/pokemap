@@ -552,16 +552,14 @@ BorderDiagnosticsReport diagnoseSpatialBorderFeature({
         suggestedAction: 'border.action.preview_and_apply_materialization',
       ),
     );
-  } else if (resolved.result.materialization != materialization ||
-      !_sameInstances(
-        resolved.modelInstances,
-        materialization.spatialPlacements
-            .map(
-              (placement) => map.spatialScene!.instances.firstWhere(
-                (instance) => instance.id == placement.instanceId,
-              ),
-            )
-            .toList(),
+  } else if (!_matchesStoredSpatialBorder(resolved, materialization, map) &&
+      !_matchesLegacyStairSupportedBorder(
+        manifest: manifest,
+        map: map,
+        layerId: layerId,
+        featureId: featureId,
+        context: resolved.sourceContext!,
+        materialization: materialization,
       )) {
     diagnostics.add(
       BorderDiagnostic(
@@ -576,6 +574,56 @@ BorderDiagnosticsReport diagnoseSpatialBorderFeature({
     );
   }
   return BorderDiagnosticsReport(diagnostics: diagnostics);
+}
+
+bool _matchesStoredSpatialBorder(
+  SpatialBorderResolutionResult resolved,
+  BorderMaterialization materialization,
+  MapData map,
+) {
+  if (resolved.result.materialization != materialization) return false;
+  final instances = {
+    for (final instance in map.spatialScene!.instances) instance.id: instance,
+  };
+  final stored = [
+    for (final placement in materialization.spatialPlacements)
+      instances[placement.instanceId],
+  ];
+  return stored.every((instance) => instance != null) &&
+      _sameInstances(
+        resolved.modelInstances,
+        stored.cast<SpatialModelInstance>(),
+      );
+}
+
+bool _matchesLegacyStairSupportedBorder({
+  required ProjectManifest manifest,
+  required MapData map,
+  required String layerId,
+  required String featureId,
+  required SpatialBorderResolutionContext context,
+  required BorderMaterialization materialization,
+}) {
+  final scene = map.spatialScene!;
+  if (!scene.navigation.ramps.any((ramp) => ramp.surfaceInstanceId != null)) {
+    return false;
+  }
+  final legacy = resolveSpatialBorderFeatureInContext(
+    manifest: manifest,
+    context: SpatialBorderResolutionContext(
+      mapId: context.mapId,
+      size: context.size,
+      layers: context.layers,
+      instances: context.instances,
+      worldHeightAt: scene.worldHeightAt,
+      fingerprintContext: context.fingerprintContext,
+      groundModeledAt: context.groundModeledAt,
+      paintsFirstLayerInFront: context.paintsFirstLayerInFront,
+    ),
+    layerId: layerId,
+    featureId: featureId,
+  );
+  return _matchesStoredSpatialBorder(legacy, materialization, map);
 }
 
 List<String> validateBorderGroundSurfaceSources({

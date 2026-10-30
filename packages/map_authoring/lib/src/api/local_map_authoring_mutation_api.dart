@@ -1,3 +1,5 @@
+import 'map_edit_execution.dart';
+import '../contracts/map_edit_operation.dart';
 import '../domains/maps/trigger_zone_actions.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../references/exterior_decoration_references.dart';
@@ -86,6 +88,7 @@ const _nativeLocalWorkshopActions = {
 
 final class LocalMapAuthoringMutationApi
     implements
+        AuthoringMapEditPort,
         AuthoringMutationApiPort,
         AuthoringWorkshopPort,
         AuthoringHistoryMaintenancePort,
@@ -259,6 +262,133 @@ final class LocalMapAuthoringMutationApi
   final bool _retainUndoHistory;
   late final AuthoringPerformanceObserver? _performanceObserver;
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
+
+  @override
+  Future<Map<String, Object?>> mapEdit(ProjectHandle projectHandle,
+      MapEditOperation operation) async {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    final descriptor = _dispatcher.descriptor('map3d.edit_batch');
+    session._policy.authorize(AuthoringAuthorizationRequest(
+        actor: _actor, projectId: session.projectId,
+        operation: operation.dryRun ? AuthoringSecurityOperation.plan : AuthoringSecurityOperation.apply,
+        actionId: descriptor.id, actionVersion: descriptor.version,
+        riskLevel: descriptor.riskLevel, requestBytes: 0, touchedResources: 0,
+        additionalPermissions: descriptor.requiredPermissions.map(_permissionScope)));
+    final catalog = _catalogSession(projectHandle);
+    if (catalog?.reader.readOnly == true) {
+      throw const AuthoringAuthorizationException(code: 'catalog.read_only',
+          message: 'Portable catalog publications are read-only.');
+    }
+    final snapshots = <String, ProjectSnapshot>{};
+    Future<Map<String, Object?>> projectReceipt(AuthoringReceipt receipt) async {
+      final binding = MapEditBinding.fromJson(Map<String, dynamic>.from(receipt.extensions['mapEdit'] as Map));
+      return {'status': binding.unchanged ? 'unchanged' : 'applied',
+        'operationId': operation.operationId,
+        'semanticFingerprint': binding.fingerprint,
+        'retentionDays': 30,
+        ...await session._projections.prepareCommittedMutation(receipt: receipt,
+            snapshotRevision: binding.snapshotRevision)};
+    }
+    Future<Map<String, Object?>?> inspect(MapEditOperation operation) async {
+      final found = await session._idempotencyStore.lookupOperation(
+          actorId: _actor.actorId, projectId: session.projectId,
+          operationId: operation.operationId, now: _clock(), targetedOnly: true);
+      final journal = await session._mapAtmosphereGateway.readJournal(operation.operationId);
+      if (found == null && journal == null) return null;
+      if (found?.expired == true) {
+        return {'status': 'expired', 'code': 'map_edit.result_expired',
+          'operationId': operation.operationId, 'retentionDays': 30};
+      }
+      final receipt = found?.completed?.receipt;
+      final raw = (receipt ?? journal?.intendedReceipt)?.extensions['mapEdit'];
+      if (raw is! Map) {
+        throw AuthoringPlanException(code: 'map_edit.operation_conflict',
+            message: 'The operation identity belongs to another durable intent.');
+      }
+      final binding = MapEditBinding.fromJson(Map<String, dynamic>.from(raw));
+      if (binding.operationId != operation.operationId ||
+          binding.fingerprint != operation.semanticFingerprint ||
+          (journal != null && (journal.scope.actorId != _actor.actorId ||
+            journal.scope.projectId != session.projectId))) {
+        throw AuthoringPlanException(code: 'map_edit.operation_conflict',
+            message: 'The operation identity has another semantic payload or owner.');
+      }
+      if (receipt == null) {
+        return {'status': 'recovery_required', 'operationId': operation.operationId,
+          'planId': journal?.planId, 'semanticFingerprint': binding.fingerprint};
+      }
+      final replay = await session._executor.inspectDurableReplay(
+          actor: _actor, projectId: session.projectId,
+          planId: receipt.extensions['planId'] as String,
+          operationId: operation.operationId, lookup: () async => found,
+          readHistory: (id) => session._history.get(projectId: session.projectId, entryId: id),
+          resolveAction: _dispatcher.descriptor);
+      return projectReceipt(replay!);
+    }
+    return MapEditExecution(inspect: inspect,
+      plan: (operation, attempt) async {
+        final snapshot = await readWorkshopSnapshot(projectHandle,
+            actionId: 'map3d.edit_batch', parameters: operation.toBatchParameters());
+        final requestId = _secureIdentity('map_edit_');
+        final request = AuthoringRequest(requestId: requestId,
+            actionId: 'map3d.edit_batch', actionVersion: 1,
+            workspaceHandle: session.workspaceHandle.value,
+            parameters: operation.toBatchParameters(),
+            expectedRevision: snapshot.revision,
+            idempotencyKey: '${operation.operationId}:attempt:$attempt',
+            dryRun: operation.dryRun);
+        session._logicalMapEdits[requestId] = operation;
+        try {
+          final prepared = catalog == null
+              ? await session.planMutation(request, suppliedSnapshot: snapshot)
+              : await catalog.plan(request);
+          snapshots[prepared.planId] = snapshot;
+          if (!operation.dryRun) {
+            prepared.plan.bindMapEdit(MapEditBinding(operationId: operation.operationId,
+              fingerprint: operation.semanticFingerprint, mapId: operation.mapId,
+              seed: operation.seed, snapshotRevision: prepared.plan.changeSet.changes.isEmpty
+                  ? prepared.plan.baseRevision : prepared.plan.projectedRevision,
+              unchanged: prepared.plan.changeSet.changes.isEmpty),
+              readStorageKeys: snapshot.scopedStorageRevisions?.keys ?? snapshot.resourceStorageKeys.values);
+          }
+          return prepared;
+        } finally {
+          session._logicalMapEdits.remove(requestId);
+        }
+      },
+      project: (prepared) async => prepared.toJson(),
+      discard: (prepared) async {
+        snapshots.remove(prepared.planId);
+        if (catalog != null && prepared.plan.changeSet.changes.isNotEmpty) return;
+        await session._plans.discard(prepared.planId);
+      },
+      apply: (prepared) async {
+        final plan = prepared.plan;
+        if (catalog != null && plan.changeSet.changes.isNotEmpty) {
+          final result = await catalog.apply(planId: plan.planId,
+              operationId: operation.operationId);
+          return projectReceipt(result.receipt);
+        }
+        final snapshot = snapshots[plan.planId]!;
+        final receipt = await session._executor.apply(actor: _actor,
+            projectId: session.projectId, action: descriptor, plan: plan,
+            currentProjectRevision: snapshot.revision,
+            scope: AuthoringIdempotencyScope(actorId: _actor.actorId,
+              projectId: session.projectId, actionId: descriptor.id,
+              actionVersion: descriptor.version, key: plan.request.idempotencyKey!),
+            operationId: operation.operationId, precondition: () async {
+              final current = await readWorkshopSnapshot(projectHandle,
+                  actionId: 'map3d.edit_batch', parameters: operation.toBatchParameters());
+              if (current.revision != snapshot.revision) {
+                throw AuthoringPlanException(code: 'plan.stale', message: 'A selected dependency changed.');
+              }
+            });
+        _snapshotLoader.invalidate(projectHandle);
+        return projectReceipt(receipt);
+      }).execute(operation);
+  }
+
   final Map<ProjectHandle, CatalogAuthoringSession> _catalogSessions = {};
   final Map<ProjectHandle, CatalogPartitionAction> _partitionActions = {};
   CatalogPartitionAction _partitionAction(ProjectHandle handle) =>
@@ -1572,6 +1702,7 @@ final class _LocalMapAuthoringSession {
   final AuthoringActor _actor;
   final AuthoringPlanStore _plans;
   final AuthoringActionPlanner _planner;
+  final Map<String, MapEditOperation> _logicalMapEdits = {};
   final AuthoringAuthorizationPolicy _policy;
   final AuthoringConfirmationStore _confirmations;
   final SecureAuthoringMutationExecutor _executor;
@@ -1626,7 +1757,7 @@ final class _LocalMapAuthoringSession {
     await requireUnusedExteriorReferences(
         exteriorDeletedDefinitions(request.actionId, request.parameters),
         _mapAtmosphereGateway);
-    await _requireReconciled();
+    if (!_logicalMapEdits.containsKey(request.requestId)) await _requireReconciled();
     final descriptor = _dispatcher.descriptor(request.actionId);
     if (descriptor.version != request.actionVersion) {
       throw AuthoringPlanException(
@@ -1681,6 +1812,8 @@ final class _LocalMapAuthoringSession {
       plan = await planner.plan(
         request: planningRequest,
         snapshot: snapshot,
+        logicalOperationId: _logicalMapEdits[request.requestId]?.operationId,
+        stableSeed: _logicalMapEdits[request.requestId]?.seed,
         build: (context) async {
           final draft = await _dispatcher.build(context);
           projectedProject = draft.projectedProject;

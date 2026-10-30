@@ -1,4 +1,5 @@
 import '../models/spatial_lift.dart';
+import '../models/spatial_platform.dart';
 import 'dart:collection';
 import '../dialogue/dialogue_fact_references.dart';
 import '../dialogue/runtime_dialogue_document.dart';
@@ -833,6 +834,15 @@ final class _NarrativeDependencyIndexBuilder {
       }
       for (final lift in map.spatialScene?.lifts ?? const <SpatialLiftDefinition>[]) {
         _definition(NarrativeDependencyTargetKind.sourceMap, lift.id, lift.name, owner: mapKey, path: 'maps[${map.id}].spatialScene.lifts[${lift.id}]', scope: _physicalMapScope, parentId: map.id, sourceKind: 'movingPlatform');
+      }
+      for (final platform in map.spatialScene?.platforms ?? const <SpatialPlatformDefinition>[]) {
+        final owner = _definition(NarrativeDependencyTargetKind.sourceMap, platform.id, platform.name, owner: mapKey, path: 'maps[${map.id}].spatialScene.platforms[${platform.id}]', scope: _physicalMapScope, parentId: map.id, sourceKind: 'movingPlatform');
+        _usage(target: _mapSourceChildKey(map.id, 'modelInstance', platform.instanceId), owner: owner, path: 'maps[${map.id}].spatialScene.platforms[${platform.id}].instanceId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        for (final route in platform.routes) {
+          for (final condition in route.conditions) {
+            _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, condition.factId), owner: owner, path: 'maps[${map.id}].spatialScene.platforms[${platform.id}].routes[${route.id}].conditions[${condition.factId}]', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+          }
+        }
       }
       for (final prop in map.movingProps) {
         _definition(NarrativeDependencyTargetKind.sourceMap, prop.id, prop.id,
@@ -2690,6 +2700,14 @@ final class _NarrativeDependencyIndexBuilder {
               owner: owner, path: '$path.arrivalCollisionOwnerEntityId',
               criticality: NarrativeDependencyCriticality.runtimeBlocking,
               resolution: incompatible ? NarrativeDependencyResolution.unavailable : null);
+        }
+      case SceneOpenCraftingInteractiveCommand(:final definition):
+        for (var index = 0; index < definition.recipes.length; index++) {
+          final recipe = definition.recipes[index];
+          for (final entry in {'inputItemId': recipe.inputItemId, 'outputItemId': recipe.outputItemId}.entries) {
+            _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.item, entry.value), owner: owner,
+              path: '$path.definition.recipes[$index].${entry.key}', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+          }
         }
       case SceneOpenShopInteractiveCommand(:final shopId):
         _usage(

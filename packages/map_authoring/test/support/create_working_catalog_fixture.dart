@@ -13,6 +13,24 @@ import '../domains/maps/healing_display_fixture.dart';
 
 Future<void> main(List<String> arguments) async {
   final root = arguments.first;
+  if (arguments.contains('--companion')) {
+    final project = ProjectManifest(name: 'Companion catalog', version: ProjectVersion.v9,
+      settings: ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile()),
+      pokemon: const ProjectPokemonConfig(enabled: true, ruleset: PokemonRulesetProfile.pokeMapBetaV1),
+      maps: const [ProjectMapEntry(id: 'foreign', name: 'Foreign', relativePath: 'maps/foreign.json')],
+      facts: [NarrativeFactDefinition(id: 'owned', label: 'Device owned')],
+      tilesets: const [ProjectTilesetEntry(id: 'sheet', name: 'Sheet', relativePath: 'assets/sheet.png')],
+      characters: [ProjectCharacterEntry(id: 'follower', name: 'Follower', tilesetId: 'sheet', animations: [for (final facing in EntityFacing.values) CharacterAnimation(state: CharacterAnimationState.walk, direction: facing, frames: const [CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100)])])]);
+    final store = await CatalogStorageStore.open(projectRoot: root);
+    await WorkingProjectCatalog.create(store: store, projectId: 'companion-catalog', project: project);
+    final species = File('$root/data/pokemon/species/bird.json');
+    await species.parent.create(recursive: true);
+    await species.writeAsString(jsonEncode({'schemaVersion': 1, 'id': 'bird', 'forms': {'formId': 'bronze'}}));
+    final map = File('$root/maps/foreign.json');
+    await map.parent.create(recursive: true);
+    await map.writeAsString('foreign map must not be decoded');
+    return;
+  }
   if (arguments.contains('--map-creation')) {
     await File('$root/source.glb').writeAsBytes(triangleGlb());
     await File('$root/source.png').writeAsBytes(img.encodePng(img.Image(width: 16, height: 16)));

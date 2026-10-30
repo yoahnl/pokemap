@@ -24,6 +24,7 @@ export function registerReadOnlyTools(
   server: McpServer,
   authoring: AuthoringGateway,
   artifacts: ArtifactReader,
+  compact = false,
 ): void {
   registerArtifactTool(server, artifacts);
 
@@ -33,11 +34,15 @@ export function registerReadOnlyTools(
       title: "Describe PokeMap authoring",
       description:
         "Lists canonical resource kinds, query operations, action contracts, and validation capabilities.",
-      inputSchema: z.object({}).strict(),
+      inputSchema: z.object({
+        domain: z.enum(["map3d", "map2d", "narrative", "assets", "battle", "all"]).optional(),
+        view: z.enum(["compact", "full"]).optional(),
+        actionIds: z.array(z.string().min(1)).max(64).optional(),
+      }).strict(),
       outputSchema: toolEnvelopeSchema,
       annotations: readOnlyAnnotations,
     },
-    async () => authoringResult(() => authoring.request("describe")),
+    async (input) => authoringResult(() => authoring.request("describe", input)),
   );
 
   server.registerTool(
@@ -113,7 +118,7 @@ export function registerReadOnlyTools(
       ),
   );
 
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_validate",
     {
       title: "Validate a PokeMap project",

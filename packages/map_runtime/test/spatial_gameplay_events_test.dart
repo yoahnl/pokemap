@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/map_activation.dart';
+import 'package:map_runtime/src/application/story_flags_manager.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 import 'package:map_runtime/src/application/narrative_spatial_production_dispatch_bridge.dart';
 import 'package:map_runtime/src/application/scene_runtime/scene_runtime_host_callbacks.dart';
@@ -15,6 +16,58 @@ import 'package:map_runtime/src/spatial/spatial_gameplay_events.dart';
 import 'package:map_runtime/src/spatial/spatial_model_interaction_index.dart';
 
 void main() {
+  test('already defeated boss keeps its authored missing reward Scene without a new battle', () async {
+    final entity = MapEntity(id: 'trainer', kind: MapEntityKind.npc, pos: const GridPos(x: 2, y: 3), npc: const MapEntityNpcData(trainerId: 'coach', defeatDialogueRef: DialogueRef(dialogueId: 'talk')));
+    final map = _map(entities: [entity]);
+    final project = _project(map, records: [_event(10002, NarrativeEventSourceRef.entityInteract(map.id, entity.id), 'missing-reward')], scenes: [_scene('missing-reward', [SceneConsequence.giveItem(itemId: 'item_ct51', quantity: 1)])]).copyWith(trainers: const [ProjectTrainerEntry(id: 'coach', name: 'Coach', trainerClass: 'leader')]);
+    var fights = 0, fallbackDialogues = 0;
+    final host = await _Host.create(project, map, showEntityDialogue: (_, dialogue) async { fallbackDialogues++; }, createSceneCallbacks: (read, commit) => SceneRuntimeHostCallbacks(evaluateCondition: (_) => 'true', showDialogue: (_) => 'completed', startBattle: (_) { fights++; return 'victory'; }, playCinematic: (_) => 'completed'));
+    host.state = const StoryFlagsManager().markTrainerDefeated(host.state, 'coach');
+    await host.events.activateMap(_activation('reward-retry'));
+    await host.events.interact();
+    expect(host.state.bag.entries.single.itemId, 'item_ct51');
+    expect(host.state.bag.entries.single.quantity, 1);
+    expect(fights, 0);
+    expect(fallbackDialogues, 0);
+    await host.events.interact();
+    expect(host.state.bag.entries.single.quantity, 1);
+    expect(fights, 0);
+    expect(fallbackDialogues, 1);
+  });
+
+  test('manual trainer interaction applies readiness lifecycle and badge guards before EventV2', () async {
+    final entity = MapEntity(id: 'trainer', kind: MapEntityKind.npc, pos: const GridPos(x: 2, y: 3), npc: const MapEntityNpcData(trainerId: 'coach', dialogue: DialogueRef(dialogueId: 'talk'), defeatDialogueRef: DialogueRef(dialogueId: 'talk'), trainerBattleWhen: MapEntityRuntimePredicate(kind: MapEntityRuntimePredicateKind.badgeNotOwned, refId: 'hive'), trainerBattleReadyWhen: MapEntityRuntimePredicate(kind: MapEntityRuntimePredicateKind.partyUsableCountAtLeast, minimumCount: 2), trainerBattleNotReadyDialogue: DialogueRef(dialogueId: 'talk')));
+    final map = _map(entities: [entity]);
+    final event = _event(10001, NarrativeEventSourceRef.entityInteract(map.id, entity.id), 'battle');
+    final project = _project(map, records: [event], scenes: [_battleScene()]).copyWith(trainers: const [ProjectTrainerEntry(id: 'coach', name: 'Coach', trainerClass: 'youngster')], badges: const [BadgeDefinition(id: 'hive', label: 'Hive')]);
+    var fights = 0;
+    final shown = <String?>[];
+    final host = await _Host.create(project, map, showEntityDialogue: (_, dialogue) async => shown.add(dialogue.dialogueId), createSceneCallbacks: (read, commit) => SceneRuntimeHostCallbacks(evaluateCondition: (_) => 'true', showDialogue: (_) => 'completed', startBattle: (_) { fights++; return 'victory'; }, playCinematic: (_) => 'completed'));
+    PlayerPokemon member(String id, {int hp = 10}) => PlayerPokemon(individualId: id, speciesId: 'bird', formId: 'bronze', natureId: 'hardy', abilityId: 'natural', currentHp: hp);
+    host.state = host.state.copyWith(party: PlayerParty(members: [member('one'), member('fainted', hp: 0)]));
+    await host.events.activateMap(_activation('readiness'));
+    expect(host.events.canSpotTrainer(entity), isFalse);
+    final original = host.state;
+    await host.events.interact();
+    expect(fights, 0);
+    expect(shown, ['talk']);
+    expect(host.state, original);
+    host.state = host.state.copyWith(party: PlayerParty(members: [member('one'), member('two')]));
+    expect(host.events.canSpotTrainer(entity), isTrue);
+    await host.events.interact();
+    expect(fights, 1);
+    host.state = const StoryFlagsManager().markTrainerDefeated(host.state, 'coach');
+    expect(host.events.canSpotTrainer(entity), isFalse);
+    await host.events.interact();
+    expect(fights, 1);
+    expect(shown, ['talk', 'talk']);
+    host.state = host.state.copyWith(storyFlags: const StoryFlags(), trainerProfile: host.state.trainerProfile.copyWith(badgeIds: ['hive']));
+    expect(host.events.canSpotTrainer(entity), isFalse);
+    await host.events.interact();
+    expect(fights, 1);
+    expect(shown, ['talk', 'talk', 'talk']);
+  });
+
   test('collected bound model cannot become a ghost interaction target', () async {
     final item = MapEntity(id: 'native-item', kind: MapEntityKind.item, pos: const GridPos(x: 2, y: 3), item: const MapEntityItemData(gameItemId: 'resource'));
     final model = ProjectModel3dEntry(id: 'orb', name: 'Orb', sourceAssetId: 'orb-source', relativePath: 'assets/models3d/orb.glb',
@@ -1655,6 +1708,7 @@ final class _Host {
     MapData map, {
     GameState? state,
     Future<String> Function()? dialogue,
+    Future<void> Function(MapEntity, DialogueRef)? showEntityDialogue,
     Map<String, MapData>? maps,
     SpatialSceneCallbackFactory? createSceneCallbacks,
     SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
@@ -1692,7 +1746,7 @@ final class _Host {
             startBattle: (_) => 'victory',
             playCinematic: (_) => 'completed',
           ),
-      showEntityDialogue: (_, __) async {},
+      showEntityDialogue: showEntityDialogue ?? (_, __) async {},
       startWildBattle: (request) async => host.battles.add(request),
       activityGate: host.gate,
       isActive: () => true,

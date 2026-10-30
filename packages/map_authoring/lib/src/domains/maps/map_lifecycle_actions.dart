@@ -5,6 +5,7 @@ import '../../transactions/authoring_plan.dart';
 import 'map_lifecycle_adapter.dart';
 import 'map_lifecycle_analysis.dart';
 import 'map_metadata_actions.dart';
+import 'map_action_examples.dart';
 import '../../references/resource_library_scope_guard.dart';
 import '../assets/tileset_actions.dart';
 
@@ -126,6 +127,20 @@ AuthoringActionDescriptor _descriptor(
       AuthoringGuarantee.undoable,
     ],
     extensions: {
+      if (id == 'map.create') 'inputSchema': const {
+        'type': 'object', 'additionalProperties': false,
+        'required': ['mapId', 'width', 'height'],
+        'properties': {
+          'mapId': {'type':'string','minLength':1},
+          'name': {'type':'string','minLength':1},
+          'width': {'type':'integer','minimum':1},
+          'height': {'type':'integer','minimum':1},
+          'groupId': {'type':'string','minLength':1},
+          'role': {'type':'string','minLength':1},
+          'tilesetId': {'type':'string','minLength':1},
+        },
+      },
+      if (mapActionInputExample(id) case final example?) 'inputExample': example,
       'multiFileGuarantee': 'recoverable',
       if (mapAtmosphereLifecycleActions.contains(id))
         'associatedDocuments': const ['mapAtmosphere', 'mapEditor'],

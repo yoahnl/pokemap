@@ -113,6 +113,7 @@ import '../../application/scene_runtime/scene_game_completion_metadata.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
+import '../../application/scene_runtime/scene_runtime_hook_result.dart';
 import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import '../../application/scene_runtime/scene_trainer_defeated_condition.dart';
 import '../../application/scene_runtime/scene_interactive_command_runtime_executor.dart';
@@ -1582,7 +1583,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
     }
     final snapshot = await _narrativeRuntimeSnapshotFor(_bundle.manifest);
-    final session = _NarrativeSceneWorkingSession(request.gameState);
+    if (_sceneUsesDeferredCrafting(snapshot.project, request.sceneId) && _narrativeStateTransactions.captureCheckpointOwner() == null) {
+      return _narrativeStateTransactions.transact<NarrativeSceneExecutionResult>((_) async {
+        Future<NarrativeSceneExecutionResult> run() => _executeNarrativeScene(request);
+        final result = _narrativeActivityGate.activity == NarrativeRuntimeActivity.idle
+            ? await _narrativeActivityGate.runWithActivity(NarrativeRuntimeActivity.sceneActive, run)
+            : await run();
+        return result is NarrativeSceneExecutionCompleted
+            ? NarrativeEventStateTransaction.commit(result.updatedGameState, result)
+            : NarrativeEventStateTransaction.rollback(result);
+      });
+    }
+    final session = _NarrativeSceneWorkingSession(request.gameState)
+      ..craftingCheckpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
     final defersMapActivation =
         _narrativeStateTransactions.deferAfterCurrentCommit(
       (committedGameState) {
@@ -1688,6 +1701,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
       return NarrativeSceneExecutionResult.failed(error);
     } finally {
+      _rebaseDurableSceneCrafting(session);
       await session.sceneAudio?.close();
       session.restoreActorRoutes();
       _worldPresentation.clearScene(owner: session);
@@ -3205,6 +3219,60 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   ///
   /// A failed save restores the previous in-memory transaction snapshot so a
   /// closed Shop, PC or healing overlay never leaves a half-committed session.
+  bool _sceneUsesDeferredCrafting(ProjectManifest project, String sceneId) => project.scenes.where((scene) => scene.id == sceneId).firstOrNull?.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenCraftingInteractiveCommand || node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand) ?? false;
+
+  void _rebaseDurableSceneCrafting(_NarrativeSceneWorkingSession session) {
+    if (session.committed) return;
+    final puzzle = session.durableImagePuzzleState;
+    if (puzzle != null) _gameState = _gameState.copyWith(imagePuzzleState: puzzle.imagePuzzleState);
+    final durable = session.durableCraftingState;
+    if (durable != null) _gameState = _gameState.copyWith(bag: durable.bag, gameplayCalendarState: durable.gameplayCalendarState, deferredCraftingState: durable.deferredCraftingState);
+  }
+
+  Future<void> commitAndSaveImagePuzzleState(GameState nextState) async {
+    final session = _activeNarrativeSceneWorkingSession;
+    final owner = session?.craftingCheckpointOwner;
+    final activity = session?.imagePuzzleActivityOwner;
+    if (session == null || owner == null || activity == null || _isRemoved) throw StateError('The puzzle Scene checkpoint owner is unavailable.');
+    final current = session.gameState;
+    if (!sameImagePuzzleCheckpointFields(current, session.presentationGameState)) throw StateError('Pending Scene puzzle changes conflict with this checkpoint.');
+    final projected = await checkpointImagePuzzle(owner: owner, currentDraft: current, nextDraft: nextState, persist: (durable) async {
+      final writer = overworldCheckpointWriter;
+      if (writer != null) {
+        await _narrativeActivityGate.runSceneCheckpoint(activity, () => writer(durable));
+      } else {
+        final repository = _saveRepo;
+        if (repository is! FileGameSaveRepository) throw StateError('The host has no durable Scene checkpoint writer.');
+        await repository.saveOwnedSceneCheckpoint(durable, activity);
+      }
+      session.durableImagePuzzleState = durable;
+      _gameState = durable;
+    });
+    session.gameState = projected;
+  }
+
+  Future<void> commitAndSaveCraftingState(GameState nextState) async {
+    final session = _activeNarrativeSceneWorkingSession;
+    final owner = session?.craftingCheckpointOwner;
+    final activity = session?.craftingActivityOwner;
+    if (session == null || owner == null || activity == null || _isRemoved) throw StateError('The crafting Scene checkpoint owner is unavailable.');
+    final current = session.gameState;
+    if (!sameDeferredCraftingCheckpointFields(current, session.presentationGameState)) throw StateError('Pending Scene inventory changes conflict with crafting.');
+    final projected = await checkpointDeferredCrafting(owner: owner, currentDraft: current, nextDraft: nextState, persist: (durable) async {
+      final writer = overworldCheckpointWriter;
+      if (writer != null) {
+        await _narrativeActivityGate.runSceneCheckpoint(activity, () => writer(durable));
+      } else {
+        final repository = _saveRepo;
+        if (repository is! FileGameSaveRepository) throw StateError('The host has no durable Scene checkpoint writer.');
+        await repository.saveOwnedSceneCheckpoint(durable, activity);
+      }
+      session.durableCraftingState = durable;
+      _gameState = durable;
+    });
+    session.gameState = projected;
+  }
+
   Future<void> commitAndSavePlayerServiceState(
     GameState nextState, {
     GameState? expectedState,
@@ -12567,7 +12635,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     }
     _NarrativeSceneWorkingSession? workingSession;
     try {
-      final session = _NarrativeSceneWorkingSession(_gameState);
+      final session = _NarrativeSceneWorkingSession(_gameState)
+        ..craftingCheckpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
       workingSession = session;
       final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
       final consequenceWriter = await _buildSceneConsequenceRuntimeWriter(
@@ -12578,7 +12647,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       _activeNarrativeSceneWorkingSession = session;
       final executionId = _nextNarrativeRuntimeId('scene');
-      final result = await SceneEventRuntimeHook(
+      final usesCrafting = _sceneUsesDeferredCrafting(_bundle.manifest, page.page.sceneTarget!.sceneId);
+      Future<SceneEventRuntimeHookResult> runHook() async {
+        session.craftingCheckpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
+        return SceneEventRuntimeHook(
         consequenceWriter: consequenceWriter,
         callbacks: _buildSceneRuntimeHostCallbacks(
           runtimeSourceId:
@@ -12596,7 +12668,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         gameState: session.gameState,
         currentGameState: () => session.gameState,
         executionId: executionId,
+        onSceneStateProjection: usesCrafting ? (projection) => session.stateProjection = projection : null,
+        presentationMediaCatalog: _bundle.manifest.scenes.where((scene) => scene.id == page.page.sceneTarget!.sceneId).firstOrNull?.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand) == true
+            ? await (_worldPresentationImageLoader ??= WorldPresentationImageLoader(_bundle.projectRootDirectory)).loadCatalog() : null,
       );
+      }
+      final result = usesCrafting && session.craftingCheckpointOwner == null
+          ? await _narrativeStateTransactions.transact<SceneEventRuntimeHookResult>((_) async => NarrativeEventStateTransaction.rollback(await runHook()))
+          : await runHook();
       if (_isRemoved) {
         throw StateError('The runtime was removed during the map event Scene.');
       }
@@ -12685,6 +12764,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       _showNotification('Scene V1 impossible.');
     } finally {
+      if (workingSession != null) _rebaseDurableSceneCrafting(workingSession);
       await workingSession?.sceneAudio?.close();
       workingSession?.restoreActorRoutes();
       _worldPresentation.clearScene(owner: workingSession);
@@ -13737,6 +13817,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         return _scenePortForPlayerService(
           await controller.openHealCenter(request: request),
         );
+      case OpenImagePuzzleService():
+        final session = _activeNarrativeSceneWorkingSession;
+        if (session == null || session.craftingCheckpointOwner == null) throw StateError('The puzzle requires an active durable Scene.');
+        if (!sameImagePuzzleCheckpointFields(session.gameState, session.presentationGameState)) throw StateError('Pending Scene puzzle changes must finish before opening.');
+        session.imagePuzzleActivityOwner = _narrativeActivityGate.captureSceneCheckpointOwner();
+        try {
+          final result = await controller.openImagePuzzle(request: request);
+          if (result.imagePuzzleOutcome case final outcome?) return outcome.name;
+          throw StateError(result.safeMessage ?? 'Le puzzle n’a pas pu être ouvert : ${result.error ?? result.status.name}.');
+        } finally {
+          session.imagePuzzleActivityOwner = null;
+        }
+      case OpenCraftingService():
+        final session = _activeNarrativeSceneWorkingSession;
+        if (session == null || session.craftingCheckpointOwner == null) return 'cancelled';
+        if (!sameDeferredCraftingCheckpointFields(session.gameState, session.presentationGameState)) {
+          _notifySceneCommand('Votre sac est en cours de modification. Terminez cette interaction puis réessayez.');
+          return 'cancelled';
+        }
+        session.craftingActivityOwner = _narrativeActivityGate.captureSceneCheckpointOwner();
+        try {
+          return _scenePortForPlayerService(await controller.openCrafting(request: request));
+        } finally {
+          session.craftingActivityOwner = null;
+        }
       case OpenPartyTradeService():
         return _scenePortForPlayerService(
           await controller.openPartyTrade(request: request),

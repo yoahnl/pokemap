@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
+import 'map_action_examples.dart';
 
 final class SpatialTerrainSurfaceActions {
   const SpatialTerrainSurfaceActions();
@@ -32,6 +33,7 @@ final class SpatialTerrainSurfaceActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
+          'inputExample': mapActionInputExample(action),
           'maximumSurfaceCount': maximumSpatialTerrainSurfaces,
           'batchAtomicity': 'all_or_nothing',
           'undoBoundary': 'batch',

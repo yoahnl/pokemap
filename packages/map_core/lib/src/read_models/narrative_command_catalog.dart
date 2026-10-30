@@ -36,6 +36,8 @@ abstract final class NarrativeCommandIds {
   static const sceneMusic = 'sceneMusic';
   static const actorRoute = 'actorRoute';
   static const actorVisibility = 'actorVisibility';
+  static const openImagePuzzle = 'openImagePuzzle';
+  static const openCrafting = 'openCrafting';
   static const openShop = 'openShop';
   static const openHeal = 'openHeal';
   static const whiteOut = 'whiteOut';
@@ -986,6 +988,35 @@ final class NarrativeCommandCatalog {
           ),
         ],
         isAwaitable: true,
+      ),
+      interactive(
+        NarrativeCommandIds.openImagePuzzle,
+        'Ouvrir un puzzle d’image',
+        'FG-082',
+        [
+          _parameter('puzzleId', 'Identité du puzzle', NarrativeCommandParameterKind.text),
+          _parameter('imageResourceId', 'Image du puzzle', NarrativeCommandParameterKind.imageMediaReference),
+          _parameter('rows', 'Lignes', NarrativeCommandParameterKind.integer),
+          _parameter('columns', 'Colonnes', NarrativeCommandParameterKind.integer),
+          _parameter('trayCapacity', 'Cases de réserve', NarrativeCommandParameterKind.integer),
+          _parameter('allowReset', 'Autoriser le recommencement', NarrativeCommandParameterKind.boolean),
+          _parameter('allowSwap', 'Autoriser les échanges', NarrativeCommandParameterKind.boolean),
+          _parameter('layout', 'Disposition des pièces', NarrativeCommandParameterKind.imagePuzzleLayout),
+        ],
+        isPersistent: true,
+      ),
+      interactive(
+        NarrativeCommandIds.openCrafting,
+        'Ouvrir un atelier de fabrication',
+        'FG-082',
+        [
+          _parameter('serviceId', 'Identité stable de l’atelier', NarrativeCommandParameterKind.text),
+          _parameter('label', 'Nom de l’atelier', NarrativeCommandParameterKind.text),
+          _parameter('recipes', 'Recettes', NarrativeCommandParameterKind.deferredCraftingRecipes),
+          _parameter('maximumBatchQuantity', 'Quantité maximale par commande', NarrativeCommandParameterKind.integer),
+          _parameter('requiredDayChanges', 'Changements de jour nécessaires', NarrativeCommandParameterKind.integer),
+        ],
+        isPersistent: true,
       ),
       interactive(
         NarrativeCommandIds.openShop,

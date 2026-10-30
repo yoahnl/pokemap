@@ -6,6 +6,28 @@ import 'package:test/test.dart';
 
 void main() {
   group('ItemCatalogActions', () {
+    test('creates Miracle Seed, Shell Bell and Charcoal through the canonical boundary', () {
+      for (final effectId in ['miracle_seed', 'shell_bell', 'charcoal']) {
+        final definition = ProjectItemDefinition(
+          id: effectId.replaceAll('_', '-'),
+          displayName: effectId,
+          pocketId: 'items',
+          heldEffectId: effectId,
+        );
+        final draft = const ItemCatalogActions().build(
+          _fixture().context(
+            actionId: 'item.create',
+            parameters: {'definition': definition.toJson()},
+          ),
+        );
+        final catalog = decodeProjectItemCatalog(jsonDecode(
+          utf8.decode(draft.changeSet.changes.single.afterBytes!),
+        ));
+
+        expect(catalog.entries, contains(definition));
+      }
+    });
+
     test('creates a passive stone while preserving an existing Metal Coat', () {
       const metalCoat = ProjectItemDefinition(
         id: 'metal_coat',

@@ -33,6 +33,36 @@ extension _LocalMapWorkingCatalog on LocalMapWorkspaceAdapter {
     }
   }
 
+  Future<String> _saveSpatialPlatformChange(ProjectSession session, MapWorkspaceDocument base, MapData current) async {
+    final before = base.map.spatialScene!;
+    final after = current.spatialScene!;
+    final changed = after.platforms.where((value) => !before.platforms.contains(value)).toList();
+    if (changed.length != 1 || before.platforms.any((value) => !after.platforms.any((entry) => entry.id == value.id)) || base.map.copyWith(spatialScene: before.copyWith(platforms: after.platforms)) != current) {
+      throw const MapWorkspaceFailure(MapWorkspaceProblem.unavailable, 'Enregistrez un seul mécanisme de plateforme à la fois, séparément des autres modifications. La suppression exige encore un index des scènes entrantes.');
+    }
+    return _withSurfAuthoring(session, (opener, opened, api, _) async {
+      final project = _project(session);
+      final expected = project.revision;
+      await _requireProjectRevision(session, project);
+      await api.attachProject(projectRootPath: session.directoryPath, workspaceHandle: opened.workspaceHandle, projectHandle: opened.projectHandle);
+      const action = 'map.platform.upsert';
+      final parameters = <String, Object?>{'mapId': base.mapId, 'platform': {'kind': 'spatial', ...changed.single.toJson()}};
+      final snapshot = await api.readWorkshopSnapshot(opened.projectHandle, actionId: action, parameters: parameters);
+      if (narrativeEventBytesFingerprint(snapshot.resourceBytes('map:${base.mapId}')) != base.revision) throw const MapWorkspaceFailure(MapWorkspaceProblem.conflict, 'La carte a changé sur le disque. Votre brouillon reste ouvert.');
+      final id = 'studio_platform_${DateTime.now().microsecondsSinceEpoch}_${_editorOperations++}';
+      final plan = await api.planMutation(opened.projectHandle, AuthoringRequest(requestId: id, actionId: action, actionVersion: 1, workspaceHandle: opened.workspaceHandle.value, parameters: parameters, expectedRevision: snapshot.revision, idempotencyKey: id));
+      await api.applyMutation(opened.projectHandle, planId: plan.planId, operationId: id, precondition: () async {
+        if (await resourceRevision(session) != expected) throw const MapWorkspaceFailure(MapWorkspaceProblem.conflict, 'Le projet a changé pendant l’enregistrement.');
+      });
+      final revision = await resourceRevision(session);
+      _projects[session.sessionId] = _ProjectDocument(project.root, project.manifest, revision, complete: project.complete, metadataFields: project.metadataFields);
+      final bytes = await _reader.readBytes(projectRoot: session.directoryPath, relativePath: _editorMapPath(session, base.mapId));
+      final saved = MapData.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
+      if (saved != current) throw const MapWorkspaceFailure(MapWorkspaceProblem.conflict, 'La relecture ne correspond pas à la plateforme enregistrée. Rouvrez sans écraser le fichier.');
+      return narrativeEventBytesFingerprint(bytes);
+    });
+  }
+
   Future<String> _saveWorkingMap(
     ProjectSession session,
     _ProjectDocument project,

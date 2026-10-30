@@ -219,6 +219,17 @@ final class _ProjectItemReferenceIndexBuilder {
         final prefix = 'scenes[${scene.id}].graph.nodes[$index].payload';
         if (payload is SceneActionPayload) {
           final command = payload.interactiveCommand;
+          if (command is SceneOpenCraftingInteractiveCommand) {
+            for (var recipeIndex = 0; recipeIndex < command.definition.recipes.length; recipeIndex++) {
+              final recipe = command.definition.recipes[recipeIndex];
+              for (final entry in {'inputItemId': recipe.inputItemId, 'outputItemId': recipe.outputItemId}.entries) {
+                _add(itemId: entry.value,
+                  kind: entry.key == 'inputItemId' ? ProjectItemReferenceKind.sceneTake : ProjectItemReferenceKind.sceneGive,
+                  sourceKind: 'scene', sourceId: scene.id,
+                  editablePath: '$prefix.interactiveCommand.definition.recipes[$recipeIndex].${entry.key}');
+              }
+            }
+          }
           if (command is SceneGiveItemInteractiveCommand) {
             _add(
               itemId: command.itemId,

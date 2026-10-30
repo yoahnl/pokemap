@@ -5,6 +5,7 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'border_actions.dart';
 import 'semantic_map_action_support.dart';
+import 'map_action_examples.dart';
 
 final class BorderMaterializationBatchActions {
   const BorderMaterializationBatchActions();
@@ -25,7 +26,8 @@ final class BorderMaterializationBatchActions {
       AuthoringGuarantee.revisionChecked,
       AuthoringGuarantee.undoable,
     ],
-    extensions: const {
+    extensions: {
+      'inputExample': mapActionInputExample('border_layer.materialize_batch_apply'),
       'batchAtomicity': 'all_or_nothing',
       'maximumFeatureCount': maximumFeatureCount,
       'semanticIds': true,

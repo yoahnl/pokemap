@@ -116,7 +116,9 @@ final class JournaledAuthoringTransaction {
         );
         return replay;
       }
-      for (final journal in await readPendingTransactionJournals(_gateway)) {
+      final pendingJournals = await readPendingTransactionJournals(_gateway,
+          requirePrepared: request.actionId == 'map3d.edit_batch');
+      for (final journal in pendingJournals) {
         if (journal.bulkCapability == null &&
             journal.nativeCreationCapability == null) {
           continue;
@@ -136,6 +138,9 @@ final class JournaledAuthoringTransaction {
         currentProjectRevision: currentProjectRevision,
       );
       _requireRequestMatchesPlan(request, plan);
+      if (request.actionId == 'map3d.edit_batch') {
+        await _requireNoOverlappingRecovery(plan, operationId, pendingJournals);
+      }
       plan.requireCatalogDelta();
       plan.requireCatalogHistory();
       plan.bulkCapability?.requirePlan(plan,
@@ -187,6 +192,8 @@ final class JournaledAuthoringTransaction {
                 plan.nativeCreationCapability!.inventoryFingerprint,
           'planId': plan.planId,
           'operationId': operationId,
+          if (plan.mapEditBinding != null)
+            'mapEdit': plan.mapEditBinding!.toJson(),
           'multiFileGuarantee': 'recoverable',
           'history': historyContext.toJson(),
           if (plan.catalogHistory != null)
@@ -194,7 +201,8 @@ final class JournaledAuthoringTransaction {
         },
       );
       final commitHook = _commitHook;
-      if (commitHook is AuthoringTransactionPreflightGuard) {
+      if (plan.changeSet.changes.isNotEmpty &&
+          commitHook is AuthoringTransactionPreflightGuard) {
         await (commitHook as AuthoringTransactionPreflightGuard)
             .requireCommitAllowed(AuthoringCommittedMutation(
                 scope: scope,
@@ -370,18 +378,20 @@ final class JournaledAuthoringTransaction {
               AuthoringTransactionCheckpoint.afterJournalCommitted,
               operationId,
             );
-            await _commitHook?.record(
-              AuthoringCommittedMutation(
-                scope: scope,
-                planId: plan.planId,
-                operationId: operationId,
-                receipt: intendedReceipt,
-                bulkCapability: journal.bulkCapability,
-                catalogDelta: plan.catalogDelta,
-                changes:
-                    await _stagedChanges(operationId, plan.changeSet.changes),
-              ),
-            );
+            if (plan.changeSet.changes.isNotEmpty) {
+              await _commitHook?.record(
+                AuthoringCommittedMutation(
+                  scope: scope,
+                  planId: plan.planId,
+                  operationId: operationId,
+                  receipt: intendedReceipt,
+                  bulkCapability: journal.bulkCapability,
+                  catalogDelta: plan.catalogDelta,
+                  changes:
+                      await _stagedChanges(operationId, plan.changeSet.changes),
+                ),
+              );
+            }
             return intendedReceipt;
           },
         );
@@ -439,6 +449,40 @@ final class JournaledAuthoringTransaction {
     });
   }
 
+  Future<void> _requireNoOverlappingRecovery(AuthoringPlan plan,
+      String operationId, List<AuthoringTransactionJournal> journals) async {
+    final mapId =
+        plan.mapEditBinding?.mapId ?? plan.request.parameters['mapId'];
+    final storageKeys = {
+      ...plan.mapEditReadStorageKeys,
+      for (final change in plan.changeSet.changes) change.storageKey,
+    };
+    for (final journal in journals) {
+      if (journal.operationId == operationId) continue;
+      final binding = journal.intendedReceipt.extensions['mapEdit'];
+      final overlaps = (binding is Map && binding['mapId'] == mapId) ||
+          journal.entries.any((entry) =>
+              storageKeys.contains(entry.storageKey) ||
+              (entry.resource.kind == 'map' && entry.resource.id == mapId));
+      if (!overlaps) continue;
+      final record = await _idempotency.recordForRecovery(journal.scope);
+      if (record?.status == AuthoringIdempotencyStatus.completed &&
+          record?.operationId == journal.operationId &&
+          journal.finalReceipt != null &&
+          const {
+            AuthoringTransactionStatus.committed,
+            AuthoringTransactionStatus.compensated
+          }.contains(journal.status) &&
+          canonicalAuthoringJson(record!.receipt!.toJson()) ==
+              canonicalAuthoringJson(journal.finalReceipt!.toJson())) {
+        continue;
+      }
+      throw const JournaledAuthoringTransactionException(
+          'map_edit.overlapping_recovery_required',
+          'A pending transaction overlaps this map or a selected dependency. Reconcile or discard its canonical journal before editing.');
+    }
+  }
+
   Future<List<AuthoringResourceChange>> _stagedChanges(
       String operationId, List<AuthoringResourceChange> changes) async {
     final staged = <AuthoringResourceChange>[];
@@ -490,7 +534,8 @@ final class JournaledAuthoringTransaction {
                 'transaction.preparation_receipt_required',
                 'A retained transaction has no matching durable completed receipt. Preserve it and reconcile recovery explicitly.');
           }
-          if (journal.status == AuthoringTransactionStatus.committed) {
+          if (journal.status == AuthoringTransactionStatus.committed &&
+              journal.entries.isNotEmpty) {
             await requireHistory(journal);
           }
         }

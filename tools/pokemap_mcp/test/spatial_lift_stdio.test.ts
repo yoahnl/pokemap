@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import test from "node:test";
 import { Client } from "@modelcontextprotocol/client";
@@ -41,7 +40,8 @@ function placement(id: string, x = .5): JsonRecord {
 }
 
 test("live MCP authors native vertical platforms without replacing terrain or models", async () => {
-  const root = await mkdtemp(join(tmpdir(), "pokemap-lift-mcp-"));
+  await mkdir("/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7/platforms", { recursive: true });
+  const root = await mkdtemp("/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7/platforms/mcp-");
   const transport = new StdioClientTransport({ command: process.execPath,
     args: [resolve("dist/src/index.js"), "--root", root], cwd: process.cwd(), stderr: "pipe" });
   const client = new Client({ name: "instance-batch-transport-proof", version: "1.0.0" });
@@ -111,6 +111,30 @@ test("live MCP authors native vertical platforms without replacing terrain or mo
     const map = record((queried.items as unknown[])[0]);
     assert.deepEqual(record(map.spatialScene).lifts, [lift]);
     assert.equal(record(map.spatialScene).schemaVersion, 3);
+    const routeDescriptor = (catalog.mutationActions as JsonRecord[]).find((action) => action.id === "map.platform.upsert")!;
+    assert.ok(JSON.stringify(routeDescriptor).includes('"waypoints"'));
+    assert.ok(JSON.stringify(routeDescriptor).includes('"conditions"'));
+    const route = { kind: "spatial", id: "route", name: "Route", instanceId: "route-deck", x: 1, z: 1,
+      width: 1, depth: 1, height: 1, durationMs: 1000,
+      routes: [{ id: "main", waypoints: [{ x: 0, z: 0 }, { x: 1, z: 1 }, { x: 3, z: 1 }] }] };
+    async function routeMutation(actionId: string, parameters: JsonRecord): Promise<JsonRecord> {
+      const revision = (await call("pokemap_validate", { projectHandle: reopened.projectHandle })).snapshotRevision;
+      const id = `route-${++sequence}`;
+      const planned = await call("pokemap_plan", { projectHandle: reopened.projectHandle, request: {
+        requestId: id, actionId, actionVersion: 1, workspaceHandle: reopened.workspaceHandle,
+        parameters, expectedRevision: revision, idempotencyKey: id,
+      } });
+      return call("pokemap_apply", { operation: "apply", projectHandle: reopened.projectHandle,
+        planId: planned.planId, operationId: id });
+    }
+    await routeMutation("map3d.instance.upsert", { mapId, instance: placement("route-deck", 1.5) });
+    const beforeRoute = await readFile(mapPath);
+    await routeMutation("map.platform.upsert", { mapId, platform: route });
+    const savedRoute = record(JSON.parse(await readFile(mapPath, "utf8")));
+    assert.equal(record(savedRoute.spatialScene).schemaVersion, 4);
+    const { kind: _kind, ...definition } = route;
+    assert.deepEqual(record(savedRoute.spatialScene).platforms, [definition]);
+    assert.deepEqual(record(savedRoute.spatialScene).lifts, record(JSON.parse(beforeRoute.toString()).spatialScene).lifts);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: reopened.workspaceHandle });
   } finally {
     await client.close();

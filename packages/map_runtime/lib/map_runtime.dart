@@ -207,6 +207,9 @@ export 'src/application/player_service_runtime_controller.dart'
         PlayerServiceRecoveryCapsLoader,
         PlayerServiceRuntimeController,
         RuntimePartyTradeService,
+        RuntimeDeferredCraftingService,
+        RuntimeImagePuzzleService,
+        runtimeCivilDay,
         loadRuntimePlayerServiceRecoveryCaps;
 export 'src/application/rail_journey_runtime_coordinator.dart';
 export 'src/application/rail_journey_runtime_transaction.dart';

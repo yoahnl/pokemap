@@ -27,6 +27,7 @@ void main() {
       openPc: handler,
       openWorldService: (request) async {
         calls.add(switch (request) {
+          OpenCraftingService() => SceneInteractiveCommandKind.openCrafting,
           OpenShopService() => SceneInteractiveCommandKind.openShop,
           OpenHealService() => SceneInteractiveCommandKind.openHeal,
           OpenPcService() => SceneInteractiveCommandKind.openPc,
@@ -79,6 +80,7 @@ void main() {
         motion: MovingPlatformMotion.forward,
       ),
       SceneInteractiveCommand.setPropState(mapId: 'map.port', propIds: const ['gate'], state: MovingPropState.open),
+      SceneInteractiveCommand.openCrafting(definition: DeferredCraftingDefinition(serviceId: 'artisan', label: 'Artisan', recipes: [DeferredCraftingRecipe(recipeId: 'ball', label: 'Ball', inputItemId: 'fruit', inputQuantity: 1, outputItemId: 'ball', outputQuantity: 1)])),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
       SceneInteractiveCommand.openHeal(),
       SceneInteractiveCommand.whiteOut(),

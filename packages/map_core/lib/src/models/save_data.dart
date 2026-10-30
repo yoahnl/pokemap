@@ -2,6 +2,9 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'world_environment.dart';
+import 'gameplay_calendar.dart';
+import 'deferred_crafting.dart';
+import 'image_puzzle.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
@@ -829,6 +832,12 @@ abstract class SaveData with _$SaveData {
     PlayerSpatialPosition? playerSpatialPosition,
     @Default(SpatialWorldState.empty()) SpatialWorldState spatialWorldState,
     @JsonKey(includeIfNull: false) WorldEnvironmentState? environmentState,
+    @JsonKey(readValue: readGameplayCalendarStateJson)
+    @Default(GameplayCalendarState.empty()) GameplayCalendarState gameplayCalendarState,
+    @JsonKey(readValue: readDeferredCraftingStateJson)
+    @Default(DeferredCraftingState.empty()) DeferredCraftingState deferredCraftingState,
+    @JsonKey(readValue: readImagePuzzleStateJson)
+    @Default(ImagePuzzleState.empty()) ImagePuzzleState imagePuzzleState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
     @Default(MovingPropWorldState.empty()) MovingPropWorldState movingPropWorldState,
     @JsonKey(readValue: readMapInstanceWorldStateJson)
@@ -874,6 +883,7 @@ abstract class SaveData with _$SaveData {
   factory SaveData.fromJson(Map<String, dynamic> json) => _decodeSaveData(json);
 
   SaveData normalized() {
+    deferredCraftingState.validateCalendar(gameplayCalendarState);
     final normalizedSaveId = saveId.trim();
     final normalizedCurrentMapId = currentMapId.trim();
     playerSpatialPosition?.validateGridPosition(playerPosition);
@@ -960,5 +970,7 @@ SaveData _decodeSaveData(Map<String, dynamic> json) {
   if (json['completionPartyJournal'] is! Map<String, dynamic>) {
     throw const FormatException('The save is missing its completion party journal.');
   }
-  return _$SaveDataFromJson(json);
+  final state = _$SaveDataFromJson(json);
+  state.deferredCraftingState.validateCalendar(state.gameplayCalendarState);
+  return state;
 }

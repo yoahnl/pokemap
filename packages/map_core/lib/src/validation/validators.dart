@@ -1,3 +1,4 @@
+import '../models/spatial_platform.dart';
 import '../models/project_media_catalog.dart';
 import '../read_models/field_obstacle_capabilities.dart';
 import '../diagnostics/scene_diagnostics.dart';
@@ -3053,6 +3054,14 @@ class MapValidator {
     }
     if (projectDialogueContext != null) {
       SpatialModelClipCapabilities.validateSources(projectDialogueContext, maps: [map]);
+      for (final platform in map.spatialScene?.platforms ?? const <SpatialPlatformDefinition>[]) {
+        for (final condition in platform.routes.expand((route) => route.conditions)) {
+          if (!projectDialogueContext.facts.any((fact) => fact.id == condition.factId && fact.valueKind == NarrativeValueKind.boolean)) {
+            throw const ValidationException('A spatial platform route requires a declared boolean Fact.');
+          }
+        }
+      }
+
     }
     if (map.movingPlatforms.isNotEmpty) {
       final project = projectDialogueContext;

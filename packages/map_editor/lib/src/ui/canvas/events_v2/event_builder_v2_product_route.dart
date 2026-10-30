@@ -24,6 +24,7 @@ import '../../../features/narrative/state/narrative_event_map_bridge_state.dart'
 import '../../../features/narrative/state/narrative_event_validation_state.dart';
 import '../../../features/narrative/state/narrative_scene_focus_provider.dart';
 import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
+import '../../../features/narrative/state/scene_image_media_catalog_provider.dart';
 import '../../../infrastructure/repositories/narrative_template_transaction_file_gateway.dart';
 import '../../design_system/design_system.dart';
 import '../narrative_studio/narrative_studio_destination.dart';
@@ -1366,6 +1367,9 @@ class _EventBuilderV2ProductRouteState
       final baseCatalogs = await ref.read(
         sceneConsequenceCatalogsProvider(editor.projectRootPath).future,
       );
+      final imageCatalog = await ref.read(
+        sceneImageMediaCatalogProvider(editor.projectRootPath).future,
+      );
       final catalogs = baseCatalogs
           .withConfiguredStarters(session.manifest.newGame.starterOptions)
           .withProjectStorySteps(session.manifest);
@@ -1394,11 +1398,15 @@ class _EventBuilderV2ProductRouteState
           spatialSources:
               session.context.catalog.spatialSources.selectableOptions,
           physicalSourceKinds: _templatePhysicalSourceKinds(session.maps),
-          actionPickerOptions: buildEventBuilderV2TemplateActionPickerOptions(
-            project: session.manifest,
-            maps: session.maps,
-            catalogs: catalogs,
-          ),
+          actionPickerOptions: {
+            NarrativeCommandParameterKind.imageMediaReference:
+                buildSceneImageMediaPickerOptions(imageCatalog),
+            ...buildEventBuilderV2TemplateActionPickerOptions(
+              project: session.manifest,
+              maps: session.maps,
+              catalogs: catalogs,
+            ),
+          },
           onApply: _applyTemplate,
           initialDraft: pendingTemplateDraft,
           onOpenMapEditor: (draft) {
@@ -2130,6 +2138,9 @@ buildEventBuilderV2TemplateActionPickerOptions({
       for (final map in maps)
         for (final lift in map.spatialScene?.lifts ?? const <SpatialLiftDefinition>[])
           SceneActionPickerOption(id:'${map.id}::${lift.id}',label:'${map.name} · ${lift.name}'),
+          for (final map in maps)
+        for (final platform in map.spatialScene?.platforms ?? const <SpatialPlatformDefinition>[])
+          SceneActionPickerOption(id: '${map.id}::${platform.id}', label: '${map.name} · ${platform.name}'),
     ],
     NarrativeCommandParameterKind.mapEntityReference: [
       for (final map in maps)

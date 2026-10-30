@@ -33,7 +33,7 @@ class CanonicalPsdkMoveProjector {
       id: move.id,
       dbSymbol: move.id,
       name: move.name,
-      type: _translateType(move),
+      type: _translateType(move, battleEngineMethod),
       category: _translatePsdkCategory(move.category),
       power: move.basePower < 0 ? 0 : move.basePower,
       accuracy: _translatePsdkAccuracy(move.accuracy),
@@ -109,10 +109,16 @@ class CanonicalPsdkMoveProjector {
     return null;
   }
 
-  String _translateType(PokemonMove move) {
+  String _translateType(PokemonMove move, String battleEngineMethod) {
     final normalizedType = move.type.trim().toLowerCase();
     if (normalizedType.isEmpty) {
       throw const CanonicalPsdkMoveProjectionException('invalid_type:empty');
+    }
+    if (normalizedType == 'unknown' &&
+        battleEngineMethod == 's_curse' &&
+        move.category == PokemonMoveCategory.status &&
+        move.basePower == 0) {
+      return normalizedType;
     }
     if (!BattleTypeChart.supportedTypes.contains(normalizedType)) {
       throw CanonicalPsdkMoveProjectionException(

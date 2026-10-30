@@ -280,5 +280,5 @@ String _runtimeProjectFingerprint(ProjectManifest project) {
 bool _hasWorldPictures(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) {
   final payload = node.payload;
   final command = payload is SceneActionPayload ? payload.interactiveCommand : null;
-  return command is SceneWorldPresentationInteractiveCommand && command.operation == SceneWorldPresentationOperation.showPicture;
+  return command is SceneOpenImagePuzzleInteractiveCommand || command is SceneWorldPresentationInteractiveCommand && command.operation == SceneWorldPresentationOperation.showPicture;
 }));

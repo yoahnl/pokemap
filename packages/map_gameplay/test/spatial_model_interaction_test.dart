@@ -109,7 +109,7 @@ void main() {
         isNull);
   });
 
-  test('custom and sign targets remain usable inside their occupied floor cell',
+  test('entity targets remain usable inside their occupied floor cell',
       () {
     final map = scene.copyWith(
         navigation: SpatialNavigationProfile(blockedAreas: [
@@ -153,12 +153,13 @@ void main() {
             scene: map,
             entities: [
               MapEntity(
-                  id: 'npc', kind: MapEntityKind.npc, pos: GridPos(x: 3, y: 2))
+                  id: 'npc', kind: MapEntityKind.npc, pos: GridPos(x: 3, y: 2),
+                  npc: MapEntityNpcData())
             ],
             x: 3.5,
             z: 3.5,
-            facing: EntityFacing.north),
-        isNull);
+            facing: EntityFacing.north)?.id,
+        'npc');
   });
 
   test('a physical model between player and fixture occludes the target', () {

@@ -16,6 +16,7 @@ const revisionSchema = z.string().regex(/^sha256:[0-9a-f]{64}$/);
 export function registerMutationTools(
   server: McpServer,
   authoring: AuthoringGateway,
+  compact = false,
 ): void {
   server.registerTool(
     "pokemap_workshop",
@@ -39,7 +40,7 @@ export function registerMutationTools(
           ...(input.readDependencies ? {readDependencies: input.readDependencies} : {}) })),
   );
 
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_project_bootstrap",
     {
       title: "Inspect or repair a PokeMap project bootstrap",
@@ -80,7 +81,7 @@ export function registerMutationTools(
           ),
   );
 
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_artifact_stage",
     {
       title: "Stage a local PokeMap artifact",
@@ -261,7 +262,7 @@ export function registerMutationTools(
     },
   );
 
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_recovery_discard",
     {
       title: "Discard an incomplete PokeMap preparation",
@@ -291,7 +292,7 @@ export function registerMutationTools(
     async (input) => authoringResult(() => authoring.request("recovery_status", input)),
   );
 
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_recovery",
     {
       title: "Recover a PokeMap transaction",

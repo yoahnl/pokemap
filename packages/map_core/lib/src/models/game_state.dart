@@ -1,6 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'world_environment.dart';
+import 'gameplay_calendar.dart';
+import 'deferred_crafting.dart';
+import 'image_puzzle.dart';
 import 'enums.dart';
 import 'geometry.dart';
 import 'narrative_event_progress.dart';
@@ -94,6 +97,12 @@ abstract class GameState with _$GameState {
     PlayerSpatialPosition? playerSpatialPosition,
     @Default(SpatialWorldState.empty()) SpatialWorldState spatialWorldState,
     @JsonKey(includeIfNull: false) WorldEnvironmentState? environmentState,
+    @JsonKey(readValue: readGameplayCalendarStateJson)
+    @Default(GameplayCalendarState.empty()) GameplayCalendarState gameplayCalendarState,
+    @JsonKey(readValue: readDeferredCraftingStateJson)
+    @Default(DeferredCraftingState.empty()) DeferredCraftingState deferredCraftingState,
+    @JsonKey(readValue: readImagePuzzleStateJson)
+    @Default(ImagePuzzleState.empty()) ImagePuzzleState imagePuzzleState,
     @Default(MovingPlatformWorldState.empty()) MovingPlatformWorldState movingPlatformWorldState,
     @Default(MovingPropWorldState.empty()) MovingPropWorldState movingPropWorldState,
     @JsonKey(readValue: readMapInstanceWorldStateJson)
@@ -150,5 +159,11 @@ abstract class GameState with _$GameState {
   }) = _GameState;
 
   factory GameState.fromJson(Map<String, dynamic> json) =>
-      _$GameStateFromJson(json);
+      _decodeGameState(json);
+}
+
+GameState _decodeGameState(Map<String, dynamic> json) {
+  final state = _$GameStateFromJson(json);
+  state.deferredCraftingState.validateCalendar(state.gameplayCalendarState);
+  return state;
 }

@@ -91,6 +91,8 @@ final class SceneInteractiveCommandRuntimeExecutor {
           command,
           handler: moveNpc,
         ),
+      SceneInteractiveCommandKind.openImagePuzzle => await _executeService(command, legacyHandler: null),
+      SceneInteractiveCommandKind.openCrafting => await _executeService(command, legacyHandler: null),
       SceneInteractiveCommandKind.openShop => await _executeService(
           command,
           legacyHandler: openShop,
@@ -198,6 +200,8 @@ final class SceneInteractiveCommandRuntimeExecutor {
     SceneInteractiveCommand command,
   ) {
     return switch (command) {
+      SceneOpenImagePuzzleInteractiveCommand(:final definition) => OpenImagePuzzleService(interactionId: 'scene.openImagePuzzle:${definition.puzzleId}', definition: definition),
+      SceneOpenCraftingInteractiveCommand(:final definition) => OpenCraftingService(interactionId: 'scene.openCrafting:${definition.serviceId}', definition: definition),
       SceneOpenShopInteractiveCommand(:final shopId) => OpenShopService(
           interactionId: 'scene.openShop:$shopId',
           shopId: shopId,

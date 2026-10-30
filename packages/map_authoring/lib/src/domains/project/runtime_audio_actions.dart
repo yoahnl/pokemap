@@ -168,7 +168,13 @@ final class RuntimeAudioActions {
         MapMetadata.fromJson({...before.mapMetadata.toJson(), ...patch});
     final after = before.copyWith(mapMetadata: metadata);
     MapValidator.validate(after,
-        projectDialogueContext: context.snapshot.manifest);
+        projectDialogueContext: context.snapshot.materializedCatalogProject &&
+                context.snapshot.availableProjectSections?.isEmpty == true
+            ? null
+            : context.snapshot.manifest,
+        projectTileSize: PixelSize(
+            width: context.snapshot.manifest.settings.tileWidth,
+            height: context.snapshot.manifest.settings.tileHeight));
     return AuthoringMutationDraft(
       changeSet: AuthoringChangeSet(
         changes: [

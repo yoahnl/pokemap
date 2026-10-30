@@ -10,6 +10,7 @@ import 'spatial_exploration_session.dart';
 import 'spatial_npc_fixed_route_runtime.dart';
 import 'spatial_visual_playback.dart';
 import 'spatial_lift_playback.dart';
+import 'spatial_platform_playback.dart';
 
 final class SpatialStoryPlayback {
   SpatialStoryPlayback({
@@ -58,8 +59,76 @@ final class SpatialStoryPlayback {
       random: Random(),
     );
     lifts = SpatialLiftPlayback(readMap: () => session.bundle.map, readWorld: () => readGameState().spatialWorldState, writeWorld: (world) => writeGameState(readGameState().copyWith(spatialWorldState:world)));
-    session.liftHeightAt = lifts.heightAt;
-    session.liftModelPose = lifts.modelPose;
+    platforms = SpatialPlatformPlayback(
+      readMap: () => session.bundle.map,
+      readState: readGameState,
+      writeState: writeGameState,
+      readFact: (id) {
+        final state = readGameState();
+        final result =
+            NarrativeFactRuntimeResolver.fromFacts(
+              session.bundle.manifest.facts,
+            ).resolve(
+              factId: id,
+              runtimeState: state.narrativeFactRuntimeState,
+              storyFlags: state.storyFlags,
+            );
+        if (result is! NarrativeFactRuntimeResolved ||
+            result.fact.valueKind != NarrativeValueKind.boolean) {
+          throw StateError('A platform route fact is unavailable.');
+        }
+        return result.value;
+      },
+      canOccupy: session.movement.canOccupyPlatform,
+      onStart: (definition, offset) {
+        _platformCompanionSnapshot = session.captureCompanionTrail();
+        _platformCarriedCompanion = _platformCompanionSnapshot!.capture();
+        final companion = _platformCarriedCompanion!.position;
+        final player = _playerPose();
+        if (companion != null &&
+            !definition.contains(
+              companion.x,
+              companion.z,
+              offsetX: offset.x,
+              offsetZ: offset.z,
+              margin: .1,
+            )) {
+          _platformCarriedCompanion!.regroup(
+            player.x,
+            player.z,
+            groundY: definition.height,
+          );
+        }
+        session.platformTransportActive = true;
+      },
+      onPreview: (x, z, definition) {
+        final player = platforms.playerPosition!;
+        _poses['player'] = SpatialCinematicActorPose(
+          x: player.x,
+          z: player.z,
+          facing: readGameState().playerFacing,
+        );
+        final trail = _platformCarriedCompanion?.capture();
+        if (trail != null) {
+          trail.translate(x, z, groundY: definition.height);
+          session.restoreCompanionTrail(trail);
+        }
+      },
+      onFinished: (moved) {
+        if (!moved && _platformCompanionSnapshot != null) {
+          session.restoreCompanionTrail(_platformCompanionSnapshot!);
+        }
+        _platformCompanionSnapshot = _platformCarriedCompanion = null;
+        session.platformTransportActive = false;
+        _poses.remove('player');
+        models.synchronize(readGameState().spatialWorldState);
+      },
+    );
+    session.liftHeightAt = (mapId, x, z) =>
+        platforms.heightAt(mapId, x, z) ?? lifts.heightAt(mapId, x, z);
+    session.liftModelPose = (mapId, instanceId) =>
+        platforms.modelPose(mapId, instanceId) ??
+        lifts.modelPose(mapId, instanceId);
     cinematics = CinematicRuntimePlaybackController(
       sink: SpatialCinematicRuntimePlaybackSink(
         project: session.bundle.manifest,
@@ -135,6 +204,7 @@ final class SpatialStoryPlayback {
     session.npcStoryPose = (entity) => cinematics.isPlaying ? _poses['entity:${entity.id}'] : null;
     session.npcAutonomousPose = (entity) => autonomousNpcs.poseFor(entity.id);
     session.onBeforeMapChange = () {
+      platforms.cancel();
       lifts.cancel();
       _resetFade();
       visuals.reset();
@@ -152,6 +222,8 @@ final class SpatialStoryPlayback {
   final SpatialExplorationSession session;
   late final SpatialVisualRuleResolver visualRules;
   late final SpatialLiftPlayback lifts;
+  late final SpatialPlatformPlayback platforms;
+  PartyCompanionTrail? _platformCompanionSnapshot, _platformCarriedCompanion;
   late final SpatialVisualPlayback visuals;
   SpatialVisualPatch resolvedVisuals() {
     final bundle = session.bundle;
@@ -282,6 +354,7 @@ final class SpatialStoryPlayback {
   Future<String> playModel(SceneInteractiveCommand command) async {
     if (_disposed ||
         models.isPlaying ||
+        lifts.isPlaying || platforms.isPlaying ||
         cinematics.isPlaying ||
         command is! ScenePlayModelAnimationInteractiveCommand) {
       return 'blocked';
@@ -304,7 +377,7 @@ final class SpatialStoryPlayback {
 
   Future<String> playCinematic(
       SceneRuntimePlanIntent intent, String sourceId, {Object? sceneOwner}) async {
-    if (_disposed || models.isPlaying || cinematics.isPlaying) {
+    if (_disposed || models.isPlaying || cinematics.isPlaying || lifts.isPlaying || platforms.isPlaying) {
       throw StateError('Spatial playback is busy.');
     }
     if (_sceneFadeOwner != null && !identical(_sceneFadeOwner, sceneOwner)) {
@@ -341,7 +414,7 @@ final class SpatialStoryPlayback {
   }
 
   Future<bool> playTransient(CinematicAsset asset) async {
-    if (_disposed || models.isPlaying || cinematics.isPlaying || _sceneFadeOwner != null) {
+    if (_disposed || models.isPlaying || cinematics.isPlaying || lifts.isPlaying || platforms.isPlaying || _sceneFadeOwner != null) {
       return false;
     }
     autonomousNpcs.update(0, paused: true);
@@ -363,17 +436,34 @@ final class SpatialStoryPlayback {
   }
 
   Future<String> playPlatform(SceneInteractiveCommand command) async {
-    final result = lifts.play(command);
+    if (_disposed ||
+        platforms.isPlaying ||
+        lifts.isPlaying ||
+        cinematics.isPlaying ||
+        models.isPlaying) {
+      return 'blocked';
+    }
+    final spatial =
+        command is SceneMovePlatformInteractiveCommand &&
+        session.bundle.map.spatialScene!.platforms.any(
+          (platform) => platform.id == command.platformId,
+        );
+    final result = spatial ? platforms.play(command) : lifts.play(command);
     _publishActivity();
-    try { return await result; } finally { _publishActivity(); }
+    try {
+      return await result;
+    } finally {
+      _publishActivity();
+    }
   }
 
   void update(double dt, bool paused) {
     if (_disposed) return;
-    autonomousNpcs.update(dt, paused: paused || session.movement.paused || models.isPlaying || cinematics.isPlaying ||
+    autonomousNpcs.update(dt, paused: paused || session.movement.paused || models.isPlaying || cinematics.isPlaying || lifts.isPlaying || platforms.isPlaying ||
         session.interactionActive.value || session.storyInputLocked || session.nativeDoorTraversalActive);
     models.update(dt, paused: paused);
     lifts.update(dt, paused: paused);
+    platforms.update(dt, paused: paused);
     if (!paused) visuals.advance(dt);
     if (!paused && dt.isFinite && dt > 0) {
       cinematics.update(Duration(microseconds: (dt * 1000000).round()));
@@ -382,7 +472,7 @@ final class SpatialStoryPlayback {
 
   void synchronize(SpatialWorldState state) {
     _resetFade();
-    if (models.isPlaying || cinematics.isPlaying || lifts.isPlaying) cancel();
+    if (models.isPlaying || cinematics.isPlaying || lifts.isPlaying || platforms.isPlaying) cancel();
     models.synchronize(state);
     visuals.reset();
     session.cinematicVisualOverrides = SpatialVisualPatch();
@@ -393,7 +483,7 @@ final class SpatialStoryPlayback {
 
   void _publishActivity() {
     if (!_disposed) {
-      session.storyActive.value = models.isPlaying || cinematics.isPlaying || lifts.isPlaying;
+      session.storyActive.value = models.isPlaying || cinematics.isPlaying || lifts.isPlaying || platforms.isPlaying;
     }
   }
 
@@ -402,6 +492,7 @@ final class SpatialStoryPlayback {
     models.cancel();
     cinematics.cancel();
     lifts.cancel();
+    platforms.cancel();
     _resetFade();
     _publishActivity();
   }
@@ -410,6 +501,7 @@ final class SpatialStoryPlayback {
     if (session.presentationPaused) return;
     models.update(86400);
     lifts.update(86400, paused:false);
+    platforms.update(86400, paused:false);
     cinematics.update(const Duration(days: 1));
     _publishActivity();
   }

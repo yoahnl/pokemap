@@ -367,6 +367,7 @@ final class CanonicalGamePackageExportService {
             SpatialGameplayCapabilities.requiresCinematicFade(projection.project))
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
         if (SpatialGameplayCapabilities.requiresLifts(spatialMaps)) SpatialGameplayCapabilities.liftCapabilityId,
+        if (SpatialGameplayCapabilities.requiresPlatforms(spatialMaps)) SpatialGameplayCapabilities.platformCapabilityId,
         if (SpatialGameplayCapabilities.requiresFieldTraversals(spatialMaps)) SpatialGameplayCapabilities.fieldTraversalCapabilityId,
         if (SpatialGameplayCapabilities.requiresLadders(spatialMaps))
           SpatialGameplayCapabilities.ladderCapabilityId,
@@ -381,6 +382,8 @@ final class CanonicalGamePackageExportService {
         if (ProjectAudioCapabilities.requiresFieldMovementCapability(projection.project)) ProjectAudioCapabilities.fieldMovementCapabilityId,
         if (FieldObstacleCapabilities.requiresCapability(projection.project, maps: fieldObstacleMaps)) FieldObstacleCapabilities.capabilityId,
         if (FieldObstacleCapabilities.requiresExtendedCapability(projection.project, maps: fieldObstacleMaps)) FieldObstacleCapabilities.extendedCapabilityId,
+        if (SpatialGameplayCapabilities.requiresImagePuzzle(projection.project)) SpatialGameplayCapabilities.imagePuzzleCapabilityId,
+        if (SpatialGameplayCapabilities.requiresDeferredCrafting(projection.project)) SpatialGameplayCapabilities.deferredCraftingCapabilityId,
         if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project)) SpatialGameplayCapabilities.npcTradeCapabilityId,
         if (SpatialGameplayCapabilities.requiresEggGift(projection.project)) SpatialGameplayCapabilities.eggGiftCapabilityId,
         if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,

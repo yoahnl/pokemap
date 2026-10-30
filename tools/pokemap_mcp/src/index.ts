@@ -59,6 +59,7 @@ function start(config: PokeMapMcpConfig): void {
   const handle = serveStdio(
     () =>
       createPokeMapMcpServer({
+        profile: config.profile,
         authoring,
         projectRoots: authoring,
         artifacts,

@@ -5,6 +5,62 @@ import 'package:test/test.dart';
 import 'spatial_movement_controller_test.dart' show plateau;
 
 void main() {
+  group('spatial occupied target interaction', () {
+    const guide = MapEntity(
+      id: 'guide', kind: MapEntityKind.npc, pos: GridPos(x: 4, y: 3),
+      npc: MapEntityNpcData(characterId: 'actor'),
+    );
+    const hidden = MapEntity(
+      id: 'buried-item', kind: MapEntityKind.item, pos: GridPos(x: 4, y: 3),
+      blocksMovement: false,
+      item: MapEntityItemData(gameItemId: 'resource', visibility: MapEntityItemVisibility.hidden),
+    );
+    MapSpatialScene field({bool blockedTarget = true, bool barrier = false,
+        bool cliff = false, bool north = false}) => MapSpatialScene(
+      width: 10, depth: 10, levelHeight: .5,
+      heightLevels: [for (var i = 0; i < 100; i++) cliff && i == 34 ? 8 : 4],
+      navigation: SpatialNavigationProfile(blockedAreas: [
+        if (blockedTarget) SpatialBlockedArea(x: 4, z: 3, width: 2, depth: 1),
+        if (barrier && north) SpatialBlockedArea(x: 4, z: 2.9375, width: 1, depth: .0625),
+        if (barrier && !north) SpatialBlockedArea(x: 3.9375, z: 3, width: .0625, depth: 1),
+      ]),
+    );
+    MapEntity? target(Iterable<MapEntity> entities, MapSpatialScene scene, {bool north = false}) =>
+        findSpatialEntityInteraction(scene: scene, entities: entities,
+            x: north ? 4.4375 : 3.5625, z: north ? 2.5625 : 3.4375,
+            facing: north ? EntityFacing.south : EntityFacing.east);
+    for (final north in [false, true]) {
+      final side = north ? 'north' : 'west';
+      test('NPC on a blocked target cell remains reachable from $side', () {
+        final scene = field();
+        expect(scene.worldHeightAt(4.5, 3.5), 2);
+        expect(target([guide], scene, north: north)?.id, guide.id);
+      });
+      test('an intermediate navigation barrier remains opaque from $side', () {
+        expect(target([guide], field(barrier: true, north: north), north: north), isNull);
+      });
+      test('a target cell exemption never bypasses a cliff from $side', () {
+        expect(target([guide], field(cliff: true), north: north), isNull);
+      });
+    }
+    for (final itemFirst in [false, true]) {
+      test('a visible NPC takes priority over a co-located hidden item with itemFirst=$itemFirst', () {
+        expect(target(itemFirst ? [hidden, guide] : [guide, hidden],
+            field(blockedTarget: false))?.id, guide.id);
+      });
+    }
+    test('hidden pickup on a blocked cell remains available after its co-located NPC disappears', () {
+      final found = target([hidden], field());
+      expect(found?.id, hidden.id);
+      final picked = executeSpatialItemPickup(gameState: const GameState(saveId: 'save'),
+          mapId: 'field', entity: found!);
+      expect(picked.outcome, SpatialItemPickupOutcome.received);
+      expect(picked.gameState.bag.entries.single.itemId, 'resource');
+      expect(picked.gameState.bag.entries.single.quantity, 1);
+      expect(spatialItemIsCollected(gameState: picked.gameState, mapId: 'field', entity: hidden), isTrue);
+    });
+  });
+
   test('runtime geometry offsets compose once after pivot rotation and scale', () {
     final model = ProjectModel3dEntry(id: 'rock', name: 'Rock', sourceAssetId: 'rock',
       relativePath: 'assets/models3d/rock.glb', scale: 2,

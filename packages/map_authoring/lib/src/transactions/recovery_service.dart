@@ -165,7 +165,7 @@ final class AuthoringRecoveryService {
       final states = await _states(journal);
       _requireOnlyBeforeOrAfter(states);
       final commitHook = _commitHook;
-      if (commitHook is AuthoringTransactionRecoveryGuard) {
+      if (journal.entries.isNotEmpty && commitHook is AuthoringTransactionRecoveryGuard) {
         await (commitHook as AuthoringTransactionRecoveryGuard)
             .requireRecoveryAllowed(
           intendedReceipt: journal.intendedReceipt,
@@ -674,6 +674,10 @@ final class AuthoringRecoveryService {
     required String? afterRevision,
   }) {
     final intended = journal.intendedReceipt;
+    if (outcome == 'resumed' && intended.actionId == 'map3d.edit_batch' &&
+        intended.extensions['mapEdit'] is Map) {
+      return intended;
+    }
     return AuthoringReceipt(
       receiptId: intended.receiptId,
       requestId: intended.requestId,
@@ -694,7 +698,7 @@ final class AuthoringRecoveryService {
 
   Future<void> _recordCommitted(AuthoringTransactionJournal journal) async {
     final hook = _commitHook;
-    if (hook == null) return;
+    if (hook == null || journal.entries.isEmpty) return;
     final changes = <AuthoringResourceChange>[];
     for (final entry in journal.entries) {
       final before = await _gateway.readStagedPayload(

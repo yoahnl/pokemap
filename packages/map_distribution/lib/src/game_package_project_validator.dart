@@ -267,6 +267,12 @@ final class GamePackageProjectValidator {
       if (SpatialGameplayCapabilities.requiresEggGift(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.eggGiftCapabilityId)) {
         _fail('Egg gifts require gameplay.egg-gift@1.');
       }
+      if (SpatialGameplayCapabilities.requiresImagePuzzle(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.imagePuzzleCapabilityId)) {
+        _fail('Image puzzles require gameplay.image-puzzle@1.');
+      }
+      if (SpatialGameplayCapabilities.requiresDeferredCrafting(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.deferredCraftingCapabilityId)) {
+        _fail('Deferred crafting requires gameplay.deferred-crafting@1.');
+      }
       if (SpatialGameplayCapabilities.requiresNpcTrade(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.npcTradeCapabilityId)) {
         _fail('NPC trade offers require gameplay.npc-trade@1.');
       }
@@ -310,6 +316,7 @@ final class GamePackageProjectValidator {
           _fail('Spatial ladders require map3d.ladder@1.');
         }
         if (SpatialGameplayCapabilities.requiresLifts(maps) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) _fail('Spatial lifts require map3d.lift@1.');
+        if (SpatialGameplayCapabilities.requiresPlatforms(maps) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.platformCapabilityId)) _fail('Spatial route platforms require map3d.platform@1.');
         if (SpatialGameplayCapabilities.requiresFieldTraversals(maps) &&
             !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.fieldTraversalCapabilityId)) {
           _fail('Spatial field traversals require ${SpatialGameplayCapabilities.fieldTraversalCapabilityId}.');

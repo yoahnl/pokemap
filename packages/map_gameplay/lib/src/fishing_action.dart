@@ -8,6 +8,7 @@ import 'gameplay_world_state.dart';
 import 'items/bag_operations.dart';
 import 'movement_terrain_policy.dart';
 import 'script_condition_evaluator.dart';
+import 'spatial_fishing_target.dart';
 
 enum FishingBlockReason {
   unsupportedMap,
@@ -56,7 +57,9 @@ FishingAttemptEvaluation evaluateFishingAttempt({
   EncounterEvaluationContext? encounterContext,
 }) {
   final map = world.map;
-  if (map.version != ProjectVersion.v8 || map.spatialScene != null) {
+  final spatial = map.version == ProjectVersion.v9 && map.spatialScene != null;
+  if (!spatial &&
+      (map.version != ProjectVersion.v8 || map.spatialScene != null)) {
     return const FishingAttemptEvaluation(
         reason: FishingBlockReason.unsupportedMap);
   }
@@ -78,11 +81,14 @@ FishingAttemptEvaluation evaluateFishingAttempt({
     return const FishingAttemptEvaluation(
         reason: FishingBlockReason.insufficientQuantity);
   }
-  final target = GridPos(
-    x: world.player.pos.x + world.player.facing.dx,
-    y: world.player.pos.y + world.player.facing.dy,
-  );
-  if (!world.isWaterCell(target.x, target.y) ||
+  final target = spatial
+      ? spatialFishingTarget(map, gameState)
+      : GridPos(
+          x: world.player.pos.x + world.player.facing.dx,
+          y: world.player.pos.y + world.player.facing.dy,
+        );
+  if (target == null ||
+      !world.isWaterCell(target.x, target.y) ||
       movementTerrainAt(map, target.x, target.y) !=
           GameplayMovementTerrain.surf) {
     return const FishingAttemptEvaluation(reason: FishingBlockReason.notWater);

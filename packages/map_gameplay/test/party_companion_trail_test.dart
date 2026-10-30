@@ -2,6 +2,18 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('a transported follower retains its whole trail and resumes at the dock', () {
+    final trail = PartyCompanionTrail();
+    trail.observe(mapId: 'room', individualId: 'one', x: 1, z: 1);
+    trail.observe(mapId: 'room', individualId: 'one', x: 2, z: 1);
+    trail.translate(4, 2, groundY: 3);
+    expect(trail.position!.x, 5);
+    expect(trail.position!.z, 3);
+    expect(trail.position!.groundY, 3);
+    trail.observe(mapId: 'room', individualId: 'one', x: 6.5, z: 3, y: 3, groundY: 3);
+    expect(trail.position!.x, 5.5);
+    expect(trail.individualId, 'one');
+  });
   test('follows actual turns one cell behind without cutting corners', () {
     final trail = PartyCompanionTrail();
     trail.observe(mapId: 'room', individualId: 'one', x: 1, z: 1);

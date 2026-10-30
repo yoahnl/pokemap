@@ -39,8 +39,9 @@ MapEntity? findSpatialEntityInteraction({
   var nearest = double.infinity;
   final candidates = entities.toList();
   final overlapping = candidates.where((entity) {
-    if (entity.interactionMode != MapEntityInteractionMode.overlap)
+    if (entity.interactionMode != MapEntityInteractionMode.overlap) {
       return false;
+    }
     final state = actorStateProvider?.call(entity.id);
     final left = state == null ? entity.pos.x.toDouble() : state.x - .5;
     final top = state == null ? entity.pos.y.toDouble() : state.z - .5;
@@ -49,8 +50,9 @@ MapEntity? findSpatialEntityInteraction({
         z >= top &&
         z < top + entity.size.height;
   }).toList();
-  if (overlapping.isNotEmpty)
+  if (overlapping.isNotEmpty) {
     return overlapping.length == 1 ? overlapping.single : null;
+  }
   for (final entity in candidates) {
     if (entity.kind == MapEntityKind.spawn) continue;
     if (entity.interactionMode == MapEntityInteractionMode.overlap) continue;
@@ -78,14 +80,20 @@ MapEntity? findSpatialEntityInteraction({
         facing: facing,
         actorStateProvider: actorStateProvider,
         isPositionBlocked: isPositionBlocked);
+    final preferredAtSameDistance = forward == nearest &&
+        entity.kind == MapEntityKind.npc &&
+        result?.kind == MapEntityKind.item &&
+        result?.item?.visibility == MapEntityItemVisibility.hidden;
     if (forward > 0 &&
         (forward <= 1.25 || counter) &&
         lateral <= .5 &&
-        forward < nearest &&
+        (forward < nearest || preferredAtSameDistance) &&
         _hasNavigableTerrainBetween(scene, x, z, x + dx, z + dz,
             ignoreBlockedAt: counter
                 ? (px, pz) => _counterCellContains(x, z, facing, px, pz)
-                : entity.kind == MapEntityKind.custom ||
+                : entity.kind == MapEntityKind.npc ||
+                        entity.kind == MapEntityKind.item ||
+                        entity.kind == MapEntityKind.custom ||
                         entity.kind == MapEntityKind.sign
                     ? (px, pz) =>
                         px.floor() == targetX.floor() &&

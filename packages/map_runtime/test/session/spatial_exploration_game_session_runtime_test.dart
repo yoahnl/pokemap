@@ -15,6 +15,7 @@ import 'package:map_runtime/map_runtime.dart';
 import '../support/spatial_smart_tile_fixture.dart';
 import 'package:map_runtime/src/presentation/flame/flame_cinematic_media_playback_adapter.dart';
 import '../support/scene_catalog_pokemon_gift_fixture.dart';
+import '../playable_map_game_fishing_test.dart' show fishingTool;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -118,6 +119,251 @@ void main() {
     await runtime.dispose();
     await root.delete(recursive: true);
   });
+
+  Future<void> configureFishing({double chance = 0, MovementMode mode = MovementMode.walk,
+      bool battleData = false, FlameCinematicAudioDriver? musicDriver,
+      GameSessionCheckpointCommitter? commitCheckpoint}) async {
+    var state = descriptor().initialGameState!;
+    if (battleData) {
+      final reference = Directory('../../examples/playable_runtime_host/golden_battle_slice');
+      for (final file in reference.listSync(recursive: true).whereType<File>()) {
+        final target = File('${root.path}/${file.path.substring(reference.path.length + 1)}');
+        await target.parent.create(recursive: true);
+        await file.copy(target.path);
+      }
+      final manifest = ProjectManifest.fromJson(jsonDecode(
+          await File('${root.path}/project.json').readAsString()) as Map<String, dynamic>);
+      bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(pokemon: manifest.pokemon));
+      final saved = gameStateFromSaveData(SaveData.fromJson(jsonDecode(
+          await File('${root.path}/runtime_host_launch_save.json').readAsString()) as Map<String, dynamic>));
+      state = state.copyWith(party: saved.party);
+    }
+    await File('${root.path}/items.json').writeAsString(jsonEncode(
+        const ProjectItemCatalog(schemaVersion: 1, entries: [fishingTool]).toJson()));
+    bundle = bundle.copyWith(
+      manifest: bundle.manifest.copyWith(
+        battleAudio: musicDriver == null ? bundle.manifest.battleAudio : const ProjectBattleAudioConfig(wildBattleMusicPath: 'fishing-battle.ogg'),
+        pokemon: bundle.manifest.pokemon.copyWith(catalogFiles: {
+          ...bundle.manifest.pokemon.catalogFiles, 'items': 'items.json'}),
+        encounterTables: [ProjectEncounterTable(id: 'rod', name: 'Rod',
+          encounterKind: EncounterKind.oldRod, chancePerStep: chance,
+          entries: const [ProjectEncounterEntry(speciesId: 'sparkitten', minLevel: 5, maxLevel: 5)])]),
+      map: bundle.map.copyWith(entities: [], gameplayZones: const [
+        MapGameplayZone(id: 'water', kind: GameplayZoneKind.movement,
+          area: MapRect(pos: GridPos(x: 4, y: 3), size: GridSize(width: 1, height: 1)),
+          movement: MovementZonePayload(requiredMode: MovementMode.surf)),
+        MapGameplayZone(id: 'fish', kind: GameplayZoneKind.encounter,
+          area: MapRect(pos: GridPos(x: 4, y: 3), size: GridSize(width: 1, height: 1)),
+          encounter: EncounterZonePayload(encounterKind: EncounterKind.oldRod, encounterTableId: 'rod')),
+      ]));
+    await runtime.dispose();
+    runtime = SpatialExplorationGameSessionRuntime(
+      descriptor: descriptor(initialState: state.copyWith(
+        playerFacing: EntityFacing.north, playerMovementMode: mode,
+        bag: const Bag(entries: [BagEntry(itemId: 'tool', quantity: 1)]))),
+      projectFilePath: () async => '${root.path}/project.json',
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+      commitCheckpoint: commitCheckpoint,
+      musicServiceFactory: musicDriver == null ? null : (mixer) => RuntimeMusicService(mixer: mixer, driver: musicDriver, fadeDelay: (_) async {}),
+      mountSession: (_) async {}, unmountSession: (_) async {});
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+  }
+
+  Future<RuntimePlayerPauseCommandResult> useFishingRod() async {
+    await runtime.pause();
+    return runtime.dispatchPauseCommand(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'tool'));
+  }
+
+  test('spatial fishing is usable from the real companion bag action', () async {
+    await configureFishing();
+    await runtime.pause();
+    final data = await runtime.readCompanionMenuData();
+    final entry = data.pauseDetails[RuntimePlayerPauseSection.bag]!.entries.single;
+    final action = entry.bagAction!;
+    expect(entry.title, 'Outil');
+    expect(action.isEnabled, isTrue);
+    expect(action.unavailableReason, isNull);
+    expect(action.targetKind, RuntimePlayerBagUseTargetKind.world);
+    final result = await runtime.dispatchPauseCommand(
+        RuntimePlayerPauseCommand.useBagItem(itemTargetId: action.itemTargetId));
+    expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(result.resumeGameplay, isTrue);
+    await runtime.resume();
+    runtime.session!.frames(.4);
+    expect(runtime.dialoguePresentationListenable.value?.text, contains('ligne'));
+    runtime.session!.frames(1.1);
+    expect(runtime.dialoguePresentationListenable.value?.text, 'Pas de touche…');
+    runtime.session!.frames(.7);
+    expect(runtime.inputAuthority.value.acceptsOverworldInput, isTrue);
+  });
+
+  test('spatial fishing reserves, blocks saves, presents no bite and releases movement', () async {
+    await configureFishing();
+    final initial = runtime.gameStateSnapshot;
+    final result = await useFishingRod();
+    expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(result.resumeGameplay, isTrue);
+    await expectLater(runtime.captureCheckpoint(), throwsStateError);
+    runtime.session!.frames(5);
+    expect(runtime.dialoguePresentationListenable.value?.text, contains('Lancer'));
+    await runtime.resume();
+    expect(runtime.inputAuthority.value.acceptsOverworldInput, isFalse);
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.right));
+    runtime.session!.frames(.4);
+    expect(runtime.dialoguePresentationListenable.value?.text, contains('ligne'));
+    runtime.session!.frames(1.1);
+    expect(runtime.dialoguePresentationListenable.value?.text, 'Pas de touche…');
+    runtime.session!.frames(.7);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(runtime.inputAuthority.value.acceptsOverworldInput, isTrue);
+    expect(runtime.gameStateSnapshot, initial);
+    expect((await runtime.captureCheckpoint())!.state['playerSpatialPosition'], initial.playerSpatialPosition!.toJson());
+  });
+
+  test('spatial fishing cancellation and lifecycle cannot launch a late battle', () async {
+    await configureFishing(chance: 1);
+    expect((await useFishingRod()).status, RuntimePlayerPauseCommandStatus.accepted);
+    await runtime.resume();
+    runtime.session!.frames(.4);
+    expect(runtime.inputAuthority.value.canCancelWorldAction, isTrue);
+    runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+    runtime.session!.frames(5);
+    expect(runtime.battle!.isActive, isFalse);
+    expect(runtime.inputAuthority.value.acceptsOverworldInput, isTrue);
+    expect((await useFishingRod()).status, RuntimePlayerPauseCommandStatus.accepted);
+    await runtime.resume();
+    await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: true);
+    runtime.session!.frames(5);
+    await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: false);
+    runtime.session!.frames(5);
+    expect(runtime.battle!.isActive, isFalse);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(runtime.inputAuthority.value.acceptsOverworldInput, isTrue);
+    expect(await runtime.captureCheckpoint(), isNotNull);
+  });
+
+  test('spatial fishing hands one generated wild encounter to the actual 3D battle runtime', () async {
+    await configureFishing(chance: 1, battleData: true);
+    final initial = runtime.gameStateSnapshot;
+    expect((await useFishingRod()).status, RuntimePlayerPauseCommandStatus.accepted);
+    await runtime.resume();
+    runtime.session!.frames(.4);
+    runtime.session!.frames(1.1);
+    expect(runtime.dialoguePresentationListenable.value?.text, 'Ça mord !');
+    runtime.session!.frames(.7);
+    for (var i = 0; i < 500 && runtime.battle!.context == null && runtime.session!.interactionError.value == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(runtime.battle!.error, isNull);
+    expect(runtime.session!.interactionError.value, isNull);
+    final request = runtime.battle!.context!.request as WildBattleStartRequest;
+    expect(request.encounterKind, EncounterKind.oldRod);
+    expect(request.tableId, 'rod');
+    expect(request.speciesId, 'sparkitten');
+    expect(request.generatedPokemon, isNotNull);
+    expect(request.returnContext.playerPos, initial.playerPosition);
+    expect(runtime.gameStateSnapshot.playerSpatialPosition, initial.playerSpatialPosition);
+    expect(runtime.gameStateSnapshot.bag, initial.bag);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    final context = runtime.battle!.context;
+    runtime.session!.frames(5);
+    expect(runtime.battle!.context, same(context));
+    await expectLater(runtime.captureCheckpoint(), throwsStateError);
+  });
+
+  for (final fail in [false, true]) {
+    test('spatial fishing dismounts only after durable persistence, failure=$fail', () async {
+      final commits = <GameSessionCheckpointCommit>[];
+      await configureFishing(mode: MovementMode.bicycle, commitCheckpoint: (commit) async {
+        if (fail) throw StateError('disk full');
+        commits.add(commit);
+      });
+      final result = await useFishingRod();
+      expect(result.status, fail ? RuntimePlayerPauseCommandStatus.unavailable : RuntimePlayerPauseCommandStatus.accepted);
+      expect(runtime.gameStateSnapshot.playerMovementMode, fail ? MovementMode.bicycle : MovementMode.walk);
+      if (!fail) {
+        expect(commits.single.checkpoint.state['playerMovementMode'], 'walk');
+        await runtime.resume();
+        runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.secondary));
+        expect(runtime.gameStateSnapshot.playerMovementMode, MovementMode.walk);
+      }
+      expect(runtime.gameStateSnapshot.bag.entries.single.quantity, 1);
+    });
+  }
+
+  test('spatial fishing lifecycle interruption during durable dismount does not resurrect the attempt', () async {
+    final entered = Completer<void>(), release = Completer<void>();
+    await configureFishing(mode: MovementMode.bicycle, commitCheckpoint: (_) async {
+      entered.complete();
+      await release.future;
+    });
+    final use = useFishingRod();
+    await entered.future;
+    await expectLater(runtime.captureCheckpoint(), throwsStateError);
+    await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: true);
+    release.complete();
+    expect((await use).status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(runtime.gameStateSnapshot.playerMovementMode, MovementMode.walk);
+    expect(runtime.inputAuthority.value.externalLocks, contains(RuntimeExternalInputLock.lifecycle));
+    await runtime.setInputLock(RuntimeExternalInputLock.lifecycle, locked: false);
+    await runtime.resume();
+    runtime.session!.frames(5);
+    expect(runtime.dialoguePresentationListenable.value, isNull);
+    expect(runtime.battle!.isActive, isFalse);
+    expect(await runtime.captureCheckpoint(), isNotNull);
+  });
+
+  test('spatial fishing refuses reservation under lifecycle and completion locks', () async {
+    await configureFishing();
+    for (final owner in [RuntimeExternalInputLock.lifecycle, RuntimeExternalInputLock.gameCompletion]) {
+      await runtime.setInputLock(owner, locked: true);
+      expect((await useFishingRod()).status, RuntimePlayerPauseCommandStatus.unavailable);
+      expect(runtime.dialoguePresentationListenable.value, isNull);
+      await runtime.setInputLock(owner, locked: false);
+    }
+  });
+
+  for (final owner in [RuntimeExternalInputLock.lifecycle, RuntimeExternalInputLock.gameCompletion]) {
+    test('spatial fishing cancels delayed battle music handoff under $owner', () async {
+      final driver = _DelayedFishingMusicDriver();
+      addTearDown(() { if (!driver.release.isCompleted) driver.release.complete(); });
+      await configureFishing(chance: 1, battleData: true, musicDriver: driver);
+      final initial = runtime.gameStateSnapshot;
+      var battleStarted = false;
+      runtime.battle!.addListener(() { if (runtime.battle!.isActive) battleStarted = true; });
+      expect((await useFishingRod()).status, RuntimePlayerPauseCommandStatus.accepted);
+      await runtime.resume();
+      runtime.session!.frames(.4);
+      runtime.session!.frames(1.1);
+      runtime.session!.frames(.7);
+      await driver.entered.future.timeout(const Duration(seconds: 3));
+      expect(runtime.battle!.isActive, isFalse);
+      expect(runtime.inputAuthority.value.acceptsOverworldInput, isFalse);
+      await expectLater(runtime.captureCheckpoint(), throwsStateError);
+      runtime.session!.frames(5);
+      expect(runtime.battle!.isActive, isFalse);
+      await runtime.setInputLock(owner, locked: true);
+      await runtime.setInputLock(owner, locked: false);
+      driver.release.complete();
+      GameSessionCheckpoint? checkpoint;
+      for (var i = 0; i < 500 && !battleStarted && checkpoint == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 2));
+        try {
+          checkpoint = await runtime.captureCheckpoint();
+        } on StateError {
+          continue;
+        }
+      }
+      expect(battleStarted, isFalse);
+      expect(runtime.battle!.isActive, isFalse);
+      expect(checkpoint, isNotNull);
+      expect(runtime.session!.interactionError.value, isNull);
+      expect(runtime.gameStateSnapshot, initial);
+      expect(runtime.dialoguePresentationListenable.value, isNull);
+      expect(runtime.inputAuthority.value.acceptsOverworldInput, isTrue);
+    });
+  }
 
   void configureTrainer({MapEntityNpcData? npcData, bool authoredEvent = true}) {
     final npc = bundle.map.entities.single.copyWith(
@@ -4150,6 +4396,27 @@ SceneAsset spatialScene(String id, List<SceneConsequence> consequences,
                   ? SceneEdgeKind.actionCompleted
                   : SceneEdgeKind.defaultFlow)
       ]));
+}
+
+final class _DelayedFishingMusicDriver implements FlameCinematicAudioDriver, FlameCinematicAudioPausableDriver {
+  final entered = Completer<void>();
+  final release = Completer<void>();
+  @override
+  Future<Object> play(String path, {required double volume, required bool loop}) async {
+    if (path.endsWith('fishing-battle.ogg')) {
+      if (!entered.isCompleted) entered.complete();
+      await release.future;
+    }
+    return Object();
+  }
+  @override
+  Future<void> pause(Object handle) async {}
+  @override
+  Future<void> resume(Object handle) async {}
+  @override
+  Future<void> stop(Object handle) async {}
+  @override
+  Future<void> setVolume(Object handle, double volume) async {}
 }
 
 final class _SceneAudioDriver implements FlameCinematicAudioDriver, FlameCinematicAudioLoopDriver, FlameCinematicAudioPausableDriver {

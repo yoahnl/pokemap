@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface PokeMapMcpConfig {
+  profile: "full" | "map-builder";
   allowedRoots: string[];
   artifactRoots: string[];
   exportRoots: string[];
@@ -37,6 +38,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
   let flutterExecutable = "flutter";
   let authoringTimeoutMs: number | undefined;
   let exportTimeoutMs: number | undefined;
+  let profile: PokeMapMcpConfig["profile"] = "full";
   for (let index = 0; index < args.length; index += 1) {
     const option = args[index];
     const value = args[index + 1];
@@ -45,6 +47,12 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     }
     index += 1;
     switch (option) {
+      case "--profile":
+        if (value !== "full" && value !== "map-builder") {
+          throw new PokeMapMcpConfigError("Profile must be full or map-builder.");
+        }
+        profile = value;
+        break;
       case "--root":
         allowedRoots.push(resolve(value));
         break;
@@ -110,6 +118,7 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
     throw new PokeMapMcpConfigError("The playable runtime host is unavailable.");
   }
   return {
+    profile,
     allowedRoots,
     artifactRoots,
     exportRoots,

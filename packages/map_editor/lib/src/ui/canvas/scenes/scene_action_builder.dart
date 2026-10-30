@@ -9,6 +9,8 @@ import '../../design_system/design_system.dart';
 import 'scene_action_inspector.dart';
 import 'scene_actor_action_builder.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
+import 'scene_crafting_recipes_editor.dart';
+import 'scene_image_puzzle_layout_editor.dart';
 
 bool _isIntegerSceneCommand(String id) => const {
   NarrativeCommandIds.calculateIntegerFacts,
@@ -44,6 +46,12 @@ List<SceneActionPickerOption> buildScenePokemonFormPickerOptions(
         parentId: entry.id,
         isPrimarySpeciesForm: entry.catalogGiftFormIds.contains(formId),
       ),
+];
+
+List<SceneActionPickerOption> buildSceneImageMediaPickerOptions(ProjectMediaCatalog catalog) => [
+  for (final media in catalog.entries)
+    if (media.kind == ProjectMediaKind.image)
+      SceneActionPickerOption(id: media.id, label: media.label),
 ];
 
 List<SceneActionPickerOption> buildSceneSoundMediaPickerOptions(
@@ -238,6 +246,12 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           widget.initialPayload?.interactiveCommand?.toJson() ??
           widget.initialPayload?.consequence?.toJson() ??
           const <String, dynamic>{};
+      if ((command.id == NarrativeCommandIds.openCrafting || command.id == NarrativeCommandIds.openImagePuzzle) && data['definition'] is Map) {
+        data = {...Map<String, dynamic>.from(data['definition'] as Map), 'kind': command.id};
+        if (command.id == NarrativeCommandIds.openImagePuzzle) {
+          data['layout'] = jsonEncode({for (final field in ['allowedQuarterTurns', 'fixedPieceIds', 'initialPieces']) if (data.containsKey(field)) field: data[field]});
+        }
+      }
       if (command.id == NarrativeCommandIds.openNpcTrade && data['npcOffer'] is Map) {
         final offer = data['npcOffer'] as Map;
         final pokemon = offer['offeredPokemon'] as Map;
@@ -273,6 +287,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   command.id == NarrativeCommandIds.adjustIntegerFact ||
                   _isIntegerSceneCommand(command.id) ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
+                  command.id == NarrativeCommandIds.openCrafting ||
+                  command.id == NarrativeCommandIds.openImagePuzzle ||
                   command.id == NarrativeCommandIds.openNpcTrade ||
                   command.id == NarrativeCommandIds.givePokemonFromCatalog)
           ? textFact ? textFactValue : command.id == NarrativeCommandIds.warp && presentation is Map
@@ -286,7 +302,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           : null;
       final initial =
           widget.initialParameters[parameter.id] ??
-          (storedValue is String || storedValue is num
+          (storedValue is String || storedValue is num || storedValue is bool
               ? '$storedValue'
               : storedValue is List
               ? jsonEncode(storedValue)
@@ -294,6 +310,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       switch (parameter.kind) {
         case NarrativeCommandParameterKind.boolean:
           _values[parameter.id] = (initial == 'false' || storedValue == false ||
+              initial == null && command.id == NarrativeCommandIds.openImagePuzzle && parameter.id == 'allowSwap' ||
               initial == null && command.id == NarrativeCommandIds.finishGame &&
                   parameter.id == 'recordParty')
               ? 'false' : 'true';
@@ -310,7 +327,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                         : parameter.id == 'randomMaximum'
                         ? '4'
                         : '0'
-                  : command.id == NarrativeCommandIds.inputTextToFact && parameter.id == 'maxGraphemes' ? '7' :
+                  : command.id == NarrativeCommandIds.openImagePuzzle && (parameter.id == 'rows' || parameter.id == 'columns') ? '4' :
+              command.id == NarrativeCommandIds.inputTextToFact && parameter.id == 'maxGraphemes' ? '7' :
               command.id == NarrativeCommandIds.setPropState ? '350' :
               command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'minimum' ? '0' :
               command.id == NarrativeCommandIds.adjustIntegerFact && parameter.id == 'maximum' ? '100' :
@@ -333,6 +351,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           final value = initial ?? '';
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
+        case NarrativeCommandParameterKind.imagePuzzleLayout:
+          _values[parameter.id] = initial ?? jsonEncode({'allowedQuarterTurns': [0, 1, 2, 3], 'fixedPieceIds': <int>[]});
+        case NarrativeCommandParameterKind.deferredCraftingRecipes:
         case NarrativeCommandParameterKind.integerFacts:
         case NarrativeCommandParameterKind.movingProps:
           _values[parameter.id] = initial ?? '[]';
@@ -620,6 +641,16 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _hasValidValue(NarrativeCommandParameterDescriptor parameter) {
+    if (parameter.kind == NarrativeCommandParameterKind.imagePuzzleLayout) {
+      try { buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values); return true; } catch (_) { return false; }
+    }
+    if (parameter.kind == NarrativeCommandParameterKind.deferredCraftingRecipes) {
+      try {
+        final rows = (jsonDecode(_values[parameter.id] ?? '[]') as List).map((value) => DeferredCraftingRecipe.fromJson(Map<String, dynamic>.from(value as Map))).toList();
+        final ids = _optionsFor(NarrativeCommandParameterKind.item).map((item) => item.id).toSet();
+        return rows.isNotEmpty && rows.map((recipe) => recipe.recipeId).toSet().length == rows.length && rows.every((recipe) => ids.contains(recipe.inputItemId) && ids.contains(recipe.outputItemId));
+      } catch (_) { return false; }
+    }
     if (parameter.kind == NarrativeCommandParameterKind.integerFacts) {
       try {
         final ids = (jsonDecode(_values[parameter.id] ?? '[]') as List)
@@ -959,6 +990,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   Widget _buildParameter(NarrativeCommandParameterDescriptor parameter) {
+    if (parameter.kind == NarrativeCommandParameterKind.imagePuzzleLayout) {
+      return SceneImagePuzzleLayoutEditor(rows: int.tryParse(_values['rows'] ?? '') ?? 0, columns: int.tryParse(_values['columns'] ?? '') ?? 0, trayCapacity: int.tryParse(_values['trayCapacity'] ?? '') ?? 0, value: Map<String, dynamic>.from(jsonDecode(_values[parameter.id]!) as Map), onChanged: (next) => _setValue(parameter.id, jsonEncode(next)));
+    }
+    if (parameter.kind == NarrativeCommandParameterKind.deferredCraftingRecipes) {
+      final rows = (jsonDecode(_values[parameter.id] ?? '[]') as List).map((value) => Map<String, dynamic>.from(value as Map)).toList();
+      return SceneCraftingRecipesEditor(value: rows, items: {for (final item in _optionsFor(NarrativeCommandParameterKind.item)) item.id: item.label}, onChanged: (value) => _setValue(parameter.id, jsonEncode(value)));
+    }
     if (parameter.kind == NarrativeCommandParameterKind.integerFacts) {
       final selected = <String>{};
       try {

@@ -95,3 +95,7 @@ export 'src/support/map_authoring_worker_trace.dart'
 export 'src/documents/visual_settings_authoring.dart';
 
 export 'src/references/exterior_decoration_references.dart' show projectExteriorReferenceUsages;
+export 'src/api/authoring_capability_discovery.dart';
+export 'src/api/map_health_query.dart';
+export 'src/api/map_edit_execution.dart';
+export 'src/contracts/map_edit_operation.dart';

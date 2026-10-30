@@ -3,6 +3,34 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK held item damage and speed modifiers', () {
+    test('Miracle Seed boosts only Grass move damage and persists', () {
+      final baseline = _runMove(
+        playerMove: _move(id: 'vine_whip', type: 'grass', power: 80),
+      );
+      final boosted = _runMove(
+        playerHeldItemId: 'miracle_seed',
+        playerMove: _move(id: 'vine_whip', type: 'grass', power: 80),
+      );
+      final mismatched = _runMove(
+        playerHeldItemId: 'miracle_seed',
+        playerMove: _move(id: 'scratch', type: 'normal', power: 80),
+      );
+      final normalBaseline = _runMove(
+        playerMove: _move(id: 'scratch', type: 'normal', power: 80),
+      );
+
+      expect(
+        _damage(boosted, moveId: 'vine_whip'),
+        greaterThan(_damage(baseline, moveId: 'vine_whip')),
+      );
+      expect(
+        _damage(mismatched, moveId: 'scratch'),
+        _damage(normalBaseline, moveId: 'scratch'),
+      );
+      expect(boosted.state.battlerAt(psdkPlayerSlot).heldItemId, 'miracle_seed');
+      expect(boosted.state.battlerAt(psdkPlayerSlot).itemConsumed, isFalse);
+    });
+
     test('type boosting items increase matching move damage and persist', () {
       final baseline = _runMove(
         playerMove: _move(id: 'ember', type: 'fire', power: 40),

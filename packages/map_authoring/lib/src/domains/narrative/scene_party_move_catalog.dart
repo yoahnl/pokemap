@@ -4,7 +4,10 @@ import '../../workspace/project_snapshot.dart';
 import 'narrative_authoring_exception.dart';
 
 bool sceneNeedsPartyMoveCatalog(SceneAsset scene) =>
-    scene.graph.nodes.any((node) => switch (node.payload) {
+    sceneNodesNeedPartyMoveCatalog(scene.graph.nodes);
+
+bool sceneNodesNeedPartyMoveCatalog(Iterable<SceneNode> nodes) =>
+    nodes.any((node) => switch (node.payload) {
           SceneConditionPayload(:final conditionSource) =>
             conditionSource?.partyMoveId != null,
           SceneActionPayload() => _giftMoves(node.payload) != null,

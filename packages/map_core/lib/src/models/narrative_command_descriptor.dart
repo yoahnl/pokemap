@@ -9,6 +9,9 @@ enum NarrativeCommandBackend {
 enum NarrativeCommandCapabilityStatus { supported, unsupported }
 
 enum NarrativeCommandParameterKind {
+  deferredCraftingRecipes,
+  imagePuzzleLayout,
+  imageMediaReference,
   integerCancellationPolicy,
   integerFacts,
   integerOperation,

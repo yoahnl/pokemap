@@ -6,6 +6,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
+import 'map_action_examples.dart';
 
 /// Canonical Border resolution preview bound to map revision and feature seed.
 final class BorderPreviewArtifact {
@@ -1173,6 +1174,9 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           AuthoringGuarantee.undoable
         ],
         extensions: {
+          if (mapActionInputExample(id) case final example?) 'inputExample': example,
+          if (_basicBorderInputSchema(id) case final schema?)
+            'inputSchema': schema,
           if (id == 'border_layer.relink_apply' || id == 'border_layer.feature_set_blueprint')
             'inputSchema': {
               'type': 'object', 'additionalProperties': false,
@@ -1220,6 +1224,53 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           if (id == 'border_layer.feature_create' || id == 'border_layer.feature_update')
             'inputSchema': _featureInputSchema(id == 'border_layer.feature_create'),
         });
+
+Map<String, Object?>? _basicBorderInputSchema(String id) {
+  final fields = switch (id) {
+    'border_layer.stroke_add' || 'border_layer.stroke_update' => ['strokeId', 'points'],
+    'border_layer.stroke_delete' => ['strokeId'],
+    'border_layer.feature_delete' => <String>[],
+    'border_layer.feature_move' => ['dx', 'dy'],
+    'border_layer.region_fill' || 'border_layer.region_clear' => ['x', 'y', 'width', 'height'],
+    'border_layer.feature_set_keep_out' => ['regions'],
+    _ => null,
+  };
+  if (fields == null) return null;
+  const point = {
+    'type': 'object', 'additionalProperties': false,
+    'required': ['x', 'y'],
+    'properties': {'x': {'type': 'integer', 'minimum': 0}, 'y': {'type': 'integer', 'minimum': 0}},
+  };
+  return {
+    'type': 'object', 'additionalProperties': false,
+    'required': ['mapId', 'layerId', 'featureId', ...fields],
+    'properties': {
+      for (final field in ['mapId', 'layerId', 'featureId', if (fields.contains('strokeId')) 'strokeId'])
+        field: const {'type': 'string', 'minLength': 1},
+      for (final field in fields.where((field) => const {'x', 'y', 'dx', 'dy', 'width', 'height'}.contains(field)))
+        field: {'type': 'integer', if (field == 'width' || field == 'height') 'minimum': 1,
+          if (field == 'x' || field == 'y') 'minimum': 0},
+      if (fields.contains('points')) ...{
+        'points': {'type': 'array', 'minItems': 1, 'maxItems': 4096, 'items': point},
+        'closed': const {'type': 'boolean', 'default': false},
+      },
+      if (fields.contains('regions')) 'regions': {
+        'type': 'array', 'items': {
+          'type': 'object', 'additionalProperties': false,
+          'required': ['id', 'region'], 'properties': {
+            'id': const {'type': 'string', 'minLength': 1},
+            'region': {'type': 'object', 'additionalProperties': false,
+              'required': ['width', 'height', 'cells'], 'properties': {
+                'width': const {'type': 'integer', 'minimum': 1},
+                'height': const {'type': 'integer', 'minimum': 1},
+                'cells': const {'type': 'array', 'items': {'type': 'boolean'}},
+              }},
+          },
+        },
+      },
+    },
+  };
+}
 
 String? _slotOverrideField(String id) => switch (id) {
   'border_layer.feature_set_replacement' => 'primitiveId',

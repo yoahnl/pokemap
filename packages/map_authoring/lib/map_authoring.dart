@@ -250,3 +250,7 @@ export 'src/workspace/native_project_creation.dart';
 
 export 'src/workspace/native_project_creation_transport.dart';
 export 'src/domains/narrative/standard_event_template.dart';
+export 'src/api/authoring_capability_discovery.dart';
+export 'src/api/map_health_query.dart';
+export 'src/api/map_edit_execution.dart';
+export 'src/contracts/map_edit_operation.dart';

@@ -18,8 +18,11 @@ import 'runtime_pokemon_evolution_held_item_policy.dart';
 import 'runtime_pokemon_species_loader.dart';
 import 'scene_runtime/runtime_scene_pokemon_catalog.dart';
 import '../player/runtime_pokemon_summary.dart';
+import 'scene_runtime/world_presentation_image_loader.dart';
 
 part 'runtime_party_trade_service.dart';
+part 'runtime_deferred_crafting_service.dart';
+part 'runtime_image_puzzle_service.dart';
 part 'runtime_scene_text_input_service.dart';
 
 final class RuntimePlayerServiceRecoveryCaps {
@@ -117,6 +120,7 @@ final class PlayerServiceRuntimeResult {
     this.gameState,
     this.error,
     this.safeMessage,
+    this.imagePuzzleOutcome,
   });
 
   const PlayerServiceRuntimeResult.completed(GameState gameState)
@@ -124,6 +128,9 @@ final class PlayerServiceRuntimeResult {
           status: PlayerServiceRuntimeStatus.completed,
           gameState: gameState,
         );
+
+  const PlayerServiceRuntimeResult.imagePuzzle(GameState state, ImagePuzzleOutcome outcome)
+      : this._(status: PlayerServiceRuntimeStatus.completed, gameState: state, imagePuzzleOutcome: outcome);
 
   const PlayerServiceRuntimeResult.cancelled()
       : this._(status: PlayerServiceRuntimeStatus.cancelled);
@@ -140,6 +147,7 @@ final class PlayerServiceRuntimeResult {
   const PlayerServiceRuntimeResult.failed(Object error)
       : this._(status: PlayerServiceRuntimeStatus.failed, error: error);
 
+  final ImagePuzzleOutcome? imagePuzzleOutcome;
   final PlayerServiceRuntimeStatus status;
   final GameState? gameState;
   final Object? error;
@@ -168,6 +176,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required PlayerServiceGameStateReader currentGameState,
     required PlayerServiceOverlayHost host,
     required PlayerServiceStateTransaction commitAndSave,
+    PlayerServiceStateTransaction? commitCraftingAndSave,
+    PlayerServiceStateTransaction? commitImagePuzzleAndSave,
+    Future<RuntimeImagePuzzleBitmap> Function(String)? loadImagePuzzleBitmap,
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
     this._healingDisplayMapReader,
@@ -185,10 +196,15 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
     this.supportsRepel = false,
-  })  : _locale = locale,
+    DateTime Function()? civilNow,
+  })  : _civilNow = civilNow ?? DateTime.now,
+        _locale = locale,
         _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
+        _commitCraftingAndSave = commitCraftingAndSave,
+        _commitImagePuzzleAndSave = commitImagePuzzleAndSave,
+        _loadImagePuzzleBitmap = loadImagePuzzleBitmap,
         _setInputLocked = setInputLocked,
         _loadRecoveryCaps = loadRecoveryCaps,
         _conditionContext = conditionContext,
@@ -205,6 +221,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   PlayerServiceRuntimeController.contextual({
     required PlayerServiceGameStateReader currentGameState,
     required PlayerServiceStateTransaction commitAndSave,
+    PlayerServiceStateTransaction? commitCraftingAndSave,
+    PlayerServiceStateTransaction? commitImagePuzzleAndSave,
+    Future<RuntimeImagePuzzleBitmap> Function(String)? loadImagePuzzleBitmap,
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
     this._healingDisplayMapReader,
@@ -222,10 +241,15 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         const RuntimeItemCatalogLoader(),
     String locale = 'fr-FR',
     this.supportsRepel = false,
-  })  : _locale = locale,
+    DateTime Function()? civilNow,
+  })  : _civilNow = civilNow ?? DateTime.now,
+        _locale = locale,
         _currentGameState = currentGameState,
         _host = null,
         _commitAndSave = commitAndSave,
+        _commitCraftingAndSave = commitCraftingAndSave,
+        _commitImagePuzzleAndSave = commitImagePuzzleAndSave,
+        _loadImagePuzzleBitmap = loadImagePuzzleBitmap,
         _setInputLocked = setInputLocked,
         _loadRecoveryCaps = loadRecoveryCaps,
         _conditionContext = conditionContext,
@@ -242,6 +266,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final PlayerServiceGameStateReader _currentGameState;
   final PlayerServiceOverlayHost? _host;
   final PlayerServiceStateTransaction _commitAndSave;
+  final PlayerServiceStateTransaction? _commitCraftingAndSave;
+  final PlayerServiceStateTransaction? _commitImagePuzzleAndSave;
+  final Future<RuntimeImagePuzzleBitmap> Function(String)? _loadImagePuzzleBitmap;
+  _RuntimeImagePuzzleSession? _imagePuzzleSession;
+  var _imagePuzzleRevision = -1;
   String? Function()? _pauseMutationUnavailableReason;
   Future<bool> Function(ProjectItemDefinition, GameState)? _escapeRopeConsumer;
 
@@ -297,6 +326,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final RuntimePokemonEvolutionLoader _evolutionLoader;
   final RuntimeMoveMachineLoader _moveMachineLoader;
   final RuntimePokemonSpeciesLoader _pokemonSpeciesLoader;
+  final DateTime Function() _civilNow;
+  _ContextualCraftingSession? _craftingSession;
+  var _craftingRevision = -1;
   final String _locale;
   final bool supportsRepel;
   final _worldServiceSnapshots =
@@ -1150,7 +1182,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       if (consumer == null) {
         return const RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'La pêche est disponible uniquement dans un runtime 2D compatible.',
+          safeMessage: 'La pêche nécessite un runtime compatible.',
         );
       }
       if (_currentGameState() != state || _pauseMutationRefusal() != null) {
@@ -1167,7 +1199,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           resumeGameplay: reason == null,
           safeMessage: switch (reason) {
             null => 'Préparation de la pêche.',
-            FishingBlockReason.unsupportedMap => 'La pêche nécessite une carte 2D compatible.',
+            FishingBlockReason.unsupportedMap => 'La pêche nécessite une carte compatible.',
             FishingBlockReason.invalidItem => 'Cet objet n’est pas une canne utilisable.',
             FishingBlockReason.insufficientQuantity => 'Cette canne n’est plus dans le sac.',
             FishingBlockReason.notWater => 'Placez-vous face à l’eau pour pêcher.',
@@ -1909,6 +1941,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     if (pc != null) return _dispatchPc(pc, command);
     final regionalMap = _regionalMapSession;
     if (regionalMap != null) return _dispatchRegionalMap(regionalMap, command);
+    final puzzle = _imagePuzzleSession;
+    if (puzzle != null) return _dispatchImagePuzzle(puzzle, command);
+    final crafting = _craftingSession;
+    if (crafting != null) return _dispatchCrafting(crafting, command);
     final trade = _partyTradeSession;
     if (trade != null) return _dispatchPartyTrade(trade, command);
     final text = _textSession;
@@ -2014,6 +2050,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           PlayerServiceRuntimeResult.completed(session.gameState),
         );
       case RuntimeWorldServiceAction.confirm:
+      case RuntimeWorldServiceAction.rotate:
+      case RuntimeWorldServiceAction.reset:
       case RuntimeWorldServiceAction.showPurchases:
       case RuntimeWorldServiceAction.showSales:
       case RuntimeWorldServiceAction.decreaseQuantity:
@@ -2487,6 +2525,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           );
         }
       case RuntimeWorldServiceAction.select:
+      case RuntimeWorldServiceAction.rotate:
+      case RuntimeWorldServiceAction.reset:
       case RuntimeWorldServiceAction.showPurchases:
       case RuntimeWorldServiceAction.showSales:
       case RuntimeWorldServiceAction.decreaseQuantity:
@@ -2627,6 +2667,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           ..selectedItemId = targetId
           ..quantity = 1;
         _publishWorldService(_buildShopSnapshot(session));
+      case RuntimeWorldServiceAction.rotate:
+      case RuntimeWorldServiceAction.reset:
       case RuntimeWorldServiceAction.showPurchases:
         session
           ..mode = RuntimeShopMode.buy
@@ -3014,6 +3056,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         ),
       );
     }
+    await _disposeImagePuzzle();
+    await _disposeCrafting();
     await _disposePartyTrade();
     final shop = _shopSession;
     if (shop != null && !shop.result.isCompleted) {

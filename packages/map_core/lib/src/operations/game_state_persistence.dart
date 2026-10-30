@@ -64,6 +64,9 @@ GameState gameStateFromSaveData(SaveData saveData) {
     playerSpatialPosition: normalizedSaveData.playerSpatialPosition,
     spatialWorldState: normalizedSaveData.spatialWorldState,
     environmentState: normalizedSaveData.environmentState,
+    gameplayCalendarState: normalizedSaveData.gameplayCalendarState,
+    deferredCraftingState: normalizedSaveData.deferredCraftingState,
+    imagePuzzleState: normalizedSaveData.imagePuzzleState,
     movingPlatformWorldState: normalizedSaveData.movingPlatformWorldState,
     movingPropWorldState: normalizedSaveData.movingPropWorldState,
     mapInstanceWorldState: normalizedSaveData.mapInstanceWorldState,
@@ -115,6 +118,9 @@ SaveData saveDataFromGameState(GameState gameState) {
     playerSpatialPosition: normalizedGameState.playerSpatialPosition,
     spatialWorldState: normalizedGameState.spatialWorldState,
     environmentState: normalizedGameState.environmentState,
+    gameplayCalendarState: normalizedGameState.gameplayCalendarState,
+    deferredCraftingState: normalizedGameState.deferredCraftingState,
+    imagePuzzleState: normalizedGameState.imagePuzzleState,
     movingPlatformWorldState: normalizedGameState.movingPlatformWorldState,
     movingPropWorldState: normalizedGameState.movingPropWorldState,
     mapInstanceWorldState: normalizedGameState.mapInstanceWorldState,
@@ -140,6 +146,7 @@ SaveData saveDataFromGameState(GameState gameState) {
   ).normalized();
 }
 GameState normalizeLoadedGameState(GameState state) {
+  state.deferredCraftingState.validateCalendar(state.gameplayCalendarState);
   state.playerSpatialPosition?.validateGridPosition(state.playerPosition);
   final roster = normalizePlayerPokemonRosterIdentities(
     saveId: state.saveId,

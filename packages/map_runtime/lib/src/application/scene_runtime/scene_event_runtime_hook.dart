@@ -39,6 +39,8 @@ final class SceneEventRuntimeHook {
     GameState? gameState,
     GameState Function()? currentGameState,
     String executionId = '',
+    ProjectMediaCatalog? presentationMediaCatalog,
+    void Function(GameState Function()? projector)? onSceneStateProjection,
   }) async {
     final sceneTarget = page.sceneTarget;
     if (sceneTarget == null) {
@@ -61,6 +63,7 @@ final class SceneEventRuntimeHook {
       scene,
       project,
       mapsById: {map.id: map},
+      presentationMediaCatalog: presentationMediaCatalog,
     );
     if (diagnostics.hasErrors) {
       return SceneEventRuntimeHookResult.failed(
@@ -351,6 +354,7 @@ final class SceneEventRuntimeHook {
     var avatarPresented = false;
     var completed = false;
     try {
+      onSceneStateProjection?.call(projectedState);
       final executionResult = await SceneRuntimeExecutor(
         callbacks: transactionalCallbacks.toExecutionCallbacks(
           applyConsequence: (consequence) {
@@ -493,6 +497,7 @@ final class SceneEventRuntimeHook {
         executionResult: executionResult,
       );
     } finally {
+      onSceneStateProjection?.call(null);
       if (avatarPresented && !completed) {
         await callbacks.presentPlayerAvatar!((currentGameState?.call() ?? gameState)?.trainerProfile.avatarCharacterId,
         );

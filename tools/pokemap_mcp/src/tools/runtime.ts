@@ -12,8 +12,9 @@ import {
 export function registerRuntimeTools(
   server: McpServer,
   runtime: RuntimeGateway,
+  compact = false,
 ): void {
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_render",
     {
       title: "Render a PokeMap snapshot",
@@ -117,7 +118,7 @@ export function registerRuntimeTools(
       ),
   );
 
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_playtest",
     {
       title: "Start a sandboxed PokeMap playtest",
@@ -150,7 +151,7 @@ export function registerRuntimeTools(
       ),
   );
 
-  server.registerTool(
+  if (!compact) server.registerTool(
     "pokemap_job",
     {
       title: "Manage a PokeMap runtime job",
