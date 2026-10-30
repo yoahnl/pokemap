@@ -36,6 +36,40 @@ void main() {
     expect((replay['receipt'] as Map)['receiptId'],applied.receipt.receiptId);
   });
   for (final storage in ReliabilityStorage.values) {
+    test('$storage concurrent calls return one durable logical result',() async {
+      final fixture=await ReliabilityMapFixture.create(variant:ReliabilityMapVariant.interiorHole,
+        storage:storage,qaRoot:'${ReliabilityMapFixture.defaultQaRoot}/concurrent');
+      addTearDown(fixture.dispose);
+      await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
+      final operation=MapEditOperation(operationId:'same-intention',mapId:'map',operations:[{
+        'actionId':'smart_tile.cell.paint','actionVersion':1,'parameters':{
+          'layerId':'terrain','materialId':'grass','cells':[{'x':12,'y':8}]}}]);
+      final results=await Future.wait([for(var i=0;i<2;i++) fixture.api.mapEdit(fixture.opened.projectHandle,operation)]);
+      expect(results.map((result)=>result['status']),everyElement('applied'));
+      expect(results.first['receipt'],results.last['receipt']);
+    });
+    test('$storage identical painting after undo is a new logical application',() async {
+      final fixture=await ReliabilityMapFixture.create(variant:ReliabilityMapVariant.interiorHole,
+        storage:storage,qaRoot:'${ReliabilityMapFixture.defaultQaRoot}/undo');
+      addTearDown(fixture.dispose);
+      await fixture.api.prepareWorkshopCatalog(fixture.opened.projectHandle);
+      final before=await fixture.mapFile.readAsBytes();
+      final firstOperation=MapEditOperation(operationId:'before-undo',mapId:'map',operations:[{
+        'actionId':'smart_tile.cell.paint','actionVersion':1,'parameters':{
+          'layerId':'terrain','materialId':'grass','cells':[{'x':12,'y':8}]}}]);
+      final first=await fixture.api.mapEdit(fixture.opened.projectHandle,firstOperation);
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+        entryId:(first['receipt'] as Map)['receiptId'] as String,idempotencyKey:'undo-first');
+      expect(await fixture.mapFile.readAsBytes(),before);
+      final second=await fixture.api.mapEdit(fixture.opened.projectHandle,
+        MapEditOperation.fromJson({...firstOperation.toJson(),'operationId':'after-undo'}));
+      expect(second['status'],'applied');
+      expect((second['receipt'] as Map)['receiptId'],isNot((first['receipt'] as Map)['receiptId']));
+      await fixture.reopen();
+      final map=await fixture.readMap();
+      expect(smartTileMaterialIdAt(map.layers.whereType<SmartTileLayer>().first,
+        mapSize:map.size,x:12,y:8),'grass');
+    });
     test(
         '$storage cancellation during staging cannot reserve or promote a map edit',
         () async {

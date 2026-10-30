@@ -76,6 +76,9 @@ void main() {
       'groundLayerId': 'terrain',
     });
     final after = _decode(draft);
+    final resolved=((draft.preview['operations'] as List).single as Map)['resolvedOperations'] as List;
+    expect((resolved.last as Map)['actionId'],'border_layer.feature_delete');
+    expect((resolved.first as Map)['actionId'],'smart_tile.cell.paint_batch');
     expect(
         after.layers.whereType<BorderLayer>().single.content.features, isEmpty);
     for (var x = 3; x <= 6; x++) {

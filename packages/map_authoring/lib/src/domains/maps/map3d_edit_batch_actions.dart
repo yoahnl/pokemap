@@ -211,7 +211,10 @@ final class Map3dEditBatchActions {
                   ? 'deferred'
                   : 'unchanged',
           'changedItems': changedItems,
-          'expandedOperationCount': expanded.length
+          'expandedOperationCount': expanded.length,
+          if(mapEditIntentActionIds.contains(operation['actionId'])||
+              requestedMapEditMaterialNames(operation).isNotEmpty)
+            'resolvedOperations':expanded,
         });
       } on MapAuthoringException catch (error) {
         throw semanticFailure('map3d.edit_batch.operation_failed',
