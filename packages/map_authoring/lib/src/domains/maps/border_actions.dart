@@ -98,21 +98,26 @@ final class BorderPreviewArtifact {
 final class BorderActions {
   const BorderActions();
 
-  MapData setForeground(MapData map, {
+  MapData setForeground(
+    MapData map, {
     required String layerId,
     required bool renderInForeground,
-  }) => setBorderLayerForeground(map,
-      layerId: layerId, renderInForeground: renderInForeground);
+  }) =>
+      setBorderLayerForeground(map,
+          layerId: layerId, renderInForeground: renderInForeground);
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
-    _descriptor('border_layer.set_foreground', 'Place Border props in front of actors while keeping their ground behind'),
+    _descriptor('border_layer.set_foreground',
+        'Place Border props in front of actors while keeping their ground behind'),
     _descriptor('border_layer.stroke_add', 'Add a Border feature stroke'),
     _descriptor('border_layer.stroke_update', 'Update a Border feature stroke'),
     _descriptor('border_layer.stroke_delete', 'Delete a Border feature stroke'),
-    _descriptor('border_layer.stroke_erase', 'Erase local Border stroke cells and rematerialize atomically'),
+    _descriptor('border_layer.stroke_erase',
+        'Erase local Border stroke cells and rematerialize atomically'),
     _descriptor('border_layer.region_fill', 'Fill a Border region mask'),
     _descriptor('border_layer.region_clear', 'Clear a Border region mask'),
-    _descriptor('border_layer.feature_create', 'Create a Border feature with an optional line side'),
+    _descriptor('border_layer.feature_create',
+        'Create a Border feature with an optional line side'),
     _descriptor('border_layer.feature_update', 'Update a Border feature'),
     _descriptor('border_layer.feature_move', 'Move Border feature geometry'),
     _descriptor('border_layer.feature_reorder', 'Reorder a Border feature'),
@@ -125,11 +130,16 @@ final class BorderActions {
       'border_layer.feature_set_variation',
       'Set a deterministic Border slot variation',
     ),
-    _descriptor('border_layer.feature_set_replacement', 'Replace a generated Border slot primitive'),
-    _descriptor('border_layer.feature_set_offset', 'Set a generated Border slot pixel offset'),
-    _descriptor('border_layer.feature_set_transform', 'Set a generated Border slot transform'),
-    _descriptor('border_layer.feature_set_suppressed', 'Set generated Border slot suppression'),
-    _descriptor('border_layer.feature_clear_slot_override', 'Restore a generated Border slot'),
+    _descriptor('border_layer.feature_set_replacement',
+        'Replace a generated Border slot primitive'),
+    _descriptor('border_layer.feature_set_offset',
+        'Set a generated Border slot pixel offset'),
+    _descriptor('border_layer.feature_set_transform',
+        'Set a generated Border slot transform'),
+    _descriptor('border_layer.feature_set_suppressed',
+        'Set generated Border slot suppression'),
+    _descriptor('border_layer.feature_clear_slot_override',
+        'Restore a generated Border slot'),
     _descriptor('border_layer.feature_lock', 'Lock a resolved Border slot'),
     _descriptor('border_layer.feature_unlock', 'Unlock a Border slot'),
     _descriptor(
@@ -156,6 +166,7 @@ final class BorderActions {
     required String layerId,
     required String featureId,
     required List<GridPos> sampledPoints,
+    bool materialize = true,
   }) {
     final feature = _feature(_borderLayer(map, layerId), featureId);
     final geometry = feature.geometry;
@@ -168,8 +179,11 @@ final class BorderActions {
           'Local stroke erasure requires between 1 and 4096 points.');
     }
     final edge = geometry.alignment == BorderStrokeAlignment.gridEdges ? 1 : 0;
-    if (sampledPoints.any((point) => point.x < 0 || point.y < 0 ||
-        point.x >= map.size.width + edge || point.y >= map.size.height + edge)) {
+    if (sampledPoints.any((point) =>
+        point.x < 0 ||
+        point.y < 0 ||
+        point.x >= map.size.width + edge ||
+        point.y >= map.size.height + edge)) {
       throw semanticFailure('border.stroke_erase_outside_map',
           'Local stroke erasure must remain inside the Border lattice.');
     }
@@ -177,21 +191,24 @@ final class BorderActions {
         .recordById(feature.blueprintId)
         ?.latestPublished
         ?.definition;
-    final erased = editStroke(geometry, mode: BorderStrokeEditingMode.erase,
+    final erased = editStroke(geometry,
+        mode: BorderStrokeEditingMode.erase,
         sampledPoints: sampledPoints,
-        preserveTraversal: definition == null || definition.sequenceLength == 1 ||
+        preserveTraversal: definition == null ||
+            definition.sequenceLength == 1 ||
             definition.followContourDirection);
     if (erased == geometry) return map;
     if (erased.strokes.isEmpty) {
       return removeBorderFeature(map, layerId: layerId, featureId: featureId);
     }
     final revision = requirePublishedBlueprint(manifest, feature.blueprintId);
-    if (!manifest.resourceLibraryCatalog.availableForMap(
-        'borderBlueprint', feature.blueprintId, map.id) ||
+    if (!manifest.resourceLibraryCatalog
+            .availableForMap('borderBlueprint', feature.blueprintId, map.id) ||
         revision.definition.primitives.any((primitive) =>
             !manifest.resourceLibraryCatalog.availableForMap(
                 primitive.sourceModelId == null ? 'element' : 'model3d',
-                primitive.sourceModelId ?? primitive.sourceElementId!, map.id))) {
+                primitive.sourceModelId ?? primitive.sourceElementId!,
+                map.id))) {
       throw semanticFailure('border.source_unavailable',
           'The Border or one of its visual sources is unavailable in this map.');
     }
@@ -200,59 +217,87 @@ final class BorderActions {
           'The Border visual sources do not match the map dimension.');
     }
     if (map.spatialScene != null) {
-      var proposed = updateBorderFeatureGeometry(map, layerId: layerId,
-          featureId: featureId, geometry: erased);
-      var resolved = resolveSpatialBorderFeature(manifest: manifest,
-          map: proposed, layerId: layerId, featureId: featureId);
+      var proposed = updateBorderFeatureGeometry(map,
+          layerId: layerId, featureId: featureId, geometry: erased);
+      var resolved = resolveSpatialBorderFeature(
+          manifest: manifest,
+          map: proposed,
+          layerId: layerId,
+          featureId: featureId);
       final removedSlots = resolved.result.diagnostics
-          .where((issue) => issue.code == 'border.spatial.override_slot_missing')
-          .map((issue) => issue.slotKey).toSet();
+          .where(
+              (issue) => issue.code == 'border.spatial.override_slot_missing')
+          .map((issue) => issue.slotKey)
+          .toSet();
       if (removedSlots.isNotEmpty) {
-        proposed = updateBorderFeatureOverrides(proposed, layerId: layerId,
-            featureId: featureId, overrides: feature.overrides
-                .where((override) => !removedSlots.contains(override.slotKey)).toList());
-        resolved = resolveSpatialBorderFeature(manifest: manifest,
-            map: proposed, layerId: layerId, featureId: featureId);
+        proposed = updateBorderFeatureOverrides(proposed,
+            layerId: layerId,
+            featureId: featureId,
+            overrides: feature.overrides
+                .where((override) => !removedSlots.contains(override.slotKey))
+                .toList());
+        resolved = resolveSpatialBorderFeature(
+            manifest: manifest,
+            map: proposed,
+            layerId: layerId,
+            featureId: featureId);
       }
       if (!resolved.result.canApply) {
         throw semanticFailure('border.stroke_erase_resolution_failed',
-            'Border diagnostics prevent atomic local erasure.',
-            details: {'diagnostics': resolved.result.diagnostics.map((issue) => issue.code).toList()});
+            'Border diagnostics prevent atomic local erasure.', details: {
+          'diagnostics':
+              resolved.result.diagnostics.map((issue) => issue.code).toList()
+        });
       }
-      return applySpatialBorderFeaturePreview(proposed, manifest: manifest,
-          proposedResult: resolved);
+      if (!materialize) return proposed;
+      return applySpatialBorderFeaturePreview(proposed,
+          manifest: manifest, proposedResult: resolved);
     }
-    var proposed = updateBorderFeatureGeometry(map, layerId: layerId,
-        featureId: featureId, geometry: erased);
+    var proposed = updateBorderFeatureGeometry(map,
+        layerId: layerId, featureId: featureId, geometry: erased);
     var changed = _feature(_borderLayer(proposed, layerId), featureId);
-    BorderResolutionRequest requestFor(BorderFeature value) => BorderResolutionRequest(mapSize: map.size,
-        tileSizePx: GridSize(width: manifest.settings.tileWidth,
-            height: manifest.settings.tileHeight), blueprintId: feature.blueprintId,
-        blueprintRevision: revision, feature: value,
-        visualSnapshots: manifest.borderCatalog.visualSnapshots,
-        resolverVersion: borderResolverVersion);
+    BorderResolutionRequest requestFor(BorderFeature value) =>
+        BorderResolutionRequest(
+            mapSize: map.size,
+            tileSizePx: GridSize(
+                width: manifest.settings.tileWidth,
+                height: manifest.settings.tileHeight),
+            blueprintId: feature.blueprintId,
+            blueprintRevision: revision,
+            feature: value,
+            visualSnapshots: manifest.borderCatalog.visualSnapshots,
+            resolverVersion: borderResolverVersion);
     var request = requestFor(changed);
     var resolved = resolveBorderFeature(request);
     final removedSlots = resolved.diagnostics
         .where((issue) => issue.code == 'border.resolution.override_orphaned')
-        .map((issue) => issue.slotKey).toSet();
+        .map((issue) => issue.slotKey)
+        .toSet();
     if (removedSlots.isNotEmpty) {
-      proposed = updateBorderFeatureOverrides(proposed, layerId: layerId,
-          featureId: featureId, overrides: feature.overrides
-              .where((override) => !removedSlots.contains(override.slotKey)).toList());
+      proposed = updateBorderFeatureOverrides(proposed,
+          layerId: layerId,
+          featureId: featureId,
+          overrides: feature.overrides
+              .where((override) => !removedSlots.contains(override.slotKey))
+              .toList());
       changed = _feature(_borderLayer(proposed, layerId), featureId);
       request = requestFor(changed);
       resolved = resolveBorderFeature(request);
     }
     if (!resolved.canApply) {
       throw semanticFailure('border.stroke_erase_resolution_failed',
-          'Border diagnostics prevent atomic local erasure.',
-          details: {'diagnostics': resolved.diagnostics.map((issue) => issue.code).toList()});
+          'Border diagnostics prevent atomic local erasure.', details: {
+        'diagnostics': resolved.diagnostics.map((issue) => issue.code).toList()
+      });
     }
-    return applyBorderFeaturePreview(proposed, expectedMapId: map.id,
-        layerId: layerId, featureId: featureId,
-        expectedBaseFeatureFingerprint: computeBorderFeatureEditFingerprint(changed),
-        proposedRequest: request, proposedResult: resolved);
+    return applyBorderFeaturePreview(proposed,
+        expectedMapId: map.id,
+        layerId: layerId,
+        featureId: featureId,
+        expectedBaseFeatureFingerprint:
+            computeBorderFeatureEditFingerprint(changed),
+        proposedRequest: request,
+        proposedResult: resolved);
   }
 
   BorderBlueprintRevision requirePublishedBlueprint(
@@ -461,7 +506,14 @@ final class BorderActions {
         canonicalGalleryReport: canonicalGalleryReport,
       );
 
-  AuthoringMutationDraft build(AuthoringPlanningContext planning) {
+  AuthoringMutationDraft build(AuthoringPlanningContext planning) =>
+      project(planning).finalize();
+
+  SemanticMapProjection project(
+    AuthoringPlanningContext planning, {
+    MapData? projectedMap,
+    bool deferFinalization = false,
+  }) {
     final actionId = planning.request.actionId;
     final allowed = switch (actionId) {
       'border_layer.set_foreground' => const {'layerId', 'renderInForeground'},
@@ -538,11 +590,35 @@ final class BorderActions {
           'slotKey',
           'variationSalt',
         },
-      'border_layer.feature_set_replacement' => const {'layerId', 'featureId', 'slotKey', 'primitiveId'},
-      'border_layer.feature_set_offset' => const {'layerId', 'featureId', 'slotKey', 'offsetDeltaPx'},
-      'border_layer.feature_set_transform' => const {'layerId', 'featureId', 'slotKey', 'transformOverride'},
-      'border_layer.feature_set_suppressed' => const {'layerId', 'featureId', 'slotKey', 'suppressed'},
-      'border_layer.feature_clear_slot_override' => const {'layerId', 'featureId', 'slotKey'},
+      'border_layer.feature_set_replacement' => const {
+          'layerId',
+          'featureId',
+          'slotKey',
+          'primitiveId'
+        },
+      'border_layer.feature_set_offset' => const {
+          'layerId',
+          'featureId',
+          'slotKey',
+          'offsetDeltaPx'
+        },
+      'border_layer.feature_set_transform' => const {
+          'layerId',
+          'featureId',
+          'slotKey',
+          'transformOverride'
+        },
+      'border_layer.feature_set_suppressed' => const {
+          'layerId',
+          'featureId',
+          'slotKey',
+          'suppressed'
+        },
+      'border_layer.feature_clear_slot_override' => const {
+          'layerId',
+          'featureId',
+          'slotKey'
+        },
       'border_layer.feature_lock' || 'border_layer.feature_unlock' => const {
           'layerId',
           'featureId',
@@ -575,6 +651,8 @@ final class BorderActions {
     };
     final context = SemanticMapActionContext.read(
       planning,
+      projectedMap: projectedMap,
+      deferFinalization: deferFinalization,
       allowedParameters: allowed,
     );
     final parameters = context.parameters;
@@ -589,15 +667,23 @@ final class BorderActions {
             layerId: layerId,
             renderInForeground: parameters.boolean('renderInForeground'));
       case 'border_layer.stroke_erase':
-        updated = eraseStroke(manifest: context.manifest, map: context.map,
-            layerId: layerId, featureId: parameters.string('featureId'),
+        updated = eraseStroke(
+            materialize: !deferFinalization,
+            manifest: context.manifest,
+            map: context.map,
+            layerId: layerId,
+            featureId: parameters.string('featureId'),
             sampledPoints: _points(parameters.list('points')));
         if (identical(updated, context.map)) {
-          throw semanticFailure('map.no_change', 'The Border erasure touches no stroke cells.');
+          throw semanticFailure(
+              'map.no_change', 'The Border erasure touches no stroke cells.');
         }
-        final changed = _borderLayer(updated, layerId).content.featureById(parameters.string('featureId'));
+        final changed = _borderLayer(updated, layerId)
+            .content
+            .featureById(parameters.string('featureId'));
         extraPreview['strokeCount'] = changed?.geometry is BorderStrokeGeometry
-            ? (changed!.geometry as BorderStrokeGeometry).strokes.length : 0;
+            ? (changed!.geometry as BorderStrokeGeometry).strokes.length
+            : 0;
         extraPreview['featureRemoved'] = changed == null;
       case 'border_layer.stroke_add':
       case 'border_layer.stroke_update':
@@ -630,12 +716,15 @@ final class BorderActions {
           );
         }
         final points = _points(parameters.list('points'));
-        final lineage = index < 0 ? null
+        final lineage = index < 0
+            ? null
             : resolveBorderStrokeLineageIdentityV1(geometry.strokes[index]);
         final stroke = BorderStroke(
           id: lineage?.preserveTraversal == true
-              ? buildBorderPreservedStrokeIdV1(authoredStrokeId: lineage!.authoredStrokeId,
-                  sourceEdgeOffset: lineage.sourceEdgeOffset, wrapLength: lineage.wrapLength,
+              ? buildBorderPreservedStrokeIdV1(
+                  authoredStrokeId: lineage!.authoredStrokeId,
+                  sourceEdgeOffset: lineage.sourceEdgeOffset,
+                  wrapLength: lineage.wrapLength,
                   orderedPoints: points)
               : strokeId,
           points: points,
@@ -779,8 +868,10 @@ final class BorderActions {
             : feature.paramsOverride;
         final lineSide = parameters.optionalString('lineSide');
         _requireSequenceSide(
-            context.manifest.borderCatalog.recordById(feature.blueprintId)
-                ?.latestPublished?.definition,
+            context.manifest.borderCatalog
+                .recordById(feature.blueprintId)
+                ?.latestPublished
+                ?.definition,
             lineSide == null ? feature.lineSide : _lineSide(lineSide));
         updated = upsertBorderFeature(
           context.map,
@@ -808,8 +899,13 @@ final class BorderActions {
         updated = context.map.spatialScene == null
             ? updateBorderFeatureGeometry(context.map,
                 layerId: layerId, featureId: featureId, geometry: geometry)
-            : moveSpatialBorderFeature(context.map, manifest: context.manifest,
-                layerId: layerId, featureId: featureId, geometry: geometry, dx: dx, dz: dy);
+            : moveSpatialBorderFeature(context.map,
+                manifest: context.manifest,
+                layerId: layerId,
+                featureId: featureId,
+                geometry: geometry,
+                dx: dx,
+                dz: dy);
       case 'border_layer.feature_reorder':
         updated = reorderBorderFeature(
           context.map,
@@ -818,6 +914,15 @@ final class BorderActions {
           newIndex: parameters.integer('newIndex'),
         );
       case 'border_layer.feature_delete':
+        if (deferFinalization &&
+            _borderLayer(context.map, layerId)
+                    .content
+                    .featureById(parameters.string('featureId')) ==
+                null) {
+          updated = context.map;
+          changedItems = 0;
+          break;
+        }
         updated = removeBorderFeature(
           context.map,
           layerId: layerId,
@@ -827,32 +932,52 @@ final class BorderActions {
       case 'border_layer.relink_apply':
         if (context.map.spatialScene != null) {
           final mapping = parameters.contains('replacementPrimitiveIdsBySlot')
-              ? parameters.object('replacementPrimitiveIdsBySlot') : <String, Object?>{};
-          if (mapping.values.any((value) => value is! String || value.isEmpty)) {
-            throw semanticFailure('border.relink_mapping_invalid', 'Replacement mappings require nonempty primitive identities.');
+              ? parameters.object('replacementPrimitiveIdsBySlot')
+              : <String, Object?>{};
+          if (mapping.values
+              .any((value) => value is! String || value.isEmpty)) {
+            throw semanticFailure('border.relink_mapping_invalid',
+                'Replacement mappings require nonempty primitive identities.');
           }
-          updated = relinkSpatialBorderFeature(context.map, manifest: context.manifest,
-              layerId: layerId, featureId: parameters.string('featureId'),
+          updated = relinkSpatialBorderFeature(context.map,
+              materialize: !deferFinalization,
+              manifest: context.manifest,
+              layerId: layerId,
+              featureId: parameters.string('featureId'),
               targetBlueprintId: parameters.string('targetBlueprintId'),
-              reverseStrokes: parameters.contains('reverseStrokes') && parameters.boolean('reverseStrokes'),
-              clearVerticalOffset: parameters.contains('clearVerticalOffset') && parameters.boolean('clearVerticalOffset'),
+              reverseStrokes: parameters.contains('reverseStrokes') &&
+                  parameters.boolean('reverseStrokes'),
+              clearVerticalOffset: parameters.contains('clearVerticalOffset') &&
+                  parameters.boolean('clearVerticalOffset'),
               replacementPrimitiveIdsBySlot: mapping.cast<String, String>(),
               resolverVersion: parameters.contains('resolverVersion')
-                  ? parameters.integer('resolverVersion') : borderResolverVersion);
-          final artifact = preview(manifest: context.manifest, map: updated,
-              layerId: layerId, featureId: parameters.string('featureId'),
-              projectRevision: context.resource.revision!, tileSizePx: const GridSize(width: 1, height: 1),
-              resolverVersion: parameters.contains('resolverVersion')
-                  ? parameters.integer('resolverVersion') : borderResolverVersion);
-          extraPreview['relinkKind'] = 'spatial';
-          extraPreview['warningCount'] = artifact.warningPreview.length;
-          extraPreview['warnings'] = artifact.warningPreview.take(BorderPreviewArtifact.maximumWarningPreviewCount).toList();
+                  ? parameters.integer('resolverVersion')
+                  : borderResolverVersion);
+          if (!deferFinalization) {
+            final artifact = preview(
+                manifest: context.manifest,
+                map: updated,
+                layerId: layerId,
+                featureId: parameters.string('featureId'),
+                projectRevision: context.resource.revision!,
+                tileSizePx: const GridSize(width: 1, height: 1),
+                resolverVersion: parameters.contains('resolverVersion')
+                    ? parameters.integer('resolverVersion')
+                    : borderResolverVersion);
+            extraPreview['relinkKind'] = 'spatial';
+            extraPreview['warningCount'] = artifact.warningPreview.length;
+            extraPreview['warnings'] = artifact.warningPreview
+                .take(BorderPreviewArtifact.maximumWarningPreviewCount)
+                .toList();
+          }
           extraPreview['remappedOverrideCount'] = mapping.length;
           break;
         }
-        if (parameters.contains('reverseStrokes') || parameters.contains('clearVerticalOffset') ||
+        if (parameters.contains('reverseStrokes') ||
+            parameters.contains('clearVerticalOffset') ||
             parameters.contains('replacementPrimitiveIdsBySlot')) {
-          throw semanticFailure('border.spatial_map_required', 'Contour conversion options require a spatial Border.');
+          throw semanticFailure('border.spatial_map_required',
+              'Contour conversion options require a spatial Border.');
         }
         final relink = planRelink(
           manifest: context.manifest,
@@ -933,8 +1058,10 @@ final class BorderActions {
       case 'border_layer.feature_set_suppressed':
       case 'border_layer.feature_clear_slot_override':
         updated = _setSlotOverride(context.manifest, context.map,
-            layerId: layerId, featureId: parameters.string('featureId'),
-            slotKey: parameters.string('slotKey'), actionId: actionId,
+            layerId: layerId,
+            featureId: parameters.string('featureId'),
+            slotKey: parameters.string('slotKey'),
+            actionId: actionId,
             parameters: parameters);
       case 'border_layer.feature_lock':
         updated = _setSlotLock(
@@ -1009,7 +1136,8 @@ final class BorderActions {
         extraPreview['warnings'] = warnings
             .take(BorderPreviewArtifact.maximumWarningPreviewCount)
             .toList();
-        if (warnings.length > BorderPreviewArtifact.maximumWarningPreviewCount) {
+        if (warnings.length >
+            BorderPreviewArtifact.maximumWarningPreviewCount) {
           extraPreview['warningsTruncated'] = true;
         }
         if (artifact.isSpatial) {
@@ -1081,35 +1209,55 @@ final class BorderActions {
         throw StateError('unreachable Border action');
     }
 
-    if (updated.spatialScene != null && parameters.contains('featureId')) {
-      final feature = _borderLayer(updated, layerId).content.featureById(
-          parameters.string('featureId'));
+    if (!deferFinalization &&
+        updated.spatialScene != null &&
+        parameters.contains('featureId')) {
+      final feature = _borderLayer(updated, layerId)
+          .content
+          .featureById(parameters.string('featureId'));
       if (feature != null) {
-        final revision = requirePublishedBlueprint(context.manifest, feature.blueprintId);
+        final revision =
+            requirePublishedBlueprint(context.manifest, feature.blueprintId);
         final geometryDiagnostics = validateSpatialBorderFeatureGeometry(
-            blueprintId: feature.blueprintId, featureId: feature.id,
-            definition: revision.definition, geometry: feature.geometry);
+            blueprintId: feature.blueprintId,
+            featureId: feature.id,
+            definition: revision.definition,
+            geometry: feature.geometry);
         if (geometryDiagnostics.hasErrors) {
           final diagnostic = geometryDiagnostics.diagnostics.firstWhere(
               (value) => value.severity == BorderDiagnosticSeverity.error);
-          throw semanticFailure(diagnostic.code,
-              diagnostic.code == 'border.spatial.ground_mask_cell_centers_required'
+          throw semanticFailure(
+              diagnostic.code,
+              diagnostic.code ==
+                      'border.spatial.ground_mask_cell_centers_required'
                   ? 'Ground masking requires a cell-centered Border stroke.'
                   : 'This Border profile accepts straight strokes only.',
-              details: {'blueprintId': feature.blueprintId, 'featureId': feature.id});
+              details: {
+                'blueprintId': feature.blueprintId,
+                'featureId': feature.id
+              });
         }
         if (feature.spatialOffsetWorld != null) {
-          final resolved = resolveSpatialBorderFeature(manifest: context.manifest,
-              map: updated, layerId: layerId, featureId: feature.id);
+          final resolved = resolveSpatialBorderFeature(
+              manifest: context.manifest,
+              map: updated,
+              layerId: layerId,
+              featureId: feature.id);
           if (resolved.result.diagnosticReport.hasErrors) {
             throw semanticFailure('border.spatial.offset_invalid',
                 'The spatial Border offset must produce valid native placements.',
-                details: {'diagnostics': resolved.result.diagnostics.map((value) => value.code).toList()});
+                details: {
+                  'diagnostics': resolved.result.diagnostics
+                      .map((value) => value.code)
+                      .toList()
+                });
           }
         }
       }
     }
-    for (final layer in updated.layers.whereType<BorderLayer>()) {
+    for (final layer in deferFinalization
+        ? const <BorderLayer>[]
+        : updated.layers.whereType<BorderLayer>()) {
       for (final feature in layer.content.features) {
         final revision = context.manifest.borderCatalog
             .recordById(feature.blueprintId)
@@ -1140,7 +1288,7 @@ final class BorderActions {
         }
       }
     }
-    return context.draftMap(
+    return context.projectMap(
       after: updated,
       operation: actionId,
       changedItems: changedItems,
@@ -1174,159 +1322,288 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           AuthoringGuarantee.undoable
         ],
         extensions: {
-          if (mapActionInputExample(id) case final example?) 'inputExample': example,
+          if (mapActionInputExample(id) case final example?)
+            'inputExample': example,
           if (_basicBorderInputSchema(id) case final schema?)
             'inputSchema': schema,
-          if (id == 'border_layer.relink_apply' || id == 'border_layer.feature_set_blueprint')
+          if (id == 'border_layer.relink_apply' ||
+              id == 'border_layer.feature_set_blueprint')
             'inputSchema': {
-              'type': 'object', 'additionalProperties': false,
-              'required': ['mapId', 'layerId', 'featureId', 'targetBlueprintId'],
+              'type': 'object',
+              'additionalProperties': false,
+              'required': [
+                'mapId',
+                'layerId',
+                'featureId',
+                'targetBlueprintId'
+              ],
               'properties': {
-                for (final key in ['mapId', 'layerId', 'featureId', 'targetBlueprintId'])
+                for (final key in [
+                  'mapId',
+                  'layerId',
+                  'featureId',
+                  'targetBlueprintId'
+                ])
                   key: const {'type': 'string', 'minLength': 1},
-                for (final key in ['tileWidthPx', 'tileHeightPx', 'resolverVersion'])
+                for (final key in [
+                  'tileWidthPx',
+                  'tileHeightPx',
+                  'resolverVersion'
+                ])
                   key: const {'type': 'integer', 'minimum': 1},
-                for (final key in ['confirmFamilyReset', 'reverseStrokes', 'clearVerticalOffset'])
+                for (final key in [
+                  'confirmFamilyReset',
+                  'reverseStrokes',
+                  'clearVerticalOffset'
+                ])
                   key: const {'type': 'boolean'},
                 'replacementPrimitiveIdsBySlot': const {
-                  'type': 'object', 'additionalProperties': {'type': 'string', 'minLength': 1},
+                  'type': 'object',
+                  'additionalProperties': {'type': 'string', 'minLength': 1},
                 },
               },
             },
-          if (id == 'border_layer.set_foreground') 'inputSchema': {
-            'type': 'object', 'additionalProperties': false,
-            'required': ['mapId', 'layerId', 'renderInForeground'],
-            'properties': {
-              for (final key in ['mapId', 'layerId'])
-                key: const {'type': 'string', 'minLength': 1},
-              'renderInForeground': const {'type': 'boolean'},
+          if (id == 'border_layer.set_foreground')
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['mapId', 'layerId', 'renderInForeground'],
+              'properties': {
+                for (final key in ['mapId', 'layerId'])
+                  key: const {'type': 'string', 'minLength': 1},
+                'renderInForeground': const {'type': 'boolean'},
+              },
             },
-          },
-          if (_slotOverrideField(id) != null || id == 'border_layer.feature_clear_slot_override')
+          if (_slotOverrideField(id) != null ||
+              id == 'border_layer.feature_clear_slot_override')
             'inputSchema': _slotOverrideInputSchema(id),
           'semanticIds': true,
           'rawTilesetRequired': false,
-          'visualKinds': id == 'border_layer.feature_set_offset' || id == 'border_layer.set_foreground'
-              ? const ['element'] : const ['element', 'model3d'],
-          if (id == 'border_layer.stroke_erase') 'inputSchema': {
-            'type': 'object', 'additionalProperties': false,
-            'required': ['mapId', 'layerId', 'featureId', 'points'],
-            'properties': {
-              for (final key in ['mapId', 'layerId', 'featureId'])
-                key: const {'type': 'string', 'minLength': 1},
-              'points': const {'type': 'array', 'minItems': 1, 'maxItems': 4096,
-                'items': {'type': 'object', 'additionalProperties': false,
-                  'required': ['x', 'y'], 'properties': {
-                    'x': {'type': 'integer', 'minimum': 0},
-                    'y': {'type': 'integer', 'minimum': 0}}}},
+          'visualKinds': id == 'border_layer.feature_set_offset' ||
+                  id == 'border_layer.set_foreground'
+              ? const ['element']
+              : const ['element', 'model3d'],
+          if (id == 'border_layer.stroke_erase')
+            'inputSchema': {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['mapId', 'layerId', 'featureId', 'points'],
+              'properties': {
+                for (final key in ['mapId', 'layerId', 'featureId'])
+                  key: const {'type': 'string', 'minLength': 1},
+                'points': const {
+                  'type': 'array',
+                  'minItems': 1,
+                  'maxItems': 4096,
+                  'items': {
+                    'type': 'object',
+                    'additionalProperties': false,
+                    'required': ['x', 'y'],
+                    'properties': {
+                      'x': {'type': 'integer', 'minimum': 0},
+                      'y': {'type': 'integer', 'minimum': 0}
+                    }
+                  }
+                },
+              },
             },
-          },
-          if (id == 'border_layer.feature_create' || id == 'border_layer.feature_update')
-            'inputSchema': _featureInputSchema(id == 'border_layer.feature_create'),
+          if (id == 'border_layer.feature_create' ||
+              id == 'border_layer.feature_update')
+            'inputSchema':
+                _featureInputSchema(id == 'border_layer.feature_create'),
         });
 
 Map<String, Object?>? _basicBorderInputSchema(String id) {
   final fields = switch (id) {
-    'border_layer.stroke_add' || 'border_layer.stroke_update' => ['strokeId', 'points'],
+    'border_layer.stroke_add' || 'border_layer.stroke_update' => [
+        'strokeId',
+        'points'
+      ],
     'border_layer.stroke_delete' => ['strokeId'],
     'border_layer.feature_delete' => <String>[],
     'border_layer.feature_move' => ['dx', 'dy'],
-    'border_layer.region_fill' || 'border_layer.region_clear' => ['x', 'y', 'width', 'height'],
+    'border_layer.region_fill' || 'border_layer.region_clear' => [
+        'x',
+        'y',
+        'width',
+        'height'
+      ],
     'border_layer.feature_set_keep_out' => ['regions'],
     _ => null,
   };
   if (fields == null) return null;
   const point = {
-    'type': 'object', 'additionalProperties': false,
+    'type': 'object',
+    'additionalProperties': false,
     'required': ['x', 'y'],
-    'properties': {'x': {'type': 'integer', 'minimum': 0}, 'y': {'type': 'integer', 'minimum': 0}},
+    'properties': {
+      'x': {'type': 'integer', 'minimum': 0},
+      'y': {'type': 'integer', 'minimum': 0}
+    },
   };
   return {
-    'type': 'object', 'additionalProperties': false,
+    'type': 'object',
+    'additionalProperties': false,
     'required': ['mapId', 'layerId', 'featureId', ...fields],
     'properties': {
-      for (final field in ['mapId', 'layerId', 'featureId', if (fields.contains('strokeId')) 'strokeId'])
+      for (final field in [
+        'mapId',
+        'layerId',
+        'featureId',
+        if (fields.contains('strokeId')) 'strokeId'
+      ])
         field: const {'type': 'string', 'minLength': 1},
-      for (final field in fields.where((field) => const {'x', 'y', 'dx', 'dy', 'width', 'height'}.contains(field)))
-        field: {'type': 'integer', if (field == 'width' || field == 'height') 'minimum': 1,
-          if (field == 'x' || field == 'y') 'minimum': 0},
+      for (final field in fields.where((field) =>
+          const {'x', 'y', 'dx', 'dy', 'width', 'height'}.contains(field)))
+        field: {
+          'type': 'integer',
+          if (field == 'width' || field == 'height') 'minimum': 1,
+          if (field == 'x' || field == 'y') 'minimum': 0
+        },
       if (fields.contains('points')) ...{
-        'points': {'type': 'array', 'minItems': 1, 'maxItems': 4096, 'items': point},
+        'points': {
+          'type': 'array',
+          'minItems': 1,
+          'maxItems': 4096,
+          'items': point
+        },
         'closed': const {'type': 'boolean', 'default': false},
       },
-      if (fields.contains('regions')) 'regions': {
-        'type': 'array', 'items': {
-          'type': 'object', 'additionalProperties': false,
-          'required': ['id', 'region'], 'properties': {
-            'id': const {'type': 'string', 'minLength': 1},
-            'region': {'type': 'object', 'additionalProperties': false,
-              'required': ['width', 'height', 'cells'], 'properties': {
-                'width': const {'type': 'integer', 'minimum': 1},
-                'height': const {'type': 'integer', 'minimum': 1},
-                'cells': const {'type': 'array', 'items': {'type': 'boolean'}},
-              }},
+      if (fields.contains('regions'))
+        'regions': {
+          'type': 'array',
+          'items': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['id', 'region'],
+            'properties': {
+              'id': const {'type': 'string', 'minLength': 1},
+              'region': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['width', 'height', 'cells'],
+                'properties': {
+                  'width': const {'type': 'integer', 'minimum': 1},
+                  'height': const {'type': 'integer', 'minimum': 1},
+                  'cells': const {
+                    'type': 'array',
+                    'items': {'type': 'boolean'}
+                  },
+                }
+              },
+            },
           },
         },
-      },
     },
   };
 }
 
 String? _slotOverrideField(String id) => switch (id) {
-  'border_layer.feature_set_replacement' => 'primitiveId',
-  'border_layer.feature_set_offset' => 'offsetDeltaPx',
-  'border_layer.feature_set_transform' => 'transformOverride',
-  'border_layer.feature_set_suppressed' => 'suppressed',
-  _ => null,
-};
+      'border_layer.feature_set_replacement' => 'primitiveId',
+      'border_layer.feature_set_offset' => 'offsetDeltaPx',
+      'border_layer.feature_set_transform' => 'transformOverride',
+      'border_layer.feature_set_suppressed' => 'suppressed',
+      _ => null,
+    };
 
 Map<String, Object?> _slotOverrideInputSchema(String id) {
   final field = _slotOverrideField(id);
   return {
-    'type': 'object', 'additionalProperties': false,
-    'required': ['mapId', 'layerId', 'featureId', 'slotKey', if (field != null) field],
+    'type': 'object',
+    'additionalProperties': false,
+    'required': [
+      'mapId',
+      'layerId',
+      'featureId',
+      'slotKey',
+      if (field != null) field
+    ],
     'properties': {
       for (final key in ['mapId', 'layerId', 'featureId', 'slotKey'])
         key: const {'type': 'string', 'minLength': 1},
-      if (field == 'primitiveId') field!: const {'type': ['string', 'null'], 'minLength': 1},
+      if (field == 'primitiveId')
+        field!: const {
+          'type': ['string', 'null'],
+          'minLength': 1
+        },
       if (field == 'suppressed') field!: const {'type': 'boolean'},
-      if (field == 'offsetDeltaPx') field!: const {'anyOf': [
-        {'type': 'null'},
-        {'type': 'object', 'additionalProperties': false, 'required': ['x', 'y'],
-          'properties': {'x': {'type': 'integer'}, 'y': {'type': 'integer'}}},
-      ]},
-      if (field == 'transformOverride') field!: const {'anyOf': [
-        {'type': 'null'},
-        {'type': 'object', 'additionalProperties': false, 'required': ['quarterTurns', 'flipX'],
-          'properties': {'quarterTurns': {'type': 'integer', 'minimum': 0, 'maximum': 3},
-            'flipX': {'type': 'boolean'}}},
-      ]},
+      if (field == 'offsetDeltaPx')
+        field!: const {
+          'anyOf': [
+            {'type': 'null'},
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['x', 'y'],
+              'properties': {
+                'x': {'type': 'integer'},
+                'y': {'type': 'integer'}
+              }
+            },
+          ]
+        },
+      if (field == 'transformOverride')
+        field!: const {
+          'anyOf': [
+            {'type': 'null'},
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['quarterTurns', 'flipX'],
+              'properties': {
+                'quarterTurns': {'type': 'integer', 'minimum': 0, 'maximum': 3},
+                'flipX': {'type': 'boolean'}
+              }
+            },
+          ]
+        },
     },
   };
 }
 
 Map<String, Object?> _featureInputSchema(bool create) => {
-  'type': 'object',
-  'additionalProperties': false,
-  'required': ['mapId', 'layerId', 'featureId', if (create) ...['name', 'blueprintId', 'seed', 'geometry']],
-  'properties': {
-    'mapId': const {'type': 'string', 'minLength': 1},
-    'layerId': const {'type': 'string', 'minLength': 1},
-    'featureId': const {'type': 'string', 'minLength': 1},
-    'name': const {'type': 'string', 'minLength': 1},
-    'seed': const {'type': ['string', 'integer']},
-    'lineSide': const {'type': 'string', 'enum': ['primary', 'inverted'], 'default': 'primary'},
-    'spatialOffsetWorld': const {'anyOf': [
-      {'type': 'null'},
-      {'type': 'object', 'additionalProperties': false, 'required': ['x', 'y', 'z'],
-        'properties': {'x': {'type': 'number'}, 'y': {'type': 'number'}, 'z': {'type': 'number'}}},
-    ]},
-    if (create) 'blueprintId': const {'type': 'string', 'minLength': 1},
-    if (create) 'geometry': const {'type': 'object'},
-    if (!create) 'paramsOverride': const {'type': 'object'},
-    if (!create) 'clearParamsOverride': const {'type': 'boolean'},
-  },
-};
+      'type': 'object',
+      'additionalProperties': false,
+      'required': [
+        'mapId',
+        'layerId',
+        'featureId',
+        if (create) ...['name', 'blueprintId', 'seed', 'geometry']
+      ],
+      'properties': {
+        'mapId': const {'type': 'string', 'minLength': 1},
+        'layerId': const {'type': 'string', 'minLength': 1},
+        'featureId': const {'type': 'string', 'minLength': 1},
+        'name': const {'type': 'string', 'minLength': 1},
+        'seed': const {
+          'type': ['string', 'integer']
+        },
+        'lineSide': const {
+          'type': 'string',
+          'enum': ['primary', 'inverted'],
+          'default': 'primary'
+        },
+        'spatialOffsetWorld': const {
+          'anyOf': [
+            {'type': 'null'},
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': ['x', 'y', 'z'],
+              'properties': {
+                'x': {'type': 'number'},
+                'y': {'type': 'number'},
+                'z': {'type': 'number'}
+              }
+            },
+          ]
+        },
+        if (create) 'blueprintId': const {'type': 'string', 'minLength': 1},
+        if (create) 'geometry': const {'type': 'object'},
+        if (!create) 'paramsOverride': const {'type': 'object'},
+        if (!create) 'clearParamsOverride': const {'type': 'boolean'},
+      },
+    };
 
 BorderLayer _borderLayer(MapData map, String layerId) {
   final layer =
@@ -1375,7 +1652,9 @@ BorderFeature _copyFeature(
       seed: seed ?? feature.seed,
       geometry: geometry ?? feature.geometry,
       lineSide: lineSide ?? feature.lineSide,
-      spatialOffsetWorld: replaceSpatialOffset ? spatialOffsetWorld : feature.spatialOffsetWorld,
+      spatialOffsetWorld: replaceSpatialOffset
+          ? spatialOffsetWorld
+          : feature.spatialOffsetWorld,
       paramsOverride: replaceParams ? paramsOverride : feature.paramsOverride,
       overrides: overrides ?? feature.overrides,
       keepOutRegions: keepOutRegions ?? feature.keepOutRegions,
@@ -1385,16 +1664,20 @@ BorderFeature _copyFeature(
           : materialization ?? feature.materialization,
     );
 
-Model3dVector3? _spatialOffsetWorld(SemanticParameters parameters, MapData map) {
+Model3dVector3? _spatialOffsetWorld(
+    SemanticParameters parameters, MapData map) {
   if (!parameters.contains('spatialOffsetWorld')) return null;
   if (map.spatialScene == null) {
-    throw semanticFailure('border.spatial.map_required', 'A spatial Border offset requires a 3D map.');
+    throw semanticFailure('border.spatial.map_required',
+        'A spatial Border offset requires a 3D map.');
   }
   if (parameters.value('spatialOffsetWorld') == null) return null;
   final value = parameters.object('spatialOffsetWorld');
-  if (value.length != 3 || !const {'x', 'y', 'z'}.every(value.containsKey) ||
+  if (value.length != 3 ||
+      !const {'x', 'y', 'z'}.every(value.containsKey) ||
       value.values.any((item) => item is! num || !item.isFinite)) {
-    throw invalidSemanticField('spatialOffsetWorld', 'a finite {x, y, z} world offset');
+    throw invalidSemanticField(
+        'spatialOffsetWorld', 'a finite {x, y, z} world offset');
   }
   return Model3dVector3.fromJson(value);
 }
@@ -1418,7 +1701,8 @@ void _requireSequenceSide(
   BorderBlueprintPublishedDefinition? definition,
   BorderLineSide lineSide,
 ) {
-  if (definition != null && definition.sequenceLength > 1 &&
+  if (definition != null &&
+      definition.sequenceLength > 1 &&
       lineSide != BorderLineSide.primary) {
     throw semanticFailure('border.spatial.line_side_inversion_unsupported',
         'A cyclic spatial Border requires its authored primary side.');
@@ -1710,32 +1994,47 @@ BorderKeepOutRegion _keepOutRegion(Object? raw, int index) {
   );
 }
 
-MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
-  required String layerId, required String featureId, required String slotKey,
-  required String actionId, required SemanticParameters parameters,
+MapData _setSlotOverride(
+  ProjectManifest manifest,
+  MapData map, {
+  required String layerId,
+  required String featureId,
+  required String slotKey,
+  required String actionId,
+  required SemanticParameters parameters,
 }) {
   final feature = _feature(_borderLayer(map, layerId), featureId);
-  final revision = const BorderActions().requirePublishedBlueprint(manifest, feature.blueprintId);
+  final revision = const BorderActions()
+      .requirePublishedBlueprint(manifest, feature.blueprintId);
   final spatial = revision.definition.isSpatial && map.spatialScene != null;
   if (revision.definition.isSpatial != (map.spatialScene != null) ||
       spatial && actionId == 'border_layer.feature_set_offset') {
     throw semanticFailure('border.spatial.sprite_override_unsupported',
         'Pixel slot corrections require a planar Border feature.');
   }
-  final tileSize = GridSize(width: manifest.settings.tileWidth, height: manifest.settings.tileHeight);
-  BorderResolutionRequest requestFor(BorderFeature value) => BorderResolutionRequest(
-      mapSize: map.size, tileSizePx: tileSize, blueprintId: feature.blueprintId,
-      blueprintRevision: revision, feature: value,
-      visualSnapshots: manifest.borderCatalog.visualSnapshots,
-      resolverVersion: borderResolverVersion);
-  final baseFeature = _copyFeature(feature, overrides: const [], keepOutRegions: const []);
+  final tileSize = GridSize(
+      width: manifest.settings.tileWidth, height: manifest.settings.tileHeight);
+  BorderResolutionRequest requestFor(BorderFeature value) =>
+      BorderResolutionRequest(
+          mapSize: map.size,
+          tileSizePx: tileSize,
+          blueprintId: feature.blueprintId,
+          blueprintRevision: revision,
+          feature: value,
+          visualSnapshots: manifest.borderCatalog.visualSnapshots,
+          resolverVersion: borderResolverVersion);
+  final baseFeature =
+      _copyFeature(feature, overrides: const [], keepOutRegions: const []);
   Set<String> slots;
   try {
     if (spatial) {
-      final baseMap = upsertBorderFeature(map, layerId: layerId, feature: baseFeature);
+      final baseMap =
+          upsertBorderFeature(map, layerId: layerId, feature: baseFeature);
       slots = resolveSpatialBorderFeatureBaseSlotKeys(
-          manifest: manifest, map: baseMap,
-          layerId: layerId, featureId: featureId);
+          manifest: manifest,
+          map: baseMap,
+          layerId: layerId,
+          featureId: featureId);
     } else {
       slots = resolveBorderFeatureBaseSlotKeys(requestFor(baseFeature));
     }
@@ -1743,14 +2042,16 @@ MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
     throw semanticFailure('border.slot_generation_failed', error.toString());
   }
   if (!slots.contains(slotKey)) {
-    throw semanticFailure('border.slot_missing', 'The requested generated Border slot does not exist.',
+    throw semanticFailure('border.slot_missing',
+        'The requested generated Border slot does not exist.',
         details: {'slotKey': slotKey});
   }
   final overrides = List<BorderSlotOverride>.from(feature.overrides);
   final index = overrides.indexWhere((value) => value.slotKey == slotKey);
   final current = index < 0 ? null : overrides[index];
   if (current?.locked == true) {
-    throw semanticFailure('border.slot_locked', 'Unlock the Border slot before changing its corrections.',
+    throw semanticFailure('border.slot_locked',
+        'Unlock the Border slot before changing its corrections.',
         details: {'slotKey': slotKey});
   }
   final clear = actionId == 'border_layer.feature_clear_slot_override';
@@ -1758,34 +2059,57 @@ MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
   if (field != null && !parameters.contains(field)) {
     throw invalidSemanticField(field, 'an explicitly provided value or null');
   }
-  final suppression = field == 'suppressed' ? parameters.boolean('suppressed') : current?.suppressed ?? false;
+  final suppression = field == 'suppressed'
+      ? parameters.boolean('suppressed')
+      : current?.suppressed ?? false;
   if (!clear && suppression && field != 'suppressed') {
-    throw semanticFailure('border.slot_suppressed', 'Restore the Border slot before changing its corrections.',
+    throw semanticFailure('border.slot_suppressed',
+        'Restore the Border slot before changing its corrections.',
         details: {'slotKey': slotKey});
   }
   final offset = field == 'offsetDeltaPx' && parameters.value(field!) != null
-      ? SemanticParameters(parameters.object(field), allowed: const {'x', 'y'}) : null;
-  final transform = field == 'transformOverride' && parameters.value(field!) != null
-      ? SemanticParameters(parameters.object(field), allowed: const {'quarterTurns', 'flipX'}) : null;
+      ? SemanticParameters(parameters.object(field), allowed: const {'x', 'y'})
+      : null;
+  final transform =
+      field == 'transformOverride' && parameters.value(field!) != null
+          ? SemanticParameters(parameters.object(field),
+              allowed: const {'quarterTurns', 'flipX'})
+          : null;
   final turns = transform?.integer('quarterTurns');
   if (turns != null && (turns < 0 || turns > 3)) {
-    throw invalidSemanticField('quarterTurns', 'an integer between zero and three');
+    throw invalidSemanticField(
+        'quarterTurns', 'an integer between zero and three');
   }
   if (spatial && transform?.boolean('flipX') == true) {
     throw semanticFailure('border.spatial.sprite_override_unsupported',
         'Spatial Border corrections do not support sprite mirroring.');
   }
   final replacement = BorderSlotOverride(
-      slotKey: slotKey, variationSalt: current?.variationSalt ?? BorderSignedInt64.zero,
-      suppressed: suppression, locked: false,
-      replacementPrimitiveId: suppression ? null : field == 'primitiveId'
-          ? parameters.optionalString('primitiveId') : current?.replacementPrimitiveId,
-      offsetDeltaPx: suppression ? null : field == 'offsetDeltaPx'
-          ? offset == null ? null : BorderPixelOffset(x: offset.integer('x'), y: offset.integer('y'))
-          : current?.offsetDeltaPx,
-      transformOverride: suppression ? null : field == 'transformOverride'
-          ? transform == null ? null : BorderSpriteTransform(quarterTurns: turns!, flipX: transform.boolean('flipX'))
-          : current?.transformOverride);
+      slotKey: slotKey,
+      variationSalt: current?.variationSalt ?? BorderSignedInt64.zero,
+      suppressed: suppression,
+      locked: false,
+      replacementPrimitiveId: suppression
+          ? null
+          : field == 'primitiveId'
+              ? parameters.optionalString('primitiveId')
+              : current?.replacementPrimitiveId,
+      offsetDeltaPx: suppression
+          ? null
+          : field == 'offsetDeltaPx'
+              ? offset == null
+                  ? null
+                  : BorderPixelOffset(
+                      x: offset.integer('x'), y: offset.integer('y'))
+              : current?.offsetDeltaPx,
+      transformOverride: suppression
+          ? null
+          : field == 'transformOverride'
+              ? transform == null
+                  ? null
+                  : BorderSpriteTransform(
+                      quarterTurns: turns!, flipX: transform.boolean('flipX'))
+              : current?.transformOverride);
   if (clear) {
     if (index >= 0) overrides.removeAt(index);
   } else if (index < 0) {
@@ -1798,18 +2122,31 @@ MapData _setSlotOverride(ProjectManifest manifest, MapData map, {
         ? _copyFeature(feature, keepOutRegions: const [], overrides: overrides)
         : _copyFeature(baseFeature, overrides: [replacement]);
     final diagnostics = spatial
-        ? resolveSpatialBorderFeature(manifest: manifest,
-            map: upsertBorderFeature(map, layerId: layerId, feature: corrected),
-            layerId: layerId, featureId: featureId).result.diagnostics
+        ? resolveSpatialBorderFeature(
+                manifest: manifest,
+                map: upsertBorderFeature(map,
+                    layerId: layerId, feature: corrected),
+                layerId: layerId,
+                featureId: featureId)
+            .result
+            .diagnostics
         : resolveBorderFeature(requestFor(corrected)).diagnostics;
-    final errors = diagnostics.where((issue) => issue.severity == BorderDiagnosticSeverity.error &&
-        (spatial || issue.code.startsWith('border.resolution.override_'))).toList();
+    final errors = diagnostics
+        .where((issue) =>
+            issue.severity == BorderDiagnosticSeverity.error &&
+            (spatial || issue.code.startsWith('border.resolution.override_')))
+        .toList();
     if (errors.isNotEmpty) {
-      throw semanticFailure(errors.first.code, 'The requested Border slot correction is invalid.',
-          details: {'slotKey': slotKey, 'diagnostics': errors.map((issue) => issue.code).toList()});
+      throw semanticFailure(
+          errors.first.code, 'The requested Border slot correction is invalid.',
+          details: {
+            'slotKey': slotKey,
+            'diagnostics': errors.map((issue) => issue.code).toList()
+          });
     }
   }
-  return updateBorderFeatureOverrides(map, layerId: layerId, featureId: featureId, overrides: overrides);
+  return updateBorderFeatureOverrides(map,
+      layerId: layerId, featureId: featureId, overrides: overrides);
 }
 
 MapData _setSlotLock(

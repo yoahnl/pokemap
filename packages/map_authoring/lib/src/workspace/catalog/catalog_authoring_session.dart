@@ -189,6 +189,11 @@ final class CatalogAuthoringSession {
 
   Future<AuthoringMutationPlanResult> plan(AuthoringRequest request) async {
     _authorize(AuthoringSecurityOperation.plan, request: request);
+    if (request.actionId == 'map3d.edit_batch' &&
+        !CatalogSpatialMapSelection.supports(request.actionId,parameters:request.parameters)) {
+      throw AuthoringPlanException(code:'map3d.edit_batch.scope_unsupported',
+          message:'The batch is not supported by the targeted map scope.');
+    }
     if (request.workspaceHandle != workspaceHandle.value) {
       throw const WorkspaceHandleException('workspace.project_mismatch',
           'The request does not belong to this workspace.');
@@ -365,6 +370,11 @@ final class CatalogAuthoringSession {
       Map<String, String> readDependencies = const {}}) async {
     requireRead();
     _modelSourceSelection = null;
+    if (actionId == 'map3d.edit_batch' &&
+        !CatalogSpatialMapSelection.supports(actionId,parameters:parameters)) {
+      throw AuthoringPlanException(code:'map3d.edit_batch.scope_unsupported',
+          message:'The batch is not supported by the targeted map scope.');
+    }
     final requestKey = CatalogModelSourceSelection.supports(actionId)
         ? _modelSourceRequestKey(actionId, parameters)
         : null;

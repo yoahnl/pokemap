@@ -131,13 +131,15 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
                 'border.spatial.face_base_mismatch',
               }.contains(diagnostic.code);
           if (diagnostic.code == 'border.materialization.missing' ||
-              diagnostic.code == 'border.spatial.materialization_stale')
+              diagnostic.code == 'border.spatial.materialization_stale') {
             stale++;
+          }
           if (structural) {
             failed = true;
             borderFailed = true;
-          } else
+          } else {
             incomplete = true;
+          }
           issues.add({
             'code': diagnostic.code,
             'severity': structural ? 'error' : 'unknown',
@@ -167,10 +169,11 @@ Map<String, Object?> inspectMapHealth(AuthoringMapView read) {
       inspectSpatialMapIntegrity(manifest: read.manifest, map: read.map);
   for (final gap in report.groundGaps) {
     final exposed = gap.state == SpatialGroundGapState.exposed;
-    if (exposed)
+    if (exposed) {
       failed = true;
-    else
+    } else {
       incomplete = true;
+    }
     issues.add({
       'code': exposed ? 'map.ground.exposed' : 'map.ground.unproven',
       'severity': exposed ? 'error' : 'unknown',

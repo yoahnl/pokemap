@@ -639,13 +639,19 @@ final class JsonlWorker {
     }
     switch (command) {
       case 'describe':
-        rejectUnknownContractKeys(args, const {'domain', 'view', 'actionIds'});
+        rejectUnknownContractKeys(args, const {'domain', 'view', 'actionIds', 'offset', 'pageSize'});
         final actionIds = args['actionIds'];
         if (actionIds != null &&
             (actionIds is! List || actionIds.any((id) => id is! String))) {
           throw const FormatException('actionIds must be a string list.');
         }
+        if ((args['offset'] != null && args['offset'] is! int) ||
+            (args['pageSize'] != null && args['pageSize'] is! int)) {
+          throw const FormatException('Discovery paging values must be integers.');
+        }
         return describeAuthoringCapabilities(_combinedDescription(),
+            offset: args['offset'] as int? ?? 0,
+            pageSize: args['pageSize'] as int? ?? 40,
             domain: args['domain'] == null
                 ? 'all' : requireContractString(args['domain'], 'domain'),
             view: args['view'] == null
@@ -669,7 +675,7 @@ final class JsonlWorker {
         final project = _projectHandle(args);
         final operation = MapEditOperation.fromJson(
             Map<String, dynamic>.from(args)..remove('projectHandle'));
-        return (editor as AuthoringMapEditPort).mapEdit(project, operation);
+        return (editor as AuthoringMapEditPort).mapEdit(project, operation,isCancelled:isCancelled);
       case 'open':
         rejectUnknownContractKeys(args, const {'projectRoot'});
         final projectRoot =

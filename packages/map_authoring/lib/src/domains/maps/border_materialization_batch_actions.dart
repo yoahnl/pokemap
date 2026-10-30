@@ -27,7 +27,8 @@ final class BorderMaterializationBatchActions {
       AuthoringGuarantee.undoable,
     ],
     extensions: {
-      'inputExample': mapActionInputExample('border_layer.materialize_batch_apply'),
+      'inputExample':
+          mapActionInputExample('border_layer.materialize_batch_apply'),
       'batchAtomicity': 'all_or_nothing',
       'maximumFeatureCount': maximumFeatureCount,
       'semanticIds': true,
@@ -68,13 +69,23 @@ final class BorderMaterializationBatchActions {
     },
   );
 
-  AuthoringMutationDraft build(AuthoringPlanningContext planning) {
-    final context = SemanticMapActionContext.read(planning, allowedParameters: {
-      'features',
-      'tileWidthPx',
-      'tileHeightPx',
-      'resolverVersion',
-    });
+  AuthoringMutationDraft build(AuthoringPlanningContext planning) =>
+      project(planning).finalize();
+
+  SemanticMapProjection project(
+    AuthoringPlanningContext planning, {
+    MapData? projectedMap,
+    bool deferFinalization = false,
+  }) {
+    final context = SemanticMapActionContext.read(planning,
+        projectedMap: projectedMap,
+        deferFinalization: deferFinalization,
+        allowedParameters: {
+          'features',
+          'tileWidthPx',
+          'tileHeightPx',
+          'resolverVersion',
+        });
     final parameters = context.parameters;
     final rawTargets = parameters.list('features');
     if (rawTargets.isEmpty || rawTargets.length > maximumFeatureCount) {
@@ -104,6 +115,39 @@ final class BorderMaterializationBatchActions {
             'A Border feature may occur only once in a materialization batch.');
       }
       targets.add((layerId: layerId, featureId: featureId));
+    }
+    if (deferFinalization) {
+      for (final target in targets) {
+        final feature = context.map.layers
+            .whereType<BorderLayer>()
+            .where((layer) => layer.id == target.layerId)
+            .firstOrNull
+            ?.content
+            .featureById(target.featureId);
+        if (feature == null) {
+          throw semanticFailure('border.feature_missing',
+              'The requested Border feature does not exist.', details: {
+            'layerId': target.layerId,
+            'featureId': target.featureId
+          });
+        }
+      }
+      return context.projectMap(
+          after: context.map,
+          operation: planning.request.actionId,
+          changedItems: 0,
+          preview: {
+            'deferredMaterializationTargets': [
+              for (final target in targets)
+                {
+                  'layerId': target.layerId,
+                  'featureId': target.featureId,
+                  'tileWidthPx': width,
+                  'tileHeightPx': height,
+                  'resolverVersion': resolverVersion
+                },
+            ]
+          });
     }
     var updated = context.map;
     var changedItems = 0;
@@ -187,7 +231,7 @@ final class BorderMaterializationBatchActions {
             artifact.result.materialization!.ground.length;
       }
     }
-    return context.draftMap(
+    return context.projectMap(
         after: updated,
         operation: planning.request.actionId,
         changedItems: changedItems,
@@ -197,7 +241,8 @@ final class BorderMaterializationBatchActions {
           'warnings': warnings
               .take(BorderPreviewArtifact.maximumWarningPreviewCount)
               .toList(),
-          if (warnings.length > BorderPreviewArtifact.maximumWarningPreviewCount)
+          if (warnings.length >
+              BorderPreviewArtifact.maximumWarningPreviewCount)
             'warningsTruncated': true,
         });
   }

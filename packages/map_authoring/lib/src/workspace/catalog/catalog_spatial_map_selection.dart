@@ -1,3 +1,4 @@
+import '../../domains/maps/map3d_edit_projection.dart';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -35,6 +36,15 @@ final class CatalogSpatialMapSelection {
 
   static bool supports(String action,
       {Map<String, Object?> parameters = const {}}) {
+    if (action == 'map3d.edit_batch') {
+      final operations = parameters['operations'];
+      return operations is List && operations.isNotEmpty && operations.length <= 64 &&
+          operations.every((operation) => operation is Map &&
+            Map3dEditProjection.admittedActions.contains(operation['actionId']) &&
+            operation['actionVersion'] == 1 && operation['parameters'] is Map &&
+            (!(operation['parameters'] as Map).containsKey('mapId') ||
+              (operation['parameters'] as Map)['mapId'] == parameters['mapId']));
+    }
     if (TriggerZoneActions.fieldTraversalActions.contains(action)) return true;
     if (action == 'map.platform.upsert') return parameters['platform'] is Map && (parameters['platform'] as Map)['kind'] == 'spatial';
     if (action == 'map.update_metadata' && parameters.containsKey('escapeRopeDungeonId')) return false;
@@ -97,6 +107,7 @@ final class CatalogSpatialMapSelection {
       'map3d.instance.configure_field_obstacle',
       'map3d.instance.upsert',
       'map3d.instance.upsert_batch',
+      'map3d.instance.delete_batch',
       'smart_tile.layer.create',
       'smart_tile.layer.change_preset',
       'smart_tile.layer.delete',
@@ -293,6 +304,18 @@ final class CatalogSpatialMapSelection {
                 code: 'catalog.mutation_scope_required',
                 message:
                     'Changing an existing entity kind requires an incoming narrative reference index.');
+          }
+        }
+        final batchOperations = parameters['operations'];
+        final deletingInstances = actionId == 'map3d.instance.delete_batch' ||
+            actionId == 'map3d.edit_batch' && batchOperations is List &&
+                batchOperations.any((operation) => operation is Map && operation['actionId'] == 'map3d.instance.delete_batch');
+        if (deletingInstances) {
+          final incoming = await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot,
+              project: base, ids: {'scenes': {}, 'cinematics': {}, 'presentationCinematics': {}});
+          if (incoming.counts.values.any((count) => count > 0)) {
+            throw AuthoringPlanException(code: 'catalog.mutation_scope_required',
+                message: 'Deleting a model instance requires an incoming narrative source index when scenes or cinematics exist.');
           }
         }
         final ids = <String, Set<String>>{

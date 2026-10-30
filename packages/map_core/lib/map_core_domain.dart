@@ -258,6 +258,7 @@ export 'src/operations/border_canonical_gallery.dart';
 export 'src/operations/border_resolver.dart';
 export 'src/operations/spatial_border_resolution.dart';
 export 'src/operations/spatial_map_integrity.dart';
+export 'src/operations/spatial_map_edit_intents.dart';
 export 'src/operations/spatial_border_relink_operations.dart';
 export 'src/operations/border_publication_readiness.dart';
 export 'src/operations/project_manifest_border_catalog_operations.dart';

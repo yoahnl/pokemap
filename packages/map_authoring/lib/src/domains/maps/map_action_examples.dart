@@ -13,7 +13,7 @@ Map<String, Object?>? mapActionInputExample(String actionId) {
         {'points':[{'x':0,'z':0},{'x':24,'z':0},{'x':24,'z':4},{'x':0,'z':4}]}]}]},
     'map3d.terrain.surface.delete_batch' => {'mapId':'map','surfaceIds':['lower-ground']},
     'map3d.instance.upsert_batch' => {'mapId':'map','instances':[
-      {'id':'marker','modelId':'tree','position':{'x':15,'y':1,'z':12}}]},
+      {'id':'marker','modelId':'tree','position':{'x':15,'y':1,'z':12},'rotationDegrees':0,'scale':1,'blocksMovement':false}]},
     'map3d.instance.delete_batch' => {'mapId':'map','instanceIds':['unrelated-object']},
     'border_layer.feature_create' => {...border,'featureId':'new-cliff','name':'Cliff','blueprintId':'fence','seed':'42',
       'geometry':{'kind':'stroke','strokes':[{'id':'step','points':points,'closed':false}]}},

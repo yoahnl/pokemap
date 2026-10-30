@@ -73,6 +73,7 @@ import '../ports/file_backed_payload_store.dart';
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
 const _nativeLocalWorkshopActions = {
+  'map3d.edit_batch',
   ...TriggerZoneActions.fieldTraversalActions,
   'map3d.instance.configure_field_obstacle',
   'surf.configure',
@@ -265,7 +266,7 @@ final class LocalMapAuthoringMutationApi
 
   @override
   Future<Map<String, Object?>> mapEdit(ProjectHandle projectHandle,
-      MapEditOperation operation) async {
+      MapEditOperation operation, {bool Function()? isCancelled}) async {
     final session = _session(projectHandle);
     session.requireProjectionRead();
     final descriptor = _dispatcher.descriptor('map3d.edit_batch');
@@ -281,14 +282,22 @@ final class LocalMapAuthoringMutationApi
           message: 'Portable catalog publications are read-only.');
     }
     final snapshots = <String, ProjectSnapshot>{};
+    final catalogPlansWithChanges = <String>{};
     Future<Map<String, Object?>> projectReceipt(AuthoringReceipt receipt) async {
       final binding = MapEditBinding.fromJson(Map<String, dynamic>.from(receipt.extensions['mapEdit'] as Map));
-      return {'status': binding.unchanged ? 'unchanged' : 'applied',
+      final disposition = mapEditReceiptDisposition(receipt,binding);
+      final projection = await session._projections.prepareCommittedMutation(receipt: receipt,
+          snapshotRevision: binding.snapshotRevision);
+      if (disposition == 'compensated' || disposition == 'recovery_required') {
+        projection.remove('snapshotRevision');
+      }
+      return {'status': disposition,
         'operationId': operation.operationId,
         'semanticFingerprint': binding.fingerprint,
         'retentionDays': 30,
-        ...await session._projections.prepareCommittedMutation(receipt: receipt,
-            snapshotRevision: binding.snapshotRevision)};
+        'revisionScope': binding.unchanged ? 'selected_dependencies' : 'projected_change_set',
+        if (disposition == 'compensated') 'transactionRevision': receipt.afterRevision,
+        ...projection};
     }
     Future<Map<String, Object?>?> inspect(MapEditOperation operation) async {
       final found = await session._idempotencyStore.lookupOperation(
@@ -344,13 +353,19 @@ final class LocalMapAuthoringMutationApi
               ? await session.planMutation(request, suppliedSnapshot: snapshot)
               : await catalog.plan(request);
           snapshots[prepared.planId] = snapshot;
+          if (catalog != null && prepared.plan.changeSet.changes.isNotEmpty) {
+            catalogPlansWithChanges.add(prepared.planId);
+          }
           if (!operation.dryRun) {
             prepared.plan.bindMapEdit(MapEditBinding(operationId: operation.operationId,
               fingerprint: operation.semanticFingerprint, mapId: operation.mapId,
               seed: operation.seed, snapshotRevision: prepared.plan.changeSet.changes.isEmpty
                   ? prepared.plan.baseRevision : prepared.plan.projectedRevision,
               unchanged: prepared.plan.changeSet.changes.isEmpty),
-              readStorageKeys: snapshot.scopedStorageRevisions?.keys ?? snapshot.resourceStorageKeys.values);
+              readStorageKeys: {
+                ...snapshot.scopedStorageRevisions?.keys ?? snapshot.resourceStorageKeys.values,
+                if (catalog != null) CatalogStorageStore.headStorageKey,
+              });
           }
           return prepared;
         } finally {
@@ -360,14 +375,16 @@ final class LocalMapAuthoringMutationApi
       project: (prepared) async => prepared.toJson(),
       discard: (prepared) async {
         snapshots.remove(prepared.planId);
-        if (catalog != null && prepared.plan.changeSet.changes.isNotEmpty) return;
+        if (catalogPlansWithChanges.remove(prepared.planId)) return;
         await session._plans.discard(prepared.planId);
       },
-      apply: (prepared) async {
+      apply: (prepared,requireActive) async {
+        requireActive();
         final plan = prepared.plan;
         if (catalog != null && plan.changeSet.changes.isNotEmpty) {
           final result = await catalog.apply(planId: plan.planId,
-              operationId: operation.operationId);
+              operationId: operation.operationId,
+              precondition: () async { requireActive(); });
           return projectReceipt(result.receipt);
         }
         final snapshot = snapshots[plan.planId]!;
@@ -378,6 +395,7 @@ final class LocalMapAuthoringMutationApi
               projectId: session.projectId, actionId: descriptor.id,
               actionVersion: descriptor.version, key: plan.request.idempotencyKey!),
             operationId: operation.operationId, precondition: () async {
+              requireActive();
               final current = await readWorkshopSnapshot(projectHandle,
                   actionId: 'map3d.edit_batch', parameters: operation.toBatchParameters());
               if (current.revision != snapshot.revision) {
@@ -386,7 +404,7 @@ final class LocalMapAuthoringMutationApi
             });
         _snapshotLoader.invalidate(projectHandle);
         return projectReceipt(receipt);
-      }).execute(operation);
+      }).execute(operation,isCancelled:isCancelled);
   }
 
   final Map<ProjectHandle, CatalogAuthoringSession> _catalogSessions = {};

@@ -1,4 +1,5 @@
 import '../contracts/map_edit_operation.dart';
+import '../contracts/authoring_receipt.dart';
 import '../security/authorization_policy.dart';
 import '../transactions/plan_store.dart';
 import '../transactions/journaled_transaction.dart';
@@ -8,7 +9,20 @@ import 'authoring_mutation_contracts.dart';
 
 abstract interface class AuthoringMapEditPort {
   Future<Map<String, Object?>> mapEdit(
-      ProjectHandle projectHandle, MapEditOperation operation);
+      ProjectHandle projectHandle, MapEditOperation operation,
+      {bool Function()? isCancelled});
+}
+
+String mapEditReceiptDisposition(AuthoringReceipt receipt, MapEditBinding binding) {
+  if (receipt.extensions['recoveryOutcome'] == 'compensated') {
+    return 'compensated';
+  }
+  if (receipt.status == AuthoringReceiptStatus.planned ||
+      receipt.status == AuthoringReceiptStatus.recovered &&
+      receipt.extensions['recoveryOutcome'] != 'resumed') {
+    return 'recovery_required';
+  }
+  return binding.unchanged ? 'unchanged' : 'applied';
 }
 
 final class MapEditExecution {
@@ -25,7 +39,7 @@ final class MapEditExecution {
   final Future<Map<String, Object?>?> Function(MapEditOperation) inspect;
   final Future<AuthoringMutationPlanResult> Function(MapEditOperation, int)
       plan;
-  final Future<Map<String, Object?>> Function(AuthoringMutationPlanResult)
+  final Future<Map<String, Object?>> Function(AuthoringMutationPlanResult, void Function())
       apply;
   final Future<Map<String, Object?>> Function(AuthoringMutationPlanResult)
       project;
@@ -33,15 +47,24 @@ final class MapEditExecution {
   final Duration deadline;
   final Future<void> Function(Duration) _delay;
 
-  Future<Map<String, Object?>> execute(MapEditOperation operation) async {
+  Future<Map<String, Object?>> execute(MapEditOperation operation, {bool Function()? isCancelled}) async {
     final timer = Stopwatch()..start();
+    void requireActive() {
+      if (isCancelled?.call() == true || timer.elapsed >= deadline) {
+        throw AuthoringPlanException(code:'map_edit.cancelled',
+            message:'The map edit was cancelled or its preparation deadline expired.');
+      }
+    }
+    requireActive();
     final existing = await inspect(operation);
     if (existing != null && !operation.dryRun) return existing;
     for (var attempt = 0; attempt < 3; attempt++) {
       AuthoringMutationPlanResult? prepared;
       var preservePlan = false;
       try {
+        requireActive();
         prepared = await plan(operation, attempt);
+        requireActive();
         if (operation.dryRun) {
           return {
             'status': 'planned',
@@ -50,7 +73,7 @@ final class MapEditExecution {
             ...await project(prepared)
           };
         }
-        return await apply(prepared);
+        return await apply(prepared,requireActive);
       } on AuthoringAuthorizationException catch (error) {
         if (error.code != 'confirmation.required' || prepared == null) rethrow;
         preservePlan = true;

@@ -28,6 +28,24 @@ final class SemanticMapEdit {
   final Map<String, Object?> preview;
 }
 
+final class SemanticMapProjection {
+  SemanticMapProjection(
+      {required this.map,
+      required this.operation,
+      required this.changedItems,
+      required this.preview,
+      required AuthoringMutationDraft Function() finalize})
+      : _finalize = finalize;
+
+  final MapData map;
+  final String operation;
+  final int changedItems;
+  final Map<String, Object?> preview;
+  final AuthoringMutationDraft Function() _finalize;
+
+  AuthoringMutationDraft finalize() => _finalize();
+}
+
 final class SemanticMapActionContext {
   SemanticMapActionContext._({
     required this.planning,
@@ -36,11 +54,14 @@ final class SemanticMapActionContext {
     required this.storageKey,
     required this.resource,
     required this.beforeBytes,
+    this.deferFinalization = false,
   });
 
   factory SemanticMapActionContext.read(
     AuthoringPlanningContext planning, {
     required Set<String> allowedParameters,
+    MapData? projectedMap,
+    bool deferFinalization = false,
   }) {
     if (planning.request.actionVersion != 1) {
       throw semanticFailure(
@@ -54,13 +75,17 @@ final class SemanticMapActionContext {
       allowed: {'mapId', ...allowedParameters},
     );
     final mapId = parameters.string('mapId');
-    final map = planning.snapshot.mapById(mapId);
+    final map = projectedMap ?? planning.snapshot.mapById(mapId);
     if (map == null) {
       throw semanticFailure(
         'map.not_found',
         'The requested map does not exist.',
         details: {'mapId': mapId},
       );
+    }
+    if (map.id != mapId) {
+      throw semanticFailure('map.projected_identity_mismatch',
+          'The projected map must preserve its requested identity.');
     }
     final entry = planning.snapshot.manifest.maps
         .where((candidate) => candidate.id == mapId)
@@ -82,6 +107,7 @@ final class SemanticMapActionContext {
     }
     return SemanticMapActionContext._(
       planning: planning,
+      deferFinalization: deferFinalization,
       parameters: parameters,
       map: map,
       storageKey: entry.relativePath,
@@ -100,8 +126,39 @@ final class SemanticMapActionContext {
   final String storageKey;
   final AuthoringResourceRef resource;
   final List<int> beforeBytes;
+  final bool deferFinalization;
 
   ProjectManifest get manifest => planning.snapshot.manifest;
+
+  SemanticMapProjection project(SemanticMapEdit edit,
+          {MapMutationDelta? delta}) =>
+      SemanticMapProjection(
+          map: edit.map,
+          operation: edit.operation,
+          changedItems: edit.changedCells,
+          preview: edit.preview,
+          finalize: () => draft(edit, delta: delta));
+
+  SemanticMapProjection projectMap({
+    required MapData after,
+    required String operation,
+    required int changedItems,
+    String? layerId,
+    bool validateProjectReferences = true,
+    Map<String, Object?> preview = const {},
+  }) =>
+      SemanticMapProjection(
+          map: after,
+          operation: operation,
+          changedItems: changedItems,
+          preview: preview,
+          finalize: () => draftMap(
+              after: after,
+              operation: operation,
+              changedItems: changedItems,
+              layerId: layerId,
+              validateProjectReferences: validateProjectReferences,
+              preview: preview));
 
   AuthoringMutationDraft draft(
     SemanticMapEdit edit, {
@@ -209,8 +266,7 @@ final class SemanticMapActionContext {
       );
     }
     final before = map.warps[index], updated = after.warps[index];
-    final destinationOnly =
-        before.copyWith(
+    final destinationOnly = before.copyWith(
           targetMapId: updated.targetMapId,
           targetPos: updated.targetPos,
         ) ==
@@ -245,8 +301,12 @@ final class SemanticMapActionContext {
     if (validation != null) {
       throw validation.toFailure(validationState: 'projected');
     }
-    return _draftMap(after: after, operation: operation,
-        changedItems: changedItems, layerId: layerId, preview: preview);
+    return _draftMap(
+        after: after,
+        operation: operation,
+        changedItems: changedItems,
+        layerId: layerId,
+        preview: preview);
   }
 
   AuthoringMutationDraft _draftMap({
@@ -297,19 +357,23 @@ final class SemanticMapActionContext {
 
   Map<String, Object?> _introducedIntegrityPreview(MapData after) {
     if (map.spatialScene == null || after.spatialScene == null) return const {};
-    final introduced = inspectSpatialMapIntegrity(manifest: manifest, map: after)
-        .introducedSince(inspectSpatialMapIntegrity(manifest: manifest, map: map));
+    final introduced =
+        inspectSpatialMapIntegrity(manifest: manifest, map: after)
+            .introducedSince(
+                inspectSpatialMapIntegrity(manifest: manifest, map: map));
     return {
       if (introduced.groundGaps.isNotEmpty) ...{
         'groundGapsIntroducedCount': introduced.groundGaps.length,
         'groundGapsIntroduced': [
-          for (final gap in introduced.groundGaps.take(maximumIntegrityPreviewCount))
+          for (final gap
+              in introduced.groundGaps.take(maximumIntegrityPreviewCount))
             gap.toJson(),
         ],
       },
       if (introduced.borderObjectOverlaps.isNotEmpty)
         'borderObjectOverlapsIntroduced': [
-          for (final overlap in introduced.borderObjectOverlaps.take(maximumIntegrityPreviewCount))
+          for (final overlap in introduced.borderObjectOverlaps
+              .take(maximumIntegrityPreviewCount))
             overlap.toJson(),
         ],
     };

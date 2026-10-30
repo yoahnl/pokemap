@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../support/reliability_map_fixture.dart';
+
 void main() {
   test('semantic identity normalizes defaults and excludes transport identity',
       () {
@@ -86,7 +88,7 @@ void main() {
           attempts++;
           throw AuthoringPlanException(code: 'plan.stale', message: 'changed');
         },
-        apply: (_) async => throw StateError('must not apply'),
+        apply: (_,__) async => throw StateError('must not apply'),
         project: (_) async => throw StateError('must not project'),
         discard: (_) async {},
         delay: (duration) async {
@@ -104,13 +106,45 @@ void main() {
           attempts++;
           throw StateError('must not plan');
         },
-        apply: (_) async => throw StateError('must not apply'),
+        apply: (_,__) async => throw StateError('must not apply'),
         project: (_) async => throw StateError('must not project'),
         discard: (_) async {});
     expect(
         (await pending.execute(_operation()))['status'], 'recovery_required');
     expect(attempts, 0);
   });
+
+  for (final jsonl in [false, true]) {
+    test(
+        'classic pending index preparation is exposed through ${jsonl ? 'JSONL' : 'Dart API'}',
+        () async {
+      final fixture = await ReliabilityMapFixture.create(
+          variant: ReliabilityMapVariant.healthy,
+          qaRoot:
+              '/Users/karim/Library/Caches/AveluneQA/mcp-map-reliability/r2');
+      addTearDown(fixture.dispose);
+      final gateway = await LocalTransactionFileGateway.open(
+          projectRoot: fixture.root.path);
+      await expectLater(
+          gateway.listPendingJournals(requirePrepared: true),
+          throwsA(isA<TransactionFileGatewayException>().having(
+              (error) => error.code,
+              'code',
+              'transaction.pending_index_preparation_required')));
+      if (jsonl) {
+        final result = await fixture.command('workshop_prepare',
+            {'projectHandle': fixture.opened.projectHandle.value});
+        expect(result.status, AuthoringResultStatus.success,
+            reason: result.error?.toJson().toString());
+        expect(result.data['prepared'], isTrue);
+      } else {
+        final result = await fixture.api
+            .prepareWorkshopDocument(fixture.opened.projectHandle);
+        expect(result['prepared'], isTrue);
+      }
+      expect(await gateway.listPendingJournals(requirePrepared: true), isEmpty);
+    });
+  }
 
   group('map edit durable metadata boundary', () {
     late Directory root;

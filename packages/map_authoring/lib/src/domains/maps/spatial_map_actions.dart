@@ -29,7 +29,8 @@ final class SpatialMapActions {
         id: entry.key,
         version: 1,
         summary: switch (entry.value) {
-          'fieldObstacle' => 'Configure Cut, Strength or Rock Smash on a selected static blocking 3D model',
+          'fieldObstacle' =>
+            'Configure Cut, Strength or Rock Smash on a selected static blocking 3D model',
           'cells' => 'Set discrete terrain levels on a 3D map',
           'levelHeight' =>
             'Configure physical terrain level height and preserve instance offsets',
@@ -41,8 +42,10 @@ final class SpatialMapActions {
           'instanceId' => 'Delete a 3D model instance',
           'instanceIds' => 'Delete bounded 3D instances atomically on one map',
           'navigation' => 'Configure spawn, ramps and exploration movement',
-          'ledges' => 'Configure one-way native ledge jumps and their landing cells',
-          'cycle' => 'Configure or disable a visual day/night cycle without changing gameplay time',
+          'ledges' =>
+            'Configure one-way native ledge jumps and their landing cells',
+          'cycle' =>
+            'Configure or disable a visual day/night cycle without changing gameplay time',
           _ => 'Configure a fixed 3D map camera',
         },
         inputSchemaId: 'schema.${entry.key}.input.v1',
@@ -58,29 +61,51 @@ final class SpatialMapActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
-          if (mapActionInputExample(entry.key) case final example?) 'inputExample': example,
-          if (entry.value == 'ledges') 'directionalTraversal': {'capability': SpatialLedge.capabilityId, 'coordinateOrigin': 'source_cell', 'landing': 'source_plus_direction_times_distance', 'blockedReverse': true},
-          if (entry.value == 'cycle') 'visualClock': {
-            'gameplayClockIndependent': true, 'capability': 'map3d.day-night@1',
-            'disabled': null, 'durationUnits': 'seconds_per_full_day',
-          },
+          if (mapActionInputExample(entry.key) case final example?)
+            'inputExample': example,
+          if (entry.value == 'ledges')
+            'directionalTraversal': {
+              'capability': SpatialLedge.capabilityId,
+              'coordinateOrigin': 'source_cell',
+              'landing': 'source_plus_direction_times_distance',
+              'blockedReverse': true
+            },
+          if (entry.value == 'cycle')
+            'visualClock': {
+              'gameplayClockIndependent': true,
+              'capability': 'map3d.day-night@1',
+              'disabled': null,
+              'durationUnits': 'seconds_per_full_day',
+            },
           if (entry.value == 'camera') ...{
             'projections': ['perspective', 'orthographic'],
             'orthographicHeightUnits': 'world_cells_full_vertical_extent',
-            'orthographicCapability': SpatialCameraProfile.orthographicCapabilityId,
+            'orthographicCapability':
+                SpatialCameraProfile.orthographicCapabilityId,
           },
           if (entry.value == 'instance' || entry.value == 'instances')
-            'entityBinding': {'field':'entityId','capability':SpatialModelInstance.entityBindingCapabilityId,'scope':'same_map_non_npc','unique':true,'empty':null},
+            'entityBinding': {
+              'field': 'entityId',
+              'capability': SpatialModelInstance.entityBindingCapabilityId,
+              'scope': 'same_map_non_npc',
+              'unique': true,
+              'empty': null
+            },
           if (entry.value == 'instance' || entry.value == 'instances')
-            'shadowCasting': {'field': 'castsShadows', 'default': null,
-              'inherits': 'model3d.castsShadowsByDefault', 'replacementSemantics': true},
+            'shadowCasting': {
+              'field': 'castsShadows',
+              'default': null,
+              'inherits': 'model3d.castsShadowsByDefault',
+              'replacementSemantics': true
+            },
           if (entry.value == 'instance' || entry.value == 'instances')
             'model3dClip': {
               'field': 'clip',
               'capability': SpatialModelClipCapabilities.capabilityId,
               'coordinates': ['left', 'top', 'right', 'bottom'],
               'units': 'cells_relative_to_instance_pivot_before_rotation',
-              'sourceAdmission': 'inspected_static_glb_without_node_or_material_animations',
+              'sourceAdmission':
+                  'inspected_static_glb_without_node_or_material_animations',
               'blocksMovement': false,
               'animationIndex': null,
               'attachedRamp': 'unsupported',
@@ -95,11 +120,16 @@ final class SpatialMapActions {
           'inputSchema': {
             'type': 'object',
             'additionalProperties': false,
-            'required': ['mapId', entry.value, if (entry.value == 'fieldObstacle') 'instanceId'],
+            'required': [
+              'mapId',
+              entry.value,
+              if (entry.value == 'fieldObstacle') 'instanceId'
+            ],
             'properties': {
               'mapId': {'type': 'string', 'minLength': 1},
               entry.value: _schema(entry.value),
-              if (entry.value == 'fieldObstacle') 'instanceId': _schema('instanceId'),
+              if (entry.value == 'fieldObstacle')
+                'instanceId': _schema('instanceId'),
               if (entry.value == 'cliffFrame')
                 'generateCliffs': {'type': 'boolean'},
             }
@@ -184,18 +214,28 @@ final class SpatialMapActions {
     return after;
   }
 
-  AuthoringMutationDraft build(AuthoringPlanningContext planning) {
+  AuthoringMutationDraft build(AuthoringPlanningContext planning) =>
+      project(planning).finalize();
+
+  SemanticMapProjection project(
+    AuthoringPlanningContext planning, {
+    MapData? projectedMap,
+    bool deferFinalization = false,
+  }) {
     final action = planning.request.actionId;
     final field = _fields[action];
     if (field == null) {
       throw semanticFailure(
           'map3d.action_unsupported', 'Unsupported spatial map action.');
     }
-    final context = SemanticMapActionContext.read(planning, allowedParameters: {
-      field,
-      if (field == 'fieldObstacle') 'instanceId',
-      if (field == 'cliffFrame') 'generateCliffs',
-    });
+    final context = SemanticMapActionContext.read(planning,
+        projectedMap: projectedMap,
+        deferFinalization: deferFinalization,
+        allowedParameters: {
+          field,
+          if (field == 'fieldObstacle') 'instanceId',
+          if (field == 'cliffFrame') 'generateCliffs',
+        });
     if (context.manifest.settings.dimension != ProjectDimension.threeD ||
         context.map.spatialScene == null) {
       throw semanticFailure('map3d.dimension_required',
@@ -230,9 +270,13 @@ final class SpatialMapActions {
     const operations = SpatialMapOperations();
     try {
       final after = switch (field) {
-        'fieldObstacle' => configureFieldObstacle(context.map, project: context.manifest,
-          instanceId: context.parameters.string('instanceId'),
-          fieldObstacle: context.parameters.value(field) == null ? null : MapEntityFieldObstacleData.fromJson(_object(context.parameters.value(field), {'kind', 'resetPolicy'}))),
+        'fieldObstacle' => configureFieldObstacle(context.map,
+            project: context.manifest,
+            instanceId: context.parameters.string('instanceId'),
+            fieldObstacle: context.parameters.value(field) == null
+                ? null
+                : MapEntityFieldObstacleData.fromJson(_object(
+                    context.parameters.value(field), {'kind', 'resetPolicy'}))),
         'instances' => _upsertInstances(context),
         'instanceIds' => _deleteInstances(context, planning.snapshot.maps),
         'levelHeight' =>
@@ -255,16 +299,33 @@ final class SpatialMapActions {
             }).toList()),
         'instance' => _upsertInstance(context),
         'navigation' => _configureNavigation(context),
-        'ledges' => operations.configureNavigation(context.map, context.map.spatialScene!.navigation.copyWith(ledges: context.parameters.list('ledges').map((value) => SpatialLedge.fromJson(_object(value, {'id','x','z','direction','distance','durationMs','height'})))), models: context.manifest.models3d),
-        'cycle' => operations.configureDayNightCycle(context.map,
-          context.parameters.value(field) == null ? null : SpatialDayNightCycle.fromJson(
-            _object(context.parameters.value(field), {'durationSeconds', 'startMinuteOfDay'}))),
+        'ledges' => operations.configureNavigation(
+            context.map,
+            context.map.spatialScene!.navigation.copyWith(
+                ledges: context.parameters.list('ledges').map((value) =>
+                    SpatialLedge.fromJson(_object(value, {
+                      'id',
+                      'x',
+                      'z',
+                      'direction',
+                      'distance',
+                      'durationMs',
+                      'height'
+                    })))),
+            models: context.manifest.models3d),
+        'cycle' => operations.configureDayNightCycle(
+            context.map,
+            context.parameters.value(field) == null
+                ? null
+                : SpatialDayNightCycle.fromJson(_object(
+                    context.parameters.value(field),
+                    {'durationSeconds', 'startMinuteOfDay'}))),
         'instanceId' => operations.deleteInstance(
             context.map, context.parameters.string(field)),
         _ => operations.configureCamera(
             context.map,
-            SpatialCameraProfile.fromJson(_object(
-                context.parameters.object(field), {
+            SpatialCameraProfile.fromJson(
+                _object(context.parameters.object(field), {
               'mode',
               'projection',
               'pitchDegrees',
@@ -274,9 +335,11 @@ final class SpatialMapActions {
               'orthographicHeight'
             }))),
       };
-      return context.draftMap(
-          validateProjectReferences: field != 'fieldObstacle' && (field != 'camera' || !planning.snapshot.materializedCatalogProject ||
-              planning.snapshot.availableProjectSections == null),
+      return context.projectMap(
+          validateProjectReferences: field != 'fieldObstacle' &&
+              (field != 'camera' ||
+                  !planning.snapshot.materializedCatalogProject ||
+                  planning.snapshot.availableProjectSections == null),
           after: after,
           operation: action,
           changedItems: switch (field) {
@@ -336,9 +399,11 @@ MapData _upsertInstance(SemanticMapActionContext context) {
   _requireAuthoredInstance(context.map, instance.id,
       allowManualEnvironment: true);
   final model = context.manifest.models3d
-      .where((model) => model.id == instance.modelId).firstOrNull;
+      .where((model) => model.id == instance.modelId)
+      .firstOrNull;
   _requireStaticClip(instance, model);
-  return const SpatialMapOperations().upsertInstance(context.map, instance, model: model);
+  return const SpatialMapOperations()
+      .upsertInstance(context.map, instance, model: model);
 }
 
 MapData _configureNavigation(SemanticMapActionContext context) {
@@ -423,7 +488,8 @@ MapData _deleteInstances(SemanticMapActionContext context, List<MapData> maps) {
           'An instance batch cannot repeat an instance identity.',
           details: {'instanceId': value});
     }
-    _requireAuthoredInstance(context.map, value, requireExisting: true);
+    _requireAuthoredInstance(context.map, value,
+        requireExisting: !context.deferFinalization);
   }
   final index =
       buildNarrativeDependencyIndex(project: context.manifest, maps: maps);
@@ -516,11 +582,13 @@ MapData _upsertInstances(SemanticMapActionContext context) {
       models: context.manifest.models3d);
 }
 
-void _requireStaticClip(SpatialModelInstance instance, ProjectModel3dEntry? model) {
+void _requireStaticClip(
+    SpatialModelInstance instance, ProjectModel3dEntry? model) {
   if (instance.clip == null) return;
   if (model == null) {
     throw semanticFailure('map3d.instance.model_not_found',
-        'A clipped instance requires an existing model.', details: {'modelId': instance.modelId});
+        'A clipped instance requires an existing model.',
+        details: {'modelId': instance.modelId});
   }
   if (model.inspection.animations.isNotEmpty) {
     throw semanticFailure('map3d.instance.clip_animated_model',
@@ -529,7 +597,8 @@ void _requireStaticClip(SpatialModelInstance instance, ProjectModel3dEntry? mode
   }
   if (model.rampProfile != null) {
     throw semanticFailure('map3d.instance.clip_ramp_model',
-        'Clipped instances cannot use an attached ramp profile.', details: {'modelId': model.id});
+        'Clipped instances cannot use an attached ramp profile.',
+        details: {'modelId': model.id});
   }
 }
 
@@ -568,18 +637,36 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 
 Map<String, Object?> _schema(String field) => switch (field) {
       'fieldObstacle' => {
-        'type': ['object', 'null'], 'additionalProperties': false,
-        'required': ['kind', 'resetPolicy'],
-        'properties': {'kind': {'enum': ['cutTree', 'strengthBoulder', 'rockSmashRock']},
-          'resetPolicy': {'enum': ['mapInstance', 'persistent']}},
-      },
-      'cycle' => {
-        'type': ['object', 'null'], 'additionalProperties': false,
-        'properties': {
-          'durationSeconds': {'type': 'number', 'minimum': 10, 'maximum': 86400, 'default': 600},
-          'startMinuteOfDay': {'type': 'integer', 'minimum': 0, 'maximum': 1439, 'default': 720},
+          'type': ['object', 'null'],
+          'additionalProperties': false,
+          'required': ['kind', 'resetPolicy'],
+          'properties': {
+            'kind': {
+              'enum': ['cutTree', 'strengthBoulder', 'rockSmashRock']
+            },
+            'resetPolicy': {
+              'enum': ['mapInstance', 'persistent']
+            }
+          },
         },
-      },
+      'cycle' => {
+          'type': ['object', 'null'],
+          'additionalProperties': false,
+          'properties': {
+            'durationSeconds': {
+              'type': 'number',
+              'minimum': 10,
+              'maximum': 86400,
+              'default': 600
+            },
+            'startMinuteOfDay': {
+              'type': 'integer',
+              'minimum': 0,
+              'maximum': 1439,
+              'default': 720
+            },
+          },
+        },
       'instanceIds' => {
           'type': 'array',
           'minItems': 1,
@@ -611,17 +698,29 @@ Map<String, Object?> _schema(String field) => switch (field) {
           },
         },
       'ledges' => {
-        'type': 'array', 'maxItems': 4096,
-        'items': {'type':'object', 'additionalProperties':false,
-          'required':['id','x','z','direction'], 'properties': {
-            'id': {'type':'string', 'pattern':r'^[a-zA-Z0-9_-]{1,128}$'},
-            'x': {'type':'integer','minimum':0,'maximum':255},
-            'z': {'type':'integer','minimum':0,'maximum':255},
-            'direction': {'enum':['north','south','east','west']},
-            'distance': {'type':'integer','minimum':2,'maximum':4},
-            'durationMs': {'type':'integer','minimum':100,'maximum':2000},
-            'height': {'type':'number','exclusiveMinimum':0,'maximum':4},
-          }}},
+          'type': 'array',
+          'maxItems': 4096,
+          'items': {
+            'type': 'object',
+            'additionalProperties': false,
+            'required': ['id', 'x', 'z', 'direction'],
+            'properties': {
+              'id': {'type': 'string', 'pattern': r'^[a-zA-Z0-9_-]{1,128}$'},
+              'x': {'type': 'integer', 'minimum': 0, 'maximum': 255},
+              'z': {'type': 'integer', 'minimum': 0, 'maximum': 255},
+              'direction': {
+                'enum': ['north', 'south', 'east', 'west']
+              },
+              'distance': {'type': 'integer', 'minimum': 2, 'maximum': 4},
+              'durationMs': {
+                'type': 'integer',
+                'minimum': 100,
+                'maximum': 2000
+              },
+              'height': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 4},
+            }
+          }
+        },
       'navigation' => {
           'type': 'object',
           'additionalProperties': false,
@@ -753,17 +852,23 @@ Map<String, Object?> _schema(String field) => switch (field) {
               'maximum': 16
             },
             'blocksMovement': {'type': 'boolean'},
-            'entityId': {'type':['string','null'],'pattern':r'^[a-zA-Z0-9_-]{1,128}$'},
+            'entityId': {
+              'type': ['string', 'null'],
+              'pattern': r'^[a-zA-Z0-9_-]{1,128}$'
+            },
             'castsShadows': {
               'type': ['boolean', 'null'],
-              'description': 'Overrides the model shadow default; null or omission inherits it.',
+              'description':
+                  'Overrides the model shadow default; null or omission inherits it.',
             },
             'clip': {
               'type': ['object', 'null'],
               'additionalProperties': false,
               'required': ['left', 'top', 'right', 'bottom'],
-              'properties': {for (final coordinate in ['left', 'top', 'right', 'bottom'])
-                coordinate: {'type': 'number'}}
+              'properties': {
+                for (final coordinate in ['left', 'top', 'right', 'bottom'])
+                  coordinate: {'type': 'number'}
+              }
             }
           }
         },
@@ -810,10 +915,14 @@ Map<String, Object?> _schema(String field) => switch (field) {
           'allOf': [
             {
               'if': {
-                'properties': {'projection': {'const': 'orthographic'}},
+                'properties': {
+                  'projection': {'const': 'orthographic'}
+                },
                 'required': ['projection'],
               },
-              'then': {'required': ['orthographicHeight']},
+              'then': {
+                'required': ['orthographicHeight']
+              },
             },
           ],
         },

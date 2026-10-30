@@ -541,12 +541,18 @@ Map<String, Object?> describeAuthoringCapabilities(
   String domain = 'all',
   String view = 'full',
   List<String> actionIds = const [],
+  int offset = 0,
+  int pageSize = 40,
 }) {
   if (domain != 'all' && !authoringCapabilityDomains.containsKey(domain)) {
     throw FormatException('Unsupported capability domain: $domain');
   }
   if (view != 'full' && view != 'compact') {
     throw FormatException('Unsupported capability view: $view');
+  }
+  if (offset < 0 || pageSize < 1 || pageSize > 40 ||
+      (offset != 0 && (view != 'compact' || actionIds.isNotEmpty))) {
+    throw const FormatException('Compact discovery requires offset >= 0 and pageSize 1..40.');
   }
   if (actionIds.length > 64 ||
       actionIds.toSet().length != actionIds.length ||
@@ -573,22 +579,31 @@ Map<String, Object?> describeAuthoringCapabilities(
           (actionIds.isEmpty || actionIds.contains(action['id'])))
       .toList()
     ..sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+  if (offset > selected.length) {
+    throw const FormatException('The discovery offset exceeds the action count.');
+  }
+  final effectiveView = actionIds.isEmpty ? view : 'full';
+  final page = effectiveView == 'compact'
+      ? selected.skip(offset).take(pageSize).toList() : selected;
   final resources = {
-    for (final action in selected)
+    if (domain == 'map3d') ...{'map', 'mapHealth', 'borderFeature', 'spatialMapIntegrity', 'smartTileMaterial', 'smartTilePreset', 'model3d', 'borderBlueprint'},
+    for (final action in page)
       for (final kind in action['resourceKinds'] as List? ?? const []) kind,
   };
-  final effectiveView = actionIds.isEmpty ? view : 'full';
   return {
     'capabilityDiscoveryVersion': 1,
     'domain': domain,
     'view': effectiveView,
-    'classification': 'canonical_action_families_v1',
+    'classification': 'explicit_action_membership_v1',
     if (description['protocol'] != null) 'protocol': description['protocol'],
     if (description['schemaVersion'] != null)
       'schemaVersion': description['schemaVersion'],
     'actionCount': selected.length,
+    'offset': offset,
+    if (effectiveView == 'compact' && offset + page.length < selected.length)
+      'nextRequest': {'domain':domain,'view':'compact','offset':offset + page.length,'pageSize':pageSize},
     'mutationActions': [
-      for (final action in selected)
+      for (final action in page)
         if (effectiveView == 'full') action else _compactAction(action),
     ],
     'resourceKinds': [

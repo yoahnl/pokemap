@@ -20,6 +20,7 @@ MapData relinkSpatialBorderFeature(
   required String targetBlueprintId,
   bool reverseStrokes = false,
   bool clearVerticalOffset = false,
+  bool materialize = true,
   Map<String, String> replacementPrimitiveIdsBySlot = const {},
   int resolverVersion = borderResolverVersion,
 }) {
@@ -158,6 +159,7 @@ MapData relinkSpatialBorderFeature(
       'Spatial Border relink cannot preserve its corrections: $errors',
     );
   }
+  if (!materialize) return candidate;
   return applySpatialBorderFeaturePreview(
     candidate,
     manifest: manifest,

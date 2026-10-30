@@ -1,3 +1,4 @@
+import '../domains/maps/map3d_edit_batch_actions.dart';
 import '../domains/maps/spatial_lift_actions.dart';
 import '../domains/assets/resource_pack_actions.dart';
 import '../domains/assets/resource_pack_import_preparer.dart';
@@ -216,6 +217,7 @@ final class MapMutationDispatcher {
     final resourcePacks = ResourcePackActions(
         resolvePreparedImport: preparedResourcePackImportResolver);
     return MapMutationDispatcher([
+      MapMutationActionRegistration(descriptor: Map3dEditBatchActions.descriptor, build: const Map3dEditBatchActions().build),
       MapMutationActionRegistration(descriptor:projectCatalogPartitionDescriptor,evidence:MutationContractEvidence(proofs:{...MutationContractEvidence.mandatoryCore,MutationContractProof.nonUndoablePolicy},nonUndoableReason:'catalog.partition_not_undoable'),build:projectCatalogPartitionBuilder??(_) => throw AuthoringPlanException(code:'catalog.partition_unavailable',message:'Catalog partitioning requires a local authoring session.')),
       MapMutationActionRegistration(descriptor: catalogDefinitionUpdateDescriptor, build: (_) => throw AuthoringPlanException(code:'catalog.working_project_required',message:'Catalog metadata editing requires a working catalog project.')),
       MapMutationActionRegistration(

@@ -86,7 +86,7 @@ final class MapEditOperation {
       };
 
   static String _identity(String value) {
-    if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$').hasMatch(value)) {
+    if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$').hasMatch(value)) {
       throw const FormatException('Invalid operationId');
     }
     return value;

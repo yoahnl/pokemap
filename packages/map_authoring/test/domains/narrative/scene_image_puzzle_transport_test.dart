@@ -71,6 +71,201 @@ void main() {
       expect(contract['outputPorts'], ['solved', 'quit']);
     }
   });
+  for (final kind in [
+    'badge',
+    'inventoryItem',
+    'trainerDefeated',
+    'worldState'
+  ]) {
+    test('mixed puzzle preserves typed $kind condition dependencies', () async {
+      final seed = _dependencyProject();
+      final sourceId = {
+        'badge': 'wing',
+        'inventoryItem': 'fruit',
+        'trainerDefeated': 'rival',
+        'worldState': 'weather'
+      }[kind]!;
+      final mixed = _mixedScene(
+          condition: SceneConditionSource.fromJson({
+        'sourceKind': kind,
+        'sourceId': sourceId,
+        'operator': 'isTrue'
+      }));
+      final fixture = await _PuzzleFixture.create(
+          jsonl: false,
+          catalog: true,
+          mixedProject: seed,
+          sceneValue: mixed,
+          resources: _dependencyResources());
+      addTearDown(fixture.dispose);
+      final next = command();
+      (next['definition'] as Map)['allowReset'] = false;
+      final parameters = {
+        'sceneId': 'puzzle',
+        'nodeId': 'puzzle-node',
+        'command': next
+      };
+      final snapshot = await fixture.mutations.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'scene.interactive_command.set',
+          parameters: parameters);
+      if (kind == 'badge') {
+        expect(snapshot.manifest.badges.map((badge) => badge.id), ['wing']);
+      }
+      if (kind == 'inventoryItem') {
+        expect(snapshot.itemCatalog?.entries.map((item) => item.id), ['fruit']);
+      }
+      if (kind == 'trainerDefeated') {
+        expect(
+            snapshot.manifest.trainers.map((trainer) => trainer.id), ['rival']);
+      }
+      if (kind == 'worldState') {
+        expect(
+            snapshot.manifest.worldRules.map((rule) => rule.id), ['weather']);
+        expect(
+            snapshot.manifest.facts.map((fact) => fact.id), ['world-enabled']);
+      }
+      expect(
+          snapshot.manifest.facts.any((fact) => fact.id == sourceId), isFalse);
+      await fixture.apply(
+          await fixture.plan('scene.interactive_command.set', parameters));
+      await fixture.reopen();
+      expect(await fixture.storedCommand(), next);
+    });
+  }
+  for (final action in [
+    'scene.upsert',
+    'scene.graph.patch',
+    'scene.interactive_command.set'
+  ]) {
+    test('mixed puzzle loads incoming gift moves for $action', () async {
+      final before = _giftCommand();
+      final gift = _giftCommand(moves: ['tackle']);
+      final mixed =
+          _mixedScene(actions: [SceneActionPayload.interactive(before)]);
+      final fixture = await _PuzzleFixture.create(
+          jsonl: false,
+          catalog: true,
+          mixedProject: _dependencyProject(),
+          sceneValue: mixed,
+          resources: _dependencyResources());
+      addTearDown(fixture.dispose);
+      final node = SceneNode(
+          id: 'extra-0',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.interactive(gift));
+      final parameters = switch (action) {
+        'scene.upsert' => {
+            'scene':
+                _mixedScene(actions: [SceneActionPayload.interactive(gift)])
+                    .toJson()
+          },
+        'scene.graph.patch' => {
+            'sceneId': 'puzzle',
+            'upsertNodes': [node.toJson()]
+          },
+        _ => {
+            'sceneId': 'puzzle',
+            'nodeId': 'extra-0',
+            'command': gift.toJson()
+          },
+      };
+      final snapshot = await fixture.mutations.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: action,
+          parameters: parameters);
+      expect(snapshot.hasResource('pokemonCatalog:moves'), isTrue);
+      await fixture.apply(await fixture.plan(action, parameters));
+    });
+  }
+  for (final dependency in [
+    'step',
+    'journey',
+    'music',
+    'sound',
+    'starter',
+    'mapVariants'
+  ]) {
+    test(
+        'mixed puzzle resolves $dependency without loading unrelated definitions',
+        () async {
+      final seed = _extraDependencyProject();
+      final action = switch (dependency) {
+        'step' => SceneActionPayload.consequence(
+            SceneConsequence.completeStoryStep(stepId: 'step-enter')),
+        'journey' => SceneActionPayload.interactive(
+            SceneInteractiveCommand.railJourney(
+                commandId: 'trip',
+                journeyId: 'T1',
+                operation: SceneRailJourneyOperation.begin,
+                direction: RailJourneyDirection.outbound,
+                doorSide: RailJourneyDoorSide.west)),
+        'music' => SceneActionPayload.interactive(
+            SceneInteractiveCommand.sceneMusic(
+                operation: SceneMusicOperation.play,
+                mediaAssetId: 'theme',
+                volume: 1)),
+        'sound' => SceneActionPayload.interactive(
+            SceneInteractiveCommand.playSoundEffect(
+                mediaAssetId: 'door', volume: 1)),
+        'starter' => SceneActionPayload.consequence(
+            SceneConsequence.giveConfiguredStarter(starterOptionId: 'starter')),
+        _ => SceneActionPayload.interactive(SceneInteractiveCommand.fromJson({
+            'kind': 'actorVisibility',
+            'target': {'kind': 'entity', 'mapId': 'room', 'entityId': 'actor'},
+            'visible': false
+          })),
+      };
+      final fixture = await _PuzzleFixture.create(
+          jsonl: false,
+          catalog: true,
+          mixedProject: seed,
+          sceneValue: _mixedScene(actions: [action]),
+          resources: {..._dependencyResources(), ..._mapDependencyResources()});
+      addTearDown(fixture.dispose);
+      final next = command();
+      (next['definition'] as Map)['allowReset'] = false;
+      final parameters = {
+        'sceneId': 'puzzle',
+        'nodeId': 'puzzle-node',
+        'command': next
+      };
+      final snapshot = await fixture.mutations.readWorkshopSnapshot(
+          fixture.opened.projectHandle,
+          actionId: 'scene.interactive_command.set',
+          parameters: parameters);
+      switch (dependency) {
+        case 'step':
+          expect(
+              snapshot.manifest.storylines.map((story) => story.id), ['main']);
+        case 'journey':
+          expect(
+              snapshot.manifest.railJourneyCatalog?.journeys
+                  .map((journey) => journey.id),
+              ['T1']);
+        case 'music':
+          expect(
+              snapshot.manifest.cinematicMediaAssets.map((media) => media.id),
+              ['theme']);
+        case 'sound':
+          expect(
+              snapshot.manifest.cinematicMediaAssets.map((media) => media.id),
+              ['door']);
+        case 'starter':
+          expect(
+              snapshot.manifest.newGame.starterOptions
+                  .map((option) => option.id),
+              ['starter']);
+        case 'mapVariants':
+          expect(snapshot.manifest.characters.map((character) => character.id),
+              unorderedEquals(['actor-character', 'second-character']));
+      }
+      await fixture.apply(
+          await fixture.plan('scene.interactive_command.set', parameters));
+      await fixture.reopen();
+      expect(await fixture.storedCommand(), next);
+    });
+  }
   final readCounts = <int>[];
   for (final unrelated in [0, 128]) {
     test('catalog puzzle edits stay scoped with $unrelated unrelated scenes',
@@ -242,7 +437,12 @@ final class _PuzzleFixture {
   File get file => File('${root.path}/project.json');
 
   static Future<_PuzzleFixture> create(
-      {required bool jsonl, bool catalog = false, int unrelated = 0}) async {
+      {required bool jsonl,
+      bool catalog = false,
+      int unrelated = 0,
+      ProjectManifest? mixedProject,
+      SceneAsset? sceneValue,
+      Map<String, Object?> resources = const {}}) async {
     final qaRoot = Directory(Platform.environment['AVELUNE_QA_ROOT'] ??
         '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle-authoring');
     await qaRoot.create(recursive: true);
@@ -264,6 +464,11 @@ final class _PuzzleFixture {
           kind: ProjectMediaKind.audio,
           sourceAssetId: 'sound-source'),
     ]).toJson()));
+    for (final entry in resources.entries) {
+      final file = File('${root.path}/${entry.key}');
+      await file.parent.create(recursive: true);
+      await file.writeAsString(jsonEncode(entry.value));
+    }
     final unrelatedObjects = <String>{};
     if (catalog) {
       await File('${root.path}/project.json').delete();
@@ -271,9 +476,10 @@ final class _PuzzleFixture {
       final working = await WorkingProjectCatalog.create(
           store: store,
           projectId: 'puzzle',
-          project:
-              ProjectManifest(name: 'Puzzle', maps: [], tilesets: [], scenes: [
-            SceneAsset.fromJson(scene()),
+          project: (mixedProject ??
+                  const ProjectManifest(name: 'Puzzle', maps: [], tilesets: []))
+              .copyWith(scenes: [
+            sceneValue ?? SceneAsset.fromJson(scene()),
             for (var i = 0; i < unrelated; i++)
               SceneAsset(
                   id: 'unrelated-$i',
@@ -344,8 +550,12 @@ final class _PuzzleFixture {
       parameters: parameters,
     );
     if (!jsonl) {
-      final planned = await mutations.planMutation(opened.projectHandle, request);
-      return {...planned.toJson(), '_resourceChanges': planned.plan.changeSet.changes.length};
+      final planned =
+          await mutations.planMutation(opened.projectHandle, request);
+      return {
+        ...planned.toJson(),
+        '_resourceChanges': planned.plan.changeSet.changes.length
+      };
     }
     final response = await _jsonl('plan', {
       'projectHandle': opened.projectHandle.value,
@@ -472,3 +682,293 @@ final class _CountingReader
       delegate.probeResource(
           projectRoot: projectRoot, relativePath: relativePath);
 }
+
+ProjectManifest _dependencyProject() => ProjectManifest.fromJson({
+      ...const ProjectManifest(
+              name: 'Dependencies',
+              maps: [],
+              tilesets: [],
+              pokemon: ProjectPokemonConfig(
+                  enabled: true,
+                  ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+                  catalogFiles: {'items': 'items.json', 'moves': 'moves.json'}))
+          .toJson(),
+      'badges': [
+        {'id': 'wing', 'label': 'Wing'},
+        {'id': 'unused-badge', 'label': 'Unused'}
+      ],
+      'trainers': [
+        const ProjectTrainerEntry(
+                id: 'rival',
+                name: 'Rival',
+                trainerClass: 'Rival',
+                team: [ProjectTrainerPokemonEntry(speciesId: 'bird', level: 5)])
+            .toJson()
+      ],
+      'facts': [
+        NarrativeFactDefinition(id: 'world-enabled', label: 'World enabled')
+            .toJson()
+      ],
+      'worldRules': [
+        WorldRuleDefinition(
+                id: 'weather',
+                label: 'Weather',
+                source: const WorldRuleSource(
+                    kind: WorldRuleSourceKind.fact,
+                    sourceId: 'world-enabled',
+                    predicate: WorldRuleSourcePredicate.isTrue),
+                target: const WorldRuleTarget(
+                    kind: WorldRuleTargetKind.atmosphere, mapId: ''),
+                effect:
+                    const WorldRuleEffect(kind: WorldRuleEffectKind.atmosphere))
+            .toJson()
+      ],
+    });
+Map<String, Object?> _dependencyResources() => {
+      'items.json': encodeProjectItemCatalog(const ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: [
+            ProjectItemDefinition(
+                id: 'fruit', displayName: 'Fruit', pocketId: 'materials')
+          ])),
+      'moves.json': {
+        'schemaVersion': 1,
+        'kind': 'pokemon_catalog',
+        'catalog': 'moves',
+        'entries': [
+          {'id': 'tackle', 'name': 'Tackle'}
+        ]
+      },
+    };
+SceneInteractiveCommand _giftCommand({List<String>? moves}) =>
+    SceneInteractiveCommand.fromJson({
+      'kind': 'receivePokemonFromCatalog',
+      'speciesId': 'bird',
+      'formId': 'normal',
+      'level': 5,
+      'nicknamePolicy': 'offer',
+      'nicknameMaxGraphemes': 12,
+      'pokedexPresentationPolicy': 'whenNewAndPokedexVisible',
+      if (moves != null) 'moveIds': moves
+    });
+SceneAsset _mixedScene(
+    {SceneConditionSource? condition,
+    List<SceneActionPayload> actions = const []}) {
+  final targets = [
+    for (var i = 0; i < actions.length; i++) 'extra-$i',
+    'puzzle-node'
+  ];
+  return SceneAsset(
+      id: 'puzzle',
+      name: 'Mixed puzzle',
+      graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        if (condition != null)
+          SceneNode(
+              id: 'check',
+              kind: SceneNodeKind.condition,
+              payload: SceneConditionPayload(conditionSource: condition)),
+        for (final (index, payload) in actions.indexed)
+          SceneNode(
+              id: 'extra-$index', kind: SceneNodeKind.action, payload: payload),
+        SceneNode(
+            id: 'puzzle-node',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(
+                SceneInteractiveCommand.fromJson(command()))),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [
+        SceneEdge(
+            id: 'enter',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: condition == null ? targets.first : 'check',
+            kind: SceneEdgeKind.defaultFlow),
+        if (condition != null)
+          for (final port in ['true', 'false'])
+            SceneEdge(
+                id: 'check-$port',
+                fromNodeId: 'check',
+                fromPortId: port,
+                toNodeId: targets.first,
+                kind: port == 'true'
+                    ? SceneEdgeKind.conditionTrue
+                    : SceneEdgeKind.conditionFalse),
+        for (final (index, payload) in actions.indexed)
+          for (final port
+              in payload.interactiveCommand?.outputPortIds ?? ['completed'])
+            SceneEdge(
+                id: 'extra-$index-$port',
+                fromNodeId: 'extra-$index',
+                fromPortId: port,
+                toNodeId: targets[index + 1],
+                kind: SceneEdgeKind.actionCompleted),
+        for (final port in ['solved', 'quit'])
+          SceneEdge(
+              id: port,
+              fromNodeId: 'puzzle-node',
+              fromPortId: port,
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted),
+      ]));
+}
+
+const _originDoor = RailJourneyEndpointDoor(
+  side: RailJourneyDoorSide.west,
+  stationPlacedElementId: 'door_origin_west',
+  vehiclePlacedElementId: 'door_vehicle_west',
+);
+
+const _destinationDoor = RailJourneyEndpointDoor(
+  side: RailJourneyDoorSide.east,
+  stationPlacedElementId: 'door_destination_east',
+  vehiclePlacedElementId: 'door_vehicle_east',
+);
+
+const _dependencyJourney = RailJourneyDefinition(
+  id: 'T1',
+  label: 'Origin to destination',
+  origin: RailJourneyEndpoint(
+    stationMapId: 'map_origin_station',
+    boardingArea: MapRect(
+      pos: GridPos(x: 2, y: 3),
+      size: GridSize(width: 3, height: 2),
+    ),
+    trainEntryPos: GridPos(x: 1, y: 4),
+    stationArrivalPos: GridPos(x: 3, y: 6),
+    doors: <RailJourneyEndpointDoor>[_originDoor],
+  ),
+  destination: RailJourneyEndpoint(
+    stationMapId: 'map_destination_station',
+    boardingArea: MapRect(
+      pos: GridPos(x: 4, y: 2),
+      size: GridSize(width: 2, height: 3),
+    ),
+    trainEntryPos: GridPos(x: 6, y: 4),
+    stationArrivalPos: GridPos(x: 7, y: 6),
+    doors: <RailJourneyEndpointDoor>[_destinationDoor],
+  ),
+  vehicleMapId: 'map_train_car',
+  vehicleVariant: RailJourneyVehicleVariant.regular,
+  shellState: 'day',
+  fare: RailJourneyFare(policy: RailJourneyFarePolicy.storyFree),
+);
+
+ProjectManifest _extraDependencyProject() => _dependencyProject().copyWith(
+      storylines: [
+        StorylineAsset(
+            id: 'main',
+            type: StorylineType.main,
+            title: 'Main',
+            chapters: [
+              StorylineChapter(
+                  id: 'chapter',
+                  title: 'Chapter',
+                  order: 0,
+                  steps: [
+                    StorylineStep(id: 'step-enter', title: 'Enter', order: 0)
+                  ])
+            ]),
+        StorylineAsset(
+            id: 'unused-story', type: StorylineType.sideQuest, title: 'Unused')
+      ],
+      railJourneyCatalog: RailJourneyCatalog(journeys: [
+        _dependencyJourney,
+        _dependencyJourney.copyWith(id: 'unused-journey')
+      ]),
+      newGame: const ProjectNewGameConfig(starterOptions: [
+        ProjectStarterOption(
+            id: 'starter',
+            label: 'Starter',
+            pokemon: PlayerPokemon(
+                speciesId: 'bird', natureId: 'calm', abilityId: 'keen-eye')),
+        ProjectStarterOption(
+            id: 'unused-starter',
+            label: 'Unused',
+            pokemon: PlayerPokemon(
+                speciesId: 'bird', natureId: 'calm', abilityId: 'keen-eye'))
+      ]),
+      cinematicMediaAssets: [
+        CinematicMediaAsset(
+            id: 'theme',
+            label: 'Theme',
+            kind: CinematicMediaAssetKind.music,
+            relativePath: 'audio/theme.wav',
+            loopByDefault: true),
+        CinematicMediaAsset(
+            id: 'door',
+            label: 'Door',
+            kind: CinematicMediaAssetKind.sound,
+            relativePath: 'audio/door.wav'),
+        CinematicMediaAsset(
+            id: 'unused-audio',
+            label: 'Unused',
+            kind: CinematicMediaAssetKind.sound,
+            relativePath: 'audio/unused.wav')
+      ],
+      maps: [
+        for (final id in [
+          'room',
+          'map_origin_station',
+          'map_destination_station',
+          'map_train_car'
+        ])
+          ProjectMapEntry(id: id, name: id, relativePath: 'maps/$id.json')
+      ],
+      tilesets: const [
+        ProjectTilesetEntry(
+            id: 'sheet', name: 'Sheet', relativePath: 'assets/actor.png')
+      ],
+      characters: [
+        for (final id in [
+          'actor-character',
+          'second-character',
+          'unused-character'
+        ])
+          ProjectCharacterEntry(
+              id: id,
+              name: id,
+              tilesetId: 'sheet',
+              animations: [
+                for (final direction in EntityFacing.values)
+                  CharacterAnimation(
+                      state: CharacterAnimationState.idle,
+                      direction: direction,
+                      frames: const [
+                        CharacterAnimationFrame(
+                            source: TilesetSourceRect(x: 0, y: 0))
+                      ])
+              ])
+      ],
+    );
+Map<String, Object?> _mapDependencyResources() => {
+      for (final id in [
+        'room',
+        'map_origin_station',
+        'map_destination_station',
+        'map_train_car'
+      ])
+        'maps/$id.json': MapData(
+            id: id,
+            name: id,
+            size: const GridSize(width: 16, height: 16),
+            entities: [
+              if (id == 'room')
+                MapEntity(
+                    id: 'actor',
+                    kind: MapEntityKind.custom,
+                    pos: const GridPos(x: 0, y: 0),
+                    presentation: MapEntityPresentation(variants: [
+                      for (final character in [
+                        'actor-character',
+                        'second-character'
+                      ])
+                        MapEntityPresentationVariant(
+                            id: character,
+                            condition:
+                                NarrativeEventConditionExpression.all(const []),
+                            characterId: character,
+                            blocksMovement: true)
+                    ]))
+            ]).toJson(),
+    };

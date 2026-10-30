@@ -543,7 +543,8 @@ final class FileIdempotencyStore implements IdempotencyStore {
                     scope: indexed.scope,
                     operationId: indexed.operationId,
                     payloadFingerprint: indexed.payloadFingerprint,
-                    expired: true)
+                    expired: indexed.status == AuthoringIdempotencyStatus.completed &&
+                        indexed.expiresAt != null && !now.toUtc().isBefore(indexed.expiresAt!))
                 : null);
       }
       if (targetedOnly || await _hasIncrementalMarker()) return null;
@@ -728,6 +729,20 @@ final class FileIdempotencyStore implements IdempotencyStore {
         )
         .toList(growable: false);
     if (expired.isNotEmpty) {
+      for (final record in expired) {
+        if (record.scope.actionId != 'map3d.edit_batch' || _globalFilePath == null) continue;
+        final retained = await _materializeRecord(record);
+        final pointer = _operationStore(record.scope.actorId,record.scope.projectId,record.operationId);
+        await pointer._withLock(() async {
+          final indexes = await pointer._readIndexUnlocked();
+          if (indexes.length != 1 || indexes.values.single.scope.storageKey != record.scope.storageKey ||
+              indexes.values.single.payloadFingerprint != record.payloadFingerprint) {
+            throw const IdempotencyStoreException('idempotency.operation_ambiguous',
+                'The expired operation does not match its durable pointer.');
+          }
+          await pointer._appendUnlocked([_putEvent(retained)]);
+        });
+      }
       await _appendUnlocked([
         for (final record in expired) _removeEvent(record.scope),
       ]);

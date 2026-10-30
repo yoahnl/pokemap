@@ -27,7 +27,8 @@ final class SpatialGroundGap {
   Map<String, Object?> toJson() => {
     'cell': {'x': cell.x, 'y': cell.y},
     'state': state.name,
-    if (coveringInstanceIds.isNotEmpty) 'coveringInstanceIds': coveringInstanceIds,
+    if (coveringInstanceIds.isNotEmpty)
+      'coveringInstanceIds': coveringInstanceIds,
     if (partialBorderCover) 'partialBorderCover': true,
   };
 }
@@ -41,11 +42,13 @@ final class SpatialBorderObjectOverlap {
     required this.moduleCount,
     required this.firstCell,
     required this.lastCell,
+    this.contacts = const {},
   });
 
   final String layerId, featureId, instanceId, modelId;
   final int moduleCount;
   final GridPos firstCell, lastCell;
+  final Map<String, double> contacts;
 
   String get key => '$layerId/$featureId|$instanceId';
 
@@ -55,6 +58,7 @@ final class SpatialBorderObjectOverlap {
     'instanceId': instanceId,
     'modelId': modelId,
     'moduleCount': moduleCount,
+    if (contacts.isNotEmpty) 'contacts': contacts,
     'firstCell': {'x': firstCell.x, 'y': firstCell.y},
     'lastCell': {'x': lastCell.x, 'y': lastCell.y},
   };
@@ -79,7 +83,8 @@ final class SpatialGroundGapCluster {
     'cellCount': cells.length,
     'exposedCellCount': exposedCellCount,
     'firstCell': {'x': cells.first.x, 'y': cells.first.y},
-    if (coveringInstanceIds.isNotEmpty) 'coveringInstanceIds': coveringInstanceIds,
+    if (coveringInstanceIds.isNotEmpty)
+      'coveringInstanceIds': coveringInstanceIds,
   };
 }
 
@@ -89,18 +94,24 @@ final class SpatialMapIntegrityReport {
     required this.borderObjectOverlaps,
   });
 
-  static const empty = SpatialMapIntegrityReport(groundGaps: [], borderObjectOverlaps: []);
+  static const empty = SpatialMapIntegrityReport(
+    groundGaps: [],
+    borderObjectOverlaps: [],
+  );
 
   final List<SpatialGroundGap> groundGaps;
   final List<SpatialBorderObjectOverlap> borderObjectOverlaps;
 
-  int get exposedCellCount =>
-      groundGaps.where((gap) => gap.state == SpatialGroundGapState.exposed).length;
+  int get exposedCellCount => groundGaps
+      .where((gap) => gap.state == SpatialGroundGapState.exposed)
+      .length;
   int get unprovenCellCount => groundGaps.length - exposedCellCount;
 
   /// Gaps grouped by 8-connectivity, largest first, to frame one view each.
   List<SpatialGroundGapCluster> get gapClusters {
-    final byCell = {for (final gap in groundGaps) (gap.cell.x, gap.cell.y): gap};
+    final byCell = {
+      for (final gap in groundGaps) (gap.cell.x, gap.cell.y): gap,
+    };
     final seen = <(int, int)>{};
     final clusters = <SpatialGroundGapCluster>[];
     for (final gap in groundGaps) {
@@ -118,14 +129,27 @@ final class SpatialMapIntegrityReport {
           }
         }
       }
-      members.sort((a, b) => a.cell.y != b.cell.y ? a.cell.y - b.cell.y : a.cell.x - b.cell.x);
-      clusters.add(SpatialGroundGapCluster(
-        cells: [for (final member in members) member.cell],
-        centerX: members.fold<double>(0, (sum, m) => sum + m.cell.x + .5) / members.length,
-        centerZ: members.fold<double>(0, (sum, m) => sum + m.cell.y + .5) / members.length,
-        exposedCellCount: members.where((m) => m.state == SpatialGroundGapState.exposed).length,
-        coveringInstanceIds: ({for (final m in members) ...m.coveringInstanceIds}.toList()..sort()),
-      ));
+      members.sort(
+        (a, b) =>
+            a.cell.y != b.cell.y ? a.cell.y - b.cell.y : a.cell.x - b.cell.x,
+      );
+      clusters.add(
+        SpatialGroundGapCluster(
+          cells: [for (final member in members) member.cell],
+          centerX:
+              members.fold<double>(0, (sum, m) => sum + m.cell.x + .5) /
+              members.length,
+          centerZ:
+              members.fold<double>(0, (sum, m) => sum + m.cell.y + .5) /
+              members.length,
+          exposedCellCount: members
+              .where((m) => m.state == SpatialGroundGapState.exposed)
+              .length,
+          coveringInstanceIds: ({
+            for (final m in members) ...m.coveringInstanceIds,
+          }.toList()..sort()),
+        ),
+      );
     }
     clusters.sort((a, b) => b.cells.length - a.cells.length);
     return clusters;
@@ -136,20 +160,33 @@ final class SpatialMapIntegrityReport {
     final previous = {
       for (final gap in before.groundGaps) (gap.cell.x, gap.cell.y): gap.state,
     };
-    final overlaps = {for (final overlap in before.borderObjectOverlaps) overlap.key};
+    final overlaps = {
+      for (final overlap in before.borderObjectOverlaps) overlap.key: overlap,
+    };
     return SpatialMapIntegrityReport(
       groundGaps: [
         for (final gap in groundGaps)
           if (switch (previous[(gap.cell.x, gap.cell.y)]) {
             null => true,
-            SpatialGroundGapState.unproven => gap.state == SpatialGroundGapState.exposed,
+            SpatialGroundGapState.unproven =>
+              gap.state == SpatialGroundGapState.exposed,
             SpatialGroundGapState.exposed => false,
           })
             gap,
       ],
       borderObjectOverlaps: [
         for (final overlap in borderObjectOverlaps)
-          if (!overlaps.contains(overlap.key)) overlap,
+          if (overlaps[overlap.key] case final previous?
+              when overlap.modelId == previous.modelId &&
+                  overlap.moduleCount <= previous.moduleCount &&
+                  overlap.contacts.entries.every(
+                    (entry) =>
+                        previous.contacts[entry.key] != null &&
+                        entry.value <= previous.contacts[entry.key]! + 1e-9,
+                  ))
+            ...const <SpatialBorderObjectOverlap>[]
+          else
+            overlap,
       ],
     );
   }
@@ -173,20 +210,35 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
   final scene = map.spatialScene;
   if (scene == null) return SpatialMapIntegrityReport.empty;
   final width = scene.width, depth = scene.depth;
-  final masks = resolveSpatialBorderGroundMaskCellsByLayer(manifest: manifest, map: map);
+  final masks = resolveSpatialBorderGroundMaskCellsByLayer(
+    manifest: manifest,
+    map: map,
+  );
   final replacements = indexSpatialBorderGroundReplacements(
     scene: scene,
-    replacements: resolveSpatialBorderGroundReplacements(manifest: manifest, map: map),
+    replacements: resolveSpatialBorderGroundReplacements(
+      manifest: manifest,
+      map: map,
+    ),
   );
   final surfaces = <(int, int), List<SpatialBorderGroundSurface>>{};
-  for (final surface in resolveSpatialBorderGroundSurfaces(manifest: manifest, map: map)) {
+  for (final surface in resolveSpatialBorderGroundSurfaces(
+    manifest: manifest,
+    map: map,
+  )) {
     for (final footprint in surface.footprints) {
       final xs = footprint.points.map((point) => point.x);
       final zs = footprint.points.map((point) => point.z);
-      for (var z = math.max(0, zs.reduce(math.min).floor());
-          z < math.min(depth, zs.reduce(math.max).ceil()); z++) {
-        for (var x = math.max(0, xs.reduce(math.min).floor());
-            x < math.min(width, xs.reduce(math.max).ceil()); x++) {
+      for (
+        var z = math.max(0, zs.reduce(math.min).floor());
+        z < math.min(depth, zs.reduce(math.max).ceil());
+        z++
+      ) {
+        for (
+          var x = math.max(0, xs.reduce(math.min).floor());
+          x < math.min(width, xs.reduce(math.max).ceil());
+          x++
+        ) {
           surfaces.putIfAbsent((x, z), () => []).add(surface);
         }
       }
@@ -204,20 +256,44 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
   final painted = [
     for (final layer in map.layers.whereType<SmartTileLayer>())
       if (layer.isVisible && layer.opacity > 0)
-        (cells: layer.field.semanticCells, masked: masks[layer.id] ?? const <(int, int)>{}),
+        (
+          cells: layer.field.semanticCells,
+          masked: masks[layer.id] ?? const <(int, int)>{},
+        ),
   ];
-  final owners = <String, ({String layerId, String featureId})>{
-    for (final layer in map.layers.whereType<BorderLayer>())
-      for (final feature in layer.content.features)
-        for (final placement in feature.materialization?.spatialPlacements ?? const [])
-          placement.instanceId: (layerId: layer.id, featureId: feature.id),
-  };
+  final owners =
+      <
+        String,
+        ({String layerId, String featureId, String slotKey, String primitiveId})
+      >{
+        for (final layer in map.layers.whereType<BorderLayer>())
+          for (final feature in layer.content.features)
+            for (final placement
+                in feature.materialization?.spatialPlacements ?? const [])
+              placement.instanceId: (
+                layerId: layer.id,
+                featureId: feature.id,
+                slotKey: placement.slotKey,
+                primitiveId: placement.primitiveId,
+              ),
+      };
   final models = {for (final model in manifest.models3d) model.id: model};
   final environmentModels = {
     for (final preset in manifest.environmentPresets)
       for (final item in preset.palette) ?item.modelId,
   };
-  final moduleBoxes = <(_Box, ({String layerId, String featureId}))>[];
+  final moduleBoxes =
+      <
+        (
+          _Box,
+          ({
+            String layerId,
+            String featureId,
+            String slotKey,
+            String primitiveId,
+          }),
+        )
+      >[];
   final objectBoxes = <_Box>[];
   for (final instance in scene.instances) {
     final model = models[instance.modelId];
@@ -233,11 +309,20 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
   for (final box in [
     ...objectBoxes,
     for (final instance in scene.instances)
-      if (environmentModels.contains(instance.modelId) && models[instance.modelId] != null)
+      if (environmentModels.contains(instance.modelId) &&
+          models[instance.modelId] != null)
         _Box.of(instance, models[instance.modelId]!),
   ]) {
-    for (var z = math.max(0, box.minZ.floor()); z < math.min(depth, box.maxZ.ceil()); z++) {
-      for (var x = math.max(0, box.minX.floor()); x < math.min(width, box.maxX.ceil()); x++) {
+    for (
+      var z = math.max(0, box.minZ.floor());
+      z < math.min(depth, box.maxZ.ceil());
+      z++
+    ) {
+      for (
+        var x = math.max(0, box.minX.floor());
+        x < math.min(width, box.maxX.ceil());
+        x++
+      ) {
         coverIndex.putIfAbsent((x, z), () => []).add(box);
       }
     }
@@ -246,7 +331,9 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
   bool paintedAt(int x, int z) {
     final index = z * width + x;
     for (final layer in painted) {
-      if (index < layer.cells.length && layer.cells[index] != 0 && !layer.masked.contains((x, z))) {
+      if (index < layer.cells.length &&
+          layer.cells[index] != 0 &&
+          !layer.masked.contains((x, z))) {
         return true;
       }
     }
@@ -266,8 +353,12 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
       for (final dz in _samples) {
         for (final dx in _samples) {
           final px = x + dx, pz = z + dz;
-          if (cellReplacements.any((replacement) => replacement.contains(px, pz)) ||
-              cellSurfaces.any((surface) => surface.footprints.any((f) => f.contains(px, pz)))) {
+          if (cellReplacements.any(
+                (replacement) => replacement.contains(px, pz),
+              ) ||
+              cellSurfaces.any(
+                (surface) => surface.footprints.any((f) => f.contains(px, pz)),
+              )) {
             proven++;
             borderPartial = true;
             continue;
@@ -293,6 +384,7 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
   void visit((int, int) cell) {
     if (gaps.containsKey(cell) && outside.add(cell)) pending.add(cell);
   }
+
   for (var x = 0; x < width; x++) {
     visit((x, 0));
     visit((x, depth - 1));
@@ -309,16 +401,46 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
     if (z < depth - 1) visit((x, z + 1));
   }
 
-  final overlaps = <String, ({SpatialBorderObjectOverlap first, int count, int minX, int minZ, int maxX, int maxZ})>{};
+  final overlaps =
+      <
+        String,
+        ({
+          SpatialBorderObjectOverlap first,
+          int count,
+          int minX,
+          int minZ,
+          int maxX,
+          int maxZ,
+        })
+      >{};
+  final contacts = <String, Map<String, double>>{};
   for (final object in objectBoxes) {
     for (final (module, owner) in moduleBoxes) {
-      final ix = math.min(object.maxX, module.maxX) - math.max(object.minX, module.minX);
-      final iz = math.min(object.maxZ, module.maxZ) - math.max(object.minZ, module.minZ);
-      final iy = math.min(object.maxY, module.maxY) - math.max(object.minY, module.minY);
+      final ix =
+          math.min(object.maxX, module.maxX) -
+          math.max(object.minX, module.minX);
+      final iz =
+          math.min(object.maxZ, module.maxZ) -
+          math.max(object.minZ, module.minZ);
+      final iy =
+          math.min(object.maxY, module.maxY) -
+          math.max(object.minY, module.minY);
       if (ix <= .25 || iz <= .25 || iy <= .1) continue;
-      final cx = ((math.max(object.minX, module.minX) + math.min(object.maxX, module.maxX)) / 2).floor();
-      final cz = ((math.max(object.minZ, module.minZ) + math.min(object.maxZ, module.maxZ)) / 2).floor();
+      final cx =
+          ((math.max(object.minX, module.minX) +
+                      math.min(object.maxX, module.maxX)) /
+                  2)
+              .floor();
+      final cz =
+          ((math.max(object.minZ, module.minZ) +
+                      math.min(object.maxZ, module.maxZ)) /
+                  2)
+              .floor();
       final key = '${owner.layerId}/${owner.featureId}|${object.instanceId}';
+      final contact =
+          '${owner.slotKey}|${owner.primitiveId}|${module.modelId}|'
+          '${module.minX},${module.maxX},${module.minY},${module.maxY},${module.minZ},${module.maxZ}';
+      contacts.putIfAbsent(key, () => {})[contact] = ix * iy * iz;
       final current = overlaps[key];
       overlaps[key] = current == null
           ? (
@@ -331,7 +453,11 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
                 firstCell: GridPos(x: cx, y: cz),
                 lastCell: GridPos(x: cx, y: cz),
               ),
-              count: 1, minX: cx, minZ: cz, maxX: cx, maxZ: cz,
+              count: 1,
+              minX: cx,
+              minZ: cz,
+              maxX: cx,
+              maxZ: cz,
             )
           : (
               first: current.first,
@@ -350,13 +476,16 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
           if (gaps[(x, z)] case final gap? when !outside.contains((x, z))) gap,
     ],
     borderObjectOverlaps: [
-      for (final entry in (overlaps.entries.toList()..sort((a, b) => a.key.compareTo(b.key))))
+      for (final entry
+          in (overlaps.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key))))
         SpatialBorderObjectOverlap(
           layerId: entry.value.first.layerId,
           featureId: entry.value.first.featureId,
           instanceId: entry.value.first.instanceId,
           modelId: entry.value.first.modelId,
           moduleCount: entry.value.count,
+          contacts: Map.unmodifiable(contacts[entry.key] ?? const {}),
           firstCell: GridPos(x: entry.value.minX, y: entry.value.minZ),
           lastCell: GridPos(x: entry.value.maxX, y: entry.value.maxZ),
         ),
@@ -365,7 +494,16 @@ SpatialMapIntegrityReport inspectSpatialMapIntegrity({
 }
 
 final class _Box {
-  const _Box(this.instanceId, this.modelId, this.minX, this.maxX, this.minY, this.maxY, this.minZ, this.maxZ);
+  const _Box(
+    this.instanceId,
+    this.modelId,
+    this.minX,
+    this.maxX,
+    this.minY,
+    this.maxY,
+    this.minZ,
+    this.maxZ,
+  );
 
   factory _Box.of(SpatialModelInstance instance, ProjectModel3dEntry model) {
     final bounds = model.inspection.bounds;
@@ -376,7 +514,8 @@ final class _Box {
     var minZ = double.infinity, maxZ = -double.infinity;
     for (final px in [bounds.min.x, bounds.max.x]) {
       for (final pz in [bounds.min.z, bounds.max.z]) {
-        final lx = (px - model.pivot.x) * scale, lz = (pz - model.pivot.z) * scale;
+        final lx = (px - model.pivot.x) * scale,
+            lz = (pz - model.pivot.z) * scale;
         final wx = instance.position.x + cos * lx + sin * lz;
         final wz = instance.position.z - sin * lx + cos * lz;
         minX = math.min(minX, wx);
@@ -400,5 +539,6 @@ final class _Box {
   final String instanceId, modelId;
   final double minX, maxX, minY, maxY, minZ, maxZ;
 
-  bool containsXZ(double x, double z) => x >= minX && x <= maxX && z >= minZ && z <= maxZ;
+  bool containsXZ(double x, double z) =>
+      x >= minX && x <= maxX && z >= minZ && z <= maxZ;
 }

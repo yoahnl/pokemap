@@ -59,7 +59,14 @@ final class SpatialTerrainSurfaceActions {
       ),
   ];
 
-  AuthoringMutationDraft build(AuthoringPlanningContext planning) {
+  AuthoringMutationDraft build(AuthoringPlanningContext planning) =>
+      project(planning).finalize();
+
+  SemanticMapProjection project(
+    AuthoringPlanningContext planning, {
+    MapData? projectedMap,
+    bool deferFinalization = false,
+  }) {
     final action = planning.request.actionId;
     if (action != upsert && action != delete) {
       throw semanticFailure(
@@ -70,6 +77,8 @@ final class SpatialTerrainSurfaceActions {
     final field = action == upsert ? 'surfaces' : 'surfaceIds';
     final context = SemanticMapActionContext.read(
       planning,
+      projectedMap: projectedMap,
+      deferFinalization: deferFinalization,
       allowedParameters: {field, 'reanchorInstances'},
     );
     if (context.manifest.settings.dimension != ProjectDimension.threeD ||
@@ -113,11 +122,13 @@ final class SpatialTerrainSurfaceActions {
             reanchorInstances: reanchorInstances,
             pinBorderOwnedInstances: true);
       }
-      final refresh = refreshSpatialBordersForTerrainChange(
-        manifest: context.manifest,
-        before: context.map,
-        after: after,
-      );
+      final refresh = deferFinalization
+          ? null
+          : refreshSpatialBordersForTerrainChange(
+              manifest: context.manifest,
+              before: context.map,
+              after: after,
+            );
       final before = context.map.spatialScene!;
       final next = after.spatialScene!;
       final previous = {
@@ -129,8 +140,8 @@ final class SpatialTerrainSurfaceActions {
           : next.terrainSurfaces.surfaces
               .where((surface) => previous[surface.id] != surface)
               .length;
-      return context.draftMap(
-        after: refresh.map,
+      return context.projectMap(
+        after: refresh?.map ?? after,
         operation: action,
         changedItems: changed,
         preview: {
@@ -138,8 +149,8 @@ final class SpatialTerrainSurfaceActions {
           'surfaceCount': next.terrainSurfaces.surfaces.length,
           'changedSurfaceCount': changed,
           'reanchorInstances': reanchorInstances,
-          'refreshedBorderFeatures': refresh.refreshed,
-          'staleBorderFeatures': refresh.stale,
+          'refreshedBorderFeatures': refresh?.refreshed ?? const [],
+          'staleBorderFeatures': refresh?.stale ?? const [],
           'reanchoredInstanceCount': [
             for (var index = 0; index < before.instances.length; index++)
               if (before.instances[index] != next.instances[index]) index,

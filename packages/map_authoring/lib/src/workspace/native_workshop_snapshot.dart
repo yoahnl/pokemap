@@ -92,7 +92,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   required Map<String, Object?> parameters,
   required Map<String, String> readDependencies,
 }) async {
-  if (!_nativeWorkshopActions.contains(actionId)) {
+  final mapEdit = actionId == 'map3d.edit_batch' ||
+      Map3dEditProjection.admittedActions.contains(actionId);
+  if (!mapEdit && !_nativeWorkshopActions.contains(actionId)) {
     throw const ProjectSnapshotException('project.workshop_scope_required',
         'This action does not have a native workshop dependency scope.');
   }
@@ -105,21 +107,40 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         'This workshop loader requires a native project document.');
   }
   final raw = Map<String, dynamic>.from(decoded);
-  if (actionId == 'map3d.instance.configure_field_obstacle' || TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
-    return _loadNativeMapProperties(loader, projectHandle, raw, projectBytes, parameters, actionId: actionId);
+  if (mapEdit)
+    return _loadNativeMapEdit(
+        loader, projectHandle, raw, projectBytes, parameters);
+  if (actionId == 'map3d.instance.configure_field_obstacle' ||
+      TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
+    return _loadNativeMapProperties(
+        loader, projectHandle, raw, projectBytes, parameters,
+        actionId: actionId);
   }
   final adoptingAudio = actionId == 'project.audio.media.adopt_asset';
-  final presentationImport = actionId == 'presentationMedia.import' || adoptingAudio;
+  final presentationImport =
+      actionId == 'presentationMedia.import' || adoptingAudio;
   final guided = actionId == 'event_v2.template.apply' ||
       actionId == 'narrative.publish_document';
-  final sections = <String>{if (!presentationImport) 'pokemon', if (guided || const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) 'settings'};
+  final sections = <String>{
+    if (!presentationImport) 'pokemon',
+    if (guided ||
+        const {
+          'surf.configure',
+          'field_ability.configure',
+          'project.audio.cue.configure'
+        }.contains(actionId))
+      'settings'
+  };
   final ids = <String, Set<String>>{};
   final indexes = <String, Map<String, List<Map<String, dynamic>>>>{};
   final selected = <String, Map<String, Map<String, dynamic>>>{};
   final surfConfiguration = parameters['configuration'];
   final candidates = <Object?>[
-    if (actionId != 'surf.configure') parameters
-    else if (surfConfiguration is Map && surfConfiguration['accessMode'] == 'condition') surfConfiguration['condition'],
+    if (actionId != 'surf.configure')
+      parameters
+    else if (surfConfiguration is Map &&
+        surfConfiguration['accessMode'] == 'condition')
+      surfConfiguration['condition'],
   ];
   void add(String field, Iterable<String> values) {
     final clean = values.where((id) => id.isNotEmpty).toSet();
@@ -203,30 +224,48 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   if (presentationImport) {
     await read(assetCatalogResourceIdentity, assetCatalogStorageKey);
-    await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
+    await read(
+        projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);
     if (adoptingAudio) {
       final assetId = parameters['assetId'];
-      if (assetId is! String) throw const FormatException('Choose a source asset identity.');
-      List<int>? loaded(String identity) => resources.where((r) => r.identity == identity).firstOrNull?.bytes?.bytes;
-      final source = readAssetRecordFromCatalogBytes(loaded(assetCatalogResourceIdentity), assetId);
+      if (assetId is! String)
+        throw const FormatException('Choose a source asset identity.');
+      List<int>? loaded(String identity) => resources
+          .where((r) => r.identity == identity)
+          .firstOrNull
+          ?.bytes
+          ?.bytes;
+      final source = readAssetRecordFromCatalogBytes(
+          loaded(assetCatalogResourceIdentity), assetId);
       final attached = findProjectAudioMediaForSource(
-          readProjectMediaCatalogDocumentBytes(loaded(projectMediaCatalogResourceIdentity)), assetId);
-      if (source != null && (source.artifact.mediaType.startsWith('audio/') || source.artifact.mediaType == 'application/octet-stream') && attached == null) {
-        await read(assetBlobResourceIdentity(source.artifact.digest), assetBlobStorageKey(source.artifact));
+          readProjectMediaCatalogDocumentBytes(
+              loaded(projectMediaCatalogResourceIdentity)),
+          assetId);
+      if (source != null &&
+          (source.artifact.mediaType.startsWith('audio/') ||
+              source.artifact.mediaType == 'application/octet-stream') &&
+          attached == null) {
+        await read(assetBlobResourceIdentity(source.artifact.digest),
+            assetBlobStorageKey(source.artifact));
       }
     }
     final handle = parameters['artifactHandle'];
     if (handle is String) {
-      final match = RegExp(r'^artifact://sha256/([0-9a-f]{64})$').firstMatch(handle);
+      final match =
+          RegExp(r'^artifact://sha256/([0-9a-f]{64})$').firstMatch(handle);
       if (match != null) {
         final digest = match.group(1)!;
-        await read(assetBlobResourceIdentity('sha256:$digest'), 'assets/.pokemap-store/$digest.blob');
+        await read(assetBlobResourceIdentity('sha256:$digest'),
+            'assets/.pokemap-store/$digest.blob');
       }
     }
   }
   if (actionId == 'project.audio.cue.configure') {
-    if (parameters['binding'] case final Map binding when binding['source'] == 'custom') {
-      await read(projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey, required: true);
+    if (parameters['binding'] case final Map binding
+        when binding['source'] == 'custom') {
+      await read(
+          projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey,
+          required: true);
       await read(assetCatalogResourceIdentity, assetCatalogStorageKey);
     }
   }
@@ -278,11 +317,18 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     'version': raw['version'],
     'maps': <Object?>[],
     'tilesets': <Object?>[],
-    'pokemon': presentationImport ? {'ruleset': (raw['pokemon'] as Map?)?['ruleset']} : raw['pokemon'],
+    'pokemon': presentationImport
+        ? {'ruleset': (raw['pokemon'] as Map?)?['ruleset']}
+        : raw['pokemon'],
   };
   final rawSettings = raw['settings'];
   if (rawSettings is Map) {
-    projected['settings'] = guided || const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)
+    projected['settings'] = guided ||
+            const {
+              'surf.configure',
+              'field_ability.configure',
+              'project.audio.cue.configure'
+            }.contains(actionId)
         ? rawSettings
         : {
             for (final key in const {
@@ -296,7 +342,8 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   if (actionId == 'campaign.battle_savings.update') {
     sections.add('battleSavings');
-    if (raw.containsKey('battleSavings')) projected['battleSavings'] = raw['battleSavings'];
+    if (raw.containsKey('battleSavings'))
+      projected['battleSavings'] = raw['battleSavings'];
     candidates.add(raw['battleSavings']);
   }
   if (actionId == 'bag.capacity.set') {
@@ -455,12 +502,14 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     if (actionId == 'campaign.battle_savings.update') {
       final identities = <String>{
         ...?ids['facts'],
-        for (final fact in selected['facts']?.values ?? <Map<String, dynamic>>[])
+        for (final fact
+            in selected['facts']?.values ?? <Map<String, dynamic>>[])
           if (fact['legacyFlagName'] case final String alias) alias,
       };
       for (final rows in index('facts').values) {
         for (final fact in rows) {
-          if (identities.contains(fact['id']) || identities.contains(fact['legacyFlagName'])) {
+          if (identities.contains(fact['id']) ||
+              identities.contains(fact['legacyFlagName'])) {
             add('facts', [fact['id'] as String]);
           }
         }
@@ -474,7 +523,12 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     for (final entry in _nativeWorkshopReferences.entries) {
       if (!guided &&
           {
-            if (!const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) 'maps',
+            if (!const {
+              'surf.configure',
+              'field_ability.configure',
+              'project.audio.cue.configure'
+            }.contains(actionId))
+              'maps',
             'tilesets',
             'models3d',
             'trainers',
@@ -656,54 +710,353 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
 }
 
 Future<ProjectSnapshot> _loadNativeMapProperties(
-  ProjectSnapshotLoader loader, ProjectHandle handle,
-  Map<String, dynamic> raw, ProjectResourceBytes projectBytes,
-  Map<String, Object?> parameters, {required String actionId}
-) async {
+    ProjectSnapshotLoader loader,
+    ProjectHandle handle,
+    Map<String, dynamic> raw,
+    ProjectResourceBytes projectBytes,
+    Map<String, Object?> parameters,
+    {required String actionId}) async {
   final route = TriggerZoneActions.fieldTraversalActions.contains(actionId);
   final mapId = parameters['mapId'];
   if (mapId is! String || mapId.isEmpty || mapId.trim() != mapId) {
-    throw const ProjectSnapshotException('project.map_invalid', 'A map identity is required.');
+    throw const ProjectSnapshotException(
+        'project.map_invalid', 'A map identity is required.');
   }
-  final entries = (raw['maps'] as List? ?? const []).whereType<Map>().where((entry) => entry['id'] == mapId).toList();
+  final entries = (raw['maps'] as List? ?? const [])
+      .whereType<Map>()
+      .where((entry) => entry['id'] == mapId)
+      .toList();
   if (entries.length != 1) {
-    throw const ProjectSnapshotException('project.map_missing', 'The selected map is not declared exactly once.');
+    throw const ProjectSnapshotException('project.map_missing',
+        'The selected map is not declared exactly once.');
   }
-  final declaration = ProjectMapEntry.fromJson(Map<String, dynamic>.from(entries.single));
+  final declaration =
+      ProjectMapEntry.fromJson(Map<String, dynamic>.from(entries.single));
   final access = loader._handles.resolveProject(handle);
   final mapBytes = await access.readResourceBytes(declaration.relativePath);
   final map = await loader._decodeExecutor.decodeMap(mapBytes.bytes);
   if (map.id != mapId || !route && map.spatialScene == null) {
-    throw const ProjectSnapshotException('project.map_invalid', 'The selected spatial map identity differs.');
+    throw const ProjectSnapshotException(
+        'project.map_invalid', 'The selected spatial map identity differs.');
   }
-  if (route && !TriggerZoneActions.isFieldTraversalMutation(map, actionId, parameters)) {
-    throw const ProjectSnapshotException('project.field_traversal_scope_required', 'This zone mutation needs its existing reference scope.');
+  if (route &&
+      !TriggerZoneActions.isFieldTraversalMutation(map, actionId, parameters)) {
+    throw const ProjectSnapshotException(
+        'project.field_traversal_scope_required',
+        'This zone mutation needs its existing reference scope.');
   }
   MapValidator.validate(map);
-  final instance = route ? null : map.spatialScene!.instances.where((item) => item.id == parameters['instanceId']).firstOrNull;
-  final models = route ? const <Map>[] : (raw['models3d'] as List? ?? const []).whereType<Map>().where((entry) => entry['id'] == instance?.modelId).toList();
+  final instance = route
+      ? null
+      : map.spatialScene!.instances
+          .where((item) => item.id == parameters['instanceId'])
+          .firstOrNull;
+  final models = route
+      ? const <Map>[]
+      : (raw['models3d'] as List? ?? const [])
+          .whereType<Map>()
+          .where((entry) => entry['id'] == instance?.modelId)
+          .toList();
   if (models.length > 1) {
-    throw const ProjectSnapshotException('project.model_invalid', 'The selected model identity is duplicated.');
+    throw const ProjectSnapshotException(
+        'project.model_invalid', 'The selected model identity is duplicated.');
   }
-  final version = raw['version'] == null ? ProjectVersion.v8 : ProjectVersion.values.where((value) => value.name == raw['version']).firstOrNull;
-  if (version == null) throw const ProjectSnapshotException('project.version_unsupported', 'The project version is unknown.');
-  final manifest = ProjectManifest(name: raw['name'] as String, version: version,
-    settings: !route && raw['settings'] is Map ? ProjectSettings.fromJson(Map<String, dynamic>.from(raw['settings'] as Map)) : const ProjectSettings(),
-    tilesets: const [], maps: [declaration],
-    models3d: [for (final model in models) ProjectModel3dEntry.fromJson(Map<String, dynamic>.from(model))]);
+  final version = raw['version'] == null
+      ? ProjectVersion.v8
+      : ProjectVersion.values
+          .where((value) => value.name == raw['version'])
+          .firstOrNull;
+  if (version == null)
+    throw const ProjectSnapshotException(
+        'project.version_unsupported', 'The project version is unknown.');
+  final manifest = ProjectManifest(
+      name: raw['name'] as String,
+      version: version,
+      settings: !route && raw['settings'] is Map
+          ? ProjectSettings.fromJson(
+              Map<String, dynamic>.from(raw['settings'] as Map))
+          : const ProjectSettings(),
+      tilesets: const [],
+      maps: [
+        declaration
+      ],
+      models3d: [
+        for (final model in models)
+          ProjectModel3dEntry.fromJson(Map<String, dynamic>.from(model))
+      ]);
   if (!await access.matchesResourceBytes('project.json', projectBytes.bytes) ||
-      !await access.matchesResourceBytes(declaration.relativePath, mapBytes.bytes)) {
-    throw const ProjectSnapshotException('project.changed_during_snapshot', 'The selected map or project changed while reading.');
+      !await access.matchesResourceBytes(
+          declaration.relativePath, mapBytes.bytes)) {
+    throw const ProjectSnapshotException('project.changed_during_snapshot',
+        'The selected map or project changed while reading.');
   }
-  final projectRevision = await loader._decodeExecutor.fingerprintResource(projectBytes.bytes, relativePath: 'project.json');
-  final mapRevision = await loader._decodeExecutor.fingerprintResource(mapBytes.bytes, relativePath: declaration.relativePath);
+  final projectRevision = await loader._decodeExecutor
+      .fingerprintResource(projectBytes.bytes, relativePath: 'project.json');
+  final mapRevision = await loader._decodeExecutor.fingerprintResource(
+      mapBytes.bytes,
+      relativePath: declaration.relativePath);
   await access.requireReadableProject();
-  return ProjectSnapshot(projectHandle: handle,
-    revision: computeAuthoringJsonFingerprint({'project': projectRevision, 'map:$mapId': mapRevision}, logicalName: 'native-field-obstacle-selection.json'),
-    manifest: manifest, maps: [map], availableProjectSections: route ? const {} : const {'settings'},
-    availableProjectDocuments: {'maps': {mapId}, 'models3d': {if (instance != null) instance.modelId}},
-    resourceFingerprints: {'project': projectRevision, 'map:$mapId': mapRevision},
-    scopedStorageRevisions: {'project.json': projectRevision, declaration.relativePath: mapRevision},
-    ownedResourceBytes: {'project': projectBytes, 'map:$mapId': mapBytes},
-    resourceStorageKeys: {'project': 'project.json', 'map:$mapId': declaration.relativePath});
+  return ProjectSnapshot(
+      projectHandle: handle,
+      revision: computeAuthoringJsonFingerprint(
+          {'project': projectRevision, 'map:$mapId': mapRevision},
+          logicalName: 'native-field-obstacle-selection.json'),
+      manifest: manifest,
+      maps: [map],
+      availableProjectSections: route ? const {} : const {'settings'},
+      availableProjectDocuments: {
+        'maps': {mapId},
+        'models3d': {if (instance != null) instance.modelId}
+      },
+      resourceFingerprints: {
+        'project': projectRevision,
+        'map:$mapId': mapRevision
+      },
+      scopedStorageRevisions: {
+        'project.json': projectRevision,
+        declaration.relativePath: mapRevision
+      },
+      ownedResourceBytes: {'project': projectBytes, 'map:$mapId': mapBytes},
+      resourceStorageKeys: {
+        'project': 'project.json',
+        'map:$mapId': declaration.relativePath
+      });
+}
+
+Future<ProjectSnapshot> _loadNativeMapEdit(
+    ProjectSnapshotLoader loader,
+    ProjectHandle handle,
+    Map<String, dynamic> raw,
+    ProjectResourceBytes projectBytes,
+    Map<String, Object?> parameters) async {
+  final mapId = parameters['mapId'];
+  if (mapId is! String || mapId.isEmpty || mapId.trim() != mapId) {
+    throw const ProjectSnapshotException(
+        'project.map_invalid', 'A map identity is required.');
+  }
+  final rows = (raw['maps'] as List? ?? const [])
+      .whereType<Map>()
+      .where((entry) => entry['id'] == mapId)
+      .toList();
+  if (rows.length != 1) {
+    throw const ProjectSnapshotException('project.map_missing',
+        'The selected map must be declared exactly once.');
+  }
+  final declaration =
+      ProjectMapEntry.fromJson(Map<String, dynamic>.from(rows.single));
+  final access = loader._handles.resolveProject(handle);
+  final mapBytes = await access.readResourceBytes(declaration.relativePath);
+  final map = await loader._decodeExecutor.decodeMap(mapBytes.bytes);
+  if (map.id != mapId || map.spatialScene == null) {
+    throw const ProjectSnapshotException(
+        'project.map_invalid', 'The selected spatial map identity differs.');
+  }
+  final candidates = <Object?>[map.toJson(), parameters];
+  final selected = <String, dynamic>{
+    'name': raw['name'],
+    'version': raw['version'],
+    'settings': raw['settings'],
+    'pokemon': raw['pokemon'],
+    'maps': [rows.single],
+    'tilesets': <Object?>[],
+  };
+  final indexes = <String, Map<String, List<Map>>>{};
+  final admitted = <String, Set<String>>{};
+  final definitions = <String, ({Object? source, Set<String> keys})>{
+    for (final field in _nativeWorkshopReferences.entries)
+      if (field.key != 'maps')
+        field.key: (
+          source: raw[field.key],
+          keys: {
+            ...field.value,
+            if (field.key == 'models3d') 'sourceModelId',
+            if (field.key == 'elements') 'sourceElementId',
+          }
+        ),
+    'environmentPresets': (
+      source: raw['environmentPresets'],
+      keys: {'presetId'}
+    ),
+    'smartTileCatalog.materials': (
+      source: (raw['smartTileCatalog'] as Map?)?['materials'],
+      keys: {
+        'materialId',
+        'materialPalette',
+        'allowedMaterialIds',
+        'defaultMaterialId'
+      }
+    ),
+    'smartTileCatalog.presets': (
+      source: (raw['smartTileCatalog'] as Map?)?['presets'],
+      keys: {'presetId', 'targetPresetId'}
+    ),
+    'smartTileCatalog.atlases': (
+      source: (raw['smartTileCatalog'] as Map?)?['atlases'],
+      keys: {'atlasId'}
+    ),
+    'smartTileCatalog.patterns': (
+      source: (raw['smartTileCatalog'] as Map?)?['patterns'],
+      keys: {'patternId'}
+    ),
+    'borderCatalog.records': (
+      source: (raw['borderCatalog'] as Map?)?['records'],
+      keys: {'blueprintId', 'targetBlueprintId'}
+    ),
+    'borderCatalog.visualSnapshots': (
+      source: (raw['borderCatalog'] as Map?)?['visualSnapshots'],
+      keys: {'snapshotId', 'visualSnapshotId'}
+    ),
+  };
+  final chosen = <String, List<Map>>{};
+  var changed = true;
+  while (changed) {
+    changed = false;
+    for (final definition in definitions.entries) {
+      final wanted = _nativeReferenceIds(candidates, definition.value.keys);
+      if (wanted.isEmpty) continue;
+      final index = indexes.putIfAbsent(definition.key, () {
+        final result = <String, List<Map>>{};
+        final source = definition.value.source;
+        if (source is List) {
+          for (final value in source.whereType<Map>()) {
+            if (value['id'] is String)
+              result.putIfAbsent(value['id'] as String, () => []).add(value);
+          }
+        }
+        return result;
+      });
+      final seen = admitted.putIfAbsent(definition.key, () => {});
+      for (final id in wanted) {
+        if (!seen.add(id)) continue;
+        final found = index[id];
+        if (found == null) continue;
+        if (found.length != 1) {
+          throw const ProjectSnapshotException('project.definition_ambiguous',
+              'A selected map dependency has duplicate identities.');
+        }
+        chosen.putIfAbsent(definition.key, () => []).add(found.single);
+        candidates.add(found.single);
+        changed = true;
+      }
+    }
+  }
+  for (final definition in chosen.entries) {
+    final path = definition.key.split('.');
+    if (path.length == 1) {
+      selected[path.single] = definition.value;
+    } else {
+      final original = raw[path.first] as Map;
+      final catalog = selected.putIfAbsent(
+          path.first,
+          () => <String, dynamic>{
+                if (original.containsKey('formatVersion'))
+                  'formatVersion': original['formatVersion'],
+                for (final field in original.entries)
+                  if (field.value is List) field.key as String: <Object?>[],
+              }) as Map;
+      catalog[path.last] = definition.value;
+    }
+  }
+  final library = raw['resourceLibraryCatalog'];
+  if (library is Map) {
+    final resourceIds = admitted.values.expand((ids) => ids).toSet();
+    final entries = (library['entries'] as List? ?? const [])
+        .whereType<Map>()
+        .where((entry) => resourceIds.contains(entry['resourceId']))
+        .toList();
+    final familyIds = _nativeReferenceIds(entries, {'familyId'});
+    var grew = true;
+    final families = <Map>[];
+    while (grew) {
+      grew = false;
+      for (final family
+          in (library['families'] as List? ?? const []).whereType<Map>()) {
+        if (!familyIds.contains(family['id']) || families.contains(family))
+          continue;
+        families.add(family);
+        if (family['parentId'] is String &&
+            familyIds.add(family['parentId'] as String)) grew = true;
+      }
+    }
+    selected['resourceLibraryCatalog'] = {
+      'formatVersion': library['formatVersion'],
+      'entries': entries,
+      'families': families
+    };
+  }
+  final deletedIds = <String>{};
+  void deleted(Object? operation) {
+    if (operation is! Map ||
+        operation['actionId'] != 'map3d.instance.delete_batch') return;
+    final values = operation['parameters'];
+    if (values is Map && values['instanceIds'] is List)
+      deletedIds.addAll((values['instanceIds'] as List).whereType<String>());
+  }
+
+  if (parameters['operations'] is List) {
+    for (final operation in parameters['operations'] as List)
+      deleted(operation);
+  } else if (parameters['instanceIds'] is List) {
+    deletedIds.addAll((parameters['instanceIds'] as List).whereType<String>());
+  }
+  if (deletedIds.isNotEmpty) {
+    for (final field in ['scenes', 'cinematics', 'presentationCinematics']) {
+      final incoming = (raw[field] as List? ?? const [])
+          .whereType<Map>()
+          .where((record) => _nativeReferenceIds(
+                  record, {'instanceId', 'sourceId', 'modelInstanceId'})
+              .intersection(deletedIds)
+              .isNotEmpty)
+          .toList();
+      if (incoming.isNotEmpty)
+        selected[field] = [
+          ...((selected[field] as List?) ?? const []),
+          ...incoming.where((record) =>
+              !((selected[field] as List?) ?? const []).contains(record)),
+        ];
+    }
+  }
+  final manifest = ProjectManifest.fromJson(selected);
+  MapValidator.validate(map, projectDialogueContext: manifest);
+  if (!await access.matchesResourceBytes('project.json', projectBytes.bytes) ||
+      !await access.matchesResourceBytes(
+          declaration.relativePath, mapBytes.bytes)) {
+    throw const ProjectSnapshotException('project.changed_during_snapshot',
+        'Map dependencies changed while reading.');
+  }
+  final projectRevision = await loader._decodeExecutor
+      .fingerprintResource(projectBytes.bytes, relativePath: 'project.json');
+  final mapRevision = await loader._decodeExecutor.fingerprintResource(
+      mapBytes.bytes,
+      relativePath: declaration.relativePath);
+  await access.requireReadableProject();
+  return ProjectSnapshot(
+      projectHandle: handle,
+      revision: computeAuthoringJsonFingerprint(
+          {'project': projectRevision, 'map:$mapId': mapRevision},
+          logicalName: 'native-map-edit-selection.json'),
+      manifest: manifest,
+      maps: [
+        map
+      ],
+      availableProjectSections: const {},
+      availableProjectDocuments: {
+        'maps': {mapId}
+      },
+      resourceFingerprints: {
+        'project': projectRevision,
+        'map:$mapId': mapRevision
+      },
+      scopedStorageRevisions: {
+        'project.json': projectRevision,
+        declaration.relativePath: mapRevision
+      },
+      ownedResourceBytes: {
+        'project': projectBytes,
+        'map:$mapId': mapBytes
+      },
+      resourceStorageKeys: {
+        'project': 'project.json',
+        'map:$mapId': declaration.relativePath
+      });
 }

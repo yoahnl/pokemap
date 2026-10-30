@@ -1,3 +1,4 @@
+import '../domains/maps/map3d_edit_projection.dart';
 import '../transactions/local_authoring_payload.dart';
 import '../support/authoring_fingerprint.dart';
 import 'dart:async';

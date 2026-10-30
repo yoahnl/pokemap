@@ -36,13 +36,33 @@ final class SmartTileCellActions {
         'smart_tile.corner.erase', 'Erase precise Smart Tile corners'),
   ]);
 
-  AuthoringMutationDraft build(AuthoringPlanningContext planning) {
+  AuthoringMutationDraft build(AuthoringPlanningContext planning) =>
+      project(planning).finalize();
+
+  SemanticMapProjection project(
+    AuthoringPlanningContext planning, {
+    MapData? projectedMap,
+    bool deferFinalization = false,
+  }) {
     return switch (planning.request.actionId) {
-      'smart_tile.cell.paint' => _mutate(planning, erase: false),
-      'smart_tile.cell.paint_batch' => _paintBatch(planning),
-      'smart_tile.cell.erase' => _mutate(planning, erase: true),
-      'smart_tile.corner.paint' => _mutateCorners(planning, erase: false),
-      'smart_tile.corner.erase' => _mutateCorners(planning, erase: true),
+      'smart_tile.cell.paint' => _mutate(planning,
+          projectedMap: projectedMap,
+          deferFinalization: deferFinalization,
+          erase: false),
+      'smart_tile.cell.paint_batch' => _paintBatch(planning,
+          projectedMap: projectedMap, deferFinalization: deferFinalization),
+      'smart_tile.cell.erase' => _mutate(planning,
+          projectedMap: projectedMap,
+          deferFinalization: deferFinalization,
+          erase: true),
+      'smart_tile.corner.paint' => _mutateCorners(planning,
+          projectedMap: projectedMap,
+          deferFinalization: deferFinalization,
+          erase: false),
+      'smart_tile.corner.erase' => _mutateCorners(planning,
+          projectedMap: projectedMap,
+          deferFinalization: deferFinalization,
+          erase: true),
       _ => throw semanticFailure(
           'map.action_unsupported',
           'The requested Smart Tile cell action is unsupported.',
@@ -53,9 +73,12 @@ final class SmartTileCellActions {
     };
   }
 
-  AuthoringMutationDraft _paintBatch(AuthoringPlanningContext planning) {
+  SemanticMapProjection _paintBatch(AuthoringPlanningContext planning,
+      {MapData? projectedMap, bool deferFinalization = false}) {
     final context = SemanticMapActionContext.read(
       planning,
+      projectedMap: projectedMap,
+      deferFinalization: deferFinalization,
       allowedParameters: const {'layerId', 'strokes'},
     );
     final operation = planning.request.actionId;
@@ -170,7 +193,7 @@ final class SmartTileCellActions {
       }
       return false;
     }).length;
-    return context.draft(
+    return context.project(
       SemanticMapEdit(
         map: projected,
         layerId: layerId,
@@ -203,12 +226,16 @@ final class SmartTileCellActions {
     );
   }
 
-  AuthoringMutationDraft _mutateCorners(
+  SemanticMapProjection _mutateCorners(
     AuthoringPlanningContext planning, {
+    MapData? projectedMap,
+    bool deferFinalization = false,
     required bool erase,
   }) {
     final context = SemanticMapActionContext.read(
       planning,
+      projectedMap: projectedMap,
+      deferFinalization: deferFinalization,
       allowedParameters: erase
           ? const <String>{'layerId', 'corners'}
           : const <String>{'layerId', 'materialId', 'corners'},
@@ -272,7 +299,7 @@ final class SmartTileCellActions {
       changedCornerCount++;
       changedCells.addAll(adjacentCells);
     }
-    return context.draft(
+    return context.project(
       SemanticMapEdit(
         map: replaceSmartTileLayer(context.map, layer: projectedLayer),
         layerId: layerId,
@@ -296,12 +323,16 @@ final class SmartTileCellActions {
     );
   }
 
-  AuthoringMutationDraft _mutate(
+  SemanticMapProjection _mutate(
     AuthoringPlanningContext planning, {
+    MapData? projectedMap,
+    bool deferFinalization = false,
     required bool erase,
   }) {
     final context = SemanticMapActionContext.read(
       planning,
+      projectedMap: projectedMap,
+      deferFinalization: deferFinalization,
       allowedParameters: erase
           ? const <String>{'layerId', 'cells', 'selection'}
           : const <String>{'layerId', 'materialId', 'cells', 'selection'},
@@ -357,7 +388,7 @@ final class SmartTileCellActions {
       }
       return false;
     }).length;
-    return context.draft(
+    return context.project(
       SemanticMapEdit(
         map: projected,
         layerId: layerId,
@@ -600,31 +631,60 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
 
 Map<String, Object?> _cellInputSchema(bool erase) {
   const point = {
-    'type': 'object', 'additionalProperties': false,
-    'required': ['x', 'y'], 'properties': {
+    'type': 'object',
+    'additionalProperties': false,
+    'required': ['x', 'y'],
+    'properties': {
       'x': {'type': 'integer', 'minimum': 0},
       'y': {'type': 'integer', 'minimum': 0},
     },
   };
   return {
-    'type': 'object', 'additionalProperties': false,
+    'type': 'object',
+    'additionalProperties': false,
     'required': ['mapId', 'layerId', if (!erase) 'materialId'],
     'oneOf': [
-      {'required': ['cells'], 'not': {'required': ['selection']}},
-      {'required': ['selection'], 'not': {'required': ['cells']}},
+      {
+        'required': ['cells'],
+        'not': {
+          'required': ['selection']
+        }
+      },
+      {
+        'required': ['selection'],
+        'not': {
+          'required': ['cells']
+        }
+      },
     ],
     'properties': {
       for (final field in ['mapId', 'layerId', if (!erase) 'materialId'])
         field: const {'type': 'string', 'minLength': 1},
-      'cells': {'type': 'array', 'minItems': 1,
-        'maxItems': SmartTileCellActions.maximumExplicitCellsPerGesture, 'items': point},
-      'selection': {'oneOf': [
-        for (final kind in ['line', 'rectangle', 'floodFill'])
-          {'type': 'object', 'additionalProperties': false,
-            'required': ['kind', if (kind == 'floodFill') 'seed' else ...['start', 'end']],
-            'properties': {'kind': {'const': kind},
-              if (kind == 'floodFill') 'seed': point else ...{'start': point, 'end': point}}},
-      ]},
+      'cells': {
+        'type': 'array',
+        'minItems': 1,
+        'maxItems': SmartTileCellActions.maximumExplicitCellsPerGesture,
+        'items': point
+      },
+      'selection': {
+        'oneOf': [
+          for (final kind in ['line', 'rectangle', 'floodFill'])
+            {
+              'type': 'object',
+              'additionalProperties': false,
+              'required': [
+                'kind',
+                if (kind == 'floodFill') 'seed' else ...['start', 'end']
+              ],
+              'properties': {
+                'kind': {'const': kind},
+                if (kind == 'floodFill')
+                  'seed': point
+                else ...{'start': point, 'end': point}
+              }
+            },
+        ]
+      },
     },
   };
 }
