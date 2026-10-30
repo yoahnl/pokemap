@@ -38,6 +38,8 @@ export function registerReadOnlyTools(
         domain: z.enum(["map3d", "map2d", "narrative", "assets", "battle", "all"]).optional(),
         view: z.enum(["compact", "full"]).optional(),
         actionIds: z.array(z.string().min(1)).max(64).optional(),
+        offset: z.number().int().nonnegative().optional(),
+        pageSize: z.number().int().min(1).max(40).optional(),
       }).strict(),
       outputSchema: toolEnvelopeSchema,
       annotations: readOnlyAnnotations,

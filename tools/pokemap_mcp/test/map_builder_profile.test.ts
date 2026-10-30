@@ -24,7 +24,7 @@ test("map-builder retains canonical creation and recovery with compact discovery
     const result = await client.listTools();
     const names = result.tools.map(tool => tool.name);
     assert.deepEqual(names.sort(), [
-      "pokemap_apply", "pokemap_artifact", "pokemap_describe", "pokemap_history",
+      "pokemap_apply", "pokemap_artifact", "pokemap_describe", "pokemap_history", "pokemap_map_check",
       "pokemap_plan", "pokemap_query", "pokemap_recovery_status", "pokemap_workshop", "pokemap_workspace",
     ]);
     assert.ok(Buffer.byteLength(JSON.stringify(result)) <= 25000);
