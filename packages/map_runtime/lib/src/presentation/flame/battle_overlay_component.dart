@@ -28,6 +28,8 @@ import 'battle_background_resolver.dart';
 import 'battle_camera_rig.dart';
 import 'battle_perspective_camera.dart';
 import 'battle_perspective_ground_component.dart';
+import 'battle_stage_3d_component.dart';
+import 'battle_idle_motion.dart';
 import 'battle_debug_panel_component.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_fx_layer_component.dart';
@@ -746,6 +748,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   int _presentationGeneration = 0;
   final BattleCameraRig _battleCameraRig = BattleCameraRig();
   BattlePerspectiveCamera? _perspectiveCamera;
+  BattleStage3DComponent? _stage3D;
+  final Map<BattleSlotRef, BattleIdleMotion> _idleMotions = {};
 
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
@@ -1673,8 +1677,24 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _sceneLayout = layout;
 
     _perspectiveCamera = BattlePerspectiveCamera(viewport: layout.stageRect);
+    _stage3D = BattleStage3DComponent(
+      camera: _perspectiveCamera!,
+      layout: () => currentSceneLayout,
+      combatants: () => {
+        const BattleSlotRef.active(BattleSideId.enemy): ?_enemyCombatant,
+        const BattleSlotRef.active(BattleSideId.player): ?_playerCombatant,
+        ..._additionalCombatants,
+      },
+      platforms: () => {
+        for (final slot in [const BattleSlotRef.active(BattleSideId.enemy), const BattleSlotRef.active(BattleSideId.player), ..._additionalCombatants.keys])
+          slot: _geometryFor(slot),
+      },
+      paintFloor: !backgroundSpec.hasExplicitImage,
+    );
+    add(_stage3D!);
     add(BattlePerspectiveGroundComponent(
       camera: _perspectiveCamera!,
+      isVisible: () => !(_stage3D?.isReady ?? false),
       paintFloor: !backgroundSpec.hasExplicitImage,
       clipRect: () => currentSceneLayout.arenaRect,
       groundRects: () => [
@@ -2438,6 +2458,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       final phaseRemaining = _animationRunner?.secondsUntilNextPhase ?? double.infinity;
       final tick = math.min(remaining, math.min(1 / 60,
           phaseRemaining > .000001 ? phaseRemaining : 1 / 60));
+      _advanceIdleMotion(tick);
       if (_battleCameraRig.isActive || (_perspectiveCamera?.isMoving ?? false)) {
         _battleCameraRig.update(tick);
         _perspectiveCamera?.update(tick);
@@ -2448,6 +2469,20 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       }
       _animationRunner?.update(tick);
       remaining -= tick;
+    }
+  }
+
+  void _advanceIdleMotion(double dt) {
+    final waiting = !_presentationPendingOrRunning && _pendingIntroPlan == null && _teamInfoRevealed && !_session.state.isFinished;
+    for (final slot in [const BattleSlotRef.active(BattleSideId.enemy), const BattleSlotRef.active(BattleSideId.player), ..._additionalCombatants.keys]) {
+      final actor = _combatantForSlot(slot);
+      if (actor == null) continue;
+      final motion = _idleMotions.putIfAbsent(slot, () => BattleIdleMotion(
+        periodSeconds: (slot.side == BattleSideId.player ? 4.8 : 5.6) + slot.slotIndex * .4,
+        direction: slot.side == BattleSideId.player ? 1 : -1,
+      ));
+      final amount = math.min(10.0, currentSceneLayout.stageRect.width * .018);
+      actor.setIdleLateralOffset(motion.advance(dt, waiting: waiting && motionScale <= 1) * amount);
     }
   }
 

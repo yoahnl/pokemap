@@ -104,7 +104,19 @@ final class BattlePerspectiveCamera {
     final current = project(point);
     return (
       position: current.position,
-      scale: (home.depth / current.depth).clamp(.65, 1.4),
+      scale: home.depth / current.depth,
+    );
+  }
+
+  ({BattleCameraPoint position, double width, double height}) billboardWorldGeometry(Offset homeFoot, Rect neutralSpriteRect) {
+    final ground = groundAt(homeFoot);
+    final unit = _project(ground, homeEye, homeAim).depth / focal;
+    final axes = _basis(eye, aim);
+    final offset = neutralSpriteRect.bottomCenter - homeFoot;
+    return (
+      position: ground + axes.right * (offset.dx * unit) - axes.up * (offset.dy * unit),
+      width: neutralSpriteRect.width * unit,
+      height: neutralSpriteRect.height * unit,
     );
   }
 

@@ -10,17 +10,20 @@ final class BattlePerspectiveGroundComponent extends Component {
     required this.groundRects,
     this.paintFloor = true,
     this.clipRect,
+    this.isVisible,
   }) : super(priority: 5);
 
   final BattlePerspectiveCamera camera;
   final Iterable<Rect> Function() groundRects;
   final bool paintFloor;
   final Rect Function()? clipRect;
+  final bool Function()? isVisible;
   final Paint _rim = Paint()..color = const Color(0x70544232);
   final Paint _ground = Paint()..color = const Color(0x905F7950);
 
   @override
   void render(Canvas canvas) {
+    if (!(isVisible?.call() ?? true)) return;
     canvas.save();
     canvas.clipRect(clipRect?.call() ?? camera.viewport);
     if (paintFloor) _paintFloor(canvas);

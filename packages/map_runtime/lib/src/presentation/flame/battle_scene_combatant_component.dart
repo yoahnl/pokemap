@@ -140,6 +140,18 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Rect get currentRenderedSpriteRect =>
       _projectLocalRect(_currentRenderedSpriteRectLocal());
 
+  ui.Image? get stageImage => _spriteImage;
+  Rect get stageSourceRect => _currentSpriteInputSubrect();
+  Color get stageTint => _spriteModulationColor(_visualOpacity);
+  bool renderedBy3DStage = false;
+  double _idleLateralOffset = 0;
+
+  void setIdleLateralOffset(double offset) {
+    if (_idleLateralOffset == offset) return;
+    _idleLateralOffset = offset;
+    _applyVisualPresentation();
+  }
+
   Rect _projectLocalRect(Rect rect) => Rect.fromLTWH(
     position.x + rect.left * _sceneCameraScale,
     position.y + rect.top * _sceneCameraScale,
@@ -186,7 +198,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Color? get currentVisualToneColor => _visualToneColor;
 
   Offset get _cameraNeutralPosition => Offset(
-        _basePosition.x + _visualOffset.dx,
+        _basePosition.x + _visualOffset.dx + _idleLateralOffset,
         _basePosition.y + _visualOffset.dy,
       );
 
@@ -606,6 +618,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
       );
       _renderDashTrail(canvas);
+      if (renderedBy3DStage) return;
       _renderSprite(canvas);
       return;
     }
@@ -1145,7 +1158,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     // Appelé à chaque frame d'animation et de caméra : mutation in place,
     // aucune allocation de Vector2.
     position.setValues(
-      (_basePosition.x + _visualOffset.dx) * _sceneCameraScale + _sceneCameraOffset.x,
+      (_basePosition.x + _visualOffset.dx + _idleLateralOffset) * _sceneCameraScale + _sceneCameraOffset.x,
       (_basePosition.y + _visualOffset.dy) * _sceneCameraScale + _sceneCameraOffset.y,
     );
     scale.setValues(_sceneCameraScale, _sceneCameraScale);
