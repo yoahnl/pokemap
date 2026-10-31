@@ -2,8 +2,29 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_perspective_camera.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
 void main() {
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    for (final playerSide in [true, false]) {
+      test('attack focus preserves subject size for player=$playerSide in $size', () {
+        final layout = BattleSceneLayout.forViewport(viewportSize: size, portraitTouchLayout: true);
+        final camera = BattlePerspectiveCamera(viewport: layout.stageRect);
+        final foot = playerSide ? layout.playerFootAnchor : layout.enemyFootAnchor;
+        camera.focus(foot, playerSide: playerSide, durationSeconds: .4);
+        for (var frame = 0; frame < 30; frame++) {
+          camera.update(1 / 60);
+          expect(camera.billboardAt(foot).scale, inInclusiveRange(.95, 1.15));
+        }
+        expect((camera.billboardAt(foot).position - foot).distance, greaterThan(10));
+        camera.reset(durationSeconds: .3);
+        camera.update(.3);
+        expect(camera.billboardAt(foot).scale, 1);
+        expect(camera.billboardAt(foot).position, foot);
+      });
+    }
+  }
+
   for (final viewport in [
     const Rect.fromLTWH(0, 0, 390, 430),
     const Rect.fromLTWH(0, 0, 540, 390),

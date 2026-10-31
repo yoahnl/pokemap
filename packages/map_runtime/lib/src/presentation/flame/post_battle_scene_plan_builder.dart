@@ -34,6 +34,10 @@ import 'battle_animation_plan.dart';
     final concernsDisplayedPokemon =
         activePartySlot != null && message.partySlot == activePartySlot;
     if (message.kind == RuntimePostBattleMessageKind.levelUp &&
+        concernsDisplayedPokemon) {
+      steps.add(const HudLevelUpStep());
+    }
+    if (message.kind == RuntimePostBattleMessageKind.levelUp &&
         concernsDisplayedPokemon &&
         xpBarFull) {
       steps.add(const PlaySeStep(seName: 'level_up'));

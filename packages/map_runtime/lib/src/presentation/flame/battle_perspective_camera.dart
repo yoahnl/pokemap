@@ -184,13 +184,13 @@ final class BattlePerspectiveCamera {
       playerSide ? 1.85 : 2.85,
       source.z,
     );
-    final referenceEye = playerSide
-        ? const BattleCameraPoint(5.79052734375, 5.95, 19.797607421875)
-        : const BattleCameraPoint(6.5986328125, 6.95, 6.904541015625);
-    final referenceAim = playerSide
-        ? const BattleCameraPoint(-.909423828125, 1.85, 2.49755859375)
-        : const BattleCameraPoint(-.101318359375, 2.85, -10.3955078125);
-    final targetEye = targetAim + referenceEye - referenceAim;
+    final direction = (homeEye - homeAim).normalized;
+    final homeDepth = _project(source, homeEye, homeAim).depth;
+    final distance = math.max(
+      .2,
+      homeDepth / 1.08 - (targetAim - source).dot(direction),
+    );
+    final targetEye = targetAim + direction * distance;
     moveTo(
       eye: homeEye + (targetEye - homeEye) * strength,
       aim: homeAim + (targetAim - homeAim) * strength,

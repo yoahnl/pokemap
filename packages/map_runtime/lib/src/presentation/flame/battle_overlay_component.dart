@@ -1419,6 +1419,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   /// Chaque tween avance cette référence à sa cible ; le snapshot la préfère
   /// à la table dès qu'elle existe.
   double? _presentationXpProgress;
+  int? _presentationPlayerLevel;
 
   /// L'horloge de présentation des PV, par camp — recette 2026-08-23.
   ///
@@ -1910,6 +1911,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       onFaintCombatant: _handleFaintCombatantStep,
       onHudHpTween: _handleHudHpTweenStep,
       onHudXpTween: _handleHudXpTweenStep,
+      onHudLevelUp: _handleHudLevelUpStep,
       onShowDefeatedTrainer: _handleShowDefeatedTrainerStep,
       onPlayBallSequence: _handleBallSequenceStep,
       onPlayBallCaptureSequence: _handleBallCaptureSequenceStep,
@@ -2974,7 +2976,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           ? 1 + _session.setup.enemyReservePokemon.length : null,
       ownerLabel: ownerLabel,
       speciesLabel: resolveSpeciesDisplayName(combatant.speciesId),
-      level: combatant.level,
+      level: isPlayerSide && targetSide.slotIndex == 0
+          ? _presentationPlayerLevel ?? combatant.level
+          : combatant.level,
       currentHp: combatant.currentHp,
       maxHp: combatant.maxHp,
       displayedHp: isHpTweenStep
@@ -4285,6 +4289,11 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
 
   void _handleHudXpTweenStep(HudXpTweenStep step) {
     _presentationXpProgress = step.toProgress;
+  }
+
+  void _handleHudLevelUpStep() {
+    final combatant = _combatantDataAt(const BattleSlotRef.active(BattleSideId.player));
+    _presentationPlayerLevel = (_presentationPlayerLevel ?? combatant.level) + 1;
   }
 
   void _handleBarrierPulseStep(BarrierPulseStep step) {

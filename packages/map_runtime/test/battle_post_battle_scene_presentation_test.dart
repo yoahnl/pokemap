@@ -3,6 +3,8 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_runtime/src/application/runtime_post_battle_decision_coordinator.dart';
+import 'package:map_runtime/src/presentation/flame/post_battle_scene_plan_builder.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
@@ -82,6 +84,52 @@ Future<ui.Image> _trainerImage() async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('HUD follows each active level-up message and retains the level during decisions', () async {
+    final levelsByMessage = <String, int>{};
+    final session = _session();
+    final overlay = BattleOverlayComponent(
+      session: session,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+      onCommandOverlaySnapshotChanged: (snapshot) {
+        if (snapshot != null) levelsByMessage.putIfAbsent(snapshot.prompt, () => snapshot.playerHud.level);
+      },
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final segment = buildPostBattleScenePlanSegment(
+      messages: const [
+        RuntimePostBattleMessage(kind: RuntimePostBattleMessageKind.experience, text: 'Gain Exp.', partySlot: 0),
+        RuntimePostBattleMessage(kind: RuntimePostBattleMessageKind.levelUp, text: 'Niveau 6', partySlot: 0),
+        RuntimePostBattleMessage(kind: RuntimePostBattleMessageKind.levelUp, text: 'Niveau 7', partySlot: 0),
+        RuntimePostBattleMessage(kind: RuntimePostBattleMessageKind.levelUp, text: 'Réserve niveau 20', partySlot: 2),
+      ],
+      activePartySlot: 0, fromXpProgress: .6, targetXpProgress: .17,
+    );
+    overlay.presentPostBattlePlan(segment.plan);
+    await _pumpUntilIdle(overlay);
+    expect(levelsByMessage['Gain Exp.'], 5);
+    expect(levelsByMessage['Niveau 6'], 6);
+    expect(levelsByMessage['Niveau 7'], 7);
+    expect(levelsByMessage['Réserve niveau 20'], 7);
+    overlay.presentPostBattleDecision(prompt: 'Apprendre une capacité ?', choices: ['Oui', 'Non'], onChoice: (_) {});
+    expect(overlay.currentCommandOverlaySnapshot!.playerHud.level, 7);
+    expect(overlay.currentCommandOverlaySnapshot!.enemyHud.level, 4);
+    overlay.clearPostBattleDecision();
+    final nextSegment = buildPostBattleScenePlanSegment(
+      messages: const [
+        RuntimePostBattleMessage(kind: RuntimePostBattleMessageKind.levelUp, text: 'Niveau 8', partySlot: 0),
+      ],
+      activePartySlot: 0, fromXpProgress: .17, targetXpProgress: .3,
+    );
+    overlay.presentPostBattlePlan(nextSegment.plan);
+    await _pumpUntilIdle(overlay);
+    expect(levelsByMessage['Niveau 8'], 8);
+    expect(overlay.currentCommandOverlaySnapshot!.playerHud.level, 8);
+    expect(session.state.player.level, 5);
+  });
 
   test(
       'le plan de fin joue ses messages dans la boîte de dialogue et '

@@ -16,6 +16,7 @@ final class BattleAnimationRunner {
     required this.onFaintCombatant,
     required this.onHudHpTween,
     this.onHudXpTween,
+    this.onHudLevelUp,
     this.onShowDefeatedTrainer,
     this.onPlayBallSequence,
     this.onPlayBallCaptureSequence,
@@ -56,6 +57,7 @@ final class BattleAnimationRunner {
   final void Function(FaintCombatantStep step) onFaintCombatant;
   final void Function(HudHpTweenStep step) onHudHpTween;
   final void Function(HudXpTweenStep step)? onHudXpTween;
+  final void Function()? onHudLevelUp;
   final void Function()? onShowDefeatedTrainer;
   final void Function(PlayBallSequenceStep step)? onPlayBallSequence;
   final void Function(PlayBallCaptureSequenceStep step)?
@@ -412,6 +414,7 @@ final class BattleAnimationRunner {
       BattleCameraResetStep() => true,
       SwapCombatantVisualStep() => true,
       ShowDefeatedTrainerStep() => true,
+      HudLevelUpStep() => true,
       BarrierPulseStep() => true,
       AnimationGroupStep() => true,
       _ => false,
@@ -502,7 +505,7 @@ final class BattleAnimationRunner {
           _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
           return startAtSeconds;
         }(),
-      ShowDefeatedTrainerStep() => () {
+      ShowDefeatedTrainerStep() || HudLevelUpStep() => () {
           _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
           return startAtSeconds;
         }(),
@@ -644,6 +647,8 @@ final class BattleAnimationRunner {
         }
       case ShowDefeatedTrainerStep():
         onShowDefeatedTrainer?.call();
+      case HudLevelUpStep():
+        onHudLevelUp?.call();
       case HudHpTweenStep():
         // Le chemin bloquant renseigne `_currentHpTweenStep`, que l'overlay lit
         // pour interpoler la barre image par image. Sans lui, la barre recevait

@@ -1066,6 +1066,10 @@ final class ShowDefeatedTrainerStep extends BattleAnimationStep {
   const ShowDefeatedTrainerStep();
 }
 
+final class HudLevelUpStep extends BattleAnimationStep {
+  const HudLevelUpStep();
+}
+
 /// Remplit la barre d'XP du joueur dans le HUD — BETA-BAT-017.
 ///
 /// Étape À DURÉE (elle tient sa phase) : la référence anime la barre pendant
