@@ -55,8 +55,14 @@ final class InstallStaging {
       path,
       hasKnownDigest: knownPackageSha256 != null,
     );
+    final workers = min(4, Platform.numberOfProcessors);
     return Isolate.run(
-      () => _inspectPackageFile(path, packageInspector, knownPackageSha256),
+      () => _inspectPackageFile(
+        path,
+        packageInspector,
+        knownPackageSha256,
+        workers,
+      ),
     );
   }
 
@@ -389,17 +395,12 @@ Future<GamePackageInspectionResult> _inspectPackageFile(
   String path,
   GamePackageInspector inspector,
   String? knownPackageSha256,
-) async {
-  final source = await FilePackageSource.open(File(path));
-  try {
-    return inspector.inspectSourceSync(
-      source,
-      knownPackageSha256: knownPackageSha256,
-    );
-  } finally {
-    await source.close();
-  }
-}
+  int workers,
+) => inspector.inspectSourceParallel(
+  () => FilePackageSource.open(File(path)),
+  workers: workers,
+  knownPackageSha256: knownPackageSha256,
+);
 
 final class _DigestSink implements Sink<Digest> {
   Digest? _digest;

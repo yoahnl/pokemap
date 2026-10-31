@@ -10,3 +10,8 @@ abstract interface class RandomAccessPackageSource {
 
   Uint8List readAtSync(int offset, int length);
 }
+
+abstract interface class ClosableRandomAccessPackageSource
+    implements RandomAccessPackageSource {
+  Future<void> close();
+}

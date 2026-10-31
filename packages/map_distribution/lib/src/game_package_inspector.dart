@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -19,6 +21,19 @@ import 'random_access_zip_structure_reader.dart';
 import 'zip_structure_reader.dart';
 
 final _sha256Hex = RegExp(r'^[0-9a-f]{64}$');
+
+const _parallelBatchEntries = 64;
+const _parallelBatchBytes = 4 * 1024 * 1024;
+
+typedef _ManifestHeader = ({
+  int fileLength,
+  List<RandomAccessZipStructureEntry> payloadEntries,
+  int payloadTotal,
+  Uint8List manifestBytes,
+  GamePackageManifest manifest,
+  PackageSignatureStatus signatureStatus,
+  GamePackageCompatibilityResult? compatibility,
+});
 
 /// Inspects untrusted package bytes without touching the filesystem.
 final class GamePackageInspector {
@@ -42,6 +57,78 @@ final class GamePackageInspector {
     RandomAccessPackageSource source, {
     String? knownPackageSha256,
   }) {
+    _checkKnownPackageSha256(knownPackageSha256);
+    final header = _inspectManifestSync(source);
+    final payload = _matchPayloadInventory(header);
+    final contentValidator = GamePackageContentValidator(policy);
+    for (final inventoryEntry in header.manifest.content.files) {
+      _inspectPayloadEntry(
+        source,
+        inventoryEntry,
+        payload.rawByPath[inventoryEntry.path]!,
+        contentValidator,
+      );
+    }
+    final pokemonRuleset = _validateProject(source, header, payload);
+    _checkUnchangedLength(
+      source,
+      header.fileLength,
+      'Package changed while it was being inspected.',
+    );
+    final packageSha256 =
+        knownPackageSha256 ?? _hashSource(source, header.fileLength);
+    _checkUnchangedLength(
+      source,
+      header.fileLength,
+      'Package changed while its receipt was being created.',
+    );
+    return _inspectionResult(header, packageSha256, pokemonRuleset);
+  }
+
+  Future<GamePackageInspectionResult> inspectSourceParallel(
+    Future<RandomAccessPackageSource> Function() openSource, {
+    int workers = 4,
+    String? knownPackageSha256,
+  }) async {
+    _checkKnownPackageSha256(knownPackageSha256);
+    final source = await openSource();
+    _PackageHashWorker? hashWorker;
+    try {
+      final header = _inspectManifestSync(source);
+      final payload = _matchPayloadInventory(header);
+      if (knownPackageSha256 == null) {
+        hashWorker = await _PackageHashWorker.spawn(
+          policy,
+          openSource,
+          header.fileLength,
+        );
+      }
+      await _inspectPayloadInParallel(
+        openSource,
+        header.manifest.content.files,
+        payload.rawByPath,
+        workers < 1 ? 1 : workers,
+      );
+      final pokemonRuleset = _validateProject(source, header, payload);
+      _checkUnchangedLength(
+        source,
+        header.fileLength,
+        'Package changed while it was being inspected.',
+      );
+      final packageSha256 = knownPackageSha256 ?? await hashWorker!.digest;
+      _checkUnchangedLength(
+        source,
+        header.fileLength,
+        'Package changed while its receipt was being created.',
+      );
+      return _inspectionResult(header, packageSha256, pokemonRuleset);
+    } finally {
+      hashWorker?.stop();
+      await _closePackageSource(source);
+    }
+  }
+
+  void _checkKnownPackageSha256(String? knownPackageSha256) {
     if (knownPackageSha256 != null &&
         !_sha256Hex.hasMatch(knownPackageSha256)) {
       throw ArgumentError.value(
@@ -50,19 +137,17 @@ final class GamePackageInspector {
         'Expected a lowercase hexadecimal SHA-256 digest.',
       );
     }
-    final header = _inspectManifestSync(source);
-    final fileLength = header.fileLength;
-    final manifest = header.manifest;
-    final signatureStatus = header.signatureStatus;
-    final compatibility = header.compatibility;
-    final payloadEntries = header.payloadEntries;
-    final payloadTotal = header.payloadTotal;
-    final manifestBytes = header.manifestBytes;
+  }
+
+  ({
+    Map<String, RandomAccessZipStructureEntry> rawByPath,
+    Map<String, GamePackageFileEntry> inventoryByPath,
+  }) _matchPayloadInventory(_ManifestHeader header) {
     final rawByPath = <String, RandomAccessZipStructureEntry>{
-      for (final entry in payloadEntries) entry.name: entry,
+      for (final entry in header.payloadEntries) entry.name: entry,
     };
     final inventoryByPath = <String, GamePackageFileEntry>{
-      for (final entry in manifest.content.files) entry.path: entry,
+      for (final entry in header.manifest.content.files) entry.path: entry,
     };
     for (final path in rawByPath.keys) {
       if (!inventoryByPath.containsKey(path)) {
@@ -82,45 +167,149 @@ final class GamePackageInspector {
         );
       }
     }
+    return (rawByPath: rawByPath, inventoryByPath: inventoryByPath);
+  }
 
-    final contentValidator = GamePackageContentValidator(policy);
-    PokemonRulesetReference? pokemonRuleset;
-    for (final inventoryEntry in manifest.content.files) {
-      final raw = rawByPath[inventoryEntry.path]!;
-      if (raw.size != inventoryEntry.size) {
-        _fail(
-          'sizeMismatch',
-          raw.name,
-          'Extracted size differs from the inventory.',
-        );
-      }
-      if (p.extension(raw.name).toLowerCase() == '.json' &&
-          raw.size > policy.maxJsonBytes) {
-        _fail(
-          'entryTooLarge',
-          raw.name,
-          'JSON file exceeds its dedicated quota.',
-        );
-      }
-      final streamed = _streamEntry(
-        source,
-        raw,
-        bufferWholeEntry: _requiresWholeContent(raw.name),
-      );
-      if (streamed.crc32 != raw.crc32 ||
-          streamed.sha256 != inventoryEntry.sha256) {
-        _fail(
-          'hashMismatch',
-          raw.name,
-          'Payload digest differs from the inventory.',
-        );
-      }
-      contentValidator.validate(
-        inventoryEntry,
-        streamed.validationBytes,
-        streamedTextValidated: _isStreamValidatedText(raw.name),
+  void _inspectPayloadEntry(
+    RandomAccessPackageSource source,
+    GamePackageFileEntry inventoryEntry,
+    RandomAccessZipStructureEntry raw,
+    GamePackageContentValidator contentValidator,
+  ) {
+    if (raw.size != inventoryEntry.size) {
+      _fail(
+        'sizeMismatch',
+        raw.name,
+        'Extracted size differs from the inventory.',
       );
     }
+    if (p.extension(raw.name).toLowerCase() == '.json' &&
+        raw.size > policy.maxJsonBytes) {
+      _fail(
+        'entryTooLarge',
+        raw.name,
+        'JSON file exceeds its dedicated quota.',
+      );
+    }
+    final streamed = _streamEntry(
+      source,
+      raw,
+      bufferWholeEntry: _requiresWholeContent(raw.name),
+    );
+    if (streamed.crc32 != raw.crc32 ||
+        streamed.sha256 != inventoryEntry.sha256) {
+      _fail(
+        'hashMismatch',
+        raw.name,
+        'Payload digest differs from the inventory.',
+      );
+    }
+    contentValidator.validate(
+      inventoryEntry,
+      streamed.validationBytes,
+      streamedTextValidated: _isStreamValidatedText(raw.name),
+    );
+  }
+
+  Future<void> _inspectPayloadInParallel(
+    Future<RandomAccessPackageSource> Function() openSource,
+    List<GamePackageFileEntry> inventory,
+    Map<String, RandomAccessZipStructureEntry> rawByPath,
+    int workers,
+  ) async {
+    if (inventory.isEmpty) return;
+    final events = ReceivePort();
+    final isolates = <Isolate>[];
+    final pendingByWorker = <SendPort, int>{};
+    var nextIndex = 0;
+    var completed = 0;
+    _PayloadFailure? firstFailure;
+    List<_PayloadTask>? nextBatch() {
+      if (firstFailure != null || nextIndex >= inventory.length) return null;
+      final batch = <_PayloadTask>[];
+      var batchBytes = 0;
+      while (nextIndex < inventory.length &&
+          batch.length < _parallelBatchEntries &&
+          batchBytes < _parallelBatchBytes) {
+        final inventoryEntry = inventory[nextIndex];
+        batch.add(_PayloadTask(
+          nextIndex,
+          inventoryEntry,
+          rawByPath[inventoryEntry.path]!,
+        ));
+        batchBytes += inventoryEntry.size;
+        nextIndex++;
+      }
+      return batch;
+    }
+
+    void recordFailure(_PayloadFailure failure) {
+      final current = firstFailure;
+      if (current == null || failure.index < current.index) {
+        firstFailure = failure;
+      }
+    }
+
+    try {
+      final workerCount =
+          workers < inventory.length ? workers : inventory.length;
+      for (var worker = 0; worker < workerCount; worker++) {
+        isolates.add(await Isolate.spawn(
+          _inspectPayloadWorker,
+          (events.sendPort, policy, openSource),
+          onError: events.sendPort,
+          onExit: events.sendPort,
+        ));
+      }
+      var running = isolates.length;
+      await for (final event in events) {
+        if (event is SendPort) {
+          completed += pendingByWorker.remove(event) ?? 0;
+          final batch = nextBatch();
+          if (batch != null) pendingByWorker[event] = batch.length;
+          event.send(batch);
+        } else if (event is _PayloadFailure) {
+          recordFailure(event);
+        } else if (event is List && event.length == 2) {
+          recordFailure(_PayloadFailure(
+            -1,
+            RemoteError('${event[0]}', '${event[1]}'),
+            '${event[1]}',
+          ));
+        } else if (event == null) {
+          running--;
+          if (running == 0) break;
+        }
+      }
+    } finally {
+      events.close();
+      for (final isolate in isolates) {
+        isolate.kill(priority: Isolate.immediate);
+      }
+    }
+    final failure = firstFailure;
+    if (failure != null) {
+      Error.throwWithStackTrace(
+        failure.error,
+        StackTrace.fromString(failure.stackTrace),
+      );
+    }
+    if (completed != inventory.length) {
+      throw StateError('Parallel payload inspection did not complete.');
+    }
+  }
+
+  PokemonRulesetReference _validateProject(
+    RandomAccessPackageSource source,
+    _ManifestHeader header,
+    ({
+      Map<String, RandomAccessZipStructureEntry> rawByPath,
+      Map<String, GamePackageFileEntry> inventoryByPath,
+    }) payload,
+  ) {
+    final rawByPath = payload.rawByPath;
+    final inventoryByPath = payload.inventoryByPath;
+    PokemonRulesetReference? pokemonRuleset;
     final projectEntry = rawByPath['project/project.json'];
     if (projectEntry != null) {
       List<int>? readVerifiedPayload(String path) {
@@ -136,7 +325,7 @@ final class GamePackageInspector {
       }
 
       final project = GamePackageProjectValidator(policy).validate(
-        manifest,
+        header.manifest,
         Uint8List.fromList(readVerifiedPayload('project/project.json')!),
         payloadPaths: rawByPath.keys.toSet(),
         readPayload: readVerifiedPayload,
@@ -150,40 +339,44 @@ final class GamePackageInspector {
         'The package must contain its project manifest.',
       );
     }
+    return pokemonRuleset;
+  }
+
+  void _checkUnchangedLength(
+    RandomAccessPackageSource source,
+    int fileLength,
+    String message,
+  ) {
     if (source.length != fileLength) {
-      _fail(
-        'invalidZipStructure',
-        r'$',
-        'Package changed while it was being inspected.',
-      );
+      _fail('invalidZipStructure', r'$', message);
     }
-    final packageSha256 = knownPackageSha256 ?? _hashSource(source, fileLength);
-    if (source.length != fileLength) {
-      _fail(
-        'invalidZipStructure',
-        r'$',
-        'Package changed while its receipt was being created.',
-      );
-    }
+  }
+
+  GamePackageInspectionResult _inspectionResult(
+    _ManifestHeader header,
+    String packageSha256,
+    PokemonRulesetReference pokemonRuleset,
+  ) {
+    final manifest = header.manifest;
     final receipt = GamePackageInspectionReceipt(
       receiptVersion: 1,
       securityPolicyVersion: 1,
       gameId: manifest.gameId,
       gameVersion: manifest.gameVersion.toString(),
       treeSha256: manifest.content.treeSha256,
-      manifestSha256: sha256.convert(manifestBytes).toString(),
+      manifestSha256: sha256.convert(header.manifestBytes).toString(),
       packageSha256: packageSha256,
-      archiveBytes: fileLength,
-      payloadBytes: payloadTotal,
-      fileCount: payloadEntries.length,
-      signatureStatus: signatureStatus,
+      archiveBytes: header.fileLength,
+      payloadBytes: header.payloadTotal,
+      fileCount: header.payloadEntries.length,
+      signatureStatus: header.signatureStatus,
       pokemonRuleset: pokemonRuleset,
     );
     return GamePackageInspectionResult(
       manifest: manifest,
       payloadPaths: manifest.content.files.map((entry) => entry.path).toList(),
-      signatureStatus: signatureStatus,
-      compatibility: compatibility,
+      signatureStatus: header.signatureStatus,
+      compatibility: header.compatibility,
       receipt: receipt,
     );
   }
@@ -201,15 +394,7 @@ final class GamePackageInspector {
     );
   }
 
-  ({
-    int fileLength,
-    List<RandomAccessZipStructureEntry> payloadEntries,
-    int payloadTotal,
-    Uint8List manifestBytes,
-    GamePackageManifest manifest,
-    PackageSignatureStatus signatureStatus,
-    GamePackageCompatibilityResult? compatibility,
-  }) _inspectManifestSync(RandomAccessPackageSource source) {
+  _ManifestHeader _inspectManifestSync(RandomAccessPackageSource source) {
     final fileLength = source.length;
     if (fileLength > policy.maxArchiveBytes) {
       _fail('archiveTooLarge', r'$', 'Package archive exceeds policy.');
@@ -638,4 +823,150 @@ final class _DiscardStringSink implements Sink<String> {
 
   @override
   void close() {}
+}
+
+Future<void> _closePackageSource(RandomAccessPackageSource source) async {
+  if (source is ClosableRandomAccessPackageSource) await source.close();
+}
+
+final class _PayloadTask {
+  const _PayloadTask(this.index, this.inventoryEntry, this.raw);
+
+  final int index;
+  final GamePackageFileEntry inventoryEntry;
+  final RandomAccessZipStructureEntry raw;
+}
+
+final class _PayloadFailure {
+  const _PayloadFailure(this.index, this.error, this.stackTrace);
+
+  final int index;
+  final Object error;
+  final String stackTrace;
+}
+
+void _sendFailure(SendPort port, int index, Object error, StackTrace stack) {
+  try {
+    port.send(_PayloadFailure(index, error, '$stack'));
+  } on Object {
+    port.send(
+        _PayloadFailure(index, RemoteError('$error', '$stack'), '$stack'));
+  }
+}
+
+Future<void> _inspectPayloadWorker(
+  (
+    SendPort,
+    GamePackageSecurityPolicy,
+    Future<RandomAccessPackageSource> Function(),
+  ) message,
+) async {
+  final (coordinator, policy, openSource) = message;
+  final batches = ReceivePort();
+  RandomAccessPackageSource? source;
+  try {
+    final openedSource = source = await openSource();
+    final inspector = GamePackageInspector(policy: policy);
+    final contentValidator = GamePackageContentValidator(policy);
+    coordinator.send(batches.sendPort);
+    await for (final batch in batches) {
+      if (batch is! List<_PayloadTask>) break;
+      for (final task in batch) {
+        try {
+          inspector._inspectPayloadEntry(
+            openedSource,
+            task.inventoryEntry,
+            task.raw,
+            contentValidator,
+          );
+        } on Object catch (error, stack) {
+          _sendFailure(coordinator, task.index, error, stack);
+          return;
+        }
+      }
+      coordinator.send(batches.sendPort);
+    }
+  } on Object catch (error, stack) {
+    _sendFailure(coordinator, -1, error, stack);
+  } finally {
+    batches.close();
+    final openedSource = source;
+    if (openedSource != null) await _closePackageSource(openedSource);
+  }
+}
+
+final class _PackageHashWorker {
+  _PackageHashWorker._(this._isolate, this._events, this._outcome);
+
+  final Isolate _isolate;
+  final ReceivePort _events;
+  final Completer<Object?> _outcome;
+
+  static Future<_PackageHashWorker> spawn(
+    GamePackageSecurityPolicy policy,
+    Future<RandomAccessPackageSource> Function() openSource,
+    int fileLength,
+  ) async {
+    final events = ReceivePort();
+    final outcome = Completer<Object?>();
+    events.listen((event) {
+      if (!outcome.isCompleted) outcome.complete(event);
+      events.close();
+    });
+    try {
+      final isolate = await Isolate.spawn(
+        _hashPackageWorker,
+        (events.sendPort, policy, openSource, fileLength),
+        onError: events.sendPort,
+        onExit: events.sendPort,
+      );
+      return _PackageHashWorker._(isolate, events, outcome);
+    } on Object {
+      events.close();
+      rethrow;
+    }
+  }
+
+  Future<String> get digest async {
+    final outcome = await _outcome.future;
+    if (outcome is String) return outcome;
+    if (outcome is _PayloadFailure) {
+      Error.throwWithStackTrace(
+        outcome.error,
+        StackTrace.fromString(outcome.stackTrace),
+      );
+    }
+    if (outcome is List && outcome.length == 2) {
+      throw RemoteError('${outcome[0]}', '${outcome[1]}');
+    }
+    throw StateError('Package hash worker exited without a digest.');
+  }
+
+  void stop() {
+    _events.close();
+    _isolate.kill(priority: Isolate.immediate);
+  }
+}
+
+Future<void> _hashPackageWorker(
+  (
+    SendPort,
+    GamePackageSecurityPolicy,
+    Future<RandomAccessPackageSource> Function(),
+    int,
+  ) message,
+) async {
+  final (coordinator, policy, openSource, fileLength) = message;
+  try {
+    final source = await openSource();
+    try {
+      coordinator.send(
+        GamePackageInspector(policy: policy)._hashSource(source, fileLength),
+      );
+    } finally {
+      await _closePackageSource(source);
+    }
+  } on Object catch (error, stack) {
+    _sendFailure(coordinator, -1, error, stack);
+  }
 }

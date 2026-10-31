@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:map_distribution/map_distribution.dart';
 
-final class FilePackageSource implements RandomAccessPackageSource {
+final class FilePackageSource implements ClosableRandomAccessPackageSource {
   FilePackageSource._(this._file, this._handle, this.length);
 
   final File _file;
@@ -39,5 +39,6 @@ final class FilePackageSource implements RandomAccessPackageSource {
     return bytes;
   }
 
+  @override
   Future<void> close() => _handle.close();
 }

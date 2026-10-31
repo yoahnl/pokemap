@@ -342,12 +342,13 @@ void main() {
       },
     );
 
-    test('enforces the selected trust channel with an injected verifier', () {
+    test('enforces the selected trust channel with an injected verifier',
+        () async {
       final projectBytes = _validProjectBytes();
       final unsigned = _build(<String, List<int>>{
         'project/project.json': projectBytes,
       });
-      _expectCodeBoth(
+      await _expectCodeBoth(
         const GamePackageInspector(
           trustRequirement: PackageTrustRequirement.signatureRequired,
         ),
@@ -374,7 +375,7 @@ void main() {
       ).inspect(signed.packageBytes);
       expect(accepted.signatureStatus, PackageSignatureStatus.verified);
 
-      _expectCodeBoth(
+      await _expectCodeBoth(
         GamePackageInspector(
           trustRequirement: PackageTrustRequirement.signatureRequired,
           signatureVerifier: _RejectingVerifier(),
@@ -640,7 +641,7 @@ void main() {
     });
 
     test('executes hostile ZIP/content cases through both inspector backends',
-        () {
+        () async {
       final projectBytes = _validProjectBytes();
       final valid = _build(<String, List<int>>{
         'project/project.json': projectBytes,
@@ -1012,7 +1013,7 @@ void main() {
                     <String, Object?>{
                       'id': 'g$index',
                       'name': 'Group $index',
-                          'type': 'city',
+                      'type': 'city',
                       'parentGroupId': index == 0 ? null : 'g${index - 1}',
                     },
                 ],
@@ -1047,7 +1048,7 @@ void main() {
       ];
 
       for (final testCase in hostile) {
-        _expectCodeBoth(
+        await _expectCodeBoth(
           testCase.inspector,
           testCase.bytes,
           testCase.code,
@@ -1095,8 +1096,8 @@ void main() {
       );
     });
 
-    test('rejects the exact normative byte and entry overflows', () {
-      _expectCodeBoth(
+    test('rejects the exact normative byte and entry overflows', () async {
+      await _expectCodeBoth(
         inspector,
         _eocdWithEntryCount(GamePackageSecurityPolicy.maxPayloadEntriesV1 + 2),
         'entryCountExceeded',
@@ -1314,7 +1315,155 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('parallel inspection equals sequential inspection on every fixture',
+        () async {
+      const chunkSize = 1024 * 1024;
+      final projectBytes = _validProjectBytes();
+      final audio = Uint8List(2 * chunkSize + 17)
+        ..setAll(0, ascii.encode('RIFF'))
+        ..setAll(8, ascii.encode('WAVE'));
+      final unsigned = _build(<String, List<int>>{
+        'project/project.json': projectBytes,
+      });
+      final signed = const GamePackageBuilder().build(
+        manifest: unsigned.manifest.copyWith(
+          signature: const GamePackageSignature(
+            algorithm: 'ed25519',
+            keyId: 'publisher:key',
+            value:
+                'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==',
+          ),
+        ),
+        payloadFiles: <String, List<int>>{'project/project.json': projectBytes},
+      );
+      final fixtures = <({
+        String id,
+        List<int> bytes,
+        GamePackageInspector inspector,
+      })>[
+        (id: 'minimal', bytes: unsigned.packageBytes, inspector: inspector),
+        (
+          id: 'signed',
+          bytes: signed.packageBytes,
+          inspector: GamePackageInspector(
+            trustRequirement: PackageTrustRequirement.signatureRequired,
+            signatureVerifier: _AcceptingVerifier(),
+          ),
+        ),
+        (
+          id: 'mixed media',
+          bytes: _rawPackage(<String, List<int>>{
+            'legal/NOTICE.txt': <int>[
+              ...List<int>.filled(chunkSize - 1, 0x61),
+              ...utf8.encode('é'),
+            ],
+            'presentation/intro/captions.vtt': ascii.encode('WEBVTT\n\n'),
+            'project/assets/theme.wav': audio,
+            for (var index = 0; index < 150; index++)
+              'presentation/icons/icon_$index.png':
+                  _oversizedPng(width: index + 1, height: 2),
+            'project/project.json': projectBytes,
+          }),
+          inspector: inspector,
+        ),
+      ];
+
+      for (final fixture in fixtures) {
+        for (final knownPackageSha256 in <String?>[null, 'b' * 64]) {
+          final sequential = fixture.inspector.inspectSourceSync(
+            _MemoryPackageSource(fixture.bytes),
+            knownPackageSha256: knownPackageSha256,
+          );
+          for (final workers in <int>[0, 1, 2, 4, 7]) {
+            final parallel = await fixture.inspector.inspectSourceParallel(
+              _openMemorySource(fixture.bytes),
+              workers: workers,
+              knownPackageSha256: knownPackageSha256,
+            );
+            final reason = '${fixture.id} workers=$workers '
+                'known=${knownPackageSha256 != null}';
+            expect(
+              parallel.receipt.toJson(),
+              sequential.receipt.toJson(),
+              reason: reason,
+            );
+            expect(
+              parallel.manifest.toJson(),
+              sequential.manifest.toJson(),
+              reason: reason,
+            );
+            expect(parallel.payloadPaths, sequential.payloadPaths,
+                reason: reason);
+            expect(parallel.signatureStatus, sequential.signatureStatus,
+                reason: reason);
+            expect(parallel.compatibility, sequential.compatibility,
+                reason: reason);
+          }
+        }
+      }
+      await expectLater(
+        inspector.inspectSourceParallel(
+          _openMemorySource(unsigned.packageBytes),
+          knownPackageSha256: 'not-a-digest',
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test(
+        'parallel inspection reports the first failing entry in inventory '
+        'order', () async {
+      final slowToken = Uint8List(6 * 1024 * 1024)
+        ..setAll(0, <int>[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+        ..setAll(12, ascii.encode('IHDR'))
+        ..setAll(6 * 1024 * 1024 - 64, ascii.encode('sk-ABCDEFGHIJKLMNOP'));
+      ByteData.sublistView(slowToken)
+        ..setUint32(16, 1)
+        ..setUint32(20, 1);
+      final hostile = _rawPackage(<String, List<int>>{
+        'presentation/a_slow_token.png': slowToken,
+        for (var index = 0; index < 200; index++)
+          'presentation/icons/icon_$index.png': _oversizedPng(width: 1),
+        'presentation/z_program.png': <int>[0x4d, 0x5a, 0, 0],
+        'project/project.json': _validProjectBytes(),
+      });
+
+      late final GamePackageFormatException sequential;
+      try {
+        inspector.inspectSourceSync(_MemoryPackageSource(hostile));
+        fail('The sequential inspection must reject the package.');
+      } on GamePackageFormatException catch (error) {
+        sequential = error;
+      }
+      expect(sequential.code, 'probableSecret');
+      expect(sequential.path, 'presentation/a_slow_token.png');
+
+      for (final workers in <int>[1, 4]) {
+        await expectLater(
+          inspector.inspectSourceParallel(
+            _openMemorySource(hostile),
+            workers: workers,
+          ),
+          throwsA(
+            isA<GamePackageFormatException>()
+                .having((error) => error.code, 'code', sequential.code)
+                .having((error) => error.path, 'path', sequential.path)
+                .having(
+                    (error) => error.message, 'message', sequential.message),
+          ),
+          reason: 'workers=$workers',
+        );
+      }
+    });
   });
+}
+
+Future<RandomAccessPackageSource> Function() _openMemorySource(
+  List<int> bytes,
+) {
+  final snapshot = Uint8List.fromList(bytes);
+  return () async => _MemoryPackageSource(snapshot);
 }
 
 final class _CountingPackageSource implements RandomAccessPackageSource {
@@ -1930,12 +2079,12 @@ void _expectCode(void Function() operation, String code) {
   );
 }
 
-void _expectCodeBoth(
+Future<void> _expectCodeBoth(
   GamePackageInspector inspector,
   List<int> bytes,
   String code, {
   required String reason,
-}) {
+}) async {
   for (final operation in <void Function()>[
     () => inspector.inspect(bytes),
     () => inspector.inspectSourceSync(_MemoryPackageSource(bytes)),
@@ -1952,4 +2101,20 @@ void _expectCodeBoth(
       reason: reason,
     );
   }
+  late final GamePackageFormatException sequential;
+  try {
+    inspector.inspectSourceSync(_MemoryPackageSource(bytes));
+  } on GamePackageFormatException catch (error) {
+    sequential = error;
+  }
+  await expectLater(
+    inspector.inspectSourceParallel(_openMemorySource(bytes), workers: 3),
+    throwsA(
+      isA<GamePackageFormatException>()
+          .having((error) => error.code, 'code', sequential.code)
+          .having((error) => error.path, 'path', sequential.path)
+          .having((error) => error.message, 'message', sequential.message),
+    ),
+    reason: reason,
+  );
 }
