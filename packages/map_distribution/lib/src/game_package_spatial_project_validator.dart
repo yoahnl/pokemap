@@ -9,6 +9,7 @@ import 'game_package_security_policy.dart';
 import 'game_package_source_assets.dart';
 import 'glb_model3d_inspector.dart';
 import 'package_path_policy.dart';
+import 'png_decode_certainty.dart';
 import 'raster_image_dimensions.dart';
 
 typedef GamePackagePayloadReader = List<int>? Function(String path);
@@ -871,6 +872,7 @@ final class GamePackageSpatialProjectValidator {
             _fail('decodedAssetQuotaExceeded', record.logicalPath,
                 'Image dimensions are invalid or exceed policy.');
           }
+          if (isCertainlyDecodablePng(bytes, dimensions)) return dimensions;
           final decoded = image.decodeImage(Uint8List.fromList(bytes));
           if (decoded == null ||
               decoded.width != dimensions.width ||
