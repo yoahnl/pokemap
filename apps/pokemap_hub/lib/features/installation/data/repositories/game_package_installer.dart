@@ -2,6 +2,7 @@ import 'package:pokemap_hub/features/session/data/repositories/hub_prepared_narr
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 
 import 'package:map_distribution/map_distribution.dart';
@@ -862,38 +863,17 @@ final class GamePackageInstaller
     return rebuilt;
   }
 
-  Future<void> _verifyStaged(
-    Directory root,
-    GamePackageManifest manifest,
-  ) async {
-    final manifestFile = File(p.join(root.path, 'game-manifest.json'));
-    final decoded = const GamePackageManifestCodec().decodeUtf8(
-      await manifestFile.readAsBytes(),
-    );
-    if (decoded.gameId != manifest.gameId ||
-        decoded.gameVersion != manifest.gameVersion ||
-        decoded.content.treeSha256 != manifest.content.treeSha256) {
-      throw const FormatException('Staged manifest changed.');
-    }
-    final expected = <String>{
-      'game-manifest.json',
-      ...manifest.content.files.map((entry) => entry.path),
-    };
-    final actual = <String>{};
-    await for (final entity in root.list(recursive: true, followLinks: false)) {
-      final type = await FileSystemEntity.type(entity.path, followLinks: false);
-      if (type == FileSystemEntityType.directory) continue;
-      if (type != FileSystemEntityType.file) {
-        throw const FormatException('Staging contains a special entry.');
-      }
-      actual.add(
-        p.posix.joinAll(p.split(p.relative(entity.path, from: root.path))),
+  Future<void> _verifyStaged(Directory root, GamePackageManifest manifest) =>
+      _runStagedVerification(
+        root.path,
+        manifest.gameId,
+        manifest.gameVersion,
+        manifest.content.treeSha256,
+        <String>{
+          'game-manifest.json',
+          ...manifest.content.files.map((entry) => entry.path),
+        },
       );
-    }
-    if (actual.length != expected.length || !actual.containsAll(expected)) {
-      throw const FormatException('Staging inventory differs.');
-    }
-  }
 
   Future<InstalledGame> _publishLibrary({
     required GamePackageManifest manifest,
@@ -1037,5 +1017,49 @@ final class GamePackageInstaller
     if (type == FileSystemEntityType.notFound) {
       await supportRoot.create(recursive: true);
     }
+  }
+}
+
+Future<void> _runStagedVerification(
+  String rootPath,
+  String gameId,
+  Version gameVersion,
+  String treeSha256,
+  Set<String> expected,
+) => Isolate.run(
+  () => _verifyStagedTree(rootPath, gameId, gameVersion, treeSha256, expected),
+  debugName: 'install-staged-verify',
+);
+
+void _verifyStagedTree(
+  String rootPath,
+  String gameId,
+  Version gameVersion,
+  String treeSha256,
+  Set<String> expected,
+) {
+  final decoded = const GamePackageManifestCodec().decodeUtf8(
+    File(p.join(rootPath, 'game-manifest.json')).readAsBytesSync(),
+  );
+  if (decoded.gameId != gameId ||
+      decoded.gameVersion != gameVersion ||
+      decoded.content.treeSha256 != treeSha256) {
+    throw const FormatException('Staged manifest changed.');
+  }
+  final actual = <String>{};
+  for (final entity in Directory(
+    rootPath,
+  ).listSync(recursive: true, followLinks: false)) {
+    final type = FileSystemEntity.typeSync(entity.path, followLinks: false);
+    if (type == FileSystemEntityType.directory) continue;
+    if (type != FileSystemEntityType.file) {
+      throw const FormatException('Staging contains a special entry.');
+    }
+    actual.add(
+      p.posix.joinAll(p.split(p.relative(entity.path, from: rootPath))),
+    );
+  }
+  if (actual.length != expected.length || !actual.containsAll(expected)) {
+    throw const FormatException('Staging inventory differs.');
   }
 }
