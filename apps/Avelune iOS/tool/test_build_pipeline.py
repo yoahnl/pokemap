@@ -87,7 +87,7 @@ class BuildPipelineTest(unittest.TestCase):
         self.tool = self.root / "tool"
         self.tool.mkdir(parents=True)
         (self.root / "flutter_runtime").mkdir()
-        for name in ["build_runtime.sh", "build_ios.sh", "patch_swift_package.py", "patch_flutter_gpu.py"]:
+        for name in ["build_runtime.sh", "build_ios.sh", "build_simulator.sh", "patch_swift_package.py", "patch_flutter_gpu.py"]:
             source = SOURCE_ROOT / "tool" / name
             if source.exists():
                 shutil.copy2(source, self.tool / name)
@@ -103,7 +103,7 @@ class BuildPipelineTest(unittest.TestCase):
         self.gpu_buffer.parent.mkdir(parents=True)
         for name, source in original_sdk_sources().items():
             self.gpu_buffer.with_name(name).write_text(source)
-        for command in ["flutter", "xcodegen", "xcodebuild", "pipeline_stub", "git"]:
+        for command in ["flutter", "xcodegen", "xcodebuild", "xcrun", "pipeline_stub", "git"]:
             stub = self.bin / command
             stub.write_text(STUB)
             stub.chmod(0o755)
@@ -293,6 +293,38 @@ class BuildPipelineTest(unittest.TestCase):
         source = (SOURCE_ROOT / "tool/build_simulator.sh").read_text()
         self.assertIn("CONFIGURATION=Debug FLUTTER_BUILD_MODE=debug", source)
         self.assertLess(source.index('flutter_integration.sh" prebuild'), source.index("xcodebuild"))
+        self.assertLess(source.index('CONFIGURATION=Debug "$ROOT/tool/build_runtime.sh"'), source.index('flutter_integration.sh" prebuild'))
+
+    def test_simulator_build_runs_the_runtime_build_first(self):
+        package = self.root / "flutter_runtime/build/swift-package"
+        result = self.run_script(
+            "build_simulator.sh",
+            "Debug",
+            FLUTTER_SWIFT_PACKAGE_OUTPUT=str(package),
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        events = self.events()
+        commands = [event["command"] for event in events]
+        build = next(
+            index
+            for index, event in enumerate(events)
+            if event["arguments"][:2] == ["build", "swift-package"]
+        )
+        self.assertLess(build, commands.index("xcodebuild"))
+        self.assertLess(commands.index("prebuild"), commands.index("xcodebuild"))
+        self.assertEqual(events[build]["configuration"], "Debug")
+        self.assertEqual(os.readlink(package / "FlutterNativeIntegration/FlutterPluginRegistrant"), "./Debug")
+
+    def test_simulator_build_stops_when_the_runtime_build_fails(self):
+        package = self.root / "flutter_runtime/build/swift-package"
+        result = self.run_script(
+            "build_simulator.sh",
+            "Debug",
+            FLUTTER_SWIFT_PACKAGE_OUTPUT=str(package),
+            FAIL_PREBUILD="1",
+        )
+        self.assertEqual(result.returncode, 7, result.stdout + result.stderr)
+        self.assertNotIn("xcodebuild", [event["command"] for event in self.events()])
 
     def test_cloud_selects_release_through_runtime_pipeline(self):
         source = (SOURCE_ROOT / "ci_scripts/ci_post_clone.sh").read_text()
