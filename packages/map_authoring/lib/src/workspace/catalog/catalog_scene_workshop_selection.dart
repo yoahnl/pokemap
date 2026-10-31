@@ -3,6 +3,7 @@ part of 'catalog_workshop_selection.dart';
 const _sceneWorkshopActions = {
   'scene.upsert',
   'scene.graph.patch',
+  'scene.condition.set',
   'scene.interactive_command.set',
   'scene.dialogue.choicePolicy.update',
   'scene.dialogue.lineFeedback.update'
@@ -27,6 +28,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     }
 
     final rawScene = parameters['scene'];
+    final rewardSceneIds = <String>{};
     final incomingNodes = <SceneNode>[
       if (rawScene is Map)
         ...SceneAsset.fromJson(Map<String, dynamic>.from(rawScene)).graph.nodes,
@@ -40,6 +42,9 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
             payload: SceneActionPayload.interactive(
                 SceneInteractiveCommand.fromJson(
                     Map<String, dynamic>.from(command)))),
+      if (parameters['conditionSource'] case final Map source)
+        SceneNode(id: 'incoming-condition', kind: SceneNodeKind.condition,
+          payload: SceneConditionPayload(conditionSource: SceneConditionSource.fromJson(Map<String, dynamic>.from(source)))),
     ];
     final itemIds = <String>{};
     final stepIds = <String>{};
@@ -54,6 +59,11 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
           project: project, additionalSceneNodes: incomingNodes);
       for (final usage in index.usages) {
         final target = usage.target;
+        if (target.kind == NarrativeDependencyTargetKind.scene &&
+            usage.path.endsWith('.rewardReference.sceneId')) {
+          rewardSceneIds.add(target.id);
+          continue;
+        }
         switch (target.kind) {
           case NarrativeDependencyTargetKind.fact:
             add('facts', [target.id]);
@@ -238,6 +248,11 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
           snapshot: catalog.snapshot, project: base, ids: ids);
     }
     var manifest = documents.project;
+    final referenceIds = rewardSceneIds.difference(manifest.scenes.map((scene) => scene.id).toSet());
+    final referenceScenes = referenceIds.isEmpty ? const <SceneAsset>[] :
+      (await CatalogMetadataDocuments.readDocuments(
+        snapshot: catalog.snapshot, project: const ProjectManifest(name: 'Reward reference sources', maps: [], tilesets: []),
+        ids: {'scenes': referenceIds})).project.scenes;
     final visualCandidates = [
       parameters,
       for (final scene in manifest.scenes) scene.toJson(),
@@ -346,6 +361,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
         revision:
             CatalogWorkshopSelection.fingerprint(selected.revision, revisions),
         manifest: manifest,
+        rewardReferenceScenes: referenceScenes,
         maps: maps,
         availableProjectSections: {
           'settings',

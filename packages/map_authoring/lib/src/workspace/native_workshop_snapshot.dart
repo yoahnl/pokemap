@@ -1,6 +1,7 @@
 part of 'project_snapshot_loader.dart';
 
 const _nativeWorkshopActions = {
+  'scene.condition.set',
   'map3d.instance.configure_field_obstacle',
   ...TriggerZoneActions.fieldTraversalActions,
   'surf.configure',
@@ -53,11 +54,12 @@ const _nativeWorkshopReferences = {
   'models3d': {'modelId'},
 };
 
-Set<String> _nativeReferenceIds(Object? value, Set<String> keys) {
+Set<String> _nativeReferenceIds(Object? value, Set<String> keys, {bool ignorePeriodicRewardReferences = false}) {
   final result = <String>{};
   void visit(Object? node) {
     if (node is Map) {
       for (final entry in node.entries) {
+        if (ignorePeriodicRewardReferences && entry.key == 'rewardReference') continue;
         if (keys.contains(entry.key)) {
           final referenced = entry.value;
           if (referenced is String && referenced.isNotEmpty) {
@@ -118,6 +120,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         actionId: actionId);
   }
   final adoptingAudio = actionId == 'project.audio.media.adopt_asset';
+  final sceneCondition = actionId == 'scene.condition.set';
   final presentationImport =
       actionId == 'presentationMedia.import' || adoptingAudio;
   final guided = actionId == 'event_v2.template.apply' ||
@@ -521,7 +524,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       }
     }
     for (final entry in _nativeWorkshopReferences.entries) {
-      if (!guided &&
+      if (!guided && !sceneCondition &&
           {
             if (!const {
               'surf.configure',
@@ -543,7 +546,8 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
           }.contains(entry.key)) {
         continue;
       }
-      add(entry.key, _nativeReferenceIds(candidates, entry.value));
+      add(entry.key, _nativeReferenceIds(candidates, entry.value,
+        ignorePeriodicRewardReferences: sceneCondition));
     }
     if (raw['eventRegistry'] case final Map registry when guided) {
       eventIds.addAll(_nativeReferenceIds(candidates, const {
@@ -611,6 +615,45 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
             'A dependency map identity differs from its declaration.');
       }
       maps[map.id] = map;
+    }
+  }
+  if (sceneCondition) {
+    for (final entry in selected['maps']?.values ?? <Map<String, dynamic>>[]) {
+      final declaration = ProjectMapEntry.fromJson(entry);
+      if (maps.containsKey(declaration.id)) continue;
+      await read('map:${declaration.id}', declaration.relativePath, required: true);
+      final bytes = resources.singleWhere((entry) => entry.identity == 'map:${declaration.id}').bytes!;
+      final map = await loader._decodeExecutor.decodeMap(bytes.bytes);
+      if (map.id != declaration.id) {
+        throw const ProjectSnapshotException('project.map_invalid', 'A dependency map identity differs from its declaration.');
+      }
+      maps[map.id] = map;
+    }
+  }
+  final rewardSceneIds = <String>{};
+  void collectRewardReferences(Object? value) {
+    if (value is Map) {
+      if (value['rewardReference'] case final Map reference) {
+        rewardSceneIds.add(PeriodicRewardReference.fromJson(Map<String, dynamic>.from(reference)).sceneId);
+      }
+      for (final child in value.values) {
+        collectRewardReferences(child);
+      }
+    } else if (value is List) {
+      for (final child in value) {
+        collectRewardReferences(child);
+      }
+    }
+  }
+  if (sceneCondition) collectRewardReferences(candidates);
+  final referenceScenes = <SceneAsset>[];
+  for (final id in rewardSceneIds.difference(selected['scenes']?.keys.toSet() ?? {})) {
+    final rows = index('scenes')[id] ?? const <Map<String, dynamic>>[];
+    if (rows.length > 1) {
+      throw const ProjectSnapshotException('project.definition_ambiguous', 'A selected reward source Scene has duplicate identities.');
+    }
+    for (final row in rows) {
+      referenceScenes.add(SceneAsset.fromJson(row));
     }
   }
   final manifest = ProjectManifest.fromJson(projected);
@@ -690,6 +733,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       projectHandle: projectHandle,
       revision: revision.close(),
       manifest: manifest,
+      rewardReferenceScenes: referenceScenes,
       maps: maps.values,
       availableProjectSections: sections,
       availableProjectDocuments: ids,

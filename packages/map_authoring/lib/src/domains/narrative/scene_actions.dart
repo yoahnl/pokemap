@@ -677,6 +677,22 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'conditionSource'],
+        'periodicRewardAvailable': {
+          'sourceKind': 'periodicRewardAvailable',
+          'sourceId': 'selectedPublishedRewardId',
+          'operators': ['isTrue', 'isFalse'],
+          'rewardReference': {
+            'schemaVersion': 1,
+            'required': ['sceneId', 'nodeId', 'rewardId'],
+            'fieldTypes': {'sceneId': 'nonblankString', 'nodeId': 'nonblankString', 'rewardId': 'nonblankString'},
+            'rewardId': 'derivedFromSelectedPublishedClaimCommand',
+          },
+          'sourceChoices': ['periodicRewardScene', 'periodicRewardNode'],
+          'sourceGraphDependencies': 'notExecutionDependencies',
+          'unresolvedReference': 'refuseBeforePersistence',
+          'sourceInvalidation': 'refuseWhenReferencedOrHistoricalCoverageUnknown',
+          'projectDimensions': ['twoD', 'threeD'],
+        },
         'integerComparison': _integerComparisonContract,
         'partyState': _partyConditionContract,
         'mapEventInstanceBoolean': _mapEventInstanceBooleanContract,
@@ -994,8 +1010,20 @@ final class SceneActions {
             mapsById: {for (final map in context.snapshot.maps) map.id: map})
         : null;
     for (final scene in scenes) {
+      if (!context.snapshot.materializedCatalogProject) {
+        final previous = context.snapshot.lookupRewardScenes(scene.id).toList();
+        if (previous.length > 1) {
+          throw NarrativeAuthoringException('scene.graph.scene_ambiguous', 'The Scene identity is ambiguous.');
+        }
+        final nextClaims = _periodicClaimIds(scene);
+        if (previous.isNotEmpty && _periodicClaimIds(previous.single).entries.any((entry) => nextClaims[entry.key] != entry.value)) {
+          throw NarrativeAuthoringException('scene.periodic_reward_reference_coverage_unknown',
+            'Historical reward references have not been inspected. Preserve this action or inspect its consumers explicitly before removing or replacing it.');
+        }
+      }
       _validateScenePublication(
         draft.projectedProject!,
+        lookupRewardScenes: context.snapshot.lookupRewardScenes,
         maps: context.snapshot.maps,
         scene: scene,
         itemCatalog: context.snapshot.itemCatalog,
@@ -1114,6 +1142,7 @@ final class SceneActions {
             .firstOrNull;
         final projected = upsert(
           context.snapshot.manifest,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes,
           maps: context.snapshot.maps,
           scene: scene,
           itemCatalog: context.snapshot.itemCatalog,
@@ -1627,6 +1656,7 @@ final class SceneActions {
       try {
         projected = patchGraph(
           context.snapshot.manifest,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes,
           itemCatalog: context.snapshot.itemCatalog,
           presentationMediaCatalog: _presentationMedia(context),
           maps: context.snapshot.maps,
@@ -1744,6 +1774,7 @@ final class SceneActions {
       }
       projected = patchGraph(
         context.snapshot.manifest,
+        lookupRewardScenes: context.snapshot.lookupRewardScenes,
         itemCatalog: context.snapshot.itemCatalog,
         presentationMediaCatalog: _presentationMedia(context),
         maps: context.snapshot.maps,
@@ -1773,6 +1804,7 @@ final class SceneActions {
 
   ProjectManifest patchGraph(
     ProjectManifest project, {
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     ProjectItemCatalog? itemCatalog,
     ProjectMediaCatalog? presentationMediaCatalog,
     required List<MapData> maps,
@@ -1856,12 +1888,14 @@ final class SceneActions {
       );
     }
     return upsert(project, maps: maps, scene: updated,
+        lookupRewardScenes: lookupRewardScenes,
         itemCatalog: itemCatalog,
         presentationMediaCatalog: presentationMediaCatalog);
   }
 
   ProjectManifest upsert(
     ProjectManifest project, {
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required List<MapData> maps,
     required SceneAsset scene,
     ProjectItemCatalog? itemCatalog,
@@ -1878,6 +1912,7 @@ final class SceneActions {
     );
     _validateScenePublication(
       projected,
+      lookupRewardScenes: lookupRewardScenes,
       maps: maps,
       scene: scene,
       itemCatalog: itemCatalog,
@@ -1966,6 +2001,7 @@ final class SceneActions {
 
   void _validateScenePublication(
     ProjectManifest project, {
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required List<MapData> maps,
     required SceneAsset scene,
     ProjectItemCatalog? itemCatalog,
@@ -1975,12 +2011,19 @@ final class SceneActions {
     if (itemCatalog == null && scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneClaimPeriodicRewardInteractiveCommand)) {
       throw NarrativeAuthoringException('scene.publication_blocked', 'The periodic reward item catalog is unavailable.', details: {'diagnostics': [{'code': SceneDiagnosticCode.commandItemCatalogUnavailable.name, 'severity': 'error'}]});
     }
+    final currentScenes = <String, List<SceneAsset>>{};
+    for (final candidate in project.scenes) {
+      currentScenes.putIfAbsent(candidate.id, () => []).add(candidate);
+    }
     final diagnostics = context?.diagnose(scene) ?? diagnoseSceneAgainstProject(
       scene,
       project,
       presentationMediaCatalog: presentationMediaCatalog,
       availableItemIds: itemCatalog?.entries.map((item) => item.id).toSet(),
       mapsById: {for (final map in maps) map.id: map},
+      lookupRewardScenes: (id) {
+        return currentScenes[id] ?? lookupRewardScenes?.call(id) ?? const <SceneAsset>[];
+      },
     );
     final runtimePlan = buildSceneRuntimePlan(scene);
     if (diagnostics.hasErrors || !runtimePlan.canBuild) {
@@ -3200,10 +3243,18 @@ T _enumParameter<T extends Enum>(
       (throw ArgumentError.value(value, key, 'contains an unknown value'));
 }
 
+Map<String, String> _periodicClaimIds(SceneAsset scene) => {
+  for (final node in scene.graph.nodes)
+    if (node.payload case SceneActionPayload(interactiveCommand: SceneClaimPeriodicRewardInteractiveCommand(:final definition)))
+      node.id: definition.rewardId,
+};
+
 SceneAsset _requireDialoguePolicyScene(ProjectManifest project, String sceneId, {
   String errorPrefix = 'scene.dialogue.choice_policy',
 }) {
-  final scene = project.scenes.where((candidate) => candidate.id == sceneId).firstOrNull;
+  final matches = project.scenes.where((candidate) => candidate.id == sceneId).toList();
+  if (matches.length > 1) throw NarrativeAuthoringException('$errorPrefix.scene_ambiguous', 'The Scene identity is ambiguous.');
+  final scene = matches.firstOrNull;
   if (scene == null) throw NarrativeAuthoringException('$errorPrefix.scene_unknown', 'The Scene is unknown.');
   return scene;
 }

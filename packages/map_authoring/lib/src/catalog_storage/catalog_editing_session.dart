@@ -27,6 +27,7 @@ import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
+import '../workspace/catalog/catalog_periodic_reward_consumers.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
 import 'catalog_generation_retention.dart';
 import 'catalog_history_compatibility.dart';
@@ -538,6 +539,8 @@ final class CatalogEditingSession {
           key: key,
           payload: {'id': 'workspace', 'fingerprint': workspaceFingerprint}));
     }
+    units.addAll(await CatalogPeriodicRewardConsumers.maintainAndGuard(
+        snapshot: base, upserts: units, removals: deleted));
     units.addAll(await CatalogMetadataDocuments.maintain(
         lookup: base.lookup, upserts: units, removals: deleted));
     units.addAll(await CatalogResourcePositions.maintain(

@@ -24,6 +24,8 @@ final _sha256Hex = RegExp(r'^[0-9a-f]{64}$');
 
 const _parallelBatchEntries = 64;
 const _parallelBatchBytes = 4 * 1024 * 1024;
+const _parallelLargeWholeEntryBytes = 16 * 1024 * 1024;
+const _packageChangedMessage = 'Package changed while it was being inspected.';
 
 typedef _ManifestHeader = ({
   int fileLength,
@@ -105,6 +107,7 @@ final class GamePackageInspector {
       }
       await _inspectPayloadInParallel(
         openSource,
+        header.fileLength,
         header.manifest.content.files,
         payload.rawByPath,
         workers < 1 ? 1 : workers,
@@ -113,7 +116,7 @@ final class GamePackageInspector {
       _checkUnchangedLength(
         source,
         header.fileLength,
-        'Package changed while it was being inspected.',
+        _packageChangedMessage,
       );
       final packageSha256 = knownPackageSha256 ?? await hashWorker!.digest;
       _checkUnchangedLength(
@@ -123,7 +126,7 @@ final class GamePackageInspector {
       );
       return _inspectionResult(header, packageSha256, pokemonRuleset);
     } finally {
-      hashWorker?.stop();
+      await hashWorker?.shutDown();
       await _closePackageSource(source);
     }
   }
@@ -213,35 +216,24 @@ final class GamePackageInspector {
 
   Future<void> _inspectPayloadInParallel(
     Future<RandomAccessPackageSource> Function() openSource,
+    int fileLength,
     List<GamePackageFileEntry> inventory,
     Map<String, RandomAccessZipStructureEntry> rawByPath,
     int workers,
   ) async {
     if (inventory.isEmpty) return;
     final events = ReceivePort();
-    final isolates = <Isolate>[];
     final pendingByWorker = <SendPort, int>{};
+    final waitingWorkers = <SendPort>[];
+    SendPort? largeEntryWorker;
     var nextIndex = 0;
     var completed = 0;
+    var released = 0;
+    var exited = 0;
+    var failed = 0;
+    var spawned = 0;
+    var stopping = false;
     _PayloadFailure? firstFailure;
-    List<_PayloadTask>? nextBatch() {
-      if (firstFailure != null || nextIndex >= inventory.length) return null;
-      final batch = <_PayloadTask>[];
-      var batchBytes = 0;
-      while (nextIndex < inventory.length &&
-          batch.length < _parallelBatchEntries &&
-          batchBytes < _parallelBatchBytes) {
-        final inventoryEntry = inventory[nextIndex];
-        batch.add(_PayloadTask(
-          nextIndex,
-          inventoryEntry,
-          rawByPath[inventoryEntry.path]!,
-        ));
-        batchBytes += inventoryEntry.size;
-        nextIndex++;
-      }
-      return batch;
-    }
 
     void recordFailure(_PayloadFailure failure) {
       final current = firstFailure;
@@ -250,43 +242,112 @@ final class GamePackageInspector {
       }
     }
 
+    void release(SendPort worker) {
+      released++;
+      worker.send(null);
+    }
+
+    bool dispatch(SendPort worker) {
+      if (stopping || firstFailure != null || nextIndex >= inventory.length) {
+        release(worker);
+        return true;
+      }
+      final batch = <_PayloadTask>[];
+      var batchBytes = 0;
+      var holdsLargeEntry = false;
+      while (nextIndex < inventory.length &&
+          batch.length < _parallelBatchEntries &&
+          batchBytes < _parallelBatchBytes) {
+        final inventoryEntry = inventory[nextIndex];
+        final large = _isLargeWholeBufferCandidate(inventoryEntry);
+        if (large && largeEntryWorker != null) break;
+        batch.add(_PayloadTask(
+          nextIndex,
+          inventoryEntry,
+          rawByPath[inventoryEntry.path]!,
+        ));
+        batchBytes += inventoryEntry.size;
+        nextIndex++;
+        if (large) {
+          holdsLargeEntry = true;
+          break;
+        }
+      }
+      if (batch.isEmpty) return false;
+      if (holdsLargeEntry) largeEntryWorker = worker;
+      pendingByWorker[worker] = batch.length;
+      worker.send(batch);
+      return true;
+    }
+
+    void dispatchWaiting() {
+      while (waitingWorkers.isNotEmpty && dispatch(waitingWorkers.first)) {
+        waitingWorkers.removeAt(0);
+      }
+    }
+
+    Object? spawnError;
+    StackTrace? spawnStackTrace;
     try {
       final workerCount =
           workers < inventory.length ? workers : inventory.length;
       for (var worker = 0; worker < workerCount; worker++) {
-        isolates.add(await Isolate.spawn(
-          _inspectPayloadWorker,
-          (events.sendPort, policy, openSource),
-          onError: events.sendPort,
-          onExit: events.sendPort,
-        ));
+        try {
+          await Isolate.spawn(
+            _inspectPayloadWorker,
+            (events.sendPort, policy, openSource, fileLength),
+            onError: events.sendPort,
+            onExit: events.sendPort,
+          );
+          spawned++;
+        } on Object catch (error, stackTrace) {
+          spawnError = error;
+          spawnStackTrace = stackTrace;
+          stopping = true;
+          break;
+        }
       }
-      var running = isolates.length;
-      await for (final event in events) {
-        if (event is SendPort) {
-          completed += pendingByWorker.remove(event) ?? 0;
-          final batch = nextBatch();
-          if (batch != null) pendingByWorker[event] = batch.length;
-          event.send(batch);
-        } else if (event is _PayloadFailure) {
-          recordFailure(event);
-        } else if (event is List && event.length == 2) {
-          recordFailure(_PayloadFailure(
-            -1,
-            RemoteError('${event[0]}', '${event[1]}'),
-            '${event[1]}',
-          ));
-        } else if (event == null) {
-          running--;
-          if (running == 0) break;
+      if (spawned > 0) {
+        await for (final event in events) {
+          if (event is SendPort) {
+            completed += pendingByWorker.remove(event) ?? 0;
+            if (largeEntryWorker == event) largeEntryWorker = null;
+            dispatchWaiting();
+            if (!dispatch(event)) waitingWorkers.add(event);
+          } else if (event is _PayloadFailure) {
+            failed++;
+            recordFailure(event);
+          } else if (event is List && event.length == 2) {
+            failed++;
+            recordFailure(_PayloadFailure(
+              -1,
+              RemoteError('${event[0]}', '${event[1]}'),
+              '${event[1]}',
+            ));
+          } else if (event == null) {
+            exited++;
+            if (exited > released + failed) {
+              recordFailure(_PayloadFailure(
+                -1,
+                StateError('A payload worker exited before completion.'),
+                '${StackTrace.current}',
+              ));
+            }
+            if (exited == spawned) break;
+          }
+          if (firstFailure != null) {
+            for (final worker in waitingWorkers) {
+              release(worker);
+            }
+            waitingWorkers.clear();
+          }
         }
       }
     } finally {
       events.close();
-      for (final isolate in isolates) {
-        isolate.kill(priority: Isolate.immediate);
-      }
     }
+    final error = spawnError;
+    if (error != null) Error.throwWithStackTrace(error, spawnStackTrace!);
     final failure = firstFailure;
     if (failure != null) {
       Error.throwWithStackTrace(
@@ -297,6 +358,12 @@ final class GamePackageInspector {
     if (completed != inventory.length) {
       throw StateError('Parallel payload inspection did not complete.');
     }
+  }
+
+  bool _isLargeWholeBufferCandidate(GamePackageFileEntry entry) {
+    if (entry.size <= _parallelLargeWholeEntryBytes) return false;
+    final extension = p.extension(entry.path).toLowerCase();
+    return extension == '.json' || extension == '.glb' || extension == '.blob';
   }
 
   PokemonRulesetReference _validateProject(
@@ -859,14 +926,20 @@ Future<void> _inspectPayloadWorker(
     SendPort,
     GamePackageSecurityPolicy,
     Future<RandomAccessPackageSource> Function(),
+    int,
   ) message,
 ) async {
-  final (coordinator, policy, openSource) = message;
+  final (coordinator, policy, openSource, fileLength) = message;
   final batches = ReceivePort();
   RandomAccessPackageSource? source;
   try {
     final openedSource = source = await openSource();
     final inspector = GamePackageInspector(policy: policy);
+    inspector._checkUnchangedLength(
+      openedSource,
+      fileLength,
+      _packageChangedMessage,
+    );
     final contentValidator = GamePackageContentValidator(policy);
     coordinator.send(batches.sendPort);
     await for (final batch in batches) {
@@ -896,11 +969,13 @@ Future<void> _inspectPayloadWorker(
 }
 
 final class _PackageHashWorker {
-  _PackageHashWorker._(this._isolate, this._events, this._outcome);
+  _PackageHashWorker._(this._events, this._outcome, this._exited);
 
-  final Isolate _isolate;
   final ReceivePort _events;
   final Completer<Object?> _outcome;
+  final Completer<void> _exited;
+  SendPort? _control;
+  bool _cancelled = false;
 
   static Future<_PackageHashWorker> spawn(
     GamePackageSecurityPolicy policy,
@@ -908,23 +983,39 @@ final class _PackageHashWorker {
     int fileLength,
   ) async {
     final events = ReceivePort();
-    final outcome = Completer<Object?>();
-    events.listen((event) {
-      if (!outcome.isCompleted) outcome.complete(event);
-      events.close();
-    });
+    final worker = _PackageHashWorker._(
+      events,
+      Completer<Object?>(),
+      Completer<void>(),
+    );
+    events.listen(worker._handle);
     try {
-      final isolate = await Isolate.spawn(
+      await Isolate.spawn(
         _hashPackageWorker,
         (events.sendPort, policy, openSource, fileLength),
         onError: events.sendPort,
         onExit: events.sendPort,
       );
-      return _PackageHashWorker._(isolate, events, outcome);
     } on Object {
       events.close();
       rethrow;
     }
+    return worker;
+  }
+
+  void _handle(Object? event) {
+    if (event is SendPort) {
+      _control = event;
+      if (_cancelled) event.send(null);
+      return;
+    }
+    if (event == null) {
+      if (!_outcome.isCompleted) _outcome.complete(null);
+      _events.close();
+      _exited.complete();
+      return;
+    }
+    if (!_outcome.isCompleted) _outcome.complete(event);
   }
 
   Future<String> get digest async {
@@ -942,9 +1033,12 @@ final class _PackageHashWorker {
     throw StateError('Package hash worker exited without a digest.');
   }
 
-  void stop() {
-    _events.close();
-    _isolate.kill(priority: Isolate.immediate);
+  Future<void> shutDown() {
+    if (!_outcome.isCompleted) {
+      _cancelled = true;
+      _control?.send(null);
+    }
+    return _exited.future;
   }
 }
 
@@ -957,16 +1051,38 @@ Future<void> _hashPackageWorker(
   ) message,
 ) async {
   final (coordinator, policy, openSource, fileLength) = message;
+  final control = ReceivePort();
+  var cancelled = false;
+  control.listen((_) => cancelled = true);
+  coordinator.send(control.sendPort);
+  RandomAccessPackageSource? source;
   try {
-    final source = await openSource();
-    try {
-      coordinator.send(
-        GamePackageInspector(policy: policy)._hashSource(source, fileLength),
-      );
-    } finally {
-      await _closePackageSource(source);
+    final openedSource = source = await openSource();
+    final inspector = GamePackageInspector(policy: policy);
+    inspector._checkUnchangedLength(
+      openedSource,
+      fileLength,
+      _packageChangedMessage,
+    );
+    const chunkSize = 1024 * 1024;
+    final digestSink = _SingleDigestSink();
+    final hashInput = sha256.startChunkedConversion(digestSink);
+    var offset = 0;
+    while (offset < fileLength) {
+      await Future<void>.delayed(Duration.zero);
+      if (cancelled) return;
+      final remaining = fileLength - offset;
+      final length = remaining < chunkSize ? remaining : chunkSize;
+      hashInput.add(inspector._readAt(openedSource, offset, length));
+      offset += length;
     }
+    hashInput.close();
+    coordinator.send(digestSink.value.toString());
   } on Object catch (error, stack) {
     _sendFailure(coordinator, -1, error, stack);
+  } finally {
+    control.close();
+    final openedSource = source;
+    if (openedSource != null) await _closePackageSource(openedSource);
   }
 }

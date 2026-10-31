@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'periodic_reward_choice_query.dart';
 import '../references/exterior_decoration_references.dart';
 import 'resource_pack_transfer_api.dart';
 import 'border_feature_query.dart';
@@ -190,7 +191,12 @@ final class AuthoringReadApi
       return queryProjectMediaLibrary(loader: _snapshotLoader, queries: _queryService,
         projectHandle: projectHandle, request: request);
     }
-    final catalog = await _openService.catalogProject(projectHandle);
+    final catalog = await _openService.catalogProject(projectHandle,
+      metadataFields: periodicRewardChoiceKinds.contains(request.resourceKind) ? const {} : null);
+    if (periodicRewardChoiceKinds.contains(request.resourceKind)) {
+      return queryPeriodicRewardChoices(catalog: catalog, loader: _snapshotLoader,
+        projectHandle: projectHandle, request: request);
+    }
     if (catalog == null && request.resourceKind == 'fact' && request.ids.isEmpty &&
         request.extensions.isEmpty && request.filters.isEmpty && request.sort.isEmpty &&
         const {AuthoringQueryOperation.list, AuthoringQueryOperation.summary}.contains(request.operation)) {

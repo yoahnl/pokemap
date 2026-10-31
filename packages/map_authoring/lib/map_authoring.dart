@@ -38,6 +38,7 @@ export 'src/contracts/resource_ref.dart';
 export 'src/contracts/schema_descriptor.dart';
 export 'src/contracts/query_page.dart';
 export 'src/contracts/query_request.dart';
+export 'src/contracts/periodic_reward_choices.dart';
 export 'src/domains/maps/map_region_query.dart';
 export 'src/domains/maps/border_actions.dart';
 export 'src/domains/maps/border_catalog_actions.dart';

@@ -126,25 +126,35 @@ void main() {
               SceneAsset(
                   id: scene.id,
                   name: scene.name,
-                  graph: SceneGraph(
-                      startNodeId: scene.graph.startNodeId,
-                      nodes: [
-                        ...scene.graph.nodes,
-                        SceneNode(
-                            id: 'availability',
-                            kind: SceneNodeKind.condition,
-                            payload: SceneConditionPayload(
-                                conditionSource: SceneConditionSource
-                                    .periodicRewardAvailable(
-                                        reference: reference,
-                                        expectedValue: true)))
-                      ],
-                      edges: [
-                        for (final edge in scene.graph.edges)
-                          if (edge.fromNodeId != 'start') edge,
-                        SceneEdge(id: 'start-availability', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'availability', kind: SceneEdgeKind.defaultFlow),
-                        for (final expected in [true, false]) SceneEdge(id: 'availability-$expected', fromNodeId: 'availability', fromPortId: '$expected', toNodeId: 'reward', kind: expected ? SceneEdgeKind.conditionTrue : SceneEdgeKind.conditionFalse),
-                      ]))
+                  graph:
+                      SceneGraph(startNodeId: scene.graph.startNodeId, nodes: [
+                    ...scene.graph.nodes,
+                    SceneNode(
+                        id: 'availability',
+                        kind: SceneNodeKind.condition,
+                        payload: SceneConditionPayload(
+                            conditionSource:
+                                SceneConditionSource.periodicRewardAvailable(
+                                    reference: reference, expectedValue: true)))
+                  ], edges: [
+                    for (final edge in scene.graph.edges)
+                      if (edge.fromNodeId != 'start') edge,
+                    SceneEdge(
+                        id: 'start-availability',
+                        fromNodeId: 'start',
+                        fromPortId: 'completed',
+                        toNodeId: 'availability',
+                        kind: SceneEdgeKind.defaultFlow),
+                    for (final expected in [true, false])
+                      SceneEdge(
+                          id: 'availability-$expected',
+                          fromNodeId: 'availability',
+                          fromPortId: '$expected',
+                          toNodeId: 'reward',
+                          kind: expected
+                              ? SceneEdgeKind.conditionTrue
+                              : SceneEdgeKind.conditionFalse),
+                  ]))
             ]);
           } else if (scenario == 'condition-world') {
             project = project.copyWith(worldRules: [
@@ -260,32 +270,92 @@ void main() {
             result.manifest.compatibility.requiredCapabilities.contains(
                 SpatialGameplayCapabilities.periodicRewardCapabilityId),
             periodic);
-        expect(result.manifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId), scenario.startsWith('condition-'));
-        final unpacked = const GamePackageInspector().inspect(result.packageBytes);
-        expect(unpacked.manifest.compatibility.requiredCapabilities, result.manifest.compatibility.requiredCapabilities);
+        expect(
+            result.manifest.compatibility.requiredCapabilities.contains(
+                SpatialGameplayCapabilities
+                    .periodicRewardConditionCapabilityId),
+            scenario.startsWith('condition-'));
+        final unpacked =
+            const GamePackageInspector().inspect(result.packageBytes);
+        expect(unpacked.manifest.compatibility.requiredCapabilities,
+            result.manifest.compatibility.requiredCapabilities);
         if (scenario.startsWith('condition-')) {
-          final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
-          final descriptor = Map<String, dynamic>.from(jsonDecode(utf8.decode(archive.findFile('project/project.json')!.content)) as Map);
-          final exported = PortableCatalogPublication.decodeProjectSync(descriptor, readObject: (ref) => archive.findFile('project/${PortableCatalogPublication.objectPath(ref)}')!.content);
-          final exportedMap = MapData.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(archive.findFile('project/maps/map.json')!.content)) as Map));
-          final locator = PeriodicRewardReference(sceneId: 'reward', nodeId: 'reward', rewardId: 'tree-fruit');
-          expect(resolvePeriodicRewardReference(reference: locator, lookupScenes: (id) => exported.scenes.where((scene) => scene.id == id)).isResolved, isTrue);
-          if (scenario == 'condition-scene') expect((exported.scenes.single.graph.nodes.singleWhere((node) => node.id == 'availability').payload as SceneConditionPayload).conditionSource!.rewardReference, locator);
-          if (scenario == 'condition-world') expect(exported.worldRules.single.source.rewardReference, locator);
-          if (scenario == 'condition-event') expect(exported.eventRegistry!.records.single.definitionOrNull!.conditions.single.rewardReference, locator);
-          if (scenario == 'condition-presentation') expect(exportedMap.entities.singleWhere((entity) => entity.id == 'daily-visual').presentation!.variants.single.condition.leaves.single.rewardReference, locator);
+          final archive =
+              ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+          final descriptor = Map<String, dynamic>.from(jsonDecode(utf8.decode(
+              archive.findFile('project/project.json')!.content)) as Map);
+          final exported = PortableCatalogPublication.decodeProjectSync(
+              descriptor,
+              readObject: (ref) => archive
+                  .findFile(
+                      'project/${PortableCatalogPublication.objectPath(ref)}')!
+                  .content);
+          final exportedMap = MapData.fromJson(Map<String, dynamic>.from(
+              jsonDecode(utf8.decode(
+                  archive.findFile('project/maps/map.json')!.content)) as Map));
+          final locator = PeriodicRewardReference(
+              sceneId: 'reward', nodeId: 'reward', rewardId: 'tree-fruit');
+          expect(
+              resolvePeriodicRewardReference(
+                      reference: locator,
+                      lookupScenes: (id) =>
+                          exported.scenes.where((scene) => scene.id == id))
+                  .isResolved,
+              isTrue);
+          if (scenario == 'condition-scene')
+            expect(
+                (exported.scenes.single.graph.nodes
+                        .singleWhere((node) => node.id == 'availability')
+                        .payload as SceneConditionPayload)
+                    .conditionSource!
+                    .rewardReference,
+                locator);
+          if (scenario == 'condition-world')
+            expect(exported.worldRules.single.source.rewardReference, locator);
+          if (scenario == 'condition-event')
+            expect(
+                exported.eventRegistry!.records.single.definitionOrNull!
+                    .conditions.single.rewardReference,
+                locator);
+          if (scenario == 'condition-presentation')
+            expect(
+                exportedMap.entities
+                    .singleWhere((entity) => entity.id == 'daily-visual')
+                    .presentation!
+                    .variants
+                    .single
+                    .condition
+                    .leaves
+                    .single
+                    .rewardReference,
+                locator);
           final bytes = List<int>.of(result.packageBytes);
           final host = AveluneRuntimeCompatibility.host();
-          final oldHost = GamePackageHostCompatibility(hubVersion: host.hubVersion, runtimeApiVersion: host.runtimeApiVersion, capabilities: {...host.capabilities}..remove(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId), supportedProjectFormats: host.supportedProjectFormats, currentProjectFormat: host.currentProjectFormat, currentProjectFormats: host.currentProjectFormats, supportedSaveFormats: host.supportedSaveFormats);
-          expect(() => GamePackageInspector(hostCompatibility: oldHost).inspect(result.packageBytes), throwsA(isA<GamePackageFormatException>()));
+          final oldHost = GamePackageHostCompatibility(
+              hubVersion: host.hubVersion,
+              runtimeApiVersion: host.runtimeApiVersion,
+              capabilities: {...host.capabilities}..remove(
+                  SpatialGameplayCapabilities
+                      .periodicRewardConditionCapabilityId),
+              supportedProjectFormats: host.supportedProjectFormats,
+              currentProjectFormat: host.currentProjectFormat,
+              currentProjectFormats: host.currentProjectFormats,
+              supportedSaveFormats: host.supportedSaveFormats);
+          expect(
+              () => GamePackageInspector(hostCompatibility: oldHost)
+                  .inspect(result.packageBytes),
+              throwsA(isA<GamePackageFormatException>()));
           expect(result.packageBytes, bytes);
         }
         final current = AveluneRuntimeCompatibility.host();
         final old = GamePackageHostCompatibility(
             hubVersion: current.hubVersion,
             runtimeApiVersion: current.runtimeApiVersion,
-            capabilities: {...current.capabilities}
-              ..remove(scenario.startsWith('condition-') ? SpatialGameplayCapabilities.periodicRewardConditionCapabilityId : SpatialGameplayCapabilities.periodicRewardCapabilityId),
+            capabilities: {...current.capabilities}..remove(
+                scenario.startsWith('condition-')
+                    ? SpatialGameplayCapabilities
+                        .periodicRewardConditionCapabilityId
+                    : SpatialGameplayCapabilities.periodicRewardCapabilityId),
             supportedProjectFormats: current.supportedProjectFormats,
             currentProjectFormat: current.currentProjectFormat,
             currentProjectFormats: current.currentProjectFormats,
@@ -350,8 +420,17 @@ void main() {
       }
     });
     final current = AveluneRuntimeCompatibility.host();
-    final old = GamePackageHostCompatibility(hubVersion: current.hubVersion, runtimeApiVersion: current.runtimeApiVersion, capabilities: {...current.capabilities}..remove(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId), supportedProjectFormats: current.supportedProjectFormats, currentProjectFormat: current.currentProjectFormat, currentProjectFormats: current.currentProjectFormats, supportedSaveFormats: current.supportedSaveFormats);
-    final result = const GamePackageCompatibilityEvaluator().evaluate(declared, old);
+    final old = GamePackageHostCompatibility(
+        hubVersion: current.hubVersion,
+        runtimeApiVersion: current.runtimeApiVersion,
+        capabilities: {...current.capabilities}..remove(
+            SpatialGameplayCapabilities.periodicRewardConditionCapabilityId),
+        supportedProjectFormats: current.supportedProjectFormats,
+        currentProjectFormat: current.currentProjectFormat,
+        currentProjectFormats: current.currentProjectFormats,
+        supportedSaveFormats: current.supportedSaveFormats);
+    final result =
+        const GamePackageCompatibilityEvaluator().evaluate(declared, old);
     expect(result.decision, GamePackageCompatibilityDecision.reject);
     expect(
         result.missingCapabilities,

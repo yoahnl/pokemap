@@ -83,16 +83,16 @@ final class ProjectOpenService {
   final bool _workshopScope;
   final bool _initializeSceneOwners;
   final Set<String>? _catalogMetadataFields;
-  final Map<ProjectHandle, Future<CatalogProjectReader?> Function()>
+  final Map<ProjectHandle, Future<CatalogProjectReader?> Function({Set<String>? metadataFields})>
       _catalogReaders = {};
   final Map<WorkspaceHandle, ProjectHandle> _catalogWorkspaces = {};
   final Map<ProjectHandle,Future<void> Function()> _readGuards={};
 
-  Future<CatalogProjectReader?> catalogProject(ProjectHandle handle) async {
+  Future<CatalogProjectReader?> catalogProject(ProjectHandle handle, {Set<String>? metadataFields}) async {
     _handles.requireActiveProject(handle);
     await _readGuards[handle]?.call();
     final reader = _catalogReaders[handle];
-    return reader == null ? null : reader();
+    return reader == null ? null : reader(metadataFields: metadataFields);
   }
 
   Future<OpenedProject> openProject(String projectRootPath) async {
@@ -119,7 +119,7 @@ final class ProjectOpenService {
       if((await pendingCatalogTransactions()).isNotEmpty) throw const CatalogStorageException('catalog.recovery_required','Recover the pending catalog transaction before reading project content.');
     }
     final pendingAtOpen=await pendingCatalogTransactions();
-    Future<CatalogProjectReader?> catalogReader() async {
+    Future<CatalogProjectReader?> catalogReader({Set<String>? metadataFields}) async {
       if(!const {'avelune.working-catalog','avelune.portable-catalog'}.contains(descriptor['format'])) return null;
       if(descriptor.isNotEmpty) {
         final observed=await _fileReader.readBytes(projectRoot:canonicalRoot,relativePath:'project.json');
@@ -135,7 +135,7 @@ final class ProjectOpenService {
                   projectRoot: canonicalRoot)),
           descriptor: descriptor,
           allowRecoveryBootstrap: true,
-          metadataFields: _catalogMetadataFields);
+          metadataFields: metadataFields ?? _catalogMetadataFields);
     }
     final catalog = await catalogReader();
     if (_initializeSceneOwners && catalog != null && !catalog.recoveryRequired) {

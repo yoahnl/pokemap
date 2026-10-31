@@ -4,6 +4,7 @@ import 'package:freezed_annotation/freezed_annotation.dart'
     show DeepCollectionEquality;
 
 import 'project_model3d.dart';
+import 'narrative_event_definition.dart';
 import 'spatial_lift.dart';
 import 'spatial_platform.dart';
 import 'spatial_day_night_cycle.dart';
@@ -189,6 +190,7 @@ final class SpatialModelClip {
 
 final class SpatialModelInstance {
   static const entityBindingCapabilityId = 'map3d.entity-models@1';
+  static const conditionalVisibilityCapabilityId = 'map3d.conditional-visibility@1';
   SpatialModelInstance({
     required this.id,
     required this.modelId,
@@ -202,6 +204,7 @@ final class SpatialModelInstance {
     this.castsShadows,
     this.entityId,
     this.clip,
+    this.visibilityCondition,
   }) {
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
         modelId.isEmpty ||
@@ -229,6 +232,7 @@ final class SpatialModelInstance {
   final bool blocksMovement;
   final bool? castsShadows;
   final SpatialModelClip? clip;
+  final NarrativeEventConditionExpression? visibilityCondition;
 
   bool effectiveCastsShadows(ProjectModel3dEntry model) =>
       castsShadows ?? model.castsShadowsByDefault;
@@ -260,6 +264,8 @@ final class SpatialModelInstance {
     double? animationSpeed,
     SpatialModelClip? clip,
     bool clearClip = false,
+    NarrativeEventConditionExpression? visibilityCondition,
+    bool clearVisibilityCondition = false,
   }) => SpatialModelInstance(
     id: id,
     modelId: modelId,
@@ -275,6 +281,9 @@ final class SpatialModelInstance {
     castsShadows: clearCastsShadows ? null : castsShadows ?? this.castsShadows,
     entityId: clearEntityBinding ? null : entityId ?? this.entityId,
     clip: clearClip ? null : clip ?? this.clip,
+    visibilityCondition: clearVisibilityCondition
+        ? null
+        : visibilityCondition ?? this.visibilityCondition,
   );
   @override
   bool operator ==(Object other) =>
@@ -291,7 +300,8 @@ final class SpatialModelInstance {
           other.animationSpeed == animationSpeed &&
           other.blocksMovement == blocksMovement &&
           other.castsShadows == castsShadows &&
-          other.clip == clip;
+          other.clip == clip &&
+          other.visibilityCondition == visibilityCondition;
   @override
   int get hashCode => Object.hash(
     id,
@@ -306,6 +316,7 @@ final class SpatialModelInstance {
     blocksMovement,
     castsShadows,
     clip,
+    visibilityCondition,
   );
 
   factory SpatialModelInstance.fromJson(Map<String, dynamic> json) {
@@ -328,6 +339,9 @@ final class SpatialModelInstance {
       blocksMovement: json['blocksMovement'] as bool,
       castsShadows: json['castsShadows'] as bool?,
       entityId: json['entityId'] as String?,
+      visibilityCondition: json['visibilityCondition'] == null
+          ? null
+          : NarrativeEventConditionExpression.fromJson(json['visibilityCondition']),
       clip: switch (json['clip']) {
         null => null,
         Map<String, dynamic> value => SpatialModelClip.fromJson(value),
@@ -350,6 +364,8 @@ final class SpatialModelInstance {
     'blocksMovement': blocksMovement,
     if (castsShadows != null) 'castsShadows': castsShadows,
     if (clip != null) 'clip': clip!.toJson(),
+    if (visibilityCondition != null)
+      'visibilityCondition': visibilityCondition!.toJson(),
   };
 }
 

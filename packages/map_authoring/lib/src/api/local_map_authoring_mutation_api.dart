@@ -73,6 +73,7 @@ import '../ports/file_backed_payload_store.dart';
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
 const _nativeLocalWorkshopActions = {
+  'scene.condition.set',
   'map3d.edit_batch',
   ...TriggerZoneActions.fieldTraversalActions,
   'map3d.instance.configure_field_obstacle',

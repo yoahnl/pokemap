@@ -81,6 +81,7 @@ final class ProjectSnapshot {
     required this.projectHandle,
     required this.revision,
     required this.manifest,
+    Iterable<SceneAsset> rewardReferenceScenes = const [],
     this.pokemonInventoryComplete = false,
     this.materializedCatalogProject = false,
     Set<String>? availableProjectSections,
@@ -98,7 +99,8 @@ final class ProjectSnapshot {
     this.resourcePayloadReader,
     this.payloadOwner,
     Iterable<ProjectSnapshotLoadDiagnostic> loadDiagnostics = const [],
-  })  : scopedStorageRevisions = scopedStorageRevisions == null ? null : Map.unmodifiable(scopedStorageRevisions),
+  })  : rewardReferenceScenes = List.unmodifiable(rewardReferenceScenes),
+        scopedStorageRevisions = scopedStorageRevisions == null ? null : Map.unmodifiable(scopedStorageRevisions),
         availableProjectDocuments = availableProjectDocuments == null
             ? null
             : Map.unmodifiable({
@@ -207,6 +209,7 @@ final class ProjectSnapshot {
     _mapsById = Map.unmodifiable({
       for (final map in this.maps) map.id: map,
     });
+    _rewardScenesById = _indexRewardScenes([...manifest.scenes, ...this.rewardReferenceScenes]);
   }
 
   ProjectSnapshot._rebound({
@@ -217,6 +220,7 @@ final class ProjectSnapshot {
   })  : payloadOwner = payloadOwner ?? source.payloadOwner,
         revision = source.revision,
         manifest = source.manifest,
+        rewardReferenceScenes = source.rewardReferenceScenes,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
         availableProjectSections = source.availableProjectSections,
@@ -232,6 +236,7 @@ final class ProjectSnapshot {
         payloadResources = source.payloadResources,
         _resourceBytes = source._resourceBytes {
     _mapsById = source._mapsById;
+    _rewardScenesById = source._rewardScenesById;
   }
 
   ProjectSnapshot._projected({
@@ -243,6 +248,7 @@ final class ProjectSnapshot {
     required Map<String, List<int>> resourceBytes,
     required Map<String, String> resourceStorageKeys,
   })  : payloadOwner = source.payloadOwner,
+        rewardReferenceScenes = source.rewardReferenceScenes,
         projectHandle = source.projectHandle,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
@@ -268,11 +274,21 @@ final class ProjectSnapshot {
             resourceBytes.entries.toList()
               ..sort((left, right) => left.key.compareTo(right.key)))) {
     _mapsById = Map.unmodifiable({for (final map in this.maps) map.id: map});
+    _rewardScenesById = _indexRewardScenes([...manifest.scenes, ...rewardReferenceScenes]);
   }
 
   final ProjectHandle projectHandle;
   final String revision;
   final ProjectManifest manifest;
+  final List<SceneAsset> rewardReferenceScenes;
+  Iterable<SceneAsset> lookupRewardScenes(String id) => _rewardScenesById[id] ?? const [];
+  static Map<String, List<SceneAsset>> _indexRewardScenes(Iterable<SceneAsset> scenes) {
+    final groups = <String, List<SceneAsset>>{};
+    for (final scene in scenes) {
+      groups.putIfAbsent(scene.id, () => []).add(scene);
+    }
+    return Map.unmodifiable({for (final entry in groups.entries) entry.key: List<SceneAsset>.unmodifiable(entry.value)});
+  }
   final bool pokemonInventoryComplete;
   final bool materializedCatalogProject;
   final Set<String>? availableProjectSections;
@@ -378,6 +394,7 @@ final class ProjectSnapshot {
   }
 
   late final Map<String, MapData> _mapsById;
+  late final Map<String, List<SceneAsset>> _rewardScenesById;
 
   MapData? mapById(String id) => _mapsById[id];
 
@@ -394,6 +411,7 @@ final class ProjectSnapshot {
           projectHandle: projectHandle,
           revision: revision,
           manifest: manifest,
+          rewardReferenceScenes: rewardReferenceScenes,
           pokemonInventoryComplete: pokemonInventoryComplete,
           materializedCatalogProject: materializedCatalogProject,
           availableProjectSections: availableProjectSections,

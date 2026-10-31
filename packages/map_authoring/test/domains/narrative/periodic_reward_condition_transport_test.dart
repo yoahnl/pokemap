@@ -1,0 +1,753 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_project_reader.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_periodic_reward_consumers.dart';
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  for (final catalog in [false, true]) {
+    for (final wire in [false, true]) {
+      for (final unrelated in [0, 80]) {
+        test(
+            'Scene periodic setter is local and durable catalog=$catalog JSONL=$wire foreign=$unrelated',
+            () async {
+          final fixture = await _Fixture.create(
+              catalog: catalog, wire: wire, unrelated: unrelated);
+          addTearDown(fixture.dispose);
+          late SceneConditionSource source;
+          for (final expected in [true, false]) {
+            source = SceneConditionSource.periodicRewardAvailable(
+                reference: _reference(), expectedValue: expected);
+            fixture.reader.clear();
+            final plan = await fixture.plan('scene.condition.set', {
+              'sceneId': 'consumer',
+              'nodeId': 'gate',
+              'conditionSource': source.toJson(),
+            });
+            final touched = (plan['receipt'] as Map)['diff'];
+            expect(touched, isNotNull);
+            await fixture.apply(plan);
+            expect(
+                fixture.reader.paths.where((path) =>
+                    path.startsWith('maps/') ||
+                    path.startsWith('assets/') ||
+                    path == 'dialogues/foreign.yarn' ||
+                    path == 'items.json' ||
+                    path.endsWith('history.jsonl')),
+                isEmpty);
+            if (catalog) {
+              expect(
+                  fixture.reader.definitions
+                      .where((id) =>
+                          id.startsWith('["projectDefinition","scenes",'))
+                      .map((id) => (jsonDecode(id) as List)[2] as int)
+                      .where((position) => position > 1),
+                  isEmpty);
+            }
+          }
+          await fixture.reopen();
+          expect(await fixture.storedCondition(), source.toJson());
+          final before = await fixture.manifest.readAsBytes();
+          await expectLater(
+              fixture.plan('scene.condition.set', {
+                'sceneId': 'consumer',
+                'nodeId': 'gate',
+                'conditionSource': SceneConditionSource.periodicRewardAvailable(
+                        reference: _reference(reward: 'mismatch'),
+                        expectedValue: false)
+                    .toJson(),
+              }),
+              throwsA(predicate((error) =>
+                  error.toString().contains('scene.publication_blocked'))));
+          expect(await fixture.manifest.readAsBytes(), before);
+          expect(await fixture.storedCondition(), source.toJson());
+        });
+      }
+    }
+  }
+  for (final wire in [false, true]) {
+    test(
+        'Scene condition facets follow undo and guard referenced or unknown claim replacements JSONL=$wire',
+        () async {
+      final fixture =
+          await _Fixture.create(catalog: true, wire: wire, unrelated: 0);
+      addTearDown(fixture.dispose);
+      final source = SceneConditionSource.periodicRewardAvailable(
+          reference: _reference(), expectedValue: true);
+      await fixture.apply(await fixture.plan('scene.condition.set', {
+        'sceneId': 'consumer',
+        'nodeId': 'gate',
+        'conditionSource': source.toJson(),
+      }));
+      final expected = [
+        {
+          'kind': 'sceneCondition',
+          'sceneId': 'consumer',
+          'nodeId': 'gate',
+          'rewardId': 'daily-fruit'
+        }
+      ];
+      expect((await fixture.facet())?['consumers'], expected);
+      Map<String, Object?> command(
+              {String reward = 'daily-fruit', int quantity = 3}) =>
+          SceneInteractiveCommand.claimPeriodicReward(
+                  definition: PeriodicItemRewardDefinition(
+                      rewardId: reward,
+                      label: 'Fruit',
+                      itemId: 'fruit',
+                      quantity: quantity))
+              .toJson();
+      await expectLater(
+          fixture.plan('scene.interactive_command.set', {
+            'sceneId': 'source',
+            'nodeId': 'claim',
+            'command': command(reward: 'replacement'),
+          }),
+          throwsA(predicate((error) =>
+              error.toString().contains('periodic_reward_reference_in_use'))));
+      await fixture.apply(await fixture.plan('scene.interactive_command.set', {
+        'sceneId': 'source',
+        'nodeId': 'claim',
+        'command': command(),
+      }));
+      expect((await fixture.facet())?['consumers'], expected);
+      await fixture.apply(await fixture.plan('scene.condition.set', {
+        'sceneId': 'consumer',
+        'nodeId': 'gate',
+        'conditionSource': SceneConditionSource.factValue(
+                factId: 'old',
+                operator: NarrativeFactOperator.equals,
+                expectedValue: NarrativeValue.boolean(true))
+            .toJson(),
+      }));
+      final clearing = fixture.lastReceiptId!;
+      expect((await fixture.facet())?['consumers'], isEmpty);
+      await expectLater(
+          fixture.plan('scene.interactive_command.set', {
+            'sceneId': 'source',
+            'nodeId': 'claim',
+            'command': command(reward: 'replacement'),
+          }),
+          throwsA(predicate((error) => error
+              .toString()
+              .contains('periodic_reward_reference_coverage_unknown'))));
+      await fixture.mutations.undoMutation(fixture.opened.projectHandle,
+          entryId: clearing, idempotencyKey: 'undo-clearing');
+      expect((await fixture.facet())?['consumers'], expected);
+      expect(await fixture.storedCondition(), source.toJson());
+      await fixture.mutations.redoMutation(fixture.opened.projectHandle,
+          entryId: clearing, idempotencyKey: 'redo-clearing');
+      expect((await fixture.facet())?['consumers'], isEmpty);
+    });
+  }
+  test(
+      'native source replacement refuses unknown historical coverage while compatible quantity stays editable',
+      () async {
+    final fixture =
+        await _Fixture.create(catalog: false, wire: false, unrelated: 0);
+    addTearDown(fixture.dispose);
+    final before = await fixture.manifest.readAsBytes();
+    Map<String, Object?> parameters(String reward, int quantity) => {
+          'sceneId': 'source',
+          'nodeId': 'claim',
+          'command': SceneInteractiveCommand.claimPeriodicReward(
+                  definition: PeriodicItemRewardDefinition(
+                      rewardId: reward,
+                      label: 'Fruit',
+                      itemId: 'fruit',
+                      quantity: quantity))
+              .toJson(),
+        };
+    await expectLater(
+        fixture.legacySourcePlan(parameters('replacement', 2)),
+        throwsA(predicate((error) => error
+            .toString()
+            .contains('periodic_reward_reference_coverage_unknown'))));
+    expect(await fixture.manifest.readAsBytes(), before);
+    await fixture
+        .apply(await fixture.legacySourcePlan(parameters('daily-fruit', 3)));
+  });
+  test('a consumer added after source planning invalidates the old source plan',
+      () async {
+    final fixture =
+        await _Fixture.create(catalog: true, wire: false, unrelated: 0);
+    addTearDown(fixture.dispose);
+    final earlier = await fixture.plan('scene.interactive_command.set', {
+      'sceneId': 'source',
+      'nodeId': 'claim',
+      'command': SceneInteractiveCommand.claimPeriodicReward(
+              definition: PeriodicItemRewardDefinition(
+                  rewardId: 'daily-fruit',
+                  label: 'Fruit',
+                  itemId: 'fruit',
+                  quantity: 3))
+          .toJson(),
+    });
+    await fixture.apply(await fixture.plan('scene.condition.set', {
+      'sceneId': 'consumer',
+      'nodeId': 'gate',
+      'conditionSource': SceneConditionSource.periodicRewardAvailable(
+              reference: _reference(), expectedValue: true)
+          .toJson(),
+    }));
+    await expectLater(
+        fixture.mutations.applyMutation(fixture.opened.projectHandle,
+            planId: earlier['planId'] as String,
+            operationId: 'stale-source-plan'),
+        throwsA(predicate((error) =>
+            error.toString().contains('stale') ||
+            error.toString().contains('revision_conflict'))));
+    expect((await fixture.facet())?['consumers'], hasLength(1));
+    final source = await fixture.storedScene('source');
+    final command = (source.graph.nodes
+            .singleWhere((node) => node.id == 'claim')
+            .payload as SceneActionPayload)
+        .interactiveCommand as SceneClaimPeriodicRewardInteractiveCommand;
+    expect(command.definition.quantity, 2);
+  });
+  test(
+      'self reference resolves the current candidate and snapshot lookup preserves ambiguity',
+      () {
+    SceneNode claim(String reward) => SceneNode(
+        id: 'claim',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.interactive(
+            SceneInteractiveCommand.claimPeriodicReward(
+                definition: PeriodicItemRewardDefinition(
+                    rewardId: reward,
+                    label: 'Fruit',
+                    itemId: 'fruit',
+                    quantity: 1))));
+    final consumer = _consumer();
+    final old = SceneAsset(
+        id: 'self',
+        name: 'Self',
+        graph: SceneGraph(startNodeId: 'start', nodes: [
+          consumer.graph.nodes.first,
+          claim('old'),
+          ...consumer.graph.nodes.skip(1),
+        ], edges: [
+          _edge('enter', 'start', 'claim'),
+          for (final port in [
+            'received',
+            'alreadyClaimed',
+            'bagFull',
+            'blocked'
+          ])
+            _edge('claim-$port', 'claim', 'gate',
+                port: port, kind: SceneEdgeKind.actionCompleted),
+          ...consumer.graph.edges.skip(1),
+        ]));
+    final project = ProjectManifest(
+        name: 'Self',
+        maps: const [],
+        tilesets: const [],
+        scenes: [
+          old
+        ],
+        facts: [
+          NarrativeFactDefinition(
+              id: 'old',
+              label: 'Old',
+              initialValue: NarrativeValue.boolean(true))
+        ]);
+    final reference = PeriodicRewardReference(
+        sceneId: 'self', nodeId: 'claim', rewardId: 'current');
+    final updated = const SceneActions().patchGraph(project,
+        maps: const [],
+        sceneId: 'self',
+        lookupRewardScenes: (_) => [old],
+        itemCatalog: ProjectItemCatalog(schemaVersion: 1, entries: const [
+          ProjectItemDefinition(
+              id: 'fruit', displayName: 'Fruit', pocketId: 'materials')
+        ]),
+        upsertNodes: [
+          claim('current'),
+          SceneNode(
+              id: 'gate',
+              kind: SceneNodeKind.condition,
+              payload: SceneConditionPayload(
+                  conditionSource: SceneConditionSource.periodicRewardAvailable(
+                      reference: reference, expectedValue: true)))
+        ]);
+    expect(
+        resolvePeriodicRewardReference(
+            reference: reference,
+            lookupScenes: (_) => updated.scenes).isResolved,
+        isTrue);
+    final snapshot = ProjectSnapshot(
+        projectHandle: ProjectHandle('test'),
+        revision: 'sha256:${List.filled(64, '0').join()}',
+        manifest: project.copyWith(scenes: [old, old]),
+        maps: const [],
+        resourceFingerprints: const {});
+    expect(snapshot.lookupRewardScenes('self'), hasLength(2));
+    expect(
+        resolvePeriodicRewardReference(
+                reference: reference, lookupScenes: snapshot.lookupRewardScenes)
+            .status,
+        PeriodicRewardReferenceStatus.sceneAmbiguous);
+  });
+  test(
+      'failed catalog publication leaves both Scene condition and consumer facets on the original root',
+      () async {
+    final fixture = await _Fixture.create(
+        catalog: true,
+        wire: false,
+        unrelated: 0,
+        faultInjector: (context) {
+          if (context.checkpoint ==
+              AuthoringTransactionCheckpoint.beforeResourcePromotion) {
+            throw StateError('controlled promotion failure');
+          }
+        });
+    addTearDown(fixture.dispose);
+    final store =
+        await CatalogStorageStore.open(projectRoot: fixture.root.path);
+    final original = (await store.readHead())!;
+    final head = File('${fixture.root.path}/catalog/HEAD.json');
+    final before = await head.readAsBytes();
+    final plan = await fixture.plan('scene.condition.set', {
+      'sceneId': 'consumer',
+      'nodeId': 'gate',
+      'conditionSource': SceneConditionSource.periodicRewardAvailable(
+              reference: _reference(), expectedValue: true)
+          .toJson(),
+    });
+    await expectLater(fixture.apply(plan), throwsA(anything));
+    expect(await head.readAsBytes(), before);
+    final snapshot = (await store.openRoot(original)).snapshot;
+    expect(
+        await snapshot.lookup(CatalogDefinitionKey(
+            CatalogDefinitionKind.workspaceState,
+            jsonEncode(['periodicRewardConsumers', 'source', 'claim']))),
+        isNull);
+    final saved = (await CatalogMetadataDocuments.readDocuments(
+            snapshot: snapshot,
+            project:
+                const ProjectManifest(name: 'Original', maps: [], tilesets: []),
+            ids: {
+          'scenes': {'consumer'}
+        }))
+        .project
+        .scenes
+        .single;
+    expect(
+        (saved.graph.nodes.singleWhere((node) => node.id == 'gate').payload
+                as SceneConditionPayload)
+            .conditionSource!
+            .sourceKind,
+        SceneConditionSourceKind.fact);
+  });
+  for (final reverse in [false, true]) {
+    test(
+        'Scene physical relocation preserves semantic consumer facets regardless of upsert order reverse=$reverse',
+        () async {
+      final fixture =
+          await _Fixture.create(catalog: true, wire: false, unrelated: 0);
+      addTearDown(fixture.dispose);
+      await fixture.apply(await fixture.plan('scene.condition.set', {
+        'sceneId': 'consumer',
+        'nodeId': 'gate',
+        'conditionSource': SceneConditionSource.periodicRewardAvailable(
+                reference: _reference(), expectedValue: true)
+            .toJson(),
+      }));
+      final store =
+          await CatalogStorageStore.open(projectRoot: fixture.root.path);
+      final snapshot =
+          (await store.openRoot((await store.readHead())!)).snapshot;
+      final consumer = (await snapshot
+          .lookup(CatalogMetadataDocuments.definitionKey('scenes', 0)))!;
+      final source = (await snapshot
+          .lookup(CatalogMetadataDocuments.definitionKey('scenes', 1)))!;
+      CatalogDefinitionUnit moved(CatalogDefinitionUnit unit, int position) {
+        final key = CatalogMetadataDocuments.definitionKey('scenes', position);
+        return CatalogDefinitionUnit(
+            key: key,
+            references: unit.references,
+            payload: {...unit.payload, 'id': key.id, 'position': position});
+      }
+
+      final changes = [moved(source, 0), moved(consumer, 1)];
+      expect(
+          await CatalogPeriodicRewardConsumers.maintainAndGuard(
+              snapshot: snapshot,
+              upserts: reverse ? changes.reversed : changes,
+              removals: const []),
+          isEmpty);
+      expect((await fixture.facet())?['consumers'], hasLength(1));
+    });
+  }
+}
+
+PeriodicRewardReference _reference({String reward = 'daily-fruit'}) =>
+    PeriodicRewardReference(
+      sceneId: 'source',
+      nodeId: 'claim',
+      rewardId: reward,
+    );
+
+SceneEdge _edge(String id, String from, String to,
+        {String port = 'completed',
+        SceneEdgeKind kind = SceneEdgeKind.defaultFlow}) =>
+    SceneEdge(
+        id: id, fromNodeId: from, fromPortId: port, toNodeId: to, kind: kind);
+
+SceneAsset _consumer() => SceneAsset(
+    id: 'consumer',
+    name: 'Consumer',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+            id: 'gate',
+            kind: SceneNodeKind.condition,
+            payload: SceneConditionPayload(
+                conditionSource: SceneConditionSource.factValue(
+                    factId: 'old',
+                    operator: NarrativeFactOperator.equals,
+                    expectedValue: NarrativeValue.boolean(true)))),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        _edge('enter', 'start', 'gate'),
+        _edge('yes', 'gate', 'end',
+            port: 'true', kind: SceneEdgeKind.conditionTrue),
+        _edge('no', 'gate', 'end',
+            port: 'false', kind: SceneEdgeKind.conditionFalse),
+      ],
+    ));
+
+SceneAsset _source() => SceneAsset(
+    id: 'source',
+    name: 'Source',
+    graph: SceneGraph(startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+          id: 'claim',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.claimPeriodicReward(
+                  definition: PeriodicItemRewardDefinition(
+                      rewardId: 'daily-fruit',
+                      label: 'Fruit',
+                      itemId: 'fruit',
+                      quantity: 2)))),
+      SceneNode(
+          id: 'talk',
+          kind: SceneNodeKind.yarnDialogue,
+          payload: SceneYarnDialoguePayload(dialogueId: 'foreign-dialogue')),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ], edges: [
+      _edge('enter', 'start', 'claim'),
+      for (final port in ['received', 'alreadyClaimed', 'bagFull', 'blocked'])
+        _edge('claim-$port', 'claim', 'talk',
+            port: port, kind: SceneEdgeKind.actionCompleted),
+      _edge('leave', 'talk', 'end'),
+    ]));
+
+final class _Fixture {
+  _Fixture(this.root, this.catalog, this.wire, this.reader, this.api,
+      this.mutations, this.opened);
+  final Directory root;
+  final bool catalog;
+  final bool wire;
+  final _Reader reader;
+  final AuthoringReadApi api;
+  final LocalMapAuthoringMutationApi mutations;
+  OpenedProject opened;
+  int sequence = 0;
+  String? lastReceiptId;
+  File get manifest => File('${root.path}/project.json');
+
+  static Future<_Fixture> create(
+      {required bool catalog,
+      required bool wire,
+      required int unrelated,
+      AuthoringTransactionFaultInjector? faultInjector}) async {
+    final qa = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring');
+    await qa.create(recursive: true);
+    final root = await qa.createTemp('setter-');
+    final project = ProjectManifest(
+        name: 'Periodic conditions',
+        maps: [
+          for (var i = 0; i < unrelated; i++)
+            ProjectMapEntry(
+                id: 'foreign-$i',
+                name: 'Foreign',
+                relativePath: 'maps/foreign-$i.json'),
+        ],
+        tilesets: const [],
+        scenes: [
+          _consumer(),
+          _source(),
+          for (var i = 0; i < unrelated; i++)
+            SceneAsset(
+                id: 'foreign-scene-$i',
+                name: 'Foreign',
+                graph: SceneGraph(startNodeId: 'start', nodes: [
+                  SceneNode(id: 'start', kind: SceneNodeKind.start),
+                  SceneNode(id: 'end', kind: SceneNodeKind.end),
+                ], edges: [
+                  _edge('leave', 'start', 'end')
+                ])),
+        ],
+        facts: [
+          NarrativeFactDefinition(
+              id: 'old',
+              label: 'Old',
+              initialValue: NarrativeValue.boolean(true))
+        ],
+        dialogues: const [
+          ProjectDialogueEntry(
+              id: 'foreign-dialogue',
+              name: 'Foreign',
+              relativePath: 'dialogues/foreign.yarn')
+        ],
+        pokemon: const ProjectPokemonConfig(
+            enabled: false,
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            catalogFiles: {'items': 'items.json'}));
+    await File('${root.path}/project.json')
+        .writeAsString(jsonEncode(project.toJson()));
+    await Directory('${root.path}/dialogues').create();
+    await File('${root.path}/dialogues/foreign.yarn')
+        .writeAsString('title: Start\n---\nForeign\n===\n');
+    await File('${root.path}/items.json').writeAsString(jsonEncode({
+      'schemaVersion': 1,
+      'entries': [
+        {'id': 'fruit', 'displayName': 'Fruit', 'pocketId': 'materials'},
+      ]
+    }));
+    await Directory('${root.path}/maps').create();
+    for (var i = 0; i < unrelated; i++) {
+      await File('${root.path}/maps/foreign-$i.json').writeAsString(jsonEncode(
+          MapData(
+                  id: 'foreign-$i',
+                  name: 'Foreign',
+                  size: const GridSize(width: 4, height: 4))
+              .toJson()));
+    }
+    if (catalog) {
+      final store = await CatalogStorageStore.open(projectRoot: root.path);
+      await WorkingProjectCatalog.create(
+          store: store,
+          projectId: 'periodic-condition',
+          project: project,
+          expectedProjectRevision:
+              await store.gateway.readResourceRevision('project.json'));
+    }
+    final history = File('${root.path}/.pokemap/authoring/history.jsonl');
+    await history.parent.create(recursive: true);
+    await history.writeAsString(
+        'foreign legacy history must not be read\n' * (unrelated + 1));
+    final reader = _Reader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path], fileReader: reader);
+    final handles = WorkspaceHandleStore();
+    final loader = ProjectSnapshotLoader(handles: handles);
+    final api = AuthoringReadApi(
+        openService: ProjectOpenService(
+            policy: policy, fileReader: reader, handles: handles),
+        snapshotLoader: loader);
+    final mutations = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: loader,
+        faultInjector: faultInjector,
+        authorizationLimits:
+            const AuthoringSecurityLimits(maxOperationsPerWindow: null));
+    final opened = await api.openProject(root.path);
+    await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+    return _Fixture(root, catalog, wire, reader, api, mutations, opened);
+  }
+
+  Future<Map<String, Object?>> plan(
+      String action, Map<String, Object?> parameters) async {
+    final snapshot = await mutations.readWorkshopSnapshot(opened.projectHandle,
+        actionId: action, parameters: parameters);
+    final request = AuthoringRequest(
+        requestId: 'setter-${++sequence}',
+        actionId: action,
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle.value,
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'setter-$sequence',
+        parameters: parameters);
+    if (!wire) {
+      return (await mutations.planMutation(opened.projectHandle, request))
+          .toJson();
+    }
+    return call('plan', {
+      'projectHandle': opened.projectHandle.value,
+      'request': request.toJson()
+    });
+  }
+
+  Future<Map<String, Object?>> legacySourcePlan(
+      Map<String, Object?> parameters) async {
+    final page = await api.queryProject(
+        opened.projectHandle,
+        AuthoringQueryRequest(
+            resourceKind: 'scene',
+            operation: AuthoringQueryOperation.get,
+            ids: const ['source'],
+            view: AuthoringQueryView.detail));
+    return (await mutations.planMutation(
+            opened.projectHandle,
+            AuthoringRequest(
+                requestId: 'legacy-${++sequence}',
+                actionId: 'scene.interactive_command.set',
+                actionVersion: 1,
+                workspaceHandle: opened.workspaceHandle.value,
+                expectedRevision: page.snapshotRevision,
+                idempotencyKey: 'legacy-$sequence',
+                parameters: parameters)))
+        .toJson();
+  }
+
+  Future<Map<String, Object?>> call(
+      String command, Map<String, Object?> args) async {
+    final worker = JsonlWorker(api: api, mutations: mutations);
+    final result = AuthoringResult.fromJson(
+        jsonDecode(await worker.processLine(jsonEncode({
+      'id': 'setter-$sequence',
+      'command': command,
+      'args': args,
+    }))) as Map<String, dynamic>);
+    if (result.status != AuthoringResultStatus.success) {
+      throw StateError(jsonEncode(result.toJson()));
+    }
+    return result.data;
+  }
+
+  Future<void> apply(Map<String, Object?> plan) async {
+    final Map<String, Object?> result;
+    if (wire) {
+      result = await call('apply', {
+        'projectHandle': opened.projectHandle.value,
+        'planId': plan['planId'],
+        'operationId': 'apply-$sequence'
+      });
+    } else {
+      result = (await mutations.applyMutation(opened.projectHandle,
+              planId: plan['planId'] as String, operationId: 'apply-$sequence'))
+          .toJson();
+    }
+    lastReceiptId = (result['receipt'] as Map)['receiptId'] as String;
+  }
+
+  Future<Map<String, Object?>?> facet() async {
+    final store = await CatalogStorageStore.open(projectRoot: root.path);
+    final reader = (await CatalogProjectReader.open(
+        store: store,
+        descriptor: Map<String, Object?>.from(
+            jsonDecode(await manifest.readAsString()) as Map),
+        metadataFields: {}))!;
+    return reader.read((catalog) async => (await catalog.snapshot.lookup(
+            CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
+                jsonEncode(['periodicRewardConsumers', 'source', 'claim']))))
+        ?.payload);
+  }
+
+  Future<Map<String, dynamic>> storedCondition() async {
+    final scene = await storedScene('consumer');
+    return ((scene.graph.nodes.singleWhere((node) => node.id == 'gate').payload
+                as SceneConditionPayload)
+            .conditionSource!)
+        .toJson();
+  }
+
+  Future<SceneAsset> storedScene(String id) async {
+    final ProjectManifest project;
+    if (catalog) {
+      final store = await CatalogStorageStore.open(projectRoot: root.path);
+      final reader = (await CatalogProjectReader.open(
+          store: store,
+          descriptor: Map<String, Object?>.from(
+              jsonDecode(await manifest.readAsString()) as Map),
+          metadataFields: {}))!;
+      project = await reader.read((catalog) async =>
+          (await CatalogMetadataDocuments.readDocuments(
+                  snapshot: catalog.snapshot,
+                  project: catalog.projectMetadata,
+                  ids: {
+                'scenes': {id}
+              }))
+              .project);
+    } else {
+      project = ProjectManifest.fromJson(
+          jsonDecode(await manifest.readAsString()) as Map<String, dynamic>);
+    }
+    return project.scenes.singleWhere((scene) => scene.id == id);
+  }
+
+  Future<void> reopen() async {
+    await mutations.detachWorkspace(opened.workspaceHandle);
+    await api.closeWorkspace(opened.workspaceHandle);
+    opened = await api.openProject(root.path);
+    await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle);
+  }
+
+  Future<void> dispose() async {
+    await mutations.detachWorkspace(opened.workspaceHandle);
+    await api.closeWorkspace(opened.workspaceHandle);
+    await root.delete(recursive: true);
+  }
+}
+
+final class _Reader
+    implements
+        ProjectFileReader,
+        ProjectResourceStreamReader,
+        ProjectResourceProbeReader {
+  final paths = <String>[];
+  final definitions = <String>[];
+  void clear() {
+    paths.clear();
+    definitions.clear();
+  }
+
+  @override
+  bool get supportsStreamingResources => true;
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      const LocalProjectFileReader().canonicalizeDirectory(path);
+  @override
+  Future<ProjectResourceProbe> probeResource(
+          {required String projectRoot, required String relativePath}) =>
+      const LocalProjectFileReader()
+          .probeResource(projectRoot: projectRoot, relativePath: relativePath);
+  @override
+  Stream<List<int>> openRead(
+      {required String projectRoot, required String relativePath}) async* {
+    yield await readBytes(projectRoot: projectRoot, relativePath: relativePath);
+  }
+
+  @override
+  Future<List<int>> readBytes(
+      {required String projectRoot, required String relativePath}) async {
+    paths.add(relativePath);
+    final bytes = await const LocalProjectFileReader()
+        .readBytes(projectRoot: projectRoot, relativePath: relativePath);
+    if (relativePath.startsWith('catalog/objects/')) {
+      final raw = jsonDecode(utf8.decode(bytes));
+      if (raw is Map && raw['key'] is Map) {
+        definitions.add((raw['key'] as Map)['id'] as String);
+      }
+    }
+    return bytes;
+  }
+}

@@ -647,6 +647,23 @@ final class AuthoringResourceKindRegistry {
           },
         },
       ),
+      for (final kind in ['periodicRewardScene', 'periodicRewardNode'])
+        AuthoringResourceKindDescriptor(id: kind, version: 1,
+          displayName: kind == 'periodicRewardScene' ? 'Published reward Scene choices' : 'Published reward node choices',
+          summary: 'Bounded no-code choices from canonical published Scenes without global diagnostics or reward inventory',
+          extensions: {
+            'operations': kind == 'periodicRewardScene' ? ['list', 'summary', 'get'] : ['list', 'summary'],
+            'view': 'summary', 'pageSizeMaximum': 200,
+            'order': 'publishedDocumentOrder',
+            'cursorBinding': ['projectRevision', 'querySignature'],
+            'source': 'canonicalPublishedScene',
+            if (kind == 'periodicRewardNode') ...{
+              'requiredFilters': {'sceneId': {'type': 'string', 'minLength': 1}},
+              'optionalExtensions': {'sourceRevision': {'type': 'string', 'minLength': 1}},
+              'rewardIdentity': 'derivedOnlyFromSelectedPublishedCommand',
+              'itemLabel': 'notLoaded;definitionLabelAndQuantityOnly',
+            },
+          }),
       AuthoringResourceKindDescriptor(
         id: 'eventV2',
         version: 1,
@@ -1040,6 +1057,8 @@ final class AuthoringResourceKindRegistry {
           ),
       ].map(_catalogStorageDescriptor),
       queryableResourceKindIds: const {
+        'periodicRewardScene',
+        'periodicRewardNode',
         'resourcePackJob',
         'resourcePackInspection',
         'resourcePackEntry',

@@ -5,32 +5,39 @@ import 'player_service_runtime_controller.dart' show runtimeCivilDay;
 
 final class RuntimePeriodicRewardContext {
   RuntimePeriodicRewardContext({DateTime Function()? civilNow})
-      : _civilNow = civilNow ?? DateTime.now;
+    : _civilNow = civilNow ?? DateTime.now;
 
   final DateTime Function() _civilNow;
   final _observed = Map<GameState, GameState>.identity();
   String? _day;
+  bool _dayChangedSinceRefresh = false;
 
   bool refresh() {
-    final day = runtimeCivilDay(_civilNow());
-    if (_day == day) return false;
-    final changed = _day != null;
-    _day = day;
-    _observed.clear();
+    _observeCivilDay();
+    final changed = _dayChangedSinceRefresh;
+    _dayChangedSinceRefresh = false;
     return changed;
   }
 
+  void _observeCivilDay() {
+    final day = runtimeCivilDay(_civilNow());
+    if (_day == day) return;
+    if (_day != null) _dayChangedSinceRefresh = true;
+    _day = day;
+    _observed.clear();
+  }
+
   GameState observe(GameState state) {
-    refresh();
+    _observeCivilDay();
     final existing = _observed[state];
     if (existing != null) return existing;
-    final GameState observed;
+    GameState observed;
     try {
       observed = observeGameplayCalendar(state, localDay: _day!);
     } on FormatException {
-      final unavailable = state.copyWith(gameplayCalendarState: const GameplayCalendarState.empty());
-      _observed[state] = unavailable;
-      return unavailable;
+      observed = state.copyWith(
+        gameplayCalendarState: const GameplayCalendarState.empty(),
+      );
     }
     if (_observed.length >= 8) _observed.remove(_observed.keys.first);
     _observed[state] = observed;

@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -1013,7 +1015,7 @@ void main() {
                     <String, Object?>{
                       'id': 'g$index',
                       'name': 'Group $index',
-                      'type': 'city',
+                          'type': 'city',
                       'parentGroupId': index == 0 ? null : 'g${index - 1}',
                     },
                 ],
@@ -1456,7 +1458,197 @@ void main() {
         );
       }
     });
+
+    test(
+        'parallel inspection keeps at most one large whole-buffered entry in '
+        'flight', () async {
+      const largeSize = 16 * 1024 * 1024 + 1;
+      final payload = <String, List<int>>{
+        'project/project.json': _validProjectBytes(),
+      };
+      for (var index = 0; index < 3; index++) {
+        final blob = Uint8List(largeSize)
+          ..fillRange(0, largeSize, 0x61)
+          ..[0] = 0x62 + index;
+        payload['project/assets/.pokemap-store/'
+            '${sha256.convert(blob)}.blob'] = blob;
+        for (var small = 0; small < 5; small++) {
+          payload['presentation/icons/icon_${index}_$small.png'] =
+              _oversizedPng(width: small + 1);
+        }
+      }
+      final bytes = _rawPackage(payload);
+      final watched = <({int start, int end, String name})>[
+        for (final entry in const RandomAccessZipStructureReader(
+          GamePackageSecurityPolicy(),
+        ).read(_MemoryPackageSource(bytes)).entries)
+          if (entry.name.endsWith('.blob'))
+            (
+              start: entry.dataOffset,
+              end: entry.dataOffset + entry.size,
+              name: entry.name,
+            ),
+      ];
+      expect(watched, hasLength(3));
+      final temporaryDirectory = Directory.systemTemp.createTempSync(
+        'map_distribution_large_entries_',
+      );
+      final packageFile = File('${temporaryDirectory.path}/large.avelunegame')
+        ..writeAsBytesSync(bytes, flush: true);
+      final events = <String>[];
+      final port = ReceivePort()..listen((event) => events.add('$event'));
+      try {
+        final result = await inspector.inspectSourceParallel(
+          _reportingFileSource(packageFile.path, port.sendPort, watched),
+          workers: 4,
+          knownPackageSha256: 'c' * 64,
+        );
+        expect(result.payloadPaths, containsAll(watched.map((r) => r.name)));
+        await _settleSourceEvents(events, expectedOpens: 5);
+
+        var inFlight = 0;
+        var maxInFlight = 0;
+        for (final event in events) {
+          if (event.startsWith('start:')) {
+            inFlight++;
+            if (inFlight > maxInFlight) maxInFlight = inFlight;
+          } else if (event.startsWith('end:')) {
+            inFlight--;
+          }
+        }
+        expect(
+          events.where((event) => event.startsWith('start:')).length,
+          greaterThanOrEqualTo(3),
+        );
+        expect(maxInFlight, 1, reason: events.join(', '));
+      } finally {
+        port.close();
+        temporaryDirectory.deleteSync(recursive: true);
+      }
+    });
+
+    test('parallel inspection closes every source it opens', () async {
+      final valid = _rawPackage(<String, List<int>>{
+        for (var index = 0; index < 20; index++)
+          'presentation/icons/icon_$index.png': _oversizedPng(width: 1),
+        'project/project.json': _validProjectBytes(),
+      });
+      final hostile = _rawPackage(<String, List<int>>{
+        for (var index = 0; index < 20; index++)
+          'presentation/icons/icon_$index.png': _oversizedPng(width: 1),
+        'presentation/a_program.png': <int>[0x4d, 0x5a, 0, 0],
+        'project/assets/theme.wav': Uint8List(48 * 1024 * 1024)
+          ..setAll(0, ascii.encode('RIFF'))
+          ..setAll(8, ascii.encode('WAVE')),
+        'project/project.json': _validProjectBytes(),
+      });
+      final temporaryDirectory = Directory.systemTemp.createTempSync(
+        'map_distribution_source_lifecycle_',
+      );
+      try {
+        for (final (id, bytes, rejected) in <(String, List<int>, bool)>[
+          ('valid', valid, false),
+          ('hostile', hostile, true),
+        ]) {
+          final packageFile = File('${temporaryDirectory.path}/$id.avelunegame')
+            ..writeAsBytesSync(bytes, flush: true);
+          final events = <String>[];
+          final port = ReceivePort()..listen((event) => events.add('$event'));
+          try {
+            final inspection = inspector.inspectSourceParallel(
+              _reportingFileSource(
+                packageFile.path,
+                port.sendPort,
+                const <({int start, int end, String name})>[],
+              ),
+              workers: 4,
+            );
+            if (rejected) {
+              await expectLater(
+                inspection,
+                throwsA(isA<GamePackageFormatException>()),
+                reason: id,
+              );
+            } else {
+              await inspection;
+            }
+            await _settleSourceEvents(events, expectedOpens: 6);
+            expect(
+              events.where((event) => event == 'open'),
+              hasLength(6),
+              reason: id,
+            );
+            expect(
+              events.where((event) => event == 'close'),
+              hasLength(6),
+              reason: id,
+            );
+          } finally {
+            port.close();
+          }
+        }
+      } finally {
+        temporaryDirectory.deleteSync(recursive: true);
+      }
+    });
   });
+}
+
+Future<RandomAccessPackageSource> Function() _reportingFileSource(
+  String path,
+  SendPort events,
+  List<({int start, int end, String name})> watched,
+) =>
+    () async {
+      events.send('open');
+      return _ReportingFileSource(
+        File(path).openSync(),
+        File(path).lengthSync(),
+        events,
+        watched,
+      );
+    };
+
+Future<void> _settleSourceEvents(
+  List<String> events, {
+  required int expectedOpens,
+}) async {
+  for (var attempt = 0; attempt < 200; attempt++) {
+    final opens = events.where((event) => event == 'open').length;
+    final closes = events.where((event) => event == 'close').length;
+    if (opens >= expectedOpens && opens == closes) return;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+}
+
+final class _ReportingFileSource implements ClosableRandomAccessPackageSource {
+  _ReportingFileSource(this._handle, this.length, this._events, this._watched);
+
+  final RandomAccessFile _handle;
+  final SendPort _events;
+  final List<({int start, int end, String name})> _watched;
+
+  @override
+  final int length;
+
+  @override
+  Uint8List readAtSync(int offset, int length) {
+    for (final range in _watched) {
+      if (offset == range.start) _events.send('start:${range.name}');
+    }
+    _handle.setPositionSync(offset);
+    final bytes = _handle.readSync(length);
+    for (final range in _watched) {
+      if (offset + length == range.end) _events.send('end:${range.name}');
+    }
+    return bytes;
+  }
+
+  @override
+  Future<void> close() async {
+    _handle.closeSync();
+    _events.send('close');
+  }
 }
 
 Future<RandomAccessPackageSource> Function() _openMemorySource(

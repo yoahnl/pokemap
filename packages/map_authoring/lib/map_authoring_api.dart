@@ -34,6 +34,7 @@ export 'src/contracts/job_contracts.dart';
 export 'src/contracts/playtest_contracts.dart';
 export 'src/contracts/query_page.dart';
 export 'src/contracts/query_request.dart';
+export 'src/contracts/periodic_reward_choices.dart';
 export 'src/contracts/resource_ref.dart';
 export 'src/contracts/schema_descriptor.dart';
 export 'src/parity/full_authoring_parity.dart';

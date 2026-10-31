@@ -104,8 +104,12 @@ void main() {
     });
   }
 
-  test('host announces the condition only with its complete runtime surfaces', () {
-    expect(AveluneRuntimeCompatibility.host().capabilities, contains(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId));
+  test('host announces the condition only with its complete runtime surfaces',
+      () {
+    expect(
+        AveluneRuntimeCompatibility.host().capabilities,
+        contains(
+            SpatialGameplayCapabilities.periodicRewardConditionCapabilityId));
   });
   test('host announces the durable periodic reward capability', () {
     expect(AveluneRuntimeCompatibility.host().capabilities,

@@ -331,6 +331,34 @@ final class ProjectSnapshotLoader {
     return (facts: List<NarrativeFactDefinition>.unmodifiable(facts), total: values.length, revision: revision);
   }
 
+  Future<({List<Map<String, dynamic>> records, int total, String revision})> readNativeSceneChoicePage(
+      ProjectHandle projectHandle, {String? sceneId, required int offset, required int limit}) async {
+    final access = _handles.resolveProject(projectHandle);
+    await access.requireReadableProject();
+    final resource = await access.readResourceBytes('project.json');
+    final raw = jsonDecode(utf8.decode(resource.bytes));
+    if (raw is! Map || raw['storage'] != null || raw['format'] != null) {
+      throw const ProjectSnapshotException('project.native_workshop_required',
+        'Scene choice pages require a native project document.');
+    }
+    final values = raw['scenes'] ?? const [];
+    if (values is! List || offset < 0 || limit < 1 || limit > 200) {
+      throw const ProjectSnapshotException('project.scene_choice_page_invalid',
+        'The requested Scene choice page is invalid.');
+    }
+    final selected = sceneId == null
+      ? values.sublist(offset.clamp(0, values.length), (offset + limit).clamp(0, values.length))
+      : values.where((value) => value is Map && value['id'] == sceneId).toList();
+    final records = [for (final value in selected) Map<String, dynamic>.from(value as Map)];
+    final revision = await _decodeExecutor.fingerprintResource(resource.bytes, relativePath: 'project.json');
+    if (!await access.matchesResourceBytes('project.json', resource.bytes)) {
+      throw const ProjectSnapshotException('project.changed_during_snapshot',
+        'The project changed while its Scene choice page was loading.');
+    }
+    await access.requireReadableProject();
+    return (records: records, total: sceneId == null ? values.length : records.length, revision: revision);
+  }
+
   Future<ProjectSnapshot> loadWorkshop(
     ProjectHandle projectHandle, {
     required String actionId,

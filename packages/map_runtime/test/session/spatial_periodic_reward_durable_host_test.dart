@@ -13,45 +13,233 @@ import 'spatial_image_puzzle_durable_host_test.dart'
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('3D old Continue observes civil day without a hidden checkpoint', () async {
-    final reference = PeriodicRewardReference(sceneId: 'puzzle', nodeId: 'claim', rewardId: 'tree');
-    final fixture = await SpatialImagePuzzleDurableHostFixture.create(sceneOverride: availabilityScene(), qaDirectory: periodicQa, configureProject: (project) => project.copyWith(eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, legacyClaims: const [], records: [NarrativeEventRecord.configuredStructurallyUnchecked(NarrativeEventDefinition(id: 'evt_019abcde-0000-7000-8000-000000000001', name: 'Ineligible initial event', source: NarrativeEventSourceRef.mapEnter('field'), conditions: [NarrativeEventCondition.periodicRewardAvailable(reference: reference, expectedValue: false)], sceneId: 'puzzle', reusePolicy: NarrativeEventReusePolicy.oneShot, priority: 0, order: 0), enabled: true)])));
-    addTearDown(fixture.dispose);
-    expect(fixture.initial.gameplayCalendarState.isInitialized, isFalse);
-    final envelope = const GameStateSaveEnvelopeMapper().create(identity: fixture.descriptor(false).identity, profileId: 'profile', slotId: 'slot', saveId: fixture.initial.saveId, createdAt: fixture.now.toUtc(), updatedAt: fixture.now.toUtc(), status: SaveStatus.active, playTimeSeconds: 0, gameState: fixture.initial);
-    await fixture.file.writeAsBytes(const SaveEnvelopeCodec().encodeUtf8(envelope), flush: true);
-    final bytes = await fixture.file.readAsBytes();
-    await fixture.open(continueGame: true);
-    await fixture.runtime.gameplayReady;
-    expect(fixture.runtime.gameStateSnapshot.gameplayCalendarState.observedLocalDay, '2026-10-30');
-    expect(fixture.runtime.gameStateSnapshot.periodicRewardState.claimsById, isEmpty);
-    expect(fixture.writes, 0);
-    expect(await fixture.file.readAsBytes(), bytes);
-  });
-  test('3D full bag leaves periodic availability visible with no durable claim', () async {
-    final reference = PeriodicRewardReference(sceneId: 'puzzle', nodeId: 'claim', rewardId: 'tree');
-    final entity = MapEntity(id: 'full-tree', kind: MapEntityKind.custom, pos: const GridPos(x: 1, y: 1), presentation: MapEntityPresentation(variants: [MapEntityPresentationVariant(id: 'full', condition: NarrativeEventConditionExpression.leaf(NarrativeEventCondition.periodicRewardAvailable(reference: reference, expectedValue: true)), blocksMovement: true)]));
-    final fixture = await SpatialImagePuzzleDurableHostFixture.create(sceneOverride: availabilityScene(), qaDirectory: periodicQa,
-      configureProject: (project) => project.copyWith(bagCapacity: const ProjectBagCapacity(pockets: {'materials': BagPocketCapacity(maxDistinctItems: 1, maxQuantityPerItem: 5)})),
-      configureMap: (map) => map.copyWith(entities: [entity]));
-    addTearDown(fixture.dispose);
-    await fixture.open();
-    await fixture.runtime.gameplayReady;
-    expect(fixture.runtime.session!.interactionError.value, isNull);
-    expect(fixture.writes, 0);
-    expect(fixture.runtime.gameStateSnapshot.periodicRewardState.claimsById, isEmpty);
-    expect(fixture.runtime.session!.entityIsPresent!('field', entity), isTrue);
-  });
+  test(
+    '3D old Continue observes civil day without a hidden checkpoint',
+    () async {
+      final reference = PeriodicRewardReference(
+        sceneId: 'puzzle',
+        nodeId: 'claim',
+        rewardId: 'tree',
+      );
+      final fixture = await SpatialImagePuzzleDurableHostFixture.create(
+        sceneOverride: availabilityScene(),
+        qaDirectory: periodicQa,
+        configureProject: (project) => project.copyWith(
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            legacyClaims: const [],
+            records: [
+              NarrativeEventRecord.configuredStructurallyUnchecked(
+                NarrativeEventDefinition(
+                  id: 'evt_019abcde-0000-7000-8000-000000000001',
+                  name: 'Ineligible initial event',
+                  source: NarrativeEventSourceRef.mapEnter('field'),
+                  conditions: [
+                    NarrativeEventCondition.periodicRewardAvailable(
+                      reference: reference,
+                      expectedValue: false,
+                    ),
+                  ],
+                  sceneId: 'puzzle',
+                  reusePolicy: NarrativeEventReusePolicy.oneShot,
+                  priority: 0,
+                  order: 0,
+                ),
+                enabled: true,
+              ),
+            ],
+          ),
+        ),
+      );
+      addTearDown(fixture.dispose);
+      expect(fixture.initial.gameplayCalendarState.isInitialized, isFalse);
+      final envelope = const GameStateSaveEnvelopeMapper().create(
+        identity: fixture.descriptor(false).identity,
+        profileId: 'profile',
+        slotId: 'slot',
+        saveId: fixture.initial.saveId,
+        createdAt: fixture.now.toUtc(),
+        updatedAt: fixture.now.toUtc(),
+        status: SaveStatus.active,
+        playTimeSeconds: 0,
+        gameState: fixture.initial,
+      );
+      await fixture.file.writeAsBytes(
+        const SaveEnvelopeCodec().encodeUtf8(envelope),
+        flush: true,
+      );
+      final bytes = await fixture.file.readAsBytes();
+      await fixture.open(continueGame: true);
+      await fixture.runtime.gameplayReady;
+      expect(
+        fixture
+            .runtime
+            .gameStateSnapshot
+            .gameplayCalendarState
+            .observedLocalDay,
+        '2026-10-30',
+      );
+      expect(
+        fixture.runtime.gameStateSnapshot.periodicRewardState.claimsById,
+        isEmpty,
+      );
+      expect(fixture.writes, 0);
+      expect(await fixture.file.readAsBytes(), bytes);
+    },
+  );
+  test(
+    '3D full bag leaves periodic availability visible with no durable claim',
+    () async {
+      final reference = PeriodicRewardReference(
+        sceneId: 'puzzle',
+        nodeId: 'claim',
+        rewardId: 'tree',
+      );
+      final entity = MapEntity(
+        id: 'full-tree',
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 1, y: 1),
+        presentation: MapEntityPresentation(
+          variants: [
+            MapEntityPresentationVariant(
+              id: 'full',
+              condition: NarrativeEventConditionExpression.leaf(
+                NarrativeEventCondition.periodicRewardAvailable(
+                  reference: reference,
+                  expectedValue: true,
+                ),
+              ),
+              blocksMovement: true,
+            ),
+          ],
+        ),
+      );
+      final fixture = await SpatialImagePuzzleDurableHostFixture.create(
+        sceneOverride: availabilityScene(),
+        qaDirectory: periodicQa,
+        configureProject: (project) => project.copyWith(
+          bagCapacity: const ProjectBagCapacity(
+            pockets: {
+              'materials': BagPocketCapacity(
+                maxDistinctItems: 1,
+                maxQuantityPerItem: 5,
+              ),
+            },
+          ),
+        ),
+        configureMap: (map) => map.copyWith(entities: [entity]),
+      );
+      addTearDown(fixture.dispose);
+      await fixture.open();
+      await fixture.runtime.gameplayReady;
+      expect(fixture.runtime.session!.interactionError.value, isNull);
+      expect(fixture.writes, 0);
+      expect(
+        fixture.runtime.gameStateSnapshot.periodicRewardState.claimsById,
+        isEmpty,
+      );
+      expect(
+        fixture.runtime.session!.entityIsPresent!('field', entity),
+        isTrue,
+      );
+    },
+  );
   test('3D Narrative activation, presentation and WorldRule refresh at midnight on the same map', () async {
-    final reference = PeriodicRewardReference(sceneId: 'puzzle', nodeId: 'claim', rewardId: 'tree');
-    final leaf = NarrativeEventConditionExpression.leaf(NarrativeEventCondition.periodicRewardAvailable(reference: reference, expectedValue: true));
-    final inverse = NarrativeEventConditionExpression.not(NarrativeEventConditionExpression.leaf(NarrativeEventCondition.periodicRewardAvailable(reference: reference, expectedValue: false)));
-    final entity = MapEntity(id: 'daily-entity', kind: MapEntityKind.custom, pos: const GridPos(x: 2, y: 2), presentation: MapEntityPresentation(variants: [MapEntityPresentationVariant(id: 'full', condition: NarrativeEventConditionExpression.all([leaf, inverse]), blocksMovement: true)]));
-    final fixture = await SpatialImagePuzzleDurableHostFixture.create(sceneOverride: availabilityScene(), qaDirectory: periodicQa,
-      configureMap: (map) => map.copyWith(entities: [entity, const MapEntity(id: 'rule-target', kind: MapEntityKind.custom, pos: GridPos(x: 1, y: 1))]),
+    final reference = PeriodicRewardReference(
+      sceneId: 'puzzle',
+      nodeId: 'claim',
+      rewardId: 'tree',
+    );
+    final leaf = NarrativeEventConditionExpression.leaf(
+      NarrativeEventCondition.periodicRewardAvailable(
+        reference: reference,
+        expectedValue: true,
+      ),
+    );
+    final inverse = NarrativeEventConditionExpression.not(
+      NarrativeEventConditionExpression.leaf(
+        NarrativeEventCondition.periodicRewardAvailable(
+          reference: reference,
+          expectedValue: false,
+        ),
+      ),
+    );
+    final entity = MapEntity(
+      id: 'daily-entity',
+      kind: MapEntityKind.custom,
+      pos: const GridPos(x: 2, y: 2),
+      presentation: MapEntityPresentation(
+        variants: [
+          MapEntityPresentationVariant(
+            id: 'full',
+            condition: NarrativeEventConditionExpression.all([leaf, inverse]),
+            blocksMovement: true,
+          ),
+        ],
+      ),
+    );
+    final fixture = await SpatialImagePuzzleDurableHostFixture.create(
+      sceneOverride: availabilityScene(),
+      qaDirectory: periodicQa,
+      configureMap: (map) => map.copyWith(
+        entities: [
+          entity,
+          const MapEntity(
+            id: 'rule-target',
+            kind: MapEntityKind.custom,
+            pos: GridPos(x: 1, y: 1),
+          ),
+        ],
+      ),
       configureProject: (project) => project.copyWith(
-        eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, legacyClaims: const [], records: [NarrativeEventRecord.configuredStructurallyUnchecked(NarrativeEventDefinition(id: project.eventRegistry!.records.single.id, name: 'Daily activation', source: NarrativeEventSourceRef.mapEnter('field'), conditions: NarrativeEventConditionExpression.any([leaf, inverse]).leaves, conditionExpression: NarrativeEventConditionExpression.any([leaf, inverse]), sceneId: 'puzzle', reusePolicy: NarrativeEventReusePolicy.oneShot, priority: 0, order: 0), enabled: true)]),
-        worldRules: [WorldRuleDefinition(id: 'daily-hide', label: 'Daily', source: WorldRuleSource.periodicRewardAvailable(reference: reference, expectedValue: false), target: const WorldRuleTarget(kind: WorldRuleTargetKind.mapEntity, mapId: 'field', entityId: 'rule-target'), effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden))]));
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          legacyClaims: const [],
+          records: [
+            NarrativeEventRecord.configuredStructurallyUnchecked(
+              NarrativeEventDefinition(
+                id: project.eventRegistry!.records.single.id,
+                name: 'Daily activation',
+                source: NarrativeEventSourceRef.mapEnter('field'),
+                conditions: NarrativeEventConditionExpression.any([
+                  leaf,
+                  inverse,
+                ]).leaves,
+                conditionExpression: NarrativeEventConditionExpression.any([
+                  leaf,
+                  inverse,
+                ]),
+                sceneId: 'puzzle',
+                reusePolicy: NarrativeEventReusePolicy.oneShot,
+                priority: 0,
+                order: 0,
+              ),
+              enabled: true,
+            ),
+          ],
+        ),
+        worldRules: [
+          WorldRuleDefinition(
+            id: 'daily-hide',
+            label: 'Daily',
+            source: WorldRuleSource.periodicRewardAvailable(
+              reference: reference,
+              expectedValue: false,
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.mapEntity,
+              mapId: 'field',
+              entityId: 'rule-target',
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityHidden,
+            ),
+          ),
+        ],
+      ),
+    );
     addTearDown(fixture.dispose);
     await fixture.open();
     await fixture.runtime.gameplayReady;
@@ -77,20 +265,28 @@ void main() {
     expect(session.entityIsPresent!('field', entity), isTrue);
     expect(await fixture.file.readAsBytes(), bytes);
   });
-  test('3D real session evaluates periodic conditions before and after claim', () async {
-    final fixture = await SpatialImagePuzzleDurableHostFixture.create(sceneOverride: availabilityScene(), qaDirectory: periodicQa);
-    addTearDown(fixture.dispose);
-    await fixture.open();
-    await fixture.runtime.gameplayReady;
-    expect(fixture.runtime.session!.interactionError.value, isNull);
-    expect(fixture.writes, 1);
-    expect(fixture.runtime.gameStateSnapshot.trainerProfile.money, 77);
-    expect((await fixture.saved()).trainerProfile.money, 0);
-    expect((await fixture.saved()).periodicRewardState.claimsById.keys, ['tree']);
-    await fixture.open(continueGame: true);
-    await fixture.runtime.gameplayReady;
-    expect(fixture.writes, 1);
-  });
+  test(
+    '3D real session evaluates periodic conditions before and after claim',
+    () async {
+      final fixture = await SpatialImagePuzzleDurableHostFixture.create(
+        sceneOverride: availabilityScene(),
+        qaDirectory: periodicQa,
+      );
+      addTearDown(fixture.dispose);
+      await fixture.open();
+      await fixture.runtime.gameplayReady;
+      expect(fixture.runtime.session!.interactionError.value, isNull);
+      expect(fixture.writes, 1);
+      expect(fixture.runtime.gameStateSnapshot.trainerProfile.money, 77);
+      expect((await fixture.saved()).trainerProfile.money, 0);
+      expect((await fixture.saved()).periodicRewardState.claimsById.keys, [
+        'tree',
+      ]);
+      await fixture.open(continueGame: true);
+      await fixture.runtime.gameplayReady;
+      expect(fixture.writes, 1);
+    },
+  );
   test('3D immediate rewards persist once across cold Continue', () async {
     final fixture = await SpatialImagePuzzleDurableHostFixture.create(
       sceneOverride: rewardScene(),

@@ -548,7 +548,9 @@ Reports under `documentation/reports/` are tracked engineering artifacts. Modify
 
 The default documentation budget for a task is **zero new Markdown files**. A
 "final report" means the final chat response unless the user explicitly asks
-for a persistent report, audit, review, Evidence Pack, roadmap, or plan.
+for a persistent report, audit, review, Evidence Pack, roadmap, or plan. A
+request for an implementation plan, or a planning skill such as
+`writing-plans` invoked to produce one, is such an explicit request.
 
 When a persistent Markdown artifact is explicitly required:
 
@@ -560,8 +562,10 @@ When a persistent Markdown artifact is explicitly required:
   implementation plans under `documentation/reports/<domain>/plans/`, cross-domain
   roadmaps under `documentation/reports/roadmap/<domain>/`, and reusable workflows
   under `skills/<skill-name>/`;
-- never create plans under `docs/superpowers/` unless the user explicitly asks
-  for that exact persistent plan; use the in-session plan mechanism by default;
+- save implementation plans as one file at
+  `documentation/reports/<domain>/plans/YYYY-MM-DD-<slug>.md`; this overrides
+  the `docs/superpowers/` default of planning skills, and never fall back to a
+  chat-only plan because of that default;
 - never create `*_created_files_full_content.md` or similar source snapshots:
   Git diffs and the source files are the canonical evidence;
 - do not create Markdown at the repository root. The root allowlist is
@@ -569,8 +573,9 @@ When a persistent Markdown artifact is explicitly required:
   `pokemap_roadmap_mecaniques_fangame.md`; the existing
   `pokemap_authoring_api_mcp_action_catalog.md` is also retained at root because
   `map_core` consumes that exact repository path;
-- run `bash tools/scripts/check_markdown_hygiene.sh` before completion. A
-  `POKEMAP_MARKDOWN_MAX_NEW` override is allowed only when the user's request
+- run `bash tools/scripts/check_markdown_hygiene.sh` before completion. Use
+  `POKEMAP_MARKDOWN_MAX_NEW=1` for a single requested persistent artifact such
+  as a plan; a higher override is allowed only when the user's request
   explicitly approves a bounded multi-document deliverable.
 
 Quand un prompt demande un rapport, un Evidence Pack, une review, un audit ou une clôture de lot, l'agent doit lire le fichier de règles Codex du repo avant d'écrire le rapport.
