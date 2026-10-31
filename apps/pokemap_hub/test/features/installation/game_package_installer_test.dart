@@ -95,25 +95,28 @@ void main() {
 
     test('full inspection runs once per install', () async {
       final package = await writeTestPackage(packages);
-      final inspections = <(GamePackageInspectionScope, String)>[];
+      final inspections = <(GamePackageInspectionScope, String, bool)>[];
 
       await installer(
-        inspectionObserver: (scope, path) => inspections.add((scope, path)),
+        inspectionObserver: (scope, path, {required hasKnownDigest}) =>
+            inspections.add((scope, path, hasKnownDigest)),
       ).install(package, source: GamePackageInstallSource.localFile);
 
       expect(inspections, hasLength(2));
       expect(inspections.first, (
         GamePackageInspectionScope.manifest,
         package.path,
+        false,
       ));
-      final (scope, inspectedPath) = inspections.last;
+      final (scope, inspectedPath, hasKnownDigest) = inspections.last;
       expect(scope, GamePackageInspectionScope.full);
+      expect(hasKnownDigest, isTrue);
       expect(p.basename(inspectedPath), 'package.snapshot');
       expect(p.isWithin(transactionsRoot().path, inspectedPath), isTrue);
     });
 
     test(
-      'a package changed during snapshot copy fails without promotion',
+      'a snapshot corrupted after copy fails integrity without promotion',
       () async {
         final version1 = await writeTestPackage(packages, gameVersion: '1.0.0');
         final version2 = await writeTestPackage(packages, gameVersion: '1.1.0');
@@ -175,6 +178,66 @@ void main() {
       },
     );
 
+    test(
+      'a snapshot replaced by another valid release fails as sourceChanged',
+      () async {
+        final version1 = await writeTestPackage(packages, gameVersion: '1.0.0');
+        final version2 = await writeTestPackage(packages, gameVersion: '1.1.0');
+        final version3 = await writeTestPackage(packages, gameVersion: '1.2.0');
+        await installer().install(
+          version1,
+          source: GamePackageInstallSource.localFile,
+        );
+        final gameRoot = p.join(
+          root.path,
+          'PokeMap',
+          'games',
+          'games.example.adventure',
+        );
+        final currentBefore = await File(p.join(gameRoot, 'current.json'))
+            .readAsBytes();
+        final replacement = await version3.readAsBytes();
+        expect(replacement.length, await version2.length());
+
+        await expectLater(
+          installer(
+            faultHook: (stage) async {
+              if (stage != GameInstallFaultStage.afterSnapshotCopied) return;
+              final transaction = (await transactionsRoot().list().toList())
+                  .whereType<Directory>()
+                  .single;
+              await File(
+                p.join(transaction.path, 'package.snapshot'),
+              ).writeAsBytes(replacement, flush: true);
+            },
+          ).install(
+            version2,
+            source: GamePackageInstallSource.localFile,
+            mode: GamePackageActivationMode.update,
+          ),
+          throwsA(
+            isA<GameInstallationException>().having(
+              (error) => error.diagnostic.code,
+              'code',
+              GameInstallationErrorCode.sourceChanged,
+            ),
+          ),
+        );
+
+        expect(
+          (await Directory(
+            p.join(gameRoot, 'versions'),
+          ).list().toList()).map((entry) => p.basename(entry.path)),
+          <String>['1.0.0'],
+        );
+        expect(
+          await File(p.join(gameRoot, 'current.json')).readAsBytes(),
+          currentBefore,
+        );
+        expect(await transactionsRoot().list().toList(), isEmpty);
+      },
+    );
+
     test('an already-installed release does not copy the snapshot', () async {
       final package = await writeTestPackage(packages);
       await installer().install(
@@ -186,7 +249,8 @@ void main() {
 
       final result = await installer(
         faultHook: (stage) async => stages.add(stage),
-        inspectionObserver: (scope, _) => inspections.add(scope),
+        inspectionObserver: (scope, _, {required hasKnownDigest}) =>
+            inspections.add(scope),
       ).install(package, source: GamePackageInstallSource.localFile);
 
       expect(result.alreadyInstalled, isTrue);

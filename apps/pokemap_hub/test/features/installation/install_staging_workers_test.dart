@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/install_staging.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
@@ -122,6 +125,67 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('copies and hashes the snapshot away from the calling isolate', () async {
+    final source = File('${root.path}/large.snapshot-source');
+    final bytes = Uint8List(8 * 1024 * 1024);
+    for (var index = 0; index < bytes.length; index++) {
+      bytes[index] = index * 31;
+    }
+    await source.writeAsBytes(bytes, flush: true);
+    final target = File('${root.path}/large.snapshot');
+    final firstChunk = Completer<void>();
+
+    final copy = staging(const GamePackageInspector()).copyPackageSnapshot(
+      source,
+      target,
+      cancellationToken: GameInstallCancellationToken(),
+      gameId: 'games.example.adventure',
+      gameVersion: '1.0.0',
+      onProgress: (_) {
+        if (!firstChunk.isCompleted) firstChunk.complete();
+      },
+      totalBytes: bytes.length,
+    );
+    await firstChunk.future;
+    final blockedRoot = Stopwatch()..start();
+    while (target.lengthSync() < bytes.length &&
+        blockedRoot.elapsed < const Duration(seconds: 30)) {}
+
+    expect(target.lengthSync(), bytes.length);
+    expect(await copy, sha256.convert(bytes).toString());
+    expect(await target.readAsBytes(), bytes);
+  });
+
+  test('cancels the snapshot copy between chunks', () async {
+    final source = File('${root.path}/large.snapshot-source');
+    await source.writeAsBytes(Uint8List(8 * 1024 * 1024), flush: true);
+    final token = GameInstallCancellationToken();
+    final copiedBytes = <int>[];
+
+    await expectLater(
+      staging(const GamePackageInspector()).copyPackageSnapshot(
+        source,
+        File('${root.path}/large.snapshot'),
+        cancellationToken: token,
+        gameId: 'games.example.adventure',
+        gameVersion: '1.0.0',
+        onProgress: (progress) {
+          copiedBytes.add(progress.completedBytes);
+          token.cancel();
+        },
+        totalBytes: 8 * 1024 * 1024,
+      ),
+      throwsA(
+        isA<GameInstallationException>().having(
+          (error) => error.diagnostic.code,
+          'code',
+          GameInstallationErrorCode.cancelled,
+        ),
+      ),
+    );
+    expect(copiedBytes, <int>[1024 * 1024]);
   });
 
   Future<(InstallStaging, Directory, GamePackageManifest)>

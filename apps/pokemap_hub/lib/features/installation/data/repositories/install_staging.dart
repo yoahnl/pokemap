@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
@@ -35,7 +36,11 @@ final class InstallStaging {
   Future<GamePackageManifestInspection> inspectManifest(File file) {
     final path = file.path;
     final packageInspector = inspector;
-    inspectionObserver?.call(GamePackageInspectionScope.manifest, path);
+    inspectionObserver?.call(
+      GamePackageInspectionScope.manifest,
+      path,
+      hasKnownDigest: false,
+    );
     return Isolate.run(() => _inspectPackageManifest(path, packageInspector));
   }
 
@@ -45,7 +50,11 @@ final class InstallStaging {
   }) {
     final path = file.path;
     final packageInspector = inspector;
-    inspectionObserver?.call(GamePackageInspectionScope.full, path);
+    inspectionObserver?.call(
+      GamePackageInspectionScope.full,
+      path,
+      hasKnownDigest: knownPackageSha256 != null,
+    );
     return Isolate.run(
       () => _inspectPackageFile(path, packageInspector, knownPackageSha256),
     );
@@ -81,40 +90,54 @@ final class InstallStaging {
     required GameInstallProgressListener? onProgress,
     required int totalBytes,
   }) async {
-    final input = await source.open(mode: FileMode.read);
-    final output = await target.open(mode: FileMode.writeOnly);
-    final digestSink = _DigestSink();
-    final hashInput = sha256.startChunkedConversion(digestSink);
-    var copied = 0;
-    try {
-      while (true) {
-        throwIfCancelled(
-          cancellationToken,
-          GameInstallStage.snapshotting,
-          gameId,
-          gameVersion,
-        );
-        final bytes = await input.read(1024 * 1024);
-        if (bytes.isEmpty) break;
-        hashInput.add(bytes);
-        await output.writeFrom(bytes);
-        copied += bytes.length;
-        emitInstallProgress(
-          onProgress,
-          stage: GameInstallStage.snapshotting,
-          gameId: gameId,
-          gameVersion: gameVersion,
-          completedBytes: copied,
-          totalBytes: totalBytes,
-        );
+    throwIfCancelled(
+      cancellationToken,
+      GameInstallStage.snapshotting,
+      gameId,
+      gameVersion,
+    );
+    final events = ReceivePort();
+    final drained = Completer<void>();
+    SendPort? control;
+    events.listen((message) {
+      switch (message) {
+        case final SendPort port:
+          control = port;
+          if (cancellationToken.isCancelled) port.send(null);
+        case final int copied:
+          if (cancellationToken.isCancelled) {
+            control?.send(null);
+            return;
+          }
+          emitInstallProgress(
+            onProgress,
+            stage: GameInstallStage.snapshotting,
+            gameId: gameId,
+            gameVersion: gameVersion,
+            completedBytes: copied,
+            totalBytes: totalBytes,
+          );
+        case null:
+          drained.complete();
       }
-      await output.flush();
+    });
+    try {
+      final digest = await _runSnapshotCopy(
+        source.path,
+        target.path,
+        events.sendPort,
+      );
+      if (digest != null) await drained.future;
+      throwIfCancelled(
+        cancellationToken,
+        GameInstallStage.snapshotting,
+        gameId,
+        gameVersion,
+      );
+      return digest!;
     } finally {
-      await input.close();
-      await output.close();
+      events.close();
     }
-    hashInput.close();
-    return digestSink.value.toString();
   }
 
   Future<void> extractSnapshot(
@@ -198,6 +221,50 @@ final class InstallStaging {
       await input.close();
     }
   }
+}
+
+Future<String?> _runSnapshotCopy(
+  String sourcePath,
+  String targetPath,
+  SendPort events,
+) => Isolate.run(
+  () => _copyAndHashSnapshot(sourcePath, targetPath, events),
+  debugName: 'install-snapshot-copy',
+);
+
+Future<String?> _copyAndHashSnapshot(
+  String sourcePath,
+  String targetPath,
+  SendPort events,
+) async {
+  final control = ReceivePort();
+  var cancelled = false;
+  control.listen((_) => cancelled = true);
+  events.send(control.sendPort);
+  final input = await File(sourcePath).open(mode: FileMode.read);
+  final output = await File(targetPath).open(mode: FileMode.writeOnly);
+  final digestSink = _DigestSink();
+  final hashInput = sha256.startChunkedConversion(digestSink);
+  var copied = 0;
+  try {
+    while (true) {
+      if (cancelled) return null;
+      final bytes = await input.read(1024 * 1024);
+      if (bytes.isEmpty) break;
+      hashInput.add(bytes);
+      await output.writeFrom(bytes);
+      copied += bytes.length;
+      events.send(copied);
+    }
+    await output.flush();
+  } finally {
+    control.close();
+    await input.close();
+    await output.close();
+  }
+  hashInput.close();
+  events.send(null);
+  return digestSink.value.toString();
 }
 
 Future<GamePackageManifestInspection> _inspectPackageManifest(

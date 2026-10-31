@@ -133,5 +133,6 @@ enum GamePackageInspectionScope { manifest, full }
 
 typedef GamePackageInspectionObserver = void Function(
   GamePackageInspectionScope scope,
-  String packagePath,
-);
+  String packagePath, {
+  required bool hasKnownDigest,
+});
