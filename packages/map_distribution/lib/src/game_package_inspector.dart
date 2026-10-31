@@ -18,6 +18,8 @@ import 'random_access_package_source.dart';
 import 'random_access_zip_structure_reader.dart';
 import 'zip_structure_reader.dart';
 
+final _sha256Hex = RegExp(r'^[0-9a-f]{64}$');
+
 /// Inspects untrusted package bytes without touching the filesystem.
 final class GamePackageInspector {
   const GamePackageInspector({
@@ -37,58 +39,25 @@ final class GamePackageInspector {
   /// The archive and media payloads are hashed incrementally. Only the
   /// manifest, JSON/text entries, and a bounded media header are materialized.
   GamePackageInspectionResult inspectSourceSync(
-    RandomAccessPackageSource source,
-  ) {
-    final fileLength = source.length;
-    if (fileLength > policy.maxArchiveBytes) {
-      _fail('archiveTooLarge', r'$', 'Package archive exceeds policy.');
-    }
-    final structure = RandomAccessZipStructureReader(policy).read(source);
-    final manifests = structure.entries
-        .where((entry) => entry.name == 'game-manifest.json')
-        .toList(growable: false);
-    if (manifests.isEmpty) {
-      _fail('manifestMissing', r'$', 'game-manifest.json is required.');
-    }
-    if (manifests.length > 1) {
-      _fail('duplicateEntry', 'game-manifest.json', 'Duplicate manifest.');
-    }
-    final manifestEntry = manifests.single;
-    if (manifestEntry.size > policy.maxManifestBytes) {
-      _fail(
-        'manifestTooLarge',
-        'game-manifest.json',
-        'Manifest exceeds policy.',
+    RandomAccessPackageSource source, {
+    String? knownPackageSha256,
+  }) {
+    if (knownPackageSha256 != null &&
+        !_sha256Hex.hasMatch(knownPackageSha256)) {
+      throw ArgumentError.value(
+        knownPackageSha256,
+        'knownPackageSha256',
+        'Expected a lowercase hexadecimal SHA-256 digest.',
       );
     }
-    final payloadEntries = structure.entries
-        .where((entry) => entry.name != 'game-manifest.json')
-        .toList(growable: false);
-    final payloadTotal = _validatePayloadQuotas(
-      payloadEntries.map((entry) => (name: entry.name, size: entry.size)),
-    );
-    final manifestBytes = _readAt(
-      source,
-      manifestEntry.dataOffset,
-      manifestEntry.size,
-    );
-    GamePackageBinarySecretScanner('game-manifest.json').add(manifestBytes);
-    if (getCrc32(manifestBytes) != manifestEntry.crc32) {
-      _fail(
-        'hashMismatch',
-        manifestEntry.name,
-        'ZIP CRC does not match content.',
-      );
-    }
-    const codec = GamePackageManifestCodec();
-    final manifest = codec.decodeUtf8(manifestBytes);
-    if (!manifest.compatibility.requiredCapabilities
-        .contains('catalog.partitioned@2')) {
-      _fail('missingCatalogCapability', 'game-manifest.json',
-          'Partitioned catalog capability is required.');
-    }
-    final signatureStatus = _verifySignature(manifest, codec);
-    final compatibility = _evaluateCompatibility(manifest);
+    final header = _inspectManifestSync(source);
+    final fileLength = header.fileLength;
+    final manifest = header.manifest;
+    final signatureStatus = header.signatureStatus;
+    final compatibility = header.compatibility;
+    final payloadEntries = header.payloadEntries;
+    final payloadTotal = header.payloadTotal;
+    final manifestBytes = header.manifestBytes;
     final rawByPath = <String, RandomAccessZipStructureEntry>{
       for (final entry in payloadEntries) entry.name: entry,
     };
@@ -188,7 +157,7 @@ final class GamePackageInspector {
         'Package changed while it was being inspected.',
       );
     }
-    final packageSha256 = _hashSource(source, fileLength);
+    final packageSha256 = knownPackageSha256 ?? _hashSource(source, fileLength);
     if (source.length != fileLength) {
       _fail(
         'invalidZipStructure',
@@ -216,6 +185,89 @@ final class GamePackageInspector {
       signatureStatus: signatureStatus,
       compatibility: compatibility,
       receipt: receipt,
+    );
+  }
+
+  GamePackageManifestInspection inspectManifestSync(
+    RandomAccessPackageSource source,
+  ) {
+    final header = _inspectManifestSync(source);
+    return GamePackageManifestInspection(
+      manifest: header.manifest,
+      manifestSha256: sha256.convert(header.manifestBytes).toString(),
+      signatureStatus: header.signatureStatus,
+      compatibility: header.compatibility,
+      archiveBytes: header.fileLength,
+    );
+  }
+
+  ({
+    int fileLength,
+    List<RandomAccessZipStructureEntry> payloadEntries,
+    int payloadTotal,
+    Uint8List manifestBytes,
+    GamePackageManifest manifest,
+    PackageSignatureStatus signatureStatus,
+    GamePackageCompatibilityResult? compatibility,
+  }) _inspectManifestSync(RandomAccessPackageSource source) {
+    final fileLength = source.length;
+    if (fileLength > policy.maxArchiveBytes) {
+      _fail('archiveTooLarge', r'$', 'Package archive exceeds policy.');
+    }
+    final structure = RandomAccessZipStructureReader(policy).read(source);
+    final manifests = structure.entries
+        .where((entry) => entry.name == 'game-manifest.json')
+        .toList(growable: false);
+    if (manifests.isEmpty) {
+      _fail('manifestMissing', r'$', 'game-manifest.json is required.');
+    }
+    if (manifests.length > 1) {
+      _fail('duplicateEntry', 'game-manifest.json', 'Duplicate manifest.');
+    }
+    final manifestEntry = manifests.single;
+    if (manifestEntry.size > policy.maxManifestBytes) {
+      _fail(
+        'manifestTooLarge',
+        'game-manifest.json',
+        'Manifest exceeds policy.',
+      );
+    }
+    final payloadEntries = structure.entries
+        .where((entry) => entry.name != 'game-manifest.json')
+        .toList(growable: false);
+    final payloadTotal = _validatePayloadQuotas(
+      payloadEntries.map((entry) => (name: entry.name, size: entry.size)),
+    );
+    final manifestBytes = _readAt(
+      source,
+      manifestEntry.dataOffset,
+      manifestEntry.size,
+    );
+    GamePackageBinarySecretScanner('game-manifest.json').add(manifestBytes);
+    if (getCrc32(manifestBytes) != manifestEntry.crc32) {
+      _fail(
+        'hashMismatch',
+        manifestEntry.name,
+        'ZIP CRC does not match content.',
+      );
+    }
+    const codec = GamePackageManifestCodec();
+    final manifest = codec.decodeUtf8(manifestBytes);
+    if (!manifest.compatibility.requiredCapabilities
+        .contains('catalog.partitioned@2')) {
+      _fail('missingCatalogCapability', 'game-manifest.json',
+          'Partitioned catalog capability is required.');
+    }
+    final signatureStatus = _verifySignature(manifest, codec);
+    final compatibility = _evaluateCompatibility(manifest);
+    return (
+      fileLength: fileLength,
+      payloadEntries: payloadEntries,
+      payloadTotal: payloadTotal,
+      manifestBytes: manifestBytes,
+      manifest: manifest,
+      signatureStatus: signatureStatus,
+      compatibility: compatibility,
     );
   }
 

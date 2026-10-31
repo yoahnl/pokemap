@@ -64,3 +64,19 @@ final class GamePackageInspectionResult {
   final GamePackageCompatibilityResult? compatibility;
   final GamePackageInspectionReceipt receipt;
 }
+
+final class GamePackageManifestInspection {
+  const GamePackageManifestInspection({
+    required this.manifest,
+    required this.manifestSha256,
+    required this.signatureStatus,
+    required this.compatibility,
+    required this.archiveBytes,
+  });
+
+  final GamePackageManifest manifest;
+  final String manifestSha256;
+  final PackageSignatureStatus signatureStatus;
+  final GamePackageCompatibilityResult? compatibility;
+  final int archiveBytes;
+}

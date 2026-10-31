@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -1206,7 +1207,141 @@ void main() {
       expect(error.message, isNot(contains('\n')));
       expect(error.toString(), isNot(contains('sk-')));
     });
+
+    test('manifest inspection reads no payload', () {
+      final audio = Uint8List(2 * 1024 * 1024)
+        ..setAll(0, ascii.encode('RIFF'))
+        ..setAll(8, ascii.encode('WAVE'));
+      final built = _build(<String, List<int>>{
+        'project/assets/theme.wav': audio,
+        'project/project.json': _validProjectBytes(),
+      });
+      final structure = const RandomAccessZipStructureReader(
+        GamePackageSecurityPolicy(),
+      ).read(_MemoryPackageSource(built.packageBytes));
+      const zipFooterSearchWindow = 65557;
+      final footerSearchStart =
+          built.packageBytes.length - zipFooterSearchWindow;
+      final payloadRanges = <({int start, int end})>[
+        for (final entry in structure.entries)
+          if (entry.name != 'game-manifest.json' &&
+              entry.dataOffset < footerSearchStart)
+            (
+              start: entry.dataOffset,
+              end: min(entry.dataOffset + entry.size, footerSearchStart),
+            ),
+      ];
+      expect(
+        payloadRanges.fold<int>(
+            0, (sum, range) => sum + range.end - range.start),
+        greaterThan(1024 * 1024),
+      );
+      final manifestSource = _CountingPackageSource(
+        built.packageBytes,
+        payloadRanges,
+      );
+      final fullSource = _CountingPackageSource(
+        built.packageBytes,
+        payloadRanges,
+      );
+
+      final manifestOnly = inspector.inspectManifestSync(manifestSource);
+      final full = inspector.inspectSourceSync(fullSource);
+
+      expect(manifestSource.payloadBytesRead, 0);
+      expect(fullSource.payloadBytesRead, greaterThan(0));
+      expect(manifestOnly.manifest.toJson(), full.manifest.toJson());
+      expect(manifestOnly.manifestSha256, full.receipt.manifestSha256);
+      expect(manifestOnly.signatureStatus, full.signatureStatus);
+      expect(manifestOnly.compatibility, isNull);
+      expect(manifestOnly.archiveBytes, built.packageBytes.length);
+      _expectCode(
+        () => inspector.inspectManifestSync(
+          _LengthOnlyPackageSource(inspector.policy.maxArchiveBytes + 1),
+        ),
+        'archiveTooLarge',
+      );
+      _expectCode(
+        () => const GamePackageInspector(
+          trustRequirement: PackageTrustRequirement.signatureRequired,
+        ).inspectManifestSync(_MemoryPackageSource(built.packageBytes)),
+        'signatureRequired',
+      );
+    });
+
+    test(
+        'known package sha is used verbatim and the result is otherwise '
+        'identical', () {
+      final built = _build(<String, List<int>>{
+        'project/project.json': _validProjectBytes(),
+      });
+      final knownSha256 = 'a' * 64;
+      final plainSource = _CountingPackageSource(
+        built.packageBytes,
+        const <({int start, int end})>[],
+      );
+      final knownSource = _CountingPackageSource(
+        built.packageBytes,
+        const <({int start, int end})>[],
+      );
+
+      final plain = inspector.inspectSourceSync(plainSource);
+      final reused = inspector.inspectSourceSync(
+        knownSource,
+        knownPackageSha256: knownSha256,
+      );
+
+      expect(reused.receipt.packageSha256, knownSha256);
+      expect(reused.manifest.toJson(), plain.manifest.toJson());
+      expect(reused.payloadPaths, plain.payloadPaths);
+      expect(reused.signatureStatus, plain.signatureStatus);
+      expect(
+        <String, Object?>{
+          ...reused.receipt.toJson(),
+          'packageSha256': plain.receipt.packageSha256,
+        },
+        plain.receipt.toJson(),
+      );
+      expect(
+        plainSource.bytesRead - knownSource.bytesRead,
+        built.packageBytes.length,
+      );
+      expect(
+        () => inspector.inspectSourceSync(
+          _MemoryPackageSource(built.packageBytes),
+          knownPackageSha256: 'not-a-digest',
+        ),
+        throwsArgumentError,
+      );
+    });
   });
+}
+
+final class _CountingPackageSource implements RandomAccessPackageSource {
+  _CountingPackageSource(List<int> bytes, this.payloadRanges)
+      : bytes = Uint8List.fromList(bytes);
+
+  final Uint8List bytes;
+  final List<({int start, int end})> payloadRanges;
+  int bytesRead = 0;
+  int payloadBytesRead = 0;
+
+  @override
+  int get length => bytes.length;
+
+  @override
+  Uint8List readAtSync(int offset, int length) {
+    final end = offset + length;
+    bytesRead += length;
+    for (final range in payloadRanges) {
+      final overlapStart = offset > range.start ? offset : range.start;
+      final overlapEnd = end < range.end ? end : range.end;
+      if (overlapEnd > overlapStart) {
+        payloadBytesRead += overlapEnd - overlapStart;
+      }
+    }
+    return Uint8List.sublistView(bytes, offset, end);
+  }
 }
 
 final class _AcceptingVerifier implements GamePackageSignatureVerifier {
