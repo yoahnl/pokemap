@@ -9,6 +9,7 @@ import 'package:pokemap_hub/avelune_embedded_runtime.dart';
 import 'package:map_core/map_core.dart' show SaveEnvelopeCodec;
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
+import 'package:pokemap_hub/embedding/install_progress_relay.dart';
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 
 import '../support/game_package_fixture.dart';
@@ -198,6 +199,103 @@ void main() {
     await expectLater(invoke('stopGame'), throwsA(isA<PlatformException>()));
     stopPlayer = () async {};
     expect(await invoke('stopGame'), isNull);
+  });
+
+  group('install progress', () {
+    late List<Map<Object?, Object?>> progressMessages;
+
+    GameInstallProgress progress(
+      GameInstallStage stage, {
+      int completedBytes = 10,
+      int totalBytes = 100,
+    }) => GameInstallProgress(
+      stage: stage,
+      completedFiles: 0,
+      totalFiles: 0,
+      completedBytes: completedBytes,
+      totalBytes: totalBytes,
+      cancellable: false,
+    );
+
+    setUp(() {
+      progressMessages = [];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'installProgress') {
+          progressMessages.add(call.arguments as Map<Object?, Object?>);
+        }
+        return null;
+      });
+    });
+
+    test('install progress is forwarded and throttled', () async {
+      var now = Duration.zero;
+      final relay = InstallProgressRelay(channel: channel, elapsed: () => now);
+
+      for (var index = 0; index < 100; index++) {
+        now = Duration(milliseconds: index);
+        relay.call(
+          progress(GameInstallStage.extracting, completedBytes: index),
+        );
+      }
+      now = const Duration(milliseconds: 100);
+      relay.call(progress(GameInstallStage.extracting, completedBytes: 100));
+      now = const Duration(milliseconds: 101);
+      relay.call(progress(GameInstallStage.verifying));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(progressMessages, hasLength(3));
+      expect(progressMessages.map((message) => message['stage']), [
+        'extracting',
+        'extracting',
+        'verifying',
+      ]);
+      expect(progressMessages[1]['completedBytes'], 100);
+      expect(progressMessages[1]['totalBytes'], 100);
+    });
+
+    test('unknown totals are sent as null', () async {
+      InstallProgressRelay(channel: channel).call(
+        progress(GameInstallStage.inspecting, completedBytes: 0, totalBytes: 0),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(progressMessages.single, {
+        'stage': 'inspecting',
+        'completedBytes': null,
+        'totalBytes': null,
+      });
+    });
+
+    test('a missing native handler does not break the relay', () async {
+      messenger.setMockMethodCallHandler(channel, null);
+      InstallProgressRelay(channel: channel)
+          .call(progress(GameInstallStage.extracting));
+      await Future<void>.delayed(Duration.zero);
+    });
+
+    test('installGame reports the stages of a real installation', () async {
+      final package = await writeTestPackage(
+        Directory(p.join(root.path, 'pkg-progress')),
+        gameId: 'games.example.progress',
+        minHubVersion: AveluneRuntimeCompatibility.minimumHubVersion,
+        saveFormat: SaveEnvelopeCodec.currentSaveFormat,
+      );
+
+      await invoke('installGame', {
+        'packagePath': package.path,
+      }).then<void>((_) {}, onError: (Object _) {});
+      await Future<void>.delayed(Duration.zero);
+
+      final stages = progressMessages.map((message) => message['stage']);
+      expect(stages, contains('inspecting'));
+      expect(stages, contains('extracting'));
+      expect(
+        stages.toSet().difference(
+          GameInstallStage.values.map((stage) => stage.name).toSet(),
+        ),
+        isEmpty,
+      );
+    });
   });
 
   group('with installed games', () {

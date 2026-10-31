@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
+import 'package:pokemap_hub/embedding/install_progress_relay.dart';
 import 'package:pokemap_hub/features/installation/application/use_cases/install_game_package_use_case.dart';
 import 'package:pokemap_hub/features/installation/application/game_installation_message.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
@@ -156,8 +157,10 @@ class AveluneLibraryBridge {
 
   Future<Map<String, Object?>> _installGame(String packagePath) async {
     try {
-      final result = await InstallGamePackageUseCase(_installer)
-          .call(File(packagePath));
+      final result = await InstallGamePackageUseCase(_installer).call(
+        File(packagePath),
+        onProgress: InstallProgressRelay(channel: _channel).call,
+      );
       return await _describe(result.game);
     } on GameInstallationException catch (error, stackTrace) {
       Error.throwWithStackTrace(
