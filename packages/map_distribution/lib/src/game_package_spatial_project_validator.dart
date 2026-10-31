@@ -5,6 +5,7 @@ import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 
 import 'game_package_format_exception.dart';
+import 'game_package_manifest.dart';
 import 'game_package_security_policy.dart';
 import 'game_package_source_assets.dart';
 import 'glb_model3d_inspector.dart';
@@ -485,7 +486,8 @@ final class GamePackageSpatialProjectValidator {
   }
 
   void validate(ProjectManifest project, GamePackagePayloadReader readPayload,
-      {Iterable<String> payloadPaths = const []}) {
+      {Iterable<String> payloadPaths = const [],
+      Iterable<GamePackageFileEntry>? verifiedInventory}) {
     try {
       final rewardScenes = <String, List<SceneAsset>>{};
       for (final scene in project.scenes) {
@@ -810,6 +812,10 @@ final class GamePackageSpatialProjectValidator {
       }
       ProjectValidator.validate(project, maps: maps);
       final catalogue = _catalogue(readPayload);
+      final inventoryByPath = {
+        for (final entry in verifiedInventory ?? const <GamePackageFileEntry>[])
+          entry.path: entry,
+      };
       final closedAssets = <String, List<int>>{};
       List<int> closeAsset(String id,
           {String? expectedPath, String? mediaType}) {
@@ -830,7 +836,12 @@ final class GamePackageSpatialProjectValidator {
             _fail('runtime3d.asset_integrity_mismatch', record.blobPath,
                 'Canonical content digest or byte length differs.');
           }
-          final logical = _read(readPayload, 'project/${record.logicalPath}');
+          final logicalPath = 'project/${record.logicalPath}';
+          if (_inventoryProvesEqual(
+              inventoryByPath, record.blobPath, logicalPath)) {
+            return blob;
+          }
+          final logical = _read(readPayload, logicalPath);
           if (logical.length != blob.length ||
               computeNarrativeProjectFingerprint([
                     NarrativeProjectFingerprintEntry(
@@ -1004,6 +1015,16 @@ final class GamePackageSpatialProjectValidator {
             'Animation duration or pixel rectangle is invalid.');
       }
     }
+  }
+
+  bool _inventoryProvesEqual(Map<String, GamePackageFileEntry> inventoryByPath,
+      String canonicalPath, String logicalPath) {
+    final canonical = inventoryByPath[canonicalPath];
+    final logical = inventoryByPath[logicalPath];
+    return canonical != null &&
+        logical != null &&
+        canonical.size == logical.size &&
+        canonical.sha256 == logical.sha256;
   }
 
   Map<String, GamePackageSourceAsset> _catalogue(GamePackagePayloadReader read) =>
