@@ -9,6 +9,7 @@ import '../models/map_event_definition.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
+import '../models/project_model3d.dart';
 import 'narrative_event_canonical_json.dart';
 import 'map_entity_collision_footprint.dart';
 import 'narrative_entity_bump_source_reference.dart';
@@ -44,6 +45,10 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
     );
   }
   final diagnosedDuplicateManifestIds = <String>{};
+  final modelsById = <String, List<ProjectModel3dEntry>>{};
+  for (final model in project.models3d) {
+    modelsById.putIfAbsent(model.id, () => []).add(model);
+  }
   for (final entry in entries) {
     manifestMapIds.add(entry.id);
     final duplicateManifestId = manifestEntryCounts[entry.id]! > 1;
@@ -60,6 +65,7 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
     final matchingMaps = mapsById[entry.id] ?? const <NarrativeMapView>[];
     _appendMapOptions(
       project: project,
+      modelsById: modelsById,
       entry: entry,
       matchingMaps: matchingMaps,
       manifestIdentityUnique: !duplicateManifestId,
@@ -88,7 +94,8 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
     diagnostics: diagnostics,
   );
 
-  options.sort(_compareOptions);
+  final optionSortKeys = Expando<String>();
+  options.sort((left, right) => _compareOptions(left, right, optionSortKeys));
   diagnostics.sort(_compareDiagnostics);
   return NarrativeSpatialEventSourceCatalog(
     options: options,
@@ -98,6 +105,7 @@ NarrativeSpatialEventSourceCatalog buildNarrativeSpatialEventSourceCatalog({
 
 void _appendMapOptions({
   required ProjectManifest project,
+  required Map<String, List<ProjectModel3dEntry>> modelsById,
   required ProjectMapEntry entry,
   required List<NarrativeMapView> matchingMaps,
   required bool manifestIdentityUnique,
@@ -201,13 +209,19 @@ void _appendMapOptions({
     mapUsable: mapSizeValid,
     options: options,
   );
-  for (final instance in map.spatialScene?.instances ?? const []) {
-    final duplicates = map.spatialScene!.instances
-        .where((candidate) => candidate.id == instance.id)
-        .length;
-    final models = project.models3d.where(
-      (candidate) => candidate.id == instance.modelId,
+  final instances = map.spatialScene?.instances ?? const [];
+  final instanceIdCounts = <String, int>{};
+  for (final instance in instances) {
+    instanceIdCounts.update(
+      instance.id,
+      (count) => count + 1,
+      ifAbsent: () => 1,
     );
+  }
+  for (final instance in instances) {
+    final duplicates = instanceIdCounts[instance.id]!;
+    final models =
+        modelsById[instance.modelId] ?? const <ProjectModel3dEntry>[];
     final bounds = MapRect(
       pos: GridPos(
         x: instance.position.x.floor(),
@@ -861,29 +875,34 @@ int _compareMapEntries(ProjectMapEntry left, ProjectMapEntry right) {
 int _compareOptions(
   NarrativeSpatialEventSourceOption left,
   NarrativeSpatialEventSourceOption right,
+  Expando<String> sortKeys,
 ) {
-  for (final comparison in [
-    compareNarrativeEventUtf16(left.mapLabel, right.mapLabel),
-    compareNarrativeEventUtf16(left.mapId, right.mapId),
-    left.ownerKind.index.compareTo(right.ownerKind.index),
-    left.availability.index.compareTo(right.availability.index),
-    compareNarrativeEventUtf16(left.humanLabel, right.humanLabel),
-    compareNarrativeEventUtf16(
-      left.debugTechnicalLabel,
-      right.debugTechnicalLabel,
-    ),
-    compareNarrativeEventUtf16(
-      _safeOptionSortKey(left),
-      _safeOptionSortKey(right),
-    ),
-  ]) {
-    if (comparison != 0) return comparison;
-  }
-  return 0;
+  var comparison = compareNarrativeEventUtf16(left.mapLabel, right.mapLabel);
+  if (comparison != 0) return comparison;
+  comparison = compareNarrativeEventUtf16(left.mapId, right.mapId);
+  if (comparison != 0) return comparison;
+  comparison = left.ownerKind.index.compareTo(right.ownerKind.index);
+  if (comparison != 0) return comparison;
+  comparison = left.availability.index.compareTo(right.availability.index);
+  if (comparison != 0) return comparison;
+  comparison = compareNarrativeEventUtf16(left.humanLabel, right.humanLabel);
+  if (comparison != 0) return comparison;
+  comparison = compareNarrativeEventUtf16(
+    left.debugTechnicalLabel,
+    right.debugTechnicalLabel,
+  );
+  if (comparison != 0) return comparison;
+  return compareNarrativeEventUtf16(
+    _safeOptionSortKey(left, sortKeys),
+    _safeOptionSortKey(right, sortKeys),
+  );
 }
 
-String _safeOptionSortKey(NarrativeSpatialEventSourceOption option) {
-  return _safeCanonicalSortKey(option.toDebugJson());
+String _safeOptionSortKey(
+  NarrativeSpatialEventSourceOption option,
+  Expando<String> sortKeys,
+) {
+  return sortKeys[option] ??= _safeCanonicalSortKey(option.toDebugJson());
 }
 
 String _safeCanonicalSortKey(Object? value) {
@@ -900,13 +919,14 @@ int _compareDiagnostics(
   NarrativeSpatialEventSourceDiagnostic left,
   NarrativeSpatialEventSourceDiagnostic right,
 ) {
-  for (final comparison in [
-    compareNarrativeEventUtf16(left.mapId, right.mapId),
-    compareNarrativeEventUtf16(left.ownerId ?? '', right.ownerId ?? ''),
-    compareNarrativeEventUtf16(left.code, right.code),
-    compareNarrativeEventUtf16(left.message, right.message),
-  ]) {
-    if (comparison != 0) return comparison;
-  }
-  return 0;
+  var comparison = compareNarrativeEventUtf16(left.mapId, right.mapId);
+  if (comparison != 0) return comparison;
+  comparison = compareNarrativeEventUtf16(
+    left.ownerId ?? '',
+    right.ownerId ?? '',
+  );
+  if (comparison != 0) return comparison;
+  comparison = compareNarrativeEventUtf16(left.code, right.code);
+  if (comparison != 0) return comparison;
+  return compareNarrativeEventUtf16(left.message, right.message);
 }
