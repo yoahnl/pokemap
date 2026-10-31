@@ -98,9 +98,7 @@ final class GameListViewModel: ObservableObject {
 
     private func apply(_ progress: InstallProgress) {
         installationProgress = progress.fraction
-        if let detail = progress.detail {
-            installationDetail = detail
-        }
+        installationDetail = progress.detail
     }
 
     private nonisolated static func copyToLocal(url: URL) -> String? {

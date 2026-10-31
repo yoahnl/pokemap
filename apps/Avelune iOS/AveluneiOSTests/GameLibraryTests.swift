@@ -83,6 +83,49 @@ final class GameLibraryTests: XCTestCase {
         XCTAssertNil(viewModel.installationDetail)
     }
 
+    func testUnlabelledStageClearsTheDetail() async throws {
+        let useCase = LibraryUseCaseStub()
+        let viewModel = GameListViewModel(loadLibraryUseCase: useCase, installGameUseCase: useCase)
+        let package = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".avelunegame")
+        try Data([1]).write(to: package)
+        defer { try? FileManager.default.removeItem(at: package) }
+
+        useCase.installedGame = Game(payload: ["gameId": "train", "title": "Le train de 17h42"])
+        useCase.progressEvents = [
+            InstallProgress(stage: "extracting", completedBytes: 1, totalBytes: 2),
+            InstallProgress(stage: "completed", completedBytes: nil, totalBytes: nil)
+        ]
+        var details: [String?] = []
+        useCase.afterProgress = { details.append(viewModel.installationDetail) }
+
+        await viewModel.install(from: package)
+
+        XCTAssertEqual(details, ["Extraction des fichiers", nil])
+    }
+
+    func testFailedInstallResetsTheProgress() async throws {
+        let useCase = LibraryUseCaseStub()
+        let viewModel = GameListViewModel(loadLibraryUseCase: useCase, installGameUseCase: useCase)
+        let package = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".avelunegame")
+        try Data([1]).write(to: package)
+        defer { try? FileManager.default.removeItem(at: package) }
+
+        useCase.installedGame = nil
+        useCase.progressEvents = [
+            InstallProgress(stage: "extracting", completedBytes: 50, totalBytes: 100)
+        ]
+        var observed: Double?
+        useCase.afterProgress = { observed = viewModel.installationProgress }
+
+        await viewModel.install(from: package)
+
+        XCTAssertEqual(observed, 0.5)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertNil(viewModel.installationProgress)
+        XCTAssertNil(viewModel.installationDetail)
+        XCTAssertNil(viewModel.installationStage)
+    }
+
     func testInstallProgressPayloadParsesNullableBytes() {
         let measured = InstallProgress(payload: ["stage": "extracting", "completedBytes": 5, "totalBytes": 10])
         XCTAssertEqual(measured?.fraction, 0.5)
