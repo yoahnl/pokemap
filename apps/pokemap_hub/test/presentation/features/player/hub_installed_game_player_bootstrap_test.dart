@@ -20,7 +20,7 @@ import '../../../support/runtime_player_hub_fixture.dart';
 
 void main() {
   test(
-    'closing cancels the splash frame gate before resolving a game',
+    'closing cancels the splash frame gate without waiting for the launch',
     () async {
       final lifetime = HubRuntimeStartupLifetime();
       final frame = Completer<void>();
@@ -48,7 +48,7 @@ void main() {
       await lifetime.close().timeout(const Duration(seconds: 1));
       await cancelled;
       expect(frame.isCompleted, isFalse);
-      expect(resolver.resolveCalls, 0);
+      expect(resolver.resolveCalls, 1);
     },
   );
 
@@ -98,42 +98,98 @@ void main() {
     },
   );
 
-  test(
-    'waits until the splash reveal finishes before preparing the game',
-    () async {
-      final reveal = Completer<void>();
-      final launch = Completer<InstalledGameLaunchContext>();
-      final resolver = _PendingLaunchResolver(launch.future);
-      final bootstrap = HubRuntimeStartupBootstrap(
-        supportRoot: Directory.systemTemp,
-        saveRepositoryFactory: (_, _) => throw UnimplementedError(),
-        preferencesRepository: _UnusedPreferencesRepository(),
-        controlProfileRepository: _UnusedControlProfileRepository(),
-        launchResolver: resolver,
-        game: _game(),
-        onHubRequested: () async {},
-        mountGame: (_) async {},
-        unmountGame: (_) async {},
-        stopIntroPlayback: () async {},
-        defaultProfileDisplayNameForLocale: (_) => 'Joueur',
-        diagnosticLogFile: File('/dev/null'),
-        startupWorkGate: reveal.future,
-      );
+  test('launch resolution starts before the splash gate releases', () async {
+    final root = await Directory.systemTemp.createTemp('avelune-early-launch-');
+    addTearDown(() => root.delete(recursive: true));
+    final context = await createRuntimePlayerLaunchContext(root);
+    final gate = Completer<void>();
+    final launch = Completer<InstalledGameLaunchContext>();
+    final resolver = _PendingLaunchResolver(launch.future);
+    final stages = <RuntimeStartupBootstrapStage>[];
+    final bootstrap = HubRuntimeStartupBootstrap(
+      supportRoot: root,
+      saveRepositoryFactory: (_, _) => throw UnimplementedError(),
+      preferencesRepository: _UnusedPreferencesRepository(),
+      controlProfileRepository: _UnusedControlProfileRepository(),
+      launchResolver: resolver,
+      game: context.game,
+      onHubRequested: () async {},
+      mountGame: (_) async {},
+      unmountGame: (_) async {},
+      stopIntroPlayback: () async {},
+      defaultProfileDisplayNameForLocale: (_) => 'Joueur',
+      diagnosticLogFile: File('/dev/null'),
+      startupWorkGate: gate.future,
+    );
 
-      final preparation = bootstrap.prepare(onStageCompleted: (_) {});
-      await Future<void>.delayed(Duration.zero);
-      expect(resolver.resolveCalls, 0);
+    final preparation = bootstrap.prepare(onStageCompleted: stages.add);
+    final failed = expectLater(
+      preparation,
+      throwsA(isA<RuntimeStartupBootstrapException>()),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(resolver.resolveCalls, 1);
 
-      reveal.complete();
-      await Future<void>.delayed(Duration.zero);
-      expect(resolver.resolveCalls, 1);
-      launch.completeError(StateError('bootstrap test completed'));
-      await expectLater(
-        preparation,
-        throwsA(isA<RuntimeStartupBootstrapException>()),
+    launch.complete(context);
+    await Future<void>.delayed(Duration.zero);
+    expect(stages, isEmpty);
+
+    gate.complete();
+    await failed;
+    expect(stages.first, RuntimeStartupBootstrapStage.projectResolution);
+  });
+
+  test('a launch failure before the gate releases surfaces after it', () async {
+    final gate = Completer<void>();
+    final resolver = _FailingLaunchResolver(
+      const InstalledGameLaunchException(
+        InstalledGameLaunchErrorCode.installationUnhealthy,
+        'The current installed version must be repaired before launch.',
+      ),
+    );
+    final stages = <RuntimeStartupBootstrapStage>[];
+    final bootstrap = HubRuntimeStartupBootstrap(
+      supportRoot: Directory.systemTemp,
+      saveRepositoryFactory: (_, _) => throw UnimplementedError(),
+      preferencesRepository: _UnusedPreferencesRepository(),
+      controlProfileRepository: _UnusedControlProfileRepository(),
+      launchResolver: resolver,
+      game: _game(),
+      onHubRequested: () async {},
+      mountGame: (_) async {},
+      unmountGame: (_) async {},
+      stopIntroPlayback: () async {},
+      defaultProfileDisplayNameForLocale: (_) => 'Joueur',
+      diagnosticLogFile: File('/dev/null'),
+      startupWorkGate: gate.future,
+    );
+
+    final uncaught = <Object>[];
+    final settled = Completer<Object>();
+    runZonedGuarded(() {
+      final preparation = bootstrap.prepare(onStageCompleted: stages.add);
+      preparation.then<void>(
+        (_) => settled.complete(StateError('prepared')),
+        onError: (Object error) => settled.complete(error),
       );
-    },
-  );
+    }, (error, _) => uncaught.add(error));
+    final resolveCallsBeforeGate = resolver.resolveCalls;
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final settledBeforeGate = settled.isCompleted;
+    gate.complete();
+    final failure = await settled.future.timeout(const Duration(seconds: 10));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(resolveCallsBeforeGate, 1);
+    expect(settledBeforeGate, isFalse);
+    expect(uncaught, isEmpty);
+    expect(stages, isEmpty);
+    expect(failure, isA<RuntimeStartupBootstrapException>());
+    expect(
+      (failure as RuntimeStartupBootstrapException).failure.code,
+      'hub.installationUnhealthy',
+    );
+  });
 
   testWidgets('loads the game while motion waits for the jingle to start', (
     tester,
@@ -288,12 +344,11 @@ void main() {
     final splash = find.byKey(
       const ValueKey<String>('startup-splash-timeline'),
     );
-    final background =
-        tester
-            .widgetList<ColoredBox>(
-              find.descendant(of: splash, matching: find.byType(ColoredBox)),
-            )
-            .first;
+    final background = tester
+        .widgetList<ColoredBox>(
+          find.descendant(of: splash, matching: find.byType(ColoredBox)),
+        )
+        .first;
     expect(background.color, const Color(0xFF02040A));
 
     launch.completeError(StateError('bootstrap test completed'));
@@ -351,6 +406,19 @@ final class _PendingLaunchResolver implements SessionLaunchRepositoryInterface {
   Future<InstalledGameLaunchContext> resolve(InstalledGame game) {
     resolveCalls++;
     return pending;
+  }
+}
+
+final class _FailingLaunchResolver implements SessionLaunchRepositoryInterface {
+  _FailingLaunchResolver(this.error);
+
+  final Object error;
+  int resolveCalls = 0;
+
+  @override
+  Future<InstalledGameLaunchContext> resolve(InstalledGame game) {
+    resolveCalls++;
+    return Future<InstalledGameLaunchContext>.error(error);
   }
 }
 

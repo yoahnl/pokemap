@@ -153,12 +153,14 @@ final class HubRuntimeStartupBootstrap
     RuntimeProjectCatalog? preparedCatalog;
     RuntimeInitialMapPreloader? ownedPreloader;
     try {
+      final launching = Future.sync(() => launchResolver.resolve(game))
+        ..ignore();
       final workGate = startupWorkGate;
       if (workGate != null) {
         await (lifetime?.waitForGate(workGate) ?? workGate);
       }
       lifetime?.ensureActive();
-      final launch = await launchResolver.resolve(game);
+      final launch = await launching;
       lifetime?.ensureActive();
       onStageCompleted(RuntimeStartupBootstrapStage.projectResolution);
 
