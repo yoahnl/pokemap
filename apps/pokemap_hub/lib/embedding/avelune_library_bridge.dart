@@ -157,10 +157,10 @@ class AveluneLibraryBridge {
 
   Future<Map<String, Object?>> _installGame(String packagePath) async {
     try {
-      final result = await InstallGamePackageUseCase(_installer).call(
-        File(packagePath),
-        onProgress: InstallProgressRelay(channel: _channel).call,
-      );
+      final progressRelay = InstallProgressRelay(channel: _channel);
+      final result = await InstallGamePackageUseCase(_installer)
+          .call(File(packagePath), onProgress: progressRelay.call)
+          .whenComplete(progressRelay.dispose);
       return await _describe(result.game);
     } on GameInstallationException catch (error, stackTrace) {
       Error.throwWithStackTrace(

@@ -253,6 +253,86 @@ void main() {
       expect(progressMessages[1]['totalBytes'], 100);
     });
 
+    test(
+      'a final same-stage event is delivered before the next stage',
+      () async {
+        var now = Duration.zero;
+        final relay = InstallProgressRelay(
+          channel: channel,
+          elapsed: () => now,
+        );
+
+        relay.call(progress(GameInstallStage.extracting, completedBytes: 0));
+        now = const Duration(milliseconds: 40);
+        relay.call(progress(GameInstallStage.extracting, completedBytes: 50));
+        now = const Duration(milliseconds: 60);
+        relay.call(progress(GameInstallStage.extracting, completedBytes: 100));
+        now = const Duration(milliseconds: 70);
+        relay.call(progress(GameInstallStage.verifying, completedBytes: 0));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          progressMessages.map(
+            (message) => '${message['stage']}:${message['completedBytes']}',
+          ),
+          ['extracting:0', 'extracting:100', 'verifying:0'],
+        );
+        relay.dispose();
+      },
+    );
+
+    test(
+      'the trailing timer delivers the latest event of the window',
+      () async {
+        var now = Duration.zero;
+        final timers = <(Duration, void Function())>[];
+        final relay = InstallProgressRelay(
+          channel: channel,
+          elapsed: () => now,
+          timerFactory: (delay, callback) {
+            timers.add((delay, callback));
+            return Timer(const Duration(days: 1), () {});
+          },
+        );
+
+        relay.call(progress(GameInstallStage.extracting, completedBytes: 0));
+        now = const Duration(milliseconds: 30);
+        relay.call(progress(GameInstallStage.extracting, completedBytes: 40));
+        relay.call(progress(GameInstallStage.extracting, completedBytes: 90));
+        expect(timers, hasLength(1));
+        expect(timers.single.$1, const Duration(milliseconds: 70));
+
+        now = const Duration(milliseconds: 100);
+        timers.single.$2();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(progressMessages.map((message) => message['completedBytes']), [
+          0,
+          90,
+        ]);
+        relay.dispose();
+        await Future<void>.delayed(Duration.zero);
+        expect(progressMessages, hasLength(2));
+      },
+    );
+
+    test('dispose flushes the pending event once', () async {
+      var now = Duration.zero;
+      final relay = InstallProgressRelay(channel: channel, elapsed: () => now);
+
+      relay.call(progress(GameInstallStage.extracting, completedBytes: 0));
+      now = const Duration(milliseconds: 10);
+      relay.call(progress(GameInstallStage.extracting, completedBytes: 77));
+      relay.dispose();
+      relay.dispose();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(progressMessages.map((message) => message['completedBytes']), [
+        0,
+        77,
+      ]);
+    });
+
     test('unknown totals are sent as null', () async {
       InstallProgressRelay(channel: channel).call(
         progress(GameInstallStage.inspecting, completedBytes: 0, totalBytes: 0),
