@@ -21,6 +21,7 @@ final class GamePackageProjectValidator {
     Uint8List projectBytes, {
     required Set<String> payloadPaths,
     GamePackagePayloadReader? readPayload,
+    bool inventoryVerified = false,
   }) {
     try {
       final decoded = jsonDecode(
@@ -320,7 +321,8 @@ final class GamePackageProjectValidator {
           surf: packageManifest.compatibility.requiredCapabilities.contains(SurfGameplayCapabilities.capabilityId),
           trainerSpotting: packageManifest.compatibility.requiredCapabilities
             .contains(SpatialGameplayCapabilities.trainerSpottingCapabilityId))
-            .validate(project, readPayload, payloadPaths: payloadPaths);
+            .validate(project, readPayload, payloadPaths: payloadPaths,
+                verifiedInventory: inventoryVerified ? packageManifest.content.files : null);
         if (SpatialGameplayCapabilities.requiresStory(project) &&
             !packageManifest.compatibility.requiredCapabilities
                 .contains(SpatialGameplayCapabilities.storyCapabilityId)) {

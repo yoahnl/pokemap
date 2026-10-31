@@ -396,6 +396,7 @@ final class GamePackageInspector {
         Uint8List.fromList(readVerifiedPayload('project/project.json')!),
         payloadPaths: rawByPath.keys.toSet(),
         readPayload: readVerifiedPayload,
+        inventoryVerified: true,
       );
       pokemonRuleset = project.pokemon.ruleset.reference;
     }
@@ -616,6 +617,7 @@ final class GamePackageInspector {
         projectEntry.data,
         payloadPaths: rawByPath.keys.toSet(),
         readPayload: (path) => rawByPath[path]?.data,
+        inventoryVerified: true,
       );
       pokemonRuleset = project.pokemon.ruleset.reference;
     }

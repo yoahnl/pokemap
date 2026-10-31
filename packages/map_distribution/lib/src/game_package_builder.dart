@@ -217,6 +217,7 @@ final class GamePackageBuilder {
       payloadSnapshot['project/project.json']! as Uint8List,
       payloadPaths: payloadSnapshot.keys.toSet(),
       readPayload: (path) => payloadSnapshot[path],
+      inventoryVerified: true,
     );
     final entries = <MapEntry<String, List<int>>>[
       MapEntry<String, List<int>>('game-manifest.json', manifestBytes),
