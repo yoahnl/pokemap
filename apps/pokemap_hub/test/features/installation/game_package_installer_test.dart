@@ -302,6 +302,7 @@ void main() {
     test('staged verification no longer reads payload bytes', () async {
       final package = await writeTestPackage(packages, extraFiles: 3);
       final originals = <File, List<int>>{};
+      final stages = <GameInstallStage>[];
 
       final result =
           await installer(
@@ -329,6 +330,7 @@ void main() {
             package,
             source: GamePackageInstallSource.localFile,
             onProgress: (event) {
+              stages.add(event.stage);
               if (event.stage != GameInstallStage.smokeLoading) return;
               for (final MapEntry(key: file, value: bytes)
                   in originals.entries) {
@@ -339,51 +341,77 @@ void main() {
 
       expect(originals, isNotEmpty);
       expect(result.alreadyInstalled, isFalse);
-    });
-
-    test('install does not revalidate the staged project', () async {
-      final package = await writeTestPackage(packages);
-      List<int>? original;
-      File? project;
-      final stages = <GameInstallStage>[];
-
-      final result =
-          await installer(
-            faultHook: (stage) async {
-              if (stage != GameInstallFaultStage.afterExtraction) return;
-              final transaction = (await transactionsRoot().list().toList())
-                  .whereType<Directory>()
-                  .single;
-              project = File(
-                p.join(
-                  transaction.path,
-                  'staged-version',
-                  'project',
-                  'project.json',
-                ),
-              );
-              original = await project!.readAsBytes();
-              final tampered = List<int>.of(original!);
-              tampered[tampered.length - 1] ^= 1;
-              await project!.writeAsBytes(tampered, flush: true);
-            },
-          ).install(
-            package,
-            source: GamePackageInstallSource.localFile,
-            onProgress: (event) {
-              stages.add(event.stage);
-              if (event.stage != GameInstallStage.smokeLoading) return;
-              project!.writeAsBytesSync(original!, flush: true);
-            },
-          );
-
-      expect(result.alreadyInstalled, isFalse);
       expect(stages, isNot(contains(GameInstallStage.validatingProject)));
       expect(
         stages.indexOf(GameInstallStage.smokeLoading),
         stages.lastIndexOf(GameInstallStage.verifying) + 1,
       );
     });
+
+    test(
+      'a staged payload replaced by a symlink fails verification before publication',
+      () async {
+        final package = await writeTestPackage(packages, extraFiles: 1);
+
+        await expectLater(
+          installer(
+            faultHook: (stage) async {
+              if (stage != GameInstallFaultStage.afterExtraction) return;
+              final transaction = (await transactionsRoot().list().toList())
+                  .whereType<Directory>()
+                  .single;
+              final payload = File(
+                p.join(
+                  transaction.path,
+                  'staged-version',
+                  'project',
+                  'data',
+                  'chunk-0.json',
+                ),
+              );
+              final outside = await payload.copy(
+                p.join(root.path, 'outside.json'),
+              );
+              await payload.delete();
+              await Link(payload.path).create(outside.path);
+            },
+          ).install(package, source: GamePackageInstallSource.localFile),
+          throwsA(
+            isA<GameInstallationException>()
+                .having(
+                  (error) => error.diagnostic.code,
+                  'code',
+                  GameInstallationErrorCode.extractionFailed,
+                )
+                .having(
+                  (error) => error.diagnostic.stage,
+                  'stage',
+                  GameInstallStage.verifying,
+                )
+                .having(
+                  (error) => error.cause,
+                  'cause',
+                  isA<FormatException>().having(
+                    (error) => error.message,
+                    'message',
+                    'Staging contains a special entry.',
+                  ),
+                ),
+          ),
+        );
+
+        final game = p.join(
+          root.path,
+          'PokeMap',
+          'games',
+          'games.example.adventure',
+        );
+        expect(await File(p.join(game, 'current.json')).exists(), isFalse);
+        expect(await Directory(p.join(game, 'versions')).exists(), isFalse);
+        expect(await transactionsRoot().list().toList(), isEmpty);
+      },
+      skip: Platform.isWindows,
+    );
 
     test('an already-installed release does not copy the snapshot', () async {
       final package = await writeTestPackage(packages);
