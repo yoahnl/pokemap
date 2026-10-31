@@ -124,7 +124,9 @@ struct GameListView: View {
             )) {
                 InstallationView(
                     stage: viewModel.installationStage ?? .preparing,
-                    gameName: viewModel.installationName ?? "Nouveau jeu"
+                    gameName: viewModel.installationName ?? "Nouveau jeu",
+                    progress: viewModel.installationProgress,
+                    progressDetail: viewModel.installationDetail
                 )
             }
             .overlay {
@@ -344,6 +346,8 @@ private struct InstallationView: View {
 
     let stage: InstallationStage
     let gameName: String
+    let progress: Double?
+    let progressDetail: String?
 
     var body: some View {
         ZStack {
@@ -407,6 +411,34 @@ private struct InstallationView: View {
                                 .foregroundStyle(AveluneTheme.muted)
                         }
 
+                        if stage == .installing, let progressDetail {
+                            VStack(alignment: .leading, spacing: 8) {
+                                if let progress {
+                                    ProgressView(value: progress)
+                                        .tint(AveluneTheme.cyan)
+                                } else {
+                                    ProgressView()
+                                        .progressViewStyle(.linear)
+                                        .tint(AveluneTheme.cyan)
+                                }
+
+                                HStack {
+                                    Text(progressDetail)
+                                        .font(.caption)
+                                        .foregroundStyle(AveluneTheme.muted)
+
+                                    Spacer()
+
+                                    if let progress {
+                                        Text(progress.formatted(.percent.precision(.fractionLength(0))))
+                                            .font(.caption.monospacedDigit())
+                                            .foregroundStyle(AveluneTheme.muted)
+                                    }
+                                }
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
+
                         HStack(spacing: 6) {
                             ForEach(InstallationStage.allCases, id: \.self) { step in
                                 Capsule()
@@ -436,7 +468,7 @@ private struct InstallationView: View {
 
                                     Text(step.title)
                                         .font(.subheadline.weight(step == stage ? .semibold : .regular))
-                                        .foregroundStyle(step.index <= stage.index ? .white : AveluneTheme.muted)
+                                        .foregroundStyle(step.index <= stage.index ? AveluneTheme.text : AveluneTheme.muted)
 
                                     Spacer()
 

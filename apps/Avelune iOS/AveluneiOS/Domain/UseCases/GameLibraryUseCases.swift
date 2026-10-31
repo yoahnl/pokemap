@@ -5,7 +5,7 @@ protocol LoadLibraryUseCase {
 }
 
 protocol InstallGameUseCase {
-    func install(packagePath: String) async throws -> Game
+    func install(packagePath: String, onProgress: @escaping (InstallProgress) -> Void) async throws -> Game
     func uninstall(_ game: Game) async throws -> [Game]
 }
 
@@ -26,8 +26,8 @@ final class DefaultGameLibraryUseCases: LoadLibraryUseCase, InstallGameUseCase, 
         try await repository.installedGames()
     }
 
-    func install(packagePath: String) async throws -> Game {
-        try await repository.install(packagePath: packagePath)
+    func install(packagePath: String, onProgress: @escaping (InstallProgress) -> Void) async throws -> Game {
+        try await repository.install(packagePath: packagePath, onProgress: onProgress)
     }
 
     func uninstall(_ game: Game) async throws -> [Game] {

@@ -33,6 +33,50 @@ struct Game: Identifiable, Equatable {
     static func == (lhs: Game, rhs: Game) -> Bool { lhs.id == rhs.id }
 }
 
+struct InstallProgress: Equatable {
+    let stage: String
+    let completedBytes: Int64?
+    let totalBytes: Int64?
+
+    var fraction: Double? {
+        guard let completedBytes, let totalBytes, totalBytes > 0 else { return nil }
+        return min(1, max(0, Double(completedBytes) / Double(totalBytes)))
+    }
+
+    var detail: String? {
+        switch stage {
+        case "inspecting": return "Vérification du paquet"
+        case "checkingCompatibility": return "Vérification de la compatibilité"
+        case "checkingStorage": return "Vérification de l’espace disponible"
+        case "snapshotting": return "Copie du paquet"
+        case "extracting": return "Extraction des fichiers"
+        case "verifying": return "Vérification des fichiers"
+        case "validatingProject": return "Validation du projet"
+        case "smokeLoading": return "Préparation du jeu"
+        case "preparingSaves": return "Préparation des sauvegardes"
+        case "promoting": return "Activation du jeu"
+        case "updatingLibrary": return "Mise à jour de la bibliothèque"
+        default: return nil
+        }
+    }
+
+    init(stage: String, completedBytes: Int64?, totalBytes: Int64?) {
+        self.stage = stage
+        self.completedBytes = completedBytes
+        self.totalBytes = totalBytes
+    }
+
+    init?(payload: Any?) {
+        guard let payload = payload as? [String: Any],
+              let stage = payload["stage"] as? String else { return nil }
+        self.init(
+            stage: stage,
+            completedBytes: (payload["completedBytes"] as? NSNumber)?.int64Value,
+            totalBytes: (payload["totalBytes"] as? NSNumber)?.int64Value
+        )
+    }
+}
+
 extension Game {
     init?(payload: [String: Any]) {
         guard let id = payload["gameId"] as? String,

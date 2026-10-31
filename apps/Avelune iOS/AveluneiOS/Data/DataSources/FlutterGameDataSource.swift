@@ -13,6 +13,7 @@ final class FlutterGameDataSource {
     private let logger = Logger(subsystem: "com.yoahnl.avelune.player", category: "Runtime")
 
     var onPlayerExit: (() -> Void)?
+    private var onInstallProgress: ((InstallProgress) -> Void)?
 
     init(engine: FlutterEngine) {
         channel = FlutterMethodChannel(
@@ -34,6 +35,11 @@ final class FlutterGameDataSource {
             if call.method == "playerDidExit" {
                 self?.onPlayerExit?()
                 result(nil)
+            } else if call.method == "installProgress" {
+                if let progress = InstallProgress(payload: call.arguments) {
+                    self?.onInstallProgress?(progress)
+                }
+                result(nil)
             } else {
                 result(FlutterMethodNotImplemented)
             }
@@ -44,7 +50,9 @@ final class FlutterGameDataSource {
         try await games(from: invoke("listGames", arguments: nil))
     }
 
-    func install(packagePath: String) async throws -> Game {
+    func install(packagePath: String, onProgress: @escaping (InstallProgress) -> Void) async throws -> Game {
+        onInstallProgress = onProgress
+        defer { onInstallProgress = nil }
         let payload = try await invoke("installGame", arguments: ["packagePath": packagePath])
         guard let dictionary = payload as? [String: Any],
               let game = Game(payload: dictionary) else {

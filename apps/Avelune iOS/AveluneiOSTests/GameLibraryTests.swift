@@ -55,6 +55,45 @@ final class GameLibraryTests: XCTestCase {
         XCTAssertEqual(viewModel.games.map(\.id), ["train"])
     }
 
+    func testProgressUpdatesTheInstallationFraction() async throws {
+        let useCase = LibraryUseCaseStub()
+        let viewModel = GameListViewModel(loadLibraryUseCase: useCase, installGameUseCase: useCase)
+        let package = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".avelunegame")
+        try Data([1]).write(to: package)
+        defer { try? FileManager.default.removeItem(at: package) }
+
+        useCase.installedGame = Game(payload: ["gameId": "train", "title": "Le train de 17h42"])
+        useCase.progressEvents = [
+            InstallProgress(stage: "extracting", completedBytes: 25, totalBytes: 100),
+            InstallProgress(stage: "verifying", completedBytes: nil, totalBytes: nil)
+        ]
+        var observed: [(Double?, String?)] = []
+        useCase.afterProgress = {
+            observed.append((viewModel.installationProgress, viewModel.installationDetail))
+        }
+
+        await viewModel.install(from: package)
+
+        XCTAssertEqual(observed.count, 2)
+        XCTAssertEqual(observed[0].0, 0.25)
+        XCTAssertEqual(observed[0].1, "Extraction des fichiers")
+        XCTAssertNil(observed[1].0)
+        XCTAssertEqual(observed[1].1, "Vérification des fichiers")
+        XCTAssertNil(viewModel.installationProgress)
+        XCTAssertNil(viewModel.installationDetail)
+    }
+
+    func testInstallProgressPayloadParsesNullableBytes() {
+        let measured = InstallProgress(payload: ["stage": "extracting", "completedBytes": 5, "totalBytes": 10])
+        XCTAssertEqual(measured?.fraction, 0.5)
+
+        let unknown = InstallProgress(payload: ["stage": "inspecting", "completedBytes": NSNull(), "totalBytes": NSNull()])
+        XCTAssertNil(unknown?.fraction)
+        XCTAssertEqual(unknown?.detail, "Vérification du paquet")
+
+        XCTAssertNil(InstallProgress(payload: ["completedBytes": 1]))
+    }
+
     func testArtworkFallbacksPreserveOlderPackages() {
         let game = Game(payload: ["gameId": "old", "title": "Ancien jeu", "iconPath": "/icon.png"])
 
@@ -133,8 +172,17 @@ private final class LibraryUseCaseStub: LoadLibraryUseCase, InstallGameUseCase {
         try result.get()
     }
 
-    func install(packagePath: String) async throws -> Game {
-        throw LibraryTestError.unavailable
+    var progressEvents: [InstallProgress] = []
+    var afterProgress: () -> Void = {}
+    var installedGame: Game?
+
+    func install(packagePath: String, onProgress: @escaping (InstallProgress) -> Void) async throws -> Game {
+        for event in progressEvents {
+            onProgress(event)
+            afterProgress()
+        }
+        guard let installedGame else { throw LibraryTestError.unavailable }
+        return installedGame
     }
 
     func uninstall(_ game: Game) async throws -> [Game] {

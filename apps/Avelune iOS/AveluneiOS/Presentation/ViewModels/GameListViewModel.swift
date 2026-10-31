@@ -24,6 +24,8 @@ final class GameListViewModel: ObservableObject {
     @Published private(set) var isBusy = false
     @Published private(set) var installationStage: InstallationStage?
     @Published private(set) var installationName: String?
+    @Published private(set) var installationProgress: Double?
+    @Published private(set) var installationDetail: String?
     @Published var errorMessage: String?
 
     private let loadLibraryUseCase: LoadLibraryUseCase
@@ -61,9 +63,13 @@ final class GameListViewModel: ObservableObject {
         isBusy = true
         installationName = url.deletingPathExtension().lastPathComponent
         installationStage = .preparing
+        installationProgress = nil
+        installationDetail = nil
         defer {
             installationStage = nil
             installationName = nil
+            installationProgress = nil
+            installationDetail = nil
             isBusy = false
         }
 
@@ -76,7 +82,9 @@ final class GameListViewModel: ObservableObject {
             defer { try? FileManager.default.removeItem(atPath: packagePath) }
 
             installationStage = .installing
-            _ = try await installGameUseCase.install(packagePath: packagePath)
+            _ = try await installGameUseCase.install(packagePath: packagePath) { [weak self] progress in
+                self?.apply(progress)
+            }
             installationStage = .finishing
             games = try await loadLibraryUseCase.execute()
             libraryState = .loaded
@@ -85,6 +93,13 @@ final class GameListViewModel: ObservableObject {
         } catch {
             importLogger.error("Game package import failed: \(error.localizedDescription, privacy: .private)")
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func apply(_ progress: InstallProgress) {
+        installationProgress = progress.fraction
+        if let detail = progress.detail {
+            installationDetail = detail
         }
     }
 

@@ -12,8 +12,8 @@ final class GameRepositoryImpl: GameRepository {
         try await dataSource.listGames()
     }
 
-    func install(packagePath: String) async throws -> Game {
-        try await dataSource.install(packagePath: packagePath)
+    func install(packagePath: String, onProgress: @escaping (InstallProgress) -> Void) async throws -> Game {
+        try await dataSource.install(packagePath: packagePath, onProgress: onProgress)
     }
 
     func uninstall(_ game: Game) async throws -> [Game] {
