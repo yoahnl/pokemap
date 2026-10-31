@@ -462,6 +462,40 @@ void main() {
     );
 
     test(
+      'announces the unmeasured snapshot inspection before extraction '
+      'and sends verification without byte totals',
+      () async {
+        final package = await writeTestPackage(packages);
+
+        await installer().install(
+          package,
+          source: GamePackageInstallSource.localFile,
+          onProgress: progress.add,
+        );
+
+        final firstExtraction = progress.indexWhere(
+          (event) => event.stage == GameInstallStage.extracting,
+        );
+        final snapshotting =
+            progress
+                .take(firstExtraction)
+                .where((event) => event.stage == GameInstallStage.snapshotting)
+                .toList();
+        final lastCopy = snapshotting.lastWhere((event) => event.totalBytes > 0);
+        expect(lastCopy.completedBytes, lastCopy.totalBytes);
+        expect(snapshotting.last.totalBytes, 0);
+        expect(snapshotting.last.completedBytes, 0);
+        final verifying =
+            progress
+                .where((event) => event.stage == GameInstallStage.verifying)
+                .toList();
+        expect(verifying, hasLength(1));
+        expect(verifying.single.totalBytes, 0);
+        expect(verifying.single.totalFiles, greaterThan(0));
+      },
+    );
+
+    test(
       'reinstalls a Presentation media closure offline with exact hashes',
       () async {
         final mediaBytes = base64Decode(

@@ -256,6 +256,12 @@ final class GamePackageInstaller
         totalBytes: initialInspection.archiveBytes,
       );
       await _fault(GameInstallFaultStage.afterSnapshotCopied);
+      emitInstallProgress(
+        onProgress,
+        stage: stage,
+        gameId: gameId,
+        gameVersion: gameVersion,
+      );
       final snapshotInspection = await _staging.inspect(
         snapshot,
         knownPackageSha256: packageSha256,
@@ -313,7 +319,6 @@ final class GamePackageInstaller
         gameId: gameId,
         gameVersion: gameVersion,
         totalFiles: manifest.content.fileCount,
-        totalBytes: manifest.content.totalBytes,
       );
       await _verifyStaged(stagedVersion, manifest);
 

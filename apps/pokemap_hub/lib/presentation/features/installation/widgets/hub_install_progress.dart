@@ -71,7 +71,9 @@ final class HubInstallProgressPresentation {
       GameInstallStage.inspecting => .03,
       GameInstallStage.checkingCompatibility => .08,
       GameInstallStage.checkingStorage => .12,
-      GameInstallStage.snapshotting => .12 + (.18 * bounded),
+      GameInstallStage.snapshotting => progress.totalBytes > 0
+          ? .12 + (.18 * bounded)
+          : .30,
       GameInstallStage.extracting => .30 + (.30 * bounded),
       GameInstallStage.verifying => .66,
       GameInstallStage.validatingProject => .74,

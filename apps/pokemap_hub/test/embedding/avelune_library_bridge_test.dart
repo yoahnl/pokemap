@@ -282,6 +282,49 @@ void main() {
     );
 
     test(
+      'an unmeasured same-stage event reaches the shell with null totals '
+      'before the next stage',
+      () async {
+        var now = Duration.zero;
+        final relay = InstallProgressRelay(
+          channel: channel,
+          elapsed: () => now,
+        );
+
+        relay.call(progress(GameInstallStage.snapshotting, completedBytes: 0));
+        now = const Duration(milliseconds: 30);
+        relay.call(
+          progress(GameInstallStage.snapshotting, completedBytes: 100),
+        );
+        now = const Duration(milliseconds: 40);
+        relay.call(
+          progress(
+            GameInstallStage.snapshotting,
+            completedBytes: 0,
+            totalBytes: 0,
+          ),
+        );
+        now = const Duration(milliseconds: 50);
+        relay.call(progress(GameInstallStage.extracting, completedBytes: 0));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          progressMessages.map(
+            (message) =>
+                '${message['stage']}:${message['completedBytes']}:'
+                '${message['totalBytes']}',
+          ),
+          [
+            'snapshotting:0:100',
+            'snapshotting:null:null',
+            'extracting:0:100',
+          ],
+        );
+        relay.dispose();
+      },
+    );
+
+    test(
       'the trailing timer delivers the latest event of the window',
       () async {
         var now = Duration.zero;
