@@ -17,12 +17,14 @@ final class InstalledGameLaunchResolver
     required this.hostCompatibility,
     this.verifier = const InstalledGameVerifier(),
     this.compatibilityEvaluator = const GamePackageCompatibilityEvaluator(),
+    this.verificationDepth = InstalledGameVerificationDepth.content,
   });
 
   final Directory supportRoot;
   final GamePackageHostCompatibility hostCompatibility;
   final InstalledGameVerifier verifier;
   final GamePackageCompatibilityEvaluator compatibilityEvaluator;
+  final InstalledGameVerificationDepth verificationDepth;
 
   @override
   Future<InstalledGameLaunchContext> resolve(InstalledGame game) async {
@@ -32,6 +34,7 @@ final class InstalledGameLaunchResolver
       gameId: game.gameId,
       pointer: game.current,
       receiptFileName: current.receiptFileName,
+      depth: verificationDepth,
     );
     final manifest = verification.manifest;
     if (!verification.isHealthy || manifest == null) {

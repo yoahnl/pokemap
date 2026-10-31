@@ -1,9 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/avelune_embedded_runtime.dart';
+import 'package:map_core/map_core.dart' show SaveEnvelopeCodec;
+import 'package:map_distribution/map_distribution.dart';
+import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
+import 'package:pokemap_hub/pokemap_hub_player.dart';
+
+import '../support/game_package_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +24,7 @@ void main() {
   late int rootReads;
   late List<String> nativeNotifications;
   late Future<void> Function() stopPlayer;
+  late int integrityChecks;
 
   Future<Object?> invoke(String method, [Object? arguments]) {
     final result = Completer<Object?>();
@@ -39,12 +48,22 @@ void main() {
     rootReads = 0;
     nativeNotifications = [];
     stopPlayer = () async {};
+    integrityChecks = 0;
     messenger.setMockMethodCallHandler(channel, (call) async {
       nativeNotifications.add(call.method);
       return null;
     });
     bridge = AveluneLibraryBridge(
       stopPlayer: () => stopPlayer(),
+      verifier: InstalledGameVerifier(
+        fileIntegrityCheck: (file, entry) async {
+          integrityChecks++;
+          final bytes = await file.readAsBytes();
+          return sha256.convert(bytes).toString() == entry.sha256
+              ? null
+              : InstalledGameVerificationCode.hashMismatch;
+        },
+      ),
       supportRootResolver: () async {
         rootReads++;
         return root;
@@ -179,5 +198,73 @@ void main() {
     await expectLater(invoke('stopGame'), throwsA(isA<PlatformException>()));
     stopPlayer = () async {};
     expect(await invoke('stopGame'), isNull);
+  });
+
+  group('with installed games', () {
+    Future<List<GameInstallationResult>> installGames(int count) async {
+      final installer = GamePackageInstaller(
+        supportRoot: root,
+        inspector: GamePackageInspector(
+          hostCompatibility: aveluneHostCompatibility(),
+        ),
+        availableDiskBytes: (_) async => 2 * 1024 * 1024 * 1024,
+        loadSmoke: (_, _) async {},
+        prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
+      );
+      return [
+        for (var index = 0; index < count; index++)
+          await installer.install(
+            await writeTestPackage(
+              Directory(p.join(root.path, 'pkg-$index')),
+              gameId: 'games.example.game$index',
+              minHubVersion: AveluneRuntimeCompatibility.minimumHubVersion,
+              saveFormat: SaveEnvelopeCodec.currentSaveFormat,
+            ),
+            source: GamePackageInstallSource.localFile,
+          ),
+      ];
+    }
+
+    test('listGames does not hash installed content', () async {
+      await installGames(3);
+
+      final listed = await invoke('listGames') as List<Object?>;
+
+      expect(listed, hasLength(3));
+      expect(integrityChecks, 0);
+    });
+
+    test('a tampered file is listed but cannot be played', () async {
+      final installed = (await installGames(1)).single;
+      await File(
+        p.join(
+          root.path,
+          'games',
+          installed.game.gameId,
+          'versions',
+          installed.game.current.gameVersion.toString(),
+          'project',
+          'project.json',
+        ),
+      ).writeAsString('tampered');
+
+      final listed = await invoke('listGames') as List<Object?>;
+
+      expect(
+        listed.cast<Map<Object?, Object?>>().map((game) => game['gameId']),
+        contains(installed.game.gameId),
+      );
+      expect(integrityChecks, 0);
+      await expectLater(
+        bridge.launchResolver.resolve(installed.game),
+        throwsA(
+          isA<InstalledGameLaunchException>().having(
+            (error) => error.code,
+            'code',
+            InstalledGameLaunchErrorCode.installationUnhealthy,
+          ),
+        ),
+      );
+    });
   });
 }

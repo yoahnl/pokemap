@@ -157,6 +157,8 @@ enum InstalledGameVerificationCode {
   unsafeEntry,
 }
 
+enum InstalledGameVerificationDepth { structure, content }
+
 final class InstalledGameVerification {
   InstalledGameVerification({
     required this.code,
@@ -205,6 +207,8 @@ final class InstalledGameVerifier {
     required String gameId,
     required InstalledGamePointer pointer,
     required String receiptFileName,
+    InstalledGameVerificationDepth depth =
+        InstalledGameVerificationDepth.content,
   }) async {
     try {
       GameIdentity.validateGameId(gameId);
@@ -287,6 +291,13 @@ final class InstalledGameVerifier {
         receipt.treeSha256 != pointer.treeSha256) {
       return InstalledGameVerification(
         code: InstalledGameVerificationCode.receiptMismatch,
+        manifest: manifest,
+        receipt: receipt,
+      );
+    }
+    if (depth == InstalledGameVerificationDepth.structure) {
+      return InstalledGameVerification(
+        code: InstalledGameVerificationCode.healthy,
         manifest: manifest,
         receipt: receipt,
       );

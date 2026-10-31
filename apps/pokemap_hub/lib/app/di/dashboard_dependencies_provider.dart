@@ -7,6 +7,8 @@ import 'package:pokemap_hub/app/di/providers.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_dependencies.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
 import 'package:pokemap_hub/features/installation/application/installation_providers.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
+import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
 
 /// Assembles the dashboard's dependency bundle from the repository graph.
 ///
@@ -25,7 +27,11 @@ final hubDashboardDependenciesProvider =
     libraryStore: await ref.watch(gameLibraryRepositoryProvider.future),
     activityReader: InstalledHubGameActivityReader(
       supportRoot: root,
-      launchResolver: await ref.watch(sessionLaunchRepositoryProvider.future),
+      launchResolver: InstalledGameLaunchResolver(
+        supportRoot: root,
+        hostCompatibility: ref.watch(hostCompatibilityProvider),
+        verificationDepth: InstalledGameVerificationDepth.structure,
+      ),
       saveRepositoryFactory: ref.watch(saveRepositoryFactoryProvider),
     ).call,
     importer: (package, cancellation, progress) async {

@@ -18,15 +18,18 @@ class AveluneLibraryBridge {
     MethodChannel? channel,
     Future<Directory> Function()? supportRootResolver,
     Future<void> Function()? stopPlayer,
+    InstalledGameVerifier? verifier,
   }) : _channel = channel ?? const MethodChannel('com.avelune.runtime/library'),
        _supportRootResolver =
            supportRootResolver ??
            const PathProviderSupportRootAdapter().resolve,
-       _stopPlayer = stopPlayer;
+       _stopPlayer = stopPlayer,
+       _verifier = verifier ?? const InstalledGameVerifier();
 
   final MethodChannel _channel;
   final Future<Directory> Function() _supportRootResolver;
   final Future<void> Function()? _stopPlayer;
+  final InstalledGameVerifier _verifier;
   Future<void>? _stopping;
   int _playerGeneration = 0;
   int get playerGeneration => _playerGeneration;
@@ -90,10 +93,16 @@ class AveluneLibraryBridge {
     launchResolver = InstalledGameLaunchResolver(
       supportRoot: supportRoot,
       hostCompatibility: hostCompatibility,
+      verifier: _verifier,
     );
     _activity = InstalledHubGameActivityReader(
       supportRoot: supportRoot,
-      launchResolver: launchResolver,
+      launchResolver: InstalledGameLaunchResolver(
+        supportRoot: supportRoot,
+        hostCompatibility: hostCompatibility,
+        verifier: _verifier,
+        verificationDepth: InstalledGameVerificationDepth.structure,
+      ),
       saveRepositoryFactory:
           (root, identity) =>
               HubSaveStore(supportRoot: root, identity: identity),
