@@ -128,6 +128,34 @@ void main() {
     },
   );
 
+  test('narrative preparation at install skips source hashing; launch still verifies', () async {
+    final map = File('${version.path}/project/maps/field.json');
+    final original = await map.copy(
+      '${version.path}/project/maps/original.json',
+    );
+    await map.delete();
+    await Link(map.path).create(original.path);
+
+    await expectLater(
+      store.prepare(versionRoot: version, manifest: manifest),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          'Narrative source does not match the verified inventory.',
+        ),
+      ),
+    );
+    expect(await store.load(manifest), isNull);
+
+    await store.prepare(
+      versionRoot: version,
+      manifest: manifest,
+      sourceAlreadyVerified: true,
+    );
+    expect((await store.load(manifest))!.single.id, 'field');
+  }, skip: Platform.isWindows);
+
   test('a symbolic link cannot replace the prepared artifact', () async {
     await store.prepare(versionRoot: version, manifest: manifest);
     final file = store.fileFor(manifest);

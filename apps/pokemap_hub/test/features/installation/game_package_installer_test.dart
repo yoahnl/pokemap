@@ -329,7 +329,7 @@ void main() {
             package,
             source: GamePackageInstallSource.localFile,
             onProgress: (event) {
-              if (event.stage != GameInstallStage.validatingProject) return;
+              if (event.stage != GameInstallStage.smokeLoading) return;
               for (final MapEntry(key: file, value: bytes)
                   in originals.entries) {
                 file.writeAsBytesSync(bytes, flush: true);
@@ -339,6 +339,50 @@ void main() {
 
       expect(originals, isNotEmpty);
       expect(result.alreadyInstalled, isFalse);
+    });
+
+    test('install does not revalidate the staged project', () async {
+      final package = await writeTestPackage(packages);
+      List<int>? original;
+      File? project;
+      final stages = <GameInstallStage>[];
+
+      final result =
+          await installer(
+            faultHook: (stage) async {
+              if (stage != GameInstallFaultStage.afterExtraction) return;
+              final transaction = (await transactionsRoot().list().toList())
+                  .whereType<Directory>()
+                  .single;
+              project = File(
+                p.join(
+                  transaction.path,
+                  'staged-version',
+                  'project',
+                  'project.json',
+                ),
+              );
+              original = await project!.readAsBytes();
+              final tampered = List<int>.of(original!);
+              tampered[tampered.length - 1] ^= 1;
+              await project!.writeAsBytes(tampered, flush: true);
+            },
+          ).install(
+            package,
+            source: GamePackageInstallSource.localFile,
+            onProgress: (event) {
+              stages.add(event.stage);
+              if (event.stage != GameInstallStage.smokeLoading) return;
+              project!.writeAsBytesSync(original!, flush: true);
+            },
+          );
+
+      expect(result.alreadyInstalled, isFalse);
+      expect(stages, isNot(contains(GameInstallStage.validatingProject)));
+      expect(
+        stages.indexOf(GameInstallStage.smokeLoading),
+        stages.lastIndexOf(GameInstallStage.verifying) + 1,
+      );
     });
 
     test('an already-installed release does not copy the snapshot', () async {
@@ -654,31 +698,8 @@ void main() {
       );
     });
 
-    test('keeps the event loop responsive during project validation', () async {
-      final package = await writeTestPackage(packages);
-      var validationYielded = false;
-      var smokeObservedYield = false;
-      final service = installer(
-        smoke: (_, _) async {
-          smokeObservedYield = validationYielded;
-        },
-      );
-
-      await service.install(
-        package,
-        source: GamePackageInstallSource.localFile,
-        onProgress: (event) {
-          if (event.stage == GameInstallStage.validatingProject) {
-            Timer.run(() => validationYielded = true);
-          }
-        },
-      );
-
-      expect(smokeObservedYield, isTrue);
-    });
-
     test(
-      'cancels during project validation before smoke or publication',
+      'cancels during staged verification before smoke or publication',
       () async {
         final package = await writeTestPackage(packages);
         final cancellation = GameInstallCancellationToken();
@@ -695,7 +716,7 @@ void main() {
             source: GamePackageInstallSource.localFile,
             cancellationToken: cancellation,
             onProgress: (event) {
-              if (event.stage == GameInstallStage.validatingProject) {
+              if (event.stage == GameInstallStage.verifying) {
                 Timer.run(cancellation.cancel);
               }
             },

@@ -189,23 +189,6 @@ void main() {
     expect(copiedBytes, <int>[1024 * 1024]);
   });
 
-  Future<(InstallStaging, Directory, GamePackageManifest)>
-  stagedProject() async {
-    final service = staging(
-      GamePackageInspector(hostCompatibility: testHostCompatibility()),
-    );
-    final inspection = await service.inspect(package);
-    final target = Directory('${root.path}/staged');
-    await service.extractSnapshot(
-      package,
-      target,
-      inspection,
-      cancellationToken: GameInstallCancellationToken(),
-      onProgress: null,
-    );
-    return (service, target, inspection.manifest);
-  }
-
   test('extracts and hashes entries away from the calling isolate', () async {
     package = await writeTestPackage(
       Directory('${root.path}/many'),
@@ -313,44 +296,6 @@ void main() {
       ),
     );
   });
-
-  test('rejects same-size staged tampering in project validation', () async {
-    final (service, target, manifest) = await stagedProject();
-    final project = File('${target.path}/project/project.json');
-    final bytes = await project.readAsBytes();
-    bytes[bytes.length - 1] ^= 1;
-    await project.writeAsBytes(bytes, flush: true);
-
-    await expectLater(
-      service.validateProject(target, manifest),
-      throwsA(
-        isA<GamePackageFormatException>().having(
-          (error) => error.code,
-          'code',
-          'hashMismatch',
-        ),
-      ),
-    );
-  });
-
-  test('rejects a staged project replaced by a symlink', () async {
-    final (service, target, manifest) = await stagedProject();
-    final project = File('${target.path}/project/project.json');
-    final outside = await project.copy('${root.path}/outside.json');
-    await project.delete();
-    await Link(project.path).create(outside.path);
-
-    await expectLater(
-      service.validateProject(target, manifest),
-      throwsA(
-        isA<GamePackageFormatException>().having(
-          (error) => error.code,
-          'code',
-          'unsafeEntry',
-        ),
-      ),
-    );
-  }, skip: Platform.isWindows);
 }
 
 Future<void> _sign(File file) async {

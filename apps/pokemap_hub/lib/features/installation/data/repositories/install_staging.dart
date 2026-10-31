@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
@@ -64,15 +63,6 @@ final class InstallStaging {
         workers,
       ),
     );
-  }
-
-  Future<void> validateProject(
-    Directory stagedVersion,
-    GamePackageManifest manifest,
-  ) {
-    final path = stagedVersion.path;
-    final policy = inspector.policy;
-    return Isolate.run(() => _validateStagedProject(path, manifest, policy));
   }
 
   Future<Directory> createTransactionRoot() async {
@@ -412,66 +402,4 @@ final class _DigestSink implements Sink<Digest> {
 
   @override
   void close() {}
-}
-
-void _validateStagedProject(
-  String stagedPath,
-  GamePackageManifest manifest,
-  GamePackageSecurityPolicy policy,
-) {
-  final inventory = {
-    for (final entry in manifest.content.files) entry.path: entry,
-  };
-  List<int>? readPayload(String path) {
-    PackagePathPolicy.validate(path, errorPath: path);
-    final entry = inventory[path];
-    if (entry == null) return null;
-    var current = stagedPath;
-    final segments = p.posix.split(path);
-    for (var index = 0; index < segments.length; index++) {
-      current = p.join(current, segments[index]);
-      final type = FileSystemEntity.typeSync(current, followLinks: false);
-      final expected = index == segments.length - 1
-          ? FileSystemEntityType.file
-          : FileSystemEntityType.directory;
-      if (type != expected) {
-        throw GamePackageFormatException(
-          code: 'unsafeEntry',
-          path: path,
-          message: 'Staged payload must use regular files and directories.',
-        );
-      }
-    }
-    final file = File(current);
-    if (entry.size > policy.maxFileBytes || file.lengthSync() != entry.size) {
-      throw GamePackageFormatException(
-        code: 'sizeMismatch',
-        path: path,
-        message: 'Staged payload size differs from its inventory.',
-      );
-    }
-    final handle = file.openSync();
-    try {
-      final bytes = handle.readSync(entry.size);
-      if (bytes.length != entry.size ||
-          handle.lengthSync() != entry.size ||
-          sha256.convert(bytes).toString() != entry.sha256) {
-        throw GamePackageFormatException(
-          code: 'hashMismatch',
-          path: path,
-          message: 'Staged payload changed during project validation.',
-        );
-      }
-      return bytes;
-    } finally {
-      handle.closeSync();
-    }
-  }
-
-  GamePackageProjectValidator(policy).validate(
-    manifest,
-    Uint8List.fromList(readPayload('project/project.json')!),
-    payloadPaths: inventory.keys.toSet(),
-    readPayload: readPayload,
-  );
 }

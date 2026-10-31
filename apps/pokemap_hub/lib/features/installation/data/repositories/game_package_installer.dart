@@ -321,15 +321,6 @@ final class GamePackageInstaller
         totalFiles: manifest.content.fileCount,
       );
       await _verifyStaged(stagedVersion, manifest);
-
-      stage = GameInstallStage.validatingProject;
-      emitInstallProgress(
-        onProgress,
-        stage: stage,
-        gameId: gameId,
-        gameVersion: gameVersion,
-      );
-      await _staging.validateProject(stagedVersion, manifest);
       throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
 
       stage = GameInstallStage.smokeLoading;
@@ -965,8 +956,11 @@ final class GamePackageInstaller
     GamePackageManifest manifest,
   ) async {
     try {
-      await HubPreparedNarrativeIndex(supportRoot: supportRoot)
-          .prepare(versionRoot: versionRoot, manifest: manifest);
+      await HubPreparedNarrativeIndex(supportRoot: supportRoot).prepare(
+        versionRoot: versionRoot,
+        manifest: manifest,
+        sourceAlreadyVerified: true,
+      );
     } on PreparedNarrativeCacheUnavailable {
       return;
     }

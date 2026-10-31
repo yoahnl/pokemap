@@ -112,11 +112,12 @@ final class HubPreparedNarrativeIndex {
   Future<void> prepare({
     required Directory versionRoot,
     required GamePackageManifest manifest,
+    bool sourceAlreadyVerified = false,
   }) {
     final identity = p.normalize(p.absolute(fileFor(manifest).path));
     return _pending.putIfAbsent(identity, () async {
       try {
-        await _prepare(versionRoot, manifest);
+        await _prepare(versionRoot, manifest, sourceAlreadyVerified);
       } finally {
         _pending.remove(identity);
       }
@@ -126,8 +127,14 @@ final class HubPreparedNarrativeIndex {
   Future<void> _prepare(
     Directory versionRoot,
     GamePackageManifest manifest,
+    bool sourceAlreadyVerified,
   ) async {
-    await _verifySource(versionRoot, manifest, ['project/project.json']);
+    Future<void> verifySource(List<String> paths) async {
+      if (sourceAlreadyVerified) return;
+      await _verifySource(versionRoot, manifest, paths);
+    }
+
+    await verifySource(['project/project.json']);
     final projectFile = File(
       p.join(versionRoot.path, 'project', 'project.json'),
     );
@@ -149,7 +156,7 @@ final class HubPreparedNarrativeIndex {
       final mapPaths = [
         for (final entry in project.maps) 'project/${entry.relativePath}',
       ];
-      await _verifySource(versionRoot, manifest, mapPaths);
+      await verifySource(mapPaths);
       final maps = await catalog.loadNarrativeMapData(
         expectedSha256ByMapId: {
           for (final entry in project.maps)
@@ -167,10 +174,7 @@ final class HubPreparedNarrativeIndex {
         ),
       );
       final corpus = await _projectMaps(maps);
-      await _verifySource(versionRoot, manifest, [
-        'project/project.json',
-        ...mapPaths,
-      ]);
+      await verifySource(['project/project.json', ...mapPaths]);
       if (!await catalog.isCurrentPublication()) {
         throw const FormatException(
           'Project changed while preparing narrative data.',
