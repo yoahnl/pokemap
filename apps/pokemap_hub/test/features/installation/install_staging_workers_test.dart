@@ -8,6 +8,7 @@ import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/install_staging.dart';
+import 'package:pokemap_hub/features/installation/data/sources/file_package_source.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 import 'package:test/test.dart';
 
@@ -204,6 +205,114 @@ void main() {
     );
     return (service, target, inspection.manifest);
   }
+
+  test('extracts and hashes entries away from the calling isolate', () async {
+    package = await writeTestPackage(
+      Directory('${root.path}/many'),
+      extraFiles: 40,
+    );
+    final service = staging(
+      GamePackageInspector(hostCompatibility: testHostCompatibility()),
+    );
+    final inspection = await service.inspect(package);
+    final target = Directory('${root.path}/staged');
+    final firstFile = Completer<void>();
+    final events = <GameInstallProgress>[];
+
+    final extraction = service.extractSnapshot(
+      package,
+      target,
+      inspection,
+      cancellationToken: GameInstallCancellationToken(),
+      onProgress: (event) {
+        events.add(event);
+        if (!firstFile.isCompleted) firstFile.complete();
+      },
+    );
+    await firstFile.future;
+    bool allStaged() => inspection.manifest.content.files.every((entry) {
+      final file = File('${target.path}/${entry.path}');
+      return file.existsSync() && file.lengthSync() == entry.size;
+    });
+    final blockedRoot = Stopwatch()..start();
+    while (!allStaged() && blockedRoot.elapsed < const Duration(seconds: 30)) {}
+
+    expect(allStaged(), isTrue);
+    await extraction;
+    expect(events.map((event) => event.stage).toSet(), {
+      GameInstallStage.extracting,
+    });
+    expect(events.last.completedFiles, inspection.payloadPaths.length + 1);
+    expect(events.last.totalFiles, inspection.payloadPaths.length + 1);
+    expect(events.last.completedBytes, events.last.totalBytes);
+  });
+
+  test('cancels extraction between entries', () async {
+    package = await writeTestPackage(
+      Directory('${root.path}/many'),
+      extraFiles: 40,
+    );
+    final service = staging(
+      GamePackageInspector(hostCompatibility: testHostCompatibility()),
+    );
+    final inspection = await service.inspect(package);
+    final token = GameInstallCancellationToken();
+
+    await expectLater(
+      service.extractSnapshot(
+        package,
+        Directory('${root.path}/staged'),
+        inspection,
+        cancellationToken: token,
+        onProgress: (_) => token.cancel(),
+      ),
+      throwsA(
+        isA<GameInstallationException>().having(
+          (error) => error.diagnostic.code,
+          'code',
+          GameInstallationErrorCode.cancelled,
+        ),
+      ),
+    );
+  });
+
+  test('rejects an entry whose bytes differ from the inventory', () async {
+    final service = staging(
+      GamePackageInspector(hostCompatibility: testHostCompatibility()),
+    );
+    final inspection = await service.inspect(package);
+    final bytes = await package.readAsBytes();
+    final source = await FilePackageSource.open(package);
+    final int offset;
+    try {
+      offset = const RandomAccessZipStructureReader(GamePackageSecurityPolicy())
+          .read(source)
+          .entries
+          .singleWhere((entry) => entry.name == 'project/project.json')
+          .dataOffset;
+    } finally {
+      await source.close();
+    }
+    bytes[offset] ^= 0xff;
+    await package.writeAsBytes(bytes, flush: true);
+
+    await expectLater(
+      service.extractSnapshot(
+        package,
+        Directory('${root.path}/staged'),
+        inspection,
+        cancellationToken: GameInstallCancellationToken(),
+        onProgress: null,
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          'Staged payload digest differs.',
+        ),
+      ),
+    );
+  });
 
   test('rejects same-size staged tampering in project validation', () async {
     final (service, target, manifest) = await stagedProject();

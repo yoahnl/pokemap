@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
@@ -893,16 +892,6 @@ final class GamePackageInstaller
     }
     if (actual.length != expected.length || !actual.containsAll(expected)) {
       throw const FormatException('Staging inventory differs.');
-    }
-    for (final entry in manifest.content.files) {
-      final file = File(
-        p.joinAll(<String>[root.path, ...p.posix.split(entry.path)]),
-      );
-      if (await file.length() != entry.size ||
-          (await sha256.bind(file.openRead()).first).toString() !=
-              entry.sha256) {
-        throw const FormatException('Staged payload digest differs.');
-      }
     }
   }
 

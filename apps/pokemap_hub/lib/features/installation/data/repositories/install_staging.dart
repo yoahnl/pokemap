@@ -148,79 +148,185 @@ final class InstallStaging {
     required GameInstallProgressListener? onProgress,
   }) async {
     await target.create();
-    final input = InputFileStream(snapshot.path);
-    final archive = ZipDecoder().decodeStream(input);
-    final expected = <String>{
-      'game-manifest.json',
-      ...inspection.payloadPaths,
+    final gameId = inspection.manifest.gameId;
+    final gameVersion = inspection.manifest.gameVersion.toString();
+    throwIfCancelled(
+      cancellationToken,
+      GameInstallStage.extracting,
+      gameId,
+      gameVersion,
+    );
+    final expected = <String, _StagedEntryDigest>{
+      'game-manifest.json': _StagedEntryDigest(
+        null,
+        inspection.receipt.manifestSha256,
+      ),
+      for (final entry in inspection.manifest.content.files)
+        entry.path: _StagedEntryDigest(entry.size, entry.sha256),
     };
-    var completedFiles = 0;
-    var completedBytes = 0;
-    final totalBytes =
-        archive.files.fold<int>(0, (total, file) => total + file.size);
+    final events = ReceivePort();
+    final drained = Completer<void>();
+    SendPort? control;
+    events.listen((message) {
+      switch (message) {
+        case final SendPort port:
+          control = port;
+          if (cancellationToken.isCancelled) port.send(null);
+        case (
+          final int completedFiles,
+          final int totalFiles,
+          final int completedBytes,
+          final int totalBytes,
+        ):
+          if (cancellationToken.isCancelled) {
+            control?.send(null);
+            return;
+          }
+          emitInstallProgress(
+            onProgress,
+            stage: GameInstallStage.extracting,
+            gameId: gameId,
+            gameVersion: gameVersion,
+            completedFiles: completedFiles,
+            totalFiles: totalFiles,
+            completedBytes: completedBytes,
+            totalBytes: totalBytes,
+          );
+        case null:
+          drained.complete();
+      }
+    });
     try {
-      for (final entry in archive.files) {
-        throwIfCancelled(
-          cancellationToken,
-          GameInstallStage.extracting,
-          inspection.manifest.gameId,
-          inspection.manifest.gameVersion.toString(),
-        );
-        if (!expected.remove(entry.name) ||
-            !entry.isFile ||
-            entry.isSymbolicLink) {
-          throw const FormatException('Unexpected archive entry.');
-        }
-        final outputPath = p.joinAll(<String>[
-          target.path,
-          ...p.posix.split(entry.name),
-        ]);
-        if (!p.isWithin(target.path, outputPath)) {
-          throw const FormatException('Archive entry escaped staging.');
-        }
-        final outputFile = File(outputPath);
-        await outputFile.parent.create(recursive: true);
-        final output = await outputFile.open(mode: FileMode.writeOnly);
-        try {
-          final content = entry.getContent();
-          if (content == null) {
-            throw const FormatException('Archive entry has no content.');
-          }
-          var remaining = content.length;
-          while (remaining > 0) {
-            final count = min(remaining, 1024 * 1024);
-            final bytes = content.readBytes(count).toUint8List();
-            if (bytes.length != count) {
-              throw const FormatException('Archive entry was truncated.');
-            }
-            await output.writeFrom(bytes);
-            remaining -= bytes.length;
-            completedBytes += bytes.length;
-          }
-          await output.flush();
-        } finally {
-          await output.close();
-        }
-        completedFiles++;
-        emitInstallProgress(
-          onProgress,
-          stage: GameInstallStage.extracting,
-          gameId: inspection.manifest.gameId,
-          gameVersion: inspection.manifest.gameVersion.toString(),
-          completedFiles: completedFiles,
-          totalFiles: archive.files.length,
-          completedBytes: completedBytes,
-          totalBytes: totalBytes,
-        );
-      }
-      if (expected.isNotEmpty) {
-        throw const FormatException('Archive entries are missing.');
-      }
+      final completed = await _runSnapshotExtraction(
+        snapshot.path,
+        target.path,
+        <String>{'game-manifest.json', ...inspection.payloadPaths},
+        expected,
+        events.sendPort,
+      );
+      if (completed) await drained.future;
+      throwIfCancelled(
+        cancellationToken,
+        GameInstallStage.extracting,
+        gameId,
+        gameVersion,
+      );
     } finally {
-      await archive.clear();
-      await input.close();
+      events.close();
     }
   }
+}
+
+final class _StagedEntryDigest {
+  const _StagedEntryDigest(this.size, this.sha256);
+
+  final int? size;
+  final String sha256;
+}
+
+Future<bool> _runSnapshotExtraction(
+  String snapshotPath,
+  String targetPath,
+  Set<String> expectedNames,
+  Map<String, _StagedEntryDigest> digests,
+  SendPort events,
+) => Isolate.run(
+  () => _extractAndHashSnapshot(
+    snapshotPath,
+    targetPath,
+    expectedNames,
+    digests,
+    events,
+  ),
+  debugName: 'install-snapshot-extract',
+);
+
+Future<bool> _extractAndHashSnapshot(
+  String snapshotPath,
+  String targetPath,
+  Set<String> expectedNames,
+  Map<String, _StagedEntryDigest> digests,
+  SendPort events,
+) async {
+  final control = ReceivePort();
+  var cancelled = false;
+  control.listen((_) => cancelled = true);
+  events.send(control.sendPort);
+  final input = InputFileStream(snapshotPath);
+  final archive = ZipDecoder().decodeStream(input);
+  final expected = {...expectedNames};
+  var completedFiles = 0;
+  var completedBytes = 0;
+  final totalFiles = archive.files.length;
+  final totalBytes = archive.files.fold<int>(
+    0,
+    (total, file) => total + file.size,
+  );
+  try {
+    for (final entry in archive.files) {
+      if (cancelled) return false;
+      if (!expected.remove(entry.name) ||
+          !entry.isFile ||
+          entry.isSymbolicLink) {
+        throw const FormatException('Unexpected archive entry.');
+      }
+      final outputPath = p.joinAll(<String>[
+        targetPath,
+        ...p.posix.split(entry.name),
+      ]);
+      if (!p.isWithin(targetPath, outputPath)) {
+        throw const FormatException('Archive entry escaped staging.');
+      }
+      final digest = digests[entry.name];
+      if (digest == null) {
+        throw const FormatException('Staged payload digest differs.');
+      }
+      final outputFile = File(outputPath);
+      await outputFile.parent.create(recursive: true);
+      final output = await outputFile.open(mode: FileMode.writeOnly);
+      final digestSink = _DigestSink();
+      final hashInput = sha256.startChunkedConversion(digestSink);
+      var written = 0;
+      try {
+        final content = entry.getContent();
+        if (content == null) {
+          throw const FormatException('Archive entry has no content.');
+        }
+        var remaining = content.length;
+        while (remaining > 0) {
+          final count = min(remaining, 1024 * 1024);
+          final bytes = content.readBytes(count).toUint8List();
+          if (bytes.length != count) {
+            throw const FormatException('Archive entry was truncated.');
+          }
+          hashInput.add(bytes);
+          await output.writeFrom(bytes);
+          remaining -= bytes.length;
+          written += bytes.length;
+          completedBytes += bytes.length;
+        }
+        await output.flush();
+      } finally {
+        await output.close();
+      }
+      hashInput.close();
+      if ((digest.size != null && written != digest.size) ||
+          digestSink.value.toString() != digest.sha256) {
+        throw const FormatException('Staged payload digest differs.');
+      }
+      completedFiles++;
+      events.send((completedFiles, totalFiles, completedBytes, totalBytes));
+    }
+    if (expected.isNotEmpty) {
+      throw const FormatException('Archive entries are missing.');
+    }
+  } finally {
+    control.close();
+    await archive.clear();
+    await input.close();
+  }
+  events.send(null);
+  return true;
 }
 
 Future<String?> _runSnapshotCopy(

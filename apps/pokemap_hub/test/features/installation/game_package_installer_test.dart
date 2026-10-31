@@ -238,6 +238,109 @@ void main() {
       },
     );
 
+    test('a corrupted archive entry fails during extraction', () async {
+      final package = await writeTestPackage(packages, extraFiles: 2);
+      final stages = <GameInstallFaultStage>[];
+
+      await expectLater(
+        installer(
+          faultHook: (stage) async {
+            stages.add(stage);
+            if (stage != GameInstallFaultStage.afterSnapshotInspected) return;
+            final transaction = (await transactionsRoot().list().toList())
+                .whereType<Directory>()
+                .single;
+            await _corruptPayloadByte(
+              File(p.join(transaction.path, 'package.snapshot')),
+              'project/project.json',
+            );
+          },
+        ).install(package, source: GamePackageInstallSource.localFile),
+        throwsA(
+          isA<GameInstallationException>()
+              .having(
+                (error) => error.diagnostic.code,
+                'code',
+                GameInstallationErrorCode.extractionFailed,
+              )
+              .having(
+                (error) => error.diagnostic.stage,
+                'stage',
+                GameInstallStage.extracting,
+              )
+              .having(
+                (error) => error.cause,
+                'cause',
+                isA<FormatException>().having(
+                  (error) => error.message,
+                  'message',
+                  'Staged payload digest differs.',
+                ),
+              ),
+        ),
+      );
+
+      expect(stages, <GameInstallFaultStage>[
+        GameInstallFaultStage.afterSnapshotCopied,
+        GameInstallFaultStage.afterSnapshotInspected,
+      ]);
+      expect(
+        await Directory(
+          p.join(
+            root.path,
+            'PokeMap',
+            'games',
+            'games.example.adventure',
+            'versions',
+          ),
+        ).exists(),
+        isFalse,
+      );
+      expect(await transactionsRoot().list().toList(), isEmpty);
+    });
+
+    test('staged verification no longer reads payload bytes', () async {
+      final package = await writeTestPackage(packages, extraFiles: 3);
+      final originals = <File, List<int>>{};
+
+      final result =
+          await installer(
+            faultHook: (stage) async {
+              if (stage != GameInstallFaultStage.afterExtraction) return;
+              final transaction = (await transactionsRoot().list().toList())
+                  .whereType<Directory>()
+                  .single;
+              final staged = Directory(
+                p.join(transaction.path, 'staged-version'),
+              );
+              await for (final entity in staged.list(recursive: true)) {
+                if (entity is! File ||
+                    p.basename(entity.path) == 'game-manifest.json') {
+                  continue;
+                }
+                final bytes = await entity.readAsBytes();
+                originals[entity] = bytes;
+                await entity.writeAsBytes(<int>[
+                  for (final byte in bytes) byte ^ 0xff,
+                ], flush: true);
+              }
+            },
+          ).install(
+            package,
+            source: GamePackageInstallSource.localFile,
+            onProgress: (event) {
+              if (event.stage != GameInstallStage.validatingProject) return;
+              for (final MapEntry(key: file, value: bytes)
+                  in originals.entries) {
+                file.writeAsBytesSync(bytes, flush: true);
+              }
+            },
+          );
+
+      expect(originals, isNotEmpty);
+      expect(result.alreadyInstalled, isFalse);
+    });
+
     test('an already-installed release does not copy the snapshot', () async {
       final package = await writeTestPackage(packages);
       await installer().install(
