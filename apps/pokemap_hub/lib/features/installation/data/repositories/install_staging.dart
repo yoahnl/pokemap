@@ -23,17 +23,32 @@ final class InstallStaging {
   InstallStaging({
     required this.supportRoot,
     required this.inspector,
+    this.inspectionObserver,
     Random? random,
   }) : _random = random ?? Random.secure();
 
   final Directory supportRoot;
   final GamePackageInspector inspector;
+  final GamePackageInspectionObserver? inspectionObserver;
   final Random _random;
 
-  Future<GamePackageInspectionResult> inspect(File file) {
+  Future<GamePackageManifestInspection> inspectManifest(File file) {
     final path = file.path;
     final packageInspector = inspector;
-    return Isolate.run(() => _inspectPackageFile(path, packageInspector));
+    inspectionObserver?.call(GamePackageInspectionScope.manifest, path);
+    return Isolate.run(() => _inspectPackageManifest(path, packageInspector));
+  }
+
+  Future<GamePackageInspectionResult> inspect(
+    File file, {
+    String? knownPackageSha256,
+  }) {
+    final path = file.path;
+    final packageInspector = inspector;
+    inspectionObserver?.call(GamePackageInspectionScope.full, path);
+    return Isolate.run(
+      () => _inspectPackageFile(path, packageInspector, knownPackageSha256),
+    );
   }
 
   Future<void> validateProject(
@@ -57,7 +72,7 @@ final class InstallStaging {
     return root;
   }
 
-  Future<void> copyPackageSnapshot(
+  Future<String> copyPackageSnapshot(
     File source,
     File target, {
     required GameInstallCancellationToken cancellationToken,
@@ -68,6 +83,8 @@ final class InstallStaging {
   }) async {
     final input = await source.open(mode: FileMode.read);
     final output = await target.open(mode: FileMode.writeOnly);
+    final digestSink = _DigestSink();
+    final hashInput = sha256.startChunkedConversion(digestSink);
     var copied = 0;
     try {
       while (true) {
@@ -79,6 +96,7 @@ final class InstallStaging {
         );
         final bytes = await input.read(1024 * 1024);
         if (bytes.isEmpty) break;
+        hashInput.add(bytes);
         await output.writeFrom(bytes);
         copied += bytes.length;
         emitInstallProgress(
@@ -95,6 +113,8 @@ final class InstallStaging {
       await input.close();
       await output.close();
     }
+    hashInput.close();
+    return digestSink.value.toString();
   }
 
   Future<void> extractSnapshot(
@@ -180,16 +200,44 @@ final class InstallStaging {
   }
 }
 
-Future<GamePackageInspectionResult> _inspectPackageFile(
+Future<GamePackageManifestInspection> _inspectPackageManifest(
   String path,
   GamePackageInspector inspector,
 ) async {
   final source = await FilePackageSource.open(File(path));
   try {
-    return inspector.inspectSourceSync(source);
+    return inspector.inspectManifestSync(source);
   } finally {
     await source.close();
   }
+}
+
+Future<GamePackageInspectionResult> _inspectPackageFile(
+  String path,
+  GamePackageInspector inspector,
+  String? knownPackageSha256,
+) async {
+  final source = await FilePackageSource.open(File(path));
+  try {
+    return inspector.inspectSourceSync(
+      source,
+      knownPackageSha256: knownPackageSha256,
+    );
+  } finally {
+    await source.close();
+  }
+}
+
+final class _DigestSink implements Sink<Digest> {
+  Digest? _digest;
+
+  Digest get value => _digest ?? (throw StateError('Digest is not complete.'));
+
+  @override
+  void add(Digest data) => _digest = data;
+
+  @override
+  void close() {}
 }
 
 void _validateStagedProject(

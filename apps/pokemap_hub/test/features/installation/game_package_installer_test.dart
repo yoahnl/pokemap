@@ -73,6 +73,8 @@ void main() {
       PrepareGameSavesForUpdate? prepareSaves,
       Future<int> Function(Directory root)? disk,
       Duration? smokeTimeout,
+      GameInstallFaultHook? faultHook,
+      GamePackageInspectionObserver? inspectionObserver,
     }) => GamePackageInstaller(
       supportRoot: Directory(p.join(root.path, 'PokeMap')),
       inspector: GamePackageInspector(
@@ -83,8 +85,144 @@ void main() {
       prepareSavesForUpdate:
           prepareSaves ?? (_, _) async => const SaveUpdatePreparation(),
       loadSmokeTimeout: smokeTimeout ?? const Duration(seconds: 30),
+      faultHook: faultHook,
+      inspectionObserver: inspectionObserver,
       now: () => DateTime.utc(2026, 7, 25, 12),
     );
+
+    Directory transactionsRoot() =>
+        Directory(p.join(root.path, 'PokeMap', 'games', '.transactions'));
+
+    test('full inspection runs once per install', () async {
+      final package = await writeTestPackage(packages);
+      final inspections = <(GamePackageInspectionScope, String)>[];
+
+      await installer(
+        inspectionObserver: (scope, path) => inspections.add((scope, path)),
+      ).install(package, source: GamePackageInstallSource.localFile);
+
+      expect(inspections, hasLength(2));
+      expect(inspections.first, (
+        GamePackageInspectionScope.manifest,
+        package.path,
+      ));
+      final (scope, inspectedPath) = inspections.last;
+      expect(scope, GamePackageInspectionScope.full);
+      expect(p.basename(inspectedPath), 'package.snapshot');
+      expect(p.isWithin(transactionsRoot().path, inspectedPath), isTrue);
+    });
+
+    test(
+      'a package changed during snapshot copy fails without promotion',
+      () async {
+        final version1 = await writeTestPackage(packages, gameVersion: '1.0.0');
+        final version2 = await writeTestPackage(packages, gameVersion: '1.1.0');
+        await installer().install(
+          version1,
+          source: GamePackageInstallSource.localFile,
+        );
+        final gameRoot = p.join(
+          root.path,
+          'PokeMap',
+          'games',
+          'games.example.adventure',
+        );
+        final currentBefore = await File(p.join(gameRoot, 'current.json'))
+            .readAsBytes();
+        final stages = <GameInstallFaultStage>[];
+
+        await expectLater(
+          installer(
+            faultHook: (stage) async {
+              stages.add(stage);
+              if (stage != GameInstallFaultStage.afterSnapshotCopied) return;
+              final transaction = (await transactionsRoot().list().toList())
+                  .whereType<Directory>()
+                  .single;
+              await _corruptPayloadByte(
+                File(p.join(transaction.path, 'package.snapshot')),
+                'project/project.json',
+              );
+            },
+          ).install(
+            version2,
+            source: GamePackageInstallSource.localFile,
+            mode: GamePackageActivationMode.update,
+          ),
+          throwsA(
+            isA<GameInstallationException>().having(
+              (error) => error.diagnostic.code,
+              'code',
+              GameInstallationErrorCode.integrityFailed,
+            ),
+          ),
+        );
+
+        expect(stages, <GameInstallFaultStage>[
+          GameInstallFaultStage.afterSnapshotCopied,
+        ]);
+        expect(
+          (await Directory(
+            p.join(gameRoot, 'versions'),
+          ).list().toList()).map((entry) => p.basename(entry.path)),
+          <String>['1.0.0'],
+        );
+        expect(
+          await File(p.join(gameRoot, 'current.json')).readAsBytes(),
+          currentBefore,
+        );
+        expect(await transactionsRoot().list().toList(), isEmpty);
+      },
+    );
+
+    test('an already-installed release does not copy the snapshot', () async {
+      final package = await writeTestPackage(packages);
+      await installer().install(
+        package,
+        source: GamePackageInstallSource.localFile,
+      );
+      final stages = <GameInstallFaultStage>[];
+      final inspections = <GamePackageInspectionScope>[];
+
+      final result = await installer(
+        faultHook: (stage) async => stages.add(stage),
+        inspectionObserver: (scope, _) => inspections.add(scope),
+      ).install(package, source: GamePackageInstallSource.localFile);
+
+      expect(result.alreadyInstalled, isTrue);
+      expect(stages, isEmpty);
+      expect(inspections, <GamePackageInspectionScope>[
+        GamePackageInspectionScope.manifest,
+      ]);
+      expect(await transactionsRoot().list().toList(), isEmpty);
+    });
+
+    test('the receipt packageSha256 is unchanged', () async {
+      final package = await writeTestPackage(packages);
+      final packageSha256 = sha256
+          .convert(await package.readAsBytes())
+          .toString();
+
+      final result = await installer().install(
+        package,
+        source: GamePackageInstallSource.localFile,
+      );
+
+      expect(result.receipt.packageSha256, packageSha256);
+      final receiptFile = File(
+        p.join(
+          root.path,
+          'PokeMap',
+          'games',
+          result.game.gameId,
+          'install-receipts',
+          result.game.currentVersion.receiptFileName,
+        ),
+      );
+      final persisted =
+          jsonDecode(await receiptFile.readAsString()) as Map<String, Object?>;
+      expect(persisted['packageSha256'], packageSha256);
+    });
 
     test(
       'installs a real package and publishes receipt/current/library',
@@ -652,4 +790,21 @@ void main() {
       );
     });
   });
+}
+
+Future<void> _corruptPayloadByte(File package, String entryName) async {
+  final source = await FilePackageSource.open(package);
+  final int offset;
+  try {
+    offset = const RandomAccessZipStructureReader(GamePackageSecurityPolicy())
+        .read(source)
+        .entries
+        .singleWhere((entry) => entry.name == entryName)
+        .dataOffset;
+  } finally {
+    await source.close();
+  }
+  final bytes = await package.readAsBytes();
+  bytes[offset] ^= 0xff;
+  await package.writeAsBytes(bytes, flush: true);
 }

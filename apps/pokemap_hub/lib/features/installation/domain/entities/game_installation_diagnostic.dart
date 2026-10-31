@@ -115,6 +115,7 @@ final class GameInstallCancellationToken {
 }
 
 enum GameInstallFaultStage {
+  afterSnapshotCopied,
   afterSnapshotInspected,
   afterExtraction,
   beforeVersionPromotion,
@@ -126,4 +127,11 @@ enum GameInstallFaultStage {
 
 typedef GameInstallFaultHook = Future<void> Function(
   GameInstallFaultStage stage,
+);
+
+enum GamePackageInspectionScope { manifest, full }
+
+typedef GamePackageInspectionObserver = void Function(
+  GamePackageInspectionScope scope,
+  String packagePath,
 );

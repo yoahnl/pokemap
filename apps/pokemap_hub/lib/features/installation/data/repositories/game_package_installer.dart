@@ -33,6 +33,7 @@ final class GamePackageInstaller
     this.loadSmokeTimeout = const Duration(seconds: 30),
     this.libraryStore,
     this.faultHook,
+    this.inspectionObserver,
     DateTime Function()? now,
   }) : now = now ?? DateTime.now;
 
@@ -44,6 +45,7 @@ final class GamePackageInstaller
   final Duration loadSmokeTimeout;
   final GameLibraryStore? libraryStore;
   final GameInstallFaultHook? faultHook;
+  final GamePackageInspectionObserver? inspectionObserver;
   final DateTime Function() now;
   final Random _random = Random.secure();
   Future<void> _mutationTail = Future<void>.value();
@@ -54,6 +56,7 @@ final class GamePackageInstaller
   InstallStaging get _staging => InstallStaging(
     supportRoot: supportRoot,
     inspector: inspector,
+    inspectionObserver: inspectionObserver,
     random: _random,
   );
 
@@ -101,10 +104,10 @@ final class GamePackageInstaller
     Directory? transactionRoot;
     GameInstallationTransaction? transaction;
     var promotionStarted = false;
-    GamePackageInspectionResult initialInspection;
+    GamePackageManifestInspection initialInspection;
     try {
       emitInstallProgress(onProgress, stage: stage);
-      initialInspection = await _staging.inspect(packageFile);
+      initialInspection = await _staging.inspectManifest(packageFile);
     } on GamePackageFormatException catch (error, stackTrace) {
       throw formatFailure(error, stage, null, null, stackTrace);
     } on Object catch (error, stackTrace) {
@@ -221,7 +224,7 @@ final class GamePackageInstaller
       throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
       final requiredBytes = max(
         536870912,
-        initialInspection.receipt.archiveBytes * 5 ~/ 2,
+        initialInspection.archiveBytes * 5 ~/ 2,
       );
       if (await availableDiskBytes(supportRoot) < requiredBytes) {
         throw installFailure(
@@ -239,25 +242,29 @@ final class GamePackageInstaller
         stage: stage,
         gameId: gameId,
         gameVersion: gameVersion,
-        totalBytes: initialInspection.receipt.archiveBytes,
+        totalBytes: initialInspection.archiveBytes,
       );
       transactionRoot = await _staging.createTransactionRoot();
       final snapshot = File(p.join(transactionRoot.path, 'package.snapshot'));
-      await _staging.copyPackageSnapshot(
+      final packageSha256 = await _staging.copyPackageSnapshot(
         packageFile,
         snapshot,
         cancellationToken: cancellationToken,
         gameId: gameId,
         gameVersion: gameVersion,
         onProgress: onProgress,
-        totalBytes: initialInspection.receipt.archiveBytes,
+        totalBytes: initialInspection.archiveBytes,
       );
-      final snapshotInspection = await _staging.inspect(snapshot);
+      await _fault(GameInstallFaultStage.afterSnapshotCopied);
+      final snapshotInspection = await _staging.inspect(
+        snapshot,
+        knownPackageSha256: packageSha256,
+      );
       throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
-      if (!sameInspection(
-        initialInspection.receipt,
-        snapshotInspection.receipt,
-      )) {
+      if (snapshotInspection.receipt.manifestSha256 !=
+              initialInspection.manifestSha256 ||
+          snapshotInspection.receipt.archiveBytes !=
+              initialInspection.archiveBytes) {
         throw installFailure(
           GameInstallationErrorCode.sourceChanged,
           stage,
