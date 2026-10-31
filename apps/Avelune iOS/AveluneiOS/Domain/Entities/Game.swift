@@ -48,7 +48,7 @@ struct InstallProgress: Equatable {
         case "inspecting": return "Vérification du paquet"
         case "checkingCompatibility": return "Vérification de la compatibilité"
         case "checkingStorage": return "Vérification de l’espace disponible"
-        case "snapshotting": return "Copie du paquet"
+        case "snapshotting": return "Copie et vérification du paquet"
         case "extracting": return "Extraction des fichiers"
         case "verifying": return "Vérification des fichiers"
         case "validatingProject": return "Validation du projet"
