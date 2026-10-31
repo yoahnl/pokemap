@@ -183,6 +183,7 @@ void main() {
             'id': 'targetmon',
             'names': <String, String>{'en': 'Targetmon', 'fr': 'Ciblemon'},
             'forms': <String, dynamic>{'formId': 'summer'},
+            'dexContent': {'weightKg': 99.9},
             'typing': <String, dynamic>{
               'types': <String>['grass'],
             },
@@ -221,6 +222,8 @@ void main() {
         );
 
         expect(species.formId, 'summer');
+        expect(species.weightKg, 99.9);
+        expect(species.isBaseForm, isTrue);
         expect(species.displayName('fr-FR'), 'Ciblemon');
         expect(species.displayName('de'), 'targetmon');
         expect(species.primaryAbilityId, 'overgrow');

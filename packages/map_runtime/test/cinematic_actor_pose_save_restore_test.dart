@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'dart:ui' as ui;
 
@@ -13,6 +14,71 @@ import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final playerOnly in [false, true]) {
+    testWidgets('real daily cinematic keeps transaction facts and prior poses playerOnly=$playerOnly', (tester) async {
+      await tester.runAsync(() async {
+        var now = DateTime(2026, 10, 30, 23, 59);
+        final instances = retainMapInstance(
+          state: const MapInstanceWorldState.empty(), mapId: 'room', allocateId: (_) => 'daily-pose-instance',
+        );
+        final initial = GameState(
+          saveId: 'daily-cinematic-fixture', currentMapId: 'room', playerPosition: const GridPos(x: 1, y: 1),
+          gameplayCalendarState: GameplayCalendarState(observedLocalDay: '2026-10-30', dayRevision: 0),
+          periodicRewardState: playerOnly
+              ? PeriodicRewardState(claimsById: {'daily': PeriodicRewardClaim(revision: 1, lastClaimDayRevision: 0, lastClaimLocalDay: '2026-10-30')})
+              : const PeriodicRewardState.empty(),
+          mapInstanceWorldState: instances.setNpcPoses(instances.instanceRef('room')!, {
+            'other': MapInstanceNpcPose(position: const GridPos(x: 5, y: 5), facing: EntityFacing.west),
+          }),
+        );
+        final game = await _mount(tester, save: saveDataFromGameState(initial), conditional: true,
+          explicitSaveRestore: true, civilNow: () => now, admitCatalog: true,
+          transformBundle: (bundle) => _dailyPoseBundle(bundle, playerOnly: playerOnly));
+        Future<GameState> play() async {
+          game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+          game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+          await _until(game, () => game.debugIsCinematicPlaying);
+          game.update(.1);
+          expect(game.debugCinematicDialogueLine, 'Ready');
+          game.handleRuntimeInputEvent(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+          game.handleRuntimeInputEvent(const RuntimeInputEvent.release(RuntimeInputControl.primary));
+          await _until(game, () => !game.debugIsCinematicPlaying && !game.debugIsGameplayInputLocked &&
+              game.gameStateSnapshot.narrativeFactRuntimeState.valueFor('oak_present')?.boolValue == true);
+          return game.gameStateSnapshot;
+        }
+        if (playerOnly) {
+          final first = await play();
+          expect(first.narrativeFactRuntimeState.valueFor('oak_present')?.boolValue, isTrue);
+          expect(game.world.children.whereType<OverworldActorComponent>()
+              .where((actor) => actor.character.id == 'guide-character').every((actor) => !actor.isGameplayPresent), isTrue);
+          now = DateTime(2026, 10, 31, 0, 1);
+          game.refreshPeriodicRewardAvailability();
+          await _until(game, () => game.world.children.whereType<OverworldActorComponent>()
+              .any((actor) => actor.character.id == 'guide-character' && actor.isGameplayPresent));
+          expect(_npc(game).isGameplayPresent, isTrue);
+        }
+        final committed = await play();
+        final poses = committed.mapInstanceWorldState.instancesByMapId['room']!.npcPoses;
+        expect(committed.narrativeFactRuntimeState.valueFor('oak_present')?.boolValue, isTrue);
+        expect(committed.gameplayCalendarState, initial.gameplayCalendarState);
+        expect(committed.periodicRewardState, initial.periodicRewardState);
+        expect(poses['other']!.position, const GridPos(x: 5, y: 5));
+        expect(poses['other']!.facing, EntityFacing.west);
+        expect(poses['guide']!.position, playerOnly ? const GridPos(x: 3, y: 3) : const GridPos(x: 4, y: 3));
+        await _until(game, () => game.world.children.whereType<OverworldActorComponent>()
+            .any((actor) => actor.character.id == 'guide-character' && actor.isGameplayPresent));
+        expect(_npc(game).isGameplayPresent, isTrue);
+        expect(_npc(game).gridPos, poses['guide']!.position);
+        final saved = SaveData.fromJson(jsonDecode(jsonEncode(saveDataFromGameState(committed))));
+        expect(saved.gameplayCalendarState, initial.gameplayCalendarState);
+        expect(saved.periodicRewardState, initial.periodicRewardState);
+        expect(saved.mapInstanceWorldState, committed.mapInstanceWorldState);
+        expect(game.debugIsGameplayInputLocked, isFalse);
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
+    });
+  }
 
   testWidgets('real player, NPC and camera advance together before one final save', (tester) async {
     await tester.runAsync(() async {
@@ -174,9 +240,28 @@ Future<void> _until(PlayableMapGame game, bool Function() ready) async {
 }
 
 Future<PlayableMapGame> _mount(WidgetTester tester, {SaveData? save, double targetX = 4.5,
-    bool jump = false, bool parallel = false, bool conditional = false, bool failAfter = false, bool explicitSaveRestore = false}) async {
+    bool jump = false, bool parallel = false, bool conditional = false, bool failAfter = false, bool explicitSaveRestore = false, DateTime Function()? civilNow,
+    bool admitCatalog = false, RuntimeMapBundle Function(RuntimeMapBundle)? transformBundle}) async {
+  var bundle = _bundle(targetX, jump: jump, parallel: parallel, conditional: conditional, failAfter: failAfter);
+  bundle = transformBundle?.call(bundle) ?? bundle;
+  var projectFilePath = '/tmp/cinematic-pose/project.json';
+  if (admitCatalog) {
+    final qa = Directory('/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-runtime');
+    await qa.create(recursive: true);
+    final root = await qa.createTemp('cinematic-');
+    projectFilePath = '${root.path}/project.json';
+    await File(projectFilePath).writeAsString(jsonEncode(bundle.manifest.toJson()));
+    final mapFile = File('${root.path}/maps/room.json');
+    await mapFile.parent.create(recursive: true);
+    await mapFile.writeAsString(jsonEncode(bundle.map.toJson()));
+    final catalog = await RuntimeProjectCatalog.open(projectFilePath);
+    addTearDown(() async { catalog.dispose(); await root.delete(recursive: true); });
+    final hydrated = await catalog.manifestForMap(bundle.map);
+    bundle = RuntimeMapBundle(manifest: hydrated, projectCatalog: catalog, map: bundle.map,
+      projectRootDirectory: root.path, tilesetAbsolutePathsById: {'actors': '${root.path}/actors.png'});
+  }
   final game = PlayableMapGame(
-    bundle: _bundle(targetX, jump: jump, parallel: parallel, conditional:conditional,failAfter:failAfter), projectFilePath: '/tmp/cinematic-pose/project.json',
+    bundle: bundle, projectFilePath: projectFilePath, encounterClock: civilNow,
     saveData: save,
     initialMapActivationReason: explicitSaveRestore ? MapActivationReason.saveRestore : MapActivationReason.initialBoot,
     runtimeTilesetImageLoader: (paths, {transparentColorByTilesetId = const {}}) async {
@@ -294,3 +379,58 @@ RuntimeMapBundle _bundle(double targetX, {bool jump = false, bool parallel = fal
     ))],
   ),
 );
+
+RuntimeMapBundle _dailyPoseBundle(RuntimeMapBundle bundle, {required bool playerOnly}) {
+  final reference = PeriodicRewardReference(sceneId: 'daily-source', nodeId: 'claim', rewardId: 'daily');
+  final available = NarrativeEventConditionExpression.leaf(
+    NarrativeEventCondition.periodicRewardAvailable(reference: reference, expectedValue: true),
+  );
+  final claim = SceneInteractiveCommand.claimPeriodicReward(definition: PeriodicItemRewardDefinition(
+    rewardId: 'daily', label: 'Daily', itemId: 'fruit', quantity: 1,
+  ));
+  final source = SceneAsset(id: 'daily-source', name: 'Daily source', graph: SceneGraph(
+    startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(id: 'claim', kind: SceneNodeKind.action, payload: SceneActionPayload.interactive(claim)),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ], edges: [
+      SceneEdge(id: 'start-claim', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'claim', kind: SceneEdgeKind.defaultFlow),
+      for (final port in claim.outputPortIds) SceneEdge(id: 'claim-$port', fromNodeId: 'claim', fromPortId: port, toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
+    ],
+  ));
+  final movie = playerOnly ? CinematicAsset(id: 'cinematic', title: 'Player only', mapId: 'room',
+    actorCompletionPolicy: CinematicActorCompletionPolicy.keepFinal,
+    requiredActors: [CinematicActorRef(actorId: 'hero')],
+    stageContext: CinematicStageContext(
+      actorBindings: [CinematicActorBinding(actorId: 'hero', kind: CinematicActorBindingKind.player)],
+    ), timeline: CinematicTimeline(steps: [
+      CinematicTimelineStep(id: 'face', kind: CinematicTimelineStepKind.actorFace, actorId: 'hero',
+        metadata: const {'actor.direction': 'down'}),
+      CinematicTimelineStep(id: 'line', kind: CinematicTimelineStepKind.dialogueLine, dialogueText: 'Ready'),
+    ])) : bundle.manifest.cinematics.single;
+  return bundle.copyWith(map: bundle.map.copyWith(
+    layers: [const MapLayer.object(id: 'events', name: 'Events')],
+    entities: [
+    for (final entity in bundle.map.entities)
+      if (entity.id != 'guide') entity else entity.copyWith(presentation: MapEntityPresentation(variants: [
+        MapEntityPresentationVariant(id: 'active', condition: NarrativeEventConditionExpression.all([
+          NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('oak_present', true)), available,
+        ]), characterId: 'guide-character', blocksMovement: true),
+        MapEntityPresentationVariant(id: 'inactive', condition: NarrativeEventConditionExpression.any([
+          NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('oak_present', false)),
+          NarrativeEventConditionExpression.not(available),
+        ]), blocksMovement: false),
+      ])),
+    const MapEntity(id: 'cinematic-trigger', kind: MapEntityKind.custom, pos: GridPos(x: 1, y: 2), blocksMovement: true),
+    const MapEntity(id: 'other', kind: MapEntityKind.npc, pos: GridPos(x: 5, y: 5),
+      npc: MapEntityNpcData(characterId: 'other-character', facing: EntityFacing.east)),
+  ]), manifest: bundle.manifest.copyWith(scenes: [...bundle.manifest.scenes, source], cinematics: [movie],
+    eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, legacyClaims: const [], records: [
+      NarrativeEventRecord.configuredStructurallyUnchecked(NarrativeEventDefinition(
+        id: 'evt_019abcde-0000-7000-8000-000000000001', name: 'Cinematic trigger',
+        source: NarrativeEventSourceRef.entityInteract('room', 'cinematic-trigger'), conditions: const [],
+        sceneId: 'scene', reusePolicy: NarrativeEventReusePolicy.reusable, priority: 0, order: 0,
+      ), enabled: true),
+    ]),
+    characters: [...bundle.manifest.characters, const ProjectCharacterEntry(id: 'other-character', name: 'Other', tilesetId: 'actors')]));
+}

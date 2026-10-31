@@ -14,6 +14,55 @@ import '../domains/maps/healing_display_fixture.dart';
 import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleProject, obstacleMap;
 
 void main() {
+  for (final unrelated in [0, 90]) {
+    test('encounter background payload stays targeted with $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final zone = MapGameplayZone(
+        id: 'grass',
+        kind: GameplayZoneKind.encounter,
+        area: const MapRect(pos: GridPos(x: 0, y: 0), size: GridSize(width: 2, height: 2)),
+        priority: 20,
+        encounter: const EncounterZonePayload(encounterTableId: 'route', battleMusicPath: 'assets/battle.wav'),
+      );
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(version: ProjectVersion.v8, settings: const ProjectSettings(),
+          encounterTables: [ProjectEncounterTable(id: 'route', name: 'Route', encounterKind: EncounterKind.walk,
+            entries: [ProjectEncounterEntry(speciesId: 'pidgey', minLevel: 3, maxLevel: 3)])]),
+        map: MapData(id: 'map', name: 'Map', size: base.map.size, gameplayZones: [zone]),
+      ));
+      addTearDown(fixture.close);
+      final counts = <int>[];
+      for (var repeat = 0; repeat < 2; repeat++) {
+        fixture.reader.paths.clear();
+        final before = await fixture.mapFile.readAsBytes();
+        final payload = zone.encounter!.copyWith(battleBackgroundRelativePath: 'assets/background-$repeat.png');
+        final parameters = <String, Object?>{'mapId': 'map', 'zoneId': zone.id, 'payload': payload.toJson()};
+        final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'gameplay_zone.set_encounter_payload', parameters: parameters);
+        final timer = Stopwatch()..start();
+        final result = await fixture.apply('gameplay_zone.set_encounter_payload', parameters,
+          'encounter-background-$repeat', revision: selected.revision);
+        timer.stop();
+        counts.add(fixture.reader.paths.length);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json' ||
+          path.endsWith('.png') || path.endsWith('.wav') || path.endsWith('history.jsonl')), isEmpty);
+        final saved = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+        expect(saved.gameplayZones.single, zone.copyWith(encounter: payload));
+        await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: result.receipt.receiptId, idempotencyKey: 'undo-encounter-background-$repeat');
+        expect(await fixture.mapFile.readAsBytes(), before);
+        await fixture.apply('gameplay_zone.set_encounter_payload', parameters, 'encounter-background-again-$repeat');
+        print('encounter-background foreign=$unrelated repeat=$repeat reads=${counts.last} elapsedUs=${timer.elapsedMicroseconds}');
+      }
+      expect(counts.last, lessThanOrEqualTo(counts.first + 2));
+      await fixture.reopen();
+      expect(MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString())).gameplayZones.single.encounter!.battleBackgroundRelativePath,
+        'assets/background-1.png');
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+
   final mapAudioReadCounts = <List<int>>[];
   for (final unrelated in [0, 80]) {
     test('map audio read first repeat undo stays local with $unrelated foreign maps', () async {

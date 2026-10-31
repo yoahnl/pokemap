@@ -733,8 +733,11 @@ class BattleSession {
       final nextCaptureAttemptSequence = captureAttemptSequence + 1;
       final captureAttemptId =
           battleCaptureAttemptId(nextCaptureAttemptSequence);
-      final capture =
-          PokemonBattleRules.fromProfile(setup.ruleset).attemptCapture(
+      final resolution =
+          PokemonBattleRules.fromProfile(setup.ruleset).resolveCapture(
+        attemptId: captureAttemptId,
+        contextualPolicy: choice.contextualPolicy,
+        captureContext: choice.captureContext,
         targetCurrentHp: state.enemy.currentHp,
         targetMaxHp: state.enemy.maxHp,
         catchRate: state.enemy.catchRate!,
@@ -744,7 +747,9 @@ class BattleSession {
         status: _captureStatusForLegacy(state.enemy.majorStatus),
         rng: rng,
       );
+      final capture = resolution.attempt;
       final captureEvent = BattleCaptureAttemptEvent(
+        contextualReceipt: resolution.contextualReceipt,
         attemptId: captureAttemptId,
         targetSpeciesId: state.enemy.writeBackSpeciesId,
         ballId: choice.itemId,
@@ -752,6 +757,7 @@ class BattleSession {
         shakes: capture.shakes,
       );
       final captureAction = BattleActionCapture(
+        contextualReceipt: resolution.contextualReceipt,
         attemptId: captureAttemptId,
         itemId: choice.itemId,
         caught: capture.caught,

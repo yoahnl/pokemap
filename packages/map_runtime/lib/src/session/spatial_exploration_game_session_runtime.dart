@@ -1,3 +1,4 @@
+import '../application/runtime_periodic_reward_context.dart';
 import '../player/real_weather_service.dart';
 import 'dart:async';
 import 'dart:math';
@@ -163,6 +164,9 @@ final class SpatialExplorationGameSessionRuntime
   Future<void> gameplayReady = Future.value();
   String? _sceneBattleOutcome;
   final DateTime Function() _now;
+  late final _periodicRewardContext = RuntimePeriodicRewardContext(
+    civilNow: _now,
+  );
   final _playWatch = Stopwatch();
   GameState? _gameState;
   WorldEnvironmentClock? _environmentClock;
@@ -856,84 +860,109 @@ final class SpatialExplorationGameSessionRuntime
         })
       ..addListener(_syncMovement);
     _gameplay = await SpatialGameplayEvents.create(
-        project: project,
-        currentWorldProject: () => _session?.bundle.manifest ?? project,
-        now: _worldNow,
-        interactionPositionBlocked: (x, z, ignoredEntityId) => _session == null || !_session!.movement.canTraverseActor(x, z, x, z, ignoredEntityId: ignoredEntityId),
-        currentModelDefinitions: () =>
-            _session?.bundle.manifest.models3d ?? project.models3d,
-        mapsById: _mapsById,
-        readGameState: () => _gameState!,
-        commitGameState: (state) {
-          _ensureGameplayActive();
-          _gameState = state;
-        },
-        createSceneCallbacks: _createSceneCallbacks,
-        itemCatalog: _bagItemCatalog,
-        persistItemPickup: _persistNativeItemPickup,
-        presentItemPickup: _presentNativeItemPickup,
-        showEntityDialogue: (entity, ref) async {
-          final result = await _session!.showDialogue(ref, entity: entity);
-          if (!result.success) throw StateError(result.message!);
-        },
-        startWildBattle: (request) async {
-          await _startBattle(request);
-        },
-        activityGate: _activityGate,
-        isActive: () => !_disposed && !_stopped,
-        canProcessInput: () =>
-            !_paused &&
-            !_isFishingBusy &&
-            _locks.isEmpty &&
-            !(_session?.transitioning.value ?? false) &&
-            !(_session?.interactionActive.value ?? false) &&
-            !(_battle?.isActive ?? false),
-        runtimeIdFactory: (prefix) =>
-            '$prefix${_runtimeIds.generate(existingRecords: const []).substring(3)}',
-        narrativeSnapshot: narrativeSnapshot,
-        loadPresentationMediaCatalog: () => WorldPresentationImageLoader(bundle.projectRootDirectory).loadCatalog(),
-        afterStateCommitted: _materializeState,
-        onSceneTerminated: (owner) async {
-          _story?.releaseScene(owner);
-          await _sceneAudio?.releaseScene(owner);
-        },
-        buildSceneConsequenceWriter: (state, sceneId) async {
-          final scene =
-              project.scenes.firstWhere((scene) => scene.id == sceneId);
-          final needsHealing = scene.graph.nodes.any((node) =>
+      project: project,
+      currentWorldProject: () => _session?.bundle.manifest ?? project,
+      now: _worldNow,
+      periodicRewardContext: _periodicRewardContext,
+      interactionPositionBlocked: (x, z, ignoredEntityId) =>
+          _session == null ||
+          !_session!.movement.canTraverseActor(
+            x,
+            z,
+            x,
+            z,
+            ignoredEntityId: ignoredEntityId,
+          ),
+      currentModelDefinitions: () =>
+          _session?.bundle.manifest.models3d ?? project.models3d,
+      mapsById: _mapsById,
+      readGameState: () => _gameState!,
+      commitGameState: (state) {
+        _ensureGameplayActive();
+        _gameState = state;
+      },
+      createSceneCallbacks: _createSceneCallbacks,
+      itemCatalog: _bagItemCatalog,
+      persistItemPickup: _persistNativeItemPickup,
+      presentItemPickup: _presentNativeItemPickup,
+      showEntityDialogue: (entity, ref) async {
+        final result = await _session!.showDialogue(ref, entity: entity);
+        if (!result.success) throw StateError(result.message!);
+      },
+      startWildBattle: (request) async {
+        await _startBattle(request);
+      },
+      activityGate: _activityGate,
+      isActive: () => !_disposed && !_stopped,
+      canProcessInput: () =>
+          !_paused &&
+          !_isFishingBusy &&
+          _locks.isEmpty &&
+          !(_session?.transitioning.value ?? false) &&
+          !(_session?.interactionActive.value ?? false) &&
+          !(_battle?.isActive ?? false),
+      runtimeIdFactory: (prefix) =>
+          '$prefix${_runtimeIds.generate(existingRecords: const []).substring(3)}',
+      narrativeSnapshot: narrativeSnapshot,
+      loadPresentationMediaCatalog: () =>
+          WorldPresentationImageLoader(bundle.projectRootDirectory)
+              .loadCatalog(),
+      afterStateCommitted: _materializeState,
+      onSceneTerminated: (owner) async {
+        _story?.releaseScene(owner);
+        await _sceneAudio?.releaseScene(owner);
+      },
+      buildSceneConsequenceWriter: (state, sceneId) async {
+        final scene = project.scenes.firstWhere((scene) => scene.id == sceneId);
+        final needsHealing = scene.graph.nodes.any(
+          (node) =>
               node.payload is SceneActionPayload &&
               (node.payload as SceneActionPayload).consequence?.kind ==
                   SceneConsequenceKind.healParty);
           final caps = needsHealing
               ? await (_recoveryCapsLoader?.call(state) ??
                   loadRuntimePlayerServiceRecoveryCaps(
-                      gameState: state,
-                      projectRootDirectory: bundle.projectRootDirectory,
-                      pokemonConfig: project.pokemon))
-              : const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {});
-          final pokemonCatalog = await loadRuntimeScenePokemonCatalog(
-            scene: scene,
-            projectRootDirectory: bundle.projectRootDirectory,
-            pokemonConfig: project.pokemon,
-          );
-          final partyConditionContext = await loadRuntimeScenePartyConditionContext(
-            scene: scene,
-            supportedFieldAbilities: const {FieldAbility.surf, FieldAbility.cut, FieldAbility.rockSmash},
-            conditionContext: ScriptEvaluationContext(narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(project.facts)),
-            projectRootDirectory: bundle.projectRootDirectory,
-            pokemonConfig: project.pokemon,
-            projectSettings: project.settings,
-          );
-          _ensureGameplayActive();
-          return SceneConsequenceRuntimeWriter(
-              project: project,
-              itemCatalog: _bagItemCatalog,
-              pokemonCatalog: pokemonCatalog,
-              partyConditionContext: partyConditionContext,
-              mapsById: _mapsById,
-              maxHpByPartyIndex: caps.maxHpByPartyIndex,
-              maxPpByPartyIndex: caps.maxPpByPartyIndex);
-        });
+                    gameState: state,
+                    projectRootDirectory: bundle.projectRootDirectory,
+                    pokemonConfig: project.pokemon,
+                  ))
+            : const RuntimePlayerServiceRecoveryCaps(maxHpByPartyIndex: {});
+        final pokemonCatalog = await loadRuntimeScenePokemonCatalog(
+          scene: scene,
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: project.pokemon,
+        );
+        final partyConditionContext =
+            await loadRuntimeScenePartyConditionContext(
+              scene: scene,
+              supportedFieldAbilities: const {
+                FieldAbility.surf,
+                FieldAbility.cut,
+                FieldAbility.rockSmash,
+              },
+              conditionContext: ScriptEvaluationContext(
+                narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(
+                  project.facts,
+                ),
+              ),
+              projectRootDirectory: bundle.projectRootDirectory,
+              pokemonConfig: project.pokemon,
+              projectSettings: project.settings,
+            );
+        _ensureGameplayActive();
+        return SceneConsequenceRuntimeWriter(
+          lookupRewardScenes: _gameplay?.rewardScenes,
+          periodicRewardState: _periodicRewardContext.observe,
+          project: project,
+          itemCatalog: _bagItemCatalog,
+          pokemonCatalog: pokemonCatalog,
+          partyConditionContext: partyConditionContext,
+          mapsById: _mapsById,
+          maxHpByPartyIndex: caps.maxHpByPartyIndex,
+          maxPpByPartyIndex: caps.maxPpByPartyIndex,
+        );
+      },
+    );
   }
 
   GameState _readMutableState() =>
@@ -977,6 +1006,8 @@ final class SpatialExplorationGameSessionRuntime
         project: _session!.bundle.manifest,
         runtimeSourceId: _mapActivationId,
         readGameState: read,
+        periodicRewardContext: _periodicRewardContext,
+        lookupRewardScenes: _gameplay?.rewardScenes,
         playCinematic: (intent) => _withSceneState(read, commit,
             () => _story!.playCinematic(intent, _mapActivationId, sceneOwner: read)),
         show: (request) => _withSceneState(
@@ -1027,6 +1058,10 @@ final class SpatialExplorationGameSessionRuntime
             read,
             commit,
             () => SceneInteractiveCommandRuntimeExecutor(
+                claimPeriodicReward: (command) async {
+                  if (command is! SceneClaimPeriodicRewardInteractiveCommand) return 'blocked';
+                  return _playerServices!.claimPeriodicReward(definition: command.definition);
+                },
                 sceneMusic: (command) => _sceneAudio!.execute(command, sceneOwner: read),
                 worldPresentation: (command) => _story!.playVisual(command, owner: read),
                 playModelAnimation: (command) => _story!.playModel(command),
@@ -1413,8 +1448,17 @@ final class SpatialExplorationGameSessionRuntime
         _createdAt = save.createdAt;
         _basePlayTimeSeconds = save.playTimeSeconds;
       }
-      if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest) || state.gameplayCalendarState.isInitialized) {
-        state = observeGameplayCalendar(state, localDay: runtimeCivilDay(_now()));
+      if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest) ||
+          SpatialGameplayCapabilities.requiresPeriodicReward(manifest) ||
+          SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
+            manifest,
+            maps: const [],
+          ) ||
+          state.gameplayCalendarState.isInitialized) {
+        state = observeGameplayCalendar(
+          state,
+          localDay: runtimeCivilDay(_now()),
+        );
       }
       final mapId = state.currentMapId.trim();
       final position = state.playerSpatialPosition;
@@ -1435,6 +1479,17 @@ final class SpatialExplorationGameSessionRuntime
       _ensureLoadActive(generation);
       if (bundle.map.id != mapId) {
         throw StateError('The preloaded map does not match the spatial state.');
+      }
+      if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
+            bundle.manifest,
+            maps: [bundle.map],
+          ) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+          )) {
+        throw StateError(
+          'The project requires ${SpatialGameplayCapabilities.periodicRewardConditionCapabilityId}.',
+        );
       }
       if (SurfGameplayCapabilities.requiresCapability(bundle.manifest) &&
           !descriptor.grantedCapabilities.contains(SurfGameplayCapabilities.capabilityId)) {
@@ -1518,31 +1573,53 @@ final class SpatialExplorationGameSessionRuntime
             );
           }
           if (next.map.spatialScene!.lifts.isNotEmpty &&
-                !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.liftCapabilityId)) {
-              throw StateError('The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.');
-            }
-            if (SpatialGameplayCapabilities.requiresPlatforms([next.map]) && !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.platformCapabilityId)) throw StateError('The map requires ${SpatialGameplayCapabilities.platformCapabilityId}.');
-            return next;
-          },
-          knownMaps: _mapsById.values,
-          worldStateProvider: () =>
-              _sceneStateReader?.call().spatialWorldState ??
-              _gameState!.spatialWorldState,
-          spatialArrival: position,
-          movementMode: state.playerMovementMode,
-          facing: state.playerFacing,
-          entityProjection: (mapId, entity) => _gameplay?.projectEntity(mapId, entity,
-            gameStateOverride: _stopped || _disposed ? _gameState :
-              _gameplay?.projectedSceneGameState ?? _sceneStateReader?.call()),
-          presentationStateProvider: () => _gameplay?.projectedSceneGameState ??
-            _sceneStateReader?.call() ?? _gameState!,
-          entityIsPresent: (mapId, entity) =>
-              _gameplay?.entityIsPresent(mapId, entity,
-                  gameStateOverride: _stopped || _disposed
-                      ? _gameState
-                      : _gameplay?.projectedSceneGameState ??
-                          _sceneStateReader?.call()) ?? true,
-          characterId: state.trainerProfile.avatarCharacterId);
+              !descriptor.grantedCapabilities.contains(
+                SpatialGameplayCapabilities.liftCapabilityId,
+              )) {
+            throw StateError(
+              'The map requires ${SpatialGameplayCapabilities.liftCapabilityId}.',
+            );
+          }
+          if (SpatialGameplayCapabilities.requiresPlatforms([next.map]) &&
+              !descriptor.grantedCapabilities.contains(
+                SpatialGameplayCapabilities.platformCapabilityId,
+              ))
+            throw StateError(
+              'The map requires ${SpatialGameplayCapabilities.platformCapabilityId}.',
+            );
+          return next;
+        },
+        knownMaps: _mapsById.values,
+        worldStateProvider: () =>
+            _sceneStateReader?.call().spatialWorldState ??
+            _gameState!.spatialWorldState,
+        spatialArrival: position,
+        movementMode: state.playerMovementMode,
+        facing: state.playerFacing,
+        entityProjection: (mapId, entity) => _gameplay?.projectEntity(
+          mapId,
+          entity,
+          gameStateOverride: _stopped || _disposed
+              ? _gameState
+              : _gameplay?.projectedSceneGameState ?? _sceneStateReader?.call(),
+        ),
+        presentationStateProvider: () => _periodicRewardContext.observe(
+          _gameplay?.projectedSceneGameState ??
+              _sceneStateReader?.call() ??
+              _gameState!,
+        ),
+        entityIsPresent: (mapId, entity) =>
+            _gameplay?.entityIsPresent(
+              mapId,
+              entity,
+              gameStateOverride: _stopped || _disposed
+                  ? _gameState
+                  : _gameplay?.projectedSceneGameState ??
+                        _sceneStateReader?.call(),
+            ) ??
+            true,
+        characterId: state.trainerProfile.avatarCharacterId,
+      );
       if (_disposed || _stopped || generation != _loadGeneration) {
         loaded.dispose();
         throw StateError('Exploration closed while loading.');
@@ -1552,6 +1629,8 @@ final class SpatialExplorationGameSessionRuntime
       _realWeatherDeclared = WorldEnvironmentCapabilities.requiresRealProject(bundle.manifest);
       _session = loaded;
       loaded.projectAudio = projectAudio;
+      loaded.lookupRewardScenes = (id) =>
+          _gameplay?.rewardScenes(id) ?? const [];
       if (loaded.movement.spatialPosition != position) {
         _gameState = state.copyWith(playerPosition: GridPos(
             x: loaded.movement.x.floor(), y: loaded.movement.z.floor()),
@@ -1570,6 +1649,7 @@ final class SpatialExplorationGameSessionRuntime
         },
       );
       loaded.onPresentationFrame = (dt, paused) {
+        _refreshPeriodicRewardAvailability();
         _story?.update(dt, paused || _isFishingBusy);
         _advanceSpatialFishing(dt);
       };
@@ -1578,7 +1658,11 @@ final class SpatialExplorationGameSessionRuntime
       loaded.transitioning.addListener(_syncMovement);
       loaded.mapRevision.addListener(_onMapActivated);
       loaded.onFrame = _publishFrame;
-      loaded.onLifecyclePausedChanged = (_) { _syncMusicSuspension(); _configureRealWeather(); };
+      loaded.onLifecyclePausedChanged = (paused) {
+        if (!paused) _refreshPeriodicRewardAvailability();
+        _syncMusicSuspension();
+        _configureRealWeather();
+      };
       if (_preferences case final preferences?) {
         loaded.setTextSpeed(preferences.dialogueTextSpeed);
         loaded.worldTimeOverrides = preferences.worldTime.visualOverrides;
@@ -1789,6 +1873,7 @@ final class SpatialExplorationGameSessionRuntime
   @override
   Future<void> resume() async {
     _ensureOpen();
+    _refreshPeriodicRewardAvailability();
     _paused = false;
     if (!_stopped && _session != null) _playWatch.start();
     _syncMovement();
@@ -1859,6 +1944,7 @@ final class SpatialExplorationGameSessionRuntime
         commitAndSave: _commitPlayerServiceState,
         commitCraftingAndSave: _commitCheckpoint == null ? null : _commitCraftingState,
         commitImagePuzzleAndSave: _commitCheckpoint == null ? null : _commitImagePuzzleState,
+        commitPeriodicRewardAndSave: _commitCheckpoint == null ? null : _commitPeriodicRewardState,
         setInputLocked: (locked) {
           if (_disposed) return;
           if (locked) {
@@ -1940,6 +2026,59 @@ final class SpatialExplorationGameSessionRuntime
     _imagePuzzleActivityOwner = _activityGate.captureSceneCheckpointOwner();
     try { return await _playerServices!.openImagePuzzle(request: request); }
     finally { _imagePuzzleCheckpointOwner = null; _imagePuzzleActivityOwner = null; }
+  }
+
+  void _refreshPeriodicRewardAvailability() {
+    if (_periodicRewardContext.refresh()) _publishFrame();
+  }
+
+  Future<void> _commitPeriodicRewardState(GameState nextState) async {
+    final reader = _sceneStateReader;
+    final writer = _sceneStateWriter;
+    final owner = _gameplay?.activeSceneCheckpointOwner;
+    final persist = _commitCheckpoint;
+    if (reader == null ||
+        writer == null ||
+        owner == null ||
+        persist == null ||
+        _disposed ||
+        _stopped) {
+      throw StateError('The reward Scene checkpoint owner is unavailable.');
+    }
+    final activity = _activityGate.captureSceneCheckpointOwner();
+    final current = reader();
+    if (!samePeriodicRewardCheckpointFields(
+      current,
+      _gameplay?.projectedSceneGameState ?? current,
+    )) {
+      throw StateError(
+        'Pending Scene inventory changes conflict with this reward.',
+      );
+    }
+    final projected = await checkpointPeriodicReward(
+      owner: owner,
+      currentDraft: current,
+      nextDraft: nextState,
+      persist: (durable) async {
+        await _activityGate.runSceneCheckpoint(
+          activity,
+          () => persist(
+            GameSessionCheckpointCommit(
+              descriptor: descriptor.publicContext,
+              checkpoint: _checkpointFromState(
+                durable,
+                captureEnvironment: false,
+              ),
+              status: SaveStatus.active,
+              trigger: GameSessionCheckpointTrigger.pauseMutation,
+            ),
+          ),
+        );
+        _gameState = durable;
+      },
+    );
+    writer(projected);
+    _publishFrame();
   }
 
   Future<void> _commitImagePuzzleState(GameState nextState) async {

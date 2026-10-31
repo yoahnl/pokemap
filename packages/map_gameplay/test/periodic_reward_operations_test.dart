@@ -98,7 +98,24 @@ void main() {
         }));
     expect(full.failure, PeriodicRewardFailure.bagFull);
     expect(full.state, same(state));
-    expect(claim(full.state).isSuccess, isTrue);
+    expect(
+      readPeriodicRewardAvailability(
+        calendar: full.state.gameplayCalendarState,
+        rewardState: full.state.periodicRewardState,
+        rewardId: definition.rewardId,
+      ),
+      PeriodicRewardAvailability.available,
+    );
+    final retry = claim(full.state);
+    expect(retry.isSuccess, isTrue);
+    expect(
+      readPeriodicRewardAvailability(
+        calendar: retry.state.gameplayCalendarState,
+        rewardState: retry.state.periodicRewardState,
+        rewardId: definition.rewardId,
+      ),
+      PeriodicRewardAvailability.alreadyClaimed,
+    );
   });
 
   test(
@@ -155,5 +172,174 @@ void main() {
       }),
     );
     expect(claim(exhausted).failure, PeriodicRewardFailure.quantityOverflow);
+  });
+
+  for (final entry in [
+    (
+      day: '2026-10-29',
+      revision: 3,
+      failure: PeriodicRewardFailure.calendarInconsistent
+    ),
+    (
+      day: '2026-10-30',
+      revision: 3,
+      failure: PeriodicRewardFailure.calendarInconsistent
+    ),
+    (
+      day: '2026-10-31',
+      revision: 3,
+      failure: PeriodicRewardFailure.calendarInconsistent
+    ),
+    (
+      day: '2026-10-29',
+      revision: 4,
+      failure: PeriodicRewardFailure.alreadyClaimed
+    ),
+    (
+      day: '2026-10-30',
+      revision: 4,
+      failure: PeriodicRewardFailure.alreadyClaimed
+    ),
+    (
+      day: '2026-10-31',
+      revision: 4,
+      failure: PeriodicRewardFailure.alreadyClaimed
+    ),
+    (
+      day: '2026-10-29',
+      revision: 5,
+      failure: PeriodicRewardFailure.alreadyClaimed
+    ),
+    (
+      day: '2026-10-30',
+      revision: 5,
+      failure: PeriodicRewardFailure.alreadyClaimed
+    ),
+    (day: '2026-10-31', revision: 5, failure: null),
+  ]) {
+    test(
+        'claim calendar characterization ${entry.day} revision ${entry.revision}',
+        () {
+      final state = GameState(
+        saveId: 'reward-save',
+        gameplayCalendarState: GameplayCalendarState(
+          observedLocalDay: entry.day,
+          dayRevision: entry.revision,
+        ),
+        periodicRewardState: PeriodicRewardState(claimsById: {
+          'daily-fruit': PeriodicRewardClaim(
+            revision: 2,
+            lastClaimDayRevision: 4,
+            lastClaimLocalDay: '2026-10-30',
+          ),
+        }),
+      );
+      final result = claim(state);
+      final availability = readPeriodicRewardAvailability(
+        calendar: state.gameplayCalendarState,
+        rewardState: state.periodicRewardState,
+        rewardId: definition.rewardId,
+      );
+      expect(result.failure, entry.failure);
+      expect(
+        availability.matches(expectedValue: true),
+        entry.failure == null,
+      );
+      expect(
+        availability.matches(expectedValue: false),
+        entry.failure == PeriodicRewardFailure.alreadyClaimed,
+      );
+      if (entry.failure != null) {
+        expect(result.state, same(state));
+      } else {
+        expect(
+            result.state.periodicRewardState.claimFor('daily-fruit')!.revision,
+            3);
+        expect(const BagOperations().quantityOf(result.state.bag, 'fruit'), 2);
+      }
+    });
+  }
+
+  test(
+      'claim refusal precedence preserves conflicts calendar overflow and bag guards',
+      () {
+    final missing = PeriodicItemRewardDefinition(
+      rewardId: 'daily-fruit',
+      label: 'Fruit',
+      itemId: 'missing',
+      quantity: 2,
+    );
+    final uninitialized = const GameState(saveId: 'reward-save');
+    final otherCalendar = GameplayCalendarState(
+      observedLocalDay: '2026-11-01',
+      dayRevision: 5,
+    );
+    final inconsistent = initial().copyWith(
+      periodicRewardState: PeriodicRewardState(claimsById: {
+        'daily-fruit': PeriodicRewardClaim(
+          revision: 2,
+          lastClaimDayRevision: 1,
+          lastClaimLocalDay: '2026-10-30',
+        ),
+      }),
+    );
+    final alreadyClaimed = claim(initial()).state;
+    final exhausted =
+        observeGameplayCalendar(initial(), localDay: '2026-10-31').copyWith(
+      periodicRewardState: PeriodicRewardState(claimsById: {
+        'daily-fruit': PeriodicRewardClaim(
+          revision: GameplayCalendarState.maximumRevision,
+          lastClaimDayRevision: 0,
+          lastClaimLocalDay: '2026-10-30',
+        ),
+      }),
+    );
+    const fullCapacity = ProjectBagCapacity(pockets: {
+      'items': BagPocketCapacity(maxQuantityPerItem: 1),
+    });
+    final cases = [
+      (
+        state: uninitialized,
+        result: claim(uninitialized,
+            revision: 1, calendar: otherCalendar, config: missing),
+        failure: PeriodicRewardFailure.revisionConflict
+      ),
+      (
+        state: uninitialized,
+        result: claim(uninitialized, calendar: otherCalendar, config: missing),
+        failure: PeriodicRewardFailure.calendarChanged
+      ),
+      (
+        state: uninitialized,
+        result: claim(uninitialized, config: missing),
+        failure: PeriodicRewardFailure.calendarUninitialized
+      ),
+      (
+        state: inconsistent,
+        result: claim(inconsistent, config: missing),
+        failure: PeriodicRewardFailure.calendarInconsistent
+      ),
+      (
+        state: alreadyClaimed,
+        result: claim(alreadyClaimed, config: missing),
+        failure: PeriodicRewardFailure.alreadyClaimed
+      ),
+      (
+        state: exhausted,
+        result: claim(exhausted, config: missing),
+        failure: PeriodicRewardFailure.quantityOverflow
+      ),
+    ];
+    for (final entry in cases) {
+      expect(entry.result.failure, entry.failure);
+      expect(entry.result.state, same(entry.state));
+    }
+    final eligible = initial();
+    final unknown = claim(eligible, config: missing, capacity: fullCapacity);
+    expect(unknown.failure, PeriodicRewardFailure.unknownItem);
+    expect(unknown.state, same(eligible));
+    final full = claim(eligible, capacity: fullCapacity);
+    expect(full.failure, PeriodicRewardFailure.bagFull);
+    expect(full.state, same(eligible));
   });
 }

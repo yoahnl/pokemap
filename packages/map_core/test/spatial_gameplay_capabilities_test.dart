@@ -178,6 +178,7 @@ void main() {
       expect(SpatialGameplayCapabilities.capabilityId, 'map3d.gameplay@1');
       expect(SpatialGameplayCapabilities.productionExportEnabled, false);
       expect(SpatialGameplayCapabilities.conditionSources, {
+        SceneConditionSourceKind.periodicRewardAvailable,
         SceneConditionSourceKind.playerFacing,
         SceneConditionSourceKind.integerComparison,
         SceneConditionSourceKind.inventoryItem,
@@ -193,6 +194,15 @@ void main() {
         (kind) => kind != SceneConditionSourceKind.newGameDraft,
       )) {
         final source = switch (kind) {
+          SceneConditionSourceKind.periodicRewardAvailable =>
+            SceneConditionSource.periodicRewardAvailable(
+              reference: PeriodicRewardReference(
+                sceneId: 'scene',
+                nodeId: 'claim',
+                rewardId: 'daily',
+              ),
+              expectedValue: true,
+            ),
           SceneConditionSourceKind.integerComparison =>
             SceneConditionSource.integerComparison(
               left: SceneIntegerOperand.literal(1),

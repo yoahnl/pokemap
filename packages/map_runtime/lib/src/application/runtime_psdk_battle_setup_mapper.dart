@@ -4,6 +4,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
 import 'runtime_battle_combatant_seed_builder.dart';
+import 'runtime_contextual_capture.dart';
 import 'runtime_battle_setup_mapper.dart';
 import 'runtime_map_bundle.dart';
 import 'runtime_item_catalog_loader.dart';
@@ -45,6 +46,7 @@ final class RuntimePsdkBattleSetupMapper {
     required BattleStartRequest request,
     int? playerPartyIndex,
     ItemCatalogSnapshot? itemCatalog,
+    void Function(RuntimeCaptureProvenance)? onCaptureProvenance,
   }) async {
     final doubles = requiresDoubles(bundle.manifest, request);
     if (doubles && request is! TrainerBattleStartRequest) {
@@ -197,6 +199,16 @@ final class RuntimePsdkBattleSetupMapper {
           );
         }(),
     };
+
+    if (request is WildBattleStartRequest && onCaptureProvenance != null) {
+      onCaptureProvenance(await combatantSeedBuilder.buildCaptureProvenance(
+        projectRootDirectory: bundle.projectRootDirectory,
+        pokemonConfig: bundle.manifest.pokemon,
+        party: gameState.party,
+        playerLineupPartyIndices: playerSelection.lineupPartyIndices,
+        request: request,
+      ));
+    }
 
     const rngSeeds = PsdkBattleRngSeeds(
       moveDamage: 17,

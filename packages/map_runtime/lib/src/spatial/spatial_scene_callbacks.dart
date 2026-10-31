@@ -1,3 +1,4 @@
+import '../application/runtime_periodic_reward_context.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
@@ -21,6 +22,8 @@ final class SpatialSceneCallbacks
     required this.battle,
     required this.interactive,
     this.playCinematic,
+    this.periodicRewardContext,
+    this.lookupRewardScenes,
     this.presentPokemonGift,
     this.presentTextInput,
     this.presentPlayerAvatar,
@@ -31,6 +34,8 @@ final class SpatialSceneCallbacks
   final SceneTextInputPresenter? presentTextInput;
   final Future<void> Function(String?)? presentPlayerAvatar;
   final ScenePartyConditionContext partyConditionContext;
+  final RuntimePeriodicRewardContext? periodicRewardContext;
+  final PeriodicRewardSceneLookup? lookupRewardScenes;
   final ProjectManifest project;
   final String runtimeSourceId;
   final GameState Function() readGameState;
@@ -77,6 +82,18 @@ final class SpatialSceneCallbacks
     final source = intent.conditionSource;
     if (source == null) throw StateError('The Scene condition is missing.');
     final state = readGameState();
+    if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable) {
+      final context = periodicRewardContext;
+      if (context == null)
+        throw const SceneRuntimeConditionUnavailable(
+          'Le calendrier de cette récompense est indisponible. Rouvrez le jeu puis réessayez.',
+        );
+      return context.evaluateScene(
+        source: source,
+        gameState: state,
+        lookupScenes: lookupRewardScenes ?? (_) => const [],
+      );
+    }
     if (source.sourceKind == SceneConditionSourceKind.playerFacing) {
       return evaluateScenePlayerFacingDirection(
             source: source,

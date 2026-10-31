@@ -1,3 +1,4 @@
+import 'periodic_reward_condition_evaluator.dart';
 import '../models/project_media_catalog.dart';
 import '../models/map_spatial_scene.dart';
 import 'narrative_parallel_program.dart';
@@ -28,6 +29,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
   List<NarrativeEventRecord> proposedRecords = const [],
   bool deferFingerprints = false,
   bool mapInventoryComplete = true,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   maps = List.unmodifiable(maps);
   final spatialSources = buildNarrativeSpatialEventSourceCatalog(
@@ -53,6 +55,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     project,
     mapsById: mapsById,
     presentationMediaCatalog: presentationMediaCatalog,
+    lookupRewardScenes: lookupRewardScenes,
   );
   final scenes = [
     for (final scene in project.scenes)
@@ -223,6 +226,16 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     final eventDependencies = <_EventDependency>[];
     for (var index = 0; index < definition.conditions.length; index++) {
       definition.conditions[index].whenTyped<void>(
+        periodicRewardAvailable: (reference, _) {
+          final resolution = resolvePeriodicRewardReference(reference: reference,
+            lookupScenes: (id) => (scenesById[id] ?? const []).map((entry) => entry.scene));
+          if (!resolution.isResolved) {
+            valid = false;
+            _recordEventIssue(diagnostics: diagnostics, code: 'narrativeEventPeriodicRewardReferenceInvalid',
+              message: 'La commande de récompense quotidienne est introuvable ou différente (${resolution.status.name}).',
+              eventId: record.id, suffix: 'conditions.$index.rewardReference');
+          }
+        },
         fact: (factId, _, expectedValue) {
           final matches = factsById[factId] ?? const [];
           if (matches.length != 1) {
@@ -576,7 +589,7 @@ Set<String> _dependencyCycleIds(Iterable<NarrativeEventRecord> records) {
     graph[entry.key] = {
       for (final condition in definition.conditions)
         ...condition.whenTyped(
-          fact: (_, __, ___) => const <String>[],
+        periodicRewardAvailable: (_, _) => const <String>[],          fact: (_, __, ___) => const <String>[],
           narrativeEventConsumed: (eventId, _) => [eventId],
           mapEventInstanceBoolean: (_, _, _, _) => const <String>[],
         ),

@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../enums.dart';
+import 'project_contextual_capture_policy.dart';
 import 'project_item_effect_definition.dart';
 
 part 'project_item_capabilities.freezed.dart';
@@ -62,6 +63,8 @@ abstract class ProjectCaptureItemDefinition
     required int rateDenominator,
     required Set<EncounterKind> allowedEncounterKinds,
     @JsonKey(includeIfNull: false) String? animationSpritePath,
+    @JsonKey(includeIfNull: false)
+    ProjectContextualCapturePolicy? contextualPolicy,
   }) = _ProjectCaptureItemDefinition;
 
   factory ProjectCaptureItemDefinition.fromJson(Map<String, dynamic> json) =>

@@ -1,3 +1,4 @@
+import 'periodic_reward_condition_evaluator.dart';
 import '../models/project_media_catalog.dart';
 import 'package:meta/meta.dart' show immutable;
 import 'dive_zone_validation.dart';
@@ -237,6 +238,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
   ProjectManifest project, {
   required List<MapData> maps,
   ProjectMediaCatalog? presentationMediaCatalog,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
   /// Nombre d'erreurs du rapport de cohérence des catalogues Pokémon.
   ///
   /// BETA-SYS-005 : `null` laisse la gate dire qu'elle n'a pas pu se prononcer,
@@ -286,6 +288,7 @@ NarrativeProjectValidationReport validateNarrativeProject(
     diagnostics,
     knownItemIds: knownItemIds,
     presentationMediaCatalog: presentationMediaCatalog,
+    lookupRewardScenes: lookupRewardScenes,
   );
   _appendPresentationTextReferenceDiagnostics(project, diagnostics);
   _appendSceneBattleReadinessDiagnostics(
@@ -296,9 +299,9 @@ NarrativeProjectValidationReport validateNarrativeProject(
   );
   _appendStorylineLinkDiagnostics(project, diagnostics);
   _appendCinematicDiagnostics(project, diagnostics);
-  _appendWorldRuleDiagnostics(project, maps, diagnostics);
+  _appendWorldRuleDiagnostics(project, maps, diagnostics, lookupRewardScenes: lookupRewardScenes);
   _appendEventSceneLinkDiagnostics(project, maps, diagnostics);
-  _appendEventV2Diagnostics(project, maps, diagnostics, presentationMediaCatalog: presentationMediaCatalog);
+  _appendEventV2Diagnostics(project, maps, diagnostics, presentationMediaCatalog: presentationMediaCatalog, lookupRewardScenes: lookupRewardScenes);
   _appendRuntimeReadinessDiagnostics(
     project,
     mapsById,
@@ -580,6 +583,7 @@ void _appendSceneDiagnostics(
   List<NarrativeProjectDiagnostic> target, {
   required Set<String>? knownItemIds,
   required ProjectMediaCatalog? presentationMediaCatalog,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   for (final scene in project.scenes) {
     for (final diagnostic in diagnoseSceneAgainstProject(
@@ -588,6 +592,7 @@ void _appendSceneDiagnostics(
       mapsById: mapsById,
       availableItemIds: knownItemIds,
       presentationMediaCatalog: presentationMediaCatalog,
+      lookupRewardScenes: lookupRewardScenes,
     ).diagnostics) {
       final dialogueId =
           diagnostic.code == SceneDiagnosticCode.dialogueRefUnknown
@@ -688,11 +693,13 @@ void _appendCinematicDiagnostics(
 void _appendWorldRuleDiagnostics(
   ProjectManifest project,
   List<MapData> maps,
-  List<NarrativeProjectDiagnostic> target,
-) {
+  List<NarrativeProjectDiagnostic> target, {
+  PeriodicRewardSceneLookup? lookupRewardScenes,
+}) {
   for (final diagnostic in diagnoseWorldRules(
     project,
     maps: maps,
+    lookupRewardScenes: lookupRewardScenes,
   ).diagnostics) {
     target.add(
       NarrativeProjectDiagnostic(
@@ -756,6 +763,7 @@ void _appendEventV2Diagnostics(
   List<MapData> maps,
   List<NarrativeProjectDiagnostic> target, {
   required ProjectMediaCatalog? presentationMediaCatalog,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   final registry = project.eventRegistry;
   if (registry == null) return;
@@ -763,6 +771,7 @@ void _appendEventV2Diagnostics(
     project: project,
     maps: maps,
     presentationMediaCatalog: presentationMediaCatalog,
+    lookupRewardScenes: lookupRewardScenes,
   );
   final report = buildNarrativeEventValidationReport(
     registry: registry,
@@ -1145,6 +1154,7 @@ void _appendSolvabilityDiagnostics(
       if (definition == null || record.enabledOrNull != true) continue;
       for (final condition in definition.conditions) {
         condition.whenTyped(
+      periodicRewardAvailable: (_, _) {},
           fact: (factId, operator, expectedValue) {
             if (operator == NarrativeFactOperator.equals &&
                 expectedValue.kind == NarrativeValueKind.boolean &&
@@ -1746,7 +1756,7 @@ bool _eventConditionsStaticallyReachable(
 }) {
   return conditions.every(
     (condition) => condition.whenTyped(
-      fact: (factId, operator, expectedValue) =>
+      periodicRewardAvailable: (_, _) => true,      fact: (factId, operator, expectedValue) =>
           expectedValue.kind != NarrativeValueKind.boolean ||
           operator != NarrativeFactOperator.equals ||
           possibleFactValues[factId]?.contains(expectedValue.boolValue) == true,
@@ -2002,6 +2012,8 @@ bool _sceneEdgeIsStaticallyTraversable(
 
   Set<bool>? values;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.periodicRewardAvailable:
+      return (canBeTrue: true, canBeFalse: true);
     case SceneConditionSourceKind.integerComparison:
     case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:

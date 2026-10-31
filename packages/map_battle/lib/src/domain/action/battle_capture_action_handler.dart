@@ -25,7 +25,7 @@ final class BattleCaptureActionResult {
 final class BattleCaptureActionHandler {
   const BattleCaptureActionHandler();
 
-  BattleCaptureActionResult attempt({
+  void preflight({
     required BattleContext context,
     required PsdkBattleCaptureAction action,
     required PsdkBattleSlotRef target,
@@ -44,10 +44,35 @@ final class BattleCaptureActionHandler {
       );
     }
 
+    context.battleRules.validateCaptureSelection(
+      targetCurrentHp: opponent.currentHp,
+      targetMaxHp: opponent.maxHp,
+      catchRate: catchRate,
+      ballId: action.itemId,
+      ballRateNumerator: action.rateNumerator,
+      ballRateDenominator: action.rateDenominator,
+      contextualPolicy: action.contextualPolicy,
+      captureContext: action.captureContext,
+    );
+  }
+
+  BattleCaptureActionResult attempt({
+    required BattleContext context,
+    required PsdkBattleCaptureAction action,
+    required PsdkBattleSlotRef target,
+  }) {
+    preflight(context: context, action: action, target: target);
+    final opponent = context.state.battlerAt(target);
+    final catchRate = opponent.catchRate!;
+
     // The generic seed is injected by PsdkBattleSetup. Wrapping it in the
     // public immutable BattleRng makes both engines call the exact same pure
     // formula and advance it exactly once.
-    final capture = context.battleRules.attemptCapture(
+    final attemptId = battleCaptureAttemptId(context.turnNumber);
+    final resolution = context.battleRules.resolveCapture(
+      attemptId: attemptId,
+      contextualPolicy: action.contextualPolicy,
+      captureContext: action.captureContext,
       targetCurrentHp: opponent.currentHp,
       targetMaxHp: opponent.maxHp,
       catchRate: catchRate,
@@ -57,6 +82,7 @@ final class BattleCaptureActionHandler {
       status: _captureStatus(opponent.majorStatus),
       rng: BattleSeededRng(state: context.rng.generic.seed),
     );
+    final capture = resolution.attempt;
     final next = capture.nextRng;
     if (next is! BattleSeededRng) {
       throw StateError('Capture formula returned an incompatible RNG state.');
@@ -69,7 +95,8 @@ final class BattleCaptureActionHandler {
       ),
       event: BattleCaptureAttemptTimelineEvent(
         turn: context.turnNumber,
-        attemptId: battleCaptureAttemptId(context.turnNumber),
+        attemptId: attemptId,
+        contextualReceipt: resolution.contextualReceipt,
         target: BattlePositionRef(bank: target.bank, position: target.position),
         ballId: action.itemId,
         shakes: capture.shakes,

@@ -451,7 +451,7 @@ List<String> _factIds(NarrativeEventRecord? record) {
   final ids = <String>{};
   for (final condition in expression.leaves) {
     condition.whenTyped(
-      fact: (factId, _, __) => ids.add(factId),
+      periodicRewardAvailable: (_, _) {},      fact: (factId, _, __) => ids.add(factId),
       narrativeEventConsumed: (_, __) {},
       mapEventInstanceBoolean: (_, _, _, _) {},
     );

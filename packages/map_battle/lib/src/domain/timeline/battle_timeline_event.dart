@@ -1,3 +1,4 @@
+import '../../battle_capture_receipt.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_outcome.dart';
@@ -24,6 +25,17 @@ sealed class BattleTimelineEvent {
   PsdkBattleEvent? toPsdkEvent();
 
   static BattleTimelineEvent fromPsdk(PsdkBattleEvent event) {
+    if (event is PsdkBattleCaptureAttemptEvent &&
+        event.contextualReceipt != null) {
+      return BattleCaptureAttemptTimelineEvent(
+        attemptId: event.attemptId,
+        target: _fromPsdkSlot(event.target),
+        ballId: event.ballId,
+        shakes: event.shakes,
+        caught: event.caught,
+        contextualReceipt: event.contextualReceipt,
+      );
+    }
     if (event is PsdkBattleTurnStartedEvent) {
       return BattleTurnStartedTimelineEvent(turn: event.turn);
     }
@@ -1265,6 +1277,7 @@ final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
     required this.ballId,
     required this.shakes,
     required this.caught,
+    this.contextualReceipt,
   }) : super(kind: 'capture_attempt', turn: turn);
 
   final String attemptId;
@@ -1272,6 +1285,7 @@ final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
   final String ballId;
   final int shakes;
   final bool caught;
+  final BattleCaptureReceipt? contextualReceipt;
 
   @override
   Map<String, Object?> toJson() {
@@ -1282,6 +1296,8 @@ final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
       'ballId': ballId,
       'shakes': shakes,
       'caught': caught,
+      if (contextualReceipt != null)
+        'contextualReceipt': contextualReceipt!.toJson(),
     };
   }
 
@@ -1295,6 +1311,7 @@ final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
         ballId: ballId,
         shakes: shakes,
         caught: caught,
+        contextualReceipt: contextualReceipt,
       );
 }
 

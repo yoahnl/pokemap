@@ -23,6 +23,7 @@ void main() {
       NarrativeCommandIds.completeStoryStep,
       NarrativeCommandIds.giveItem,
       NarrativeCommandIds.giveItemGift,
+      NarrativeCommandIds.claimPeriodicReward,
       NarrativeCommandIds.takeItem,
       NarrativeCommandIds.giveMoney,
       NarrativeCommandIds.grantRailCurrency,
@@ -118,6 +119,7 @@ void main() {
       NarrativeCommandIds.tryPayMoney: 'SceneInteractiveCommand.tryPayMoney',
       NarrativeCommandIds.inputTextToFact: 'SceneInteractiveCommand.inputTextToFact',
       NarrativeCommandIds.giveItemGift: 'SceneInteractiveCommand.giveItem',
+      NarrativeCommandIds.claimPeriodicReward: 'SceneInteractiveCommand.claimPeriodicReward',
       NarrativeCommandIds.receivePokemonFromCatalog:
           'SceneInteractiveCommand.receivePokemonFromCatalog',
       NarrativeCommandIds.warp: 'SceneInteractiveCommand.warp',

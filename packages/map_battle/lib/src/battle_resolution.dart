@@ -1,3 +1,4 @@
+import 'battle_capture_receipt.dart';
 import 'battle_action.dart';
 import 'battle_field.dart';
 import 'battle_move.dart';
@@ -295,6 +296,7 @@ final class BattleCaptureAttemptEvent {
     required this.targetSpeciesId,
     required this.ballId,
     required this.caught,
+    this.contextualReceipt,
     required this.shakes,
   });
 
@@ -302,6 +304,7 @@ final class BattleCaptureAttemptEvent {
   final String targetSpeciesId;
   final String ballId;
   final bool caught;
+  final BattleCaptureReceipt? contextualReceipt;
 
   /// Shake count decided by the capture formula (ENC-005).
   ///

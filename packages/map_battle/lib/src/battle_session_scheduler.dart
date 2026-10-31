@@ -429,6 +429,7 @@ void _executeActionQueueStep({
         :final itemId,
         :final caught,
         :final shakes,
+        :final contextualReceipt,
       )) {
     if (step.side != BattleSideId.player || caught) {
       throw StateError(
@@ -441,6 +442,7 @@ void _executeActionQueueStep({
       ballId: itemId,
       caught: false,
       shakes: shakes,
+      contextualReceipt: contextualReceipt,
     );
     turn.captureAttemptEvents.add(event);
     turn.timeline.add(BattleTurnCaptureAttemptEvent(event));

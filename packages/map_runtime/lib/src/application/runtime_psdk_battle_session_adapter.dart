@@ -230,11 +230,15 @@ final class RuntimePsdkBattleSessionAdapter {
         :final itemId,
         :final rateNumerator,
         :final rateDenominator,
+        :final contextualPolicy,
+        :final captureContext,
       ) =>
         BattleDecision.capture(
           itemId: itemId,
           rateNumerator: rateNumerator,
           rateDenominator: rateDenominator,
+          contextualPolicy: contextualPolicy,
+          captureContext: captureContext,
         ),
       PlayerBattleChoiceContinue() => const BattleDecision.noAction(),
     };
@@ -475,6 +479,7 @@ final class RuntimePsdkBattleSessionAdapter {
           ballId: event.ballId,
           caught: event.caught,
           shakes: event.shakes,
+          contextualReceipt: event.contextualReceipt,
         );
         captureAttemptEvents.add(captureEvent);
         timeline.add(BattleTurnCaptureAttemptEvent(captureEvent));
@@ -685,6 +690,7 @@ final class RuntimePsdkBattleSessionAdapter {
           itemId: itemId,
           caught: state.outcome?.kind == BattleEngineOutcomeKind.captured,
           shakes: _captureAttemptEvent(result).shakes,
+          contextualReceipt: _captureAttemptEvent(result).contextualReceipt,
         ),
       BattleSwitchDecision() ||
       BattleMegaDecision() ||
@@ -893,7 +899,12 @@ final class RuntimePsdkBattleSessionAdapter {
         activeId: psdkState.battlerAt(psdkOpponentSlot).id,
       ),
       field: _toLegacyFieldState(psdkState.field),
-      currentTurn: null,
+      currentTurn: _lastDecision is BattleCaptureDecision &&
+          _lastTurnResult?.timeline.events
+              .whereType<BattleCaptureAttemptTimelineEvent>()
+              .any((event) => event.contextualReceipt != null) == true
+          ? _toLegacyDisplayTurnResult()
+          : null,
       outcome: null,
       playerParticipantLineupIndexes: psdkState.playerParticipantPartyIndexes,
     );

@@ -59,6 +59,11 @@ _ProjectCaptureItemDefinition _$ProjectCaptureItemDefinitionFromJson(
       .map((e) => $enumDecode(_$EncounterKindEnumMap, e))
       .toSet(),
   animationSpritePath: json['animationSpritePath'] as String?,
+  contextualPolicy: json['contextualPolicy'] == null
+      ? null
+      : ProjectContextualCapturePolicy.fromJson(
+          json['contextualPolicy'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectCaptureItemDefinitionToJson(
@@ -70,6 +75,7 @@ Map<String, dynamic> _$ProjectCaptureItemDefinitionToJson(
       .map((e) => _$EncounterKindEnumMap[e]!)
       .toList(),
   'animationSpritePath': ?instance.animationSpritePath,
+  'contextualPolicy': ?instance.contextualPolicy?.toJson(),
 };
 
 const _$EncounterKindEnumMap = {

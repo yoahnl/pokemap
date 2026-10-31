@@ -1,3 +1,6 @@
+import 'scene_periodic_reward_durable_host_test.dart'
+    show availabilityScene, periodicQa;
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,6 +11,49 @@ import 'package:map_runtime/src/application/runtime_project_catalog.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  for (final partitioned in [false, true]) {
+    test(
+      'periodic scene lookup retains duplicate locators without preparing unrelated scenes partitioned=$partitioned',
+      () async {
+        final root = await Directory(periodicQa).createTemp('catalog-');
+        addTearDown(() => root.delete(recursive: true));
+        final scene = availabilityScene();
+        final project = ProjectManifest(
+          name: 'References',
+          maps: const [],
+          tilesets: const [],
+          scenes: [
+            scene,
+            scene,
+            for (var i = 0; i < 535; i++)
+              SceneAsset(
+                id: 'unrelated-$i',
+                name: 'Unrelated',
+                graph: SceneGraph(
+                  startNodeId: 'start',
+                  nodes: [SceneNode(id: 'start', kind: SceneNodeKind.start)],
+                  edges: const [],
+                ),
+              ),
+          ],
+        );
+        final catalog = await RuntimeProjectCatalog.open(
+          await _writeProject(root, project, partitioned: partitioned),
+        );
+        addTearDown(catalog.dispose);
+        expect(catalog.rewardScenes('puzzle'), hasLength(2));
+        expect(
+          () => (catalog.rewardScenes('puzzle') as List).clear(),
+          throwsUnsupportedError,
+        );
+        expect(catalog.rewardScenes('missing'), isEmpty);
+        expect(
+          catalog.rewardScenes('puzzle'),
+          same(catalog.rewardScenes('puzzle')),
+        );
+      },
+    );
+  }
   for (final partitioned in [false, true]) {
     test('route appearance demand excludes inaccessible scene skins partitioned=$partitioned', () async {
       final root = await Directory.systemTemp.createTemp('route-appearance-catalog-');

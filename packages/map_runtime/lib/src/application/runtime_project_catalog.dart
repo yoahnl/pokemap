@@ -36,6 +36,14 @@ final class RuntimeProjectCatalog {
          maximumSourceBytes: maximumCachedMapBytes,
        ) {
     _owners[projectMetadata] = this;
+    final scenes = <String, List<SceneAsset>>{};
+    for (final scene in projectMetadata.scenes) {
+      scenes.putIfAbsent(scene.id, () => []).add(scene);
+    }
+    _rewardScenesById = Map<String, List<SceneAsset>>.unmodifiable({
+      for (final entry in scenes.entries)
+        entry.key: List<SceneAsset>.unmodifiable(entry.value),
+    });
   }
 
   static final _owners = Expando<RuntimeProjectCatalog>();
@@ -43,6 +51,13 @@ final class RuntimeProjectCatalog {
   static RuntimeProjectCatalog? ownerOf(ProjectManifest project) {
     final owner = _owners[project];
     return owner?._disposed == false ? owner : null;
+  }
+
+  late final Map<String, List<SceneAsset>> _rewardScenesById;
+  Map<String, List<SceneAsset>> get rewardSceneIndex => _rewardScenesById;
+  Iterable<SceneAsset> rewardScenes(String id) {
+    _ensureOpen();
+    return _rewardScenesById[id] ?? const [];
   }
 
   final String projectFilePath;

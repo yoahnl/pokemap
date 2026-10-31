@@ -1,3 +1,5 @@
+import '../models/pokemon_ruleset_profile.dart';
+import '../models/items/project_contextual_capture_policy.dart';
 import '../models/pokemon_trade_evolution.dart';
 import '../models/items/project_item_capabilities.dart';
 import '../models/items/project_item_effect_definition.dart';
@@ -42,9 +44,11 @@ final class ItemCapabilityTruth {
     Set<String> supportedSemanticActionIds = const <String>{},
     Set<String> supportedHeldEffectIds = const <String>{},
     this.supportsCapture = false,
+    Set<String> supportedContextualCapturePolicyIds = const {},
     this.supportsMoveMachines = false,
     String presentationPocketFallback = 'items',
-  }) : supportedUses = Set<ItemUseCapability>.unmodifiable(supportedUses),
+  }) : supportedContextualCapturePolicyIds = Set.unmodifiable(supportedContextualCapturePolicyIds),
+       supportedUses = Set<ItemUseCapability>.unmodifiable(supportedUses),
        supportedSemanticActionIds = Set<String>.unmodifiable(
          supportedSemanticActionIds
              .map((actionId) => actionId.trim())
@@ -65,6 +69,7 @@ final class ItemCapabilityTruth {
   final Set<String> supportedSemanticActionIds;
   final Set<String> supportedHeldEffectIds;
   final bool supportsCapture;
+  final Set<String> supportedContextualCapturePolicyIds;
   final bool supportsMoveMachines;
   final String presentationPocketFallback;
 
@@ -167,6 +172,21 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
   supportsCapture: true,
   supportsMoveMachines: true,
 );
+
+ItemCapabilityTruth itemCapabilityTruthForRuleset(PokemonRulesetProfile ruleset) {
+  ruleset.requireSupported();
+  final base = itemSystemV1CapabilityTruth;
+  if (ruleset.profileId != PokemonRulesetProfile.contextualProfileId) return base;
+  return ItemCapabilityTruth(
+    supportedUses: base.supportedUses,
+    supportedSemanticActionIds: base.supportedSemanticActionIds,
+    supportedHeldEffectIds: base.supportedHeldEffectIds,
+    supportsCapture: base.supportsCapture,
+    supportedContextualCapturePolicyIds: {ProjectContextualCapturePolicy.algorithmId},
+    supportsMoveMachines: base.supportsMoveMachines,
+    presentationPocketFallback: base.presentationPocketFallback,
+  );
+}
 
 final class ItemCapabilityAssessment {
   const ItemCapabilityAssessment({

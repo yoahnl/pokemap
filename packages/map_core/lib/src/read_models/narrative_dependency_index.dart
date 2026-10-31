@@ -1,3 +1,6 @@
+import '../operations/periodic_reward_condition_evaluator.dart';
+import '../models/map_entity_presentation.dart';
+import '../models/periodic_reward_reference.dart';
 import '../models/spatial_lift.dart';
 import '../models/spatial_platform.dart';
 import 'dart:collection';
@@ -489,8 +492,9 @@ NarrativeDependencyIndex buildNarrativeDependencyIndex({
   ProjectItemCatalog? itemCatalog,
   Map<String, RuntimeDialogueDocument> dialogueDocuments = const {},
   Iterable<SceneNode> additionalSceneNodes = const [],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
-  return _NarrativeDependencyIndexBuilder(project, maps, itemCatalog, dialogueDocuments, additionalSceneNodes).build();
+  return _NarrativeDependencyIndexBuilder(project, maps, itemCatalog, dialogueDocuments, additionalSceneNodes, lookupRewardScenes).build();
 }
 
 final class _NarrativeDependencyIndexBuilder {
@@ -500,12 +504,15 @@ final class _NarrativeDependencyIndexBuilder {
     this.itemCatalog,
     this.dialogueDocuments,
     Iterable<SceneNode> additionalSceneNodes,
+    this.lookupRewardScenes,
   ) : additionalSceneNodes = List.unmodifiable(additionalSceneNodes), maps = List<MapData>.unmodifiable(maps);
 
   final ProjectManifest project;
   final ProjectItemCatalog? itemCatalog;
   final List<MapData> maps;
   final List<SceneNode> additionalSceneNodes;
+  final PeriodicRewardSceneLookup? lookupRewardScenes;
+  final _rewardNodeDefinitions = <(String, String)>{};
   final Map<String, RuntimeDialogueDocument> dialogueDocuments;
   final List<NarrativeDependencyDefinition> _definitions = [];
   final List<NarrativeDependencyUsage> _usages = [];
@@ -909,6 +916,13 @@ final class _NarrativeDependencyIndexBuilder {
           sourceKind: 'entity',
           metadata: <String, String>{'entityKind': entity.kind.name},
         );
+        for (final variant in entity.presentation?.variants ?? const <MapEntityPresentationVariant>[]) {
+          for (final condition in variant.condition.leaves) {
+            if (condition.rewardReference case final reference?) {
+              _collectPeriodicRewardReference(reference, owner, 'maps[${map.id}].entities[$index].presentation.variants[${variant.id}].condition');
+            }
+          }
+        }
         if (entity.kind == MapEntityKind.npc) {
           final npc = entity.npc;
           if (npc != null) {
@@ -1632,6 +1646,8 @@ final class _NarrativeDependencyIndexBuilder {
     int index,
   ) {
     condition.whenTyped<void>(
+      periodicRewardAvailable: (reference, _) => _collectPeriodicRewardReference(reference, owner,
+        'eventRegistry.records[$eventId].conditions[$index].rewardReference'),
       mapEventInstanceBoolean: (mapId, ownerId, _, _) {
         final path = 'eventRegistry.records[$eventId].conditions[$index]';
         _collectMapInstanceOwner(owner, mapId, ownerId, path, 'eventId');
@@ -2106,7 +2122,11 @@ final class _NarrativeDependencyIndexBuilder {
         NarrativeDependencyTargetKind.worldRule,
         rule.id,
       );
+      if (rule.source.rewardReference case final reference?) {
+        _collectPeriodicRewardReference(reference, owner, 'worldRules[${rule.id}].source.rewardReference');
+      }
       final sourceTarget = switch (rule.source.kind) {
+        WorldRuleSourceKind.periodicRewardAvailable => null,
         WorldRuleSourceKind.fact => NarrativeDependencyKey(
           NarrativeDependencyTargetKind.fact,
           rule.source.sourceId,
@@ -2120,12 +2140,11 @@ final class _NarrativeDependencyIndexBuilder {
           sourceId: rule.source.sourceId,
         ),
       };
-      _usage(
-        target: sourceTarget,
-        owner: owner,
-        path: 'worldRules[${rule.id}].source.sourceId',
-        criticality: NarrativeDependencyCriticality.runtimeBlocking,
-      );
+      if (sourceTarget != null) {
+        _usage(target: sourceTarget, owner: owner,
+          path: 'worldRules[${rule.id}].source.sourceId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking);
+      }
       if (rule.target.kind != WorldRuleTargetKind.narrativeEvent) {
         _usage(
           target: _mapKey(rule.target.mapId),
@@ -2392,6 +2411,27 @@ final class _NarrativeDependencyIndexBuilder {
         ),
       );
     }
+  }
+
+  void _collectPeriodicRewardReference(PeriodicRewardReference reference, NarrativeDependencyKey owner, String path) {
+    final scenes = (lookupRewardScenes?.call(reference.sceneId) ?? const <SceneAsset>[]).toList();
+    final resolution = resolvePeriodicRewardReference(reference: reference, lookupScenes: (_) => scenes);
+    if (_rewardNodeDefinitions.add((reference.sceneId, reference.nodeId))) {
+      for (final scene in scenes.where((scene) => scene.id == reference.sceneId)) {
+        for (final node in scene.graph.nodes.where((node) => node.id == reference.nodeId)) {
+          _definition(NarrativeDependencyTargetKind.sourceMap, node.id, node.title ?? node.id,
+            owner: NarrativeDependencyKey.scene(reference.sceneId), path: 'scenes[${reference.sceneId}].graph.nodes[${node.id}]',
+            scope: 'scene', parentId: reference.sceneId, sourceKind: 'sceneNode');
+        }
+      }
+    }
+
+    _usage(target: NarrativeDependencyKey.scene(reference.sceneId), owner: owner,
+      path: '$path.sceneId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
+    _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.sourceMap, reference.nodeId,
+      scope: 'scene', parentId: reference.sceneId, sourceKind: 'sceneNode'), owner: owner,
+      path: '$path.nodeId', criticality: NarrativeDependencyCriticality.runtimeBlocking,
+      resolution: resolution.isResolved ? null : NarrativeDependencyResolution.unavailable);
   }
 
   void _collectSceneNode(
@@ -2756,6 +2796,9 @@ final class _NarrativeDependencyIndexBuilder {
           criticality: NarrativeDependencyCriticality.authoringWarning,
           resolution: NarrativeDependencyResolution.legacyExternal,
         );
+      case SceneClaimPeriodicRewardInteractiveCommand(:final definition):
+        _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.item, definition.itemId),
+          owner: owner, path: '$path.definition.itemId', criticality: NarrativeDependencyCriticality.runtimeBlocking);
       case SceneGiveItemInteractiveCommand(:final itemId):
         _usage(
           target: NarrativeDependencyKey(NarrativeDependencyTargetKind.item, itemId),
@@ -2811,6 +2854,11 @@ final class _NarrativeDependencyIndexBuilder {
     SceneConditionSource source,
     String path,
   ) {
+    if (source.rewardReference case final reference?) {
+      _collectPeriodicRewardReference(reference, owner, '$path.rewardReference');
+      return;
+    }
+
     if (source.sourceKind == SceneConditionSourceKind.integerComparison) {
       _collectIntegerOperand(owner, source.integerLeft!, '$path.left');
       _collectIntegerOperand(owner, source.integerRight!, '$path.right');

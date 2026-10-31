@@ -5,6 +5,100 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('dialogue path ownership stays targeted and tracks updates', () async {
+    CatalogDefinitionUnit dialogue(int position, String id, String path) {
+      final key = CatalogMetadataDocuments.definitionKey('dialogues', position);
+      return CatalogDefinitionUnit(key: key, payload: {
+        'section': r'$projectDefinition',
+        'id': key.id,
+        'position': position,
+        'value': {
+          'field': 'dialogues',
+          'definition':
+              ProjectDialogueEntry(id: id, name: id, relativePath: path)
+                  .toJson()
+        },
+      });
+    }
+
+    final units = [
+      dialogue(0, 'owner', r'dialogues\Existing.yarn'),
+      for (var i = 0; i < 120; i++)
+        dialogue(i + 1, 'foreign-$i', 'dialogues/foreign-$i.yarn')
+    ];
+    final fixture = _Fixture.units(units);
+    final snapshot = await fixture.open();
+    fixture.readDefinitions.clear();
+    expect(
+        await CatalogMetadataDocuments.readDialoguePathOwnerIds(
+            snapshot: snapshot, relativePath: 'DIALOGUES/existing.yarn'),
+        {'owner'});
+    expect(fixture.readDefinitions, isEmpty);
+    final changed = dialogue(0, 'owner', 'dialogues/renamed.yarn');
+    final maintained = await CatalogMetadataDocuments.maintain(
+        lookup: snapshot.lookup, upserts: [changed]);
+    final patch = await snapshot.patch(upserts: [changed, ...maintained]);
+    fixture.objects.addAll(patch.objects);
+    fixture.root = patch.root;
+    final updated = await fixture.open();
+    expect(
+        await CatalogMetadataDocuments.readDialoguePathOwnerIds(
+            snapshot: updated, relativePath: 'dialogues/existing.yarn'),
+        isEmpty);
+    expect(
+        await CatalogMetadataDocuments.readDialoguePathOwnerIds(
+            snapshot: updated, relativePath: 'DIALOGUES/renamed.yarn'),
+        {'owner'});
+    final stateKey = CatalogMetadataDocuments.fieldKey('dialogues');
+    final payload = {...(await updated.lookup(stateKey))!.payload}
+      ..remove('dialoguePathOwnershipVersion');
+    final legacy = await updated.patch(
+        upserts: [CatalogDefinitionUnit(key: stateKey, payload: payload)]);
+    fixture.objects.addAll(legacy.objects);
+    fixture.root = legacy.root;
+    final old = await fixture.open();
+    fixture.readDefinitions.clear();
+    fixture.readUnits.clear();
+    await expectLater(
+        CatalogMetadataDocuments.readDialoguePathOwnerIds(
+            snapshot: old, relativePath: 'dialogues/renamed.yarn'),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', contains('dialogue_ownership_preparation_required'))));
+    expect(fixture.readDefinitions, isEmpty);
+    final pending = await CatalogMetadataDocuments.maintain(
+        lookup: old.lookup,
+        upserts: [dialogue(121, 'new', 'dialogues/new.yarn')]);
+    expect(
+        pending
+            .singleWhere((unit) => unit.key == stateKey)
+            .payload
+            .containsKey('dialoguePathOwnershipVersion'),
+        isFalse);
+    fixture.readUnits.clear();
+    final preparation =
+        await CatalogMetadataDocuments.prepareDialogueOwnership(old);
+    expect(
+        fixture.readUnits
+            .where((key) => key.kind == CatalogDefinitionKind.catalogMetadata)
+            .every((key) => key.id.contains('dialogues')),
+        isTrue);
+    expect(
+        fixture.readUnits
+            .where((key) => key.kind == CatalogDefinitionKind.workspaceState)
+            .every((key) => key.id.contains('dialogues')),
+        isTrue);
+    final prepared = await old.patch(upserts: preparation);
+    fixture.objects.addAll(prepared.objects);
+    fixture.root = prepared.root;
+    final ready = await fixture.open();
+    expect(
+        await CatalogMetadataDocuments.readDialoguePathOwnerIds(
+            snapshot: ready, relativePath: 'dialogues/renamed.yarn'),
+        {'owner'});
+    expect(await CatalogMetadataDocuments.prepareDialogueOwnership(ready),
+        isEmpty);
+  });
+
   test(
       'Fact identity indexes require explicit preparation and never self-certify on a local edit',
       () async {

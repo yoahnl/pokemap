@@ -854,11 +854,10 @@ final class _NarrativeSceneWorkingSession {
   _NarrativeSceneWorkingSession(this.gameState);
 
   GameState gameState;
-  NarrativeEventStateCheckpointOwner? craftingCheckpointOwner;
+  NarrativeEventStateCheckpointOwner? checkpointOwner;
   NarrativeRuntimeSceneCheckpointOwner? craftingActivityOwner;
-  GameState? durableCraftingState;
+  GameState? durableCheckpointState;
   NarrativeRuntimeSceneCheckpointOwner? imagePuzzleActivityOwner;
-  GameState? durableImagePuzzleState;
   bool committed = false;
   RuntimeWorldAudioController? sceneAudio;
   RuntimeSceneMusicController? get sceneMusic => sceneAudio?.music;
@@ -1114,8 +1113,10 @@ class _WorldRuleProjectionCache {
     required this.gameState,
     required this.map,
     required this.projection,
+    this.rewardSceneContext,
   });
 
+  final Object? rewardSceneContext;
   final ProjectManifest manifest;
   final GameState gameState;
   final MapData map;

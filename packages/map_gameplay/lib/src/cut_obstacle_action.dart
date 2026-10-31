@@ -184,6 +184,7 @@ MapData applyFieldObstacleWorldStateToMap(
     MovingPropWorldState movingPropWorldState =
         const MovingPropWorldState.empty(),
     ProjectManifest? project,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate}) {
   if (map.id != instance.mapId || instances.instanceRef(map.id) != instance) {
@@ -271,6 +272,7 @@ MapData applyFieldObstacleWorldStateToMap(
     instances: instances,
     instance: instance,
     project: project,
+    lookupRewardScenes: lookupRewardScenes,
     movingPlatformWorldState: movingPlatformWorldState,
     movingPropWorldState: movingPropWorldState,
     npcMapPresencePredicate: npcMapPresencePredicate,

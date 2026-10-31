@@ -1,3 +1,4 @@
+import 'scene_periodic_reward_durable_host_test.dart' show availabilityScene;
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,94 @@ const _narrativeEventId = 'evt_019abcde-5200-7000-8000-000000000001';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('periodic projection invalidates loaded scene context and civil day, bounded lookup', () {
+    final reference = PeriodicRewardReference(
+      sceneId: 'puzzle',
+      nodeId: 'claim',
+      rewardId: 'tree',
+    );
+    final fixture = _fixture(
+      scenes: [availabilityScene()],
+      worldRules: [
+        _entityRule(
+          id: 'daily-hidden',
+          source: WorldRuleSource.periodicRewardAvailable(
+            reference: reference,
+            expectedValue: false,
+          ),
+          effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden),
+        ),
+      ],
+    );
+    var now = DateTime(2026, 10, 30, 23, 59);
+    final clock = RuntimePeriodicRewardContext(civilNow: () => now);
+    final state = GameState(
+      saveId: _saveId,
+      gameplayCalendarState: GameplayCalendarState(
+        observedLocalDay: '2026-10-30',
+        dayRevision: 0,
+      ),
+      periodicRewardState: PeriodicRewardState(
+        claimsById: {
+          'tree': PeriodicRewardClaim(
+            revision: 1,
+            lastClaimDayRevision: 0,
+            lastClaimLocalDay: '2026-10-30',
+          ),
+        },
+      ),
+    );
+    final cache = RuntimeWorldRuleProjectionCache();
+    final unavailable = cache.resolve(
+      project: fixture.project,
+      gameState: clock.observe(state),
+      map: fixture.map,
+      lookupRewardScenes: (_) => const [],
+      rewardSceneContext: 'unloaded',
+    );
+    expect(unavailable.isMapEntityVisible(fixture.npcEntity), isTrue);
+    final calls = <String>[];
+    Iterable<SceneAsset> lookup(String id) {
+      calls.add(id);
+      return id == 'puzzle' ? [availabilityScene()] : [];
+    }
+
+    final loaded = Object();
+    final hidden = cache.resolve(
+      project: fixture.project,
+      gameState: clock.observe(state),
+      map: fixture.map,
+      lookupRewardScenes: lookup,
+      rewardSceneContext: loaded,
+    );
+    expect(hidden.isMapEntityVisible(fixture.npcEntity), isFalse);
+    final count = calls.length;
+    for (var i = 0; i < 100; i++) {
+      expect(
+        cache.resolve(
+          project: fixture.project,
+          gameState: clock.observe(state),
+          map: fixture.map,
+          lookupRewardScenes: lookup,
+          rewardSceneContext: loaded,
+        ),
+        same(hidden),
+      );
+    }
+    expect(calls.length, count);
+    expect(calls.toSet(), {'puzzle'});
+    now = now.add(const Duration(minutes: 2));
+    final tomorrow = cache.resolve(
+      project: fixture.project,
+      gameState: clock.observe(state),
+      map: fixture.map,
+      lookupRewardScenes: lookup,
+      rewardSceneContext: loaded,
+    );
+    expect(tomorrow.isMapEntityVisible(fixture.npcEntity), isTrue);
+    expect(tomorrow, isNot(same(hidden)));
+    expect(state.gameplayCalendarState.observedLocalDay, '2026-10-30');
+  });
 
   test(
     'presence projection reuses a state and invalidates every input identity',

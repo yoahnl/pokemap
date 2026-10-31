@@ -269,7 +269,8 @@ final class _RulesetHarness {
       workspaceHandle: opened.workspaceHandle,
       projectHandle: opened.projectHandle,
     );
-    final snapshot = await snapshots.load(opened.projectHandle);
+    final snapshot = await mutations.readWorkshopSnapshot(opened.projectHandle,
+        actionId: 'pokemon.ruleset.set', parameters: {'profile': profile ?? PokemonRulesetProfile.pokeMapBetaV1.toJson()});
     final revision = staleRevision
         ? '${snapshot.revision.substring(0, snapshot.revision.length - 1)}'
             '${snapshot.revision.endsWith('0') ? '1' : '0'}'

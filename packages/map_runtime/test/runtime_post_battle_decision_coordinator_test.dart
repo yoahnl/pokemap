@@ -3,6 +3,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/runtime_contextual_capture.dart';
+import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 
 void main() {
   group('RuntimePostBattleDecisionCoordinator', () {
@@ -515,6 +517,28 @@ void main() {
               ? RuntimePostBattleMessageKind.defeat
               : RuntimePostBattleMessageKind.fled,
         );
+      });
+    }
+
+    for (final partySize in [1, 6]) {
+      test('Friend effects survive catalog replacement and durable request dedup partySize=$partySize', () async {
+        final policy = ProjectContextualCapturePolicy(rateRules: [], successEffects: [ProjectCaptureSetFriendship(200)]);
+        final captured = _successfulCaptureSubmission(state: _captureState(partySize: partySize), contextualPolicy: policy);
+        final coordinator = RuntimePostBattleDecisionCoordinator();
+        final replacedCatalog = ItemCatalogSnapshot.fromCatalog(const ProjectItemCatalog(schemaVersion: 1, entries: []));
+        final result = await coordinator.begin(transactionBaseState: captured.updatedGameState, bundle: _bundle(),
+          runtimeContext: _captureContext(), outcome: captured.engineResult.state.outcome!,
+          captureAttemptReceipt: captured.receipt, itemCatalog: replacedCatalog);
+        expect(result.isSuccess, isTrue);
+        final state = result.transaction!.finalState!;
+        final pokemon = partySize == 1 ? state.party.members.last : state.pokemonStorage.storedPokemon.single;
+        expect(pokemon.friendship, 200);
+        final restored = gameStateFromStrictSaveJson(strictGameStateSaveJson(state));
+        final duplicate = await coordinator.begin(transactionBaseState: restored, bundle: _bundle(), runtimeContext: _captureContext(),
+          outcome: captured.engineResult.state.outcome!, captureAttemptReceipt: captured.receipt, itemCatalog: replacedCatalog);
+        expect(duplicate.failure!.code, RuntimePostBattleCoordinatorFailureCode.alreadyApplied);
+        expect(restored.party.members, hasLength(partySize == 1 ? 2 : 6));
+        expect(restored.pokemonStorage.storedPokemon, hasLength(partySize == 1 ? 0 : 1));
       });
     }
 
@@ -1359,15 +1383,10 @@ GameState _captureState({required int partySize}) {
 }
 
 RuntimeBattleCaptureAttemptSubmission<BattleSession>
-    _successfulCaptureSubmission({required GameState state}) {
-  return submitRuntimeBattleCaptureAttempt<BattleSession>(
-    gameState: state,
-    context: _captureContext(),
-    captureAllowed: true,
-    itemId: canonicalPokeBallItemId,
-    itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
-    submitToEngine: () => createBattleSession(
-      const BattleSetup.pokeMapBetaV1ForTest(
+    _successfulCaptureSubmission({required GameState state, ProjectContextualCapturePolicy? contextualPolicy}) {
+  final session = createBattleSession(
+      BattleSetup(
+        ruleset: contextualPolicy == null ? PokemonRulesetProfile.pokeMapBetaV1 : PokemonRulesetProfile.contextualV1,
         playerPokemon: BattleCombatantData(
           speciesId: 'capture_player',
           level: 10,
@@ -1407,7 +1426,23 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
         trainerId: null,
       ),
       rng: const BattleScriptedRng(<int>[1]),
-    ).applyChoice(const PlayerBattleChoiceCapture()),
+    );
+  final prepared = contextualPolicy == null ? null : prepareRuntimeBattleCapture(
+      choice: PlayerBattleChoiceCapture(contextualPolicy: contextualPolicy),
+      battleState: session.state, ruleset: session.setup.ruleset,
+      provenance: RuntimeCaptureProvenance(speciesById: {'capture_target': const RuntimePokemonSpecies(
+        id: 'capture_target', typing: ['normal'], baseHp: 10, baseAttack: 10, baseDefense: 10,
+        baseSpecialAttack: 10, baseSpecialDefense: 10, baseSpeed: 10,
+        primaryAbilityId: 'none', abilityIds: ['none'], learnsetRef: '', growthRateId: 'medium_fast', baseExp: 10, catchRate: 255,
+      )}, playerSexesByLineupIndex: {}, targetSex: null, encounterKind: EncounterKind.walk));
+  final catalog = contextualPolicy == null ? mvpItemCatalog : ProjectItemCatalog(schemaVersion: 1,
+      entries: [for (final item in mvpItemCatalog.entries)
+        item.id == canonicalPokeBallItemId ? item.copyWith(capture: item.capture!.copyWith(contextualPolicy: contextualPolicy)) : item]);
+  return submitRuntimeBattleCaptureAttempt<BattleSession>(
+    gameState: state, context: _captureContext(), captureAllowed: true,
+    itemId: canonicalPokeBallItemId, itemCatalog: ItemCatalogSnapshot.fromCatalog(catalog),
+    preparedCapture: prepared,
+    submitToEngine: () => session.applyChoice(prepared?.choice ?? const PlayerBattleChoiceCapture()),
   );
 }
 

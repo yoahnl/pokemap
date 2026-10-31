@@ -230,6 +230,10 @@ final class _ProjectItemReferenceIndexBuilder {
               }
             }
           }
+          if (command is SceneClaimPeriodicRewardInteractiveCommand) {
+            _add(itemId: command.definition.itemId, kind: ProjectItemReferenceKind.sceneGive,
+              sourceKind: 'scene', sourceId: scene.id, editablePath: '$prefix.interactiveCommand.definition.itemId');
+          }
           if (command is SceneGiveItemInteractiveCommand) {
             _add(
               itemId: command.itemId,

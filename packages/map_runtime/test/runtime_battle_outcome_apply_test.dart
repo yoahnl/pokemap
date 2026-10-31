@@ -5,6 +5,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+import 'package:map_runtime/src/application/runtime_contextual_capture.dart';
+import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 
 const _outcomeTestStats = BattleStatsSnapshot(
   attack: 10,
@@ -49,6 +51,78 @@ void main() {
       throwsUnsupportedError,
     );
   });
+
+  test('missing contextual metadata refuses before bag mutation engine RNG or turn', () {
+    final state = _baseState();
+    final original = strictGameStateSaveJson(state);
+    final adapter = RuntimePsdkBattleSessionAdapter.fromSetup(_psdkCaptureSetup(caught: true, contextual: true));
+    final before = adapter.state.psdkState;
+    var submissions = 0;
+    final policy = ProjectContextualCapturePolicy(rateRules: [ProjectCaptureRateRule(
+      when: const ProjectCaptureRelationCondition(ProjectCaptureRelation.differentSex), adjustment: ProjectCaptureRateAdd(1),
+    )]);
+    expect(() => submitRuntimeBattleCaptureAttempt<BattleEngineTurnResult>(
+      gameState: state, context: RuntimeActiveBattleContext(request: _wildRequest(), playerPartyIndex: 0),
+      captureAllowed: true, itemId: canonicalPokeBallItemId, itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+      preparedCapture: prepareRuntimeBattleCapture(choice: PlayerBattleChoiceCapture(contextualPolicy: policy),
+        battleState: adapter.createLegacyWriteBackState(), ruleset: PokemonRulesetProfile.contextualV1,
+        provenance: RuntimeCaptureProvenance(speciesById: {'receipt-wild': const RuntimePokemonSpecies(
+          id: 'receipt-wild', typing: ['normal'], baseHp: 10, baseAttack: 10, baseDefense: 10,
+          baseSpecialAttack: 10, baseSpecialDefense: 10, baseSpeed: 10,
+          primaryAbilityId: 'none', abilityIds: ['none'], learnsetRef: '', growthRateId: 'medium_fast', baseExp: 10, catchRate: 255,
+        )}, playerSexesByLineupIndex: {}, targetSex: null, encounterKind: EncounterKind.walk)),
+      submitToEngine: () { submissions++; return adapter.submitPlayerChoice(const PlayerBattleChoiceCapture()); },
+    ), throwsA(isA<BattleCaptureMissingContext>()));
+    expect(submissions, 0);
+    expect(identical(adapter.state.psdkState, before), isTrue);
+    expect(strictGameStateSaveJson(state), original);
+  });
+
+  for (final partySize in [1, 6]) {
+    test('Friend applies frozen success effect to original individual destination partySize=$partySize', () {
+      final base = _baseState();
+      final initial = base.copyWith(party: PlayerParty(members: [
+        for (var index = 0; index < partySize; index++) base.party.members.first.copyWith(individualId: 'member-$index'),
+      ]));
+      final context = RuntimeActiveBattleContext(request: _wildRequest(), playerPartyIndex: 0);
+      final adapter = RuntimePsdkBattleSessionAdapter.fromSetup(_psdkCaptureSetup(caught: true, contextual: true));
+      final effects = <ProjectCaptureSuccessEffect>[ProjectCaptureSetFriendship(200)];
+      final policy = ProjectContextualCapturePolicy(rateRules: [], successEffects: effects);
+      final prepared = prepareRuntimeBattleCapture(
+        choice: PlayerBattleChoiceCapture(contextualPolicy: policy),
+        battleState: adapter.createLegacyWriteBackState(),
+        ruleset: PokemonRulesetProfile.contextualV1,
+        provenance: RuntimeCaptureProvenance(
+          speciesById: {'receipt-wild': const RuntimePokemonSpecies(
+            id: 'receipt-wild', typing: ['normal'], baseHp: 10, baseAttack: 10, baseDefense: 10,
+            baseSpecialAttack: 10, baseSpecialDefense: 10, baseSpeed: 10,
+            primaryAbilityId: 'none', abilityIds: ['none'], learnsetRef: '', growthRateId: 'medium_fast', baseExp: 10, catchRate: 255,
+          )}, playerSexesByLineupIndex: {}, targetSex: null, encounterKind: EncounterKind.walk,
+        ),
+      );
+      final submission = submitRuntimeBattleCaptureAttempt<BattleEngineTurnResult>(
+        gameState: initial, context: context, captureAllowed: true,
+        itemId: canonicalPokeBallItemId, itemCatalog: ItemCatalogSnapshot.fromCatalog(ProjectItemCatalog(schemaVersion: 1, entries: [
+          mvpItemCatalog.entries.singleWhere((item) => item.id == canonicalPokeBallItemId).copyWith(
+            capture: mvpItemCatalog.entries.singleWhere((item) => item.id == canonicalPokeBallItemId).capture!.copyWith(contextualPolicy: policy))])),
+        preparedCapture: prepared, submitToEngine: () => adapter.submitPlayerChoice(prepared.choice),
+      );
+      effects.clear();
+      final outcome = adapter.createLegacyOutcome(isTrainerBattle: false);
+      final transaction = applyRuntimeBattleOutcomeTransactionBase(
+        gameState: submission.updatedGameState, context: context, outcome: outcome, captureAttemptReceipt: submission.receipt,
+      );
+      final captured = partySize == 1 ? transaction.state.party.members.last : transaction.state.pokemonStorage.storedPokemon.single;
+      expect(captured.friendship, 200);
+      expect(captured.speciesId, 'receipt-wild');
+      expect(submission.receipt!.successEffects.single, isA<ProjectCaptureSetFriendship>());
+      expect(submission.receipt!.successEffects.clear, throwsUnsupportedError);
+      expect(initial.party.members, hasLength(partySize));
+      final restored = gameStateFromStrictSaveJson(strictGameStateSaveJson(transaction.state));
+      final restoredCaptured = partySize == 1 ? restored.party.members.last : restored.pokemonStorage.storedPokemon.single;
+      expect(restoredCaptured.friendship, 200);
+    });
+  }
 
   group('applyRuntimeBattleOutcomeToGameState', () {
     test('writes back the exact party slot used for the battle handoff', () {
@@ -1897,8 +1971,9 @@ BattleSession _legacyCaptureResult({required bool caught}) {
   ).applyChoice(const PlayerBattleChoiceCapture());
 }
 
-PsdkBattleSetup _psdkCaptureSetup({required bool caught}) {
-  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+PsdkBattleSetup _psdkCaptureSetup({required bool caught, bool contextual = false}) {
+  return PsdkBattleSetup.singles(
+    ruleset: contextual ? PokemonRulesetProfile.contextualV1 : PokemonRulesetProfile.pokeMapBetaV1,
     player: _psdkCaptureCombatant(
       id: 'player_0',
       speciesId: 'receipt-player',

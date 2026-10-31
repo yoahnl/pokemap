@@ -1288,6 +1288,48 @@ void main() {
     expect(state.playerSpatialPosition, original.playerSpatialPosition);
   });
   testWidgets(
+      'contextual capture preserves frozen Friend effect through the real spatial host',
+      (tester) async {
+    final fixture = (await tester.runAsync(() => _fixture(contextual: true)))!;
+    var state = fixture.state.copyWith(
+        bag: Bag(entries: const [BagEntry(itemId: 'poke-ball', quantity: 50)]));
+    final original = state;
+    var commits = 0;
+    final runtime = SpatialBattleRuntime(
+        readGameState: () => state,
+        commitGameState: (expected, next) {
+          if (state != expected) return false;
+          state = next;
+          commits++;
+          return true;
+        });
+    addTearDown(runtime.dispose);
+    final battle =
+        runtime.start(bundle: fixture.bundle, request: _wild('capture'));
+    await _readyInView(tester, runtime);
+    var attempts = 0;
+    while (runtime.postBattleOverlay == null && attempts < 30) {
+      expect(
+          await _submit(tester, runtime,
+              PlayerBattleChoiceCapture(itemId: 'poke-ball', contextualPolicy: ProjectContextualCapturePolicy(rateRules: [], successEffects: [ProjectCaptureSetFriendship(200)]))),
+          true,
+          reason:
+              '${runtime.error} / ${runtime.displaySession?.decisionRequest}');
+      attempts++;
+    }
+    expect(runtime.displaySession!.state.outcome!.isCaptured, true);
+    expect(state, original);
+    await _acknowledge(tester, runtime);
+    expect(await battle, true);
+    expect(commits, 1);
+    expect(state.bag.entries.single.quantity, 50 - attempts);
+    expect(state.party.members.length, original.party.members.length + 1);
+    expect(state.party.members.last.friendship, 200);
+    expect(state.party.members.last.individualId, isNotEmpty);
+    expect(state.party.members.last.currentPpByMoveId, isNotEmpty);
+    expect(state.playerSpatialPosition, original.playerSpatialPosition);
+  }, skip: Platform.environment['AVELUNE_CONTEXTUAL_CAPTURE_DURABLE_QA'] != '1');
+  testWidgets(
       'victory persists HP PP XP level and real move replacement and evolution decisions',
       (tester) async {
     final fixture = (await tester.runAsync(_fixture))!;
@@ -1808,7 +1850,7 @@ WildBattleStartRequest _wild(String id, {int level = 2, SceneBattleDemonstration
         weight: 1,
         playerPos: const GridPos(x: 1, y: 1));
 
-Future<({RuntimeMapBundle bundle, GameState state})> _fixture() async {
+Future<({RuntimeMapBundle bundle, GameState state})> _fixture({bool contextual = false}) async {
   final root = p.normalize(p.join(Directory.current.path, '..', '..',
       'examples', 'playable_runtime_host', 'golden_battle_slice'));
   final bundle = await loadRuntimeMapBundle(
@@ -1823,12 +1865,13 @@ Future<({RuntimeMapBundle bundle, GameState state})> _fixture() async {
     await target.parent.create(recursive: true);
     await file.copy(target.path);
   }
-  const items = ProjectItemCatalog(schemaVersion: 1, entries: [
+  final items = ProjectItemCatalog(schemaVersion: 1, entries: [
     ProjectItemDefinition(
         id: 'poke-ball',
         displayName: 'Poké Ball',
         pocketId: 'balls',
         capture: ProjectCaptureItemDefinition(
+            contextualPolicy: contextual ? ProjectContextualCapturePolicy(successEffects: [ProjectCaptureSetFriendship(200)]) : null,
             rateNumerator: 255,
             rateDenominator: 1,
             allowedEncounterKinds: {EncounterKind.walk}))
@@ -1856,7 +1899,9 @@ Future<({RuntimeMapBundle bundle, GameState state})> _fixture() async {
           version: ProjectVersion.v9,
           settings: bundle.manifest.settings
               .copyWith(dimension: ProjectDimension.threeD),
-          pokemon: bundle.manifest.pokemon.copyWith(catalogFiles: {
+          pokemon: bundle.manifest.pokemon.copyWith(
+            ruleset: contextual ? PokemonRulesetProfile.contextualV1 : bundle.manifest.pokemon.ruleset,
+            catalogFiles: {
             ...bundle.manifest.pokemon.catalogFiles,
             'items': 'items.json'
           })));
@@ -1867,3 +1912,35 @@ Future<({RuntimeMapBundle bundle, GameState state})> _fixture() async {
       .copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 1.25, z: 1.5));
   return (bundle: portable, state: state);
 }
+
+Future<({RuntimeMapBundle bundle, GameState state})> contextualCaptureSpatialFixture() async {
+  final fixture = await _fixture(contextual: true);
+  final root = fixture.bundle.projectRootDirectory;
+  await File('$root/capture-hero.png').writeAsBytes(img.encodePng(img.Image(width: 32, height: 32)));
+  final character = ProjectCharacterEntry(
+    id: 'capture-hero', name: 'Hero', tilesetId: 'unused',
+    animations: [
+      for (final facing in EntityFacing.values)
+        CharacterAnimation(state: CharacterAnimationState.walk, direction: facing,
+          sourceAssetId: 'capture-hero-asset', frames: const [
+            CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 32), durationMs: 100),
+          ]),
+    ],
+  );
+  return (
+    bundle: fixture.bundle.copyWith(
+      manifest: fixture.bundle.manifest.copyWith(characters: [character]),
+      characterAnimationAbsolutePathsByAssetId: {'capture-hero-asset': '$root/capture-hero.png'},
+    ),
+    state: fixture.state.copyWith(
+      trainerProfile: fixture.state.trainerProfile.copyWith(avatarCharacterId: character.id),
+      bag: const Bag(entries: [BagEntry(itemId: 'poke-ball', quantity: 50)]),
+    ),
+  );
+}
+
+Future<void> readyContextualCaptureBattle(WidgetTester tester, SpatialBattleRuntime runtime) => _readyInView(tester, runtime);
+Future<bool> submitFriendContextualCapture(WidgetTester tester, SpatialBattleRuntime runtime) => _submit(tester, runtime,
+    PlayerBattleChoiceCapture(contextualPolicy: ProjectContextualCapturePolicy(rateRules: [], successEffects: [ProjectCaptureSetFriendship(200)])));
+Future<void> acknowledgeContextualCaptureBattle(WidgetTester tester, SpatialBattleRuntime runtime) => _acknowledge(tester, runtime);
+WildBattleStartRequest contextualCaptureWildRequest(String id) => _wild(id);

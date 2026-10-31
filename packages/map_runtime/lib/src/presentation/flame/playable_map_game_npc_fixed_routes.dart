@@ -94,6 +94,7 @@ extension _PlayableMapNpcFixedRoutes on PlayableMapGame {
     return entity == null
         ? null
         : resolveMapEntityPresentation(
+            lookupRewardScenes: _lookupRewardScenes,
             project: _bundle.manifest,
             gameState: _scenePresentationGameState,
             map: map,

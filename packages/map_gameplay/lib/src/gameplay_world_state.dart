@@ -101,6 +101,7 @@ class GameplayWorldState {
     NpcMapPresencePredicate? npcMapPresencePredicate,
     MapEntityPresencePredicate? mapEntityPresencePredicate,
     GameState? gameState,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) {
     movingPropWorldState ??= gameState?.movingPropWorldState ?? const MovingPropWorldState.empty();
     movingPropWorldState = initializeMovingPropWorldState(map: map, worldState: movingPropWorldState);
@@ -109,11 +110,17 @@ class GameplayWorldState {
       validateMovingPropDefinitions(map: map, project: project,
           tileSize: PixelSize(width: tileWidth, height: tileHeight));
     }
-    map = applyMovingPropWorldStateToMap(map: map, worldState: movingPropWorldState,
-        tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
-            height: tileHeight <= 0 ? 16 : tileHeight), positions: movingPropPositions);
-    map = _projectEntityPresentations(map, project, gameState);
-    map = applyMovingPlatformWorldStateToMap(map: map,
+    map = applyMovingPropWorldStateToMap(
+        map: map,
+        worldState: movingPropWorldState,
+        tileSize: PixelSize(
+            width: tileWidth <= 0 ? 16 : tileWidth,
+            height: tileHeight <= 0 ? 16 : tileHeight),
+        positions: movingPropPositions);
+    map = _projectEntityPresentations(
+        map, project, gameState, lookupRewardScenes);
+    map = applyMovingPlatformWorldStateToMap(
+        map: map,
         worldState: movingPlatformWorldState,
         tileSize: PixelSize(width: tileWidth <= 0 ? 16 : tileWidth,
             height: tileHeight <= 0 ? 16 : tileHeight));
@@ -960,6 +967,7 @@ class GameplayWorldState {
     required ProjectManifest project,
     required GameState gameState,
     required MapData sourceMap,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) {
     if (!sourceMap.entities.any((entity) => entity.presentation != null)) return this;
     final currentById = {for (final entity in map.entities) entity.id: entity};
@@ -970,15 +978,37 @@ class GameplayWorldState {
         else entity,
     ]);
     final instance = gameState.mapInstanceWorldState.instanceRef(sourceMap.id);
-    final poses = instance == null ? const <String, MapInstanceNpcPose>{} : gameState.mapInstanceWorldState.instancesByMapId[sourceMap.id]!.npcPoses;
-    final logicalCandidates = {for (final entry in poses.entries)
-      if (currentById[entry.key]?.kind != MapEntityKind.npc || currentById[entry.key]?.npc == null) entry.key: entry.value};
-    final inactiveOwners = <String>{for (final entity in source.entities)
-      if (logicalCandidates.containsKey(entity.id) && entity.presentation != null &&
-          source.entities.where((other) => other.id == entity.id).length == 1 &&
-          validateMapEntityPresentation(project: project, map: source, entity: entity).isEmpty &&
-          resolveMapEntityPresentation(project: project, gameState: gameState, map: source, entity: entity) == null)
-        entity.id};
+    final poses = instance == null
+        ? const <String, MapInstanceNpcPose>{}
+        : gameState
+            .mapInstanceWorldState.instancesByMapId[sourceMap.id]!.npcPoses;
+    final logicalCandidates = {
+      for (final entry in poses.entries)
+        if (currentById[entry.key]?.kind != MapEntityKind.npc ||
+            currentById[entry.key]?.npc == null)
+          entry.key: entry.value
+    };
+    final inactiveOwners = <String>{
+      for (final entity in source.entities)
+        if (logicalCandidates.containsKey(entity.id) &&
+            entity.presentation != null &&
+            source.entities.where((other) => other.id == entity.id).length ==
+                1 &&
+            validateMapEntityPresentation(
+                    project: project,
+                    map: source,
+                    entity: entity,
+                    lookupRewardScenes: lookupRewardScenes)
+                .isEmpty &&
+            resolveMapEntityPresentation(
+                    project: project,
+                    gameState: gameState,
+                    map: source,
+                    entity: entity,
+                    lookupRewardScenes: lookupRewardScenes) ==
+                null)
+          entity.id
+    };
     for (final id in inactiveOwners) {
       final owner = source.entities.singleWhere((entity) => entity.id == id);
       final position = logicalCandidates[id]!.position;
@@ -989,23 +1019,46 @@ class GameplayWorldState {
         throw StateError('Saved NPC $id has an incompatible identity or pose.');
       }
     }
-    final logicalPoses = {for (final entry in logicalCandidates.entries)
-      if (!inactiveOwners.contains(entry.key)) entry.key: entry.value};
-    final presented = logicalPoses.isEmpty ? source : projectMapEntityPresentations(project: project, gameState: gameState, map: source);
-    final positioned = instance == null || logicalPoses.isEmpty ? presented : applyNpcInstancePosesToMap(
-      map: presented, authoringMap: source, project: project,
-      instances: gameState.mapInstanceWorldState.setNpcPoses(instance, logicalPoses), instance: instance,
-      movingPlatformWorldState: movingPlatformWorldState,
-      movingPropWorldState: movingPropWorldState,
-      npcMapPresencePredicate: npcMapPresencePredicate,
-      mapEntityPresencePredicate: mapEntityPresencePredicate,
-    );
-    var result = GameplayWorldState.initial(map: positioned, project: project,
-      gameState: gameState, movingPlatformWorldState: movingPlatformWorldState,
-      movingPropWorldState: movingPropWorldState, movingPropPositions: movingPropPositions,
-      playerPos: player.pos, tileWidth: _tileWidth, tileHeight: _tileHeight,
-      npcMapPresencePredicate: npcMapPresencePredicate,
-      mapEntityPresencePredicate: mapEntityPresencePredicate).withPlayer(player);
+    final logicalPoses = {
+      for (final entry in logicalCandidates.entries)
+        if (!inactiveOwners.contains(entry.key)) entry.key: entry.value
+    };
+    final presented = logicalPoses.isEmpty
+        ? source
+        : projectMapEntityPresentations(
+            project: project,
+            gameState: gameState,
+            map: source,
+            lookupRewardScenes: lookupRewardScenes);
+    final positioned = instance == null || logicalPoses.isEmpty
+        ? presented
+        : applyNpcInstancePosesToMap(
+            map: presented,
+            authoringMap: source,
+            project: project,
+            lookupRewardScenes: lookupRewardScenes,
+            instances: gameState.mapInstanceWorldState
+                .setNpcPoses(instance, logicalPoses),
+            instance: instance,
+            movingPlatformWorldState: movingPlatformWorldState,
+            movingPropWorldState: movingPropWorldState,
+            npcMapPresencePredicate: npcMapPresencePredicate,
+            mapEntityPresencePredicate: mapEntityPresencePredicate,
+          );
+    var result = GameplayWorldState.initial(
+            map: positioned,
+            project: project,
+            lookupRewardScenes: lookupRewardScenes,
+            gameState: gameState,
+            movingPlatformWorldState: movingPlatformWorldState,
+            movingPropWorldState: movingPropWorldState,
+            movingPropPositions: movingPropPositions,
+            playerPos: player.pos,
+            tileWidth: _tileWidth,
+            tileHeight: _tileHeight,
+            npcMapPresencePredicate: npcMapPresencePredicate,
+            mapEntityPresencePredicate: mapEntityPresencePredicate)
+        .withPlayer(player);
     for (final entity in result.map.entities) {
       final current = currentById[entity.id];
       final pageChanged = current != null && current.kind == MapEntityKind.npc &&
@@ -1538,12 +1591,18 @@ Map<int, List<MapEntity>> _buildBlockingEntityByPos(
   });
 }
 
-MapData _projectEntityPresentations(MapData map, ProjectManifest? project, GameState? state) {
+MapData _projectEntityPresentations(
+    MapData map, ProjectManifest? project, GameState? state,
+    [PeriodicRewardSceneLookup? lookupRewardScenes]) {
   if (!map.entities.any((entity) => entity.presentation != null)) return map;
   if (project == null || state == null) {
     return map.copyWith(entities: map.entities.where((entity) => entity.presentation == null).toList());
   }
-  return projectMapEntityPresentations(project: project, gameState: state, map: map);
+  return projectMapEntityPresentations(
+      project: project,
+      gameState: state,
+      map: map,
+      lookupRewardScenes: lookupRewardScenes);
 }
 
 Map<int, MapEntity> _buildEntityByPos(

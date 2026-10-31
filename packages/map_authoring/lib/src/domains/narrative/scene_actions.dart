@@ -202,6 +202,21 @@ final class SceneActions {
     'outputPorts': ['completed'],
   };
 
+  static const _claimPeriodicRewardContract = {
+    'interactiveCommandKind': 'claimPeriodicReward',
+    'definition': ['schemaVersion', 'rewardId', 'label', 'itemId', 'quantity'],
+    'schemaVersion': 1,
+    'period': 'civilDay',
+    'identity': 'stableRewardIdPreservedAcrossEdits',
+    'itemReference': 'knownProjectItem',
+    'quantity': {'minimum': 1, 'maximum': 9007199254740991},
+    'outputPorts': ['received', 'alreadyClaimed', 'bagFull', 'blocked'],
+    'bagFullConsumesClaim': false,
+    'execution': 'immediateWithoutOverlay',
+    'checkpoint': 'atomicItemGrantAndClaimBeforeSceneContinuation',
+    'capability': 'gameplay.periodic-reward@1',
+  };
+
   static const _openImagePuzzleContract = {
     'interactiveCommandKind': 'openImagePuzzle',
     'projectDimension': 'twoDOrThreeD',
@@ -645,6 +660,7 @@ final class SceneActions {
         'openRegionalMap': _openRegionalMapContract,
         'openCrafting': _openCraftingContract,
         'openImagePuzzle': _openImagePuzzleContract,
+        'claimPeriodicReward': _claimPeriodicRewardContract,
         'openPartyTrade': _openPartyTradeContract,
         'worldTone': _worldToneContract,
         'worldPresentation': _worldPresentationContract,
@@ -715,6 +731,7 @@ final class SceneActions {
         'openRegionalMap': _openRegionalMapContract,
         'openCrafting': _openCraftingContract,
         'openImagePuzzle': _openImagePuzzleContract,
+        'claimPeriodicReward': _claimPeriodicRewardContract,
         'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
@@ -797,6 +814,7 @@ final class SceneActions {
         'openRegionalMap': _openRegionalMapContract,
         'openCrafting': _openCraftingContract,
         'openImagePuzzle': _openImagePuzzleContract,
+        'claimPeriodicReward': _claimPeriodicRewardContract,
         'openPartyTrade': _openPartyTradeContract,
         'actorRoute': _actorRouteContract,
         'actorVisibility': _actorVisibilityContract,
@@ -1022,6 +1040,7 @@ final class SceneActions {
             'The dialogue line feedback payload is invalid.');
         }
         final projected = updateDialogueLineFeedback(context.snapshot.manifest,
+          itemCatalog: context.snapshot.itemCatalog,
           maps: context.snapshot.maps, sceneId: sceneId, nodeId: nodeId,
           linePolicy: policy, dialogue: _compilePolicyDialogue(context.snapshot, payload.dialogueId,
             errorPrefix: 'scene.dialogue.line_feedback'));
@@ -1040,6 +1059,7 @@ final class SceneActions {
         final payload = node.payload as SceneYarnDialoguePayload;
         final policy = SceneDialogueChoicePolicy.fromJson(narrativeObjectParameter(parameters, 'choicePolicy'));
         final projected = updateDialogueChoicePolicy(context.snapshot.manifest,
+          itemCatalog: context.snapshot.itemCatalog,
           maps: context.snapshot.maps, sceneId: sceneId, nodeId: nodeId,
           choicePolicy: policy, dialogue: _compilePolicyDialogue(context.snapshot, payload.dialogueId));
         final updated = projected.scenes.singleWhere((candidate) => candidate.id == sceneId)
@@ -1150,6 +1170,7 @@ final class SceneActions {
             .firstOrNull;
         final projected = setCharacterAnimationCommand(
           context.snapshot.manifest,
+          itemCatalog: context.snapshot.itemCatalog,
           maps: context.snapshot.maps,
           sceneId: sceneId,
           nodeId: nodeId,
@@ -1257,6 +1278,7 @@ final class SceneActions {
         final sceneId = narrativeStringParameter(parameters, 'sceneId');
         final projected = setPresentationCueOutcomeRoutes(
           context.snapshot.manifest,
+          itemCatalog: context.snapshot.itemCatalog,
           maps: context.snapshot.maps,
           sceneId: sceneId,
           presentationNodeId: narrativeStringParameter(
@@ -1462,6 +1484,7 @@ final class SceneActions {
             .toJson();
         final projected = setPauseMenuEntryVisibility(
           context.snapshot.manifest,
+          itemCatalog: context.snapshot.itemCatalog,
           maps: context.snapshot.maps,
           sceneId: sceneId,
           nodeId: nodeId,
@@ -1497,6 +1520,7 @@ final class SceneActions {
 
   ProjectManifest updateDialogueChoicePolicy(
     ProjectManifest project, {
+    ProjectItemCatalog? itemCatalog,
     required List<MapData> maps,
     required String sceneId,
     required String nodeId,
@@ -1514,11 +1538,12 @@ final class SceneActions {
         'The choice policy does not resolve against the compiled dialogue.',
         details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
     }
-    return upsert(project, maps: maps, scene: updated);
+    return upsert(project, maps: maps, itemCatalog: itemCatalog, scene: updated);
   }
 
   ProjectManifest updateDialogueLineFeedback(
     ProjectManifest project, {
+    ProjectItemCatalog? itemCatalog,
     required List<MapData> maps,
     required String sceneId,
     required String nodeId,
@@ -1548,7 +1573,7 @@ final class SceneActions {
         'The line feedback does not resolve against the compiled dialogue and project media.',
         details: {'sceneId': sceneId, 'nodeId': nodeId, 'validationType': error.runtimeType.toString()});
     }
-    return upsert(project, maps: maps, scene: updated);
+    return upsert(project, maps: maps, itemCatalog: itemCatalog, scene: updated);
   }
 
   AuthoringMutationDraft _buildGraphEdit(AuthoringPlanningContext context) {
@@ -1602,6 +1627,7 @@ final class SceneActions {
       try {
         projected = patchGraph(
           context.snapshot.manifest,
+          itemCatalog: context.snapshot.itemCatalog,
           presentationMediaCatalog: _presentationMedia(context),
           maps: context.snapshot.maps,
           sceneId: sceneId,
@@ -1718,6 +1744,7 @@ final class SceneActions {
       }
       projected = patchGraph(
         context.snapshot.manifest,
+        itemCatalog: context.snapshot.itemCatalog,
         presentationMediaCatalog: _presentationMedia(context),
         maps: context.snapshot.maps,
         sceneId: sceneId,
@@ -1746,6 +1773,7 @@ final class SceneActions {
 
   ProjectManifest patchGraph(
     ProjectManifest project, {
+    ProjectItemCatalog? itemCatalog,
     ProjectMediaCatalog? presentationMediaCatalog,
     required List<MapData> maps,
     required String sceneId,
@@ -1828,6 +1856,7 @@ final class SceneActions {
       );
     }
     return upsert(project, maps: maps, scene: updated,
+        itemCatalog: itemCatalog,
         presentationMediaCatalog: presentationMediaCatalog);
   }
 
@@ -1943,6 +1972,9 @@ final class SceneActions {
     ProjectMediaCatalog? presentationMediaCatalog,
     SceneProjectDiagnosticsContext? context,
   }) {
+    if (itemCatalog == null && scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneClaimPeriodicRewardInteractiveCommand)) {
+      throw NarrativeAuthoringException('scene.publication_blocked', 'The periodic reward item catalog is unavailable.', details: {'diagnostics': [{'code': SceneDiagnosticCode.commandItemCatalogUnavailable.name, 'severity': 'error'}]});
+    }
     final diagnostics = context?.diagnose(scene) ?? diagnoseSceneAgainstProject(
       scene,
       project,
@@ -2011,6 +2043,7 @@ final class SceneActions {
   /// the bound awaitable node, and map_core validates them against it.
   ProjectManifest setPresentationCueOutcomeRoutes(
     ProjectManifest project, {
+    ProjectItemCatalog? itemCatalog,
     required List<MapData> maps,
     required String sceneId,
     required String presentationNodeId,
@@ -2034,7 +2067,7 @@ final class SceneActions {
         markerId: markerId,
         routes: routes,
       ).updatedScene;
-      return upsert(project, maps: maps, scene: updated);
+      return upsert(project, maps: maps, itemCatalog: itemCatalog, scene: updated);
     } on ArgumentError catch (error) {
       throw NarrativeAuthoringException(
         'scene.presentation.cue.routes.invalid',
@@ -2428,6 +2461,7 @@ final class SceneActions {
 
   ProjectManifest setCharacterAnimationCommand(
     ProjectManifest project, {
+    ProjectItemCatalog? itemCatalog,
     required List<MapData> maps,
     required String sceneId,
     required String nodeId,
@@ -2482,11 +2516,12 @@ final class SceneActions {
       declaredOutcomes: scene.declaredOutcomes,
       metadata: scene.metadata,
     );
-    return upsert(project, maps: maps, scene: updatedScene);
+    return upsert(project, maps: maps, itemCatalog: itemCatalog, scene: updatedScene);
   }
 
   ProjectManifest setPauseMenuEntryVisibility(
     ProjectManifest project, {
+    ProjectItemCatalog? itemCatalog,
     required List<MapData> maps,
     required String sceneId,
     required String nodeId,
@@ -2511,7 +2546,7 @@ final class SceneActions {
         visible: visible,
       ),
     );
-    return upsert(project, maps: maps, scene: updated.updatedScene);
+    return upsert(project, maps: maps, itemCatalog: itemCatalog, scene: updated.updatedScene);
   }
 }
 

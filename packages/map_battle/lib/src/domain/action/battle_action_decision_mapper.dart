@@ -58,12 +58,16 @@ final class PsdkBattleActionDecisionMapper {
         :final itemId,
         :final rateNumerator,
         :final rateDenominator,
+        :final contextualPolicy,
+        :final captureContext,
       ) =>
         PsdkBattleCaptureAction(
           user: user,
           itemId: itemId,
           rateNumerator: rateNumerator,
           rateDenominator: rateDenominator,
+          contextualPolicy: contextualPolicy,
+          captureContext: captureContext,
         ),
       BattleShiftDecision(:final target) => PsdkBattleShiftAction(
           user: user,

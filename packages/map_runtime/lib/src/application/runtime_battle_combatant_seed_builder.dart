@@ -10,6 +10,7 @@ import 'runtime_battle_status_bridge.dart';
 import 'runtime_move_catalog_loader.dart';
 import 'runtime_pokemon_learnset_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
+import 'runtime_contextual_capture.dart';
 
 /// Politique partagée de sélection des moves dérivés d'un learnset.
 ///
@@ -484,6 +485,25 @@ class RuntimeBattleCombatantSeedBuilder {
   final RuntimePokemonLearnsetLoader learnsetLoader;
   final RuntimeBattleMoveBridge battleMoveBridge;
   final RuntimeBattleStatusBridge statusBridge;
+
+  Future<RuntimeCaptureProvenance> buildCaptureProvenance({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required PlayerParty party,
+    required List<int> playerLineupPartyIndices,
+    required WildBattleStartRequest request,
+  }) async => RuntimeCaptureProvenance(
+    speciesById: await speciesLoader.loadSpeciesSnapshot(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    ),
+    playerSexesByLineupIndex: {
+      for (var index = 0; index < playerLineupPartyIndices.length; index++)
+        index: party.members[playerLineupPartyIndices[index]].gender,
+    },
+    targetSex: request.generatedPokemon?.gender,
+    encounterKind: request.encounterKind,
+  );
 
   Future<RuntimeBattleCombatantSeed> buildPlayerCombatantSeed({
     required String projectRootDirectory,

@@ -38,6 +38,8 @@ void main() {
 
     expect(await output.exists(), isTrue);
     expect(artifact.certification.isCertified, isTrue);
+    expect(artifact.manifest.compatibility.requiredCapabilities,
+        isNot(contains(PokemonRulesetProfile.contextualCaptureCapabilityId)));
     expect(artifact.inspection.receipt.pokemonRuleset.profileId,
         'pokemap-standard-v1');
     final inspected =
@@ -112,7 +114,7 @@ Future<void> _author(Directory root, Map<String, dynamic> shared) async {
           actionVersion: 1,
           workspaceHandle: opened.workspaceHandle.value,
           expectedRevision:
-              (await snapshots.load(opened.projectHandle)).revision,
+              (await mutations.readWorkshopSnapshot(opened.projectHandle, actionId: operation.$1, parameters: operation.$2)).revision,
           idempotencyKey: id,
           parameters: operation.$2,
         ),

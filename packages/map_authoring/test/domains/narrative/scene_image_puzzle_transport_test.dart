@@ -58,6 +58,166 @@ Map<String, dynamic> scene() => {
     };
 
 void main() {
+  test('periodic reward semantics are discoverable on all canonical Scene actions', () {
+    for (final id in ['scene.upsert', 'scene.graph.patch', 'scene.interactive_command.set']) {
+      final contract = SceneActions.descriptors.singleWhere((action) => action.id == id).extensions['claimPeriodicReward'] as Map?;
+      expect(contract, isNotNull);
+      expect(contract!['outputPorts'], ['received', 'alreadyClaimed', 'bagFull', 'blocked']);
+      expect(contract['period'], 'civilDay');
+      expect(contract['bagFullConsumesClaim'], false);
+    }
+  });
+
+  for (final jsonl in [false, true]) {
+    test('periodic mixed Scene remains editable through dialogue policies jsonl=$jsonl', () async {
+      final mixed = _replacePuzzleWithPeriodic(_mixedScene(actions: [SceneYarnDialoguePayload(dialogueId: 'talk')]));
+      final fixture = await _PuzzleFixture.create(jsonl: jsonl, catalog: true, unrelated: 128,
+        mixedProject: _dependencyProject().copyWith(dialogues: const [ProjectDialogueEntry(id: 'talk', name: 'Talk', relativePath: 'dialogues/talk.yarn')]),
+        sceneValue: mixed, resources: _dependencyResources());
+      addTearDown(fixture.dispose);
+      await Directory('${fixture.root.path}/dialogues').create();
+      await File('${fixture.root.path}/dialogues/talk.yarn').writeAsString('title: Start\n---\nFound!\n-> Oui\n    Bonjour.\n-> Non\n    Au revoir.\n===\n');
+      for (final action in ['scene.dialogue.choicePolicy.update', 'scene.dialogue.lineFeedback.update']) {
+        final parameters = {'sceneId': 'puzzle', 'nodeId': 'extra-0',
+          if (action.contains('choicePolicy')) 'choicePolicy': const SceneDialogueChoicePolicy(nodeName: 'Start').toJson()
+          else 'linePolicy': SceneDialogueLinePolicy(nodeName: 'Start', lineIndex: 0, feedback: DialogueLineFeedback(segments: [DialogueTextSegment('Found!')])).toJson()};
+        fixture.reader.paths.clear();
+        final before = await fixture.bytes();
+        await fixture.apply(await fixture.plan(action, parameters));
+        expect(fixture.reader.paths.toSet().intersection(fixture.unrelatedObjects), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(180));
+        expect(await fixture.bytes(), before);
+        final receipt = fixture.lastReceiptId!;
+        await fixture.reopen();
+        expect(await fixture.storedCommand(), _periodicCommand());
+        final snapshot = await fixture.mutations.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: action, parameters: parameters);
+        final payload = snapshot.manifest.scenes.single.graph.nodes.singleWhere((node) => node.id == 'extra-0').payload as SceneYarnDialoguePayload;
+        expect(action.contains('choicePolicy') ? payload.choicePolicies : payload.linePolicies, hasLength(1));
+        await fixture.mutations.undoMutation(fixture.opened.projectHandle, entryId: receipt, idempotencyKey: 'policy-undo-${fixture.sequence}');
+        await fixture.reopen();
+        expect(await fixture.storedCommand(), _periodicCommand());
+      }
+    });
+  }
+  test('periodic item deletion is refused canonically without writing', () async {
+    final fixture = await _PuzzleFixture.create(jsonl: false, resources: _dependencyResources());
+    addTearDown(fixture.dispose);
+    final seed = _dependencyProject();
+    await fixture.file.writeAsString(jsonEncode(seed.copyWith(pokemon: seed.pokemon.copyWith(enabled: false), scenes: [_periodicScene()]).toJson()));
+    await fixture.reopen();
+    final before = await _nativeBytes(fixture.root);
+    final itemBytes = await File('${fixture.root.path}/items.json').readAsBytes();
+    await expectLater(() => fixture.plan('item.delete_apply', {'itemId': 'fruit'}), throwsA(isA<ItemCatalogAuthoringException>().having((error) => error.code, 'code', 'item.delete_references_blocking').having((error) => jsonEncode(error.details), 'editable reference', contains('.definition.itemId'))));
+    expect(await _nativeBytes(fixture.root), before);
+    expect(await File('${fixture.root.path}/items.json').readAsBytes(), itemBytes);
+  });
+  for (final jsonl in [false, true]) {
+    test('periodic item authoring works with Pokemon disabled jsonl=$jsonl', () async {
+      final seed = _dependencyProject();
+      final fixture = await _PuzzleFixture.create(jsonl: jsonl, catalog: true, unrelated: 128, mixedProject: seed.copyWith(pokemon: seed.pokemon.copyWith(enabled: false)), sceneValue: _periodicScene(), resources: _dependencyResources());
+      addTearDown(fixture.dispose);
+      fixture.reader.paths.clear();
+      await fixture.apply(await fixture.plan('scene.interactive_command.set', {'sceneId': 'puzzle', 'nodeId': 'puzzle-node', 'command': _periodicCommand(quantity: 3)}));
+      expect(fixture.reader.paths.toSet().intersection(fixture.unrelatedObjects), isEmpty);
+      expect(fixture.reader.paths.where((path) => path == 'moves.json' || path.contains('/species/') || path.contains('/trainers/')), isEmpty);
+      await fixture.reopen();
+      expect(await fixture.storedCommand(), _periodicCommand(quantity: 3));
+      final before = await _nativeBytes(fixture.root);
+      await fixture.expectRefusal('scene.interactive_command.set', {'sceneId': 'puzzle', 'nodeId': 'puzzle-node', 'command': _periodicCommand(itemId: 'missing')});
+      expect(await _nativeBytes(fixture.root), before);
+    });
+  }
+  test('periodic publication rejects an unavailable item catalog without writing', () async {
+    final seed = _dependencyProject();
+    final fixture = await _PuzzleFixture.create(jsonl: false, catalog: true, mixedProject: seed.copyWith(pokemon: seed.pokemon.copyWith(enabled: false, catalogFiles: const {})), sceneValue: _emptyScene('puzzle'));
+    addTearDown(fixture.dispose);
+    final before = await _nativeBytes(fixture.root);
+    await fixture.expectRefusal('scene.upsert', {'scene': _periodicScene().toJson()});
+    expect(await _nativeBytes(fixture.root), before);
+  });
+  final periodicReads = <int>[];
+  for (final jsonl in [false, true]) {
+    for (final unrelated in [0, 128]) {
+      test('periodic reward create update reopen undo stays scoped jsonl=$jsonl unrelated=$unrelated', () async {
+        final seed = _dependencyProject();
+        final initial = _periodicScene();
+        final fixture = await _PuzzleFixture.create(jsonl: jsonl, catalog: true, unrelated: unrelated,
+          mixedProject: seed, sceneValue: _emptyScene('puzzle'), resources: _dependencyResources());
+        addTearDown(fixture.dispose);
+        final initialDescriptor = await fixture.bytes();
+        fixture.reader.paths.clear();
+        final firstTimer = Stopwatch()..start();
+        final firstPlan = await fixture.plan('scene.upsert', {'scene': initial.toJson()});
+        await fixture.apply(firstPlan);
+        firstTimer.stop();
+        if (!jsonl) expect(firstPlan['_resourceChanges'], 1);
+        await File('${fixture.root.parent.path}/periodic-measurements.jsonl').writeAsString('${jsonEncode({'transport': jsonl ? 'jsonl' : 'directApi', 'unrelatedScenes': unrelated, 'phase': 'firstCreate', 'reads': fixture.reader.paths.length, 'elapsedMs': firstTimer.elapsedMilliseconds, 'certification': 'focused Dart VM API fixture only'})}\n', mode: FileMode.append);
+        expect(await fixture.bytes(), initialDescriptor);
+        expect(fixture.reader.paths.toSet().intersection(fixture.unrelatedObjects), isEmpty);
+        periodicReads.add(fixture.reader.paths.length);
+        expect(fixture.reader.paths.length, lessThan(160));
+        await fixture.reopen();
+        expect(await fixture.storedCommand(), _periodicCommand());
+        for (final action in ['scene.upsert', 'scene.graph.patch', 'scene.interactive_command.set']) {
+          final next = _periodicCommand(quantity: 3);
+          final nextScene = _periodicScene(quantity: 3);
+          final parameters = action == 'scene.upsert' ? {'scene': nextScene.toJson()}
+              : action == 'scene.graph.patch' ? {'sceneId': 'puzzle', 'upsertNodes': [nextScene.graph.nodes.singleWhere((node) => node.id == 'puzzle-node').toJson()]}
+              : {'sceneId': 'puzzle', 'nodeId': 'puzzle-node', 'command': next};
+          fixture.reader.paths.clear();
+          final timer = Stopwatch()..start();
+          final plan = await fixture.plan(action, parameters);
+          await fixture.apply(plan);
+          timer.stop();
+          if (!jsonl) expect(plan['_resourceChanges'], 1);
+          await File('${fixture.root.parent.path}/periodic-measurements.jsonl').writeAsString('${jsonEncode({'transport': jsonl ? 'jsonl' : 'directApi', 'unrelatedScenes': unrelated, 'phase': action, 'reads': fixture.reader.paths.length, 'elapsedMs': timer.elapsedMilliseconds, 'certification': 'focused Dart VM API fixture only'})}\n', mode: FileMode.append);
+          expect(fixture.reader.paths.toSet().intersection(fixture.unrelatedObjects), isEmpty);
+          expect(fixture.reader.paths.where((path) => path.endsWith('.png')), isEmpty);
+          expect(fixture.reader.paths.length, lessThan(160));
+          expect(await fixture.storedCommand(), next);
+          final receipt = fixture.lastReceiptId!;
+          if (jsonl) {
+            final result = await fixture._jsonl('undo', {'projectHandle': fixture.opened.projectHandle.value, 'entryId': receipt, 'idempotencyKey': 'periodic-undo-${fixture.sequence}'});
+            expect(result.status, AuthoringResultStatus.success);
+          } else {
+            await fixture.mutations.undoMutation(fixture.opened.projectHandle, entryId: receipt, idempotencyKey: 'periodic-undo-${fixture.sequence}');
+          }
+          await fixture.reopen();
+          expect(await fixture.storedCommand(), _periodicCommand());
+        }
+        final bytes = await _nativeBytes(fixture.root);
+        await fixture.expectRefusal('scene.interactive_command.set', {'sceneId': 'puzzle', 'nodeId': 'puzzle-node', 'command': _periodicCommand(itemId: 'missing')});
+        expect(await _nativeBytes(fixture.root), bytes);
+        if (unrelated == 128) {
+          expect(periodicReads.last - periodicReads[periodicReads.length - 2], lessThanOrEqualTo(24));
+        }
+      });
+    }
+  }
+  test('periodic command preserves mixed Scene dependency selection and parallel restrictions', () async {
+    final mixed = _mixedScene(condition: SceneConditionSource.fromJson({'sourceKind': 'badge', 'sourceId': 'wing', 'operator': 'isTrue'}), actions: [
+      SceneBattlePayload(battleKind: 'trainer', trainerId: 'rival', declaredOutcomes: const ['victory', 'defeat']),
+      SceneActionPayload.interactive(_giftCommand(moves: ['tackle'])),
+      SceneBattlePayload(battleKind: 'wild', battleTemplateId: 'target', declaredOutcomes: const ['victory', 'defeat', 'captured', 'runaway']),
+    ]);
+    final periodic = _replacePuzzleWithPeriodic(mixed);
+    final fixture = await _PuzzleFixture.create(jsonl: false, catalog: true, mixedProject: _dependencyProject().copyWith(encounterTables: const [ProjectEncounterTable(id: 'target', name: 'Target', encounterKind: EncounterKind.walk, entries: [ProjectEncounterEntry(speciesId: 'bird', minLevel: 2, maxLevel: 2)])]), sceneValue: periodic, resources: _dependencyResources());
+    addTearDown(fixture.dispose);
+    final parameters = {'sceneId': 'puzzle', 'nodeId': 'puzzle-node', 'command': _periodicCommand(quantity: 4)};
+    final snapshot = await fixture.mutations.readWorkshopSnapshot(fixture.opened.projectHandle, actionId: 'scene.interactive_command.set', parameters: parameters);
+    expect(snapshot.itemCatalog?.entries.map((item) => item.id), ['fruit']);
+    expect(snapshot.manifest.badges.map((badge) => badge.id), ['wing']);
+    expect(snapshot.manifest.trainers.map((trainer) => trainer.id), ['rival']);
+    expect(snapshot.manifest.encounterTables.map((table) => table.id), ['target']);
+    await fixture.apply(await fixture.plan('scene.interactive_command.set', parameters));
+    await fixture.reopen();
+    expect(await fixture.storedCommand(), _periodicCommand(quantity: 4));
+    final parallel = await _PuzzleFixture.create(jsonl: false, catalog: true,
+      mixedProject: _dependencyProject().copyWith(eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, legacyClaims: const [], records: [_parallelOwner(1, 'puzzle')])),
+      sceneValue: _emptyScene('puzzle'), resources: _dependencyResources());
+    addTearDown(parallel.dispose);
+    await parallel.expectRefusal('scene.upsert', {'scene': _periodicScene().toJson()});
+  });
   test('puzzle semantics are discoverable on all canonical Scene actions', () {
     for (final id in [
       'scene.upsert',
@@ -1201,7 +1361,7 @@ SceneAsset _mixedScene(
                         'defeat' => SceneEdgeKind.battleDefeat,
                         _ => SceneEdgeKind.branchOutcome
                       }
-                    : SceneEdgeKind.actionCompleted),
+                    : payload is SceneYarnDialoguePayload ? SceneEdgeKind.defaultFlow : SceneEdgeKind.actionCompleted),
         for (final port in ['solved', 'quit'])
           SceneEdge(
               id: port,
@@ -1443,3 +1603,13 @@ Future<Map<String, String>> _nativeBytes(Directory root) async => {
         entity.path.substring(root.path.length):
             base64Encode(await File(entity.path).readAsBytes()),
     };
+
+Map<String, dynamic> _periodicCommand({String itemId = 'fruit', int quantity = 2}) => SceneInteractiveCommand.claimPeriodicReward(definition: PeriodicItemRewardDefinition(rewardId: 'tree-fruit', label: 'Fruit quotidien', itemId: itemId, quantity: quantity)).toJson();
+SceneAsset _periodicScene({int quantity = 2}) => _replacePuzzleWithPeriodic(SceneAsset.fromJson(scene()), quantity: quantity);
+SceneAsset _replacePuzzleWithPeriodic(SceneAsset original, {int quantity = 2}) => SceneAsset.fromJson({
+  ...original.toJson(), 'graph': {...original.graph.toJson(),
+    'nodes': [for (final node in original.graph.nodes) if (node.id == 'puzzle-node') {...node.toJson(), 'payload': {'interactiveCommand': _periodicCommand(quantity: quantity)}} else node.toJson()],
+    'edges': [for (final edge in original.graph.edges) if (edge.fromNodeId != 'puzzle-node') edge.toJson(),
+      for (final port in ['received', 'alreadyClaimed', 'bagFull', 'blocked']) SceneEdge(id: 'leave-$port', fromNodeId: 'puzzle-node', fromPortId: port, toNodeId: 'end', kind: SceneEdgeKind.actionCompleted).toJson()],
+  },
+});

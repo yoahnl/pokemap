@@ -15,6 +15,7 @@ import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../application/runtime_battle_demonstration.dart';
 import '../application/runtime_battle_outcome_apply.dart';
+import '../application/runtime_contextual_capture.dart';
 import '../application/runtime_battle_experience_progress.dart';
 import '../application/runtime_battle_setup_mapper.dart';
 import '../player/runtime_capture_sprite_resolver.dart';
@@ -308,12 +309,14 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       final lineup = mapper.selectPlayerBattleLineup(hydrated.party,
         activeCount: psdkMapper.requiresDoubles(bundle.manifest, request) ? 2 : 1,
       );
+      RuntimeCaptureProvenance? captureProvenance;
       final setup = await psdkMapper.map(
         bundle: bundle,
         gameState: hydrated,
         request: request,
         playerPartyIndex: lineup.activeIndex,
         itemCatalog: items,
+        onCaptureProvenance: (value) => captureProvenance = value,
       );
       if (!_current(generation)) return;
       final moves = await RuntimeMoveCatalogLoader().load(
@@ -350,6 +353,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       );
       context = RuntimeActiveBattleContext.withLineupMapping(
         request: request,
+        captureProvenance: captureProvenance,
         playerPartyIndex: lineup.activeIndex,
         playerPartySlotIndicesByLineupIndex: lineup.lineupPartyIndices,
         playerIndividualId:
@@ -537,17 +541,28 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       if (choice is PlayerBattleChoiceCapture) {
         final capture = _items!.definitionFor(choice.itemId)?.capture;
         if (capture == null) return false;
-        final selectedChoice = PlayerBattleChoiceCapture(
-          itemId: choice.itemId,
-          rateNumerator: _demonstration?.captureAlwaysSucceeds == true ? guaranteedDemonstrationBallRateNumerator : capture.rateNumerator,
-          rateDenominator: _demonstration?.captureAlwaysSucceeds == true ? 1 : capture.rateDenominator,
+        final selected = prepareRuntimeBattleCapture(
+          canonicalCapture: capture,
+          allowDemonstrationRateOverride: _demonstration?.captureAlwaysSucceeds == true,
+          battleState: _engine!.createLegacyWriteBackState(),
+          ruleset: _engine!.ruleset,
+          provenance: context!.captureProvenance,
+          choice: PlayerBattleChoiceCapture(
+            itemId: choice.itemId,
+            rateNumerator: _demonstration?.captureAlwaysSucceeds == true ? guaranteedDemonstrationBallRateNumerator : capture.rateNumerator,
+            rateDenominator: _demonstration?.captureAlwaysSucceeds == true ? 1 : capture.rateDenominator,
+            contextualPolicy: choice.contextualPolicy,
+            captureContext: choice.captureContext,
+          ),
         );
+        final selectedChoice = selected.choice;
         final submission = submitRuntimeBattleCaptureAttempt(
           gameState: _working!,
           context: context!,
           captureAllowed: _engine!.allowsPlayerChoice(selectedChoice),
           itemId: choice.itemId,
           itemCatalog: _items!,
+          preparedCapture: selected,
           submitToEngine: () => _engine!.submitPlayerChoice(selectedChoice),
         );
         _working = submission.updatedGameState;

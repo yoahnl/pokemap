@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/support/authoring_performance_observer.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_project_reader.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
 import 'package:crypto/crypto.dart' as crypto;
@@ -10,6 +11,93 @@ import 'package:test/test.dart';
 import 'package:image/image.dart' as img;
 
 void main() {
+  final captureWork = <Map<String, Object?>>[];
+  for (final unrelated in [0, 100]) {
+  test('contextual profile and item edits ignore unrelated maps assets and history foreign=$unrelated', () async {
+    final reader = _CaptureWorkReader();
+    final observer = _CaptureWorkObserver();
+    final promotions = <String>[];
+    AuthoringMutationResult? lastCaptureResult;
+    final fixture = await _Fixture.open(unrelatedRecords: unrelated, captureReader: reader, captureObserver: observer,
+        faultInjector: (context) { if (context.checkpoint == AuthoringTransactionCheckpoint.beforeResourcePromotion) promotions.add(context.storageKey!); });
+    addTearDown(fixture.close);
+    final itemFile = File('${fixture.root.path}/data/pokemon/catalogs/items.json');
+    await itemFile.parent.create(recursive: true);
+    await itemFile.writeAsString(jsonEncode(encodeProjectItemCatalog(ProjectItemCatalog(
+      schemaVersion: 1, entries: [const ProjectItemDefinition(id: 'eighth-orb', displayName: 'Eighth', pocketId: 'balls')]))));
+    final history = File('${fixture.root.path}/.pokemap/authoring/history.jsonl');
+    await history.parent.create(recursive: true);
+    await history.writeAsString('unrelated legacy history must remain unread\n' * (unrelated + 1));
+    reader.clear(); observer.counters.clear(); promotions.clear();
+    final profileTimer = Stopwatch()..start();
+    await _applyScoped(fixture, 'pokemon.ruleset.set', {'profile': PokemonRulesetProfile.contextualV1.toJson()}, 'contextual-profile');
+    profileTimer.stop();
+    expect(promotions, ['catalog/HEAD.json']);
+    expect(reader.paths.where((path) => path.startsWith('maps/') || path.startsWith('assets/') || path.endsWith('history.jsonl')), isEmpty);
+    final profileWork = <String, Object?>{'phase': 'profile', 'foreign': unrelated,
+        'reads': reader.paths.length, 'decodedUnits': Map<String, int>.of(reader.units),
+        'promotions': List<String>.of(promotions), 'counters': Map<String, int>.of(observer.counters),
+        'elapsedUs': profileTimer.elapsedMicroseconds};
+    captureWork.add(profileWork);
+    print(jsonEncode(profileWork));
+    for (var index = 0; index < 2; index++) {
+      reader.clear(); observer.counters.clear(); promotions.clear();
+      final timer = Stopwatch()..start();
+      final parameters = <String, Object?>{'itemId': 'eighth-orb', 'capture': {
+        'rateNumerator': index + 1, 'rateDenominator': 1, 'allowedEncounterKinds': ['walk'],
+        'contextualPolicy': ProjectContextualCapturePolicy(successEffects: [ProjectCaptureSetFriendship(123 + index)]).toJson(),
+      }};
+      final snapshot = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'item.set_capture_effect', parameters: parameters);
+      expect(snapshot.maps, isEmpty);
+      expect(snapshot.manifest.trainers, isEmpty);
+      expect(snapshot.manifest.models3d, isEmpty);
+      lastCaptureResult = await _applyScoped(fixture, 'item.set_capture_effect', parameters, 'contextual-item-$index');
+      timer.stop();
+      expect(promotions, unorderedEquals(['data/pokemon/catalogs/items.json', 'catalog/HEAD.json']));
+      expect(reader.paths.where((path) => path.startsWith('maps/') || path.startsWith('assets/') || path.endsWith('history.jsonl')), isEmpty);
+      final work = <String, Object?>{'phase': 'item-$index', 'foreign': unrelated,
+          'reads': reader.paths.length, 'decodedUnits': Map<String, int>.of(reader.units),
+          'promotions': List<String>.of(promotions), 'counters': Map<String, int>.of(observer.counters), 'elapsedUs': timer.elapsedMicroseconds};
+      captureWork.add(work);
+      print(jsonEncode(work));
+      final catalog = decodeProjectItemCatalog(jsonDecode(await itemFile.readAsString()));
+      expect(catalog.entries.single.capture!.rateNumerator, index + 1);
+    }
+    final bytes = await itemFile.readAsBytes();
+    final downgrade = {'profile': PokemonRulesetProfile.standardV1.toJson()};
+    await expectLater(_applyScoped(fixture, 'pokemon.ruleset.set', downgrade, 'contextual-downgrade'),
+        throwsA(isA<PokemonRulesetAuthoringException>().having((e) => e.code, 'code', 'pokemon.ruleset.contextual_items_in_use')));
+    expect(await itemFile.readAsBytes(), bytes);
+    expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptorBytes);
+    expect(await history.readAsString(), 'unrelated legacy history must remain unread\n' * (unrelated + 1));
+    reader.clear(); observer.counters.clear(); promotions.clear();
+    final undoTimer = Stopwatch()..start();
+    await fixture.api.undo(fixture.opened.projectHandle,
+        entryId: lastCaptureResult!.receipt.receiptId, idempotencyKey: 'contextual-undo');
+    undoTimer.stop();
+    expect(promotions, unorderedEquals(['data/pokemon/catalogs/items.json', 'catalog/HEAD.json']));
+    expect(reader.paths.where((path) => path.startsWith('maps/') || path.startsWith('assets/') || path.endsWith('history.jsonl')), isEmpty);
+    final undone = decodeProjectItemCatalog(jsonDecode(await itemFile.readAsString()));
+    expect(undone.entries.single.capture!.rateNumerator, 1);
+    final reopened = (await CatalogProjectReader.open(store: fixture.store,
+        descriptor: fixture.working.descriptor.toJson(), metadataFields: {'pokemon'}))!;
+    expect(reopened.catalog.projectMetadata.pokemon.ruleset, PokemonRulesetProfile.contextualV1);
+    print(jsonEncode({'phase': 'undo', 'foreign': unrelated, 'reads': reader.paths.length,
+        'decodedUnits': reader.units, 'promotions': promotions, 'counters': observer.counters,
+        'elapsedUs': undoTimer.elapsedMicroseconds}));
+    if (unrelated == 100) {
+      for (var index = 0; index < 3; index++) {
+        expect(captureWork[index + 3]['reads'] as int, lessThan(120));
+        for (final counter in ['filesystem.read', 'filesystem.write', 'json.decode']) {
+          expect((captureWork[index + 3]['counters'] as Map)[counter], (captureWork[index]['counters'] as Map)[counter]);
+        }
+        expect(captureWork[index + 3]['decodedUnits'], captureWork[index]['decodedUnits']);
+        expect(captureWork[index + 3]['promotions'], captureWork[index]['promotions']);
+      }
+    }
+  });
+  }
   test('badge first and repeated upserts stay in their metadata document', () async {
     final fixture = await _Fixture.open(unrelatedRecords: 100);
     addTearDown(fixture.close);
@@ -875,7 +963,7 @@ Future<void> _seedRawUnits(
       projectHandle: fixture.opened.projectHandle);
 }
 
-Future<void> _applyScoped(_Fixture fixture, String action,
+Future<AuthoringMutationResult> _applyScoped(_Fixture fixture, String action,
     Map<String, Object?> parameters, String operation) async {
   final snapshot = await fixture.api.readWorkshopSnapshot(
       fixture.opened.projectHandle,
@@ -892,7 +980,7 @@ Future<void> _applyScoped(_Fixture fixture, String action,
           idempotencyKey: operation,
           parameters: parameters,
           extensions: const {'workshopScope': true}));
-  await fixture.api.applyMutation(fixture.opened.projectHandle,
+  return fixture.api.applyMutation(fixture.opened.projectHandle,
       planId: plan.planId, operationId: operation);
 }
 
@@ -909,6 +997,8 @@ final class _Fixture {
 
   static Future<_Fixture> open(
       {AuthoringTransactionFaultInjector? faultInjector,
+      _CaptureWorkReader? captureReader,
+      _CaptureWorkObserver? captureObserver,
       bool playerCharacters = false,
       bool savings = false,
       bool contacts = false,
@@ -961,14 +1051,14 @@ final class _Fixture {
           ]
         ],
         maps: [
-          for (var index = 0; index < 90; index++)
+          for (var index = 0; index < 90 + (captureReader == null ? 0 : unrelatedRecords); index++)
             ProjectMapEntry(
                 id: 'map-$index',
                 name: 'Map $index',
                 relativePath: 'maps/$index.json'),
         ],
         tilesets: [
-          for (var index = 0; index < 250; index++)
+          for (var index = 0; index < 250 + (captureReader == null ? 0 : unrelatedRecords); index++)
             ProjectTilesetEntry(
                 id: 'unused-$index',
                 name: 'Unused $index',
@@ -983,7 +1073,7 @@ final class _Fixture {
         .writeAsString('unrelated resource must not be decoded');
     final descriptorBytes =
         await File('${root.path}/project.json').readAsBytes();
-    const reader = LocalProjectFileReader();
+    final ProjectFileReader reader = captureReader ?? const LocalProjectFileReader();
     final handles = WorkspaceHandleStore();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [root.path], fileReader: reader);
@@ -996,6 +1086,8 @@ final class _Fixture {
     final api = LocalMapAuthoringMutationApi(
       policy: policy,
       faultInjector: faultInjector,
+      catalogFileReader: reader,
+      performanceObserver: captureObserver,
       snapshotLoader: ProjectSnapshotLoader(handles: handles),
     );
     await api.attachProject(
@@ -1011,4 +1103,68 @@ final class _Fixture {
     handles.closeWorkspace(opened.workspaceHandle);
     await root.delete(recursive: true);
   }
+}
+
+final class _CaptureWorkReader
+    implements
+        ProjectFileReader,
+        ProjectResourceStreamReader,
+        ProjectResourceProbeReader {
+  void clear() { paths.clear(); probes.clear(); units.clear(); }
+  final paths = <String>[];
+  final probes = <String>[];
+  final units = <String, int>{};
+  void record(List<int> bytes) {
+    try {
+      final raw = jsonDecode(utf8.decode(bytes));
+      if (raw is Map && raw['key'] is Map) {
+        final key = raw['key'] as Map;
+        final identity = '${key["kind"]}:${key["id"]}';
+        units.update(identity, (n) => n + 1, ifAbsent: () => 1);
+      }
+    } catch (_) {}
+  }
+
+  final delegate = const LocalProjectFileReader();
+  @override
+  bool get supportsStreamingResources => true;
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      delegate.canonicalizeDirectory(path);
+  @override
+  Future<ProjectResourceProbe> probeResource(
+      {required String projectRoot, required String relativePath}) {
+    probes.add(relativePath);
+    return delegate.probeResource(
+        projectRoot: projectRoot, relativePath: relativePath);
+  }
+
+  @override
+  Future<List<int>> readBytes(
+      {required String projectRoot, required String relativePath}) async {
+    paths.add(relativePath);
+    final bytes = await delegate.readBytes(
+        projectRoot: projectRoot, relativePath: relativePath);
+    record(bytes);
+    return bytes;
+  }
+
+  @override
+  Stream<List<int>> openRead(
+      {required String projectRoot, required String relativePath}) async* {
+    paths.add(relativePath);
+    final bytes = await delegate.readBytes(
+        projectRoot: projectRoot, relativePath: relativePath);
+    record(bytes);
+    yield bytes;
+  }
+}
+
+final class _CaptureWorkObserver implements AuthoringPerformanceObserver {
+  final counters = <String, int>{};
+  @override
+  AuthoringPerformanceSpan? startSpan(String name) => null;
+  @override
+  void incrementCounter(String name, {int by = 1}) =>
+      counters.update(name, (value) => value + by, ifAbsent: () => by);
 }

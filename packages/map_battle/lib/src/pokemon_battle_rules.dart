@@ -4,6 +4,8 @@ import 'battle_rng.dart';
 import 'battle_type_chart.dart';
 import 'battle_typing.dart';
 import 'capture_formula.dart';
+import 'battle_capture_receipt.dart';
+import 'contextual_capture_formula.dart';
 import 'domain/rng/battle_rng_streams.dart';
 import 'domain/rng/battle_seeded_rng.dart';
 
@@ -131,7 +133,8 @@ final class PokemonBattleRules {
     required BattleCaptureStatus status,
     required BattleRng rng,
   }) {
-    if (mechanics.capture != PokemonCapturePolicy.pokeMapMvpV1) {
+    if (mechanics.capture != PokemonCapturePolicy.pokeMapMvpV1 &&
+        mechanics.capture != PokemonCapturePolicy.pokeMapContextualItemsMvpFallbackV1) {
       throw StateError(
         'Unsupported Pokemon capture policy ${mechanics.capture.name}.',
       );
@@ -146,6 +149,113 @@ final class PokemonBattleRules {
       status: status,
       rng: rng,
     );
+  }
+
+  void validateCaptureSelection({
+    required int targetCurrentHp,
+    required int targetMaxHp,
+    required int catchRate,
+    required String ballId,
+    required int ballRateNumerator,
+    required int ballRateDenominator,
+    ProjectContextualCapturePolicy? contextualPolicy,
+    BattleCaptureContext? captureContext,
+  }) {
+    if (mechanics.capture != PokemonCapturePolicy.pokeMapMvpV1 &&
+        mechanics.capture != PokemonCapturePolicy.pokeMapContextualItemsMvpFallbackV1) {
+      throw StateError(
+          'Unsupported Pokemon capture policy ${mechanics.capture.name}.');
+    }
+    if (ballId.trim().isEmpty ||
+        ballRateNumerator < 1 ||
+        ballRateDenominator < 1 ||
+        targetMaxHp < 1 ||
+        targetCurrentHp < 1 ||
+        targetCurrentHp > targetMaxHp ||
+        catchRate < 1 ||
+        catchRate > 255) {
+      throw ArgumentError('Invalid capture selection.');
+    }
+    if (contextualPolicy == null) {
+      if (captureContext != null) {
+        throw StateError(
+            'Capture context requires an explicit contextual policy.');
+      }
+      return;
+    }
+    if (mechanics.capture != PokemonCapturePolicy.pokeMapContextualItemsMvpFallbackV1) {
+      throw StateError('Contextual capture requires the explicit contextual ruleset.');
+    }
+    if (captureContext == null) {
+      throw StateError(
+          'Contextual capture requires an explicit capture context.');
+    }
+    for (final value in [targetMaxHp, ballRateNumerator, ballRateDenominator]) {
+      RangeError.checkValueInInterval(value, 1, 0x7fffffff);
+    }
+    const BattleContextualCaptureFormula().evaluateRate(
+      policy: contextualPolicy,
+      catchRate: captureContext.targetBaseCatchRate ?? catchRate,
+      context: captureContext,
+    );
+  }
+
+  BattleCaptureResolution resolveCapture({
+    required String attemptId,
+    required int targetCurrentHp,
+    required int targetMaxHp,
+    required int catchRate,
+    required String ballId,
+    required int ballRateNumerator,
+    required int ballRateDenominator,
+    required BattleCaptureStatus status,
+    required BattleRng rng,
+    ProjectContextualCapturePolicy? contextualPolicy,
+    BattleCaptureContext? captureContext,
+  }) {
+    validateCaptureSelection(
+      targetCurrentHp: targetCurrentHp,
+      targetMaxHp: targetMaxHp,
+      catchRate: catchRate,
+      ballId: ballId,
+      ballRateNumerator: ballRateNumerator,
+      ballRateDenominator: ballRateDenominator,
+      contextualPolicy: contextualPolicy,
+      captureContext: captureContext,
+    );
+    if (contextualPolicy == null) {
+      return BattleCaptureResolution(
+          attempt: attemptCapture(
+        targetCurrentHp: targetCurrentHp,
+        targetMaxHp: targetMaxHp,
+        catchRate: catchRate,
+        ballId: ballId,
+        ballRateNumerator: ballRateNumerator,
+        ballRateDenominator: ballRateDenominator,
+        status: status,
+        rng: rng,
+      ));
+    }
+    if (attemptId.trim().isEmpty) {
+      throw ArgumentError.value(attemptId, 'attemptId', 'must not be empty');
+    }
+    final resolved = const BattleContextualCaptureFormula().attempt(
+      policy: contextualPolicy,
+      context: captureContext!,
+      catchRate: captureContext.targetBaseCatchRate ?? catchRate,
+      targetCurrentHp: targetCurrentHp,
+      targetMaxHp: targetMaxHp,
+      ballRateNumerator: ballRateNumerator,
+      ballRateDenominator: ballRateDenominator,
+      status: status,
+      rng: rng,
+    );
+    return BattleCaptureResolution(
+        attempt: resolved.attempt,
+        contextualReceipt: BattleCaptureReceipt(
+            attemptId: attemptId,
+            ballId: ballId,
+            calculation: resolved.receipt));
   }
 
   PokemonLegacySpeedTieResult resolveLegacySpeedTie(BattleRng rng) {

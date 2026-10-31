@@ -15,7 +15,7 @@ const _nativeWorkshopActions = {
   'campaign.shop.upsert',
   'bag.capacity.set',
   'item.create',
-  'item.update',
+  'item.update', 'item.set_capture_effect',
   'event_v2.template.apply',
   'narrative.publish_document',
 };
@@ -287,11 +287,8 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   if (actionId == 'pokemon.ruleset.set') {
     final profile = parameters['profile'];
-    if (profile is Map &&
-        PokemonRulesetProfile.fromJson(Map<String, dynamic>.from(profile))
-            .mechanics
-            .disabledFeatures
-            .contains(PokemonDisabledFeature.doubleBattles)) {
+    if (profile is Map && profile['disabledFeatures'] is List &&
+        (profile['disabledFeatures'] as List).contains('double-battles')) {
       for (final rows in index('trainers').values) {
         for (final trainer in rows) {
           if (trainer['battleFormat'] == 'doubles') {
@@ -301,7 +298,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       }
     }
   }
-  if (actionId == 'item.update' && parameters['itemId'] is String) {
+  if ((actionId == 'item.update' || actionId == 'item.set_capture_effect') && parameters['itemId'] is String) {
     for (final rows in index('trainers').values) {
       for (final trainer in rows) {
         if (_nativeReferenceIds(trainer['team'], const {'ballItemId'})
@@ -632,16 +629,16 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     }
   }
   final needsItems = actionId.startsWith('item.') ||
+      (actionId == 'pokemon.ruleset.set' &&
+          (parameters['profile'] as Map?)?['profileId'] != PokemonRulesetProfile.contextualProfileId) ||
       actionId == 'campaign.shop.upsert' ||
       _nativeReferenceIds(candidates, const {'itemId', 'ballItemId'})
           .isNotEmpty ||
       manifest.trainers.any((trainer) => trainer.battleItems.isNotEmpty) ||
       (actionId == 'campaign.trainer.upsert' &&
           parameters['value'] is Map &&
-          ProjectTrainerEntry.fromJson(
-                  Map<String, dynamic>.from(parameters['value'] as Map))
-              .battleItems
-              .isNotEmpty) ||
+          ((parameters['value'] as Map)['battleItems'] is Map &&
+           ((parameters['value'] as Map)['battleItems'] as Map).isNotEmpty)) ||
       (actionId == 'bag.capacity.set' &&
           manifest.newGame.initialBag.isNotEmpty);
   if (manifest.pokemon.catalogFiles['items'] case final String path

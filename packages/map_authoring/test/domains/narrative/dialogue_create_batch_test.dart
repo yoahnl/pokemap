@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
+import 'package:map_authoring/src/support/authoring_performance_observer.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -32,6 +34,210 @@ void main() {
           AuthoringTransport.cli,
           AuthoringTransport.mcp
         ]));
+  });
+
+  for (final unrelated in [0, 120]) {
+    for (final wire in [false, true]) {
+      for (final action in ['dialogue.create', 'dialogue.create_batch']) {
+        test(
+            'working catalog $action ${wire ? 'JSONL' : 'API'} stays local with $unrelated foreign documents',
+            () async {
+          final f = await _Fixture.create(catalog: true, unrelated: unrelated);
+          addTearDown(f.dispose);
+          final foreign = await f.foreignBytes();
+          for (final round in [0, 1]) {
+            final value = _dialogue('local-$round',
+                text:
+                    'Score {{ fact.score }}\n-> Choisir {{ fact.label }}\n  Oui');
+            (value['entry'] as Map)['folderId'] = 'child';
+            final parameters = action == 'dialogue.create'
+                ? value
+                : {
+                    'dialogues': [value]
+                  };
+            f.reader.paths.clear();
+            f.observer.counters.clear();
+            final timer = Stopwatch()..start();
+            final selected = await f.api.readWorkshopSnapshot(
+                f.opened.projectHandle,
+                actionId: action,
+                parameters: parameters);
+            expect(selected.manifest.trainers, isEmpty);
+            expect(selected.manifest.scenes, isEmpty);
+            expect(selected.manifest.maps, isEmpty);
+            expect(selected.manifest.facts.map((entry) => entry.id),
+                ['score', 'label']);
+            expect(selected.manifest.dialogueFolders.map((entry) => entry.id),
+                ['parent', 'child']);
+            final planned = await f
+                .plan([], action: action, parameters: parameters, wire: wire);
+            final applied = await f.apply(planned['planId'] as String,
+                wire: wire, operation: 'local-$round');
+            final elapsed = timer.elapsedMicroseconds;
+            expect(f.reader.paths.where(f.foreignPaths.contains), isEmpty);
+            expect(f.reader.paths.where((path) => path.startsWith('maps/')),
+                isEmpty);
+            expect(f.reader.paths.length, lessThan(250));
+            print(jsonEncode({
+              'action': action,
+              'wire': wire,
+              'foreignDocumentsPerKind': unrelated,
+              'round': round,
+              'readCalls': f.reader.paths.length,
+              'readObjectDecodes': f.reader.paths
+                  .where((path) => path.startsWith('catalog/objects/'))
+                  .length,
+              'gatewayCounters': f.observer.counters,
+              'planAndDurableApplyMicros': elapsed
+            }));
+            expect(await f.foreignBytes(), foreign);
+            await f.reopen();
+            await expectLater(
+                f.plan([], action: action, parameters: parameters),
+                throwsA(isA<NarrativeAuthoringException>().having(
+                    (error) => error.code, 'code', 'dialogue.id_conflict')));
+            await f.api.undo(f.opened.projectHandle,
+                entryId: (applied['receipt'] as Map)['receiptId'] as String,
+                idempotencyKey: 'undo-local-$round');
+            expect(
+                await File('${f.directory.path}/dialogues/local-$round.yarn')
+                    .exists(),
+                isFalse);
+            expect(await f.foreignBytes(), foreign);
+          }
+        });
+      }
+    }
+  }
+
+  for (final action in ['dialogue.create', 'dialogue.create_batch']) {
+    for (final wire in [false, true]) {
+      for (final missingSource in [false, true]) {
+        test('working catalog $action ${wire ? 'JSONL' : 'API'} refuses case-folded owned paths with missingSource=$missingSource', () async {
+          final f = await _Fixture.create(catalog: true);
+          addTearDown(f.dispose);
+          if (missingSource) {
+            await f.existingSource.delete();
+          }
+          final head = File('${f.directory.path}/catalog/HEAD.json');
+          final before = await head.readAsBytes();
+          for (final id in ['new-id', 'existing']) {
+            final value = _dialogue(id, path: 'dialogues/EXISTING.yarn');
+            final code = id == 'existing' ? 'dialogue.id_conflict' : 'dialogue.path_conflict';
+            await expectLater(f.plan([], action: action, wire: wire,
+                parameters: action == 'dialogue.create' ? value : {'dialogues': [value]}),
+                throwsA(wire
+                    ? isA<AuthoringError>().having((error) => error.details['domainCode'], 'domainCode', code)
+                    : isA<NarrativeAuthoringException>().having((error) => error.code, 'code', code)));
+            expect(await head.readAsBytes(), before);
+            expect(await f.existingSource.exists(), !missingSource);
+            if (!missingSource) {
+              expect(await f.existingSource.readAsString(), _Fixture.existingText);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  for (final action in ['dialogue.create', 'dialogue.create_batch']) {
+    for (final wire in [false, true]) {
+      test('working catalog $action ${wire ? 'JSONL' : 'API'} rejects case-folded map-owned paths', () async {
+        final f = await _Fixture.create(catalog: true, mapOwnedPath: 'dialogues/Map-owned.yarn');
+        addTearDown(f.dispose);
+        final head = File('${f.directory.path}/catalog/HEAD.json');
+        final before = await head.readAsBytes();
+        for (final id in ['new-id', 'existing']) {
+          final value = _dialogue(id, path: 'dialogues/map-owned.yarn');
+          final code = id == 'existing' ? 'dialogue.id_conflict' : 'dialogue.path_conflict';
+          await expectLater(f.plan([], action: action, wire: wire,
+              parameters: action == 'dialogue.create' ? value : {'dialogues': [value]}),
+              throwsA(wire
+                  ? isA<AuthoringError>().having((error) => error.details['domainCode'], 'domainCode', code)
+                  : isA<NarrativeAuthoringException>().having((error) => error.code, 'code', code)));
+          expect(await head.readAsBytes(), before);
+          expect(await File('${f.directory.path}/dialogues/Map-owned.yarn').exists(), isFalse);
+        }
+      });
+    }
+  }
+
+  test('working catalog create remains bounded after unrelated retained history', () async {
+    final f = await _Fixture.create(catalog: true, unrelated: 20);
+    addTearDown(f.dispose);
+    for (var i = 0; i < 8; i++) {
+      final plan = await f.plan([_dialogue('history-$i')]);
+      final applied = await f.apply(plan['planId'] as String, operation: 'history-$i');
+      await f.api.undo(f.opened.projectHandle,
+          entryId: (applied['receipt'] as Map)['receiptId'] as String,
+          idempotencyKey: 'undo-history-$i');
+    }
+    await f.reopen();
+    f.reader.paths.clear();
+    f.observer.counters.clear();
+    final plan = await f.plan([_dialogue('after-history')]);
+    await f.apply(plan['planId'] as String, operation: 'after-history');
+    expect(f.reader.paths.where(f.foreignPaths.contains), isEmpty);
+    expect(f.reader.paths.length, lessThan(250));
+    expect(f.observer.counters['filesystem.write'], lessThan(65));
+    expect(f.observer.counters['json.decode'], lessThan(100));
+    print(jsonEncode({'retainedForeignOperations': 16, 'readCalls': f.reader.paths.length,
+      'gatewayCounters': f.observer.counters}));
+  });
+
+  for (final boundary in [0, 1]) {
+    test('working catalog recovery after promotion $boundary retains the atomic batch', () async {
+      var crashed = false;
+      final f = await _Fixture.create(catalog: true, faultInjector: (context) {
+        if (!crashed && context.checkpoint == AuthoringTransactionCheckpoint.afterResourcePromoted && context.promotionIndex == boundary) {
+          crashed = true;
+          throw const AuthoringTransactionSimulatedCrash();
+        }
+      });
+      addTearDown(f.dispose);
+      final foreign = await f.foreignBytes();
+      final values = [_dialogue('first'), _dialogue('second')];
+      final plan = await f.plan(values);
+      await expectLater(f.apply(plan['planId'] as String), throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+      final recovered = await f.api.recover(f.opened.projectHandle, operationId: 'batch-apply');
+      await f.reopen();
+      final selected = await f.api.readWorkshopSnapshot(f.opened.projectHandle,
+          actionId: 'dialogue.create_batch', parameters: {'dialogues': values});
+      expect(selected.manifest.dialogues.map((entry) => entry.id), ['first', 'second']);
+      expect(await f.foreignBytes(), foreign);
+      await f.api.undo(f.opened.projectHandle,
+          entryId: (recovered['receipt'] as Map)['receiptId'] as String,
+          idempotencyKey: 'undo-recovered');
+      expect(await File('${f.directory.path}/dialogues/first.yarn').exists(), isFalse);
+      expect(await File('${f.directory.path}/dialogues/second.yarn').exists(), isFalse);
+      expect(await f.foreignBytes(), foreign);
+    });
+  }
+
+  test(
+      'working catalog refuses foreign path ownership, dangling Facts and occupied sources',
+      () async {
+    final f = await _Fixture.create(catalog: true);
+    addTearDown(f.dispose);
+    final foreign = await f.foreignBytes();
+    for (final value in [
+      _dialogue('first', path: 'dialogues/EXISTING.yarn'),
+      _dialogue('first', text: '{{ fact.missing }}'),
+    ]) {
+      await expectLater(
+          f.plan([value]), throwsA(isA<NarrativeAuthoringException>()));
+      expect(await f.foreignBytes(), foreign);
+    }
+    final occupied = File('${f.directory.path}/dialogues/occupied.yarn');
+    await occupied.writeAsString('External bytes');
+    await expectLater(() async {
+      final plan = await f.plan([_dialogue('first'), _dialogue('occupied')]);
+      await f.apply(plan['planId'] as String);
+    }, throwsA(anything));
+    expect(await occupied.readAsString(), 'External bytes');
+    expect(await File('${f.directory.path}/dialogues/first.yarn').exists(),
+        isFalse);
+    expect(await f.foreignBytes(), foreign);
   });
 
   for (final wire in [false, true]) {
@@ -333,7 +539,7 @@ Map<String, Object?> _dialogue(String id,
 
 final class _Fixture {
   _Fixture(this.directory, this.handles, this.opener, this.opened, this.loader,
-      this.api, this.readApi);
+      this.api, this.readApi, this.reader, this.observer, this.foreignPaths);
   final Directory directory;
   final WorkspaceHandleStore handles;
   final ProjectOpenService opener;
@@ -341,14 +547,22 @@ final class _Fixture {
   final ProjectSnapshotLoader loader;
   final LocalMapAuthoringMutationApi api;
   final AuthoringReadApi readApi;
+  final _CountingReader reader;
+  final _Observer observer;
+  final Set<String> foreignPaths;
   int sequence = 0;
   File get manifest => File('${directory.path}/project.json');
   File get existingSource => File('${directory.path}/dialogues/existing.yarn');
   static const existingText = 'title: Start\n---\nExistant\n===\n';
 
   static Future<_Fixture> create(
-      {AuthoringTransactionFaultInjector? faultInjector}) async {
-    final directory = await Directory.systemTemp.createTemp('dialogue_batch_');
+      {AuthoringTransactionFaultInjector? faultInjector,
+      bool catalog = false,
+      int unrelated = 0, String? mapOwnedPath}) async {
+    final qaRoot = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/dialogue-scope');
+    await qaRoot.create(recursive: true);
+    final directory = await qaRoot.createTemp('dialogue-batch-');
     await Directory('${directory.path}/dialogues').create();
     await File('${directory.path}/dialogues/existing.yarn')
         .writeAsString(existingText);
@@ -364,24 +578,138 @@ final class _Fixture {
               relativePath: 'dialogues/existing.yarn',
               defaultStartNode: 'Start')
         ]).toJson()));
-    const reader = LocalProjectFileReader();
+    final foreignPaths = <String>{};
+    if (catalog) {
+      final project = ProjectManifest.fromJson(jsonDecode(
+              await File('${directory.path}/project.json').readAsString())
+          as Map<String, dynamic>);
+      await File('${directory.path}/project.json').delete();
+      final store = await CatalogStorageStore.open(projectRoot: directory.path);
+      final working = await WorkingProjectCatalog.create(
+          store: store,
+          projectId: 'dialogues',
+          project: project.copyWith(
+            tilesets: [
+              ProjectTilesetEntry(
+                  id: 'tiles', name: 'Tiles', relativePath: 'tiles.png')
+            ],
+            settings: const ProjectSettings(defaultPlayerCharacterId: 'silver'),
+            maps: [if (mapOwnedPath != null) ProjectMapEntry(id: 'map-owner', name: 'Map owner', relativePath: mapOwnedPath)],
+            facts: [
+              NarrativeFactDefinition(
+                  id: 'score',
+                  label: 'Score',
+                  initialValue: NarrativeValue.integer(3)),
+              NarrativeFactDefinition(
+                  id: 'label',
+                  label: 'Label',
+                  initialValue: NarrativeValue.string('Oran'))
+            ],
+            dialogueFolders: [
+              ProjectDialogueFolder(id: 'parent', name: 'Parent'),
+              ProjectDialogueFolder(
+                  id: 'child', name: 'Child', parentFolderId: 'parent')
+            ],
+            dialogues: [
+              ...project.dialogues,
+              for (var i = 0; i < unrelated; i++)
+                ProjectDialogueEntry(
+                    id: 'foreign-$i',
+                    name: 'Foreign',
+                    relativePath: 'dialogues/foreign-$i.yarn')
+            ],
+            scenes: [
+              for (var i = 0; i < unrelated; i++)
+                SceneAsset(
+                    id: 'foreign-$i',
+                    name: 'Foreign',
+                    graph: SceneGraph(startNodeId: 'start', nodes: [
+                      SceneNode(id: 'start', kind: SceneNodeKind.start)
+                    ]))
+            ],
+            characters: [
+              ProjectCharacterEntry(
+                  id: 'silver', name: 'Silver', tilesetId: 'tiles')
+            ],
+            trainers: [
+              for (var i = 0; i <= unrelated; i++)
+                ProjectTrainerEntry.fromJson({
+                  'id': 'rival-$i',
+                  'name': 'Rival',
+                  'trainerClass': 'rival',
+                  'characterId': 'silver',
+                  'team': []
+                })
+            ],
+          ));
+      for (final field in ['trainers', 'scenes', 'dialogues']) {
+        final count = field == 'trainers'
+            ? unrelated + 1
+            : field == 'dialogues'
+                ? unrelated + 1
+                : unrelated;
+        for (var position = 0; position < count; position++) {
+          final entry = (await working.catalog.snapshot.indexEntry(
+              CatalogMetadataDocuments.definitionKey(field, position)))!;
+          foreignPaths.add('catalog/objects/${entry.reference.sha256}.json');
+        }
+      }
+      for (var i = 0; i < unrelated; i++) {
+        await File('${directory.path}/dialogues/foreign-$i.yarn')
+            .writeAsString(existingText);
+      }
+      ProjectValidator.validate(working.catalog.projectMetadata.copyWith(
+        characters: [
+          ProjectCharacterEntry(
+              id: 'silver', name: 'Silver', tilesetId: 'tiles')
+        ],
+        tilesets: [
+          ProjectTilesetEntry(
+              id: 'tiles', name: 'Tiles', relativePath: 'tiles.png')
+        ],
+      ));
+    }
+    final reader = _CountingReader();
+    final observer = _Observer();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [directory.path], fileReader: reader);
     final handles = WorkspaceHandleStore();
     final opener = ProjectOpenService(
-        policy: policy, fileReader: reader, handles: handles);
+        policy: policy,
+        fileReader: reader,
+        handles: handles,
+        catalogMetadataFields: catalog ? {} : null);
     final opened = await opener.openProject(directory.path);
     final loader = ProjectSnapshotLoader(
         handles: handles, snapshotCache: ProjectSnapshotCache());
     final api = LocalMapAuthoringMutationApi(
-        policy: policy, snapshotLoader: loader, faultInjector: faultInjector);
+        policy: policy,
+        snapshotLoader: loader,
+        faultInjector: faultInjector,
+        catalogFileReader: reader,
+        performanceObserver: observer);
     await api.attachProject(
         projectRootPath: directory.path,
         workspaceHandle: opened.workspaceHandle,
         projectHandle: opened.projectHandle);
-    return _Fixture(directory, handles, opener, opened, loader, api,
-        AuthoringReadApi(openService: opener, snapshotLoader: loader));
+    return _Fixture(
+        directory,
+        handles,
+        opener,
+        opened,
+        loader,
+        api,
+        AuthoringReadApi(openService: opener, snapshotLoader: loader),
+        reader,
+        observer,
+        foreignPaths);
   }
+
+  Future<Map<String, List<int>>> foreignBytes() async => {
+        for (final path in foreignPaths)
+          path: await File('${directory.path}/$path').readAsBytes(),
+        'existingSource': await existingSource.readAsBytes(),
+      };
 
   Future<Map<String, Object?>> command(
       String name, Map<String, Object?> args) async {
@@ -392,8 +720,9 @@ final class _Fixture {
       'command': name,
       'args': args
     }))) as Map<String, dynamic>);
-    expect(result.status, AuthoringResultStatus.success,
-        reason: jsonEncode(result.toJson()));
+    if (result.status != AuthoringResultStatus.success) {
+      throw result.error!;
+    }
     return result.data;
   }
 
@@ -402,12 +731,26 @@ final class _Fixture {
       String action = 'dialogue.create_batch',
       Map<String, Object?>? parameters,
       bool dryRun = false}) async {
+    final String revision;
+    if (api.isCatalogProject(opened.projectHandle) && wire) {
+      final selected = await command('workshop_snapshot', {
+        'projectHandle': opened.projectHandle.value,
+        'actionId': action,
+        'parameters': parameters ?? {'dialogues': values},
+      });
+      revision = selected['snapshotRevision'] as String;
+    } else {
+      final selected = api.isCatalogProject(opened.projectHandle)
+          ? await api.readWorkshopSnapshot(opened.projectHandle, actionId: action, parameters: parameters ?? {'dialogues': values})
+          : await loader.load(opened.projectHandle);
+      revision = selected.revision;
+    }
     final request = AuthoringRequest(
         requestId: 'request-${++sequence}',
         actionId: action,
         actionVersion: 1,
         workspaceHandle: opened.workspaceHandle.value,
-        expectedRevision: (await loader.load(opened.projectHandle)).revision,
+        expectedRevision: revision,
         idempotencyKey: 'key-$sequence',
         dryRun: dryRun,
         parameters: parameters ?? {'dialogues': values});
@@ -444,4 +787,48 @@ final class _Fixture {
     handles.closeWorkspace(opened.workspaceHandle);
     await directory.delete(recursive: true);
   }
+}
+
+final class _CountingReader
+    implements
+        ProjectFileReader,
+        ProjectResourceStreamReader,
+        ProjectResourceProbeReader {
+  final paths = <String>[];
+  final delegate = const LocalProjectFileReader();
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      delegate.canonicalizeDirectory(path);
+  @override
+  Future<List<int>> readBytes(
+      {required String projectRoot, required String relativePath}) {
+    paths.add(relativePath);
+    return delegate.readBytes(
+        projectRoot: projectRoot, relativePath: relativePath);
+  }
+
+  @override
+  bool get supportsStreamingResources => true;
+  @override
+  Stream<List<int>> openRead(
+      {required String projectRoot, required String relativePath}) {
+    paths.add(relativePath);
+    return delegate.openRead(
+        projectRoot: projectRoot, relativePath: relativePath);
+  }
+
+  @override
+  Future<ProjectResourceProbe> probeResource(
+          {required String projectRoot, required String relativePath}) =>
+      delegate.probeResource(
+          projectRoot: projectRoot, relativePath: relativePath);
+}
+
+final class _Observer implements AuthoringPerformanceObserver {
+  final counters = <String, int>{};
+  @override
+  AuthoringPerformanceSpan? startSpan(String name) => null;
+  @override
+  void incrementCounter(String name, {int by = 1}) =>
+      counters.update(name, (value) => value + by, ifAbsent: () => by);
 }

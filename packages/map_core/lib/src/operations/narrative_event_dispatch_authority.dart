@@ -1,3 +1,4 @@
+import 'periodic_reward_condition_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../catalogs/narrative_event_project_catalog.dart';
@@ -80,12 +81,16 @@ final class NarrativeEventDispatchAuthorityReady
     required _LegacyClaimAuthorityResolution claimResolution,
     required ProjectManifest? worldRuleProject,
     required List<NarrativeMapView> worldRuleMaps,
-  })  : _registry = registry,
-        _factResolver = factResolver,
-        _projectCatalog = projectCatalog,
-        _claimResolution = claimResolution,
-        _worldRuleProject = worldRuleProject,
-        _worldRuleMaps = List.unmodifiable(worldRuleMaps);
+    PeriodicRewardSceneLookup? lookupRewardScenes,
+    GameState Function(GameState)? periodicRewardState,
+  }) : _registry = registry,
+       _factResolver = factResolver,
+       _projectCatalog = projectCatalog,
+       _claimResolution = claimResolution,
+       _worldRuleProject = worldRuleProject,
+       _worldRuleMaps = List.unmodifiable(worldRuleMaps),
+       _lookupRewardScenes = lookupRewardScenes,
+       _periodicRewardState = periodicRewardState;
 
   final NarrativeEventOccurrence occurrence;
   final EventSystemMode mode;
@@ -95,6 +100,8 @@ final class NarrativeEventDispatchAuthorityReady
   final _LegacyClaimAuthorityResolution _claimResolution;
   final ProjectManifest? _worldRuleProject;
   final List<NarrativeMapView> _worldRuleMaps;
+  final PeriodicRewardSceneLookup? _lookupRewardScenes;
+  final GameState Function(GameState)? _periodicRewardState;
 
   @override
   bool get isReady => true;
@@ -371,8 +378,9 @@ final class NarrativeEventDispatchAuthorityReady
     var state = _NarrativeEventWorldRuleState.none;
     for (final resolved in projectWorldRuleEffects(
       project,
-      gameState,
+      _periodicRewardState?.call(gameState) ?? gameState,
       maps: _worldRuleMaps,
+      lookupRewardScenes: _lookupRewardScenes ?? _projectCatalog.rewardScenes,
     )) {
       if (resolved.target.kind != WorldRuleTargetKind.narrativeEvent ||
           resolved.target.eventId != eventId) {
@@ -453,6 +461,22 @@ final class NarrativeEventDispatchAuthorityReady
       int index,
     ) {
       return condition.whenTyped(
+        periodicRewardAvailable: (reference, expected) {
+          final result = evaluatePeriodicRewardCondition(
+            reference: reference,
+            expectedValue: expected,
+            gameState: _periodicRewardState?.call(gameState) ?? gameState,
+            lookupScenes: _lookupRewardScenes ?? _projectCatalog.rewardScenes,
+          );
+          return NarrativeEventSimulationConditionTrace(
+            index: index,
+            kind: NarrativeEventSimulationConditionKind.periodicRewardAvailable,
+            targetId: reference.rewardId, expectedValue: expected,
+            actualValue: result.unavailable ? null : result.passed == expected,
+            passed: result.passed, reason: result.unavailable
+              ? NarrativeEventSimulationReason.runtimeReferenceUnavailable
+              : result.passed ? null : NarrativeEventSimulationReason.noEligibleCandidate);
+        },
         fact: (factId, operator, expectedValue) {
           if (_projectCatalog.resolveFact(factId).status !=
               NarrativeEventProjectResolutionStatus.found) {
@@ -577,6 +601,7 @@ final class NarrativeEventDispatchAuthorityReady
     );
     return _NarrativeEventCandidateEvaluation(
       switch (representative.kind) {
+        NarrativeEventSimulationConditionKind.periodicRewardAvailable => NarrativeEventDispatchReason.noEligibleCandidate,
         NarrativeEventSimulationConditionKind.mapEventInstanceBoolean =>
           NarrativeEventDispatchReason.mapEventInstanceBooleanConditionFalse,
         NarrativeEventSimulationConditionKind.fact =>
@@ -705,6 +730,8 @@ abstract final class NarrativeEventDispatchAuthority {
     NarrativeEventProjectCatalog? projectCatalog,
     ProjectManifest? project,
     List<NarrativeMapView> maps = const <NarrativeMapView>[],
+    PeriodicRewardSceneLookup? lookupRewardScenes,
+    GameState Function(GameState)? periodicRewardState,
   }) {
     final failed = registryResult.when<NarrativeEventDispatchAuthorityBlocked?>(
       absent: () => null,
@@ -818,6 +845,8 @@ abstract final class NarrativeEventDispatchAuthority {
       claimResolution: claimResolution,
       worldRuleProject: project,
       worldRuleMaps: maps,
+      lookupRewardScenes: lookupRewardScenes,
+      periodicRewardState: periodicRewardState,
     );
   }
 }

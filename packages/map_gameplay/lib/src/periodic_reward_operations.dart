@@ -45,19 +45,22 @@ final class PeriodicRewardOperations {
     if (calendar != expectedCalendar) {
       return refuse(PeriodicRewardFailure.calendarChanged);
     }
-    final day = calendar.observedLocalDay;
-    if (day == null) return refuse(PeriodicRewardFailure.calendarUninitialized);
-    if (previous != null) {
-      if (calendar.dayRevision < previous.lastClaimDayRevision) {
-        return refuse(PeriodicRewardFailure.calendarInconsistent);
-      }
-      if (calendar.dayRevision == previous.lastClaimDayRevision ||
-          GameplayCalendarState.localDayNumber(day) <=
-              GameplayCalendarState.localDayNumber(
-                  previous.lastClaimLocalDay)) {
-        return refuse(PeriodicRewardFailure.alreadyClaimed);
-      }
-    }
+    final availability = readPeriodicRewardAvailability(
+      calendar: calendar,
+      rewardState: state.periodicRewardState,
+      rewardId: definition.rewardId,
+    );
+    final availabilityFailure = switch (availability) {
+      PeriodicRewardAvailability.available => null,
+      PeriodicRewardAvailability.alreadyClaimed =>
+        PeriodicRewardFailure.alreadyClaimed,
+      PeriodicRewardAvailability.calendarUninitialized =>
+        PeriodicRewardFailure.calendarUninitialized,
+      PeriodicRewardAvailability.calendarInconsistent =>
+        PeriodicRewardFailure.calendarInconsistent,
+    };
+    if (availabilityFailure != null) return refuse(availabilityFailure);
+    final day = calendar.observedLocalDay!;
     if (revision == GameplayCalendarState.maximumRevision) {
       return refuse(PeriodicRewardFailure.quantityOverflow);
     }

@@ -16,6 +16,13 @@ typedef SceneRuntimeConsequenceCallback =
 typedef SceneRuntimeNodeConsequenceCallback =
     FutureOr<String> Function(String nodeId, SceneConsequence consequence);
 
+final class SceneRuntimeConditionUnavailable implements Exception {
+  const SceneRuntimeConditionUnavailable(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
 enum SceneRuntimeExecutionStatus { completed, failed }
 
 enum SceneRuntimeExecutionErrorCode {
@@ -28,6 +35,7 @@ enum SceneRuntimeExecutionErrorCode {
   missingBranchSourceOutcome,
   unroutedOutcome,
   callbackFailed,
+  conditionUnavailable,
   capabilityViolation,
   stepLimitExceeded,
 }
@@ -497,6 +505,11 @@ final class SceneRuntimeExecutor {
     String outputPortId;
     try {
       outputPortId = await callback(intent);
+    } on SceneRuntimeConditionUnavailable catch (error) {
+      return _OutputPortResult(
+        errorCode: SceneRuntimeExecutionErrorCode.conditionUnavailable,
+        message: error.message,
+      );
     } catch (error) {
       return _OutputPortResult(
         errorCode: SceneRuntimeExecutionErrorCode.callbackFailed,

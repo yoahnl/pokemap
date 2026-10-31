@@ -7,6 +7,7 @@ import '../models/narrative_event_registry.dart';
 import '../models/project_new_game_config.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_interactive_command.dart';
 import '../models/scene_execution_capabilities.dart';
 import '../models/scene_pre_session_interaction.dart';
 import '../read_models/narrative_dependency_index.dart';
@@ -490,6 +491,15 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForNode(
   SceneNode node,
 ) {
   final payload = node.payload;
+  if (payload is SceneActionPayload && payload.interactiveCommand is SceneClaimPeriodicRewardInteractiveCommand) {
+    return [
+      for (final port in payload.interactiveCommand!.outputPortIds)
+        SceneAuthorableOutputPort(id: port, label: switch (port) {
+          'received' => 'Reçu', 'alreadyClaimed' => 'Déjà reçu aujourd’hui',
+          'bagFull' => 'Sac plein', _ => 'Indisponible',
+        }, edgeKind: SceneEdgeKind.actionCompleted),
+    ];
+  }
   if (payload is SceneActionPayload && payload.preSessionInteraction != null) {
     final interaction = payload.preSessionInteraction!;
     return [
@@ -1865,6 +1875,9 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
 
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.periodicRewardAvailable:
+      if (source.rewardReference == null) throw ArgumentError("A reward locator is required.");
+      return;
     case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:
     case SceneConditionSourceKind.trainerDefeated:

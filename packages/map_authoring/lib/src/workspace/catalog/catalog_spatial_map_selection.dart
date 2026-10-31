@@ -60,6 +60,7 @@ final class CatalogSpatialMapSelection {
                       const {'environment', 'border'}.contains(op['layerKind']))));
     }
     return const {
+      'gameplay_zone.set_encounter_payload',
       'map.platform.delete',
       'warp.ladder.configure',
       'warp.update',
@@ -280,6 +281,7 @@ final class CatalogSpatialMapSelection {
         final map = MapData.fromJson(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(mapBytes)) as Map));
         final supportsTwoDimensions = actionId == 'map.apply_operations' ||
+            actionId == 'gameplay_zone.set_encounter_payload' ||
             actionId == 'map.update_metadata' ||
             actionId == 'entity.upsert' ||
             actionId == 'trigger.create' ||

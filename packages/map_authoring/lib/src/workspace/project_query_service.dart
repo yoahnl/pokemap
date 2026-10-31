@@ -1755,7 +1755,7 @@ List<_QueryRecord> _itemCatalogRecords(ProjectSnapshot snapshot) {
   if (catalog == null) return const [];
   final report = validateProjectItemCatalog(
     catalog,
-    capabilityTruth: itemSystemV1CapabilityTruth,
+    capabilityTruth: itemCapabilityTruthForRuleset(snapshot.manifest.pokemon.ruleset),
   );
   final summary = <String, Object?>{
     'id': 'items',
@@ -1862,7 +1862,7 @@ List<_QueryRecord> _itemReadinessRecords(ProjectSnapshot snapshot) {
   if (catalog == null) return const [];
   final report = validateProjectItemCatalog(
     catalog,
-    capabilityTruth: itemSystemV1CapabilityTruth,
+    capabilityTruth: itemCapabilityTruthForRuleset(snapshot.manifest.pokemon.ruleset),
   );
   final index = buildProjectItemReferenceIndex(
     project: snapshot.manifest,

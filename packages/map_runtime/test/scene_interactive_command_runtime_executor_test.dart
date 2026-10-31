@@ -15,6 +15,7 @@ void main() {
 
     final executor = SceneInteractiveCommandRuntimeExecutor(
       giveItem: handler,
+      claimPeriodicReward: handler,
       warp: handler,
       wait: handler,
       waitForActorRoutes: handler,
@@ -27,6 +28,7 @@ void main() {
       openPc: handler,
       openWorldService: (request) async {
         calls.add(switch (request) {
+          OpenImagePuzzleService() => SceneInteractiveCommandKind.openImagePuzzle,
           OpenCraftingService() => SceneInteractiveCommandKind.openCrafting,
           OpenShopService() => SceneInteractiveCommandKind.openShop,
           OpenHealService() => SceneInteractiveCommandKind.openHeal,
@@ -36,7 +38,7 @@ void main() {
           OpenRegionalMapService() => SceneInteractiveCommandKind.openRegionalMap,
           _ => throw StateError('Unexpected service'),
         });
-        return 'completed';
+        return request is OpenImagePuzzleService ? 'solved' : 'completed';
       },
       playCharacterAnimation: handler,
       playModelAnimation: handler,
@@ -80,7 +82,9 @@ void main() {
         motion: MovingPlatformMotion.forward,
       ),
       SceneInteractiveCommand.setPropState(mapId: 'map.port', propIds: const ['gate'], state: MovingPropState.open),
+      SceneInteractiveCommand.claimPeriodicReward(definition: PeriodicItemRewardDefinition(rewardId: 'tree', label: 'Tree', itemId: 'fruit', quantity: 1)),
       SceneInteractiveCommand.openCrafting(definition: DeferredCraftingDefinition(serviceId: 'artisan', label: 'Artisan', recipes: [DeferredCraftingRecipe(recipeId: 'ball', label: 'Ball', inputItemId: 'fruit', inputQuantity: 1, outputItemId: 'ball', outputQuantity: 1)])),
+      SceneInteractiveCommand.openImagePuzzle(definition: ImagePuzzleDefinition(puzzleId: 'puzzle', imageResourceId: 'image', rows: 1, columns: 2)),
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
       SceneInteractiveCommand.openHeal(),
       SceneInteractiveCommand.whiteOut(),

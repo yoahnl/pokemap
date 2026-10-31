@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../models/periodic_reward.dart';
+
 import '../models/scene_warp_presentation.dart';
 import '../models/dialogue_line_feedback.dart';
 import '../models/scene_asset.dart';
@@ -140,6 +142,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
         quantity: int.parse(parameters['quantity']!),
       ),
     ),
+    NarrativeCommandIds.claimPeriodicReward => _buildPeriodicRewardPayload(parameters),
     NarrativeCommandIds.takeItem => SceneActionPayload.consequence(
       SceneConsequence.takeItem(
         itemId: parameters['itemId']!,
@@ -700,4 +703,14 @@ Map<String, dynamic> _imagePuzzleLayout(String encoded) {
     throw const FormatException('Invalid image puzzle layout fields.');
   }
   return Map<String, dynamic>.from(decoded);
+}
+
+SceneActionPayload _buildPeriodicRewardPayload(Map<String, String> parameters) {
+  const fields = {'rewardId', 'label', 'itemId', 'quantity'};
+  if (parameters.length != fields.length || !parameters.keys.toSet().containsAll(fields)) {
+    throw const FormatException('Periodic rewards require identity, label, item and quantity.');
+  }
+  return SceneActionPayload.interactive(SceneInteractiveCommand.claimPeriodicReward(
+    definition: PeriodicItemRewardDefinition(rewardId: parameters['rewardId']!, label: parameters['label']!, itemId: parameters['itemId']!, quantity: int.parse(parameters['quantity']!)),
+  ));
 }

@@ -1,3 +1,4 @@
+import '../application/runtime_periodic_reward_context.dart';
 import 'dart:async';
 import 'dart:math';
 
@@ -63,6 +64,7 @@ final class SpatialGameplayEvents {
     required String Function(String prefix) runtimeIdFactory,
     required Random random,
     required DateTime Function() now,
+    RuntimePeriodicRewardContext? periodicRewardContext,
     SpatialLegacyEventFallback? legacyFallback,
     SpatialSceneConsequenceWriterFactory? buildSceneConsequenceWriter,
     Future<void> Function(GameState)? afterStateCommitted,
@@ -82,6 +84,8 @@ final class SpatialGameplayEvents {
        _runtimeIdFactory = runtimeIdFactory,
        _random = random,
        _now = now,
+       periodicRewardContext =
+           periodicRewardContext ?? RuntimePeriodicRewardContext(),
        _legacyFallback = legacyFallback,
        _buildSceneConsequenceWriter = buildSceneConsequenceWriter,
        _afterStateCommitted = afterStateCommitted,
@@ -160,6 +164,7 @@ final class SpatialGameplayEvents {
     presentItemPickup,
     ItemCatalogSnapshot? itemCatalog,
     NarrativeEventRuntimeSnapshot? narrativeSnapshot,
+    RuntimePeriodicRewardContext? periodicRewardContext,
     Future<ProjectMediaCatalog?> Function()? loadPresentationMediaCatalog,
     Random? random,
     DateTime Function()? now,
@@ -211,6 +216,7 @@ final class SpatialGameplayEvents {
       itemCatalog: itemCatalog,
       random: random ?? Random(),
       now: now ?? DateTime.now,
+      periodicRewardContext: periodicRewardContext,
     );
   }
 
@@ -231,6 +237,9 @@ final class SpatialGameplayEvents {
   final String Function(String) _runtimeIdFactory;
   final Random _random;
   final DateTime Function() _now;
+  final RuntimePeriodicRewardContext periodicRewardContext;
+  Iterable<SceneAsset> rewardScenes(String id) =>
+      _snapshot.projectCatalog.rewardScenes(id);
   late final _encounterConditionContext = ScriptEvaluationContext(
     narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(project.facts),
   );
@@ -401,8 +410,9 @@ final class SpatialGameplayEvents {
     if (position == null) return null;
     final map = projectMapEntityPresentations(
       project: project,
-      gameState: state,
+      gameState: periodicRewardContext.observe(state),
       map: _map,
+      lookupRewardScenes: rewardScenes,
     );
     return findSpatialEntityInteraction(
       scene: map.spatialScene!,
@@ -423,7 +433,9 @@ final class SpatialGameplayEvents {
   }) {
     final map = mapsById[mapId];
     if (map == null) return false;
-    final state = gameStateOverride ?? _readGameState();
+    final state = periodicRewardContext.observe(
+      gameStateOverride ?? _readGameState(),
+    );
     final instance = state.mapInstanceWorldState.instanceRef(mapId);
     if (entity.fieldObstacle != null &&
         (state.mapInstanceWorldState.persistentClearedObstacles[mapId]?.contains(entity.id) == true ||
@@ -443,7 +455,13 @@ final class SpatialGameplayEvents {
       chapterIndex: _chapterIndex,
     );
     return _presenceProjection
-        .resolve(project: project, gameState: state, map: map)
+        .resolve(
+          project: project,
+          gameState: state,
+          map: map,
+          lookupRewardScenes: rewardScenes,
+          rewardSceneContext: _snapshot.projectCatalog,
+        )
         .isMapEntityVisible(entity, defaultVisible: present);
   }
 
@@ -456,9 +474,12 @@ final class SpatialGameplayEvents {
     if (map == null) return null;
     return projectMapEntityPresentation(
       project: project,
-      gameState: gameStateOverride ?? _readGameState(),
+      gameState: periodicRewardContext.observe(
+        gameStateOverride ?? _readGameState(),
+      ),
       map: map,
       entity: entity,
+      lookupRewardScenes: rewardScenes,
     );
   }
 
@@ -534,11 +555,43 @@ final class SpatialGameplayEvents {
     if (trainer == null) return null;
     final state = _readGameState();
     final now = _now();
-    final evaluator = MapEntityRuntimePredicateEvaluator(gameState: state, chapterIndex: _chapterIndex, localMinuteOfDay: now.hour * 60 + now.minute);
-    final override = const RuntimeWorldRuleProjectionHook().resolve(project: project, gameState: state, map: _map).dialogueOverrideForEntity(entity.id);
-    final authority = _prepareAuthority(NarrativeEventOccurrence(source: NarrativeEventSourceRef.entityInteract(_map.id, entity.id)));
-    final authoredScene = authority is NarrativeEventDispatchAuthorityReady && authority.plan(gameState: state) is NarrativeEventDispatchHandled;
-    return resolveRuntimeTrainerInteractionPlan(trainer: trainer, npc: npc!, isDefeated: !authoredScene && const StoryFlagsManager().isTrainerDefeated(state, trainer.id), battleAllowed: npc.trainerBattleWhen == null || evaluator.evaluatePredicate(npc.trainerBattleWhen!), battleReady: npc.trainerBattleReadyWhen == null || evaluator.evaluatePredicate(npc.trainerBattleReadyWhen!), nonBattleDialogue: override == null ? evaluator.resolveNpcDialogue(npc) : DialogueRef(dialogueId: override));
+    final evaluator = MapEntityRuntimePredicateEvaluator(
+      gameState: state,
+      chapterIndex: _chapterIndex,
+      localMinuteOfDay: now.hour * 60 + now.minute,
+    );
+    final override = const RuntimeWorldRuleProjectionHook()
+        .resolve(
+          project: project,
+          gameState: periodicRewardContext.observe(state),
+          map: _map,
+          lookupRewardScenes: rewardScenes,
+        )
+        .dialogueOverrideForEntity(entity.id);
+    final authority = _prepareAuthority(
+      NarrativeEventOccurrence(
+        source: NarrativeEventSourceRef.entityInteract(_map.id, entity.id),
+      ),
+    );
+    final authoredScene =
+        authority is NarrativeEventDispatchAuthorityReady &&
+        authority.plan(gameState: state) is NarrativeEventDispatchHandled;
+    return resolveRuntimeTrainerInteractionPlan(
+      trainer: trainer,
+      npc: npc!,
+      isDefeated:
+          !authoredScene &&
+          const StoryFlagsManager().isTrainerDefeated(state, trainer.id),
+      battleAllowed:
+          npc.trainerBattleWhen == null ||
+          evaluator.evaluatePredicate(npc.trainerBattleWhen!),
+      battleReady:
+          npc.trainerBattleReadyWhen == null ||
+          evaluator.evaluatePredicate(npc.trainerBattleReadyWhen!),
+      nonBattleDialogue: override == null
+          ? evaluator.resolveNpcDialogue(npc)
+          : DialogueRef(dialogueId: override),
+    );
   }
 
   bool canSpotTrainer(MapEntity entity) {
@@ -852,6 +905,8 @@ final class SpatialGameplayEvents {
     factResolver: _snapshot.factResolver,
     legacyClaimIndex: _snapshot.legacyClaimIndex,
     projectCatalog: _snapshot.projectCatalog,
+    lookupRewardScenes: rewardScenes,
+    periodicRewardState: periodicRewardContext.observe,
     project: project,
     maps: mapsById.values.toList(growable: false),
   );
@@ -935,6 +990,7 @@ final class SpatialGameplayEvents {
         project: project,
         mapsById: mapsById,
         presentationMediaCatalog: _snapshot.presentationMediaCatalog,
+        lookupRewardScenes: rewardScenes,
         currentGameState: () => workingState,
         consequenceWriter: writer,
         onSceneStateProjection: (projector) {
@@ -1095,8 +1151,9 @@ final class SpatialGameplayEvents {
     }
     final projection = const RuntimeWorldRuleProjectionHook().resolve(
       project: project,
-      gameState: state,
+      gameState: periodicRewardContext.observe(state),
       map: map,
+      lookupRewardScenes: rewardScenes,
     );
     final override = projection.dialogueOverrideForEntity(entity.id);
     final dialogue = override == null

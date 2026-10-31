@@ -7,6 +7,20 @@ import 'package:test/test.dart';
 
 void main() {
   group('item mutation transport parity', () {
+    test('generic contextual capture roundtrips through direct API and JSONL', () async {
+      for (final jsonl in [false, true]) {
+        final harness = await _ItemTransportHarness.create('contextual-$jsonl', profile: PokemonRulesetProfile.contextualV1);
+        addTearDown(harness.dispose);
+        final policy = ProjectContextualCapturePolicy(rateRules: [ProjectCaptureRateRule(
+            when: ProjectCaptureMatchCondition(field: ProjectCaptureMatchField.targetSpecies, values: {'synthetic-eighth'}),
+            adjustment: ProjectCaptureRateAdd(17))], successEffects: [ProjectCaptureSetFriendship(123)]);
+        final scenario = _ItemMutationScenario('item.set_capture_effect', {'itemId': 'discardable', 'capture': {
+          'rateNumerator': 3, 'rateDenominator': 2, 'allowedEncounterKinds': ['walk'], 'contextualPolicy': policy.toJson()}});
+        final result = jsonl ? await harness.executeJsonl(scenario) : await harness.executeDirect(scenario);
+        expect(decodeProjectItemCatalog(result.catalog).entries.singleWhere((item) => item.id == 'discardable').capture!.contextualPolicy, policy);
+      }
+    });
+
     for (final scenarioEffect in [
       (
         ProjectItemUseContext.overworld,
@@ -854,13 +868,14 @@ final class _ItemTransportHarness {
   final ProjectSnapshotLoader snapshots;
   final JsonlWorker worker;
 
-  static Future<_ItemTransportHarness> create(String suffix) async {
+  static Future<_ItemTransportHarness> create(String suffix, {PokemonRulesetProfile profile = PokemonRulesetProfile.pokeMapBetaV1}) async {
     final root = await Directory.systemTemp.createTemp(
       'item-authoring-$suffix-',
     );
     await File('${root.path}/project.json').writeAsString(
       jsonEncode(
-        const ProjectManifest(
+        ProjectManifest(
+          pokemon: ProjectPokemonConfig(ruleset: profile),
           name: 'Item transport fixture',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -932,7 +947,9 @@ final class _ItemTransportHarness {
       workspaceHandle: opened.workspaceHandle,
       projectHandle: opened.projectHandle,
     );
-    final snapshot = await snapshots.load(opened.projectHandle);
+    final snapshot = const {'item.create', 'item.update', 'item.set_capture_effect'}.contains(scenario.actionId)
+        ? await mutations.readWorkshopSnapshot(opened.projectHandle, actionId: scenario.actionId, parameters: scenario.parameters)
+        : await snapshots.load(opened.projectHandle);
     final plan = await mutations.plan(
       opened.projectHandle,
       scenario.request(
@@ -969,7 +986,10 @@ final class _ItemTransportHarness {
     );
     final projectHandle = opened.data['projectHandle']! as String;
     final workspaceHandle = opened.data['workspaceHandle']! as String;
-    final definitions = await _query(
+    final definitions = const {'item.create', 'item.update', 'item.set_capture_effect'}.contains(scenario.actionId)
+        ? await _request(worker, 'workshop_snapshot', args: {'projectHandle': projectHandle,
+            'actionId': scenario.actionId, 'parameters': scenario.parameters})
+        : await _query(
       worker,
       projectHandle: projectHandle,
       request: AuthoringQueryRequest(
@@ -1031,7 +1051,9 @@ final class _ItemTransportHarness {
       workspaceHandle: opened.workspaceHandle,
       projectHandle: opened.projectHandle,
     );
-    final snapshot = await snapshots.load(opened.projectHandle);
+    final snapshot = const {'item.create', 'item.update', 'item.set_capture_effect'}.contains(scenario.actionId)
+        ? await mutations.readWorkshopSnapshot(opened.projectHandle, actionId: scenario.actionId, parameters: scenario.parameters)
+        : await snapshots.load(opened.projectHandle);
     final plan = await mutations.plan(
       opened.projectHandle,
       scenario.request(
@@ -1059,7 +1081,9 @@ final class _ItemTransportHarness {
       workspaceHandle: opened.workspaceHandle,
       projectHandle: opened.projectHandle,
     );
-    final snapshot = await snapshots.load(opened.projectHandle);
+    final snapshot = const {'item.create', 'item.update', 'item.set_capture_effect'}.contains(scenario.actionId)
+        ? await mutations.readWorkshopSnapshot(opened.projectHandle, actionId: scenario.actionId, parameters: scenario.parameters)
+        : await snapshots.load(opened.projectHandle);
     final plan = await mutations.plan(
       opened.projectHandle,
       scenario.request(
@@ -1114,7 +1138,9 @@ final class _ItemTransportHarness {
       workspaceHandle: opened.workspaceHandle,
       projectHandle: opened.projectHandle,
     );
-    final snapshot = await snapshots.load(opened.projectHandle);
+    final snapshot = const {'item.create', 'item.update', 'item.set_capture_effect'}.contains(scenario.actionId)
+        ? await mutations.readWorkshopSnapshot(opened.projectHandle, actionId: scenario.actionId, parameters: scenario.parameters)
+        : await snapshots.load(opened.projectHandle);
     Object? error;
     try {
       await mutations.plan(
@@ -1147,7 +1173,10 @@ final class _ItemTransportHarness {
     );
     final projectHandle = opened.data['projectHandle']! as String;
     final workspaceHandle = opened.data['workspaceHandle']! as String;
-    final definitions = await _query(
+    final definitions = const {'item.create', 'item.update', 'item.set_capture_effect'}.contains(scenario.actionId)
+        ? await _request(worker, 'workshop_snapshot', args: {'projectHandle': projectHandle,
+            'actionId': scenario.actionId, 'parameters': scenario.parameters})
+        : await _query(
       worker,
       projectHandle: projectHandle,
       request: AuthoringQueryRequest(

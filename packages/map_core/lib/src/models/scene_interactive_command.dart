@@ -1,6 +1,7 @@
 import 'spatial_visual_profile.dart';
 import 'deferred_crafting.dart';
 import 'image_puzzle.dart';
+import 'periodic_reward.dart';
 import 'package:meta/meta.dart' show immutable;
 import 'package:characters/characters.dart';
 
@@ -40,6 +41,7 @@ enum SceneInteractiveCommandKind {
   moveNpc,
   movePlatform,
   setPropState,
+  claimPeriodicReward,
   openCrafting,
   openImagePuzzle,
   openShop,
@@ -218,6 +220,8 @@ abstract base class SceneInteractiveCommand {
 
   factory SceneInteractiveCommand.openImagePuzzle({required ImagePuzzleDefinition definition}) = SceneOpenImagePuzzleInteractiveCommand;
 
+  factory SceneInteractiveCommand.claimPeriodicReward({required PeriodicItemRewardDefinition definition}) = SceneClaimPeriodicRewardInteractiveCommand;
+
   factory SceneInteractiveCommand.openCrafting({required DeferredCraftingDefinition definition}) = SceneOpenCraftingInteractiveCommand;
 
   factory SceneInteractiveCommand.openShop({required String shopId}) =
@@ -335,6 +339,7 @@ abstract base class SceneInteractiveCommand {
       SceneInteractiveCommandKind.setPropState =>
         SceneSetPropStateInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.openImagePuzzle => SceneOpenImagePuzzleInteractiveCommand.fromJson(json),
+      SceneInteractiveCommandKind.claimPeriodicReward => SceneClaimPeriodicRewardInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.openCrafting => SceneOpenCraftingInteractiveCommand.fromJson(json),
       SceneInteractiveCommandKind.openShop => SceneOpenShopInteractiveCommand(
         shopId: _required(json, 'shopId'),
@@ -1908,6 +1913,45 @@ final class SceneOpenImagePuzzleInteractiveCommand extends SceneInteractiveComma
   Map<String, dynamic> toJson() => {'kind': kind.name, 'definition': definition.toJson()};
   @override
   bool operator ==(Object other) => other is SceneOpenImagePuzzleInteractiveCommand && definition == other.definition;
+  @override
+  int get hashCode => Object.hash(kind, definition);
+}
+
+final class SceneClaimPeriodicRewardInteractiveCommand
+    extends SceneInteractiveCommand {
+  const SceneClaimPeriodicRewardInteractiveCommand({required this.definition});
+  factory SceneClaimPeriodicRewardInteractiveCommand.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    if (json.length != 2 || json['kind'] != 'claimPeriodicReward') {
+      throw const FormatException('Invalid periodic reward command fields.');
+    }
+    return SceneClaimPeriodicRewardInteractiveCommand(
+      definition: PeriodicItemRewardDefinition.fromJson(
+        _requiredObject(json, 'definition'),
+      ),
+    );
+  }
+  final PeriodicItemRewardDefinition definition;
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.claimPeriodicReward;
+  @override
+  List<String> get outputPortIds => const [
+    'received',
+    'alreadyClaimed',
+    'bagFull',
+    'blocked',
+  ];
+  @override
+  Map<String, dynamic> toJson() => {
+    'kind': kind.name,
+    'definition': definition.toJson(),
+  };
+  @override
+  bool operator ==(Object other) =>
+      other is SceneClaimPeriodicRewardInteractiveCommand &&
+      definition == other.definition;
   @override
   int get hashCode => Object.hash(kind, definition);
 }

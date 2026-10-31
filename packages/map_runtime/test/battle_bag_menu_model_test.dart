@@ -61,9 +61,11 @@ BattleSession _session({
   required BattleCombatantData enemy,
   bool isTrainerBattle = false,
   bool allowCapture = false,
+  PokemonRulesetProfile profile = PokemonRulesetProfile.pokeMapBetaV1,
 }) {
   return createBattleSession(
-    BattleSetup.pokeMapBetaV1ForTest(
+    BattleSetup(
+      ruleset: profile,
       playerPokemon: player,
       playerReservePokemon: playerReserve,
       enemyPokemon: _withCaptureRate(
@@ -134,6 +136,29 @@ BagEntry _entry({
 }
 
 void main() {
+  test('contextual Ball menu exposes its policy only under the explicit profile', () {
+    final policy = ProjectContextualCapturePolicy(successEffects: [ProjectCaptureSetFriendship(200)]);
+    final catalog = ItemCatalogSnapshot.fromCatalog(ProjectItemCatalog(schemaVersion: 1, entries: [
+      ProjectItemDefinition(id: 'synthetic-orb', displayName: 'Orb', pocketId: 'balls',
+        capture: ProjectCaptureItemDefinition(rateNumerator: 3, rateDenominator: 2,
+          allowedEncounterKinds: {EncounterKind.walk}, contextualPolicy: policy))]));
+    for (final profile in [PokemonRulesetProfile.pokeMapBetaV1, PokemonRulesetProfile.standardV1, PokemonRulesetProfile.contextualV1]) {
+      final model = buildBattleBagMenuModel(
+        gameState: const GameState(saveId: 'contextual-menu', bag: Bag(entries: [BagEntry(itemId: 'synthetic-orb', quantity: 1)])),
+        session: _session(profile: profile, allowCapture: true,
+          player: _combatant(speciesId: 'player', lineupIndex: 0, moves: [_move(id: 'wait', name: 'Wait')]),
+          enemy: _combatant(speciesId: 'target', lineupIndex: 0, moves: [_move(id: 'wait', name: 'Wait')])),
+        resolver: ItemCapabilityResolver(catalog));
+      final entry = model.entries.single;
+      expect(entry.isSelectable, profile == PokemonRulesetProfile.contextualV1);
+      if (profile == PokemonRulesetProfile.contextualV1) {
+        expect((entry.action as BattleBagMenuActionCapture).playerChoice.contextualPolicy, policy);
+      } else {
+        expect(entry.disabledReason, BattleBagMenuDisabledReason.unsupportedCapability);
+        expect(entry.action, isNull);
+      }
+    }
+  });
   group('BattleBagMenuModel', () {
     test('empty bag builds a non-actionable empty model', () {
       final session = _session(

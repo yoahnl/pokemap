@@ -86,7 +86,7 @@ void main() {
     test(
       '2D puzzle first and repeated durable moves touch only save with $unrelated unrelated maps',
       () async {
-        final fixture = await _Fixture.create(unrelatedMaps: unrelated);
+        final fixture = await SceneImagePuzzleDurableHostFixture.create(unrelatedMaps: unrelated);
         addTearDown(fixture.dispose);
         final run = fixture.run();
         await fixture.active();
@@ -100,7 +100,7 @@ void main() {
               target: '0',
               slot: slot,
             ),
-            createFile: (path) => _CountedFile(
+            createFile: (path) => DurableHostCountedFile(
               baseZone.run(() => File(path)),
               reads,
               writes,
@@ -136,7 +136,7 @@ void main() {
     );
   }
   test('2D failed move preserves file bytes and later Scene failure preserves durable puzzle', () async {
-    final fixture = await _Fixture.create(failsLater: true);
+    final fixture = await SceneImagePuzzleDurableHostFixture.create(failsLater: true);
     addTearDown(fixture.dispose);
     final run = fixture.run();
     await fixture.active();
@@ -165,7 +165,7 @@ void main() {
   test(
     '2D session cold Continue restores saved puzzle without rewriting bytes',
     () async {
-      final fixture = await _Fixture.create();
+      final fixture = await SceneImagePuzzleDurableHostFixture.create();
       addTearDown(fixture.dispose);
       final running = fixture.run();
       await fixture.active();
@@ -247,7 +247,7 @@ void main() {
     '2D legacy puzzle preserves later reward, fact and Scene outcome',
     (tester) async {
       await tester.runAsync(() async {
-        final fixture = await _Fixture.create(legacyPage: true, postGift: true);
+        final fixture = await SceneImagePuzzleDurableHostFixture.create(legacyPage: true, postGift: true);
         try {
           await tester.pumpWidget(
             Directionality(
@@ -319,8 +319,8 @@ void main() {
   );
 }
 
-class _Repository extends FileGameSaveRepository {
-  _Repository(this.file, NarrativeRuntimeActivityGate gate)
+class DurableHostSaveRepository extends FileGameSaveRepository {
+  DurableHostSaveRepository(this.file, NarrativeRuntimeActivityGate gate)
     : super(activityGate: gate);
   final File file;
   int writes = 0;
@@ -340,25 +340,37 @@ class _Repository extends FileGameSaveRepository {
   }
 }
 
-class _Fixture {
-  _Fixture(this.root, this.project, this.map);
+class SceneImagePuzzleDurableHostFixture {
+  SceneImagePuzzleDurableHostFixture(
+    this.root,
+    this.project,
+    this.map, {
+    this.withRuntimeCatalog = false,
+  });
   final Directory root;
   final ProjectManifest project;
   final MapData map;
+  final bool withRuntimeCatalog;
+  RuntimeProjectCatalog? catalog;
   File get file => File('${root.path}/save.json');
-  late _Repository repository;
+  late DurableHostSaveRepository repository;
   late PlayableMapGame game;
   late PlayerServiceRuntimeController controller;
   DateTime now = DateTime(2026, 10, 30, 23, 59);
-  static Future<_Fixture> create({
+  static Future<SceneImagePuzzleDurableHostFixture> create({
+    SceneAsset? sceneOverride,
+    String? qaDirectory,
     bool failsLater = false,
     bool pendingIngredients = false,
     bool legacyPage = false,
     bool postGift = false,
     int unrelatedMaps = 0,
+    bool withRuntimeCatalog = false,
+    ProjectManifest Function(ProjectManifest)? configureProject,
+    MapData Function(MapData)? configureMap,
   }) async {
     final qa = Directory(
-      '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle',
+      qaDirectory ?? Platform.environment['AVELUNE_QA_ROOT'] ?? '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle',
     );
     await qa.create(recursive: true);
     final root = await qa.createTemp('durable-2d-');
@@ -480,7 +492,7 @@ class _Fixture {
         ],
       ),
     );
-    final project = ProjectManifest(
+    var project = ProjectManifest(
       name: 'Crafting',
       maps: [
         const ProjectMapEntry(
@@ -496,7 +508,7 @@ class _Fixture {
           ),
       ],
       tilesets: const [],
-      scenes: [scene],
+      scenes: [sceneOverride ?? scene],
       facts: [
         if (postGift)
           NarrativeFactDefinition(
@@ -510,7 +522,8 @@ class _Fixture {
         catalogFiles: {'items': 'items.json'},
       ),
     );
-    final map = MapData(
+    project = configureProject?.call(project) ?? project;
+    var map = MapData(
       id: 'field',
       name: 'Field',
       size: const GridSize(width: 4, height: 4),
@@ -530,6 +543,7 @@ class _Fixture {
           ),
       ],
     );
+    map = configureMap?.call(map) ?? map;
     await File('${root.path}/project.json')
         .writeAsString(jsonEncode(project.toJson()));
     await File('${root.path}/map.json').writeAsString(jsonEncode(map.toJson()));
@@ -557,7 +571,12 @@ class _Fixture {
         jsonEncode(map.copyWith(id: 'unrelated-$index').toJson()),
       );
     }
-    final fixture = _Fixture(root, project, map);
+    final fixture = SceneImagePuzzleDurableHostFixture(
+      root,
+      project,
+      map,
+      withRuntimeCatalog: withRuntimeCatalog,
+    );
     await fixture.reopen(
       const GameState(
         saveId: '018f255f-2d50-4f4f-8aa2-c893ae06b8c1',
@@ -577,11 +596,16 @@ class _Fixture {
       now = day;
     }
 
+    catalog?.dispose();
+    if (withRuntimeCatalog)
+      catalog = await RuntimeProjectCatalog.open('${root.path}/project.json');
     final gate = NarrativeRuntimeActivityGate();
-    repository = _Repository(file, gate);
+    repository = DurableHostSaveRepository(file, gate);
     game = PlayableMapGame(
+      encounterClock: () => now,
       bundle: RuntimeMapBundle(
-        manifest: project,
+        manifest: catalog?.projectMetadata ?? project,
+        projectCatalog: catalog,
         map: map,
         projectRootDirectory: root.path,
         tilesetAbsolutePathsById: const {},
@@ -596,6 +620,8 @@ class _Fixture {
       currentGameState: () => game.playerServiceGameStateSnapshot,
       commitAndSave: game.commitAndSavePlayerServiceState,
       commitImagePuzzleAndSave: game.commitAndSaveImagePuzzleState,
+      commitCraftingAndSave: game.commitAndSaveCraftingState,
+      commitPeriodicRewardAndSave: game.commitAndSavePeriodicRewardState,
       projectRootDirectory: root.path,
       setInputLocked: (_) {},
       loadRecoveryCaps: (_) async =>
@@ -639,12 +665,13 @@ class _Fixture {
   );
   Future<void> dispose() async {
     await controller.dispose();
+    catalog?.dispose();
     await root.delete(recursive: true);
   }
 }
 
-class _CountedFile implements File {
-  _CountedFile(this.delegate, this.reads, this.writes, this.renames);
+class DurableHostCountedFile implements File {
+  DurableHostCountedFile(this.delegate, this.reads, this.writes, this.renames);
   final File delegate;
   final List<String> reads, writes, renames;
   @override

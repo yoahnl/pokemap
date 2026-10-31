@@ -54,6 +54,21 @@ final class GamePackageProjectValidator {
         }
         return bytes;
       });
+      final contextualCapture = project.pokemon.ruleset.profileId == PokemonRulesetProfile.contextualProfileId;
+      if (contextualCapture && !packageManifest.compatibility.requiredCapabilities.contains(
+          PokemonRulesetProfile.contextualCaptureCapabilityId)) {
+        _fail('Contextual capture requires ${PokemonRulesetProfile.contextualCaptureCapabilityId}.');
+      }
+      final itemPath = project.pokemon.catalogFiles['items'];
+      if (itemPath != null && payloadPaths.contains('project/$itemPath')) {
+        final bytes = readPayload('project/$itemPath');
+        if (bytes == null) _fail('Item catalog payload is missing.');
+        final catalog = decodeProjectItemCatalog(Map<String, dynamic>.from(
+            jsonDecode(utf8.decode(bytes)) as Map));
+        if (!contextualCapture && catalog.entries.any((item) => item.capture?.contextualPolicy != null)) {
+          _fail('Contextual item policies require the explicit contextual ruleset.');
+        }
+      }
       if (project.cinematics.any((cinematic) => cinematic.allowMobileActorCrossing) && !packageManifest.compatibility.requiredCapabilities.contains(CinematicAsset.mobileActorCrossingCapabilityId)) {
         _fail('Mobile actor crossings require the explicit cinematic capability.');
       }
@@ -253,6 +268,10 @@ final class GamePackageProjectValidator {
           _fail('The project requires $requirement.');
         }
       }
+      if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(project, maps: obstacleMaps) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId)) {
+        _fail('Periodic reward conditions require gameplay.periodic-reward-condition@1.');
+      }
       validateGamePackageProjectAudio(project: project, policy: policy,
         payloadPaths: payloadPaths, readPayload: readPayload);
       if (SurfGameplayCapabilities.requiresCapability(project) &&
@@ -266,6 +285,9 @@ final class GamePackageProjectValidator {
       }
       if (SpatialGameplayCapabilities.requiresEggGift(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.eggGiftCapabilityId)) {
         _fail('Egg gifts require gameplay.egg-gift@1.');
+      }
+      if (SpatialGameplayCapabilities.requiresPeriodicReward(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.periodicRewardCapabilityId)) {
+        _fail('Periodic rewards require gameplay.periodic-reward@1.');
       }
       if (SpatialGameplayCapabilities.requiresImagePuzzle(project) && !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.imagePuzzleCapabilityId)) {
         _fail('Image puzzles require gameplay.image-puzzle@1.');

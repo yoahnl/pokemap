@@ -406,6 +406,10 @@ final class CatalogAuthoringSession {
 
   Future<void> prepareWorkshopCatalog({String? scope}) async {
     _authorize(AuthoringSecurityOperation.plan);
+    if (scope == 'dialogueCreation') {
+      await (await _editing()).prepareDialogueCreation();
+      return;
+    }
     await preparePendingTransactionJournals(reader.store.gateway);
     if (scope == 'assetImport' || scope == 'nativeResources') {
       await (await _editing()).prepareAssetImport(nativeResources: scope == 'nativeResources');

@@ -29,11 +29,44 @@ void main() {
 
     expect(descriptor.extensions['profiles'], {
       'default': 'pokemap-beta-v1',
-      'values': [shared['betaProfile'], shared['standardProfile']],
+      'values': [shared['betaProfile'], shared['standardProfile'], PokemonRulesetProfile.contextualV1.toJson()],
     });
   });
 
   for (final wire in [false, true]) {
+    test('contextual profile item admission downgrade undo and reopen wire=$wire', () async {
+      var fixture = await _Fixture.create(shared);
+      final root = fixture.root;
+      addTearDown(() async { await fixture.close(); await root.delete(recursive: true); });
+      final items = File('${root.path}/data/pokemon/catalogs/items.json');
+      await items.parent.create(recursive: true);
+      await items.writeAsString(jsonEncode(encodeProjectItemCatalog(const ProjectItemCatalog(
+        schemaVersion: 1, entries: [ProjectItemDefinition(id: 'synthetic-orb', displayName: 'Orb', pocketId: 'balls')]))));
+      final before = await items.readAsBytes();
+      final parameters = <String, Object?>{'itemId': 'synthetic-orb', 'capture': {
+        'rateNumerator': 1, 'rateDenominator': 1, 'allowedEncounterKinds': ['walk'],
+        'contextualPolicy': ProjectContextualCapturePolicy(successEffects: [ProjectCaptureSetFriendship(123)]).toJson()}};
+      await fixture.refuses(() => fixture.planAction('item.set_capture_effect', parameters, wire), 'item.catalog_invalid');
+      await fixture.apply(await fixture.planAction('pokemon.ruleset.set',
+          {'profile': PokemonRulesetProfile.contextualV1.toJson()}, wire), wire, 'contextual-profile');
+      final profileBytes = await fixture.manifest.readAsBytes();
+      final planned = await fixture.planAction('item.set_capture_effect', parameters, wire);
+      final result = await fixture.apply(planned, wire, 'contextual-item');
+      final saved = await items.readAsBytes();
+      await fixture.refuses(() => fixture.planAction('pokemon.ruleset.set',
+          {'profile': PokemonRulesetProfile.standardV1.toJson()}, wire), 'pokemon.ruleset.contextual_items_in_use');
+      expect(await items.readAsBytes(), saved);
+      expect(await fixture.manifest.readAsBytes(), profileBytes);
+      final receipt = result['receipt'] as Map;
+      await fixture.call('undo', {'entryId': receipt['receiptId'], 'idempotencyKey': 'contextual-undo'}, wire);
+      expect(await items.readAsBytes(), before);
+      await fixture.close();
+      fixture = await _Fixture.open(root);
+      await fixture.apply(await fixture.planAction('pokemon.ruleset.set',
+          {'profile': PokemonRulesetProfile.standardV1.toJson()}, wire), wire, 'contextual-downgrade');
+      expect(await items.readAsBytes(), before);
+    });
+
     final transport = wire ? 'JSONL' : 'API';
     test(
         '$transport preserves format through replay, stale, undo and cold open',
@@ -311,7 +344,8 @@ final class _Fixture {
       actionId: action,
       actionVersion: 1,
       workspaceHandle: opened.workspaceHandle.value,
-      expectedRevision: (await snapshots.load(opened.projectHandle)).revision,
+      expectedRevision: (await mutations.readWorkshopSnapshot(opened.projectHandle,
+          actionId: action, parameters: parameters)).revision,
       idempotencyKey: id,
       parameters: parameters,
     );

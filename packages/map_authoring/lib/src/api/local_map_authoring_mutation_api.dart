@@ -83,7 +83,7 @@ const _nativeLocalWorkshopActions = {
   'project.audio.media.adopt_asset',
   'campaign.battle_savings.update',
   'pokemon.ruleset.set', 'campaign.encounter_table.upsert', 'campaign.trainer.upsert',
-  'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update',
+  'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update', 'item.set_capture_effect',
   'event_v2.template.apply', 'narrative.publish_document',
 };
 
@@ -439,7 +439,7 @@ final class LocalMapAuthoringMutationApi
   }
 
   Future<void> prepareWorkshopCatalog(ProjectHandle handle, {String? scope}) async {
-    if (scope != null && !const {'mapCreation', 'assetImport', 'nativeResources', 'metadataContext'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
+    if (scope != null && !const {'mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
     final session = _catalogSession(handle);
     if (session == null) {
       if (scope != null) throw const FormatException('catalog.preparation_requires_catalog');
@@ -498,7 +498,7 @@ final class LocalMapAuthoringMutationApi
       };
     }
     return {'prepared': true, if (current != null) 'snapshotRevision': current.revision,
-      'scope': scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
+      'scope': scope == 'dialogueCreation' ? 'explicitDialoguePathOwnershipIndex' : scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
   }
 
   Future<bool> catalogProjectReadOnly(ProjectHandle handle) async {
@@ -635,7 +635,13 @@ final class LocalMapAuthoringMutationApi
   Map<String, Object?> describeMutations() => {
         ...describeMutationContracts().toJson(),
         'workshopPreparation': {
-          'scopes': ['mapCreation', 'assetImport', 'nativeResources', 'metadataContext'],
+          'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext'],
+          'dialogueCreation': {
+            'requiresPreparedMetadataIndexes': true,
+            'reads': ['dialogueDefinitions', 'dialogueOwnershipRows'],
+            'readsSources': false,
+            'readsRetainedHistory': false,
+          },
           'metadataContext': {
             'contextVersion': 1,
             'requiresPreparedLocalUndoWindow': true,

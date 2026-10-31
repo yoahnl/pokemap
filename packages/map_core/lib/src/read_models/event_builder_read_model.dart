@@ -1096,6 +1096,7 @@ String _worldRuleSourceReferenceLabel(
   required Map<String, String> storyStepLabels,
 }) {
   return switch (source.kind) {
+    WorldRuleSourceKind.periodicRewardAvailable => source.label ?? source.sourceId,
     WorldRuleSourceKind.fact =>
       factLabels[source.sourceId] ?? source.label ?? source.sourceId,
     WorldRuleSourceKind.storyStepCompletion =>

@@ -128,6 +128,7 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
         linkedProject,
         loadMap: mapLoader.load,
         loadMoves: widget.loadMoves,
+        loadItems: widget.loadItems,
         loadSpecies: widget.loadSpecies,
         loadVisualMedia: widget.loadVisualMedia,
       );

@@ -11,7 +11,7 @@ const _gameplayActions = {
   'contact_device.configure',
   'party_companion.configure',
   'item.create',
-  'item.update',
+  'item.update', 'item.set_capture_effect',
 };
 
 Future<CatalogWorkshopSelection> _readGameplayWorkshop({
@@ -56,23 +56,17 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
     if (actionId == 'pokemon.ruleset.set') {
       writable.add('pokemon');
       final raw = parameters['profile'];
-      if (raw is Map) {
-        final next =
-            PokemonRulesetProfile.fromJson(Map<String, dynamic>.from(raw));
-        if (next.mechanics.disabledFeatures
-            .contains(PokemonDisabledFeature.doubleBattles)) {
-          add(
-              'trainers',
-              await CatalogMetadataDocuments.readTrainerIds(
-                  snapshot: catalog.snapshot, doublesOnly: true));
-        }
+      if (raw is Map && raw['disabledFeatures'] is List &&
+          (raw['disabledFeatures'] as List).contains('double-battles')) {
+        add('trainers', await CatalogMetadataDocuments.readTrainerIds(
+            snapshot: catalog.snapshot, doublesOnly: true));
       }
     }
     if (actionId == 'bag.capacity.set') writable.add('bagCapacity');
     if (actionId == 'contact_device.configure') writable.add('contactDevice');
     if (actionId == 'party_companion.configure') writable.add('partyCompanion');
     if (actionId == 'campaign.battle_savings.update') writable.add('battleSavings');
-    if (actionId == 'item.update' && parameters['itemId'] is String) {
+    if ((actionId == 'item.update' || actionId == 'item.set_capture_effect') && parameters['itemId'] is String) {
       add(
           'trainers',
           await CatalogMetadataDocuments.readTrainerIds(
@@ -186,18 +180,15 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
       }
     }
     final needsItems = actionId.startsWith('item.') ||
+      (actionId == 'pokemon.ruleset.set' &&
+          (parameters['profile'] as Map?)?['profileId'] != PokemonRulesetProfile.contextualProfileId) ||
         actionId == 'campaign.shop.upsert' ||
         manifest.trainers.any((trainer) =>
             trainer.battleItems.isNotEmpty ||
             trainer.team.any((member) => member.ballItemId != null)) ||
-        (actionId == 'campaign.trainer.upsert' &&
-            value is Map &&
-            (ProjectTrainerEntry.fromJson(Map<String, dynamic>.from(value))
-                    .battleItems
-                    .isNotEmpty ||
-                ProjectTrainerEntry.fromJson(Map<String, dynamic>.from(value))
-                    .team
-                    .any((member) => member.ballItemId != null))) ||
+        (actionId == 'campaign.trainer.upsert' && value is Map &&
+            ((value['battleItems'] is Map && (value['battleItems'] as Map).isNotEmpty) ||
+             CatalogWorkshopSelection._referenceIds([value], {'ballItemId'}).isNotEmpty)) ||
         (actionId == 'bag.capacity.set' &&
             manifest.newGame.initialBag.isNotEmpty &&
             !ProjectBagCapacity.fromJson(Map<String, dynamic>.from(parameters))

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -246,7 +247,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           widget.initialPayload?.interactiveCommand?.toJson() ??
           widget.initialPayload?.consequence?.toJson() ??
           const <String, dynamic>{};
-      if ((command.id == NarrativeCommandIds.openCrafting || command.id == NarrativeCommandIds.openImagePuzzle) && data['definition'] is Map) {
+      if ((command.id == NarrativeCommandIds.claimPeriodicReward || command.id == NarrativeCommandIds.openCrafting || command.id == NarrativeCommandIds.openImagePuzzle) && data['definition'] is Map) {
         data = {...Map<String, dynamic>.from(data['definition'] as Map), 'kind': command.id};
         if (command.id == NarrativeCommandIds.openImagePuzzle) {
           data['layout'] = jsonEncode({for (final field in ['allowedQuarterTurns', 'fixedPieceIds', 'initialPieces']) if (data.containsKey(field)) field: data[field]});
@@ -287,6 +288,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
                   command.id == NarrativeCommandIds.adjustIntegerFact ||
                   _isIntegerSceneCommand(command.id) ||
                   command.id == NarrativeCommandIds.receivePokemonFromCatalog ||
+                  command.id == NarrativeCommandIds.claimPeriodicReward ||
                   command.id == NarrativeCommandIds.openCrafting ||
                   command.id == NarrativeCommandIds.openImagePuzzle ||
                   command.id == NarrativeCommandIds.openNpcTrade ||
@@ -348,7 +350,8 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
         case NarrativeCommandParameterKind.text:
-          final value = initial ?? '';
+          final value = initial ?? (command.id == NarrativeCommandIds.claimPeriodicReward && parameter.id == 'rewardId'
+              ? 'reward-${List.generate(16, (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0')).join()}' : '');
           _values[parameter.id] = value;
           _textControllers[parameter.id] = TextEditingController(text: value);
         case NarrativeCommandParameterKind.imagePuzzleLayout:
@@ -569,6 +572,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.claimPeriodicReward && parameter.id == 'rewardId') return false;
     if (_isIntegerSceneCommand(_command.id)) {
       return switch (parameter.id) {
         'operandValue' => _values['operandSource'] == 'literal',
@@ -641,6 +645,9 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _hasValidValue(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.claimPeriodicReward) {
+      try { buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values); } catch (_) { return false; }
+    }
     if (parameter.kind == NarrativeCommandParameterKind.imagePuzzleLayout) {
       try { buildScenePayloadForNarrativeCommand(commandId: _command.id, parameters: _values); return true; } catch (_) { return false; }
     }

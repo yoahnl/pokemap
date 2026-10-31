@@ -338,6 +338,7 @@ final class SpatialExplorationSession {
   late SpatialEntityVisualPlan _entityVisuals;
   bool Function(String mapId, MapEntity entity)? entityIsPresent;
   MapEntity? Function(String mapId, MapEntity entity)? entityProjection;
+  PeriodicRewardSceneLookup? lookupRewardScenes;
   GameState Function()? presentationStateProvider;
   final Map<
     String,
@@ -1649,7 +1650,9 @@ final class SpatialExplorationSession {
   ) {
     final state = presentationStateProvider?.call();
     if (entity.presentation == null || state == null) return null;
-    final variant = resolveMapEntityPresentation(project: source.manifest,
+    final variant = resolveMapEntityPresentation(
+      lookupRewardScenes: lookupRewardScenes,
+      project: source.manifest,
       gameState: state,
       map: source.map,
       entity: entity,

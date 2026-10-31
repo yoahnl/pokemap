@@ -5,17 +5,24 @@ import 'runtime_world_rule_projection_hook.dart';
 final class RuntimeWorldRuleProjectionCache {
   ProjectManifest? _project;
   GameState? _gameState;
+  Object? _rewardSceneContext;
   final _maps = Map<MapData, RuntimeWorldRuleProjectionState>.identity();
 
   RuntimeWorldRuleProjectionState resolve({
     required ProjectManifest project,
     required GameState gameState,
     required MapData map,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
+    Object? rewardSceneContext,
   }) {
-    if (!identical(project, _project) || !identical(gameState, _gameState)) {
+    final context = rewardSceneContext ?? lookupRewardScenes;
+    if (!identical(project, _project) ||
+        !identical(gameState, _gameState) ||
+        !identical(context, _rewardSceneContext)) {
       _maps.clear();
       _project = project;
       _gameState = gameState;
+      _rewardSceneContext = context;
     }
     final existing = _maps[map];
     if (existing != null) return existing;
@@ -23,6 +30,7 @@ final class RuntimeWorldRuleProjectionCache {
       project: project,
       gameState: gameState,
       map: map,
+      lookupRewardScenes: lookupRewardScenes,
     );
     if (_maps.length >= 8) _maps.remove(_maps.keys.first);
     _maps[map] = resolved;

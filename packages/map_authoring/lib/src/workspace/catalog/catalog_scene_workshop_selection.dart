@@ -3,7 +3,9 @@ part of 'catalog_workshop_selection.dart';
 const _sceneWorkshopActions = {
   'scene.upsert',
   'scene.graph.patch',
-  'scene.interactive_command.set'
+  'scene.interactive_command.set',
+  'scene.dialogue.choicePolicy.update',
+  'scene.dialogue.lineFeedback.update'
 };
 
 Future<CatalogWorkshopSelection> _readSceneWorkshop({
@@ -115,6 +117,27 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     var journeyCatalogLoaded = false;
     var documents = await CatalogMetadataDocuments.readDocuments(
         snapshot: catalog.snapshot, project: base, ids: ids);
+    if (actionId == 'scene.dialogue.lineFeedback.update' && parameters['linePolicy'] is Map) {
+      final scene = documents.project.scenes.where((entry) => entry.id == parameters['sceneId']).firstOrNull;
+      final node = scene?.graph.nodes.where((entry) => entry.id == parameters['nodeId']).firstOrNull;
+      final payload = node?.payload;
+      if (payload is SceneYarnDialoguePayload) {
+        SceneDialogueLinePolicy? parsedPolicy() {
+          try {
+            return SceneDialogueLinePolicy.fromJson(Map<String, dynamic>.from(parameters['linePolicy'] as Map));
+          } on FormatException {
+            return null;
+          } on ArgumentError {
+            return null;
+          }
+        }
+        final policy = parsedPolicy();
+        if (policy != null) {
+          incomingNodes.add(SceneNode(id: 'incoming-line-policy', kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(dialogueId: payload.dialogueId, linePolicies: [policy])));
+        }
+      }
+    }
     final candidates = <Object?>[];
     var previous = -1;
     int dependencyCount() =>
@@ -306,7 +329,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     itemIds.addAll(CatalogWorkshopSelection._referenceIds(
         candidates, {'itemId', 'inputItemId', 'outputItemId', 'ballItemId'}));
     final itemPath = manifest.pokemon.catalogFiles['items'];
-    if (itemIds.isNotEmpty && manifest.pokemon.enabled && itemPath != null) {
+    if (itemIds.isNotEmpty && itemPath != null) {
       await readFile(itemCatalogResourceIdentity, itemPath);
     }
     final movePath = manifest.pokemon.catalogFiles['moves'];

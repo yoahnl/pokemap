@@ -17,6 +17,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   const SceneInteractiveCommandRuntimeExecutor({
     required this.warp,
     this.giveItem,
+    this.claimPeriodicReward,
     this.moveNpc,
     this.movePlatform,
     this.setPropState,
@@ -42,6 +43,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
 
   final SceneInteractiveCommandHandler warp;
   final SceneInteractiveCommandHandler? giveItem;
+  final SceneInteractiveCommandHandler? claimPeriodicReward;
   final SceneInteractiveCommandHandler? moveNpc;
   final SceneInteractiveCommandHandler? movePlatform;
   final SceneInteractiveCommandHandler? setPropState;
@@ -80,6 +82,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
       SceneInteractiveCommandKind.inputIntegerToFact || SceneInteractiveCommandKind.tryPayMoney => throw StateError('Integer input and payment require the Scene transaction host.'),
       SceneInteractiveCommandKind.inputTextToFact => throw StateError('Text Fact input requires the Scene transaction host.'),
       SceneInteractiveCommandKind.receivePokemonFromCatalog => throw StateError('Pokemon gifts require the Scene transaction host.'),
+      SceneInteractiveCommandKind.claimPeriodicReward => claimPeriodicReward == null ? 'blocked' : await claimPeriodicReward!(command),
       SceneInteractiveCommandKind.giveItem => await _executeRequired(
           command,
           handler: giveItem,

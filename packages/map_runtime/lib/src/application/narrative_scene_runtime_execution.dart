@@ -27,6 +27,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   List<NarrativeOutcomeRef> hostedBattleOutcomes = const [],
   int maxSteps = 100,
   DateTime Function()? completionClock,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) async {
   if (currentGameState() != request.gameState) {
     return NarrativeSceneExecutionResult.failed(
@@ -55,6 +56,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     project,
     mapsById: mapsById,
     presentationMediaCatalog: presentationMediaCatalog,
+    lookupRewardScenes: lookupRewardScenes,
   );
   if (diagnostics.hasErrors) {
     return NarrativeSceneExecutionResult.failed(
@@ -504,6 +506,12 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
       if (blockedUniqueBattle) {
         return NarrativeSceneExecutionResult.cancelled(
           StateError('Cette rencontre unique a déjà eu lieu.'),
+        );
+      }
+      if (execution.errorCode ==
+          SceneRuntimeExecutionErrorCode.conditionUnavailable) {
+        return NarrativeSceneExecutionResult.failed(
+          SceneRuntimeConditionUnavailable(execution.message!),
         );
       }
       return NarrativeSceneExecutionResult.failed(

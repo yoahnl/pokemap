@@ -317,6 +317,28 @@ void main() {
       );
     });
 
+    test(
+      'unavailable condition stops without choosing either boolean branch',
+      () async {
+        final result = await SceneRuntimeExecutor(
+          callbacks: _callbacks(
+            evaluateCondition: (_) =>
+                throw const SceneRuntimeConditionUnavailable(
+                  'Récompense indisponible : rechargez la scène.',
+                ),
+          ),
+        ).execute(_conditionBranchPlan());
+        expect(result.status, SceneRuntimeExecutionStatus.failed);
+        expect(result.errorCode?.name, 'conditionUnavailable');
+        expect(result.trace.map((entry) => entry.nodeId), [
+          'node_start',
+          'node_condition',
+        ]);
+        expect(result.trace.last.outputPortId, isNull);
+        expect(result.message, contains('Récompense indisponible'));
+      },
+    );
+
     test('executes condition true branch', () async {
       final result = await SceneRuntimeExecutor(
         callbacks: _callbacks(evaluateCondition: (_) async => 'true'),

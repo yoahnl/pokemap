@@ -174,6 +174,16 @@ class RuntimePokemonSpeciesLoader {
     return species;
   }
 
+  Future<Map<String, RuntimePokemonSpecies>> loadSpeciesSnapshot({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+  }) async => Map.unmodifiable(
+    (await _projectSnapshot(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    )).speciesById,
+  );
+
   Future<PokemonSpeciesIndex> loadIndex({
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
@@ -390,6 +400,8 @@ class RuntimePokemonSpeciesLoader {
       id: expectedSpeciesId,
       names: Map<String, String>.unmodifiable(speciesFile.names),
       formId: speciesFile.forms.formId,
+      isBaseForm: speciesFile.forms.isBaseForm,
+      weightKg: speciesFile.dexContent.weightKg,
       typing: typing,
       baseHp: baseHp,
       baseAttack: baseAttack,
@@ -670,6 +682,8 @@ class RuntimePokemonSpecies {
     required this.id,
     this.names = const <String, String>{},
     this.formId = '',
+    this.isBaseForm = true,
+    this.weightKg,
     required this.typing,
     required this.baseHp,
     required this.baseAttack,
@@ -693,6 +707,8 @@ class RuntimePokemonSpecies {
   final String id;
   final Map<String, String> names;
   final String formId;
+  final bool isBaseForm;
+  final double? weightKg;
 
   String displayName(String locale) =>
       resolveLocalizedName(names: names, locale: locale, fallback: id);

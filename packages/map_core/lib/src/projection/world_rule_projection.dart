@@ -1,3 +1,6 @@
+import '../models/scene_asset.dart';
+import '../operations/periodic_reward_condition_evaluator.dart';
+import '../operations/narrative_condition_expression_evaluator.dart';
 import '../diagnostics/world_rule_diagnostics.dart';
 import '../models/game_state.dart';
 import '../models/narrative_map_view.dart';
@@ -24,8 +27,12 @@ List<WorldRuleResolvedEffect> projectWorldRuleEffects(
   GameState gameState, {
   List<NarrativeMapView> maps = const <NarrativeMapView>[],
   String? mapId,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
-  final diagnostics = diagnoseWorldRules(project, maps: maps);
+  final rewardScenes = <String, List<SceneAsset>>{};
+  Iterable<SceneAsset> lookup(String id) => rewardScenes.putIfAbsent(id,
+    () => (lookupRewardScenes?.call(id) ?? const <SceneAsset>[]).toList());
+  final diagnostics = diagnoseWorldRules(project, maps: maps, lookupRewardScenes: lookup);
   final invalidRuleIds = {
     for (final diagnostic in diagnostics.diagnostics)
       if (diagnostic.severity == WorldRuleDiagnosticSeverity.error)
@@ -40,7 +47,8 @@ List<WorldRuleResolvedEffect> projectWorldRuleEffects(
     if (mapId != null && rule.target.mapId != mapId) {
       continue;
     }
-    if (!worldRuleSourceMatches(rule.source, gameState, factResolver)) {
+    if (!worldRuleSourceMatches(rule.source, gameState, factResolver,
+      lookupRewardScenes: lookup)) {
       continue;
     }
     resolved.add(
@@ -65,9 +73,12 @@ List<WorldRuleResolvedEffect> projectWorldRuleEffects(
 bool worldRuleSourceMatches(
   WorldRuleSource source,
   GameState gameState,
-  NarrativeFactRuntimeResolver factResolver,
-) {
+  NarrativeFactRuntimeResolver factResolver, {
+  PeriodicRewardSceneLookup? lookupRewardScenes,
+}) {
   return switch (source.kind) {
+    WorldRuleSourceKind.periodicRewardAvailable => evaluateWorldRulePeriodicRewardSource(source: source,
+      gameState: gameState, lookupScenes: lookupRewardScenes ?? (_) => const []).passed,
     WorldRuleSourceKind.fact => _factMatches(source, gameState, factResolver),
     WorldRuleSourceKind.storyStepCompletion =>
       _storyStepCompletionMatches(source, gameState),
@@ -138,4 +149,16 @@ bool _consumedEventMatches(
     WorldRuleSourcePredicate.notCompleted =>
       false,
   };
+}
+
+NarrativeConditionEvaluation evaluateWorldRulePeriodicRewardSource({required WorldRuleSource source,
+  required GameState gameState, required PeriodicRewardSceneLookup lookupScenes}) {
+  if (source.kind != WorldRuleSourceKind.periodicRewardAvailable || source.rewardReference == null ||
+      source.sourceId != source.rewardReference!.rewardId ||
+      !const {WorldRuleSourcePredicate.isTrue, WorldRuleSourcePredicate.isFalse}.contains(source.predicate)) {
+    return const NarrativeConditionEvaluation(passed: false, unavailable: true);
+  }
+  return evaluatePeriodicRewardCondition(reference: source.rewardReference!,
+    expectedValue: source.predicate == WorldRuleSourcePredicate.isTrue,
+    gameState: gameState, lookupScenes: lookupScenes);
 }

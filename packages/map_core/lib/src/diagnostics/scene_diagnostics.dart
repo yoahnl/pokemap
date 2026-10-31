@@ -1,3 +1,4 @@
+import '../operations/periodic_reward_condition_evaluator.dart';
 import '../models/project_media_catalog.dart';
 import '../models/narrative_event_definition.dart';
 import '../operations/narrative_parallel_program.dart';
@@ -487,11 +488,12 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   Set<String>? availableMoveIds,
   Set<String>? availableItemIds,
   ProjectMediaCatalog? presentationMediaCatalog,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) => SceneProjectDiagnosticsContext(project,
     mapsById: mapsById,
     availableMoveIds: availableMoveIds,
     availableItemIds: availableItemIds,
-    presentationMediaCatalog: presentationMediaCatalog).diagnose(scene);
+    presentationMediaCatalog: presentationMediaCatalog, lookupRewardScenes: lookupRewardScenes).diagnose(scene);
 
 final class SceneProjectDiagnosticsContext {
   factory SceneProjectDiagnosticsContext(ProjectManifest project, {
@@ -499,6 +501,7 @@ final class SceneProjectDiagnosticsContext {
     Set<String>? availableMoveIds,
     Set<String>? availableItemIds,
     ProjectMediaCatalog? presentationMediaCatalog,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
   }) {
     mapsById = Map.unmodifiable(mapsById);
     availableMoveIds = availableMoveIds == null ? null : Set.unmodifiable(availableMoveIds);
@@ -562,6 +565,7 @@ final class SceneProjectDiagnosticsContext {
       availableItemIds: availableItemIds,
       modelsById: modelsById,
       presentationMediaCatalog: presentationMediaCatalog,
+      lookupRewardScenes: lookupRewardScenes,
       soundMediaById: soundMediaById,
       contracts: contracts,
       dialogueById: dialogueById,
@@ -591,6 +595,7 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
   required Set<String>? availableItemIds,
   required Map<String, ProjectModel3dEntry> modelsById,
   required ProjectMediaCatalog? presentationMediaCatalog,
+  required PeriodicRewardSceneLookup? lookupRewardScenes,
   required Map<String, List<CinematicMediaAsset>> soundMediaById,
   required LinkedAssetContractsSnapshot contracts,
   required Map<String, DialoguePublicContract> dialogueById,
@@ -771,6 +776,17 @@ SceneDiagnosticsReport _diagnoseSceneAgainstContext(
         final source = payload.conditionSource;
         if (source == null) {
           continue;
+        }
+        if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable) {
+          final reference = source.rewardReference;
+          final resolution = reference == null ? null : resolvePeriodicRewardReference(reference: reference,
+            lookupScenes: lookupRewardScenes ?? (_) => const []);
+          if (resolution?.isResolved != true) {
+            diagnostics.add(SceneDiagnostic(code: SceneDiagnosticCode.conditionSourceUnknown,
+              severity: SceneDiagnosticSeverity.error, sceneId: scene.id, nodeId: node.id,
+              target: SceneDiagnosticTarget.node,
+              message: 'La récompense quotidienne référence une commande absente ou différente (${resolution?.status.name ?? "locatorMissing"}).'));
+          }
         }
         if (source.sourceKind == SceneConditionSourceKind.integerComparison) {
           _diagnoseIntegerReferences(scene, node, project, {}, [source.integerLeft!, source.integerRight!], diagnostics, availableItemIds);
@@ -1369,6 +1385,11 @@ void _diagnoseActionConsequenceAgainstProject(
           unknownCode: SceneDiagnosticCode.commandUnknownItem, diagnostics: diagnostics);
       }
     }
+  }
+  if (interactiveCommand case SceneClaimPeriodicRewardInteractiveCommand(:final definition)) {
+    _diagnoseItemReference(scene, node, itemId: definition.itemId, availableItemIds: availableItemIds,
+      unavailableCode: SceneDiagnosticCode.commandItemCatalogUnavailable,
+      unknownCode: SceneDiagnosticCode.commandUnknownItem, diagnostics: diagnostics);
   }
   if (interactiveCommand case SceneGiveItemInteractiveCommand(:final itemId)) {
     _diagnoseItemReference(
@@ -2662,6 +2683,7 @@ _SceneOutputPortSpec? _findPortSpec(
 
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
   return switch (kind) {
+    SceneConditionSourceKind.periodicRewardAvailable => true,
     SceneConditionSourceKind.newGameDraft => true,
     SceneConditionSourceKind.pokedexCaughtCount ||
     SceneConditionSourceKind.playerFacing ||
@@ -2686,6 +2708,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.periodicRewardAvailable => source.rewardReference != null,
     SceneConditionSourceKind.integerComparison => source.integerLeft != null && source.integerRight != null && source.integerComparisonOperator != null,
     SceneConditionSourceKind.pokedexCaughtCount ||
     SceneConditionSourceKind.playerFacing ||

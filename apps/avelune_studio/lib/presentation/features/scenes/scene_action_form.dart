@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -31,6 +32,7 @@ class SceneActionForm extends StatefulWidget {
     required this.onApply,
     this.loadMap,
     this.loadMoves,
+    this.loadItems,
     this.loadSpecies,
     this.loadVisualMedia,
     this.commandCatalog,
@@ -41,6 +43,7 @@ class SceneActionForm extends StatefulWidget {
   final ValueChanged<SceneNodePayload> onApply;
   final Future<MapData> Function(String)? loadMap;
   final Future<Map<String, String>> Function()? loadMoves;
+  final Future<Map<String, String>> Function()? loadItems;
   final Future<List<PokemonSpeciesSummary>> Function()? loadSpecies;
   final Future<ProjectMediaCatalog> Function()? loadVisualMedia;
   @visibleForTesting
@@ -78,6 +81,30 @@ class _SceneActionFormState extends State<SceneActionForm> {
   bool _speciesLoading = false;
   String? _speciesError;
   int _speciesRequest = 0;
+  Map<String, String> _items = const {};
+  String? _itemsError;
+  bool _itemsLoading = false;
+  int _itemsRequest = 0;
+  Future<void> _loadItems() async {
+    final token = ++_itemsRequest;
+    _items = const {};
+    _itemsError = null;
+    _itemsLoading = false;
+    if (!(_command?.parameters.any((field) => field.kind == NarrativeCommandParameterKind.item) ?? false)) return;
+    _itemsLoading = true;
+    try {
+      final load = widget.loadItems;
+      if (load == null) throw StateError('Unavailable');
+      final items = await load();
+      if (!mounted || token != _itemsRequest) return;
+      setState(() => _items = Map.unmodifiable(items));
+    } on Object {
+      if (!mounted || token != _itemsRequest) return;
+      setState(() => _itemsError = 'Catalogue des objets indisponible. La récompense enregistrée est conservée.');
+    } finally {
+      if (mounted && token == _itemsRequest) setState(() => _itemsLoading = false);
+    }
+  }
   bool _giftMovesValid = true;
   bool get _isGift =>
       _commandId == NarrativeCommandIds.givePokemonFromCatalog ||
@@ -168,6 +195,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
         oldWidget.commandCatalog != widget.commandCatalog) {
       _readCurrent();
     }
+    if (oldWidget.loadItems != widget.loadItems || oldWidget.project != widget.project) _loadItems();
     if (oldWidget.loadMap != widget.loadMap ||
         oldWidget.project != widget.project ||
         oldWidget.loadSpecies != widget.loadSpecies) {
@@ -187,8 +215,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
       _loadGiftSpecies();
       return;
     }
-    final data =
+    var data =
         current.consequence?.toJson() ?? current.interactiveCommand?.toJson();
+    if (current.interactiveCommand is SceneClaimPeriodicRewardInteractiveCommand) {
+      data = Map<String, dynamic>.from(data!['definition'] as Map);
+    }
     _commandId =
         current.consequence?.kind.name ?? current.interactiveCommand?.kind.name;
     if (_command == null || data == null) {
@@ -239,6 +270,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
     _giftMovesValid = !_isGift || _giftMoves == null;
     _loadReferenceMap();
     _loadGiftSpecies();
+    _loadItems();
   }
 
   SceneNodePayload _buildPayload() {
@@ -303,6 +335,11 @@ class _SceneActionFormState extends State<SceneActionForm> {
         'minimum': '0', 'maximum': '999', 'digits': '3', 'randomMinimum': '0', 'randomMaximum': '4',
         'factIds': '[]', 'zeroDivisorPolicy': 'reject', 'boundaryPolicy': 'clamp', 'cancellationPolicy': 'leaveUnchanged'});
     }
+    if (commandId == NarrativeCommandIds.claimPeriodicReward) {
+      final random = Random.secure();
+      _values['rewardId'] = 'reward-${List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join()}';
+    }
+    _loadItems();
     _giftMovesValid = true;
     if (commandId == NarrativeCommandIds.receivePokemonFromCatalog) {
       _values['nicknamePolicy'] = 'offer';
@@ -343,6 +380,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
   bool get _valid {
     final command = _command;
     if (command == null) return false;
+    if (_itemsLoading || _itemsError != null) return false;
     if (command.id == NarrativeCommandIds.setMapEventInstanceBoolean &&
         (_referenceLoading || _referenceError != null || _referenceMap == null ||
          !_options(NarrativeCommandParameterKind.mapEntityReference).containsKey(_values['eventId']))) {
@@ -397,7 +435,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
         return false;
       }
     }
-    if (_isGift || isIntegerSceneCommand(command.id) ||
+    if (command.id == NarrativeCommandIds.claimPeriodicReward || _isGift || isIntegerSceneCommand(command.id) ||
         command.id == NarrativeCommandIds.warp ||
         command.id == NarrativeCommandIds.wait ||
         command.id == NarrativeCommandIds.worldTone ||
@@ -424,6 +462,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
     'fadeOutMs', 'transferDelayMs', 'revealMs', 'illustrationHoldMs', 'illustrationFadeMs'};
 
   bool _warpFieldVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_commandId == NarrativeCommandIds.claimPeriodicReward && parameter.id == 'rewardId') return false;
     if (isIntegerSceneCommand(_commandId)) return integerSceneParameterVisible(parameter.id, _values);
     if (_commandId == NarrativeCommandIds.sceneMusic) {
       return switch (parameter.id) {
@@ -509,6 +548,7 @@ class _SceneActionFormState extends State<SceneActionForm> {
         if (_referenceMap!.entities.where((other) => other.id == entity.id).length == 1)
           entity.id: entity.name.trim().isNotEmpty ? entity.name : 'Élément (${entity.pos.x}, ${entity.pos.y})',
     },
+    NarrativeCommandParameterKind.item => _items,
     NarrativeCommandParameterKind.character => _playerAvatarOptions(),
     NarrativeCommandParameterKind.species => {
       for (final species in _species) species.id: species.name,
@@ -646,6 +686,10 @@ class _SceneActionFormState extends State<SceneActionForm> {
         onChanged: _commands.isEmpty ? null : _choose,
       ),
       if (_commands.isEmpty) const StudioNotice('Aucune commande disponible.'),
+      if (_itemsLoading) const StudioNotice('Chargement des objets…'),
+      if (_itemsError != null) StudioNotice(_itemsError!, isError: true),
+      if (_commandId == NarrativeCommandIds.claimPeriodicReward)
+        const StudioNotice('Une remise par jour civil. Un sac plein ne consomme pas la récompense. Sorties : Reçu, Déjà reçu aujourd’hui, Sac plein, Indisponible.'),
       if (_commandId == NarrativeCommandIds.whiteOut)
         const StudioNotice('À la fin réussie de la Scene, l’équipe est soignée, la pénalité de défaite est appliquée et le joueur revient au point de reprise. Une seule récupération par Scene.'),
       if (_isGift && _speciesLoading)

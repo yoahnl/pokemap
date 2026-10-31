@@ -1,3 +1,7 @@
+import 'battle_capture_receipt.dart';
+import 'package:map_core/map_core.dart';
+
+import 'contextual_capture_formula.dart';
 import 'battle_move.dart';
 import 'capture_formula.dart';
 
@@ -62,11 +66,15 @@ class PlayerBattleChoiceCapture extends PlayerBattleChoice {
     this.itemId = canonicalPokeBallItemId,
     this.rateNumerator = 1,
     this.rateDenominator = 1,
+    this.contextualPolicy,
+    this.captureContext,
   });
 
   final String itemId;
   final int rateNumerator;
   final int rateDenominator;
+  final ProjectContextualCapturePolicy? contextualPolicy;
+  final BattleCaptureContext? captureContext;
 }
 
 /// Continuer un tour forcé sans sélectionner un nouveau move.
@@ -135,12 +143,14 @@ final class BattleActionCapture extends BattleAction {
     required this.attemptId,
     required this.itemId,
     required this.caught,
+    this.contextualReceipt,
     required this.shakes,
   });
 
   final String attemptId;
   final String itemId;
   final bool caught;
+  final BattleCaptureReceipt? contextualReceipt;
 
   /// Shake count decided by the capture formula, replayed verbatim downstream.
   final int shakes;

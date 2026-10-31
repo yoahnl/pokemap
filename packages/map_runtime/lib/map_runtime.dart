@@ -1,5 +1,7 @@
 library;
 
+export 'src/application/runtime_periodic_reward_context.dart';
+
 export 'package:avelune_rendering/avelune_rendering.dart';
 
 export 'src/application/runtime_simulation_clock.dart';
@@ -209,6 +211,7 @@ export 'src/application/player_service_runtime_controller.dart'
         RuntimePartyTradeService,
         RuntimeDeferredCraftingService,
         RuntimeImagePuzzleService,
+        RuntimePeriodicRewardService,
         runtimeCivilDay,
         loadRuntimePlayerServiceRecoveryCaps;
 export 'src/application/rail_journey_runtime_coordinator.dart';

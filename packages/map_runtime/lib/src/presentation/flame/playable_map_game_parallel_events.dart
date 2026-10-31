@@ -87,8 +87,9 @@ extension _PlayableMapGameParallelEvents on PlayableMapGame {
       }
       if (entity.presentation != null) {
         variantId = resolveMapEntityPresentation(
+          lookupRewardScenes: _lookupRewardScenes,
           project: _bundle.manifest,
-          gameState: state,
+          gameState: _periodicRewardContext.observe(state),
           map: _bundle.map,
           entity: entity,
           maps:

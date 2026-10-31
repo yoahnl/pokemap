@@ -31,11 +31,26 @@ final class SpatialStoryPlayback {
           writeGameState(readGameState().copyWith(spatialWorldState: world)),
     );
     autonomousNpcs = SpatialNpcFixedRouteRuntime(
-      readMap: () => projectMapEntityPresentations(project: session.bundle.manifest,
-          gameState: readGameState(), map: session.bundle.map),
-      readActor: (entity) => models.worldState.actorState(session.bundle.map.id, entity.id),
-      isPresent: (entity) => session.entityIsPresent?.call(session.bundle.map.id, entity) ?? true,
-      readVariantKey: (entity) => entity.properties[mapEntityPresentationVariantIdProperty],
+      readMap: () => session.entityProjection == null
+          ? projectMapEntityPresentations(
+              project: session.bundle.manifest,
+              gameState:
+                  session.presentationStateProvider?.call() ?? readGameState(),
+              map: session.bundle.map,
+              lookupRewardScenes: session.lookupRewardScenes,
+            )
+          : session.bundle.map.copyWith(
+              entities: [
+                for (final entity in session.bundle.map.entities)
+                  ?session.entityProjection!(session.bundle.map.id, entity),
+              ],
+            ),
+      readActor: (entity) =>
+          models.worldState.actorState(session.bundle.map.id, entity.id),
+      isPresent: (entity) =>
+          session.entityIsPresent?.call(session.bundle.map.id, entity) ?? true,
+      readVariantKey: (entity) =>
+          entity.properties[mapEntityPresentationVariantIdProperty],
       readInstanceBoolean: (id, key) {
         final instances = readGameState().mapInstanceWorldState;
         final scope = instances.instanceRef(session.bundle.map.id);

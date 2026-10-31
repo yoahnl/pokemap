@@ -174,11 +174,24 @@ final class BattleTurnRunner {
       );
     }
 
+    const actionMapper = PsdkBattleActionDecisionMapper();
+    for (final choice in playerChoices.entries) {
+      if (choice.value is BattleCaptureDecision) {
+        const BattleCaptureActionHandler().preflight(
+          context: _context,
+          action: actionMapper.map(
+              state: _context.state,
+              user: choice.key,
+              decision: choice.value) as PsdkBattleCaptureAction,
+          target: psdkOpponentSlot,
+        );
+      }
+    }
+
     final previousState = _context.state;
     final previousRng = _context.rng;
     final previousTurnNumber = _context.turnNumber;
 
-    const actionMapper = PsdkBattleActionDecisionMapper();
     final opponentChoices = <PsdkBattleSlotRef, BattleDecision>{};
     final reserved = <int>{};
     final itemQuantities = _opponentItemQuantities == null

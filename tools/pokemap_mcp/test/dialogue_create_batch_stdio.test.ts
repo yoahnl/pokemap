@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir } from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { Client } from "@modelcontextprotocol/client";
@@ -18,7 +20,9 @@ function dialogue(id: string, source = "title: Start\n---\nBonjour 🦊\n===\n")
 }
 
 test("MCP discovers, refuses malformed tails, commits, replays and undoes dialogue creation batches", { timeout: 180_000 }, async () => {
-  const root = await mkdtemp(join(tmpdir(), "dialogue-batch-"));
+  const qaRoot = join(homedir(), "Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/dialogue-scope");
+  await mkdir(qaRoot, { recursive: true });
+  const root = await mkdtemp(join(qaRoot, "dialogue-batch-mcp-"));
   const file = join(root, "project.json");
   await mkdir(join(root, "dialogues"));
   await mkdir(join(root, "maps"));
@@ -114,6 +118,70 @@ test("MCP discovers, refuses malformed tails, commits, replays and undoes dialog
     await assert.rejects(readFile(join(root, "dialogues/second.yarn")));
     assert.equal(await readFile(join(root, "dialogues/existing.yarn"), "utf8"), existing.source);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+  } finally {
+    await client.close();
+    await transport.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+
+test("MCP scopes legacy dialogue preparation and catalog creation without foreign trainers or maps", { timeout: 120_000 }, async () => {
+  const qaRoot = join(homedir(), "Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/dialogue-scope");
+  await mkdir(qaRoot, { recursive: true });
+  const root = await mkdtemp(join(qaRoot, "dialogue-catalog-mcp-"));
+  const packageRoot = resolve("../../packages/map_authoring");
+  const dart = process.env.POKEMAP_TEST_DART ?? "dart";
+  const client = new Client({ name: "dialogue-catalog", version: "1.0.0" });
+  const transport = new StdioClientTransport({ command: process.execPath,
+    args: [resolve("dist/src/index.js"), "--root", root, "--dart", dart, "--authoring-timeout-ms", "60000"],
+    cwd: process.cwd(), stderr: "pipe" });
+  async function call(name: string, input: JsonRecord, failure = false): Promise<JsonRecord> {
+    const result = record((await client.callTool({ name, arguments: input })).structuredContent);
+    assert.equal(result.ok, !failure, JSON.stringify(result));
+    return record(result[failure ? "error" : "data"]);
+  }
+  try {
+    await promisify(execFile)(dart, [`--packages=${join(packageRoot, ".dart_tool/package_config.json")}`,
+      join(packageRoot, "test/support/create_working_catalog_fixture.dart"), root, "--dialogue-creation"], { timeout: 60_000 });
+    const descriptor = await readFile(join(root, "project.json"));
+    const foreign = await readFile(join(root, "maps/foreign.json"));
+    const existing = await readFile(join(root, "dialogues/existing.yarn"));
+    await client.connect(transport);
+    const described = await call("pokemap_describe", {});
+    assert.ok((described.mutationActions as JsonRecord[]).some(action => action.id === "dialogue.create_batch"));
+    assert.ok((record(described.workshopPreparation).scopes as string[]).includes("dialogueCreation"));
+    let opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    const first = dialogue("first", "title: Start\n---\nScore {{ fact.score }}\n===\n");
+    const parameters = { dialogues: [first] };
+    const read = { operation: "read", projectHandle: opened.projectHandle, actionId: "dialogue.create_batch", parameters };
+    const refusal = await call("pokemap_workshop", read, true);
+    assert.equal(refusal.domainCode, "catalog.dialogue_ownership_preparation_required");
+    const prepared = await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle, scope: "dialogueCreation" });
+    assert.equal(prepared.scope, "explicitDialoguePathOwnershipIndex");
+    const selection = await call("pokemap_workshop", read);
+    const selectedProject = record(selection.project);
+    assert.deepEqual(selectedProject.trainers, []);
+    assert.deepEqual(selectedProject.maps, []);
+    assert.deepEqual((selectedProject.facts as JsonRecord[]).map(fact => fact.id), ["score"]);
+    const planned = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+      requestId: "dialogue-local", actionId: "dialogue.create_batch", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, parameters, expectedRevision: selection.snapshotRevision,
+      idempotencyKey: "dialogue-local", extensions: selection.planExtensions } });
+    const applied = await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: planned.planId, operationId: "dialogue-local" });
+    assert.equal(await readFile(join(root, "dialogues/first.yarn"), "utf8"), first.source);
+    assert.deepEqual(await readFile(join(root, "maps/foreign.json")), foreign);
+    assert.deepEqual(await readFile(join(root, "project.json")), descriptor);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+    opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    const reopened = await call("pokemap_workshop", { ...read, projectHandle: opened.projectHandle });
+    assert.deepEqual((record(reopened.project).dialogues as JsonRecord[]).map(entry => entry.id), ["first"]);
+    await call("pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
+      entryId: record(applied.receipt).receiptId, idempotencyKey: "undo-dialogue-local" });
+    await assert.rejects(readFile(join(root, "dialogues/first.yarn")));
+    assert.deepEqual(await readFile(join(root, "dialogues/existing.yarn")), existing);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
     await client.close();
     await transport.close();

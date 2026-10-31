@@ -61,11 +61,21 @@ final class PokemonRulesetActions {
         version: 1,
         summary: 'Set the validated project Pokemon ruleset profile',
         extensions: {
+          'inputSchema': {
+            'type': 'object', 'additionalProperties': false,
+            'required': ['profile'],
+            'properties': {'profile': {'oneOf': [
+              {'const': PokemonRulesetProfile.pokeMapBetaV1.toJson()},
+              {'const': PokemonRulesetProfile.standardV1.toJson()},
+              {'const': PokemonRulesetProfile.contextualV1.toJson()},
+            ]}},
+          },
           'profiles': {
             'default': PokemonRulesetProfile.canonicalProfileId,
             'values': [
               PokemonRulesetProfile.pokeMapBetaV1.toJson(),
               PokemonRulesetProfile.standardV1.toJson(),
+              PokemonRulesetProfile.contextualV1.toJson(),
             ],
           },
         },
@@ -139,13 +149,27 @@ final class PokemonRulesetActions {
     final projected = snapshot.manifest.copyWith(
       pokemon: snapshot.manifest.pokemon.copyWith(ruleset: profile),
     );
-    try {
-      ProjectValidator.validate(projected);
-    } on ValidationException {
-      throw PokemonRulesetAuthoringException(
+    if (profile.mechanics.disabledFeatures.contains(PokemonDisabledFeature.doubleBattles) &&
+        snapshot.manifest.trainers.any((trainer) => trainer.battleFormat == BattleFormat.doubles)) {
+      throw const PokemonRulesetAuthoringException(
         'pokemon.ruleset.projected_state_invalid',
-        'The Pokemon ruleset mutation would invalidate the project.',
+        'Double trainers require a ruleset supporting double battles.',
       );
+    }
+    if (profile.profileId != PokemonRulesetProfile.contextualProfileId) {
+      final catalog = snapshot.itemCatalog;
+      if (catalog == null && before.profileId == PokemonRulesetProfile.contextualProfileId && snapshot.manifest.pokemon.enabled && snapshot.manifest.pokemon.catalogFiles.containsKey('items')) {
+        throw const PokemonRulesetAuthoringException(
+          'pokemon.ruleset.item_catalog_required',
+          'The item catalog must be available before changing the capture policy.',
+        );
+      }
+      if (catalog?.entries.any((item) => item.capture?.contextualPolicy != null) ?? false) {
+        throw const PokemonRulesetAuthoringException(
+          'pokemon.ruleset.contextual_items_in_use',
+          'Remove contextual item policies before selecting a historical ruleset.',
+        );
+      }
     }
 
     final project = AuthoringResourceRef(

@@ -1,3 +1,4 @@
+import '../operations/periodic_reward_condition_evaluator.dart';
 import '../diagnostics/world_rule_diagnostics.dart';
 import '../models/game_state.dart';
 import '../models/map_data.dart';
@@ -209,8 +210,9 @@ NarrativeWorldStateSimulationReport simulateNarrativeWorldState({
   required ProjectManifest project,
   required List<MapData> maps,
   required NarrativeWorldStateSimulationInput input,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
-  final diagnostics = diagnoseWorldRules(project, maps: maps).diagnostics;
+  final diagnostics = diagnoseWorldRules(project, maps: maps, lookupRewardScenes: lookupRewardScenes).diagnostics;
   final diagnosticsByRuleId = <String, List<WorldRuleDiagnostic>>{};
   for (final diagnostic in diagnostics) {
     diagnosticsByRuleId
@@ -221,6 +223,7 @@ NarrativeWorldStateSimulationReport simulateNarrativeWorldState({
     project,
     input.gameState,
     maps: maps,
+    lookupRewardScenes: lookupRewardScenes,
   );
   final effectsByTarget = <String, List<WorldRuleResolvedEffect>>{};
   for (final effect in effects) {

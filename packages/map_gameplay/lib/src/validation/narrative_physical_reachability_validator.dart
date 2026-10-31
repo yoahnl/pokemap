@@ -1087,6 +1087,8 @@ List<NarrativeSymbolicState> _canonicalStates(
   final relevantConsumedEventIds = <String>{};
   for (final rule in physicalRules) {
     switch (rule.source.kind) {
+      case WorldRuleSourceKind.periodicRewardAvailable:
+        break;
       case WorldRuleSourceKind.fact:
         relevantFactIds.add(rule.source.sourceId);
       case WorldRuleSourceKind.storyStepCompletion:

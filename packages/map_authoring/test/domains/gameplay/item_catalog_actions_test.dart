@@ -6,6 +6,26 @@ import 'package:test/test.dart';
 
 void main() {
   group('ItemCatalogActions', () {
+    test('authors arbitrary contextual capture only under explicit global profile', () {
+      final policy = ProjectContextualCapturePolicy(rateRules: [ProjectCaptureRateRule(
+        when: ProjectCaptureMatchCondition(field: ProjectCaptureMatchField.targetSpecies,
+          values: {'eighth-synthetic-species'}),
+        adjustment: ProjectCaptureRateMultiply(numerator: 7, denominator: 3))],
+        successEffects: [ProjectCaptureSetFriendship(123)]);
+      final parameters = <String, Object?>{'itemId': 'thread-charm', 'capture': {
+        'rateNumerator': 3, 'rateDenominator': 2, 'allowedEncounterKinds': ['walk'],
+        'contextualPolicy': policy.toJson()}};
+      for (final profile in [PokemonRulesetProfile.pokeMapBetaV1, PokemonRulesetProfile.standardV1]) {
+        expect(() => const ItemCatalogActions().build(_fixture(profile: profile).context(
+          actionId: 'item.set_capture_effect', parameters: parameters)),
+          throwsA(isA<ItemCatalogAuthoringException>()));
+      }
+      final draft = const ItemCatalogActions().build(_fixture(profile: PokemonRulesetProfile.contextualV1).context(
+        actionId: 'item.set_capture_effect', parameters: parameters));
+      final catalog = decodeProjectItemCatalog(jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!)));
+      expect(catalog.entries.single.capture!.contextualPolicy, policy);
+      expect(draft.changeSet.changes.single.storageKey, 'data/pokemon/catalogs/items.json');
+    });
     test('creates Miracle Seed, Shell Bell and Charcoal through the canonical boundary', () {
       for (final effectId in ['miracle_seed', 'shell_bell', 'charcoal']) {
         final definition = ProjectItemDefinition(
@@ -527,6 +547,7 @@ List<Map<String, Object?>> _blockingDiagnostics(ProjectItemCatalog catalog) => [
 
 _ItemFixture _fixture({
   bool withUsage = false,
+  PokemonRulesetProfile profile = PokemonRulesetProfile.pokeMapBetaV1,
   List<ProjectItemDefinition>? entries,
   ProjectItemDefinition definition = const ProjectItemDefinition(
     id: 'thread-charm',
@@ -550,6 +571,7 @@ _ItemFixture _fixture({
     revision: 'sha256:${List<String>.filled(64, 'a').join()}',
     manifest: ProjectManifest(
       name: 'Items',
+      pokemon: ProjectPokemonConfig(ruleset: profile),
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       newGame: withUsage

@@ -2,6 +2,24 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('contextual profile changes only capture and explicit identity', () {
+    final json = PokemonRulesetProfile.standardV1.toJson()
+      ..['profileId'] = 'pokemap-contextual-v1'
+      ..['capturePolicyId'] = 'pokemap-contextual-items-mvp-fallback-v1';
+    final profile = PokemonRulesetProfile.fromJson(json);
+    expect(profile.toJson(), json);
+    expect(profile.mechanics.capture.name, 'pokeMapContextualItemsMvpFallbackV1');
+    expect(profile.mechanics.disabledFeatures,
+        PokemonRulesetProfile.standardV1.mechanics.disabledFeatures);
+    for (final key in json.keys.where((key) =>
+        key != 'profileId' && key != 'capturePolicyId')) {
+      expect(profile.toJson()[key], PokemonRulesetProfile.standardV1.toJson()[key]);
+    }
+    expect(() => PokemonRulesetProfile.fromJson({...json,
+      'capturePolicyId': 'pokemap-capture-mvp-v1'}), throwsFormatException);
+    expect(() => PokemonRulesetProfile.fromJson({...json,
+      'profileId': 'pokemap-standard-v1'}), throwsFormatException);
+  });
   group('PokemonRulesetProfile', () {
     test('round-trips the complete canonical beta profile', () {
       const profile = PokemonRulesetProfile.pokeMapBetaV1;

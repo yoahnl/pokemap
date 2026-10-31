@@ -1106,6 +1106,7 @@ String _geometryLabel(NarrativeSpatialSourceGeometrySummary geometry) =>
     };
 
 String _ruleSourceLabel(WorldRuleDefinition rule) => switch (rule.source.kind) {
+      WorldRuleSourceKind.periodicRewardAvailable => "Récompense · ${rule.source.label ?? rule.source.sourceId}",
       WorldRuleSourceKind.fact =>
         'Fact · ${rule.source.label ?? rule.source.sourceId}',
       WorldRuleSourceKind.storyStepCompletion =>

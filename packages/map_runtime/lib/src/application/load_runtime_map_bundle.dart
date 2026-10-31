@@ -282,11 +282,17 @@ Future<List<MapData>> loadMapDataFiles(
   PixelSize? projectTileSize,
 }) {
   if (absoluteMapPaths.isEmpty) return Future.value(const <MapData>[]);
+  final owner = projectDialogueContext == null
+      ? null
+      : RuntimeProjectCatalog.ownerOf(projectDialogueContext);
+  final rewardScenes =
+      owner?.rewardSceneIndex ?? const <String, List<SceneAsset>>{};
   return Isolate.run(
     () => _readMapDataFiles(
       absoluteMapPaths,
       projectDialogueContext,
       projectTileSize,
+      rewardScenes,
     ),
   );
 }
@@ -295,6 +301,7 @@ Future<List<MapData>> _readMapDataFiles(
   List<String> absoluteMapPaths,
   ProjectManifest? projectDialogueContext,
   PixelSize? projectTileSize,
+  Map<String, List<SceneAsset>> rewardScenes,
 ) async {
   final maps = <MapData>[];
   for (final absoluteMapPath in absoluteMapPaths) {
@@ -311,6 +318,7 @@ Future<List<MapData>> _readMapDataFiles(
         text,
         projectDialogueContext,
         projectTileSize,
+        rewardScenes,
       );
       _runtimeLoaderLog(
         'map validated id=${map.id} size=${map.size.width}x${map.size.height} layers=${map.layers.length} entities=${map.entities.length} placedElements=${map.placedElements.length} warps=${map.warps.length} triggers=${map.triggers.length}',
@@ -328,6 +336,7 @@ MapData _decodeValidateAndComposeMapData(
   String text,
   ProjectManifest? projectDialogueContext,
   PixelSize? projectTileSize,
+  Map<String, List<SceneAsset>> rewardScenes,
 ) {
   final raw = jsonDecode(text) as Map<String, dynamic>;
   final map = MapData.fromJson(raw);
@@ -335,6 +344,7 @@ MapData _decodeValidateAndComposeMapData(
     map,
     projectDialogueContext: projectDialogueContext,
     projectTileSize: projectTileSize,
+    lookupRewardScenes: (id) => rewardScenes[id] ?? const [],
   );
   final visualComposition = buildMapVisualCompositionPlan(map);
   if (!visualComposition.canCompose) {
@@ -372,7 +382,11 @@ Future<({ProjectManifest project, MapData map})> loadRuntimeCatalogMap(
           visual.characterId,
     },
   );
-  MapValidator.validate(map, projectDialogueContext: project);
+  MapValidator.validate(
+    map,
+    projectDialogueContext: project,
+    lookupRewardScenes: catalog.rewardScenes,
+  );
   final composition = buildMapVisualCompositionPlan(map);
   if (!composition.canCompose) {
     throw MapLoadException('Map ${map.id} cannot be composed by this runtime.');

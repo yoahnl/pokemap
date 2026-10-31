@@ -1,3 +1,6 @@
+import 'package:map_core/map_core.dart';
+
+import '../../contextual_capture_formula.dart';
 import '../action/battle_action.dart';
 import '../battle/battle_context.dart';
 import '../move/battle_move_data.dart';
@@ -46,6 +49,8 @@ sealed class BattleDecision {
     required String itemId,
     required int rateNumerator,
     required int rateDenominator,
+    ProjectContextualCapturePolicy? contextualPolicy,
+    BattleCaptureContext? captureContext,
   }) = BattleCaptureDecision;
 
   const factory BattleDecision.shift({
@@ -114,11 +119,15 @@ final class BattleCaptureDecision extends BattleDecision {
     required this.itemId,
     required this.rateNumerator,
     required this.rateDenominator,
+    this.contextualPolicy,
+    this.captureContext,
   });
 
   final String itemId;
   final int rateNumerator;
   final int rateDenominator;
+  final ProjectContextualCapturePolicy? contextualPolicy;
+  final BattleCaptureContext? captureContext;
 }
 
 final class BattleShiftDecision extends BattleDecision {

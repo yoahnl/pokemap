@@ -25,6 +25,49 @@ final class GamePackageGameplayReadinessGate {
     final symbolicExplorationBudget =
         mode == GamePackageExportMode.localTest ? 256 : 16384;
     final diagnostics = <NarrativeProjectDiagnostic>[];
+    final rewardScenes = <String, List<SceneAsset>>{};
+    final periodicRewards =
+        <({String sceneId, String nodeId, String itemId})>[];
+    for (final scene in project.scenes) {
+      rewardScenes.putIfAbsent(scene.id, () => []).add(scene);
+      for (final node in scene.graph.nodes) {
+        if (node.payload
+            case SceneActionPayload(
+              interactiveCommand: SceneClaimPeriodicRewardInteractiveCommand(
+                :final definition
+              )
+            )) {
+          periodicRewards.add(
+              (sceneId: scene.id, nodeId: node.id, itemId: definition.itemId));
+        }
+      }
+    }
+    final itemIds = project.pokemon.enabled || periodicRewards.isNotEmpty
+        ? _projectedCatalogEntryIds(projection, catalogKey: 'items')
+        : null;
+    if (periodicRewards.isNotEmpty) {
+      if (itemIds == null) {
+        diagnostics.add(_diagnostic(
+          code: 'periodicRewardItemCatalogUnavailable',
+          message: 'Chargez le catalogue des objets de la récompense quotidienne avant l’export.',
+          path: 'pokemon.catalogFiles.items',
+        ));
+      } else {
+        for (final reward in periodicRewards) {
+          if (!itemIds.contains(reward.itemId)) {
+            diagnostics.add(_diagnostic(
+              code: 'periodicRewardUnknownItem',
+              message: 'L’objet ${reward.itemId} de la récompense quotidienne est absent du catalogue actif du projet.',
+              path: 'scenes.${reward.sceneId}.node.${reward.nodeId}.definition.itemId',
+              domain: NarrativeProjectDiagnosticDomain.scene,
+              destination: NarrativeProjectDiagnosticDestination.scene,
+              sceneId: reward.sceneId,
+            ));
+          }
+        }
+      }
+    }
+
     if (project.settings.dimension == ProjectDimension.threeD) {
       try {
         if (mode != GamePackageExportMode.localTest) {
@@ -141,6 +184,7 @@ final class GamePackageGameplayReadinessGate {
         MapValidator.validate(
           map,
           projectDialogueContext: project,
+          lookupRewardScenes: (id) => rewardScenes[id] ?? const [],
         );
       } on Object catch (error) {
         diagnostics.add(
@@ -187,9 +231,6 @@ final class GamePackageGameplayReadinessGate {
     // overrides d'abilities, mais l'export ne lui fournissait pas les
     // catalogues — il concluait « pas évalué » au lieu de bloquer les
     // références cassées avant le playtest.
-    final itemIds = project.pokemon.enabled
-        ? _projectedCatalogEntryIds(projection, catalogKey: 'items')
-        : null;
     final abilityIds = project.pokemon.enabled
         ? _projectedCatalogEntryIds(projection, catalogKey: 'abilities')
         : null;
@@ -204,6 +245,7 @@ final class GamePackageGameplayReadinessGate {
       narrativeReport = validateNarrativeProject(
         project,
         symbolicExplorationBudget: symbolicExplorationBudget,
+        lookupRewardScenes: (id) => rewardScenes[id] ?? const [],
         presentationMediaCatalog: switch (projection.payloadFiles['project/$projectMediaCatalogStorageKey']) {
           final bytes? => decodeProjectMediaCatalogBytes(bytes),
           null => null,

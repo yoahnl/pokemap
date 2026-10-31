@@ -81,7 +81,7 @@ final class ItemCatalogActions {
     };
     final validation = validateProjectItemCatalog(
       after,
-      capabilityTruth: itemSystemV1CapabilityTruth,
+      capabilityTruth: itemCapabilityTruthForRuleset(context.snapshot.manifest.pokemon.ruleset),
     );
     final changesOnlyCaptureSprite =
         context.request.actionId == 'item.update' &&
@@ -299,6 +299,12 @@ ProjectItemCatalog _setCapture(
 ) {
   _requireKeys(parameters, const <String>{'itemId', 'capture'});
   final itemId = _itemId(parameters);
+  final rawCapture = parameters['capture'];
+  if (rawCapture != null) {
+    _requireKeys(_jsonObject(rawCapture, 'capture'),
+        {'rateNumerator', 'rateDenominator', 'allowedEncounterKinds'},
+        optional: {'animationSpritePath', 'contextualPolicy'});
+  }
   final capture = parameters['capture'] == null
       ? null
       : ProjectCaptureItemDefinition.fromJson(
@@ -475,7 +481,13 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
         : AuthoringRiskLevel.medium,
     resourceKinds: const <String>['itemCatalog', 'itemDefinition'],
     capabilityIds: const <String>['authoring.gameplay.items'],
-    extensions: id == 'item.set_overworld_effect'
+    extensions: id == 'item.set_capture_effect'
+        ? {'inputSchema': _captureInputSchema,
+            'contextualRulesetProfileId': PokemonRulesetProfile.contextualProfileId,
+            'contextualAlgorithmId': ProjectContextualCapturePolicy.algorithmId,
+            'fallback': PokemonRulesetProfile.canonicalCapturePolicyId,
+            'editorReadiness': 'partial', 'maximumConditionDepth': 8}
+        : id == 'item.set_overworld_effect'
         ? {
             'effectKinds': [
               'heal_hp',
@@ -609,4 +621,352 @@ const _fullRestoreContract = {
   'noEffect': 'refused_without_consumption_or_turn',
   'consumption': 'one_on_applied',
   'battleTurns': 1,
+};
+
+const _captureInputSchema = {
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "itemId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capture": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "rateNumerator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            "rateDenominator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            "allowedEncounterKinds": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "walk",
+                  "surf",
+                  "old_rod",
+                  "good_rod",
+                  "super_rod",
+                  "headbutt",
+                  "gift",
+                  "special"
+                ]
+              }
+            },
+            "animationSpritePath": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "contextualPolicy": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "\$ref": "#/\$defs/policy"
+                }
+              ]
+            }
+          },
+          "required": [
+            "rateNumerator",
+            "rateDenominator",
+            "allowedEncounterKinds"
+          ]
+        }
+      ]
+    }
+  },
+  "required": [
+    "itemId",
+    "capture"
+  ],
+  "\$defs": {
+    "operand": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "literal": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            }
+          },
+          "required": [
+            "literal"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "field": {
+              "type": "string",
+              "enum": [
+                "catchRate",
+                "attackerLevel",
+                "targetLevel",
+                "targetBaseSpeed",
+                "targetWeightDecikilograms"
+              ]
+            },
+            "divisor": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          },
+          "required": [
+            "field"
+          ]
+        }
+      ]
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "always"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "numeric"
+            },
+            "left": {
+              "\$ref": "#/\$defs/operand"
+            },
+            "comparison": {
+              "type": "string",
+              "enum": [
+                "lessThan",
+                "lessThanOrEqual",
+                "equal",
+                "greaterThanOrEqual",
+                "greaterThan"
+              ]
+            },
+            "right": {
+              "\$ref": "#/\$defs/operand"
+            }
+          },
+          "required": [
+            "kind",
+            "left",
+            "comparison",
+            "right"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "match"
+            },
+            "field": {
+              "type": "string",
+              "enum": [
+                "targetSpecies",
+                "targetTypes",
+                "targetEvolutionItemIds",
+                "encounterOrigin"
+              ]
+            },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 1024,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "field",
+            "values"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "relation"
+            },
+            "relation": {
+              "type": "string",
+              "enum": [
+                "sameSpecies",
+                "differentSex"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "relation"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "all",
+                "any"
+              ]
+            },
+            "conditions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "\$ref": "#/\$defs/condition"
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "conditions"
+          ]
+        }
+      ]
+    },
+    "adjustment": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "add"
+            },
+            "amount": {
+              "type": "integer",
+              "minimum": -65535,
+              "maximum": 65535
+            }
+          },
+          "required": [
+            "kind",
+            "amount"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "multiply"
+            },
+            "numerator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "denominator": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          },
+          "required": [
+            "kind",
+            "numerator",
+            "denominator"
+          ]
+        }
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policyId": {
+          "const": "pokemap-contextual-capture-v1"
+        },
+        "rateRules": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "when": {
+                "\$ref": "#/\$defs/condition"
+              },
+              "adjustment": {
+                "\$ref": "#/\$defs/adjustment"
+              }
+            },
+            "required": [
+              "when",
+              "adjustment"
+            ]
+          }
+        },
+        "successEffects": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "setFriendship"
+              },
+              "value": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 255
+              }
+            },
+            "required": [
+              "kind",
+              "value"
+            ]
+          }
+        }
+      },
+      "required": [
+        "policyId",
+        "rateRules",
+        "successEffects"
+      ]
+    }
+  }
 };

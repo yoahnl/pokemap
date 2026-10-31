@@ -41,6 +41,7 @@ final class SceneEventRuntimeHook {
     String executionId = '',
     ProjectMediaCatalog? presentationMediaCatalog,
     void Function(GameState Function()? projector)? onSceneStateProjection,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) async {
     final sceneTarget = page.sceneTarget;
     if (sceneTarget == null) {
@@ -64,6 +65,7 @@ final class SceneEventRuntimeHook {
       project,
       mapsById: {map.id: map},
       presentationMediaCatalog: presentationMediaCatalog,
+      lookupRewardScenes: lookupRewardScenes,
     );
     if (diagnostics.hasErrors) {
       return SceneEventRuntimeHookResult.failed(

@@ -1,3 +1,4 @@
+import '../models/world_rule.dart';
 import '../models/map_spatial_scene.dart' show ProjectDimension;
 import '../models/scene_asset.dart';
 import '../models/scene_interactive_command.dart';
@@ -45,6 +46,23 @@ abstract final class SpatialGameplayCapabilities {
   static const imagePuzzleCapabilityId = 'gameplay.image-puzzle@1';
 
   static bool requiresImagePuzzle(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand));
+
+  static const periodicRewardCapabilityId = 'gameplay.periodic-reward@1';
+  static const periodicRewardConditionCapabilityId = 'gameplay.periodic-reward-condition@1';
+
+  static bool requiresPeriodicRewardCondition(ProjectManifest project, {required Iterable<MapData> maps}) =>
+    project.scenes.any((scene) => scene.graph.nodes.any((node) =>
+      node.payload is SceneConditionPayload && (node.payload as SceneConditionPayload).conditionSource?.sourceKind == SceneConditionSourceKind.periodicRewardAvailable)) ||
+    project.worldRules.any((rule) => rule.source.kind == WorldRuleSourceKind.periodicRewardAvailable) ||
+    (project.eventRegistry?.records.any((record) =>
+      (record.definitionOrNull?.conditions ?? record.draftOrNull?.conditions ?? const []).any((condition) => condition.rewardReference != null)) ?? false) ||
+    maps.any((map) => map.entities.any((entity) => entity.presentation?.variants.any((variant) =>
+      variant.condition.leaves.any((condition) => condition.rewardReference != null)) ?? false));
+
+
+  static bool requiresPeriodicReward(ProjectManifest project) => project.scenes.any(
+    (scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload &&
+      (node.payload as SceneActionPayload).interactiveCommand is SceneClaimPeriodicRewardInteractiveCommand));
 
   static const deferredCraftingCapabilityId = 'gameplay.deferred-crafting@1';
 
@@ -122,6 +140,7 @@ abstract final class SpatialGameplayCapabilities {
     NarrativeCommandIds.completeStoryStep,
     NarrativeCommandIds.giveItem,
     NarrativeCommandIds.giveItemGift,
+    NarrativeCommandIds.claimPeriodicReward,
     NarrativeCommandIds.takeItem,
     NarrativeCommandIds.giveMoney,
     NarrativeCommandIds.givePokemon,
@@ -164,6 +183,7 @@ abstract final class SpatialGameplayCapabilities {
     CinematicTimelineStepKind.marker,
   };
   static const conditionSources = <SceneConditionSourceKind>{
+    SceneConditionSourceKind.periodicRewardAvailable,
     SceneConditionSourceKind.playerFacing,
     SceneConditionSourceKind.partyState,
     SceneConditionSourceKind.trainerDefeated,

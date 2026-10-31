@@ -1,3 +1,5 @@
+import '../models/scene_asset.dart';
+import '../operations/periodic_reward_condition_evaluator.dart';
 import '../models/game_state.dart';
 import '../models/map_data.dart';
 import '../models/narrative_map_view.dart';
@@ -19,6 +21,7 @@ MapEntityPresentationVariant? resolveMapEntityPresentation({
   required NarrativeMapView map,
   required MapEntity entity,
   List<NarrativeMapView> maps = const [],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
   void Function()? onUnavailable,
 }) {
   final presentation = entity.presentation;
@@ -26,6 +29,9 @@ MapEntityPresentationVariant? resolveMapEntityPresentation({
   final resolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   NarrativeConditionEvaluation leaf(NarrativeEventCondition condition) =>
       condition.whenTyped(
+        periodicRewardAvailable: (reference, expected) => evaluatePeriodicRewardCondition(
+          reference: reference, expectedValue: expected, gameState: gameState,
+          lookupScenes: lookupRewardScenes ?? (_) => const []),
         fact: (id, operator, expected) {
           final resolution = resolver.resolve(
             factId: id,
@@ -100,13 +106,18 @@ MapEntity? projectMapEntityPresentation({
   required MapData map,
   required MapEntity entity,
   List<MapData> maps = const [],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
+  final rewardScenes = <String, List<SceneAsset>>{};
+  Iterable<SceneAsset> lookup(String id) => rewardScenes.putIfAbsent(id,
+    () => (lookupRewardScenes?.call(id) ?? const <SceneAsset>[]).toList());
   if (entity.presentation == null) return entity;
   if (validateMapEntityPresentation(
     project: project,
     map: map,
     entity: entity,
     maps: maps,
+    lookupRewardScenes: lookup,
   ).isNotEmpty) {
     return null;
   }
@@ -116,6 +127,7 @@ MapEntity? projectMapEntityPresentation({
     map: map,
     entity: entity,
     maps: maps,
+    lookupRewardScenes: lookup,
   );
   if (variant == null) return null;
   final npc = variant.characterId == null
@@ -158,6 +170,7 @@ MapData projectMapEntityPresentations({
   required GameState gameState,
   required MapData map,
   List<MapData> maps = const [],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   if (!map.entities.any((entity) => entity.presentation != null)) return map;
   return map.copyWith(
@@ -169,6 +182,7 @@ MapData projectMapEntityPresentations({
           map: map,
           entity: entity,
           maps: maps,
+          lookupRewardScenes: lookupRewardScenes,
         ),
     ],
   );
@@ -179,6 +193,7 @@ List<String> validateMapEntityPresentation({
   required NarrativeMapView map,
   required MapEntity entity,
   List<NarrativeMapView> maps = const [],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   final errors = <String>[];
   if (entity.presentation != null &&
@@ -229,6 +244,12 @@ List<String> validateMapEntityPresentation({
     }
     for (final condition in variant.condition.leaves) {
       condition.whenTyped<void>(
+        periodicRewardAvailable: (reference, _) {
+          if (!resolvePeriodicRewardReference(reference: reference,
+              lookupScenes: lookupRewardScenes ?? (_) => const []).isResolved) {
+            errors.add('variantPeriodicRewardReferenceInvalid');
+          }
+        },
         fact: (id, operator, expected) {
           if (project.facts
                   .where(

@@ -2,6 +2,7 @@ part of 'world_workspace_page.dart';
 
 extension _WorldRulePickers on _WorldWorkspacePageState {
   String _sourceSummary(WorldRuleSource source) => switch (source.kind) {
+    WorldRuleSourceKind.periodicRewardAvailable => "${source.label ?? source.sourceId} · récompense quotidienne",
     WorldRuleSourceKind.fact =>
       '${controller.fact(source.sourceId)?.label ?? 'État absent : ${source.sourceId}'} '
           '${_operatorLabel(source.factOperator ?? NarrativeFactOperator.equals)} '

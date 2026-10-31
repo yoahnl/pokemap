@@ -1,3 +1,4 @@
+import '../../application/runtime_periodic_reward_context.dart';
 import '../../application/scene_runtime/scene_world_presentation_controller.dart';
 import '../../application/scene_runtime/world_presentation_image_loader.dart';
 import 'world_presentation_renderer.dart';
@@ -72,6 +73,7 @@ import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_bag_capacity.dart';
 import '../../application/runtime_battle_experience_progress.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
+import '../../application/runtime_contextual_capture.dart';
 import '../../application/runtime_battle_reward_resolver.dart';
 import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
@@ -1583,7 +1585,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
     }
     final snapshot = await _narrativeRuntimeSnapshotFor(_bundle.manifest);
-    if (_sceneUsesDeferredCrafting(snapshot.project, request.sceneId) && _narrativeStateTransactions.captureCheckpointOwner() == null) {
+    if (_sceneUsesDurableCheckpoint(snapshot.project, request.sceneId) && _narrativeStateTransactions.captureCheckpointOwner() == null) {
       return _narrativeStateTransactions.transact<NarrativeSceneExecutionResult>((_) async {
         Future<NarrativeSceneExecutionResult> run() => _executeNarrativeScene(request);
         final result = _narrativeActivityGate.activity == NarrativeRuntimeActivity.idle
@@ -1595,7 +1597,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       });
     }
     final session = _NarrativeSceneWorkingSession(request.gameState)
-      ..craftingCheckpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
+      ..checkpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
     final defersMapActivation =
         _narrativeStateTransactions.deferAfterCurrentCommit(
       (committedGameState) {
@@ -1630,6 +1632,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         project: snapshot.project,
         mapsById: snapshot.mapsById,
         presentationMediaCatalog: snapshot.presentationMediaCatalog,
+        lookupRewardScenes: snapshot.projectCatalog.rewardScenes,
         currentGameState: () => session.gameState,
         hostedBattleOutcomes: hostedBattleOutcomes,
         consequenceWriter: consequenceWriter,
@@ -1701,7 +1704,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
       return NarrativeSceneExecutionResult.failed(error);
     } finally {
-      _rebaseDurableSceneCrafting(session);
+      _rebaseDurableSceneCheckpoint(session);
       await session.sceneAudio?.close();
       session.restoreActorRoutes();
       _worldPresentation.clearScene(owner: session);
@@ -2430,6 +2433,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   RuntimeActiveBattleContext? _activeBattleContext;
   GameState? _battleRollbackState;
   RuntimeBattleCaptureAttemptReceipt? _captureAttemptReceipt;
+  RuntimeCaptureProvenance? _battleCaptureProvenance;
   final ValueNotifier<BattleCommandOverlaySnapshot?>
       _battleCommandOverlayNotifier =
       ValueNotifier<BattleCommandOverlaySnapshot?>(null,
@@ -3219,19 +3223,81 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   ///
   /// A failed save restores the previous in-memory transaction snapshot so a
   /// closed Shop, PC or healing overlay never leaves a half-committed session.
-  bool _sceneUsesDeferredCrafting(ProjectManifest project, String sceneId) => project.scenes.where((scene) => scene.id == sceneId).firstOrNull?.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenCraftingInteractiveCommand || node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand) ?? false;
+  bool _sceneUsesDurableCheckpoint(ProjectManifest project, String sceneId) {
+    final scene = project.scenes.where((scene) => scene.id == sceneId).firstOrNull;
+    return scene?.graph.nodes.any((node) {
+      final payload = node.payload;
+      if (payload is! SceneActionPayload) return false;
+      return switch (payload.interactiveCommand) {
+        SceneOpenCraftingInteractiveCommand() ||
+        SceneOpenImagePuzzleInteractiveCommand() ||
+        SceneClaimPeriodicRewardInteractiveCommand() => true,
+        _ => false,
+      };
+    }) ?? false;
+  }
 
-  void _rebaseDurableSceneCrafting(_NarrativeSceneWorkingSession session) {
+  void _rebaseDurableSceneCheckpoint(_NarrativeSceneWorkingSession session) {
     if (session.committed) return;
-    final puzzle = session.durableImagePuzzleState;
-    if (puzzle != null) _gameState = _gameState.copyWith(imagePuzzleState: puzzle.imagePuzzleState);
-    final durable = session.durableCraftingState;
-    if (durable != null) _gameState = _gameState.copyWith(bag: durable.bag, gameplayCalendarState: durable.gameplayCalendarState, deferredCraftingState: durable.deferredCraftingState);
+    final durable = session.durableCheckpointState;
+    if (durable != null) {
+      _gameState = _gameState.copyWith(
+        bag: durable.bag,
+        gameplayCalendarState: durable.gameplayCalendarState,
+        deferredCraftingState: durable.deferredCraftingState,
+        periodicRewardState: durable.periodicRewardState,
+        imagePuzzleState: durable.imagePuzzleState,
+      );
+    }
+  }
+
+  Future<void> commitAndSavePeriodicRewardState(GameState nextState) async {
+    final session = _activeNarrativeSceneWorkingSession;
+    final owner = session?.checkpointOwner;
+    if (session == null || owner == null || _isRemoved) {
+      throw StateError('The reward Scene checkpoint owner is unavailable.');
+    }
+    final activity = _narrativeActivityGate.captureSceneCheckpointOwner();
+    final current = session.gameState;
+    if (!samePeriodicRewardCheckpointFields(
+      current,
+      session.presentationGameState,
+    )) {
+      throw StateError(
+        'Pending Scene inventory changes conflict with this reward.',
+      );
+    }
+    final projected = await checkpointPeriodicReward(
+      owner: owner,
+      currentDraft: current,
+      nextDraft: nextState,
+      persist: (durable) async {
+        final writer = overworldCheckpointWriter;
+        if (writer != null) {
+          await _narrativeActivityGate.runSceneCheckpoint(
+            activity,
+            () => writer(durable),
+          );
+        } else {
+          final repository = _saveRepo;
+          if (repository is! FileGameSaveRepository) {
+            throw StateError(
+              'The host has no durable Scene checkpoint writer.',
+            );
+          }
+          await repository.saveOwnedSceneCheckpoint(durable, activity);
+        }
+        session.durableCheckpointState = durable;
+        _gameState = durable;
+      },
+    );
+    session.gameState = projected;
+    if (isLoaded) _refreshWorldNpcPresence();
   }
 
   Future<void> commitAndSaveImagePuzzleState(GameState nextState) async {
     final session = _activeNarrativeSceneWorkingSession;
-    final owner = session?.craftingCheckpointOwner;
+    final owner = session?.checkpointOwner;
     final activity = session?.imagePuzzleActivityOwner;
     if (session == null || owner == null || activity == null || _isRemoved) throw StateError('The puzzle Scene checkpoint owner is unavailable.');
     final current = session.gameState;
@@ -3245,7 +3311,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         if (repository is! FileGameSaveRepository) throw StateError('The host has no durable Scene checkpoint writer.');
         await repository.saveOwnedSceneCheckpoint(durable, activity);
       }
-      session.durableImagePuzzleState = durable;
+      session.durableCheckpointState = durable;
       _gameState = durable;
     });
     session.gameState = projected;
@@ -3253,7 +3319,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<void> commitAndSaveCraftingState(GameState nextState) async {
     final session = _activeNarrativeSceneWorkingSession;
-    final owner = session?.craftingCheckpointOwner;
+    final owner = session?.checkpointOwner;
     final activity = session?.craftingActivityOwner;
     if (session == null || owner == null || activity == null || _isRemoved) throw StateError('The crafting Scene checkpoint owner is unavailable.');
     final current = session.gameState;
@@ -3267,7 +3333,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         if (repository is! FileGameSaveRepository) throw StateError('The host has no durable Scene checkpoint writer.');
         await repository.saveOwnedSceneCheckpoint(durable, activity);
       }
-      session.durableCraftingState = durable;
+      session.durableCheckpointState = durable;
       _gameState = durable;
     });
     session.gameState = projected;
@@ -4186,6 +4252,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       throw StateError('Post-battle test seam requires overworld or battle flow.');
     }
     _battleRollbackState ??= _battleRuntimeGameState;
+    _battleCaptureProvenance = null;
     _activeBattleContext = context;
     _captureAttemptReceipt = captureAttemptReceipt;
     _setFlowPhase(_RuntimeFlowPhase.battle);
@@ -4418,8 +4485,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Map<String, _WorldRuleProjectionCache>
       _worldRuleProjectionCacheByMapId = <String, _WorldRuleProjectionCache>{};
 
-  GameState get _scenePresentationGameState =>
-      _activeNarrativeSceneWorkingSession?.presentationGameState ?? _gameState;
+  GameState get _scenePresentationGameState => _periodicRewardContext.observe(
+    _activeNarrativeSceneWorkingSession?.presentationGameState ?? _gameState,
+  );
 
   RuntimeWorldRuleProjectionState? _resolveWorldRuleProjectionForMap(
     String mapId,
@@ -4438,24 +4506,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     // copies de collections) pour chaque PNJ dans la closure de présence.
     // Ses entrées sont immuables et remplacées par identité : un refresh de
     // présence la calcule une fois par carte, pas une fois par entité.
-    final gameState = gameStateOverride ?? _scenePresentationGameState;
+    final gameState = _periodicRewardContext.observe(
+      gameStateOverride ?? _scenePresentationGameState,
+    );
+    final rewardSceneContext =
+        _cachedNarrativeRuntimeSnapshot?.projectCatalog ??
+        _bundle.projectCatalog;
     final cached = _worldRuleProjectionCacheByMapId[mapId];
     if (cached != null &&
         identical(cached.manifest, manifest) &&
         identical(cached.gameState, gameState) &&
-        identical(cached.map, map)) {
+        identical(cached.map, map) &&
+        identical(cached.rewardSceneContext, rewardSceneContext)) {
       return cached.projection;
     }
     final projection = const RuntimeWorldRuleProjectionHook().resolve(
       project: manifest,
       gameState: gameState,
       map: map,
+      lookupRewardScenes: _lookupRewardScenes,
     );
     _worldRuleProjectionCacheByMapId[mapId] = _WorldRuleProjectionCache(
       manifest: manifest,
       gameState: gameState,
       map: map,
       projection: projection,
+      rewardSceneContext: rewardSceneContext,
     );
     return projection;
   }
@@ -4464,8 +4540,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     if (!isLoaded) {
       return;
     }
-    _world = _world.withEntityPresentations(project: _bundle.manifest,
-      gameState: _scenePresentationGameState, sourceMap: _bundle.map);
+    _world = _world.withEntityPresentations(
+      project: _bundle.manifest,
+      gameState: _scenePresentationGameState,
+      sourceMap: _bundle.map,
+      lookupRewardScenes: _lookupRewardScenes,
+    );
     _refreshNpcPresentationActors();
     _world = _world.withNpcMapPresencePredicate(
       _npcPresencePredicateFor(_bundle.manifest),
@@ -4600,8 +4680,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         final next = projection?.resolveEntity(source);
         final previous = _lastNpcPresentations[key];
         if (next != null) _lastNpcPresentations[key] = next;
-        final variant = resolveMapEntityPresentation(project: loaded.bundle.manifest,
-          gameState: _scenePresentationGameState, map: loaded.bundle.map, entity: source);
+        final variant = resolveMapEntityPresentation(
+          lookupRewardScenes: _lookupRewardScenes,
+          project: loaded.bundle.manifest,
+          gameState: _scenePresentationGameState,
+          map: loaded.bundle.map,
+          entity: source,
+        );
         final declaredFacing = variant?.facing;
         final pageChanged = _lastNpcVariantIds.containsKey(key) &&
             _lastNpcVariantIds[key] != variant?.id;
@@ -5857,6 +5942,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   @override
   void lifecycleStateChange(AppLifecycleState state) {
     super.lifecycleStateChange(state);
+    if (state == AppLifecycleState.resumed) refreshPeriodicRewardAvailability();
     _parallelLifecycleSuspended = state != AppLifecycleState.resumed;
     _audioLifecycleSuspended = state != AppLifecycleState.resumed;
     _syncRuntimeMusic();
@@ -5865,6 +5951,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) refreshPeriodicRewardAvailability();
     _parallelLifecycleSuspended = state != AppLifecycleState.resumed;
     _audioLifecycleSuspended = state != AppLifecycleState.resumed;
     _syncRuntimeMusic();
@@ -5874,6 +5961,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   @override
   void update(double dt) {
     if (_isRemoved || _advancingTestSimulation) return;
+    refreshPeriodicRewardAvailability();
     _refreshNpcLocalTime();
     _updateFps(dt);
     if (_simulationClock.advanceFrame(dt, (step) {
@@ -5905,6 +5993,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       throw StateError('The test session cannot advance now.');
     }
     _advancingTestSimulation = true;
+    refreshPeriodicRewardAvailability();
     _refreshNpcLocalTime();
     try {
       var remaining = duration.inMicroseconds / Duration.microsecondsPerSecond;
@@ -6776,6 +6865,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   final DateTime Function() _encounterClock;
+  late final _periodicRewardContext = RuntimePeriodicRewardContext(
+    civilNow: _encounterClock,
+  );
+  Iterable<SceneAsset> _lookupRewardScenes(String id) =>
+      _cachedNarrativeRuntimeSnapshot?.projectCatalog.rewardScenes(id) ??
+      _bundle.projectCatalog?.rewardScenes(id) ??
+      const [];
+
+  void refreshPeriodicRewardAvailability() {
+    if (_periodicRewardContext.refresh() && isLoaded && !_isRemoved) {
+      _refreshWorldNpcPresence();
+      _publishOverworldInteractions();
+    }
+  }
   RuntimeWorldTimePreferences _worldTime = const RuntimeWorldTimePreferences();
   int? _runtimeLocalMinuteOfDay;
   bool _npcHoursLineOfSightRefreshPending = false;
@@ -10136,6 +10239,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       }
       _activeBattleContext = RuntimeActiveBattleContext.withLineupMapping(
         request: request,
+        captureProvenance: _battleCaptureProvenance,
         playerPartyIndex: playerLineup.activeIndex,
         playerPartySlotIndicesByLineupIndex: playerLineup.lineupPartyIndices,
         playerIndividualId: _battleRuntimeGameState
@@ -10481,6 +10585,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       request: request,
       playerPartyIndex: playerPartyIndex,
       itemCatalog: _itemCatalogSnapshot,
+      onCaptureProvenance: (value) => _battleCaptureProvenance = value,
     );
   }
 
@@ -10494,6 +10599,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       request: request,
       playerPartyIndex: playerPartyIndex,
       itemCatalog: _itemCatalogSnapshot,
+      onCaptureProvenance: (value) => _battleCaptureProvenance = value,
     );
   }
 
@@ -10633,13 +10739,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
                 'Capture requires an active runtime battle context.',
             );
           }
+          final selected = prepareRuntimeBattleCapture(
+            choice: choice,
+            canonicalCapture: _itemCatalogSnapshot.definitionFor(choice.itemId)?.capture,
+            battleState: psdkSession.createLegacyWriteBackState(),
+            ruleset: psdkSession.ruleset,
+            provenance: activeContext.captureProvenance,
+          );
           final submission = submitRuntimeBattleCaptureAttempt(
             gameState: _battleRuntimeGameState,
             context: activeContext,
-            captureAllowed: psdkSession.allowsPlayerChoice(choice),
+            captureAllowed: psdkSession.allowsPlayerChoice(selected.choice),
             itemId: choice.itemId,
             itemCatalog: _itemCatalogSnapshot,
-            submitToEngine: () => psdkSession.submitPlayerChoice(choice),
+            preparedCapture: selected,
+            submitToEngine: () => psdkSession.submitPlayerChoice(selected.choice),
           );
           _replaceBattleRuntimeGameState(submission.updatedGameState);
           _captureAttemptReceipt = submission.receipt;
@@ -10670,13 +10784,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
                 'Capture requires an active runtime battle context.',
             );
           }
+          final selected = prepareRuntimeBattleCapture(
+            choice: choice,
+            canonicalCapture: _itemCatalogSnapshot.definitionFor(choice.itemId)?.capture,
+            battleState: _battleSession!.state,
+            ruleset: _bundle.manifest.pokemon.ruleset,
+            provenance: activeContext.captureProvenance,
+          );
           final submission = submitRuntimeBattleCaptureAttempt(
             gameState: _battleRuntimeGameState,
             context: activeContext,
-            captureAllowed: _battleSession!.decisionRequest.allows(choice),
+            captureAllowed: _battleSession!.decisionRequest.allows(selected.choice),
             itemId: choice.itemId,
             itemCatalog: _itemCatalogSnapshot,
-            submitToEngine: () => _battleSession!.applyChoice(choice),
+            preparedCapture: selected,
+            submitToEngine: () => _battleSession!.applyChoice(selected.choice),
           );
           _replaceBattleRuntimeGameState(submission.updatedGameState);
           _captureAttemptReceipt = submission.receipt;
@@ -12636,7 +12758,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _NarrativeSceneWorkingSession? workingSession;
     try {
       final session = _NarrativeSceneWorkingSession(_gameState)
-        ..craftingCheckpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
+        ..checkpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
       workingSession = session;
       final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
       final consequenceWriter = await _buildSceneConsequenceRuntimeWriter(
@@ -12647,9 +12769,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       _activeNarrativeSceneWorkingSession = session;
       final executionId = _nextNarrativeRuntimeId('scene');
-      final usesCrafting = _sceneUsesDeferredCrafting(_bundle.manifest, page.page.sceneTarget!.sceneId);
+      final usesCheckpoint = _sceneUsesDurableCheckpoint(_bundle.manifest, page.page.sceneTarget!.sceneId);
       Future<SceneEventRuntimeHookResult> runHook() async {
-        session.craftingCheckpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
+        session.checkpointOwner = _narrativeStateTransactions.captureCheckpointOwner();
         return SceneEventRuntimeHook(
         consequenceWriter: consequenceWriter,
         callbacks: _buildSceneRuntimeHostCallbacks(
@@ -12668,12 +12790,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         gameState: session.gameState,
         currentGameState: () => session.gameState,
         executionId: executionId,
-        onSceneStateProjection: usesCrafting ? (projection) => session.stateProjection = projection : null,
+        lookupRewardScenes: _lookupRewardScenes,
+        onSceneStateProjection: usesCheckpoint ? (projection) => session.stateProjection = projection : null,
         presentationMediaCatalog: _bundle.manifest.scenes.where((scene) => scene.id == page.page.sceneTarget!.sceneId).firstOrNull?.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand) == true
             ? await (_worldPresentationImageLoader ??= WorldPresentationImageLoader(_bundle.projectRootDirectory)).loadCatalog() : null,
       );
       }
-      final result = usesCrafting && session.craftingCheckpointOwner == null
+      final result = usesCheckpoint && session.checkpointOwner == null
           ? await _narrativeStateTransactions.transact<SceneEventRuntimeHookResult>((_) async => NarrativeEventStateTransaction.rollback(await runHook()))
           : await runHook();
       if (_isRemoved) {
@@ -12692,7 +12815,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           // BETA-SYS-006 : result.message porte des détails techniques anglais
           // (« Scene branch intent is missing sourceNodeId ») déjà tracés en
           // debugPrint juste au-dessus. Le joueur reçoit un message stable.
-          _showNotification('La scène ne peut pas continuer.');
+          _showNotification(
+            result.executionResult?.errorCode ==
+                    SceneRuntimeExecutionErrorCode.conditionUnavailable
+                ? result.message!
+                : 'La scène ne peut pas continuer.',
+          );
         }
       } else {
         await _closeSceneMusicBeforeCommit(session);
@@ -12764,7 +12892,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
       _showNotification('Scene V1 impossible.');
     } finally {
-      if (workingSession != null) _rebaseDurableSceneCrafting(workingSession);
+      if (workingSession != null) _rebaseDurableSceneCheckpoint(workingSession);
       await workingSession?.sceneAudio?.close();
       workingSession?.restoreActorRoutes();
       _worldPresentation.clearScene(owner: workingSession);
@@ -12952,6 +13080,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
       },
       executeInteractiveCommand: SceneInteractiveCommandRuntimeExecutor(
+        claimPeriodicReward: (command) async {
+          final controller = _playerServiceRuntimeController;
+          if (command is! SceneClaimPeriodicRewardInteractiveCommand || controller == null) return 'blocked';
+          return controller.claimPeriodicReward(definition: command.definition);
+        },
         whiteOut: (command) async {
           if (command is! SceneWhiteOutInteractiveCommand ||
               _bundle.manifest.settings.dimension != ProjectDimension.twoD ||
@@ -13084,6 +13217,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       throw StateError('The Scene preparation owner changed while loading.');
     }
     return SceneConsequenceRuntimeWriter(
+      lookupRewardScenes: _lookupRewardScenes,
+      periodicRewardState: _periodicRewardContext.observe,
       project: project,
       itemCatalog: _itemCatalogSnapshot,
       mapsById: mapsById,
@@ -13422,6 +13557,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         instances: state.mapInstanceWorldState,
       );
       maps[entry.key] = applyFieldObstacleWorldStateToMap(
+        lookupRewardScenes: _lookupRewardScenes,
         map: maps[entry.key]!, instances: state.mapInstanceWorldState,
         movingPlatformWorldState: state.movingPlatformWorldState,
         movingPropWorldState: state.movingPropWorldState,
@@ -13469,15 +13605,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       ]);
     }
     if (map.entities.any((entity) => entity.presentation != null)) {
-      map = map.copyWith(entities: [
-        for (final entity in map.entities)
-          projectMapEntityPresentation(project: bundle.manifest, gameState: state,
-            map: map, entity: entity) ?? entity,
-      ]);
+      map = map.copyWith(
+        entities: [
+          for (final entity in map.entities)
+            projectMapEntityPresentation(
+                  lookupRewardScenes: _lookupRewardScenes,
+                  project: bundle.manifest,
+                  gameState: _periodicRewardContext.observe(state),
+                  map: map,
+                  entity: entity,
+                ) ??
+                entity,
+        ],
+      );
     }
     final instance = state.mapInstanceWorldState.instanceRef(map.id);
     if (instance != null) {
       map = applyFieldObstacleWorldStateToMap(
+        lookupRewardScenes: _lookupRewardScenes,
         map: map,
         authoringMap: authored ?? bundle.map,
         instances: state.mapInstanceWorldState,
@@ -13819,7 +13964,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         );
       case OpenImagePuzzleService():
         final session = _activeNarrativeSceneWorkingSession;
-        if (session == null || session.craftingCheckpointOwner == null) throw StateError('The puzzle requires an active durable Scene.');
+        if (session == null || session.checkpointOwner == null) throw StateError('The puzzle requires an active durable Scene.');
         if (!sameImagePuzzleCheckpointFields(session.gameState, session.presentationGameState)) throw StateError('Pending Scene puzzle changes must finish before opening.');
         session.imagePuzzleActivityOwner = _narrativeActivityGate.captureSceneCheckpointOwner();
         try {
@@ -13831,7 +13976,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
       case OpenCraftingService():
         final session = _activeNarrativeSceneWorkingSession;
-        if (session == null || session.craftingCheckpointOwner == null) return 'cancelled';
+        if (session == null || session.checkpointOwner == null) return 'cancelled';
         if (!sameDeferredCraftingCheckpointFields(session.gameState, session.presentationGameState)) {
           _notifySceneCommand('Votre sac est en cours de modification. Terminez cette interaction puis réessayez.');
           return 'cancelled';
@@ -15152,6 +15297,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       throw StateError('Scene condition intent is missing a condition source.');
     }
 
+    if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable) {
+      return _periodicRewardContext.evaluateScene(
+        source: source,
+        gameState: gameState,
+        lookupScenes: _lookupRewardScenes,
+      );
+    }
     if (source.sourceKind == SceneConditionSourceKind.pokedexCaughtCount) {
       final bundle = _bundle;
       final sceneSession = _activeNarrativeSceneWorkingSession;
@@ -18450,11 +18602,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
         _lastNpcPresentations['${preparedBundle.map.id}/${entity.id}'] = entity;
         _lastNpcDeclaredFacings['${preparedBundle.map.id}/${entity.id}'] =
-          resolveMapEntityPresentation(project: preparedBundle.manifest,
-            gameState: _scenePresentationGameState, map: preparedBundle.map, entity: sourceEntity)!.facing;
+            resolveMapEntityPresentation(
+              lookupRewardScenes: _lookupRewardScenes,
+              project: preparedBundle.manifest,
+              gameState: _scenePresentationGameState,
+              map: preparedBundle.map,
+              entity: sourceEntity,
+            )!.facing;
         _lastNpcVariantIds[poseKey] = resolveMapEntityPresentation(
-          project: preparedBundle.manifest, gameState: _scenePresentationGameState,
-          map: preparedBundle.map, entity: sourceEntity)?.id;
+          lookupRewardScenes: _lookupRewardScenes,
+          project: preparedBundle.manifest,
+          gameState: _scenePresentationGameState,
+          map: preparedBundle.map,
+          entity: sourceEntity,
+        )?.id;
       }
       npcActorByEntityId[entity.id] = actor;
       _npcActors.add(actor);

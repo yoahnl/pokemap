@@ -1,3 +1,4 @@
+import '../operations/periodic_reward_condition_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../catalogs/narrative_event_project_catalog.dart';
@@ -152,6 +153,7 @@ final class NarrativeEventSceneSummary {
 
 @immutable
 enum NarrativeEventConditionDetailKind {
+  periodicRewardAvailable,
   fact,
   narrativeEventConsumed,
 }
@@ -1354,6 +1356,15 @@ final class _ProjectReadIndexes {
     final details = <NarrativeEventConditionDetailSummary>[];
     for (final condition in conditions) {
       condition.whenTyped<void>(
+        periodicRewardAvailable: (reference, expectedValue) {
+          final resolution = resolvePeriodicRewardReference(reference: reference,
+            lookupScenes: (id) => (_scenesById[id] ?? const []).map((entry) => entry.scene));
+          if (!resolution.isResolved) unresolved++;
+          final label = resolution.definition?.label ?? 'Récompense introuvable';
+          details.add(NarrativeEventConditionDetailSummary(kind: NarrativeEventConditionDetailKind.periodicRewardAvailable,
+            targetLabel: label, expectedValue: expectedValue, resolved: resolution.isResolved,
+            humanLabel: '$label · ${expectedValue ? "disponible" : "déjà reçue"}'));
+        },
         fact: (factId, operator, expectedValue) {
           final matches = _factsById[factId] ?? const [];
           final resolved = matches.length == 1;

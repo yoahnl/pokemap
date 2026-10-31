@@ -1,3 +1,4 @@
+import 'periodic_reward_reference.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
@@ -63,6 +64,7 @@ enum SceneOutcomePolicy {
 }
 
 enum SceneConditionSourceKind {
+  periodicRewardAvailable,
   newGameDraft,
   integerComparison,
   fact,
@@ -123,12 +125,22 @@ final class SceneConditionSource {
     this.debugTechnicalLabel,
     this.factOperator,
     this.expectedFactValue,
+    this.rewardReference,
     this.integerLeft,
     this.integerRight,
     this.integerComparisonOperator,
     this.mapId,
     this.key,
   }) {
+    if (sourceKind == SceneConditionSourceKind.periodicRewardAvailable) {
+      if (rewardReference == null || sourceId != rewardReference!.rewardId ||
+          operator == SceneConditionOperator.equals || field != null || value != null ||
+          mapId != null || key != null || factOperator != null || expectedFactValue != null) {
+        throw ArgumentError('Periodic reward conditions require a coherent locator and boolean operator.');
+      }
+    } else if (rewardReference != null) {
+      throw ArgumentError('Reward references require a periodic reward condition.');
+    }
     if (sourceKind == SceneConditionSourceKind.integerComparison) {
       if (sourceId != 'integerComparison' || operator != SceneConditionOperator.equals ||
           integerLeft == null || integerRight == null || integerComparisonOperator == null ||
@@ -283,7 +295,25 @@ final class SceneConditionSource {
         expectedFactValue: expectedValue,
       );
 
+  factory SceneConditionSource.periodicRewardAvailable({required PeriodicRewardReference reference, required bool expectedValue}) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.periodicRewardAvailable, sourceId: reference.rewardId,
+    operator: expectedValue ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+    rewardReference: reference);
+
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
+    if (json['sourceKind'] == 'periodicRewardAvailable') {
+      const fields = {'sourceKind', 'sourceId', 'operator', 'rewardReference', 'label', 'debugTechnicalLabel'};
+      if (!json.keys.every(fields.contains) || json['rewardReference'] is! Map ||
+          !const {'isTrue', 'isFalse'}.contains(json['operator'])) {
+        throw const FormatException('Invalid periodic reward Scene condition.');
+      }
+      final reference = PeriodicRewardReference.fromJson(Map<String, dynamic>.from(json['rewardReference'] as Map));
+      if (json['sourceId'] != reference.rewardId) throw const FormatException('Reward identity and locator differ.');
+      return SceneConditionSource(sourceKind: SceneConditionSourceKind.periodicRewardAvailable,
+        sourceId: reference.rewardId, operator: json['operator'] == 'isTrue' ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+        rewardReference: reference, label: _readOptionalString(json, 'label'), debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'));
+    }
+
     final kind = _readEnum(SceneConditionSourceKind.values,
         json['sourceKind'], 'conditionSource.sourceKind');
     if (kind == SceneConditionSourceKind.integerComparison) {
@@ -634,6 +664,7 @@ final class SceneConditionSource {
 
   Map<String, dynamic> toJson() => _withoutNulls({
         'sourceKind': _enumToJson(sourceKind),
+        'rewardReference': rewardReference?.toJson(),
         'sourceId': sourceId,
         'mapId': mapId,
         'key': key,
@@ -650,6 +681,7 @@ final class SceneConditionSource {
         'factValue': expectedFactValue?.toJson(),
       });
 
+  final PeriodicRewardReference? rewardReference;
   final SceneConditionSourceKind sourceKind;
   final String sourceId;
   final String? field;
@@ -719,6 +751,7 @@ final class SceneConditionSource {
       other is SceneConditionSource &&
           other.integerLeft == integerLeft && other.integerRight == integerRight &&
           other.integerComparisonOperator == integerComparisonOperator &&
+          other.rewardReference == rewardReference &&
           other.sourceKind == sourceKind &&
           other.sourceId == sourceId &&
           other.mapId == mapId &&
@@ -734,6 +767,7 @@ final class SceneConditionSource {
   @override
   int get hashCode => Object.hash(
         sourceKind,
+        rewardReference,
         sourceId,
         mapId,
         key,

@@ -13,6 +13,76 @@ import '../domains/maps/healing_display_fixture.dart';
 
 Future<void> main(List<String> arguments) async {
   final root = arguments.first;
+  if (arguments.contains('--dialogue-creation')) {
+    final project = ProjectManifest(
+        name: 'Dialogue catalog',
+        version: ProjectVersion.v8,
+        settings: const ProjectSettings(defaultPlayerCharacterId: 'silver'),
+        pokemon: const ProjectPokemonConfig(
+            enabled: true, ruleset: PokemonRulesetProfile.pokeMapBetaV1),
+        maps: const [
+          ProjectMapEntry(
+              id: 'foreign', name: 'Foreign', relativePath: 'maps/foreign.json')
+        ],
+        tilesets: const [
+          ProjectTilesetEntry(
+              id: 'sheet', name: 'Sheet', relativePath: 'assets/sheet.png')
+        ],
+        characters: [
+          ProjectCharacterEntry(
+              id: 'silver', name: 'Silver', tilesetId: 'sheet')
+        ],
+        trainers: [
+          const ProjectTrainerEntry(
+              id: 'rival',
+              name: 'Rival',
+              trainerClass: 'Rival',
+              characterId: 'silver',
+              team: [])
+        ],
+        facts: [
+          NarrativeFactDefinition(
+              id: 'score',
+              label: 'Score',
+              initialValue: NarrativeValue.integer(3))
+        ],
+        dialogues: const [
+          ProjectDialogueEntry(
+              id: 'existing',
+              name: 'Existing',
+              relativePath: 'dialogues/existing.yarn')
+        ]);
+    ProjectValidator.validate(project);
+    final store = await CatalogStorageStore.open(projectRoot: root);
+    final working = await WorkingProjectCatalog.create(
+        store: store, projectId: 'dialogue-catalog', project: project);
+    final current = working.catalog.snapshot;
+    final stateKey = CatalogMetadataDocuments.fieldKey('dialogues');
+    final state = (await current.lookup(stateKey))!;
+    final patch = await current.patch(upserts: [
+      CatalogDefinitionUnit(
+          key: stateKey,
+          payload: {...state.payload}..remove('dialoguePathOwnershipVersion'))
+    ], removals: [
+      CatalogMetadataDocuments.dialoguePathKey('dialogues/existing.yarn')
+    ]);
+    await store.gateway.withExclusiveWriteLock(() async {
+      await store.publishObjectsUnderLock(patch.objects);
+      await File('$root/catalog/HEAD.json')
+          .writeAsBytes(CatalogStorageStore.encodeHead(patch.root));
+      final snapshot = (await store.openRoot(patch.root)).snapshot;
+      await snapshot.validate();
+      await store.publishIndexAdmissionUnderLock(snapshot);
+      await store.publishMetadataIndexAdmissionUnderLock(snapshot);
+    });
+    await Directory('$root/dialogues').create(recursive: true);
+    await File('$root/dialogues/existing.yarn')
+        .writeAsString('title: Start\n---\nExistant\n===\n');
+    await Directory('$root/maps').create(recursive: true);
+    await File('$root/maps/foreign.json')
+        .writeAsString('foreign map must never be read by dialogue creation');
+    return;
+  }
   if (arguments.contains('--companion')) {
     final project = ProjectManifest(name: 'Companion catalog', version: ProjectVersion.v9,
       settings: ProjectSettings(dimension: ProjectDimension.threeD, spatialCamera: SpatialCameraProfile()),

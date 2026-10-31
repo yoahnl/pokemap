@@ -1,3 +1,6 @@
+import 'package:map_core/map_core.dart';
+
+import '../../contextual_capture_formula.dart';
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
@@ -61,11 +64,15 @@ final class PsdkBattleCaptureAction extends PsdkBattleAction {
     required this.itemId,
     required this.rateNumerator,
     required this.rateDenominator,
+    this.contextualPolicy,
+    this.captureContext,
   }) : super(kind: PsdkBattleActionKind.capture, user: user);
 
   final String itemId;
   final int rateNumerator;
   final int rateDenominator;
+  final ProjectContextualCapturePolicy? contextualPolicy;
+  final BattleCaptureContext? captureContext;
 }
 
 final class PsdkBattleShiftAction extends PsdkBattleAction {

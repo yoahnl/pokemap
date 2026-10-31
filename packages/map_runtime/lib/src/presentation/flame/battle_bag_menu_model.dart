@@ -210,7 +210,9 @@ BattleBagMenuEntry _buildCaptureEntry({
             gameState.pokemonStorage,
           ) ==
           null;
-  final isSelectable = captureChoice != null && !storageIsFull;
+  final profileAllowsPolicy = definition.capture!.contextualPolicy == null ||
+      session.setup.ruleset.profileId == PokemonRulesetProfile.contextualProfileId;
+  final isSelectable = captureChoice != null && !storageIsFull && profileAllowsPolicy;
   return BattleBagMenuEntry(
     visualIndex: visualIndex,
     itemId: bagEntry.itemId,
@@ -224,6 +226,8 @@ BattleBagMenuEntry _buildCaptureEntry({
     isSelectable: isSelectable,
     disabledReason: isSelectable
         ? null
+        : !profileAllowsPolicy
+        ? BattleBagMenuDisabledReason.unsupportedCapability
         : storageIsFull
         ? BattleBagMenuDisabledReason.storageFull
         : _captureDisabledReason(gameState: gameState, session: session),
@@ -231,6 +235,7 @@ BattleBagMenuEntry _buildCaptureEntry({
         ? BattleBagMenuActionCapture(
             PlayerBattleChoiceCapture(
               itemId: bagEntry.itemId,
+              contextualPolicy: definition.capture!.contextualPolicy,
               rateNumerator: definition.capture!.rateNumerator,
               rateDenominator: definition.capture!.rateDenominator,
             ),

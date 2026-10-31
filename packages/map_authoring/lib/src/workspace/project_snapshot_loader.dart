@@ -826,7 +826,7 @@ final class ProjectSnapshotLoader {
       for (final resource in resources) resource.relativePath,
     };
     final itemCatalogPath = manifest.pokemon.catalogFiles['items'];
-    if (manifest.pokemon.enabled && itemCatalogPath != null) {
+    if (itemCatalogPath != null) {
       final normalizedItemCatalogPath =
           validateProjectRelativePath(itemCatalogPath).join('/');
       if (!occupiedPaths.add(normalizedItemCatalogPath)) {

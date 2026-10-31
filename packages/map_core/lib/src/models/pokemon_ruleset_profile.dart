@@ -2,7 +2,7 @@ enum PokemonTypeChartPolicy { mainlineModernV1 }
 
 enum PokemonExperiencePolicy { pokeMapSimpleV1 }
 
-enum PokemonCapturePolicy { pokeMapMvpV1 }
+enum PokemonCapturePolicy { pokeMapMvpV1, pokeMapContextualItemsMvpFallbackV1 }
 
 enum PokemonMoveMachinePolicy { authoredConsumabilityV1 }
 
@@ -92,6 +92,23 @@ final class PokemonRulesetMechanics {
       PokemonDisabledFeature.online,
     },
   );
+  static const PokemonRulesetMechanics contextualV1 = PokemonRulesetMechanics._(
+    reference: PokemonRulesetProfile.contextualV1Reference,
+    typeChart: PokemonTypeChartPolicy.mainlineModernV1,
+    maxLevel: 100,
+    experience: PokemonExperiencePolicy.pokeMapSimpleV1,
+    capture: PokemonCapturePolicy.pokeMapContextualItemsMvpFallbackV1,
+    moveMachine: PokemonMoveMachinePolicy.authoredConsumabilityV1,
+    criticalHit: PokemonCriticalHitPolicy.mainlineGen9,
+    speedTie: PokemonSpeedTiePolicy.mainlineGen9SeededRandom,
+    friendship: PokemonFriendshipPolicy.mainline0255V1,
+    evolution: PokemonEvolutionPolicy.pokeMapBetaV1,
+    disabledFeatures: <PokemonDisabledFeature>{
+      PokemonDisabledFeature.breeding,
+      PokemonDisabledFeature.modernGimmicks,
+      PokemonDisabledFeature.online,
+    },
+  );
 
   final PokemonRulesetReference reference;
   final PokemonTypeChartPolicy typeChart;
@@ -125,6 +142,10 @@ final class PokemonRulesetProfile {
   static const int currentSchemaVersion = 1;
   static const String canonicalProfileId = 'pokemap-beta-v1';
   static const String standardProfileId = 'pokemap-standard-v1';
+  static const String contextualProfileId = 'pokemap-contextual-v1';
+  static const String contextualCapturePolicyId =
+      'pokemap-contextual-items-mvp-fallback-v1';
+  static const String contextualCaptureCapabilityId = 'pokemon.capture-contextual@1';
   static const String canonicalTypeChartId = 'mainline-modern-v1';
   static const String canonicalExperiencePolicyId = 'pokemap-simple-exp-v1';
   static const String canonicalCapturePolicyId = 'pokemap-capture-mvp-v1';
@@ -155,6 +176,11 @@ final class PokemonRulesetProfile {
         profileId: standardProfileId,
         schemaVersion: currentSchemaVersion,
       );
+  static const PokemonRulesetReference contextualV1Reference =
+      PokemonRulesetReference(
+        profileId: contextualProfileId,
+        schemaVersion: currentSchemaVersion,
+      );
 
   static const PokemonRulesetProfile pokeMapBetaV1 = PokemonRulesetProfile._(
     schemaVersion: currentSchemaVersion,
@@ -178,6 +204,20 @@ final class PokemonRulesetProfile {
     maxLevel: 100,
     experiencePolicyId: canonicalExperiencePolicyId,
     capturePolicyId: canonicalCapturePolicyId,
+    moveMachinePolicyId: canonicalMoveMachinePolicyId,
+    criticalHitPolicyId: canonicalCriticalHitPolicyId,
+    speedTiePolicyId: canonicalSpeedTiePolicyId,
+    friendshipPolicyId: canonicalFriendshipPolicyId,
+    evolutionPolicyId: canonicalEvolutionPolicyId,
+    disabledFeatures: standardDisabledFeatures,
+  );
+  static const PokemonRulesetProfile contextualV1 = PokemonRulesetProfile._(
+    schemaVersion: currentSchemaVersion,
+    profileId: contextualProfileId,
+    typeChartId: canonicalTypeChartId,
+    maxLevel: 100,
+    experiencePolicyId: canonicalExperiencePolicyId,
+    capturePolicyId: contextualCapturePolicyId,
     moveMachinePolicyId: canonicalMoveMachinePolicyId,
     criticalHitPolicyId: canonicalCriticalHitPolicyId,
     speedTiePolicyId: canonicalSpeedTiePolicyId,
@@ -260,13 +300,14 @@ final class PokemonRulesetProfile {
 
   PokemonRulesetMechanics get mechanics {
     requireSupported();
+    if (profileId == contextualProfileId) return PokemonRulesetMechanics.contextualV1;
     return profileId == standardProfileId
         ? PokemonRulesetMechanics.standardV1
         : PokemonRulesetMechanics.pokeMapBetaV1;
   }
 
   void requireSupported() {
-    if (profileId != canonicalProfileId && profileId != standardProfileId) {
+    if (profileId != canonicalProfileId && profileId != standardProfileId && profileId != contextualProfileId) {
       throw FormatException(
         'Unsupported Pokemon ruleset profileId "$profileId".',
       );
@@ -285,7 +326,7 @@ final class PokemonRulesetProfile {
     _requirePolicy(
       'capturePolicyId',
       capturePolicyId,
-      canonicalCapturePolicyId,
+      profileId == contextualProfileId ? contextualCapturePolicyId : canonicalCapturePolicyId,
     );
     _requirePolicy(
       'moveMachinePolicyId',
@@ -312,7 +353,7 @@ final class PokemonRulesetProfile {
       evolutionPolicyId,
       canonicalEvolutionPolicyId,
     );
-    final expectedFeatures = profileId == standardProfileId
+    final expectedFeatures = profileId != canonicalProfileId
         ? standardDisabledFeatures
         : canonicalDisabledFeatures;
     if (!_sameStrings(disabledFeatures, expectedFeatures)) {

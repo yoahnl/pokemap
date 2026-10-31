@@ -1,9 +1,10 @@
+import 'periodic_reward_reference.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import 'narrative_value.dart';
 import 'spatial_visual_profile.dart';
 
-enum WorldRuleSourceKind { fact, storyStepCompletion, consumedEvent }
+enum WorldRuleSourceKind { fact, storyStepCompletion, consumedEvent, periodicRewardAvailable }
 
 enum WorldRuleSourcePredicate {
   isTrue,
@@ -46,6 +47,7 @@ final class WorldRuleSource {
     this.debugTechnicalLabel,
     this.factOperator,
     this.expectedFactValue,
+    this.rewardReference,
   });
 
   factory WorldRuleSource.factValue({
@@ -73,7 +75,23 @@ final class WorldRuleSource {
     );
   }
 
+  factory WorldRuleSource.periodicRewardAvailable({required PeriodicRewardReference reference, required bool expectedValue}) => WorldRuleSource(
+    kind: WorldRuleSourceKind.periodicRewardAvailable, sourceId: reference.rewardId,
+    predicate: expectedValue ? WorldRuleSourcePredicate.isTrue : WorldRuleSourcePredicate.isFalse, rewardReference: reference);
+
   factory WorldRuleSource.fromJson(Map<String, dynamic> json) {
+    if (json['kind'] == 'periodicRewardAvailable') {
+      const fields = {'kind', 'sourceId', 'predicate', 'rewardReference', 'label', 'debugTechnicalLabel'};
+      if (!json.keys.every(fields.contains) || json['rewardReference'] is! Map || !const {'isTrue', 'isFalse'}.contains(json['predicate'])) {
+        throw const FormatException('Invalid periodic reward World Rule condition.');
+      }
+      final reference = PeriodicRewardReference.fromJson(Map<String, dynamic>.from(json['rewardReference'] as Map));
+      if (json['sourceId'] != reference.rewardId) throw const FormatException('Reward identity and locator differ.');
+      return WorldRuleSource(kind: WorldRuleSourceKind.periodicRewardAvailable, sourceId: reference.rewardId,
+        predicate: json['predicate'] == 'isTrue' ? WorldRuleSourcePredicate.isTrue : WorldRuleSourcePredicate.isFalse,
+        rewardReference: reference, label: _readOptionalString(json, 'label'), debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'));
+    }
+
     final factValueType = _readOptionalString(json, 'factValueType');
     final kind = _readEnum(WorldRuleSourceKind.values, json['kind'], 'kind');
     final sourceId = _readOptionalString(json, 'sourceId') ?? '';
@@ -112,6 +130,7 @@ final class WorldRuleSource {
     );
   }
 
+  final PeriodicRewardReference? rewardReference;
   final WorldRuleSourceKind kind;
   final String sourceId;
   final WorldRuleSourcePredicate predicate;
@@ -129,6 +148,7 @@ final class WorldRuleSource {
 
   Map<String, dynamic> toJson() => _withoutNulls({
     'kind': kind.name,
+    'rewardReference': rewardReference?.toJson(),
     'sourceId': sourceId,
     'predicate': predicate.name,
     'label': label,
@@ -142,6 +162,7 @@ final class WorldRuleSource {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is WorldRuleSource &&
+          other.rewardReference == rewardReference &&
           other.kind == kind &&
           other.sourceId == sourceId &&
           other.predicate == predicate &&
@@ -153,6 +174,7 @@ final class WorldRuleSource {
   @override
   int get hashCode => Object.hash(
     kind,
+    rewardReference,
     sourceId,
     predicate,
     label,
@@ -350,7 +372,7 @@ bool isWorldRuleSourcePredicateCompatible(
   WorldRuleSourcePredicate predicate,
 ) {
   return switch (kind) {
-    WorldRuleSourceKind.fact =>
+    WorldRuleSourceKind.fact || WorldRuleSourceKind.periodicRewardAvailable =>
       predicate == WorldRuleSourcePredicate.isTrue ||
           predicate == WorldRuleSourcePredicate.isFalse,
     WorldRuleSourceKind.storyStepCompletion =>

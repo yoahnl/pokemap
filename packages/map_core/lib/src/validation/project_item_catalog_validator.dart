@@ -1,4 +1,5 @@
 import '../models/items/project_item_capabilities.dart';
+import '../models/items/project_contextual_capture_policy.dart';
 import '../models/items/project_item_catalog.dart';
 import '../models/items/project_item_effect_definition.dart';
 import '../read_models/item_capability_truth.dart';
@@ -273,6 +274,19 @@ ProjectItemCatalogValidationReport validateProjectItemCatalog(
           ProjectItemCatalogDiagnosticSeverity.error,
           'Capture item must declare allowed encounter kinds',
           '$itemPath.capture.allowedEncounterKinds',
+          entryIndex: index,
+          itemId: itemId,
+        );
+      }
+      if (capture.contextualPolicy != null &&
+          !capabilityTruth.supportedContextualCapturePolicyIds.contains(
+            ProjectContextualCapturePolicy.algorithmId,
+          )) {
+        addDiagnostic(
+          ProjectItemCatalogDiagnosticCode.unsupportedCapability,
+          ProjectItemCatalogDiagnosticSeverity.error,
+          'Contextual capture policy is not wired: ${ProjectContextualCapturePolicy.algorithmId}',
+          '$itemPath.capture.contextualPolicy',
           entryIndex: index,
           itemId: itemId,
         );

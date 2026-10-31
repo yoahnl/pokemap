@@ -15,6 +15,7 @@ abstract final class NarrativeCommandIds {
   static const completeStoryStep = 'completeStoryStep';
   static const giveItem = 'giveItem';
   static const giveItemGift = 'giveItemGift';
+  static const claimPeriodicReward = 'claimPeriodicReward';
   static const takeItem = 'takeItem';
   static const giveMoney = 'giveMoney';
   static const grantRailCurrency = 'grantRailCurrency';
@@ -1280,6 +1281,18 @@ final class NarrativeCommandCatalog {
           'Cinématique',
           NarrativeCommandParameterKind.cinematic,
         ),
+      ),
+      interactive(
+        NarrativeCommandIds.claimPeriodicReward,
+        'Recevoir un objet quotidien',
+        'FG-083',
+        [
+          _parameter('rewardId', 'Identité stable de la récompense', NarrativeCommandParameterKind.text),
+          _parameter('label', 'Nom de la récompense', NarrativeCommandParameterKind.text),
+          _parameter('itemId', 'Objet', NarrativeCommandParameterKind.item),
+          _parameter('quantity', 'Quantité', NarrativeCommandParameterKind.integer),
+        ],
+        isPersistent: true,
       ),
     ]);
   }

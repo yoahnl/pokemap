@@ -269,8 +269,17 @@ final class PlayableMapGameSessionRuntime
         _basePlayTimeSeconds = envelope.playTimeSeconds;
       }
 
-      if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest) || initialState.gameplayCalendarState.isInitialized) {
-        initialState = observeGameplayCalendar(initialState, localDay: runtimeCivilDay(_now()));
+      if (SpatialGameplayCapabilities.requiresDeferredCrafting(manifest) ||
+          SpatialGameplayCapabilities.requiresPeriodicReward(manifest) ||
+          SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
+            manifest,
+            maps: const [],
+          ) ||
+          initialState.gameplayCalendarState.isInitialized) {
+        initialState = observeGameplayCalendar(
+          initialState,
+          localDay: runtimeCivilDay(_now()),
+        );
         if (saveData != null) saveData = saveDataFromGameState(initialState);
       }
       if (initialState.playerSpatialPosition != null) {
@@ -306,6 +315,17 @@ final class PlayableMapGameSessionRuntime
         bundle = preloadedBundle;
       }
       _ensureNotDisposed();
+      if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
+            bundle.manifest,
+            maps: [bundle.map],
+          ) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+          )) {
+        throw StateError(
+          'The project requires ${SpatialGameplayCapabilities.periodicRewardConditionCapabilityId}.',
+        );
+      }
       _projectRootDirectory = bundle.projectRootDirectory;
       _bagCapacity = bundle.manifest.bagCapacity;
       if (bundle.manifest.bagCapacity.pockets.isNotEmpty) {
@@ -341,6 +361,7 @@ final class PlayableMapGameSessionRuntime
       try {
         game = PlayableMapGame(
           bundle: bundle,
+          encounterClock: _now,
           projectFilePath: projectFilePath,
           saveData: saveData,
           initialGameState: descriptor.initialGameState == null ? null : initialState,
@@ -411,6 +432,7 @@ final class PlayableMapGameSessionRuntime
         commitAndSave: game.commitAndSavePlayerServiceState,
         commitCraftingAndSave: _commitCheckpoint == null ? null : game.commitAndSaveCraftingState,
         commitImagePuzzleAndSave: _commitCheckpoint == null ? null : game.commitAndSaveImagePuzzleState,
+        commitPeriodicRewardAndSave: _commitCheckpoint == null ? null : game.commitAndSavePeriodicRewardState,
         setInputLocked: (locked) => game.setExternalInputLock(
           RuntimeExternalInputLock.playerService,
           locked: locked,
@@ -561,6 +583,7 @@ final class PlayableMapGameSessionRuntime
     if (_completionEmitted) {
       throw StateError('A completed game cannot resume gameplay.');
     }
+    game.refreshPeriodicRewardAvailability();
     game.resumeEngine();
     _interactionsEnabled = true;
     _publishOverworldInteractions();

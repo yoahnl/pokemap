@@ -68,6 +68,10 @@ final class NarrativeEventRuntimeSnapshot {
       if (presentationMediaCatalog == null && _hasWorldPictures(project)) {
         presentationMediaCatalog = await loadPresentationMediaCatalog?.call();
       }
+      final rewardScenes = <String, List<SceneAsset>>{};
+      for (final scene in project.scenes) {
+        rewardScenes.putIfAbsent(scene.id, () => []).add(scene);
+      }
       return NarrativeEventRuntimeSnapshot._(
         project: project,
         presentationMediaCatalog: presentationMediaCatalog,
@@ -78,6 +82,7 @@ final class NarrativeEventRuntimeSnapshot {
           project: project,
           maps: const <MapData>[],
           deferFingerprints: true,
+          lookupRewardScenes: (id) => rewardScenes[id] ?? const [],
           presentationMediaCatalog: presentationMediaCatalog,
         ),
         legacyClaimIndex: structuralClaimIndex,
@@ -239,10 +244,15 @@ _buildNarrativeCatalog({
           outcomeReceived: (outcome) => <NarrativeOutcomeRef>[outcome],
         ),
   ];
+  final rewardScenes = <String, List<SceneAsset>>{};
+  for (final scene in project.scenes) {
+    rewardScenes.putIfAbsent(scene.id, () => []).add(scene);
+  }
   final projectCatalog = buildNarrativeEventProjectCatalog(
     project: project,
     maps: mapsById.values.toList(growable: false),
     deferFingerprints: true,
+    lookupRewardScenes: (id) => rewardScenes[id] ?? const [],
     legacyProjections: legacyMapProjections,
     referencedOutcomes: referencedOutcomes,
     presentationMediaCatalog: presentationMediaCatalog,

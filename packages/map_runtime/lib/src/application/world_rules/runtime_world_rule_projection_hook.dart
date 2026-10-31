@@ -7,19 +7,32 @@ final class RuntimeWorldRuleProjectionHook {
     required ProjectManifest project,
     required GameState gameState,
     required MapData map,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) {
     final effects = projectWorldRuleEffects(
       project,
       gameState,
       maps: [map],
       mapId: map.id,
+      lookupRewardScenes: lookupRewardScenes,
     );
     final projected = <String, MapEntity>{};
     final absent = <String>{};
-    for (final entity in map.entities.where((entity) => entity.presentation != null)) {
-      final value = projectMapEntityPresentation(project: project, gameState: gameState,
-        map: map, entity: entity);
-      if (value == null) { absent.add(entity.id); } else { projected[entity.id] = value; }
+    for (final entity in map.entities.where(
+      (entity) => entity.presentation != null,
+    )) {
+      final value = projectMapEntityPresentation(
+        project: project,
+        gameState: gameState,
+        map: map,
+        entity: entity,
+        lookupRewardScenes: lookupRewardScenes,
+      );
+      if (value == null) {
+        absent.add(entity.id);
+      } else {
+        projected[entity.id] = value;
+      }
     }
     return RuntimeWorldRuleProjectionState.fromResolvedEffects(effects,
       entityPresentationOverrides: projected, absentPresentationEntityIds: absent);

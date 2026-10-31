@@ -74,6 +74,8 @@ export 'src/battle_typing.dart';
 export 'src/battle_type_chart.dart';
 export 'src/battle_rng.dart';
 export 'src/capture_formula.dart';
+export 'src/contextual_capture_formula.dart';
+export 'src/battle_capture_receipt.dart';
 export 'src/pokemon_battle_rules.dart';
 export 'src/battle_action.dart';
 export 'src/battle_move.dart';

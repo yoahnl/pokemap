@@ -12,6 +12,7 @@ abstract final class AveluneRuntimeCompatibility {
         runtimeApiVersion: Version.parse('1.4.0'),
         capabilities: const <String>{
           GameCompletionPartyCapabilities.capabilityId,
+          PokemonRulesetProfile.contextualCaptureCapabilityId,
           'catalog.partitioned@2',
           'dialogue.choices@1',
           'map@1',
@@ -60,6 +61,8 @@ abstract final class AveluneRuntimeCompatibility {
           SpatialGameplayCapabilities.npcTradeCapabilityId,
           SpatialGameplayCapabilities.deferredCraftingCapabilityId,
           SpatialGameplayCapabilities.imagePuzzleCapabilityId,
+          SpatialGameplayCapabilities.periodicRewardCapabilityId,
+          SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
           SpatialGameplayCapabilities.eggGiftCapabilityId,
           SpatialGameplayCapabilities.liftCapabilityId,
           SpatialGameplayCapabilities.platformCapabilityId,

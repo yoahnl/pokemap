@@ -1,3 +1,4 @@
+import 'periodic_reward_reference.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import 'narrative_event_source_ref.dart';
@@ -360,6 +361,10 @@ sealed class NarrativeEventCondition {
     required bool expectedValue,
   }) = _MapEventInstanceBooleanNarrativeEventCondition;
 
+  factory NarrativeEventCondition.periodicRewardAvailable({required PeriodicRewardReference reference, required bool expectedValue}) = _PeriodicRewardAvailableNarrativeEventCondition;
+
+  PeriodicRewardReference? get rewardReference => null;
+
   factory NarrativeEventCondition.fromJson(Object? json) {
     final object = NarrativeEventWire.object(json, path: 'condition');
     final kind = NarrativeEventWire.requiredString(
@@ -368,6 +373,11 @@ sealed class NarrativeEventCondition {
       path: 'condition',
     );
     switch (kind) {
+      case 'periodicRewardAvailable':
+        NarrativeEventWire.expectExactFields(object, const {'kind', 'rewardReference', 'expectedValue'}, path: 'condition');
+        return NarrativeEventCondition.periodicRewardAvailable(
+          reference: PeriodicRewardReference.fromJson(Map<String, dynamic>.from(NarrativeEventWire.requiredObject(object, 'rewardReference', path: 'condition'))),
+          expectedValue: NarrativeEventWire.requiredBool(object, 'expectedValue', path: 'condition'));
       case 'mapEventInstanceBoolean':
         NarrativeEventWire.expectExactFields(object,
           const {'kind', 'mapId', 'eventId', 'key', 'expectedValue'},
@@ -480,6 +490,7 @@ sealed class NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   });
 
   T whenTyped<T>({
@@ -492,6 +503,7 @@ sealed class NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   });
 
   Map<String, Object?> toJson();
@@ -540,6 +552,7 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       fact(factId, expectedValue);
 
@@ -554,6 +567,7 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       fact(factId, comparisonOperator, expectedNarrativeValue);
 
@@ -610,6 +624,7 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       narrativeEventConsumed(eventId, expectedValue);
 
@@ -624,6 +639,7 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       narrativeEventConsumed(eventId, expectedValue);
 
@@ -644,6 +660,40 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
   @override
   int get hashCode =>
       Object.hash('narrativeEventConsumed', eventId, expectedValue);
+}
+
+final class _PeriodicRewardAvailableNarrativeEventCondition extends NarrativeEventCondition {
+  _PeriodicRewardAvailableNarrativeEventCondition({required PeriodicRewardReference reference, required this.expectedValue}) : rewardReference = reference, super._();
+  @override
+  final PeriodicRewardReference rewardReference;
+  @override
+  final bool expectedValue;
+  @override
+  NarrativeValue get expectedNarrativeValue => NarrativeValue.boolean(expectedValue);
+  @override
+  NarrativeFactOperator get comparisonOperator => NarrativeFactOperator.equals;
+  @override
+  T when<T>({required T Function(String, bool) fact,
+    required T Function(String, bool) narrativeEventConsumed,
+    T Function(String, String, String, bool)? mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference, bool)? periodicRewardAvailable}) {
+    if (periodicRewardAvailable == null) throw UnsupportedError('This consumer does not support periodic reward conditions.');
+    return periodicRewardAvailable(rewardReference, expectedValue);
+  }
+  @override
+  T whenTyped<T>({required T Function(String, NarrativeFactOperator, NarrativeValue) fact,
+    required T Function(String, bool) narrativeEventConsumed,
+    T Function(String, String, String, bool)? mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference, bool)? periodicRewardAvailable}) {
+    if (periodicRewardAvailable == null) throw UnsupportedError('This consumer does not support periodic reward conditions.');
+    return periodicRewardAvailable(rewardReference, expectedValue);
+  }
+  @override
+  Map<String, Object?> toJson() => {'kind': 'periodicRewardAvailable', 'rewardReference': rewardReference.toJson(), 'expectedValue': expectedValue};
+  @override
+  bool operator ==(Object other) => other is _PeriodicRewardAvailableNarrativeEventCondition && other.rewardReference == rewardReference && other.expectedValue == expectedValue;
+  @override
+  int get hashCode => Object.hash(rewardReference, expectedValue);
 }
 
 final class _MapEventInstanceBooleanNarrativeEventCondition
@@ -677,6 +727,7 @@ final class _MapEventInstanceBooleanNarrativeEventCondition
     required T Function(String eventId, bool expectedValue) narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) {
     if (mapEventInstanceBoolean == null) {
       throw UnsupportedError('This consumer does not support map instance booleans.');
@@ -691,6 +742,7 @@ final class _MapEventInstanceBooleanNarrativeEventCondition
     required T Function(String eventId, bool expectedValue) narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) {
     if (mapEventInstanceBoolean == null) {
       throw UnsupportedError('This consumer does not support map instance booleans.');

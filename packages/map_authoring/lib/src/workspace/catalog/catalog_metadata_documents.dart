@@ -100,7 +100,7 @@ abstract final class CatalogMetadataDocuments {
 
   static Future<Set<String>> readMapOwnerIds({
     required CatalogSnapshot snapshot,
-    required String mapId,
+    required String? mapId,
     required String relativePath,
   }) async {
     final state = await snapshot.lookup(fieldKey('maps'));
@@ -113,12 +113,64 @@ abstract final class CatalogMetadataDocuments {
       _invalid('index_stale');
     }
     return {
-      ..._facetIds(await snapshot.lookup(mapOwnershipKey('id', mapId)),
+      if (mapId != null) ..._facetIds(await snapshot.lookup(mapOwnershipKey('id', mapId)),
           idsField: 'mapIds'),
       ..._facetIds(await snapshot.lookup(mapOwnershipKey('path',
           validateProjectRelativePath(relativePath).join('/'))),
           idsField: 'mapIds'),
     };
+  }
+
+  static CatalogDefinitionKey dialoguePathKey(String relativePath) =>
+      CatalogDefinitionKey(CatalogDefinitionKind.workspaceState,
+          jsonEncode(['dialoguePath', relativePath.replaceAll(r'\', '/').toLowerCase()]));
+
+  static Future<Set<String>> readDialoguePathOwnerIds({
+    required CatalogSnapshot snapshot,
+    required String relativePath,
+  }) async {
+    final state = await snapshot.lookup(fieldKey('dialogues'));
+    final count = _count(state, 'dialogues');
+    if (state!.payload['dialoguePathOwnershipVersion'] != 1) {
+      _invalid('dialogue_ownership_preparation_required');
+    }
+    if (count > snapshot.limits.maxDefinitions ||
+        await snapshot.lookup(definitionKey('dialogues', count)) != null) {
+      _invalid('index_stale');
+    }
+    return _facetIds(await snapshot.lookup(dialoguePathKey(relativePath)),
+        idsField: 'dialogueIds');
+  }
+
+  static Future<List<CatalogDefinitionUnit>> prepareDialogueOwnership(
+      CatalogSnapshot snapshot) async {
+    final state = await snapshot.lookup(fieldKey('dialogues'));
+    final count = _count(state, 'dialogues');
+    if (state!.payload['dialoguePathOwnershipVersion'] == 1) return [];
+    if (count > snapshot.limits.maxDefinitions ||
+        await snapshot.lookup(definitionKey('dialogues', count)) != null) {
+      _invalid('index_stale');
+    }
+    final facets = <CatalogDefinitionKey, Set<String>>{};
+    for (var position = 0; position < count; position++) {
+      final unit = await snapshot.lookup(definitionKey('dialogues', position));
+      if (unit == null) _invalid('index_stale');
+      final id = _identity(_definition(unit, 'dialogues', position), 'dialogues');
+      final row = await snapshot.lookup(documentKey('dialogues', id));
+      if (row == null || _position(row, 'dialogues', id, count) != position ||
+          row.payload['fingerprint'] != _fingerprint(unit)) {
+        _invalid('index_stale');
+      }
+      for (final facet in _dialogueFacets(unit)) {
+        facets.putIfAbsent(facet, () => {}).add(id);
+      }
+    }
+    return [
+      for (final entry in facets.entries)
+        _facetRow(entry.key, entry.value, idsField: 'dialogueIds'),
+      CatalogDefinitionUnit(key: state.key,
+          payload: {...state.payload, 'dialoguePathOwnershipVersion': 1}),
+    ];
   }
 
   static Future<List<CatalogDefinitionUnit>> prepareMapOwnership(
@@ -164,6 +216,7 @@ abstract final class CatalogMetadataDocuments {
     }
     final result = <CatalogDefinitionUnit>[];
     final mapFacets = <CatalogDefinitionKey, Set<String>>{};
+    final dialogueFacets = <CatalogDefinitionKey, Set<String>>{};
     final trainerFacets = <CatalogDefinitionKey, Set<String>>{};
     final factFacets = <CatalogDefinitionKey, Set<String>>{};
     final sceneFacets = <CatalogDefinitionKey, Set<String>>{};
@@ -180,6 +233,11 @@ abstract final class CatalogMetadataDocuments {
         if (field == 'maps') {
           for (final facet in _mapFacets(unit)) {
             mapFacets.putIfAbsent(facet, () => {}).add(id);
+          }
+        }
+        if (field == 'dialogues') {
+          for (final facet in _dialogueFacets(unit)) {
+            dialogueFacets.putIfAbsent(facet, () => {}).add(id);
           }
         }
         if (field == 'facts') {
@@ -207,6 +265,9 @@ abstract final class CatalogMetadataDocuments {
     }
     for (final entry in mapFacets.entries) {
       result.add(_facetRow(entry.key, entry.value, idsField: 'mapIds'));
+    }
+    for (final entry in dialogueFacets.entries) {
+      result.add(_facetRow(entry.key, entry.value, idsField: 'dialogueIds'));
     }
     for (final entry in factFacets.entries) {
       result.add(_facetRow(entry.key, entry.value, idsField: 'factIds'));
@@ -367,6 +428,8 @@ abstract final class CatalogMetadataDocuments {
       var count = 0;
       final mapOwnershipReady = field != 'maps' ||
           (await lookup(fieldKey(field)))?.payload['mapOwnershipVersion'] == 1;
+      final dialogueOwnershipReady = field != 'dialogues' ||
+          (await lookup(fieldKey(field)))?.payload['dialoguePathOwnershipVersion'] == 1;
       final factIdentitiesReady = field != 'facts' ||
           (await lookup(fieldKey(field)))?.payload['factRuntimeIdentitiesVersion'] == 1;
       if (valid) {
@@ -406,7 +469,7 @@ abstract final class CatalogMetadataDocuments {
           break;
         }
         pending.add(_row(field, id, position, unit));
-        if (const {'maps', 'trainers', 'scenes', 'storylines', 'facts'}.contains(field) && factIdentitiesReady && mapOwnershipReady) {
+        if (const {'maps', 'dialogues', 'trainers', 'scenes', 'storylines', 'facts'}.contains(field) && factIdentitiesReady && mapOwnershipReady && dialogueOwnershipReady) {
           final previousFacets = before == null
               ? <CatalogDefinitionKey>{}
               : _documentFacets(before, field);
@@ -424,6 +487,7 @@ abstract final class CatalogMetadataDocuments {
         for (final facet in {...facetAdds.keys, ...facetRemovals.keys}) {
           final idsField = switch (field) {
             'maps' => 'mapIds',
+            'dialogues' => 'dialogueIds',
             'facts' => 'factIds',
             'scenes' => 'sceneIds',
             'storylines' => 'storylineIds',
@@ -440,7 +504,7 @@ abstract final class CatalogMetadataDocuments {
           result.add(_facetRow(facet, ids, idsField: idsField));
         }
       }
-      result.add(_state(field, count, valid: valid, factIdentitiesReady: factIdentitiesReady, mapOwnershipReady: mapOwnershipReady));
+      result.add(_state(field, count, valid: valid, factIdentitiesReady: factIdentitiesReady, mapOwnershipReady: mapOwnershipReady, dialogueOwnershipReady: dialogueOwnershipReady));
     }
     result.addAll(await CatalogNarrativeEventDocuments.maintain(
         lookup: lookup, upserts: upserts, removals: removals));
@@ -545,7 +609,7 @@ abstract final class CatalogMetadataDocuments {
       );
 
   static CatalogDefinitionUnit _state(String field, int count,
-          {bool valid = true, bool factIdentitiesReady = true, bool mapOwnershipReady = true}) =>
+          {bool valid = true, bool factIdentitiesReady = true, bool mapOwnershipReady = true, bool dialogueOwnershipReady = true}) =>
       CatalogDefinitionUnit(
         key: fieldKey(field),
         payload: {
@@ -553,6 +617,7 @@ abstract final class CatalogMetadataDocuments {
           'field': field,
           'count': count,
           'valid': valid,
+          if (field == 'dialogues' && dialogueOwnershipReady) 'dialoguePathOwnershipVersion': 1,
           if (field == 'maps' && mapOwnershipReady) 'mapOwnershipVersion': 1,
           if (field == 'facts' && factIdentitiesReady) 'factRuntimeIdentitiesVersion': 1,
           if (field == 'trainers') 'trainerReferencesVersion': 1,
@@ -569,6 +634,13 @@ abstract final class CatalogMetadataDocuments {
       mapOwnershipKey('id', map.id),
       mapOwnershipKey('path', validateProjectRelativePath(map.relativePath).join('/')),
     };
+  }
+
+  static Set<CatalogDefinitionKey> _dialogueFacets(CatalogDefinitionUnit unit) {
+    final position = unit.payload['position'] as int;
+    final dialogue = ProjectDialogueEntry.fromJson(
+        Map<String, dynamic>.from(_definition(unit, 'dialogues', position)));
+    return {dialoguePathKey(dialogue.relativePath)};
   }
 
   static Set<CatalogDefinitionKey> _factFacets(CatalogDefinitionUnit unit) {
@@ -597,6 +669,7 @@ abstract final class CatalogMetadataDocuments {
           CatalogDefinitionUnit unit, String field) =>
       switch (field) {
         'maps' => _mapFacets(unit),
+        'dialogues' => _dialogueFacets(unit),
         'facts' => _factFacets(unit),
         'scenes' => _sceneFacets(unit),
         'storylines' => _storylineFacets(unit),

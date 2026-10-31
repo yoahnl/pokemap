@@ -357,6 +357,20 @@ final class CatalogEditingSession {
         await _apply(plan);
       });
 
+  Future<void> prepareDialogueCreation() => _serialize(() async {
+        _requireOpen();
+        await store.requireMetadataIndexAdmission(snapshot);
+        final upserts = await CatalogMetadataDocuments.prepareDialogueOwnership(snapshot);
+        if (upserts.isEmpty) return;
+        final plan = await _planPatch(upserts: upserts,
+            removals: const [], additionalChanges: const [],
+            workspaceFingerprint: null, publicBaseRevision: null,
+            publicDiff: null, publicPlan: null, currentProjectRevision: null,
+            idempotencyKey: _token('dialogue_ownership_prepare_'), request: null,
+            prepareMetadataDocuments: true);
+        await _apply(plan);
+      });
+
   Future<void> prepareMapCreation() => _serialize(() async {
         _requireOpen();
         await store.requireMetadataIndexAdmission(snapshot);

@@ -152,6 +152,7 @@ extension _SceneInspectorFields on SceneInspector {
           current: value,
           loadMap: loadMap,
           loadMoves: loadMoves,
+          loadItems: loadItems,
           loadSpecies: loadSpecies,
           loadVisualMedia: loadVisualMedia,
           onApply: (v) => payload(node, v),

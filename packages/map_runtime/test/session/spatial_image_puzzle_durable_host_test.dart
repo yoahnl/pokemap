@@ -85,10 +85,15 @@ class SpatialImagePuzzleDurableHostFixture {
   bool fail = false;
   Future<void>? gate;
   static Future<SpatialImagePuzzleDurableHostFixture> create({
+    SceneAsset? sceneOverride,
+    String? qaDirectory,
     bool pendingIngredients = false,
+    ProjectManifest Function(ProjectManifest)? configureProject,
+    MapData Function(MapData)? configureMap,
+    GameState Function(GameState)? configureInitialState,
   }) async {
     final qa = Directory(
-      '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle',
+      qaDirectory ?? Platform.environment['AVELUNE_QA_ROOT'] ?? '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/puzzle',
     );
     await qa.create(recursive: true);
     final root = await qa.createTemp('durable-3d-');
@@ -167,7 +172,7 @@ class SpatialImagePuzzleDurableHostFixture {
         ],
       ),
     );
-    final map = MapData(
+    var map = MapData(
       version: ProjectVersion.v9,
       id: 'field',
       name: 'Field',
@@ -179,7 +184,8 @@ class SpatialImagePuzzleDurableHostFixture {
         navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 4, z: 4)),
       ),
     );
-    final project = ProjectManifest(
+    map = configureMap?.call(map) ?? map;
+    var project = ProjectManifest(
       version: ProjectVersion.v9,
       name: 'Craft',
       settings: const ProjectSettings(
@@ -192,7 +198,7 @@ class SpatialImagePuzzleDurableHostFixture {
       ],
       tilesets: const [],
       characters: [character],
-      scenes: [scene],
+      scenes: [sceneOverride ?? scene],
       pokemon: const ProjectPokemonConfig(
         ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         catalogFiles: {'items': 'items.json'},
@@ -219,6 +225,7 @@ class SpatialImagePuzzleDurableHostFixture {
         ],
       ),
     );
+    project = configureProject?.call(project) ?? project;
     await File('${root.path}/project.json')
         .writeAsString(jsonEncode(project.toJson()));
     await File('${root.path}/map.json').writeAsString(jsonEncode(map.toJson()));
@@ -262,7 +269,11 @@ class SpatialImagePuzzleDurableHostFixture {
       ),
       bag: const Bag(entries: [BagEntry(itemId: 'fruit', quantity: 4)]),
     );
-    return SpatialImagePuzzleDurableHostFixture(root, bundle, initial);
+    return SpatialImagePuzzleDurableHostFixture(
+      root,
+      bundle,
+      configureInitialState?.call(initial) ?? initial,
+    );
   }
 
   GameSessionDescriptor descriptor(bool continueGame) => GameSessionDescriptor(
@@ -286,6 +297,8 @@ class SpatialImagePuzzleDurableHostFixture {
     runtimeApiVersion: '1.4.0',
     grantedCapabilities: {
       'map3d@1',
+      SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+      SpatialGameplayCapabilities.periodicRewardCapabilityId,
       SpatialGameplayCapabilities.storyCapabilityId,
       SpatialGameplayCapabilities.deferredCraftingCapabilityId,
     },

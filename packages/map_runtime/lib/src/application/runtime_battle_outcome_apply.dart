@@ -5,6 +5,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'battle_start_request.dart';
 import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_battle_status_bridge.dart';
+import 'runtime_contextual_capture.dart';
 import 'story_flags_manager.dart';
 
 /// Contexte runtime strictement nécessaire pour faire le write-back post-combat.
@@ -27,6 +28,7 @@ class RuntimeActiveBattleContext {
     required this.request,
     required this.playerPartyIndex,
     this.playerIndividualId = '',
+    this.captureProvenance,
   })  : playerPartySlotIndicesByLineupIndex = const <int>[],
         playerIndividualIdsByLineupIndex = const <String>[];
 
@@ -36,6 +38,7 @@ class RuntimeActiveBattleContext {
     required Iterable<int> playerPartySlotIndicesByLineupIndex,
     String playerIndividualId = '',
     Iterable<String> playerIndividualIdsByLineupIndex = const <String>[],
+    RuntimeCaptureProvenance? captureProvenance,
   }) {
     final individualIds = playerIndividualIdsByLineupIndex
         .map((id) => id.trim())
@@ -65,6 +68,7 @@ class RuntimeActiveBattleContext {
     }
     return RuntimeActiveBattleContext._(
       request: request,
+      captureProvenance: captureProvenance,
       playerPartyIndex: playerPartyIndex,
       playerPartySlotIndicesByLineupIndex: partySlots,
       playerIndividualId: activeIndividualId,
@@ -79,9 +83,11 @@ class RuntimeActiveBattleContext {
     required this.playerPartySlotIndicesByLineupIndex,
     required this.playerIndividualId,
     required this.playerIndividualIdsByLineupIndex,
+    this.captureProvenance,
   });
 
   final BattleStartRequest request;
+  final RuntimeCaptureProvenance? captureProvenance;
   final int playerPartyIndex;
   final String playerIndividualId;
 
@@ -113,8 +119,10 @@ final class _RuntimeBattleEngineCaptureAttempt {
   const _RuntimeBattleEngineCaptureAttempt({
     required this.attemptId,
     required this.itemId,
+    required this.contextualReceipt,
   });
 
+  final BattleCaptureReceipt? contextualReceipt;
   final String attemptId;
   final String itemId;
 }
@@ -147,6 +155,7 @@ _RuntimeBattleEngineCaptureAttempt? _extractLegacyBattleCaptureAttempt(
   return _RuntimeBattleEngineCaptureAttempt(
     attemptId: attemptId,
     itemId: itemId,
+    contextualReceipt: matchingEvents.single.contextualReceipt,
   );
 }
 
@@ -171,6 +180,7 @@ _RuntimeBattleEngineCaptureAttempt? _extractPsdkBattleCaptureAttempt(
   return _RuntimeBattleEngineCaptureAttempt(
     attemptId: attemptId,
     itemId: matchingEvents.single.ballId,
+    contextualReceipt: matchingEvents.single.contextualReceipt,
   );
 }
 
@@ -180,8 +190,14 @@ final class RuntimeBattleCaptureAttemptReceipt {
     required this.requestId,
     required this.itemId,
     required this.attemptId,
-  });
+    required this.contextualReceipt,
+  }) : successEffects = List.unmodifiable(
+         contextualReceipt?.calculation.successEffects ??
+             const <ProjectCaptureSuccessEffect>[],
+       );
 
+  final BattleCaptureReceipt? contextualReceipt;
+  final List<ProjectCaptureSuccessEffect> successEffects;
   final String requestId;
   final String itemId;
   final String attemptId;
@@ -222,6 +238,7 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
   required String itemId,
   required ItemCatalogSnapshot itemCatalog,
   required T Function() submitToEngine,
+  RuntimePreparedBattleCapture? preparedCapture,
 }) {
   final request = context.request;
   if (request is! WildBattleStartRequest || !captureAllowed) {
@@ -239,6 +256,12 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
       capture == null ||
       !capture.allowedEncounterKinds.contains(request.encounterKind)) {
     throw StateError('The selected item cannot capture this encounter.');
+  }
+  if (preparedCapture != null && preparedCapture.choice.itemId != itemId) {
+    throw StateError('Prepared capture does not match the selected item.');
+  }
+  if (capture.contextualPolicy != preparedCapture?.choice.contextualPolicy) {
+    throw StateError('Contextual capture must be prepared from the canonical item policy.');
   }
   final consumption = const BagOperations().consume(
     BagConsumeRequest(
@@ -277,6 +300,7 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
             requestId: context.request.requestId,
             itemId: captureAttempt.itemId,
             attemptId: captureAttempt.attemptId,
+            contextualReceipt: captureAttempt.contextualReceipt,
           ),
   );
 }
@@ -471,11 +495,17 @@ RuntimeBattleOutcomeTransactionBase applyRuntimeBattleOutcomeTransactionBase({
     outcome: outcome,
     receipt: captureAttemptReceipt,
   );
-  final capturedPokemon = _buildCapturedWildPlayerPokemon(
+  var capturedPokemon = _buildCapturedWildPlayerPokemon(
     enemy: outcome.finalState.enemy,
     request: context.request as WildBattleStartRequest,
     ballItemId: captureReceipt.itemId,
   );
+  for (final effect in captureReceipt.successEffects) {
+    capturedPokemon = switch (effect) {
+      ProjectCaptureSetFriendship(:final value) =>
+        capturedPokemon.copyWith(friendship: value),
+    };
+  }
   final captureResult = const GameStateMutations().applyCapturedPokemon(
     stateWithPlayerHp,
     pokemon: capturedPokemon,
@@ -550,7 +580,10 @@ RuntimeBattleCaptureAttemptReceipt _validatedCaptureReceipt({
       receipt.requestId != request.requestId ||
       receipt.itemId.trim().isEmpty ||
       receipt.itemId != outcome.captureItemId ||
-      receipt.attemptId != outcome.captureAttemptId) {
+      receipt.attemptId != outcome.captureAttemptId ||
+      (receipt.contextualReceipt != null &&
+          (receipt.contextualReceipt!.attemptId != receipt.attemptId ||
+              receipt.contextualReceipt!.ballId != receipt.itemId))) {
     throw StateError(
       'BattleOutcomeType.captured requires a matching charged capture attempt receipt.',
     );

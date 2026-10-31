@@ -1,3 +1,4 @@
+import '../../battle_capture_receipt.dart';
 import 'psdk_battle_field.dart';
 import 'psdk_battle_move.dart';
 import 'psdk_battle_outcome.dart';
@@ -50,6 +51,7 @@ class PsdkBattleCaptureAttemptEvent extends PsdkBattleEvent {
     required this.ballId,
     required this.shakes,
     required this.caught,
+    this.contextualReceipt,
   }) : super(kind: 'capture_attempt');
 
   final String attemptId;
@@ -57,6 +59,7 @@ class PsdkBattleCaptureAttemptEvent extends PsdkBattleEvent {
   final String ballId;
   final int shakes;
   final bool caught;
+  final BattleCaptureReceipt? contextualReceipt;
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -66,6 +69,8 @@ class PsdkBattleCaptureAttemptEvent extends PsdkBattleEvent {
         'ballId': ballId,
         'shakes': shakes,
         'caught': caught,
+        if (contextualReceipt != null)
+          'contextualReceipt': contextualReceipt!.toJson(),
       };
 }
 

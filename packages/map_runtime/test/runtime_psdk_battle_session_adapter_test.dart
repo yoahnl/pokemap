@@ -5,6 +5,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+import 'package:map_runtime/src/application/runtime_contextual_capture.dart';
+import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 
 void main() {
@@ -416,6 +418,143 @@ void main() {
       expect(outcome.captureItemId, canonicalPokeBallItemId);
       expect(outcome.finalState.enemy.currentHp, 1);
       expect(outcome.finalState.enemy.majorStatus?.id, BattleMajorStatusId.slp);
+    });
+
+    test('preserves contextual choice and immutable receipt through all projections', () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singles(
+          ruleset: PokemonRulesetProfile.contextualV1,
+          player: _combatant(
+            id: 'player',
+            hp: 120,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'wait',
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'wild',
+            hp: 120,
+            currentHp: 1,
+            catchRate: 255,
+            majorStatus: PsdkBattleMajorStatus.sleep,
+            moves: <PsdkBattleMoveData>[_move(id: 'tackle', power: 40)],
+          ),
+          canCapture: true,
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 47,
+          ),
+        ),
+      );
+
+      final policy = ProjectContextualCapturePolicy(
+        rateRules: [],
+        successEffects: [ProjectCaptureSetFriendship(200)],
+      );
+      final captureContext = BattleCaptureContext(targetBaseCatchRate: 255);
+      final choice = PlayerBattleChoiceCapture(
+        contextualPolicy: policy,
+        captureContext: captureContext,
+      );
+      final decision =
+          session.decisionForPlayerChoice(choice) as BattleCaptureDecision;
+      expect(identical(decision.contextualPolicy, policy), isTrue);
+      expect(identical(decision.captureContext, captureContext), isTrue);
+      final result = session.submitPlayerChoice(choice);
+      final receipt = result.timeline.events
+          .whereType<BattleCaptureAttemptTimelineEvent>()
+          .single
+          .contextualReceipt;
+      final legacy = session.createLegacyDisplaySession(
+        isTrainerBattle: false,
+        allowCapture: true,
+      );
+      expect(
+        identical(
+          legacy
+              .state
+              .currentTurn!
+              .captureAttemptEvents
+              .single
+              .contextualReceipt,
+          receipt,
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          (legacy.state.currentTurn!.playerAction as BattleActionCapture)
+              .contextualReceipt,
+          receipt,
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          legacy
+              .state
+              .outcome!
+              .finalState
+              .currentTurn!
+              .captureAttemptEvents
+              .single
+              .contextualReceipt,
+          receipt,
+        ),
+        isTrue,
+      );
+      final outcome = session.createLegacyOutcome(isTrainerBattle: false);
+
+      expect(session.state.outcome?.kind, BattleEngineOutcomeKind.captured);
+      expect(outcome.type, BattleOutcomeType.captured);
+      expect(outcome.captureItemId, canonicalPokeBallItemId);
+      expect(outcome.finalState.enemy.currentHp, 1);
+      expect(outcome.finalState.enemy.majorStatus?.id, BattleMajorStatusId.slp);
+    });
+
+    test('real target Morphing reads current species catch rate and retains individual sexes', () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(PsdkBattleSetup.singles(
+        ruleset: PokemonRulesetProfile.contextualV1,
+        player: _combatant(id: 'player_0', hp: 999, catchRate: 255,
+          moves: [_move(id: 'wait', category: PsdkBattleMoveCategory.status, power: 0)]),
+        opponent: _combatant(id: 'opponent_0', hp: 999, catchRate: 1,
+          moves: [_move(id: 'transform', category: PsdkBattleMoveCategory.status, power: 0, battleEngineMethod: 's_transform')]),
+        canCapture: true,
+        rngSeeds: const PsdkBattleRngSeeds(moveDamage: 1, moveCritical: 99999, moveAccuracy: 1, generic: 1),
+      ));
+      session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      final state = session.createLegacyWriteBackState();
+      expect(state.enemy.speciesId, 'player_0');
+      expect(state.enemy.writeBackSpeciesId, 'opponent_0');
+      expect(state.enemy.catchRate, 1);
+      final prepared = prepareRuntimeBattleCapture(
+        choice: PlayerBattleChoiceCapture(rateNumerator: 255, contextualPolicy: ProjectContextualCapturePolicy(rateRules: [
+          ProjectCaptureRateRule(when: ProjectCaptureGroupCondition(group: ProjectCaptureGroup.all, conditions: [
+            const ProjectCaptureRelationCondition(ProjectCaptureRelation.sameSpecies),
+            const ProjectCaptureRelationCondition(ProjectCaptureRelation.differentSex),
+          ]), adjustment: ProjectCaptureRateMultiply(numerator: 8, denominator: 1)),
+        ])),
+        battleState: state, ruleset: PokemonRulesetProfile.contextualV1,
+        provenance: RuntimeCaptureProvenance(speciesById: {'player_0': const RuntimePokemonSpecies(
+          id: 'player_0', typing: ['normal'], baseHp: 10, baseAttack: 10, baseDefense: 10,
+          baseSpecialAttack: 10, baseSpecialDefense: 10, baseSpeed: 120,
+          primaryAbilityId: 'none', abilityIds: ['none'], learnsetRef: '', growthRateId: 'medium_fast', baseExp: 10, catchRate: 255,
+        )}, playerSexesByLineupIndex: {0: 'male'}, targetSex: 'female', encounterKind: EncounterKind.walk),
+      );
+      expect(prepared.choice.captureContext!.targetSex, BattleCaptureSex.female);
+      expect(prepared.choice.captureContext!.attackerSex, BattleCaptureSex.male);
+      expect(prepared.choice.captureContext!.targetBaseSpeed, 120);
+      final result = session.submitPlayerChoice(prepared.choice);
+      final receipt = result.timeline.events.whereType<BattleCaptureAttemptTimelineEvent>().single.contextualReceipt!;
+      expect(receipt.calculation.rate.beforeClamp, 2040);
+      expect(receipt.calculation.rate.matchedRuleIndex, 0);
+      expect(session.createLegacyOutcome(isTrainerBattle: false).finalState.enemy.writeBackSpeciesId, 'opponent_0');
     });
 
     test('writes back original Transform PP after a real PSDK transformation',

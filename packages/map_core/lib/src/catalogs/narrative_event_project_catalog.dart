@@ -1,3 +1,5 @@
+import '../models/periodic_reward_reference.dart';
+import '../operations/periodic_reward_condition_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/map_data.dart';
@@ -272,6 +274,11 @@ final class NarrativeEventProjectCatalog {
       available: (entry) => entry.buildable,
     );
   }
+
+  PeriodicRewardReferenceResolution resolveRewardReference(PeriodicRewardReference reference) => resolvePeriodicRewardReference(
+    reference: reference, lookupScenes: (id) => (_scenesById[id] ?? const []).map((entry) => entry.scene));
+
+  Iterable<SceneAsset> rewardScenes(String id) => (_scenesById[id] ?? const []).map((entry) => entry.scene);
 
   NarrativeEventProjectResolution<NarrativeEventProjectFactEntry> resolveFact(
     String factId,

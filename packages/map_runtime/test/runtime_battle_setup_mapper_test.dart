@@ -8,6 +8,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
+import 'package:map_runtime/src/application/runtime_contextual_capture.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
@@ -151,6 +152,34 @@ void main() {
           'native-stone',
         );
       });
+
+    test('both setup mappers publish immutable provenance from already loaded species', () async {
+      final manifest = await _writeAndLoadProjectManifest(tempProjectRoot, trainers: const []);
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final request = await mapper.hydrateWildRequest(bundle: bundle, request: _wildRequest(speciesId: 'sparkitten', level: 10));
+      final state = _playerStateForTests();
+      final loader = RuntimePokemonSpeciesLoader();
+      final builder = RuntimeBattleCombatantSeedBuilder(speciesLoader: loader);
+      RuntimeCaptureProvenance? legacy;
+      RuntimeCaptureProvenance? clean;
+      await RuntimeBattleSetupMapper(combatantSeedBuilder: builder).map(
+        bundle: bundle, gameState: state, request: request,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog), onCaptureProvenance: (value) => legacy = value,
+      );
+      final reads = loader.debugActualReadCount;
+      await RuntimePsdkBattleSetupMapper(combatantSeedBuilder: builder).map(
+        bundle: bundle, gameState: state, request: request,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog), onCaptureProvenance: (value) => clean = value,
+      );
+      expect(loader.debugActualReadCount, reads);
+      for (final source in [legacy!, clean!]) {
+        expect(source.targetSex, request.generatedPokemon!.gender);
+        expect(source.playerSexesByLineupIndex[0], state.party.members.first.gender);
+        expect(source.speciesById['sparkitten']!.baseSpeed, 65);
+        expect(source.speciesById.clear, throwsUnsupportedError);
+        expect(source.targetEvolutionItemIdsBySpecies, isNull);
+      }
+    });
 
     test('hydrates one wild request with a versioned generated individual',
         () async {

@@ -7,6 +7,7 @@ import '../../domains/assets/asset_store.dart';
 import '../../domains/assets/project_media_store.dart';
 import '../../domains/narrative/dialogue_source_store.dart';
 import '../../domains/narrative/dialogue_authoring_service.dart';
+import '../../domains/narrative/narrative_authoring_exception.dart';
 import '../../domains/narrative/scene_party_move_catalog.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../transactions/plan_store.dart';
@@ -32,6 +33,7 @@ part 'catalog_asset_import_selection.dart';
 part 'catalog_native_resource_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';
+part 'catalog_dialogue_creation_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
@@ -203,6 +205,9 @@ final class CatalogWorkshopSelection {
           projectHandle: projectHandle,
           parameters: parameters,
           readDependencies: readDependencies);
+    }
+    if (const {'dialogue.create', 'dialogue.create_batch'}.contains(actionId)) {
+      return _readDialogueCreationWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);
     }
     if (_sceneWorkshopActions.contains(actionId)) {
       return _readSceneWorkshop(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);

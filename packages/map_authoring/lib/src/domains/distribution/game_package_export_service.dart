@@ -137,6 +137,20 @@ final class CanonicalGamePackageExportService {
         projectRoot: projectRoot,
         profile: profile,
       );
+      final contextualCapture = projection.project.pokemon.ruleset.profileId == PokemonRulesetProfile.contextualProfileId;
+      final itemPath = projection.project.pokemon.catalogFiles['items'];
+      final itemBytes = itemPath == null ? null : projection.payloadFiles['project/$itemPath'];
+      if (itemBytes != null) {
+        final catalog = decodeProjectItemCatalog(Map<String, dynamic>.from(
+            jsonDecode(utf8.decode(itemBytes)) as Map));
+        if (!contextualCapture && catalog.entries.any((item) => item.capture?.contextualPolicy != null)) {
+          throw const GamePackageExportException(
+            code: 'pokemon.capture.contextual_ruleset_required',
+            path: 'pokemon.ruleset',
+            message: 'Contextual item policies require the explicit contextual ruleset.',
+          );
+        }
+      }
       if (projection.project.settings.dimension == ProjectDimension.threeD &&
           mode != GamePackageExportMode.localTest) {
         throw const GamePackageExportException(
@@ -309,6 +323,7 @@ final class CanonicalGamePackageExportService {
           : [for (final entry in projection.project.maps) MapData.fromJson(jsonDecode(utf8.decode(
               projection.payloadFiles['project/${entry.relativePath}']!)) as Map<String, dynamic>)];
       final requiredCapabilities = <String>{
+        if (contextualCapture) PokemonRulesetProfile.contextualCaptureCapabilityId,
         if (exteriorDecoration) MapExteriorDecoration.capabilityId,
         if (extendedWeather) SpatialWeatherCapabilities.extendedCapabilityId,
         if (weatherEpisodes) WorldEnvironmentCapabilities.weatherEpisodesCapabilityId,
@@ -376,25 +391,66 @@ final class CanonicalGamePackageExportService {
         if (SpatialGameplayCapabilities.requiresLadders(spatialMaps))
           SpatialGameplayCapabilities.ladderCapabilityId,
         if (orthographicCamera) SpatialCameraProfile.orthographicCapabilityId,
-        if (projection.project.contactDevice != null) ProjectContactDeviceConfig.capabilityId,
-        if (projection.project.battleSavings != null) ProjectBattleSavingsConfig.capabilityId,
-        if (SurfGameplayCapabilities.requiresCapability(projection.project, maps: spatialMaps)) SurfGameplayCapabilities.capabilityId,
-        if (FieldAbilityActivationCapabilities.requiresCapability(projection.project)) FieldAbilityActivationCapabilities.capabilityId,
-        if (FieldAbilityActivationCapabilities.requiresExtendedCapability(projection.project)) FieldAbilityActivationCapabilities.extendedCapabilityId,
-        if (ProjectAudioCapabilities.requiresCapability(projection.project)) ProjectAudioCapabilities.capabilityId,
-        if (ProjectAudioCapabilities.requiresExtendedCapability(projection.project)) ProjectAudioCapabilities.extendedCapabilityId,
-        if (ProjectAudioCapabilities.requiresFieldMovementCapability(projection.project)) ProjectAudioCapabilities.fieldMovementCapabilityId,
-        if (FieldObstacleCapabilities.requiresCapability(projection.project, maps: fieldObstacleMaps)) FieldObstacleCapabilities.capabilityId,
-        if (FieldObstacleCapabilities.requiresExtendedCapability(projection.project, maps: fieldObstacleMaps)) FieldObstacleCapabilities.extendedCapabilityId,
-        if (SpatialGameplayCapabilities.requiresImagePuzzle(projection.project)) SpatialGameplayCapabilities.imagePuzzleCapabilityId,
-        if (SpatialGameplayCapabilities.requiresDeferredCrafting(projection.project)) SpatialGameplayCapabilities.deferredCraftingCapabilityId,
-        if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project)) SpatialGameplayCapabilities.npcTradeCapabilityId,
-        if (SpatialGameplayCapabilities.requiresEggGift(projection.project)) SpatialGameplayCapabilities.eggGiftCapabilityId,
-        if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresSceneMusic(projection.project)) SpatialGameplayCapabilities.sceneMusicCapabilityId,
-        if (projection.project.settings.dimension == ProjectDimension.threeD && SpatialGameplayCapabilities.requiresAudio(projection.project)) SpatialGameplayCapabilities.audioCapabilityId,
-        if (projection.project.partyCompanion.enabled) SpatialGameplayCapabilities.companionCapabilityId,
-        if (projection.project.cinematics.any((cinematic) => cinematic.allowMobileActorCrossing)) CinematicAsset.mobileActorCrossingCapabilityId,
-        if (projection.project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneBattlePayload && (node.payload as SceneBattlePayload).demonstration != null))) SceneBattleDemonstration.capabilityId,
+        if (projection.project.contactDevice != null)
+          ProjectContactDeviceConfig.capabilityId,
+        if (projection.project.battleSavings != null)
+          ProjectBattleSavingsConfig.capabilityId,
+        if (SurfGameplayCapabilities.requiresCapability(projection.project,
+            maps: spatialMaps))
+          SurfGameplayCapabilities.capabilityId,
+        if (FieldAbilityActivationCapabilities.requiresCapability(
+            projection.project))
+          FieldAbilityActivationCapabilities.capabilityId,
+        if (FieldAbilityActivationCapabilities.requiresExtendedCapability(
+            projection.project))
+          FieldAbilityActivationCapabilities.extendedCapabilityId,
+        if (ProjectAudioCapabilities.requiresCapability(projection.project))
+          ProjectAudioCapabilities.capabilityId,
+        if (ProjectAudioCapabilities.requiresExtendedCapability(
+            projection.project))
+          ProjectAudioCapabilities.extendedCapabilityId,
+        if (ProjectAudioCapabilities.requiresFieldMovementCapability(
+            projection.project))
+          ProjectAudioCapabilities.fieldMovementCapabilityId,
+        if (FieldObstacleCapabilities.requiresCapability(projection.project,
+            maps: fieldObstacleMaps))
+          FieldObstacleCapabilities.capabilityId,
+        if (FieldObstacleCapabilities.requiresExtendedCapability(
+            projection.project,
+            maps: fieldObstacleMaps))
+          FieldObstacleCapabilities.extendedCapabilityId,
+        if (SpatialGameplayCapabilities.requiresPeriodicReward(
+            projection.project))
+          SpatialGameplayCapabilities.periodicRewardCapabilityId,
+        if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
+            projection.project,
+            maps: fieldObstacleMaps))
+          SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+        if (SpatialGameplayCapabilities.requiresImagePuzzle(projection.project))
+          SpatialGameplayCapabilities.imagePuzzleCapabilityId,
+        if (SpatialGameplayCapabilities.requiresDeferredCrafting(
+            projection.project))
+          SpatialGameplayCapabilities.deferredCraftingCapabilityId,
+        if (SpatialGameplayCapabilities.requiresNpcTrade(projection.project))
+          SpatialGameplayCapabilities.npcTradeCapabilityId,
+        if (SpatialGameplayCapabilities.requiresEggGift(projection.project))
+          SpatialGameplayCapabilities.eggGiftCapabilityId,
+        if (projection.project.settings.dimension == ProjectDimension.threeD &&
+            SpatialGameplayCapabilities.requiresSceneMusic(projection.project))
+          SpatialGameplayCapabilities.sceneMusicCapabilityId,
+        if (projection.project.settings.dimension == ProjectDimension.threeD &&
+            SpatialGameplayCapabilities.requiresAudio(projection.project))
+          SpatialGameplayCapabilities.audioCapabilityId,
+        if (projection.project.partyCompanion.enabled)
+          SpatialGameplayCapabilities.companionCapabilityId,
+        if (projection.project.cinematics
+            .any((cinematic) => cinematic.allowMobileActorCrossing))
+          CinematicAsset.mobileActorCrossingCapabilityId,
+        if (projection.project.scenes.any((scene) => scene.graph.nodes.any(
+            (node) =>
+                node.payload is SceneBattlePayload &&
+                (node.payload as SceneBattlePayload).demonstration != null)))
+          SceneBattleDemonstration.capabilityId,
       }.toList(growable: false)
         ..sort();
       final emptyContent = GamePackageContent(

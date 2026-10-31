@@ -125,6 +125,8 @@ extension _PlayableMapInteractions on PlayableMapGame {
       factResolver: snapshot.factResolver,
       legacyClaimIndex: snapshot.legacyClaimIndex,
       projectCatalog: snapshot.projectCatalog,
+      lookupRewardScenes: snapshot.projectCatalog.rewardScenes,
+      periodicRewardState: _periodicRewardContext.observe,
       project: snapshot.project,
       maps: snapshot.mapsById.values.toList(growable: false),
     );

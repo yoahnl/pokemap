@@ -149,6 +149,7 @@ ProjectItemDefinition _decodeEntry(Object? rawEntry, int index) {
         'rateDenominator',
         'allowedEncounterKinds',
         'animationSpritePath',
+        'contextualPolicy',
       },
       path: capturePath,
       entryIndex: index,

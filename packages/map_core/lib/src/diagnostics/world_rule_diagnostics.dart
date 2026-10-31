@@ -1,3 +1,4 @@
+import '../operations/periodic_reward_condition_evaluator.dart';
 import '../models/enums.dart';
 import '../models/game_state.dart';
 import '../models/map_data.dart';
@@ -130,6 +131,7 @@ final class WorldRuleDiagnosticsReport {
 WorldRuleDiagnosticsReport diagnoseWorldRules(
   ProjectManifest project, {
   List<NarrativeMapView> maps = const <NarrativeMapView>[],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   final diagnostics = <WorldRuleDiagnostic>[];
   final mapsById = {for (final map in maps) map.id: map};
@@ -162,6 +164,7 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
       factResolver: factResolver,
       storyStepIds: storyStepIds,
       consumedEventIds: consumedEventIds,
+      lookupRewardScenes: lookupRewardScenes ?? (_) => const [],
     );
     _diagnoseSourceProducibility(
       rule,
@@ -200,6 +203,7 @@ void _diagnoseSource(
   required NarrativeFactRuntimeResolver factResolver,
   required Set<String> storyStepIds,
   required Set<String> consumedEventIds,
+  required PeriodicRewardSceneLookup lookupRewardScenes,
 }) {
   if (rule.source.sourceId.trim().isEmpty) {
     diagnostics.add(
@@ -230,6 +234,15 @@ void _diagnoseSource(
   }
 
   switch (rule.source.kind) {
+    case WorldRuleSourceKind.periodicRewardAvailable:
+      final reference = rule.source.rewardReference;
+      final resolution = reference == null ? null : resolvePeriodicRewardReference(reference: reference, lookupScenes: lookupRewardScenes);
+      if (reference == null || reference.rewardId != rule.source.sourceId || resolution?.isResolved != true) {
+        diagnostics.add(WorldRuleDiagnostic(code: WorldRuleDiagnosticCode.worldRuleSourceUnknown,
+          severity: WorldRuleDiagnosticSeverity.error, ruleId: rule.id, sourceId: rule.source.sourceId,
+          message: 'La récompense quotidienne référence une commande absente ou différente (${resolution?.status.name ?? "locatorMissing"}).'));
+      }
+
     case WorldRuleSourceKind.fact:
       final resolution = factResolver.resolve(
         factId: rule.source.sourceId,

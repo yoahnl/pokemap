@@ -9,6 +9,7 @@ MapData applyNpcInstancePosesToMap({
   required MapInstanceWorldState instances,
   required MapInstanceRef instance,
   ProjectManifest? project,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
   MovingPlatformWorldState movingPlatformWorldState =
       const MovingPlatformWorldState.empty(),
   MovingPropWorldState movingPropWorldState =
@@ -49,7 +50,10 @@ MapData applyNpcInstancePosesToMap({
         variants.isNotEmpty &&
         project != null &&
         validateMapEntityPresentation(
-                project: project, map: authoringMap, entity: entity)
+                project: project,
+                map: authoringMap,
+                entity: entity,
+                lookupRewardScenes: lookupRewardScenes)
             .isEmpty;
     if ((entity?.npc == null && !declaredVariantOwner) ||
         position.x < 0 ||

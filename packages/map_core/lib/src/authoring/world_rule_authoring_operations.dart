@@ -1,3 +1,4 @@
+import '../operations/periodic_reward_condition_evaluator.dart';
 import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/narrative_event_definition.dart';
@@ -58,6 +59,7 @@ WorldRuleCreationResult addWorldRule(
   List<String> tags = const <String>[],
   String? debugTechnicalLabel,
   List<MapData> maps = const <MapData>[],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   final trimmedLabel = label.trim();
   if (trimmedLabel.isEmpty) {
@@ -78,7 +80,7 @@ WorldRuleCreationResult addWorldRule(
     tags: tags,
     debugTechnicalLabel: debugTechnicalLabel,
   );
-  _validateWorldRuleForAuthoring(manifest, rule, maps: maps);
+  _validateWorldRuleForAuthoring(manifest, rule, maps: maps, lookupRewardScenes: lookupRewardScenes);
   return WorldRuleCreationResult(
     updatedProject: manifest.copyWith(
       worldRules: [...manifest.worldRules, rule],
@@ -100,6 +102,7 @@ WorldRuleUpdateResult updateWorldRule(
   List<String> tags = const <String>[],
   String? debugTechnicalLabel,
   List<MapData> maps = const <MapData>[],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   final index = manifest.worldRules.indexWhere((rule) => rule.id == ruleId);
   if (index < 0) {
@@ -117,7 +120,7 @@ WorldRuleUpdateResult updateWorldRule(
     tags: tags,
     debugTechnicalLabel: debugTechnicalLabel,
   );
-  _validateWorldRuleForAuthoring(manifest, updatedRule, maps: maps);
+  _validateWorldRuleForAuthoring(manifest, updatedRule, maps: maps, lookupRewardScenes: lookupRewardScenes);
   final worldRules = manifest.worldRules.toList(growable: true);
   worldRules[index] = updatedRule;
   return WorldRuleUpdateResult(
@@ -147,6 +150,7 @@ ProjectManifest upsertWorldRules(
   ProjectManifest manifest, {
   required List<WorldRuleDefinition> rules,
   List<MapData> maps = const <MapData>[],
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   if (rules.isEmpty || rules.length > maxWorldRuleBatchSize) {
     throw ArgumentError.value(
@@ -195,7 +199,7 @@ ProjectManifest upsertWorldRules(
     existingIds.add(rule.id);
     worldRules.add(rule);
   }
-  final references = _WorldRuleAuthoringReferences(manifest, maps);
+  final references = _WorldRuleAuthoringReferences(manifest, maps, lookupRewardScenes);
   for (var index = 0; index < rules.length; index++) {
     try {
       _validateWorldRuleForAuthoring(
@@ -216,6 +220,7 @@ void _validateWorldRuleForAuthoring(
   WorldRuleDefinition rule, {
   required List<MapData> maps,
   _WorldRuleAuthoringReferences? references,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   final sourceId = rule.source.sourceId.trim();
   if (sourceId.isEmpty) {
@@ -286,7 +291,7 @@ void _validateWorldRuleForAuthoring(
       'World rule dialogue override id is required.',
     );
   }
-  final context = references ?? _WorldRuleAuthoringReferences(manifest, maps);
+  final context = references ?? _WorldRuleAuthoringReferences(manifest, maps, lookupRewardScenes);
   _validateSourceReferences(rule, context);
   _validateTargetReferences(rule, context);
   _validateEffectReferences(rule, context);
@@ -297,6 +302,14 @@ void _validateSourceReferences(
   _WorldRuleAuthoringReferences references,
 ) {
   switch (rule.source.kind) {
+    case WorldRuleSourceKind.periodicRewardAvailable:
+      final reference = rule.source.rewardReference;
+      if (reference == null || reference.rewardId != rule.source.sourceId ||
+          !resolvePeriodicRewardReference(reference: reference,
+            lookupScenes: references.lookupRewardScenes ?? (_) => const []).isResolved) {
+        throw ArgumentError('The periodic reward locator does not resolve its declared command.');
+      }
+
     case WorldRuleSourceKind.fact:
       if (!references.factIds.contains(rule.source.sourceId)) {
         throw ArgumentError.value(
@@ -417,7 +430,9 @@ void _validateEffectReferences(
 }
 
 final class _WorldRuleAuthoringReferences {
-  _WorldRuleAuthoringReferences(this.manifest, this.maps);
+  _WorldRuleAuthoringReferences(this.manifest, this.maps, this.lookupRewardScenes);
+
+  final PeriodicRewardSceneLookup? lookupRewardScenes;
 
   final ProjectManifest manifest;
   final List<MapData> maps;

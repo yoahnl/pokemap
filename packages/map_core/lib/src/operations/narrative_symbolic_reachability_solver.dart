@@ -1,3 +1,4 @@
+import 'narrative_condition_expression_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/map_data.dart';
@@ -528,6 +529,24 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
   }
   final catalog = commandCatalog ?? NarrativeCommandCatalog.canonical();
   final issues = <NarrativeSymbolicIssue>[];
+  for (final rule in project.worldRules) {
+    if (rule.enabled && rule.source.kind == WorldRuleSourceKind.periodicRewardAvailable) {
+      issues.add(NarrativeSymbolicIssue(code: NarrativeSymbolicIssueCode.unsupportedCondition,
+        verdict: NarrativeSymbolicVerdict.indeterminate,
+        message: 'La règle ${rule.id} dépend du calendrier et des récompenses, non modélisés par le solveur.',
+        sceneId: rule.source.rewardReference?.sceneId ?? ''));
+    }
+  }
+  for (final map in maps) {
+    for (final entity in map.entities) {
+      if (entity.presentation?.variants.any((variant) => variant.condition.leaves.any((condition) => condition.rewardReference != null)) ?? false) {
+        issues.add(NarrativeSymbolicIssue(code: NarrativeSymbolicIssueCode.unsupportedCondition,
+          verdict: NarrativeSymbolicVerdict.indeterminate,
+          message: 'La présence de ${entity.id} sur ${map.id} dépend du calendrier et des récompenses, non modélisés par le solveur.', sceneId: ''));
+      }
+    }
+  }
+
   final explored = <NarrativeSymbolicState>[];
   final terminals = <NarrativeSymbolicState>[];
   final reachableSceneIds = <String>{};
@@ -913,7 +932,7 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
     final requiredTrueFacts = <String>{};
     for (final condition in definition.conditions) {
       condition.whenTyped(
-        fact: (factId, operator, expectedValue) {
+        periodicRewardAvailable: (_, _) {},        fact: (factId, operator, expectedValue) {
           if (operator == NarrativeFactOperator.equals &&
               expectedValue.kind == NarrativeValueKind.boolean &&
               expectedValue.boolValue) {
@@ -1018,6 +1037,7 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       final source = payload.conditionSource;
       if (source == null) continue;
       switch (source.sourceKind) {
+        case SceneConditionSourceKind.periodicRewardAvailable:
         case SceneConditionSourceKind.integerComparison:
         case SceneConditionSourceKind.pokedexCaughtCount:
         case SceneConditionSourceKind.playerFacing:
@@ -1052,6 +1072,8 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
   // main-story gates such as a passage opened by a Fact or completed step.
   for (final rule in project.worldRules) {
     switch (rule.source.kind) {
+      case WorldRuleSourceKind.periodicRewardAvailable:
+        break;
       case WorldRuleSourceKind.fact:
         relevantFactIds.add(rule.source.sourceId);
       case WorldRuleSourceKind.storyStepCompletion:
@@ -1135,7 +1157,7 @@ void _collectEventConditionReads(
   switch (expression) {
     case NarrativeEventConditionLeaf(:final condition):
       condition.whenTyped(
-        fact: (factId, _, __) => factIds.add(factId),
+        periodicRewardAvailable: (_, _) {},        fact: (factId, _, __) => factIds.add(factId),
         narrativeEventConsumed: (eventId, _) => consumedEventIds.add(eventId),
         mapEventInstanceBoolean: (_, _, _, _) {},
       );
@@ -1195,7 +1217,7 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
       consumedEventIds: consumedEventIds,
     );
     for (final condition in definition.conditions) {
-      condition.whenTyped(fact: (_, _, _) {}, narrativeEventConsumed: (_, _) {},
+      condition.whenTyped(periodicRewardAvailable: (reference, _) { reads.add("calendar:civil-day"); reads.add("periodicReward:${reference.rewardId}"); }, fact: (_, _, _) {}, narrativeEventConsumed: (_, _) {},
         mapEventInstanceBoolean: (mapId, eventId, key, _) =>
             reads.add('instance:$mapId:$eventId:$key'));
     }
@@ -1229,6 +1251,10 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           final source = conditionSource;
           if (source == null) continue;
           switch (source.sourceKind) {
+            case SceneConditionSourceKind.periodicRewardAvailable:
+              reads.add('calendar:civil-day');
+              reads.add('periodicReward:${source.sourceId}');
+              break;
             case SceneConditionSourceKind.integerComparison:
               for (final operand in [source.integerLeft!, source.integerRight!]) {
                 for (final id in operand.referencedFactIds) { reads.add('fact:$id'); }
@@ -1671,7 +1697,8 @@ bool? _sceneConditionValue(
 ) {
   if (source == null) return null;
   switch (source.sourceKind) {
-    case SceneConditionSourceKind.integerComparison:
+    case SceneConditionSourceKind.periodicRewardAvailable:
+        case SceneConditionSourceKind.integerComparison:
         case SceneConditionSourceKind.pokedexCaughtCount:
     case SceneConditionSourceKind.playerFacing:
     case SceneConditionSourceKind.playerAtEntityAnchor:
@@ -1734,10 +1761,19 @@ bool? _eventExpressionValue(
   NarrativeEventConditionExpression expression,
   NarrativeSymbolicState state,
 ) {
+  if (expression.leaves.any((condition) => condition.rewardReference != null)) {
+    final result = evaluateNarrativeConditionExpression(expression, evaluateLeaf: (condition) {
+      if (condition.rewardReference != null) return const NarrativeConditionEvaluation(passed: false, unavailable: true);
+      final value = _eventExpressionValue(NarrativeEventConditionExpression.leaf(condition), state);
+      return NarrativeConditionEvaluation(passed: value == true, unavailable: value == null);
+    });
+    return result.unavailable ? null : result.passed;
+  }
+
   switch (expression) {
     case NarrativeEventConditionLeaf(:final condition):
       return condition.whenTyped(
-        fact: (factId, operator, expectedValue) {
+        periodicRewardAvailable: (_, _) => null,        fact: (factId, operator, expectedValue) {
           final actual = state.factValues[factId];
           if (actual == null) return null;
           try {

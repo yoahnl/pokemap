@@ -486,6 +486,10 @@ final class GamePackageSpatialProjectValidator {
   void validate(ProjectManifest project, GamePackagePayloadReader readPayload,
       {Iterable<String> payloadPaths = const []}) {
     try {
+      final rewardScenes = <String, List<SceneAsset>>{};
+      for (final scene in project.scenes) {
+        rewardScenes.putIfAbsent(scene.id, () => []).add(scene);
+      }
       if (project.version != ProjectVersion.v9 ||
           project.settings.dimension != ProjectDimension.threeD ||
           project.maps.isEmpty) {
@@ -558,7 +562,9 @@ final class GamePackageSpatialProjectValidator {
           }
         }
         if (gameplay) _validateGameplayMap(map, path);
-        MapValidator.validate(map, projectDialogueContext: project);
+        MapValidator.validate(map,
+            projectDialogueContext: project,
+            lookupRewardScenes: (id) => rewardScenes[id] ?? const []);
         for (final ramp in map.spatialScene!.navigation.ramps) {
           if (!map.spatialScene!.rampHasTerrainContacts(ramp)) {
             _fail('runtime3d.ramp_unconnected', '$path.spatialScene.navigation.ramps.${ramp.id}',

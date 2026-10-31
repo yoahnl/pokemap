@@ -62,8 +62,12 @@ final class SceneConsequenceRuntimeWriter {
     this.pokemonCatalog,
     this.partyConditionContext = const ScenePartyConditionContext.unavailable(),
     this.itemCatalog,
+    this.lookupRewardScenes,
+    this.periodicRewardState,
   });
 
+  final PeriodicRewardSceneLookup? lookupRewardScenes;
+  final GameState Function(GameState)? periodicRewardState;
   final ProjectManifest project;
   final Map<String, NarrativeMapView> mapsById;
   final Map<int, int> maxHpByPartyIndex;
@@ -760,16 +764,32 @@ final class SceneConsequenceRuntimeWriter {
     if (map == null || map.version == ProjectVersion.v9 || map.spatialScene != null || owner == null ||
         project.maps.where((m) => m.id == map.id).length != 1 || owner.presentation == null ||
         !owner.presentation!.variants.any((v) => v.characterId != null) ||
-        validateMapEntityPresentation(project: project, map: map, entity: owner).isNotEmpty ||
-        position == null || position.x < 0 || position.y < 0 ||
-        position.x + owner.size.width > map.size.width || position.y + owner.size.height > map.size.height ||
-        owner.presentation!.variants.any((v) => position.x + v.size.width > map.size.width || position.y + v.size.height > map.size.height)) {
-      return const _SceneConsequenceRuntimeWriteStep.failed(SceneConsequenceRuntimeWriteErrorCode.unknownNpc, 'NPC placement requires a declared two-dimensional presentation owner and bounded cell.');
+        validateMapEntityPresentation(
+          project: project,
+          map: map,
+          entity: owner,
+          lookupRewardScenes: lookupRewardScenes,
+        ).isNotEmpty ||
+        position == null ||
+        position.x < 0 ||
+        position.y < 0 ||
+        position.x + owner.size.width > map.size.width ||
+        position.y + owner.size.height > map.size.height ||
+        owner.presentation!.variants.any(
+          (v) =>
+              position.x + v.size.width > map.size.width ||
+              position.y + v.size.height > map.size.height,
+        )) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.unknownNpc,
+        'NPC placement requires a declared two-dimensional presentation owner and bounded cell.',
+      );
     }
     var presentationUnavailable = false;
     final variant = resolveMapEntityPresentation(
+      lookupRewardScenes: lookupRewardScenes,
       project: project,
-      gameState: gameState,
+      gameState: periodicRewardState?.call(gameState) ?? gameState,
       map: map,
       entity: owner,
       onUnavailable: () => presentationUnavailable = true,

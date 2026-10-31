@@ -9,7 +9,9 @@ extension _PlayableMapCinematicPoses on PlayableMapGame {
       throw StateError('The cinematic map is unavailable.');
     }
     final manifest = loaded.bundle.manifest;
-    var instances = _battleRuntimeGameState.mapInstanceWorldState;
+    final transactionState = _battleRuntimeGameState;
+    final presentationState = _scenePresentationGameState;
+    var instances = transactionState.mapInstanceWorldState;
     if (instances.instanceRef(_activeMapId) == null) {
       instances = retainMapInstance(
         state: instances,
@@ -77,7 +79,9 @@ extension _PlayableMapCinematicPoses on PlayableMapGame {
       instances: instances,
       instance: instances.instanceRef(_activeMapId)!,
       project: manifest,
-      gameState: _scenePresentationGameState,
+      gameState: transactionState,
+      lookupRewardScenes: _lookupRewardScenes,
+      periodicRewardState: (_) => presentationState,
       player: player,
       npcPoses: npcPoses,
     );

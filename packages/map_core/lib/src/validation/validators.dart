@@ -1,3 +1,4 @@
+import '../operations/periodic_reward_condition_evaluator.dart';
 import '../models/spatial_platform.dart';
 import '../models/project_media_catalog.dart';
 import '../read_models/field_obstacle_capabilities.dart';
@@ -3012,6 +3013,7 @@ class MapValidator {
     MapData map, {
     ProjectManifest? projectDialogueContext,
     PixelSize? projectTileSize,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) {
     final declaredTileSize = projectDialogueContext == null
         ? null
@@ -3238,8 +3240,12 @@ class MapValidator {
       assertValidMapEntityTypedPayloads(entity);
       if (projectDialogueContext != null) {
         assertEntityDialogueRefsAgainstProject(entity, projectDialogueContext);
-        final presentationErrors = validateMapEntityPresentation(project: projectDialogueContext,
-          map: map, entity: entity);
+        final presentationErrors = validateMapEntityPresentation(
+          project: projectDialogueContext,
+          map: map,
+          entity: entity,
+          lookupRewardScenes: lookupRewardScenes,
+        );
         if (presentationErrors.isNotEmpty) {
           throw ValidationException('Entity $entityId presentation: ${presentationErrors.join(', ')}',
             code: 'entity.presentation.invalid');

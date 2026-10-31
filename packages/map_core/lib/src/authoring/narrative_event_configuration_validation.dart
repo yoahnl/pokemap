@@ -494,7 +494,7 @@ List<String> _eventDependencies(List<NarrativeEventCondition> conditions) {
   return [
     for (final condition in conditions)
       ...condition.whenTyped(
-        fact: (_, __, ___) => const <String>[],
+        periodicRewardAvailable: (_, _) => const <String>[],        fact: (_, __, ___) => const <String>[],
         narrativeEventConsumed: (eventId, _) => [eventId],
         mapEventInstanceBoolean: (_, _, _, _) => const <String>[],
       ),

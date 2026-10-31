@@ -23,6 +23,7 @@ import 'scene_runtime/world_presentation_image_loader.dart';
 part 'runtime_party_trade_service.dart';
 part 'runtime_deferred_crafting_service.dart';
 part 'runtime_image_puzzle_service.dart';
+part 'runtime_periodic_reward_service.dart';
 part 'runtime_scene_text_input_service.dart';
 
 final class RuntimePlayerServiceRecoveryCaps {
@@ -178,6 +179,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required PlayerServiceStateTransaction commitAndSave,
     PlayerServiceStateTransaction? commitCraftingAndSave,
     PlayerServiceStateTransaction? commitImagePuzzleAndSave,
+    PlayerServiceStateTransaction? commitPeriodicRewardAndSave,
     Future<RuntimeImagePuzzleBitmap> Function(String)? loadImagePuzzleBitmap,
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
@@ -204,6 +206,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _commitAndSave = commitAndSave,
         _commitCraftingAndSave = commitCraftingAndSave,
         _commitImagePuzzleAndSave = commitImagePuzzleAndSave,
+        _commitPeriodicRewardAndSave = commitPeriodicRewardAndSave,
         _loadImagePuzzleBitmap = loadImagePuzzleBitmap,
         _setInputLocked = setInputLocked,
         _loadRecoveryCaps = loadRecoveryCaps,
@@ -223,6 +226,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required PlayerServiceStateTransaction commitAndSave,
     PlayerServiceStateTransaction? commitCraftingAndSave,
     PlayerServiceStateTransaction? commitImagePuzzleAndSave,
+    PlayerServiceStateTransaction? commitPeriodicRewardAndSave,
     Future<RuntimeImagePuzzleBitmap> Function(String)? loadImagePuzzleBitmap,
     required PlayerServiceInputLockSetter setInputLocked,
     required PlayerServiceRecoveryCapsLoader loadRecoveryCaps,
@@ -249,6 +253,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _commitAndSave = commitAndSave,
         _commitCraftingAndSave = commitCraftingAndSave,
         _commitImagePuzzleAndSave = commitImagePuzzleAndSave,
+        _commitPeriodicRewardAndSave = commitPeriodicRewardAndSave,
         _loadImagePuzzleBitmap = loadImagePuzzleBitmap,
         _setInputLocked = setInputLocked,
         _loadRecoveryCaps = loadRecoveryCaps,
@@ -268,6 +273,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final PlayerServiceStateTransaction _commitAndSave;
   final PlayerServiceStateTransaction? _commitCraftingAndSave;
   final PlayerServiceStateTransaction? _commitImagePuzzleAndSave;
+  final PlayerServiceStateTransaction? _commitPeriodicRewardAndSave;
+  Future<void>? _periodicRewardCommit;
   final Future<RuntimeImagePuzzleBitmap> Function(String)? _loadImagePuzzleBitmap;
   _RuntimeImagePuzzleSession? _imagePuzzleSession;
   var _imagePuzzleRevision = -1;
@@ -3056,6 +3063,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         ),
       );
     }
+    try {
+      await _periodicRewardCommit;
+    } catch (_) {}
     await _disposeImagePuzzle();
     await _disposeCrafting();
     await _disposePartyTrade();
