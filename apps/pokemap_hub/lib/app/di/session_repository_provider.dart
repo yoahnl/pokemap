@@ -5,18 +5,22 @@ import 'package:map_core/map_core.dart';
 
 import 'package:pokemap_hub/app/di/infrastructure_providers.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
 import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 
-/// Infrastructure wiring for launching an installed game.
-final sessionLaunchRepositoryProvider =
+/// Resolver for listing installed games: it stops at the receipt checks and
+/// never content-hashes a release. Launching goes through the content-depth
+/// resolver built in the hub composition.
+final libraryLaunchRepositoryProvider =
     FutureProvider<SessionLaunchRepositoryInterface>((ref) async {
   return InstalledGameLaunchResolver(
     supportRoot: await ref.watch(supportRootProvider.future),
     hostCompatibility: ref.watch(hostCompatibilityProvider),
+    verificationDepth: InstalledGameVerificationDepth.structure,
   );
 });
 
