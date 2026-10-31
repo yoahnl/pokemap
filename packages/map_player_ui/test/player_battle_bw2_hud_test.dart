@@ -1,10 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets(
+    'HUD text does not inherit diagnostic underlines without a Material host',
+    (tester) async {
+      for (final custom in [false, true]) {
+        await _pumpOverlayVisibility(
+          tester,
+          custom: custom,
+          visible: true,
+          materialHost: false,
+        );
+        for (final key in [
+          'battle-species-enemy',
+          'battle-level-enemy',
+          'battle-species-player',
+          'battle-level-player',
+        ]) {
+          final paragraph = tester.renderObject<RenderParagraph>(
+            find.byKey(ValueKey(key)),
+          );
+          expect(
+            paragraph.text.style?.decoration?.contains(
+                  TextDecoration.underline,
+                ) ??
+                false,
+            isFalse,
+            reason: key,
+          );
+        }
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
   testWidgets(
     'trainer badge preserves name and HP rail sizes at native HUD height',
     (tester) async {
@@ -283,6 +316,7 @@ Future<void> _pumpOverlayVisibility(
   double hudWidth = 270,
   double hudHeight = 100,
   String? enemyStatus,
+  bool materialHost = true,
 }) async {
   final theme = PokeMapPlayerTheme.dark(reducedMotion: true);
   BattleCommandOverlayHudSnapshot hud(bool player) =>
@@ -305,6 +339,24 @@ Future<void> _pumpOverlayVisibility(
         teamSize: player ? null : teamSize,
         statusLabel: player ? null : enemyStatus,
       );
+  final overlay = PlayerBattleOverlay(
+    display: PlayerBattleDisplay.hudOnly,
+    onCommand: (_) {},
+    snapshot: BattleCommandOverlaySnapshot(
+      mode: BattleCommandOverlayMode.fight,
+      viewportSize: const Size(800, 600),
+      panelRect: const Rect.fromLTWH(0, 500, 800, 100),
+      enemyHud: hud(false),
+      playerHud: hud(true),
+      battleLabel: 'Combat',
+      title: '',
+      prompt: '',
+      narrationLines: const [],
+      entries: const [],
+      interactionsEnabled: false,
+      canGoBack: false,
+    ),
+  );
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => MediaQuery(
@@ -322,26 +374,7 @@ Future<void> _pumpOverlayVisibility(
               ),
             )
           : theme,
-      home: Scaffold(
-        body: PlayerBattleOverlay(
-          display: PlayerBattleDisplay.hudOnly,
-          onCommand: (_) {},
-          snapshot: BattleCommandOverlaySnapshot(
-            mode: BattleCommandOverlayMode.fight,
-            viewportSize: const Size(800, 600),
-            panelRect: const Rect.fromLTWH(0, 500, 800, 100),
-            enemyHud: hud(false),
-            playerHud: hud(true),
-            battleLabel: 'Combat',
-            title: '',
-            prompt: '',
-            narrationLines: const [],
-            entries: const [],
-            interactionsEnabled: false,
-            canGoBack: false,
-          ),
-        ),
-      ),
+      home: materialHost ? Scaffold(body: overlay) : overlay,
     ),
   );
   await tester.pump();

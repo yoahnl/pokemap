@@ -728,7 +728,10 @@ class _BattleHud extends StatelessWidget {
     maintainState: true,
     maintainAnimation: true,
     maintainSize: true,
-    child: _buildContent(context),
+    child: DefaultTextStyle(
+      style: Theme.of(context).textTheme.bodyMedium!,
+      child: Builder(builder: _buildContent),
+    ),
   );
 
   Widget _buildContent(BuildContext context) {
