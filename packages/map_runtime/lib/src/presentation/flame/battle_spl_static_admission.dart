@@ -12,6 +12,7 @@ enum BattleSplAdmissionFailure {
   frameLimit,
   workLimit,
   textureUnavailable,
+  projectionUnavailable,
 }
 
 final class BattleSplStaticEmitter {
@@ -34,6 +35,8 @@ final class BattleSplStaticFrame {
     this.aspectRatio4096,
     this.directional,
     this.scaleAxis,
+    this.followEmitter,
+    this.childFollowsEmitter,
     List<BattleSplPointParticle> particles,
   ) : particles = List.unmodifiable(particles);
 
@@ -41,6 +44,8 @@ final class BattleSplStaticFrame {
   final int aspectRatio4096;
   final bool directional;
   final String scaleAxis;
+  final bool followEmitter;
+  final bool childFollowsEmitter;
   final List<BattleSplPointParticle> particles;
 }
 
@@ -177,6 +182,8 @@ final class BattleSplStaticPlayback {
         entry.emitter.aspectRatio4096,
         entry.emitter.directional,
         entry.emitter.scaleAxis,
+        entry.emitter.playback.followEmitter,
+        entry.emitter.playback.childFollowsEmitter,
         entry.emitter.playback.particles,
       ),
   ]);

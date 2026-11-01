@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
+import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_battle/map_battle.dart';
@@ -11,6 +12,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
+import 'package:map_runtime/src/presentation/flame/battle_perspective_camera.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_camera_projection.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_spl_loader.dart';
 
@@ -102,8 +105,145 @@ const schedule = [
   ),
 ];
 
+BattleSplCameraProjection testProjection({bool Function()? isValid}) {
+  final camera = BattlePerspectiveCamera(
+    viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+  );
+  const foot = ui.Offset(190, 600);
+  return BattleSplCameraProjection(
+    camera: camera,
+    bindings: [
+      BattleSplCameraBinding(
+        resolveNeutralFoot: () => isValid?.call() == false ? null : foot,
+        resolveAnchor: () {
+          if (isValid?.call() == false) return null;
+          final projected = camera.tryBillboardAt(foot);
+          return projected == null
+              ? null
+              : Vector2(projected.position.dx, projected.position.dy);
+        },
+      ),
+    ],
+  );
+}
+
+List<String> runWithManualFallback(BattleVerifiedSplPreparation result) {
+  final events = <String>[];
+  final runner = BattleAnimationRunner(
+    onPresentationChanged: () {},
+    onSpawnFx: (_) {},
+    onScreenFlash: (_) {},
+    onCombatantMotion: (_) {},
+    onCombatantFlash: (_) {},
+    onCombatantShake: (_) {},
+    onFaintCombatant: (_) {},
+    onHudHpTween: (_) => events.add('hp'),
+    onBarrierPulse: (_) {},
+    onSwapCombatantVisual: (_) {},
+    onPlaySe: (step) => events.add(step.seName),
+    onStartTrackedEffect: (_, _) {
+      events.add('imported');
+      return () {};
+    },
+  );
+  const imported = BattleAnimationPlan(
+    steps: [StartTrackedEffectStep(effectId: 'particle')],
+  );
+  const fallback = BattleAnimationPlan(
+    steps: [
+      PlaySeStep(seName: 'legacy'),
+      HudHpTweenStep(side: BattleSideId.enemy, fromHp: 40, toHp: 20),
+    ],
+  );
+  runner.start(result.component == null ? fallback : imported);
+  return events;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'refuses scene playback before starting if projection is unavailable',
+    () async {
+      final loader = BattleVerifiedSplLoader(await bundle());
+      final result = await loader.create(
+        'particle',
+        emitters: schedule,
+        seed: 0,
+        poolCapacity: 16,
+        maxTicks: 80,
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 4,
+        onComplete: () => fail('played'),
+        onFailure: (_) => fail('played'),
+      );
+      addTearDown(() => result.component?.dispose());
+      expect(result.component, isNull);
+      expect(result.failure, BattleSplAdmissionFailure.projectionUnavailable);
+      expect(runWithManualFallback(result), ['legacy', 'hp']);
+    },
+  );
+
+  test('refuses missing and non-finite bindings before playback', () async {
+    final inspectedBundle = await bundle();
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    final cases = <({ui.Offset? foot, Vector2? anchor})>[
+      (foot: null, anchor: Vector2(190, 600)),
+      (foot: const ui.Offset(190, 600), anchor: null),
+      (foot: const ui.Offset(double.nan, 600), anchor: Vector2(190, 600)),
+      (foot: const ui.Offset(190, double.infinity), anchor: Vector2(190, 600)),
+      (foot: const ui.Offset(190, 600), anchor: Vector2(double.nan, 600)),
+      (foot: const ui.Offset(190, 600), anchor: Vector2(190, double.infinity)),
+    ];
+    for (final value in cases) {
+      final projection = BattleSplCameraProjection(
+        camera: camera,
+        bindings: [
+          BattleSplCameraBinding(
+            resolveNeutralFoot: () => value.foot,
+            resolveAnchor: () => value.anchor,
+          ),
+        ],
+      );
+      final result = await BattleVerifiedSplLoader(inspectedBundle).create(
+        'particle',
+        emitters: schedule,
+        seed: 0,
+        poolCapacity: 16,
+        maxTicks: 80,
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 4,
+        projection: projection,
+        onComplete: () => fail('played'),
+        onFailure: (_) => fail('played'),
+      );
+      expect(result.component, isNull, reason: '$value');
+      expect(
+        result.failure,
+        BattleSplAdmissionFailure.projectionUnavailable,
+        reason: '$value',
+      );
+    }
+  });
+
+  test('refuses a binding count that differs from the emitter count', () async {
+    final result = await BattleVerifiedSplLoader(await bundle()).create(
+      'particle',
+      emitters: [...schedule, ...schedule],
+      seed: 0,
+      poolCapacity: 16,
+      maxTicks: 80,
+      origin: ui.Offset.zero,
+      pixelsPerUnit: 4,
+      projection: testProjection(),
+      onComplete: () => fail('played'),
+      onFailure: (_) => fail('played'),
+    );
+    expect(result.component, isNull);
+    expect(result.failure, BattleSplAdmissionFailure.projectionUnavailable);
+  });
 
   test(
     'creates a static effect only from the verified versioned bundle',
@@ -118,6 +258,7 @@ void main() {
         maxTicks: 80,
         origin: const ui.Offset(10, 10),
         pixelsPerUnit: 4,
+        projection: testProjection(),
         onComplete: () => complete++,
         onFailure: (_) => fail('failure'),
       );
@@ -157,40 +298,13 @@ void main() {
       maxTicks: 80,
       origin: ui.Offset.zero,
       pixelsPerUnit: 4,
+      projection: testProjection(),
       onComplete: () => fail('played'),
       onFailure: (_) => fail('played'),
     );
     expect(result.component, isNull);
     expect(result.failure, BattleSplAdmissionFailure.poolExhausted);
-    final events = <String>[];
-    final runner = BattleAnimationRunner(
-      onPresentationChanged: () {},
-      onSpawnFx: (_) {},
-      onScreenFlash: (_) {},
-      onCombatantMotion: (_) {},
-      onCombatantFlash: (_) {},
-      onCombatantShake: (_) {},
-      onFaintCombatant: (_) {},
-      onHudHpTween: (_) => events.add('hp'),
-      onBarrierPulse: (_) {},
-      onSwapCombatantVisual: (_) {},
-      onPlaySe: (step) => events.add(step.seName),
-      onStartTrackedEffect: (_, _) {
-        events.add('imported');
-        return () {};
-      },
-    );
-    const imported = BattleAnimationPlan(
-      steps: [StartTrackedEffectStep(effectId: 'particle')],
-    );
-    const fallback = BattleAnimationPlan(
-      steps: [
-        PlaySeStep(seName: 'legacy'),
-        HudHpTweenStep(side: BattleSideId.enemy, fromHp: 40, toHp: 20),
-      ],
-    );
-    runner.start(result.component == null ? fallback : imported);
-    expect(events, ['legacy', 'hp']);
+    expect(runWithManualFallback(result), ['legacy', 'hp']);
   });
 
   test(
@@ -254,6 +368,7 @@ void main() {
         maxTicks: 80,
         origin: ui.Offset.zero,
         pixelsPerUnit: 4,
+        projection: testProjection(),
         onComplete: () => fail('played'),
         onFailure: (_) => fail('played'),
       ),
@@ -262,6 +377,44 @@ void main() {
     expect(created, isNotEmpty);
     expect(disposed, containsAll(created));
   });
+
+  test(
+    'projection lost during decoding refuses playback and releases images',
+    () async {
+      final loader = BattleVerifiedSplLoader(await bundle());
+      var valid = true;
+      final created = <ui.Image>[];
+      final disposed = <ui.Image>[];
+      final previousCreate = ui.Image.onCreate;
+      final previousDispose = ui.Image.onDispose;
+      ui.Image.onCreate = (image) {
+        created.add(image);
+        valid = false;
+      };
+      ui.Image.onDispose = disposed.add;
+      addTearDown(() {
+        ui.Image.onCreate = previousCreate;
+        ui.Image.onDispose = previousDispose;
+      });
+
+      final result = await loader.create(
+        'particle',
+        emitters: schedule,
+        seed: 0,
+        poolCapacity: 16,
+        maxTicks: 80,
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 4,
+        projection: testProjection(isValid: () => valid),
+        onComplete: () => fail('played'),
+        onFailure: (_) => fail('played'),
+      );
+      expect(result.component, isNull);
+      expect(result.failure, BattleSplAdmissionFailure.projectionUnavailable);
+      expect(created, isNotEmpty);
+      expect(disposed, containsAll(created));
+    },
+  );
 
   test('construction failure releases decoded images', () async {
     final loader = BattleVerifiedSplLoader(await bundle());
@@ -285,6 +438,7 @@ void main() {
         maxTicks: 80,
         origin: ui.Offset.zero,
         pixelsPerUnit: 0,
+        projection: testProjection(),
         onComplete: () => fail('played'),
         onFailure: (_) => fail('played'),
       ),

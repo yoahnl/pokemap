@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
+import 'battle_spl_camera_projection.dart';
 import 'battle_spl_static_admission.dart';
 import 'battle_spl_static_component.dart';
 
@@ -34,6 +35,7 @@ final class BattleVerifiedSplLoader {
     required int maxTicks,
     required ui.Offset origin,
     required double pixelsPerUnit,
+    BattleSplCameraProjection? projection,
     required void Function() onComplete,
     required void Function(BattleSplAdmissionFailure) onFailure,
   }) async {
@@ -46,6 +48,13 @@ final class BattleVerifiedSplLoader {
     );
     final definition = definitions[particleId];
     if (definition == null) throw const FormatException('Unknown SPL particle');
+    if (projection == null ||
+        projection.bindings.length != emitters.length ||
+        projection.capture() == null) {
+      return const BattleVerifiedSplPreparation._(
+        failure: BattleSplAdmissionFailure.projectionUnavailable,
+      );
+    }
     final ids = definition.textureIds.toList()..sort();
     final textureIndices = {for (var i = 0; i < ids.length; i++) ids[i]: i};
     final admitted = BattleSplStaticAdmission.prepare(
@@ -117,11 +126,20 @@ final class BattleVerifiedSplLoader {
         }
       }
       _checkActive();
+      final anchors = projection.capture();
+      if (anchors == null ||
+          anchors.any((anchor) => projection.project(anchor) == null)) {
+        return const BattleVerifiedSplPreparation._(
+          failure: BattleSplAdmissionFailure.projectionUnavailable,
+        );
+      }
       final component = BattleSplStaticComponent(
         playback: playback,
         textures: textures,
         origin: origin,
         pixelsPerUnit: pixelsPerUnit,
+        projection: projection,
+        initialAnchors: anchors,
         onComplete: onComplete,
         onFailure: onFailure,
       );

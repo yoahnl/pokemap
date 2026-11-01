@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -12,7 +13,10 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_camera_projection.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_stage_3d_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_spl_loader.dart';
 
 import '../../map_authoring/test/support/bw2_vm_trace.dart';
@@ -194,6 +198,35 @@ Future<Uint8List> _scenePixels(BattleOverlayComponent overlay) async {
   }
 }
 
+Future<Uint8List> _effectPixels(BattleSplStaticComponent effect) async {
+  final recorder = ui.PictureRecorder();
+  effect.render(ui.Canvas(recorder));
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(390, 844);
+  try {
+    return Uint8List.fromList(
+      (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!.buffer
+          .asUint8List(),
+    );
+  } finally {
+    image.dispose();
+    picture.dispose();
+  }
+}
+
+bool _hasPixelNear(Uint8List pixels, ui.Offset point, int radius) {
+  final left = math.max(0, (point.dx - radius).floor());
+  final right = math.min(389, (point.dx + radius).ceil());
+  final top = math.max(0, (point.dy - radius).floor());
+  final bottom = math.min(843, (point.dy + radius).ceil());
+  for (var y = top; y <= bottom; y++) {
+    for (var x = left; x <= right; x++) {
+      if (pixels[(y * 390 + x) * 4 + 3] != 0) return true;
+    }
+  }
+  return false;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -318,7 +351,7 @@ void main() {
             emitterIndex: int.parse(event.arguments[1]),
             startTick: event.call - firstEmitterCall,
             position: (
-              x: moving ? 0 : 8 * 4096,
+              x: 0,
               y: int.parse(event.arguments[moving ? 5 : 4]),
               z: 0,
             ),
@@ -326,19 +359,7 @@ void main() {
         );
       }
       late void Function() finishEffect;
-      final prepared = await BattleVerifiedSplLoader(source.bundle).create(
-        'particle',
-        emitters: schedule,
-        seed: 0,
-        poolCapacity: 128,
-        maxTicks: 200,
-        origin: const ui.Offset(90, 140),
-        pixelsPerUnit: 5,
-        onComplete: () => finishEffect(),
-        onFailure: (failure) => fail('Unexpected SPL failure: $failure'),
-      );
-      expect(prepared.failure, isNull);
-      final effect = prepared.component!..priority = 9999;
+      late BattleSplStaticComponent effect;
       const stats = BattleStatsSnapshot(
         attack: 20,
         defense: 20,
@@ -376,13 +397,99 @@ void main() {
           return effect.cancel;
         },
       );
-      overlay.add(effect);
       await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final camera = overlay.children
+          .whereType<BattleStage3DComponent>()
+          .single
+          .camera;
+      final player = overlay.debugPlayerCombatant!;
+      final enemy = overlay.debugEnemyCombatant!;
+      BattleSplCameraBinding binding(bool attacker) {
+        final actor = attacker ? player : enemy;
+        final slot = BattleSlotRef.active(
+          attacker ? BattleSideId.player : BattleSideId.enemy,
+        );
+        return BattleSplCameraBinding(
+          resolveNeutralFoot: () =>
+              overlay.currentSceneLayout.combatantGeometry(slot).footAnchor,
+          resolveAnchor: () {
+            if ((attacker
+                    ? overlay.debugPlayerCombatant
+                    : overlay.debugEnemyCombatant) !=
+                actor) {
+              return null;
+            }
+            final rect = actor.currentEffectAttachmentSpriteRect;
+            if (rect.isEmpty) return null;
+            return Vector2(rect.center.dx, rect.center.dy);
+          },
+        );
+      }
+
+      final projection = BattleSplCameraProjection(
+        camera: camera,
+        bindings: [
+          for (final event in emitterEvents)
+            binding(event.instruction == 'EmitterMove'),
+        ],
+      );
+      final prepared = await BattleVerifiedSplLoader(source.bundle).create(
+        'particle',
+        emitters: schedule,
+        seed: 0,
+        poolCapacity: 128,
+        maxTicks: 200,
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 5,
+        projection: projection,
+        onComplete: () => finishEffect(),
+        onFailure: (failure) => fail('Unexpected SPL failure: $failure'),
+      );
+      expect(prepared.failure, isNull);
+      effect = prepared.component!..priority = 9999;
+      overlay.add(effect);
+      overlay.findGame()!.processLifecycleEvents();
+      await effect.loaded;
+      overlay.findGame()!.processLifecycleEvents();
       addTearDown(() {
-        overlay.onRemove();
         effect.dispose();
       });
+      Future<bool> attachedPixels(int emitterIndex, bool attacker) async {
+        final actor = attacker ? player : enemy;
+        final slot = BattleSlotRef.active(
+          attacker ? BattleSideId.player : BattleSideId.enemy,
+        );
+        final frame = effect.playback.frames.singleWhere(
+          (value) => value.emitterIndex == emitterIndex,
+        );
+        final billboard = camera.tryBillboardAt(
+          overlay.currentSceneLayout.combatantGeometry(slot).footAnchor,
+        );
+        if (billboard == null) return false;
+        final anchor = actor.currentEffectAttachmentSpriteRect.center;
+        final pixels = await _effectPixels(effect);
+        for (final particle in frame.particles) {
+          if (particle.alpha5 == 0 || particle.scale4096 == 0) continue;
+          final point =
+              anchor +
+              ui.Offset(
+                (particle.motion.position.x + particle.emitterPosition.x) /
+                    4096 *
+                    5 *
+                    billboard.scale,
+                -(particle.motion.position.y + particle.emitterPosition.y) /
+                    4096 *
+                    5 *
+                    billboard.scale,
+              );
+          if (_hasPixelNear(pixels, point, 12)) return true;
+        }
+        return false;
+      }
+
+      final initialEye = camera.eye;
       overlay.presentPostBattlePlan(
         BattleAnimationPlan(
           steps: [
@@ -415,6 +522,7 @@ void main() {
       }
       expect(effect.playback.activeParticles, greaterThan(0));
       expect(sounds, isEmpty);
+      expect(await attachedPixels(0, true), isTrue);
       final visible = await _scenePixels(overlay);
       effect.scale.setValues(0, 0);
       final hidden = await _scenePixels(overlay);
@@ -430,9 +538,41 @@ void main() {
       }
       expect(changed, greaterThan(0));
 
-      int? cameraTick;
-      for (var i = 12; i < 205 && !sounds.contains('after'); i++) {
+      final playerBeforeMotion =
+          player.currentEffectAttachmentSpriteRect.center;
+      await player.playLunge(
+        towardOpponent: true,
+        distancePx: 45,
+        durationSeconds: .5,
+      );
+      for (var i = 0; i < 6; i++) {
         overlay.updateTree(1 / 60);
+      }
+      expect(
+        (player.currentEffectAttachmentSpriteRect.center - playerBeforeMotion)
+            .distance,
+        greaterThan(2),
+      );
+      expect(await attachedPixels(0, true), isTrue);
+
+      int? cameraTick;
+      var cameraMoved = false;
+      var cameraAttachmentChecked = false;
+      var impactAttachmentChecked = false;
+      for (var i = 18; i < 205 && !sounds.contains('after'); i++) {
+        overlay.updateTree(1 / 60);
+        cameraMoved = cameraMoved || camera.eye.distanceTo(initialEye) > .01;
+        if (cameraMoved && !cameraAttachmentChecked) {
+          expect(await attachedPixels(0, true), isTrue);
+          cameraAttachmentChecked = true;
+        }
+        final impact = effect.playback.frames.singleWhere(
+          (frame) => frame.emitterIndex == 3,
+        );
+        if (impact.particles.isNotEmpty && !impactAttachmentChecked) {
+          expect(await attachedPixels(3, false), isTrue);
+          impactAttachmentChecked = true;
+        }
         if (overlay.battleCameraFocusSubject?.slot.side == BattleSideId.enemy) {
           cameraTick ??= effect.playback.tick;
         }
@@ -447,6 +587,9 @@ void main() {
       expect(childSeen, isTrue);
       expect(effect.playback.activeParticles, 0);
       expect(cameraTick, isNotNull);
+      expect(cameraMoved, isTrue);
+      expect(cameraAttachmentChecked, isTrue);
+      expect(impactAttachmentChecked, isTrue);
       expect((cameraTick! - cameraStart).abs(), lessThanOrEqualTo(1));
       expect(markerTick, isNotNull);
       expect((markerTick! - soundStart).abs(), lessThanOrEqualTo(1));
