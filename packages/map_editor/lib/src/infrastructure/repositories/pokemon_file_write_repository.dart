@@ -100,16 +100,12 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     ProjectWorkspace workspace,
     PokemonLearnsetFile learnset,
   ) async {
-    final speciesId = learnset.speciesId.trim();
-    if (speciesId.isEmpty) {
-      throw const EditorValidationException(
-        'Pokemon learnset speciesId cannot be empty',
-      );
-    }
+    final speciesId = _safeSpeciesId(learnset.speciesId, 'learnset');
     await _writeJsonObject(
       workspace,
       'data/pokemon/learnsets/$speciesId.json',
       learnset.toJson(),
+      confinedKind: 'learnset',
     );
   }
 
@@ -118,17 +114,31 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     ProjectWorkspace workspace,
     PokemonEvolutionFile evolution,
   ) async {
-    final speciesId = evolution.speciesId.trim();
-    if (speciesId.isEmpty) {
-      throw const EditorValidationException(
-        'Pokemon evolution speciesId cannot be empty',
-      );
-    }
+    final speciesId = _safeSpeciesId(evolution.speciesId, 'evolution');
     await _writeJsonObject(
       workspace,
       'data/pokemon/evolutions/$speciesId.json',
       evolution.toJson(),
+      confinedKind: 'evolution',
     );
+  }
+
+  String _safeSpeciesId(String value, String kind) {
+    final id = value.trim();
+    if (id.isEmpty) {
+      throw EditorValidationException(
+        'Pokemon $kind speciesId cannot be empty',
+      );
+    }
+    if (id.contains('/') ||
+        id.contains(r'\') ||
+        id.contains('\u0000') ||
+        (Platform.isWindows && id.contains(':'))) {
+      throw EditorValidationException(
+        'Pokemon $kind speciesId must be a single file name',
+      );
+    }
+    return id;
   }
 
   @override
@@ -137,25 +147,28 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     PokemonMediaFile media,
   ) async {
     final speciesId = requireSafePokemonMediaId(media.speciesId);
-    final absolutePath = workspace.resolveProjectRelativePath(
-      'data/pokemon/media/$speciesId.json',
+    final absolutePath = await _validatePokemonWritePath(
+      workspace.projectRoot,
+      workspace.resolveProjectRelativePath(
+        'data/pokemon/media/$speciesId.json',
+      ),
     );
-    await _validateMediaWritePath(workspace.projectRoot, absolutePath);
     await workspace.ensureDirectoryExists(absolutePath);
     await File(
       absolutePath,
     ).writeAsString(const JsonEncoder.withIndent('  ').convert(media.toJson()));
   }
 
-  Future<void> _validateMediaWritePath(
+  Future<String> _validatePokemonWritePath(
     String projectRoot,
-    String absolutePath,
-  ) async {
+    String absolutePath, {
+    String kind = 'media',
+  }) async {
     final lexicalRoot = p.normalize(p.absolute(projectRoot));
     final lexicalPath = p.normalize(p.absolute(absolutePath));
     if (!p.isWithin(lexicalRoot, lexicalPath)) {
-      throw const EditorValidationException(
-        'Pokemon media path must stay inside the project',
+      throw EditorValidationException(
+        'Pokemon $kind path must stay inside the project',
       );
     }
     try {
@@ -168,17 +181,18 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
             FileSystemEntityType.link) {
           current = await Link(current).resolveSymbolicLinks();
           if (current != canonicalRoot && !p.isWithin(canonicalRoot, current)) {
-            throw const EditorValidationException(
-              'Pokemon media path resolves outside the project',
+            throw EditorValidationException(
+              'Pokemon $kind path resolves outside the project',
             );
           }
         }
       }
     } on FileSystemException {
-      throw const EditorValidationException(
-        'Pokemon media path cannot be resolved safely',
+      throw EditorValidationException(
+        'Pokemon $kind path cannot be resolved safely',
       );
     }
+    return lexicalPath;
   }
 
   @override
@@ -193,13 +207,29 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
         'Pokemon binary asset relativePath cannot be empty',
       );
     }
+    final portablePath = p.posix.normalize(
+      normalizedRelativePath.replaceAll(r'\', '/'),
+    );
+    if (normalizedRelativePath.contains('\u0000') ||
+        p.posix.isAbsolute(normalizedRelativePath) ||
+        p.windows.rootPrefix(normalizedRelativePath).isNotEmpty ||
+        RegExp(r'^[A-Za-z]:').hasMatch(normalizedRelativePath) ||
+        portablePath == '..' ||
+        portablePath.startsWith('../') ||
+        (Platform.isWindows && normalizedRelativePath.contains(':'))) {
+      throw const EditorValidationException(
+        'Pokemon binary asset path must stay inside the project',
+      );
+    }
     if (bytes.isEmpty) {
       throw const EditorValidationException(
         'Pokemon binary asset bytes cannot be empty',
       );
     }
-    final absolutePath = workspace.resolveProjectRelativePath(
-      normalizedRelativePath,
+    final absolutePath = await _validatePokemonWritePath(
+      workspace.projectRoot,
+      workspace.resolveProjectRelativePath(normalizedRelativePath),
+      kind: 'binary asset',
     );
     await workspace.ensureDirectoryExists(absolutePath);
     await File(absolutePath).writeAsBytes(bytes, flush: true);
@@ -208,9 +238,17 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
   Future<void> _writeJsonObject(
     ProjectWorkspace workspace,
     String relativePath,
-    Map<String, Object?> payload,
-  ) async {
-    final absolutePath = workspace.resolveProjectRelativePath(relativePath);
+    Map<String, Object?> payload, {
+    String? confinedKind,
+  }) async {
+    final resolvedPath = workspace.resolveProjectRelativePath(relativePath);
+    final absolutePath = confinedKind == null
+        ? resolvedPath
+        : await _validatePokemonWritePath(
+            workspace.projectRoot,
+            resolvedPath,
+            kind: confinedKind,
+          );
     await workspace.ensureDirectoryExists(absolutePath);
     await File(
       absolutePath,

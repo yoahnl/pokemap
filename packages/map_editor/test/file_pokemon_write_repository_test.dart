@@ -6,6 +6,8 @@ import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/pokemon_project_data_reader.dart';
+import 'package:map_editor/src/application/use_cases/import_pokemon_evolution_json_use_case.dart';
+import 'package:map_editor/src/application/use_cases/import_pokemon_learnset_json_use_case.dart';
 import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
@@ -86,6 +88,482 @@ void main() {
   });
 
   group('FilePokemonWriteRepository', () {
+    for (final kind in ['media', 'learnset', 'evolution', 'binary']) {
+      test(
+        'writes $kind to the checked path with a non-normalizing workspace',
+        () async {
+          final outside = await qaRunDirectory!.createTemp(
+            'pokemon_write_outside_',
+          );
+          addTearDown(() => outside.delete(recursive: true));
+          final bridge = await Directory(
+            p.join(outside.path, 'bridge'),
+          ).create();
+          await Link(
+            p.join(tempProjectRoot.path, 'bridge'),
+          ).create(bridge.path);
+          final path = switch (kind) {
+            'media' => 'data/pokemon/media/bulbasaur.json',
+            'learnset' => 'data/pokemon/learnsets/bulbasaur.json',
+            'evolution' => 'data/pokemon/evolutions/bulbasaur.json',
+            _ => 'assets/pokemon/sprites/bulbasaur.bin',
+          };
+          final target = File(p.join(outside.path, path));
+          await target.parent.create(recursive: true);
+          await target.writeAsBytes([1, 2, 3]);
+          final unnormalizedWorkspace = _UnnormalizedPokemonWorkspace(
+            tempProjectRoot.path,
+          );
+          switch (kind) {
+            case 'media':
+              await writeRepository.saveMedia(
+                unnormalizedWorkspace,
+                _bulbasaurMedia(),
+              );
+            case 'learnset':
+              await writeRepository.saveLearnset(
+                unnormalizedWorkspace,
+                const PokemonLearnsetFile(speciesId: 'bulbasaur'),
+              );
+            case 'evolution':
+              await writeRepository.saveEvolution(
+                unnormalizedWorkspace,
+                const PokemonEvolutionFile(speciesId: 'bulbasaur'),
+              );
+            default:
+              await writeRepository.saveBinaryAsset(
+                unnormalizedWorkspace,
+                relativePath: path,
+                bytes: [9, 8],
+              );
+          }
+          expect(await target.readAsBytes(), [1, 2, 3]);
+          final checkedPath = p.normalize(p.join(tempProjectRoot.path, path));
+          expect(await File(checkedPath).exists(), isTrue);
+          if (kind == 'binary') {
+            expect(await File(checkedPath).readAsBytes(), [9, 8]);
+          } else {
+            expect(
+              (jsonDecode(await File(checkedPath).readAsString())
+                  as Map)['speciesId'],
+              'bulbasaur',
+            );
+          }
+        },
+        skip: Platform.isWindows
+            ? 'Symbolic link creation may require elevated privileges.'
+            : false,
+      );
+    }
+
+    for (final kind in ['learnset', 'evolution', 'binary']) {
+      test(
+        'refuses $kind writes outside the project through traversal',
+        () async {
+          final outside = await qaRunDirectory!.createTemp(
+            'pokemon_write_outside_',
+          );
+          addTearDown(() => outside.delete(recursive: true));
+          final target = File(
+            p.join(outside.path, 'escape.${kind == 'binary' ? 'bin' : 'json'}'),
+          );
+          await target.writeAsBytes([1, 2, 3]);
+          final name = p.basename(outside.path);
+          final id = '../../../../$name/escape';
+          Object? failure;
+          try {
+            if (kind == 'learnset') {
+              await writeRepository.saveLearnset(
+                workspace,
+                PokemonLearnsetFile(speciesId: id),
+              );
+            } else if (kind == 'evolution') {
+              await writeRepository.saveEvolution(
+                workspace,
+                PokemonEvolutionFile(speciesId: id),
+              );
+            } else {
+              await writeRepository.saveBinaryAsset(
+                workspace,
+                relativePath: '../$name/escape.bin',
+                bytes: [9, 8],
+              );
+            }
+          } catch (error) {
+            failure = error;
+          }
+          expect(await target.readAsBytes(), [1, 2, 3]);
+          expect(failure, isA<EditorValidationException>());
+        },
+      );
+
+      for (final fileLink in [false, true]) {
+        test(
+          'refuses $kind writes through an external ${fileLink ? 'file' : 'directory'} link',
+          () async {
+            final outside = await qaRunDirectory!.createTemp(
+              'pokemon_write_outside_',
+            );
+            addTearDown(() => outside.delete(recursive: true));
+            final target = File(
+              p.join(
+                outside.path,
+                'bulbasaur.${kind == 'binary' ? 'bin' : 'json'}',
+              ),
+            );
+            await target.writeAsBytes([1, 2, 3]);
+            final directory = Directory(
+              workspace.resolveProjectRelativePath(switch (kind) {
+                'learnset' => 'data/pokemon/learnsets',
+                'evolution' => 'data/pokemon/evolutions',
+                _ => 'assets/pokemon/sprites',
+              }),
+            );
+            await directory.parent.create(recursive: true);
+            if (await directory.exists()) {
+              await directory.delete(recursive: true);
+            }
+            if (fileLink) {
+              await directory.create();
+              await Link(
+                p.join(directory.path, p.basename(target.path)),
+              ).create(target.path);
+            } else {
+              await Link(directory.path).create(outside.path);
+            }
+            Object? failure;
+            try {
+              if (kind == 'learnset') {
+                await writeRepository.saveLearnset(
+                  workspace,
+                  const PokemonLearnsetFile(speciesId: 'bulbasaur'),
+                );
+              } else if (kind == 'evolution') {
+                await writeRepository.saveEvolution(
+                  workspace,
+                  const PokemonEvolutionFile(speciesId: 'bulbasaur'),
+                );
+              } else {
+                await writeRepository.saveBinaryAsset(
+                  workspace,
+                  relativePath: 'assets/pokemon/sprites/bulbasaur.bin',
+                  bytes: [9, 8],
+                );
+              }
+            } catch (error) {
+              failure = error;
+            }
+            expect(await target.readAsBytes(), [1, 2, 3]);
+            expect(failure, isA<EditorValidationException>());
+          },
+          skip: Platform.isWindows
+              ? 'Symbolic link creation may require elevated privileges.'
+              : false,
+        );
+      }
+    }
+
+    for (final kind in ['learnset', 'evolution']) {
+      test('refuses unsafe $kind species identifiers', () async {
+        for (final id in ['nested/escape', r'nested\escape', 'bad\u0000id']) {
+          await expectLater(
+            () => kind == 'learnset'
+                ? writeRepository.saveLearnset(
+                    workspace,
+                    PokemonLearnsetFile(speciesId: id),
+                  )
+                : writeRepository.saveEvolution(
+                    workspace,
+                    PokemonEvolutionFile(speciesId: id),
+                  ),
+            throwsA(isA<EditorValidationException>()),
+            reason: id,
+          );
+        }
+      });
+
+      test('refuses path traversal through the $kind JSON import', () async {
+        final outside = await qaRunDirectory!.createTemp(
+          'pokemon_import_outside_',
+        );
+        addTearDown(() => outside.delete(recursive: true));
+        final target = File(p.join(outside.path, 'escape.json'));
+        await target.writeAsString('outside must remain unchanged');
+        final id = '../../../../${p.basename(outside.path)}/escape';
+        final payload = kind == 'learnset'
+            ? PokemonLearnsetFile(
+                speciesId: id,
+                startingMoves: const ['tackle'],
+              ).toJson()
+            : PokemonEvolutionFile(
+                speciesId: id,
+                preEvolution: 'bulbasaur',
+              ).toJson();
+        final source = File(p.join(outside.path, 'source.json'));
+        await source.writeAsString(jsonEncode(payload));
+        Object? failure;
+        try {
+          if (kind == 'learnset') {
+            await ImportPokemonLearnsetJsonUseCase(
+              writeRepository,
+            ).execute(workspace, absoluteSourcePath: source.path);
+          } else {
+            await ImportPokemonEvolutionJsonUseCase(
+              writeRepository,
+            ).execute(workspace, absoluteSourcePath: source.path);
+          }
+        } catch (error) {
+          failure = error;
+        }
+        expect(await target.readAsString(), 'outside must remain unchanged');
+        expect(failure, isA<EditorValidationException>());
+      });
+    }
+
+    test('rejects absolute, foreign-platform and null binary paths', () async {
+      final outside = await qaRunDirectory!.createTemp(
+        'pokemon_binary_outside_',
+      );
+      addTearDown(() => outside.delete(recursive: true));
+      final target = File(p.join(outside.path, 'asset.bin'));
+      await target.writeAsBytes([1, 2, 3]);
+      for (final path in [
+        target.path,
+        r'C:\outside\asset.bin',
+        r'C:asset.bin',
+        r'\\server\share\asset.bin',
+        r'..\outside\asset.bin',
+        'assets/bad\u0000id',
+      ]) {
+        await expectLater(
+          () => writeRepository.saveBinaryAsset(
+            workspace,
+            relativePath: path,
+            bytes: [9, 8],
+          ),
+          throwsA(isA<EditorValidationException>()),
+          reason: path,
+        );
+        expect(await target.readAsBytes(), [1, 2, 3]);
+      }
+    });
+
+    test('keeps binary paths normalized inside the project', () async {
+      for (final path in [
+        'assets/../front.png',
+        'assets/nested/../../front-deep.png',
+        r'assets\..\front-windows.png',
+      ]) {
+        await writeRepository.saveBinaryAsset(
+          workspace,
+          relativePath: path,
+          bytes: [1, 2, 3],
+        );
+        final destination = workspace.resolveProjectRelativePath(path);
+        expect(p.isWithin(tempProjectRoot.path, destination), isTrue);
+        expect(await File(destination).readAsBytes(), [1, 2, 3], reason: path);
+      }
+    });
+
+    test('rejects normalized binary paths that escape the project', () async {
+      final outside = await qaRunDirectory!.createTemp(
+        'pokemon_binary_outside_',
+      );
+      addTearDown(() => outside.delete(recursive: true));
+      final target = File(p.join(outside.path, 'escape.bin'));
+      await target.writeAsBytes([1, 2, 3]);
+      final name = p.basename(outside.path);
+      for (final path in [
+        'assets/../../$name/escape.bin',
+        r'assets\..\..\' + name + r'\escape.bin',
+      ]) {
+        await expectLater(
+          () => writeRepository.saveBinaryAsset(
+            workspace,
+            relativePath: path,
+            bytes: [9, 8],
+          ),
+          throwsA(isA<EditorValidationException>()),
+          reason: path,
+        );
+        expect(await target.readAsBytes(), [1, 2, 3], reason: path);
+      }
+    });
+
+    test(
+      'rejects an external file link after normalizing a binary path',
+      () async {
+        final outside = await qaRunDirectory!.createTemp(
+          'pokemon_binary_outside_',
+        );
+        addTearDown(() => outside.delete(recursive: true));
+        final target = File(p.join(outside.path, 'front.png'));
+        await target.writeAsBytes([1, 2, 3]);
+        await Link(
+          p.join(tempProjectRoot.path, 'front.png'),
+        ).create(target.path);
+        await expectLater(
+          () => writeRepository.saveBinaryAsset(
+            workspace,
+            relativePath: 'assets/../front.png',
+            bytes: [9, 8],
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+        expect(await target.readAsBytes(), [1, 2, 3]);
+      },
+      skip: Platform.isWindows
+          ? 'Symbolic link creation may require elevated privileges.'
+          : false,
+    );
+
+    test('keeps valid binary paths and Pokemon identities', () async {
+      for (final id in ['mr-mime', 'Forme Étoile_1', 'type.feu']) {
+        await writeRepository.saveLearnset(
+          workspace,
+          PokemonLearnsetFile(speciesId: id),
+        );
+        await writeRepository.saveEvolution(
+          workspace,
+          PokemonEvolutionFile(speciesId: id),
+        );
+        expect(
+          await File(
+            workspace.resolveProjectRelativePath(
+              'data/pokemon/learnsets/$id.json',
+            ),
+          ).exists(),
+          isTrue,
+        );
+        expect(
+          await File(
+            workspace.resolveProjectRelativePath(
+              'data/pokemon/evolutions/$id.json',
+            ),
+          ).exists(),
+          isTrue,
+        );
+      }
+      final path = p.join(
+        'assets',
+        'pokemon',
+        'sprites',
+        'nested',
+        'bulbasaur.bin',
+      );
+      await writeRepository.saveBinaryAsset(
+        workspace,
+        relativePath: path,
+        bytes: [1, 2, 3],
+      );
+      expect(
+        await File(workspace.resolveProjectRelativePath(path)).readAsBytes(),
+        [1, 2, 3],
+      );
+    });
+
+    for (final kind in ['learnset', 'evolution', 'binary']) {
+      test(
+        'keeps $kind directory links whose targets stay in the project',
+        () async {
+          final internal = await Directory(
+            p.join(tempProjectRoot.path, 'internal_$kind'),
+          ).create();
+          final directory = Directory(
+            workspace.resolveProjectRelativePath(switch (kind) {
+              'learnset' => 'data/pokemon/learnsets',
+              'evolution' => 'data/pokemon/evolutions',
+              _ => 'assets/pokemon/sprites',
+            }),
+          );
+          await directory.parent.create(recursive: true);
+          if (await directory.exists()) await directory.delete(recursive: true);
+          await Link(directory.path).create(internal.path);
+          if (kind == 'learnset') {
+            await writeRepository.saveLearnset(
+              workspace,
+              const PokemonLearnsetFile(speciesId: 'bulbasaur'),
+            );
+          } else if (kind == 'evolution') {
+            await writeRepository.saveEvolution(
+              workspace,
+              const PokemonEvolutionFile(speciesId: 'bulbasaur'),
+            );
+          } else {
+            await writeRepository.saveBinaryAsset(
+              workspace,
+              relativePath: 'assets/pokemon/sprites/bulbasaur.bin',
+              bytes: [1, 2, 3],
+            );
+          }
+          expect(
+            await File(
+              p.join(
+                internal.path,
+                'bulbasaur.${kind == 'binary' ? 'bin' : 'json'}',
+              ),
+            ).exists(),
+            isTrue,
+          );
+        },
+        skip: Platform.isWindows
+            ? 'Symbolic link creation may require elevated privileges.'
+            : false,
+      );
+
+      test(
+        'refuses $kind writes through a dangling link',
+        () async {
+          final outside = await qaRunDirectory!.createTemp(
+            'pokemon_write_outside_',
+          );
+          addTearDown(() => outside.delete(recursive: true));
+          final target = File(
+            p.join(
+              outside.path,
+              'missing.${kind == 'binary' ? 'bin' : 'json'}',
+            ),
+          );
+          final directory = Directory(
+            workspace.resolveProjectRelativePath(switch (kind) {
+              'learnset' => 'data/pokemon/learnsets',
+              'evolution' => 'data/pokemon/evolutions',
+              _ => 'assets/pokemon/sprites',
+            }),
+          );
+          await directory.create(recursive: true);
+          await Link(
+            p.join(
+              directory.path,
+              'bulbasaur.${kind == 'binary' ? 'bin' : 'json'}',
+            ),
+          ).create(target.path);
+          await expectLater(
+            () => switch (kind) {
+              'learnset' => writeRepository.saveLearnset(
+                workspace,
+                const PokemonLearnsetFile(speciesId: 'bulbasaur'),
+              ),
+              'evolution' => writeRepository.saveEvolution(
+                workspace,
+                const PokemonEvolutionFile(speciesId: 'bulbasaur'),
+              ),
+              _ => writeRepository.saveBinaryAsset(
+                workspace,
+                relativePath: 'assets/pokemon/sprites/bulbasaur.bin',
+                bytes: [1],
+              ),
+            },
+            throwsA(isA<EditorValidationException>()),
+          );
+          expect(await target.exists(), isFalse);
+        },
+        skip: Platform.isWindows
+            ? 'Symbolic link creation may require elevated privileges.'
+            : false,
+      );
+    }
+
     test(
       'refuses media write through a directory link outside the project',
       () async {
@@ -1079,6 +1557,14 @@ void main() {
       },
     );
   });
+}
+
+final class _UnnormalizedPokemonWorkspace extends ProjectFileSystem {
+  _UnnormalizedPokemonWorkspace(super.projectRoot);
+
+  @override
+  String resolveProjectRelativePath(String relativePath) =>
+      '$projectRoot${p.separator}bridge${p.separator}..${p.separator}$relativePath';
 }
 
 final class _TrackingPokemonProjectDataReader extends PokemonProjectDataReader {
