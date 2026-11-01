@@ -4,19 +4,26 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:map_core/map_core.dart';
 
+import 'battle_live_attachment.dart';
 import 'battle_particle_timeline.dart';
 
-final class BattleParticleSyntheticComponent extends PositionComponent {
+final class BattleParticleSyntheticComponent extends PositionComponent
+    implements BattleLiveAttachment {
   BattleParticleSyntheticComponent({
     required BattleParticleDefinition definition,
     required Map<String, ui.Image> textures,
     required List<ui.Offset> centers,
+    List<BattleLivePointResolver>? centerResolvers,
     required int maxTextures,
     required int maxDimension,
     required int maxTotalPixels,
     this.onComplete,
+    this.onInvalidated,
   }) : _timeline = BattleParticleTimeline.fromDefinition(definition),
-       _centers = List.unmodifiable(centers) {
+       _centers = [for (final center in centers) Vector2(center.dx, center.dy)],
+       _centerResolvers = centerResolvers == null
+           ? null
+           : List.unmodifiable(centerResolvers) {
     final requiredIds = definition.emitters
         .map((value) => value.textureId)
         .toSet();
@@ -26,6 +33,9 @@ final class BattleParticleSyntheticComponent extends PositionComponent {
         requiredIds.length > maxTextures ||
         centers.length != definition.emitters.length ||
         centers.any((center) => !center.dx.isFinite || !center.dy.isFinite) ||
+        (centerResolvers != null &&
+            (centerResolvers.length != definition.emitters.length ||
+                onInvalidated == null)) ||
         textures.length != requiredIds.length ||
         !requiredIds.containsAll(textures.keys)) {
       throw const FormatException('Invalid synthetic particle resources');
@@ -61,11 +71,13 @@ final class BattleParticleSyntheticComponent extends PositionComponent {
   }
 
   final BattleParticleTimeline _timeline;
-  final List<ui.Offset> _centers;
+  final List<Vector2> _centers;
+  final List<BattleLivePointResolver>? _centerResolvers;
   final Map<String, ui.Image> _textures = {};
   final Map<(int, int), BattleParticleEvent> _activeBatches = {};
   final ui.Paint _paint = ui.Paint()..filterQuality = ui.FilterQuality.none;
   final void Function()? onComplete;
+  final void Function()? onInvalidated;
   double _fractionalMicros = 0;
   bool _disposed = false;
   bool _completionNotified = false;
@@ -73,6 +85,27 @@ final class BattleParticleSyntheticComponent extends PositionComponent {
   bool get hasPendingEvents => _timeline.hasPendingEvents;
   bool get isComplete => _timeline.isComplete;
   int get activeParticles => _timeline.activeParticles;
+
+  @override
+  bool refreshAttachment() {
+    if (_disposed || _timeline.isCancelled || _timeline.isComplete) {
+      return false;
+    }
+    final resolvers = _centerResolvers;
+    if (resolvers == null) return true;
+    for (var index = 0; index < resolvers.length; index++) {
+      if (!refreshBattleLivePoint(resolvers[index], _centers[index])) {
+        dispose();
+        try {
+          onInvalidated!();
+        } finally {
+          removeBattleLiveAttachment(this);
+        }
+        return false;
+      }
+    }
+    return true;
+  }
 
   @override
   void update(double dt) {
@@ -84,6 +117,7 @@ final class BattleParticleSyntheticComponent extends PositionComponent {
         dt < 0) {
       return;
     }
+    if (!refreshAttachment()) return;
     final micros = math.min(dt, 120.0) * 1000000 + _fractionalMicros;
     final wholeMicros = micros.floor();
     _fractionalMicros = micros - wholeMicros;
@@ -110,8 +144,8 @@ final class BattleParticleSyntheticComponent extends PositionComponent {
       final image = _textures[event.textureId]!;
       final center = _centers[event.emitterIndex];
       final offset = ui.Offset(
-        center.dx - image.width / 2,
-        center.dy - image.height / 2,
+        center.x - image.width / 2,
+        center.y - image.height / 2,
       );
       for (var index = 0; index < event.count; index++) {
         canvas.drawImage(image, offset, _paint);

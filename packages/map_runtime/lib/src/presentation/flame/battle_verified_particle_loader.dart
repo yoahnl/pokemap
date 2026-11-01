@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
+import 'battle_live_attachment.dart';
 import 'battle_particle_synthetic_component.dart';
 
 final class BattleVerifiedParticleLoader {
@@ -23,7 +24,9 @@ final class BattleVerifiedParticleLoader {
   Future<BattleParticleSyntheticComponent> create(
     String particleId, {
     required List<ui.Offset> centers,
+    List<BattleLivePointResolver>? centerResolvers,
     void Function()? onComplete,
+    void Function()? onInvalidated,
   }) async {
     if (_started) throw StateError('Particle loader already used');
     _started = true;
@@ -62,10 +65,12 @@ final class BattleVerifiedParticleLoader {
         definition: definition,
         textures: textures,
         centers: centers,
+        centerResolvers: centerResolvers,
         maxTextures: ids.length,
         maxDimension: maxDimension,
         maxTotalPixels: totalPixels,
         onComplete: onComplete,
+        onInvalidated: onInvalidated,
       );
     } finally {
       for (final image in textures.values) {

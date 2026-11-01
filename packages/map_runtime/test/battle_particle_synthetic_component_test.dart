@@ -9,6 +9,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
+import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_particle_synthetic_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_particle_loader.dart';
@@ -99,7 +100,11 @@ BattleParticleDefinition definition(
   )['particle']!;
 }
 
-Future<List<int>> frame(BattleParticleSyntheticComponent component) async {
+Future<List<int>> frame(
+  BattleParticleSyntheticComponent component, {
+  int x = 2,
+  int y = 2,
+}) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   component.render(canvas);
@@ -107,21 +112,25 @@ Future<List<int>> frame(BattleParticleSyntheticComponent component) async {
   final image = await picture.toImage(8, 8);
   final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
   final pixel = List<int>.of(
-    data.buffer.asUint8List().sublist((2 * 8 + 2) * 4, (2 * 8 + 2) * 4 + 4),
+    data.buffer.asUint8List().sublist((y * 8 + x) * 4, (y * 8 + x) * 4 + 4),
   );
   image.dispose();
   picture.dispose();
   return pixel;
 }
 
-Future<List<int>> sceneFrame(BattleOverlayComponent overlay) async {
+Future<List<int>> sceneFrame(
+  BattleOverlayComponent overlay, {
+  int x = 2,
+  int y = 2,
+}) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   overlay.renderTree(canvas);
   final picture = recorder.endRecording();
   final image = await picture.toImage(390, 844);
   final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
-  final offset = (2 * 390 + 2) * 4;
+  final offset = (y * 390 + x) * 4;
   final pixel = List<int>.of(
     data.buffer.asUint8List().sublist(offset, offset + 4),
   );
@@ -226,6 +235,144 @@ InspectedBattleRecipeBundle inspectedFixture(Uint8List png) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('follows a live anchor and stops when its subject disappears', () async {
+    final image = await redTexture();
+    final png = Uint8List.fromList(
+      (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer
+          .asUint8List(),
+    );
+    final center = Vector2(3, 3);
+    var subjectIsCurrent = true;
+    var invalidations = 0;
+    var completions = 0;
+    final created = <ui.Image>[];
+    final disposed = <ui.Image>[];
+    final previousCreate = ui.Image.onCreate;
+    final previousDispose = ui.Image.onDispose;
+    ui.Image.onCreate = created.add;
+    ui.Image.onDispose = disposed.add;
+    final component = BattleParticleSyntheticComponent(
+      definition: definition(png),
+      textures: {'tex': image},
+      centers: const [ui.Offset(3, 3)],
+      centerResolvers: [() => subjectIsCurrent ? center : null],
+      maxTextures: 1,
+      maxDimension: 8,
+      maxTotalPixels: 64,
+      onComplete: () => completions++,
+      onInvalidated: () => invalidations++,
+    );
+    final ownedImage = created.single;
+    addTearDown(() {
+      component.dispose();
+      image.dispose();
+      ui.Image.onCreate = previousCreate;
+      ui.Image.onDispose = previousDispose;
+    });
+    component.update(0);
+    expect(await frame(component), [255, 0, 0, 255]);
+    center.setValues(6, 6);
+    component.update(0);
+    expect(await frame(component), [0, 0, 0, 0]);
+    expect(await frame(component, x: 5, y: 5), [255, 0, 0, 255]);
+    subjectIsCurrent = false;
+    component.update(0);
+    expect(await frame(component, x: 5, y: 5), [0, 0, 0, 0]);
+    expect(disposed.any((value) => identical(value, ownedImage)), isTrue);
+    expect(invalidations, 1);
+    expect(completions, 0);
+    component.update(1);
+    expect(invalidations, 1);
+    expect(completions, 0);
+  });
+
+  test('verified particles retain live attachment and invalidation', () async {
+    final image = await redTexture();
+    final png = Uint8List.fromList(
+      (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer
+          .asUint8List(),
+    );
+    image.dispose();
+    final center = Vector2(3, 3);
+    var valid = true;
+    var invalidations = 0;
+    final component = await BattleVerifiedParticleLoader(inspectedFixture(png))
+        .create(
+          'particle',
+          centers: const [ui.Offset(3, 3)],
+          centerResolvers: [() => valid ? center : null],
+          onInvalidated: () => invalidations++,
+        );
+    addTearDown(component.dispose);
+    component.update(0);
+    center.setValues(6, 6);
+    expect(component.refreshAttachment(), isTrue);
+    expect(await frame(component, x: 5, y: 5), [255, 0, 0, 255]);
+    valid = false;
+    expect(component.refreshAttachment(), isFalse);
+    expect(await frame(component, x: 5, y: 5), [0, 0, 0, 0]);
+    expect(invalidations, 1);
+  });
+
+  test('an invalid anchor releases its tracked effect barrier', () async {
+    final image = await redTexture();
+    final png = Uint8List.fromList(
+      (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer
+          .asUint8List(),
+    );
+    var center = Vector2(3, 3);
+    late void Function() finishEffect;
+    final component = BattleParticleSyntheticComponent(
+      definition: definition(png),
+      textures: {'tex': image},
+      centers: const [ui.Offset(3, 3)],
+      centerResolvers: [() => center],
+      maxTextures: 1,
+      maxDimension: 8,
+      maxTotalPixels: 64,
+      onComplete: () => finishEffect(),
+      onInvalidated: () => finishEffect(),
+    );
+    addTearDown(() {
+      component.dispose();
+      image.dispose();
+    });
+    final events = <String>[];
+    final runner = BattleAnimationRunner(
+      onPresentationChanged: () {},
+      onSpawnFx: (_) {},
+      onScreenFlash: (_) {},
+      onCombatantMotion: (_) {},
+      onCombatantFlash: (_) {},
+      onCombatantShake: (_) {},
+      onFaintCombatant: (_) {},
+      onHudHpTween: (_) {},
+      onBarrierPulse: (_) {},
+      onSwapCombatantVisual: (_) {},
+      onPlaySe: (step) => events.add(step.seName),
+      onStartTrackedEffect: (_, finish) {
+        finishEffect = finish;
+        return component.cancel;
+      },
+    );
+    runner.start(
+      const BattleAnimationPlan(
+        steps: [
+          StartTrackedEffectStep(effectId: 'particle'),
+          WaitTrackedEffectsStep(),
+          PlaySeStep(seName: 'after'),
+        ],
+      ),
+    );
+    component.update(0);
+    expect(events, isEmpty);
+    center = Vector2(double.nan, 3);
+    component.update(0);
+    runner.update(0);
+    expect(events, ['after']);
+    expect(await frame(component), [0, 0, 0, 0]);
+  });
 
   test('renders the inspected snapshot after the input bytes change', () async {
     final original = await redTexture();
@@ -396,6 +543,18 @@ void main() {
     expect(
       () => BattleParticleSyntheticComponent(
         definition: spec,
+        textures: {'tex': image},
+        centers: const [ui.Offset(3, 3)],
+        centerResolvers: [() => Vector2(3, 3)],
+        maxTextures: 1,
+        maxDimension: 8,
+        maxTotalPixels: 64,
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => BattleParticleSyntheticComponent(
+        definition: spec,
         textures: const {},
         centers: const [ui.Offset(3, 3)],
         maxTextures: 1,
@@ -483,14 +642,17 @@ void main() {
       final decoded = (await codec.getNextFrame()).image;
       codec.dispose();
       late void Function() complete;
+      final center = Vector2(3, 3);
       final component = BattleParticleSyntheticComponent(
         definition: definition(png),
         textures: {'tex': decoded},
         centers: const [ui.Offset(3, 3)],
+        centerResolvers: [() => center],
         maxTextures: 1,
         maxDimension: 8,
         maxTotalPixels: 64,
         onComplete: () => complete(),
+        onInvalidated: () => complete(),
       );
       component.priority = 9999;
       decoded.dispose();
@@ -547,7 +709,11 @@ void main() {
       expect(await frame(component), [255, 0, 0, 255]);
       expect(await sceneFrame(overlay), [255, 0, 0, 255]);
       expect(sounds, isEmpty);
-      overlay.updateTree(.049);
+      center.setValues(6, 6);
+      overlay.updateTree(.001);
+      expect(await frame(component), [0, 0, 0, 0]);
+      expect(await sceneFrame(overlay, x: 5, y: 5), [255, 0, 0, 255]);
+      overlay.updateTree(.048);
       expect(sounds, isEmpty);
       overlay.updateTree(.001);
       expect(await frame(component), [0, 0, 0, 0]);
