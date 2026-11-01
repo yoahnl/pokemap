@@ -1493,6 +1493,12 @@ final class SpatialExplorationGameSessionRuntime
           'The project requires ${SpatialGameplayCapabilities.periodicRewardConditionCapabilityId}.',
         );
       }
+      if (SpatialEntityModelOwnership.requiresCapability([bundle.map]) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+          )) {
+        throw StateError('The project requires ${SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}.');
+      }
       if (SpatialGameplayCapabilities.requiresConditionalModelVisibility([bundle.map]) &&
           !descriptor.grantedCapabilities.contains(
             SpatialModelInstance.conditionalVisibilityCapabilityId,
@@ -1565,6 +1571,12 @@ final class SpatialExplorationGameSessionRuntime
           generation: generation,
           narrativeSnapshot: preload?.narrativeSnapshot);
       _ensureLoadActive(generation);
+      if (SpatialEntityModelOwnership.requiresCapability(_mapsById.values) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+          )) {
+        throw StateError('The prepared maps require ${SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}.');
+      }
       final loaded = await SpatialExplorationSession.load(bundle,
           allowNpcOverlapRecovery: descriptor.launchMode == GameSessionLaunchMode.continueGame,
           loadMap: (id) async {
@@ -1581,6 +1593,12 @@ final class SpatialExplorationGameSessionRuntime
             throw StateError(
               'The map requires ${SpatialGameplayCapabilities.ladderCapabilityId}.',
             );
+          }
+          if (SpatialEntityModelOwnership.requiresCapability([next.map]) &&
+              !descriptor.grantedCapabilities.contains(
+                SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+              )) {
+            throw StateError('The map requires ${SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}.');
           }
           if (SpatialGameplayCapabilities.requiresConditionalModelVisibility([next.map]) &&
               !descriptor.grantedCapabilities.contains(

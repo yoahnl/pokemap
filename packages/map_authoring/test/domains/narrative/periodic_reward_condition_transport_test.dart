@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/src/domains/maps/spatial_map_actions.dart';
+import 'package:map_authoring/src/support/authoring_fingerprint.dart';
 import 'package:map_authoring/src/transactions/authoring_payload.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_spatial_map_selection.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
@@ -13,6 +14,281 @@ import 'package:test/test.dart';
 
 void main() {
   for (final entity in [false, true]) {
+    for (final unrelated in [0, 80]) {
+      test('property snapshot reads exact bytes without map spooling entity=$entity foreign=$unrelated', () async {
+        final fixture = await _Fixture.create(catalog: true, wire: false,
+            unrelated: unrelated, spatial: true);
+        addTearDown(fixture.dispose);
+        final file = File('${fixture.root.path}/maps/route.json');
+        final document = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+        final raw = utf8.encode(' \n${jsonEncode({...document, 'opaqueField': {'value': 'été😀'}})}\n ');
+        await file.writeAsBytes(raw);
+        for (var index = 0; index < unrelated; index++) {
+          await File('${fixture.root.path}/maps/foreign-$index.json')
+              .writeAsString('unrelated map must remain unread');
+        }
+        final gateway = _PropertyReadGateway(await LocalTransactionFileGateway.open(
+            projectRoot: fixture.root.path));
+        final captured = (await gateway.delegate.captureResourcePayload('maps/route.json'))!;
+        final capturedRevision = captured.resourceRevision;
+        expect(await captured.readBytes(), raw);
+        await captured.release();
+        for (var repeat = 0; repeat < 2; repeat++) {
+          gateway.clear();
+          final temp = _PropertyTempDirectory(Directory.systemTemp);
+          final selection = await IOOverrides.runZoned(
+              () => _readProperty(fixture, entity, gateway), getSystemTempDirectory: () => temp);
+          final revision = computeAuthoringBytesFingerprint(raw, logicalName: 'maps/route.json');
+          expect(selection.snapshot.resourceBytes('map:route'), raw);
+          expect(selection.mapRevision, revision);
+          expect(selection.mapRevision, capturedRevision);
+          expect(selection.snapshot.resourceFingerprints['map:route'], revision);
+          expect(selection.snapshot.revision, CatalogSpatialMapSelection.fingerprint(
+              selection.catalogRevision, 'route', revision));
+          expect(gateway.reads.where((path) => path.startsWith('maps/')), ['maps/route.json']);
+          expect(gateway.captures.where((path) => path.startsWith('maps/')), isEmpty);
+          expect(gateway.captures, ['project.json']);
+          expect(temp.created, ['pokemap-authoring-payload-']);
+          expect(gateway.revisions.where((path) => path.startsWith('maps/')), ['maps/route.json']);
+          expect(gateway.reads.where((path) => path.endsWith('.glb') || path.endsWith('history.jsonl')), isEmpty);
+        }
+      });
+    }
+    for (final mutation in ['map', 'descriptor', 'root', 'disappearance']) {
+      test('property snapshot refuses mutation before final check entity=$entity mutation=$mutation', () async {
+        final fixture = await _Fixture.create(catalog: true, wire: false,
+            unrelated: 0, spatial: true);
+        addTearDown(fixture.dispose);
+        var changed = false;
+        final gateway = _PropertyReadGateway(await LocalTransactionFileGateway.open(
+            projectRoot: fixture.root.path));
+        gateway.afterRead = (path) async {
+          if (path != 'maps/route.json' || changed) return;
+          changed = true;
+          final file = File('${fixture.root.path}/$path');
+          if (mutation == 'map') {
+            await file.writeAsString('${await file.readAsString()} ');
+          } else if (mutation == 'disappearance') {
+            await file.delete();
+          } else if (mutation == 'descriptor') {
+            await fixture.manifest.writeAsString('{}');
+          } else {
+            final store = await CatalogStorageStore.open(projectRoot: fixture.root.path);
+            final head = (await store.readHead())!;
+            await File('${fixture.root.path}/${CatalogStorageStore.headStorageKey}').writeAsBytes(
+                CatalogStorageStore.encodeHead(CatalogObjectReference(sha256: '0' * 64, byteLength: head.byteLength)));
+          }
+        };
+        await expectLater(_readProperty(fixture, entity, gateway), throwsA(isA<Exception>()));
+        expect(changed, isTrue);
+      });
+    }
+    for (final mutate in [false, true]) {
+      test('property snapshot checks exact condition map dependency entity=$entity mutate=$mutate', () async {
+        final fixture = await _Fixture.create(catalog: true, wire: false,
+            unrelated: 80, spatial: true);
+        addTearDown(fixture.dispose);
+        final gateway = _PropertyReadGateway(await LocalTransactionFileGateway.open(
+            projectRoot: fixture.root.path));
+        final path = 'maps/foreign-0.json';
+        final dependency = File('${fixture.root.path}/$path');
+        final before = await dependency.readAsBytes();
+        final expression = NarrativeEventConditionExpression.leaf(
+            NarrativeEventCondition.mapEventInstanceBoolean(mapId: 'foreign-0',
+                eventId: 'tree', key: 'A', expectedValue: false));
+        if (mutate) gateway.afterRead = (read) async {
+          if (read == path) await dependency.writeAsBytes([...before, 32]);
+        };
+        final parameters = <String, Object?>{'mapId': 'route',
+          if (entity) ...{'entityId': 'anchor', 'presentation': MapEntityPresentation(variants: [
+            MapEntityPresentationVariant(id: 'variant', condition: expression, blocksMovement: false)]).toJson()}
+          else ...{'instanceId': 'tree', 'visibilityCondition': expression.toJson()}};
+        final pending = _readProperty(fixture, entity, gateway, parameters: parameters);
+        if (mutate) {
+          await expectLater(pending, throwsA(isA<Exception>()));
+        } else {
+          final selected = await pending;
+          expect(selected.snapshot.resourceBytes('map:foreign-0'), before);
+          expect(selected.snapshot.scopedStorageRevisions![path],
+              computeAuthoringBytesFingerprint(before, logicalName: path));
+          expect(gateway.captures.where((path) => path.startsWith('maps/')), isEmpty);
+          expect(gateway.reads.where((path) => path.startsWith('maps/')),
+              ['maps/route.json', path]);
+          expect(gateway.revisions.where((path) => path.startsWith('maps/')),
+              ['maps/route.json', path]);
+        }
+      });
+    }
+    for (final invalid in ['missing', 'invalid-json', 'identity']) {
+      test('property snapshot refuses $invalid owner entity=$entity', () async {
+        final fixture = await _Fixture.create(catalog: true, wire: false, unrelated: 0, spatial: true);
+        addTearDown(fixture.dispose);
+        final file = File('${fixture.root.path}/maps/route.json');
+        if (invalid == 'missing') {
+          await file.delete();
+        } else if (invalid == 'invalid-json') {
+          await file.writeAsString('{');
+        } else {
+          final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+          await file.writeAsString(jsonEncode({...raw, 'id': 'wrong'}));
+        }
+        final gateway = _PropertyReadGateway(await LocalTransactionFileGateway.open(projectRoot: fixture.root.path));
+        await expectLater(_readProperty(fixture, entity, gateway), throwsA(isA<Exception>()));
+        expect(gateway.captures.where((path) => path.startsWith('maps/')), isEmpty);
+      });
+    }
+    test('property setter keeps unknown fields rejected before writes entity=$entity', () async {
+      final fixture = await _Fixture.create(catalog: true, wire: false, unrelated: 0, spatial: true);
+      addTearDown(fixture.dispose);
+      final file = File('${fixture.root.path}/maps/route.json');
+      final before = await file.readAsBytes();
+      final condition = NarrativeEventConditionExpression.all([]);
+      await expectLater(fixture.plan(entity ? 'entity.set_presentation' : 'map3d.instance.visibility.set', {
+        'mapId': 'route', 'unknown': true,
+        if (entity) ...{'entityId': 'anchor', 'presentation': null}
+        else ...{'instanceId': 'tree', 'visibilityCondition': condition.toJson()}}),
+          throwsA(isA<Exception>()));
+      expect(await file.readAsBytes(), before);
+    });
+  }
+  test('property snapshot retains capture for unrelated property actions', () async {
+    final fixture = await _Fixture.create(catalog: true, wire: false, unrelated: 0, spatial: true);
+    addTearDown(fixture.dispose);
+    final gateway = _PropertyReadGateway(await LocalTransactionFileGateway.open(projectRoot: fixture.root.path));
+    final store = CatalogStorageStore(projectRoot: fixture.root.path, reader: fixture.reader, gateway: gateway);
+    final reader = (await CatalogProjectReader.open(store: store,
+        descriptor: Map<String, Object?>.from(jsonDecode(await fixture.manifest.readAsString()) as Map),
+        metadataFields: {}))!;
+    await CatalogSpatialMapSelection.read(reader: reader,
+        projectHandle: fixture.opened.projectHandle, actionId: 'map3d.camera.configure',
+        parameters: {'mapId': 'route'});
+    expect(gateway.captures.where((path) => path.startsWith('maps/')), ['maps/route.json']);
+    expect(gateway.reads.where((path) => path.startsWith('maps/')), isEmpty);
+  });
+  for (final entity in [false, true]) {
+    for (final unrelated in [0, 80]) {
+      test('canonical periodic translate preserves unchanged objects entity=$entity foreign=$unrelated', () async {
+        final value = await _ProvenanceFixture.create(entity: entity, unrelated: unrelated);
+        addTearDown(value.dispose);
+        value.fixture.reader.clear();
+        for (var repeat = 0; repeat < 2; repeat++) {
+          value.checks.clear();
+          final translated = await value.selection.translate(value.plan);
+          final translateChecks = Map<String, int>.of(value.checks);
+          final maps = translated.validatedMaps.single.mapsFor(value.change,
+              catalogRevision: value.selection.catalogRevision, request: value.plan.request);
+          final original = value.selection.snapshot.mapById('route')!;
+          expect(entity ? identical(maps.after.spatialScene, original.spatialScene)
+              : identical(maps.after.entities.single, original.entities.single), isTrue);
+          expect(translateChecks, {'after': 2});
+        }
+        expect(value.fixture.reader.paths, isEmpty);
+        expect(value.fixture.reader.definitions, isEmpty);
+      });
+    }
+    for (final representation in ['whitespace', 'key-order', 'unknown-field']) {
+      test('periodic translate keeps semantic fallback for $representation entity=$entity', () async {
+        final value = await _ProvenanceFixture.create(entity: entity);
+        addTearDown(value.dispose);
+        final document = Map<String, dynamic>.from(jsonDecode(utf8.decode(value.change.afterBytes!)) as Map);
+        final bytes = utf8.encode(switch (representation) {
+          'whitespace' => ' \n${jsonEncode(document)}\n ',
+          'key-order' => const JsonEncoder.withIndent('  ').convert({
+            for (final key in document.keys.toList().reversed) key: document[key]}),
+          _ => const JsonEncoder.withIndent('  ').convert({...document, 'unknownFutureField': {'value': 'été😀'}})
+        });
+        var checks = 0;
+        final change = AuthoringResourceChange.withPayloads(resource: value.change.resource,
+            storageKey: value.change.storageKey, beforePayload: value.change.beforePayload,
+            afterPayload: AuthoringPayload.inline(bytes, storageKey: value.change.storageKey)
+                .checkingPreparation(() { checks++; }));
+        final plan = value.planWith(changes: [change]);
+        addTearDown(plan.releasePayloads);
+        final translated = await value.selection.translate(plan);
+        expect(checks, greaterThanOrEqualTo(3));
+        final maps = translated.validatedMaps.single.mapsFor(change,
+            catalogRevision: value.selection.catalogRevision, request: plan.request);
+        final original = value.selection.snapshot.mapById('route')!;
+        expect(entity ? identical(maps.after.spatialScene, original.spatialScene)
+            : identical(maps.after.entities.single, original.entities.single), isFalse);
+        expect((await value.consume(validated: false, change: change)).single.payload['consumers'], hasLength(1));
+      });
+    }
+    for (final check in [1, 2]) {
+      test('canonical periodic translate retains preparation check $check entity=$entity', () async {
+        final value = await _ProvenanceFixture.create(entity: entity);
+        addTearDown(value.dispose);
+        var checks = 0;
+        final change = AuthoringResourceChange.withPayloads(resource: value.change.resource,
+            storageKey: value.change.storageKey, beforePayload: value.change.beforePayload,
+            afterPayload: value.change.afterPayload!.checkingPreparation(() {
+              if (++checks == check) throw StateError('cancelled');
+            }));
+        final plan = value.planWith(changes: [change]);
+        addTearDown(plan.releasePayloads);
+        await expectLater(value.selection.translate(plan), throwsA(isA<AuthoringPayloadPreparationAborted>()));
+        expect(checks, check);
+      });
+    }
+    test('canonical periodic translate rejects equal-length changed content entity=$entity', () async {
+      final value = await _ProvenanceFixture.create(entity: entity);
+      addTearDown(value.dispose);
+      final document = Map<String, dynamic>.from(jsonDecode(utf8.decode(value.change.afterBytes!)) as Map);
+      final bytes = utf8.encode(const JsonEncoder.withIndent('  ').convert({...document, 'name': 'Other'}));
+      expect(bytes.length, value.change.afterPayload!.byteLength);
+      final change = AuthoringResourceChange.withPayloads(resource: value.change.resource,
+          storageKey: value.change.storageKey, beforePayload: value.change.beforePayload,
+          afterPayload: AuthoringPayload.inline(bytes, storageKey: value.change.storageKey));
+      final plan = value.planWith(changes: [change]);
+      addTearDown(plan.releasePayloads);
+      await expectLater(value.selection.translate(plan), throwsA(isA<AuthoringPlanException>()
+          .having((error) => error.code, 'code', 'catalog.mutation_outside_scope')));
+    });
+    for (final forgery in ['cardinality', 'kind', 'id', 'path', 'before', 'missing-after']) {
+      test('periodic translate rejects $forgery before reading inline bytes entity=$entity', () async {
+        final value = await _ProvenanceFixture.create(entity: entity);
+        addTearDown(value.dispose);
+        final original = value.change;
+        var change = original;
+        final changes = <AuthoringResourceChange>[];
+        if (forgery == 'cardinality') {
+          changes.add(AuthoringResourceChange(resource: AuthoringResourceRef(kind: 'map', id: 'foreign'),
+              storageKey: 'maps/foreign.json', beforeBytes: [0], afterBytes: [1]));
+        } else {
+          final path = forgery == 'path' ? 'maps/other.json' : original.storageKey;
+          change = AuthoringResourceChange.withPayloads(
+              resource: AuthoringResourceRef(kind: forgery == 'kind' ? 'scene' : 'map',
+                  id: forgery == 'id' ? 'foreign' : original.resource.id), storageKey: path,
+              beforePayload: forgery == 'path' || forgery == 'before'
+                  ? AuthoringPayload.inline([...original.beforeBytes!, 32], storageKey: path)
+                  : original.beforePayload,
+              afterPayload: forgery == 'missing-after' ? null
+                  : forgery == 'path' ? AuthoringPayload.inline(original.afterBytes!, storageKey: path)
+                  : original.afterPayload);
+        }
+        changes.add(change);
+        final plan = value.planWith(changes: changes);
+        addTearDown(plan.releasePayloads);
+        value.checks.clear();
+        await expectLater(value.selection.translate(plan), throwsA(isA<AuthoringPlanException>()
+            .having((error) => error.code, 'code', 'catalog.mutation_outside_scope')));
+        expect(value.checks, isEmpty);
+      });
+    }
+    test('periodic translate recomputes expected content from request parameters entity=$entity', () async {
+      final value = await _ProvenanceFixture.create(entity: entity);
+      addTearDown(value.dispose);
+      final original = value.plan.request;
+      final request = AuthoringRequest(requestId: original.requestId,
+          actionId: original.actionId, actionVersion: original.actionVersion,
+          workspaceHandle: original.workspaceHandle, expectedRevision: original.expectedRevision,
+          idempotencyKey: original.idempotencyKey,
+          parameters: {...original.parameters, entity ? 'presentation' : 'visibilityCondition': null});
+      final plan = value.planWith(changes: [value.change], request: request);
+      addTearDown(plan.releasePayloads);
+      await expectLater(value.selection.translate(plan), throwsA(isA<AuthoringPlanException>()
+          .having((error) => error.code, 'code', 'catalog.mutation_outside_scope')));
+    });
     test('validated periodic maps avoid consumer rereads entity=$entity',
         () async {
       final value = await _ProvenanceFixture.create(entity: entity);
@@ -185,6 +461,9 @@ void main() {
       final value = await _ProvenanceFixture.create(entity: entity, stored: true);
       addTearDown(value.dispose);
       expect(value.validatedMaps, isEmpty);
+      value.checks.clear();
+      expect((await value.selection.translate(value.plan)).validatedMaps, isEmpty);
+      expect(value.checks, {'after': 3});
       value.checks.clear();
       final units = await value.consume(validated: true);
       expect(value.checks['before'], greaterThanOrEqualTo(3));
@@ -1225,6 +1504,81 @@ final class _Reader
   }
 }
 
+Future<CatalogSpatialMapSelection> _readProperty(_Fixture fixture, bool entity,
+    _PropertyReadGateway gateway, {Map<String, Object?>? parameters}) async {
+  final store = CatalogStorageStore(projectRoot: fixture.root.path,
+      reader: fixture.reader, gateway: gateway);
+  final reader = (await CatalogProjectReader.open(store: store,
+      descriptor: Map<String, Object?>.from(jsonDecode(await fixture.manifest.readAsString()) as Map),
+      metadataFields: {}))!;
+  final condition = NarrativeEventConditionExpression.all([]);
+  return CatalogSpatialMapSelection.read(reader: reader,
+      projectHandle: fixture.opened.projectHandle,
+      actionId: entity ? 'entity.set_presentation' : 'map3d.instance.visibility.set',
+      parameters: parameters ?? {'mapId': 'route',
+        if (entity) ...{'entityId': 'anchor', 'presentation': MapEntityPresentation(variants: [
+          MapEntityPresentationVariant(id: 'variant', condition: condition, blocksMovement: false)]).toJson()}
+        else ...{'instanceId': 'tree', 'visibilityCondition': condition.toJson()}});
+}
+
+final class _PropertyTempDirectory implements Directory {
+  _PropertyTempDirectory(this.delegate);
+  final Directory delegate;
+  final created = <String?>[];
+  @override
+  String get path => delegate.path;
+  @override
+  Future<Directory> createTemp([String? prefix]) {
+    created.add(prefix);
+    return delegate.createTemp(prefix);
+  }
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw StateError('Unexpected temp operation: ${invocation.memberName}');
+}
+
+final class _PropertyReadGateway implements TransactionFileGateway,
+    StreamingTransactionFileGateway, PendingTransactionJournalGateway {
+  _PropertyReadGateway(this.delegate);
+  final LocalTransactionFileGateway delegate;
+  final reads = <String>[];
+  final captures = <String>[];
+  final revisions = <String>[];
+  Future<void> Function(String)? afterRead;
+  void clear() {
+    reads.clear();
+    captures.clear();
+    revisions.clear();
+  }
+  @override
+  Future<List<int>?> readResource(String path) async {
+    reads.add(path);
+    final bytes = await delegate.readResource(path);
+    await afterRead?.call(path);
+    return bytes;
+  }
+  @override
+  Future<String?> readResourceRevision(String path) {
+    revisions.add(path);
+    return delegate.readResourceRevision(path);
+  }
+  @override
+  Future<AuthoringPayload?> captureResourcePayload(String path) {
+    captures.add(path);
+    return delegate.captureResourcePayload(path);
+  }
+  @override
+  Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) => delegate.withExclusiveWriteLock(operation);
+  @override
+  Future<void> preparePendingJournalIndex() => delegate.preparePendingJournalIndex();
+  @override
+  Future<List<AuthoringTransactionJournal>> listPendingJournals({bool requirePrepared = false}) =>
+      delegate.listPendingJournals(requirePrepared: requirePrepared);
+  @override
+  Future<List<AuthoringTransactionJournal>> listJournals() => delegate.listJournals();
+  @override
+  dynamic noSuchMethod(Invocation invocation) => throw StateError('Unexpected write during property selection: ${invocation.memberName}');
+}
+
 final class _ProvenanceFixture {
   _ProvenanceFixture(this.fixture, this.selection, this.plan, this.validatedMaps,
       this.checks, this.cancelled);
@@ -1238,9 +1592,9 @@ final class _ProvenanceFixture {
   AuthoringResourceChange get change => plan.changeSet.changes.single;
 
   static Future<_ProvenanceFixture> create(
-      {required bool entity, bool stored = false}) async {
+      {required bool entity, bool stored = false, int unrelated = 0}) async {
     final fixture = await _Fixture.create(
-        catalog: true, wire: false, unrelated: 0, spatial: true);
+        catalog: true, wire: false, unrelated: unrelated, spatial: true);
     try {
       final condition = NarrativeEventConditionExpression.leaf(
           NarrativeEventCondition.periodicRewardAvailable(
@@ -1317,6 +1671,16 @@ final class _ProvenanceFixture {
       rethrow;
     }
   }
+
+  AuthoringPlan planWith({required List<AuthoringResourceChange> changes, AuthoringRequest? request}) =>
+      AuthoringPlan(planId: plan.planId, receiptId: plan.receiptId,
+          request: request ?? plan.request, baseRevision: plan.baseRevision,
+          seed: plan.seed, createdAt: plan.createdAt, expiresAt: plan.expiresAt,
+          changeSet: AuthoringChangeSet(changes: changes, diff: AuthoringDiff([
+            for (final change in changes) AuthoringDiffEntry(
+                operation: AuthoringDiffOperation.replace, resource: change.resource,
+                path: '/', before: null, after: null)
+          ])));
 
   Future<List<CatalogDefinitionUnit>> consume({required bool validated,
       AuthoringResourceChange? change, CatalogSnapshot? snapshot,

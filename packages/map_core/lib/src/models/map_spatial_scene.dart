@@ -190,6 +190,8 @@ final class SpatialModelClip {
 
 final class SpatialModelInstance {
   static const entityBindingCapabilityId = 'map3d.entity-models@1';
+  static const manualEnvironmentEntityBindingCapabilityId =
+      'map3d.manual-environment-entity-models@1';
   static const conditionalVisibilityCapabilityId = 'map3d.conditional-visibility@1';
   SpatialModelInstance({
     required this.id,

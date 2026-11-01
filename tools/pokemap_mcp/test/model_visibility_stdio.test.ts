@@ -41,6 +41,11 @@ test('fresh MCP discovers model visibility and persists a daily condition with s
     const descriptor = (described.mutationActions as JsonRecord[]).find(action => action.id === 'map3d.instance.visibility.set');
     assert.ok(descriptor);
     assert.equal(record(record(descriptor.extensions).visibility).capability, 'map3d.conditional-visibility@1');
+    const filtered = await call('pokemap_describe', {
+      domain: 'map3d', view: 'full', actionIds: ['map3d.instance.visibility.set'],
+    });
+    assert.deepEqual(filtered.mutationActions, [descriptor]);
+
     let workspace = await call('pokemap_workspace', {operation: 'open', projectRoot: root});
     const choices = await call('pokemap_query', {projectHandle: workspace.projectHandle, resourceKind: 'periodicRewardNode', operation: 'list', filters: {sceneId: 'source'}});
     assert.deepEqual(record((choices.items as JsonRecord[])[0]).reference, reference);

@@ -22,6 +22,7 @@ export 'src/models/narrative_diagnostic_suppression.dart';
 export 'src/models/narrative_runtime_smoke_receipt.dart';
 export 'src/models/mvp_release_evidence_receipt.dart';
 export 'src/operations/narrative_project_fingerprint.dart';
+export 'src/operations/raw_sha256_session.dart' show RawSha256Session;
 export 'src/operations/narrative_validation_report_codec.dart';
 
 export 'src/models/enums.dart';

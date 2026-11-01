@@ -73,6 +73,8 @@ test("live MCP spatial Environment generation preserves ownership, transforms an
     assert.ok(attachment);
     assert.deepEqual(record(record(attachment.extensions).inputSchema).required, ["mapId", "layerId"]);
     const add = actions.get("environment.generated_placement_add")!;
+    const binding = record(record(actions.get("map3d.instance.upsert")!.extensions).entityBinding);
+    assert.equal(binding.manualEnvironmentCapability, "map3d.manual-environment-entity-models@1");
     assert.deepEqual(record(add.extensions).visualKinds, ["element", "model3d"]);
     assert.deepEqual(record(record(add.extensions).inputSchema).oneOf,
       [{ required: ["elementId"] }, { required: ["modelId"] }]);
@@ -88,6 +90,7 @@ test("live MCP spatial Environment generation preserves ownership, transforms an
     const projectRoot = String(created.projectPath);
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot });
     let projectHandle = String(opened.projectHandle), workspaceHandle = String(opened.workspaceHandle);
+    await call("pokemap_workshop", { operation: "prepare", projectHandle });
     const manifestPath = join(projectRoot, "project.json");
     const manifest = record(JSON.parse(await readFile(manifestPath, "utf8")));
     const mapEntry = (manifest.maps as JsonRecord[])[0];
@@ -122,6 +125,10 @@ test("live MCP spatial Environment generation preserves ownership, transforms an
     const staged = await call("pokemap_artifact_stage", {
       sourcePath: modelPath, declaredMediaType: "model/gltf-binary" });
     await mutate("model3d.import", { modelId: "tree", name: "Tree", artifactHandle: staged.artifactHandle });
+    const collisionBounds = { min: { x: -.15, y: 0, z: -.15 }, max: { x: .15, y: 1.5, z: .15 } };
+    await mutate("model3d.configure", { modelId: "tree", collisionBounds });
+    await mutate("model3d.configure", { modelId: "tree", collisionBounds: null });
+    await mutate("model3d.configure", { modelId: "tree", collisionBounds });
     const preset = { id: "forest", name: "Forest", templateId: "forest",
       palette: [{ modelId: "tree", weight: 1, collisionMode: "forceDisabled", tags: [] }],
       defaultParams: { density: 1, variation: 0, edgeDensity: 1, minSpacingCells: 0 }, sortOrder: 0 };
@@ -212,6 +219,45 @@ test("live MCP spatial Environment generation preserves ownership, transforms an
       idempotencyKey: "undo-spatial-environment-regeneration" });
     assert.deepEqual(await readFile(mapPath), beforeRegeneration);
     assert.deepEqual(instances(await savedMap()).find(value => value.id === movedId), exact);
+    await mutate("entity.create", { mapId, entity: { id: "linked-object", kind: "custom",
+      pos: { x: 7, y: 5 }, blocksMovement: false } });
+    const foreign = instances(await savedMap()).find(value => value.id === "foreign")!;
+    await mutate("map3d.instance.upsert", { mapId, instance: { ...foreign, entityId: "linked-object" } });
+    const bound = instances(await savedMap()).find(value => value.id === "foreign")!;
+    const staleBindingPlan = await plan("environment.regenerate_apply", target);
+    await mutate("environment.generated_placement_adopt_batch", { ...target, placementIds: ["foreign"] });
+    assert.deepEqual(instances(await savedMap()).find(value => value.id === "foreign"), bound);
+    assert.ok((area(await savedMap()).manualPlacementIds as string[]).includes("foreign"));
+    const adoptionHistory = await call("pokemap_history", { operation: "list", projectHandle, limit: 1 });
+    const adoptionId = record((adoptionHistory.entries as JsonRecord[])[0]).entryId;
+    await call("pokemap_history", { operation: "undo", projectHandle,
+      entryId: adoptionId, idempotencyKey: "undo-bound-adoption" });
+    assert.ok(!(area(await savedMap()).generatedPlacementIds as string[]).includes("foreign"));
+    assert.deepEqual(instances(await savedMap()).find(value => value.id === "foreign"), bound);
+    await call("pokemap_history", { operation: "redo", projectHandle,
+      entryId: adoptionId, idempotencyKey: "redo-bound-adoption" });
+    const staleBinding = await apply(staleBindingPlan, true);
+    assert.equal(staleBinding.code, "revision_conflict");
+    await mutate("environment.generated_placement_move", { ...target, placementId: "foreign", x: 6, y: 5 });
+    const reanchored = await savedMap();
+    assert.deepEqual(record((reanchored.entities as JsonRecord[]).find(value => value.id === "linked-object")!).pos,
+      { x: 6, y: 5 });
+    const manualBound = instances(reanchored).find(value => value.id === "foreign")!;
+    await mutate("environment.regenerate_apply", target);
+    assert.deepEqual(instances(await savedMap()).find(value => value.id === "foreign"), manualBound);
+    await mutate("map3d.instance.upsert_batch", { mapId, instances: [{ ...manualBound, entityId: null }] });
+    assert.equal(instances(await savedMap()).find(value => value.id === "foreign")!.entityId, undefined);
+    await mutate("map3d.instance.upsert_batch", { mapId, instances: [manualBound] });
+    const finalMap = await savedMap();
+    await call("pokemap_workspace", { operation: "close", workspaceHandle });
+    const finalReopen = await call("pokemap_workspace", { operation: "open", projectRoot });
+    projectHandle = String(finalReopen.projectHandle);
+    workspaceHandle = String(finalReopen.workspaceHandle);
+    const finalQuery = await call("pokemap_query", { projectHandle,
+      resourceKind: "map", operation: "get", ids: [mapId], view: "detail" });
+    assert.deepEqual(record((finalQuery.items as JsonRecord[])[0]).entities, finalMap.entities);
+    assert.deepEqual(record((finalQuery.items as JsonRecord[])[0]).layers, finalMap.layers);
+    assert.deepEqual(instances(record((finalQuery.items as JsonRecord[])[0])), instances(finalMap));
     await call("pokemap_workspace", { operation: "close", workspaceHandle });
   } finally {
     await client.close();

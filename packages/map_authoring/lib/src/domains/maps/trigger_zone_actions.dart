@@ -15,6 +15,27 @@ final class TriggerZoneActions {
     'gameplay_zone.set_field_action_payload', 'gameplay_zone.set_priority',
   };
 
+  static bool isReferenceFreeMovementCreation(String action,
+      Map<String, Object?> parameters) {
+    final raw = parameters['zone'];
+    if (action != 'gameplay_zone.create' || raw is! Map ||
+        raw['kind'] != 'movement' || raw['movement'] is! Map ||
+        !raw.keys.every(const {'id', 'name', 'kind', 'area', 'cellMask',
+          'priority', 'encounter', 'movement', 'movementEffect', 'hazard',
+          'fieldAction', 'special', 'smartTileProvenance'}.contains) ||
+        !(raw['movement'] as Map).keys.every(const {'requiredMode', 'allowedModes'}.contains)) {
+      return false;
+    }
+    try {
+      final zone = MapGameplayZone.fromJson(Map<String, dynamic>.from(raw));
+      _assertStrictZonePayload(zone);
+      return zone.kind == GameplayZoneKind.movement &&
+          zone.movement != null && zone.smartTileProvenance == null;
+    } on Object {
+      return false;
+    }
+  }
+
   static bool isFieldTraversalMutation(MapData map, String action,
       Map<String, Object?> parameters) {
     if (!fieldTraversalActions.contains(action)) return false;
@@ -487,7 +508,8 @@ final class TriggerZoneActions {
       after: updated,
       operation: actionId,
       changedItems: 1,
-      validateProjectReferences: !isFieldTraversalMutation(context.map, actionId, planning.request.parameters),
+      validateProjectReferences: !isFieldTraversalMutation(context.map, actionId, planning.request.parameters) &&
+          !isReferenceFreeMovementCreation(actionId, planning.request.parameters),
     );
   }
 }

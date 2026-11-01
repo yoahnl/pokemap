@@ -40,6 +40,63 @@ void main() {
   Matcher error(String code) => throwsA(isA<TransactionFileGatewayException>()
       .having((e) => e.code, 'code', code));
 
+  test('direct resource reads reject ctime-only changes without staging', () async {
+    var reads = 0;
+    await IOOverrides.runZoned(
+        () => expectLater(gateway.readResource('project.json'),
+            error('transaction.resource_changed_during_read')),
+        stat: (path) async {
+          final actual = await Zone.root.run(() => FileStat.stat(path));
+          if (path != '${root.path}/project.json') return actual;
+          return _Stat(actual, changed: epoch.add(Duration(seconds: reads++)));
+        });
+    expect(reads, 2);
+    expect(await File('${root.path}/project.json').readAsBytes(), bytes);
+    expect(await Directory('${root.path}/.pokemap').exists(), isFalse);
+  });
+
+  for (final mutation in ['content', 'disappearance']) {
+    test('direct resource reads reject $mutation between stat and read', () async {
+      var triggered = false;
+      await IOOverrides.runZoned(
+          () => expectLater(gateway.readResource('project.json'),
+              throwsA(isA<TransactionFileGatewayException>())),
+          stat: (path) async {
+            final actual = await Zone.root.run(() => FileStat.stat(path));
+            if (path == '${root.path}/project.json' && !triggered) {
+              triggered = true;
+              await Zone.root.run(() => mutation == 'content'
+                  ? File(path).writeAsBytes([...bytes, 5])
+                  : File(path).delete());
+            }
+            return actual;
+          });
+      expect(triggered, isTrue);
+      expect(await Directory('${root.path}/.pokemap').exists(), isFalse);
+    });
+  }
+
+  for (final key in ['../escape', '/absolute', '.pokemap/private']) {
+    test('direct resource reads reject unsafe key $key', () async {
+      await expectLater(gateway.readResource(key), error('transaction.storage_key_invalid'));
+    });
+  }
+  for (final kind in ['directory', 'leaf-link', 'parent-link']) {
+    test('direct resource reads reject nonregular $kind', () async {
+      var path = 'unsafe';
+      if (kind == 'directory') {
+        await Directory('${root.path}/unsafe').create();
+      } else if (kind == 'leaf-link') {
+        await Link('${root.path}/unsafe').create('${root.path}/project.json');
+      } else {
+        await Link('${root.path}/unsafe').create(root.path);
+        path = 'unsafe/project.json';
+      }
+      await expectLater(gateway.readResource(path), throwsA(isA<TransactionFileGatewayException>()));
+      expect(await File('${root.path}/project.json').readAsBytes(), bytes);
+    });
+  }
+
   test('live resource revision equals full inspection across multiple chunks',
       () async {
     const storageKey = 'assets/été😀.bin';

@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../ports/file_backed_payload_store.dart';
@@ -164,7 +162,7 @@ final class _InlineAuthoringPayload extends AuthoringPayload {
   @override
   final String storageKey;
   @override
-  late final String rawSha256 = sha256.convert(inlineBytes).toString();
+  late final String rawSha256 = _rawSha256(inlineBytes);
   @override
   final String resourceRevision;
   Future<AuthoringResourceInspection>? _historyInspection;
@@ -187,6 +185,16 @@ final class _InlineAuthoringPayload extends AuthoringPayload {
 
   @override
   Future<void> release() async {}
+}
+
+String _rawSha256(List<int> bytes) {
+  final session = RawSha256Session();
+  try {
+    session.add(bytes);
+    return session.finish();
+  } finally {
+    session.dispose();
+  }
 }
 
 final class _StoredAuthoringPayload extends AuthoringPayload {
@@ -216,27 +224,30 @@ final class _StoredAuthoringPayload extends AuthoringPayload {
       throw const AuthoringPayloadException(
           'payload.released', 'The owned payload has been released.');
     }
-    final digest = _DigestSink();
-    final raw = sha256.startChunkedConversion(digest);
-    var length = 0;
-    await for (final chunk in _openRead()) {
-      length += chunk.length;
-      if (length > byteLength ||
-          chunk.any((byte) => byte < 0 || byte > 255)) {
-        throw const AuthoringPayloadException('payload.length_mismatch',
-            'The payload length or byte range is invalid.');
+    final raw = RawSha256Session();
+    try {
+      var length = 0;
+      await for (final chunk in _openRead()) {
+        length += chunk.length;
+        if (length > byteLength ||
+            (chunk is! Uint8List &&
+                chunk.any((byte) => byte < 0 || byte > 255))) {
+          throw const AuthoringPayloadException('payload.length_mismatch',
+              'The payload length or byte range is invalid.');
+        }
+        raw.add(chunk);
+        yield chunk;
       }
-      raw.add(chunk);
-      yield chunk;
-    }
-    if (length != byteLength) {
-      throw const AuthoringPayloadException('payload.length_mismatch',
-          'The payload length differs from its descriptor.');
-    }
-    raw.close();
-    if (digest.value != rawSha256) {
-      throw const AuthoringPayloadException('payload.source_mismatch',
-          'The stored payload changed during reading.');
+      if (length != byteLength) {
+        throw const AuthoringPayloadException('payload.length_mismatch',
+            'The payload length differs from its descriptor.');
+      }
+      if (raw.finish() != rawSha256) {
+        throw const AuthoringPayloadException('payload.source_mismatch',
+            'The stored payload changed during reading.');
+      }
+    } finally {
+      raw.dispose();
     }
   }
 
@@ -316,6 +327,16 @@ Future<AuthoringResourceInspection> inspectAuthoringResourceRevision(
   if (const bool.fromEnvironment('dart.library.io') &&
       byteLength >= 256 * 1024 &&
       !chunks.isBroadcast) {
+    if (_useNativePayloadInspection(byteLength)) {
+      return _inspectAuthoringPayloadNatively(chunks,
+          storageKey: storageKey,
+          byteLength: byteLength,
+          revisionOnly: true,
+          decode: (result) => (
+                resourceRevision: result[1] as String,
+                byteLength: result[2] as int,
+              ));
+    }
     return _inspectAuthoringPayloadInWorker(
       chunks,
       storageKey: storageKey,
@@ -328,10 +349,14 @@ Future<AuthoringResourceInspection> inspectAuthoringResourceRevision(
     );
   }
   final inspection = _ResourceRevisionInspection(storageKey, byteLength);
-  await for (final chunk in chunks) {
-    inspection.add(chunk);
+  try {
+    await for (final chunk in chunks) {
+      inspection.add(chunk);
+    }
+    return inspection.close();
+  } finally {
+    inspection.dispose();
   }
-  return inspection.close();
 }
 
 Future<AuthoringPayloadInspection> inspectAuthoringPayload(
@@ -341,6 +366,17 @@ Future<AuthoringPayloadInspection> inspectAuthoringPayload(
   if (const bool.fromEnvironment('dart.library.io') &&
       byteLength >= 256 * 1024 &&
       !chunks.isBroadcast) {
+    if (_useNativePayloadInspection(byteLength)) {
+      return _inspectAuthoringPayloadNatively(chunks,
+          storageKey: storageKey,
+          byteLength: byteLength,
+          decode: (result) => (
+                rawSha256: result[1] as String,
+                resourceRevision: result[2] as String,
+                byteLength: result[3] as int,
+                contentDigest: result[4] as String,
+              ));
+    }
     return _inspectAuthoringPayloadInWorker(chunks,
         storageKey: storageKey,
         byteLength: byteLength,
@@ -352,10 +388,97 @@ Future<AuthoringPayloadInspection> inspectAuthoringPayload(
             ));
   }
   final inspection = _PayloadInspection(storageKey, byteLength);
-  await for (final chunk in chunks) {
-    inspection.add(chunk);
+  try {
+    await for (final chunk in chunks) {
+      inspection.add(chunk);
+    }
+    return inspection.close();
+  } finally {
+    inspection.dispose();
   }
-  return inspection.close();
+}
+
+bool _useNativePayloadInspection(int byteLength) =>
+    byteLength <= 4 * 1024 * 1024 &&
+    NarrativeProjectFingerprintBuilder.nativeBackendAvailable &&
+    Zone.current[#authoringPayloadWorkerForTesting] != true;
+
+T _payloadInspectionKernel<T>(T Function() operation) {
+  try {
+    return operation();
+  } on AuthoringPayloadException catch (failure) {
+    throw AuthoringPayloadException(failure.code, failure.message);
+  } on ArgumentError catch (failure) {
+    throw ArgumentError.value(
+        failure.invalidValue, failure.name, failure.message);
+  } on Object catch (failure, stack) {
+    throw RemoteError(failure.toString(), stack.toString());
+  }
+}
+
+Future<T> _inspectAuthoringPayloadNatively<T>(
+  Stream<List<int>> chunks, {
+  required String storageKey,
+  required int byteLength,
+  bool revisionOnly = false,
+  required T Function(List<Object?> result) decode,
+}) async {
+  await _acquirePayloadInspectionWorker();
+  _PayloadInspection? inspection;
+  _ResourceRevisionInspection? revisionInspection;
+  try {
+    _payloadInspectionKernel(() {
+      if (revisionOnly) {
+        revisionInspection =
+            _ResourceRevisionInspection(storageKey, byteLength);
+      } else {
+        inspection = _PayloadInspection(storageKey, byteLength);
+      }
+    });
+    await for (final chunk in chunks) {
+      for (var offset = 0; offset < chunk.length; offset += 128 * 1024) {
+        final end = min(offset + 128 * 1024, chunk.length);
+        final Uint8List bytes;
+        if (chunk is Uint8List) {
+          bytes = Uint8List.fromList(Uint8List.sublistView(chunk, offset, end));
+        } else {
+          bytes = Uint8List(end - offset);
+          for (var index = offset; index < end; index++) {
+            final value = chunk[index];
+            if (value < 0 || value > 255) {
+              throw const AuthoringPayloadException('payload.length_mismatch',
+                  'The payload length or byte range is invalid.');
+            }
+            bytes[index - offset] = value;
+          }
+        }
+        _payloadInspectionKernel(() {
+          inspection?.add(bytes);
+          revisionInspection?.add(bytes);
+        });
+        await Future<void>.delayed(Duration.zero);
+      }
+    }
+    final result = _payloadInspectionKernel<List<Object?>>(() {
+      if (revisionInspection != null) {
+        final result = revisionInspection!.close();
+        return ['done', result.resourceRevision, result.byteLength];
+      }
+      final result = inspection!.close();
+      return [
+        'done',
+        result.rawSha256,
+        result.resourceRevision,
+        result.byteLength,
+        result.contentDigest
+      ];
+    });
+    return decode(result);
+  } finally {
+    inspection?.dispose();
+    revisionInspection?.dispose();
+    _releasePayloadInspectionWorker();
+  }
 }
 
 var _activePayloadInspectionWorkers = 0;
@@ -477,12 +600,14 @@ Future<T> _inspectAuthoringPayloadInWorker<T>(
 void _runPayloadInspectionWorker(List<Object?> arguments) async {
   final reply = arguments[0] as SendPort;
   final commands = ReceivePort();
+  _PayloadInspection? inspection;
+  _ResourceRevisionInspection? revisionInspection;
   try {
     final revisionOnly = arguments[3] as bool;
-    final inspection = revisionOnly
+    inspection = revisionOnly
         ? null
         : _PayloadInspection(arguments[1] as String, arguments[2] as int);
-    final revisionInspection = revisionOnly
+    revisionInspection = revisionOnly
         ? _ResourceRevisionInspection(
             arguments[1] as String, arguments[2] as int)
         : null;
@@ -525,29 +650,37 @@ void _runPayloadInspectionWorker(List<Object?> arguments) async {
       failure.message,
     ]);
   } finally {
+    inspection?.dispose();
+    revisionInspection?.dispose();
     commands.close();
   }
 }
 
 final class _ResourceRevisionInspection {
   _ResourceRevisionInspection(String storageKey, this.expectedLength) {
-    if (expectedLength < 0) {
-      throw ArgumentError.value(expectedLength, 'byteLength');
+    try {
+      if (expectedLength < 0) {
+        throw ArgumentError.value(expectedLength, 'byteLength');
+      }
+      framed = NarrativeProjectFingerprintBuilder();
+      framed!.startEntry(relativePath: storageKey, byteLength: expectedLength);
+    } on Object {
+      dispose();
+      rethrow;
     }
-    framed.startEntry(relativePath: storageKey, byteLength: expectedLength);
   }
   final int expectedLength;
-  final framed = NarrativeProjectFingerprintBuilder();
+  NarrativeProjectFingerprintBuilder? framed;
   var length = 0;
 
   void add(List<int> bytes) {
     length += bytes.length;
     if (length > expectedLength ||
-        bytes.any((byte) => byte < 0 || byte > 255)) {
+        (bytes is! Uint8List && bytes.any((byte) => byte < 0 || byte > 255))) {
       throw const AuthoringPayloadException('payload.length_mismatch',
           'The payload length or byte range is invalid.');
     }
-    framed.addBytes(bytes);
+    framed!.addBytes(bytes);
   }
 
   AuthoringResourceInspection close() {
@@ -555,37 +688,45 @@ final class _ResourceRevisionInspection {
       throw const AuthoringPayloadException('payload.length_mismatch',
           'The payload length differs from its descriptor.');
     }
-    framed.endEntry();
-    return (resourceRevision: framed.close(), byteLength: length);
+    framed!.endEntry();
+    return (resourceRevision: framed!.close(), byteLength: length);
   }
+
+  void dispose() => framed?.dispose();
 }
 
 final class _PayloadInspection {
   _PayloadInspection(String storageKey, this.expectedLength) {
-    if (expectedLength < 0) {
-      throw ArgumentError.value(expectedLength, 'byteLength');
+    try {
+      if (expectedLength < 0) {
+        throw ArgumentError.value(expectedLength, 'byteLength');
+      }
+      framed = NarrativeProjectFingerprintBuilder();
+      content = NarrativeProjectFingerprintBuilder();
+      content!.startEntry(
+          relativePath: 'artifact-content', byteLength: expectedLength);
+      framed!.startEntry(relativePath: storageKey, byteLength: expectedLength);
+      raw = RawSha256Session();
+    } on Object {
+      dispose();
+      rethrow;
     }
-    content.startEntry(
-        relativePath: 'artifact-content', byteLength: expectedLength);
-    framed.startEntry(relativePath: storageKey, byteLength: expectedLength);
-    raw = sha256.startChunkedConversion(digest);
   }
   final int expectedLength;
-  final framed = NarrativeProjectFingerprintBuilder();
-  final content = NarrativeProjectFingerprintBuilder();
-  final digest = _DigestSink();
-  late final ByteConversionSink raw;
+  NarrativeProjectFingerprintBuilder? framed;
+  NarrativeProjectFingerprintBuilder? content;
+  RawSha256Session? raw;
   var length = 0;
   void add(List<int> bytes) {
     length += bytes.length;
     if (length > expectedLength ||
-        bytes.any((byte) => byte < 0 || byte > 255)) {
+        (bytes is! Uint8List && bytes.any((byte) => byte < 0 || byte > 255))) {
       throw const AuthoringPayloadException('payload.length_mismatch',
           'The payload length or byte range is invalid.');
     }
-    framed.addBytes(bytes);
-    content.addBytes(bytes);
-    raw.add(bytes);
+    framed!.addBytes(bytes);
+    content!.addBytes(bytes);
+    raw!.add(bytes);
   }
 
   AuthoringPayloadInspection close() {
@@ -593,15 +734,21 @@ final class _PayloadInspection {
       throw const AuthoringPayloadException('payload.length_mismatch',
           'The payload length differs from its descriptor.');
     }
-    raw.close();
-    framed.endEntry();
-    content.endEntry();
+    final rawDigest = raw!.finish();
+    framed!.endEntry();
+    content!.endEntry();
     return (
-      rawSha256: digest.value!,
-      resourceRevision: framed.close(),
+      rawSha256: rawDigest,
+      resourceRevision: framed!.close(),
       byteLength: length,
-      contentDigest: content.close(),
+      contentDigest: content!.close(),
     );
+  }
+
+  void dispose() {
+    raw?.dispose();
+    framed?.dispose();
+    content?.dispose();
   }
 }
 
@@ -657,17 +804,6 @@ Future<void> releaseAuthoringPayloads(
   for (final error in results) {
     if (error != null) throw error;
   }
-}
-
-final class _DigestSink implements Sink<Digest> {
-  String? value;
-  @override
-  void add(Digest data) {
-    value = data.toString();
-  }
-
-  @override
-  void close() {}
 }
 
 final class AuthoringPayloadPreparationAborted implements Exception {

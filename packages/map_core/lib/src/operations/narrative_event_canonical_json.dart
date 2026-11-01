@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'raw_sha256_session.dart';
+
 /// RFC 8785 JSON Canonicalization Scheme for I-JSON-compatible Dart values.
 String canonicalizeNarrativeEventJson(Object? value) {
   final buffer = StringBuffer();
@@ -41,7 +43,13 @@ String narrativeEventCanonicalSha256(Object? value) {
 }
 
 String narrativeEventBytesFingerprint(List<int> bytes) {
-  return 'sha256:${sha256.convert(bytes)}';
+  final session = RawSha256Session();
+  try {
+    session.add(bytes);
+    return 'sha256:${session.finish()}';
+  } finally {
+    session.dispose();
+  }
 }
 
 int compareNarrativeEventUtf16(String left, String right) {

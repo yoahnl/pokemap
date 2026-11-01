@@ -210,3 +210,30 @@ Map<String, List<int>> spatialPassagePayload() {
   files['project/maps/room.json'] = utf8.encode(jsonEncode(room.toJson()));
   return files;
 }
+
+Map<String, List<int>> manualEnvironmentPayload({bool bound = true, bool manual = true}) {
+  final payload = spatialPayload();
+  final project = ProjectManifest.fromJson(jsonDecode(utf8.decode(
+      payload['project/project.json']!)) as Map<String, dynamic>);
+  final map = MapData.fromJson(jsonDecode(utf8.decode(
+      payload['project/maps/map.json']!)) as Map<String, dynamic>);
+  final instance = map.spatialScene!.instances.single;
+  final next = map.copyWith(entities: [MapEntity(id: 'object',
+      kind: MapEntityKind.custom, pos: const GridPos(x: 0, y: 0))],
+      spatialScene: map.spatialScene!.copyWith(instances: [
+        instance.copyWith(entityId: bound ? 'object' : null)]),
+      layers: [MapLayer.environment(id: 'forest', name: 'Forest',
+          content: EnvironmentLayerContent(targetsSpatialTerrain: true, areas: [
+            EnvironmentArea(id: 'trees', name: 'Trees', presetId: 'forest', seed: 1,
+                mask: EnvironmentAreaMask(width: 8, height: 8, cells: List.filled(64, false)),
+                generatedPlacementIds: [instance.id],
+                manualPlacementIds: manual ? [instance.id] : [])]))]);
+  final configured = project.copyWith(environmentPresets: [EnvironmentPreset(
+      id: 'forest', name: 'Forest', templateId: 'manual', sortOrder: 0,
+      palette: [EnvironmentPaletteItem(modelId: instance.modelId, weight: 1)],
+      defaultParams: EnvironmentGenerationParams(density: 1, variation: 0,
+          edgeDensity: 1, minSpacingCells: 0))]);
+  payload['project/project.json'] = utf8.encode(jsonEncode(configured.toJson()));
+  payload['project/maps/map.json'] = utf8.encode(jsonEncode(next.toJson()));
+  return payload;
+}

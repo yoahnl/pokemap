@@ -115,6 +115,11 @@ final class SpatialMapActions {
             'entityBinding': {
               'field': 'entityId',
               'capability': SpatialModelInstance.entityBindingCapabilityId,
+              'manualEnvironmentCapability':
+                  SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+              'ownership': 'authored_or_unique_spatial_manual_environment',
+              'manualOwnerRequiredLists': ['generatedPlacementIds', 'manualPlacementIds'],
+              'automaticOrAmbiguousOwner': 'reject',
               'scope': 'same_map_non_npc',
               'unique': true,
               'empty': null

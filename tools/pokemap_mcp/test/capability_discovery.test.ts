@@ -24,9 +24,21 @@ test("real JSONL discovery is compact, targeted and preserves schema details", a
     }
     assert.equal(new Set(actions.map(action => action.id)).size, compact.data.actionCount);
     assert.ok(actions.some(action => action.id === "map.create"));
+    assert.ok(actions.some(action => action.id === "map3d.instance.visibility.set"));
     assert.ok(actions.some(action => action.id === "smart_tile.cell.paint_batch"));
     assert.ok(actions.some(action => action.id === "border_layer.feature_delete"));
     assert.ok(!actions.some(action => String(action.id).startsWith("scene.")));
+    const visibility = await authoring.request("describe", {
+      domain: "map3d", view: "full", actionIds: ["map3d.instance.visibility.set"],
+    });
+    const canonicalVisibility = await authoring.request("describe", {
+      actionIds: ["map3d.instance.visibility.set"], view: "full",
+    });
+    assert.deepEqual(visibility.data.mutationActions, canonicalVisibility.data.mutationActions);
+    const visibilityAction = (visibility.data.mutationActions as JsonRecord[])[0]!;
+    assert.equal(visibilityAction.id, "map3d.instance.visibility.set");
+    assert.equal(((visibilityAction.extensions as JsonRecord).visibility as JsonRecord).capability,
+      "map3d.conditional-visibility@1");
     const detail = await authoring.request("describe", {actionIds:["border_layer.feature_delete"], view:"full"});
     const action = (detail.data.mutationActions as JsonRecord[])[0]!;
     const schema = (action.extensions as JsonRecord).inputSchema as JsonRecord;

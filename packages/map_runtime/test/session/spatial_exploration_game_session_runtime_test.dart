@@ -1498,6 +1498,64 @@ void main() {
     expect(result.errorCode, SceneDialogueRuntimeAwaitableErrorCode.cancelled);
   });
 
+  for (final location in ['initial', 'prepared']) {
+  for (final granted in [false, true]) {
+    test('spatial startup gates manual Environment entity binding location=$location granted=$granted', () async {
+      final unboundMap = bundle.map;
+      final model = ProjectModel3dEntry(id: 'tree', name: 'Tree', sourceAssetId: 'tree',
+          relativePath: 'assets/models3d/tree.glb', inspection: Model3dInspection(
+              bounds: Model3dBounds(min: Model3dVector3(x: -.2, y: 0, z: -.2),
+                  max: Model3dVector3(x: .2, y: 2, z: .2)), meshCount: 1, triangleCount: 1));
+      bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(models3d: [model],
+          environmentPresets: [EnvironmentPreset(id: 'trees', name: 'Trees', templateId: 'forest',
+              palette: [EnvironmentPaletteItem(modelId: 'tree', weight: 1,
+                  collisionMode: EnvironmentCollisionMode.forceDisabled)],
+              defaultParams: EnvironmentGenerationParams(density: 1, variation: 0,
+                  edgeDensity: 1, minSpacingCells: 0), sortOrder: 0)]),
+          map: bundle.map.copyWith(entities: [...bundle.map.entities,
+            const MapEntity(id: 'tree-entity', kind: MapEntityKind.custom, pos: GridPos(x: 1, y: 1))],
+              layers: [MapLayer.environment(id: 'forest', name: 'Forest',
+                  content: EnvironmentLayerContent(targetsSpatialTerrain: true, areas: [
+                    EnvironmentArea(id: 'trees', name: 'Trees', presetId: 'trees', seed: 1,
+                        mask: EnvironmentAreaMask(width: 8, height: 8, cells: List.filled(64, false)),
+                        generatedPlacementIds: ['tree'], manualPlacementIds: ['tree'])]))],
+              spatialScene: bundle.map.spatialScene!.copyWith(instances: [
+                SpatialModelInstance(id: 'tree', modelId: 'tree', entityId: 'tree-entity',
+                    position: Model3dVector3(x: 1.5, y: 0, z: 1.5))])));
+      if (location == 'prepared') {
+        final target = bundle.map.copyWith(id: 'other');
+        final file = File('${root.path}/maps/other.json');
+        await file.parent.create(recursive: true);
+        await file.writeAsString(jsonEncode(target.toJson()));
+        bundle = bundle.copyWith(map: unboundMap, manifest: bundle.manifest.copyWith(
+            maps: [...bundle.manifest.maps, const ProjectMapEntry(
+                id: 'other', name: 'Other', relativePath: 'maps/other.json')]));
+      }
+      await runtime.dispose();
+      runtime = SpatialExplorationGameSessionRuntime(
+          descriptor: descriptor(additionalCapabilities: {
+            SpatialModelInstance.entityBindingCapabilityId,
+            if (granted) SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}),
+          projectFilePath: () async => '${root.path}/project.json',
+          preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async =>
+              RuntimeInitialMapPreloadResult(bundle: bundle),
+          mountSession: (_) async => mounts++, unmountSession: (_) async => unmounts++);
+      if (granted) {
+        await runtime.load((_) {});
+        await runtime.gameplayReady;
+        expect(mounts, 1);
+        expect(runtime.session!.bundle.map, bundle.map);
+      } else {
+        await expectLater(runtime.load((_) {}), throwsA(isA<StateError>().having(
+            (error) => error.message, 'capability', contains(
+                SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId))));
+        expect(mounts, 0);
+        expect(runtime.session, isNull);
+      }
+    });
+  }
+  }
+
   for (final audio in [false, true]) {
     test('spatial startup refuses undeclared ${audio ? 'audio' : 'CS'} capability before mounting', () async {
       bundle = bundle.copyWith(manifest: bundle.manifest.copyWith(settings: bundle.manifest.settings.copyWith(

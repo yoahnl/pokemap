@@ -420,6 +420,11 @@ final class GamePackageProjectValidator {
           _fail(
               'Entity-linked 3D models require ${SpatialModelInstance.entityBindingCapabilityId}.');
         }
+        if (SpatialEntityModelOwnership.requiresCapability(maps) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(
+                SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId)) {
+          _fail('Manual Environment entity models require ${SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId}.');
+        }
         if (maps.any((map) =>
                 map.spatialScene!.navigation.maximumFishingDropWorld !=
                 SpatialNavigationProfile.defaultMaximumFishingDropWorld) &&

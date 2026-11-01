@@ -75,6 +75,7 @@ const authoringCapabilityDomains = {
     'map3d.instance.delete_batch',
     'map3d.instance.upsert',
     'map3d.instance.upsert_batch',
+    'map3d.instance.visibility.set',
     'map3d.ledge.configure',
     'map3d.lift.delete_batch',
     'map3d.lift.upsert_batch',

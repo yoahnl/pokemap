@@ -3,6 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_project_reader.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_scoped_working_mutation.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_workshop_selection.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/src/spatial_model_geometry.dart';
 import 'package:test/test.dart';
@@ -10,6 +13,94 @@ import 'package:test/test.dart';
 import '../support/glb_fixture.dart';
 
 void main() {
+  for (final forged in ['geometry', 'bounds', 'extra-resource']) {
+    test('collision metadata projection refuses forged $forged', () async {
+      final fixture = await _Fixture.open(0);
+      addTearDown(fixture.close);
+      final store = await CatalogStorageStore.open(projectRoot: fixture.root.path);
+      final reader = (await CatalogProjectReader.open(store: store,
+          descriptor: jsonDecode(utf8.decode(fixture.descriptor)) as Map<String, dynamic>,
+          metadataFields: {}))!;
+      final parameters = <String, Object?>{'modelId': 'house', 'collisionBounds': null};
+      final selection = await CatalogWorkshopSelection.read(reader: reader,
+          projectHandle: fixture.opened.projectHandle, actionId: 'model3d.configure',
+          parameters: parameters);
+      final original = selection.snapshot.manifest;
+      final model = original.models3d.single;
+      final next = original.copyWith(models3d: [forged == 'geometry'
+          ? model.copyWith(scale: 7)
+          : model.copyWith(collisionBounds: Model3dBounds(
+              min: Model3dVector3(x: 0, y: 0, z: 0),
+              max: Model3dVector3(x: 1, y: 1, z: 1)))]);
+      final resource = AuthoringResourceRef(kind: forged == 'extra-resource' ? 'model3d' : 'project',
+          id: forged == 'extra-resource' ? 'house' : 'project');
+      final storageKey = forged == 'extra-resource' ? 'assets/models3d/house.glb' : 'project.json';
+      final changeSet = AuthoringChangeSet(changes: [AuthoringResourceChange(
+          resource: resource, storageKey: storageKey,
+          beforeBytes: forged == 'extra-resource' ? [1] : utf8.encode(jsonEncode(original.toJson())),
+          afterBytes: forged == 'extra-resource' ? [2] : utf8.encode(jsonEncode(next.toJson())))],
+          diff: AuthoringDiff([AuthoringDiffEntry(operation: AuthoringDiffOperation.replace,
+              resource: resource, path: r'$', before: 1, after: 2)]));
+      final now = DateTime.now().toUtc();
+      final plan = AuthoringPlan(planId: 'forged', receiptId: 'forged',
+          request: AuthoringRequest(requestId: 'forged', actionId: 'model3d.configure',
+              actionVersion: 1, workspaceHandle: fixture.opened.workspaceHandle.value,
+              expectedRevision: selection.snapshot.revision, idempotencyKey: 'forged',
+              parameters: parameters), baseRevision: selection.snapshot.revision,
+          seed: 0, createdAt: now, expiresAt: now.add(const Duration(minutes: 5)), changeSet: changeSet);
+      await expectLater(CatalogScopedWorkingMutation.translate(selection: selection, publicPlan: plan),
+          throwsFormatException);
+    });
+  }
+  for (final unrelated in [0, 80]) {
+    test('collision metadata remains local through reopen and undo with $unrelated unrelated definitions', () async {
+      final fixture = await _Fixture.open(unrelated);
+      addTearDown(fixture.close);
+      final parameters = <String, Object?>{'modelId': 'house',
+        'collisionBounds': {'min': {'x': -.2, 'y': 0, 'z': -.3},
+          'max': {'x': .2, 'y': 2, 'z': .3}}};
+      Future<ProjectSnapshot> selected() => fixture.api.readWorkshopSnapshot(
+          fixture.opened.projectHandle, actionId: 'model3d.configure', parameters: parameters);
+      final original = (await selected()).manifest.models3d.single;
+      for (final clear in [false, true]) {
+        fixture.reader.paths.clear();
+        fixture.promoted.clear();
+        final snapshot = await selected();
+        final planned = await fixture.api.planMutation(fixture.opened.projectHandle,
+            AuthoringRequest(requestId: 'metadata-$clear', actionId: 'model3d.configure',
+                actionVersion: 1, workspaceHandle: fixture.opened.workspaceHandle.value,
+                expectedRevision: snapshot.revision, idempotencyKey: 'metadata-$clear',
+                parameters: {...parameters, if (clear) 'collisionBounds': null}));
+        final expected = clear ? original : original.copyWith(collisionBounds:
+            Model3dBounds.fromJson(Map<String, dynamic>.from(parameters['collisionBounds'] as Map)));
+        expect(planned.projectedProject!.models3d.single, expected);
+        final applied = await fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: planned.planId, operationId: 'metadata-$clear');
+        expect(fixture.promoted, [CatalogStorageStore.headStorageKey]);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') ||
+            path.startsWith('assets/') || fixture.unrelatedObjects.contains(path)), isEmpty);
+        expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+        await fixture.reopen();
+        expect((await selected()).manifest.models3d.single, expected);
+        if (clear) {
+          await fixture.api.undoMutation(fixture.opened.projectHandle,
+              entryId: applied.receipt.receiptId, idempotencyKey: 'undo-clear');
+          await fixture.reopen();
+          expect((await selected()).manifest.models3d.single.collisionBounds, isNotNull);
+        }
+      }
+      final before = await File('${fixture.root.path}/${CatalogStorageStore.headStorageKey}').readAsBytes();
+      final snapshot = await selected();
+      await expectLater(fixture.api.planMutation(fixture.opened.projectHandle,
+          AuthoringRequest(requestId: 'flat', actionId: 'model3d.configure',
+              actionVersion: 1, workspaceHandle: fixture.opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision, idempotencyKey: 'flat',
+              parameters: {'modelId': 'house', 'collisionBounds': {
+                'min': {'x': 0, 'y': 0, 'z': 0}, 'max': {'x': 1, 'y': 0, 'z': 1}}})),
+          throwsA(anything));
+      expect(await File('${fixture.root.path}/${CatalogStorageStore.headStorageKey}').readAsBytes(), before);
+    });
+  }
   test('scoped model source reads do not stage temporary payload files',
       () async {
     final fixture = await _Fixture.open(80);

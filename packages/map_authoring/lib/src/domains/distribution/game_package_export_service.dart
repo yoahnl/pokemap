@@ -212,6 +212,7 @@ final class CanonicalGamePackageExportService {
       var fractionalRamps = false;
       var directionalLedges = false;
       var entityModels = false;
+      var manualEntityModels = false;
       var actorOcclusion = false;
       var modelClips = SpatialModelClipCapabilities.requiresCapability(projection.project);
       var exteriorDecoration = false;
@@ -277,6 +278,7 @@ final class CanonicalGamePackageExportService {
           continuousTerrain |=
               map.spatialScene!.terrainSurfaces.surfaces.isNotEmpty;
           entityModels |= map.spatialScene!.instances.any((instance) => instance.entityId != null);
+          manualEntityModels |= SpatialEntityModelOwnership.requiresCapability([map]);
           directionalLedges |= map.spatialScene!.navigation.ledges.isNotEmpty;
           fractionalRamps |= map.spatialScene!.navigation.ramps
               .any((ramp) => ramp.hasFractionalLevels);
@@ -373,6 +375,8 @@ final class CanonicalGamePackageExportService {
             SpatialNavigationProfile.defaultMaximumFishingDropWorld))
           SpatialNavigationProfile.fishingDropCapabilityId,
         if (entityModels) SpatialModelInstance.entityBindingCapabilityId,
+        if (manualEntityModels)
+          SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
         if (SpatialGameplayCapabilities.requiresConditionalModelVisibility(
             fieldObstacleMaps))
           SpatialModelInstance.conditionalVisibilityCapabilityId,

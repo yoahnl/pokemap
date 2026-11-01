@@ -1,4 +1,5 @@
 import '../../domains/maps/entity_actions.dart';
+import '../../domains/maps/map_lifecycle_adapter.dart' show encodeMapAuthoringDocument;
 import '../../domains/maps/model_visibility_dependencies.dart';
 import '../../domains/maps/map3d_edit_intents.dart';
 import '../../domains/maps/map3d_edit_projection.dart';
@@ -12,6 +13,7 @@ import '../../domains/assets/asset_store.dart';
 import '../../domains/maps/semantic_map_action_support.dart';
 import '../../domains/maps/warp_connection_actions.dart';
 import '../../domains/maps/spatial_map_actions.dart';
+import '../../domains/maps/environment_actions.dart';
 import '../../domains/maps/trigger_zone_actions.dart';
 import '../../contracts/resource_ref.dart';
 import '../../ports/transaction_file_gateway.dart';
@@ -145,6 +147,7 @@ final class CatalogSpatialMapSelection {
       'environment.area_set_preset',
       'environment.generated_placement_add',
       'environment.generated_placement_adopt_batch',
+      'environment.generated_placement_move',
       'environment.generated_placement_delete',
       'map3d.terrain.configure_appearance',
       'map3d.terrain.surface.upsert_batch',
@@ -224,17 +227,25 @@ final class CatalogSpatialMapSelection {
       if (entry == null) {
         throw const ProjectSnapshotException('project.map_missing', 'The map is not declared.');
       }
-      final payload = await reader.store.gateway.captureResourcePayload(entry.relativePath);
-      if (payload == null) {
-        throw const ProjectSnapshotException('project.map_missing', 'The map document is missing.');
-      }
+      final directRead = const {'map3d.instance.visibility.set', 'entity.set_presentation'}
+          .contains(actionId);
+      final payload = directRead ? null :
+          await reader.store.gateway.captureResourcePayload(entry.relativePath);
       try {
-        final bytes = await payload.readBytes();
+        final bytes = directRead
+            ? await reader.store.gateway.readResource(entry.relativePath)
+            : await payload?.readBytes();
+        if (bytes == null) {
+          throw const ProjectSnapshotException('project.map_missing', 'The map document is missing.');
+        }
+        final mapRevision = payload?.resourceRevision ??
+            computeAuthoringBytesFingerprint(bytes, logicalName: entry.relativePath);
         final map = MapData.fromJson(Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map));
         if (map.id != mapId || (actionId == 'map3d.camera.configure' && map.spatialScene == null)) {
           throw const FormatException('catalog.map_properties: map identity or dimension mismatch');
         }
-        if (route && !TriggerZoneActions.isFieldTraversalMutation(map, actionId, parameters)) {
+        if (route && !TriggerZoneActions.isFieldTraversalMutation(map, actionId, parameters) &&
+            !TriggerZoneActions.isReferenceFreeMovementCreation(actionId, parameters)) {
           throw const ProjectSnapshotException('project.field_traversal_scope_required', 'This zone mutation needs its existing reference scope.');
         }
         if (!const {'map3d.instance.visibility.set', 'entity.set_presentation'}
@@ -294,27 +305,20 @@ final class CatalogSpatialMapSelection {
                   catalog.snapshot, dependencies.eventIds));
           for (final declaration
               in definitions.maps.where((item) => item.id != mapId)) {
-            final dependency = await reader.store.gateway
-                .captureResourcePayload(declaration.relativePath);
-            if (dependency == null)
+            final content = await reader.store.gateway.readResource(declaration.relativePath);
+            if (content == null)
               throw const ProjectSnapshotException(
                   'project.map_missing', 'A condition owner map is missing.');
-            try {
-              final content = await dependency.readBytes();
-              final value = MapData.fromJson(Map<String, dynamic>.from(
-                  jsonDecode(utf8.decode(content)) as Map));
-              if (value.id != declaration.id)
-                throw const FormatException(
-                    'catalog.visibility: map identity mismatch');
-              conditionMaps.add(value);
-              dependencyBytes['map:${declaration.id}'] = content;
-              dependencyPaths['map:${declaration.id}'] =
-                  declaration.relativePath;
-              dependencyRevisions[declaration.relativePath] =
-                  dependency.resourceRevision;
-            } finally {
-              await dependency.release();
-            }
+            final value = MapData.fromJson(Map<String, dynamic>.from(
+                jsonDecode(utf8.decode(content)) as Map));
+            if (value.id != declaration.id)
+              throw const FormatException(
+                  'catalog.visibility: map identity mismatch');
+            conditionMaps.add(value);
+            dependencyBytes['map:${declaration.id}'] = content;
+            dependencyPaths['map:${declaration.id}'] = declaration.relativePath;
+            dependencyRevisions[declaration.relativePath] =
+                computeAuthoringBytesFingerprint(content, logicalName: declaration.relativePath);
           }
         }
         final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
@@ -333,23 +337,23 @@ final class CatalogSpatialMapSelection {
           }
         }
         final snapshot = ProjectSnapshot(projectHandle: projectHandle,
-            revision: fingerprint(selected.revision, mapId, payload.resourceRevision, readDependencies: dependencyRevisions),
+            revision: fingerprint(selected.revision, mapId, mapRevision, readDependencies: dependencyRevisions),
             manifest: definitions, materializedCatalogProject: true,
-            availableProjectSections: const {}, scopedStorageRevisions: {entry.relativePath: payload.resourceRevision, ...dependencyRevisions},
+            availableProjectSections: const {}, scopedStorageRevisions: {entry.relativePath: mapRevision, ...dependencyRevisions},
             maps: [map, ...conditionMaps],
             rewardReferenceScenes: referenceScenes, resourceFingerprints: {'project': computeAuthoringBytesFingerprint(projectBytes, logicalName: 'project.json'),
-              'map:$mapId': payload.resourceRevision,
+              'map:$mapId': mapRevision,
               for (final dependency in dependencyPaths.entries) dependency.key: dependencyRevisions[dependency.value]!},
             resourceBytes: {'project': projectBytes, 'map:$mapId': bytes, ...dependencyBytes},
             resourceStorageKeys: {'project': 'project.json', 'map:$mapId': entry.relativePath, ...dependencyPaths});
         final selection = CatalogSpatialMapSelection._(selected, snapshot,
-            entry.relativePath, payload.resourceRevision, selected.revision, mapId);
+            entry.relativePath, mapRevision, selected.revision, mapId);
         if (await selection.currentRevision() != snapshot.revision) {
           throw AuthoringPlanException(code: 'plan.stale', message: 'The map changed while selecting its properties.');
         }
         return selection;
       } finally {
-        await payload.release();
+        await payload?.release();
       }
     });
   }
@@ -431,6 +435,9 @@ final class CatalogSpatialMapSelection {
             (map.spatialScene == null && !supportsTwoDimensions)) {
           throw const FormatException(
               'catalog.spatial: map identity or dimension mismatch');
+        }
+        if (actionId == 'environment.generated_placement_move') {
+          _manualEnvironmentMove(map, parameters);
         }
         if (actionId == 'map.platform.delete') {
           throw AuthoringPlanException(code: 'catalog.mutation_scope_required', message: 'Deleting a platform requires an incoming Scene reference index. The original platform is unchanged.');
@@ -820,6 +827,23 @@ final class CatalogSpatialMapSelection {
     return fingerprint('sha256:${root.sha256}', mapId, map, readDependencies: dependencies);
   }
 
+  static MapData _manualEnvironmentMove(MapData map, Map<String, Object?> parameters) {
+    final args = SemanticParameters(parameters,
+        allowed: {'mapId', 'layerId', 'areaId', 'placementId', 'x', 'y'});
+    final layerId = args.string('layerId');
+    final areaId = args.string('areaId');
+    final placementId = args.string('placementId');
+    const editing = EnvironmentActions();
+    final area = editing.areaOf(map, layerId: layerId, areaId: areaId);
+    if (map.spatialScene == null || !SpatialEntityModelOwnership(map).isManual(placementId) ||
+        !area.generatedPlacementIds.contains(placementId) || !area.manualPlacementIds.contains(placementId)) {
+      throw AuthoringPlanException(code: 'catalog.mutation_scope_required',
+          message: 'Only a uniquely owned manual spatial Environment placement has this move scope.');
+    }
+    return editing.moveGeneratedPlacement(map, layerId: layerId, areaId: areaId,
+        placementId: placementId, pos: GridPos(x: args.integer('x'), y: args.integer('y')));
+  }
+
   Future<
       ({
         List<AuthoringResourceChange> changes,
@@ -872,23 +896,16 @@ final class CatalogSpatialMapSelection {
         throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
             message: 'The action changed data outside its selected maps.');
       }
-      final projected = MapData.fromJson(Map<String, dynamic>.from(
-          jsonDecode(utf8.decode(await change.afterPayload!.readBytes())) as Map));
-      if (relation) {
-        if (projected != expectedMaps[id]) {
-          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
-              message: 'The relation changed data outside its validated update.');
-        }
-      } else if (TriggerZoneActions.fieldTraversalActions.contains(action)) {
-        final original = snapshot.mapById(mapId)!;
-        if (projected.copyWith(gameplayZones: original.gameplayZones) != original ||
-            !TriggerZoneActions.isFieldTraversalMutation(original, action, plan.request.parameters)) {
-          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The route action changed unrelated map content.');
-        }
-        MapValidator.validate(projected);
-      } else if (action == 'entity.set_presentation') {
+      final periodic = action == 'entity.set_presentation' ||
+          action == 'map3d.instance.visibility.set';
+      final afterPayload = change.afterPayload!;
+      final inlineAfter = periodic && isImmutableAuthoringInlinePayload(afterPayload)
+          ? afterPayload.inlineBytes
+          : null;
+      MapData? expectedPeriodic;
+      if (action == 'entity.set_presentation') {
         final raw = plan.request.parameters['presentation'];
-        final expected = const EntityActions().setPresentation(
+        expectedPeriodic = const EntityActions().setPresentation(
             snapshot.mapById(mapId)!,
             project: snapshot.manifest,
             entityId: plan.request.parameters['entityId'] as String,
@@ -898,15 +915,9 @@ final class CatalogSpatialMapSelection {
                     Map<String, dynamic>.from(raw as Map)),
             maps: snapshot.maps,
             lookupRewardScenes: snapshot.lookupRewardScenes);
-        if (projected != expected) {
-          throw AuthoringPlanException(
-              code: 'catalog.mutation_outside_scope',
-              message: 'Presentation changed unrelated map content.');
-        }
-        validatedPeriodicScope = true;
       } else if (action == 'map3d.instance.visibility.set') {
         final raw = plan.request.parameters['visibilityCondition'];
-        final expected = const SpatialMapActions().setInstanceVisibility(
+        expectedPeriodic = const SpatialMapActions().setInstanceVisibility(
             snapshot.mapById(mapId)!,
             project: snapshot.manifest,
             instanceId: plan.request.parameters['instanceId'] as String,
@@ -915,10 +926,58 @@ final class CatalogSpatialMapSelection {
                 : NarrativeEventConditionExpression.fromJson(raw),
             maps: snapshot.maps,
             lookupRewardScenes: snapshot.lookupRewardScenes);
+      }
+      var matchesExpectedPeriodic = false;
+      if (inlineAfter != null && expectedPeriodic != null) {
+        final expectedBytes = encodeMapAuthoringDocument(expectedPeriodic);
+        matchesExpectedPeriodic = inlineAfter.length == expectedBytes.length;
+        if (matchesExpectedPeriodic) {
+          for (var index = 0; index < expectedBytes.length; index++) {
+            if (inlineAfter[index] != expectedBytes[index]) {
+              matchesExpectedPeriodic = false;
+              break;
+            }
+          }
+        }
+        afterPayload.inlineBytes;
+      }
+      final projected = matchesExpectedPeriodic
+          ? expectedPeriodic!
+          : MapData.fromJson(Map<String, dynamic>.from(
+              jsonDecode(utf8.decode(await afterPayload.readBytes())) as Map));
+      if (relation) {
+        if (projected != expectedMaps[id]) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
+              message: 'The relation changed data outside its validated update.');
+        }
+      } else if (action == 'environment.generated_placement_move') {
+        final expected = _manualEnvironmentMove(snapshot.mapById(mapId)!, plan.request.parameters);
         if (projected != expected) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
+              message: 'The manual Environment move changed unrelated map content.');
+        }
+      } else if (TriggerZoneActions.isReferenceFreeMovementCreation(action, plan.request.parameters)) {
+        final zone = MapGameplayZone.fromJson(Map<String, dynamic>.from(plan.request.parameters['zone'] as Map));
+        final expected = const TriggerZoneActions().createZone(snapshot.mapById(mapId)!, zone: zone);
+        if (projected != expected) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
+              message: 'The movement-zone creation changed unrelated map content.');
+        }
+        MapValidator.validate(projected);
+      } else if (TriggerZoneActions.fieldTraversalActions.contains(action)) {
+        final original = snapshot.mapById(mapId)!;
+        if (projected.copyWith(gameplayZones: original.gameplayZones) != original ||
+            !TriggerZoneActions.isFieldTraversalMutation(original, action, plan.request.parameters)) {
+          throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The route action changed unrelated map content.');
+        }
+        MapValidator.validate(projected);
+      } else if (expectedPeriodic != null) {
+        if (!matchesExpectedPeriodic && projected != expectedPeriodic) {
           throw AuthoringPlanException(
               code: 'catalog.mutation_outside_scope',
-              message: 'Visibility changed unrelated map content.');
+              message: action == 'entity.set_presentation'
+                  ? 'Presentation changed unrelated map content.'
+                  : 'Visibility changed unrelated map content.');
         }
         validatedPeriodicScope = true;
       } else if (action == 'map3d.instance.configure_field_obstacle') {
@@ -964,10 +1023,8 @@ final class CatalogSpatialMapSelection {
             ]));
       }
       final beforePayload = change.beforePayload;
-      final afterPayload = change.afterPayload;
       if (validatedPeriodicScope &&
           beforePayload != null &&
-          afterPayload != null &&
           isImmutableAuthoringInlinePayload(beforePayload) &&
           isImmutableAuthoringInlinePayload(afterPayload)) {
         validatedMaps.add(CatalogValidatedMapChange._(change,

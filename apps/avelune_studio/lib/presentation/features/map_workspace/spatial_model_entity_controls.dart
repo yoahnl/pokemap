@@ -27,26 +27,15 @@ class SpatialModelEntityControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final map = document.current;
-    final generated =
-        instance.id.startsWith('smt_') ||
-        map.layers.any(
-          (layer) => switch (layer) {
-            EnvironmentLayer() => layer.content.generatedPlacementIds.contains(
-              instance.id,
-            ),
-            BorderLayer() => layer.content.features.any(
-              (feature) => feature.generatedPlacementIds.contains(instance.id),
-            ),
-            _ => false,
-          },
-        );
+    final ownership = SpatialEntityModelOwnership(map);
+    final manual = ownership.isManual(instance.id);
     final visibility = _SpatialModelVisibilityControls(
       document: document,
       project: project,
       instance: instance,
       onChanged: onChanged,
     );
-    if (generated) {
+    if (!ownership.canBind(instance.id)) {
       final protected =
           instance.id.startsWith('smt_') ||
           map.layers.whereType<BorderLayer>().any(
@@ -110,6 +99,7 @@ class SpatialModelEntityControls extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         visibility,
+        if (!manual) ...[
         StudioSelect(
           key: const ValueKey('spatial-model-field-obstacle'),
           label: 'Obstacle CS',
@@ -156,6 +146,7 @@ class SpatialModelEntityControls extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 8),
+        ],
         StudioSelect(
           key: const ValueKey('spatial-model-entity-binding'),
           label: 'Élément du jeu lié',

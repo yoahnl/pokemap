@@ -75,26 +75,38 @@ final class CatalogScopedWorkingMutation {
     final nextShell = Map<String, Object?>.from(oldShell);
     final upserts = <CatalogDefinitionUnit>[];
     final removals = <CatalogDefinitionKey>[];
-    if (changedFields.contains('models3d') &&
-        publicPlan.request.actionId == 'model3d.configure') {
+    if (publicPlan.request.actionId == 'model3d.configure') {
       final previous = before.models3d.single;
       final next = projected.models3d.single;
+      final parameters = publicPlan.request.parameters;
+      if (parameters['modelId'] != previous.id || additional.isNotEmpty ||
+          (!parameters.containsKey('light') && !parameters.containsKey('collisionBounds')) ||
+          parameters.keys.any((key) => !{'modelId', 'light', 'collisionBounds'}.contains(key))) {
+        throw const FormatException('catalog.model_metadata: request changes data outside scope');
+      }
       final expected = previous.copyWith(
-        light: next.light,
-        clearLight: next.light == null,
+        light: parameters['light'] == null ? null : Model3dPointLight.fromJson(
+            Map<String, dynamic>.from(parameters['light'] as Map)),
+        clearLight: parameters.containsKey('light') && parameters['light'] == null,
+        collisionBounds: parameters['collisionBounds'] == null ? null :
+            Model3dBounds.fromJson(Map<String, dynamic>.from(parameters['collisionBounds'] as Map)),
+        clearCollisionBounds: parameters.containsKey('collisionBounds') &&
+            parameters['collisionBounds'] == null,
       );
       if (!_same(expected.toJson(), next.toJson())) {
-        throw const FormatException('catalog.light: geometry changes are outside scope');
+        throw const FormatException('catalog.model_metadata: changes differ from the selected metadata update');
       }
-      final key = CatalogDefinitionKey(CatalogDefinitionKind.model3d, previous.id);
-      final original = (await catalog.lookup(key))!;
-      upserts.add(CatalogDefinitionUnit(
-        key: key,
-        payload: {...original.payload, 'value': _preserveUntouched(
-          original.payload['value'], previous.toJson(), next.toJson())},
-        references: original.references,
-      ));
-      changedFields.remove('models3d');
+      if (changedFields.contains('models3d')) {
+        final key = CatalogDefinitionKey(CatalogDefinitionKind.model3d, previous.id);
+        final original = (await catalog.lookup(key))!;
+        upserts.add(CatalogDefinitionUnit(
+          key: key,
+          payload: {...original.payload, 'value': _preserveUntouched(
+            original.payload['value'], previous.toJson(), next.toJson())},
+          references: original.references,
+        ));
+        changedFields.remove('models3d');
+      }
     }
     if (selection.resourceCounts.isNotEmpty) {
       final built = PortableCatalogPublication.encodeProject(projected);

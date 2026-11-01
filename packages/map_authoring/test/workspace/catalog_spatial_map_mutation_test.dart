@@ -3,6 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_project_reader.dart';
+import 'package:map_authoring/src/support/authoring_performance_observer.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_spatial_map_selection.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -14,6 +17,274 @@ import '../domains/maps/healing_display_fixture.dart';
 import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleProject, obstacleMap;
 
 void main() {
+  final movementCreationIo = <int, List<Map<String, int>>>{};
+  for (final unrelated in [0, 90]) {
+    test('local movement zone creation stays targeted with $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final fixture = await _Fixture.open(unrelated, content: base);
+      addTearDown(fixture.close);
+      final before = await fixture.mapFile.readAsBytes();
+      final original = MapData.fromJson(jsonDecode(utf8.decode(before)));
+      final zone = MapGameplayZone(id: 'source-water', kind: GameplayZoneKind.movement,
+          area: const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 2, height: 1)),
+          movement: const MovementZonePayload(requiredMode: MovementMode.surf));
+      final parameters = <String, Object?>{'mapId': 'map', 'zone': zone.toJson()};
+      fixture.reader.paths.clear();
+      fixture.counters.attributeCatalogIo = true;
+      fixture.counters.reset();
+      final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'gameplay_zone.create', parameters: parameters);
+      expect(selected.manifest.models3d, isEmpty);
+      final applied = await fixture.apply('gameplay_zone.create', parameters, 'movement-create', revision: selected.revision);
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+      expect(fixture.reader.paths.where((path) =>
+          path.startsWith('maps/') && path != 'maps/map.json' || path.endsWith('.glb') || path.endsWith('history.jsonl')), isEmpty);
+      final firstIo = fixture.counters.gatewayIo();
+      final firstOwnerIo = fixture.counters.ownerIo();
+      final firstCatalog = fixture.counters.catalogSummary();
+      expect(selected.manifest.maps, hasLength(1));
+      expect(selected.resourceBytes('project').length, 2512);
+      final after = await fixture.mapFile.readAsBytes();
+      expect(MapData.fromJson(jsonDecode(utf8.decode(after))), original.copyWith(gameplayZones: [...original.gameplayZones, zone]));
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: applied.receipt.receiptId, idempotencyKey: 'movement-undo');
+      expect(await fixture.mapFile.readAsBytes(), before);
+      await fixture.api.redoMutation(fixture.opened.projectHandle,
+          entryId: applied.receipt.receiptId, idempotencyKey: 'movement-redo');
+      expect(await fixture.mapFile.readAsBytes(), after);
+      await fixture.reopen();
+      fixture.reader.paths.clear();
+      fixture.counters.reset();
+      final nextZone = zone.copyWith(id: 'next-water');
+      final nextParameters = <String, Object?>{'mapId': 'map', 'zone': nextZone.toJson()};
+      final reopened = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'gameplay_zone.create', parameters: nextParameters);
+      expect(reopened.maps.single, original.copyWith(gameplayZones: [...original.gameplayZones, zone]));
+      await fixture.apply('gameplay_zone.create', nextParameters, 'movement-create-repeat', revision: reopened.revision);
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+      expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json' ||
+          path.endsWith('.glb') || path.endsWith('history.jsonl')), isEmpty);
+      final repeatedIo = fixture.counters.gatewayIo();
+      final repeatedOwnerIo = fixture.counters.ownerIo();
+      final repeatedCatalog = fixture.counters.catalogSummary();
+      expect(firstIo.values, everyElement(greaterThan(0)));
+      expect(repeatedIo.values, everyElement(greaterThan(0)));
+      expect(firstOwnerIo.values, everyElement(greaterThan(0)));
+      expect(repeatedOwnerIo.values, everyElement(greaterThan(0)));
+      expect(reopened.manifest.maps, hasLength(1));
+      expect(reopened.resourceBytes('project').length, 2512);
+      movementCreationIo[unrelated] = [firstOwnerIo, repeatedOwnerIo];
+      if (unrelated == 90) expect(movementCreationIo[90], movementCreationIo[0]);
+      expect(MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString())),
+          original.copyWith(gameplayZones: [...original.gameplayZones, zone, nextZone]));
+      print('movement-zone-create foreign=$unrelated io=${jsonEncode({'firstTotal': firstIo, 'repeatedTotal': repeatedIo, 'firstOwner': firstOwnerIo, 'repeatedOwner': repeatedOwnerIo, 'firstCatalog': firstCatalog, 'repeatedCatalog': repeatedCatalog})}');
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+  test('JSONL local movement zone creation uses the canonical scoped planner', () async {
+    final fixture = await _Fixture.open(90);
+    addTearDown(fixture.close);
+    final before = await fixture.mapFile.readAsBytes();
+    final zone = MapGameplayZone(id: 'jsonl-water', kind: GameplayZoneKind.movement,
+        area: const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 1, height: 1)),
+        movement: const MovementZonePayload(requiredMode: MovementMode.surf));
+    final parameters = <String, Object?>{'mapId': 'map', 'zone': zone.toJson()};
+    final policy = await WorkspacePolicy.create(allowedRootPaths: [fixture.root.path], fileReader: fixture.reader);
+    final worker = JsonlWorker(api: AuthoringReadApi(
+        openService: ProjectOpenService(policy: policy, fileReader: fixture.reader,
+            handles: fixture.handles, catalogMetadataFields: {}),
+        snapshotLoader: ProjectSnapshotLoader(handles: fixture.handles)), mutations: fixture.api);
+    Future<AuthoringResult> command(String name, Map<String, Object?> args) async =>
+        AuthoringResult.fromJson(jsonDecode(await worker.processLine(jsonEncode({'id': name, 'command': name, 'args': args}))));
+    fixture.reader.paths.clear();
+    final selected = await command('workshop_snapshot', {'projectHandle': fixture.opened.projectHandle.value,
+      'actionId': 'gameplay_zone.create', 'parameters': parameters});
+    expect(selected.status, AuthoringResultStatus.success, reason: selected.toJson().toString());
+    final planned = await command('plan', {'projectHandle': fixture.opened.projectHandle.value,
+      'request': AuthoringRequest(requestId: 'jsonl-movement', actionId: 'gameplay_zone.create', actionVersion: 1,
+        workspaceHandle: fixture.opened.workspaceHandle.value, expectedRevision: selected.data['snapshotRevision'] as String,
+        idempotencyKey: 'jsonl-movement', parameters: parameters).toJson()});
+    expect(planned.status, AuthoringResultStatus.success, reason: planned.toJson().toString());
+    final applied = await command('apply', {'projectHandle': fixture.opened.projectHandle.value,
+      'planId': planned.data['planId'], 'operationId': 'jsonl-movement'});
+    expect(applied.status, AuthoringResultStatus.success, reason: applied.toJson().toString());
+    expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+    expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json' ||
+      path.endsWith('.glb') || path.endsWith('history.jsonl')), isEmpty);
+    expect(MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString())).gameplayZones, [zone]);
+    final receipt = applied.data['receipt'] as Map;
+    final undone = await command('undo', {'projectHandle': fixture.opened.projectHandle.value,
+      'entryId': receipt['receiptId'], 'idempotencyKey': 'jsonl-movement-undo'});
+    expect(undone.status, AuthoringResultStatus.success, reason: undone.toJson().toString());
+    expect(await fixture.mapFile.readAsBytes(), before);
+    await fixture.reopen();
+    final reopened = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+      actionId: 'gameplay_zone.create', parameters: parameters);
+    expect(reopened.maps.single.gameplayZones, isEmpty);
+  });
+  for (final mode in ['encounter', 'custom', 'mixed', 'missing-movement', 'provenance', 'unknown-reference']) {
+    test('local movement zone scope refuses $mode without reference closure', () async {
+      final fixture = await _Fixture.open(90);
+      addTearDown(fixture.close);
+      final before = await fixture.mapFile.readAsBytes();
+      final zone = <String, Object?>{
+        'id': 'refused', 'kind': mode == 'encounter' ? 'encounter' : mode == 'custom' ? 'custom' : 'movement',
+        'area': {'pos': {'x': 1, 'y': 1}, 'size': {'width': 1, 'height': 1}},
+        if (mode != 'missing-movement') 'movement': {'requiredMode': 'surf', if (mode == 'unknown-reference') 'sceneId': 'foreign-scene'},
+        if (mode == 'encounter' || mode == 'mixed') 'encounter': {'tableId': 'foreign-table'},
+        if (mode == 'provenance') 'smartTileProvenance': {'layerId': 'foreign', 'bindingId': 'foreign', 'terrainId': 'foreign'},
+      };
+      final store = await CatalogStorageStore.open(projectRoot: fixture.root.path);
+      final reader = (await CatalogProjectReader.open(store: store,
+          descriptor: jsonDecode(utf8.decode(fixture.descriptor)) as Map<String, dynamic>, metadataFields: {}))!;
+      fixture.reader.paths.clear();
+      await expectLater(CatalogSpatialMapSelection.read(reader: reader, projectHandle: fixture.opened.projectHandle,
+          actionId: 'gameplay_zone.create', parameters: {'mapId': 'map', 'zone': zone}),
+          throwsA(isA<ProjectSnapshotException>().having((error) => error.code, 'code', 'project.field_traversal_scope_required')));
+      expect(await fixture.mapFile.readAsBytes(), before);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+  test('local movement zone scope rejects a forged unrelated map delta', () async {
+    final fixture = await _Fixture.open(0);
+    addTearDown(fixture.close);
+    final before = await fixture.mapFile.readAsBytes();
+    final original = MapData.fromJson(jsonDecode(utf8.decode(before)));
+    final zone = MapGameplayZone(id: 'water', kind: GameplayZoneKind.movement,
+      area: const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 1, height: 1)),
+      movement: const MovementZonePayload(requiredMode: MovementMode.surf));
+    final parameters = <String, Object?>{'mapId': 'map', 'zone': zone.toJson()};
+    final store = await CatalogStorageStore.open(projectRoot: fixture.root.path);
+    final reader = (await CatalogProjectReader.open(store: store,
+        descriptor: jsonDecode(utf8.decode(fixture.descriptor)) as Map<String, dynamic>, metadataFields: {}))!;
+    final selection = await CatalogSpatialMapSelection.read(reader: reader,
+        projectHandle: fixture.opened.projectHandle, actionId: 'gameplay_zone.create', parameters: parameters);
+    final resource = AuthoringResourceRef(kind: 'map', id: 'map', revision: selection.mapRevision);
+    final change = AuthoringResourceChange(resource: resource, storageKey: 'maps/map.json',
+      beforeBytes: before, afterBytes: utf8.encode(jsonEncode(original.copyWith(gameplayZones: [zone], properties: {'forged': true}).toJson())));
+    final now = DateTime.now().toUtc();
+    final plan = AuthoringPlan(planId: 'forged-movement', receiptId: 'forged-movement',
+      request: AuthoringRequest(requestId: 'forged-movement', actionId: 'gameplay_zone.create', actionVersion: 1,
+        workspaceHandle: fixture.opened.workspaceHandle.value, expectedRevision: selection.snapshot.revision,
+        idempotencyKey: 'forged-movement', parameters: parameters),
+      baseRevision: selection.snapshot.revision, seed: 0, createdAt: now,
+      expiresAt: now.add(const Duration(minutes: 5)), changeSet: AuthoringChangeSet(changes: [change], diff: AuthoringDiff([
+        AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: resource, path: r'$', before: original.toJson(), after: {'forged': true})])));
+    await expectLater(selection.translate(plan), throwsA(isA<AuthoringPlanException>()
+      .having((error) => error.code, 'code', 'catalog.mutation_outside_scope')));
+    expect(await fixture.mapFile.readAsBytes(), before);
+  });
+  for (final mode in ['automatic', 'free', 'wrong-area', 'forged-projection']) {
+    test('catalog manual Environment move refuses $mode', () async {
+      final base = spatialEnvironmentFixture();
+      final instance = SpatialModelInstance(id: 'selected', modelId: 'tree',
+          position: Model3dVector3(x: 1.5, y: 0, z: 1.5));
+      final layer = base.map.layers.single as EnvironmentLayer;
+      final area = layer.content.areas.single;
+      final source = base.map.copyWith(spatialScene: base.map.spatialScene!.copyWith(instances: [instance]),
+          layers: [MapLayer.environment(id: layer.id, name: layer.name,
+              content: EnvironmentLayerContent(targetsSpatialTerrain: true, areas: [
+                EnvironmentArea(id: area.id, name: area.name, presetId: area.presetId,
+                    seed: area.seed, mask: area.mask,
+                    generatedPlacementIds: mode == 'free' ? [] : ['selected'],
+                    manualPlacementIds: mode == 'automatic' || mode == 'free' ? [] : ['selected'])]))]);
+      final fixture = await _Fixture.open(0, content: (project: base.project, map: source));
+      addTearDown(fixture.close);
+      final parameters = <String, Object?>{'mapId': 'map', 'layerId': 'env',
+        'areaId': mode == 'wrong-area' ? 'missing' : 'forest', 'placementId': 'selected', 'x': 3, 'y': 2};
+      final before = await fixture.mapFile.readAsBytes();
+      if (mode != 'forged-projection') {
+        await expectLater(fixture.apply('environment.generated_placement_move', parameters, 'refused-$mode'),
+            throwsA(isA<Exception>()));
+      } else {
+        final store = await CatalogStorageStore.open(projectRoot: fixture.root.path);
+        final reader = (await CatalogProjectReader.open(store: store,
+            descriptor: jsonDecode(utf8.decode(fixture.descriptor)) as Map<String, dynamic>, metadataFields: {}))!;
+        final selection = await CatalogSpatialMapSelection.read(reader: reader,
+            projectHandle: fixture.opened.projectHandle, actionId: 'environment.generated_placement_move',
+            parameters: parameters);
+        final resource = AuthoringResourceRef(kind: 'map', id: 'map', revision: selection.mapRevision);
+        final change = AuthoringResourceChange(resource: resource, storageKey: 'maps/map.json',
+            beforeBytes: before, afterBytes: utf8.encode(jsonEncode(source.copyWith(properties: {'forged': true}).toJson())));
+        final now = DateTime.now().toUtc();
+        final plan = AuthoringPlan(planId: 'forged', receiptId: 'forged',
+            request: AuthoringRequest(requestId: 'forged', actionId: 'environment.generated_placement_move',
+                actionVersion: 1, workspaceHandle: fixture.opened.workspaceHandle.value,
+                expectedRevision: selection.snapshot.revision, idempotencyKey: 'forged', parameters: parameters),
+            baseRevision: selection.snapshot.revision, seed: 0, createdAt: now,
+            expiresAt: now.add(const Duration(minutes: 5)),
+            changeSet: AuthoringChangeSet(changes: [change], diff: AuthoringDiff([
+              AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: resource,
+                  path: r'$', before: source.toJson(), after: {'forged': true})])));
+        await expectLater(selection.translate(plan), throwsA(isA<AuthoringPlanException>().having(
+            (error) => error.code, 'code', 'catalog.mutation_outside_scope')));
+      }
+      expect(await fixture.mapFile.readAsBytes(), before);
+    });
+  }
+  final manualBindingReadCounts = <int, List<int>>{};
+  for (final unrelated in [0, 80]) {
+    test('bound manual Environment adoption and binding remain local with $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final instance = SpatialModelInstance(id: 'manual-bound', modelId: 'tree',
+          entityId: 'object', position: Model3dVector3(x: 1.5, y: 0, z: 1.5));
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project,
+        map: base.map.copyWith(entities: [const MapEntity(id: 'object',
+            kind: MapEntityKind.custom, pos: GridPos(x: 1, y: 1))],
+            spatialScene: base.map.spatialScene!.copyWith(instances: [instance])),
+      ));
+      addTearDown(fixture.close);
+      final counts = <int>[];
+      Future<AuthoringMutationResult> mutate(String action, Map<String, Object?> parameters, String id) async {
+        fixture.reader.paths.clear();
+        final result = await fixture.apply(action, {'mapId': 'map', ...parameters}, id);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) =>
+            path.startsWith('maps/') && path != 'maps/map.json' ||
+            path.startsWith('assets/') || path.endsWith('history.jsonl')), isEmpty);
+        counts.add(fixture.reader.paths.where((path) => path == 'maps/map.json').length);
+        return result;
+      }
+      MapData read() => MapData.fromJson(jsonDecode(fixture.mapFile.readAsStringSync()));
+      const target = {'layerId': 'env', 'areaId': 'forest'};
+      final before = await fixture.mapFile.readAsBytes();
+      final adoption = await mutate('environment.generated_placement_adopt_batch',
+          {...target, 'placementIds': ['manual-bound']}, 'manual-adopt');
+      final adoptedBytes = await fixture.mapFile.readAsBytes();
+      expect(read().spatialScene!.instances.single, instance);
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: adoption.receipt.receiptId, idempotencyKey: 'undo-manual-adopt');
+      expect(await fixture.mapFile.readAsBytes(), before);
+      await fixture.api.redoMutation(fixture.opened.projectHandle,
+          entryId: adoption.receipt.receiptId, idempotencyKey: 'redo-manual-adopt');
+      expect(await fixture.mapFile.readAsBytes(), adoptedBytes);
+      final move = await mutate('environment.generated_placement_move',
+          {...target, 'placementId': 'manual-bound', 'x': 3, 'y': 2}, 'manual-move');
+      expect(read().entities.single.pos, const GridPos(x: 3, y: 2));
+      final moved = read().spatialScene!.instances.single;
+      final movedBytes = await fixture.mapFile.readAsBytes();
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: move.receipt.receiptId, idempotencyKey: 'undo-manual-move');
+      expect(await fixture.mapFile.readAsBytes(), adoptedBytes);
+      await fixture.api.redoMutation(fixture.opened.projectHandle,
+          entryId: move.receipt.receiptId, idempotencyKey: 'redo-manual-move');
+      expect(await fixture.mapFile.readAsBytes(), movedBytes);
+      await mutate('map3d.instance.upsert_batch', {'instances': [
+        moved.copyWith(clearEntityBinding: true).toJson()]}, 'manual-unbind');
+      expect(read().spatialScene!.instances.singleWhere((value) => value.id == moved.id).entityId, isNull);
+      await mutate('map3d.instance.upsert_batch', {'instances': [moved.toJson()]}, 'manual-rebind');
+      final finalMap = read();
+      await fixture.reopen();
+      final reopened = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'map3d.instance.upsert', parameters: {'mapId': 'map', 'instance': moved.toJson()});
+      expect(reopened.maps.single, finalMap);
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+      manualBindingReadCounts[unrelated] = counts;
+      if (unrelated == 80) expect(counts, manualBindingReadCounts[0]);
+    });
+  }
+
   for (final unrelated in [0, 90]) {
     test('encounter background payload stays targeted with $unrelated foreign maps', () async {
       final base = spatialEnvironmentFixture();
@@ -2371,7 +2642,8 @@ Map<String, Object?> _patternParameters(String action, String pattern, String st
 
 final class _Fixture {
   _Fixture(this.root, this.opened, this.handles, this.api, this.reader,
-      this.unrelatedObjects, this.descriptor, this.instance);
+      this.unrelatedObjects, this.descriptor, this.instance, this.counters);
+  final _OperationCounters counters;
   final Directory root;
   OpenedProject opened;
   final WorkspaceHandleStore handles;
@@ -2473,6 +2745,7 @@ final class _Fixture {
     await file.parent.create(recursive: true);
     await file.writeAsString(jsonEncode(map.toJson()));
     final reader = _CountingReader();
+    final counters = _OperationCounters()..rootPath = root.path;
     final handles = WorkspaceHandleStore();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [root.path], fileReader: reader);
@@ -2484,7 +2757,7 @@ final class _Fixture {
     final api = LocalMapAuthoringMutationApi(
         policy: policy,
         snapshotLoader: ProjectSnapshotLoader(handles: handles),
-        catalogFileReader: reader);
+        catalogFileReader: reader, performanceObserver: counters);
     await api.attachProject(
         projectRootPath: root.path,
         workspaceHandle: opened.workspaceHandle,
@@ -2493,7 +2766,7 @@ final class _Fixture {
     await history.parent.create(recursive: true);
     await history.writeAsString('unrelated legacy history\n');
     return _Fixture(root, opened, handles, api, reader, unrelatedObjects,
-        await File('${root.path}/project.json').readAsBytes(), instance);
+        await File('${root.path}/project.json').readAsBytes(), instance, counters);
   }
 
   Future<AuthoringMutationResult> apply(
@@ -2535,7 +2808,7 @@ final class _Fixture {
     api = LocalMapAuthoringMutationApi(
         policy: policy,
         snapshotLoader: ProjectSnapshotLoader(handles: handles),
-        catalogFileReader: reader);
+        catalogFileReader: reader, performanceObserver: counters);
     await api.attachProject(
         projectRootPath: root.path,
         workspaceHandle: opened.workspaceHandle,
@@ -2657,4 +2930,107 @@ List<int> _storyWav() {
   data.setUint32(40, 8000, Endian.little);
   bytes.fillRange(44, bytes.length, 128);
   return bytes;
+}
+
+final class _OperationCounters implements AuthoringPerformanceObserver {
+  final values = <String, int>{};
+  final catalogReads = <Map<String, Object?>>[];
+  String? rootPath;
+  bool attributeCatalogIo = false;
+
+  void reset() {
+    values.clear();
+    catalogReads.clear();
+  }
+
+  @override
+  void incrementCounter(String name, {int by = 1}) {
+    values.update(name, (value) => value + by, ifAbsent: () => by);
+    if (!attributeCatalogIo || rootPath == null ||
+        name != AuthoringPerformanceCounterName.gatewayResourceReadBytes) {
+      return;
+    }
+    final transactions = Directory('$rootPath/.pokemap/authoring/transactions');
+    if (!transactions.existsSync()) return;
+    final matches = <Map<String, Object?>>[];
+    for (final operation in transactions.listSync(followLinks: false).whereType<Directory>()) {
+      if (!operation.uri.pathSegments.where((value) => value.isNotEmpty).last.startsWith('catalog-')) continue;
+      for (final descriptorFile in operation.listSync(followLinks: false).whereType<File>()) {
+        if (!descriptorFile.path.endsWith('.after.json')) continue;
+        final descriptor = jsonDecode(descriptorFile.readAsStringSync()) as Map;
+        final key = descriptor['storageKey'];
+        if (key is! String || !key.startsWith('catalog/objects/') || descriptor['byteLength'] != by) continue;
+        final payload = File(descriptorFile.path.replaceAll('.after.json', '.after.bin'));
+        if (!payload.existsSync() || payload.lengthSync() != by) continue;
+        final object = jsonDecode(payload.readAsStringSync()) as Map;
+        final type = object['type'];
+        final limits = CatalogStorageLimits();
+        expect(object['version'], 2);
+        expect(by, lessThanOrEqualTo(type == 'unit' ? limits.maxUnitBytes : limits.maxIndexBytes));
+        expect(type, isIn(['unit', 'leaf', 'branch', 'root']));
+        final keyKinds = <String, int>{};
+        if (type == 'leaf') {
+          final entries = object['entries'] as List;
+          expect(entries.length, inInclusiveRange(1, limits.indexPageSize));
+          for (final entry in entries.cast<Map>()) {
+            final kind = (entry['key'] as Map)['kind'] as String;
+            keyKinds.update(kind, (value) => value + 1, ifAbsent: () => 1);
+          }
+        }
+        if (type == 'branch') {
+          expect((object['children'] as List).length, inInclusiveRange(1, limits.indexPageSize));
+          for (final child in (object['children'] as List).cast<Map>()) {
+            expect(child['height'], inInclusiveRange(0, limits.maxIndexDepth));
+          }
+        }
+        if (type == 'root' && object['index'] != null) {
+          expect((object['index'] as Map)['height'], inInclusiveRange(0, limits.maxIndexDepth));
+        }
+        matches.add({'storageKey': key, 'byteLength': by, 'type': type,
+          'stagedPayload': payload.path.substring(rootPath!.length + 1),
+          'stagedDescriptor': descriptorFile.path.substring(rootPath!.length + 1),
+          if (type == 'leaf') 'entries': (object['entries'] as List).length,
+          if (type == 'branch') 'children': (object['children'] as List).length,
+          if (type == 'root') 'height': (object['index'] as Map?)?['height'],
+          if (keyKinds.isNotEmpty) 'keyKinds': keyKinds});
+      }
+    }
+    if (matches.isEmpty) return;
+    expect(matches, hasLength(1), reason: 'Catalog stage attribution must identify one exact active payload.');
+    catalogReads.add(matches.single);
+  }
+
+  @override
+  AuthoringPerformanceSpan? startSpan(String name) => null;
+
+  Map<String, int> gatewayIo() => {
+    for (final name in [AuthoringPerformanceCounterName.gatewayResourceReadBytes,
+      AuthoringPerformanceCounterName.filesystemRead,
+      AuthoringPerformanceCounterName.filesystemWrite]) name: values[name] ?? 0,
+  };
+
+  Map<String, int> ownerIo() {
+    expect(catalogReads, isNotEmpty);
+    final objects = catalogReads.map((value) => value['storageKey']).toSet();
+    return {
+      AuthoringPerformanceCounterName.gatewayResourceReadBytes:
+          (values[AuthoringPerformanceCounterName.gatewayResourceReadBytes] ?? 0) -
+          catalogReads.fold<int>(0, (sum, value) => sum + (value['byteLength'] as int)),
+      AuthoringPerformanceCounterName.filesystemRead:
+          (values[AuthoringPerformanceCounterName.filesystemRead] ?? 0) - catalogReads.length,
+      AuthoringPerformanceCounterName.filesystemWrite:
+          (values[AuthoringPerformanceCounterName.filesystemWrite] ?? 0) - 2 * objects.length,
+    };
+  }
+
+  Map<String, Object?> catalogSummary() {
+    final objects = <String, Map<String, Object?>>{
+      for (final value in catalogReads) value['storageKey'] as String: value,
+    };
+    return {'objects': objects.values.toList(), 'readEvents': catalogReads.length,
+      'readBytes': catalogReads.fold<int>(0, (sum, value) => sum + (value['byteLength'] as int)),
+      'gatewayWriteEvents': 2 * objects.length,
+      'writeAttribution': 'Two instrumented filesystem.write events per published immutable object: promoteStaged and deleteTransaction. These counters are gateway operation events, not physical file writes.',
+      'instrumentationScope': 'Only active catalog- transaction descriptors and their exact payloads; no assets or complete history scanned. Test-only synchronous attribution is excluded from timing claims.'};
+  }
 }

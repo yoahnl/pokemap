@@ -6,6 +6,46 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  const manualCapability = 'map3d.manual-environment-entity-models@1';
+  test('manual Environment binding requires its additive reader capability', () {
+    final payload = manualEnvironmentPayload();
+    expect(() => const GamePackageBuilder().build(
+        manifest: manualManifest(capabilities: ['map3d@1', 'map3d.gameplay@1',
+          SpatialModelInstance.entityBindingCapabilityId]), payloadFiles: payload),
+        throwsA(isA<GamePackageFormatException>().having((error) => error.message,
+            'message', contains(manualCapability))));
+    final built = const GamePackageBuilder().build(manifest: manualManifest(
+        capabilities: ['map3d@1', 'map3d.gameplay@1',
+          SpatialModelInstance.entityBindingCapabilityId, manualCapability]),
+        payloadFiles: payload);
+    final base = AveluneRuntimeCompatibility.host();
+    final current = GamePackageHostCompatibility(
+        hubVersion: Version.parse('1.2.0'), runtimeApiVersion: base.runtimeApiVersion,
+        supportedRuntimeApiVersions: base.supportedRuntimeApiVersions,
+        supportedProjectFormats: base.supportedProjectFormats,
+        currentProjectFormat: base.currentProjectFormat,
+        supportedSaveFormats: base.supportedSaveFormats, capabilities: base.capabilities);
+    expect(current.capabilities, contains(manualCapability));
+    final older = GamePackageHostCompatibility(hubVersion: current.hubVersion,
+        runtimeApiVersion: current.runtimeApiVersion,
+        supportedRuntimeApiVersions: current.supportedRuntimeApiVersions,
+        supportedProjectFormats: current.supportedProjectFormats,
+        currentProjectFormat: current.currentProjectFormat,
+        supportedSaveFormats: current.supportedSaveFormats,
+        capabilities: current.capabilities.difference({manualCapability}));
+    expect(() => GamePackageInspector(hostCompatibility: older).inspect(built.packageBytes),
+        throwsA(isA<GamePackageFormatException>().having((error) => error.code,
+            'code', 'capabilityUnsupported')));
+    expect(GamePackageInspector(hostCompatibility: current).inspect(built.packageBytes)
+        .manifest.compatibility.requiredCapabilities, contains(manualCapability));
+  });
+  test('manual reader capability cannot legalize an automatic binding', () {
+    expect(() => const GamePackageBuilder().build(manifest: manualManifest(
+        capabilities: ['map3d@1', 'map3d.gameplay@1',
+          SpatialModelInstance.entityBindingCapabilityId, manualCapability]),
+        payloadFiles: manualEnvironmentPayload(manual: false)),
+        throwsA(isA<GamePackageFormatException>()));
+  });
   test('conditional model visibility requires its capability before packaging', () {
     final payload = spatialPayload();
     final map = MapData.fromJson(jsonDecode(utf8.decode(
@@ -114,5 +154,16 @@ void main() {
             .inspect(built.packageBytes),
         throwsA(isA<GamePackageFormatException>()
             .having((error) => error.code, 'code', 'capabilityUnsupported')));
+  });
+}
+
+GamePackageManifest manualManifest({required List<String> capabilities}) {
+  final json = spatialManifest(capabilities: capabilities).toJson();
+  return const GamePackageManifestCodec().decodeJson({
+    ...json,
+    'compatibility': {
+      ...Map<String, Object?>.from(json['compatibility'] as Map),
+      'saveFormat': 2,
+    },
   });
 }

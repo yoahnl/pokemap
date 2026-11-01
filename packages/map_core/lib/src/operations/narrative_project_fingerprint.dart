@@ -2,15 +2,17 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:meta/meta.dart' show immutable;
+import 'package:meta/meta.dart' show immutable, visibleForTesting;
+
+import 'narrative_fingerprint_sha256.dart';
 
 @immutable
 final class NarrativeProjectFingerprintEntry {
   NarrativeProjectFingerprintEntry({
     required String relativePath,
     required List<int> bytes,
-  })  : relativePath = _normalizePath(relativePath),
-        bytes = Uint8List.fromList(bytes);
+  }) : relativePath = _normalizePath(relativePath),
+       bytes = Uint8List.fromList(bytes);
 
   final String relativePath;
   final Uint8List bytes;
@@ -22,16 +24,20 @@ String computeNarrativeProjectFingerprint(
   final ordered = entries.toList()
     ..sort((left, right) => left.relativePath.compareTo(right.relativePath));
   final builder = NarrativeProjectFingerprintBuilder();
-  for (final entry in ordered) {
-    builder
-      ..startEntry(
-        relativePath: entry.relativePath,
-        byteLength: entry.bytes.length,
-      )
-      ..addBytes(entry.bytes)
-      ..endEntry();
+  try {
+    for (final entry in ordered) {
+      builder
+        ..startEntry(
+          relativePath: entry.relativePath,
+          byteLength: entry.bytes.length,
+        )
+        ..addBytes(entry.bytes)
+        ..endEntry();
+    }
+    return builder.close();
+  } finally {
+    builder.dispose();
   }
-  return builder.close();
 }
 
 /// Incrementally computes the canonical project fingerprint without retaining
@@ -41,20 +47,32 @@ String computeNarrativeProjectFingerprint(
 /// declared byte length is checked against the chunks received before the next
 /// entry can start.
 final class NarrativeProjectFingerprintBuilder {
-  NarrativeProjectFingerprintBuilder() {
-    _input = sha256.startChunkedConversion(_output);
+  NarrativeProjectFingerprintBuilder()
+    : this.withSinkFactory(createNarrativeFingerprintSha256Sink);
+
+  @visibleForTesting
+  NarrativeProjectFingerprintBuilder.withSinkFactory(
+    ByteConversionSink Function(Sink<Digest>) factory,
+  ) {
+    try {
+      _input = factory(_output);
+    } on Object {
+      _output.discard();
+      rethrow;
+    }
   }
 
+  static bool get nativeBackendAvailable =>
+      nativeNarrativeFingerprintSha256Available;
+
   final _NarrativeProjectDigestSink _output = _NarrativeProjectDigestSink();
-  late final ByteConversionSink _input;
+  ByteConversionSink? _input;
+  bool _disposed = false;
   String? _lastPath;
   int? _remainingEntryBytes;
   String? _fingerprint;
 
-  void startEntry({
-    required String relativePath,
-    required int byteLength,
-  }) {
+  void startEntry({required String relativePath, required int byteLength}) {
     _checkOpen();
     if (_remainingEntryBytes != null) {
       throw StateError('The previous fingerprint entry is still open.');
@@ -77,12 +95,17 @@ final class NarrativeProjectFingerprintBuilder {
       }
     }
     final pathBytes = utf8.encode(path);
-    _input
-      ..add(_uint64(pathBytes.length))
-      ..add(pathBytes)
-      ..add(_uint64(byteLength));
-    _lastPath = path;
-    _remainingEntryBytes = byteLength;
+    try {
+      _input!
+        ..add(_uint64(pathBytes.length))
+        ..add(pathBytes)
+        ..add(_uint64(byteLength));
+      _lastPath = path;
+      _remainingEntryBytes = byteLength;
+    } on Object {
+      dispose();
+      rethrow;
+    }
   }
 
   void addBytes(List<int> bytes) {
@@ -97,8 +120,13 @@ final class NarrativeProjectFingerprintBuilder {
         '$remaining remaining.',
       );
     }
-    _input.add(bytes);
-    _remainingEntryBytes = remaining - bytes.length;
+    try {
+      _input!.add(bytes);
+      _remainingEntryBytes = remaining - bytes.length;
+    } on Object {
+      dispose();
+      rethrow;
+    }
   }
 
   void endEntry() {
@@ -118,19 +146,41 @@ final class NarrativeProjectFingerprintBuilder {
   String close() {
     final existing = _fingerprint;
     if (existing != null) return existing;
+    _checkOpen();
     if (_remainingEntryBytes != null) {
       throw StateError('Cannot close with a fingerprint entry still open.');
     }
-    _input.close();
-    final digest = _output.digest;
-    if (digest == null) {
-      throw StateError('The project fingerprint digest was not produced.');
+    try {
+      _input!.close();
+      final digest = _output.digest;
+      if (digest == null) {
+        throw StateError('The project fingerprint digest was not produced.');
+      }
+      final result = 'sha256:$digest';
+      _input = null;
+      _output.discard();
+      return _fingerprint = result;
+    } on Object {
+      dispose();
+      rethrow;
     }
-    return _fingerprint = 'sha256:$digest';
+  }
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _output.discard();
+    final input = _input;
+    _input = null;
+    try {
+      input?.close();
+    } on Object {
+      return;
+    }
   }
 
   void _checkOpen() {
-    if (_fingerprint != null) {
+    if (_disposed || _fingerprint != null) {
       throw StateError('The project fingerprint builder is closed.');
     }
   }
@@ -138,13 +188,20 @@ final class NarrativeProjectFingerprintBuilder {
 
 final class _NarrativeProjectDigestSink implements Sink<Digest> {
   Digest? digest;
+  bool _accepting = true;
 
   @override
   void add(Digest data) {
+    if (!_accepting) return;
     if (digest != null) {
       throw StateError('The digest sink received more than one value.');
     }
     digest = data;
+  }
+
+  void discard() {
+    _accepting = false;
+    digest = null;
   }
 
   @override
@@ -161,7 +218,10 @@ String _normalizePath(String value) {
   }
   if (path.isEmpty || path.startsWith('/') || path.split('/').contains('..')) {
     throw ArgumentError.value(
-        value, 'relativePath', 'must stay project-relative');
+      value,
+      'relativePath',
+      'must stay project-relative',
+    );
   }
   return path;
 }

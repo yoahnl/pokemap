@@ -7,6 +7,34 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  for (final bound in [false, true]) {
+    test('manual Environment capability follows actual binding: $bound', () async {
+      final root = await Directory.systemTemp.createTemp('manual-entity-export-');
+      addTearDown(() => root.delete(recursive: true));
+      final files = manualEnvironmentPayload(bound: bound);
+      for (final entry in files.entries) {
+        final file = File('${root.path}/${entry.key.substring('project/'.length)}');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.value);
+      }
+      final before = await File('${root.path}/maps/map.json').readAsBytes();
+      final result = await const CanonicalGamePackageExportService().build(
+          projectRoot: root,
+          profile: GamePackageExportProfile(gameId: 'games.example.manual',
+              gameVersion: '0.1.0', title: 'Manual trees', authorName: 'Fixture',
+              defaultLocale: 'fr', supportedLocales: ['fr']),
+          mode: GamePackageExportMode.localTest);
+      final required = result.manifest.compatibility.requiredCapabilities;
+      expect(required.contains(SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId), bound);
+      expect(required.contains(SpatialModelInstance.entityBindingCapabilityId), bound);
+      final archive = ZipDecoder().decodeBytes(result.packageBytes);
+      final exported = MapData.fromJson(jsonDecode(utf8.decode(
+          archive.findFile('project/maps/map.json')!.content)) as Map<String, dynamic>);
+      final source = MapData.fromJson(jsonDecode(utf8.decode(before)) as Map<String, dynamic>);
+      expect(exported, source);
+      expect(await File('${root.path}/maps/map.json').readAsBytes(), before);
+    });
+  }
   for (final enabled in [false, true]) {
     test('entity model capability is projected only when authored: $enabled',
         () async {

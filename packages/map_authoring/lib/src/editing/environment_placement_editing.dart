@@ -203,6 +203,11 @@ MapData _moveManualPlacement(
       throw semanticFailure('environment.placement_missing',
           'The tracked spatial Environment instance is missing.');
     }
+    if (instance.entityId != null &&
+        !SpatialEntityModelOwnership(map).canBind(instance.id)) {
+      throw semanticFailure('environment.entity_binding_owner_invalid',
+          'A bound spatial placement requires its existing unique manual owner.');
+    }
     var updated = _replaceArea(map,
         layerId: layerId,
         areaId: areaId,
@@ -218,6 +223,10 @@ MapData _moveManualPlacement(
           areaId: areaId,
           cells: [(x: old.x, y: old.y)],
           value: false);
+    }
+    if (instance.entityId != null) {
+      return const SpatialMapOperations().upsertInstance(updated,
+          instance.copyWith(position: _spatialPosition(map, pos)));
     }
     return updated.copyWith(
         spatialScene: map.spatialScene!.copyWith(instances: [

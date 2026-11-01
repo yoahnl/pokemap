@@ -6,11 +6,11 @@ Future<CatalogWorkshopSelection> _readModelLightWorkshop({
   required Map<String, Object?> parameters,
 }) async {
   const action = 'model3d.configure';
-  if (!parameters.containsKey('light') ||
+  if ((!parameters.containsKey('light') && !parameters.containsKey('collisionBounds')) ||
       parameters['modelId'] is! String ||
-      parameters.keys.any((key) => !{'modelId', 'light'}.contains(key))) {
+      parameters.keys.any((key) => !{'modelId', 'light', 'collisionBounds'}.contains(key))) {
     CatalogWorkshopSelection.unsupported(
-        action, 'a light-only model configuration');
+        action, 'a light/collision-bounds-only model configuration');
   }
   final id = parameters['modelId']! as String;
   final selected = await reader.withMetadataFields({'settings'});

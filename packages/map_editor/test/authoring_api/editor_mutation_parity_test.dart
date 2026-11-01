@@ -19,8 +19,52 @@ import 'package:map_editor/src/infrastructure/repositories/file_repositories.dar
 import 'package:map_editor/src/features/personalization/application/project_presentation_preset_service.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../map_authoring/test/domains/maps/environment_spatial_actions_test.dart'
+    show spatialEnvironmentFixture, environmentModelGlb;
+
 void main() {
   group('AuthoringMutationAdapter', () {
+    test('editor native gateway preserves bound manual Environment adoption and move', () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final base = spatialEnvironmentFixture();
+      final project = base.project.copyWith(maps: fixture.project.maps);
+      final instance = SpatialModelInstance(id: 'tree-owner', modelId: 'tree',
+          entityId: 'object', position: Model3dVector3(x: 1.5, y: 0, z: 1.5));
+      final map = base.map.copyWith(id: fixture.map.id, entities: [const MapEntity(
+          id: 'object', kind: MapEntityKind.custom, pos: GridPos(x: 1, y: 1))],
+          spatialScene: base.map.spatialScene!.copyWith(instances: [instance]));
+      await File(p.join(fixture.root.path, 'project.json')).writeAsString(jsonEncode(project.toJson()));
+      await File(fixture.mapPath).writeAsString(jsonEncode(map.toJson()));
+      final model = project.models3d.single;
+      final bytes = environmentModelGlb();
+      final artifact = ContentArtifactRef.fromBytes(bytes, mediaType: 'model/gltf-binary');
+      for (final path in [model.relativePath, assetBlobStorageKey(artifact)]) {
+        final file = File(p.join(fixture.root.path, path));
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(bytes);
+      }
+      await File(p.join(fixture.root.path, assetCatalogStorageKey)).writeAsString(jsonEncode(
+          AssetCatalog(records: [AssetRecord(id: model.sourceAssetId,
+              logicalPath: model.relativePath, artifact: artifact)]).toJson()));
+      Future<EditorAuthoringMutationResult> mutate(String action, Map<String, Object?> parameters, String id) async {
+        final plan = await fixture.mutations.plan(fixture.root.path, actionId: action,
+            parameters: {'mapId': map.id, ...parameters}, idempotencyKey: id);
+        return fixture.mutations.apply(plan, operationId: id);
+      }
+      final adoption = await mutate('environment.generated_placement_adopt_batch',
+          {'layerId': 'env', 'areaId': 'forest', 'placementIds': ['tree-owner']}, 'editor-adopt');
+      expect(adoption.receipt.status, AuthoringReceiptStatus.applied);
+      await mutate('environment.generated_placement_move',
+          {'layerId': 'env', 'areaId': 'forest', 'placementId': 'tree-owner', 'x': 3, 'y': 2}, 'editor-move');
+      await fixture.mutations.closeAll();
+      await fixture.queries.closeAll();
+      final reopened = await FileMapRepository().loadMapDocument(fixture.mapPath);
+      expect(reopened.map.entities.single.pos, const GridPos(x: 3, y: 2));
+      expect(reopened.map.spatialScene!.instances.single.entityId, 'object');
+      expect((reopened.map.layers.single as EnvironmentLayer).content.areas.single.manualPlacementIds,
+          ['tree-owner']);
+    });
     for (final method in ['apply', 'saveMap']) {
       test(
         '$method keeps an applied receipt when the local projection reload fails after canonical success',

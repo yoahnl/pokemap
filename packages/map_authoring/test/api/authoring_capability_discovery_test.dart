@@ -27,6 +27,32 @@ void main() {
           reason: id);
     }
   });
+  test('map3d discovery includes the canonical model visibility contract', () {
+    const id = 'map3d.instance.visibility.set';
+    final descriptor = MapMutationDispatcher.canonical()
+        .descriptors
+        .singleWhere((action) => action.id == id)
+        .toJson();
+    final source = <String, Object?>{
+      'mutationActions': [descriptor],
+      'resourceKinds': [
+        {'id': 'map'},
+      ],
+    };
+    final compact =
+        describeAuthoringCapabilities(source, domain: 'map3d', view: 'compact');
+    final summary = (compact['mutationActions'] as List).single as Map;
+    expect(summary['id'], id);
+    expect(summary['version'], descriptor['version']);
+    expect(summary['inputSchemaAvailable'], isTrue);
+    final targeted = describeAuthoringCapabilities(source,
+        domain: 'map3d', actionIds: [id], view: 'full');
+    expect(targeted['mutationActions'], [descriptor]);
+    final extensions = descriptor['extensions'] as Map;
+    expect((extensions['visibility'] as Map)['capability'],
+        'map3d.conditional-visibility@1');
+  });
+
   final description = <String, Object?>{
     'protocol': 'pokemap.authoring.v1',
     'schemaVersion': 1,

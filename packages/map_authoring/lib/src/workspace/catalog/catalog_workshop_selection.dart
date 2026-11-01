@@ -78,8 +78,8 @@ final class CatalogWorkshopSelection {
   static bool supports(String action, {Map<String, Object?>? parameters}) =>
       (action == 'model3d.configure' &&
           parameters != null &&
-          parameters.containsKey('light') &&
-          parameters.keys.every((key) => {'modelId', 'light'}.contains(key))) ||
+          (parameters.containsKey('light') || parameters.containsKey('collisionBounds')) &&
+          parameters.keys.every((key) => {'modelId', 'light', 'collisionBounds'}.contains(key))) ||
       (action == 'map.update_metadata' && parameters != null && !parameters.containsKey('escapeRopeDungeonId')) ||
       action == 'surf.configure' ||
       const {'presentation.delete', 'presentation.reset_interface'}.contains(action) ||
@@ -199,7 +199,7 @@ final class CatalogWorkshopSelection {
     if (actionId == 'model3d.configure') {
       if (readDependencies.isNotEmpty) {
         unsupported(
-            actionId, 'no external dependencies for a light configuration');
+            actionId, 'no external dependencies for a model metadata configuration');
       }
       return _readModelLightWorkshop(
           reader: reader, projectHandle: projectHandle, parameters: parameters);

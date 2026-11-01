@@ -70,6 +70,62 @@ void main() {
     );
   });
 
+  test('empty stored raw digest remains distinct from both framed identities',
+      () async {
+    const path = 'assets/été😀.bin';
+    final expected = AuthoringPayload.inline([], storageKey: path);
+    final payload = await AuthoringPayload.verifiedSource(
+        storageKey: path,
+        byteLength: 0,
+        rawSha256: sha256.convert([]).toString(),
+        openRead: () => const Stream<List<int>>.empty());
+    addTearDown(payload.release);
+    expect(payload.rawSha256, sha256.convert([]).toString());
+    expect(payload.resourceRevision, expected.resourceRevision);
+    expect(payload.contentDigest, expected.contentDigest);
+    expect(payload.resourceRevision, isNot('sha256:${payload.rawSha256}'));
+    expect(payload.contentDigest, isNot(payload.resourceRevision));
+    expect(await payload.readBytes(), isEmpty);
+  });
+
+  for (final size in [17, (256 << 10) + 17]) {
+    test(
+        'preparation abort cancels a stored raw session after its first chunk at $size bytes',
+        () async {
+      final bytes = Uint8List(size);
+      var closed = 0;
+      var tail = false;
+      Stream<List<int>> chunks() async* {
+        try {
+          yield Uint8List.sublistView(bytes, 0, 7);
+          tail = true;
+          yield Uint8List.sublistView(bytes, 7);
+        } finally {
+          closed++;
+        }
+      }
+
+      final payload = await AuthoringPayload.verifiedSource(
+          storageKey: 'assets/prepared.bin',
+          byteLength: size,
+          rawSha256: sha256.convert(bytes).toString(),
+          openRead: chunks);
+      addTearDown(payload.release);
+      tail = false;
+      var checks = 0;
+      final checked = payload.checkingPreparation(() {
+        if (++checks == 2) throw StateError('preparation cancelled');
+      });
+      await expectLater(checked.readBytes(),
+          throwsA(isA<AuthoringPayloadPreparationAborted>()));
+      expect(checks, 2);
+      expect(closed, 2);
+      expect(tail, isFalse);
+      expect(await payload.readBytes(), bytes);
+      expect(closed, 3);
+    });
+  }
+
   for (final size in [17, (256 << 10) + 17]) {
     for (final mutation in [
       'same-length',

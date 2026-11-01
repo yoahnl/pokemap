@@ -609,9 +609,8 @@ final class MapLifecycleAdapter {
 }
 
 /// Editor-compatible canonical bytes for one complete map document.
-List<int> encodeMapAuthoringDocument(MapData map) => utf8.encode(
-      const JsonEncoder.withIndent('  ').convert(map.toJson()),
-    );
+List<int> encodeMapAuthoringDocument(MapData map) =>
+    JsonUtf8Encoder('  ').convert(map.toJson());
 
 List<int> encodeProjectAuthoringDocument(
   ProjectSnapshot snapshot,

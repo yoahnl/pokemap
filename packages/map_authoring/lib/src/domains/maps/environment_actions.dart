@@ -101,6 +101,16 @@ final class EnvironmentActions extends EnvironmentEditing {
         'extensions': {
           ...descriptor.extensions,
           'visualKinds': ['element', 'model3d'],
+          if (const {'environment.generated_placement_adopt_batch',
+            'environment.generated_placement_move'}.contains(descriptor.id))
+            'entityBinding': {
+              'ownership': 'unique_spatial_manual_environment',
+              'requiredLists': ['generatedPlacementIds', 'manualPlacementIds'],
+              'capability': SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+              'preservesExistingInstanceAndEntity': true,
+              'moveReanchorsEntity': descriptor.id == 'environment.generated_placement_move',
+              'automaticOrAmbiguousOwner': 'reject',
+            },
           if (descriptor.id == 'environment.attach_to_spatial_terrain')
             'inputSchema': {
               'type': 'object',

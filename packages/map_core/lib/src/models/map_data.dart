@@ -943,26 +943,80 @@ String _buildMigratedPlacedElementBehaviorId({
   return '$base::behavior::$ordinal';
 }
 
+final class SpatialEntityModelOwnership {
+  SpatialEntityModelOwnership._(this._bindable, this._manual);
+
+  factory SpatialEntityModelOwnership(MapData map) {
+    final instances = <String, int>{};
+    for (final instance in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
+      instances.update(instance.id, (count) => count + 1, ifAbsent: () => 1);
+    }
+    final owners = <String, int>{};
+    final manual = <String>{};
+    final invalid = <String>{};
+    for (final layer in map.layers.whereType<EnvironmentLayer>()) {
+      for (final area in layer.content.areas) {
+        final generated = area.generatedPlacementIds.toSet();
+        final overrides = area.manualPlacementIds.toSet();
+        invalid.addAll(overrides.difference(generated));
+        for (final id in area.generatedPlacementIds) {
+          owners.update(id, (count) => count + 1, ifAbsent: () => 1);
+          if (layer.content.targetsSpatialTerrain && overrides.contains(id)) {
+            manual.add(id);
+          }
+        }
+      }
+    }
+    for (final layer in map.layers.whereType<BorderLayer>()) {
+      for (final feature in layer.content.features) {
+        for (final id in feature.generatedPlacementIds) {
+          owners.update(id, (count) => count + 1, ifAbsent: () => 1);
+          invalid.add(id);
+        }
+      }
+    }
+    final eligibleManual = manual.where((id) => owners[id] == 1).toSet();
+    final bindable = instances.keys.where((id) => instances[id] == 1 &&
+        !id.startsWith('smt_') && !invalid.contains(id) &&
+        (!owners.containsKey(id) || eligibleManual.contains(id))).toSet();
+    return SpatialEntityModelOwnership._(Set.unmodifiable(bindable),
+        Set.unmodifiable(eligibleManual.intersection(bindable)));
+  }
+
+  final Set<String> _bindable;
+  final Set<String> _manual;
+
+  bool canBind(String instanceId) => _bindable.contains(instanceId);
+  bool isManual(String instanceId) => _manual.contains(instanceId);
+
+  static bool requiresCapability(Iterable<MapData> maps) => maps.any((map) {
+    final owners = SpatialEntityModelOwnership(map);
+    return map.spatialScene?.instances.any((instance) =>
+        instance.entityId != null && owners.isManual(instance.id)) ?? false;
+  });
+}
+
 void validateSpatialEntityModelBindings(MapData map) {
   final bound = <String>{};
-  final generatedIds = <String>{
-    for (final layer in map.layers.whereType<EnvironmentLayer>())
-      for (final area in layer.content.areas) ...area.generatedPlacementIds,
-    for (final layer in map.layers.whereType<BorderLayer>())
-      for (final feature in layer.content.features)
-        ...feature.generatedPlacementIds,
-  };
+  final owners = SpatialEntityModelOwnership(map);
+  final entities = <String, MapEntity>{};
+  final duplicateEntities = <String>{};
+  for (final entity in map.entities) {
+    if (entities.containsKey(entity.id)) duplicateEntities.add(entity.id);
+    entities[entity.id] = entity;
+  }
   for (final instance
       in map.spatialScene?.instances ?? const <SpatialModelInstance>[]) {
     final id = instance.entityId;
     if (id == null) continue;
-    if (instance.id.startsWith('smt_') || generatedIds.contains(instance.id)) {
+    if (!owners.canBind(instance.id)) {
       throw const FormatException(
         'A generated terrain or environment instance cannot own a game entity.',
       );
     }
-    final entity = map.entities.where((entity) => entity.id == id).firstOrNull;
-    if (entity == null || entity.kind == MapEntityKind.npc || !bound.add(id)) {
+    final entity = entities[id];
+    if (entity == null || duplicateEntities.contains(id) ||
+        entity.kind == MapEntityKind.npc || !bound.add(id)) {
       throw const FormatException(
         'A 3D entity model requires one existing non-NPC entity and a unique binding.',
       );

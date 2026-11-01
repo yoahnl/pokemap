@@ -176,6 +176,7 @@ final class LocalTransactionFileGateway
       if (beforeStat.type != FileSystemEntityType.file ||
           afterStat.type != FileSystemEntityType.file ||
           beforeStat.modified != afterStat.modified ||
+          beforeStat.changed != afterStat.changed ||
           beforeStat.size != afterStat.size) {
         throw const TransactionFileGatewayException(
           'transaction.resource_changed_during_read',

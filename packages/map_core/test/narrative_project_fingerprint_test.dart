@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -7,15 +8,23 @@ void main() {
   test('is stable across input order and slash normalization', () {
     final first = computeNarrativeProjectFingerprint([
       NarrativeProjectFingerprintEntry(
-          relativePath: 'maps/a.json', bytes: utf8.encode('A')),
+        relativePath: 'maps/a.json',
+        bytes: utf8.encode('A'),
+      ),
       NarrativeProjectFingerprintEntry(
-          relativePath: r'dialogues\intro.yarn', bytes: utf8.encode('B')),
+        relativePath: r'dialogues\intro.yarn',
+        bytes: utf8.encode('B'),
+      ),
     ]);
     final second = computeNarrativeProjectFingerprint([
       NarrativeProjectFingerprintEntry(
-          relativePath: 'dialogues/intro.yarn', bytes: utf8.encode('B')),
+        relativePath: 'dialogues/intro.yarn',
+        bytes: utf8.encode('B'),
+      ),
       NarrativeProjectFingerprintEntry(
-          relativePath: './maps/a.json', bytes: utf8.encode('A')),
+        relativePath: './maps/a.json',
+        bytes: utf8.encode('A'),
+      ),
     ]);
     expect(second, first);
   });
@@ -23,13 +32,19 @@ void main() {
   test('includes path boundaries and every file byte', () {
     final base = computeNarrativeProjectFingerprint([
       NarrativeProjectFingerprintEntry(
-          relativePath: 'project.json', bytes: utf8.encode('AB')),
+        relativePath: 'project.json',
+        bytes: utf8.encode('AB'),
+      ),
     ]);
     final split = computeNarrativeProjectFingerprint([
       NarrativeProjectFingerprintEntry(
-          relativePath: 'project.json', bytes: utf8.encode('A')),
+        relativePath: 'project.json',
+        bytes: utf8.encode('A'),
+      ),
       NarrativeProjectFingerprintEntry(
-          relativePath: 'maps/a.json', bytes: utf8.encode('B')),
+        relativePath: 'maps/a.json',
+        bytes: utf8.encode('B'),
+      ),
     ]);
     expect(split, isNot(base));
   });
@@ -86,6 +101,47 @@ void main() {
     );
   });
 
+  test('explicit disposal after a source error abandons the builder', () {
+    final builder = NarrativeProjectFingerprintBuilder()
+      ..startEntry(relativePath: 'a', byteLength: 1);
+    final error = StateError('source length');
+    expect(
+      () => builder.addBytes(_LengthFailureBytes(error)),
+      throwsA(same(error)),
+    );
+    builder.dispose();
+    expect(() => builder.addBytes(const [1]), throwsStateError);
+    expect(builder.close, throwsStateError);
+  });
+
+  test('pre-ingestion source and framing guards remain recoverable', () {
+    final builder = NarrativeProjectFingerprintBuilder();
+    try {
+      expect(
+        () => builder.startEntry(relativePath: '../a', byteLength: 1),
+        throwsArgumentError,
+      );
+      builder.startEntry(relativePath: 'a', byteLength: 1);
+      expect(
+        () => builder.addBytes(_LengthFailureBytes(StateError('length'))),
+        throwsStateError,
+      );
+      expect(() => builder.addBytes(const [1, 2]), throwsStateError);
+      expect(builder.endEntry, throwsStateError);
+      expect(builder.close, throwsStateError);
+      builder.addBytes(const [1]);
+      builder.endEntry();
+      expect(
+        builder.close(),
+        computeNarrativeProjectFingerprint([
+          NarrativeProjectFingerprintEntry(relativePath: 'a', bytes: const [1]),
+        ]),
+      );
+    } finally {
+      builder.dispose();
+    }
+  });
+
   test('rejects duplicate and escaping relative paths', () {
     expect(
       () => computeNarrativeProjectFingerprint([
@@ -96,8 +152,25 @@ void main() {
     );
     expect(
       () => NarrativeProjectFingerprintEntry(
-          relativePath: '../secret', bytes: const []),
+        relativePath: '../secret',
+        bytes: const [],
+      ),
       throwsArgumentError,
     );
   });
+}
+
+final class _LengthFailureBytes extends ListBase<int> {
+  _LengthFailureBytes(this.error);
+  final Object error;
+
+  @override
+  int get length => throw error;
+  @override
+  set length(int value) => throw UnsupportedError('immutable');
+  @override
+  int operator [](int index) => throw error;
+  @override
+  void operator []=(int index, int value) =>
+      throw UnsupportedError('immutable');
 }
