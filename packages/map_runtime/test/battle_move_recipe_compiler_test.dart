@@ -92,6 +92,110 @@ void main() {
   const target = BattleSlotRef(side: BattleSideId.enemy, slotIndex: 1);
   const compiler = BattleMoveRecipeCompiler();
 
+  Map<String, dynamic> groupedSplSource() {
+    final result = explicitAudioSource({'kind': 'clip', 'resourceId': 'cue'});
+    final bytes = utf8.encode('particle');
+    result['requiredCapabilities'] = [
+      'sequence',
+      'parallel',
+      'startParticle',
+      'waitEffects',
+      'splParticleV2',
+      'sound',
+      'audioSelectionV2',
+    ];
+    result['resources'] = [
+      ...(result['resources'] as List),
+      for (final id in ['from', 'to'])
+        {
+          'id': id,
+          'role': 'particleDefinition',
+          'mediaType': 'application/vnd.avelune.particle+json',
+          'sizeBytes': bytes.length,
+          'sha256': sha256.convert(bytes).toString(),
+          'definitionVersion': 2,
+          'dependencies': <String>[],
+        },
+    ];
+    result['program'] = {
+      'kind': 'sequence',
+      'steps': [
+        {
+          'kind': 'parallel',
+          'steps': [
+            {
+              'kind': 'startParticle',
+              'resourceId': 'from',
+              'from': 'userMouth',
+              'to': 'targetImpact',
+            },
+            {
+              'kind': 'startParticle',
+              'resourceId': 'to',
+              'from': 'targetImpact',
+              'to': 'targetImpact',
+            },
+          ],
+        },
+        {'kind': 'waitEffects'},
+      ],
+    };
+    return result;
+  }
+
+  test('selects a bounded grouped SPL recipe with its explicit clip', () {
+    final recipe = BattleMoveAnimationRecipe.fromJson(groupedSplSource());
+    final selected = compiler.selectGroupedSpl(recipe)!;
+    expect(selected.particles, [
+      (resourceId: 'from', from: 'userMouth', to: 'targetImpact'),
+      (resourceId: 'to', from: 'targetImpact', to: 'targetImpact'),
+    ]);
+    expect(selected.audio.resourceId, 'cue');
+    expect(() => selected.particles.clear(), throwsUnsupportedError);
+  });
+
+  test('does not partially select unsupported grouped recipes', () {
+    final silent = groupedSplSource();
+    silent['audio'] = {'kind': 'none'};
+    (silent['requiredCapabilities'] as List).remove('sound');
+
+    final extraCapability = groupedSplSource();
+    (extraCapability['requiredCapabilities'] as List).add('cameraFocus');
+
+    final extraStep = groupedSplSource();
+    final steps = (extraStep['program'] as Map)['steps'] as List;
+    steps.add({'kind': 'waitEffects'});
+
+    final oversized = groupedSplSource();
+    final sequence = (oversized['program'] as Map)['steps'] as List;
+    final parallel = sequence.first as Map;
+    final original = parallel['steps'] as List;
+    parallel['steps'] = [
+      ...original,
+      ...List.generate(31, (_) => Map.of(original.first as Map)),
+    ];
+
+    final mixedVersions = groupedSplSource();
+    final definitions = (mixedVersions['resources'] as List)
+        .where((item) => (item as Map)['role'] == 'particleDefinition')
+        .cast<Map<String, dynamic>>()
+        .toList();
+    definitions.first['definitionVersion'] = 1;
+
+    for (final input in [
+      silent,
+      extraCapability,
+      extraStep,
+      oversized,
+      mixedVersions,
+    ]) {
+      expect(
+        compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input)),
+        isNull,
+      );
+    }
+  });
+
   test('keeps legacy and silent audio distinct from an explicit clip', () {
     final legacy = compiler.compileAudioSelection(
       BattleMoveAnimationRecipe.fromJson(source()),

@@ -12,6 +12,16 @@ enum BattleRecipeAudioCompileFailure {
   sourceIdTooLong,
 }
 
+typedef BattleGroupedSplParticle = ({
+  String resourceId,
+  String from,
+  String to,
+});
+typedef BattleGroupedSplSelection = ({
+  List<BattleGroupedSplParticle> particles,
+  BattleMoveClipAudio audio,
+});
+
 final class BattleRecipeAudioCompileResult {
   const BattleRecipeAudioCompileResult._(
     this.status, {
@@ -51,6 +61,56 @@ final class BattleMoveRecipeCompiler {
     'cameraFocus',
     'cameraReset',
   };
+
+  BattleGroupedSplSelection? selectGroupedSpl(
+    BattleMoveAnimationRecipe recipe,
+  ) {
+    final audio = recipe.audio;
+    if (recipe.schemaVersion != 2 || audio is! BattleRecipeAudioClip) {
+      return null;
+    }
+    const capabilities = {
+      'sequence',
+      'parallel',
+      'startParticle',
+      'waitEffects',
+      'splParticleV2',
+      'sound',
+      'audioSelectionV2',
+    };
+    if (recipe.unsupportedCapabilities(capabilities).isNotEmpty) return null;
+    final program = (recipe.toJson()['program'] as Map).cast<String, dynamic>();
+    if (program['kind'] != 'sequence') return null;
+    final sequence = program['steps'] as List;
+    if (sequence.length != 2) return null;
+    final parallel = (sequence.first as Map).cast<String, dynamic>();
+    final barrier = (sequence.last as Map).cast<String, dynamic>();
+    if (parallel['kind'] != 'parallel' || barrier['kind'] != 'waitEffects') {
+      return null;
+    }
+    final steps = parallel['steps'] as List;
+    if (steps.isEmpty || steps.length > 32) return null;
+    final resources = {
+      for (final resource in recipe.resources) resource.id: resource,
+    };
+    final particles = <BattleGroupedSplParticle>[];
+    for (final value in steps) {
+      final step = (value as Map).cast<String, dynamic>();
+      if (step['kind'] != 'startParticle') return null;
+      final id = step['resourceId'] as String;
+      final resource = resources[id];
+      if (resource == null || resource.definitionVersion != 2) return null;
+      particles.add((
+        resourceId: id,
+        from: step['from'] as String,
+        to: step['to'] as String,
+      ));
+    }
+    return (
+      particles: List.unmodifiable(particles),
+      audio: BattleMoveClipAudio(audio.resourceId),
+    );
+  }
 
   BattleRecipeAudioCompileResult compileAudioSelection(
     BattleMoveAnimationRecipe recipe,
