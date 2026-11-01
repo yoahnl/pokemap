@@ -32,10 +32,11 @@ class ModelComponent({
       if (mesh != null) {
         context
           ..jointsInfo.jointTransformsPerSurface = node.jointTransforms
-          ..model.setFrom(
-            worldTransformMatrix.multiplied(node.combinedTransform),
-          )
-          ..drawMesh(mesh);
+          ..model.setFrom(worldTransformMatrix);
+        if (node.node.joints.isEmpty) {
+          context.model.multiply(node.combinedTransform);
+        }
+        context.drawMesh(mesh);
       }
     }
   }
