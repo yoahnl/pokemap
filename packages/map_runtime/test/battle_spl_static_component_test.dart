@@ -161,6 +161,106 @@ Future<ui.Offset> redCentroid(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('draws newest overlapping emitters first', () async {
+    final value = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json')
+          .readAsString(),
+    ) as Map<String, dynamic>;
+    final original = (value['emitters'] as List).single as Map<String, dynamic>;
+    final emission = original['emission'] as Map<String, dynamic>;
+    emission['axisVelocity'] = 0;
+    final color =
+        (original['appearance'] as Map<String, dynamic>)['color'] as Map;
+    for (final key in ['start', 'middle', 'end']) {
+      color[key] = {'red': 31, 'green': 31, 'blue': 31};
+    }
+    final second = jsonDecode(jsonEncode(original)) as Map<String, dynamic>;
+    (second['appearance'] as Map<String, dynamic>)['initialTexture'] = 'spark';
+    value['emitters'] = [original, second];
+    final definition = BattleSplParticleDefinition.fromJson(value);
+    final red = await redImage();
+    final green = await greenImage();
+    addTearDown(() {
+      red.dispose();
+      green.dispose();
+    });
+
+    for (final projected in [false, true]) {
+      final result = BattleSplStaticAdmission.prepare(
+        definition: definition,
+        textureIndices: const {'tex': 0, 'spark': 1},
+        emitters: const [
+          BattleSplStaticEmitter(
+            emitterIndex: 0,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 0),
+          ),
+          BattleSplStaticEmitter(
+            emitterIndex: 1,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 0),
+          ),
+        ],
+        seed: 0,
+        poolCapacity: 16,
+        maxTicks: 80,
+      );
+      expect(result.failure, isNull);
+      final camera = BattlePerspectiveCamera(
+        viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+      );
+      const foot = ui.Offset(190, 600);
+      final projection = BattleSplCameraProjection(
+        camera: camera,
+        bindings: [
+          for (var i = 0; i < 2; i++)
+            BattleSplCameraBinding(
+              resolveNeutralFoot: () => foot,
+              resolveAnchor: () {
+                final point = camera.tryBillboardAt(foot)!.position;
+                return Vector2(point.dx, point.dy);
+              },
+            ),
+        ],
+      );
+      final component = BattleSplStaticComponent(
+        playback: result.playback!,
+        textures: {0: red, 1: green},
+        origin: projected ? ui.Offset.zero : const ui.Offset(16, 16),
+        pixelsPerUnit: 4,
+        projection: projected ? projection : null,
+        onComplete: () {},
+        onFailure: (_) => fail('unexpected playback failure'),
+      );
+      try {
+        component.update(1 / 60);
+        final recorder = ui.PictureRecorder();
+        component.render(ui.Canvas(recorder));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(390, 844);
+        try {
+          final bytes = (await image.toByteData(
+            format: ui.ImageByteFormat.rawRgba,
+          ))!;
+          final x = projected ? 190 : 16;
+          final y = projected ? 600 : 16;
+          final offset = (y * 390 + x) * 4;
+          expect(
+            bytes.getUint8(offset),
+            greaterThan(bytes.getUint8(offset + 1)),
+            reason:
+                'the older red emitter is drawn on top; projected=$projected',
+          );
+        } finally {
+          image.dispose();
+          picture.dispose();
+        }
+      } finally {
+        component.dispose();
+      }
+    }
+  });
+
   test('renders admitted particles and notifies completion once', () async {
     final effect = await playback();
     final source = await redImage();

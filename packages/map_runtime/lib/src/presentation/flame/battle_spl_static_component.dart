@@ -181,7 +181,7 @@ final class BattleSplStaticComponent extends PositionComponent
           >[];
       final projectedAnchors =
           <BattleSplWorldAnchor, BattleSplProjectedAnchor>{};
-      for (var i = 0; i < frames.length; i++) {
+      for (final i in playback.drawOrder) {
         final frame = frames[i];
         for (final particle in frame.particles) {
           final follows = particle.parentId == null
@@ -232,7 +232,7 @@ final class BattleSplStaticComponent extends PositionComponent
       }
       return;
     }
-    for (var i = 0; i < frames.length; i++) {
+    for (final i in playback.drawOrder) {
       _painters[i].paint(
         canvas,
         origin: origin,

@@ -159,6 +159,7 @@ final class BattleSplStaticPlayback {
         );
         return byStart != 0 ? byStart : right.compareTo(left);
       });
+      _drawOrder = List.unmodifiable(order);
       _updateOrder = List.unmodifiable(order.map((index) => _emitters[index]));
     } catch (_) {
       cancel();
@@ -170,6 +171,7 @@ final class BattleSplStaticPlayback {
   final Set<int> textureIndices;
   final BattleSplParticlePool _pool;
   final List<_StaticEmitterState> _emitters = [];
+  late final List<int> _drawOrder;
   late final List<_StaticEmitterState> _updateOrder;
   int _tick = 0;
   bool _cancelled = false;
@@ -177,6 +179,7 @@ final class BattleSplStaticPlayback {
 
   int get tick => _tick;
   int get activeParticles => _pool.inUse;
+  List<int> get drawOrder => _drawOrder;
   bool get isComplete =>
       _cancelled ||
       _emitters.every(
