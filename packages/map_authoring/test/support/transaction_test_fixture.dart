@@ -19,6 +19,7 @@ final class TransactionTestHarness {
   static Future<TransactionTestHarness> create({
     AuthoringTransactionFaultInjector? faultInjector,
     bool documentReceiptIdentity = false,
+    bool revisionBearingReference = false,
   }) async {
     final projectDirectory = await Directory.systemTemp.createTemp(
       'pokemap_transaction_',
@@ -67,7 +68,7 @@ final class TransactionTestHarness {
         idempotencyKey: 'idem-transaction',
       ),
       snapshot: snapshot,
-      build: (_) => _draft(),
+      build: (_) => _draft(revisionBearingReference: revisionBearingReference),
     );
     final scope = AuthoringIdempotencyScope(
       actorId: 'actor-transaction',
@@ -178,8 +179,18 @@ AuthoringIdempotencyLedger _ledger(String projectPath, DateTime now) {
   );
 }
 
-AuthoringMutationDraft _draft() {
-  final resourceA = AuthoringResourceRef(kind: 'fixture', id: 'a');
+AuthoringMutationDraft _draft({required bool revisionBearingReference}) {
+  final resourceA = AuthoringResourceRef(
+    kind: 'fixture',
+    id: 'a',
+    extensions: revisionBearingReference ? const {'origin': 'scoped-fixture'} : const {},
+    revision: revisionBearingReference
+        ? computeAuthoringBytesFingerprint(
+            TransactionTestHarness.beforeA,
+            logicalName: 'data/a.json',
+          )
+        : null,
+  );
   final resourceB = AuthoringResourceRef(kind: 'fixture', id: 'b');
   final changeA = AuthoringResourceChange(
     resource: resourceA,

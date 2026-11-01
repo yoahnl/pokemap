@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
+import '../contracts/resource_ref.dart';
 import '../history/authoring_history.dart';
 import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
@@ -680,7 +681,11 @@ final class JournaledAuthoringTransaction {
     return AuthoringRevisionSet([
       for (final change in plan.changeSet.changes)
         AuthoringResourceRevision(
-          resource: change.resource,
+          resource: AuthoringResourceRef(
+            kind: change.resource.kind,
+            id: change.resource.id,
+            extensions: change.resource.extensions,
+          ),
           revision: await _gateway.readResourceRevision(change.storageKey),
         ),
     ]);

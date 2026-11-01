@@ -239,6 +239,56 @@ void main() {
       );
     });
 
+    test('applies an unchanged resource with a revision-bearing reference',
+        () async {
+      final harness = await TransactionTestHarness.create(
+        revisionBearingReference: true,
+      );
+      addTearDown(harness.dispose);
+
+      final receipt = await harness.apply();
+
+      expect(receipt.status, AuthoringReceiptStatus.applied);
+      expect(await harness.readA(), TransactionTestHarness.afterA);
+    });
+
+    for (final deleted in [false, true]) {
+      test('reports a concurrent ${deleted ? 'deletion' : 'edit'} for a '
+          'revision-bearing reference', () async {
+        final harness = await TransactionTestHarness.create(
+          revisionBearingReference: true,
+        );
+        addTearDown(harness.dispose);
+        final external = utf8.encode('{"external":"change"}');
+        if (deleted) {
+          await File('${harness.projectDirectory.path}/data/a.json').delete();
+        } else {
+          await harness.writeExternalA(external);
+        }
+
+        await expectLater(
+          harness.apply,
+          throwsA(isA<AuthoringRevisionConflict>()
+              .having((error) => error.code, 'code', 'revision.conflict')
+              .having((error) => error.conflicts.single.resource.id,
+                  'resource', 'a')
+              .having((error) => error.conflicts.single.resource.extensions,
+                  'extensions', {'origin': 'scoped-fixture'})),
+        );
+
+        expect(await harness.readA(), deleted ? isNull : external);
+        expect(await harness.readB(), TransactionTestHarness.beforeB);
+        expect(await harness.readCreated(), isNull);
+        expect(await harness.readDeleted(), TransactionTestHarness.beforeDeleted);
+        expect(await harness.readJournal(), isNull);
+        expect(
+          await FileIdempotencyStore(filePath: harness.ledgerPath)
+              .read(harness.scope),
+          isNull,
+        );
+      });
+    }
+
     test('second CAS blocks an external edit immediately before promotion',
         () async {
       late TransactionTestHarness harness;
