@@ -4,10 +4,9 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
-enum BattleCombatantSpriteFacing {
-  front,
-  back,
-}
+import '../../application/runtime_battle_presentation.dart';
+
+enum BattleCombatantSpriteFacing { front, back }
 
 final class BattleCombatantSpriteSpec {
   const BattleCombatantSpriteSpec({
@@ -48,6 +47,7 @@ final class BattlePokemonSpriteResolver {
   Future<BattleCombatantSpriteSpec> resolve({
     required String speciesId,
     required bool isPlayerSide,
+    RuntimeBattleVisualIdentity? visualIdentity,
   }) async {
     final trimmedSpeciesId = speciesId.trim();
     final facing = isPlayerSide
@@ -65,28 +65,104 @@ final class BattlePokemonSpriteResolver {
       return BattleCombatantSpriteSpec(facing: facing);
     }
 
-    final relativePath = isPlayerSide ? media.backStatic : media.frontStatic;
-    final absolutePath = await _resolveProjectFile(
-      relativePath,
-      allowMissing: true,
+    final identity = visualIdentity?.speciesId.trim() == trimmedSpeciesId
+        ? visualIdentity
+        : null;
+    final requestedForm = identity?.formId?.trim();
+    final requestedVariant = _readVariantMap(
+      requestedForm == null || requestedForm.isEmpty
+          ? null
+          : media.variants[requestedForm],
     );
-    final animatedPath = isPlayerSide
-        ? media.backAnimated
-        : media.frontAnimated;
-    final animatedAbsolutePath = await _resolveProjectFile(animatedPath);
-
+    final defaultVariant = _defaultVariant(media);
+    final variant = requestedVariant ?? defaultVariant;
+    if (variant == null) return BattleCombatantSpriteSpec(facing: facing);
+    var paths = await _resolveVariant(
+      variant,
+      media: media,
+      isPlayerSide: isPlayerSide,
+      identity:
+          requestedForm != null &&
+              requestedForm.isNotEmpty &&
+              requestedVariant == null
+          ? null
+          : identity,
+      allowMissingStatic: requestedVariant == null,
+    );
+    if (requestedVariant != null &&
+        defaultVariant != null &&
+        paths.staticPath == null &&
+        paths.animatedPath == null) {
+      paths = await _resolveVariant(
+        defaultVariant,
+        media: media,
+        isPlayerSide: isPlayerSide,
+        allowMissingStatic: true,
+      );
+    }
     return BattleCombatantSpriteSpec(
       facing: facing,
-      explicitImageAbsolutePath: absolutePath,
-      explicitAnimatedImageAbsolutePath: animatedAbsolutePath,
+      explicitImageAbsolutePath: paths.staticPath,
+      explicitAnimatedImageAbsolutePath: paths.animatedPath,
     );
+  }
+
+  Future<({String? staticPath, String? animatedPath})> _resolveVariant(
+    Map<String, dynamic> variant, {
+    required _BattlePokemonMediaRecord media,
+    required bool isPlayerSide,
+    required bool allowMissingStatic,
+    RuntimeBattleVisualIdentity? identity,
+  }) async {
+    final prefix = isPlayerSide ? 'back' : 'front';
+    final shiny = identity?.isShiny == true;
+    final female = identity?.genderId == 'female';
+    String? relativeField(String field) {
+      final value = variant['$prefix$field'];
+      return value is String ? _normalizeProjectRelativePath(value) : null;
+    }
+
+    String? animatedAbsolutePath;
+    if (media.readAnimated) {
+      final candidates = <String>[
+        if (shiny && female) 'ShinyFemaleAnimated',
+        if (shiny) 'ShinyAnimated',
+        if (!shiny && identity?.isShiny != null && female) 'FemaleAnimated',
+        if (!shiny) 'Animated',
+      ];
+      for (final candidate in candidates) {
+        animatedAbsolutePath = await _resolveProjectFile(
+          relativeField(candidate),
+        );
+        if (animatedAbsolutePath != null) break;
+      }
+    }
+    final shinyStaticPath = shiny
+        ? await _resolveProjectFile(relativeField('ShinyStatic'))
+        : null;
+    final useShiny =
+        shiny && (animatedAbsolutePath != null || shinyStaticPath != null);
+    final absolutePath = useShiny
+        ? shinyStaticPath
+        : await _resolveProjectFile(
+            relativeField('Static'),
+            allowMissing: allowMissingStatic,
+          );
+    if (shiny && !useShiny && media.readAnimated) {
+      animatedAbsolutePath = await _resolveProjectFile(
+        relativeField('Animated'),
+      );
+    }
+
+    return (staticPath: absolutePath, animatedPath: animatedAbsolutePath);
   }
 
   Future<String?> resolveCry(String speciesId) async {
     final id = speciesId.trim().toLowerCase();
     if (!_isSafeSpeciesId(id)) return null;
     final media = await _mediaCache.putIfAbsent(id, () => _readMedia(id));
-    final relativePath = media?.cry;
+    final rawCry = media == null ? null : _defaultVariant(media)?['cry'];
+    final relativePath = rawCry is String ? rawCry : null;
     final authored = await _resolveProjectFile(
       relativePath,
       allowMissing: true,
@@ -126,40 +202,23 @@ final class BattlePokemonSpriteResolver {
       return null;
     }
 
-    final defaultFormId = (decoded['defaultFormId'] as String?)?.trim();
-    Map<String, dynamic>? candidateVariant =
-        _readVariantMap(variants[defaultFormId]) ??
-            _readVariantMap(variants['base']);
-    if (candidateVariant == null) {
-      for (final rawVariant in variants.values) {
-        candidateVariant = _readVariantMap(rawVariant);
-        if (candidateVariant != null) {
-          break;
-        }
-      }
-    }
-    if (candidateVariant == null) {
-      return null;
-    }
-
-    final frontAnimated = candidateVariant['frontAnimated'];
-    final backAnimated = candidateVariant['backAnimated'];
-    final readAnimated = decoded['schemaVersion'] == 2;
     return _BattlePokemonMediaRecord(
-      frontStatic: _normalizeProjectRelativePath(
-        candidateVariant['frontStatic'] as String?,
-      ),
-      backStatic: _normalizeProjectRelativePath(
-        candidateVariant['backStatic'] as String?,
-      ),
-      frontAnimated: readAnimated && frontAnimated is String
-          ? _normalizeProjectRelativePath(frontAnimated)
-          : null,
-      backAnimated: readAnimated && backAnimated is String
-          ? _normalizeProjectRelativePath(backAnimated)
-          : null,
-      cry: _normalizeProjectRelativePath(candidateVariant['cry'] as String?),
+      variants: variants,
+      defaultFormId: (decoded['defaultFormId'] as String?)?.trim(),
+      readAnimated: decoded['schemaVersion'] == 2,
     );
+  }
+
+  Map<String, dynamic>? _defaultVariant(_BattlePokemonMediaRecord media) {
+    final selected =
+        _readVariantMap(media.variants[media.defaultFormId]) ??
+        _readVariantMap(media.variants['base']);
+    if (selected != null) return selected;
+    for (final rawVariant in media.variants.values) {
+      final variant = _readVariantMap(rawVariant);
+      if (variant != null) return variant;
+    }
+    return null;
   }
 
   Map<String, dynamic>? _readVariantMap(Object? rawVariant) {
@@ -237,16 +296,12 @@ final class BattlePokemonSpriteResolver {
 
 final class _BattlePokemonMediaRecord {
   const _BattlePokemonMediaRecord({
-    required this.frontStatic,
-    required this.backStatic,
-    required this.frontAnimated,
-    required this.backAnimated,
-    required this.cry,
+    required this.variants,
+    required this.defaultFormId,
+    required this.readAnimated,
   });
 
-  final String? frontStatic;
-  final String? backStatic;
-  final String? frontAnimated;
-  final String? backAnimated;
-  final String? cry;
+  final Map<String, dynamic> variants;
+  final String? defaultFormId;
+  final bool readAnimated;
 }

@@ -2694,12 +2694,18 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (_isDoubles) {
       for (final active in _battlePresentation!.activeCombatants) {
         final old = _previousBattlePresentation?.combatantAt(active.slot);
-        final displayed = preserveDisplayedCombatantSlots.contains(active.slot) && old != null ? old.combatant : active.combatant;
+        final projected =
+            preserveDisplayedCombatantSlots.contains(active.slot) && old != null
+                ? old
+                : active;
+        final displayed = projected.combatant;
         final component = _combatantForSlot(active.slot);
         if (component == null) continue;
         final sprite = await _resolveCombatantSpriteSpec(
           speciesId: displayed.speciesId,
           isPlayerSide: active.slot.side == BattleSideId.player,
+          lineupIndex: displayed.lineupIndex,
+          projection: projected,
         );
         if (!_isCurrentPresentationGeneration(presentationGeneration)) return;
         _displayedCombatantsBySlot[active.slot] = displayed;
@@ -2716,14 +2722,18 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       _notifyOutcomePresented();
       return;
     }
+    const enemySlot = BattleSlotRef.active(BattleSideId.enemy);
+    const playerSlot = BattleSlotRef.active(BattleSideId.player);
+    final preserveEnemy =
+        preserveDisplayedCombatantSlots.contains(enemySlot) && previousSession != null;
+    final preservePlayer =
+        preserveDisplayedCombatantSlots.contains(playerSlot) && previousSession != null;
     final displayedEnemyCombatant =
-        preserveDisplayedCombatantSlots.contains(const BattleSlotRef.active(BattleSideId.enemy)) &&
-                previousSession != null
+        preserveEnemy
             ? previousSession.state.enemy
             : _session.state.enemy;
     final displayedPlayerCombatant =
-        preserveDisplayedCombatantSlots.contains(const BattleSlotRef.active(BattleSideId.player)) &&
-                previousSession != null
+        preservePlayer
             ? previousSession.state.player
             : _session.state.player;
     BattleCombatantSpriteSpec? enemySpriteSpec;
@@ -2731,6 +2741,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       enemySpriteSpec = await _resolveCombatantSpriteSpec(
         speciesId: displayedEnemyCombatant.speciesId,
         isPlayerSide: false,
+        lineupIndex: displayedEnemyCombatant.lineupIndex,
+        projection: (preserveEnemy ? _previousBattlePresentation : _battlePresentation)
+            ?.combatantAt(enemySlot),
       );
       if (!_isCurrentPresentationGeneration(presentationGeneration)) {
         return;
@@ -2741,6 +2754,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       playerSpriteSpec = await _resolveCombatantSpriteSpec(
         speciesId: displayedPlayerCombatant.speciesId,
         isPlayerSide: true,
+        lineupIndex: displayedPlayerCombatant.lineupIndex,
+        projection: (preservePlayer ? _previousBattlePresentation : _battlePresentation)
+            ?.combatantAt(playerSlot),
       );
       if (!_isCurrentPresentationGeneration(presentationGeneration)) {
         return;
@@ -2814,6 +2830,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   Future<BattleCombatantSpriteSpec> _resolveCombatantSpriteSpec({
     required String speciesId,
     required bool isPlayerSide,
+    required int lineupIndex,
+    RuntimeBattleActiveCombatantProjection? projection,
   }) async {
     final resolver = spriteResolver;
     if (resolver == null) {
@@ -2826,6 +2844,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     return resolver.resolve(
       speciesId: speciesId,
       isPlayerSide: isPlayerSide,
+      visualIdentity: projection?.lineupIndex == lineupIndex &&
+              projection?.combatant.speciesId == speciesId
+          ? projection?.currentVisualIdentity
+          : null,
     );
   }
 
@@ -4727,6 +4749,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       final sprite = await _resolveCombatantSpriteSpec(
         speciesId: data.speciesId,
         isPlayerSide: slot.side == BattleSideId.player,
+        lineupIndex: data.lineupIndex,
+        projection: _battlePresentation?.combatantAt(slot),
       );
       if (!_isCurrentPresentationGeneration(generation)) return;
       _displayedCombatantsBySlot[slot] = data;
@@ -4920,6 +4944,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       final spriteSpec = await _resolveCombatantSpriteSpec(
         speciesId: combatant.speciesId,
         isPlayerSide: side == BattleSideId.player,
+        lineupIndex: combatant.lineupIndex,
+        projection: _battlePresentation?.combatantAt(
+          BattleSlotRef.active(side),
+        ),
       );
       if (!_isCurrentPresentationGeneration(presentationGeneration)) {
         return;
