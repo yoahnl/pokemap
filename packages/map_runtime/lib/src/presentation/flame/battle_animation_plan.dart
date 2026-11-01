@@ -181,6 +181,16 @@ sealed class BattleAnimationStep {
   const BattleAnimationStep();
 }
 
+final class StartTrackedEffectStep extends BattleAnimationStep {
+  const StartTrackedEffectStep({required this.effectId});
+
+  final String effectId;
+}
+
+final class WaitTrackedEffectsStep extends BattleAnimationStep {
+  const WaitTrackedEffectsStep();
+}
+
 final class ShowMessageStep extends BattleAnimationStep {
   const ShowMessageStep({
     required this.message,

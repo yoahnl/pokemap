@@ -6,6 +6,8 @@ import '../../catalog_storage/catalog_storage_store.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../contracts/authoring_request.dart';
 import '../../transactions/change_set.dart';
+import '../../transactions/plan_store.dart';
+import 'catalog_spatial_map_selection.dart';
 import 'catalog_narrative_event_documents.dart';
 
 abstract final class CatalogPeriodicRewardConsumers {
@@ -18,8 +20,23 @@ abstract final class CatalogPeriodicRewardConsumers {
     required Iterable<CatalogDefinitionUnit> upserts,
     required Iterable<CatalogDefinitionKey> removals,
     Iterable<AuthoringResourceChange> additionalChanges = const [],
+    Iterable<CatalogValidatedMapChange> validatedMaps = const [],
     AuthoringRequest? request,
   }) async {
+    final mapChanges = additionalChanges
+        .where((change) => change.resource.kind == 'map').toList(growable: false);
+    final validated = <AuthoringResourceChange, ({MapData before, MapData after})>{};
+    for (final proof in validatedMaps) {
+      final matches = mapChanges.where((change) => change.storageKey == proof.storageKey);
+      if (matches.length != 1 || validated.containsKey(matches.single)) {
+        throw AuthoringPlanException(
+            code: 'catalog.map_provenance_mismatch',
+            message: 'The validated map images differ from their selected change.');
+      }
+      final change = matches.single;
+      validated[change] = proof.mapsFor(change,
+          catalogRevision: 'sha256:${snapshot.root.sha256}', request: request);
+    }
     final beforeScenes = <String, SceneAsset>{};
     final afterScenes = <String, SceneAsset>{};
     final affected = <CatalogDefinitionKey>{};
@@ -155,8 +172,7 @@ abstract final class CatalogPeriodicRewardConsumers {
         if (b != null) (await facet(b)).add(consumer(after!.id, b));
       }
     }
-    for (final change
-        in additionalChanges.where((change) => change.resource.kind == 'map')) {
+    for (final change in mapChanges) {
       Future<MapData?> decode(bool before) async {
         final payload = before ? change.beforePayload : change.afterPayload;
         if (payload == null) return null;
@@ -164,8 +180,9 @@ abstract final class CatalogPeriodicRewardConsumers {
             jsonDecode(utf8.decode(await payload.readBytes())) as Map));
       }
 
-      final before = await decode(true);
-      final after = await decode(false);
+      final maps = validated[change];
+      final before = maps?.before ?? await decode(true);
+      final after = maps?.after ?? await decode(false);
       final target = request?.actionId == 'map3d.instance.visibility.set'
           ? request?.parameters['instanceId'] as String?
           : null;

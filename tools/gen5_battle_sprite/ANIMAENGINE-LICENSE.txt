@@ -1,4 +1,6 @@
-The LZ11 decoder was developed with reference to AnimaEngine, revision
+The LZ11, NCER, NANR, NMCR and NMAR decoders, timeline evaluator and pose
+composition were
+developed with reference to AnimaEngine, revision
 34c559873af3a604bc431377a897e22d8c28d535:
 https://github.com/KillDaWill/AnimaEngine
 

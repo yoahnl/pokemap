@@ -23,6 +23,7 @@ final class _ClockProbe extends Component {
 
 Future<(BattleOverlayComponent, _ClockProbe)> _scene({
   void Function(String name)? sound,
+  void Function() Function(StartTrackedEffectStep, void Function())? startTrackedEffect,
 }) async {
   const stats = BattleStatsSnapshot(
     attack: 20, defense: 20, specialAttack: 20,
@@ -40,6 +41,7 @@ Future<(BattleOverlayComponent, _ClockProbe)> _scene({
     viewportSize: Vector2(390, 844),
     onPlayerChoice: (_) {},
     playSfx: (name, {volume = 100, pitch = 100}) => sound?.call(name),
+    onStartTrackedEffect: startTrackedEffect,
   );
   final probe = _ClockProbe();
   overlay.add(probe);
@@ -51,6 +53,36 @@ Future<(BattleOverlayComponent, _ClockProbe)> _scene({
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('tracked effect completion cannot advance the next step during the same child tick', () async {
+    late void Function() complete;
+    late _ClockProbe probe;
+    double? completedAt;
+    double? playedAt;
+    final scene = await _scene(
+      startTrackedEffect: (_, done) { complete = done; return () {}; },
+      sound: (_) => playedAt = probe.seconds,
+    );
+    final overlay = scene.$1;
+    probe = scene.$2;
+    probe.onUpdate = (index) {
+      if (index == 2) {
+        completedAt = probe.seconds;
+        complete();
+      }
+    };
+    overlay.presentPostBattlePlan(const BattleAnimationPlan(steps: [
+      StartTrackedEffectStep(effectId: 'synthetic'),
+      WaitTrackedEffectsStep(),
+      WaitStep(durationSeconds: .05),
+      PlaySeStep(seName: 'done'),
+    ]));
+    overlay.updateTree(.15);
+    expect(completedAt, isNotNull);
+    expect(playedAt, isNotNull);
+    expect(playedAt! - completedAt!, greaterThanOrEqualTo(.05 - .000001));
+    expect(playedAt! - completedAt!, lessThanOrEqualTo(.05 + 1 / 60 + .000001));
+  });
 
   test('a delayed frame bounds child work and retains the whole elapsed time', () async {
     final (overlay, probe) = await _scene();

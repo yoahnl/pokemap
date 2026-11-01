@@ -714,6 +714,7 @@ final class CatalogAuthoringSession {
           changeSet: built.plan.changeSet, request: request, baseRevision: publicRevision);
       final prepared = await editing.planPatch(
           additionalChanges: mutation.changes,
+          validatedMaps: mutation.validatedMaps,
           workspaceFingerprint: mutation.fingerprint,
           publicBaseRevision: publicRevision,
           publicDiff: mutation.diff,

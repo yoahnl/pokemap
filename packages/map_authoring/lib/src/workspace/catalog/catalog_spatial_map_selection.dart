@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/authoring_diff.dart';
+import '../../contracts/authoring_request.dart';
 import '../../domains/assets/asset_store.dart';
 import '../../domains/maps/semantic_map_action_support.dart';
 import '../../domains/maps/warp_connection_actions.dart';
@@ -18,6 +19,7 @@ import '../../references/resource_library_scope_guard.dart';
 import '../../references/resource_usage_documents.dart';
 import '../../support/authoring_fingerprint.dart';
 import '../../transactions/authoring_plan.dart';
+import '../../transactions/authoring_payload.dart';
 import '../../transactions/change_set.dart';
 import '../../transactions/plan_store.dart';
 import '../project_snapshot.dart';
@@ -25,6 +27,69 @@ import '../workspace_handle_store.dart';
 import 'catalog_metadata_documents.dart';
 import 'catalog_narrative_event_documents.dart';
 import 'catalog_project_reader.dart';
+
+final class CatalogValidatedMapChange {
+  CatalogValidatedMapChange._(AuthoringResourceChange change, this._before,
+      this._after, this._catalogRevision, this._request)
+      : _change = change,
+        storageKey = change.storageKey,
+        _mapId = change.resource.id,
+        _beforePayload = change.beforePayload!,
+        _afterPayload = change.afterPayload!,
+        _beforeRevision = change.beforeRevision!,
+        _afterRevision = change.afterRevision!,
+        _beforeLength = change.beforePayload!.byteLength,
+        _afterLength = change.afterPayload!.byteLength;
+
+  final AuthoringResourceChange _change;
+  final String storageKey;
+  final String _mapId;
+  final AuthoringPayload _beforePayload;
+  final AuthoringPayload _afterPayload;
+  final String _beforeRevision;
+  final String _afterRevision;
+  final int _beforeLength;
+  final int _afterLength;
+  final MapData _before;
+  final MapData _after;
+  final String _catalogRevision;
+  final AuthoringRequest _request;
+
+  ({MapData before, MapData after}) mapsFor(AuthoringResourceChange? change,
+      {required String catalogRevision, required AuthoringRequest? request}) {
+    if (!identical(request, _request) ||
+        !identical(change, _change) ||
+        change!.resource.kind != 'map' ||
+        change.resource.id != _mapId ||
+        change.storageKey != storageKey ||
+        !identical(change.beforePayload, _beforePayload) ||
+        !identical(change.afterPayload, _afterPayload) ||
+        change.beforeRevision != _beforeRevision ||
+        change.afterRevision != _afterRevision ||
+        _beforePayload.storageKey != storageKey ||
+        _afterPayload.storageKey != storageKey ||
+        _beforePayload.resourceRevision != _beforeRevision ||
+        _afterPayload.resourceRevision != _afterRevision ||
+        _beforePayload.byteLength != _beforeLength ||
+        _afterPayload.byteLength != _afterLength ||
+        _before.id != _mapId ||
+        _after.id != _mapId ||
+        catalogRevision != _catalogRevision ||
+        !isImmutableAuthoringInlinePayload(_beforePayload) ||
+        !isImmutableAuthoringInlinePayload(_afterPayload)) {
+      throw AuthoringPlanException(
+          code: 'catalog.map_provenance_mismatch',
+          message: 'The validated map images differ from their selected change.');
+    }
+    if (_beforePayload.inlineBytes.length != _beforeLength ||
+        _afterPayload.inlineBytes.length != _afterLength) {
+      throw AuthoringPlanException(
+          code: 'catalog.map_provenance_mismatch',
+          message: 'The validated map images differ from their selected change.');
+    }
+    return (before: _before, after: _after);
+  }
+}
 
 final class CatalogSpatialMapSelection {
   CatalogSpatialMapSelection._(this.reader, this.snapshot, this.storageKey,
@@ -759,7 +824,8 @@ final class CatalogSpatialMapSelection {
       ({
         List<AuthoringResourceChange> changes,
         AuthoringDiff diff,
-        String fingerprint
+        String fingerprint,
+        List<CatalogValidatedMapChange> validatedMaps
       })> translate(AuthoringPlan plan) async {
     final changes = plan.changeSet.changes;
     final action = plan.request.actionId;
@@ -793,7 +859,9 @@ final class CatalogSpatialMapSelection {
           message: 'The action must change only its selected maps.');
     }
     final seen = <String>{};
+    final validatedMaps = <CatalogValidatedMapChange>[];
     for (final change in changes) {
+      var validatedPeriodicScope = false;
       final id = change.resource.id;
       final expectedPath = relation ? snapshot.resourceStorageKeys['map:$id'] : storageKey;
       if (!seen.add(id) || change.storageKey != expectedPath ||
@@ -830,10 +898,12 @@ final class CatalogSpatialMapSelection {
                     Map<String, dynamic>.from(raw as Map)),
             maps: snapshot.maps,
             lookupRewardScenes: snapshot.lookupRewardScenes);
-        if (projected != expected)
+        if (projected != expected) {
           throw AuthoringPlanException(
               code: 'catalog.mutation_outside_scope',
               message: 'Presentation changed unrelated map content.');
+        }
+        validatedPeriodicScope = true;
       } else if (action == 'map3d.instance.visibility.set') {
         final raw = plan.request.parameters['visibilityCondition'];
         final expected = const SpatialMapActions().setInstanceVisibility(
@@ -845,10 +915,12 @@ final class CatalogSpatialMapSelection {
                 : NarrativeEventConditionExpression.fromJson(raw),
             maps: snapshot.maps,
             lookupRewardScenes: snapshot.lookupRewardScenes);
-        if (projected != expected)
+        if (projected != expected) {
           throw AuthoringPlanException(
               code: 'catalog.mutation_outside_scope',
               message: 'Visibility changed unrelated map content.');
+        }
+        validatedPeriodicScope = true;
       } else if (action == 'map3d.instance.configure_field_obstacle') {
         final parameters = plan.request.parameters;
         final value = parameters['fieldObstacle'];
@@ -891,6 +963,16 @@ final class CatalogSpatialMapSelection {
               ResourceUsageDocument('map', projected.id, projected.name, storageKey, projected.toJson())
             ]));
       }
+      final beforePayload = change.beforePayload;
+      final afterPayload = change.afterPayload;
+      if (validatedPeriodicScope &&
+          beforePayload != null &&
+          afterPayload != null &&
+          isImmutableAuthoringInlinePayload(beforePayload) &&
+          isImmutableAuthoringInlinePayload(afterPayload)) {
+        validatedMaps.add(CatalogValidatedMapChange._(change,
+            snapshot.mapById(id)!, projected, catalogRevision, plan.request));
+      }
     }
     final state = computeAuthoringJsonFingerprint({
       'baseCatalog': catalogRevision,
@@ -915,7 +997,8 @@ final class CatalogSpatialMapSelection {
           before: catalogRevision,
           after: state),
     ]);
-    return (changes: changes, diff: diff, fingerprint: state);
+    return (changes: changes, diff: diff, fingerprint: state,
+        validatedMaps: List<CatalogValidatedMapChange>.unmodifiable(validatedMaps));
   }
 }
 

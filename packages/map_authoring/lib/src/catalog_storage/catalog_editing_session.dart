@@ -29,6 +29,7 @@ import '../transactions/revision_set.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_periodic_reward_consumers.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
+import '../workspace/catalog/catalog_spatial_map_selection.dart';
 import 'catalog_generation_retention.dart';
 import 'catalog_history_compatibility.dart';
 import 'catalog_history_transition.dart';
@@ -451,6 +452,7 @@ final class CatalogEditingSession {
     Iterable<CatalogDefinitionUnit> upserts = const [],
     Iterable<CatalogDefinitionKey> removals = const [],
     Iterable<AuthoringResourceChange> additionalChanges = const [],
+    Iterable<CatalogValidatedMapChange> validatedMaps = const [],
     String? workspaceFingerprint,
     String? publicBaseRevision,
     AuthoringDiff? publicDiff,
@@ -463,6 +465,7 @@ final class CatalogEditingSession {
           upserts: upserts,
           removals: removals,
           additionalChanges: additionalChanges,
+          validatedMaps: validatedMaps,
           workspaceFingerprint: workspaceFingerprint,
           publicBaseRevision: publicBaseRevision,
           publicDiff: publicDiff,
@@ -475,6 +478,7 @@ final class CatalogEditingSession {
     required Iterable<CatalogDefinitionUnit> upserts,
     required Iterable<CatalogDefinitionKey> removals,
     required Iterable<AuthoringResourceChange> additionalChanges,
+    Iterable<CatalogValidatedMapChange> validatedMaps = const [],
     required String? workspaceFingerprint,
     required String? publicBaseRevision,
     required AuthoringDiff? publicDiff,
@@ -544,6 +548,7 @@ final class CatalogEditingSession {
     units.addAll(await CatalogPeriodicRewardConsumers.maintainAndGuard(
         snapshot: base, upserts: units, removals: deleted,
         additionalChanges: additional,
+        validatedMaps: validatedMaps,
         request: request));
     units.addAll(await CatalogResourcePositions.maintain(
         lookup: base.lookup, upserts: units, removals: deleted));
@@ -781,10 +786,7 @@ final class CatalogEditingSession {
       for (final change in prepared.plan.changeSet.changes) {
         Future<String?> blobId(AuthoringPayload? payload) async {
           if (payload == null) return null;
-          final inspected = await inspectAuthoringResourceRevision(
-              payload.openRead(),
-              storageKey: 'authoring-history-blob',
-              byteLength: payload.byteLength);
+          final inspected = await inspectAuthoringHistoryBlob(payload);
           costs['blob:${inspected.resourceRevision.substring(7)}'] =
               inspected.byteLength;
           return inspected.resourceRevision;

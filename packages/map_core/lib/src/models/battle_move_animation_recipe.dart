@@ -2,16 +2,20 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'battle_recipe_json.dart';
+
 final class BattleMoveAnimationRecipe {
   BattleMoveAnimationRecipe._(this._json, this.resources);
 
-  static const supportedCapabilities = {
+  static const recognizedCapabilities = {
     'sequence',
     'parallel',
     'wait',
     'sound',
     'cameraFocus',
     'cameraReset',
+    'startParticle',
+    'waitEffects',
   };
   final Map<String, dynamic> _json;
   final List<BattleMoveAnimationResource> resources;
@@ -29,7 +33,7 @@ final class BattleMoveAnimationRecipe {
       'resources',
       'program',
     });
-    if (copy['schemaVersion'] != 1) {
+    if (copy['schemaVersion'] is! int || copy['schemaVersion'] != 1) {
       throw const FormatException('Unsupported schema');
     }
     for (final key in ['recipeId', 'revision', 'moveSourceId', 'variant']) {
@@ -42,7 +46,7 @@ final class BattleMoveAnimationRecipe {
     final capabilities = <String>{};
     for (final value in required) {
       final capability = _text(value, 'capability');
-      if (!supportedCapabilities.contains(capability) ||
+      if (!recognizedCapabilities.contains(capability) ||
           !capabilities.add(capability)) {
         throw const FormatException('Unsupported or duplicate capability');
       }
@@ -70,8 +74,18 @@ final class BattleMoveAnimationRecipe {
       }
       resources.add(resource);
     }
+    for (final resource in resources) {
+      for (final dependency in resource.dependencies) {
+        if (!resources.any(
+          (candidate) =>
+              candidate.id == dependency && candidate.role == 'texture',
+        )) {
+          throw const FormatException('Missing particle texture');
+        }
+      }
+    }
     var count = 0;
-    void validate(Object? node, int depth) {
+    void validate(Object? node, int depth, bool inParallel) {
       if (depth > 32 || ++count > 4096) {
         throw const FormatException('Program too complex');
       }
@@ -87,7 +101,7 @@ final class BattleMoveAnimationRecipe {
           final children = _list(step['steps'], 'steps');
           if (children.isEmpty) throw const FormatException('Empty group');
           for (final child in children) {
-            validate(child, depth + 1);
+            validate(child, depth + 1, inParallel || kind == 'parallel');
           }
         case 'wait':
           _keys(step, {'kind', 'durationMs'});
@@ -109,17 +123,41 @@ final class BattleMoveAnimationRecipe {
           )) {
             throw const FormatException('Missing sound resource');
           }
+        case 'startParticle':
+          _keys(step, {'kind', 'resourceId', 'from', 'to'});
+          final id = _text(step['resourceId'], 'resourceId');
+          if (!resources.any(
+            (resource) =>
+                resource.id == id && resource.role == 'particleDefinition',
+          )) {
+            throw const FormatException('Missing particle definition');
+          }
+          const anchors = {'userMouth', 'targetImpact'};
+          if (!anchors.contains(step['from']) ||
+              !anchors.contains(step['to'])) {
+            throw const FormatException('Invalid particle anchor');
+          }
+        case 'waitEffects':
+          _keys(step, {'kind'});
+          if (inParallel) {
+            throw const FormatException('Effect barrier inside parallel group');
+          }
         default:
           throw const FormatException('Unsupported step');
       }
     }
 
-    validate(copy['program'], 0);
+    validate(copy['program'], 0, false);
     return BattleMoveAnimationRecipe._(copy, List.unmodifiable(resources));
   }
 
   Map<String, dynamic> toJson() =>
       (jsonDecode(jsonEncode(_json)) as Map).cast<String, dynamic>();
+
+  Set<String> unsupportedCapabilities(Set<String> available) => _list(
+    _json['requiredCapabilities'],
+    'requiredCapabilities',
+  ).cast<String>().toSet().difference(available);
 
   Set<String> verifyResources(Map<String, List<int>> bytesById) {
     return {
@@ -127,6 +165,121 @@ final class BattleMoveAnimationRecipe {
         if (!resource.matches(bytesById[resource.id])) resource.id,
     };
   }
+
+  void validateBundle(
+    Map<String, List<int>> bytesById, {
+    required Set<String> availableCapabilities,
+  }) {
+    readVerifiedParticleDefinitions(
+      bytesById,
+      availableCapabilities: availableCapabilities,
+    );
+  }
+
+  Map<String, BattleParticleDefinition> readVerifiedParticleDefinitions(
+    Map<String, List<int>> bytesById, {
+    required Set<String> availableCapabilities,
+  }) {
+    if (unsupportedCapabilities(availableCapabilities).isNotEmpty) {
+      throw const FormatException('Unavailable recipe capability');
+    }
+    if (verifyResources(bytesById).isNotEmpty) {
+      throw const FormatException('Missing or altered resource');
+    }
+    final result = <String, BattleParticleDefinition>{};
+    for (final resource in resources) {
+      if (resource.role != 'particleDefinition') continue;
+      final bytes = bytesById[resource.id]!;
+      if (bytes.length > 262144) {
+        throw const FormatException('Particle definition too large');
+      }
+      final decoded = decodeBoundedBattleJson(
+        bytes,
+        maxDepth: 16,
+        label: 'Particle',
+      );
+      final definition = _map(decoded, 'particle definition');
+      _keys(definition, {'schemaVersion', 'emitters'});
+      if (definition['schemaVersion'] is! int ||
+          definition['schemaVersion'] != resource.definitionVersion) {
+        throw const FormatException('Particle version mismatch');
+      }
+      final emitters = _list(definition['emitters'], 'emitters');
+      if (emitters.isEmpty || emitters.length > 32) {
+        throw const FormatException('Invalid emitter count');
+      }
+      final textures = <String>{};
+      final typedEmitters = <BattleParticleEmitterDefinition>[];
+      var total = 0;
+      for (final value in emitters) {
+        final emitter = _map(value, 'emitter');
+        _keys(emitter, {
+          'textureId',
+          'emissionDurationMs',
+          'emissionIntervalMs',
+          'particleLifetimeMs',
+          'particlesPerEmission',
+        });
+        final textureId = _text(emitter['textureId'], 'textureId');
+        textures.add(textureId);
+        final duration = _boundedInt(emitter['emissionDurationMs'], 1, 60000);
+        final interval = _boundedInt(emitter['emissionIntervalMs'], 1, 60000);
+        final lifetime = _boundedInt(emitter['particleLifetimeMs'], 1, 60000);
+        final count = _boundedInt(emitter['particlesPerEmission'], 1, 64);
+        total += ((duration + interval - 1) ~/ interval) * count;
+        if (total > 4096) {
+          throw const FormatException('Particle emission limit exceeded');
+        }
+        typedEmitters.add(
+          BattleParticleEmitterDefinition._(
+            textureId,
+            duration,
+            interval,
+            lifetime,
+            count,
+          ),
+        );
+      }
+      final declared = resource.dependencies.toSet();
+      if (textures.length != declared.length ||
+          !declared.containsAll(textures)) {
+        throw const FormatException('Particle texture dependencies mismatch');
+      }
+      result[resource.id] = BattleParticleDefinition._(
+        List.unmodifiable(typedEmitters),
+      );
+    }
+    return Map.unmodifiable(result);
+  }
+}
+
+final class BattleParticleDefinition {
+  const BattleParticleDefinition._(this.emitters);
+
+  final List<BattleParticleEmitterDefinition> emitters;
+}
+
+final class BattleParticleEmitterDefinition {
+  const BattleParticleEmitterDefinition._(
+    this.textureId,
+    this.emissionDurationMs,
+    this.emissionIntervalMs,
+    this.particleLifetimeMs,
+    this.particlesPerEmission,
+  );
+
+  final String textureId;
+  final int emissionDurationMs;
+  final int emissionIntervalMs;
+  final int particleLifetimeMs;
+  final int particlesPerEmission;
+}
+
+int _boundedInt(Object? value, int min, int max) {
+  if (value is! int || value < min || value > max) {
+    throw const FormatException('Invalid particle parameter');
+  }
+  return value;
 }
 
 void _duration(Map<String, dynamic> step) {
@@ -143,6 +296,8 @@ final class BattleMoveAnimationResource {
     this.mediaType,
     this.sizeBytes,
     this.sha256Hex,
+    this.dependencies,
+    this.definitionVersion,
   );
 
   final String id;
@@ -150,22 +305,69 @@ final class BattleMoveAnimationResource {
   final String mediaType;
   final int sizeBytes;
   final String sha256Hex;
+  final List<String> dependencies;
+  final int? definitionVersion;
 
   factory BattleMoveAnimationResource.fromJson(Map<String, dynamic> json) {
-    _keys(json, {'id', 'role', 'mediaType', 'sizeBytes', 'sha256'});
+    _keys(json, {
+      'id',
+      'role',
+      'mediaType',
+      'sizeBytes',
+      'sha256',
+      'dependencies',
+      'definitionVersion',
+    });
     final id = _text(json['id'], 'resource id');
     final role = _text(json['role'], 'resource role');
     final mediaType = _text(json['mediaType'], 'mediaType');
     final size = json['sizeBytes'];
     final hash = _text(json['sha256'], 'sha256');
-    if (role != 'sound' ||
-        !mediaType.startsWith('audio/') ||
+    final definitionVersion = json['definitionVersion'];
+    if ((role == 'particleDefinition' &&
+            (definitionVersion is! int || definitionVersion != 1)) ||
+        (role != 'particleDefinition' && definitionVersion != null)) {
+      throw const FormatException('Unsupported particle definition version');
+    }
+    final validType = switch (role) {
+      'sound' => mediaType.startsWith('audio/'),
+      'texture' => mediaType == 'image/png',
+      'particleDefinition' =>
+        mediaType == 'application/vnd.avelune.particle+json',
+      _ => false,
+    };
+    final dependencies = <String>[];
+    if (role == 'particleDefinition' && !json.containsKey('dependencies')) {
+      throw const FormatException('Particle dependencies must be declared');
+    }
+    if (json.containsKey('dependencies')) {
+      if (role != 'particleDefinition') {
+        throw const FormatException('Unexpected dependencies');
+      }
+      final unique = <String>{};
+      for (final value in _list(json['dependencies'], 'dependencies')) {
+        final dependency = _text(value, 'dependency');
+        if (!unique.add(dependency)) {
+          throw const FormatException('Duplicate dependency');
+        }
+        dependencies.add(dependency);
+      }
+    }
+    if (!validType ||
         size is! int ||
         size < 0 ||
         !RegExp(r'^[0-9a-f]{64}$').hasMatch(hash)) {
       throw const FormatException('Invalid resource');
     }
-    return BattleMoveAnimationResource._(id, role, mediaType, size, hash);
+    return BattleMoveAnimationResource._(
+      id,
+      role,
+      mediaType,
+      size,
+      hash,
+      List.unmodifiable(dependencies),
+      definitionVersion as int?,
+    );
   }
 
   bool matches(List<int>? bytes) =>

@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/domains/maps/spatial_map_actions.dart';
+import 'package:map_authoring/src/transactions/authoring_payload.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_spatial_map_selection.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_project_reader.dart';
 import 'package:map_authoring/src/workspace/catalog/catalog_periodic_reward_consumers.dart';
@@ -9,6 +12,186 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final entity in [false, true]) {
+    test('validated periodic maps avoid consumer rereads entity=$entity',
+        () async {
+      final value = await _ProvenanceFixture.create(entity: entity);
+      addTearDown(value.dispose);
+      expect(value.validatedMaps, hasLength(1));
+      final maps = value.validatedMaps.single.mapsFor(
+          value.change, catalogRevision: value.selection.catalogRevision,
+          request: value.plan.request);
+      expect(identical(maps.before, value.selection.snapshot.mapById('route')),
+          isTrue);
+      value.checks.clear();
+      final attested = await value.consume(validated: true);
+      expect(value.checks, {'before': 1, 'after': 1});
+      value.checks.clear();
+      final decoded = await value.consume(validated: false);
+      expect(value.checks['before'], greaterThanOrEqualTo(3));
+      expect(value.checks['after'], greaterThanOrEqualTo(3));
+      expect(attested.map((unit) => unit.toJson()).toList(),
+          decoded.map((unit) => unit.toJson()).toList());
+      expect(attested.single.payload['consumers'], hasLength(1));
+      final generic = await value.consume(validated: false, generic: true);
+      expect(generic.map((unit) => unit.toJson()).toList(),
+          decoded.map((unit) => unit.toJson()).toList());
+    });
+    for (final substitution in ['change', 'payload', 'root']) {
+      test('validated periodic maps reject $substitution entity=$entity',
+          () async {
+        final value = await _ProvenanceFixture.create(entity: entity);
+        addTearDown(value.dispose);
+        var change = value.change;
+        var snapshot = value.selection.reader.catalog.snapshot;
+        if (substitution != 'root') {
+          change = AuthoringResourceChange.withPayloads(
+              resource: change.resource,
+              storageKey: change.storageKey,
+              beforePayload: substitution == 'payload'
+                  ? AuthoringPayload.inline(change.beforeBytes!,
+                      storageKey: change.storageKey)
+                  : change.beforePayload,
+              afterPayload: change.afterPayload);
+        } else {
+          final patch = await snapshot.patch(upserts: [
+            CatalogDefinitionUnit(
+                key: CatalogDefinitionKey(
+                    CatalogDefinitionKind.workspaceState, 'changed-root'),
+                payload: const {'value': true})
+          ]);
+          snapshot = await patch.nextSnapshot(
+              readObject: (reference) async => patch.objects[reference.sha256] ??
+                  await value.selection.reader.store.readObject(reference));
+        }
+        await expectLater(
+            value.consume(validated: true, change: change, snapshot: snapshot),
+            throwsA(isA<AuthoringPlanException>().having((error) => error.code,
+                'code', 'catalog.map_provenance_mismatch')));
+      });
+    }
+    test('validated periodic maps reject another request target entity=$entity',
+        () async {
+      final value = await _ProvenanceFixture.create(entity: entity);
+      addTearDown(value.dispose);
+      final original = value.plan.request;
+      final request = AuthoringRequest(
+          requestId: original.requestId, actionId: original.actionId,
+          actionVersion: original.actionVersion,
+          workspaceHandle: original.workspaceHandle,
+          expectedRevision: original.expectedRevision,
+          idempotencyKey: original.idempotencyKey,
+          parameters: {...original.parameters,
+            entity ? 'entityId' : 'instanceId': 'another-target'});
+      await expectLater(value.consume(validated: true, requestOverride: request),
+          throwsA(isA<AuthoringPlanException>().having((error) => error.code,
+              'code', 'catalog.map_provenance_mismatch')));
+    });
+    for (final cancelled in ['before', 'after']) {
+      test('validated periodic maps retain $cancelled cancellation entity=$entity',
+          () async {
+        final value = await _ProvenanceFixture.create(entity: entity);
+        addTearDown(value.dispose);
+        value.cancelled.add(cancelled);
+        await expectLater(value.consume(validated: true),
+            throwsA(isA<AuthoringPayloadPreparationAborted>()));
+      });
+    }
+    for (final replace in [false, true]) {
+      test('attested consumer guards changed source entity=$entity replace=$replace',
+          () async {
+        final value = await _ProvenanceFixture.create(entity: entity);
+        addTearDown(value.dispose);
+        final source = (await value.selection.reader.catalog.snapshot.lookup(
+            CatalogMetadataDocuments.definitionKey('scenes', 1)))!;
+        final original = _source();
+        final replacement = SceneAsset(id: original.id, name: original.name,
+            graph: SceneGraph(startNodeId: original.graph.startNodeId,
+            edges: original.graph.edges,
+            nodes: [for (final node in original.graph.nodes)
+              if (node.id == 'claim')
+                SceneNode(id: node.id, kind: node.kind,
+                    payload: SceneActionPayload.interactive(
+                    SceneInteractiveCommand.claimPeriodicReward(
+                        definition: PeriodicItemRewardDefinition(
+                            rewardId: 'replacement', label: 'Fruit',
+                            itemId: 'fruit', quantity: 2))))
+              else node]));
+        final changed = CatalogDefinitionUnit(
+            key: source.key, references: source.references,
+            payload: {...source.payload, 'value': {
+              ...Map<String, Object?>.from(source.payload['value'] as Map),
+              'definition': replacement.toJson()
+            }});
+        await expectLater(value.consume(validated: true,
+            upserts: replace ? [changed] : const [],
+            removals: replace ? const [] : [source.key]),
+            throwsA(isA<CatalogStorageException>().having((error) => error.code,
+                'code', 'catalog.periodic_reward_reference_in_use')));
+      });
+    }
+    test('cleared attested consumers retain unknown coverage entity=$entity',
+        () async {
+      final value = await _ProvenanceFixture.create(entity: entity);
+      addTearDown(value.dispose);
+      final fixture = value.fixture;
+      final request = value.plan.request;
+      await fixture.apply(await fixture.plan(request.actionId, request.parameters));
+      await fixture.apply(await fixture.plan(request.actionId, {
+        'mapId': 'route',
+        if (entity) ...{'entityId': 'anchor', 'presentation': null}
+        else ...{'instanceId': 'tree', 'visibilityCondition': null}
+      }));
+      expect((await fixture.facet())?['consumers'], isEmpty);
+      final map = File('${fixture.root.path}/maps/route.json');
+      final bytes = await map.readAsBytes();
+      await expectLater(fixture.plan('scene.interactive_command.set', {
+        'sceneId': 'source', 'nodeId': 'claim',
+        'command': SceneInteractiveCommand.claimPeriodicReward(
+            definition: PeriodicItemRewardDefinition(rewardId: 'replacement',
+                label: 'Fruit', itemId: 'fruit', quantity: 2)).toJson()
+      }), throwsA(predicate((error) => error.toString()
+          .contains('periodic_reward_reference_coverage_unknown'))));
+      expect(await map.readAsBytes(), bytes);
+    });
+    test('periodic provenance follows the existing scope proof entity=$entity',
+        () async {
+      final value = await _ProvenanceFixture.create(entity: entity);
+      addTearDown(value.dispose);
+      final changed = MapData.fromJson(Map<String, dynamic>.from(
+          jsonDecode(utf8.decode(value.change.afterBytes!)) as Map));
+      final change = AuthoringResourceChange.withPayloads(
+          resource: value.change.resource,
+          storageKey: value.change.storageKey,
+          beforePayload: value.change.beforePayload,
+          afterPayload: AuthoringPayload.inline(
+              utf8.encode(jsonEncode(changed.copyWith(name: 'outside').toJson())),
+              storageKey: value.change.storageKey));
+      final original = value.plan;
+      final plan = AuthoringPlan(
+          planId: original.planId, receiptId: original.receiptId,
+          request: original.request, baseRevision: original.baseRevision,
+          seed: original.seed, createdAt: original.createdAt,
+          expiresAt: original.expiresAt,
+          changeSet: AuthoringChangeSet(
+              changes: [change], diff: original.changeSet.diff));
+      addTearDown(plan.releasePayloads);
+      await expectLater(value.selection.translate(plan),
+          throwsA(isA<AuthoringPlanException>().having((error) => error.code,
+              'code', 'catalog.mutation_outside_scope')));
+    });
+    test('stored periodic images keep consumer decoding entity=$entity',
+        () async {
+      final value = await _ProvenanceFixture.create(entity: entity, stored: true);
+      addTearDown(value.dispose);
+      expect(value.validatedMaps, isEmpty);
+      value.checks.clear();
+      final units = await value.consume(validated: true);
+      expect(value.checks['before'], greaterThanOrEqualTo(3));
+      expect(value.checks['after'], greaterThanOrEqualTo(3));
+      expect(units.single.payload['consumers'], hasLength(1));
+    });
+  }
   test('model-only reward consumer guards source replacement and follows undo redo', () async {
     final fixture = await _Fixture.create(catalog: true, wire: false, unrelated: 0, spatial: true);
     addTearDown(fixture.dispose);
@@ -1039,5 +1222,121 @@ final class _Reader
       }
     }
     return bytes;
+  }
+}
+
+final class _ProvenanceFixture {
+  _ProvenanceFixture(this.fixture, this.selection, this.plan, this.validatedMaps,
+      this.checks, this.cancelled);
+
+  final _Fixture fixture;
+  final CatalogSpatialMapSelection selection;
+  final AuthoringPlan plan;
+  final List<CatalogValidatedMapChange> validatedMaps;
+  final Map<String, int> checks;
+  final Set<String> cancelled;
+  AuthoringResourceChange get change => plan.changeSet.changes.single;
+
+  static Future<_ProvenanceFixture> create(
+      {required bool entity, bool stored = false}) async {
+    final fixture = await _Fixture.create(
+        catalog: true, wire: false, unrelated: 0, spatial: true);
+    try {
+      final condition = NarrativeEventConditionExpression.leaf(
+          NarrativeEventCondition.periodicRewardAvailable(
+              reference: _reference(), expectedValue: true));
+      final action = entity
+          ? 'entity.set_presentation'
+          : 'map3d.instance.visibility.set';
+      final parameters = <String, Object?>{
+        'mapId': 'route',
+        if (entity) ...{
+          'entityId': 'anchor',
+          'presentation': MapEntityPresentation(variants: [
+            MapEntityPresentationVariant(
+                id: 'daily', condition: condition, blocksMovement: false)
+          ]).toJson()
+        } else ...{
+          'instanceId': 'tree',
+          'visibilityCondition': condition.toJson()
+        }
+      };
+      await fixture.mutations.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: action, parameters: parameters);
+      final store = await CatalogStorageStore.open(projectRoot: fixture.root.path);
+      final reader = (await CatalogProjectReader.open(
+          store: store,
+          descriptor: Map<String, Object?>.from(
+              jsonDecode(await fixture.manifest.readAsString()) as Map),
+          metadataFields: {}))!;
+      final selection = await CatalogSpatialMapSelection.read(
+          reader: reader,
+          projectHandle: fixture.opened.projectHandle,
+          actionId: action,
+          parameters: parameters);
+      final request = AuthoringRequest(
+          requestId: 'provenance', actionId: action, actionVersion: 1,
+          workspaceHandle: fixture.opened.workspaceHandle.value,
+          expectedRevision: selection.snapshot.revision,
+          idempotencyKey: 'provenance', parameters: parameters);
+      final context = AuthoringPlanningContext(snapshot: selection.snapshot,
+          request: request, planId: 'provenance', seed: 0);
+      final draft = entity
+          ? const EntityActions().build(context)
+          : const SpatialMapActions().build(context);
+      final original = draft.changeSet.changes.single;
+      final checks = <String, int>{};
+      final cancelled = <String>{};
+      Future<AuthoringPayload> checked(AuthoringPayload payload, String name) async {
+        if (stored) {
+          final bytes = await payload.readBytes();
+          payload = await AuthoringPayload.verifiedResource(
+              storageKey: payload.storageKey, byteLength: payload.byteLength,
+              resourceRevision: payload.resourceRevision,
+              openRead: () => Stream.value(bytes));
+        }
+        return payload.checkingPreparation(() {
+          checks.update(name, (count) => count + 1, ifAbsent: () => 1);
+          if (cancelled.contains(name)) throw StateError('cancelled');
+        });
+      }
+      final change = AuthoringResourceChange.withPayloads(
+          resource: original.resource, storageKey: original.storageKey,
+          beforePayload: await checked(original.beforePayload!, 'before'),
+          afterPayload: await checked(original.afterPayload!, 'after'));
+      final now = DateTime.now().toUtc();
+      final plan = AuthoringPlan(planId: 'provenance', receiptId: 'provenance',
+          request: request, baseRevision: selection.snapshot.revision, seed: 0,
+          createdAt: now, expiresAt: now.add(const Duration(minutes: 5)),
+          changeSet: AuthoringChangeSet(changes: [change], diff: draft.changeSet.diff));
+      final translated = await selection.translate(plan);
+      return _ProvenanceFixture(fixture, selection, plan,
+          translated.validatedMaps, checks, cancelled);
+    } on Object {
+      await fixture.dispose();
+      rethrow;
+    }
+  }
+
+  Future<List<CatalogDefinitionUnit>> consume({required bool validated,
+      AuthoringResourceChange? change, CatalogSnapshot? snapshot,
+      Iterable<CatalogDefinitionUnit> upserts = const [],
+      Iterable<CatalogDefinitionKey> removals = const [],
+      AuthoringRequest? requestOverride,
+      bool generic = false}) => CatalogPeriodicRewardConsumers.maintainAndGuard(
+          snapshot: snapshot ?? selection.reader.catalog.snapshot,
+          upserts: upserts, removals: removals,
+          additionalChanges: [change ?? this.change],
+          validatedMaps: validated ? validatedMaps : const [],
+          request: requestOverride ?? (generic
+              ? AuthoringRequest(requestId: 'generic', actionId: 'map.save',
+                  actionVersion: 1,
+                  workspaceHandle: fixture.opened.workspaceHandle.value,
+                  parameters: const {})
+              : plan.request));
+
+  Future<void> dispose() async {
+    await plan.releasePayloads();
+    await fixture.dispose();
   }
 }

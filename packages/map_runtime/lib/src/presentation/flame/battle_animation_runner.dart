@@ -45,6 +45,7 @@ final class BattleAnimationRunner {
     this.onBattleCameraMove,
     this.onBattleCameraReset,
     this.onRmxpAnimation,
+    this.onStartTrackedEffect,
     this.messageStepSeconds = 0.42,
   });
 
@@ -92,6 +93,8 @@ final class BattleAnimationRunner {
   final void Function(BattleCameraMoveStep step)? onBattleCameraMove;
   final void Function(BattleCameraResetStep step)? onBattleCameraReset;
   final void Function(PlayRmxpAnimationStep step)? onRmxpAnimation;
+  final void Function() Function(StartTrackedEffectStep, void Function())?
+      onStartTrackedEffect;
   final double messageStepSeconds;
 
   BattleAnimationPlan? _plan;
@@ -107,6 +110,9 @@ final class BattleAnimationRunner {
   int _nextAccentIndex = 0;
   bool _cameraSequenceActive = false;
   bool _cameraResetPending = false;
+  bool _waitingTrackedEffects = false;
+  int _generation = 0;
+  final Map<Object, void Function()?> _trackedEffects = {};
   String? _currentMessage;
   HudHpTweenStep? _currentHpTweenStep;
   HudXpTweenStep? _currentXpTweenStep;
@@ -117,6 +123,7 @@ final class BattleAnimationRunner {
   bool get isActive => _active;
   bool get hasImmediateWork =>
       _active &&
+      (!_waitingTrackedEffects || _trackedEffects.isEmpty) &&
       (!_phaseStarted ||
           _phaseNotificationPending ||
           _pendingSeconds > 0 ||
@@ -127,6 +134,9 @@ final class BattleAnimationRunner {
 
   double get secondsUntilNextPhase {
     if (!_active) return double.infinity;
+    if (_waitingTrackedEffects && _trackedEffects.isNotEmpty) {
+      return double.infinity;
+    }
     if (hasImmediateWork) return 0;
     final nextAccent = _nextAccentIndex < _scheduledAccentSteps.length
         ? _scheduledAccentSteps[_nextAccentIndex].startAtSeconds
@@ -149,7 +159,23 @@ final class BattleAnimationRunner {
   }
 
   void start(BattleAnimationPlan plan) {
+    void validate(List<BattleAnimationStep> steps, bool inParallel) {
+      for (final step in steps) {
+        if (step is StartTrackedEffectStep && onStartTrackedEffect == null) {
+          throw StateError('Tracked effects are not supported by this host');
+        }
+        if (step is WaitTrackedEffectsStep && inParallel) {
+          throw StateError('Tracked effect barriers are not supported inside parallel groups');
+        }
+        if (step is AnimationGroupStep) {
+          validate(step.steps, inParallel || step.mode == BattleAnimationGroupMode.parallel);
+        }
+      }
+    }
+    validate(plan.steps, false);
+    final previousGeneration = _generation;
     cancel(clearMessage: false, notify: false);
+    if (_generation != previousGeneration + 1) return;
     if (plan.isEmpty) {
       return;
     }
@@ -165,6 +191,10 @@ final class BattleAnimationRunner {
   }
 
   void cancel({bool clearMessage = true, bool notify = true}) {
+    _generation += 1;
+    final cancellations = _trackedEffects.values.toList();
+    _trackedEffects.clear();
+    _waitingTrackedEffects = false;
     _plan = null;
     _nextStepIndex = 0;
     _phaseElapsed = 0;
@@ -183,6 +213,7 @@ final class BattleAnimationRunner {
     if (clearMessage) {
       _currentMessage = null;
     }
+    _cancelAllTrackedEffects(cancellations);
     if (notify) {
       onPresentationChanged();
     }
@@ -190,6 +221,10 @@ final class BattleAnimationRunner {
 
   int update(double dt, {int workBudget = 256}) {
     if (!_active || !dt.isFinite || dt < 0) return 0;
+    if (_waitingTrackedEffects) {
+      _pendingSeconds = 0;
+      return _drain(workBudget.clamp(0, 256));
+    }
     final pending = _pendingSeconds + dt;
     if (!pending.isFinite) return 0;
     _pendingSeconds = pending;
@@ -216,6 +251,13 @@ final class BattleAnimationRunner {
     var workRemaining = workBudget;
     try {
       while (_active && workRemaining > 0) {
+        if (_waitingTrackedEffects) {
+          if (_trackedEffects.isNotEmpty) {
+            _pendingSeconds = 0;
+            break;
+          }
+          _waitingTrackedEffects = false;
+        }
         if (!_phaseStarted) {
           workRemaining -= 1;
           _beginNextPhase();
@@ -276,6 +318,11 @@ final class BattleAnimationRunner {
       _plan = null;
       _pendingSeconds = 0;
       _completeCurrentPlan();
+      final generation = ++_generation;
+      final cancellations = _trackedEffects.values.toList();
+      _trackedEffects.clear();
+      _cancelAllTrackedEffects(cancellations);
+      if (_generation != generation) return;
       onPresentationChanged();
       return;
     }
@@ -290,6 +337,9 @@ final class BattleAnimationRunner {
       case WaitStep(:final durationSeconds):
         _nextStepIndex += 1;
         _phaseDuration = durationSeconds;
+      case WaitTrackedEffectsStep():
+        _nextStepIndex += 1;
+        _waitingTrackedEffects = true;
       case HudHpTweenStep():
         _nextStepIndex += 1;
         _phaseDuration = step.durationMs / 1000;
@@ -402,6 +452,7 @@ final class BattleAnimationRunner {
   bool _isAccentStep(BattleAnimationStep step) {
     return switch (step) {
       SpawnFxStep() => true,
+      StartTrackedEffectStep() => true,
       ScreenFlashStep() => true,
       SceneTintStep() => true,
       PlaySpriteSheetFxStep() => true,
@@ -447,6 +498,15 @@ final class BattleAnimationRunner {
     required double startAtSeconds,
   }) {
     return switch (step) {
+      WaitStep(:final durationSeconds) =>
+        startAtSeconds + math.max(0, durationSeconds),
+      WaitTrackedEffectsStep() => throw StateError(
+        'Tracked effect barriers are not supported inside parallel groups',
+      ),
+      StartTrackedEffectStep() => () {
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds;
+      }(),
       SpawnFxStep(:final durationSeconds, :final startDelaySeconds) => () {
         _addScheduledAccentStep(startAtSeconds, step);
         return startAtSeconds + startDelaySeconds + durationSeconds;
@@ -598,6 +658,28 @@ final class BattleAnimationRunner {
 
   void _dispatchAccentStep(BattleAnimationStep step) {
     switch (step) {
+      case StartTrackedEffectStep():
+        final startEffect = onStartTrackedEffect;
+        if (startEffect == null) {
+          throw StateError('Tracked effects are not supported by this host');
+        }
+        final token = Object();
+        final generation = _generation;
+        _trackedEffects[token] = null;
+        late final void Function() cancelEffect;
+        try {
+          cancelEffect = startEffect(step, () {
+            if (_generation == generation) _trackedEffects.remove(token);
+          });
+        } catch (_) {
+          if (_generation == generation) cancel();
+          rethrow;
+        }
+        if (_generation != generation) {
+          cancelEffect();
+        } else if (_trackedEffects.containsKey(token)) {
+          _trackedEffects[token] = cancelEffect;
+        }
       case SpawnFxStep():
         onSpawnFx(step);
       case ScreenFlashStep():
@@ -680,6 +762,7 @@ final class BattleAnimationRunner {
       case AnimationGroupStep():
       case ShowMessageStep():
       case WaitStep():
+      case WaitTrackedEffectsStep():
       case CombatantMotionStep():
       case FaintCombatantStep():
         break;
@@ -692,6 +775,22 @@ final class BattleAnimationRunner {
     if (completer != null && !completer.isCompleted) {
       completer.complete();
     }
+  }
+}
+
+void _cancelAllTrackedEffects(Iterable<void Function()?> cancellations) {
+  Object? firstError;
+  StackTrace? firstStack;
+  for (final cancelEffect in cancellations) {
+    try {
+      cancelEffect?.call();
+    } catch (error, stack) {
+      firstError ??= error;
+      firstStack ??= stack;
+    }
+  }
+  if (firstError != null) {
+    Error.throwWithStackTrace(firstError, firstStack!);
   }
 }
 

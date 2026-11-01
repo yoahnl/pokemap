@@ -1,4 +1,6 @@
 export 'src/models/map_entity_interactive_encounter.dart';
+export 'src/models/battle_move_animation_recipe.dart';
+export 'src/models/battle_move_recipe_binding.dart';
 export 'src/models/npc_pokemon_trade_offer.dart';
 export 'src/models/narrative_map_view.dart';
 export 'src/models/narrative_map_projection.dart';

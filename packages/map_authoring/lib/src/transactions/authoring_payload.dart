@@ -23,6 +23,10 @@ sealed class AuthoringPayload {
 
   factory AuthoringPayload.inline(Iterable<int> values,
       {required String storageKey}) {
+    if (values is Uint8List) {
+      return _InlineAuthoringPayload(
+          Uint8List.fromList(values).asUnmodifiableView(), storageKey);
+    }
     final source = values.toList(growable: false);
     final bytes = Uint8List.fromList(source);
     if (source.any((value) => value < 0 || value > 255)) {
@@ -153,17 +157,17 @@ sealed class AuthoringPayload {
 
 final class _InlineAuthoringPayload extends AuthoringPayload {
   _InlineAuthoringPayload(this.inlineBytes, this.storageKey)
-      : rawSha256 = sha256.convert(inlineBytes).toString(),
-        resourceRevision = computeAuthoringBytesFingerprint(inlineBytes,
+      : resourceRevision = computeAuthoringBytesFingerprint(inlineBytes,
             logicalName: storageKey);
   @override
   final List<int> inlineBytes;
   @override
   final String storageKey;
   @override
-  final String rawSha256;
+  late final String rawSha256 = sha256.convert(inlineBytes).toString();
   @override
   final String resourceRevision;
+  Future<AuthoringResourceInspection>? _historyInspection;
   @override
   int get byteLength => inlineBytes.length;
   @override
@@ -252,6 +256,58 @@ typedef AuthoringResourceInspection = ({
   String resourceRevision,
   int byteLength
 });
+
+bool isImmutableAuthoringInlinePayload(AuthoringPayload payload) =>
+    _immutableInlineSource(payload) != null;
+
+_InlineAuthoringPayload? _immutableInlineSource(AuthoringPayload payload) =>
+    switch (payload) {
+      _InlineAuthoringPayload() => payload,
+      _PreparationCheckedPayload(:final source) =>
+        _immutableInlineSource(source),
+      _ => null,
+    };
+
+void _checkHistoryPreparation(AuthoringPayload payload) {
+  while (payload is _PreparationCheckedPayload) {
+    payload._check();
+    payload = payload.source;
+  }
+}
+
+Future<AuthoringResourceInspection> inspectAuthoringHistoryBlob(
+    AuthoringPayload payload) {
+  final inline = _immutableInlineSource(payload);
+  Future<AuthoringResourceInspection> inspect() =>
+      inspectAuthoringResourceRevision(payload.openRead(),
+          storageKey: 'authoring-history-blob', byteLength: payload.byteLength);
+  if (inline == null) return inspect();
+  Future<AuthoringResourceInspection> attestation() {
+    final existing = inline._historyInspection;
+    if (existing != null) return existing;
+    late final Future<AuthoringResourceInspection> pending;
+    pending = () async {
+      try {
+        return await inspect();
+      } on Object {
+        if (identical(inline._historyInspection, pending)) {
+          inline._historyInspection = null;
+        }
+        rethrow;
+      }
+    }();
+    inline._historyInspection = pending;
+    return pending;
+  }
+
+  if (payload is! _PreparationCheckedPayload) return attestation();
+  return () async {
+    _checkHistoryPreparation(payload);
+    final result = await attestation();
+    _checkHistoryPreparation(payload);
+    return result;
+  }();
+}
 
 Future<AuthoringResourceInspection> inspectAuthoringResourceRevision(
     Stream<List<int>> chunks,

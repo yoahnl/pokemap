@@ -167,4 +167,80 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test(
+    'tracks particle textures and rejects unsupported execution semantics',
+    () {
+      final json = recipe();
+      json['requiredCapabilities'] = [
+        'sequence',
+        'startParticle',
+        'waitEffects',
+      ];
+      final particle = {
+        'id': 'flame',
+        'role': 'particleDefinition',
+        'mediaType': 'application/vnd.avelune.particle+json',
+        'definitionVersion': 1,
+        'sizeBytes': bytes.length,
+        'sha256': hash,
+        'dependencies': ['tex'],
+      };
+      final texture = {
+        'id': 'tex',
+        'role': 'texture',
+        'mediaType': 'image/png',
+        'sizeBytes': bytes.length,
+        'sha256': hash,
+      };
+      json['resources'] = [particle, texture];
+      json['program'] = {
+        'kind': 'sequence',
+        'steps': [
+          {
+            'kind': 'startParticle',
+            'resourceId': 'flame',
+            'from': 'userMouth',
+            'to': 'targetImpact',
+          },
+          {'kind': 'waitEffects'},
+        ],
+      };
+      final parsed = BattleMoveAnimationRecipe.fromJson(json);
+      expect(parsed.verifyResources({'flame': bytes, 'tex': bytes}), isEmpty);
+      expect(parsed.unsupportedCapabilities({'sequence', 'waitEffects'}), {
+        'startParticle',
+      });
+      expect(parsed.toJson(), json);
+      particle['dependencies'] = ['missing'];
+      expect(
+        () => BattleMoveAnimationRecipe.fromJson(json),
+        throwsFormatException,
+      );
+      particle['dependencies'] = ['tex'];
+      particle.remove('dependencies');
+      expect(
+        () => BattleMoveAnimationRecipe.fromJson(json),
+        throwsFormatException,
+      );
+      particle['dependencies'] = ['tex'];
+      particle['definitionVersion'] = 2;
+      expect(
+        () => BattleMoveAnimationRecipe.fromJson(json),
+        throwsFormatException,
+      );
+      particle['definitionVersion'] = 1;
+      json['requiredCapabilities'] = ['parallel', 'waitEffects'];
+      json['program'] = {
+        'kind': 'parallel',
+        'steps': [
+          {'kind': 'waitEffects'},
+        ],
+      };
+      expect(
+        () => BattleMoveAnimationRecipe.fromJson(json),
+        throwsFormatException,
+      );
+    },
+  );
 }

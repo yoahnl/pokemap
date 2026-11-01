@@ -134,9 +134,7 @@ final class AuthoringHistoryRecorder
     Future<AuthoringContentBlobRef?> retain(AuthoringPayload? payload) async {
       if (payload == null) return null;
       if (persist) return _blobs.putPayload(payload);
-      final inspection = await inspectAuthoringResourceRevision(
-          payload.openRead(),
-          storageKey: 'authoring-history-blob', byteLength: payload.byteLength);
+      final inspection = await inspectAuthoringHistoryBlob(payload);
       return AuthoringContentBlobRef(
           id: inspection.resourceRevision, byteLength: payload.byteLength);
     }

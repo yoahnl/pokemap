@@ -1,0 +1,18 @@
+Experimental research tooling. No Pokémon assets are included here.
+
+AnimaEngine was consulted for Nitro formats, decompression, composition and
+timeline behavior. Its MIT license and pinned revision are in
+ANIMAENGINE-LICENSE.txt.
+
+The controller and multi-cell behavior were also studied against the
+pokebw2 decompilation at revision 41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c,
+including lib/nnsys/src/g2d/g2d_Animation.c,
+lib/nnsys/src/g2d/g2d_MultiCellAnimation.c and src/system/mcss.c. The MCSS
+binary parser was written against the structure described by src/system/mcss.c.
+Repository: https://github.com/fuddlesworth/pokebw2
+The repository identifies its code license as GPL-3.0. This note is not a
+determination of the licensing consequences of using these research results.
+
+The ownership and redistribution status of Pokémon graphics, palettes and
+other game data are separate from the licenses of these repositories and
+remain unverified. This tooling does not authorize their redistribution.

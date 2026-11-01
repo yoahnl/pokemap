@@ -7,6 +7,7 @@ import '../ports/idempotency_store.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
 import 'authoring_plan.dart';
+import 'authoring_payload.dart';
 import 'change_set.dart';
 import 'idempotency_ledger.dart';
 import 'plan_store.dart';
@@ -378,19 +379,25 @@ final class JournaledAuthoringTransaction {
               AuthoringTransactionCheckpoint.afterJournalCommitted,
               operationId,
             );
-            if (plan.changeSet.changes.isNotEmpty) {
-              await _commitHook?.record(
-                AuthoringCommittedMutation(
-                  scope: scope,
-                  planId: plan.planId,
-                  operationId: operationId,
-                  receipt: intendedReceipt,
-                  bulkCapability: journal.bulkCapability,
-                  catalogDelta: plan.catalogDelta,
-                  changes:
-                      await _stagedChanges(operationId, plan.changeSet.changes),
-                ),
-              );
+            final hook = _commitHook;
+            if (plan.changeSet.changes.isNotEmpty && hook != null) {
+              final historyPayloads = AuthoringPayloadOwner();
+              try {
+                await hook.record(
+                  AuthoringCommittedMutation(
+                    scope: scope,
+                    planId: plan.planId,
+                    operationId: operationId,
+                    receipt: intendedReceipt,
+                    bulkCapability: journal.bulkCapability,
+                    catalogDelta: plan.catalogDelta,
+                    changes: await _stagedChanges(
+                        operationId, plan.changeSet.changes, historyPayloads),
+                  ),
+                );
+              } finally {
+                await historyPayloads.release();
+              }
             }
             return intendedReceipt;
           },
@@ -484,26 +491,52 @@ final class JournaledAuthoringTransaction {
   }
 
   Future<List<AuthoringResourceChange>> _stagedChanges(
-      String operationId, List<AuthoringResourceChange> changes) async {
+      String operationId,
+      List<AuthoringResourceChange> changes,
+      AuthoringPayloadOwner payloads) async {
     final staged = <AuthoringResourceChange>[];
     for (final change in changes) {
       final before = await _gateway.readStagedPayload(
           operationId: operationId,
           storageKey: change.storageKey,
           kind: TransactionPayloadKind.before);
+      if (before.payload case final value?) {
+        payloads.own(value);
+      }
       final after = await _gateway.readStagedPayload(
           operationId: operationId,
           storageKey: change.storageKey,
           kind: TransactionPayloadKind.after);
+      if (after.payload case final value?) {
+        payloads.own(value);
+      }
       staged.add(AuthoringResourceChange.withPayloads(
           resource: change.resource,
           storageKey: change.storageKey,
-          beforePayload: before.payload,
-          afterPayload: after.payload,
+          beforePayload:
+              _historyPayload(change.beforePayload, before, change.storageKey),
+          afterPayload:
+              _historyPayload(change.afterPayload, after, change.storageKey),
           beforeRevision: change.beforeRevision,
           afterRevision: change.afterRevision));
     }
     return staged;
+  }
+
+  AuthoringPayload? _historyPayload(AuthoringPayload? original,
+      TransactionStagedPayload staged, String storageKey) {
+    final payload = staged.payload;
+    if (staged.storageKey != storageKey ||
+        (original == null) != (payload == null) ||
+        original?.storageKey != payload?.storageKey ||
+        original?.resourceRevision != payload?.resourceRevision ||
+        original?.byteLength != payload?.byteLength) {
+      throw const TransactionFileGatewayException('transaction.stage_corrupt',
+          'The final staged image differs from its frozen plan.');
+    }
+    return original != null && isImmutableAuthoringInlinePayload(original)
+        ? original
+        : payload;
   }
 
   Future<int> prepareFinalizedJournals({
