@@ -559,6 +559,181 @@ void main() {
     expect(component.isMounted, isFalse);
   });
 
+  test('scene recovers after a particle crosses the camera plane', () async {
+    const stats = BattleStatsSnapshot(
+      attack: 20,
+      defense: 20,
+      specialAttack: 20,
+      specialDefense: 20,
+      speed: 20,
+    );
+    const pokemon = BattleCombatantData(
+      speciesId: 'synthetic',
+      level: 7,
+      maxHp: 25,
+      currentHp: 25,
+      stats: stats,
+      moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 40)],
+    );
+    late void Function() completeEffect;
+    late void Function() failEffect;
+    late BattleSplStaticComponent component;
+    final sounds = <String>[];
+    final failures = <BattleSplAdmissionFailure>[];
+    var hpTransitions = 0;
+    var hpWasTweening = false;
+    var cancellations = 0;
+    final overlay = BattleOverlayComponent(
+      session: createBattleSession(
+        BattleSetup.pokeMapBetaV1ForTest(
+          playerPokemon: pokemon,
+          enemyPokemon: pokemon,
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      ),
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+      onCommandOverlaySnapshotChanged: (snapshot) {
+        final isTweening = snapshot?.enemyHud.targetDisplayedHp == 15;
+        if (isTweening && !hpWasTweening) {
+          hpTransitions++;
+        }
+        hpWasTweening = isTweening;
+      },
+      playSfx: (name, {volume = 100, pitch = 100}) => sounds.add(name),
+      onStartRecoverableTrackedEffect: (_, done, failed) {
+        completeEffect = done;
+        failEffect = failed;
+        return () {
+          cancellations++;
+          component.cancel();
+        };
+      },
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final camera = overlay.children
+        .whereType<BattleStage3DComponent>()
+        .single
+        .camera;
+    const slot = BattleSlotRef.active(BattleSideId.player);
+    final projection = BattleSplCameraProjection(
+      camera: camera,
+      worldTransform: const BattleSplWorldTransform(
+        worldUnitsPerUnit: 1,
+        yawRadians: 0,
+      ),
+      bindings: [
+        BattleSplCameraBinding(
+          resolveNeutralFoot: () =>
+              overlay.currentSceneLayout.combatantGeometry(slot).footAnchor,
+          resolveAnchor: () {
+            final foot = overlay.currentSceneLayout
+                .combatantGeometry(slot)
+                .footAnchor;
+            final point = camera.tryBillboardAt(foot)?.position;
+            return point == null ? null : Vector2(point.dx, point.dy);
+          },
+        ),
+      ],
+    );
+    final result = await BattleVerifiedSplLoader(await bundle(opaque: true))
+        .create(
+          'particle',
+          emitters: schedule,
+          seed: 0,
+          poolCapacity: 16,
+          maxTicks: 80,
+          origin: ui.Offset.zero,
+          pixelsPerUnit: 4,
+          projection: projection,
+          onComplete: () => completeEffect(),
+          onFailure: (failure) {
+            failures.add(failure);
+            failEffect();
+          },
+        );
+    expect(result.failure, isNull);
+    component = result.component!..priority = 9999;
+    addTearDown(component.dispose);
+    overlay.add(component);
+    overlay.findGame()!.processLifecycleEvents();
+    await component.loaded;
+    overlay.findGame()!.processLifecycleEvents();
+    overlay.presentPostBattlePlan(
+      const BattleAnimationPlan(
+        steps: [
+          StartTrackedEffectStep(
+            effectId: 'particle',
+            fallbackSteps: [PlaySeStep(seName: 'fallback')],
+          ),
+          WaitTrackedEffectsStep(),
+          PlaySeStep(seName: 'impact'),
+          HudHpTweenStep(
+            side: BattleSideId.enemy,
+            fromHp: 25,
+            toHp: 15,
+            durationMs: 320,
+          ),
+        ],
+      ),
+    );
+    overlay.updateTree(1 / 60);
+    expect(component.playback.activeParticles, greaterThan(0));
+    final visibleRecorder = ui.PictureRecorder();
+    component.render(ui.Canvas(visibleRecorder));
+    final visiblePicture = visibleRecorder.endRecording();
+    final visibleImage = await visiblePicture.toImage(390, 844);
+    try {
+      final bytes = (await visibleImage.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!.buffer.asUint8List();
+      expect(bytes.any((value) => value != 0), isTrue);
+    } finally {
+      visibleImage.dispose();
+      visiblePicture.dispose();
+    }
+    expect(sounds, isEmpty);
+    final anchor = projection.capture()!.single;
+    final particle = component.playback.frames.single.particles.first;
+    final position = particle.motion.position;
+    final emitter = particle.emitterPosition;
+    final delta = BattleCameraPoint(
+      (position.x + emitter.x) / 4096,
+      (position.y + emitter.y) / 4096,
+      (position.z + emitter.z) / 4096,
+    );
+    expect(delta.length, greaterThan(.04));
+    final anchorPosition = BattleCameraPoint(anchor.x, anchor.y, anchor.z);
+    camera.moveTo(
+      eye: anchorPosition + delta * .5,
+      aim: anchorPosition,
+      durationSeconds: 0,
+    );
+    expect(component.refreshAttachment(), isTrue);
+    final recorder = ui.PictureRecorder();
+    component.render(ui.Canvas(recorder));
+    recorder.endRecording().dispose();
+    overlay.updateTree(0);
+    expect(failures, [BattleSplAdmissionFailure.projectionUnavailable]);
+    expect(cancellations, 1);
+    expect(sounds, ['fallback', 'impact']);
+    expect(hpTransitions, 1);
+    expect(
+      overlay.currentCommandOverlaySnapshot!.enemyHud.targetDisplayedHp,
+      15,
+    );
+    completeEffect();
+    failEffect();
+    overlay.updateTree(.4);
+    expect(failures, [BattleSplAdmissionFailure.projectionUnavailable]);
+    expect(cancellations, 1);
+    expect(sounds, ['fallback', 'impact']);
+    expect(hpTransitions, 1);
+  });
+
   test(
     'rejects missing or cancelled resources without starting an effect',
     () async {

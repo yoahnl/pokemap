@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'battle_spl_camera_projection.dart';
 import 'battle_spl_point_emitter_playback.dart';
 
 enum BattleSplPreviewScaleAxis { xy, x, y }
@@ -35,9 +36,25 @@ final class BattleSplPointPreviewPainter {
     ui.Canvas canvas, {
     required ui.Offset origin,
     required List<BattleSplPointParticle> particles,
+    List<BattleSplProjectedParticle>? projections,
   }) {
-    if (!origin.dx.isFinite || !origin.dy.isFinite || particles.length > 4096) {
+    if (!origin.dx.isFinite ||
+        !origin.dy.isFinite ||
+        particles.length > 4096 ||
+        (projections != null && projections.length != particles.length)) {
       throw const FormatException('Invalid SPL point preview frame');
+    }
+    if (projections != null &&
+        projections.any(
+          (value) =>
+              !value.position.dx.isFinite ||
+              !value.position.dy.isFinite ||
+              !value.scale.isFinite ||
+              value.scale <= 0 ||
+              !value.direction.dx.isFinite ||
+              !value.direction.dy.isFinite,
+        )) {
+      throw const FormatException('Invalid SPL particle projection');
     }
     for (final particle in particles) {
       final color = particle.color;
@@ -55,12 +72,20 @@ final class BattleSplPointPreviewPainter {
         throw const FormatException('Invalid SPL point preview particle');
       }
     }
-    for (final particle in particles) {
+    for (var index = 0; index < particles.length; index++) {
+      final particle = particles[index];
       if (particle.alpha5 == 0 || particle.scale4096 == 0) continue;
       final image = _textures[particle.texture]!;
       final directional = directionalParents && particle.parentId == null;
       final velocity = particle.motion.velocity;
-      if (directional && velocity.x == 0 && velocity.y == 0) continue;
+      final projected = projections?[index];
+      final direction = projected?.direction;
+      if (directional &&
+          (direction == null
+              ? velocity.x == 0 && velocity.y == 0
+              : direction.dx == 0 && direction.dy == 0)) {
+        continue;
+      }
       final base = 2 * pixelsPerUnit * (particle.baseScale4096 / 4096);
       final animatedScale = particle.scale4096 / 4096;
       final height =
@@ -83,19 +108,27 @@ final class BattleSplPointPreviewPainter {
         );
       canvas.save();
       try {
-        canvas.translate(
-          origin.dx +
-              (particle.motion.position.x + particle.emitterPosition.x) /
-                  4096 *
-                  pixelsPerUnit,
-          origin.dy -
-              (particle.motion.position.y + particle.emitterPosition.y) /
-                  4096 *
-                  pixelsPerUnit,
-        );
+        if (projected == null) {
+          canvas.translate(
+            origin.dx +
+                (particle.motion.position.x + particle.emitterPosition.x) /
+                    4096 *
+                    pixelsPerUnit,
+            origin.dy -
+                (particle.motion.position.y + particle.emitterPosition.y) /
+                    4096 *
+                    pixelsPerUnit,
+          );
+        } else {
+          canvas.translate(projected.position.dx, projected.position.dy);
+          canvas.scale(projected.scale);
+          canvas.translate(origin.dx, origin.dy);
+        }
         canvas.rotate(
           directional
-              ? math.atan2(velocity.x.toDouble(), velocity.y.toDouble())
+              ? direction == null
+                    ? math.atan2(velocity.x.toDouble(), velocity.y.toDouble())
+                    : math.atan2(direction.dx, -direction.dy)
               : -particle.motion.rotation * 2 * math.pi / 65536,
         );
         canvas.drawImageRect(

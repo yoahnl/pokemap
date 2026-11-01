@@ -169,6 +169,43 @@ final class BattleSplStaticComponent extends PositionComponent
     if (_disposed) return;
     final frames = playback.frames;
     final activeProjection = projection;
+    if (activeProjection?.worldTransform != null) {
+      final projectedFrames =
+          <({int frame, List<BattleSplProjectedParticle> particles})>[];
+      for (final i in playback.drawOrder) {
+        final frame = frames[i];
+        final projected = <BattleSplProjectedParticle>[];
+        for (final particle in frame.particles) {
+          final follows = particle.parentId == null
+              ? frame.followEmitter
+              : frame.childFollowsEmitter;
+          final anchor = follows ? _anchors[i] : _snapshots[i][particle.id];
+          final value = anchor == null
+              ? null
+              : activeProjection!.projectParticle(
+                  anchor,
+                  particle,
+                  includeDirection:
+                      frame.directional && particle.parentId == null,
+                );
+          if (value == null) {
+            _fail(BattleSplAdmissionFailure.projectionUnavailable);
+            return;
+          }
+          projected.add(value);
+        }
+        projectedFrames.add((frame: i, particles: projected));
+      }
+      for (final frame in projectedFrames) {
+        _painters[frame.frame].paint(
+          canvas,
+          origin: origin,
+          particles: frames[frame.frame].particles,
+          projections: frame.particles,
+        );
+      }
+      return;
+    }
     if (activeProjection != null) {
       final groups =
           <

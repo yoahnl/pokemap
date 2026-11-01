@@ -114,6 +114,133 @@ void main() {
     expect(alpha(z, 30, 30), 0);
   });
 
+  test('uses projected direction for a depth-only velocity', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    final painter = BattleSplPointPreviewPainter(
+      textures: {1: texture},
+      pixelsPerUnit: 10,
+      aspectRatio4096: 8192,
+      directionalParents: true,
+    );
+    final recorder = ui.PictureRecorder();
+    painter.paint(
+      ui.Canvas(recorder),
+      origin: ui.Offset.zero,
+      particles: [_particle(velocity: (x: 0, y: 0, z: 4096))],
+      projections: const [
+        (position: ui.Offset(30, 30), scale: 1.0, direction: ui.Offset(1, 0)),
+      ],
+    );
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(60, 60);
+    try {
+      final bytes = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      int alpha(int x, int y) => bytes.getUint8((y * 60 + x) * 4 + 3);
+      expect(alpha(30, 30), 255);
+      expect(alpha(30, 45), 255);
+      expect(alpha(45, 30), 0);
+    } finally {
+      image.dispose();
+      picture.dispose();
+    }
+  });
+
+  test('applies the projected perspective scale to particle size', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    final painter = BattleSplPointPreviewPainter(
+      textures: {1: texture},
+      pixelsPerUnit: 10,
+      aspectRatio4096: 4096,
+    );
+    Future<int> paintedPixels(double scale) async {
+      final recorder = ui.PictureRecorder();
+      painter.paint(
+        ui.Canvas(recorder),
+        origin: ui.Offset.zero,
+        particles: [_particle()],
+        projections: [
+          (
+            position: const ui.Offset(30, 30),
+            scale: scale,
+            direction: ui.Offset.zero,
+          ),
+        ],
+      );
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(60, 60);
+      try {
+        final bytes = (await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        ))!.buffer.asUint8List();
+        var count = 0;
+        for (var i = 3; i < bytes.length; i += 4) {
+          if (bytes[i] != 0) count++;
+        }
+        return count;
+      } finally {
+        image.dispose();
+        picture.dispose();
+      }
+    }
+
+    final near = await paintedPixels(1);
+    final far = await paintedPixels(.5);
+    expect(near, 400);
+    expect(far, 100);
+  });
+
+  test('rejects invalid projections before drawing any particle', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    final painter = BattleSplPointPreviewPainter(
+      textures: {1: texture},
+      pixelsPerUnit: 10,
+      aspectRatio4096: 4096,
+    );
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    expect(
+      () => painter.paint(
+        canvas,
+        origin: ui.Offset.zero,
+        particles: [_particle()],
+        projections: const [],
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => painter.paint(
+        canvas,
+        origin: ui.Offset.zero,
+        particles: [_particle(), _particle()],
+        projections: const [
+          (position: ui.Offset(30, 30), scale: 1.0, direction: ui.Offset.zero),
+          (
+            position: ui.Offset(30, 30),
+            scale: double.nan,
+            direction: ui.Offset.zero,
+          ),
+        ],
+      ),
+      throwsFormatException,
+    );
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(60, 60);
+    try {
+      final bytes = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!.buffer.asUint8List();
+      expect(bytes.every((byte) => byte == 0), isTrue);
+    } finally {
+      image.dispose();
+      picture.dispose();
+    }
+  });
+
   test('applies animated scale only on the declared axis', () async {
     final texture = await _solidImage(const ui.Color(0xffffffff));
     addTearDown(texture.dispose);
