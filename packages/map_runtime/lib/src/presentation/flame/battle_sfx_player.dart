@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'battle_se_manifest.dart';
+import 'battle_recipe_sound_source_native.dart'
+    if (dart.library.js_interop) 'battle_recipe_sound_source_web.dart'
+    as recipe_source;
 import '../../player/runtime_audio_mixer.dart';
 
 /// Joue un son de combat nommé — BETA-BAT-014.
@@ -41,6 +46,9 @@ final class FlameAudioBattleSfxPlayer {
   final AudioPlayer Function() _playerFactory;
   final Set<String> _reportedMisses = <String>{};
   final Set<AudioPlayer> _livePlayers = <AudioPlayer>{};
+  final Set<BattlePreparedRecipeSound> _recipeSounds = {};
+  static const _maxRecipeSounds = 8;
+  static const _maxRecipeSoundBytes = 8 * 1024 * 1024;
   int? maxConcurrentVoices;
   bool get _atVoiceLimit =>
       maxConcurrentVoices != null &&
@@ -142,6 +150,43 @@ final class FlameAudioBattleSfxPlayer {
     }();
   }
 
+  Future<BattlePreparedRecipeSound> prepareRecipeSound(
+    Uint8List bytes,
+    String mediaType,
+  ) async {
+    if (_disposed ||
+        _atVoiceLimit ||
+        _recipeSounds.length >= _maxRecipeSounds) {
+      throw StateError('Battle sound player cannot prepare another voice');
+    }
+    if (bytes.isEmpty ||
+        bytes.length > _maxRecipeSoundBytes ||
+        !const {'audio/wav', 'audio/ogg', 'audio/mpeg'}.contains(mediaType)) {
+      throw const FormatException('Invalid recipe sound');
+    }
+    final snapshot = Uint8List.fromList(bytes).asUnmodifiableView();
+    final player = _playerFactory();
+    _livePlayers.add(player);
+    final sound = BattlePreparedRecipeSound._(this, player);
+    _recipeSounds.add(sound);
+    player.onPlayerComplete.first
+        .then<void>(
+          (_) => sound.dispose(),
+          onError: (Object error, StackTrace stackTrace) => sound.dispose(),
+        )
+        .catchError((Object error) {
+          debugPrint('[battle-sfx] recipe sound cleanup failed: $error');
+        });
+    sound._preparation = sound._prepare(snapshot, mediaType);
+    try {
+      await sound._preparation;
+      return sound;
+    } catch (_) {
+      await sound.dispose();
+      rethrow;
+    }
+  }
+
   Future<void> _release(AudioPlayer player) async {
     if (!_livePlayers.remove(player)) return;
     _mixer?.unregister(player);
@@ -155,6 +200,9 @@ final class FlameAudioBattleSfxPlayer {
   /// Coupe et libère toutes les voix encore vivantes.
   Future<void> dispose() async {
     _disposed = true;
+    for (final sound in _recipeSounds.toList()) {
+      await sound.dispose();
+    }
     final players = _livePlayers.toList();
     _livePlayers.clear();
     for (final player in players) {
@@ -175,7 +223,8 @@ final class FlameAudioBattleSfxPlayer {
       _mixer?.mix.volumeFor(
         RuntimeAudioRoute.battleEffects,
         sourceVolume: sourceVolume,
-      ) ?? sourceVolume;
+      ) ??
+      sourceVolume;
 
   Future<void> _register(AudioPlayer player, double sourceVolume) async {
     if (_disposed || !_livePlayers.contains(player)) return;
@@ -186,5 +235,91 @@ final class FlameAudioBattleSfxPlayer {
       setVolume: player.setVolume,
       applyImmediately: false,
     );
+  }
+}
+
+final class BattlePreparedRecipeSound {
+  BattlePreparedRecipeSound._(this._owner, this._player);
+
+  final FlameAudioBattleSfxPlayer _owner;
+  final AudioPlayer _player;
+  final Completer<void> _cancelSignal = Completer<void>();
+  late final Future<void> _preparation;
+  recipe_source.BattleRecipeSoundSource? _source;
+  Future<void>? _starting;
+  Future<void>? _disposal;
+  bool _cancelled = false;
+  bool _started = false;
+
+  void _checkActive() {
+    if (_cancelled || _owner._disposed) {
+      throw StateError('Battle recipe sound was cancelled');
+    }
+  }
+
+  Future<void> _prepare(Uint8List bytes, String mediaType) async {
+    _source = await recipe_source.BattleRecipeSoundSource.create(
+      bytes,
+      mediaType,
+    );
+    _checkActive();
+    await _waitForPlayer(_player.setReleaseMode(ReleaseMode.release));
+    _checkActive();
+    await _waitForPlayer(_player.setSource(_source!.source));
+    _checkActive();
+  }
+
+  Future<void> start() {
+    if (_cancelled || _owner._disposed || _started) {
+      return Future.error(StateError('Battle recipe sound cannot be started'));
+    }
+    _started = true;
+    final starting = _start();
+    _starting = starting;
+    return starting.catchError((Object error, StackTrace stackTrace) async {
+      await dispose();
+      Error.throwWithStackTrace(error, stackTrace);
+    });
+  }
+
+  Future<void> _start() async {
+    await _waitForPlayer(_owner._register(_player, 1));
+    _checkActive();
+    await _waitForPlayer(_player.setVolume(_owner._volume(1)));
+    _checkActive();
+    await _waitForPlayer(_player.resume());
+  }
+
+  Future<void> dispose() {
+    final existing = _disposal;
+    if (existing != null) return existing;
+    _cancelled = true;
+    _cancelSignal.complete();
+    return _disposal = _dispose();
+  }
+
+  Future<void> _waitForPlayer(Future<void> operation) => Future.any([
+    operation,
+    _cancelSignal.future.then((_) {
+      throw StateError('Battle recipe sound was cancelled');
+    }),
+  ]);
+
+  Future<void> _dispose() async {
+    await _settle(_preparation);
+    await _settle(_starting);
+    _owner._mixer?.unregister(_player);
+    await _settle(Future.sync(_player.stop));
+    await _settle(Future.sync(_player.dispose));
+    try {
+      await _source?.dispose();
+    } finally {
+      _owner._recipeSounds.remove(this);
+      _owner._livePlayers.remove(_player);
+    }
+  }
+
+  Future<void> _settle(Future<void>? future) async {
+    await future?.then<void>((_) {}, onError: (Object _) {});
   }
 }
