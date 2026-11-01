@@ -15,6 +15,13 @@ import 'package:path/path.dart' as p;
 import '../../../map_distribution/test/support/spatial_feature_capabilities_fixture.dart';
 import '../../../map_distribution/test/support/cs_audio_package_fixture.dart';
 
+typedef FetchedBattleRecipe = ({
+  BattleMoveRecipeBinding binding,
+  InspectedBattleRecipeBundle bundle,
+  String catalogMoveId,
+  String recipeMediaId,
+});
+
 final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
   _RecipeTransport(this.recipe);
   final List<int> recipe;
@@ -58,7 +65,10 @@ final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
 }
 
 Future<({RuntimeMapBundle bundle, GameState state})>
-offlineRecipePackageFixture({bool spatial = true}) async {
+offlineRecipePackageFixture({
+  bool spatial = true,
+  FetchedBattleRecipe? fetchedRecipe,
+}) async {
   final owner = await Directory.systemTemp.createTemp(
     'offline-recipe-package-',
   );
@@ -193,6 +203,7 @@ offlineRecipePackageFixture({bool spatial = true}) async {
     }),
   );
   final fetched =
+      fetchedRecipe ??
       await AveluneMoveRecipeSource(
         AvelunePokemonMediaSource(
           client: _RecipeTransport(bytes),
@@ -214,14 +225,26 @@ offlineRecipePackageFixture({bool spatial = true}) async {
         availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
       );
   final staged = await api.artifacts.put(fetched.bundle.recipeBytes);
+  final stagedResources = <Map<String, Object?>>[];
+  for (final resource in fetched.bundle.recipe.resources) {
+    final artifact = await api.artifacts.put(
+      fetched.bundle.media[resource.id]!,
+    );
+    stagedResources.add({
+      'id': resource.id,
+      'sha256': resource.sha256Hex,
+      'mediaType': resource.mediaType,
+      'artifactHandle': artifact.reference.handle,
+    });
+  }
   final params = <String, Object?>{
     'projectBinding': BattleRecipeProjectBinding(
       binding: fetched.binding,
-      catalogMoveId: 'catalog',
-      recipeMediaId: 'recipe',
+      catalogMoveId: fetched.catalogMoveId,
+      recipeMediaId: fetched.recipeMediaId,
     ).toJson(),
     'recipeHandle': staged.reference.handle,
-    'resources': <Object>[],
+    'resources': stagedResources,
   };
   final snapshot = await api.readWorkshopSnapshot(
     opened.projectHandle,
@@ -264,6 +287,25 @@ offlineRecipePackageFixture({bool spatial = true}) async {
     fail('$error; cause: ${error.cause}');
   }
   final archive = ZipDecoder().decodeBytes(exported.packageBytes, verify: true);
+  final projectMoveId = fetched.binding.projectMoveId;
+  expect(
+    archive
+        .findFile(
+          'project/${battleRecipeBlobPath(fetched.binding.recipeSha256, 'application/vnd.avelune.battle-recipe+json', projectMoveId: projectMoveId)}',
+        )
+        ?.content,
+    orderedEquals(fetched.bundle.recipeBytes),
+  );
+  for (final resource in fetched.bundle.recipe.resources) {
+    expect(
+      archive
+          .findFile(
+            'project/${battleRecipeBlobPath(resource.sha256Hex, resource.mediaType, projectMoveId: projectMoveId)}',
+          )
+          ?.content,
+      orderedEquals(fetched.bundle.media[resource.id]!),
+    );
+  }
   final install = await Directory(p.join(owner.path, 'installed')).create();
   for (final entry in archive.files) {
     if (!entry.isFile || !entry.name.startsWith('project/')) continue;

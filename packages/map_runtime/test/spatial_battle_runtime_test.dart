@@ -7,8 +7,10 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_render_3d/map_render_3d.dart' show SpatialGameSurface, SpatialSceneView;
 import 'package:image/image.dart' as img;
@@ -35,11 +37,91 @@ import 'package:path/path.dart' as p;
 import 'support/load_flame_component.dart';
 import 'support/battle_transition_presets.dart';
 import 'support/offline_recipe_package_fixture.dart';
+import 'support/loopback_recipe_transport.dart';
 import 'source_converted_gym_reward_journey_test.dart' show installConvertedQaHeadlessAudio;
 
 void main() {
+  final loopbackKeys = [
+    'AVELUNE_RECIPE_TEST_ENDPOINT',
+    'AVELUNE_RECIPE_TEST_RELEASE',
+    'AVELUNE_RECIPE_TEST_OWNER',
+    'AVELUNE_RECIPE_TEST_SOURCE',
+    'AVELUNE_RECIPE_TEST_MEDIA',
+  ];
+  final loopbackConfigured = loopbackKeys.every(
+    (key) => Platform.environment[key]?.isNotEmpty == true,
+  );
+  final loopbackTransport = loopbackConfigured
+      ? LoopbackRecipeTransport(Platform.environment[loopbackKeys.first]!)
+      : null;
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
+  tearDownAll(() => loopbackTransport?.close());
+  testWidgets('imports a real API recipe and uses it offline in battle',
+      (tester) async {
+    final fetched = await tester.runAsync(() async {
+      try {
+        return await AveluneMoveRecipeSource(
+          AvelunePokemonMediaSource(
+            client: loopbackTransport!,
+            baseUri: 'https://recipe-test.invalid/v1/media',
+            release: Platform.environment['AVELUNE_RECIPE_TEST_RELEASE']!,
+          ),
+        ).fetch(
+          catalogMoveId: Platform.environment['AVELUNE_RECIPE_TEST_OWNER']!,
+          sourceMoveId: Platform.environment['AVELUNE_RECIPE_TEST_SOURCE']!,
+          projectMoveId: 'tackle',
+          mediaId: Platform.environment['AVELUNE_RECIPE_TEST_MEDIA']!,
+          limits: const BattleRecipeBundleLimits(
+            maxTextures: 16,
+            maxTextureBytes: 8 * 1024 * 1024,
+            maxBundleBytes: 32 * 1024 * 1024,
+            maxDimension: 2048,
+            maxTexturePixels: 4000000,
+            maxTotalPixels: 16000000,
+          ),
+          availableCapabilities:
+              BattleMoveAnimationRecipe.recognizedCapabilities,
+        );
+      } finally {
+        loopbackTransport!.close();
+      }
+    });
+    expect(fetched, isNotNull);
+    await HttpOverrides.runZoned(() async {
+      final fixture = (await tester.runAsync(
+        () => offlineRecipePackageFixture(fetchedRecipe: fetched),
+      ))!;
+      var commitCount = 0;
+      final runtime = SpatialBattleRuntime(
+        readGameState: () => fixture.state,
+        commitGameState: (_, _) {
+          commitCount++;
+          return true;
+        },
+      );
+      addTearDown(runtime.dispose);
+      unawaited(
+        runtime.start(bundle: fixture.bundle, request: _packagedWild()),
+      );
+      await _readyInView(tester, runtime);
+      final fight = runtime.displaySession!.decisionRequest.allowedChoices
+          .whereType<PlayerBattleChoiceFight>().first;
+      expect(await _submit(tester, runtime, fight), isTrue);
+      final result = runtime.debugOfflineRecipeResults['tackle'];
+      expect(
+        result?.fallbackReason,
+        BattleRecipeFallbackReason.unavailableCapabilities,
+      );
+      expect(
+        result?.unavailableCapabilities,
+        {'startParticle'},
+      );
+      expect(runtime.error, isNull);
+      expect(commitCount, 0);
+      runtime.cancel();
+    }, createHttpClient: (_) => throw StateError('Network disabled for this test'));
+  }, skip: !loopbackConfigured);
   testWidgets('imports exports and plays the packaged battle offline', (tester) =>
       HttpOverrides.runZoned(() async {
     final fixture = (await tester.runAsync(offlineRecipePackageFixture))!;
