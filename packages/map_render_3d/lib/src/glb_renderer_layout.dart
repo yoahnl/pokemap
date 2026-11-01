@@ -175,30 +175,38 @@ final class GlbRendererLayout {
       }
       final uvs = uvIndex == null ? null : _floats(uvIndex, 2);
       final normals = normalIndex == null ? null : _floats(normalIndex, 3);
+      final hasSkin =
+          attributes.containsKey('JOINTS_0') &&
+          attributes.containsKey('WEIGHTS_0');
+      final vertices = <Vertex>[];
+      for (var i = 0; i < surface.vertexCount; i++) {
+        final skin = hasSkin ? surface.vertexSkin(i) : null;
+        vertices.add(
+          Vertex(
+            position: Vector3.array(surface.positions, i * 3),
+            texCoord: uvs == null ? Vector2.zero() : Vector2.array(uvs, i * 2),
+            normal: normals == null ? null : Vector3.array(normals, i * 3),
+            color: colors == null
+                ? const Color(0xffffffff)
+                : Color.from(
+                    alpha: width == 4 ? colors[i * width + 3] : 1,
+                    red: colors[i * width],
+                    green: colors[i * width + 1],
+                    blue: colors[i * width + 2],
+                  ),
+            joints: skin?.joints,
+            weights: skin?.weights,
+          ),
+        );
+      }
       mesh.updateSurface(
         index,
         SpatialModelSurface(
           materialIndex: materialIndex,
-          vertices: [
-            for (var i = 0; i < surface.vertexCount; i++)
-              Vertex(
-                position: Vector3.array(surface.positions, i * 3),
-                texCoord: uvs == null
-                    ? Vector2.zero()
-                    : Vector2.array(uvs, i * 2),
-                normal: normals == null ? null : Vector3.array(normals, i * 3),
-                color: colors == null
-                    ? const Color(0xffffffff)
-                    : Color.from(
-                        alpha: width == 4 ? colors[i * width + 3] : 1,
-                        red: colors[i * width],
-                        green: colors[i * width + 1],
-                        blue: colors[i * width + 2],
-                      ),
-              ),
-          ],
+          vertices: vertices,
           indices: surface.indices.toList(),
           material: surface.material,
+          jointMap: hasSkin ? surface.jointMap : null,
         ),
       );
     }
@@ -250,6 +258,7 @@ final class SpatialModelSurface extends Surface {
     required List<Vertex> vertices,
     required super.indices,
     required super.material,
+    super.jointMap,
     this.materialIndex,
   }) : _hasSourceNormals = vertices.firstOrNull?.normal != null,
        _sourceAttributes = _packSourceAttributes(vertices),

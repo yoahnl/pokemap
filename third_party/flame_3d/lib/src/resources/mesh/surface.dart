@@ -22,6 +22,9 @@ class Surface({
      */
   bool calculateNormals = true,
 }) extends Resource<GpuBuffer> {
+  static const _vertexFloatCount = 20;
+  static const _jointFloatOffset = 12;
+
   /// {@macro surface}
   this {
     final normalizedVertices = _normalize(
@@ -61,6 +64,16 @@ class Surface({
 
   int get vertexCount => _vertexCount;
   late int _vertexCount;
+
+  ({Vector4 joints, Vector4 weights}) vertexSkin(int index) {
+    RangeError.checkValidIndex(index, this, 'index', vertexCount);
+    final values = _vertices.asFloat32List(
+      (index * _vertexFloatCount + _jointFloatOffset) *
+          Float32List.bytesPerElement,
+      8,
+    );
+    return (joints: Vector4.array(values), weights: Vector4.array(values, 4));
+  }
 
   int get indicesBytes => _indices.lengthInBytes;
   late ByteBuffer _indices;
