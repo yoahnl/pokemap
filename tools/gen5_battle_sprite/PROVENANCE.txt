@@ -9,9 +9,20 @@ pokebw2 decompilation at revision 41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c,
 including lib/nnsys/src/g2d/g2d_Animation.c,
 lib/nnsys/src/g2d/g2d_MultiCellAnimation.c and src/system/mcss.c. The MCSS
 binary parser was written against the structure described by src/system/mcss.c.
+The orthographic parent transform and anchor projection study uses
+src/system/mcss.c:363-398, 499-510 and 1436-1448. Calculations in the
+experimental tool use floating point. Ten active Oshawott quad edge vectors
+were compared with matching UVs in one emulator GPU bank within 0.2 pixel per
+coordinate. Fixed-point rasterization, absolute placement and pixels remain
+unverified; RAM and the GPU bank may represent neighboring frames.
 Repository: https://github.com/fuddlesworth/pokebw2
 The repository identifies its code license as GPL-3.0. This note is not a
 determination of the licensing consequences of using these research results.
+
+The test projection matrix was read from a private melonDS 1.1 savestate;
+its section and matrix layout were checked against melonDS 1.1 sources
+src/Savestate.cpp, src/FIFO.h, src/GPU3D.h and src/GPU3D.cpp. The current
+GPU matrix is not established to belong to a particular battle sprite.
 
 The ownership and redistribution status of Pokémon graphics, palettes and
 other game data are separate from the licenses of these repositories and

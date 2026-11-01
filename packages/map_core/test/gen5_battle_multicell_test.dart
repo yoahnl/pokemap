@@ -58,6 +58,21 @@ void main() {
     expect(frames, [0, 1, 2, 0]);
   });
 
+  test(
+    'active nodes expose their cell and transforms as animation advances',
+    () {
+      final c = controller(0);
+      final first = c.nodes.single;
+      expect(first.cellIndex, 0);
+      expect(first.record.x, 0);
+      expect(first.localFrame.targetIndex, 0);
+      expect(first.parentFrame.targetIndex, 0);
+      c.advance();
+      expect(c.nodes.single.cellIndex, 1);
+      expect(first.cellIndex, 0);
+    },
+  );
+
   test('nodes sharing one slot use the first controller', () {
     final c = Gen5MultiCellController(
       cells: [
@@ -77,6 +92,8 @@ void main() {
       timeline: sequence([frame(0, 2)]),
     );
     expect(c.parts.map((p) => p.object.tileIndex), [0, 0]);
+    expect(c.nodes.map((node) => node.cellIndex), [0, 0]);
+    expect(c.nodes.map((node) => node.record.x), [0, 8]);
   });
 
   test('ignores unreferenced invalid cells and rejects them when selected', () {
@@ -96,5 +113,6 @@ void main() {
         );
     expect(build(0).parts, hasLength(1));
     expect(() => build(1).parts, throwsFormatException);
+    expect(() => build(1).nodes, throwsFormatException);
   });
 }

@@ -4,6 +4,18 @@ import 'ncer.dart';
 import 'nmcr.dart';
 import 'pose.dart';
 
+final class Gen5ActiveNode {
+  const Gen5ActiveNode({
+    required this.record,
+    required this.localFrame,
+    required this.parentFrame,
+  });
+
+  final Gen5NmcrRecord record;
+  final Gen5NitroFrame localFrame, parentFrame;
+  int get cellIndex => localFrame.targetIndex;
+}
+
 final class Gen5MultiCellController {
   Gen5MultiCellController({
     required this.cells,
@@ -74,6 +86,25 @@ final class Gen5MultiCellController {
         child.advance();
       }
     }
+  }
+
+  List<Gen5ActiveNode> get nodes {
+    final parent = _parent.frame;
+    final result = <Gen5ActiveNode>[];
+    for (final record in _map.records) {
+      final child = _children[record.sharedAnimationIndex];
+      if (child == null || child.frame.targetIndex >= cells.length) {
+        throw const FormatException('Invalid shared cell reference');
+      }
+      result.add(
+        Gen5ActiveNode(
+          record: record,
+          localFrame: child.frame,
+          parentFrame: parent,
+        ),
+      );
+    }
+    return List.unmodifiable(result);
   }
 
   List<Gen5PosePart> get parts {
