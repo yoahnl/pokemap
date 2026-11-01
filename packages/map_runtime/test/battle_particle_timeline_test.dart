@@ -51,6 +51,209 @@ void main() {
     },
   );
 
+  test('delays emission and carries fractional particles between batches', () {
+    final timeline = BattleParticleTimeline([
+      const BattleParticleEmitterTiming(
+        textureId: 'fractional',
+        startDelayMs: 10,
+        emissionDurationMs: 40,
+        emissionIntervalMs: 10,
+        particleLifetimeMs: 15,
+        particlesPerEmission: 1,
+        fractionalEmission4096: 2048,
+      ),
+    ]);
+    expect(timeline.advance(const Duration(milliseconds: 9)), isEmpty);
+    final first = timeline.advance(const Duration(milliseconds: 1));
+    expect(first.single.count, 1);
+    expect(first.single.at, const Duration(milliseconds: 10));
+    final remaining = timeline.advance(const Duration(milliseconds: 45));
+    expect(
+      [first.single, ...remaining]
+          .where((event) => event.kind == BattleParticleEventKind.emission)
+          .map((event) => (event.at.inMilliseconds, event.count)),
+      [(10, 1), (20, 2), (30, 1), (40, 2)],
+    );
+    expect(
+      remaining
+          .where((event) => event.kind == BattleParticleEventKind.expiration)
+          .map((event) => event.count),
+      [1, 2, 1, 2],
+    );
+    expect(timeline.activeParticles, 0);
+    expect(timeline.isComplete, isTrue);
+  });
+
+  test(
+    'a rate below one retains its fraction without exceeding work limits',
+    () {
+      const timing = BattleParticleEmitterTiming(
+        textureId: 'fractional',
+        emissionDurationMs: 40,
+        emissionIntervalMs: 10,
+        particleLifetimeMs: 15,
+        particlesPerEmission: 0,
+        fractionalEmission4096: 2048,
+      );
+      final timeline = BattleParticleTimeline([timing]);
+      final events = timeline.advance(const Duration(milliseconds: 45));
+      expect(
+        events
+            .where((event) => event.kind == BattleParticleEventKind.emission)
+            .map((event) => event.count),
+        [1, 1],
+      );
+      expect(
+        events
+            .where((event) => event.kind == BattleParticleEventKind.expiration)
+            .map((event) => event.count),
+        [1, 1],
+      );
+      expect(timeline.activeParticles, 0);
+      expect(timeline.isComplete, isTrue);
+      final trailingEmpty = BattleParticleTimeline([
+        const BattleParticleEmitterTiming(
+          textureId: 'fractional',
+          emissionDurationMs: 21,
+          emissionIntervalMs: 10,
+          particleLifetimeMs: 1,
+          particlesPerEmission: 0,
+          fractionalEmission4096: 2048,
+        ),
+      ]);
+      final trailingEvents = trailingEmpty.advance(
+        const Duration(milliseconds: 20),
+      );
+      expect(trailingEvents.map((event) => event.count), [1, 1]);
+      expect(trailingEmpty.isComplete, isTrue);
+      expect(trailingEmpty.activeParticles, 0);
+      expect(
+        () => BattleParticleTimeline([
+          const BattleParticleEmitterTiming(
+            textureId: 'too-many-batches',
+            emissionDurationMs: 4097,
+            emissionIntervalMs: 1,
+            particleLifetimeMs: 1,
+            particlesPerEmission: 0,
+            fractionalEmission4096: 1,
+          ),
+        ]),
+        throwsFormatException,
+      );
+    },
+  );
+
+  test(
+    'fractional delayed schedules are stable across work and frame budgets',
+    () {
+      const timings = [
+        BattleParticleEmitterTiming(
+          textureId: 'a',
+          startDelayMs: 13,
+          emissionDurationMs: 100,
+          emissionIntervalMs: 7,
+          particleLifetimeMs: 14,
+          particlesPerEmission: 0,
+          fractionalEmission4096: 2048,
+        ),
+        BattleParticleEmitterTiming(
+          textureId: 'b',
+          startDelayMs: 4,
+          emissionDurationMs: 90,
+          emissionIntervalMs: 9,
+          particleLifetimeMs: 21,
+          particlesPerEmission: 1,
+          fractionalEmission4096: 1024,
+        ),
+      ];
+      final whole = BattleParticleTimeline(timings);
+      final partitioned = BattleParticleTimeline(timings);
+      final expected = whole.advance(const Duration(milliseconds: 150));
+      final actual = <BattleParticleEvent>[];
+      for (var frame = 0; frame < 15; frame++) {
+        actual.addAll(
+          partitioned.advance(const Duration(milliseconds: 10), workBudget: 2),
+        );
+        while (partitioned.hasPendingEvents) {
+          actual.addAll(partitioned.advance(Duration.zero, workBudget: 2));
+        }
+      }
+      expect(
+        actual.map(
+          (event) => (
+            event.kind,
+            event.emitterIndex,
+            event.batchIndex,
+            event.at,
+            event.count,
+          ),
+        ),
+        expected.map(
+          (event) => (
+            event.kind,
+            event.emitterIndex,
+            event.batchIndex,
+            event.at,
+            event.count,
+          ),
+        ),
+      );
+      expect(partitioned.isComplete, isTrue);
+      expect(partitioned.activeParticles, 0);
+    },
+  );
+
+  test('empty emission attempts consume the per-update work budget', () {
+    final timeline = BattleParticleTimeline([
+      const BattleParticleEmitterTiming(
+        textureId: 'sparse',
+        emissionDurationMs: 100,
+        emissionIntervalMs: 1,
+        particleLifetimeMs: 1,
+        particlesPerEmission: 0,
+        fractionalEmission4096: 1,
+      ),
+    ]);
+    expect(
+      timeline.advance(const Duration(milliseconds: 100), workBudget: 2),
+      isEmpty,
+    );
+    expect(timeline.elapsed, const Duration(milliseconds: 1));
+    expect(timeline.hasPendingEvents, isTrue);
+    expect(timeline.advance(Duration.zero, workBudget: 2), isEmpty);
+    expect(timeline.elapsed, const Duration(milliseconds: 3));
+    expect(timeline.hasPendingEvents, isTrue);
+  });
+
+  test('rejects invalid fractions, delays and excessive particle counts', () {
+    BattleParticleEmitterTiming timing({
+      int count = 1,
+      int fraction = 0,
+      int delay = 0,
+      int duration = 100,
+      int interval = 10,
+    }) => BattleParticleEmitterTiming(
+      textureId: 'x',
+      startDelayMs: delay,
+      emissionDurationMs: duration,
+      emissionIntervalMs: interval,
+      particleLifetimeMs: 10,
+      particlesPerEmission: count,
+      fractionalEmission4096: fraction,
+    );
+    for (final invalid in [
+      timing(count: 0),
+      timing(fraction: -1),
+      timing(fraction: 4096),
+      timing(count: 64, fraction: 1),
+      timing(delay: -1),
+      timing(delay: 60001),
+      timing(count: 64, duration: 650, interval: 10),
+    ]) {
+      expect(() => BattleParticleTimeline([invalid]), throwsFormatException);
+    }
+  });
+
   test('event order and results do not depend on frame partitioning', () {
     const spark = BattleParticleEmitterTiming(
       textureId: 'spark',
