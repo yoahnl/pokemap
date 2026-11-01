@@ -963,6 +963,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             event: request.event,
             audio: result,
             silentVisuals: request.silentVisuals,
+            trackedEffectId: request.trackedEffectId,
           ),
         );
       }

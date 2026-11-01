@@ -52,6 +52,53 @@ bool _containsCameraStep(BattleAnimationStep step) {
       (step is AnimationGroupStep && step.steps.any(_containsCameraStep));
 }
 
+List<BattleAnimationStep>? _silentMoveFallback(
+  List<BattleAnimationStep> steps,
+) {
+  final silent = <BattleAnimationStep>[];
+  for (final step in steps) {
+    switch (step) {
+      case PlaySeStep():
+        break;
+      case PlayRmxpAnimationStep():
+        silent.add(WaitStep(durationSeconds: step.totalDurationSeconds));
+      case AnimationGroupStep(:final mode, :final steps):
+        final children = _silentMoveFallback(steps);
+        if (children == null) return null;
+        if (children.isNotEmpty) {
+          silent.add(AnimationGroupStep(mode: mode, steps: children));
+        }
+      case WaitStep() ||
+          SpawnFxStep() ||
+          ScreenFlashStep() ||
+          SceneTintStep() ||
+          PlaySpriteSheetFxStep() ||
+          SpriteSheetOnCombatantStep() ||
+          ParticleBurstStep() ||
+          PlaySdkParticleSequenceStep() ||
+          SdkFallingParticlesStep() ||
+          SdkRadiusParticleStep() ||
+          SdkScalarParticleStep() ||
+          SdkParticleZoomStep() ||
+          WeatherParticleStep() ||
+          CombatantMotionStep() ||
+          CombatantFlashStep() ||
+          CombatantShakeStep() ||
+          CombatantToneStep() ||
+          CombatantCompressStep() ||
+          CombatantEllipseStep() ||
+          CameraFocusStep() ||
+          BattleCameraMoveStep() ||
+          BattleCameraResetStep() ||
+          BarrierPulseStep():
+        silent.add(step);
+      default:
+        return null;
+    }
+  }
+  return List.unmodifiable(silent);
+}
+
 BattleAnimationStep _resolveCameraFocusStep(
   BattleAnimationStep step,
   BattleMoveExecution execution,
@@ -432,15 +479,42 @@ final class BattleTurnAnimationPlanner {
             ).toList();
             final selection = selectedAudio[event];
             if (selection != null) {
-              final scoped = BattleMoveAudioScope.compose(
-                audio: selection.audio,
-                silentVisuals: selection.silentVisuals,
-                fallback: resolvedSteps,
-                forbiddenTargetFlash: execution.targetSlot,
-                attackerSlot: execution.attackerSlot,
-              );
-              resolvedSteps = scoped.steps;
-              audioScopes.addAll(scoped.audioScopes);
+              final effectId = selection.trackedEffectId;
+              final silentFallback = effectId == null
+                  ? null
+                  : _silentMoveFallback(resolvedSteps);
+              if (effectId != null &&
+                  (effectId.isEmpty || silentFallback == null)) {
+                final program = selection.audio.program;
+                if (program != null) {
+                  unawaited(
+                    program.cancel().then<void>((_) {}, onError: (Object _) {}),
+                  );
+                }
+              } else {
+                final fallback = resolvedSteps;
+                final scoped = BattleMoveAudioScope.compose(
+                  audio: selection.audio,
+                  silentVisuals: selection.silentVisuals,
+                  fallback: fallback,
+                  forbiddenTargetFlash: execution.targetSlot,
+                  attackerSlot: execution.attackerSlot,
+                );
+                resolvedSteps =
+                    effectId != null &&
+                        scoped.status == BattleRecipeAudioStatus.ready
+                    ? [
+                        StartTrackedEffectStep(
+                          effectId: effectId,
+                          fallbackSteps: fallback,
+                          fallbackAfterAudioSteps: silentFallback,
+                        ),
+                        ...scoped.steps,
+                        const WaitTrackedEffectsStep(),
+                      ]
+                    : scoped.steps;
+                audioScopes.addAll(scoped.audioScopes);
+              }
             }
             final focusSlot = execution.targetSlot ?? execution.attackerSlot;
             final moveKey = execution.move.id.toLowerCase().replaceAll(RegExp(r'[-_ ]'), '');

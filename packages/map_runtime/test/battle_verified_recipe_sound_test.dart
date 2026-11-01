@@ -2215,6 +2215,7 @@ void main() {
         BattleTurnAudioSelection(
           event: event,
           audio: result,
+          trackedEffectId: 'grouped-spl',
           silentVisuals: const AnimationGroupStep(
             mode: BattleAnimationGroupMode.parallel,
             steps: [WaitStep(durationSeconds: .1)],
@@ -2223,6 +2224,7 @@ void main() {
       ],
     );
     expect(plan.audioScopes, isEmpty);
+    expect(plan.flattenedSteps.whereType<StartTrackedEffectStep>(), isEmpty);
     expect(
       plan.flattenedSteps.map((step) => step.runtimeType),
       baseline.flattenedSteps.map((step) => step.runtimeType),
@@ -2237,6 +2239,247 @@ void main() {
       plan.flattenedSteps.whereType<HudHpTweenStep>().length,
       baseline.flattenedSteps.whereType<HudHpTweenStep>().length,
     );
+    expect(voice.resumes, 0);
+  });
+
+  for (final failureAfterAudio in [false, true]) {
+    test('tracked recipe fallback preserves one real turn when failure occurs '
+        '${failureAfterAudio ? 'after' : 'before'} audio', () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final coordinator = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(coordinator.cancel);
+      final audio = await coordinator.prepare(const BattleMoveClipAudio('cue'));
+      final baseline = _realTurnPlan(turn.before, turn.after);
+      final legacyCount = baseline.flattenedSteps
+          .whereType<PlaySeStep>()
+          .where((step) => step.seName == 'legacy-move')
+          .length;
+      final plan = _realTurnPlan(
+        turn.before,
+        turn.after,
+        recipeSteps: const [
+          PlaySeStep(seName: 'legacy-move'),
+          ScreenFlashStep(colorArgb: 1, durationSeconds: .1),
+          WaitStep(durationSeconds: .1),
+        ],
+        selections: [
+          BattleTurnAudioSelection(
+            event: event,
+            audio: audio,
+            trackedEffectId: 'grouped-spl',
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: 0)],
+            ),
+          ),
+        ],
+      );
+      final sounds = <String>[];
+      var hpTransitions = 0;
+      var visualFallbacks = 0;
+      void Function()? failEffect;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => sounds.add(step.seName),
+        onHudHpTween: (_) => hpTransitions++,
+        onScreenFlash: (_) => visualFallbacks++,
+        onStartRecoverableTrackedEffect: (step, done, fail) {
+          expect(step.effectId, 'grouped-spl');
+          failEffect = fail;
+          if (!failureAfterAudio) fail();
+          return () {};
+        },
+      );
+      runner.start(plan);
+      for (var i = 0; i < 300 && failEffect == null; i++) {
+        runner.update(.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(failEffect, isNotNull);
+      if (failureAfterAudio) {
+        for (var i = 0; i < 300 && voice.resumes == 0; i++) {
+          runner.update(.05);
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(voice.resumes, 1);
+        failEffect!();
+      }
+      for (var i = 0; i < 300 && runner.isActive; i++) {
+        runner.update(.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(runner.isActive, isFalse);
+      expect(voice.resumes, failureAfterAudio ? 1 : 0);
+      expect(
+        sounds.where((name) => name == 'legacy-move').length,
+        legacyCount - (failureAfterAudio ? 1 : 0),
+      );
+      expect(sounds.where((name) => name == 'hit'), hasLength(1));
+      expect(hpTransitions, 1);
+      expect(visualFallbacks, 2);
+    });
+  }
+
+  test(
+    'turn audio preparation carries its tracked effect to the scene',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final coordinator = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(coordinator.cancel);
+      final effects = <String>[];
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        onStartRecoverableTrackedEffect: (step, done, fail) {
+          effects.add(step.effectId);
+          done();
+          return () {};
+        },
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      expect(
+        await overlay.prepareTurnAudioAndUpdateState(
+          turn.after,
+          audioRequests: [
+            BattleTurnAudioRequest(
+              event: event,
+              coordinator: coordinator,
+              audio: const BattleMoveClipAudio('cue'),
+              trackedEffectId: 'grouped-spl',
+              silentVisuals: const AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: [WaitStep(durationSeconds: 0)],
+              ),
+            ),
+          ],
+        ),
+        isTrue,
+      );
+      await overlay.waitForPendingVisualSync();
+      for (var i = 0; i < 300; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(effects, ['grouped-spl']);
+      expect(voice.resumes, 1);
+    },
+  );
+
+  test(
+    'post-audio fallback does not replay sounds embedded in RMXP visuals',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final coordinator = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(coordinator.cancel);
+      const rmxp = PlayRmxpAnimationStep(
+        animationId: 84,
+        subjectSide: BattleSideId.enemy,
+        attackerSide: BattleSideId.player,
+        defenderSide: BattleSideId.enemy,
+        phase: RmxpPlacementPhase.target,
+        placementSpec: RmxpPlacementSpec(
+          policy: RmxpPlacementPolicy.targetImpact,
+          anchor: BattleVisualAnchor.defenderImpact,
+        ),
+      );
+      final plan = _realTurnPlan(
+        turn.before,
+        turn.after,
+        recipeSteps: const [rmxp],
+        selections: [
+          BattleTurnAudioSelection(
+            event: event,
+            audio: await coordinator.prepare(const BattleMoveClipAudio('cue')),
+            trackedEffectId: 'grouped-spl',
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: 0)],
+            ),
+          ),
+        ],
+      );
+      final effect = plan.flattenedSteps
+          .whereType<StartTrackedEffectStep>()
+          .single;
+      expect(effect.fallbackSteps, contains(rmxp));
+      final silent = effect.fallbackAfterAudioSteps!;
+      expect(silent.whereType<PlayRmxpAnimationStep>(), isEmpty);
+      expect(
+        silent.whereType<WaitStep>().single.durationSeconds,
+        rmxp.totalDurationSeconds,
+      );
+    },
+  );
+
+  test('unsupported tracked fallback cancels its prepared clip', () async {
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final coordinator = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(coordinator.cancel);
+    final plan = _realTurnPlan(
+      turn.before,
+      turn.after,
+      recipeSteps: const [ShowMessageStep(message: 'unsupported')],
+      selections: [
+        BattleTurnAudioSelection(
+          event: event,
+          audio: await coordinator.prepare(const BattleMoveClipAudio('cue')),
+          trackedEffectId: 'grouped-spl',
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: 0)],
+          ),
+        ),
+      ],
+    );
+    expect(plan.audioScopes, isEmpty);
+    expect(plan.flattenedSteps.whereType<StartTrackedEffectStep>(), isEmpty);
+    await voice.disposed.future.timeout(const Duration(seconds: 1));
     expect(voice.resumes, 0);
   });
 
@@ -3724,13 +3967,16 @@ BattleAnimationPlan _realTurnPlan(
   BattleSession before,
   BattleSession after, {
   List<BattleTurnAudioSelection> selections = const [],
+  List<BattleAnimationStep>? recipeSteps,
 }) {
   final catalog = RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{});
   return BattleTurnAnimationPlanner(
-    recipeBuilder: (_, _) => const [
-      PlaySeStep(seName: 'legacy-move'),
-      WaitStep(durationSeconds: .1),
-    ],
+    recipeBuilder: (_, _) =>
+        recipeSteps ??
+        const [
+          PlaySeStep(seName: 'legacy-move'),
+          WaitStep(durationSeconds: .1),
+        ],
   ).build(
     previousSession: before,
     newSession: after,

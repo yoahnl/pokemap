@@ -337,7 +337,10 @@ void main() {
     expect(active.indexWhere((step) => step is BattleCameraResetStep),
         lessThan(active.indexWhere((step) => step is HudHpTweenStep)));
     final apiSource = AveluneMoveRecipeSource(
-      AvelunePokemonMediaSource(client: _RecipeTransport(bytes)),
+      AvelunePokemonMediaSource(
+        client: _RecipeTransport(bytes),
+        release: 'public-2026-10',
+      ),
     );
     final fetched = await apiSource.fetch(
       catalogMoveId: 'catalog-move', sourceMoveId: 'source',

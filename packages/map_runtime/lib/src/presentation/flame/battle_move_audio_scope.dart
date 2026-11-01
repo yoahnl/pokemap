@@ -11,11 +11,13 @@ final class BattleTurnAudioSelection {
     required this.event,
     required this.audio,
     required this.silentVisuals,
+    this.trackedEffectId,
   });
 
   final BattleTurnExecutionEvent event;
   final BattleRecipeAudioResult audio;
   final AnimationGroupStep silentVisuals;
+  final String? trackedEffectId;
 }
 
 final class BattleTurnAudioRequest {
@@ -24,12 +26,14 @@ final class BattleTurnAudioRequest {
     required this.coordinator,
     required this.audio,
     required this.silentVisuals,
+    this.trackedEffectId,
   });
 
   final BattleTurnExecutionEvent event;
   final BattleRecipeAudioCoordinator coordinator;
   final BattleRecipeAudioSelection audio;
   final AnimationGroupStep silentVisuals;
+  final String? trackedEffectId;
 }
 
 final class BattleMoveAudioScopeResult {
