@@ -13,7 +13,7 @@ The orthographic parent transform and anchor projection study uses
 src/system/mcss.c:363-398, 499-510 and 1436-1448. Calculations in the
 experimental tool use floating point. Ten active Oshawott quad edge vectors
 were compared with matching UVs in one emulator GPU bank within 0.2 pixel per
-coordinate. Fixed-point rasterization, absolute placement and pixels remain
+coordinate. Fixed-point rasterization and general pixel fidelity remain
 unverified; RAM and the GPU bank may represent neighboring frames.
 Repository: https://github.com/fuddlesworth/pokebw2
 The repository identifies its code license as GPL-3.0. This note is not a
@@ -23,6 +23,21 @@ The test projection matrix was read from a private melonDS 1.1 savestate;
 its section and matrix layout were checked against melonDS 1.1 sources
 src/Savestate.cpp, src/FIFO.h, src/GPU3D.h and src/GPU3D.cpp. The current
 GPU matrix is not established to belong to a particular battle sprite.
+
+In a second private melonDS 1.1 capture, successive paused states had frame
+counters 72184 and 72185. The earlier state's camera and Moustillon position
+projected a nine-quad prototype pose within 0.403 pixel per axis of all 36
+vertices in the later state's render bank. The capture regression retains only
+numeric geometry and matrices, not game media or the private savestate. The
+source atlas indices and normal palette matched the earlier state's VRAM in
+that experiment. A prototype raster approximately matched a JPEG capture after
+an empirically fitted screen translation; it is not a lossless pixel comparison
+and does not validate blending, the full animation or Player integration.
+
+The project's map_runtime/LICENSE currently contains a placeholder rather than
+a license. The consequences of distributing code informed by the GPL source
+need to be determined for the intended distribution. AnimaEngine's MIT notice
+must be preserved where its license terms require it.
 
 The ownership and redistribution status of Pokémon graphics, palettes and
 other game data are separate from the licenses of these repositories and
