@@ -11,6 +11,7 @@ enum BattleSplAdmissionFailure {
   poolExhausted,
   frameLimit,
   workLimit,
+  textureUnavailable,
 }
 
 final class BattleSplStaticEmitter {
@@ -129,7 +130,8 @@ final class BattleSplStaticPlayback {
     required int seed,
     required int poolCapacity,
     required this.maxTicks,
-  }) : _pool = BattleSplParticlePool(capacity: poolCapacity) {
+  }) : _pool = BattleSplParticlePool(capacity: poolCapacity),
+       textureIndices = Set.unmodifiable(textureIndices.values) {
     final random = BattleSplRandom(seed: seed);
     try {
       for (final entry in schedule) {
@@ -152,6 +154,7 @@ final class BattleSplStaticPlayback {
   }
 
   final int maxTicks;
+  final Set<int> textureIndices;
   final BattleSplParticlePool _pool;
   final List<_StaticEmitterState> _emitters = [];
   int _tick = 0;
