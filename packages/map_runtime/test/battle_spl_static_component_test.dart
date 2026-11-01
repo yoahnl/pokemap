@@ -448,6 +448,37 @@ void main() {
     },
   );
 
+  for (final elapsedTicks in [1.5, 3.0]) {
+    test('rejects $elapsedTicks ticks without historical anchors', () async {
+      final camera = BattlePerspectiveCamera(
+        viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+      );
+      var foot = const ui.Offset(150, 600);
+      final effect = await playback(follows: false);
+      final image = await redImage();
+      final failures = <BattleSplAdmissionFailure>[];
+      final component = BattleSplStaticComponent(
+        playback: effect,
+        textures: {0: image},
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 12,
+        projection: cameraProjection(camera, () => foot),
+        onComplete: () => fail('played to completion'),
+        onFailure: failures.add,
+      );
+      image.dispose();
+      addTearDown(component.dispose);
+
+      component.update(1 / 60);
+      expect(effect.activeParticles, greaterThan(0));
+      foot += const ui.Offset(60, 0);
+      component.update(elapsedTicks / 60);
+
+      expect(failures, [BattleSplAdmissionFailure.projectionUnavailable]);
+      expect(effect.activeParticles, 0);
+    });
+  }
+
   test(
     'a detached particle keeps its world position when the viewport changes',
     () async {

@@ -46,6 +46,7 @@ final class BattleAnimationRunner {
     this.onBattleCameraReset,
     this.onRmxpAnimation,
     this.onStartTrackedEffect,
+    this.onStartRecoverableTrackedEffect,
     this.messageStepSeconds = 0.42,
   });
 
@@ -95,6 +96,11 @@ final class BattleAnimationRunner {
   final void Function(PlayRmxpAnimationStep step)? onRmxpAnimation;
   final void Function() Function(StartTrackedEffectStep, void Function())?
       onStartTrackedEffect;
+  final void Function() Function(
+    StartTrackedEffectStep,
+    void Function(),
+    void Function(),
+  )? onStartRecoverableTrackedEffect;
   final double messageStepSeconds;
 
   BattleAnimationPlan? _plan;
@@ -161,8 +167,14 @@ final class BattleAnimationRunner {
   void start(BattleAnimationPlan plan) {
     void validate(List<BattleAnimationStep> steps, bool inParallel) {
       for (final step in steps) {
-        if (step is StartTrackedEffectStep && onStartTrackedEffect == null) {
-          throw StateError('Tracked effects are not supported by this host');
+        if (step is StartTrackedEffectStep) {
+          if (step.fallbackSteps == null && onStartTrackedEffect == null) {
+            throw StateError('Tracked effects are not supported by this host');
+          }
+          if (step.fallbackSteps != null &&
+              (inParallel || onStartRecoverableTrackedEffect == null)) {
+            throw StateError('Recoverable effect is not supported here');
+          }
         }
         if (step is WaitTrackedEffectsStep && inParallel) {
           throw StateError('Tracked effect barriers are not supported inside parallel groups');
@@ -172,14 +184,52 @@ final class BattleAnimationRunner {
         }
       }
     }
-    validate(plan.steps, false);
+    final frozen = _hasRecoverableEffect(plan.steps)
+        ? _freezeSteps(plan.steps)
+        : plan.steps;
+    validate(frozen, false);
+    final normalized = _normalizeSteps(frozen);
+    var trackedSinceBarrier = false;
+    for (var i = 0; i < normalized.length; i++) {
+      final step = normalized[i];
+      if (step is WaitTrackedEffectsStep) {
+        trackedSinceBarrier = false;
+        continue;
+      }
+      if (step is! StartTrackedEffectStep || step.fallbackSteps == null) {
+        trackedSinceBarrier = trackedSinceBarrier || _containsTrackedEffect(step);
+        continue;
+      }
+      if (trackedSinceBarrier) {
+        throw StateError('Recoverable effect requires its own barrier scope');
+      }
+      trackedSinceBarrier = true;
+      if ((onCameraFocus != null || onBattleCameraMove != null) &&
+          onBattleCameraReset == null) {
+        throw StateError('Recoverable effects require camera reset support');
+      }
+      if (!step.fallbackSteps!.every(_isFallbackVisualStep)) {
+        throw StateError('Recoverable fallback contains non-visual steps');
+      }
+      var barrier = i + 1;
+      while (barrier < normalized.length &&
+          normalized[barrier] is! WaitTrackedEffectsStep) {
+        if (!_isRecoverableBodyStep(normalized[barrier])) {
+          throw StateError('Recoverable effect contains non-visual steps');
+        }
+        barrier++;
+      }
+      if (barrier == normalized.length) {
+        throw StateError('Recoverable effect requires a barrier');
+      }
+    }
     final previousGeneration = _generation;
     cancel(clearMessage: false, notify: false);
     if (_generation != previousGeneration + 1) return;
     if (plan.isEmpty) {
       return;
     }
-    _plan = BattleAnimationPlan(steps: _normalizeSteps(plan.steps));
+    _plan = BattleAnimationPlan(steps: normalized);
     _nextStepIndex = 0;
     _phaseElapsed = 0;
     _phaseDuration = 0;
@@ -409,6 +459,97 @@ final class BattleAnimationRunner {
       }
     }
     return normalized;
+  }
+
+  bool _hasRecoverableEffect(List<BattleAnimationStep> steps) => steps.any(
+    (step) => switch (step) {
+      StartTrackedEffectStep(:final fallbackSteps) => fallbackSteps != null,
+      AnimationGroupStep(:final steps) => _hasRecoverableEffect(steps),
+      _ => false,
+    },
+  );
+
+  bool _containsTrackedEffect(BattleAnimationStep step) => switch (step) {
+    StartTrackedEffectStep() => true,
+    AnimationGroupStep(:final steps) => steps.any(_containsTrackedEffect),
+    _ => false,
+  };
+
+  List<BattleAnimationStep> _freezeSteps(List<BattleAnimationStep> steps) =>
+      List.unmodifiable([
+        for (final step in steps)
+          switch (step) {
+            AnimationGroupStep(:final mode, :final steps) => AnimationGroupStep(
+              mode: mode,
+              steps: _freezeSteps(steps),
+            ),
+            StartTrackedEffectStep(:final effectId, :final fallbackSteps)
+                when fallbackSteps != null => StartTrackedEffectStep(
+              effectId: effectId,
+              fallbackSteps: _freezeSteps(fallbackSteps),
+            ),
+            _ => step,
+          },
+      ]);
+
+  bool _isRecoverableBodyStep(BattleAnimationStep step) => switch (step) {
+    WaitStep() || PlaySeStep() || CameraFocusStep() ||
+    BattleCameraMoveStep() || BattleCameraResetStep() => true,
+    AnimationGroupStep(:final steps) => steps.every(_isRecoverableBodyStep),
+    _ => false,
+  };
+
+  bool _isFallbackVisualStep(BattleAnimationStep step) => switch (step) {
+    WaitStep() || PlaySeStep() || SpawnFxStep() || ScreenFlashStep() ||
+    SceneTintStep() || PlaySpriteSheetFxStep() || SpriteSheetOnCombatantStep() ||
+    ParticleBurstStep() || PlaySdkParticleSequenceStep() ||
+    SdkFallingParticlesStep() || SdkRadiusParticleStep() ||
+    SdkScalarParticleStep() || SdkParticleZoomStep() || WeatherParticleStep() ||
+    PlayRmxpAnimationStep() || CombatantMotionStep() || CombatantFlashStep() ||
+    CombatantShakeStep() || CombatantToneStep() || CombatantCompressStep() ||
+    CombatantEllipseStep() || CameraFocusStep() || BattleCameraMoveStep() ||
+    BattleCameraResetStep() || BarrierPulseStep() => true,
+    AnimationGroupStep(:final steps) => steps.every(_isFallbackVisualStep),
+    _ => false,
+  };
+
+  void _recoverTrackedEffect(
+    Object token,
+    int generation,
+    List<BattleAnimationStep> fallback,
+  ) {
+    if (_generation != generation || !_trackedEffects.containsKey(token)) return;
+    final plan = _plan;
+    if (plan == null) return;
+    var resume = _nextStepIndex;
+    if (!_waitingTrackedEffects) {
+      while (resume < plan.steps.length &&
+          plan.steps[resume] is! WaitTrackedEffectsStep) {
+        resume++;
+      }
+      if (resume == plan.steps.length) return;
+      resume++;
+    }
+    _generation++;
+    final cancellations = _trackedEffects.values.toList();
+    _trackedEffects.clear();
+    _waitingTrackedEffects = false;
+    final resetCamera = _cameraSequenceActive || _cameraResetPending;
+    _cameraResetPending = false;
+    _plan = BattleAnimationPlan(steps: [
+      if (resetCamera) const BattleCameraResetStep(durationSeconds: 0),
+      ..._normalizeSteps(fallback),
+      ...plan.steps.skip(resume),
+    ]);
+    _nextStepIndex = 0;
+    _phaseElapsed = 0;
+    _phaseDuration = 0;
+    _phaseStarted = false;
+    _phaseNotificationPending = false;
+    _pendingSeconds = 0;
+    _nextAccentIndex = 0;
+    _scheduledAccentSteps.clear();
+    _cancelAllTrackedEffects(cancellations);
   }
 
   double _startAccentPhase() {
@@ -659,18 +800,25 @@ final class BattleAnimationRunner {
   void _dispatchAccentStep(BattleAnimationStep step) {
     switch (step) {
       case StartTrackedEffectStep():
-        final startEffect = onStartTrackedEffect;
-        if (startEffect == null) {
-          throw StateError('Tracked effects are not supported by this host');
-        }
         final token = Object();
         final generation = _generation;
         _trackedEffects[token] = null;
         late final void Function() cancelEffect;
         try {
-          cancelEffect = startEffect(step, () {
+          void done() {
             if (_generation == generation) _trackedEffects.remove(token);
-          });
+          }
+          final fallback = step.fallbackSteps;
+          if (fallback == null) {
+            cancelEffect = onStartTrackedEffect!(step, done);
+          } else {
+            final visualFallback = List<BattleAnimationStep>.unmodifiable(fallback);
+            cancelEffect = onStartRecoverableTrackedEffect!(
+              step,
+              done,
+              () => _recoverTrackedEffect(token, generation, visualFallback),
+            );
+          }
         } catch (_) {
           if (_generation == generation) cancel();
           rethrow;

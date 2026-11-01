@@ -132,6 +132,8 @@ class BattleAnimationPlan {
       yield step;
       if (step is AnimationGroupStep) {
         yield* _flatten(step.steps);
+      } else if (step is StartTrackedEffectStep && step.fallbackSteps != null) {
+        yield* _flatten(step.fallbackSteps!);
       }
     }
   }
@@ -169,6 +171,10 @@ class BattleAnimationPlan {
         for (final child in steps) {
           _addRequiredFxIds(ids, child);
         }
+      case StartTrackedEffectStep(:final fallbackSteps):
+        for (final child in fallbackSteps ?? const <BattleAnimationStep>[]) {
+          _addRequiredFxIds(ids, child);
+        }
       default:
         break;
     }
@@ -182,9 +188,10 @@ sealed class BattleAnimationStep {
 }
 
 final class StartTrackedEffectStep extends BattleAnimationStep {
-  const StartTrackedEffectStep({required this.effectId});
+  const StartTrackedEffectStep({required this.effectId, this.fallbackSteps});
 
   final String effectId;
+  final List<BattleAnimationStep>? fallbackSteps;
 }
 
 final class WaitTrackedEffectsStep extends BattleAnimationStep {

@@ -406,6 +406,8 @@ void main() {
           .camera;
       final player = overlay.debugPlayerCombatant!;
       final enemy = overlay.debugEnemyCombatant!;
+      final attackerAnchorSamples = <double>[];
+      var recordAttackerAnchors = false;
       BattleSplCameraBinding binding(bool attacker) {
         final actor = attacker ? player : enemy;
         final slot = BattleSlotRef.active(
@@ -423,6 +425,9 @@ void main() {
             }
             final rect = actor.currentEffectAttachmentSpriteRect;
             if (rect.isEmpty) return null;
+            if (attacker && recordAttackerAnchors) {
+              attackerAnchorSamples.add(rect.center.dx);
+            }
             return Vector2(rect.center.dx, rect.center.dy);
           },
         );
@@ -545,9 +550,15 @@ void main() {
         distancePx: 45,
         durationSeconds: .5,
       );
-      for (var i = 0; i < 6; i++) {
-        overlay.updateTree(1 / 60);
-      }
+      final tickBeforeMotion = effect.playback.tick;
+      recordAttackerAnchors = true;
+      overlay.updateTree(6 / 60);
+      recordAttackerAnchors = false;
+      expect(effect.playback.tick - tickBeforeMotion, 6);
+      expect(
+        attackerAnchorSamples.map((x) => x.round()).toSet().length,
+        greaterThan(1),
+      );
       expect(
         (player.currentEffectAttachmentSpriteRect.center - playerBeforeMotion)
             .distance,

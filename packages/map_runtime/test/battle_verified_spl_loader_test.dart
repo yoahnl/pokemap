@@ -308,6 +308,68 @@ void main() {
   });
 
   test(
+    'losing the projection after playback starts recovers the remaining turn',
+    () async {
+      var valid = true;
+      late void Function() completeEffect;
+      late void Function() failEffect;
+      final result = await BattleVerifiedSplLoader(await bundle()).create(
+        'particle',
+        emitters: schedule,
+        seed: 0,
+        poolCapacity: 16,
+        maxTicks: 80,
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 4,
+        projection: testProjection(isValid: () => valid),
+        onComplete: () => completeEffect(),
+        onFailure: (_) => failEffect(),
+      );
+      final component = result.component!;
+      addTearDown(component.dispose);
+      final events = <String>[];
+      final runner = BattleAnimationRunner(
+        onPresentationChanged: () {},
+        onSpawnFx: (_) {},
+        onScreenFlash: (_) {},
+        onCombatantMotion: (_) {},
+        onCombatantFlash: (_) {},
+        onCombatantShake: (_) {},
+        onFaintCombatant: (_) {},
+        onHudHpTween: (_) => events.add('hp'),
+        onBarrierPulse: (_) {},
+        onSwapCombatantVisual: (_) {},
+        onPlaySe: (step) => events.add(step.seName),
+        onStartRecoverableTrackedEffect: (_, done, failed) {
+          completeEffect = done;
+          failEffect = failed;
+          return component.cancel;
+        },
+      );
+      runner.start(
+        const BattleAnimationPlan(
+          steps: [
+            StartTrackedEffectStep(
+              effectId: 'particle',
+              fallbackSteps: [PlaySeStep(seName: 'legacy')],
+            ),
+            WaitTrackedEffectsStep(),
+            PlaySeStep(seName: 'impact'),
+            HudHpTweenStep(side: BattleSideId.enemy, fromHp: 40, toHp: 20),
+          ],
+        ),
+      );
+      component.update(1 / 60);
+      expect(component.playback.activeParticles, greaterThan(0));
+      valid = false;
+      component.update(1 / 60);
+      runner.update(0);
+      expect(component.playback.activeParticles, 0);
+      expect(events, ['legacy', 'impact', 'hp']);
+    },
+  );
+
+  test(
     'rejects missing or cancelled resources without starting an effect',
     () async {
       final missing = BattleVerifiedSplLoader(await bundle());

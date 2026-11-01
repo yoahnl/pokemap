@@ -136,6 +136,11 @@ final class BattleSplStaticComponent extends PositionComponent
       _pendingTicks + elapsedTicks,
       (playback.maxTicks - playback.tick).toDouble(),
     );
+    if (projection != null &&
+        (elapsedTicks > 1.000000001 || _pendingTicks + 0.000000001 >= 2)) {
+      _fail(BattleSplAdmissionFailure.projectionUnavailable);
+      return;
+    }
     var work = 0;
     while (_pendingTicks + 0.000000001 >= 1 &&
         work < maxTicksPerUpdate &&
