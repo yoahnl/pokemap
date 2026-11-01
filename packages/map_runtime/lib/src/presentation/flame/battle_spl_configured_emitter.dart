@@ -199,7 +199,7 @@ final class BattleSplConfiguredEmitter {
   final bool directional;
   final String scaleAxis;
 
-  void step({
+  BattleSplEmitterStep step({
     required int managerFrame,
     required BattleSplVector position,
     BattleSplVector velocity = (x: 0, y: 0, z: 0),
@@ -221,7 +221,7 @@ final class BattleSplConfiguredEmitter {
         y: sum(position.y, _origin.y),
         z: sum(position.z, _origin.z),
       );
-      playback.step(
+      return playback.step(
         managerFrame: managerFrame,
         emitterPosition: _frame.position,
         emitterVelocity: velocity,

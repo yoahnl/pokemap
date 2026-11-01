@@ -11,6 +11,29 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_particle_pool.dart
 import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 
 void main() {
+  test('reports dropped particles to the caller', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json')
+          .readAsString(),
+    ) as Map<String, dynamic>;
+    final emission = ((raw['emitters'] as List).single as Map)['emission'] as Map;
+    emission['rate'] = 2 * 4096;
+    final pool = BattleSplParticlePool(capacity: 1);
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromJson(raw).emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: pool,
+    );
+    final result = emitter.step(
+      managerFrame: 0,
+      position: (x: 0, y: 0, z: 0),
+    );
+    expect(result.droppedParents, 1);
+    emitter.cancel();
+    expect(pool.inUse, 0);
+  });
+
   test('plays a verified definition with live emitter coordinates', () async {
     final raw = jsonDecode(
       await File('../map_core/test/fixtures/spl_particle_v2.json')

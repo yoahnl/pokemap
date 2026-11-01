@@ -112,7 +112,7 @@ final class BattleSplPointEmitterPlayback {
     _complete = true;
   }
 
-  void step({
+  BattleSplEmitterStep step({
     required int managerFrame,
     BattleSplVector? emitterPosition,
     BattleSplVector? emitterVelocity,
@@ -262,6 +262,7 @@ final class BattleSplPointEmitterPlayback {
         _drawOrder = const [];
       }
       _complete = result.complete;
+      return result;
     } catch (_) {
       _failed = true;
       cancel();
