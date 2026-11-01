@@ -70,13 +70,15 @@ final class BattlePokemonSpriteResolver {
       relativePath,
       allowMissing: true,
     );
-    if (absolutePath == null) {
-      return BattleCombatantSpriteSpec(facing: facing);
-    }
+    final animatedPath = isPlayerSide
+        ? media.backAnimated
+        : media.frontAnimated;
+    final animatedAbsolutePath = await _resolveProjectFile(animatedPath);
 
     return BattleCombatantSpriteSpec(
       facing: facing,
       explicitImageAbsolutePath: absolutePath,
+      explicitAnimatedImageAbsolutePath: animatedAbsolutePath,
     );
   }
 
@@ -140,6 +142,9 @@ final class BattlePokemonSpriteResolver {
       return null;
     }
 
+    final frontAnimated = candidateVariant['frontAnimated'];
+    final backAnimated = candidateVariant['backAnimated'];
+    final readAnimated = decoded['schemaVersion'] == 2;
     return _BattlePokemonMediaRecord(
       frontStatic: _normalizeProjectRelativePath(
         candidateVariant['frontStatic'] as String?,
@@ -147,6 +152,12 @@ final class BattlePokemonSpriteResolver {
       backStatic: _normalizeProjectRelativePath(
         candidateVariant['backStatic'] as String?,
       ),
+      frontAnimated: readAnimated && frontAnimated is String
+          ? _normalizeProjectRelativePath(frontAnimated)
+          : null,
+      backAnimated: readAnimated && backAnimated is String
+          ? _normalizeProjectRelativePath(backAnimated)
+          : null,
       cry: _normalizeProjectRelativePath(candidateVariant['cry'] as String?),
     );
   }
@@ -228,10 +239,14 @@ final class _BattlePokemonMediaRecord {
   const _BattlePokemonMediaRecord({
     required this.frontStatic,
     required this.backStatic,
+    required this.frontAnimated,
+    required this.backAnimated,
     required this.cry,
   });
 
   final String? frontStatic;
   final String? backStatic;
+  final String? frontAnimated;
+  final String? backAnimated;
   final String? cry;
 }
