@@ -40,6 +40,7 @@ final class BattlePokemonSpriteResolver {
   final String projectRootDirectory;
   final Map<String, Future<_BattlePokemonMediaRecord?>> _mediaCache =
       <String, Future<_BattlePokemonMediaRecord?>>{};
+  late final Future<String?> _canonicalProjectRoot = _resolveProjectRoot();
   int _actualMediaReadCount = 0;
 
   int get debugActualMediaReadCount => _actualMediaReadCount;
@@ -52,7 +53,7 @@ final class BattlePokemonSpriteResolver {
     final facing = isPlayerSide
         ? BattleCombatantSpriteFacing.back
         : BattleCombatantSpriteFacing.front;
-    if (trimmedSpeciesId.isEmpty) {
+    if (!_isSafeSpeciesId(trimmedSpeciesId)) {
       return BattleCombatantSpriteSpec(facing: facing);
     }
 
@@ -65,41 +66,55 @@ final class BattlePokemonSpriteResolver {
     }
 
     final relativePath = isPlayerSide ? media.backStatic : media.frontStatic;
-    if (relativePath == null || relativePath.isEmpty) {
+    final absolutePath = await _resolveProjectFile(
+      relativePath,
+      allowMissing: true,
+    );
+    if (absolutePath == null) {
       return BattleCombatantSpriteSpec(facing: facing);
     }
 
     return BattleCombatantSpriteSpec(
       facing: facing,
-      explicitImageAbsolutePath: p.normalize(
-        p.join(projectRootDirectory, relativePath),
-      ),
+      explicitImageAbsolutePath: absolutePath,
     );
   }
 
   Future<String?> resolveCry(String speciesId) async {
     final id = speciesId.trim().toLowerCase();
-    if (id.isEmpty || id.contains('/') || id.contains(r'\') || id == '..') return null;
+    if (!_isSafeSpeciesId(id)) return null;
     final media = await _mediaCache.putIfAbsent(id, () => _readMedia(id));
     final relativePath = media?.cry;
-    if (relativePath != null) return p.normalize(p.join(projectRootDirectory, relativePath));
+    final authored = await _resolveProjectFile(
+      relativePath,
+      allowMissing: true,
+    );
+    if (authored != null) return authored;
     for (final extension in const ['.ogg', '.mp3', '.wav']) {
-      final path = p.join(projectRootDirectory, 'assets', 'pokemon', 'cries', '$id$extension');
-      if (await File(path).exists()) return path;
+      final path = await _resolveProjectFile(
+        'assets/pokemon/cries/$id$extension',
+      );
+      if (path != null) return path;
     }
     return null;
   }
 
   Future<_BattlePokemonMediaRecord?> _readMedia(String speciesId) async {
-    final mediaFile = File(
-      p.join(projectRootDirectory, manifest.pokemon.mediaDir, '$speciesId.json'),
-    );
-    if (!await mediaFile.exists()) {
+    final rawDirectory = manifest.pokemon.mediaDir.trim();
+    final directory = rawDirectory.isEmpty || rawDirectory == '.'
+        ? ''
+        : _normalizeProjectRelativePath(rawDirectory);
+    if (directory == null) return null;
+    final relativePath = directory.isEmpty
+        ? '$speciesId.json'
+        : p.posix.join(directory, '$speciesId.json');
+    final path = await _resolveProjectFile(relativePath);
+    if (path == null) {
       return null;
     }
     _actualMediaReadCount += 1;
 
-    final decoded = jsonDecode(await mediaFile.readAsString());
+    final decoded = jsonDecode(await File(path).readAsString());
     if (decoded is! Map<String, dynamic>) {
       return null;
     }
@@ -145,14 +160,67 @@ final class BattlePokemonSpriteResolver {
 
   String? _normalizeProjectRelativePath(String? rawPath) {
     final trimmed = rawPath?.trim() ?? '';
-    if (trimmed.isEmpty) {
+    if (trimmed.isEmpty ||
+        trimmed.contains('\u0000') ||
+        p.windows.isAbsolute(trimmed) ||
+        Uri.tryParse(trimmed)?.hasScheme == true) {
       return null;
     }
     final normalized = p.posix.normalize(trimmed.replaceAll(r'\', '/'));
-    if (normalized.startsWith('..') || p.isAbsolute(normalized)) {
+    if (normalized.startsWith('..') || p.posix.isAbsolute(normalized)) {
       return null;
     }
     return normalized;
+  }
+
+  bool _isSafeSpeciesId(String id) =>
+      id.isNotEmpty &&
+      id != '.' &&
+      id != '..' &&
+      !id.contains('/') &&
+      !id.contains(r'\') &&
+      !id.contains('\u0000');
+
+  Future<String?> _resolveProjectRoot() async {
+    try {
+      return await Directory(projectRootDirectory).resolveSymbolicLinks();
+    } on FileSystemException {
+      return null;
+    }
+  }
+
+  Future<String?> _resolveProjectFile(
+    String? rawPath, {
+    bool allowMissing = false,
+  }) async {
+    final relativePath = _normalizeProjectRelativePath(rawPath);
+    if (relativePath == null || relativePath == '.') return null;
+    final root = await _canonicalProjectRoot;
+    if (root == null) return null;
+    try {
+      final segments = p.posix.split(relativePath);
+      var current = root;
+      for (var index = 0; index < segments.length; index++) {
+        current = p.join(current, segments[index]);
+        if (!p.isWithin(root, current)) return null;
+        final type = await FileSystemEntity.type(current, followLinks: false);
+        if (type == FileSystemEntityType.notFound) {
+          if (!allowMissing) return null;
+          final path = p.normalize(
+            p.joinAll([current, ...segments.skip(index + 1)]),
+          );
+          return p.isWithin(root, path) ? path : null;
+        }
+        if (type == FileSystemEntityType.link) {
+          current = await Link(current).resolveSymbolicLinks();
+          if (current != root && !p.isWithin(root, current)) return null;
+        }
+      }
+      if (!allowMissing && !await File(current).exists()) return null;
+      return current;
+    } on FileSystemException {
+      return null;
+    }
   }
 }
 
