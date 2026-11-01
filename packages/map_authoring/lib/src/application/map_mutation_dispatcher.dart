@@ -44,6 +44,7 @@ import '../domains/assets/resource_library_actions.dart';
 import '../domains/gameplay/pokemon_catalog_actions.dart';
 import '../domains/gameplay/pokemon_media_import_actions.dart';
 import '../domains/gameplay/battle_recipe_import_actions.dart';
+import '../domains/gameplay/gen5_battle_source_import_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
 import '../domains/gameplay/item_catalog_actions.dart';
 import '../domains/gameplay/bag_capacity_actions.dart';
@@ -472,6 +473,10 @@ final class MapMutationDispatcher {
       MapMutationActionRegistration(
         descriptor: BattleRecipeImportActions.descriptor,
         build: BattleRecipeImportActions(artifactStore: artifacts).build,
+      ),
+      MapMutationActionRegistration(
+        descriptor: Gen5BattleSourceImportActions.descriptor,
+        build: Gen5BattleSourceImportActions(artifactStore: artifacts).build,
       ),
       for (final descriptor in PokemonCatalogActions.descriptors)
         MapMutationActionRegistration(

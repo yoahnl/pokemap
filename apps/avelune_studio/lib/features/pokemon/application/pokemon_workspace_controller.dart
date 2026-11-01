@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../domain/pokemon_workspace_models.dart';
@@ -5,6 +7,8 @@ import '../domain/pokemon_workspace_port.dart';
 import '../domain/pokemon_import_models.dart';
 import '../domain/pokemon_moves_sync_models.dart';
 import '../domain/pokemon_external_import_models.dart';
+import '../domain/pokemon_move_recipe_choice.dart';
+import '../domain/pokemon_move_recipe_port.dart';
 import 'pokemon_commerce_controller.dart';
 import 'pokemon_combat_controller.dart';
 
@@ -12,6 +16,7 @@ part 'pokemon_learnset_commands.dart';
 part 'pokemon_moves_sync_commands.dart';
 part 'pokemon_import_commands.dart';
 part 'pokemon_external_commands.dart';
+part 'pokemon_move_recipe_commands.dart';
 part 'pokemon_workspace_queries.dart';
 part 'pokemon_workspace_owner_commands.dart';
 
@@ -53,6 +58,13 @@ final class PokemonWorkspaceController {
   PokemonExternalImportPreview? externalPreview;
   PokemonExternalImportResult? externalResult;
   bool externalBusy = false;
+  bool recipeBusy = false;
+  bool recipePreparing = false;
+  bool recipeReady = false;
+  List<PokemonMoveRecipeChoice>? recipeChoices;
+  String? recipeError;
+  String? recipeNotice;
+  int _recipeRequest = 0;
   bool committing = false;
   PokemonLocalImportPreview? importPreview;
   int _request = 0;
@@ -63,6 +75,7 @@ final class PokemonWorkspaceController {
       importing ||
       syncing ||
       externalBusy ||
+      recipeBusy ||
       commerce?.saving == true ||
       commerce?.importing == true ||
       combat?.operationActive == true;
@@ -163,6 +176,9 @@ final class PokemonWorkspaceController {
     }
     view = value;
     _notify();
+    if (value == PokemonWorkspaceView.moves && supportsMoveRecipes) {
+      unawaited(prepareMoveRecipes());
+    }
     if (value == PokemonWorkspaceView.items ||
         value == PokemonWorkspaceView.shops) {
       final owner = commerce;
@@ -200,6 +216,12 @@ final class PokemonWorkspaceController {
   }
 
   void selectMove(String id) {
+    if (selectedMoveId != id) {
+      _recipeRequest++;
+      recipeChoices = null;
+      recipeError = null;
+      recipeNotice = null;
+    }
     selectedMoveId = id;
     _notify();
   }
@@ -250,6 +272,7 @@ final class PokemonWorkspaceController {
   void dispose() {
     _disposed = true;
     _request++;
+    _recipeRequest++;
     commerce?.dispose();
     combat?.dispose();
   }

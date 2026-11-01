@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/authoring_request.dart';
@@ -28,6 +30,7 @@ part 'catalog_guided_workshop_selection.dart';
 part 'catalog_model_light_selection.dart';
 part 'catalog_audio_media_selection.dart';
 part 'catalog_battle_recipe_selection.dart';
+part 'catalog_gen5_battle_source_selection.dart';
 part 'catalog_map_creation_selection.dart';
 part 'catalog_map_metadata_selection.dart';
 part 'catalog_asset_import_selection.dart';
@@ -91,6 +94,7 @@ final class CatalogWorkshopSelection {
       action == 'asset.import' ||
       action == 'asset.import_batch' ||
       action == 'pokemon.move_recipe.import' ||
+      action == 'pokemon.gen5_battle_source.import' ||
       action == 'project.battle_audio.update' ||
       _sceneWorkshopActions.contains(action) ||
       _guidedActions.contains(action) ||
@@ -174,6 +178,11 @@ final class CatalogWorkshopSelection {
     if (actionId == 'pokemon.move_recipe.import') {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readBattleRecipeWorkshop(reader: reader,
+        projectHandle: projectHandle, parameters: parameters);
+    }
+    if (actionId == 'pokemon.gen5_battle_source.import') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readGen5BattleSourceWorkshop(reader: reader,
         projectHandle: projectHandle, parameters: parameters);
     }
     if (const {'presentation.delete', 'presentation.reset_interface'}.contains(actionId)) {

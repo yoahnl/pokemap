@@ -9,6 +9,8 @@ import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
 import 'glb_model3d_inspector.dart';
 import 'game_package_security_policy.dart';
+import 'pokemon_gif_inspector.dart';
+import 'raster_image_dimensions.dart';
 import 'strict_json_structure_validator.dart';
 
 /// Enforces the format-v1 data-only, secret, and reference policy.
@@ -102,6 +104,37 @@ final class GamePackageContentValidator {
       }
       return;
     }
+    if (validationExtension == '.gif') {
+      if (inventoryEntry.size > PokemonGifInspector.maxEncodedBytes ||
+          bytes.length > PokemonGifInspector.maxEncodedBytes) {
+        _fail('entryTooLarge', path, 'GIF exceeds its encoded byte quota.');
+      }
+      try {
+        final info = PokemonGifInspector(
+          maxFrames: 256,
+          maxCanvasPixels: policy.maxImagePixels < 16777216
+              ? policy.maxImagePixels
+              : 16777216,
+        ).inspect(bytes);
+        if (info.width > policy.maxImageDimension ||
+            info.height > policy.maxImageDimension) {
+          _fail(
+            'decodedAssetQuotaExceeded',
+            path,
+            'GIF dimensions exceed policy.',
+          );
+        }
+      } on GamePackageFormatException {
+        rethrow;
+      } on FormatException {
+        _fail(
+          'executableContent',
+          path,
+          'GIF data is invalid or exceeds its frame quota.',
+        );
+      }
+      return;
+    }
     if (_imageExtensions.contains(validationExtension)) {
       final headerLength = bytes.length < policy.maxMediaHeaderBytes
           ? bytes.length
@@ -174,8 +207,8 @@ final class GamePackageContentValidator {
           _isNonEmpty(current.value)) {
         _fail('probableSecret', path, 'Explicit secret field is non-empty.');
       }
-      final referenceContext =
-          current.referenceContext || (key != null && _isReferenceKey(key));
+      final referenceContext = current.referenceContext ||
+          (key != null && _isReferenceKey(key));
       if (current.value case final String text) {
         _scanText(path, text);
         if (referenceContext &&
@@ -249,7 +282,7 @@ final class GamePackageContentValidator {
           (extension == '.txt' || extension == '.md')) {
         return true;
       }
-      return _imageExtensions.contains(extension) ||
+      return (extension != '.gif' && _imageExtensions.contains(extension)) ||
           _audioExtensions.contains(extension) ||
           _fontExtensions.contains(extension) ||
           _videoExtensions.contains(extension) ||
@@ -263,6 +296,7 @@ final class GamePackageContentValidator {
           _fontExtensions.contains(extension);
       if (isMedia) return true;
     }
+    if (path.startsWith('project/') && extension == '.gif') return true;
     return path.startsWith('project/') && extension == '.json';
   }
 
@@ -359,8 +393,19 @@ final class GamePackageContentValidator {
         '.png' => _pngDimensions(bytes),
         '.jpg' || '.jpeg' => _jpegDimensions(bytes),
         '.webp' => _webpDimensions(bytes),
+        '.gif' => _gifDimensions(bytes),
         _ => null,
       };
+
+  ({int width, int height})? _gifDimensions(Uint8List bytes) {
+    final dimensions = decodeRasterImageDimensions(
+      bytes,
+      mediaType: 'image/gif',
+    );
+    return dimensions == null
+        ? null
+        : (width: dimensions.width, height: dimensions.height);
+  }
 
   ({int width, int height})? _pngDimensions(Uint8List bytes) {
     if (bytes.length < 24 ||
@@ -502,6 +547,7 @@ final class GamePackageContentValidator {
     '.jpg',
     '.jpeg',
     '.webp',
+    '.gif',
   };
   static const Set<String> _audioExtensions = <String>{
     '.ogg',
@@ -600,6 +646,7 @@ final class GamePackageContentValidator {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.webp': 'image/webp',
+    '.gif': 'image/gif',
     '.ogg': 'audio/ogg',
     '.wav': 'audio/wav',
     '.mp3': 'audio/mpeg',

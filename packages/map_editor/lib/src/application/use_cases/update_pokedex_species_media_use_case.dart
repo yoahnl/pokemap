@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../errors/application_errors.dart';
 import 'package:map_core/map_core.dart';
 import '../ports/pokemon_read_repository.dart';
@@ -21,6 +23,71 @@ typedef PokedexSpeciesMediaSaver = Future<PokemonMediaFile> Function(
   ProjectWorkspace workspace,
   UpdatePokedexSpeciesMediaRequest request,
 );
+
+PokemonMediaFile mergePokemonMediaLegacyDraft({
+  PokemonMediaFile? before,
+  required PokemonMediaFile edited,
+}) {
+  if (edited.schemaVersion != currentPokemonDataSchemaVersion) {
+    throw ArgumentError.value(
+      edited.schemaVersion,
+      'edited',
+      'must use the legacy media schema',
+    );
+  }
+  if (before != null && before.speciesId != edited.speciesId) {
+    throw ArgumentError.value(
+      edited.speciesId,
+      'edited',
+      'must match the previous media identity',
+    );
+  }
+  final editedJson = edited.toJson();
+  if (before == null) {
+    return PokemonMediaFile.fromJson(
+      Map<String, dynamic>.from(jsonDecode(jsonEncode(editedJson)) as Map),
+    );
+  }
+
+  final beforeJson = before.toJson();
+  final beforeVariants = beforeJson['variants'] as Map;
+  final editedVariants = editedJson['variants'] as Map;
+  final mergedVariants = <String, Object?>{};
+  for (final entry in editedVariants.entries) {
+    final id = entry.key as String;
+    final previous = beforeVariants[id] is Map
+        ? Map<String, Object?>.from(beforeVariants[id] as Map)
+        : <String, Object?>{};
+    final current = Map<String, Object?>.from(entry.value as Map);
+    final previousAnimations = previous['animations'] is Map
+        ? previous['animations'] as Map
+        : const {};
+    final currentAnimations = current['animations'] as Map;
+    mergedVariants[id] = {
+      ...previous,
+      ...current,
+      'animations': {
+        for (final animation in currentAnimations.entries)
+          animation.key: {
+            if (previousAnimations[animation.key] is Map)
+              ...Map<String, Object?>.from(
+                previousAnimations[animation.key] as Map,
+              ),
+            ...Map<String, Object?>.from(animation.value as Map),
+          },
+      },
+    };
+  }
+  final merged = {
+    ...beforeJson,
+    ...editedJson,
+    'schemaVersion': before.schemaVersion,
+    'variants': mergedVariants,
+  };
+  return PokemonMediaFile.fromJson(
+    Map<String, dynamic>.from(jsonDecode(jsonEncode(merged)) as Map),
+  );
+}
 
 /// Réécrit les références média locales d'une espèce.
 ///

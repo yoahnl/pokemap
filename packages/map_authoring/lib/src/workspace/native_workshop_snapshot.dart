@@ -18,6 +18,7 @@ const _nativeWorkshopActions = {
   'project.audio.media.adopt_asset',
   'campaign.battle_savings.update',
   'pokemon.ruleset.set',
+  'pokemon.media.write',
   'campaign.encounter_table.upsert',
   'campaign.trainer.upsert',
   'campaign.shop.upsert',
@@ -709,6 +710,22 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       projected['eventRegistry'] = raw['eventRegistry'];
   }
   final manifest = ProjectManifest.fromJson(projected);
+  if (actionId == 'pokemon.media.write') {
+    final path = parameters['relativePath'];
+    final document = parameters['document'];
+    final speciesId = document is Map ? document['speciesId'] : null;
+    if (path is! String ||
+        speciesId is! String ||
+        speciesId.trim().isEmpty ||
+        speciesId != speciesId.trim() ||
+        !isCanonicalPokemonMediaStoragePath(
+            manifest.pokemon.mediaDir, path, speciesId)) {
+      throw const ProjectSnapshotException(
+          'project.workshop_dependency_invalid',
+          'A Pokemon media edit requires its configured media path and identity.');
+    }
+    await read(pokemonMediaResourceIdentity(speciesId), path);
+  }
   for (final dialogue in manifest.dialogues) {
     await read(
         dialogueSourceResourceIdentity(dialogue.id), dialogue.relativePath);

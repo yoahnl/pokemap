@@ -210,6 +210,8 @@ export 'src/domains/gameplay/pokemon_external/pokemon_external_http_transport.da
 export 'src/domains/gameplay/pokemon_external/pokeapi_live_source.dart';
 export 'src/domains/gameplay/pokemon_external/avelune_pokemon_media_source.dart';
 export 'src/domains/gameplay/pokemon_external/avelune_gen5_battle_source.dart';
+export 'src/domains/gameplay/pokemon_external/gen5_battle_source_bundle_builder.dart';
+export 'src/domains/gameplay/pokemon_external/import_avelune_gen5_battle_source.dart';
 export 'src/domains/gameplay/pokemon_external/avelune_gen5_move_source.dart';
 export 'src/domains/gameplay/pokemon_external/gen5_battle_source_dependencies.dart';
 export 'src/domains/gameplay/pokemon_external/gen5_spl_particle_converter.dart';

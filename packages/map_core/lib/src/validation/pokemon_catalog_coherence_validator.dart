@@ -1169,6 +1169,14 @@ final class PokemonCatalogCoherenceValidator {
         collector: collector,
       );
       for (final optional in <(String, String?)>[
+        ('frontAnimated', value.frontAnimated),
+        ('backAnimated', value.backAnimated),
+        ('frontShinyAnimated', value.frontShinyAnimated),
+        ('backShinyAnimated', value.backShinyAnimated),
+        ('frontFemaleAnimated', value.frontFemaleAnimated),
+        ('backFemaleAnimated', value.backFemaleAnimated),
+        ('frontShinyFemaleAnimated', value.frontShinyFemaleAnimated),
+        ('backShinyFemaleAnimated', value.backShinyFemaleAnimated),
         ('frontShinyStatic', value.frontShinyStatic),
         ('backShinyStatic', value.backShinyStatic),
         ('icon', value.icon),
@@ -1261,12 +1269,17 @@ final class PokemonCatalogCoherenceValidator {
     required String path,
     required _DiagnosticCollector collector,
   }) {
-    if (actual == currentPokemonDataSchemaVersion) return;
+    if (actual == currentPokemonDataSchemaVersion ||
+        (family == 'media' && actual == currentPokemonMediaSchemaVersion)) {
+      return;
+    }
     collector.error(
       code: '$family.schema_version_unsupported',
       path: '$path.schemaVersion',
       message: '${_title(family)} schemaVersion $actual is unsupported.',
-      action: 'Use schemaVersion $currentPokemonDataSchemaVersion.',
+      action: family == 'media'
+          ? 'Use media schemaVersion $currentPokemonDataSchemaVersion or $currentPokemonMediaSchemaVersion.'
+          : 'Use schemaVersion $currentPokemonDataSchemaVersion.',
     );
   }
 

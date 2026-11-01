@@ -604,7 +604,7 @@ packages:
     source: path
     version: "0.1.0"
   map_distribution:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../../packages/map_distribution"
       relative: true

@@ -838,6 +838,17 @@ final class AuthoringResourceKindRegistry {
         },
       ),
       AuthoringResourceKindDescriptor(
+        id: 'gen5BattleSourceFile',
+        version: 1,
+        displayName: 'Gen 5 battle source',
+        summary: 'Verified source bundle and species binding for a battle sprite',
+        extensions: const {
+          'importAction': 'pokemon.gen5_battle_source.import',
+          'querySupported': false,
+          'playerExecution': 'unverified',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'pokemonRuleset',
         version: 1,
         displayName: 'Pokemon ruleset',

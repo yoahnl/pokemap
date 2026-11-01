@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:map_authoring/map_authoring.dart' show pokemonSpeciesResourceIdentity;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
+import '../models/pokemon_media_preimage.dart';
 import '../services/editor_performance_telemetry.dart';
 import '../services/editor_snapshot_profile_recorder.dart';
 import '../services/tiled_image_collection_raster_codec.dart';
+import '../use_cases/update_pokedex_species_media_use_case.dart';
 import 'authoring_query_adapter.dart';
 import 'authoring_session_lifecycle.dart';
 import 'editor_receipt_presenter.dart';
@@ -348,6 +352,82 @@ final class AuthoringMutationAdapter
   Future<String> readRevision(String projectRootPath) async {
     final session = await _open(projectRootPath);
     return session.use(() async => (await session.snapshot()).revision);
+  }
+
+  Future<AuthoringReceipt> savePokemonMediaDraft(
+    String projectRootPath, {
+    required PokemonMediaPreimage preimage,
+    required PokemonMediaFile edited,
+    required String speciesId,
+    required String speciesRelativePath,
+  }) async {
+    try {
+      final bytes = preimage.bytes;
+      final before = bytes == null
+          ? null
+          : PokemonMediaFile.fromJson(
+              Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
+            );
+      final media = mergePokemonMediaLegacyDraft(before: before, edited: edited);
+      final session = await _open(projectRootPath);
+      return await session.use(() async {
+        final speciesIdentity = pokemonSpeciesResourceIdentity(speciesId);
+        final dependencies = {speciesIdentity: speciesRelativePath};
+        final parameters = <String, Object?>{
+          'relativePath': preimage.relativePath,
+          'document': media.toJson(),
+          if (bytes != null) 'beforeBytesBase64': base64Encode(bytes),
+        };
+        final snapshot = await session.mutations.readWorkshopSnapshot(
+          session.projectHandle,
+          actionId: 'pokemon.media.write',
+          parameters: parameters,
+          readDependencies: dependencies,
+        );
+        final speciesBytes = snapshot.findResourceBytes(speciesIdentity);
+        if (speciesBytes == null) {
+          throw const EditorAuthoringMutationFailure(
+            code: 'pokemon.species_missing',
+            message: 'Cette espèce est introuvable. Recharge la fiche avant de réessayer.',
+          );
+        }
+        final species = PokemonSpeciesFile.fromJson(
+          Map<String, dynamic>.from(jsonDecode(utf8.decode(speciesBytes)) as Map),
+        );
+        if (species.id != speciesId || species.refs.media.trim() != media.speciesId) {
+          throw const EditorAuthoringMutationFailure(
+            code: 'pokemon.media_reference_changed',
+            message: 'La référence média a changé. Recharge la fiche avant de réessayer.',
+          );
+        }
+        final operation = _identity('editor_pokemon_media');
+        final plan = await session.mutations.planMutation(
+          session.projectHandle,
+          AuthoringRequest(
+            requestId: operation,
+            actionId: 'pokemon.media.write',
+            actionVersion: 1,
+            workspaceHandle: session.workspaceHandle.value,
+            expectedRevision: snapshot.revision,
+            idempotencyKey: operation,
+            parameters: parameters,
+            extensions: {
+              'workshopScope': true,
+              'workshopReadDependencies': dependencies,
+            },
+          ),
+        );
+        final applied = await session.mutations.applyMutation(
+          session.projectHandle,
+          planId: plan.planId,
+          operationId: operation,
+        );
+        _lastAppliedReceipt = applied.receipt;
+        return applied.receipt;
+      });
+    } on Object catch (error) {
+      throw EditorAuthoringMutationFailure.capture(error);
+    }
   }
 
   /// Stages one exact file selected by the local user into an opaque handle.

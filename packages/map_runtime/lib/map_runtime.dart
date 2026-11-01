@@ -10,6 +10,9 @@ export 'package:map_core/map_core.dart' show PlaytestSpeed;
 export 'src/infrastructure/runtime_ui_image.dart'
     show RuntimeUiImageLease, loadRuntimeUiImageFromFilePath;
 
+export 'src/infrastructure/gen5_battle_source_loader.dart'
+    show RuntimeGen5BattleSourceAssetOpener, loadRuntimeGen5BattleSource;
+
 export 'src/application/runtime_project_catalog.dart';
 
 export 'src/application/runtime_committed_movement.dart';

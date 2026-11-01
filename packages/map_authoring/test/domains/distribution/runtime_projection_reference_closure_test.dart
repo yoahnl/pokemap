@@ -244,6 +244,453 @@ void main() {
     expect(await File('${root.path}/${record.logicalPath}').readAsBytes(), pixels);
   });
 
+  test('exports GIF bytes unchanged with their Pokemon media reference', () async {
+    final root = await _fixture();
+    const gifPath = 'assets/pokemon/oshawott/front.gif';
+    const mediaPath = 'data/pokemon/media/oshawott.json';
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    await _write(root, gifPath, gif);
+    await _write(root, mediaPath, {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': gifPath}},
+    });
+    final projection = await _build(root);
+    expect(projection.payloadFiles['project/$gifPath'], gif);
+    final media = jsonDecode(utf8.decode(projection.payloadFiles['project/$mediaPath']!));
+    expect(media['variants']['base']['frontAnimated'], gifPath);
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root,
+      profile: _profile(),
+      mode: GamePackageExportMode.localTest,
+    );
+    final inspection = const GamePackageInspector().inspect(result.packageBytes);
+    final entry = inspection.manifest.content.files.singleWhere(
+      (item) => item.path == 'project/$gifPath',
+    );
+    expect(entry.sha256, sha256.convert(gif).toString());
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    expect(archive.findFile('project/$gifPath')!.content, gif);
+    expect(await File('${root.path}/$gifPath').readAsBytes(), gif);
+  });
+
+  test('exports a catalogued Pokemon GIF from its canonical blob', () async {
+    final root = await _fixture();
+    const gifPath = 'assets/pokemon/oshawott/front.gif';
+    const mediaPath = 'data/pokemon/media/oshawott.json';
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    final artifact = ContentArtifactRef.fromBytes(gif, mediaType: 'image/gif');
+    final record = AssetRecord(
+      id: 'oshawott-front-animation',
+      logicalPath: gifPath,
+      artifact: artifact,
+    );
+    final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(jsonDecode(await catalogFile.readAsString()));
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    final catalogBefore = await catalogFile.readAsBytes();
+    final blobPath = assetBlobStorageKey(artifact);
+    await _write(root, blobPath, gif);
+    await _write(root, mediaPath, {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': gifPath}},
+    });
+
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root,
+      profile: _profile(),
+      mode: GamePackageExportMode.localTest,
+    );
+    final inspection = const GamePackageInspector().inspect(result.packageBytes);
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    for (final path in ['project/$gifPath', 'project/$blobPath']) {
+      expect(archive.findFile(path)!.content, gif);
+      expect(
+        inspection.manifest.content.files.singleWhere((item) => item.path == path).sha256,
+        sha256.convert(gif).toString(),
+      );
+    }
+    final portable = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+      archive.findFile('project/$assetCatalogStorageKey')!.content,
+    )));
+    expect(portable.require(record.id).toJson(), record.toJson());
+    final media = jsonDecode(utf8.decode(archive.findFile('project/$mediaPath')!.content));
+    expect(media['variants']['base']['frontAnimated'], gifPath);
+    expect(await catalogFile.readAsBytes(), catalogBefore);
+    expect(await File('${root.path}/$blobPath').readAsBytes(), gif);
+    expect(await File('${root.path}/$gifPath').exists(), isFalse);
+  });
+
+  test('keeps a Pokemon GIF shared with an unused presentation asset', () async {
+    final root = await _fixture();
+    const gifPath = 'assets/pokemon/oshawott/front.gif';
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    final artifact = ContentArtifactRef.fromBytes(gif, mediaType: 'image/gif');
+    final record = AssetRecord(id: 'shared-gif', logicalPath: gifPath, artifact: artifact);
+    final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(jsonDecode(await catalogFile.readAsString()));
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    await _write(root, assetBlobStorageKey(artifact), gif);
+    await _write(root, projectMediaCatalogStorageKey,
+        encodeProjectMediaCatalogBytes(ProjectMediaCatalog(entries: [
+          ProjectMediaAsset(id: 'unused-shared', label: 'Unused',
+              kind: ProjectMediaKind.image, sourceAssetId: record.id),
+        ])));
+    await _write(root, 'data/pokemon/media/oshawott.json', {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': gifPath}},
+    });
+
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    final portable = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+      archive.findFile('project/$assetCatalogStorageKey')!.content,
+    )));
+    expect(portable.require(record.id).toJson(), record.toJson());
+    expect(archive.findFile('project/$gifPath')!.content, gif);
+    expect(archive.findFile('project/${assetBlobStorageKey(artifact)}')!.content, gif);
+  });
+
+  test('rejects a direct GIF blob with an incorrect digest', () async {
+    final root = await _fixture();
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    final blobPath = 'assets/.pokemap-store/${'a' * 64}.blob';
+    await _write(root, blobPath, gif);
+    await _write(root, 'data/pokemon/media/oshawott.json', {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': blobPath}},
+    });
+    await expectLater(
+      const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+      ),
+      throwsA(isA<GamePackageExportException>().having(
+        (error) => error.code, 'code', 'pokemon.animated_blob_digest_mismatch',
+      )),
+    );
+    expect(await File('${root.path}/$blobPath').readAsBytes(), gif);
+  });
+
+  test('rejects a direct animated blob containing a PNG', () async {
+    final root = await _fixture();
+    final png = spatialPayload()['project/assets/hero.png']!;
+    final artifact = ContentArtifactRef.fromBytes(png, mediaType: 'image/png');
+    final blobPath = assetBlobStorageKey(artifact);
+    await _write(root, 'data/pokemon/media/oshawott.json', {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': blobPath}},
+    });
+    await expectLater(
+      const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+      ),
+      throwsA(isA<GamePackageExportException>().having(
+        (error) => error.code, 'code', 'pokemon.animated_media_invalid',
+      )),
+    );
+  });
+
+  test('rejects an oversized direct animated blob before loading it', () async {
+    final root = await _fixture();
+    final blobPath = 'assets/.pokemap-store/${'b' * 64}.blob';
+    final file = File('${root.path}/$blobPath');
+    await file.parent.create(recursive: true);
+    final handle = await file.open(mode: FileMode.write);
+    await handle.truncate(PokemonGifInspector.maxEncodedBytes + 1);
+    await handle.close();
+    await _write(root, 'data/pokemon/media/oshawott.json', {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': blobPath}},
+    });
+    await expectLater(
+      const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+      ),
+      throwsA(isA<GamePackageExportException>().having(
+        (error) => error.code, 'code', 'authoringFileTooLarge',
+      )),
+    );
+    expect(await file.length(), PokemonGifInspector.maxEncodedBytes + 1);
+  });
+
+  test('shares an animated GIF blob between direct and catalogued references', () async {
+    final root = await _fixture();
+    const gifPath = 'assets/pokemon/oshawott/back.gif';
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    final artifact = ContentArtifactRef.fromBytes(gif, mediaType: 'image/gif');
+    final blobPath = assetBlobStorageKey(artifact);
+    final record = AssetRecord(id: 'shared-pokemon-gif', logicalPath: gifPath, artifact: artifact);
+    final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(jsonDecode(await catalogFile.readAsString()));
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    await _write(root, blobPath, gif);
+    await _write(root, 'data/pokemon/media/oshawott.json', {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': blobPath, 'backAnimated': gifPath}},
+    });
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    expect(archive.findFile('project/$blobPath')!.content, gif);
+    expect(archive.findFile('project/$gifPath')!.content, gif);
+    expect(archive.files.where((entry) => entry.name == 'project/$blobPath'), hasLength(1));
+  });
+
+  test('excludes unreferenced GIF files and catalogued GIF blobs', () async {
+    final root = await _fixture();
+    final invalid = utf8.encode('unused invalid GIF');
+    const loosePath = 'assets/old/unused.gif';
+    const catalogPath = 'data/old/unused.gif';
+    await _write(root, loosePath, invalid);
+    final artifact = ContentArtifactRef.fromBytes(invalid, mediaType: 'image/gif');
+    final record = AssetRecord(id: 'unused-gif', logicalPath: catalogPath, artifact: artifact);
+    final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(jsonDecode(await catalogFile.readAsString()));
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    await _write(root, assetBlobStorageKey(artifact), invalid);
+    final catalogBefore = await catalogFile.readAsBytes();
+
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    expect(archive.findFile('project/$loosePath'), isNull);
+    expect(archive.findFile('project/$catalogPath'), isNull);
+    expect(archive.findFile('project/${assetBlobStorageKey(artifact)}'), isNull);
+    final portable = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+      archive.findFile('project/$assetCatalogStorageKey')!.content,
+    )));
+    expect(portable.find(record.id), isNull);
+    expect(await catalogFile.readAsBytes(), catalogBefore);
+    expect(await File('${root.path}/$loosePath').readAsBytes(), invalid);
+    expect(await File('${root.path}/${assetBlobStorageKey(artifact)}').readAsBytes(), invalid);
+  });
+
+  test('keeps a GIF asset referenced by another runtime document', () async {
+    final root = await _fixture();
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    final artifact = ContentArtifactRef.fromBytes(gif, mediaType: 'image/gif');
+    final record = AssetRecord(id: 'used-gif', logicalPath: 'assets/used.gif', artifact: artifact);
+    final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(jsonDecode(await catalogFile.readAsString()));
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    await _write(root, assetBlobStorageKey(artifact), gif);
+    await _runtimeReference(root, 'config/gif-user.json');
+    await _write(root, 'config/gif-user.json', {'sourceAssetId': record.id});
+
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    final portable = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+      archive.findFile('project/$assetCatalogStorageKey')!.content,
+    )));
+    expect(portable.require(record.id).toJson(), record.toJson());
+    expect(archive.findFile('project/${assetBlobStorageKey(artifact)}')!.content, gif);
+  });
+
+  test('exports referenced GIFs outside asset roots at their exact paths', () async {
+    final root = await _fixture();
+    const loosePath = 'sprites/oshawott/front.gif';
+    const catalogPath = 'sprites/oshawott/back.gif';
+    const mediaPath = 'data/pokemon/media/oshawott.json';
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    await _write(root, loosePath, gif);
+    final artifact = ContentArtifactRef.fromBytes(gif, mediaType: 'image/gif');
+    final record = AssetRecord(id: 'oshawott-back-animation', logicalPath: catalogPath, artifact: artifact);
+    final catalogFile = File('${root.path}/$assetCatalogStorageKey');
+    final catalog = AssetCatalog.fromJson(jsonDecode(await catalogFile.readAsString()));
+    await _write(root, assetCatalogStorageKey,
+        AssetCatalog(records: [...catalog.records, record]).toJson());
+    await _write(root, assetBlobStorageKey(artifact), gif);
+    await _write(root, mediaPath, {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': loosePath, 'backAnimated': catalogPath}},
+    });
+
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final inspection = const GamePackageInspector().inspect(result.packageBytes);
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    for (final path in [loosePath, catalogPath, assetBlobStorageKey(artifact)]) {
+      expect(archive.findFile('project/$path')!.content, gif);
+      expect(inspection.manifest.content.files.singleWhere((item) => item.path == 'project/$path').sha256,
+          sha256.convert(gif).toString());
+    }
+    final media = jsonDecode(utf8.decode(archive.findFile('project/$mediaPath')!.content));
+    expect(media['variants']['base']['frontAnimated'], loosePath);
+    expect(media['variants']['base']['backAnimated'], catalogPath);
+    final portable = AssetCatalog.fromJson(jsonDecode(utf8.decode(
+      archive.findFile('project/$assetCatalogStorageKey')!.content,
+    )));
+    expect(portable.require(record.id).logicalPath, catalogPath);
+    expect(archive.findFile('project/assets/runtime-media/$catalogPath'), isNull);
+  });
+
+  test('does not interpret unknown GIF fields in Pokemon media schema v1', () async {
+    final root = await _fixture();
+    const mediaPath = 'data/pokemon/media/oshawott.json';
+    await _write(root, mediaPath, {
+      'schemaVersion': 1,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': 'missing/unknown.gif'}},
+    });
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    expect(archive.findFile('project/missing/unknown.gif'), isNull);
+    final media = jsonDecode(utf8.decode(archive.findFile('project/$mediaPath')!.content));
+    expect(media['variants']['base']['frontAnimated'], 'missing/unknown.gif');
+  });
+
+  test('exports all eight schema v2 animated Pokemon variants', () async {
+    final root = await _fixture();
+    final gif = base64Decode(
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    );
+    const keys = [
+      'frontAnimated', 'backAnimated', 'frontShinyAnimated', 'backShinyAnimated',
+      'frontFemaleAnimated', 'backFemaleAnimated',
+      'frontShinyFemaleAnimated', 'backShinyFemaleAnimated',
+    ];
+    final variants = <String, String>{};
+    for (final key in keys) {
+      final path = 'sprites/oshawott/$key.gif';
+      variants[key] = path;
+      await _write(root, path, gif);
+    }
+    await _write(root, 'data/pokemon/media/oshawott.json', {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': variants},
+    });
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    for (final path in variants.values) {
+      expect(archive.findFile('project/$path')!.content, gif);
+    }
+  });
+
+  test('rejects a missing schema v2 animated Pokemon reference', () async {
+    final root = await _fixture();
+    await _write(root, 'data/pokemon/media/oshawott.json', {
+      'schemaVersion': 2,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': 'sprites/missing.gif'}},
+    });
+    await expectLater(
+      const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+      ),
+      throwsA(isA<GamePackageExportException>()),
+    );
+  });
+
+  test('projects animated media from a configured Pokemon media directory', () async {
+    for (final mediaDir in ['metadata/pokemon-media', 'assets/pokemon-media', '.', '']) {
+      final root = await _fixture();
+      final projectFile = File('${root.path}/project.json');
+      final project = ProjectManifest.fromJson(jsonDecode(await projectFile.readAsString()));
+      await _write(root, 'project.json', project.copyWith(
+        pokemon: project.pokemon.copyWith(enabled: true, mediaDir: mediaDir),
+      ).toJson());
+      const gifPath = 'sprites/oshawott/front.gif';
+      final gif = base64Decode(
+        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      );
+      await _write(root, gifPath, gif);
+      const mediaFile = 'oshawott.JSON';
+      final mediaPath = mediaDir == '.' || mediaDir.isEmpty
+          ? mediaFile
+          : '$mediaDir/$mediaFile';
+      await _write(root, mediaPath, {
+        'schemaVersion': 2,
+        'speciesId': 'oshawott',
+        'defaultFormId': 'base',
+        'variants': {'base': {'frontAnimated': gifPath}},
+      });
+      final projection = await _build(root);
+      expect(projection.payloadFiles, contains('project/$mediaPath'));
+      expect(projection.payloadFiles['project/$gifPath'], gif);
+    }
+  });
+
+  test('ignores an empty media directory when Pokemon is disabled', () async {
+    final root = await _fixture();
+    final projectFile = File('${root.path}/project.json');
+    final project = ProjectManifest.fromJson(jsonDecode(await projectFile.readAsString()));
+    await _write(root, 'project.json', project.copyWith(
+      pokemon: project.pokemon.copyWith(enabled: false, mediaDir: ''),
+    ).toJson());
+    expect((await _build(root)).payloadFiles, contains('project/project.json'));
+  });
+
+  test('does not interpret unrelated nested JSON when the media directory is the root', () async {
+    for (final mediaDir in ['.', '']) {
+      final root = await _fixture();
+      final projectFile = File('${root.path}/project.json');
+      final project = ProjectManifest.fromJson(jsonDecode(await projectFile.readAsString()));
+      await _write(root, 'project.json', project.copyWith(
+        pokemon: project.pokemon.copyWith(enabled: false, mediaDir: mediaDir),
+      ).toJson());
+      const path = 'data/custom/unrelated.json';
+      await _write(root, path, {
+        'schemaVersion': 2,
+        'speciesId': 'unrelated',
+        'variants': {'base': {'frontAnimated': '../independent.gif'}},
+      });
+      final result = await const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+      );
+      final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+      expect(archive.findFile('project/$path'), isNotNull);
+    }
+  });
+
   test('Pokemon media filtering preserves ID addressed gameplay JSON', () async {
     final root = await _fixture();
     final paths = ['data/pokemon/catalogs/items.json',

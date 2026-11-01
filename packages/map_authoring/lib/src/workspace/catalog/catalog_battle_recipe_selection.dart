@@ -28,7 +28,11 @@ Future<CatalogWorkshopSelection> _readBattleRecipeWorkshop({
     final type = resource['mediaType'] as String;
     final path = battleRecipeBlobPath(resource['sha256'] as String, type,
         projectMoveId: binding.projectMoveId);
-    final limit = type == 'image/png' ? 8 * 1024 * 1024 : 262144;
+    final limit = switch (type) {
+      'image/png' || 'audio/wav' || 'audio/ogg' || 'audio/mpeg' =>
+        8 * 1024 * 1024,
+      _ => 262144,
+    };
     if (!paths.containsKey(path) || limit < paths[path]!) paths[path] = limit;
   }
   final selected = await reader.withMetadataFields({'pokemon'});

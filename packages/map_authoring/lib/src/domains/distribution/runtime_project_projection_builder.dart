@@ -19,6 +19,7 @@ import '../assets/project_media_store.dart';
 import '../assets/tileset_actions.dart';
 import '../project/regional_map_authoring_gate.dart';
 import 'game_package_export_profile.dart';
+import 'gen5_battle_source_export_guard.dart';
 import 'immutable_byte_snapshot.dart';
 import 'runtime_static_terrain_projection.dart';
 import 'runtime_regular_atlas_projection.dart';
@@ -707,6 +708,16 @@ final class RuntimeProjectProjectionBuilder {
       }
     }
 
+    final configuredPokemonMediaDirectory = projectedProject.pokemon.mediaDir;
+    final pokemonMediaDirectory = configuredPokemonMediaDirectory.trim().isEmpty
+        ? '.'
+        : _normalizeRelative(configuredPokemonMediaDirectory);
+    bool isPokemonMediaDocument(String path) {
+      final prefix = pokemonMediaDirectory == '.' ? '' : '$pokemonMediaDirectory/';
+      return path.startsWith(prefix) &&
+          !path.substring(prefix.length).contains('/') &&
+          p.extension(path).toLowerCase() == '.json';
+    }
     final jsonRoots = <String>{
       ...atmospherePaths,
       'project.json',
@@ -716,8 +727,10 @@ final class RuntimeProjectProjectionBuilder {
         if (authorFiles.catalog.findByLogicalPath(path) != null) path,
       for (final record in authorFiles.catalog.records)
         if (p.extension(record.logicalPath).toLowerCase() == '.json' &&
-            _isRuntimeProjectFile(record.logicalPath, '.json',
-                hasCanonicalAssetCatalog: true))
+            ((projectedProject.pokemon.enabled &&
+                    isPokemonMediaDocument(_normalizeRelative(record.logicalPath))) ||
+                _isRuntimeProjectFile(record.logicalPath, '.json',
+                    hasCanonicalAssetCatalog: true)))
           record.logicalPath,
       for (final path in payload.keys)
         if (path.startsWith('project/') && path.endsWith('.json'))
@@ -760,7 +773,8 @@ final class RuntimeProjectProjectionBuilder {
           message: 'Exterior decoration data has no matching canonical owner or sector reference.');
       }
       if (extension == '.json') {
-        if (relative.startsWith('data/') &&
+        if ((projectedProject.pokemon.enabled && isPokemonMediaDocument(relative)) ||
+            relative.startsWith('data/') &&
                 _isRuntimeProjectFile(relative, extension,
                     hasCanonicalAssetCatalog: authorFiles.catalog.records.isNotEmpty) ||
             pokemonCatalogPaths.contains(relative)) {
@@ -802,14 +816,48 @@ final class RuntimeProjectProjectionBuilder {
         );
       }
     }
+    final gen5Candidates = <String, List<int>>{};
+    for (final path
+        in jsonRoots.where(Gen5BattleSourceExportPlan.isBindingCandidate)) {
+      gen5Candidates[path] =
+          await authorFiles.read(path, budget, jsonLike: true);
+    }
+    final gen5Plan =
+        Gen5BattleSourceExportPlan.fromBindingCandidates(gen5Candidates);
     final visitedJson = <String>{};
-    final pendingJson = jsonRoots.toList(growable: true);
+    final pendingJson = <String>[...jsonRoots, ...gen5Plan.exactPaths];
+    final pokemonAnimatedPaths = <String>{};
+    final referencedGifAssetIds = <String>{};
+    final gifAssetsById = {
+      for (final record in authorFiles.catalog.records)
+        if (_isGifAsset(record)) record.id: record,
+    };
+    final gifAssetsByPath = {
+      for (final record in gifAssetsById.values)
+        _normalizePackagePath(_normalizeRelative(record.logicalPath)): record.id,
+    };
     while (pendingJson.isNotEmpty) {
       final relative = _normalizeRelative(pendingJson.removeLast());
       if (!visitedJson.add(relative)) {
         continue;
       }
       final packagePath = _normalizePackagePath('project/$relative');
+      if (gen5Plan.exactPaths.contains(relative)) {
+        final bytes = payload[packagePath] ??
+            await authorFiles.read(relative, budget, jsonLike: true);
+        final decoded = _decodeJsonObject(bytes, relative);
+        if (jsonEncode(_scrubJson(decoded).value) != jsonEncode(decoded)) {
+          throw GamePackageExportException(
+            code: 'gen5_battle_source.unsafe_content',
+            path: relative,
+            message: 'Gen 5 source content cannot be exported unchanged.',
+          );
+        }
+        if (!payload.containsKey(packagePath)) {
+          budget.addPayload(payload, packagePath, bytes);
+        }
+        continue;
+      }
       final recipeBlob = RegExp(
         r'^data/pokemon/battle_recipes/blobs/([0-9a-f]{64})/([0-9a-f]{64})\.json$',
       ).firstMatch(relative);
@@ -866,6 +914,87 @@ final class RuntimeProjectProjectionBuilder {
         budget.addPayload(
             payload, packagePath, _encodeRuntimeJson(runtimeJson));
       }
+      for (final reference in _runtimeAssetReferences(runtimeJson)) {
+        if (gifAssetsById.containsKey(reference)) {
+          referencedGifAssetIds.add(reference);
+        }
+        final assetId = gifAssetsByPath[_normalizePackagePath(reference)];
+        if (assetId != null) referencedGifAssetIds.add(assetId);
+      }
+      if (isPokemonMediaDocument(relative) &&
+          runtimeJson is Map &&
+          runtimeJson['schemaVersion'] == currentPokemonMediaSchemaVersion &&
+          runtimeJson['speciesId'] is String &&
+          runtimeJson['variants'] is Map) {
+        final media = PokemonMediaFile.fromJson(Map<String, dynamic>.from(runtimeJson));
+        for (final variant in media.variants.values) {
+          for (final source in [
+            variant.frontAnimated,
+            variant.backAnimated,
+            variant.frontShinyAnimated,
+            variant.backShinyAnimated,
+            variant.frontFemaleAnimated,
+            variant.backFemaleAnimated,
+            variant.frontShinyFemaleAnimated,
+            variant.backShinyFemaleAnimated,
+          ]) {
+            if (source == null) continue;
+            final path = _normalizeRelative(source);
+            if (_isExcludedAuthoringPath(path)) {
+              throw GamePackageExportException(
+                code: 'excludedRuntimeReference',
+                path: path,
+                message: 'Pokemon media references an authoring-only file.',
+              );
+            }
+            if (p.extension(path).toLowerCase() != '.gif' &&
+                !_isPokeMapStoreBlob(path)) {
+              throw GamePackageExportException(
+                code: 'pokemon.animated_media_unsupported',
+                path: path,
+                message: 'Animated Pokemon media must reference a GIF or a canonical blob.',
+              );
+            }
+            if (!pokemonAnimatedPaths.add(_normalizePackagePath(path))) continue;
+            final target = _normalizePackagePath('project/$path');
+            final bytes = payload[target] ?? await authorFiles.read(
+              path,
+              budget,
+              maxBytes: PokemonGifInspector.maxEncodedBytes,
+            );
+            if (bytes.length > PokemonGifInspector.maxEncodedBytes) {
+              throw GamePackageExportException(
+                code: 'pokemon.animated_media_invalid',
+                path: path,
+                message: 'Animated Pokemon media exceeds its GIF size limit.',
+              );
+            }
+            if (_isPokeMapStoreBlob(path) &&
+                ContentArtifactRef.fromBytes(bytes, mediaType: 'image/gif').hexDigest !=
+                    p.basenameWithoutExtension(path).toLowerCase()) {
+              throw GamePackageExportException(
+                code: 'pokemon.animated_blob_digest_mismatch',
+                path: path,
+                message: 'Animated Pokemon media does not match its canonical blob identity.',
+              );
+            }
+            try {
+              const PokemonGifInspector(maxFrames: 256, maxCanvasPixels: 16777216)
+                  .inspect(bytes is Uint8List ? bytes : Uint8List.fromList(bytes));
+            } on FormatException catch (error) {
+              throw GamePackageExportException(
+                code: 'pokemon.animated_media_invalid',
+                path: path,
+                message: 'Animated Pokemon media is not a supported GIF.',
+                cause: error,
+              );
+            }
+            if (!payload.containsKey(target)) {
+              budget.addPayload(payload, target, bytes);
+            }
+          }
+        }
+      }
       pendingJson.addAll(_runtimeJsonReferences(
         runtimeJson,
         captureSpriteProvenance: authorFiles.catalog
@@ -876,6 +1005,32 @@ final class RuntimeProjectProjectionBuilder {
       ));
     }
     if (battleRecipes.isNotEmpty) _validateBattleRecipeBundles(payload, battleRecipes);
+    if (gen5Plan.exactPaths.isNotEmpty) {
+      final speciesDirectory = projectedProject.pokemon.speciesDir.trim();
+      final speciesPrefix = speciesDirectory.isEmpty
+          ? null
+          : 'project/${_normalizeRelative(speciesDirectory)}/';
+      final species = <({String id, int nationalDex})>[];
+      if (speciesPrefix != null) {
+        for (final entry in payload.entries) {
+          if (!entry.key.startsWith(speciesPrefix) ||
+              !entry.key.toLowerCase().endsWith('.json')) {
+            continue;
+          }
+          final document = PokemonSpeciesFile.fromJson(
+            _decodeJsonObject(entry.value, entry.key),
+          );
+          species.add((id: document.id, nationalDex: document.nationalDex));
+        }
+      }
+      gen5Plan.validate(
+        files: {
+          for (final path in gen5Plan.exactPaths)
+            if (payload['project/$path'] case final bytes?) path: bytes,
+        },
+        projectSpecies: species,
+      );
+    }
 
     if (projectedProject.borderCatalog.records.isNotEmpty) {
       projectedProject = projectRuntimeBorderRecords(
@@ -1027,10 +1182,11 @@ final class RuntimeProjectProjectionBuilder {
       budget,
       retainedAssetIds: presentationPackage?.catalog.entries
               .map((media) => media.sourceAssetId)
-              .toSet() ??
-          const <String>{},
+              .toSet() ?? const <String>{},
       excludedAssetIds:
           presentationPackage?.excludedSourceAssetIds ?? const <String>{},
+      referencedGifPaths: pokemonAnimatedPaths,
+      referencedGifAssetIds: referencedGifAssetIds,
     );
 
     if (projectedProject.settings.dimension == ProjectDimension.threeD) {
@@ -1075,10 +1231,20 @@ final class RuntimeProjectProjectionBuilder {
   Future<void> _addPortableAssetClosure(Map<String, List<int>> payload,
       _AuthorProjectFileResolver authorFiles, _ProjectionBudget budget,
       {Set<String> retainedAssetIds = const <String>{},
-      Set<String> excludedAssetIds = const <String>{}}) async {
+      Set<String> excludedAssetIds = const <String>{},
+      Set<String> referencedGifPaths = const <String>{},
+      Set<String> referencedGifAssetIds = const <String>{}}) async {
     final records = authorFiles.catalog.records
         .where((record) =>
-            !excludedAssetIds.contains(record.id) &&
+            (!excludedAssetIds.contains(record.id) ||
+                referencedGifAssetIds.contains(record.id) ||
+                referencedGifPaths.contains(_normalizePackagePath(
+                    _normalizeRelative(record.logicalPath)))) &&
+            (!_isGifAsset(record) ||
+                retainedAssetIds.contains(record.id) ||
+                referencedGifAssetIds.contains(record.id) ||
+                referencedGifPaths.contains(_normalizePackagePath(
+                    _normalizeRelative(record.logicalPath)))) &&
             (p.extension(record.logicalPath).toLowerCase() != '.json' ||
                 retainedAssetIds.contains(record.id) ||
                 _isRuntimeProjectFile(record.logicalPath,
@@ -1106,13 +1272,26 @@ final class RuntimeProjectProjectionBuilder {
       }
       final storagePath = assetBlobStorageKey(record.artifact);
       if (!packagedArtifacts.add(storagePath)) continue;
-      budget.addPayload(
-        payload,
-        _normalizePackagePath('project/$storagePath'),
-        bytes,
-      );
+      final target = _normalizePackagePath('project/$storagePath');
+      final existing = payload[target];
+      if (existing == null) {
+        budget.addPayload(payload, target, bytes);
+      } else if (existing.length != bytes.length ||
+          ContentArtifactRef.fromBytes(existing, mediaType: record.artifact.mediaType)
+                  .digest !=
+              record.artifact.digest) {
+        throw GamePackageExportException(
+          code: 'projectionPathCollision',
+          path: target,
+          message: 'Two authoring files resolve to the same package path.',
+        );
+      }
     }
   }
+
+  static bool _isGifAsset(AssetRecord record) =>
+      p.extension(record.logicalPath).toLowerCase() == '.gif' ||
+      record.artifact.mediaType == 'image/gif';
 
   Future<_PresentationPackageProjection?> _preparePresentationPackage(
     ProjectManifest project,
@@ -1693,6 +1872,34 @@ final class RuntimeProjectProjectionBuilder {
     return value;
   }
 
+  Iterable<String> _runtimeAssetReferences(Object? value) sync* {
+    final pending = <({Object? value, bool reference})>[
+      (value: value, reference: false),
+    ];
+    while (pending.isNotEmpty) {
+      final current = pending.removeLast();
+      if (current.value case final String text) {
+        if (current.reference) yield text;
+      } else if (current.value case final List values) {
+        for (final child in values) {
+          pending.add((value: child, reference: current.reference));
+        }
+      } else if (current.value case final Map values) {
+        for (final entry in values.entries) {
+          if (entry.key is! String) continue;
+          final key = _normalizeKey(entry.key as String);
+          pending.add((
+            value: entry.value,
+            reference: key.endsWith('assetid') ||
+                key.endsWith('assetids') ||
+                key.endsWith('path') ||
+                key.endsWith('paths'),
+          ));
+        }
+      }
+    }
+  }
+
   Iterable<String> _runtimeJsonReferences(
     Object? value, {
     bool captureSpriteProvenance = false,
@@ -2029,12 +2236,22 @@ final class _AuthorProjectFileResolver {
     String relativePath,
     _ProjectionBudget budget, {
     bool jsonLike = false,
+    int? maxBytes,
   }) async {
     final normalized = RuntimeProjectProjectionBuilder._normalizeRelative(
       relativePath,
     );
     final projected = virtualFiles[normalized];
-    if (projected != null) return projected;
+    if (projected != null) {
+      if (maxBytes != null && projected.length > maxBytes) {
+        throw GamePackageExportException(
+          code: 'authoringFileTooLarge',
+          path: relativePath,
+          message: 'Authoring file exceeds the export quota.',
+        );
+      }
+      return projected;
+    }
     final record = catalog.findByLogicalPath(normalized);
     final storagePath =
         record == null ? normalized : assetBlobStorageKey(record.artifact);
@@ -2051,6 +2268,7 @@ final class _AuthorProjectFileResolver {
       file,
       logicalPath: relativePath,
       jsonLike: jsonLike,
+      maxBytes: maxBytes,
     );
     final expected = record?.artifact;
     if (expected != null) {
@@ -2120,9 +2338,13 @@ final class _ProjectionBudget {
     File file, {
     required String logicalPath,
     bool jsonLike = false,
+    int? maxBytes,
   }) async {
     final size = await file.length();
-    final limit = jsonLike ? maxJsonSourceBytes : maxFileBytes;
+    final defaultLimit = jsonLike ? maxJsonSourceBytes : maxFileBytes;
+    final limit = maxBytes == null || maxBytes > defaultLimit
+        ? defaultLimit
+        : maxBytes;
     if (size > limit) {
       throw GamePackageExportException(
         code: 'authoringFileTooLarge',

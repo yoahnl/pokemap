@@ -28,6 +28,54 @@ void main() {
     expect(report.diagnostics, isEmpty);
   });
 
+  test('validates every optional GIF path in media schema v2', () {
+    const paths = {
+      'frontAnimated': 'assets/front.gif',
+      'backAnimated': 'assets/back.gif',
+      'frontShinyAnimated': 'assets/front-shiny.gif',
+      'backShinyAnimated': 'assets/back-shiny.gif',
+      'frontFemaleAnimated': 'assets/front-female.gif',
+      'backFemaleAnimated': 'assets/back-female.gif',
+      'frontShinyFemaleAnimated': 'assets/front-shiny-female.gif',
+      'backShinyFemaleAnimated': 'assets/back-shiny-female.gif',
+    };
+    final media = PokemonMediaFile.fromJson({
+      'schemaVersion': 2,
+      'speciesId': 'bulbasaur',
+      'defaultFormId': 'base',
+      'variants': {
+        'base': {
+          'frontStatic': 'assets/pokemon/bulbasaur-front.png',
+          'backStatic': 'assets/pokemon/bulbasaur-back.png',
+          ...paths,
+        },
+      },
+    });
+    final report = validator.validate(
+      _validSnapshot(
+        media: [_document('media/bulbasaur.json', media)],
+        assetProbeStatuses: {
+          'assets/pokemon/bulbasaur-front.png': PokemonAssetProbeStatus.exists,
+          'assets/pokemon/bulbasaur-back.png': PokemonAssetProbeStatus.exists,
+          for (final path in paths.values) path: PokemonAssetProbeStatus.missing,
+        },
+      ),
+    );
+    expect(
+      report.diagnostics.where((item) => item.code == 'media.schema_version_unsupported'),
+      isEmpty,
+    );
+    for (final field in paths.keys) {
+      expect(
+        report.diagnostics.where(
+          (item) => item.code == 'media.asset_missing' &&
+              item.path == 'media/bulbasaur.json.variants.base.$field',
+        ),
+        hasLength(1),
+      );
+    }
+  });
+
   test('accepts companion identities written from custom references', () {
     final report = validator.validate(
       _validSnapshot(

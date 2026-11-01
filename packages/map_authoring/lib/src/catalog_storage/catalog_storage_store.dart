@@ -260,6 +260,43 @@ final class CatalogStorageStore {
     return value['projectId']! as String;
   }
 
+  Future<void> requireProjectDescriptor(Map<String, Object?> expected) async {
+    const path = 'project.json';
+    if (!await _requireLocalPath(path, allowMissing: true)) {
+      throw const CatalogStorageException('catalog.project_descriptor_changed',
+          'The project descriptor is missing or has changed.');
+    }
+    final reader = _reader;
+    if (reader is! ProjectResourceProbeReader) {
+      throw const CatalogStorageException('catalog.probe_required',
+          'Catalog storage requires a resource probe reader.');
+    }
+    final probe = await (reader as ProjectResourceProbeReader).probeResource(
+        projectRoot: await _canonicalProjectRoot, relativePath: path);
+    if (probe.status != ProjectResourceProbeStatus.exists ||
+        probe.identity == null ||
+        probe.identity!.byteLength <= 0 ||
+        probe.identity!.byteLength > 4096) {
+      throw const CatalogStorageException('catalog.project_descriptor_changed',
+          'The project descriptor is missing or has changed.');
+    }
+    final bytes = await _readBounded(path, 4096);
+    try {
+      final decoded = jsonDecode(utf8.decode(bytes));
+      if (decoded is! Map ||
+          canonicalAuthoringJson(Map<String, dynamic>.from(decoded)) !=
+              canonicalAuthoringJson(expected)) {
+        throw const FormatException();
+      }
+    } on FormatException {
+      throw const CatalogStorageException('catalog.project_descriptor_changed',
+          'The project descriptor is missing or has changed.');
+    } on TypeError {
+      throw const CatalogStorageException('catalog.project_descriptor_changed',
+          'The project descriptor is missing or has changed.');
+    }
+  }
+
   Future<List<int>> readObject(CatalogObjectReference reference) =>
       _readBounded(_objectPath(reference.sha256), reference.byteLength);
 

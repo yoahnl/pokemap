@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:http/http.dart' as http;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show PokemonExternalSourceRepository;
+    show AvelunePokemonMediaSource, PokemonExternalSourceRepository;
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
@@ -12,6 +14,9 @@ import '../domain/pokemon_workspace_port.dart';
 import '../domain/pokemon_import_models.dart';
 import '../domain/pokemon_moves_sync_models.dart';
 import '../domain/pokemon_external_import_models.dart';
+import '../domain/pokemon_move_recipe_choice.dart';
+import '../domain/pokemon_move_recipe_port.dart';
+import 'http_pokemon_external_transport.dart';
 import 'pokemon_document_transaction.dart';
 import 'pokemon_companion_projection.dart';
 import 'pokemon_bundle_projection.dart';
@@ -22,17 +27,20 @@ import 'pokemon_json_import.dart';
 import 'pokemon_media_import.dart';
 import 'pokemon_media_projection.dart';
 import 'pokemon_moves_snapshot_source.dart';
+import 'pokemon_move_recipe_import.dart';
 import 'pokemon_moves_sync.dart';
 import 'pokemon_project_locale.dart';
 import 'pokemon_types_projection.dart';
 
-final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
+final class LocalPokemonWorkspaceAdapter
+    implements PokemonWorkspacePort, PokemonMoveRecipePort {
   LocalPokemonWorkspaceAdapter({
     required this.session,
     required this.mapAdapter,
     ProjectFileReader? reader,
     this._movesSource,
     this._externalSource,
+    this._recipeMediaSource,
   }) : _reader = reader ?? const LocalProjectFileReader();
 
   final ProjectSession session;
@@ -40,6 +48,11 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
   final ProjectFileReader _reader;
   final PokemonMovesSnapshotSource? _movesSource;
   final PokemonExternalSourceRepository? _externalSource;
+  final AvelunePokemonMediaSource? _recipeMediaSource;
+  http.Client? _recipeClient;
+  Future<PokemonMoveRecipeImport>? _recipeOpening;
+  Future<void>? _closing;
+  bool _closed = false;
   PokemonExternalSourceSession? _externalSession;
   PokemonExternalImport? _externalImport;
   Set<String>? _knownSpeciesIds;
@@ -56,7 +69,83 @@ final class LocalPokemonWorkspaceAdapter implements PokemonWorkspacePort {
         loadIndex: loadIndex,
       );
 
-  void dispose() => _externalSession?.dispose();
+  @override
+  bool get supportsMoveRecipes =>
+      session.storage == ProjectSessionStorage.workingCatalog;
+
+  Future<PokemonMoveRecipeImport> _prepareMoveRecipes() {
+    if (_closed) {
+      return Future.error(StateError('L’atelier Pokémon est fermé.'));
+    }
+    if (!supportsMoveRecipes) {
+      return Future.error(
+        const PokemonWorkspaceFailure(
+          'Une copie de travail est nécessaire pour importer une animation.',
+        ),
+      );
+    }
+    final existing = _recipeOpening;
+    if (existing != null) return existing;
+    final source =
+        _recipeMediaSource ??
+        AvelunePokemonMediaSource(
+          client: HttpPokemonExternalTransport(_recipeClient ??= http.Client()),
+        );
+    late final Future<PokemonMoveRecipeImport> opening;
+    opening =
+        PokemonMoveRecipeImport.open(
+          session: session,
+          mapAdapter: mapAdapter,
+          media: source,
+          reader: _reader,
+        ).catchError((Object error, StackTrace stack) {
+          if (identical(_recipeOpening, opening)) _recipeOpening = null;
+          Error.throwWithStackTrace(error, stack);
+        });
+    return _recipeOpening = opening;
+  }
+
+  @override
+  Future<void> prepareMoveRecipes() async {
+    await _prepareMoveRecipes();
+  }
+
+  @override
+  Future<List<PokemonMoveRecipeChoice>> listMoveRecipes(
+    String projectMoveId,
+  ) async => (await _prepareMoveRecipes()).listForMove(projectMoveId);
+
+  @override
+  Future<bool> importMoveRecipe(
+    String projectMoveId,
+    PokemonMoveRecipeChoice choice, {
+    bool Function()? isCurrent,
+  }) async => (await _prepareMoveRecipes()).importChoice(
+    projectMoveId,
+    choice,
+    isCurrent: isCurrent,
+  );
+
+  void dispose() => unawaited(close());
+
+  Future<void> close() => _closing ??= _close();
+
+  Future<void> _close() async {
+    _closed = true;
+    _externalSession?.dispose();
+    _recipeClient?.close();
+    final opening = _recipeOpening;
+    if (opening != null) {
+      PokemonMoveRecipeImport? importer;
+      try {
+        importer = await opening;
+      } on Object {
+        return;
+      }
+      await importer.close();
+    }
+  }
+
   @override
   Future<PokemonExternalSearch> searchExternal(String query) =>
       _external.search(query);

@@ -7,6 +7,7 @@ import '../documents/map_element_order_authoring.dart';
 import '../documents/map_editor_authoring.dart';
 import '../domains/maps/map_lifecycle_atmosphere.dart';
 import '../domains/assets/resource_pack_import_preparer.dart';
+import '../domains/gameplay/pokemon_media_storage_path.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -94,6 +95,14 @@ const _nativeLocalWorkshopActions = {
   'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update', 'item.set_capture_effect',
   'event_v2.template.apply', 'narrative.publish_document',
 };
+
+bool _isScopedPokemonMediaWrite(AuthoringRequest request) =>
+    request.actionId == 'pokemon.media.write' &&
+    request.extensions['workshopScope'] == true;
+
+bool _usesNativeWorkshop(AuthoringRequest request) =>
+    _nativeLocalWorkshopActions.contains(request.actionId) ||
+    _isScopedPokemonMediaWrite(request);
 
 final class LocalMapAuthoringMutationApi
     implements
@@ -439,6 +448,9 @@ final class LocalMapAuthoringMutationApi
     if (session == null) {
       if (actionId == 'pokemon.move_recipe.import') {
         throw const FormatException('Battle recipe import requires a working catalog project.');
+      }
+      if (actionId == 'pokemon.gen5_battle_source.import') {
+        throw const FormatException('Gen 5 source import requires a working catalog project.');
       }
       _session(handle).requireProjectionRead();
       return _snapshotLoader.loadWorkshop(handle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);
@@ -792,12 +804,17 @@ final class LocalMapAuthoringMutationApi
               }
             },
             requirePlanPreconditions: (plan) async {
+              if (_isScopedPokemonMediaWrite(plan.request)) {
+                await _session(projectHandle)._requireScopedReconciled();
+              }
               if (plan.request.actionId == 'resource_pack.import') {
                 await _session(projectHandle)
                     ._resourcePacks
                     .requireCatalogPlanPreconditions(plan, store: reader.store);
               }
             },
+            requireScopedMediaReconciled: () =>
+                _session(projectHandle)._requireScopedReconciled(),
             projections:
                 reader.readOnly ? null : _session(projectHandle)._projections,
             auditOutcome: (plan, decision, receipt, error, details) =>
@@ -914,6 +931,9 @@ final class LocalMapAuthoringMutationApi
     if (catalog != null) return catalog.plan(request);
     if (request.actionId == 'pokemon.move_recipe.import') {
       throw const FormatException('Battle recipe import requires a working catalog project.');
+    }
+    if (request.actionId == 'pokemon.gen5_battle_source.import') {
+      throw const FormatException('Gen 5 source import requires a working catalog project.');
     }
     final result = await _session(projectHandle)
         .planMutation(request)
@@ -1802,7 +1822,13 @@ final class _LocalMapAuthoringSession {
     await requireUnusedExteriorReferences(
         exteriorDeletedDefinitions(request.actionId, request.parameters),
         _mapAtmosphereGateway);
-    if (!_logicalMapEdits.containsKey(request.requestId)) await _requireReconciled();
+    if (!_logicalMapEdits.containsKey(request.requestId)) {
+      if (_isScopedPokemonMediaWrite(request)) {
+        await _requireScopedReconciled();
+      } else {
+        await _requireReconciled();
+      }
+    }
     final descriptor = _dispatcher.descriptor(request.actionId);
     if (descriptor.version != request.actionVersion) {
       throw AuthoringPlanException(
@@ -1830,7 +1856,7 @@ final class _LocalMapAuthoringSession {
         await _loadSnapshot(
           cacheValidation: ProjectSnapshotCacheValidation.session,
           repairRequest:
-              _nativeLocalWorkshopActions.contains(request.actionId) || request.actionId == 'pokemon.catalog.write' ? request : null,
+              _usesNativeWorkshop(request) || request.actionId == 'pokemon.catalog.write' ? request : null,
         );
     var planningRequest = request;
     if (suppliedSnapshot == null && (request.actionId == 'presentationMedia.import' || request.actionId.startsWith('world_rule.') || request.actionId == 'event_v2.record_upsert' || request.actionId == 'event_v2.record_upsert_batch' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
@@ -1870,7 +1896,7 @@ final class _LocalMapAuthoringSession {
     } finally {
       span?.finish();
     }
-    if (_nativeLocalWorkshopActions.contains(request.actionId) &&
+    if (_usesNativeWorkshop(request) &&
         (suppliedSnapshot == null || _logicalMapEdits.containsKey(request.requestId))) {
       _workshopPlans[plan.planId] = request;
       _workshopPreconditions[plan.planId] = snapshot.scopedStorageRevisions ?? const {};
@@ -1953,7 +1979,9 @@ final class _LocalMapAuthoringSession {
     if (plan.mapEditBinding == null) {
       await traceAuthoringPhase(
         'authoring.apply.recovery',
-        _requireReconciled,
+        _isScopedPokemonMediaWrite(plan.request)
+            ? _requireScopedReconciled
+            : _requireReconciled,
       );
     }
     _requireApplicablePlan(plan);
@@ -2098,6 +2126,21 @@ final class _LocalMapAuthoringSession {
       throw const AuthoringRecoveryException(
         'resource_pack.recovery_required',
         'Reconcile the canonical pending transaction before editing this project.',
+      );
+    }
+  }
+
+  Future<void> _requireScopedReconciled() async {
+    final pending = await _mapAtmosphereGateway.withExclusiveWriteLock(
+      () => readPendingTransactionJournals(
+        _mapAtmosphereGateway,
+        requirePrepared: true,
+      ),
+    );
+    if (pending.isNotEmpty) {
+      throw const AuthoringRecoveryException(
+        'resource_pack.recovery_required',
+        'Reconcile the canonical pending transactions before editing this project.',
       );
     }
   }
@@ -2269,8 +2312,10 @@ final class _LocalMapAuthoringSession {
     required String entryId,
     required String idempotencyKey,
   }) async {
-    await _requireReconciled();
-    final snapshot = await _snapshotLoader.loadHistorySnapshot(projectHandle);
+    final scoped = await _scopedPokemonMediaHistorySnapshot(entryId);
+    if (scoped == null) await _requireReconciled();
+    final snapshot = scoped ??
+        await _snapshotLoader.loadHistorySnapshot(projectHandle);
     final prepared = await _undoService.planUndo(
       actor: _actor,
       projectId: projectId,
@@ -2279,7 +2324,10 @@ final class _LocalMapAuthoringSession {
       workspaceHandle: workspaceHandle.value,
       idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
     );
-    final receipt = await _undoService.apply(prepared);
+    final receipt = await _undoService.apply(
+      prepared,
+      additionalPrecondition: scoped == null ? null : _requireScopedReconciled,
+    );
     try {
       await prepared.plan.releaseAppliedPayload();
     } on Object {
@@ -2292,8 +2340,10 @@ final class _LocalMapAuthoringSession {
     required String entryId,
     required String idempotencyKey,
   }) async {
-    await _requireReconciled();
-    final snapshot = await _snapshotLoader.loadHistorySnapshot(projectHandle);
+    final scoped = await _scopedPokemonMediaHistorySnapshot(entryId);
+    if (scoped == null) await _requireReconciled();
+    final snapshot = scoped ??
+        await _snapshotLoader.loadHistorySnapshot(projectHandle);
     final prepared = await _undoService.planRedo(
       actor: _actor,
       projectId: projectId,
@@ -2302,13 +2352,59 @@ final class _LocalMapAuthoringSession {
       workspaceHandle: workspaceHandle.value,
       idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
     );
-    final receipt = await _undoService.apply(prepared);
+    final receipt = await _undoService.apply(
+      prepared,
+      additionalPrecondition: scoped == null ? null : _requireScopedReconciled,
+    );
     try {
       await prepared.plan.releaseAppliedPayload();
     } on Object {
       _snapshotLoader.invalidate(projectHandle);
     }
     return _mutationResult(receipt, refreshUnavailable: true);
+  }
+
+  Future<ProjectSnapshot?> _scopedPokemonMediaHistorySnapshot(
+      String entryId) async {
+    final history = _history;
+    if (history is! AuthoringLocalHistoryReader ||
+        !_actor.allows(AuthoringPermissionScope.projectRead) ||
+        !_actor.allows(AuthoringPermissionScope.projectWrite)) {
+      return null;
+    }
+    requireProjectionRead();
+    final AuthoringHistoryEntry? entry;
+    try {
+      entry = await (history as AuthoringLocalHistoryReader).getLocalEntry(
+        projectId: projectId,
+        entryId: _safeIdentity(entryId, 'entryId'),
+      );
+    } on AuthoringHistoryException catch (error) {
+      if (error.code == 'history.preparation_required') return null;
+      rethrow;
+    }
+    if (entry == null ||
+        entry.receipt.actionId != 'pokemon.media.write' ||
+        entry.changes.length != 1 ||
+        entry.changes.single.resource.kind != 'pokemonDocument' ||
+        !entry.changes.single.resource.id.startsWith('media:') ||
+        entry.changes.single.resource.extensions[scopedPokemonMediaHistoryKey] !=
+            true) {
+      return null;
+    }
+    await _requireScopedReconciled();
+    return ProjectSnapshot(
+      projectHandle: projectHandle,
+      revision: computeAuthoringJsonFingerprint(
+        {'projectId': projectId, 'entryId': entry.entryId},
+        logicalName: 'pokemon-media-history.json',
+      ),
+      manifest: const ProjectManifest(name: 'Media history', maps: [], tilesets: []),
+      maps: const [],
+      availableProjectSections: const {},
+      availableProjectDocuments: const {},
+      resourceFingerprints: const {},
+    );
   }
 
   Future<AuthoringMutationResult> recoverMutation(
@@ -2413,6 +2509,9 @@ final class _LocalMapAuthoringSession {
     final scoped = _workshopPreconditions[plan.planId];
     if (scoped != null) {
       return () async {
+        if (_isScopedPokemonMediaWrite(plan.request)) {
+          await _requireScopedReconciled();
+        }
         await supplied?.call();
         for (final entry in scoped.entries) {
           if (await _mapAtmosphereGateway.readResourceRevision(entry.key) != entry.value) {
@@ -2510,7 +2609,7 @@ final class _LocalMapAuthoringSession {
       AuthoringPerformanceSpanName.snapshot,
     );
     try {
-      if (repairRequest != null && _nativeLocalWorkshopActions.contains(repairRequest.actionId)) {
+      if (repairRequest != null && _usesNativeWorkshop(repairRequest)) {
         try {
           return await _snapshotLoader.loadWorkshop(projectHandle, actionId: repairRequest.actionId,
               parameters: repairRequest.parameters, readDependencies: Map<String, String>.from(

@@ -1,14 +1,16 @@
 import 'pokemon_trade_evolution.dart';
 
 const currentPokemonDataSchemaVersion = 1;
+const currentPokemonMediaSchemaVersion = 2;
 
 final class UnsupportedPokemonDataSchema extends FormatException {
   UnsupportedPokemonDataSchema({
     required this.actualVersion,
     required this.path,
+    String? expectedVersions,
   }) : super(
          'Unsupported Pokemon data schema at $path: '
-         '$actualVersion (expected $currentPokemonDataSchemaVersion)',
+         '$actualVersion (expected ${expectedVersions ?? currentPokemonDataSchemaVersion})',
        );
 
   final Object? actualVersion;
@@ -642,18 +644,26 @@ class PokemonMediaAnimationRef {
   const PokemonMediaAnimationRef({
     required this.sheet,
     required this.animationId,
-  });
+    Map<String, Object?> unrecognizedFields = const {},
+  }) : _unrecognizedFields = unrecognizedFields;
 
   final String sheet;
   final String animationId;
+  final Map<String, Object?> _unrecognizedFields;
 
   factory PokemonMediaAnimationRef.fromJson(Map<String, dynamic> json) =>
       PokemonMediaAnimationRef(
         sheet: (json['sheet'] as String?)?.trim() ?? '',
         animationId: (json['animationId'] as String?)?.trim() ?? '',
+        unrecognizedFields: Map.unmodifiable({
+          for (final entry in json.entries)
+            if (entry.key != 'sheet' && entry.key != 'animationId')
+              entry.key: entry.value,
+        }),
       );
 
   Map<String, Object?> toJson() => <String, Object?>{
+    ..._unrecognizedFields,
     'sheet': sheet,
     'animationId': animationId,
   };
@@ -663,6 +673,14 @@ class PokemonMediaVariant {
   const PokemonMediaVariant({
     this.frontStatic,
     this.backStatic,
+    this.frontAnimated,
+    this.backAnimated,
+    this.frontShinyAnimated,
+    this.backShinyAnimated,
+    this.frontFemaleAnimated,
+    this.backFemaleAnimated,
+    this.frontShinyFemaleAnimated,
+    this.backShinyFemaleAnimated,
     this.frontShinyStatic,
     this.backShinyStatic,
     this.icon,
@@ -671,10 +689,19 @@ class PokemonMediaVariant {
     this.portrait,
     this.cry,
     this.animations = const <String, PokemonMediaAnimationRef>{},
-  });
+    Map<String, Object?> unrecognizedFields = const {},
+  }) : _unrecognizedFields = unrecognizedFields;
 
   final String? frontStatic;
   final String? backStatic;
+  final String? frontAnimated;
+  final String? backAnimated;
+  final String? frontShinyAnimated;
+  final String? backShinyAnimated;
+  final String? frontFemaleAnimated;
+  final String? backFemaleAnimated;
+  final String? frontShinyFemaleAnimated;
+  final String? backShinyFemaleAnimated;
   final String? frontShinyStatic;
   final String? backShinyStatic;
   final String? icon;
@@ -683,14 +710,42 @@ class PokemonMediaVariant {
   final String? portrait;
   final String? cry;
   final Map<String, PokemonMediaAnimationRef> animations;
+  final Map<String, Object?> _unrecognizedFields;
 
-  factory PokemonMediaVariant.fromJson(Map<String, dynamic> json) {
+  factory PokemonMediaVariant.fromJson(
+    Map<String, dynamic> json, {
+    bool readAnimated = true,
+  }) {
     final rawAnimations =
         (json['animations'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
     return PokemonMediaVariant(
       frontStatic: _readOptionalTrimmedString(json['frontStatic']),
       backStatic: _readOptionalTrimmedString(json['backStatic']),
+      frontAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['frontAnimated'])
+          : null,
+      backAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['backAnimated'])
+          : null,
+      frontShinyAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['frontShinyAnimated'])
+          : null,
+      backShinyAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['backShinyAnimated'])
+          : null,
+      frontFemaleAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['frontFemaleAnimated'])
+          : null,
+      backFemaleAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['backFemaleAnimated'])
+          : null,
+      frontShinyFemaleAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['frontShinyFemaleAnimated'])
+          : null,
+      backShinyFemaleAnimated: readAnimated
+          ? _readOptionalTrimmedString(json['backShinyFemaleAnimated'])
+          : null,
       frontShinyStatic: _readOptionalTrimmedString(json['frontShinyStatic']),
       backShinyStatic: _readOptionalTrimmedString(json['backShinyStatic']),
       icon: _readOptionalTrimmedString(json['icon']),
@@ -707,12 +762,41 @@ class PokemonMediaVariant {
           ),
         ),
       ),
+      unrecognizedFields: Map.unmodifiable({
+        for (final entry in json.entries)
+          if (!_pokemonMediaVariantFields.contains(entry.key) &&
+              (!readAnimated ||
+                  !_pokemonMediaAnimatedFields.contains(entry.key)))
+            entry.key: entry.value,
+      }),
     );
   }
 
+  bool get _hasAnimatedSprites => [
+    frontAnimated,
+    backAnimated,
+    frontShinyAnimated,
+    backShinyAnimated,
+    frontFemaleAnimated,
+    backFemaleAnimated,
+    frontShinyFemaleAnimated,
+    backShinyFemaleAnimated,
+  ].any((path) => path != null);
+
   Map<String, Object?> toJson() => <String, Object?>{
+    ..._unrecognizedFields,
     'frontStatic': frontStatic,
     'backStatic': backStatic,
+    if (frontAnimated != null) 'frontAnimated': frontAnimated,
+    if (backAnimated != null) 'backAnimated': backAnimated,
+    if (frontShinyAnimated != null) 'frontShinyAnimated': frontShinyAnimated,
+    if (backShinyAnimated != null) 'backShinyAnimated': backShinyAnimated,
+    if (frontFemaleAnimated != null) 'frontFemaleAnimated': frontFemaleAnimated,
+    if (backFemaleAnimated != null) 'backFemaleAnimated': backFemaleAnimated,
+    if (frontShinyFemaleAnimated != null)
+      'frontShinyFemaleAnimated': frontShinyFemaleAnimated,
+    if (backShinyFemaleAnimated != null)
+      'backShinyFemaleAnimated': backShinyFemaleAnimated,
     'frontShinyStatic': frontShinyStatic,
     'backShinyStatic': backShinyStatic,
     'icon': icon,
@@ -730,19 +814,22 @@ class PokemonMediaFile {
     required this.speciesId,
     required this.defaultFormId,
     this.variants = const <String, PokemonMediaVariant>{},
-  });
+    Map<String, Object?> unrecognizedFields = const {},
+  }) : _unrecognizedFields = unrecognizedFields;
 
   final int schemaVersion;
   final String speciesId;
   final String defaultFormId;
   final Map<String, PokemonMediaVariant> variants;
+  final Map<String, Object?> _unrecognizedFields;
 
   factory PokemonMediaFile.fromJson(Map<String, dynamic> json) {
+    final schemaVersion = _readPokemonDataSchemaVersion(json, media: true);
     final rawVariants =
         (json['variants'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
     return PokemonMediaFile(
-      schemaVersion: _readPokemonDataSchemaVersion(json),
+      schemaVersion: schemaVersion,
       speciesId: (json['speciesId'] as String?)?.trim() ?? '',
       defaultFormId: (json['defaultFormId'] as String?)?.trim() ?? '',
       variants: rawVariants.map(
@@ -751,19 +838,63 @@ class PokemonMediaFile {
           PokemonMediaVariant.fromJson(
             (value as Map?)?.cast<String, dynamic>() ??
                 const <String, dynamic>{},
+            readAnimated: schemaVersion == currentPokemonMediaSchemaVersion,
           ),
         ),
       ),
+      unrecognizedFields: Map.unmodifiable({
+        for (final entry in json.entries)
+          if (!const {
+            'schemaVersion',
+            'speciesId',
+            'defaultFormId',
+            'variants',
+          }.contains(entry.key))
+            entry.key: entry.value,
+      }),
     );
   }
 
-  Map<String, Object?> toJson() => <String, Object?>{
-    'schemaVersion': schemaVersion,
-    'speciesId': speciesId,
-    'defaultFormId': defaultFormId,
-    'variants': variants.map((key, value) => MapEntry(key, value.toJson())),
-  };
+  Map<String, Object?> toJson() {
+    if (schemaVersion == currentPokemonDataSchemaVersion &&
+        variants.values.any((variant) => variant._hasAnimatedSprites)) {
+      throw StateError(
+        'Animated Pokemon sprites require media schemaVersion 2.',
+      );
+    }
+    return <String, Object?>{
+      ..._unrecognizedFields,
+      'schemaVersion': schemaVersion,
+      'speciesId': speciesId,
+      'defaultFormId': defaultFormId,
+      'variants': variants.map((key, value) => MapEntry(key, value.toJson())),
+    };
+  }
 }
+
+const _pokemonMediaVariantFields = {
+  'frontStatic',
+  'backStatic',
+  'frontShinyStatic',
+  'backShinyStatic',
+  'icon',
+  'party',
+  'overworld',
+  'portrait',
+  'cry',
+  'animations',
+};
+
+const _pokemonMediaAnimatedFields = {
+  'frontAnimated',
+  'backAnimated',
+  'frontShinyAnimated',
+  'backShinyAnimated',
+  'frontFemaleAnimated',
+  'backFemaleAnimated',
+  'frontShinyFemaleAnimated',
+  'backShinyFemaleAnimated',
+};
 
 class PokemonLearnsetMoveEntry {
   const PokemonLearnsetMoveEntry({
@@ -947,13 +1078,13 @@ class PokemonEvolutionEntry {
       );
     }
     return PokemonEvolutionEntry(
-        targetSpeciesId: (json['targetSpeciesId'] as String?)?.trim() ?? '',
-        method: method,
-        minLevel: (json['minLevel'] as num?)?.toInt(),
-        minFriendship: (json['minFriendship'] as num?)?.toInt(),
-        itemId: _readOptionalTrimmedString(json['itemId']),
-        requiredMoveId: _readOptionalTrimmedString(json['requiredMoveId']),
-        conditionText: _readStringMap(json['conditionText']),
+      targetSpeciesId: (json['targetSpeciesId'] as String?)?.trim() ?? '',
+      method: method,
+      minLevel: (json['minLevel'] as num?)?.toInt(),
+      minFriendship: (json['minFriendship'] as num?)?.toInt(),
+      itemId: _readOptionalTrimmedString(json['itemId']),
+      requiredMoveId: _readOptionalTrimmedString(json['requiredMoveId']),
+      conditionText: _readStringMap(json['conditionText']),
       tradeRequirements: trade,
     ).validated();
   }
@@ -981,13 +1112,13 @@ class PokemonEvolutionEntry {
   Map<String, Object?> toJson() {
     validated();
     return <String, Object?>{
-    'targetSpeciesId': targetSpeciesId,
-    'method': method,
-    'minLevel': minLevel,
-    'minFriendship': minFriendship,
-    'itemId': itemId,
-    'requiredMoveId': requiredMoveId,
-    'conditionText': Map<String, String>.from(conditionText),
+      'targetSpeciesId': targetSpeciesId,
+      'method': method,
+      'minLevel': minLevel,
+      'minFriendship': minFriendship,
+      'itemId': itemId,
+      'requiredMoveId': requiredMoveId,
+      'conditionText': Map<String, String>.from(conditionText),
       if (tradeRequirements != null)
         'tradeRequirements': tradeRequirements!.toJson(),
     };
@@ -1033,25 +1164,32 @@ class PokemonEvolutionFile {
   };
 }
 
-int _readPokemonDataSchemaVersion(Map<String, dynamic> json) {
+int _readPokemonDataSchemaVersion(
+  Map<String, dynamic> json, {
+  bool media = false,
+}) {
   final rawVersion = json['schemaVersion'];
   if (rawVersion == null) {
     throw UnsupportedPokemonDataSchema(
       actualVersion: rawVersion,
       path: r'$.schemaVersion',
+      expectedVersions: media ? '1 or 2' : null,
     );
   }
   if (rawVersion is! num || rawVersion.toInt() != rawVersion) {
     throw UnsupportedPokemonDataSchema(
       actualVersion: rawVersion,
       path: r'$.schemaVersion',
+      expectedVersions: media ? '1 or 2' : null,
     );
   }
   final schemaVersion = rawVersion.toInt();
-  if (schemaVersion != currentPokemonDataSchemaVersion) {
+  if (schemaVersion != currentPokemonDataSchemaVersion &&
+      !(media && schemaVersion == currentPokemonMediaSchemaVersion)) {
     throw UnsupportedPokemonDataSchema(
       actualVersion: schemaVersion,
       path: r'$.schemaVersion',
+      expectedVersions: media ? '1 or 2' : null,
     );
   }
   return schemaVersion;
@@ -1071,12 +1209,13 @@ List<String> _canonicalPokemonFormIds(
   Iterable<String> otherFormIds,
 ) {
   final primary = primaryFormId.trim();
-  final others = otherFormIds
-      .map((formId) => formId.trim())
-      .where((formId) => formId.isNotEmpty && formId != primary)
-      .toSet()
-      .toList(growable: false)
-    ..sort();
+  final others =
+      otherFormIds
+          .map((formId) => formId.trim())
+          .where((formId) => formId.isNotEmpty && formId != primary)
+          .toSet()
+          .toList(growable: false)
+        ..sort();
   return List<String>.unmodifiable(<String>[
     if (primary.isNotEmpty) primary,
     ...others,

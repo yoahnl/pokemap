@@ -105,7 +105,10 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
                           const SizedBox(height: 12),
                           Expanded(
                             child: SingleChildScrollView(
-                              child: PokemonMoveDetail(move: move),
+                              child: PokemonMoveDetail(
+                                move: move,
+                                controller: controller,
+                              ),
                             ),
                           ),
                         ],
@@ -119,9 +122,9 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
                               ? bounds.maxWidth
                               : (bounds.maxWidth * .28).clamp(300, 360),
                           child: ColoredBox(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerLow,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerLow,
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
                               child: Column(
@@ -200,13 +203,15 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
                                   ? const Center(
                                       child: PokemonEmptyState(
                                         title: 'Choisissez une attaque',
-                                        description:
-                                            'Le catalogue du projet est consultable ici.',
+                                        description: 'Le catalogue du projet est consultable ici.',
                                         icon: Icons.menu_book_outlined,
                                       ),
                                     )
                                   : SingleChildScrollView(
-                                      child: PokemonMoveDetail(move: move),
+                                      child: PokemonMoveDetail(
+                                        move: move,
+                                        controller: controller,
+                                      ),
                                     ),
                             ),
                           ),

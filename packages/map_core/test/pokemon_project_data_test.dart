@@ -46,6 +46,99 @@ void main() {
     });
   });
 
+  group('PokemonMediaFile animated sprites', () {
+    test('preserves schema v1 data without activating unknown GIF fields', () {
+      final document = PokemonMediaFile.fromJson({
+        'schemaVersion': 1,
+        'speciesId': 'oshawott',
+        'defaultFormId': 'base',
+        'unrecognizedMetadata': {'source': 'kept'},
+        'variants': {
+          'base': {
+            'frontStatic': 'assets/front.png',
+            'frontAnimated': 'assets/legacy-extension.gif',
+            'unrecognizedVariant': {'value': 7},
+            'animations': {
+              'idle': {
+                'sheet': 'assets/sheet.png',
+                'animationId': 'idle',
+                'unrecognizedAnimation': {'version': 4},
+              },
+            },
+          },
+        },
+      });
+      final variant = document.variants['base']!;
+      final encoded = document.toJson();
+      final encodedVariant = (encoded['variants'] as Map)['base'] as Map;
+      expect(document.schemaVersion, 1);
+      expect(variant.frontStatic, 'assets/front.png');
+      expect(variant.frontAnimated, isNull);
+      expect(variant.animations['idle']!.animationId, 'idle');
+      expect(encoded['unrecognizedMetadata'], {'source': 'kept'});
+      expect(encodedVariant['frontAnimated'], 'assets/legacy-extension.gif');
+      expect(encodedVariant['unrecognizedVariant'], {'value': 7});
+      final encodedAnimations = encodedVariant['animations'] as Map;
+      expect(
+        (encodedAnimations['idle'] as Map)['unrecognizedAnimation'],
+        {'version': 4},
+      );
+    });
+
+    test('round-trips all schema v2 animated sprite variants', () {
+      final paths = {
+        'frontAnimated': 'assets/front.gif',
+        'backAnimated': 'assets/back.gif',
+        'frontShinyAnimated': 'assets/front-shiny.gif',
+        'backShinyAnimated': 'assets/back-shiny.gif',
+        'frontFemaleAnimated': 'assets/front-female.gif',
+        'backFemaleAnimated': 'assets/back-female.gif',
+        'frontShinyFemaleAnimated': 'assets/front-shiny-female.gif',
+        'backShinyFemaleAnimated': 'assets/back-shiny-female.gif',
+      };
+      final document = PokemonMediaFile.fromJson({
+        'schemaVersion': 2,
+        'speciesId': 'oshawott',
+        'defaultFormId': 'base',
+        'variants': {
+          'base': {'frontStatic': 'assets/front.png', ...paths},
+        },
+      });
+      final variant = document.variants['base']!;
+      final encoded = document.toJson();
+      final encodedVariant = (encoded['variants'] as Map)['base'] as Map;
+      expect(document.schemaVersion, 2);
+      expect(variant.frontAnimated, paths['frontAnimated']);
+      expect(variant.backAnimated, paths['backAnimated']);
+      for (final entry in paths.entries) {
+        expect(encodedVariant[entry.key], entry.value);
+      }
+      expect(encodedVariant['frontStatic'], 'assets/front.png');
+    });
+
+    test('rejects unknown future versions and v1 creation with GIF fields', () {
+      expect(
+        () => PokemonMediaFile.fromJson({
+          'schemaVersion': 3,
+          'speciesId': 'oshawott',
+          'defaultFormId': 'base',
+          'variants': {},
+        }),
+        throwsA(isA<UnsupportedPokemonDataSchema>()),
+      );
+      expect(
+        () => const PokemonMediaFile(
+          speciesId: 'oshawott',
+          defaultFormId: 'base',
+          variants: {
+            'base': PokemonMediaVariant(frontAnimated: 'assets/front.gif'),
+          },
+        ).toJson(),
+        throwsStateError,
+      );
+    });
+  });
+
   test('all Pokemon project documents require an explicit schema version', () {
     final documents =
         <(String, Map<String, dynamic>, Object Function(Map<String, dynamic>))>[
@@ -100,7 +193,7 @@ void main() {
         (true, null),
         (true, '1'),
         (true, 0),
-        (true, 2),
+        (true, name == 'media' ? 3 : 2),
       ]) {
         final document = <String, dynamic>{...json};
         if (hasVersion) {
@@ -216,13 +309,15 @@ void main() {
     expect(fromJson.formIds, <String>['base', 'mega', 'sunny']);
     expect(fromSpecies.formIds, fromJson.formIds);
     expect(
-      PokemonSpeciesIndex(<PokemonSpeciesIndexEntry>[fromSpecies])
-          .formIdsForSpecies('bulbasaur'),
+      PokemonSpeciesIndex(<PokemonSpeciesIndexEntry>[
+        fromSpecies,
+      ]).formIdsForSpecies('bulbasaur'),
       <String>['base', 'mega', 'sunny'],
     );
     expect(
-      PokemonSpeciesIndex(<PokemonSpeciesIndexEntry>[fromSpecies])
-          .formIdsForSpecies('missing'),
+      PokemonSpeciesIndex(<PokemonSpeciesIndexEntry>[
+        fromSpecies,
+      ]).formIdsForSpecies('missing'),
       isEmpty,
     );
   });

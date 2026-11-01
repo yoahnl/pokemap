@@ -15,6 +15,7 @@ import '../contracts/artifact_ref.dart';
 import '../ports/project_file_reader.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/gameplay/pokemon_catalog_coherence_loader.dart';
+import '../domains/gameplay/pokemon_media_storage_path.dart';
 import '../domains/assets/project_media_store.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../transactions/change_set.dart';

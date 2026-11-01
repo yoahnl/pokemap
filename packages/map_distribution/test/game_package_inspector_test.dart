@@ -43,6 +43,143 @@ void main() {
       );
     });
 
+    test('validates Pokemon v2 animated blob references during build and inspection', () async {
+      final gif = base64Decode(
+        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      );
+      final png = _oversizedPng(width: 1, height: 1);
+      String blobPath(List<int> bytes) {
+        final digest = (NarrativeProjectFingerprintBuilder()
+              ..startEntry(relativePath: 'artifact-content', byteLength: bytes.length)
+              ..addBytes(bytes)
+              ..endEntry())
+            .close();
+        return 'assets/.pokemap-store/${digest.substring('sha256:'.length)}.blob';
+      }
+
+      Map<String, List<int>> payload(String path, List<int>? bytes,
+              {int version = 2, String field = 'frontAnimated'}) => {
+        'project/project.json': _validProjectBytes(),
+        'project/data/pokemon/media/oshawott.json': utf8.encode(jsonEncode({
+          'schemaVersion': version,
+          'speciesId': 'oshawott',
+          'defaultFormId': 'base',
+          'variants': {'base': {field: path}},
+        })),
+        if (bytes != null) 'project/$path': bytes,
+      };
+
+      final missingPath = blobPath(gif);
+      final badDigestPath = 'assets/.pokemap-store/${'a' * 64}.blob';
+      final cases = [
+        (path: missingPath, bytes: null, code: 'pokemonAnimatedMediaMissing'),
+        (path: badDigestPath, bytes: gif, code: 'pokemonAnimatedBlobDigestMismatch'),
+        (path: blobPath(png), bytes: png, code: 'pokemonAnimatedMediaInvalid'),
+      ];
+      for (final item in cases) {
+        final files = payload(item.path, item.bytes);
+        _expectCode(() => _build(files), item.code);
+        await _expectCodeBoth(inspector, _rawPackage(files), item.code,
+            reason: item.code);
+      }
+      for (final mediaDirectory in ['.', '']) {
+        for (final item in cases) {
+          final files = payload(item.path, item.bytes);
+          final project = jsonDecode(utf8.decode(_validProjectBytes())) as Map;
+          (project['pokemon'] as Map)['mediaDir'] = mediaDirectory;
+          files['project/project.json'] = utf8.encode(jsonEncode(project));
+          files['project/oshawott.json'] =
+              files.remove('project/data/pokemon/media/oshawott.json')!;
+          _expectCode(() => _build(files), item.code);
+          await _expectCodeBoth(inspector, _rawPackage(files), item.code,
+              reason: 'mediaDir "$mediaDirectory": ${item.code}');
+        }
+        final disabled = jsonDecode(utf8.decode(_validProjectBytes())) as Map;
+        (disabled['pokemon'] as Map)
+          ..['enabled'] = false
+          ..['mediaDir'] = mediaDirectory;
+        final independent = {
+          'project/project.json': utf8.encode(jsonEncode(disabled)),
+          'project/data/custom/unrelated.json': utf8.encode(jsonEncode({
+            'schemaVersion': 2,
+            'speciesId': 'unrelated',
+            'variants': {'base': {'frontAnimated': '../independent.gif'}},
+          })),
+        };
+        expect(() => _build(independent), returnsNormally);
+        expect(() => inspector.inspect(_rawPackage(independent)), returnsNormally);
+      }
+      for (final field in [
+        'frontAnimated',
+        'backAnimated',
+        'frontShinyAnimated',
+        'backShinyAnimated',
+        'frontFemaleAnimated',
+        'backFemaleAnimated',
+        'frontShinyFemaleAnimated',
+        'backShinyFemaleAnimated',
+      ]) {
+        final files = payload(missingPath, null, field: field);
+        _expectCode(() => _build(files), 'pokemonAnimatedMediaMissing');
+        _expectCode(() => inspector.inspect(_rawPackage(files)),
+            'pokemonAnimatedMediaMissing');
+        final escaping = payload('../outside.gif', null, field: field);
+        _expectCode(() => _build(escaping), 'referenceEscapesRoot');
+        await _expectCodeBoth(inspector, _rawPackage(escaping),
+            'referenceEscapesRoot', reason: 'escaped media field $field');
+      }
+
+      final valid = payload(blobPath(gif), gif);
+      expect(() => _build(valid), returnsNormally);
+      expect(() => inspector.inspect(_rawPackage(valid)), returnsNormally);
+      final legacy = payload(missingPath, null, version: 1);
+      expect(() => _build(legacy), returnsNormally);
+      expect(() => inspector.inspect(_rawPackage(legacy)), returnsNormally);
+      final unrelated = {
+        'project/project.json': _validProjectBytes(),
+        'project/data/pokemon/media/options.json': utf8.encode(jsonEncode({
+          'schemaVersion': 2,
+          'variants': ['unrelated'],
+          'configuration': {'value': true},
+        })),
+      };
+      expect(() => _build(unrelated), returnsNormally);
+      expect(() => inspector.inspect(_rawPackage(unrelated)), returnsNormally);
+
+      final customProject = jsonDecode(utf8.decode(_validProjectBytes())) as Map;
+      (customProject['pokemon'] as Map)['mediaDir'] = 'metadata/pokemon-media/';
+      final custom = {
+        'project/project.json': utf8.encode(jsonEncode(customProject)),
+        'project/metadata/pokemon-media/oshawott.json': utf8.encode(jsonEncode({
+          'schemaVersion': 2,
+          'speciesId': 'oshawott',
+          'defaultFormId': 'base',
+          'variants': {'base': {'frontAnimated': missingPath}},
+        })),
+      };
+      _expectCode(() => _build(custom), 'pokemonAnimatedMediaMissing');
+      _expectCode(() => inspector.inspect(_rawPackage(custom)),
+          'pokemonAnimatedMediaMissing');
+
+      const decomposed = 'sprites/e\u0301.gif';
+      const composed = 'sprites/é.gif';
+      final nonNormalized = payload(decomposed, null);
+      nonNormalized['project/$composed'] = gif;
+      _expectCode(() => _build(nonNormalized), 'pokemonAnimatedPathNotNormalized');
+      await _expectCodeBoth(inspector, _rawPackage(nonNormalized),
+          'pokemonAnimatedPathNotNormalized', reason: 'non-NFC media reference');
+
+      final nonNormalizedDirectory = payload(blobPath(gif), gif);
+      final directoryProject = jsonDecode(utf8.decode(_validProjectBytes())) as Map;
+      (directoryProject['pokemon'] as Map)['mediaDir'] = 'data/pokemon/me\u0301dia';
+      nonNormalizedDirectory['project/project.json'] = utf8.encode(jsonEncode(directoryProject));
+      nonNormalizedDirectory['project/data/pokemon/média/oshawott.json'] =
+          nonNormalizedDirectory.remove('project/data/pokemon/media/oshawott.json')!;
+      _expectCode(() => _build(nonNormalizedDirectory), 'pokemonAnimatedPathNotNormalized');
+      await _expectCodeBoth(inspector, _rawPackage(nonNormalizedDirectory),
+          'pokemonAnimatedPathNotNormalized', reason: 'non-NFC media directory');
+    });
+
     test('inspects file packages with bounded random-access payload reads', () {
       final audio = Uint8List(2 * 1024 * 1024)
         ..setAll(0, ascii.encode('RIFF'))
@@ -83,6 +220,31 @@ void main() {
         );
       } finally {
         temporaryDirectory.deleteSync(recursive: true);
+      }
+    });
+
+    test('validates a full GIF larger than the retained media header', () {
+      final gif = _gifWithCommentBlocks(4200);
+      expect(gif.length, greaterThan(1024 * 1024));
+      expect(const PokemonGifInspector().inspect(gif).frameCount, 1);
+      final digest = sha256.convert(gif).toString();
+      final paths = [
+        'project/assets/pokemon/large.gif',
+        'project/assets/.pokemap-store/$digest.blob',
+      ];
+      final built = _build({
+        'project/project.json': _validProjectBytes(),
+        for (final path in paths) path: gif,
+      });
+      final result = inspector.inspectSourceSync(
+        _MemoryPackageSource(built.packageBytes),
+      );
+      for (final path in paths) {
+        final entry = result.manifest.content.files.singleWhere(
+          (item) => item.path == path,
+        );
+        expect(entry.sha256, digest);
+        expect(entry.size, gif.length);
       }
     });
 
@@ -1465,6 +1627,7 @@ void main() {
       const largeSize = 16 * 1024 * 1024 + 1;
       final payload = <String, List<int>>{
         'project/project.json': _validProjectBytes(),
+        'project/assets/pokemon/large.gif': _gifWithCommentBlocks(65537),
       };
       for (var index = 0; index < 3; index++) {
         final blob = Uint8List(largeSize)
@@ -1482,14 +1645,14 @@ void main() {
         for (final entry in const RandomAccessZipStructureReader(
           GamePackageSecurityPolicy(),
         ).read(_MemoryPackageSource(bytes)).entries)
-          if (entry.name.endsWith('.blob'))
+          if (entry.name.endsWith('.blob') || entry.name.endsWith('.gif'))
             (
               start: entry.dataOffset,
               end: entry.dataOffset + entry.size,
               name: entry.name,
             ),
       ];
-      expect(watched, hasLength(3));
+      expect(watched, hasLength(4));
       final temporaryDirectory = Directory.systemTemp.createTempSync(
         'map_distribution_large_entries_',
       );
@@ -1518,7 +1681,7 @@ void main() {
         }
         expect(
           events.where((event) => event.startsWith('start:')).length,
-          greaterThanOrEqualTo(3),
+          greaterThanOrEqualTo(4),
         );
         expect(maxInFlight, 1, reason: events.join(', '));
       } finally {
@@ -1853,6 +2016,28 @@ List<int> _validProjectBytes({String name = 'Inspector Test'}) => utf8.encode(
         ).toJson(),
       }),
     );
+
+Uint8List _gifWithCommentBlocks(int count) {
+  final base = base64Decode(
+    'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+  );
+  final tableBytes = base[10] & 0x80 == 0
+      ? 0
+      : 3 * (1 << ((base[10] & 7) + 1));
+  final offset = 13 + tableBytes;
+  final bytes = BytesBuilder(copy: false)
+    ..add(base.sublist(0, offset))
+    ..add([0x21, 0xfe]);
+  final block = Uint8List.fromList(List.filled(255, 0x78));
+  for (var i = 0; i < count; i++) {
+    bytes.addByte(255);
+    bytes.add(block);
+  }
+  bytes
+    ..addByte(0)
+    ..add(base.sublist(offset));
+  return bytes.takeBytes();
+}
 
 Uint8List _oversizedPng({int width = 8193, int height = 1}) {
   final bytes = Uint8List(24)

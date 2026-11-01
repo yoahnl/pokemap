@@ -127,6 +127,14 @@ final class PokemonCatalogCoherenceLoader {
         for (final value in <String?>[
           variant.frontStatic,
           variant.backStatic,
+          variant.frontAnimated,
+          variant.backAnimated,
+          variant.frontShinyAnimated,
+          variant.backShinyAnimated,
+          variant.frontFemaleAnimated,
+          variant.backFemaleAnimated,
+          variant.frontShinyFemaleAnimated,
+          variant.backShinyFemaleAnimated,
           variant.frontShinyStatic,
           variant.backShinyStatic,
           variant.icon,
@@ -305,8 +313,9 @@ final class PokemonCatalogCoherenceLoader {
           severity: PokemonCatalogDiagnosticSeverity.error,
           path: '$path.schemaVersion',
           message: error.message,
-          recommendedAction:
-              'Use schemaVersion $currentPokemonDataSchemaVersion.',
+          recommendedAction: family == 'media'
+              ? 'Use media schemaVersion $currentPokemonDataSchemaVersion or $currentPokemonMediaSchemaVersion.'
+              : 'Use schemaVersion $currentPokemonDataSchemaVersion.',
         ),
       );
       return null;

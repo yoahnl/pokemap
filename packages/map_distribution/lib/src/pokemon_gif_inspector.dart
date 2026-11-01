@@ -12,6 +12,7 @@ final class PokemonGifInspector {
       {this.maxFrames = 500, this.maxCanvasPixels = 32000000});
   final int maxFrames;
   final int maxCanvasPixels;
+  static const int maxEncodedBytes = 32 * 1024 * 1024;
 
   PokemonGifInfo inspect(Uint8List bytes) {
     if (maxFrames < 1 || maxCanvasPixels < 1) {
@@ -27,7 +28,9 @@ final class PokemonGifInspector {
     }
 
     int word(int offset) => bytes[offset] | (bytes[offset + 1] << 8);
-    if (bytes.length < 14 || !(ascii(0, 'GIF87a') || ascii(0, 'GIF89a'))) {
+    if (bytes.length < 14 ||
+        bytes.length > maxEncodedBytes ||
+        !(ascii(0, 'GIF87a') || ascii(0, 'GIF89a'))) {
       invalid();
     }
     final width = word(6);

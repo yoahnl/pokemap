@@ -11,6 +11,7 @@ import '../../support/authoring_fingerprint.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
+import 'pokemon_media_storage_path.dart';
 
 enum PokemonDocumentKind { catalog, species, learnset, evolution, media }
 
@@ -370,6 +371,20 @@ final class PokemonCatalogActions {
     final isItemCatalog = kind == PokemonDocumentKind.catalog &&
         relativePath == context.snapshot.manifest.pokemon.catalogFiles['items'];
     final beforeBytes = _optionalBytes(parameters['beforeBytesBase64']);
+    final beforeDocument =
+        beforeBytes == null ? null : jsonDecode(utf8.decode(beforeBytes));
+    if (beforeBytes != null && beforeDocument is! Map) {
+      throw const FormatException('Before bytes must contain a JSON object.');
+    }
+    if (!deleting &&
+        kind == PokemonDocumentKind.media &&
+        beforeDocument is Map &&
+        beforeDocument['schemaVersion'] !=
+            _object(parameters, 'document')['schemaVersion']) {
+      throw const FormatException(
+        'Changing Pokemon media schema requires an explicit migration.',
+      );
+    }
     final PokemonJsonDocument? document = deleting
         ? null
         : PokemonJsonDocument.fromJson(
@@ -378,6 +393,18 @@ final class PokemonCatalogActions {
           );
     final resourceId =
         deleting ? _string(parameters, 'resourceId') : document!.identity;
+    if (kind == PokemonDocumentKind.media &&
+        context.request.extensions['workshopScope'] == true &&
+        !isCanonicalPokemonMediaStoragePath(
+            context.snapshot.manifest.pokemon.mediaDir,
+            relativePath,
+            resourceId)) {
+      throw ArgumentError.value(
+        relativePath,
+        'relativePath',
+        'must match the configured Pokemon media directory and identity',
+      );
+    }
     if (kind == PokemonDocumentKind.species) {
       final companionForms = context.snapshot.manifest.partyCompanion.mappings
           .where((mapping) => mapping.speciesId == resourceId)
@@ -403,10 +430,7 @@ final class PokemonCatalogActions {
       throw ArgumentError('Delete requires exact beforeBytesBase64.');
     }
     if (beforeBytes != null) {
-      final raw = jsonDecode(utf8.decode(beforeBytes));
-      if (raw is! Map) {
-        throw const FormatException('Before bytes must contain a JSON object.');
-      }
+      final raw = beforeDocument as Map;
       if (!isItemCatalog) {
         final identityKey = kind == PokemonDocumentKind.catalog
             ? 'catalog'
@@ -430,6 +454,11 @@ final class PokemonCatalogActions {
     final resource = AuthoringResourceRef(
       kind: 'pokemonDocument',
       id: '${kind.name}:$resourceId',
+      extensions: {
+        if (kind == PokemonDocumentKind.media &&
+            context.request.extensions['workshopScope'] == true)
+          scopedPokemonMediaHistoryKey: true,
+      },
       revision: beforeBytes == null
           ? null
           : computeAuthoringBytesFingerprint(
@@ -524,7 +553,7 @@ void _validateStoragePath(
     PokemonDocumentKind.evolution =>
       relativePath.startsWith('${pokemon.evolutionsDir}/'),
     PokemonDocumentKind.media =>
-      relativePath.startsWith('${pokemon.mediaDir}/'),
+      isPokemonMediaStoragePath(pokemon.mediaDir, relativePath),
   };
   if (!valid || !relativePath.endsWith('.json')) {
     throw ArgumentError.value(

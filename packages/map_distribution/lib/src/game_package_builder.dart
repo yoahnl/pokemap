@@ -12,6 +12,7 @@ import 'game_package_content_validator.dart';
 import 'game_package_inventory_builder.dart';
 import 'game_package_manifest.dart';
 import 'game_package_manifest_codec.dart';
+import 'game_package_pokemon_media_validator.dart';
 import 'game_package_project_validator.dart';
 import 'game_package_security_policy.dart';
 import 'package_path_policy.dart';
@@ -212,12 +213,17 @@ final class GamePackageBuilder {
         payloadSnapshot[entry.path]! as Uint8List,
       );
     }
-    GamePackageProjectValidator(securityPolicy).validate(
+    final project = GamePackageProjectValidator(securityPolicy).validate(
       packagedManifest,
       payloadSnapshot['project/project.json']! as Uint8List,
       payloadPaths: payloadSnapshot.keys.toSet(),
       readPayload: (path) => payloadSnapshot[path],
       inventoryVerified: true,
+    );
+    GamePackagePokemonMediaValidator(securityPolicy).validate(
+      project: project,
+      inventory: {for (final entry in content.files) entry.path: entry},
+      readPayload: (path) => payloadSnapshot[path],
     );
     final entries = <MapEntry<String, List<int>>>[
       MapEntry<String, List<int>>('game-manifest.json', manifestBytes),

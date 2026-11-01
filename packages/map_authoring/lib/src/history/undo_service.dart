@@ -207,6 +207,7 @@ final class AuthoringUndoService {
   Future<AuthoringReceipt> apply(
     AuthoringPreparedHistoryMutation prepared, {
     AuthoringConfirmationToken? confirmationToken,
+    AuthoringTransactionPrecondition? additionalPrecondition,
     void Function()? beforeReservation,
     void Function()? preparationCheck,
   }) {
@@ -219,7 +220,12 @@ final class AuthoringUndoService {
       scope: prepared.scope,
       operationId: prepared.operationId,
       confirmationToken: confirmationToken,
-      precondition: prepared.precondition,
+      precondition: additionalPrecondition == null
+          ? prepared.precondition
+          : () async {
+              await additionalPrecondition();
+              await prepared.precondition?.call();
+            },
       beforeReservation: beforeReservation,
       preparationCheck: preparationCheck,
     );

@@ -120,6 +120,55 @@ void main() {
         isFalse);
   });
 
+  test('all animated Pokemon variants protect their referenced resource', () {
+    final manifest = ProjectManifest(
+      name: 'Fixture',
+      maps: [],
+      tilesets: [planche],
+      pokemon: const ProjectPokemonConfig(
+        enabled: true,
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
+    );
+    final snapshot = withDocuments(catalogSnapshot([], project: manifest), {
+      'pokemonMedia:bulbasaur': const PokemonMediaFile(
+        schemaVersion: 2,
+        speciesId: 'bulbasaur',
+        defaultFormId: 'base',
+        variants: {
+          'base': PokemonMediaVariant(
+            frontAnimated: 'images/planche.png',
+            backAnimated: 'images/planche.png',
+            frontShinyAnimated: 'images/planche.png',
+            backShinyAnimated: 'images/planche.png',
+            frontFemaleAnimated: 'images/planche.png',
+            backFemaleAnimated: 'images/planche.png',
+            frontShinyFemaleAnimated: 'images/planche.png',
+            backShinyFemaleAnimated: 'images/planche.png',
+          ),
+        },
+      ).toJson(),
+    });
+    final report = usage(snapshot);
+    expect(report.complete, isTrue);
+    final locations = report.entries
+        .where((entry) => entry.ownerKind == 'pokemonMedia')
+        .map((entry) => entry.location)
+        .toList();
+    for (final field in [
+      'frontAnimated',
+      'backAnimated',
+      'frontShinyAnimated',
+      'backShinyAnimated',
+      'frontFemaleAnimated',
+      'backFemaleAnimated',
+      'frontShinyFemaleAnimated',
+      'backShinyFemaleAnimated',
+    ]) {
+      expect(locations.where((location) => location.endsWith('.$field')), hasLength(1));
+    }
+  });
+
   test('shared bytes do not attribute another logical identity', () {
     final artifact =
         ContentArtifactRef.fromBytes([1, 2, 3], mediaType: 'image/png');

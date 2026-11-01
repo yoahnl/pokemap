@@ -131,6 +131,55 @@ void main() {
     expect(report.canExport, isFalse);
     expect(report.canPlaytest, isFalse);
   });
+
+  test('probes all animated media paths in schema v2', () async {
+    final root = await Directory.systemTemp.createTemp('pokemon-gif-probes-');
+    addTearDown(() => root.delete(recursive: true));
+    await _writeFixture(root);
+    const paths = {
+      'frontAnimated': 'assets/front.gif',
+      'backAnimated': 'assets/back.gif',
+      'frontShinyAnimated': 'assets/front-shiny.gif',
+      'backShinyAnimated': 'assets/back-shiny.gif',
+      'frontFemaleAnimated': 'assets/front-female.gif',
+      'backFemaleAnimated': 'assets/back-female.gif',
+      'frontShinyFemaleAnimated': 'assets/front-shiny-female.gif',
+      'backShinyFemaleAnimated': 'assets/back-shiny-female.gif',
+    };
+    await _writeJson(root, 'custom/media/sproutle.json', {
+      'schemaVersion': 2,
+      'speciesId': 'sproutle',
+      'defaultFormId': 'base',
+      'variants': {
+        'base': {
+          'frontStatic': 'assets/pokemon/sproutle-front.png',
+          'backStatic': 'assets/pokemon/sproutle-back.png',
+          ...paths,
+        },
+      },
+    });
+    final manifest = ProjectManifest.fromJson(
+      Map<String, dynamic>.from(
+        jsonDecode(await File('${root.path}/project.json').readAsString()) as Map,
+      ),
+    );
+    final reader = _ProbeReader(const LocalProjectFileReader(), {
+      'assets/pokemon/sproutle-front.png': ProjectResourceProbeStatus.exists,
+      'assets/pokemon/sproutle-back.png': ProjectResourceProbeStatus.exists,
+      for (final path in paths.values) path: ProjectResourceProbeStatus.missing,
+    });
+    final report = await const PokemonCatalogCoherenceLoader().validateProjectFiles(
+      reader: reader,
+      projectRoot: await root.resolveSymbolicLinks(),
+      manifest: manifest,
+    );
+    expect(reader.probeCounts.keys, containsAll(paths.values));
+    expect(reader.probeCounts.values, everyElement(1));
+    expect(
+      report.diagnostics.where((item) => item.code == 'media.asset_missing'),
+      hasLength(8),
+    );
+  });
 }
 
 Future<void> _writeFixture(Directory root) async {

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'pokemon_move_emblem.dart';
+import 'pokemon_move_recipe_panel.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonMoveDetail extends StatelessWidget {
-  const PokemonMoveDetail({super.key, required this.move});
+  const PokemonMoveDetail({super.key, required this.move, this.controller});
 
   final PokemonMoveSummary move;
+  final PokemonWorkspaceController? controller;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -107,6 +110,10 @@ class PokemonMoveDetail extends StatelessWidget {
           title: 'Description source',
           children: [Text(move.description!)],
         ),
+      ],
+      if (controller case final owner?) ...[
+        const SizedBox(height: 12),
+        PokemonMoveRecipePanel(controller: owner, move: move),
       ],
       const SizedBox(height: 12),
       StudioPanel(

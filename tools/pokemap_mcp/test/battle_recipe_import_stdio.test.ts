@@ -15,6 +15,24 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
+function largeWav(): Buffer {
+  const samples = 300_000;
+  const bytes = Buffer.alloc(44 + samples);
+  bytes.write('RIFF', 0);
+  bytes.writeUInt32LE(bytes.length - 8, 4);
+  bytes.write('WAVEfmt ', 8);
+  bytes.writeUInt32LE(16, 16);
+  bytes.writeUInt16LE(1, 20);
+  bytes.writeUInt16LE(1, 22);
+  bytes.writeUInt32LE(8000, 24);
+  bytes.writeUInt32LE(8000, 28);
+  bytes.writeUInt16LE(1, 32);
+  bytes.writeUInt16LE(8, 34);
+  bytes.write('data', 36);
+  bytes.writeUInt32LE(samples, 40);
+  return bytes;
+}
+
 async function runScenario(spl: boolean, withSound = false): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'battle-recipe-mcp-'));
   const dart = process.env.POKEMAP_TEST_DART ?? 'dart';
@@ -47,7 +65,7 @@ async function runScenario(spl: boolean, withSound = false): Promise<void> {
     }] }));
     const pngHash = createHash('sha256').update(png).digest('hex');
     const particleHash = createHash('sha256').update(particle).digest('hex');
-    const sound = withSound ? await readFile(resolve('../../packages/map_runtime/assets/audio/overworld/jump.wav')) : null;
+    const sound = withSound ? largeWav() : null;
     const soundHash = sound ? createHash('sha256').update(sound).digest('hex') : null;
     const recipe = Buffer.from(JSON.stringify({
       schemaVersion: 1, recipeId: 'visual', revision: '1', moveSourceId: 'source', variant: 'default',
@@ -123,6 +141,8 @@ async function runScenario(spl: boolean, withSound = false): Promise<void> {
     assert.deepEqual(await readFile(pngPath), png);
     const soundPath = join(root, 'data/pokemon/battle_recipes/blobs', owner, `${soundHash}.wav`);
     if (sound) assert.deepEqual(await readFile(soundPath), sound);
+    if (sound) await call('pokemap_workshop', { operation: 'read', projectHandle: opened.projectHandle,
+      actionId: 'pokemon.move_recipe.import', parameters });
     await call('pokemap_history', { operation: 'undo', projectHandle: opened.projectHandle,
       entryId: record(applied.receipt).receiptId, idempotencyKey: 'undo' });
     await assert.rejects(readFile(path), { code: 'ENOENT' });

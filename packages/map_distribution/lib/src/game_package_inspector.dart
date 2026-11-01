@@ -14,8 +14,10 @@ import 'game_package_format_exception.dart';
 import 'game_package_inspection.dart';
 import 'game_package_manifest.dart';
 import 'game_package_manifest_codec.dart';
+import 'game_package_pokemon_media_validator.dart';
 import 'game_package_project_validator.dart';
 import 'game_package_security_policy.dart';
+import 'pokemon_gif_inspector.dart';
 import 'random_access_package_source.dart';
 import 'random_access_zip_structure_reader.dart';
 import 'zip_structure_reader.dart';
@@ -53,8 +55,7 @@ final class GamePackageInspector {
 
   /// Inspects a package through bounded random-access reads.
   ///
-  /// The archive and media payloads are hashed incrementally. Only the
-  /// manifest, JSON/text entries, and a bounded media header are materialized.
+  /// The archive and media payloads are hashed incrementally.
   GamePackageInspectionResult inspectSourceSync(
     RandomAccessPackageSource source, {
     String? knownPackageSha256,
@@ -193,6 +194,10 @@ final class GamePackageInspector {
         raw.name,
         'JSON file exceeds its dedicated quota.',
       );
+    }
+    if (p.extension(raw.name).toLowerCase() == '.gif' &&
+        raw.size > PokemonGifInspector.maxEncodedBytes) {
+      _fail('entryTooLarge', raw.name, 'GIF exceeds its encoded byte quota.');
     }
     final streamed = _streamEntry(
       source,
@@ -363,7 +368,10 @@ final class GamePackageInspector {
   bool _isLargeWholeBufferCandidate(GamePackageFileEntry entry) {
     if (entry.size <= _parallelLargeWholeEntryBytes) return false;
     final extension = p.extension(entry.path).toLowerCase();
-    return extension == '.json' || extension == '.glb' || extension == '.blob';
+    return extension == '.json' ||
+        extension == '.glb' ||
+        extension == '.blob' ||
+        extension == '.gif';
   }
 
   PokemonRulesetReference _validateProject(
@@ -397,6 +405,11 @@ final class GamePackageInspector {
         payloadPaths: rawByPath.keys.toSet(),
         readPayload: readVerifiedPayload,
         inventoryVerified: true,
+      );
+      GamePackagePokemonMediaValidator(policy).validate(
+        project: project,
+        inventory: inventoryByPath,
+        readPayload: readVerifiedPayload,
       );
       pokemonRuleset = project.pokemon.ruleset.reference;
     }
@@ -619,6 +632,11 @@ final class GamePackageInspector {
         readPayload: (path) => rawByPath[path]?.data,
         inventoryVerified: true,
       );
+      GamePackagePokemonMediaValidator(policy).validate(
+        project: project,
+        inventory: inventoryByPath,
+        readPayload: (path) => rawByPath[path]?.data,
+      );
       pokemonRuleset = project.pokemon.ruleset.reference;
     }
     if (pokemonRuleset == null) {
@@ -780,6 +798,24 @@ final class GamePackageInspector {
           chunk[3] == 0x46) {
         bufferWholeEntry = true;
       }
+      if (buffered == 0 &&
+          p.extension(entry.name).toLowerCase() == '.blob' &&
+          chunk.length >= 6 &&
+          chunk[0] == 0x47 &&
+          chunk[1] == 0x49 &&
+          chunk[2] == 0x46 &&
+          chunk[3] == 0x38 &&
+          (chunk[4] == 0x37 || chunk[4] == 0x39) &&
+          chunk[5] == 0x61) {
+        if (entry.size > PokemonGifInspector.maxEncodedBytes) {
+          _fail(
+            'entryTooLarge',
+            entry.name,
+            'GIF exceeds its encoded byte quota.',
+          );
+        }
+        bufferWholeEntry = true;
+      }
       secretScanner.add(chunk);
       if (textInput != null) {
         try {
@@ -834,7 +870,7 @@ final class GamePackageInspector {
 
   bool _requiresWholeContent(String path) {
     final extension = p.extension(path).toLowerCase();
-    return extension == '.json' || extension == '.glb';
+    return extension == '.json' || extension == '.glb' || extension == '.gif';
   }
 
   bool _isStreamValidatedText(String path) {

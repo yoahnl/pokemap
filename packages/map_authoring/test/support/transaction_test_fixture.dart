@@ -20,6 +20,7 @@ final class TransactionTestHarness {
     AuthoringTransactionFaultInjector? faultInjector,
     bool documentReceiptIdentity = false,
     bool revisionBearingReference = false,
+    bool captureRecoveryReadRevision = false,
   }) async {
     final projectDirectory = await Directory.systemTemp.createTemp(
       'pokemap_transaction_',
@@ -66,6 +67,9 @@ final class TransactionTestHarness {
         parameters: const {'fixture': true},
         expectedRevision: snapshotRevision,
         idempotencyKey: 'idem-transaction',
+        extensions: {
+          if (captureRecoveryReadRevision) 'captureRecoveryReadRevision': true,
+        },
       ),
       snapshot: snapshot,
       build: (_) => _draft(revisionBearingReference: revisionBearingReference),
@@ -183,7 +187,9 @@ AuthoringMutationDraft _draft({required bool revisionBearingReference}) {
   final resourceA = AuthoringResourceRef(
     kind: 'fixture',
     id: 'a',
-    extensions: revisionBearingReference ? const {'origin': 'scoped-fixture'} : const {},
+    extensions: revisionBearingReference
+        ? const {'origin': 'scoped-fixture'}
+        : const {},
     revision: revisionBearingReference
         ? computeAuthoringBytesFingerprint(
             TransactionTestHarness.beforeA,

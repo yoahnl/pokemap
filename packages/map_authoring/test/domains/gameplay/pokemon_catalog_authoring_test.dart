@@ -66,7 +66,7 @@ void main() {
           'speciesId': 'sproutle',
         },
         PokemonDocumentKind.media: <String, dynamic>{
-          'schemaVersion': futureSchema,
+          'schemaVersion': currentPokemonMediaSchemaVersion + 1,
           'speciesId': 'sproutle',
         },
       };

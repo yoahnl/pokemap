@@ -17,6 +17,7 @@ void main() {
       final retry = await harness.apply();
 
       expect(first.status, AuthoringReceiptStatus.applied);
+      expect(first.extensions, isNot(contains('recoveryReadRevision')));
       expect(retry.toJson(), first.toJson());
       expect(await harness.readA(), TransactionTestHarness.afterA);
       expect(await harness.readB(), TransactionTestHarness.afterB);
@@ -51,6 +52,28 @@ void main() {
         operationId: 'operation-after-restart',
       );
       expect(durableReplay.toJson(), first.toJson());
+    });
+
+    test('retains the actual scoped read revision in a recoverable receipt',
+        () async {
+      final harness = await TransactionTestHarness.create(
+        captureRecoveryReadRevision: true,
+        faultInjector: (context) {
+          if (context.checkpoint ==
+              AuthoringTransactionCheckpoint.afterReservation) {
+            throw const AuthoringTransactionSimulatedCrash();
+          }
+        },
+      );
+      addTearDown(harness.dispose);
+
+      await expectLater(
+          harness.apply, throwsA(isA<AuthoringTransactionSimulatedCrash>()));
+      final journal = (await harness.readJournal())!;
+      expect(journal.intendedReceipt.extensions['recoveryReadRevision'],
+          harness.plan.baseRevision);
+      expect(await harness.readA(), TransactionTestHarness.beforeA);
+      expect(await harness.readB(), TransactionTestHarness.beforeB);
     });
 
     test('cleanup failure never turns a durable commit into a failed apply',
@@ -253,7 +276,8 @@ void main() {
     });
 
     for (final deleted in [false, true]) {
-      test('reports a concurrent ${deleted ? 'deletion' : 'edit'} for a '
+      test(
+          'reports a concurrent ${deleted ? 'deletion' : 'edit'} for a '
           'revision-bearing reference', () async {
         final harness = await TransactionTestHarness.create(
           revisionBearingReference: true,
@@ -270,8 +294,8 @@ void main() {
           harness.apply,
           throwsA(isA<AuthoringRevisionConflict>()
               .having((error) => error.code, 'code', 'revision.conflict')
-              .having((error) => error.conflicts.single.resource.id,
-                  'resource', 'a')
+              .having((error) => error.conflicts.single.resource.id, 'resource',
+                  'a')
               .having((error) => error.conflicts.single.resource.extensions,
                   'extensions', {'origin': 'scoped-fixture'})),
         );
@@ -279,7 +303,8 @@ void main() {
         expect(await harness.readA(), deleted ? isNull : external);
         expect(await harness.readB(), TransactionTestHarness.beforeB);
         expect(await harness.readCreated(), isNull);
-        expect(await harness.readDeleted(), TransactionTestHarness.beforeDeleted);
+        expect(
+            await harness.readDeleted(), TransactionTestHarness.beforeDeleted);
         expect(await harness.readJournal(), isNull);
         expect(
           await FileIdempotencyStore(filePath: harness.ledgerPath)

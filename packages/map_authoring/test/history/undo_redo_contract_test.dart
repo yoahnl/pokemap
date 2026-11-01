@@ -179,10 +179,42 @@ void main() {
       );
       await _recordDivergent(harness, 'redo');
 
+      var checked = false;
       await expectLater(
-        () => harness.undo.apply(redoPlan),
+        () => harness.undo.apply(
+          redoPlan,
+          additionalPrecondition: () async {
+            checked = true;
+          },
+        ),
         _throwsHistory('history.redo_branch_diverged'),
       );
+      expect(checked, isTrue);
+      await harness.expectBeforeState();
+    });
+
+    test('a scoped precondition can stop undo before any resource changes',
+        () async {
+      final harness = await _HistoryHarness.create();
+      addTearDown(harness.dispose);
+      final original = await harness.applyOriginal();
+      final plan = await harness.undo.planUndo(
+        actor: harness.actor,
+        projectId: harness.projectId,
+        entryId: original.receiptId,
+        snapshot: harness.snapshot(original.afterRevision!),
+        workspaceHandle: 'workspace:history',
+        idempotencyKey: 'idem-history-scoped-guard',
+      );
+      await expectLater(
+        () => harness.undo.apply(
+          plan,
+          additionalPrecondition: () async => throw StateError('blocked'),
+        ),
+        throwsStateError,
+      );
+      await harness.expectAfterState();
+      await harness.undo.apply(plan, additionalPrecondition: () async {});
       await harness.expectBeforeState();
     });
 

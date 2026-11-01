@@ -194,6 +194,8 @@ final class JournaledAuthoringTransaction {
                 plan.nativeCreationCapability!.inventoryFingerprint,
           'planId': plan.planId,
           'operationId': operationId,
+          if (request.extensions['captureRecoveryReadRevision'] == true)
+            'recoveryReadRevision': plan.baseRevision,
           if (plan.mapEditBinding != null)
             'mapEdit': plan.mapEditBinding!.toJson(),
           'multiFileGuarantee': 'recoverable',

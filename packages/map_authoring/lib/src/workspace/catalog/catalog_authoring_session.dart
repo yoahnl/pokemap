@@ -1,5 +1,6 @@
 import '../../contracts/map_edit_operation.dart';
 import '../../domains/maps/trigger_zone_actions.dart';
+import '../../domains/gameplay/pokemon_media_storage_path.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/exterior_decoration_references.dart';
 import 'dart:convert';
@@ -32,6 +33,8 @@ import '../../security/audit_record.dart';
 import '../../security/authorization_policy.dart';
 import '../../security/confirmation_token.dart';
 import '../../transactions/journaled_transaction.dart';
+import '../../transactions/recovery_service.dart';
+import '../../transactions/transaction_journal.dart';
 import '../../transactions/plan_store.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../api/authoring_result_projection.dart';
@@ -58,6 +61,7 @@ final class CatalogAuthoringSession {
       required this.inspectReplay,
       required this.prepareApply,
       required this.requirePlanPreconditions,
+      this.requireScopedMediaReconciled,
       required this.projections,
       required this.auditOutcome,
       required DateTime Function() clock,
@@ -90,6 +94,7 @@ final class CatalogAuthoringSession {
   final Future<void> Function(AuthoringPlan plan, String operationId)
       prepareApply;
   final Future<void> Function(AuthoringPlan plan) requirePlanPreconditions;
+  final Future<void> Function()? requireScopedMediaReconciled;
   final AuthoringResultProjectionStore? projections;
   final Future<void> Function(
       AuthoringPlan plan,
@@ -821,9 +826,46 @@ final class CatalogAuthoringSession {
     return stored != null && _onlyCatalogHeadChanges(stored);
   }
 
-  Future<String> _catalogRevisionForReceipt(AuthoringReceipt receipt) async {
+  Future<String> _catalogRevisionForReceipt(AuthoringReceipt receipt,
+      {AuthoringHistoryEntry? historyEntry}) async {
+    final mediaChanges = historyEntry?.receipt.actionId == 'pokemon.media.write'
+        ? historyEntry!.changes
+            .where((change) =>
+                change.resource.kind == 'pokemonDocument' &&
+                change.resource.id.startsWith('media:') &&
+                change.resource.extensions[scopedPokemonMediaHistoryKey] ==
+                    true)
+            .toList()
+        : const <AuthoringHistoryResourceChange>[];
+    if (mediaChanges.isNotEmpty) {
+      if (mediaChanges.length != 1) {
+        throw const AuthoringHistoryException(
+            'history.pokemon_media_path_changed',
+            'The media history target is no longer valid.');
+      }
+      final requireReconciled = requireScopedMediaReconciled;
+      if (requireReconciled == null) {
+        throw const AuthoringHistoryException(
+            'history.pokemon_media_precondition_unavailable',
+            'The media recovery precondition is unavailable.');
+      }
+      await requireReconciled();
+      await reader.store.requireProjectDescriptor(reader.descriptor);
+    }
     final current = (await CatalogProjectReader.open(
         store: reader.store, descriptor: reader.descriptor, metadataFields: {}))!;
+    if (mediaChanges.isNotEmpty) {
+      final change = mediaChanges.single;
+      final metadata = await current.readMetadata({'pokemon'});
+      if (!isCanonicalPokemonMediaStoragePath(
+          metadata.pokemon.mediaDir,
+          change.storageKey,
+          change.resource.id.substring('media:'.length))) {
+        throw const AuthoringHistoryException(
+            'history.pokemon_media_path_changed',
+            'The configured media directory no longer matches this history entry.');
+      }
+    }
     for (final entry in receipt.diff.entries) {
       final nativePath = entry.resource.extensions['nativeMapResourcePath'];
       if (nativePath is String) {
@@ -1030,7 +1072,7 @@ final class CatalogAuthoringSession {
     final catalogOnly =
         entry != null && await _isCatalogOnlyReceipt(entry.receipt, historyEntry: entry);
     final revision = catalogOnly
-        ? await _catalogRevisionForReceipt(entry.receipt)
+        ? await _catalogRevisionForReceipt(entry.receipt, historyEntry: entry)
         : (await loadProject()).revision;
     return projectHistory(
         operation: 'undo',
@@ -1051,7 +1093,7 @@ final class CatalogAuthoringSession {
     final catalogOnly =
         entry != null && await _isCatalogOnlyReceipt(entry.receipt, historyEntry: entry);
     final revision = catalogOnly
-        ? await _catalogRevisionForReceipt(entry.receipt)
+        ? await _catalogRevisionForReceipt(entry.receipt, historyEntry: entry)
         : (await loadProject()).revision;
     return projectHistory(
         operation: 'redo',
@@ -1085,7 +1127,7 @@ final class CatalogAuthoringSession {
     final entry = await editing.history
         .get(projectId: reader.projectId, entryId: entryId);
     final observed = catalogOnly && entry != null
-        ? await _catalogRevisionForReceipt(entry.receipt)
+        ? await _catalogRevisionForReceipt(entry.receipt, historyEntry: entry)
         : (await loadProject()).revision;
     if (observed != expectedRevision) {
       throw const AuthoringHistoryException(
@@ -1095,13 +1137,22 @@ final class CatalogAuthoringSession {
       throw const AuthoringHistoryException('history.bulk_origin_required',
           'A canonical pack history entry is required.');
     }
+    final captureMediaRecoveryRevision =
+        entry?.receipt.actionId == 'pokemon.media.write' &&
+            entry!.changes.any((change) =>
+                change.resource.kind == 'pokemonDocument' &&
+                change.resource.extensions[scopedPokemonMediaHistoryKey] ==
+                    true);
     final request = AuthoringRequest(
         requestId: operationId,
         actionId: 'history.$operation',
         actionVersion: 1,
         workspaceHandle: workspaceHandle.value,
         expectedRevision: expectedRevision,
-        idempotencyKey: operationId);
+        idempotencyKey: operationId,
+        extensions: {
+          if (captureMediaRecoveryRevision) 'captureRecoveryReadRevision': true,
+        });
     _authorize(AuthoringSecurityOperation.plan, request: request);
     final CatalogEditingPlan prepared;
     if (operation == 'revert') {
@@ -1136,7 +1187,8 @@ final class CatalogAuthoringSession {
           request: request,
           publicBaseRevision: expectedRevision,
           currentProjectRevision: catalogOnly
-              ? () => _catalogRevisionForReceipt(entry!.receipt)
+              ? () => _catalogRevisionForReceipt(entry!.receipt,
+                  historyEntry: entry)
               : () async => (await loadProject()).revision);
     } else {
       prepared = await editing.planRedo(
@@ -1146,7 +1198,8 @@ final class CatalogAuthoringSession {
           request: request,
           publicBaseRevision: expectedRevision,
           currentProjectRevision: catalogOnly
-              ? () => _catalogRevisionForReceipt(entry!.receipt)
+              ? () => _catalogRevisionForReceipt(entry!.receipt,
+                  historyEntry: entry)
               : () async => (await loadProject()).revision);
     }
     _plans[prepared.plan.planId] = prepared;
@@ -1160,12 +1213,164 @@ final class CatalogAuthoringSession {
   Future<AuthoringMutationResult> recover(String operationId) async {
     _authorize(AuthoringSecurityOperation.recover, touched: 1);
     final editing = await _editing();
-    final receipt = await editing.reconcile(operationId);
+    final receipt = await editing.reconcile(operationId,
+        precondition: () => _requireScopedMediaRecovery(operationId, editing));
     if (receipt == null) {
       throw const CatalogStorageException('catalog.operation_discarded',
           'The unreserved catalog operation was discarded.');
     }
     return _result(receipt);
+  }
+
+  Future<void> _requireScopedMediaRecovery(
+      String operationId, CatalogEditingSession editing) async {
+    final gateway = reader.store.gateway;
+    final journal = await gateway.readJournal(operationId);
+    if (journal == null ||
+        !const {'pokemon.media.write', 'history.undo', 'history.redo'}
+            .contains(journal.scope.actionId)) {
+      return;
+    }
+    final mediaChanges = journal.entries
+        .where((entry) =>
+            entry.resource.kind == 'pokemonDocument' &&
+            entry.resource.id.startsWith('media:') &&
+            entry.resource.extensions[scopedPokemonMediaHistoryKey] == true)
+        .toList();
+    if (mediaChanges.isEmpty) return;
+    if (mediaChanges.length != 1) {
+      throw const AuthoringHistoryException(
+          'history.pokemon_media_path_changed',
+          'The media history target is no longer valid.');
+    }
+    final inspection = await editing.recovery.inspectOperation(
+        operationId: operationId, scope: journal.scope);
+    if (inspection?.disposition == AuthoringRecoveryDisposition.completed) {
+      return;
+    }
+    if (inspection == null ||
+        inspection.disposition == AuthoringRecoveryDisposition.blocked) {
+      throw const AuthoringRecoveryException('recovery.journal_inconsistent',
+          'The media transaction cannot be recovered safely in its current state.');
+    }
+    final pending =
+        await readPendingTransactionJournals(gateway, requirePrepared: true);
+    if (pending.any((entry) => entry.operationId != operationId)) {
+      throw const AuthoringRecoveryException(
+          'resource_pack.recovery_required',
+          'Reconcile the other pending transactions before recovering this operation.');
+    }
+    await reader.store.requireProjectDescriptor(reader.descriptor);
+    await _requireScopedMediaRecoveryDependencies(journal);
+    final head = await reader.store.readHead();
+    if (head == null) {
+      throw const CatalogStorageException(
+          'catalog.head_unavailable', 'The catalog head is unavailable.');
+    }
+    final snapshot = (await reader.store.openRoot(head)).snapshot;
+    final catalog = await PortableProjectCatalog.fromSnapshot(snapshot,
+        metadataFields: {'pokemon'});
+    final change = mediaChanges.single;
+    if (!isCanonicalPokemonMediaStoragePath(
+        catalog.projectMetadata.pokemon.mediaDir,
+        change.storageKey,
+        change.resource.id.substring('media:'.length))) {
+      throw const AuthoringHistoryException(
+          'history.pokemon_media_path_changed',
+          'The configured media directory no longer matches this history entry.');
+    }
+  }
+
+  Future<void> _requireScopedMediaRecoveryDependencies(
+      AuthoringTransactionJournal journal) async {
+    final inventories = journal.intendedReceipt.diff.entries
+        .where((entry) =>
+            entry.path == '/workshopRevision' &&
+            entry.resource.kind == 'catalogHead' &&
+            entry.resource.extensions['workshopResourcePaths'] is List)
+        .toList();
+    if (inventories.length != 1) {
+      throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+          'The media operation has no recoverable dependency inventory.');
+    }
+    final expected = journal.scope.actionId == 'pokemon.media.write'
+        ? inventories.single.before
+        : journal.intendedReceipt.extensions['recoveryReadRevision'];
+    if (expected is! String) {
+      throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+          'The media operation has no retained dependency revision.');
+    }
+    final rawPaths = inventories.single.resource
+        .extensions['workshopResourcePaths'] as List;
+    if (rawPaths.any((path) => path is! String) ||
+        rawPaths.toSet().length != rawPaths.length) {
+      throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+          'The media operation has an invalid dependency inventory.');
+    }
+    final headEntries = journal.entries
+        .where((entry) => entry.storageKey == CatalogStorageStore.headStorageKey)
+        .toList();
+    if (headEntries.length != 1) {
+      throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+          'The media operation has no recoverable catalog head.');
+    }
+    final staged = await reader.store.gateway.readStagedPayload(
+      operationId: journal.operationId,
+      storageKey: CatalogStorageStore.headStorageKey,
+      kind: TransactionPayloadKind.before,
+    );
+    final payload = staged.payload;
+    if (payload == null) {
+      throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+          'The media operation has no valid retained catalog head.');
+    }
+    final CatalogObjectReference root;
+    try {
+      if (payload.byteLength > CatalogStorageStore.maximumHeadBytes ||
+          payload.resourceRevision != headEntries.single.beforeRevision) {
+        throw const FormatException();
+      }
+      final bytes = await payload.readBytes();
+      final decoded = jsonDecode(utf8.decode(bytes));
+      if (decoded is! Map || decoded['root'] is! Map) {
+        throw const FormatException();
+      }
+      root = CatalogObjectReference.fromJson(
+          Map<String, dynamic>.from(decoded['root'] as Map));
+      final canonical = CatalogStorageStore.encodeHead(root);
+      if (bytes.length != canonical.length ||
+          Iterable<int>.generate(bytes.length)
+              .any((index) => bytes[index] != canonical[index])) {
+        throw const FormatException();
+      }
+    } on FormatException {
+      throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+          'The media operation has no valid retained catalog head.');
+    } on TypeError {
+      throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+          'The media operation has no valid retained catalog head.');
+    } finally {
+      await payload.release();
+    }
+    final revisions = <String, String?>{};
+    for (final path in rawPaths.cast<String>()) {
+      final changes = journal.entries
+          .where((entry) => entry.storageKey == path)
+          .toList();
+      if (changes.length > 1) {
+        throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+            'The media operation has an ambiguous dependency inventory.');
+      }
+      revisions[path] = changes.isEmpty
+          ? await reader.store.gateway.readResourceRevision(path)
+          : changes.single.beforeRevision;
+    }
+    final current = CatalogWorkshopSelection.fingerprint(
+        'sha256:${root.sha256}', revisions);
+    if (current != expected) {
+      throw const AuthoringRecoveryException('recovery.dependency_changed',
+          'A media dependency changed before the operation could be recovered.');
+    }
   }
 
   Future<Map<String, Object?>> recoveryStatus(String operationId) async {

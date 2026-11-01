@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as image;
@@ -40,21 +41,158 @@ void main() {
         throwsFormatException);
   });
 
-  test('game packages keep refusing GIF until runtime compatibility is added',
-      () {
+  test('game packages accept bounded GIFs and content-addressed GIF blobs', () {
+    const validator = GamePackageContentValidator(GamePackageSecurityPolicy());
+    for (final path in [
+      'project/assets/pokemon/battle.gif',
+      'project/sprites/pokemon/battle.gif',
+      'project/assets/.pokemap-store/${'a' * 64}.blob',
+    ]) {
+      expect(
+        () => validator.validate(
+          GamePackageFileEntry(
+            path: path,
+            size: sample.length,
+            sha256: '0' * 64,
+            mediaType: 'image/gif',
+          ),
+          sample,
+        ),
+        returnsNormally,
+      );
+    }
+  });
+
+  test('GIFs cannot bypass excluded project directories', () {
+    const validator = GamePackageContentValidator(GamePackageSecurityPolicy());
+    for (final path in ['project/saves/battle.gif', 'project/cache/battle.gif']) {
+      expect(
+        () => validator.validate(
+          GamePackageFileEntry(
+            path: path,
+            size: sample.length,
+            sha256: '0' * 64,
+            mediaType: 'image/gif',
+          ),
+          sample,
+        ),
+        throwsA(isA<GamePackageFormatException>()),
+      );
+    }
+  });
+
+  test('rejects malformed GIFs, wrong MIME and excessive encoded size', () {
+    const validator = GamePackageContentValidator(GamePackageSecurityPolicy());
+    GamePackageFileEntry entry({int? size, String? mediaType = 'image/gif'}) =>
+        GamePackageFileEntry(
+          path: 'project/assets/pokemon/battle.gif',
+          size: size ?? sample.length,
+          sha256: '0' * 64,
+          mediaType: mediaType,
+        );
+    expect(
+      () => validator.validate(entry(), Uint8List.sublistView(sample, 0, 12)),
+      throwsA(isA<GamePackageFormatException>()),
+    );
+    expect(
+      () => validator.validate(
+        entry(),
+        Uint8List.sublistView(sample, 0, sample.length - 1),
+      ),
+      throwsA(isA<GamePackageFormatException>()),
+    );
+    expect(
+      () => validator.validate(entry(mediaType: 'image/png'), sample),
+      throwsA(isA<GamePackageFormatException>()),
+    );
+    expect(
+      () => validator.validate(entry(size: 32 * 1024 * 1024 + 1), sample),
+      throwsA(isA<GamePackageFormatException>()),
+    );
+    expect(
+      () => const GamePackageContentValidator(
+        GamePackageSecurityPolicy(maxImageDimension: 1),
+      ).validate(entry(), sample),
+      throwsA(isA<GamePackageFormatException>()),
+    );
+  });
+
+  test('rejects more frames than the runtime can admit', () {
+    final frame = image.Image(width: 2, height: 2);
+    final encoder = image.GifEncoder();
+    for (var i = 0; i < 257; i++) {
+      encoder.addFrame(frame);
+    }
+    final bytes = Uint8List.fromList(encoder.finish()!);
+    expect(const PokemonGifInspector().inspect(bytes).frameCount, 257);
     expect(
       () => const GamePackageContentValidator(GamePackageSecurityPolicy())
           .validate(
         GamePackageFileEntry(
           path: 'project/assets/pokemon/battle.gif',
-          size: sample.length,
+          size: bytes.length,
           sha256: '0' * 64,
           mediaType: 'image/gif',
         ),
-        sample,
+        bytes,
       ),
-      throwsA(isA<GamePackageFormatException>()
-          .having((error) => error.code, 'code', 'executableContent')),
+      throwsA(isA<GamePackageFormatException>()),
+    );
+  });
+
+  test('content-only JSON inspection does not infer Pokemon media scope', () {
+    const validator = GamePackageContentValidator(GamePackageSecurityPolicy());
+    for (final field in [
+      'frontAnimated',
+      'backAnimated',
+      'frontShinyAnimated',
+      'backShinyAnimated',
+      'frontFemaleAnimated',
+      'backFemaleAnimated',
+      'frontShinyFemaleAnimated',
+      'backShinyFemaleAnimated',
+    ]) {
+      final bytes = Uint8List.fromList(utf8.encode(jsonEncode({
+        'schemaVersion': 2,
+        'speciesId': 'oshawott',
+        'defaultFormId': 'base',
+        'variants': {'base': {field: '../outside.gif'}},
+      })));
+      expect(
+        () => validator.validate(
+          GamePackageFileEntry(
+            path: 'project/data/pokemon/media/oshawott.json',
+            size: bytes.length,
+            sha256: '0' * 64,
+            mediaType: 'application/json',
+          ),
+          bytes,
+        ),
+        returnsNormally,
+        reason: field,
+      );
+    }
+  });
+
+  test('preserves the old treatment of unknown schema v1 fields', () {
+    final bytes = Uint8List.fromList(utf8.encode(jsonEncode({
+      'schemaVersion': 1,
+      'speciesId': 'oshawott',
+      'defaultFormId': 'base',
+      'variants': {'base': {'frontAnimated': '../legacy-extension'}},
+    })));
+    expect(
+      () => const GamePackageContentValidator(GamePackageSecurityPolicy())
+          .validate(
+        GamePackageFileEntry(
+          path: 'project/data/pokemon/media/oshawott.json',
+          size: bytes.length,
+          sha256: '0' * 64,
+          mediaType: 'application/json',
+        ),
+        bytes,
+      ),
+      returnsNormally,
     );
   });
 }
