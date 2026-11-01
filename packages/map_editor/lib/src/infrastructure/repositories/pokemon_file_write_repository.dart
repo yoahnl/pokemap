@@ -137,11 +137,48 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     PokemonMediaFile media,
   ) async {
     final speciesId = requireSafePokemonMediaId(media.speciesId);
-    await _writeJsonObject(
-      workspace,
+    final absolutePath = workspace.resolveProjectRelativePath(
       'data/pokemon/media/$speciesId.json',
-      media.toJson(),
     );
+    await _validateMediaWritePath(workspace.projectRoot, absolutePath);
+    await workspace.ensureDirectoryExists(absolutePath);
+    await File(
+      absolutePath,
+    ).writeAsString(const JsonEncoder.withIndent('  ').convert(media.toJson()));
+  }
+
+  Future<void> _validateMediaWritePath(
+    String projectRoot,
+    String absolutePath,
+  ) async {
+    final lexicalRoot = p.normalize(p.absolute(projectRoot));
+    final lexicalPath = p.normalize(p.absolute(absolutePath));
+    if (!p.isWithin(lexicalRoot, lexicalPath)) {
+      throw const EditorValidationException(
+        'Pokemon media path must stay inside the project',
+      );
+    }
+    try {
+      final canonicalRoot = await Directory(lexicalRoot).resolveSymbolicLinks();
+      var current = canonicalRoot;
+      final relative = p.relative(lexicalPath, from: lexicalRoot);
+      for (final segment in p.split(relative)) {
+        current = p.join(current, segment);
+        if (await FileSystemEntity.type(current, followLinks: false) ==
+            FileSystemEntityType.link) {
+          current = await Link(current).resolveSymbolicLinks();
+          if (current != canonicalRoot && !p.isWithin(canonicalRoot, current)) {
+            throw const EditorValidationException(
+              'Pokemon media path resolves outside the project',
+            );
+          }
+        }
+      }
+    } on FileSystemException {
+      throw const EditorValidationException(
+        'Pokemon media path cannot be resolved safely',
+      );
+    }
   }
 
   @override

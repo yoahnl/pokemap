@@ -13,6 +13,7 @@ import 'package:map_editor/src/infrastructure/repositories/file_repositories.dar
 import 'package:path/path.dart' as p;
 
 void main() {
+  Directory? qaRunDirectory;
   late Directory tempProjectRoot;
   late String repoRootPath;
   late ProjectFileSystem workspace;
@@ -20,10 +21,53 @@ void main() {
   late FilePokemonWriteRepository writeRepository;
   late FilePokemonReadRepository readRepository;
 
+  setUpAll(() async {
+    final supplied = Platform.environment['AVELUNE_QA_ROOT'];
+    Directory base;
+    if (Platform.isMacOS) {
+      final home = Platform.environment['HOME'];
+      if (home == null || home.isEmpty) {
+        throw StateError('HOME is required to locate AveluneQA.');
+      }
+      final canonicalBase = Directory(
+        p.join(home, 'Library', 'Caches', 'AveluneQA'),
+      );
+      await canonicalBase.create(recursive: true);
+      base = supplied == null || supplied.isEmpty
+          ? canonicalBase
+          : Directory(supplied);
+      if (!p.isAbsolute(base.path) || !await base.exists()) {
+        throw ArgumentError(
+          'AVELUNE_QA_ROOT must be an existing absolute path.',
+        );
+      }
+      final allowed = await canonicalBase.resolveSymbolicLinks();
+      final selected = await base.resolveSymbolicLinks();
+      if (selected != allowed && !p.isWithin(allowed, selected)) {
+        throw ArgumentError('AVELUNE_QA_ROOT must be inside AveluneQA.');
+      }
+    } else {
+      base = supplied == null || supplied.isEmpty
+          ? Directory.systemTemp
+          : Directory(supplied);
+      if (!p.isAbsolute(base.path) || !await base.exists()) {
+        throw ArgumentError(
+          'AVELUNE_QA_ROOT must be an existing absolute path.',
+        );
+      }
+    }
+    qaRunDirectory = await base.createTemp('pokemon_media_writer_');
+  });
+
+  tearDownAll(() async {
+    final directory = qaRunDirectory;
+    if (directory != null && await directory.exists()) {
+      await directory.delete(recursive: true);
+    }
+  });
+
   setUp(() async {
-    tempProjectRoot = await Directory.systemTemp.createTemp(
-      'pokemon_write_repo_',
-    );
+    tempProjectRoot = await qaRunDirectory!.createTemp('pokemon_write_repo_');
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     await CreateProjectUseCase(
@@ -42,6 +86,207 @@ void main() {
   });
 
   group('FilePokemonWriteRepository', () {
+    test(
+      'refuses media write through a directory link outside the project',
+      () async {
+        final outside = await qaRunDirectory!.createTemp(
+          'pokemon_media_outside_',
+        );
+        addTearDown(() => outside.delete(recursive: true));
+        final externalFile = File(p.join(outside.path, 'bulbasaur.json'));
+        await externalFile.writeAsString('outside must remain unchanged');
+        final mediaDirectory = Directory(
+          workspace.resolveProjectRelativePath('data/pokemon/media'),
+        );
+        if (await mediaDirectory.exists()) {
+          await mediaDirectory.delete(recursive: true);
+        }
+        await mediaDirectory.parent.create(recursive: true);
+        await Link(mediaDirectory.path).create(outside.path);
+
+        Object? failure;
+        try {
+          await writeRepository.saveMedia(workspace, _bulbasaurMedia());
+        } catch (error) {
+          failure = error;
+        }
+
+        expect(
+          await externalFile.readAsString(),
+          'outside must remain unchanged',
+        );
+        expect(failure, isA<EditorValidationException>());
+      },
+      skip: Platform.isWindows
+          ? 'Symbolic link creation may require elevated privileges.'
+          : false,
+    );
+
+    test(
+      'refuses media write through a file link outside the project',
+      () async {
+        final outside = await qaRunDirectory!.createTemp(
+          'pokemon_media_outside_',
+        );
+        addTearDown(() => outside.delete(recursive: true));
+        final externalFile = File(p.join(outside.path, 'external.json'));
+        await externalFile.writeAsString('outside must remain unchanged');
+        final mediaDirectory = Directory(
+          workspace.resolveProjectRelativePath('data/pokemon/media'),
+        );
+        await mediaDirectory.create(recursive: true);
+        await Link(
+          p.join(mediaDirectory.path, 'bulbasaur.json'),
+        ).create(externalFile.path);
+
+        Object? failure;
+        try {
+          await writeRepository.saveMedia(workspace, _bulbasaurMedia());
+        } catch (error) {
+          failure = error;
+        }
+
+        expect(
+          await externalFile.readAsString(),
+          'outside must remain unchanged',
+        );
+        expect(failure, isA<EditorValidationException>());
+      },
+      skip: Platform.isWindows
+          ? 'Symbolic link creation may require elevated privileges.'
+          : false,
+    );
+
+    test(
+      'refuses media write through an ancestor link outside the project',
+      () async {
+        final outside = await qaRunDirectory!.createTemp(
+          'pokemon_media_outside_',
+        );
+        addTearDown(() => outside.delete(recursive: true));
+        final externalDirectory = await Directory(
+          p.join(outside.path, 'media'),
+        ).create();
+        final externalFile = File(
+          p.join(externalDirectory.path, 'bulbasaur.json'),
+        );
+        await externalFile.writeAsString('outside must remain unchanged');
+        final pokemonDirectory = Directory(
+          workspace.resolveProjectRelativePath('data/pokemon'),
+        );
+        if (await pokemonDirectory.exists()) {
+          await pokemonDirectory.delete(recursive: true);
+        }
+        await pokemonDirectory.parent.create(recursive: true);
+        await Link(pokemonDirectory.path).create(outside.path);
+
+        Object? failure;
+        try {
+          await writeRepository.saveMedia(workspace, _bulbasaurMedia());
+        } catch (error) {
+          failure = error;
+        }
+
+        expect(
+          await externalFile.readAsString(),
+          'outside must remain unchanged',
+        );
+        expect(failure, isA<EditorValidationException>());
+      },
+      skip: Platform.isWindows
+          ? 'Symbolic link creation may require elevated privileges.'
+          : false,
+    );
+
+    test(
+      'keeps an existing media directory link inside the project',
+      () async {
+        final internalDirectory = await Directory(
+          p.join(tempProjectRoot.path, 'internal_media'),
+        ).create();
+        final mediaDirectory = Directory(
+          workspace.resolveProjectRelativePath('data/pokemon/media'),
+        );
+        if (await mediaDirectory.exists()) {
+          await mediaDirectory.delete(recursive: true);
+        }
+        await mediaDirectory.parent.create(recursive: true);
+        await Link(mediaDirectory.path).create(internalDirectory.path);
+
+        await writeRepository.saveMedia(workspace, _bulbasaurMedia());
+
+        final saved = File(p.join(internalDirectory.path, 'bulbasaur.json'));
+        expect(
+          (jsonDecode(await saved.readAsString()) as Map)['speciesId'],
+          'bulbasaur',
+        );
+      },
+      skip: Platform.isWindows
+          ? 'Symbolic link creation may require elevated privileges.'
+          : false,
+    );
+
+    test(
+      'keeps an existing media file link inside the project',
+      () async {
+        final internalFile = File(
+          p.join(tempProjectRoot.path, 'internal.json'),
+        );
+        await internalFile.writeAsString('before');
+        final mediaDirectory = Directory(
+          workspace.resolveProjectRelativePath('data/pokemon/media'),
+        );
+        await mediaDirectory.create(recursive: true);
+        await Link(
+          p.join(mediaDirectory.path, 'bulbasaur.json'),
+        ).create(internalFile.path);
+
+        await writeRepository.saveMedia(workspace, _bulbasaurMedia());
+
+        expect(
+          (jsonDecode(await internalFile.readAsString()) as Map)['speciesId'],
+          'bulbasaur',
+        );
+      },
+      skip: Platform.isWindows
+          ? 'Symbolic link creation may require elevated privileges.'
+          : false,
+    );
+
+    for (final targetIsExternal in [false, true]) {
+      test(
+        'refuses a dangling media file link with external=$targetIsExternal',
+        () async {
+          final outside = await qaRunDirectory!.createTemp(
+            'pokemon_media_outside_',
+          );
+          addTearDown(() => outside.delete(recursive: true));
+          final target = File(
+            p.join(
+              targetIsExternal ? outside.path : tempProjectRoot.path,
+              'missing.json',
+            ),
+          );
+          final mediaDirectory = Directory(
+            workspace.resolveProjectRelativePath('data/pokemon/media'),
+          );
+          await mediaDirectory.create(recursive: true);
+          await Link(
+            p.join(mediaDirectory.path, 'bulbasaur.json'),
+          ).create(target.path);
+
+          await expectLater(
+            () => writeRepository.saveMedia(workspace, _bulbasaurMedia()),
+            throwsA(isA<EditorValidationException>()),
+          );
+          expect(await target.exists(), isFalse);
+        },
+        skip: Platform.isWindows
+            ? 'Symbolic link creation may require elevated privileges.'
+            : false,
+      );
+    }
+
     test('refuses path separators in Pokemon media identities', () async {
       for (final id in ['nested/escape', r'nested\escape', 'bad\u0000id']) {
         final media = PokemonMediaFile(
@@ -231,9 +476,7 @@ void main() {
       'writes in the workspace project and not at the monorepo root',
       () async {
         final species = _bulbasaurSpecies();
-        final decoy = await Directory.systemTemp.createTemp(
-          'pokemon_write_decoy_',
-        );
+        final decoy = await qaRunDirectory!.createTemp('pokemon_write_decoy_');
         final originalCurrent = Directory.current;
         try {
           Directory.current = decoy.path;
