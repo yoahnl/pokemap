@@ -6,17 +6,21 @@ import 'dart:typed_data';
 import 'package:map_core/map_core.dart';
 import 'package:image/image.dart' as img;
 
+import 'game_package_format_exception.dart';
 import 'raster_image_dimensions.dart';
+import 'strict_json_structure_validator.dart';
 
 final class GlbModel3dInspector {
   const GlbModel3dInspector(
       {this.maxTextureDimension = 4096,
       this.maxTexturePixels = 16777216,
-      this.requireStaticTextures = false});
+      this.requireStaticTextures = false,
+      this.experimentalSkinnedModels = false});
 
   final int maxTextureDimension;
   final int maxTexturePixels;
   final bool requireStaticTextures;
+  final bool experimentalSkinnedModels;
 
   Model3dInspection inspect(List<int> bytes) {
     if (bytes.length < 28 || bytes.length > 128 * 1024 * 1024) {
@@ -44,8 +48,16 @@ final class GlbModel3dInspector {
         throw const FormatException('Invalid GLB chunk bounds.');
       }
       if (chunks == 0 && type == 0x4e4f534a && length <= 8 * 1024 * 1024) {
-        document = _object(
-            jsonDecode(utf8.decode(bytes.sublist(offset, offset + length))));
+        final source = utf8.decode(bytes.sublist(offset, offset + length));
+        if (experimentalSkinnedModels) {
+          try {
+            const StrictJsonStructureValidator().validate(source,
+                path: 'model.glb', maxDepth: 64, maxNodes: 50000);
+          } on GamePackageFormatException {
+            throw const FormatException('Invalid or overly complex GLB JSON.');
+          }
+        }
+        document = _object(jsonDecode(source));
       } else if (chunks == 1 && type == 0x004e4942) {
         binary = Uint8List.fromList(bytes.sublist(offset, offset + length));
       } else {
@@ -58,25 +70,41 @@ final class GlbModel3dInspector {
       throw const FormatException(
           'A standalone GLB requires JSON and BIN chunks.');
     }
-    return _Inspection(document, ByteData.sublistView(binary),
-            maxTextureDimension, maxTexturePixels, requireStaticTextures)
+    return _Inspection(
+            document,
+            ByteData.sublistView(binary),
+            maxTextureDimension,
+            maxTexturePixels,
+            requireStaticTextures,
+            experimentalSkinnedModels)
         .inspect();
   }
 }
 
 final class _Inspection {
-  _Inspection(this.json, this.binary, this.maxTextureDimension,
-      this.maxTexturePixels, this.requireStaticTextures);
+  _Inspection(
+      this.json,
+      this.binary,
+      this.maxTextureDimension,
+      this.maxTexturePixels,
+      this.requireStaticTextures,
+      this.experimentalSkinnedModels);
   final int maxTextureDimension, maxTexturePixels;
   final bool requireStaticTextures;
+  final bool experimentalSkinnedModels;
   final Map<String, dynamic> json;
   final ByteData binary;
   late final List<Map<String, dynamic>> views;
   late final List<Map<String, dynamic>> accessors;
   late final List<Map<String, dynamic>> meshes;
   late final List<Map<String, dynamic>> nodes;
+  late final bool experimentalSkinnedScene;
   final Map<int, _Accessor> decoded = {};
   final Set<String> diagnostics = {};
+  final Map<int, int> skinMaximumJoint = {};
+  final Set<int> checkedSkinWeights = {};
+  final Set<(int, int, int, int?)> checkedSkinPartitions = {};
+  var skinPartitionWork = 0;
   var componentBudget = 0;
   var triangleCount = 0;
   var instanceTriangles = 0;
@@ -114,8 +142,17 @@ final class _Inspection {
     accessors = _objects(json['accessors'], 16384);
     meshes = _objects(json['meshes'], 2048);
     nodes = _objects(json['nodes'], 4096);
-    if (_list(json['skins']).isNotEmpty ||
-        nodes.any((node) => node.containsKey('skin'))) {
+    experimentalSkinnedScene = experimentalSkinnedModels &&
+        (_list(json['skins']).isNotEmpty ||
+            nodes.any((node) => node.containsKey('skin')));
+    if (experimentalSkinnedScene &&
+        _list(json['extensionsUsed'])
+            .any((extension) => extension != 'KHR_materials_unlit')) {
+      throw const FormatException('A skeletal model extension is unsupported.');
+    }
+    if (!experimentalSkinnedModels &&
+        (_list(json['skins']).isNotEmpty ||
+            nodes.any((node) => node.containsKey('skin')))) {
       throw const FormatException(
           'Skeletal models are unsupported in the initial 3D rendering profile.');
     }
@@ -215,6 +252,18 @@ final class _Inspection {
           _index(primitive['material'], materials.length);
         }
         final attributes = _object(primitive['attributes']);
+        if (experimentalSkinnedScene &&
+            attributes.keys.any((key) => !const {
+                  'POSITION',
+                  'NORMAL',
+                  'TEXCOORD_0',
+                  'COLOR_0',
+                  'JOINTS_0',
+                  'WEIGHTS_0'
+                }.contains(key))) {
+          throw const FormatException(
+              'A skeletal vertex attribute is unsupported.');
+        }
         final positions =
             accessor(_index(attributes['POSITION'], accessors.length));
         if (positions.type != 'VEC3' || positions.componentType != 5126) {
@@ -254,9 +303,20 @@ final class _Inspection {
           }
           if (entry.key.startsWith('JOINTS_') ||
               entry.key.startsWith('WEIGHTS_')) {
-            throw const FormatException(
-                'Skeletal vertex attributes are unsupported in the initial 3D rendering profile.');
+            if (!experimentalSkinnedModels) {
+              throw const FormatException(
+                  'Skeletal vertex attributes are unsupported in the initial 3D rendering profile.');
+            }
+            if (entry.key != 'JOINTS_0' && entry.key != 'WEIGHTS_0') {
+              throw const FormatException(
+                  'Additional skeletal vertex attributes are unsupported.');
+            }
           }
+        }
+        if (experimentalSkinnedModels &&
+            (attributes.containsKey('JOINTS_0') ||
+                attributes.containsKey('WEIGHTS_0'))) {
+          _validateSkinAttributes(attributes);
         }
         var count = positions.count;
         if (primitive['indices'] != null) {
@@ -297,6 +357,9 @@ final class _Inspection {
     if (usedMeshes.isEmpty || minimum.any((v) => !v.isFinite)) {
       throw const FormatException(
           'The default scene must contain visible triangle geometry.');
+    }
+    if (experimentalSkinnedModels) {
+      _validateExperimentalSkins();
     }
     final animations = _animations();
     final materialAnimations = Model3dMaterialAnimations.fromGlbJson(json);
@@ -368,6 +431,12 @@ final class _Inspection {
       throw const FormatException(
           'Accessor exceeds or misaligns its buffer view.');
     }
+    if (experimentalSkinnedScene &&
+        (stride != packed ||
+            ((view['byteLength'] as int) - offset) % stride != 0)) {
+      throw const FormatException(
+          'Accessor stride is unsupported by the skeletal loader.');
+    }
     final normalized = value['normalized'] ?? false;
     if (normalized is! bool ||
         normalized && ![5120, 5121, 5122, 5123].contains(componentType)) {
@@ -416,6 +485,270 @@ final class _Inspection {
     }
     return decoded[index] = _Accessor(
         type as String, componentType as int, count, normalized, values);
+  }
+
+  void _validateSkinAttributes(Map<String, dynamic> attributes) {
+    if (!attributes.containsKey('JOINTS_0') ||
+        !attributes.containsKey('WEIGHTS_0')) {
+      throw const FormatException(
+          'Skinned primitives require joints and weights.');
+    }
+    final jointIndex = _index(attributes['JOINTS_0'], accessors.length);
+    final weightIndex = _index(attributes['WEIGHTS_0'], accessors.length);
+    final joints = accessor(jointIndex);
+    final weights = accessor(weightIndex);
+    if (joints.type != 'VEC4' ||
+        ![5121, 5123].contains(joints.componentType) ||
+        joints.normalized ||
+        weights.type != 'VEC4' ||
+        weights.componentType != 5126 ||
+        weights.normalized ||
+        joints.count != weights.count) {
+      throw const FormatException('Unsupported skeletal accessor format.');
+    }
+    skinMaximumJoint.putIfAbsent(jointIndex, () {
+      var maximum = 0;
+      for (final joint in joints.values) {
+        maximum = math.max(maximum, joint.toInt());
+      }
+      return maximum;
+    });
+    if (checkedSkinWeights.add(weightIndex)) {
+      for (var vertex = 0; vertex < weights.count; vertex++) {
+        var total = 0.0;
+        for (var component = 0; component < 4; component++) {
+          final weight = weights.values[vertex * 4 + component];
+          if (weight < 0 || weight > 1) {
+            throw const FormatException(
+                'Skin weights must be between zero and one.');
+          }
+          total += weight;
+        }
+        if ((total - 1).abs() > 1e-4) {
+          throw const FormatException('Skin weights must sum to one.');
+        }
+      }
+    }
+  }
+
+  void _validateExperimentalSkins() {
+    final skins = _objects(json['skins'], 256);
+    final jointsBySkin = <List<int>>[];
+    for (final skin in skins) {
+      final joints = [
+        for (final value in _list(skin['joints'])) _index(value, nodes.length)
+      ];
+      if (joints.isEmpty || joints.toSet().length != joints.length) {
+        throw const FormatException('A skin requires distinct joints.');
+      }
+      if (skin['skeleton'] != null) {
+        _index(skin['skeleton'], nodes.length);
+      }
+      if (skin['inverseBindMatrices'] != null) {
+        final matrices =
+            accessor(_index(skin['inverseBindMatrices'], accessors.length));
+        if (matrices.type != 'MAT4' ||
+            matrices.componentType != 5126 ||
+            matrices.normalized ||
+            matrices.count != joints.length) {
+          throw const FormatException(
+              'Inverse bind matrices must match the skin joints.');
+        }
+        for (var offset = 0; offset < matrices.values.length; offset += 16) {
+          if (matrices.values[offset + 3] != 0 ||
+              matrices.values[offset + 7] != 0 ||
+              matrices.values[offset + 11] != 0 ||
+              matrices.values[offset + 15] != 1) {
+            throw const FormatException(
+                'Inverse bind matrices must be affine.');
+          }
+        }
+      }
+      jointsBySkin.add(joints);
+    }
+    final dependencies = <int, Set<int>>{
+      for (final node in visitedNodes) node: <int>{}
+    };
+    final parents = <int, int>{};
+    for (final parent in visitedNodes) {
+      for (final child in _list(nodes[parent]['children'])) {
+        final index = _index(child, nodes.length);
+        dependencies[index]!.add(parent);
+        parents[index] = parent;
+      }
+    }
+    final nodeOrder = <int, int>{};
+    final subtreeEnd = <int, int>{};
+    var nextOrder = 0;
+    for (final node in visitedNodes) {
+      nodeOrder[node] = nextOrder;
+      subtreeEnd[node] = nextOrder++;
+    }
+    for (final node in visitedNodes.toList().reversed) {
+      final parent = parents[node];
+      if (parent != null) {
+        subtreeEnd[parent] = math.max(subtreeEnd[parent]!, subtreeEnd[node]!);
+      }
+    }
+    final checkedSkeletons = <int>{};
+    var jointInstances = 0;
+    for (var nodeIndex = 0; nodeIndex < nodes.length; nodeIndex++) {
+      final node = nodes[nodeIndex];
+      final meshValue = node['mesh'];
+      final skinValue = node['skin'];
+      if (skinValue != null && meshValue == null) {
+        throw const FormatException('A skin requires a mesh.');
+      }
+      if (meshValue == null) continue;
+      final mesh = meshes[_index(meshValue, meshes.length)];
+      final skinIndex =
+          skinValue == null ? null : _index(skinValue, jointsBySkin.length);
+      final joints = skinIndex == null ? null : jointsBySkin[skinIndex];
+      if (joints != null && visitedNodes.contains(nodeIndex)) {
+        jointInstances += joints.length;
+        if (jointInstances > 65536 ||
+            joints.any((joint) => !visitedNodes.contains(joint))) {
+          throw const FormatException('Skin joints exceed the scene limits.');
+        }
+        final skeleton = skins[skinIndex!]['skeleton'];
+        if (skeleton != null && checkedSkeletons.add(skinIndex)) {
+          final root = _index(skeleton, nodes.length);
+          final start = nodeOrder[root];
+          final end = subtreeEnd[root];
+          if (start == null || end == null) {
+            throw const FormatException(
+                'Skeleton must be an ancestor of its joints.');
+          }
+          for (final joint in joints) {
+            final order = nodeOrder[joint]!;
+            if (order < start || order > end) {
+              throw const FormatException(
+                  'Skeleton must be an ancestor of its joints.');
+            }
+          }
+        }
+        dependencies[nodeIndex]!.addAll(joints);
+      }
+      final primitives = _objects(mesh['primitives'], 4096);
+      if (joints != null && primitives.isEmpty) {
+        throw const FormatException('A skinned mesh requires primitives.');
+      }
+      for (final primitive in primitives) {
+        final attributes = _object(primitive['attributes']);
+        final hasSkin = attributes.containsKey('JOINTS_0') ||
+            attributes.containsKey('WEIGHTS_0');
+        if (hasSkin != (joints != null)) {
+          throw const FormatException(
+              'Mesh skin and vertex attributes must match.');
+        }
+        if (joints == null) continue;
+        final jointIndex = _index(attributes['JOINTS_0'], accessors.length);
+        if (skinMaximumJoint[jointIndex]! >= joints.length) {
+          throw const FormatException(
+              'A vertex references a missing skin joint.');
+        }
+        final vertices =
+            accessor(_index(attributes['POSITION'], accessors.length)).count;
+        final indices = primitive['indices'] == null
+            ? vertices
+            : accessor(_index(primitive['indices'], accessors.length)).count;
+        if (vertices > 65535 || indices ~/ 3 > 200000) {
+          throw const FormatException(
+              'Skinned geometry exceeds partition limits.');
+        }
+        _validateSkinPartition(
+          _index(attributes['POSITION'], accessors.length),
+          jointIndex,
+          _index(attributes['WEIGHTS_0'], accessors.length),
+          primitive['indices'] == null
+              ? null
+              : _index(primitive['indices'], accessors.length),
+        );
+      }
+    }
+    final dependants = <int, List<int>>{};
+    final pending = <int, int>{};
+    for (final entry in dependencies.entries) {
+      pending[entry.key] = entry.value.length;
+      for (final dependency in entry.value) {
+        (dependants[dependency] ??= []).add(entry.key);
+      }
+    }
+    final queue = <int>[
+      for (final entry in pending.entries)
+        if (entry.value == 0) entry.key
+    ];
+    for (var offset = 0; offset < queue.length; offset++) {
+      for (final dependant in dependants[queue[offset]] ?? const <int>[]) {
+        final remaining = pending[dependant]! - 1;
+        pending[dependant] = remaining;
+        if (remaining == 0) queue.add(dependant);
+      }
+    }
+    if (queue.length != pending.length) {
+      throw const FormatException(
+          'Skin and scene dependencies must be acyclic.');
+    }
+    if (skins.isNotEmpty) diagnostics.add('bounds.static_scene_only');
+  }
+
+  void _validateSkinPartition(
+      int positionIndex, int jointIndex, int weightIndex, int? indexIndex) {
+    if (!checkedSkinPartitions
+        .add((positionIndex, jointIndex, weightIndex, indexIndex))) {
+      return;
+    }
+    final vertices = accessor(positionIndex).count;
+    final indices = indexIndex == null ? null : accessor(indexIndex).values;
+    final indexCount = indices?.length ?? vertices;
+    skinPartitionWork += vertices + indexCount;
+    if (skinPartitionWork > 8000000) {
+      throw const FormatException('Skin partition inspection budget exceeded.');
+    }
+    final joints = accessor(jointIndex).values;
+    final weights = accessor(weightIndex).values;
+    final active = <int>{};
+    for (var offset = 0; offset < weights.length; offset++) {
+      if (weights[offset] > 0) active.add(joints[offset].toInt());
+      if (active.length > 16) break;
+    }
+    if (active.length <= 16) return;
+    final surfaceJoints = <int>{};
+    final surfaceVertices = <int>{};
+    var surfaceCount = 1;
+    var outputVertices = 0;
+    for (var offset = 0; offset < indexCount; offset += 3) {
+      final triangleVertices = <int>{};
+      final triangleJoints = <int>{};
+      for (var corner = 0; corner < 3; corner++) {
+        final vertex = indices == null
+            ? offset + corner
+            : indices[offset + corner].toInt();
+        triangleVertices.add(vertex);
+        for (var component = 0; component < 4; component++) {
+          final index = vertex * 4 + component;
+          if (weights[index] > 0) triangleJoints.add(joints[index].toInt());
+        }
+      }
+      final additionalJoints = triangleJoints.difference(surfaceJoints).length;
+      final additionalVertices =
+          triangleVertices.difference(surfaceVertices).length;
+      if (surfaceJoints.length + additionalJoints > 16 ||
+          surfaceVertices.length + additionalVertices > 65535) {
+        surfaceCount++;
+        if (surfaceCount > 1024) {
+          throw const FormatException('Skin partition surface limit exceeded.');
+        }
+        surfaceJoints.clear();
+        surfaceVertices.clear();
+      }
+      outputVertices += triangleVertices.difference(surfaceVertices).length;
+      if (outputVertices > 200000) {
+        throw const FormatException('Skin partition vertex limit exceeded.');
+      }
+      surfaceJoints.addAll(triangleJoints);
+      surfaceVertices.addAll(triangleVertices);
+    }
   }
 
   List<Model3dMaterial> _materials(int textureCount) {
@@ -593,7 +926,8 @@ final class _Inspection {
         final path = target['path'];
         if (!['translation', 'rotation', 'scale'].contains(path) ||
             !targets.add('$node:$path') ||
-            nodes[node].containsKey('matrix')) {
+            nodes[node].containsKey('matrix') ||
+            (experimentalSkinnedScene && !visitedNodes.contains(node))) {
           throw const FormatException(
               'Unsupported or duplicate animation target.');
         }
@@ -609,6 +943,25 @@ final class _Inspection {
         if (output.type != (path == 'rotation' ? 'VEC4' : 'VEC3')) {
           throw const FormatException(
               'Animation output type does not match its target.');
+        }
+        if (experimentalSkinnedScene &&
+            path == 'scale' &&
+            output.values.any((value) => value <= 0)) {
+          throw const FormatException(
+              'Animated scale components must be positive.');
+        }
+        if (experimentalSkinnedScene && path == 'rotation') {
+          for (var offset = 0; offset < output.values.length; offset += 4) {
+            var squaredLength = 0.0;
+            for (var component = 0; component < 4; component++) {
+              final value = output.values[offset + component];
+              squaredLength += value * value;
+            }
+            if ((squaredLength - 1).abs() > 1e-4) {
+              throw const FormatException(
+                  'Animated rotations must be unit quaternions.');
+            }
+          }
         }
       }
       if (duration <= 0) {
