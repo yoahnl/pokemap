@@ -1,3 +1,4 @@
+import 'gen5_battle_script_commands.dart';
 import 'gen5_battle_script_source.dart';
 
 enum Gen5BattleScriptBoundary {
@@ -72,23 +73,6 @@ final class Gen5BattleScriptControlFlow {
 
   final List<Gen5BattleScriptBlock> blocks;
 
-  static const _operandCounts = <String, int>{
-    'CameraMovePreset': 5,
-    'ParticleLoad': 1,
-    'EmitterMove': 11,
-    'EmitterAdd': 11,
-    'McssPalFade': 5,
-    'McssMoveXY': 7,
-    'PaletteFade': 5,
-    'PlaySE': 9,
-    'PanSE': 8,
-    'MoveSE': 9,
-    'Wait': 1,
-    'WaitFrames': 1,
-    'SetYield': 1,
-    'End': 0,
-  };
-
   static Gen5BattleScriptControlFlow analyze(Gen5BattleScriptSource source) {
     final blocks = <Gen5BattleScriptBlock>[];
     var pending = <Gen5BattleScriptInstruction>[];
@@ -101,8 +85,8 @@ final class Gen5BattleScriptControlFlow {
     }
 
     for (final instruction in source.instructions) {
-      final expected = _operandCounts[instruction.name];
-      if (expected == null || instruction.arguments.length != expected) {
+      final fields = gen5BattleCommandFields[instruction.name];
+      if (fields == null || instruction.arguments.length != fields.length) {
         throw FormatException(
           'Unsupported battle instruction at line ${instruction.line}',
         );

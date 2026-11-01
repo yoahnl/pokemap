@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_control_flow.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_parameters.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_source.dart';
 import 'package:test/test.dart';
 
@@ -150,6 +151,27 @@ void main() {
         );
         expect(parsed.variant, 'Flamethrower');
         expect(parsed.instructions.length, 32);
+        final parameters = Gen5BattleScriptParameters.read(parsed);
+        expect(parameters.instructions.length, 32);
+        final moveSe = parameters.instructions.singleWhere(
+          (item) => item.instruction.name == 'MoveSE',
+        );
+        expect(
+          (moveSe.parameters['start']! as Gen5BattleNumberOperand).signedWord,
+          -3000,
+        );
+        final emitter = parameters.instructions.firstWhere(
+          (item) => item.instruction.name == 'EmitterMove',
+        );
+        expect(
+          (emitter.parameters['offsetY']! as Gen5BattleNumberOperand)
+              .unsignedWord,
+          8192,
+        );
+        expect(
+          (emitter.parameters['from']! as Gen5BattleSymbolOperand).symbol,
+          'EFFVM_EMIT_ATTACKER',
+        );
         final blocks = Gen5BattleScriptControlFlow.analyze(parsed).blocks;
         expect(blocks.length, 21);
         expect(
