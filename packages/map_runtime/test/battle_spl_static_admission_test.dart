@@ -185,6 +185,80 @@ void main() {
     expect(playback.activeParticles, 0);
   });
 
+  test('updates the newest active emitters first with shared RNG', () async {
+    final raw = await fixture();
+    final emission =
+        (((raw['emitters'] as List).single as Map)['emission'] as Map);
+    emission['randomInitialAngle'] = true;
+    emission['scaleVariance'] = 127;
+    final definition = BattleSplParticleDefinition.fromJson(raw);
+    const schedule = [
+      BattleSplStaticEmitter(
+        emitterIndex: 0,
+        startTick: 2,
+        position: (x: 4096, y: 0, z: 0),
+      ),
+      BattleSplStaticEmitter(
+        emitterIndex: 0,
+        startTick: 0,
+        position: (x: 0, y: 0, z: 0),
+      ),
+      BattleSplStaticEmitter(
+        emitterIndex: 0,
+        startTick: 2,
+        position: (x: 8192, y: 0, z: 0),
+      ),
+    ];
+    final result = BattleSplStaticAdmission.prepare(
+      definition: definition,
+      textureIndices: const {'tex': 0},
+      emitters: schedule,
+      seed: 0,
+      poolCapacity: 32,
+      maxTicks: 80,
+    );
+    expect(result.failure, isNull);
+    final playback = result.playback!;
+    final random = BattleSplRandom(seed: 0);
+    final pool = BattleSplParticlePool(capacity: 32);
+    final reference = [
+      for (final _ in schedule)
+        BattleSplConfiguredEmitter(
+          definition: definition.emitters.single,
+          textureIndices: const {'tex': 0},
+          random: random,
+          pool: pool,
+        ),
+    ];
+    addTearDown(() {
+      playback.cancel();
+      for (final emitter in reference) {
+        emitter.cancel();
+      }
+    });
+    for (var tick = 0; tick < 8; tick++) {
+      for (final index in [2, 0, 1]) {
+        if (tick >= schedule[index].startTick &&
+            !reference[index].playback.isComplete) {
+          reference[index].step(
+            managerFrame: tick & 1,
+            position: schedule[index].position,
+          );
+        }
+      }
+      expect(playback.advance(), isNull);
+      for (var index = 0; index < schedule.length; index++) {
+        final actual = playback.frames[index].particles
+            .map((p) => (p.id, p.motion.rotation, p.baseScale4096, p.alpha5))
+            .toList();
+        final expected = reference[index].playback.particles
+            .map((p) => (p.id, p.motion.rotation, p.baseScale4096, p.alpha5))
+            .toList();
+        expect(actual, expected, reason: 'tick $tick, emitter $index');
+      }
+    }
+  });
+
   test('rejects invalid schedules and ambiguous texture mappings', () async {
     final definition = BattleSplParticleDefinition.fromJson(await fixture());
     BattleSplStaticPreparation prepareSchedule({

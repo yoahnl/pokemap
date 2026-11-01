@@ -152,6 +152,14 @@ final class BattleSplStaticPlayback {
           ),
         );
       }
+      final order = List<int>.generate(_emitters.length, (index) => index);
+      order.sort((left, right) {
+        final byStart = schedule[right].startTick.compareTo(
+          schedule[left].startTick,
+        );
+        return byStart != 0 ? byStart : right.compareTo(left);
+      });
+      _updateOrder = List.unmodifiable(order.map((index) => _emitters[index]));
     } catch (_) {
       cancel();
       rethrow;
@@ -162,6 +170,7 @@ final class BattleSplStaticPlayback {
   final Set<int> textureIndices;
   final BattleSplParticlePool _pool;
   final List<_StaticEmitterState> _emitters = [];
+  late final List<_StaticEmitterState> _updateOrder;
   int _tick = 0;
   bool _cancelled = false;
   BattleSplAdmissionFailure? _failure;
@@ -192,7 +201,7 @@ final class BattleSplStaticPlayback {
     if (isComplete) return _failure;
     if (_tick >= maxTicks) return _fail(BattleSplAdmissionFailure.frameLimit);
     try {
-      for (final entry in _emitters) {
+      for (final entry in _updateOrder) {
         if (_tick < entry.schedule.startTick ||
             entry.emitter.playback.isComplete) {
           continue;
