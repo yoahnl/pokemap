@@ -15,7 +15,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-async function runScenario(spl: boolean): Promise<void> {
+async function runScenario(spl: boolean, withSound = false): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'battle-recipe-mcp-'));
   const dart = process.env.POKEMAP_TEST_DART ?? 'dart';
   const packageRoot = resolve('../../packages/map_authoring');
@@ -47,32 +47,52 @@ async function runScenario(spl: boolean): Promise<void> {
     }] }));
     const pngHash = createHash('sha256').update(png).digest('hex');
     const particleHash = createHash('sha256').update(particle).digest('hex');
+    const sound = withSound ? await readFile(resolve('../../packages/map_runtime/assets/audio/overworld/jump.wav')) : null;
+    const soundHash = sound ? createHash('sha256').update(sound).digest('hex') : null;
     const recipe = Buffer.from(JSON.stringify({
       schemaVersion: 1, recipeId: 'visual', revision: '1', moveSourceId: 'source', variant: 'default',
-      requiredCapabilities: spl ? ['startParticle', 'splParticleV2'] : ['startParticle'], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
+      requiredCapabilities: ['startParticle', ...(spl ? ['splParticleV2'] : []), ...(sound ? ['sequence', 'sound'] : [])], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
       resources: [
         { id: 'tex', role: 'texture', mediaType: 'image/png', sizeBytes: png.length, sha256: pngHash },
         { id: 'particle', role: 'particleDefinition', mediaType: 'application/vnd.avelune.particle+json',
           sizeBytes: particle.length, sha256: particleHash, definitionVersion: spl ? 2 : 1, dependencies: ['tex'] },
+        ...(sound ? [{ id: 'sound', role: 'sound', mediaType: 'audio/wav', sizeBytes: sound.length, sha256: soundHash }] : []),
       ],
-      program: { kind: 'startParticle', resourceId: 'particle', from: 'userMouth', to: 'targetImpact' },
+      program: sound ? { kind: 'sequence', steps: [
+        { kind: 'sound', resourceId: 'sound' },
+        { kind: 'startParticle', resourceId: 'particle', from: 'userMouth', to: 'targetImpact' },
+      ] } : { kind: 'startParticle', resourceId: 'particle', from: 'userMouth', to: 'targetImpact' },
     }, null, 2));
     const hash = createHash('sha256').update(recipe).digest('hex');
     const source = join(root, 'recipe-input.json');
     const particleSource = join(root, 'particle-input.json');
     const pngSource = join(root, 'texture-input.png');
+    const soundSource = join(root, 'sound-input.wav');
     await writeFile(source, recipe);
     await writeFile(particleSource, particle);
     await writeFile(pngSource, png);
+    if (sound) await writeFile(soundSource, sound);
     await client.connect(transport);
     const description = await call('pokemap_describe', { domain: 'battle', view: 'compact' });
     const action = (description.mutationActions as JsonRecord[]).find(value => value.id === 'pokemon.move_recipe.import');
     assert.ok(action);
     assert.equal(action.inputSchemaAvailable, true);
+    if (sound) {
+      const detail = await call('pokemap_describe', { domain: 'battle', view: 'full', actionIds: ['pokemon.move_recipe.import'] });
+      const detailedAction = (detail.mutationActions as JsonRecord[]).find(value => value.id === 'pokemon.move_recipe.import');
+      assert.ok(detailedAction);
+      const extensions = record(detailedAction.extensions);
+      const properties = record(record(extensions.inputSchema).properties);
+      const resources = record(record(properties.resources).items);
+      const mediaType = record(record(resources.properties).mediaType);
+      for (const type of ['audio/wav', 'audio/ogg', 'audio/mpeg']) assert.ok((mediaType.enum as string[]).includes(type));
+      assert.equal(record(extensions.constraints).maxSoundBytes, 8 * 1024 * 1024);
+    }
     const opened = await call('pokemap_workspace', { operation: 'open', projectRoot: root });
     const staged = await call('pokemap_artifact_stage', { sourcePath: source, declaredMediaType: 'application/json' });
     const stagedParticle = await call('pokemap_artifact_stage', { sourcePath: particleSource, declaredMediaType: 'application/json' });
     const stagedPng = await call('pokemap_artifact_stage', { sourcePath: pngSource, declaredMediaType: 'image/png' });
+    const stagedSound = sound ? await call('pokemap_artifact_stage', { sourcePath: soundSource, declaredMediaType: 'audio/wav' }) : null;
     const parameters = {
       projectBinding: {
         kind: 'avelune.battle-recipe-binding', schemaVersion: 1, unsupportedBehavior: 'legacy',
@@ -82,6 +102,7 @@ async function runScenario(spl: boolean): Promise<void> {
       recipeHandle: staged.artifactHandle, resources: [
         { id: 'tex', sha256: pngHash, mediaType: 'image/png', artifactHandle: stagedPng.artifactHandle },
         { id: 'particle', sha256: particleHash, mediaType: 'application/vnd.avelune.particle+json', artifactHandle: stagedParticle.artifactHandle },
+        ...(stagedSound ? [{ id: 'sound', sha256: soundHash, mediaType: 'audio/wav', artifactHandle: stagedSound.artifactHandle }] : []),
       ],
     };
     const scoped = await call('pokemap_workshop', { operation: 'read', projectHandle: opened.projectHandle,
@@ -100,16 +121,20 @@ async function runScenario(spl: boolean): Promise<void> {
     assert.deepEqual(await readFile(path), recipe);
     assert.deepEqual(await readFile(particlePath), particle);
     assert.deepEqual(await readFile(pngPath), png);
+    const soundPath = join(root, 'data/pokemon/battle_recipes/blobs', owner, `${soundHash}.wav`);
+    if (sound) assert.deepEqual(await readFile(soundPath), sound);
     await call('pokemap_history', { operation: 'undo', projectHandle: opened.projectHandle,
       entryId: record(applied.receipt).receiptId, idempotencyKey: 'undo' });
     await assert.rejects(readFile(path), { code: 'ENOENT' });
     await assert.rejects(readFile(particlePath), { code: 'ENOENT' });
     await assert.rejects(readFile(pngPath), { code: 'ENOENT' });
+    if (sound) await assert.rejects(readFile(soundPath), { code: 'ENOENT' });
     await call('pokemap_history', { operation: 'redo', projectHandle: opened.projectHandle,
       entryId: record(applied.receipt).receiptId, idempotencyKey: 'redo' });
     assert.deepEqual(await readFile(path), recipe);
     assert.deepEqual(await readFile(particlePath), particle);
     assert.deepEqual(await readFile(pngPath), png);
+    if (sound) assert.deepEqual(await readFile(soundPath), sound);
     await call('pokemap_workspace', { operation: 'close', workspaceHandle: opened.workspaceHandle });
   } finally {
     await client.close();
@@ -120,3 +145,4 @@ async function runScenario(spl: boolean): Promise<void> {
 
 test('MCP stages, imports and undoes a version 1 move recipe', { timeout: 120_000 }, () => runScenario(false));
 test('MCP stages, imports and undoes a version 2 SPL move recipe', { timeout: 120_000 }, () => runScenario(true));
+test('MCP stages, imports and undoes a sound and SPL move recipe', { timeout: 120_000 }, () => runScenario(true, true));

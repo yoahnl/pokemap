@@ -27,6 +27,9 @@ String battleRecipeBlobPath(
   }
   final extension = switch (mediaType) {
     'image/png' => 'png',
+    'audio/wav' => 'wav',
+    'audio/ogg' => 'ogg',
+    'audio/mpeg' => 'mp3',
     'application/vnd.avelune.particle+json' ||
     'application/vnd.avelune.battle-recipe+json' => 'json',
     _ => throw const FormatException('Unsupported battle recipe media type'),

@@ -76,6 +76,11 @@ final class AveluneMoveRecipeSource {
       if (item.contentType == 'image/png' && limits.maxTextureBytes < maximum) {
         maximum = limits.maxTextureBytes;
       }
+      if (const {'audio/wav', 'audio/ogg', 'audio/mpeg'}
+              .contains(item.contentType) &&
+          BattleRecipeBundleInspector.maxSoundBytes < maximum) {
+        maximum = BattleRecipeBundleInspector.maxSoundBytes;
+      }
       if (maximum < 1) {
         throw const FormatException('Move recipe resource exceeds limit');
       }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -13,6 +14,7 @@ import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_turn_animation_planner.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_recipe_compiler.dart';
+import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 
 final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
   _RecipeTransport(this.bytes);
@@ -252,6 +254,72 @@ void main() {
     );
     final legacyTypes = build(const {}).flattenedSteps
         .map((step) => step.runtimeType).toList();
+    final sound = await File('assets/audio/overworld/jump.wav').readAsBytes();
+    final soundHash = sha256.convert(sound).toString();
+    final soundRecipe = utf8.encode(jsonEncode({
+      'schemaVersion': 1,
+      'recipeId': 'sound-recipe',
+      'revision': '1',
+      'moveSourceId': 'source',
+      'variant': 'default',
+      'requiredCapabilities': ['sequence', 'wait', 'sound'],
+      'provenance': {
+        'source': 'synthetic',
+        'sourceRevision': '1',
+        'sourcePaths': <String>[],
+        'converter': 'test',
+      },
+      'resources': [
+        {
+          'id': 'sound',
+          'role': 'sound',
+          'mediaType': 'audio/wav',
+          'sizeBytes': sound.length,
+          'sha256': soundHash,
+        },
+      ],
+      'program': {
+        'kind': 'sequence',
+        'steps': [
+          {'kind': 'wait', 'durationMs': 9876},
+          {'kind': 'sound', 'resourceId': 'sound'},
+        ],
+      },
+    }));
+    final soundBinding = BattleMoveRecipeBinding.fromJson({
+      ...binding.toJson(),
+      'recipeId': 'sound-recipe',
+      'recipeSha256': sha256.convert(soundRecipe).toString(),
+    });
+    final root = await Directory.systemTemp.createTemp('battle-sound-fallback-');
+    addTearDown(() => root.delete(recursive: true));
+    Future<void> write(String path, List<int> contents) async {
+      final file = File('${root.path}/$path');
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(contents);
+    }
+    await write(battleRecipeBindingPath('tackle'), utf8.encode(jsonEncode(
+      BattleRecipeProjectBinding(binding: soundBinding).toJson(),
+    )));
+    await write(battleRecipeBlobPath(soundBinding.recipeSha256,
+        'application/vnd.avelune.battle-recipe+json', projectMoveId: 'tackle'), soundRecipe);
+    await write(battleRecipeBlobPath(soundHash, 'audio/wav', projectMoveId: 'tackle'), sound);
+    final soundResult = await BattleOfflineMoveRecipeLoader(
+        projectRootDirectory: root.path).load('tackle');
+    expect(soundResult.fallbackReason, BattleRecipeFallbackReason.unavailableCapabilities);
+    expect(soundResult.unavailableCapabilities, {'sound'});
+    final runtimeRecipes = <String, PreparedBattleMoveRecipe>{
+      if (soundResult.prepared != null) 'tackle': soundResult.prepared!,
+    };
+    final fallback = build(runtimeRecipes).flattenedSteps.toList();
+    final legacy = build(const {}).flattenedSteps.toList();
+    expect(fallback.map((step) => step.runtimeType).toList(), legacyTypes);
+    expect(fallback.whereType<WaitStep>().map((step) => step.durationSeconds).toList(),
+        legacy.whereType<WaitStep>().map((step) => step.durationSeconds).toList());
+    expect(fallback.whereType<PlaySeStep>().map((step) => step.seName).toList(),
+        legacy.whereType<PlaySeStep>().map((step) => step.seName).toList());
+    expect(fallback.whereType<HudHpTweenStep>(), isNotEmpty);
+    expect(fallback.whereType<WaitStep>().any((step) => step.durationSeconds == 9.876), isFalse);
     expect(build({'tackle': prepared}).flattenedSteps
         .map((step) => step.runtimeType).toList(), legacyTypes);
     expect(

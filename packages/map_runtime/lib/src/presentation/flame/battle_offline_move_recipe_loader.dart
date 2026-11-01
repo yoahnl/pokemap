@@ -154,6 +154,7 @@ final class BattleOfflineMoveRecipeLoader {
       final maxBytes = switch (resource.role) {
         'texture' => _limits.maxTextureBytes,
         'particleDefinition' => 262144,
+        'sound' => BattleRecipeBundleInspector.maxSoundBytes,
         _ => throw const FormatException('Unsupported battle recipe resource'),
       };
       totalBytes += resource.sizeBytes;

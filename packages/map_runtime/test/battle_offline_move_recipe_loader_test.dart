@@ -90,6 +90,38 @@ void main() {
   BattleOfflineMoveRecipeLoader loader() =>
       BattleOfflineMoveRecipeLoader(projectRootDirectory: project.path);
 
+  test('verifies sound before selecting the complete legacy fallback', () async {
+    final wav = await File('assets/audio/overworld/jump.wav').readAsBytes();
+    final hash = sha256.convert(wav).toString();
+    final data = recipe(resources: [
+      {
+        'id': 'sound',
+        'role': 'sound',
+        'mediaType': 'audio/wav',
+        'sizeBytes': wav.length,
+        'sha256': hash,
+      },
+    ]);
+    data['requiredCapabilities'] = ['sequence', 'wait', 'sound'];
+    data['program'] = {
+      'kind': 'sequence',
+      'steps': [
+        {'kind': 'wait', 'durationMs': 1234},
+        {'kind': 'sound', 'resourceId': 'sound'},
+      ],
+    };
+    await install(data);
+    final path = battleRecipeBlobPath(hash, 'audio/wav', projectMoveId: 'local');
+    await write(path, wav);
+    final result = await loader().load('local');
+    expect(result.fallbackReason, BattleRecipeFallbackReason.unavailableCapabilities);
+    expect(result.unavailableCapabilities, {'sound'});
+    expect(result.prepared, isNull);
+    final altered = Uint8List.fromList(wav)..[wav.length - 1] ^= 1;
+    await write(path, altered);
+    await expectLater(loader().load('local'), throwsFormatException);
+  });
+
   test('leaves existing projects on their legacy animation', () async {
     expect(
       (await loader().load('local')).fallbackReason,

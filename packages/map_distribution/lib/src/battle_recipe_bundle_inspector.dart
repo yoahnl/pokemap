@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
 
+import 'battle_recipe_sound_inspection.dart';
 import 'raster_image_dimensions.dart';
 import 'static_png_validation.dart';
 
@@ -34,6 +35,8 @@ final class InspectedBattleRecipeBundle {
 
 final class BattleRecipeBundleInspector {
   const BattleRecipeBundleInspector();
+
+  static const maxSoundBytes = maxBattleRecipeSoundBytes;
 
   InspectedBattleRecipeBundle inspect(
     BattleMoveRecipeBinding binding,
@@ -78,8 +81,11 @@ final class BattleRecipeBundleInspector {
     final textures = recipe.resources
         .where((resource) => resource.role == 'texture')
         .toList();
-    if (recipe.resources.any((resource) => resource.role == 'sound')) {
-      throw const FormatException('Sound inspection is not available');
+    for (final sound
+        in recipe.resources.where((resource) => resource.role == 'sound')) {
+      if (media[sound.id]!.length > maxBattleRecipeSoundBytes) {
+        throw const FormatException('Sound exceeds byte limit');
+      }
     }
     if (textures.length > limits.maxTextures) {
       throw const FormatException('Texture count exceeds limit');
@@ -117,6 +123,10 @@ final class BattleRecipeBundleInspector {
     if (snapshotIds.length != mediaSnapshot.length ||
         !snapshotIds.containsAll(mediaSnapshot.keys)) {
       throw const FormatException('Unexpected recipe media');
+    }
+    for (final sound in verifiedRecipe.resources
+        .where((resource) => resource.role == 'sound')) {
+      inspectBattleRecipeSound(mediaSnapshot[sound.id]!, sound.mediaType);
     }
     for (final texture in textures) {
       final bytes = mediaSnapshot[texture.id]!;

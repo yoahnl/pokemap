@@ -35,6 +35,16 @@ void main() {
       ),
       'data/pokemon/battle_recipes/blobs/${sha256.convert(utf8.encode('custom'))}/${'c' * 64}.json',
     );
+    for (final (mediaType, extension) in [
+      ('audio/wav', 'wav'),
+      ('audio/ogg', 'ogg'),
+      ('audio/mpeg', 'mp3'),
+    ]) {
+      expect(
+        battleRecipeBlobPath('d' * 64, mediaType, projectMoveId: '../custom'),
+        'data/pokemon/battle_recipes/blobs/${sha256.convert(utf8.encode('../custom'))}/${'d' * 64}.$extension',
+      );
+    }
   });
 
   test(
@@ -57,7 +67,7 @@ void main() {
       expect(
         () => battleRecipeBlobPath(
           'a' * 64,
-          'audio/ogg',
+          'audio/flac',
           projectMoveId: 'custom',
         ),
         throwsFormatException,

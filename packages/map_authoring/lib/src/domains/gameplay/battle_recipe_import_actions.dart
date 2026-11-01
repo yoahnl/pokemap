@@ -42,7 +42,15 @@ final class BattleRecipeImportActions {
       'constraints': {
         'projectStorage': 'working-catalog-only',
         'conflictPolicy': 'preserve',
-        'soundResources': 'unsupported',
+        'soundResources': 'validated-structure',
+        'soundCodecs': [
+          'wav-pcm',
+          'wav-ieee-float',
+          'ogg-vorbis',
+          'ogg-opus',
+          'mpeg-layer-3'
+        ],
+        'maxSoundBytes': BattleRecipeBundleInspector.maxSoundBytes,
         'playerExecution': 'unverified',
       },
       'inputSchema': {
@@ -106,7 +114,13 @@ final class BattleRecipeImportActions {
                 'id': {'type': 'string'},
                 'sha256': {'type': 'string', 'pattern': r'^[0-9a-f]{64}$'},
                 'mediaType': {
-                  'enum': ['image/png', 'application/vnd.avelune.particle+json']
+                  'enum': [
+                    'image/png',
+                    'application/vnd.avelune.particle+json',
+                    'audio/wav',
+                    'audio/ogg',
+                    'audio/mpeg'
+                  ]
                 },
                 'artifactHandle': {'type': 'string'},
               },
@@ -173,6 +187,10 @@ final class BattleRecipeImportActions {
       final ref = artifactStore.inspect(resourceHandle);
       if (ref == null || media.containsKey(id)) {
         throw const FormatException('Resource artifact is unavailable');
+      }
+      if (type.startsWith('audio/') &&
+          ref.byteLength > BattleRecipeBundleInspector.maxSoundBytes) {
+        throw const FormatException('Sound exceeds byte limit');
       }
       total += ref.byteLength;
       if (total > 64 * 1024 * 1024) {
