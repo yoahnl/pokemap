@@ -6,6 +6,13 @@ final class Gen5IndexedAtlas {
   Gen5IndexedAtlas._(Uint8List pixels)
     : indices = Uint8List.fromList(pixels).asUnmodifiableView();
 
+  factory Gen5IndexedAtlas.fromIndices(Uint8List pixels) {
+    if (pixels.length != 256 * 128 || pixels.any((value) => value > 15)) {
+      throw const FormatException('Invalid Gen 5 atlas indices');
+    }
+    return Gen5IndexedAtlas._(pixels);
+  }
+
   int get width => 256;
   int get height => 128;
   final Uint8List indices;

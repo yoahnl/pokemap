@@ -4,6 +4,46 @@ AnimaEngine was consulted for Nitro formats, decompression, composition and
 timeline behavior. Its MIT license and pinned revision are in
 ANIMAENGINE-LICENSE.txt.
 
+The experimental native-file reader accepts the observed linear 4-bit NCGR
+battle sheet with mapping mode 0 and the 16-color NCLR palette whose TTLP
+fields at offsets 8 and 12 are 0x000a0004 and 0. These fields were observed in
+all 1,506 normal/shiny palette members of the privately supplied French Black 2
+ROM; the check is a boundary for this prototype, not a universal Nitro rule.
+Other mapping modes are rejected until their interpretation is verified. With
+that ROM, AnimaEngine exported five species; front/back and
+normal/shiny produced 20 atlas/palette combinations matching its 3x PNG output
+after normalizing transparent RGB. For 4,131 NANR frames across ten views,
+frame fields and NMCR records matched its JSON after normalizing 112 labels
+for identity transforms (format 0 versus 3); their transform values matched.
+Oshawott's front atlas indices matched the previous private source and its
+controller produced identical node states for 240 ticks. These are sample
+checks, not proof of complete species coverage, original-game playback, pixel
+rasterization or Player integration. The reader expects decompressed,
+preselected files and does not verify their common species, side, ROM or
+archive identity. No extracted ROM assets are included in the repository.
+
+The native-view boundary accepts version 0x0100 for NCER, NANR, NMCR and
+NMAR. This version was observed in each of 1,502 matching headers per type
+among the front/back member positions examined in that ROM. Four other
+positions per type did not contain the expected file signature and were not
+counted as matching files. This is a scope limit for the prototype, not a
+claim about every valid Nitro file.
+
+The native-view boundary bounds possible NCER parts by summing, for each
+shared animation slot, its record count times the largest visible cell in the
+slot's reachable sequence. A sum above 65,536 is rejected before rendering.
+This is a conservative bound: independent slots may never reach their maxima
+at the same time, so it can reject a view that would remain within the runtime
+limit. The rejection means safety is not established, not that an overflow
+has been proved for every rejected view.
+
+The NCLR reader expands each five-bit color channel by bit replication, as
+AnimaEngine does. The previous private JASC palette uses a different expansion
+and may differ by one per eight-bit channel; on the Oshawott normal palette,
+23 of 48 channels differed by +1 and the other 25 matched. Equality of palette
+indices therefore does not imply byte-identical expanded colors across those
+two representations.
+
 The controller and multi-cell behavior were also studied against the
 pokebw2 decompilation at revision 41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c,
 including lib/nnsys/src/g2d/g2d_Animation.c,
@@ -20,9 +60,14 @@ The repository identifies its code license as GPL-3.0. This note is not a
 determination of the licensing consequences of using these research results.
 
 The test projection matrix was read from a private melonDS 1.1 savestate;
-its section and matrix layout were checked against melonDS 1.1 sources
-src/Savestate.cpp, src/FIFO.h, src/GPU3D.h and src/GPU3D.cpp. The current
-GPU matrix is not established to belong to a particular battle sprite.
+its section and matrix layout were checked against the melonDS 1.1 tag
+at commit b86390e4428bf38ce4c1ce0e9ca446d6d25955e8, including
+src/Savestate.cpp, src/FIFO.h, src/GPU3D.h and src/GPU3D.cpp.
+Repository: https://github.com/melonDS-emu/melonDS
+The project identifies its license as GPL-3.0; the examined source files
+also state GPL version 3 or later. This provenance does not determine the
+licensing consequences of the research. The current GPU matrix is not
+established to belong to a particular battle sprite.
 
 In a second private melonDS 1.1 capture, successive paused states had frame
 counters 72184 and 72185. The earlier state's camera and Moustillon position
@@ -35,7 +80,7 @@ an empirically fitted screen translation; it is not a lossless pixel comparison
 and does not validate blending, the full animation or Player integration.
 
 The project's map_runtime/LICENSE currently contains a placeholder rather than
-a license. The consequences of distributing code informed by the GPL source
+a license. The consequences of distributing code informed by the GPL sources
 need to be determined for the intended distribution. AnimaEngine's MIT notice
 must be preserved where its license terms require it.
 
