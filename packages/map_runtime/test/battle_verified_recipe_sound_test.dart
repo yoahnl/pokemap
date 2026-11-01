@@ -1000,6 +1000,371 @@ void main() {
     expect(voice.resumes, 0);
   });
 
+  test(
+    'effect recovery after audio starts does not replay legacy audio',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .3)],
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
+      final events = <String>[];
+      var hpTransitions = 0;
+      late void Function() failEffect;
+      final silentFallback = <BattleAnimationStep>[
+        const ScreenFlashStep(colorArgb: 1, durationSeconds: .1),
+      ];
+      final runner = _scopeRunner(
+        onPlaySe: (step) => events.add(step.seName),
+        onScreenFlash: (_) => events.add('fallback-visual'),
+        onHudHpTween: (_) => hpTransitions++,
+        onStartRecoverableTrackedEffect: (_, _, fail) {
+          failEffect = fail;
+          return () {};
+        },
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            StartTrackedEffectStep(
+              effectId: 'bw2',
+              fallbackSteps: const [
+                PlaySeStep(seName: 'legacy-move'),
+                ScreenFlashStep(colorArgb: 1, durationSeconds: .1),
+              ],
+              fallbackAfterAudioSteps: silentFallback,
+            ),
+            ...scope.steps,
+            const WaitTrackedEffectsStep(),
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: scope.audioScopes,
+        ),
+      );
+      silentFallback.add(const PlaySeStep(seName: 'late-legacy'));
+      await voice.resuming.future;
+      failEffect();
+      runner.update(.2);
+      expect(events, ['fallback-visual', 'impact']);
+      expect(voice.resumes, 1);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test(
+    'recoverable audio rejects another sound inside its attack scope',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .1)],
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
+      final runner = _scopeRunner(
+        onStartRecoverableTrackedEffect: (_, _, _) => () {},
+      );
+      expect(
+        () => runner.start(
+          BattleAnimationPlan(
+            steps: [
+              const StartTrackedEffectStep(
+                effectId: 'bw2',
+                fallbackSteps: [PlaySeStep(seName: 'legacy-move')],
+                fallbackAfterAudioSteps: [],
+              ),
+              ...scope.steps,
+              const PlaySeStep(seName: 'legacy-move'),
+              const WaitTrackedEffectsStep(),
+            ],
+            audioScopes: scope.audioScopes,
+          ),
+        ),
+        throwsStateError,
+      );
+      expect(voice.resumes, 0);
+    },
+  );
+
+  test(
+    'effect failure before audio starts uses the complete legacy fallback',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .3)],
+        ),
+        fallback: const [],
+      );
+      final events = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => events.add(step.seName),
+        onScreenFlash: (_) => events.add('fallback-visual'),
+        onHudHpTween: (_) => hpTransitions++,
+        onStartRecoverableTrackedEffect: (_, _, fail) {
+          fail();
+          return () {};
+        },
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            const StartTrackedEffectStep(
+              effectId: 'bw2',
+              fallbackSteps: [
+                PlaySeStep(seName: 'legacy-move'),
+                ScreenFlashStep(colorArgb: 1, durationSeconds: .1),
+              ],
+              fallbackAfterAudioSteps: [
+                ScreenFlashStep(colorArgb: 1, durationSeconds: .1),
+              ],
+            ),
+            ...scope.steps,
+            const WaitTrackedEffectsStep(),
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: scope.audioScopes,
+        ),
+      );
+      runner.update(.1);
+      await voice.disposed.future;
+      expect(events, ['legacy-move', 'fallback-visual', 'impact']);
+      expect(voice.resumes, 0);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test('post-audio fallback resources are visible during plan preparation', () {
+    const fallback = SpawnFxStep(
+      effectId: 'silent-fallback',
+      attackerSide: BattleSideId.player,
+      defenderSide: BattleSideId.enemy,
+      from: BattleVisualAnchor.attackerCenter,
+      to: BattleVisualAnchor.defenderCenter,
+      durationSeconds: .1,
+    );
+    const plan = BattleAnimationPlan(
+      steps: [
+        StartTrackedEffectStep(
+          effectId: 'bw2',
+          fallbackSteps: [],
+          fallbackAfterAudioSteps: [fallback],
+        ),
+        WaitTrackedEffectsStep(),
+      ],
+    );
+    expect(plan.requiredFxIds, {'silent-fallback'});
+    expect(plan.flattenedSteps, contains(fallback));
+  });
+
+  test(
+    'recoverable audio rejects absent or sounding fallback visuals',
+    () async {
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice();
+          voices.add(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final bundle = await _bundle();
+      final afterAudioOptions = <List<BattleAnimationStep>?>[
+        null,
+        const [PlaySeStep(seName: 'hidden')],
+        const [
+          PlayRmxpAnimationStep(
+            animationId: 1,
+            subjectSide: BattleSideId.player,
+            attackerSide: BattleSideId.player,
+            defenderSide: BattleSideId.enemy,
+            phase: RmxpPlacementPhase.user,
+            placementSpec: RmxpPlacementSpec(
+              policy: RmxpPlacementPolicy.sdkStage,
+            ),
+          ),
+        ],
+        const [HudHpTweenStep(side: BattleSideId.enemy, fromHp: 25, toHp: 15)],
+      ];
+      for (final afterAudio in afterAudioOptions) {
+        final audio = BattleRecipeAudioCoordinator(
+          player: player,
+          bundle: bundle,
+          preparationTimeout: const Duration(seconds: 1),
+          startTimeout: const Duration(seconds: 1),
+        );
+        final scope = BattleMoveAudioScope.compose(
+          audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: .1)],
+          ),
+          fallback: const [],
+        );
+        final runner = _scopeRunner(
+          onStartRecoverableTrackedEffect: (_, _, _) => () {},
+        );
+        expect(
+          () => runner.start(
+            BattleAnimationPlan(
+              steps: [
+                StartTrackedEffectStep(
+                  effectId: 'bw2',
+                  fallbackSteps: const [PlaySeStep(seName: 'legacy')],
+                  fallbackAfterAudioSteps: afterAudio,
+                ),
+                ...scope.steps,
+                const WaitTrackedEffectsStep(),
+              ],
+              audioScopes: scope.audioScopes,
+            ),
+          ),
+          throwsStateError,
+        );
+        await audio.cancel();
+        expect(voices.last.resumes, 0);
+      }
+    },
+  );
+
+  test(
+    'recovery checks the current attack rather than earlier audio',
+    () async {
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice();
+          voices.add(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final bundle = await _bundle();
+      final audios = List.generate(
+        2,
+        (_) => BattleRecipeAudioCoordinator(
+          player: player,
+          bundle: bundle,
+          preparationTimeout: const Duration(seconds: 1),
+          startTimeout: const Duration(seconds: 1),
+        ),
+      );
+      addTearDown(() async {
+        for (final audio in audios) {
+          await audio.cancel();
+        }
+      });
+      final scopes = <BattleMoveAudioScopeResult>[];
+      for (final audio in audios) {
+        scopes.add(
+          BattleMoveAudioScope.compose(
+            audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: .1)],
+            ),
+            fallback: const [],
+          ),
+        );
+      }
+      final events = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => events.add(step.seName),
+        onHudHpTween: (_) => hpTransitions++,
+        onStartRecoverableTrackedEffect: (step, done, fail) {
+          if (step.effectId == 'first') {
+            done();
+          } else {
+            fail();
+          }
+          return () {};
+        },
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            const StartTrackedEffectStep(
+              effectId: 'first',
+              fallbackSteps: [PlaySeStep(seName: 'first-legacy')],
+              fallbackAfterAudioSteps: [],
+            ),
+            ...scopes[0].steps,
+            const WaitTrackedEffectsStep(),
+            const StartTrackedEffectStep(
+              effectId: 'second',
+              fallbackSteps: [PlaySeStep(seName: 'second-legacy')],
+              fallbackAfterAudioSteps: [],
+            ),
+            ...scopes[1].steps,
+            const WaitTrackedEffectsStep(),
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: [for (final scope in scopes) ...scope.audioScopes],
+        ),
+      );
+      await voices.first.resuming.future;
+      runner.update(.1);
+      runner.update(0);
+      await voices.last.disposed.future;
+      expect(voices.map((voice) => voice.resumes), [1, 0]);
+      expect(events, ['second-legacy', 'impact']);
+      expect(hpTransitions, 1);
+    },
+  );
+
   test('unsafe visual timing or size selects the legacy fallback', () async {
     final voices = <_Voice>[];
     final player = FlameAudioBattleSfxPlayer(
@@ -1367,7 +1732,7 @@ void main() {
   );
 
   test(
-    'battle overlay dispatches the complete clip and HP transition once',
+    'battle overlay recovers after clip playback without repeating sound or HP',
     () async {
       final bundle = await _bundle();
       final voice = _Voice();
@@ -1384,7 +1749,7 @@ void main() {
         audio: result,
         silentVisuals: const AnimationGroupStep(
           mode: BattleAnimationGroupMode.parallel,
-          steps: [WaitStep(durationSeconds: 0)],
+          steps: [WaitStep(durationSeconds: 1)],
         ),
         fallback: const [PlaySeStep(seName: 'legacy-move')],
       );
@@ -1406,6 +1771,7 @@ void main() {
       final sounds = <String>[];
       final hpTransitions = <int>[];
       var tweening = false;
+      late void Function() failEffect;
       final overlay = BattleOverlayComponent(
         session: createBattleSession(
           BattleSetup.pokeMapBetaV1ForTest(
@@ -1425,6 +1791,10 @@ void main() {
         },
         playSfx: (name, {required volume, required pitch}) =>
             sounds.add('$name:$volume:$pitch'),
+        onStartRecoverableTrackedEffect: (_, _, fail) {
+          failEffect = fail;
+          return () {};
+        },
       );
       await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
@@ -1432,7 +1802,13 @@ void main() {
       overlay.presentPostBattlePlan(
         BattleAnimationPlan(
           steps: [
+            const StartTrackedEffectStep(
+              effectId: 'bw2',
+              fallbackSteps: [PlaySeStep(seName: 'legacy-move')],
+              fallbackAfterAudioSteps: [],
+            ),
             ...scope.steps,
+            const WaitTrackedEffectsStep(),
             const PlaySeStep(seName: 'impact', volume: 65, pitch: 90),
             const HudHpTweenStep(
               side: BattleSideId.enemy,
@@ -1443,8 +1819,9 @@ void main() {
           audioScopes: scope.audioScopes,
         ),
       );
+      await voice.resuming.future;
+      failEffect();
       overlay.updateTree(.01);
-      await Future<void>.delayed(Duration.zero);
       expect(voice.resumes, 1);
       expect(sounds, ['impact:65:90']);
       expect(hpTransitions, [1]);
@@ -1865,6 +2242,12 @@ BattleAnimationRunner _scopeRunner({
   void Function(PlaySeStep)? onPlaySe,
   void Function(ScreenFlashStep)? onScreenFlash,
   void Function(HudHpTweenStep)? onHudHpTween,
+  void Function() Function(
+    StartTrackedEffectStep,
+    void Function(),
+    void Function(),
+  )?
+  onStartRecoverableTrackedEffect,
 }) => BattleAnimationRunner(
   onPresentationChanged: () {},
   onSpawnFx: (_) {},
@@ -1877,6 +2260,7 @@ BattleAnimationRunner _scopeRunner({
   onBarrierPulse: (_) {},
   onSwapCombatantVisual: (_) {},
   onPlaySe: onPlaySe,
+  onStartRecoverableTrackedEffect: onStartRecoverableTrackedEffect,
 );
 
 final class _Voice implements AudioPlayer {

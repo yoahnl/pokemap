@@ -136,6 +136,9 @@ class BattleAnimationPlan {
         yield* _flatten(step.steps);
       } else if (step is StartTrackedEffectStep && step.fallbackSteps != null) {
         yield* _flatten(step.fallbackSteps!);
+        if (step.fallbackAfterAudioSteps != null) {
+          yield* _flatten(step.fallbackAfterAudioSteps!);
+        }
       }
     }
   }
@@ -173,8 +176,15 @@ class BattleAnimationPlan {
         for (final child in steps) {
           _addRequiredFxIds(ids, child);
         }
-      case StartTrackedEffectStep(:final fallbackSteps):
+      case StartTrackedEffectStep(
+        :final fallbackSteps,
+        :final fallbackAfterAudioSteps,
+      ):
         for (final child in fallbackSteps ?? const <BattleAnimationStep>[]) {
+          _addRequiredFxIds(ids, child);
+        }
+        for (final child
+            in fallbackAfterAudioSteps ?? const <BattleAnimationStep>[]) {
           _addRequiredFxIds(ids, child);
         }
       default:
@@ -190,6 +200,7 @@ abstract interface class BattleAnimationAudioScope {
   Iterable<PlaySeStep> get cues;
   bool claim();
   bool dispatch(PlaySeStep step);
+  bool get anyDispatched;
   bool get fullyDispatched;
   Future<void> get finished;
   Future<void> cancel();
@@ -200,10 +211,15 @@ sealed class BattleAnimationStep {
 }
 
 final class StartTrackedEffectStep extends BattleAnimationStep {
-  const StartTrackedEffectStep({required this.effectId, this.fallbackSteps});
+  const StartTrackedEffectStep({
+    required this.effectId,
+    this.fallbackSteps,
+    this.fallbackAfterAudioSteps,
+  });
 
   final String effectId;
   final List<BattleAnimationStep>? fallbackSteps;
+  final List<BattleAnimationStep>? fallbackAfterAudioSteps;
 }
 
 final class WaitTrackedEffectsStep extends BattleAnimationStep {

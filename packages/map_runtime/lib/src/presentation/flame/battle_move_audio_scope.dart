@@ -78,6 +78,9 @@ final class _PreparedMoveAudioScope implements BattleAnimationAudioScope {
   bool dispatch(PlaySeStep step) => _program.dispatch(step);
 
   @override
+  bool get anyDispatched => _program.anyDispatched;
+
+  @override
   bool get fullyDispatched => _program.fullyDispatched;
 
   @override

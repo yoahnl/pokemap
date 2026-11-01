@@ -75,6 +75,7 @@ final class BattlePreparedRecipeAudio {
   final List<BattleAnimationStep> steps;
   final List<String> sourceSeqIds;
   Future<Object> get playbackFailure => _playbackFailure.future;
+  bool get anyDispatched => _cues.values.any((cue) => cue.started);
   bool get fullyDispatched => _cues.values.every((cue) => cue.started);
   Future<void> get finished =>
       Future.wait(_cues.values.map((cue) => cue.sound.finished))

@@ -125,6 +125,8 @@ final class BattleAnimationRunner {
   final Set<BattleAnimationAudioScope> _finishedAudioScopes = HashSet.identity();
   final Map<PlaySeStep, BattleAnimationAudioScope> _scopedAudioCues =
       HashMap.identity();
+  final Map<StartTrackedEffectStep, BattleAnimationAudioScope> _recoveryAudio =
+      HashMap.identity();
   String? _currentMessage;
   HudHpTweenStep? _currentHpTweenStep;
   HudXpTweenStep? _currentXpTweenStep;
@@ -174,6 +176,10 @@ final class BattleAnimationRunner {
     void validate(List<BattleAnimationStep> steps, bool inParallel) {
       for (final step in steps) {
         if (step is StartTrackedEffectStep) {
+          if (step.fallbackSteps == null &&
+              step.fallbackAfterAudioSteps != null) {
+            throw StateError('Silent fallback requires a recoverable effect');
+          }
           if (step.fallbackSteps == null && onStartTrackedEffect == null) {
             throw StateError('Tracked effects are not supported by this host');
           }
@@ -195,6 +201,8 @@ final class BattleAnimationRunner {
         : plan.steps;
     validate(frozen, false);
     final normalized = _normalizeSteps(frozen);
+    final recoverableRanges =
+        <({StartTrackedEffectStep step, int start, int end})>[];
     var trackedSinceBarrier = false;
     for (var i = 0; i < normalized.length; i++) {
       final step = normalized[i];
@@ -228,6 +236,7 @@ final class BattleAnimationRunner {
       if (barrier == normalized.length) {
         throw StateError('Recoverable effect requires a barrier');
       }
+      recoverableRanges.add((step: step, start: i + 1, end: barrier));
     }
     int countCue(List<BattleAnimationStep> steps, PlaySeStep cue) {
       var count = 0;
@@ -236,6 +245,9 @@ final class BattleAnimationRunner {
         if (step is AnimationGroupStep) count += countCue(step.steps, cue);
         if (step is StartTrackedEffectStep && step.fallbackSteps != null) {
           count += countCue(step.fallbackSteps!, cue);
+          if (step.fallbackAfterAudioSteps != null) {
+            count += countCue(step.fallbackAfterAudioSteps!, cue);
+          }
         }
       }
       return count;
@@ -255,6 +267,9 @@ final class BattleAnimationRunner {
         } else if (step is StartTrackedEffectStep &&
             step.fallbackSteps != null) {
           collect(step.fallbackSteps!, fallback: true);
+          if (step.fallbackAfterAudioSteps != null) {
+            collect(step.fallbackAfterAudioSteps!, fallback: true);
+          }
         }
       }
     }
@@ -280,6 +295,46 @@ final class BattleAnimationRunner {
           throw StateError('Invalid scoped audio cue');
         }
         cues[cue] = scope;
+      }
+    }
+    final recoveryAudio =
+        HashMap<StartTrackedEffectStep, BattleAnimationAudioScope>.identity();
+    for (final range in recoverableRanges) {
+      final body = normalized.sublist(range.start, range.end);
+      final matching = HashSet<BattleAnimationAudioScope>.identity();
+      void collectScopes(BattleAnimationStep step) {
+        if (step is PlaySeStep) {
+          final scope = cues[step];
+          if (scope != null) matching.add(scope);
+        } else if (step is AnimationGroupStep) {
+          for (final child in step.steps) {
+            collectScopes(child);
+          }
+        }
+      }
+
+      for (final step in body) {
+        collectScopes(step);
+      }
+      final silentFallback = range.step.fallbackAfterAudioSteps;
+      if (matching.length > 1 ||
+          (matching.isEmpty && silentFallback != null) ||
+          (matching.isNotEmpty &&
+              (silentFallback == null ||
+                  !silentFallback.every(_isSilentFallbackStep)))) {
+        throw StateError('Recoverable audio requires a silent visual fallback');
+      }
+      if (matching.isNotEmpty) {
+        final scope = matching.single;
+        bool belongsToScope(BattleAnimationStep step) => switch (step) {
+          PlaySeStep() => identical(cues[step], scope),
+          AnimationGroupStep(:final steps) => steps.every(belongsToScope),
+          _ => true,
+        };
+        if (!body.every(belongsToScope)) {
+          throw StateError('Recoverable audio contains another sound');
+        }
+        recoveryAudio[range.step] = scope;
       }
     }
     final claimed = <BattleAnimationAudioScope>[];
@@ -324,6 +379,7 @@ final class BattleAnimationRunner {
       }));
     }
     _scopedAudioCues.addAll(cues);
+    _recoveryAudio.addAll(recoveryAudio);
     _plan = BattleAnimationPlan(steps: normalized);
     _nextStepIndex = 0;
     _phaseElapsed = 0;
@@ -362,6 +418,7 @@ final class BattleAnimationRunner {
     _currentXpTweenStep = null;
     _scheduledAccentSteps.clear();
     _scopedAudioCues.clear();
+    _recoveryAudio.clear();
     _completeCurrentPlan();
     if (clearMessage) {
       _currentMessage = null;
@@ -491,6 +548,7 @@ final class BattleAnimationRunner {
       _activeAudioScopes.clear();
       _finishedAudioScopes.clear();
       _scopedAudioCues.clear();
+      _recoveryAudio.clear();
       _cancelAudioScopes(incompleteAudio);
       final generation = ++_generation;
       final cancellations = _trackedEffects.values.toList();
@@ -607,10 +665,17 @@ final class BattleAnimationRunner {
               mode: mode,
               steps: _freezeSteps(steps),
             ),
-            StartTrackedEffectStep(:final effectId, :final fallbackSteps)
+            StartTrackedEffectStep(
+              :final effectId,
+              :final fallbackSteps,
+              :final fallbackAfterAudioSteps,
+            )
                 when fallbackSteps != null => StartTrackedEffectStep(
               effectId: effectId,
               fallbackSteps: _freezeSteps(fallbackSteps),
+              fallbackAfterAudioSteps: fallbackAfterAudioSteps == null
+                  ? null
+                  : _freezeSteps(fallbackAfterAudioSteps),
             ),
             _ => step,
           },
@@ -637,10 +702,26 @@ final class BattleAnimationRunner {
     _ => false,
   };
 
+  bool _isSilentFallbackStep(BattleAnimationStep step) => switch (step) {
+    WaitStep() || SpawnFxStep() || ScreenFlashStep() || SceneTintStep() ||
+    PlaySpriteSheetFxStep() || SpriteSheetOnCombatantStep() ||
+    ParticleBurstStep() || PlaySdkParticleSequenceStep() ||
+    SdkFallingParticlesStep() || SdkRadiusParticleStep() ||
+    SdkScalarParticleStep() || SdkParticleZoomStep() || WeatherParticleStep() ||
+    CombatantMotionStep() || CombatantFlashStep() || CombatantShakeStep() ||
+    CombatantToneStep() || CombatantCompressStep() || CombatantEllipseStep() ||
+    CameraFocusStep() || BattleCameraMoveStep() || BattleCameraResetStep() ||
+    BarrierPulseStep() => true,
+    AnimationGroupStep(:final steps) => steps.every(_isSilentFallbackStep),
+    _ => false,
+  };
+
   void _recoverTrackedEffect(
     Object token,
     int generation,
     List<BattleAnimationStep> fallback,
+    List<BattleAnimationStep>? fallbackAfterAudio,
+    BattleAnimationAudioScope? audioScope,
   ) {
     if (_generation != generation || !_trackedEffects.containsKey(token)) return;
     final plan = _plan;
@@ -654,6 +735,15 @@ final class BattleAnimationRunner {
       if (resume == plan.steps.length) return;
       resume++;
     }
+    final audioStarted = audioScope?.anyDispatched ?? false;
+    if (audioScope != null && !audioStarted) {
+      _activeAudioScopes.remove(audioScope);
+      _finishedAudioScopes.remove(audioScope);
+      for (final cue in audioScope.cues) {
+        _scopedAudioCues.remove(cue);
+      }
+      _cancelAudioScopes([audioScope]);
+    }
     _generation++;
     final cancellations = _trackedEffects.values.toList();
     _trackedEffects.clear();
@@ -662,7 +752,7 @@ final class BattleAnimationRunner {
     _cameraResetPending = false;
     _plan = BattleAnimationPlan(steps: [
       if (resetCamera) const BattleCameraResetStep(durationSeconds: 0),
-      ..._normalizeSteps(fallback),
+      ..._normalizeSteps(audioStarted ? fallbackAfterAudio! : fallback),
       ...plan.steps.skip(resume),
     ]);
     _nextStepIndex = 0;
@@ -937,10 +1027,18 @@ final class BattleAnimationRunner {
             cancelEffect = onStartTrackedEffect!(step, done);
           } else {
             final visualFallback = List<BattleAnimationStep>.unmodifiable(fallback);
+            final audioScope = _recoveryAudio[step];
+            final silentFallback = step.fallbackAfterAudioSteps;
             cancelEffect = onStartRecoverableTrackedEffect!(
               step,
               done,
-              () => _recoverTrackedEffect(token, generation, visualFallback),
+              () => _recoverTrackedEffect(
+                token,
+                generation,
+                visualFallback,
+                silentFallback,
+                audioScope,
+              ),
             );
           }
         } catch (_) {
