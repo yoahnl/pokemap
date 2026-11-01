@@ -38,6 +38,7 @@ export 'src/resource_pack_security_policy.dart';
 export 'src/resource_pack_inspector.dart';
 
 export 'src/resource_pack_builder.dart';
+export 'src/strict_json_structure_validator.dart';
 
 export 'src/random_access_zip_structure_reader.dart'
     show
