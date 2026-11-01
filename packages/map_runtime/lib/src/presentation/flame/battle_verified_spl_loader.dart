@@ -38,16 +38,58 @@ final class BattleVerifiedSplLoader {
     BattleSplCameraProjection? projection,
     required void Function() onComplete,
     required void Function(BattleSplAdmissionFailure) onFailure,
+  }) => createGrouped(
+    [particleId],
+    emitters: emitters,
+    seed: seed,
+    poolCapacity: poolCapacity,
+    maxTicks: maxTicks,
+    origin: origin,
+    pixelsPerUnit: pixelsPerUnit,
+    projection: projection,
+    onComplete: onComplete,
+    onFailure: onFailure,
+  );
+
+  Future<BattleVerifiedSplPreparation> createGrouped(
+    List<String> particleIds, {
+    required List<BattleSplStaticEmitter> emitters,
+    required int seed,
+    required int poolCapacity,
+    required int maxTicks,
+    required ui.Offset origin,
+    required double pixelsPerUnit,
+    BattleSplCameraProjection? projection,
+    required void Function() onComplete,
+    required void Function(BattleSplAdmissionFailure) onFailure,
   }) async {
     if (_started) throw StateError('SPL loader already used');
     _started = true;
     _checkActive();
+    final idsToLoad = List<String>.unmodifiable(particleIds);
+    if (idsToLoad.isEmpty || idsToLoad.length > 32) {
+      throw const FormatException('Invalid SPL particle group');
+    }
     final definitions = _bundle.recipe.readVerifiedSplParticleDefinitions(
       _bundle.media,
       availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
     );
-    final definition = definitions[particleId];
-    if (definition == null) throw const FormatException('Unknown SPL particle');
+    final selected = <BattleSplParticleDefinition>[];
+    for (final id in idsToLoad) {
+      final definition = definitions[id];
+      if (definition == null) {
+        throw const FormatException('Unknown SPL particle');
+      }
+      selected.add(definition);
+    }
+    final definition = selected.length == 1
+        ? selected.single
+        : BattleSplParticleDefinition.fromJson({
+            'schemaVersion': 2,
+            'emitters': [
+              for (final item in selected) ...item.toJson()['emitters'] as List,
+            ],
+          });
     if (projection == null ||
         projection.bindings.length != emitters.length ||
         projection.capture() == null) {

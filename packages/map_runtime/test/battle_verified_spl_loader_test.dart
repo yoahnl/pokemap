@@ -25,6 +25,7 @@ import 'support/load_flame_component.dart';
 Future<InspectedBattleRecipeBundle> bundle({
   bool crowded = false,
   bool opaque = false,
+  bool grouped = false,
 }) async {
   final raw = jsonDecode(
     await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
@@ -47,7 +48,11 @@ Future<InspectedBattleRecipeBundle> bundle({
         'revision': '1',
         'moveSourceId': 'source',
         'variant': 'default',
-        'requiredCapabilities': ['startParticle', 'splParticleV2'],
+        'requiredCapabilities': [
+          if (grouped) 'parallel',
+          'startParticle',
+          'splParticleV2',
+        ],
         'provenance': {
           'source': 'synthetic',
           'sourceRevision': '1',
@@ -71,13 +76,41 @@ Future<InspectedBattleRecipeBundle> bundle({
             'definitionVersion': 2,
             'dependencies': ['tex'],
           },
+          if (grouped)
+            {
+              'id': 'particle2',
+              'role': 'particleDefinition',
+              'mediaType': 'application/vnd.avelune.particle+json',
+              'sizeBytes': particle.length,
+              'sha256': sha256.convert(particle).toString(),
+              'definitionVersion': 2,
+              'dependencies': ['tex'],
+            },
         ],
-        'program': {
-          'kind': 'startParticle',
-          'resourceId': 'particle',
-          'from': 'userMouth',
-          'to': 'targetImpact',
-        },
+        'program': grouped
+            ? {
+                'kind': 'parallel',
+                'steps': [
+                  {
+                    'kind': 'startParticle',
+                    'resourceId': 'particle',
+                    'from': 'userMouth',
+                    'to': 'targetImpact',
+                  },
+                  {
+                    'kind': 'startParticle',
+                    'resourceId': 'particle2',
+                    'from': 'targetImpact',
+                    'to': 'targetImpact',
+                  },
+                ],
+              }
+            : {
+                'kind': 'startParticle',
+                'resourceId': 'particle',
+                'from': 'userMouth',
+                'to': 'targetImpact',
+              },
       }),
     ),
   );
@@ -94,7 +127,7 @@ Future<InspectedBattleRecipeBundle> bundle({
   return const BattleRecipeBundleInspector().inspect(
     binding,
     recipeBytes,
-    {'tex': png, 'particle': particle},
+    {'tex': png, 'particle': particle, if (grouped) 'particle2': particle},
     limits: const BattleRecipeBundleLimits(
       maxTextures: 2,
       maxTextureBytes: 10000,
@@ -173,6 +206,124 @@ List<String> runWithManualFallback(BattleVerifiedSplPreparation result) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('prepares grouped SPL definitions with one shared playback', () async {
+    final inspected = await bundle(grouped: true);
+    final loader = BattleVerifiedSplLoader(inspected);
+    final baseProjection = testProjection();
+    final projection = BattleSplCameraProjection(
+      camera: baseProjection.camera,
+      bindings: [
+        baseProjection.bindings.single,
+        baseProjection.bindings.single,
+      ],
+    );
+    const emitters = [
+      BattleSplStaticEmitter(
+        emitterIndex: 0,
+        startTick: 0,
+        position: (x: 0, y: 0, z: 0),
+      ),
+      BattleSplStaticEmitter(
+        emitterIndex: 1,
+        startTick: 0,
+        position: (x: 0, y: 4096, z: 0),
+      ),
+    ];
+    final result = await loader.createGrouped(
+      ['particle', 'particle2'],
+      emitters: emitters,
+      seed: 0,
+      poolCapacity: 32,
+      maxTicks: 80,
+      origin: ui.Offset.zero,
+      pixelsPerUnit: 4.0,
+      projection: projection,
+      onComplete: () {},
+      onFailure: (BattleSplAdmissionFailure _) => fail('unexpected failure'),
+    );
+    expect(result.failure, isNull);
+    final component = result.component!;
+    addTearDown(component.dispose);
+    final definitions = inspected.recipe.readVerifiedSplParticleDefinitions(
+      inspected.media,
+      availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+    );
+    final combined = BattleSplParticleDefinition.fromJson({
+      'schemaVersion': 2,
+      'emitters': [
+        ...definitions['particle']!.toJson()['emitters'] as List,
+        ...definitions['particle2']!.toJson()['emitters'] as List,
+      ],
+    });
+    final expected = BattleSplStaticAdmission.prepare(
+      definition: combined,
+      textureIndices: {'tex': 0},
+      emitters: emitters,
+      seed: 0,
+      poolCapacity: 32,
+      maxTicks: 80,
+    ).playback!;
+    addTearDown(expected.cancel);
+    List<Object?> snapshot(BattleSplStaticPlayback playback) => [
+      for (final frame in playback.frames)
+        [
+          for (final particle in frame.particles)
+            [
+              particle.id,
+              particle.parentId,
+              particle.motion.position,
+              particle.motion.velocity,
+              particle.scale4096,
+              particle.alpha5,
+              particle.color,
+              particle.texture,
+            ],
+        ],
+    ];
+    for (var i = 0; i < 80 && !expected.isComplete; i++) {
+      expect(component.playback.advance(), isNull);
+      expect(expected.advance(), isNull);
+      expect(
+        snapshot(component.playback),
+        snapshot(expected),
+        reason: 'tick $i',
+      );
+    }
+    expect(component.playback.isComplete, isTrue);
+  });
+
+  test('rejects incomplete or oversized SPL groups before decoding', () async {
+    final inspected = await bundle(grouped: true);
+    final created = <ui.Image>[];
+    final previousCreate = ui.Image.onCreate;
+    ui.Image.onCreate = created.add;
+    addTearDown(() => ui.Image.onCreate = previousCreate);
+
+    for (final ids in [
+      <String>[],
+      ['particle', 'missing'],
+      List.filled(33, 'particle'),
+    ]) {
+      final loader = BattleVerifiedSplLoader(inspected);
+      await expectLater(
+        loader.createGrouped(
+          ids,
+          emitters: schedule,
+          seed: 0,
+          poolCapacity: 16,
+          maxTicks: 80,
+          origin: ui.Offset.zero,
+          pixelsPerUnit: 4,
+          projection: testProjection(),
+          onComplete: () => fail('played'),
+          onFailure: (_) => fail('played'),
+        ),
+        throwsFormatException,
+      );
+    }
+    expect(created, isEmpty);
+  });
 
   test(
     'refuses scene playback before starting if projection is unavailable',
