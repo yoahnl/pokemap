@@ -12,12 +12,20 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
+import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_perspective_camera.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_camera_projection.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_stage_3d_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_spl_loader.dart';
 
-Future<InspectedBattleRecipeBundle> bundle({bool crowded = false}) async {
+import 'support/load_flame_component.dart';
+
+Future<InspectedBattleRecipeBundle> bundle({
+  bool crowded = false,
+  bool opaque = false,
+}) async {
   final raw = jsonDecode(
     await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
   ) as Map<String, dynamic>;
@@ -26,7 +34,11 @@ Future<InspectedBattleRecipeBundle> bundle({bool crowded = false}) async {
         2 * 4096;
   }
   final particle = Uint8List.fromList(utf8.encode(jsonEncode(raw)));
-  final png = Uint8List.fromList(img.encodePng(img.Image(width: 2, height: 2)));
+  final texture = img.Image(width: 2, height: 2);
+  if (opaque) {
+    img.fill(texture, color: img.ColorRgba8(255, 0, 0, 255));
+  }
+  final png = Uint8List.fromList(img.encodePng(texture));
   final recipeBytes = Uint8List.fromList(
     utf8.encode(
       jsonEncode({
@@ -368,6 +380,184 @@ void main() {
       expect(events, ['legacy', 'impact', 'hp']);
     },
   );
+
+  test('scene recovers after SPL loses projection', () async {
+    const stats = BattleStatsSnapshot(
+      attack: 20,
+      defense: 20,
+      specialAttack: 20,
+      specialDefense: 20,
+      speed: 20,
+    );
+    const pokemon = BattleCombatantData(
+      speciesId: 'synthetic',
+      level: 7,
+      maxHp: 25,
+      currentHp: 25,
+      stats: stats,
+      moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 40)],
+    );
+    late void Function() completeEffect;
+    late void Function() failEffect;
+    late BattleSplStaticComponent component;
+    final sounds = <String>[];
+    final hpTransitions = <int>[];
+    final failures = <BattleSplAdmissionFailure>[];
+    var hpWasTweening = false;
+    var cancellations = 0;
+    var valid = true;
+    final overlay = BattleOverlayComponent(
+      session: createBattleSession(
+        BattleSetup.pokeMapBetaV1ForTest(
+          playerPokemon: pokemon,
+          enemyPokemon: pokemon,
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      ),
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+      onCommandOverlaySnapshotChanged: (snapshot) {
+        final hud = snapshot?.enemyHud;
+        final isTweening = hud?.targetDisplayedHp == 15;
+        if (isTweening && !hpWasTweening) {
+          hpTransitions.add(hud!.hpTweenRevision);
+        }
+        hpWasTweening = isTweening;
+      },
+      playSfx: (name, {volume = 100, pitch = 100}) => sounds.add(name),
+      onStartRecoverableTrackedEffect: (_, done, failed) {
+        completeEffect = done;
+        failEffect = failed;
+        return () {
+          cancellations++;
+          component.cancel();
+        };
+      },
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final camera = overlay.children
+        .whereType<BattleStage3DComponent>()
+        .single
+        .camera;
+    const slot = BattleSlotRef.active(BattleSideId.player);
+    final actor = overlay.debugPlayerCombatant!;
+    final projection = BattleSplCameraProjection(
+      camera: camera,
+      bindings: [
+        BattleSplCameraBinding(
+          resolveNeutralFoot: () =>
+              overlay.currentSceneLayout.combatantGeometry(slot).footAnchor,
+          resolveAnchor: () {
+            if (!valid || overlay.debugPlayerCombatant != actor) return null;
+            final rect = actor.currentEffectAttachmentSpriteRect;
+            return rect.isEmpty
+                ? null
+                : Vector2(rect.center.dx, rect.center.dy);
+          },
+        ),
+      ],
+    );
+    final result = await BattleVerifiedSplLoader(await bundle(opaque: true))
+        .create(
+          'particle',
+          emitters: schedule,
+          seed: 0,
+          poolCapacity: 16,
+          maxTicks: 80,
+          origin: ui.Offset.zero,
+          pixelsPerUnit: 4,
+          projection: projection,
+          onComplete: () => completeEffect(),
+          onFailure: (failure) {
+            failures.add(failure);
+            failEffect();
+          },
+        );
+    expect(result.failure, isNull);
+    component = result.component!..priority = 9999;
+    addTearDown(component.dispose);
+    overlay.add(component);
+    overlay.findGame()!.processLifecycleEvents();
+    await component.loaded;
+    overlay.findGame()!.processLifecycleEvents();
+
+    Future<Uint8List> scenePixels() async {
+      final recorder = ui.PictureRecorder();
+      overlay.renderTree(ui.Canvas(recorder));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(390, 844);
+      try {
+        return Uint8List.fromList(
+          (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!.buffer
+              .asUint8List(),
+        );
+      } finally {
+        image.dispose();
+        picture.dispose();
+      }
+    }
+
+    overlay.presentPostBattlePlan(
+      const BattleAnimationPlan(
+        steps: [
+          StartTrackedEffectStep(
+            effectId: 'particle',
+            fallbackSteps: [
+              PlaySeStep(seName: 'fallback'),
+              WaitStep(durationSeconds: .05),
+            ],
+          ),
+          WaitTrackedEffectsStep(),
+          PlaySeStep(seName: 'impact'),
+          HudHpTweenStep(
+            side: BattleSideId.enemy,
+            fromHp: 25,
+            toHp: 15,
+            durationMs: 320,
+          ),
+          PlaySeStep(seName: 'after-hp'),
+        ],
+      ),
+    );
+    overlay.updateTree(1 / 60);
+    expect(component.playback.activeParticles, greaterThan(0));
+    final visible = await scenePixels();
+    component.scale.setValues(0, 0);
+    final hidden = await scenePixels();
+    component.scale.setValues(1, 1);
+    expect(visible, isNot(orderedEquals(hidden)));
+    expect(sounds, isEmpty);
+    expect(hpTransitions, isEmpty);
+
+    valid = false;
+    overlay.updateTree(.001);
+    expect(failures, [BattleSplAdmissionFailure.projectionUnavailable]);
+    expect(component.playback.activeParticles, 0);
+    expect(cancellations, 1);
+    expect(sounds, ['fallback']);
+    expect(hpTransitions, isEmpty);
+
+    completeEffect();
+    failEffect();
+    overlay.updateTree(.06);
+    expect(sounds, ['fallback', 'impact']);
+    expect(hpTransitions, [1]);
+    final hud = overlay.currentCommandOverlaySnapshot!.enemyHud;
+    expect(hud.displayedHp, 25);
+    expect(hud.targetDisplayedHp, 15);
+    completeEffect();
+    failEffect();
+    overlay.updateTree(.4);
+    expect(sounds, ['fallback', 'impact', 'after-hp']);
+    expect(hpTransitions, [1]);
+    expect(cancellations, 1);
+    expect(failures, [BattleSplAdmissionFailure.projectionUnavailable]);
+    overlay.findGame()!.processLifecycleEvents();
+    expect(component.isMounted, isFalse);
+  });
 
   test(
     'rejects missing or cancelled resources without starting an effect',
