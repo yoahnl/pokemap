@@ -74,7 +74,7 @@ class Model {
 
     for (final node in nodes.values) {
       final index = node.nodeIndex;
-      final deps = node.dependencies;
+      final deps = node.dependencies.toSet();
       inDegree[index] = deps.length;
       for (final dep in deps) {
         (adjacencyMap[dep] ??= {}).add(index);

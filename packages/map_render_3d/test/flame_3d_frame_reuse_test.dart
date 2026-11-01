@@ -4,6 +4,7 @@ import 'package:flame/components.dart' show Vector2;
 import 'package:flame_3d/camera.dart';
 import 'package:flame_3d/core.dart' hide Vector2;
 import 'package:flame_3d/model.dart';
+import 'package:flame_3d/resources.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
@@ -38,6 +39,74 @@ void main() {
     expect(identical(first, second), isTrue);
     expect(first.keys, [0, 1, 2]);
     expect(first[2]!.combinedTransform.getTranslation().x, 7);
+  });
+
+  test('a parent that is also a joint is processed only once', () {
+    final surface = Surface(
+      vertices: [
+        Vertex(
+          position: Vector3.zero(),
+          texCoord: Vector2.zero(),
+          joints: Vector4.zero(),
+          weights: Vector4(1, 0, 0, 0),
+        ),
+        Vertex(
+          position: Vector3(1, 0, 0),
+          texCoord: Vector2.zero(),
+          joints: Vector4(1, 0, 0, 0),
+          weights: Vector4(1, 0, 0, 0),
+        ),
+        Vertex(
+          position: Vector3(0, 1, 0),
+          texCoord: Vector2.zero(),
+          joints: Vector4.zero(),
+          weights: Vector4(1, 0, 0, 0),
+        ),
+      ],
+      indices: [0, 1, 2],
+      jointMap: {0: 0, 1: 1},
+    );
+    final model = Model(
+      nodes: {
+        2: ModelNode(
+          name: 'skin',
+          nodeIndex: 2,
+          parentNodeIndex: 1,
+          transform: Matrix4.translationValues(4, 0, 0),
+          mesh: Mesh()..addSurface(surface),
+          joints: {
+            0: ModelJoint(nodeIndex: 1, inverseBindMatrix: Matrix4.identity()),
+            1: ModelJoint(nodeIndex: 3, inverseBindMatrix: Matrix4.identity()),
+          },
+        ),
+        1: node(1, parent: 0, x: 2),
+        3: node(3, x: 5),
+        0: node(0, x: 1),
+      },
+      animations: [],
+    );
+
+    final processed = model.processNodes(AnimationState());
+    final order = processed.keys.toList();
+    expect(order.indexOf(0), lessThan(order.indexOf(1)));
+    expect(order.indexOf(1), lessThan(order.indexOf(2)));
+    expect(order.indexOf(3), lessThan(order.indexOf(2)));
+    expect(processed[2]!.combinedTransform.getTranslation().x, 7);
+    expect(
+      processed[2]!.jointTransforms[0]!.map(
+        (transform) => transform.getTranslation().x,
+      ),
+      [3, 5],
+    );
+  });
+
+  test('a genuine node dependency cycle remains rejected', () {
+    final model = Model(
+      nodes: {0: node(0, parent: 1), 1: node(1, parent: 0)},
+      animations: [],
+    );
+
+    expect(() => model.processNodes(AnimationState()), throwsStateError);
   });
 
   test('a running animation is sampled on every call', () async {
