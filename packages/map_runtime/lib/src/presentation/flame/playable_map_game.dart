@@ -70,6 +70,7 @@ import '../../player/runtime_world_service_models.dart';
 import '../../player/runtime_regional_map_builder.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
+import '../../application/runtime_battle_presentation.dart';
 import '../../application/runtime_bag_capacity.dart';
 import '../../application/runtime_battle_experience_progress.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
@@ -10166,6 +10167,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
       PsdkBattleSetup? psdkSetup;
       BattleSetup? setup;
+      Map<int, List<RuntimeBattleVisualIdentity?>>? visualIdentitiesByBank;
       try {
         // Le bridge PSDK est maintenant le chemin runtime normal dès qu'il
         // peut mapper honnêtement la save et les données projet. Le setup
@@ -10177,6 +10179,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           () => _toPsdkBattleSetup(
             request,
             playerPartyIndex: playerLineup.activeIndex,
+            onVisualIdentities: (value) => visualIdentitiesByBank = value,
           ),
         );
       } on RuntimeBattleSetupException catch (psdkSetupError) {
@@ -10240,6 +10243,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           () => RuntimePsdkBattleSessionAdapter.fromSetup(
             psdkSetup!,
             opponentAi: psdkOpponentAi,
+            visualIdentitiesByBank: visualIdentitiesByBank ?? const {},
             itemDisplayNames: {
               for (final item in _itemCatalogSnapshot.definitions)
                 item.id: item.displayName,
@@ -10620,6 +10624,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   Future<PsdkBattleSetup> _toPsdkBattleSetup(
     BattleStartRequest request, {
     int? playerPartyIndex,
+    void Function(Map<int, List<RuntimeBattleVisualIdentity?>>)?
+        onVisualIdentities,
   }) {
     return _psdkBattleSetupMapper.map(
       bundle: _bundle,
@@ -10628,6 +10634,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       playerPartyIndex: playerPartyIndex,
       itemCatalog: _itemCatalogSnapshot,
       onCaptureProvenance: (value) => _battleCaptureProvenance = value,
+      onVisualIdentities: onVisualIdentities,
     );
   }
 

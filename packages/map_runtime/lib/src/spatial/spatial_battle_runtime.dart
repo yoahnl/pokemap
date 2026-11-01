@@ -18,6 +18,7 @@ import '../application/runtime_battle_outcome_apply.dart';
 import '../application/runtime_contextual_capture.dart';
 import '../application/runtime_battle_experience_progress.dart';
 import '../application/runtime_battle_setup_mapper.dart';
+import '../application/runtime_battle_presentation.dart';
 import '../player/runtime_capture_sprite_resolver.dart';
 import '../application/runtime_item_catalog_loader.dart';
 import '../application/runtime_map_bundle.dart';
@@ -326,6 +327,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         activeCount: psdkMapper.requiresDoubles(bundle.manifest, request) ? 2 : 1,
       );
       RuntimeCaptureProvenance? captureProvenance;
+      Map<int, List<RuntimeBattleVisualIdentity?>>? visualIdentitiesByBank;
       final setup = await psdkMapper.map(
         bundle: bundle,
         gameState: hydrated,
@@ -333,6 +335,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         playerPartyIndex: lineup.activeIndex,
         itemCatalog: items,
         onCaptureProvenance: (value) => captureProvenance = value,
+        onVisualIdentities: (value) => visualIdentitiesByBank = value,
       );
       if (!_current(generation)) return;
       final moves = await RuntimeMoveCatalogLoader().load(
@@ -358,6 +361,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       _items = items;
       _engine = RuntimePsdkBattleSessionAdapter.fromSetup(
         setup,
+        visualIdentitiesByBank: visualIdentitiesByBank ?? const {},
         opponentAi: resolveRuntimeTrainerPsdkAi(
           request: request,
           manifest: bundle.manifest,

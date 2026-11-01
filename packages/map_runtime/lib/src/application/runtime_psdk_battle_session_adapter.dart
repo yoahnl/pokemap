@@ -16,12 +16,15 @@ final class RuntimePsdkBattleSessionAdapter {
     this.ruleset,
     this.isDoubles,
     Map<String, String> itemDisplayNames,
+    this._initialVisuals,
   ) : _itemDisplayNames = Map.of(itemDisplayNames);
 
   factory RuntimePsdkBattleSessionAdapter.fromSetup(
     PsdkBattleSetup setup, {
     PsdkBattleAi opponentAi = const PsdkBattleAi(level: 2),
     Map<String, String> itemDisplayNames = const {},
+    Map<int, List<RuntimeBattleVisualIdentity?>> visualIdentitiesByBank =
+        const {},
   }) {
     return RuntimePsdkBattleSessionAdapter._(
       BattleSessionFacade.fromPsdkSetup(
@@ -32,6 +35,7 @@ final class RuntimePsdkBattleSessionAdapter {
       setup.ruleset,
       !setup.isSingles,
       itemDisplayNames,
+      _bindVisualIdentities(setup, visualIdentitiesByBank),
     );
   }
 
@@ -49,6 +53,9 @@ final class RuntimePsdkBattleSessionAdapter {
   BattleEngineTurnResult? _lastTurnResult;
   PsdkBattleWeatherId? _lastTurnWeather;
   final Map<String, String> _itemDisplayNames;
+  final Map<
+      (int, String),
+      (RuntimeBattleVisualIdentity, int, PsdkBattleGender)> _initialVisuals;
   final Map<String, int> _pendingItemQuantities = {};
   List<BattleItemTimelineEvent> _resolvedItemEvents = const [];
 
@@ -82,16 +89,40 @@ final class RuntimePsdkBattleSessionAdapter {
     return RuntimeBattlePresentation(
       activeCombatants: [
         for (final entry in entries)
-          RuntimeBattleActiveCombatantProjection(
-            slot: runtimeBattleSlot(entry.key),
-            combatantId: entry.value.id,
-            lineupIndex: lineupIndexForCombatantId(entry.value.id),
-            combatant: _toLegacyCombatant(entry.value),
-          ),
+          _projectActiveCombatant(entry.key, entry.value),
       ],
       playerParty: state.partyForBank(0).map(_toLegacyCombatant),
       request: decisionRequest,
       isDoubles: isDoubles,
+    );
+  }
+
+  RuntimeBattleActiveCombatantProjection _projectActiveCombatant(
+    PsdkBattleSlotRef slot,
+    PsdkBattleCombatant combatant,
+  ) {
+    final source = _initialVisuals[(slot.bank, combatant.id)];
+    final reason = switch ((source, combatant.transformState)) {
+      (_, final state) when state.isTransformed =>
+        RuntimeBattleVisualIdentityUnavailableReason.transformed,
+      (_, final state) when state.hasIllusion =>
+        RuntimeBattleVisualIdentityUnavailableReason.illusion,
+      (null, _) => RuntimeBattleVisualIdentityUnavailableReason.unknownSource,
+      (final initial?, _) when
+        combatant.speciesId.trim() != initial.$1.speciesId.trim() ||
+        combatant.form != initial.$2 ||
+        combatant.gender != initial.$3 =>
+        RuntimeBattleVisualIdentityUnavailableReason.appearanceChanged,
+      _ => null,
+    };
+    return RuntimeBattleActiveCombatantProjection(
+      slot: runtimeBattleSlot(slot),
+      combatantId: combatant.id,
+      lineupIndex: lineupIndexForCombatantId(combatant.id),
+      combatant: _toLegacyCombatant(combatant),
+      initialVisualIdentity: source?.$1,
+      currentVisualIdentity: reason == null ? source?.$1 : null,
+      visualIdentityUnavailableReason: reason,
     );
   }
 
@@ -1120,6 +1151,41 @@ final class RuntimePsdkBattleSessionAdapter {
   }
 }
 
+
+Map<(int, String), (RuntimeBattleVisualIdentity, int, PsdkBattleGender)>
+_bindVisualIdentities(
+  PsdkBattleSetup setup,
+  Map<int, List<RuntimeBattleVisualIdentity?>> sources,
+) {
+  final bindings =
+      <(int, String), (RuntimeBattleVisualIdentity, int, PsdkBattleGender)>{};
+  for (final bank in const [0, 1]) {
+    final party = setup.partyForBank(bank);
+    final identities = sources[bank];
+    if (identities == null || identities.length != party.length ||
+        party.map((member) => member.id).toSet().length != party.length) {
+      continue;
+    }
+    var matches = true;
+    for (var index = 0; index < party.length; index++) {
+      final identity = identities[index];
+      if (identity != null &&
+          identity.speciesId.trim() != party[index].speciesId.trim()) {
+        matches = false;
+        break;
+      }
+    }
+    if (!matches) continue;
+    for (var index = 0; index < party.length; index++) {
+      final identity = identities[index];
+      final member = party[index];
+      if (identity != null) {
+        bindings[(bank, member.id)] = (identity, member.form, member.gender);
+      }
+    }
+  }
+  return Map.unmodifiable(bindings);
+}
 
 /// La traduction d'un nom de stat du moteur vers la présentation.
 ///

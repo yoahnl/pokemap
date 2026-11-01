@@ -1,17 +1,46 @@
 import 'package:map_battle/map_battle.dart';
 
+enum RuntimeBattleVisualIdentityUnavailableReason {
+  unknownSource,
+  transformed,
+  illusion,
+  appearanceChanged,
+}
+
+final class RuntimeBattleVisualIdentity {
+  const RuntimeBattleVisualIdentity({
+    required this.speciesId,
+    required this.formId,
+    required this.genderId,
+    required this.isShiny,
+  });
+
+  final String speciesId;
+  final String? formId;
+  final String? genderId;
+  final bool? isShiny;
+}
+
 final class RuntimeBattleActiveCombatantProjection {
   const RuntimeBattleActiveCombatantProjection({
     required this.slot,
     required this.combatantId,
     required this.lineupIndex,
     required this.combatant,
+    this.initialVisualIdentity,
+    this.currentVisualIdentity,
+    this.visualIdentityUnavailableReason =
+        RuntimeBattleVisualIdentityUnavailableReason.unknownSource,
   });
 
   final BattleSlotRef slot;
   final String combatantId;
   final int lineupIndex;
   final BattleCombatant combatant;
+  final RuntimeBattleVisualIdentity? initialVisualIdentity;
+  final RuntimeBattleVisualIdentity? currentVisualIdentity;
+  final RuntimeBattleVisualIdentityUnavailableReason?
+  visualIdentityUnavailableReason;
 }
 
 final class RuntimeBattlePresentation {

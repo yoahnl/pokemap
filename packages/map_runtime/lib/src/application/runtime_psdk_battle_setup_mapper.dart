@@ -6,6 +6,7 @@ import 'battle_start_request.dart';
 import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_contextual_capture.dart';
 import 'runtime_battle_setup_mapper.dart';
+import 'runtime_battle_presentation.dart';
 import 'runtime_map_bundle.dart';
 import 'runtime_item_catalog_loader.dart';
 import 'runtime_move_catalog_loader.dart';
@@ -47,6 +48,8 @@ final class RuntimePsdkBattleSetupMapper {
     int? playerPartyIndex,
     ItemCatalogSnapshot? itemCatalog,
     void Function(RuntimeCaptureProvenance)? onCaptureProvenance,
+    void Function(Map<int, List<RuntimeBattleVisualIdentity?>>)?
+        onVisualIdentities,
   }) async {
     final doubles = requiresDoubles(bundle.manifest, request);
     if (doubles && request is! TrainerBattleStartRequest) {
@@ -216,6 +219,34 @@ final class RuntimePsdkBattleSetupMapper {
       moveAccuracy: 31,
       generic: 47,
     );
+    PsdkBattleSetup withVisualIdentities(PsdkBattleSetup setup) {
+      if (onVisualIdentities != null) {
+        final opponent = switch (request) {
+          WildBattleStartRequest(:final generatedPokemon) => [
+              if (generatedPokemon == null)
+                null
+              else
+                _playerVisualIdentity(generatedPokemon),
+            ],
+          TrainerBattleStartRequest(:final trainerId) => [
+              for (final member in _findTrainer(bundle.manifest, trainerId).team)
+                _trainerVisualIdentity(member),
+            ],
+          StaticBattleStartRequest(:final opponentProfileId) => [
+              for (final member in _findTrainer(bundle.manifest, opponentProfileId).team)
+                _trainerVisualIdentity(member),
+            ],
+        };
+        onVisualIdentities(Map.unmodifiable({
+          0: List<RuntimeBattleVisualIdentity?>.unmodifiable([
+            for (final index in playerSelection.lineupPartyIndices)
+              _playerVisualIdentity(gameState.party.members[index]),
+          ]),
+          1: List<RuntimeBattleVisualIdentity?>.unmodifiable(opponent),
+        }));
+      }
+      return setup;
+    }
     if (doubles) {
       final player = [playerSeed, ...playerReserveSeeds];
       final opponent = [enemyLineup.active, ...enemyLineup.reserve];
@@ -227,7 +258,7 @@ final class RuntimePsdkBattleSetupMapper {
         lineupIndex: index,
         idPrefix: prefix,
       );
-      return PsdkBattleSetup.doubles(
+      return withVisualIdentities(PsdkBattleSetup.doubles(
         ruleset: bundle.manifest.pokemon.ruleset,
         player: [
           for (var index = 0; index < 2; index++)
@@ -246,9 +277,9 @@ final class RuntimePsdkBattleSetupMapper {
             project(opponent[index], index, 'opponent'),
         ],
         rngSeeds: rngSeeds,
-      );
+      ));
     }
-    return PsdkBattleSetup.singles(
+    return withVisualIdentities(PsdkBattleSetup.singles(
       ruleset: bundle.manifest.pokemon.ruleset,
       player: playerSeed.toPsdkBattleCombatantSetup(
         lineupIndex: 0,
@@ -283,7 +314,7 @@ final class RuntimePsdkBattleSetupMapper {
             encounterKind: request.encounterKind,
           ),
       isTrainerBattle: request is TrainerBattleStartRequest,
-    );
+    ));
   }
 
   ProjectTrainerEntry _findTrainer(ProjectManifest manifest, String trainerId) {
@@ -300,6 +331,35 @@ final class RuntimePsdkBattleSetupMapper {
     );
   }
 }
+
+RuntimeBattleVisualIdentity _playerVisualIdentity(PlayerPokemon pokemon) =>
+    RuntimeBattleVisualIdentity(
+      speciesId: pokemon.speciesId.trim(),
+      formId: _visualFormId(pokemon.formId),
+      genderId: _visualGenderId(pokemon.gender),
+      isShiny: pokemon.isShiny,
+    );
+
+RuntimeBattleVisualIdentity _trainerVisualIdentity(
+  ProjectTrainerPokemonEntry pokemon,
+) => RuntimeBattleVisualIdentity(
+      speciesId: pokemon.speciesId.trim(),
+      formId: _visualFormId(pokemon.formId),
+      genderId: _visualGenderId(pokemon.gender),
+      isShiny: pokemon.shiny,
+    );
+
+String? _visualFormId(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
+}
+
+String? _visualGenderId(String? value) => switch (value?.trim().toLowerCase()) {
+  'male' || 'm' || '♂' => 'male',
+  'female' || 'f' || '♀' => 'female',
+  'genderless' || 'neutral' || 'none' || '∅' => 'genderless',
+  _ => null,
+};
 
 final class _RuntimePsdkBattleEnemyLineup {
   const _RuntimePsdkBattleEnemyLineup({

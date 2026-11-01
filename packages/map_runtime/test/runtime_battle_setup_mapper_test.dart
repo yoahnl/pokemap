@@ -10,6 +10,7 @@ import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
 import 'package:map_runtime/src/application/runtime_contextual_capture.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
+import 'package:map_runtime/src/application/runtime_battle_presentation.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
@@ -84,6 +85,185 @@ void main() {
         await tempProjectRoot.delete(recursive: true);
       }
     });
+
+    test('carries exact player and generated wild visual identities', () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const [],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final base = _playerStateForTests();
+      final player = base.party.members.single.copyWith(
+        formId: 'player-form',
+        gender: 'female',
+        isShiny: true,
+      );
+      final gameState = base.copyWith(party: PlayerParty(members: [player]));
+      final hydrated = await mapper.hydrateWildRequest(
+        bundle: bundle,
+        request: _wildRequest(speciesId: 'sparkitten', level: 10),
+      );
+      final wild = hydrated.generatedPokemon!.copyWith(
+        formId: 'wild-form',
+        gender: 'male',
+        isShiny: true,
+      );
+      final request = hydrated.withGeneratedPokemon(
+        pokemon: wild,
+        profileId: hydrated.generationProfileId,
+        schemaVersion: hydrated.generationSchemaVersion,
+      );
+      Map<int, List<RuntimeBattleVisualIdentity?>>? visuals;
+      final setup = await RuntimePsdkBattleSetupMapper().map(
+        bundle: bundle,
+        gameState: gameState,
+        request: request,
+        onVisualIdentities: (
+          Map<int, List<RuntimeBattleVisualIdentity?>> value,
+        ) => visuals = value,
+      );
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        setup,
+        visualIdentitiesByBank: visuals!,
+      );
+      final active = session.presentation.activeCombatants;
+      expect(active[0].currentVisualIdentity!.formId, 'player-form');
+      expect(active[0].currentVisualIdentity!.genderId, 'female');
+      expect(active[0].currentVisualIdentity!.isShiny, isTrue);
+      expect(active[1].currentVisualIdentity!.formId, 'wild-form');
+      expect(active[1].currentVisualIdentity!.genderId, 'male');
+      expect(active[1].currentVisualIdentity!.isShiny, isTrue);
+    });
+
+    test(
+      'does not invent a wild identity when its generated individual is unavailable',
+      () async {
+        final manifest = await _writeAndLoadProjectManifest(
+          tempProjectRoot,
+          trainers: const [],
+        );
+        Map<int, List<RuntimeBattleVisualIdentity?>>? visuals;
+        final setup = await RuntimePsdkBattleSetupMapper().map(
+          bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest),
+          gameState: _playerStateForTests(),
+          request: _wildRequest(speciesId: 'sparkitten', level: 10),
+          onVisualIdentities: (value) => visuals = value,
+        );
+        final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+          setup,
+          visualIdentitiesByBank: visuals!,
+        );
+        final opponent = session.presentation.activeCombatants.last;
+        expect(opponent.initialVisualIdentity, isNull);
+        expect(opponent.currentVisualIdentity, isNull);
+        expect(
+          opponent.visualIdentityUnavailableReason,
+          RuntimeBattleVisualIdentityUnavailableReason.unknownSource,
+        );
+      },
+    );
+
+    test(
+      'carries trainer and static opponent identities in their authored order',
+      () async {
+        final trainer = _l32AuthoredTrainer(battleFormat: null).copyWith(
+          team: const [
+            ProjectTrainerPokemonEntry(
+              speciesId: 'aquafi',
+              level: 12,
+              moves: ['tackle'],
+              formId: 'one',
+              gender: 'female',
+              shiny: true,
+            ),
+            ProjectTrainerPokemonEntry(
+              speciesId: 'aquafi',
+              level: 12,
+              moves: ['tackle'],
+              formId: 'two',
+              gender: 'male',
+            ),
+          ],
+        );
+        final manifest = await _writeAndLoadProjectManifest(
+          tempProjectRoot,
+          trainers: [trainer],
+        );
+        final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+        for (final request in <BattleStartRequest>[
+          _trainerRequest(),
+          _staticRequest(),
+        ]) {
+          Map<int, List<RuntimeBattleVisualIdentity?>>? visuals;
+          final setup = await RuntimePsdkBattleSetupMapper().map(
+            bundle: bundle,
+            gameState: _playerStateForTests(),
+            request: request,
+            onVisualIdentities: (
+              Map<int, List<RuntimeBattleVisualIdentity?>> value,
+            ) => visuals = value,
+          );
+          expect(setup.partyForBank(1).map((member) => member.speciesId), [
+            'aquafi',
+            'aquafi',
+          ]);
+          expect(visuals![1]!.map((identity) => identity!.formId), [
+            'one',
+            'two',
+          ]);
+          expect(visuals![1]!.map((identity) => identity!.genderId), [
+            'female',
+            'male',
+          ]);
+          expect(visuals![1]!.map((identity) => identity!.isShiny), [
+            true,
+            false,
+          ]);
+        }
+      },
+    );
+
+    test(
+      'carries the selected player and trainer identities for doubles',
+      () async {
+        final manifest = await _writeAndLoadProjectManifest(
+          tempProjectRoot,
+          ruleset: PokemonRulesetProfile.standardV1,
+          trainers: [_l32AuthoredTrainer()],
+        );
+        final base = _l32PlayerState();
+        final members = base.party.members.toList();
+        members[1] = members[1].copyWith(
+          formId: 'second',
+          gender: 'female',
+          isShiny: true,
+        );
+        members[2] = members[2].copyWith(formId: 'lead', gender: 'male');
+        final gameState = base.copyWith(party: PlayerParty(members: members));
+        Map<int, List<RuntimeBattleVisualIdentity?>>? visuals;
+        final setup = await RuntimePsdkBattleSetupMapper().map(
+          bundle: _buildRuntimeBundle(tempProjectRoot.path, manifest),
+          gameState: gameState,
+          request: _trainerRequest(),
+          playerPartyIndex: 2,
+          onVisualIdentities: (
+            Map<int, List<RuntimeBattleVisualIdentity?>> value,
+          ) => visuals = value,
+        );
+        final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+          setup,
+          visualIdentitiesByBank: visuals!,
+        );
+        final active = session.presentation.activeCombatants;
+        expect(active, hasLength(4));
+        expect(active[0].currentVisualIdentity!.formId, 'lead');
+        expect(active[1].currentVisualIdentity!.formId, 'second');
+        expect(active[1].currentVisualIdentity!.isShiny, isTrue);
+        expect(active[2].currentVisualIdentity!.speciesId, 'aquafi');
+        expect(active[3].currentVisualIdentity!.speciesId, 'sparkitten');
+        expect(active[2].currentVisualIdentity!.genderId, isNull);
+      },
+    );
 
     test(
       'native evolution prevention stays held through a battle turn and save',
