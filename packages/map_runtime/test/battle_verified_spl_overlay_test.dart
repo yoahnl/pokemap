@@ -15,10 +15,14 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_spl_loader.dart';
 
+import '../../map_authoring/test/support/bw2_vm_trace.dart';
 import 'support/load_flame_component.dart';
 
 const _revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
 const _directory = 'res/particles/btlv_effvm_particles/218';
+const _scriptPath = 'res/battle/animations/moves/flamethrower.s';
+const _scriptHash =
+    '4cec7ed1fd757ee10d8e6f07941cefcd709cbaaac365ecf7782593a5dcc897f9';
 const _hashes = {
   'particles.json':
       'c69c571dbb9f9f20fe0a85bcba82aac97333e9c2c69ca968c597fe4f77b2f0e9',
@@ -38,15 +42,16 @@ const _hashes = {
 
 final class _RealHttpOverrides extends HttpOverrides {}
 
-Future<InspectedBattleRecipeBundle> _source218Bundle() async {
+Future<({InspectedBattleRecipeBundle bundle, Uint8List script})>
+_source218Bundle() async {
   final client = HttpClient();
   try {
-    Future<Uint8List> fetch(String name) async {
+    Future<Uint8List> fetch(String path, String expectedHash) async {
       final request = await client
           .getUrl(
             Uri.https(
               'raw.githubusercontent.com',
-              '/fuddlesworth/pokebw2/$_revision/$_directory/$name',
+              '/fuddlesworth/pokebw2/$_revision/$path',
             ),
           )
           .timeout(const Duration(seconds: 20));
@@ -55,7 +60,7 @@ Future<InspectedBattleRecipeBundle> _source218Bundle() async {
         const Duration(seconds: 20),
       );
       if (response.statusCode != HttpStatus.ok) {
-        throw StateError('Source $name returned ${response.statusCode}');
+        throw StateError('Source $path returned ${response.statusCode}');
       }
       final builder = BytesBuilder(copy: false);
       await for (final chunk in response.timeout(const Duration(seconds: 20))) {
@@ -65,14 +70,21 @@ Future<InspectedBattleRecipeBundle> _source218Bundle() async {
         builder.add(chunk);
       }
       final bytes = builder.takeBytes();
-      if (sha256.convert(bytes).toString() != _hashes[name]) {
-        throw StateError('Source digest mismatch: $name');
+      if (sha256.convert(bytes).toString() != expectedHash) {
+        throw StateError('Source digest mismatch: $path');
       }
       return bytes;
     }
 
-    final results = await Future.wait(_hashes.keys.map(fetch));
-    final sources = Map.fromIterables(_hashes.keys, results);
+    final results = await Future.wait([
+      for (final entry in _hashes.entries)
+        fetch('$_directory/${entry.key}', entry.value),
+      fetch(_scriptPath, _scriptHash),
+    ]);
+    final sources = Map.fromIterables(
+      _hashes.keys,
+      results.take(_hashes.length),
+    );
     final converted = Gen5SplParticleConverter.convert(
       sources['particles.json']!,
       particleId: 218,
@@ -144,7 +156,7 @@ Future<InspectedBattleRecipeBundle> _source218Bundle() async {
       'revision': '1',
       'recipeSha256': sha256.convert(recipe).toString(),
     });
-    return const BattleRecipeBundleInspector().inspect(
+    final bundle = const BattleRecipeBundleInspector().inspect(
       binding,
       recipe,
       media,
@@ -160,6 +172,7 @@ Future<InspectedBattleRecipeBundle> _source218Bundle() async {
       expectedProjectMoveId: 'fire',
       expectedCatalogReleaseId: 'test',
     );
+    return (bundle: bundle, script: results.last);
   } finally {
     client.close(force: true);
   }
@@ -185,23 +198,137 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
-    'source 218 renders in the battle scene and releases the runner barrier',
+    'source 218 follows traced timing with camera and sound intents',
     () async {
-      final bundle = await HttpOverrides.runWithHttpOverrides(
+      final source = await HttpOverrides.runWithHttpOverrides(
         _source218Bundle,
         _RealHttpOverrides(),
       );
-      late void Function() finishEffect;
-      final prepared = await BattleVerifiedSplLoader(bundle).create(
-        'particle',
-        emitters: [
-          for (var i = 0; i < 4; i++)
-            BattleSplStaticEmitter(
-              emitterIndex: i,
-              startTick: i < 2 ? 0 : 46,
-              position: (x: i * 4096, y: 0, z: 0),
-            ),
+      final trace = traceBw2VmSegment(
+        source.script,
+        sourceRevision: _revision,
+        sourcePath: _scriptPath,
+        expectedSha256: _scriptHash,
+      );
+      final emitterEvents = trace
+          .where(
+            (event) =>
+                event.instruction == 'EmitterMove' ||
+                event.instruction == 'EmitterAdd',
+          )
+          .toList();
+      final firstEmitterCall = emitterEvents.first.call;
+      expect(
+        emitterEvents
+            .map(
+              (event) => (
+                int.parse(event.arguments[1]),
+                event.call - firstEmitterCall,
+              ),
+            )
+            .toList(),
+        [(0, 0), (1, 1), (3, 52), (2, 53)],
+      );
+      final cameraEvent = trace.singleWhere(
+        (event) => event.instruction == 'CameraMovePreset',
+      );
+      expect(cameraEvent.arguments, ['1', '11', '16', '0', '8']);
+      final cameraStart = cameraEvent.call - firstEmitterCall;
+      final cameraDuration = int.parse(cameraEvent.arguments[2]);
+      expect(cameraStart, 23);
+      expect(
+        trace
+            .where((event) => event.instruction == 'WaitFrames')
+            .map((event) => event.arguments.single),
+        ['20', '26'],
+      );
+      final soundEvents = trace
+          .where((event) => event.instruction == 'PlaySE')
+          .toList();
+      expect(soundEvents.map((event) => event.arguments.first), [
+        'SEQ_SE_W307_01',
+        'SEQ_SE_W027_01',
+        'SEQ_SE_W001_01',
+        'SEQ_SE_BE_SE_016',
+        'SEQ_SE_BE_SE_016',
+        'SEQ_SE_W307_02',
+      ]);
+      expect(soundEvents.map((event) => event.call - firstEmitterCall), [
+        -1,
+        -1,
+        51,
+        51,
+        51,
+        51,
+      ]);
+      expect(soundEvents.map((event) => int.parse(event.arguments[3])), [
+        0,
+        0,
+        0,
+        0,
+        30,
+        10,
+      ]);
+      expect(
+        soundEvents.map((event) => (event.arguments[4], event.arguments[5])),
+        [
+          ('0', '120'),
+          ('2000', '100'),
+          ('-500', '100'),
+          ('0', '127'),
+          ('0', '127'),
+          ('0', '127'),
         ],
+      );
+      final soundAutomation = trace
+          .where(
+            (event) =>
+                event.instruction == 'MoveSE' || event.instruction == 'PanSE',
+          )
+          .toList();
+      expect(soundAutomation.map((event) => event.arguments), [
+        ['2', '0', '0', '-3000', '0', '0', '60', '0', '0'],
+        ['1', '0', 'EFFVM_ATTACKER', 'EFFVM_DEFENDER', '0', '40', '0', '0'],
+        ['2', '0', 'EFFVM_ATTACKER', 'EFFVM_DEFENDER', '0', '40', '0', '0'],
+      ]);
+      expect(soundAutomation.map((event) => event.call - firstEmitterCall), [
+        -1,
+        -1,
+        -1,
+      ]);
+      final impactSound = soundEvents[2];
+      final soundStart = impactSound.call - firstEmitterCall;
+      final marker = 'trace:${impactSound.arguments.first}';
+      final schedule = <BattleSplStaticEmitter>[];
+      for (final event in emitterEvents) {
+        final moving = event.instruction == 'EmitterMove';
+        expect(event.arguments.first, '218');
+        final from = event.arguments[moving ? 3 : 2];
+        expect(from, moving ? 'EFFVM_EMIT_ATTACKER' : 'EFFVM_EMIT_DEFENDER');
+        expect(
+          event.arguments[moving ? 4 : 3],
+          moving ? 'EFFVM_EMIT_DEFENDER' : '8',
+        );
+        if (moving) {
+          expect(event.arguments[2], '1');
+          expect(event.arguments[6], '0');
+        }
+        schedule.add(
+          BattleSplStaticEmitter(
+            emitterIndex: int.parse(event.arguments[1]),
+            startTick: event.call - firstEmitterCall,
+            position: (
+              x: moving ? 0 : 8 * 4096,
+              y: int.parse(event.arguments[moving ? 5 : 4]),
+              z: 0,
+            ),
+          ),
+        );
+      }
+      late void Function() finishEffect;
+      final prepared = await BattleVerifiedSplLoader(source.bundle).create(
+        'particle',
+        emitters: schedule,
         seed: 0,
         poolCapacity: 128,
         maxTicks: 200,
@@ -228,6 +355,7 @@ void main() {
         moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 40)],
       );
       final sounds = <String>[];
+      int? markerTick;
       final overlay = BattleOverlayComponent(
         session: createBattleSession(
           BattleSetup.pokeMapBetaV1ForTest(
@@ -239,7 +367,10 @@ void main() {
         ),
         viewportSize: Vector2(390, 844),
         onPlayerChoice: (_) {},
-        playSfx: (name, {volume = 100, pitch = 100}) => sounds.add(name),
+        playSfx: (name, {volume = 100, pitch = 100}) {
+          sounds.add(name);
+          if (name == marker) markerTick = effect.playback.tick;
+        },
         onStartTrackedEffect: (_, done) {
           finishEffect = done;
           return effect.cancel;
@@ -253,11 +384,20 @@ void main() {
         effect.dispose();
       });
       overlay.presentPostBattlePlan(
-        const BattleAnimationPlan(
+        BattleAnimationPlan(
           steps: [
-            StartTrackedEffectStep(effectId: 'source218'),
-            WaitTrackedEffectsStep(),
-            PlaySeStep(seName: 'after'),
+            const StartTrackedEffectStep(effectId: 'source218'),
+            WaitStep(durationSeconds: cameraStart / 60),
+            CameraFocusStep(
+              target: BattleCameraFocusTarget.target,
+              durationSeconds: cameraDuration / 60,
+            ),
+            WaitStep(
+              durationSeconds: (soundStart - cameraStart - cameraDuration) / 60,
+            ),
+            PlaySeStep(seName: marker),
+            const WaitTrackedEffectsStep(),
+            const PlaySeStep(seName: 'after'),
           ],
         ),
       );
@@ -290,8 +430,12 @@ void main() {
       }
       expect(changed, greaterThan(0));
 
-      for (var i = 12; i < 205 && sounds.isEmpty; i++) {
+      int? cameraTick;
+      for (var i = 12; i < 205 && !sounds.contains('after'); i++) {
         overlay.updateTree(1 / 60);
+        if (overlay.battleCameraFocusSubject?.slot.side == BattleSideId.enemy) {
+          cameraTick ??= effect.playback.tick;
+        }
         for (final frame in effect.playback.frames) {
           if (frame.particles.isNotEmpty) seen.add(frame.emitterIndex);
           if (frame.particles.any((particle) => particle.parentId != null)) {
@@ -302,7 +446,11 @@ void main() {
       expect(seen, {0, 1, 2, 3});
       expect(childSeen, isTrue);
       expect(effect.playback.activeParticles, 0);
-      expect(sounds, ['after']);
+      expect(cameraTick, isNotNull);
+      expect((cameraTick! - cameraStart).abs(), lessThanOrEqualTo(1));
+      expect(markerTick, isNotNull);
+      expect((markerTick! - soundStart).abs(), lessThanOrEqualTo(1));
+      expect(sounds, [marker, 'after']);
       overlay.findGame()!.processLifecycleEvents();
       expect(effect.isMounted, isFalse);
       expect(overlay.children.contains(effect), isFalse);
