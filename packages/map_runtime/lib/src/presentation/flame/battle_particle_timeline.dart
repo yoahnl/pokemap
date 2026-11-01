@@ -21,7 +21,8 @@ final class BattleParticleEmitterTiming {
        _intervalUnits = emissionIntervalMs,
        _lifetimeUnits = particleLifetimeMs,
        _startDelayUnits = startDelayMs,
-       _unitsPerSecond = 1000;
+       _unitsPerSecond = 1000,
+       completeAfterEmissionWindow = false;
 
   const BattleParticleEmitterTiming.ticks({
     required this.textureId,
@@ -32,6 +33,7 @@ final class BattleParticleEmitterTiming {
     required int ticksPerSecond,
     this.fractionalEmission4096 = 0,
     int startDelayTicks = 0,
+    this.completeAfterEmissionWindow = false,
   }) : _durationUnits = emissionDurationTicks,
        _intervalUnits = emissionIntervalTicks,
        _lifetimeUnits = particleLifetimeTicks,
@@ -44,6 +46,7 @@ final class BattleParticleEmitterTiming {
   final int _lifetimeUnits;
   final int _startDelayUnits;
   final int _unitsPerSecond;
+  final bool completeAfterEmissionWindow;
   final int particlesPerEmission;
   final int fractionalEmission4096;
 
@@ -124,13 +127,21 @@ final class BattleParticleTimeline {
           totalBatches > _maximumBatches) {
         throw const FormatException('Particle emission limit exceeded');
       }
-      _states.add(_EmitterState(batches));
-      final end = emitter._microsecondsAt(
+      final minimumCompletionMicros = emitter.completeAfterEmissionWindow
+          ? emitter._microsecondsAt(
+              emitter._startDelayUnits + emitter._durationUnits,
+            )
+          : 0;
+      _states.add(_EmitterState(batches, minimumCompletionMicros));
+      final particleEnd = emitter._microsecondsAt(
         emitter._startDelayUnits +
             (batches - 1) * emitter._intervalUnits +
             emitter._lifetimeUnits,
       );
-      if (end > _endMicros) _endMicros = end;
+      if (particleEnd > _endMicros) _endMicros = particleEnd;
+      if (minimumCompletionMicros > _endMicros) {
+        _endMicros = minimumCompletionMicros;
+      }
     }
   }
 
@@ -149,7 +160,9 @@ final class BattleParticleTimeline {
       !_cancelled &&
       _states.every(
         (state) =>
-            state.emitted == state.batches && state.pendingExpirations.isEmpty,
+            state.emitted == state.batches &&
+            state.pendingExpirations.isEmpty &&
+            _nowMicros >= state.minimumCompletionMicros,
       );
   bool get hasPendingEvents {
     if (_cancelled) return false;
@@ -270,9 +283,10 @@ final class BattleParticleTimeline {
 }
 
 final class _EmitterState {
-  _EmitterState(this.batches);
+  _EmitterState(this.batches, this.minimumCompletionMicros);
 
   final int batches;
+  final int minimumCompletionMicros;
   int emitted = 0;
   final Queue<int> pendingExpirations = Queue<int>();
 }

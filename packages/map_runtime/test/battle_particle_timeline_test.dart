@@ -255,6 +255,82 @@ void main() {
     },
   );
 
+  test('a tick emitter can outlive its last particle', () {
+    final timeline = BattleParticleTimeline([
+      const BattleParticleEmitterTiming.ticks(
+        textureId: 'ticks',
+        ticksPerSecond: 10,
+        emissionDurationTicks: 10,
+        emissionIntervalTicks: 7,
+        particleLifetimeTicks: 1,
+        particlesPerEmission: 1,
+        completeAfterEmissionWindow: true,
+      ),
+    ]);
+    final events = timeline.advance(const Duration(milliseconds: 800));
+    expect(events.map((event) => (event.kind, event.at.inMilliseconds)), [
+      (BattleParticleEventKind.emission, 0),
+      (BattleParticleEventKind.expiration, 100),
+      (BattleParticleEventKind.emission, 700),
+      (BattleParticleEventKind.expiration, 800),
+    ]);
+    expect(timeline.activeParticles, 0);
+    expect(timeline.isComplete, isFalse);
+    timeline.advance(const Duration(milliseconds: 199));
+    expect(timeline.isComplete, isFalse);
+    timeline.advance(const Duration(milliseconds: 1));
+    expect(timeline.isComplete, isTrue);
+  });
+
+  test('a tick emitter also waits for particles beyond its own window', () {
+    final timeline = BattleParticleTimeline([
+      const BattleParticleEmitterTiming.ticks(
+        textureId: 'ticks',
+        ticksPerSecond: 10,
+        startDelayTicks: 2,
+        emissionDurationTicks: 5,
+        emissionIntervalTicks: 2,
+        particleLifetimeTicks: 4,
+        particlesPerEmission: 1,
+        completeAfterEmissionWindow: true,
+      ),
+    ]);
+    timeline.advance(const Duration(milliseconds: 700));
+    expect(timeline.activeParticles, greaterThan(0));
+    expect(timeline.isComplete, isFalse);
+    timeline.advance(const Duration(milliseconds: 299));
+    expect(timeline.isComplete, isFalse);
+    timeline.advance(const Duration(milliseconds: 1));
+    expect(timeline.isComplete, isTrue);
+    expect(timeline.activeParticles, 0);
+  });
+
+  test('an empty emitter still respects its window and work budget', () {
+    final timeline = BattleParticleTimeline([
+      const BattleParticleEmitterTiming.ticks(
+        textureId: 'ticks',
+        ticksPerSecond: 10,
+        emissionDurationTicks: 10,
+        emissionIntervalTicks: 1,
+        particleLifetimeTicks: 1,
+        particlesPerEmission: 0,
+        fractionalEmission4096: 1,
+        completeAfterEmissionWindow: true,
+      ),
+    ]);
+    expect(
+      timeline.advance(const Duration(seconds: 1), workBudget: 2),
+      isEmpty,
+    );
+    expect(timeline.hasPendingEvents, isTrue);
+    expect(timeline.isComplete, isFalse);
+    while (timeline.hasPendingEvents) {
+      expect(timeline.advance(Duration.zero, workBudget: 2), isEmpty);
+    }
+    expect(timeline.activeParticles, 0);
+    expect(timeline.isComplete, isTrue);
+  });
+
   test('rejects invalid tick frequencies and out-of-budget durations', () {
     BattleParticleEmitterTiming timing({
       int rate = 60,
@@ -589,5 +665,56 @@ void main() {
     runner.update(.001);
     expect(sounds, ['after']);
     expect(runner.isActive, isFalse);
+  });
+
+  test('tracked effect barrier waits for the emitter window', () {
+    final timeline = BattleParticleTimeline([
+      const BattleParticleEmitterTiming.ticks(
+        textureId: 'ticks',
+        ticksPerSecond: 10,
+        emissionDurationTicks: 10,
+        emissionIntervalTicks: 7,
+        particleLifetimeTicks: 1,
+        particlesPerEmission: 1,
+        completeAfterEmissionWindow: true,
+      ),
+    ]);
+    final sounds = <String>[];
+    late void Function() complete;
+    final runner = BattleAnimationRunner(
+      onPresentationChanged: () {},
+      onSpawnFx: (_) {},
+      onScreenFlash: (_) {},
+      onCombatantMotion: (_) {},
+      onCombatantFlash: (_) {},
+      onCombatantShake: (_) {},
+      onFaintCombatant: (_) {},
+      onHudHpTween: (_) {},
+      onBarrierPulse: (_) {},
+      onSwapCombatantVisual: (_) {},
+      onPlaySe: (step) => sounds.add(step.seName),
+      onStartTrackedEffect: (_, done) {
+        complete = done;
+        timeline.advance(Duration.zero);
+        return timeline.cancel;
+      },
+    );
+    runner.start(
+      const BattleAnimationPlan(
+        steps: [
+          StartTrackedEffectStep(effectId: 'synthetic'),
+          WaitTrackedEffectsStep(),
+          PlaySeStep(seName: 'after'),
+        ],
+      ),
+    );
+    timeline.advance(const Duration(milliseconds: 800));
+    runner.update(.8);
+    expect(timeline.activeParticles, 0);
+    expect(sounds, isEmpty);
+    timeline.advance(const Duration(milliseconds: 200));
+    if (timeline.isComplete) complete();
+    runner.update(.2);
+    expect(sounds, ['after']);
   });
 }
