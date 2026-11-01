@@ -722,6 +722,136 @@ void main() {
     },
   );
 
+  test('battle scene recovers once when a particle loses its anchor', () async {
+    final image = await redTexture();
+    final png = Uint8List.fromList(
+      (await image.toByteData(format: ui.ImageByteFormat.png))!.buffer
+          .asUint8List(),
+    );
+    var valid = true;
+    late void Function() completeEffect;
+    late void Function() failEffect;
+    final component = BattleParticleSyntheticComponent(
+      definition: definition(png),
+      textures: {'tex': image},
+      centers: const [ui.Offset(3, 3)],
+      centerResolvers: [() => valid ? Vector2(3, 3) : null],
+      maxTextures: 1,
+      maxDimension: 8,
+      maxTotalPixels: 64,
+      onComplete: () => completeEffect(),
+      onInvalidated: () => failEffect(),
+    )..priority = 9999;
+    image.dispose();
+    const stats = BattleStatsSnapshot(
+      attack: 20,
+      defense: 20,
+      specialAttack: 20,
+      specialDefense: 20,
+      speed: 20,
+    );
+    const pokemon = BattleCombatantData(
+      speciesId: 'synthetic',
+      level: 7,
+      maxHp: 25,
+      currentHp: 25,
+      stats: stats,
+      moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 40)],
+    );
+    final sounds = <String>[];
+    final hpTransitions = <int>[];
+    var hpWasTweening = false;
+    var starts = 0;
+    var cancellations = 0;
+    final overlay = BattleOverlayComponent(
+      session: createBattleSession(
+        BattleSetup.pokeMapBetaV1ForTest(
+          playerPokemon: pokemon,
+          enemyPokemon: pokemon,
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      ),
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+      onCommandOverlaySnapshotChanged: (snapshot) {
+        final hud = snapshot?.enemyHud;
+        final isTweening = hud?.targetDisplayedHp == 15;
+        if (isTweening && !hpWasTweening) {
+          hpTransitions.add(hud!.hpTweenRevision);
+        }
+        hpWasTweening = isTweening;
+      },
+      playSfx: (name, {volume = 100, pitch = 100}) => sounds.add(name),
+      onStartRecoverableTrackedEffect: (_, done, failed) {
+        starts++;
+        completeEffect = done;
+        failEffect = failed;
+        return () {
+          cancellations++;
+          component.cancel();
+        };
+      },
+    );
+    overlay.add(component);
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(() {
+      overlay.onRemove();
+      component.dispose();
+    });
+    overlay.presentPostBattlePlan(
+      const BattleAnimationPlan(
+        steps: [
+          StartTrackedEffectStep(
+            effectId: 'synthetic',
+            fallbackSteps: [
+              PlaySeStep(seName: 'fallback'),
+              WaitStep(durationSeconds: .05),
+            ],
+          ),
+          WaitTrackedEffectsStep(),
+          PlaySeStep(seName: 'impact'),
+          HudHpTweenStep(
+            side: BattleSideId.enemy,
+            fromHp: 25,
+            toHp: 15,
+            durationMs: 320,
+          ),
+          PlaySeStep(seName: 'after-hp'),
+        ],
+      ),
+    );
+    overlay.updateTree(.04);
+    expect(starts, 1);
+    expect(await sceneFrame(overlay), [255, 0, 0, 255]);
+    expect(sounds, isEmpty);
+    expect(hpTransitions, isEmpty);
+
+    valid = false;
+    overlay.updateTree(.001);
+    expect(await frame(component), [0, 0, 0, 0]);
+    expect(cancellations, 1);
+    expect(sounds, ['fallback']);
+    expect(hpTransitions, isEmpty);
+
+    completeEffect();
+    failEffect();
+    overlay.updateTree(.06);
+    expect(sounds, ['fallback', 'impact']);
+    expect(hpTransitions, [1]);
+    final hud = overlay.currentCommandOverlaySnapshot!.enemyHud;
+    expect(hud.displayedHp, 25);
+    expect(hud.targetDisplayedHp, 15);
+
+    completeEffect();
+    failEffect();
+    overlay.updateTree(.4);
+    expect(sounds, ['fallback', 'impact', 'after-hp']);
+    expect(hpTransitions, [1]);
+    expect(cancellations, 1);
+  });
+
   test('fractional frame durations retain their accumulated time', () async {
     final image = await redTexture();
     final png = Uint8List.fromList(

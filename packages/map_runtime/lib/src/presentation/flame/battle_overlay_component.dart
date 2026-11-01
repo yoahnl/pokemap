@@ -528,6 +528,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     this.resolveMoveDisplayName = _defaultBattleMoveDisplayName,
     this.playSfx,
     this.onStartTrackedEffect,
+    this.onStartRecoverableTrackedEffect,
     this.playCry,
     this.onOutcomePresented,
     this.introEnabled = false,
@@ -643,6 +644,11 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   final BattleSfxPlayer? playSfx;
   final void Function() Function(StartTrackedEffectStep, void Function())?
       onStartTrackedEffect;
+  final void Function() Function(
+    StartTrackedEffectStep,
+    void Function(),
+    void Function(),
+  )? onStartRecoverableTrackedEffect;
 
   /// Notifié une seule fois, au moment où l'issue devient VISIBLE — plan
   /// d'animation vidé, plus rien en attente. C'est l'horloge du thème de
@@ -2074,6 +2080,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         pitch: step.pitch,
       ),
       onStartTrackedEffect: onStartTrackedEffect,
+      onStartRecoverableTrackedEffect: onStartRecoverableTrackedEffect,
       onBarrierPulse: _handleBarrierPulseStep,
       onSwapCombatantVisual: _handleSwapCombatantVisualStep,
       onSwapCombatantVisualSlot: _handleSwapCombatantVisualSlot,
