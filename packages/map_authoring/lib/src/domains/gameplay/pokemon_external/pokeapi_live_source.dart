@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import '../../../documents/document_errors.dart';
+import 'avelune_catalog_release.dart';
 import 'pokemon_external_http_transport.dart';
 import 'pokemon_external_source_repository.dart';
 
@@ -12,7 +13,7 @@ class PokeApiLiveSource {
     this.baseUri = const String.fromEnvironment(
       'POKEAPI_BASE_URI',
       defaultValue:
-          'https://pokemon-api.yoahn.me/v1/compat/public-2026-10/pokeapi',
+          'https://pokemon-api.yoahn.me/v1/compat/$aveluneCatalogRelease/pokeapi',
     ),
     this.requestTimeout = const Duration(seconds: 20),
     this.userAgent = _defaultUserAgent,

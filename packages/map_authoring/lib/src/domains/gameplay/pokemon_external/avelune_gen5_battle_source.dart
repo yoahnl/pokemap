@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 
 import '../../../documents/document_errors.dart';
+import 'avelune_catalog_release.dart';
 import 'pokemon_external_http_transport.dart';
 
 final class AveluneGen5BattleSourceSnapshot {
@@ -37,7 +38,7 @@ final class AveluneGen5BattleSource {
       'AVELUNE_SNAPSHOT_BASE_URI',
       defaultValue: 'https://pokemon-api.yoahn.me/v1/snapshots',
     ),
-    this.release = 'public-2026-10',
+    this.release = aveluneCatalogRelease,
     this.requestTimeout = const Duration(seconds: 20),
     this.maximumBytes = 20 * 1024 * 1024,
   }) : _client = client {

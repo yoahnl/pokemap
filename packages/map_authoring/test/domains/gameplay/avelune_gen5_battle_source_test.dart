@@ -86,7 +86,7 @@ void main() {
     final transport = _Transport()..revisionHeader = 'X-Source-Revision';
     final source = AveluneGen5BattleSource(client: transport);
     final record = await source.fetch(species: 'oshawott', nationalDex: 501);
-    expect(transport.uri!.path, '/v1/snapshots/public-2026-10/gen5-battle/501');
+    expect(transport.uri!.path, '/v1/snapshots/public-2026-11/gen5-battle/501');
     expect(transport.requestedMaximum, 20 * 1024 * 1024);
     expect(record!.species, 'oshawott');
     expect(record.nationalDex, 501);
@@ -108,6 +108,17 @@ void main() {
       nationalDex: 501,
     );
     expect(result, isNull);
+  });
+
+  test('keeps an explicitly selected older catalog release', () async {
+    final transport = _Transport();
+    final source = AveluneGen5BattleSource(
+      client: transport,
+      release: 'public-2026-10',
+    );
+    final record = await source.fetch(species: 'oshawott', nationalDex: 501);
+    expect(transport.uri!.path, '/v1/snapshots/public-2026-10/gen5-battle/501');
+    expect(record!.release, 'public-2026-10');
   });
 
   test('rejects identity, provenance and asset integrity mismatches', () async {

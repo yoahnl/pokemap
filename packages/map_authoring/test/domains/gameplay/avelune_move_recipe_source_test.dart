@@ -139,7 +139,7 @@ void main() {
     expect(result.catalogMoveId, 'catalog-fire');
     expect(result.recipeMediaId, 'recipe-file');
     expect(transport.requests.first.path,
-        '/v1/media/public-2026-10/owners/move/catalog-fire');
+        '/v1/media/public-2026-11/owners/move/catalog-fire');
     expect(result.bundle.media.keys, containsAll(['tex', 'particle']));
     transport.corrupt = true;
     await expectLater(

@@ -7,7 +7,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
 const _revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
-const _release = 'public-2026-10';
+const _release = 'public-2026-11';
 
 Map<String, Object?> _asset(String path, List<int> bytes) => {
       'path': path,

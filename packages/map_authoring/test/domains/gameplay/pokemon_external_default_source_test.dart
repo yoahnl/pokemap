@@ -18,7 +18,7 @@ class _Transport implements PokemonExternalHttpTransport {
             'name': 'bulbasaur',
             'evolution_chain': {
               'url': 'https://pokemon-api.yoahn.me/v1/compat/'
-                  'public-2026-10/pokeapi/evolution-chain/1',
+                  'public-2026-11/pokeapi/evolution-chain/1',
             },
           })
         : uri.path.endsWith('/pokedex.json')
@@ -56,12 +56,12 @@ void main() {
     expect(
         transport.requests.map((uri) => uri.path),
         containsAll([
-          '/v1/compat/public-2026-10/pokeapi/pokemon-species/bulbasaur',
-          '/v1/compat/public-2026-10/pokeapi/evolution-chain/1',
-          '/v1/compat/public-2026-10/pokeapi/pokemon/bulbasaur',
-          '/v1/compat/public-2026-10/pokeapi/item',
-          '/v1/compat/public-2026-10/showdown/pokedex.json',
-          '/v1/compat/public-2026-10/showdown/moves.json',
+          '/v1/compat/public-2026-11/pokeapi/pokemon-species/bulbasaur',
+          '/v1/compat/public-2026-11/pokeapi/evolution-chain/1',
+          '/v1/compat/public-2026-11/pokeapi/pokemon/bulbasaur',
+          '/v1/compat/public-2026-11/pokeapi/item',
+          '/v1/compat/public-2026-11/showdown/pokedex.json',
+          '/v1/compat/public-2026-11/showdown/moves.json',
         ]));
   });
 }

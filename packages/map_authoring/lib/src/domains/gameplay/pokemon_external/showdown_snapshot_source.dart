@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import '../../../documents/document_errors.dart';
+import 'avelune_catalog_release.dart';
 import 'pokemon_external_http_transport.dart';
 
 class ShowdownSnapshotSource {
@@ -10,7 +11,7 @@ class ShowdownSnapshotSource {
     this.baseUri = const String.fromEnvironment(
       'SHOWDOWN_DATA_BASE_URI',
       defaultValue:
-          'https://pokemon-api.yoahn.me/v1/compat/public-2026-10/showdown',
+          'https://pokemon-api.yoahn.me/v1/compat/$aveluneCatalogRelease/showdown',
     ),
     this.requestTimeout = const Duration(seconds: 20),
     this.userAgent = _defaultUserAgent,

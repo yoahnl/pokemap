@@ -116,7 +116,7 @@ void main() {
             .every((uri) => uri.origin == 'https://pokemon-api.yoahn.me'),
         isTrue);
     expect(transport.urls.last.path,
-        '/v1/media/public-2026-10/bulbasaur-gen5-front-animated');
+        '/v1/media/public-2026-11/bulbasaur-gen5-front-animated');
 
     transport.corrupt = true;
     await expectLater(source.readMedia(entries.single), throwsFormatException);
@@ -136,13 +136,26 @@ void main() {
         source.listPokemonMedia('bulbasaur'), throwsFormatException);
   });
 
+  test('reads media from an explicitly selected older release', () async {
+    final transport = _Transport();
+    final source = AvelunePokemonMediaSource(
+      client: transport,
+      release: 'public-2026-10',
+    );
+    final media = (await source.listPokemonMedia('bulbasaur')).single;
+    expect(media.release, 'public-2026-10');
+    expect(await source.readMedia(media), transport.bytes);
+    expect(transport.urls.last.path,
+        '/v1/media/public-2026-10/bulbasaur-gen5-front-animated');
+  });
+
   test('move media are paginated under their own owner and verified', () async {
     final transport = _PagedTransport();
     final source = AvelunePokemonMediaSource(client: transport);
     final entries = await source.listMoveMedia('flamethrower');
     expect(entries, hasLength(101));
     expect(transport.requests.first.path,
-        '/v1/media/public-2026-10/owners/move/flamethrower');
+        '/v1/media/public-2026-11/owners/move/flamethrower');
     expect(transport.requests.last.queryParameters['after'], 'media-099');
     await expectLater(source.listMoveMedia('../bad'), throwsArgumentError);
   });
