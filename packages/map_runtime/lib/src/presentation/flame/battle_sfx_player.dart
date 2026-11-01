@@ -153,7 +153,12 @@ final class FlameAudioBattleSfxPlayer {
   Future<BattlePreparedRecipeSound> prepareRecipeSound(
     Uint8List bytes,
     String mediaType,
-  ) async {
+  ) async => beginRecipeSound(bytes, mediaType).ready;
+
+  BattleRecipeSoundPreparation beginRecipeSound(
+    Uint8List bytes,
+    String mediaType,
+  ) {
     if (_disposed ||
         _atVoiceLimit ||
         _recipeSounds.length >= _maxRecipeSounds) {
@@ -171,20 +176,14 @@ final class FlameAudioBattleSfxPlayer {
     _recipeSounds.add(sound);
     player.onPlayerComplete.first
         .then<void>(
-          (_) => sound.dispose(),
+          (_) => sound._completeNaturally(),
           onError: (Object error, StackTrace stackTrace) => sound.dispose(),
         )
         .catchError((Object error) {
           debugPrint('[battle-sfx] recipe sound cleanup failed: $error');
         });
     sound._preparation = sound._prepare(snapshot, mediaType);
-    try {
-      await sound._preparation;
-      return sound;
-    } catch (_) {
-      await sound.dispose();
-      rethrow;
-    }
+    return BattleRecipeSoundPreparation._(sound);
   }
 
   Future<void> _release(AudioPlayer player) async {
@@ -238,6 +237,29 @@ final class FlameAudioBattleSfxPlayer {
   }
 }
 
+final class BattleRecipeSoundPreparation {
+  BattleRecipeSoundPreparation._(this._sound) : ready = _awaitReady(_sound) {
+    unawaited(ready.then<void>((_) {}, onError: (Object _) {}));
+  }
+
+  final BattlePreparedRecipeSound _sound;
+  final Future<BattlePreparedRecipeSound> ready;
+
+  static Future<BattlePreparedRecipeSound> _awaitReady(
+    BattlePreparedRecipeSound sound,
+  ) async {
+    try {
+      await sound._preparation;
+      return sound;
+    } catch (_) {
+      await sound.dispose();
+      rethrow;
+    }
+  }
+
+  Future<void> cancel() => _sound.dispose();
+}
+
 final class BattlePreparedRecipeSound {
   BattlePreparedRecipeSound._(this._owner, this._player);
 
@@ -250,6 +272,14 @@ final class BattlePreparedRecipeSound {
   Future<void>? _disposal;
   bool _cancelled = false;
   bool _started = false;
+  bool _completedNaturally = false;
+
+  bool get completedNaturally => _completedNaturally;
+
+  Future<void> _completeNaturally() {
+    if (!_cancelled && _started) _completedNaturally = true;
+    return dispose();
+  }
 
   void _checkActive() {
     if (_cancelled || _owner._disposed) {

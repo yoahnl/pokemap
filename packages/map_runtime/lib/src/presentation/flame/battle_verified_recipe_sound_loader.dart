@@ -6,7 +6,12 @@ extension VerifiedBattleRecipeSoundLoader on FlameAudioBattleSfxPlayer {
   Future<BattlePreparedRecipeSound> prepareVerifiedRecipeSound(
     InspectedBattleRecipeBundle bundle,
     String resourceId,
-  ) async {
+  ) async => beginVerifiedRecipeSound(bundle, resourceId).ready;
+
+  BattleRecipeSoundPreparation beginVerifiedRecipeSound(
+    InspectedBattleRecipeBundle bundle,
+    String resourceId,
+  ) {
     final resource = bundle.recipe.resources
         .where((entry) => entry.id == resourceId && entry.role == 'sound')
         .firstOrNull;
@@ -14,6 +19,6 @@ extension VerifiedBattleRecipeSoundLoader on FlameAudioBattleSfxPlayer {
     if (resource == null || bytes == null) {
       throw const FormatException('Unknown verified recipe sound');
     }
-    return prepareRecipeSound(bytes, resource.mediaType);
+    return beginRecipeSound(bytes, resource.mediaType);
   }
 }
