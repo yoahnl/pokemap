@@ -58,8 +58,9 @@ void main() {
   Future<BattleMoveRecipeBinding> install(
     Map<String, Object> data, {
     String move = 'local',
+    String? rawRecipe,
   }) async {
-    final bytes = utf8.encode(jsonEncode(data));
+    final bytes = utf8.encode(rawRecipe ?? jsonEncode(data));
     final binding = BattleMoveRecipeBinding.fromJson({
       'schemaVersion': 1,
       'projectMoveId': move,
@@ -138,6 +139,27 @@ void main() {
         if (withClip) 'sound',
       });
       expect(result.prepared, isNull);
+      expect(await recipeFile.readAsBytes(), before);
+    }
+  });
+
+  test('invalid v2 numeric tokens preserve the original recipe bytes', () async {
+    for (final token in ['100.0', '100e0']) {
+      final move = token == '100.0' ? 'decimal' : 'exponent';
+      final data = recipe();
+      data['schemaVersion'] = 2;
+      data['requiredCapabilities'] = ['wait', 'audioSelectionV2'];
+      data['audio'] = {'kind': 'none'};
+      final raw = jsonEncode(data).replaceFirst(
+        '"durationMs":100',
+        '"durationMs":$token',
+      );
+      final binding = await install(data, move: move, rawRecipe: raw);
+      final recipeFile = File(
+        '${project.path}/${battleRecipeBlobPath(binding.recipeSha256, 'application/vnd.avelune.battle-recipe+json', projectMoveId: move)}',
+      );
+      final before = await recipeFile.readAsBytes();
+      await expectLater(loader().load(move), throwsFormatException);
       expect(await recipeFile.readAsBytes(), before);
     }
   });

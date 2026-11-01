@@ -33,6 +33,136 @@ void main() {
     'recipeSha256': sha256.convert(bytes).toString(),
   };
 
+  Map<String, dynamic> explicitAudioRecipe() => {
+    ...recipe(),
+    'schemaVersion': 2,
+    'requiredCapabilities': ['wait', 'sound', 'audioSelectionV2'],
+    'provenance': {
+      'source': 'synthetic',
+      'sourceRevision': '1.0',
+      'sourcePaths': ['Pokémon/1e0/"ticks":1.0'],
+      'converter': 'test/1',
+    },
+    'resources': [
+      {
+        'id': 'cue',
+        'role': 'sound',
+        'mediaType': 'audio/wav',
+        'sizeBytes': 1,
+        'sha256': 'a' * 64,
+      },
+      {
+        'id': 'particle',
+        'role': 'particleDefinition',
+        'mediaType': 'application/vnd.avelune.particle+json',
+        'sizeBytes': 1,
+        'sha256': 'b' * 64,
+        'definitionVersion': 1,
+        'dependencies': <String>[],
+      },
+    ],
+    'audio': {
+      'kind': 'seq',
+      'events': [
+        {
+          'sourceId': 'SEQ_EXAMPLE',
+          'resourceId': 'cue',
+          'offset': {'ticks': 1, 'ticksPerSecond': 1},
+        },
+      ],
+    },
+    'program': {'kind': 'wait', 'durationMs': 1},
+  };
+
+  test('enforces integer tokens in every v2 recipe field on VM and Web', () {
+    final text = jsonEncode(explicitAudioRecipe());
+    final validBytes = utf8.encode(text);
+    expect(
+      () => BattleMoveRecipeBinding.fromJson(
+        binding(validBytes),
+      ).inspectRecipe(validBytes),
+      returnsNormally,
+    );
+    for (final (field, value) in [
+      ('schemaVersion', 2),
+      ('sizeBytes', 1),
+      ('definitionVersion', 1),
+      ('ticks', 1),
+      ('ticksPerSecond', 1),
+      ('durationMs', 1),
+    ]) {
+      final expected = '"$field":$value';
+      expect(text.contains(expected), isTrue, reason: field);
+      for (final token in ['$value.0', '${value}e0', '${value}E+0']) {
+        final bytes = utf8.encode(
+          text.replaceFirst(expected, '"$field":$token'),
+        );
+        expect(
+          () => BattleMoveRecipeBinding.fromJson(
+            binding(bytes),
+          ).inspectRecipe(bytes),
+          throwsFormatException,
+          reason: '$field=$token',
+        );
+      }
+    }
+  });
+
+  test('preserves the pre-existing v1 numeric behavior for each platform', () {
+    const isWeb = bool.fromEnvironment('dart.library.js_interop');
+    final text = jsonEncode(recipe());
+    for (final (field, value) in [('schemaVersion', 1), ('durationMs', 100)]) {
+      for (final token in ['$value.0', '${value}e0']) {
+        final bytes = utf8.encode(
+          text.replaceFirst('"$field":$value', '"$field":$token'),
+        );
+        expect(
+          () => BattleMoveRecipeBinding.fromJson(
+            binding(bytes),
+          ).inspectRecipe(bytes),
+          isWeb ? returnsNormally : throwsFormatException,
+          reason: '$field=$token',
+        );
+      }
+    }
+  });
+
+  test('keeps the v2 byte size and nesting limits', () {
+    final oversized = utf8.encode(
+      '${jsonEncode(explicitAudioRecipe())}${' ' * 1048576}',
+    );
+    expect(
+      () => BattleMoveRecipeBinding.fromJson(
+        binding(oversized),
+      ).inspectRecipe(oversized),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          'Recipe bytes do not match binding',
+        ),
+      ),
+    );
+    Object nested = 'source';
+    for (var index = 0; index < 80; index++) {
+      nested = [nested];
+    }
+    final document = explicitAudioRecipe();
+    (document['provenance'] as Map<String, dynamic>)['sourcePaths'] = nested;
+    final bytes = utf8.encode(jsonEncode(document));
+    expect(
+      () =>
+          BattleMoveRecipeBinding.fromJson(binding(bytes)).inspectRecipe(bytes),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          'Recipe JSON too deep',
+        ),
+      ),
+    );
+  });
+
   test('inspects the verified recipe before loading its media', () {
     final bytes = utf8.encode(jsonEncode(recipe()));
     final value = BattleMoveRecipeBinding.fromJson(binding(bytes));

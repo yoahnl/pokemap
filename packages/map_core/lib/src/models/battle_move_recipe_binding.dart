@@ -94,6 +94,7 @@ final class BattleMoveRecipeBinding {
       recipeBytes,
       maxDepth: 72,
       label: 'Recipe',
+      integerNumbersOnlyForSchemaVersion: 2,
     );
     if (decoded is! Map<String, dynamic>) {
       throw const FormatException('Recipe must be a JSON object');

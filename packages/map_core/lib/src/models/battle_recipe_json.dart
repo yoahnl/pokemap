@@ -4,6 +4,7 @@ Object? decodeBoundedBattleJson(
   List<int> bytes, {
   required int maxDepth,
   required String label,
+  int? integerNumbersOnlyForSchemaVersion,
 }) {
   if (bytes.length >= 3 &&
       bytes[0] == 0xef &&
@@ -14,6 +15,7 @@ Object? decodeBoundedBattleJson(
   final text = utf8.decode(bytes);
   final objects = <Set<String>?>[];
   var expectsKey = false;
+  var hasNonIntegerNumber = false;
   for (var index = 0; index < text.length; index++) {
     final character = text.codeUnitAt(index);
     if (character == 0x22) {
@@ -50,7 +52,34 @@ Object? decodeBoundedBattleJson(
       expectsKey = false;
     } else if (character == 0x2c && objects.isNotEmpty) {
       expectsKey = objects.last != null;
+    } else if (integerNumbersOnlyForSchemaVersion != null &&
+        (character == 0x2d || (character >= 0x30 && character <= 0x39))) {
+      var end = index + 1;
+      while (end < text.length) {
+        final next = text.codeUnitAt(end);
+        if (next == 0x20 ||
+            next == 0x09 ||
+            next == 0x0a ||
+            next == 0x0d ||
+            next == 0x2c ||
+            next == 0x5d ||
+            next == 0x7d) {
+          break;
+        }
+        if (next == 0x2e || next == 0x65 || next == 0x45) {
+          hasNonIntegerNumber = true;
+        }
+        end++;
+      }
+      index = end - 1;
     }
   }
-  return jsonDecode(text);
+  final value = jsonDecode(text);
+  if (integerNumbersOnlyForSchemaVersion != null &&
+      value is Map &&
+      value['schemaVersion'] == integerNumbersOnlyForSchemaVersion &&
+      hasNonIntegerNumber) {
+    throw FormatException('$label JSON requires integer number tokens');
+  }
+  return value;
 }
