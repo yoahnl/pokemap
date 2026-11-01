@@ -6,11 +6,14 @@ import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/src/battle_recipe_bundle_inspector.dart';
+import 'package:map_distribution/src/battle_recipe_sound_inspection.dart';
 import 'package:test/test.dart';
 
 void main() {
   Uint8List png(int width, int height) => Uint8List.fromList(
       img.encodePng(img.Image(width: width, height: height)));
+  Uint8List opus() => Uint8List.fromList(base64Decode(
+      'T2dnUwACAAAAAAAAAADuBLX4AAAAADxbltoBE09wdXNIZWFkAQE4AYC7AAAAAABPZ2dTAAAAAAAAAAAAAO4EtfgBAAAA+C6b8wE8T3B1c1RhZ3MMAAAATGF2ZjYzLjEuMTAyAQAAABwAAABlbmNvZGVyPUxhdmM2My4xLjEwMiBsaWJvcHVzT2dnUwAEmAoAAAAAAADuBLX4AgAAAJbj3V4DAwMD+P/++P/++P/+'));
   Uint8List wav({int rate = 8000, int channels = 1, int samples = 800}) {
     final dataSize = samples * channels;
     final bytes = Uint8List(44 + dataSize + (dataSize & 1));
@@ -67,6 +70,34 @@ void main() {
     }
     data.setUint32(22, crc, Endian.little);
     return bytes;
+  }
+
+  Uint8List changeLastOggPage(
+      Uint8List source, void Function(List<int>, int) change) {
+    final bytes = source.toList();
+    var offset = 0, last = 0;
+    while (offset < source.length) {
+      last = offset;
+      final count = source[offset + 26];
+      offset += 27 + count;
+      for (var i = 0; i < count; i++) {
+        offset += source[last + 27 + i];
+      }
+    }
+    change(bytes, last);
+    bytes.setRange(last + 22, last + 26, [0, 0, 0, 0]);
+    var crc = 0;
+    for (var i = last; i < bytes.length; i++) {
+      crc ^= bytes[i] << 24;
+      for (var bit = 0; bit < 8; bit++) {
+        crc = ((crc << 1) ^ ((crc & 0x80000000) == 0 ? 0 : 0x04c11db7))
+            .toUnsigned(32);
+      }
+    }
+    for (var i = 0; i < 4; i++) {
+      bytes[last + 22 + i] = (crc >> (8 * i)) & 0xff;
+    }
+    return Uint8List.fromList(bytes);
   }
 
   ({
@@ -280,19 +311,73 @@ void main() {
       expect(result.media['sound'], sound, reason: entry.key);
       expect(() => result.media['sound']![0] = 0, throwsUnsupportedError);
     }
-    final opus = Uint8List.fromList(base64Decode(
-        'T2dnUwACAAAAAAAAAADuBLX4AAAAADxbltoBE09wdXNIZWFkAQE4AYC7AAAAAABPZ2dTAAAAAAAAAAAAAO4EtfgBAAAA+C6b8wE8T3B1c1RhZ3MMAAAATGF2ZjYzLjEuMTAyAQAAABwAAABlbmNvZGVyPUxhdmM2My4xLjEwMiBsaWJvcHVzT2dnUwAEmAoAAAAAAADuBLX4AgAAAJbj3V4DAwMD+P/++P/++P/+'));
-    final sample = fixture(png(2, 2), sound: opus, soundType: 'audio/ogg');
+    final sound = opus();
+    final sample = fixture(png(2, 2), sound: sound, soundType: 'audio/ogg');
     expect(() => inspect(sample, limits()), returnsNormally);
-    final invalidChannels = changeFirstOggPage(opus, (bytes) => bytes[37] = 9);
+    final invalidChannels = changeFirstOggPage(sound, (bytes) => bytes[37] = 9);
     final invalidGranule = changeFirstOggPage(
-        opus,
+        sound,
         (bytes) => ByteData.sublistView(bytes)
             .setUint32(6, 0x7fffffff, Endian.little));
     for (final sound in [invalidChannels, invalidGranule]) {
       final invalid = fixture(png(2, 2), sound: sound, soundType: 'audio/ogg');
       expect(() => inspect(invalid, limits()), throwsFormatException);
     }
+  });
+
+  test('accepts bounded zero padding after a complete Ogg sound', () {
+    final sounds = [
+      opus(),
+      File('../map_runtime/assets/audio/battle/se/118-fire02.ogg')
+          .readAsBytesSync(),
+    ];
+    for (final sound in sounds) {
+      for (final size in [1, 32, 4096]) {
+        final padded = Uint8List.fromList([...sound, ...List.filled(size, 0)]);
+        final sample =
+            fixture(png(2, 2), sound: padded, soundType: 'audio/ogg');
+        expect(() => inspect(sample, limits(maxBundleBytes: 1024 * 1024)),
+            returnsNormally,
+            reason: 'zero padding: $size bytes');
+      }
+    }
+  });
+
+  test('rejects invalid or oversized data after an Ogg sound', () {
+    final sound = opus();
+    final corrupted = Uint8List.fromList(sound)..[sound.length - 1] ^= 1;
+    final missingEnd = changeLastOggPage(sound, (bytes, offset) {
+      bytes[offset + 5] &= ~4;
+    });
+    final unfinished = changeLastOggPage(sound, (bytes, offset) {
+      final lastSegment = offset + 26 + bytes[offset + 26];
+      final length = bytes[lastSegment];
+      bytes[lastSegment] = 255;
+      bytes.addAll(List.filled(255 - length, 0));
+    });
+    final invalid = {
+      'too much padding': [...sound, ...List.filled(4097, 0)],
+      'nonzero suffix': [...sound, 0, 1],
+      'truncated': [
+        ...sound.sublist(0, sound.length - 1),
+        ...List.filled(32, 0)
+      ],
+      'corrupt checksum': [...corrupted, ...List.filled(32, 0)],
+      'missing end': [...missingEnd, ...List.filled(32, 0)],
+      'unfinished packet': [...unfinished, ...List.filled(32, 0)],
+      'reused stream serial': [...sound, ...sound],
+    };
+    for (final entry in invalid.entries) {
+      final sample = fixture(png(2, 2),
+          sound: Uint8List.fromList(entry.value), soundType: 'audio/ogg');
+      expect(() => inspect(sample, limits(maxBundleBytes: 1024 * 1024)),
+          throwsFormatException,
+          reason: entry.key);
+    }
+    final oversized = Uint8List(maxBattleRecipeSoundBytes + 1)
+      ..setRange(0, sound.length, sound);
+    expect(() => inspectBattleRecipeSound(oversized, 'audio/ogg'),
+        throwsFormatException);
   });
 
   test(

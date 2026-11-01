@@ -150,8 +150,14 @@ bool _inspectOgg(Uint8List bytes) {
   var finalSamples = 0, previousGranule = 0;
   final header = <int>[];
   while (offset < bytes.length) {
-    if (ended ||
-        offset + 27 > bytes.length ||
+    if (ended) {
+      if (bytes.length - offset > 4096 ||
+          Uint8List.sublistView(bytes, offset).any((byte) => byte != 0)) {
+        return false;
+      }
+      break;
+    }
+    if (offset + 27 > bytes.length ||
         !_matches(bytes, offset, 'OggS') ||
         bytes[offset + 4] != 0) {
       return false;
