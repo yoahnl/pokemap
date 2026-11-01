@@ -26,6 +26,8 @@ final class Gen5SourceCandidate {
 
 Gen5SourceCandidate selectGen5SourceCandidate({
   required Map<String, Object?>? document,
+  required String expectedSpecies,
+  required int expectedNationalDex,
   required String view,
   required bool shiny,
   required bool gifAvailable,
@@ -48,6 +50,13 @@ Gen5SourceCandidate selectGen5SourceCandidate({
     return fallback(Gen5SourceCandidateReason.missingSource);
   if (!rendererSupported) {
     return fallback(Gen5SourceCandidateReason.unsupportedRenderer);
+  }
+  if (document['species'] != expectedSpecies ||
+      document['nationalDex'] != expectedNationalDex) {
+    return fallback(
+      Gen5SourceCandidateReason.invalidSource,
+      'Source identity mismatch',
+    );
   }
   try {
     final assets = verifyGen5SourceAssets(document);

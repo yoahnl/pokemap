@@ -127,6 +127,23 @@ Map<String, Object?> _validSource() {
 }
 
 void main() {
+  test('refuses source data for a different requested species or dex', () {
+    final source = _validSource();
+    for (final (species, dex) in [('bulbasaur', 1), ('pikachu', 26)]) {
+      final result = selectGen5SourceCandidate(
+        document: source,
+        expectedSpecies: species,
+        expectedNationalDex: dex,
+        view: 'front',
+        shiny: false,
+        gifAvailable: true,
+        rendererSupported: true,
+      );
+      expect(result.kind, Gen5SourceCandidateKind.gifFallback);
+      expect(result.reason, Gen5SourceCandidateReason.invalidSource);
+    }
+  });
+
   test('selects and decodes the requested view and palette when supported', () {
     final document = _validSource();
     for (final (side, shiny, width, red, blue) in [
@@ -135,6 +152,8 @@ void main() {
     ]) {
       final result = selectGen5SourceCandidate(
         document: document,
+        expectedSpecies: 'pikachu',
+        expectedNationalDex: 25,
         view: side,
         shiny: shiny,
         gifAvailable: true,
@@ -152,6 +171,8 @@ void main() {
   test('uses the GIF candidate when articulated data is absent', () {
     final result = selectGen5SourceCandidate(
       document: null,
+      expectedSpecies: 'pikachu',
+      expectedNationalDex: 25,
       view: 'front',
       shiny: false,
       gifAvailable: true,
@@ -165,6 +186,8 @@ void main() {
   test('reports corruption and does not select missing GIF data', () {
     final withGif = selectGen5SourceCandidate(
       document: {},
+      expectedSpecies: 'pikachu',
+      expectedNationalDex: 25,
       view: 'back',
       shiny: false,
       gifAvailable: true,
@@ -175,6 +198,8 @@ void main() {
     expect(withGif.diagnostic, isNotEmpty);
     final withoutGif = selectGen5SourceCandidate(
       document: {},
+      expectedSpecies: 'pikachu',
+      expectedNationalDex: 25,
       view: 'back',
       shiny: false,
       gifAvailable: false,
@@ -190,6 +215,8 @@ void main() {
       expect(
         () => selectGen5SourceCandidate(
           document: null,
+          expectedSpecies: 'pikachu',
+          expectedNationalDex: 25,
           view: 'side',
           shiny: false,
           gifAvailable: true,
@@ -208,6 +235,8 @@ void main() {
       ..['data'] = base64.encode(broken);
     final result = selectGen5SourceCandidate(
       document: document,
+      expectedSpecies: 'pikachu',
+      expectedNationalDex: 25,
       view: 'front',
       shiny: false,
       gifAvailable: true,
@@ -220,6 +249,8 @@ void main() {
   test('keeps GIF fallback when the renderer cannot display the source', () {
     final result = selectGen5SourceCandidate(
       document: {},
+      expectedSpecies: 'pikachu',
+      expectedNationalDex: 25,
       view: 'front',
       shiny: false,
       gifAvailable: true,
